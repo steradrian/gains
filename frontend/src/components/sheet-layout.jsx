@@ -1,5 +1,6 @@
 import { Children, Fragment } from 'react'
 import { t } from '../lib/i18n.js'
+import { cx, oneOf, STEPS } from '../lib/ui-kit.js'
 import Icon from './Icon.jsx'
 import { Spacer } from './layout.jsx'
 
@@ -16,7 +17,7 @@ export function SheetHeader({ title, sub, onClose, action }) {
     {subLine}
   </>
   return <>
-    <div className={'row between ' + (sub != null ? 'mb-1' : 'mb-7')}>
+    <div className={cx('row between', sub != null ? 'mb-1' : 'mb-7')}>
       <h3 className="m-0">{title}</h3>
       {close && action ? <div className="row g-4">{action}{close}</div> : action || close}
     </div>
@@ -27,6 +28,7 @@ export function SheetHeader({ title, sub, onClose, action }) {
 // The sheet's buttons, under a 14px spacer and `gap` steps apart (default 4, 8px): the
 // spacer-and-button run every sheet ends with.
 export function SheetActions({ gap = 4, children }) {
+  oneOf('SheetActions', 'gap', gap, STEPS)
   return <>
     <Spacer size={7} />
     {Children.toArray(children).map((child, i) => <Fragment key={i}>

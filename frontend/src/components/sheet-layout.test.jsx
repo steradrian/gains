@@ -66,4 +66,8 @@ describe('SheetActions', () => {
     same(<SheetActions gap={1}><Button>A</Button><Button>B</Button></SheetActions>,
       <><div className="sp-7" /><Button>A</Button><div className="sp-1" /><Button>B</Button></>)
   })
+
+  it('throws in development on a gap off the scale', () => {
+    expect(() => html(<SheetActions gap={20}><Button>A</Button></SheetActions>)).toThrow(/SheetActions: gap=20/)
+  })
 })

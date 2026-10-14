@@ -29,6 +29,11 @@ describe('Page', () => {
     same(<MemoryRouter><Page root title="Nutrition" sub="Today"><div className="card">x</div></Page></MemoryRouter>,
       <MemoryRouter><RootHeader title="Nutrition" sub="Today" /><div className="card">x</div></MemoryRouter>)
   })
+
+  it('throws in development when a root page is given an action or onBack it cannot show', () => {
+    expect(() => html(<MemoryRouter><Page root title="Food" action={<button>+</button>} /></MemoryRouter>)).toThrow(/root page/)
+    expect(() => html(<MemoryRouter><Page root title="Food" onBack={back} /></MemoryRouter>)).toThrow(/root page/)
+  })
 })
 
 describe('Stack', () => {
@@ -40,6 +45,15 @@ describe('Stack', () => {
     same(<Stack gap={6} as="section" className="meals"><p>a</p><p>b</p></Stack>,
       <section className="stack g-6 meals"><p>a</p><p>b</p></section>)
   })
+
+  it('takes a gap of 0 and the 5px half step', () => {
+    same(<Stack gap={0}>a</Stack>, <div className="stack g-0">a</div>)
+    same(<Stack gap={2.5}>a</Stack>, <div className="stack g-2.5">a</div>)
+  })
+
+  it('throws in development on a gap off the scale', () => {
+    expect(() => html(<Stack gap={11}>a</Stack>)).toThrow(/Stack: gap=11/)
+  })
 })
 
 describe('Spacer', () => {
@@ -49,6 +63,12 @@ describe('Spacer', () => {
 
   it('takes a size step', () => {
     same(<Spacer size={7} />, <div className="sp-7" />)
+    same(<Spacer size={2.5} />, <div className="sp-2.5" />)
+  })
+
+  it('throws in development on a size off the scale', () => {
+    expect(() => html(<Spacer size={0} />)).toThrow(/Spacer: size=0/)
+    expect(() => html(<Spacer size={12} />)).toThrow(/Spacer: size=12/)
   })
 })
 
@@ -69,6 +89,16 @@ describe('Inline', () => {
   it('takes a gap, wrap, an alignment, an element and a class', () => {
     same(<Inline gap={4} wrap align="baseline" as="span" className="small">a</Inline>,
       <span className="row g-4 wrap ai-baseline small">a</span>)
+  })
+
+  it('takes a gap of 0', () => {
+    same(<Inline gap={0}>a</Inline>, <div className="row g-0">a</div>)
+  })
+
+  it('throws in development on a gap, justify or align it has no class for', () => {
+    expect(() => html(<Inline gap={13}>a</Inline>)).toThrow(/Inline: gap=13/)
+    expect(() => html(<Inline justify="around">a</Inline>)).toThrow(/Inline: justify="around"/)
+    expect(() => html(<Inline align="center">a</Inline>)).toThrow(/Inline: align="center"/)
   })
 
   it('passes other props through', () => {
