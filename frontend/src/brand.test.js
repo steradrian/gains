@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { BRAND, brandText } from './brand.js'
+import { BRAND, LINKS, brandText } from './brand.js'
 import { t, tn, _setLangState } from './lib/i18n-core.js'
 
 describe('brand', () => {
@@ -28,6 +28,28 @@ describe('brand', () => {
 
   it('leaves a path or URL alone: Documents/openGym is a real folder on the phone', () => {
     expect(t('openGym copies go to Documents/openGym again.')).toBe(`${BRAND.name} copies go to Documents/openGym again.`)
+  })
+
+  it('makes a possessive without doubling the s, straight or curly apostrophe', () => {
+    expect(brandText('an answer that is not openGym\'s')).toBe('an answer that is not Gains\'')
+    expect(brandText('Something other than openGym’s health')).toBe('Something other than Gains’ health')
+  })
+
+  it('handles a name at the start of a sentence and "An openGym" at the start', () => {
+    expect(brandText('openGym is free.')).toBe('Gains is free.')
+    expect(brandText('An openGym backup.')).toBe('A Gains backup.')
+    expect(brandText('Is this an openGym server?')).toBe('Is this a Gains server?')
+  })
+
+  it('answers the same for a repeated string (cached)', () => {
+    expect(brandText('Use openGym')).toBe(brandText('Use openGym'))
+  })
+
+  it('keeps "openGym" where it is the upstream credit or the licence notice', () => {
+    expect(t('Built on {0} by {1}.', 'openGym', 'Duarte Santos')).toBe('Built on openGym by Duarte Santos.')
+    expect(LINKS.copyright[0]).toContain('openGym')
+    expect(LINKS.upstream.name).toBe('openGym')
+    expect(LINKS.upstream.url).toContain('/openGym')
   })
 
   it('passes non-strings through', () => {

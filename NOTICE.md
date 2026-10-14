@@ -3,7 +3,8 @@
 openGym — Copyright (C) 2026 Duarte Santos.
 openGym's own code is licensed under the **GNU AGPL v3.0** (see [LICENSE](LICENSE)).
 
-This fork ("Gains", <https://github.com/steradrian/openGym>) modifies openGym; its modifications are
+This fork ("Gains", <https://github.com/steradrian/gains>, with the nutrition app at
+<https://github.com/steradrian/gains-nutrition>) modifies openGym; its modifications are
 Copyright (C) 2026 steradrian and licensed under the same AGPL v3.0. The app shows these notices
 under Settings, About & updates, Licences.
 
