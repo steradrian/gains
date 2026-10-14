@@ -3018,35 +3018,33 @@ paths:
     get:
       tags: [sync]
       operationId: syncWorkouts
-      summary: 'Sync: finished workouts changed since a revision'
+      summary: 'Sync: finished workouts changed since the last pass'
       description: |
-        Every finished workout whose summary changed after revision `since`, and every workout
-        removed after it, in revision order, a page at a time. Pass back the `rev` and `wid` of
-        the last page of the previous pass as `since` and `wid`.
+        Every finished workout whose summary changed after the pass `since` names, and every
+        workout removed after it, in revision order, a page at a time. The last page of a pass
+        carries `next_since`, an opaque token no other route hands out: keep the last one that
+        arrived and send it as `since`. Everything after that pass comes, however many answers in
+        between were lost on the way.
 
-        The server learns what changed by comparing summaries when this route is read, against
-        what it handed out before. So `since` must be a revision a pass of this route ended at,
-        and it counts from the pass before that one: what the last pass handed out comes once
-        more, so an answer lost on the way loses nothing (the hub's hashes absorb the repeat). A
-        change only the hub cannot see (a note, a photo) is no change. Without `since`, with one no
-        pass of this route ended at (a weigh-in write's revision, a restart, the first pass after
-        one), with one the profile never reached, with a `wid` the stored document does not descend
-        from, or after the profile's data went back in time (a restored backup), the pass is
-        `full`: every workout there is and every removal on record. In a full
-        pass, a workout the hub holds that is not listed is no longer in the profile; hold such
-        deletes behind the same guard as a `reset_at`. A profile with no state file answers 409
-        `no-state`, never an empty list.
+        The server learns what changed by comparing summaries when this route is read. A change
+        only the hub cannot see (a note, a photo) is no change. Without `since`, or with anything
+        but a token of this profile's current log (a `rev` from any route, a token from before a
+        restart or from before the profile's data went back in time, a restored backup), the pass
+        is `full`: every workout there is and every removal on record. In a full pass, a workout
+        the hub holds that is not listed is no longer in the profile; hold such deletes behind the
+        same guard as a `reset_at`. A profile with no state file answers 409 `no-state`, never an
+        empty list.
 
         A workout is named by its own `id`, or by `d<date>s<start>` when it has none (an old
         import); one with neither is left out. `date` is the local day as the app stored it,
-        never derived from `start`.
+        never derived from `start`. Ids are capped at 128 characters and names at 200, and a page
+        stops at `limit` entries or about 256 KB, whichever comes first.
       security:
         - hubToken: []
       parameters:
-        - { name: since, in: query, schema: { type: integer, minimum: 0 }, description: 'The `rev` the previous pass of this route ended at (never one from another route). Absent: a full pass.' }
-        - { name: wid, in: query, schema: { type: string }, description: 'The `wid` the previous pass ended at: one the stored document does not descend from makes the pass full.' }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 }, description: Entries (workouts and removals together) per page. }
-        - { name: cursor, in: query, schema: { type: string }, description: 'The `next_cursor` of the page before. A cursor carries the pass on; `since` and `wid` are then ignored.' }
+        - { name: since, in: query, schema: { type: string }, description: 'The `next_since` of the last pass that arrived. Absent, or anything else: a full pass.' }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 }, description: Entries (workouts and removals together) per page, at most. }
+        - { name: cursor, in: query, schema: { type: string }, description: 'The `next_cursor` of the page before. A cursor carries the pass on; `since` is then ignored.' }
       responses:
         '200':
           description: One page of changes.
@@ -3069,6 +3067,7 @@ paths:
                         id: { type: string }
                         deleted_at: { type: [integer, 'null'], description: 'The removal on record, ms; null when the workout went without one.' }
                   next_cursor: { type: [string, 'null'], description: 'More of this pass; null on its last page.' }
+                  next_since: { type: [string, 'null'], description: 'On the last page of a pass: the `since` of the next one. Null while there is more.' }
               example:
                 rev: 412
                 wid: 9f3a0c1d2e4b5a69
@@ -3092,10 +3091,11 @@ paths:
                     content_hash: 'sha256:5b1d…'
                 deleted: [{ id: lq1x0a2b3c, deleted_at: 1760430999000 }]
                 next_cursor: null
+                next_since: eyJlIjoiOWYzYTBjMWQyZTRiIiwiciI6NDEyfQ
           headers:
             ETag: { $ref: '#/components/headers/SyncETag' }
         '400':
-          description: '`since`, `wid`, `limit` or `cursor` is malformed (`code`: `bad-since`, `bad-wid`, `bad-limit`, `bad-cursor`).'
+          description: '`limit` or `cursor` is malformed (`code`: `bad-limit`, `bad-cursor`).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -3119,8 +3119,8 @@ paths:
       security:
         - hubToken: []
       parameters:
-        - { name: from, in: query, schema: { type: string, format: date }, description: First date (inclusive). }
-        - { name: to, in: query, schema: { type: string, format: date }, description: Last date (inclusive). }
+        - { name: from, in: query, schema: { type: string, format: date }, description: 'First date (inclusive), 1900-01-01 to tomorrow.' }
+        - { name: to, in: query, schema: { type: string, format: date }, description: 'Last date (inclusive), 1900-01-01 to tomorrow.' }
       responses:
         '200':
           description: The weigh-ins and removals in the range.
@@ -3168,8 +3168,9 @@ paths:
         Sets the date's weigh-in to `kg`, stored in the profile's unit to 0.1 like the app's own
         weigh-in; any other field the app keeps on that entry stays. Read, changed and written on
         the server with nothing in between, so a device's save can never be lost inside it; and only
-        over the revision named in `If-Match`, so a save that landed after the hub read the profile
-        is a 409 to decide again on, never overwritten. The entry's `t`, and the document's `_ts`,
+        over the version named in `If-Match` (revision and write id), so a save that landed after
+        the hub read the profile is a 409 to decide again on, never overwritten. The body is at
+        most 4 KB. The entry's `t`, and the document's `_ts`,
         are the server's clock moved past anything the profile held, so every device's merge keeps
         it as the newest change, and a correction made on a phone after it still wins. The write
         moves the revision: open devices pick it up on their next poll. A value within half the
@@ -3178,8 +3179,8 @@ paths:
       security:
         - hubToken: []
       parameters:
-        - { name: date, in: path, required: true, schema: { type: string, format: date }, description: 'The day, as a `YYYY-MM-DD` string.' }
-        - { name: If-Match, in: header, required: true, schema: { type: string }, description: 'The `ETag` this write was decided on: `"<rev>:<wid>"`, or `"<rev>"` alone.' }
+        - { name: date, in: path, required: true, schema: { type: string, format: date }, description: 'The day, as a `YYYY-MM-DD` string, 1900-01-01 to tomorrow.' }
+        - { name: If-Match, in: header, required: true, schema: { type: string }, description: 'The `ETag` this write was decided on, `"<rev>:<wid>"`. The revision alone is taken only by a document that has no write id yet.' }
       requestBody:
         required: true
         content:
@@ -3188,7 +3189,7 @@ paths:
               type: object
               required: [kg]
               properties:
-                kg: { type: number, exclusiveMinimum: 0, maximum: 700, description: The weight in kg. }
+                kg: { type: number, minimum: 20, maximum: 400, description: The weight in kg. }
                 t: { type: integer, description: 'When the value was taken on the hub''s side, ms. Checked and never used: the server stamps every write by its own clock.' }
               example: { kg: 78.4, t: 1760410000000 }
       responses:
@@ -3198,10 +3199,16 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-              example: { error: "kg must be a number above 0 and at most 700", code: "bad-weight" }
+              example: { error: "kg must be a number from 20 to 400", code: "bad-weight" }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
         '409': { $ref: '#/components/responses/SyncWeighInConflict' }
+        '413':
+          description: The body is over 4 KB.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "body too large" }
         '428': { $ref: '#/components/responses/SyncPreconditionRequired' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
     delete:
@@ -3215,8 +3222,8 @@ paths:
       security:
         - hubToken: []
       parameters:
-        - { name: date, in: path, required: true, schema: { type: string, format: date }, description: 'The day, as a `YYYY-MM-DD` string.' }
-        - { name: If-Match, in: header, required: true, schema: { type: string }, description: 'The `ETag` this removal was decided on: `"<rev>:<wid>"`, or `"<rev>"` alone.' }
+        - { name: date, in: path, required: true, schema: { type: string, format: date }, description: 'The day, as a `YYYY-MM-DD` string, 1900-01-01 to tomorrow.' }
+        - { name: If-Match, in: header, required: true, schema: { type: string }, description: 'The `ETag` this removal was decided on, `"<rev>:<wid>"`. The revision alone is taken only by a document that has no write id yet.' }
       responses:
         '200': { $ref: '#/components/responses/SyncWeighInWritten' }
         '400':
@@ -3359,7 +3366,10 @@ components:
               entry: { oneOf: [{ $ref: '#/components/schemas/SyncWeighIn' }, { type: 'null' }] }
           example: { error: "conflict", code: "rev-mismatch", rev: 413, wid: ab12cd34ef56ab78, entry: { date: '2026-10-14', kg: 81, t: 1760410000999 } }
     SyncPreconditionRequired:
-      description: No `If-Match`. Every weigh-in write names the revision it was decided on.
+      description: >-
+        No `If-Match`, or one with the revision alone on a document that has a write id. Every
+        weigh-in write names the version it was decided on, `"<rev>:<wid>"`; the current one is in
+        the `ETag` header of this answer.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -3899,13 +3909,13 @@ components:
         and estimate its energy, never the sets themselves. `content_hash` covers every field but
         `edited_at`: a different hash is a change worth passing on.
       properties:
-        id: { type: string, description: 'The workout''s `id`, or `d<date>s<start>` for one without.' }
-        date: { type: [string, 'null'], format: date, description: The local day as stored. }
+        id: { type: string, maxLength: 128, description: 'The workout''s `id`, or `d<date>s<start>` for one without; cut at 128 characters.' }
+        date: { type: [string, 'null'], format: date, description: 'The local day as stored; null when what is stored is not a date.' }
         start: { type: [integer, 'null'], description: ms }
         end: { type: [integer, 'null'], description: ms }
         duration_min: { type: [integer, 'null'], description: 'From `start` and `end`; null unless `end` is after `start`.' }
-        name: { type: [string, 'null'] }
-        routine_id: { type: [string, 'null'] }
+        name: { type: [string, 'null'], maxLength: 200, description: Cut at 200 characters. }
+        routine_id: { type: [string, 'null'], maxLength: 128, description: Cut at 128 characters. }
         sets_done: { type: integer, description: 'Sets ticked done (a per-side set with either side ticked).' }
         strength_sets: { type: integer, description: Of those, the ones that are not cardio. }
         cardio:

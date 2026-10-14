@@ -3,8 +3,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  toKg, fromKg, isDate, workoutId, workoutItem, trackWorkouts, changesSince, decodeCursor,
-  bodyweightView, weighInOf, withWeighIn, withoutWeighIn
+  toKg, fromKg, isDate, isSyncDate, workoutId, workoutItem, workoutItems, trackWorkouts, changesSince, decodeCursor,
+  bodyweightView, weighInOf, withWeighIn, withoutWeighIn, ID_MAX, NAME_MAX
 } from '../sync-data.js';
 
 const set = (over = {}) => ({ w: 60, r: 8, done: true, ...over });
@@ -16,21 +16,25 @@ const workout = (id, over = {}) => ({
 });
 const doc = (rev, wid, over = {}) => ({ unit: 'kg', _rev: rev, _wid: wid, workouts: [], ...over });
 // Every page of one pass, as the hub reads it.
-function pass(log, S, opts) {
+function pass(log, S, opts = {}) {
+  const items = workoutItems(S);
   const pages = [];
   let cursor = null;
   do {
-    const p = changesSince(log, S, { ...opts, cursor: cursor && decodeCursor(cursor) });
+    const p = changesSince(log, items, { ...opts, cursor: cursor && decodeCursor(cursor) });
     pages.push(p);
     cursor = p.next_cursor;
   } while (cursor);
   return {
     full: pages.every(p => p.full),
     items: pages.flatMap(p => p.items.map(i => i.id)),
+    names: pages.flatMap(p => p.items.map(i => i.name)),
     deleted: pages.flatMap(p => p.deleted.map(d => d.id)),
-    pages: pages.length
+    pages: pages.length,
+    next: pages.at(-1).next_since
   };
 }
+const quiet = ({ full, items, deleted, pages }) => ({ full, items, deleted, pages });
 
 describe('units', () => {
   it('kg on the wire, the profile’s unit in the state, both ways', () => {
@@ -55,6 +59,12 @@ describe('units', () => {
   it('dates are real YYYY-MM-DD dates', () => {
     for (const d of ['2026-10-14', '2024-02-29']) assert.equal(isDate(d), true, d);
     for (const d of ['2026-02-30', '2025-02-29', '2026-1-01', '2026-10-14T00:00', '', null, 20261014]) assert.equal(isDate(d), false, String(d));
+  });
+
+  it('a date the hub may name runs from 1900-01-01 to tomorrow', () => {
+    const now = Date.parse('2026-10-14T23:30:00Z');
+    for (const d of ['1900-01-01', '2026-10-14', '2026-10-15']) assert.equal(isSyncDate(d, now), true, d);
+    for (const d of ['1899-12-31', '2026-10-16', '9999-12-31', '0001-01-01']) assert.equal(isSyncDate(d, now), false, d);
   });
 });
 
@@ -119,132 +129,160 @@ describe('workoutItem', () => {
 });
 
 describe('trackWorkouts and changesSince', () => {
-  it('a hub with no revision yet gets everything, in full', () => {
+  it('a hub with no token yet gets everything, in full, and the token for next time', () => {
     const S = doc(5, 'a1', { workouts: [workout('w1'), workout('w2')], deleted: { workouts: { w0: 100 } } });
     const log = trackWorkouts(undefined, S);
-    const p = pass(log, S, { since: null });
+    const p = pass(log, S);
     assert.equal(p.full, true);
     assert.deepEqual(p.items, ['w1', 'w2']);
     assert.deepEqual(p.deleted, ['w0']);
+    assert.match(p.next, /^[A-Za-z0-9_-]+$/);
   });
 
-  it('since a revision: what changed after the pass before it, edits and removals included', () => {
+  it('since a token: exactly what changed after that pass, edits and removals included', () => {
     let S = doc(5, 'a1', { workouts: [workout('w1'), workout('w2'), workout('w3')] });
     let log = trackWorkouts(undefined, S);
-    assert.equal(pass(log, S, { since: 5 }).full, true, 'no pass of this log ended at 5 yet');
+    const t5 = pass(log, S).next;
+    assert.deepEqual(quiet(pass(log, S, { since: t5 })), { full: false, items: [], deleted: [], pages: 1 });
 
     S = doc(6, 'a2', { workouts: [workout('w1', { name: 'Renamed' }), workout('w3'), workout('w4')], deleted: { workouts: { w2: 200 } } });
     log = trackWorkouts(log, S);
-    // 5 is the first pass this log served: the one before it is everything.
-    assert.equal(pass(log, S, { since: 5 }).full, true);
+    const p = pass(log, S, { since: t5 });
+    assert.deepEqual(quiet(p), { full: false, items: ['w1', 'w4'], deleted: ['w2'], pages: 1 });
+    assert.deepEqual(changesSince(log, workoutItems(S), { since: t5 }).deleted, [{ id: 'w2', deleted_at: 200 }]);
 
-    // A change the hub cannot see is no change; a write of something else is none either. What the
-    // pass at 6 handed out (w1, w4, w2 gone) comes once more, then no more.
+    // A change the hub cannot see is no change; a write of something else is none either.
     S = doc(7, 'a3', { workouts: [workout('w1', { name: 'Renamed', note: 'x' }), workout('w3'), workout('w4')], targetW: 75 });
     log = trackWorkouts(log, S);
-    const p = pass(log, S, { since: 6 });
-    assert.equal(p.full, false);
-    assert.deepEqual(p.items, ['w1', 'w4']);
-    assert.deepEqual(p.deleted, ['w2']);
-    assert.deepEqual(changesSince(log, S, { since: 6 }).deleted, [{ id: 'w2', deleted_at: 200 }]);
+    const q = pass(log, S, { since: p.next });
+    assert.deepEqual(quiet(q), { full: false, items: [], deleted: [], pages: 1 });
     // Brought back after a removal: an item again, and no longer gone.
     S = doc(8, 'a4', { workouts: [...S.workouts, workout('w2')] });
     log = trackWorkouts(log, S);
-    assert.deepEqual(pass(log, S, { since: 7 }), { full: false, items: ['w2'], deleted: [], pages: 1 });
+    assert.deepEqual(quiet(pass(log, S, { since: q.next })), { full: false, items: ['w2'], deleted: [], pages: 1 });
   });
 
-  it('an answer lost on the way loses nothing, whichever revision the hub asks from next', () => {
-    let S = doc(10, 'g1', { workouts: [workout('w1'), workout('w2')] });
+  for (const lost of [1, 2, 3]) {
+    it(`${lost} answer(s) lost in a row, with writes between: from the last token received, every edit comes`, () => {
+      let rev = 10;
+      let S = doc(rev, `g${rev}`, { workouts: [workout('w1'), workout('w2'), workout('w3'), workout('w4')] });
+      let log = trackWorkouts(undefined, S);
+      const received = pass(log, S).next;
+      const edited = [];
+      for (let i = 0; i < lost; i++) {
+        // An edit, read by a pass whose answer never arrives; then the hub's weigh-in write.
+        const id = `w${i + 1}`;
+        edited.push(id);
+        S = doc(++rev, `g${rev}`, { workouts: S.workouts.map(w => (w.id === id ? { ...w, name: `Edited ${i}` } : w)) });
+        log = trackWorkouts(log, S);
+        assert.ok(pass(log, S, { since: received }).items.includes(id), 'the lost answer had it');
+        S = doc(++rev, `g${rev}`, { workouts: S.workouts, bodyweight: [{ d: '2026-10-10', w: 80 + i, t: rev }] });
+        log = trackWorkouts(log, S);
+      }
+      const p = pass(log, S, { since: received });
+      assert.equal(p.full, false);
+      assert.deepEqual(p.items.sort(), edited.sort());
+    });
+  }
+
+  it('anything but a token of this log is a full pass: a revision, garbage, a token of a log that started over', () => {
+    let S = doc(5, 'h1', { workouts: [workout('w1')] });
     let log = trackWorkouts(undefined, S);
-    pass(log, S, { since: null });
-    S = doc(11, 'g2', { _wids: ['g1'], workouts: S.workouts });
-    log = trackWorkouts(log, S);
-    pass(log, S, { since: 10 });                         // passes ended at 10 and 11; the hub has 11
-    // w1 is edited (12) and a pass answers it, but the answer never arrives.
-    S = doc(12, 'g3', { _wids: ['g1', 'g2'], workouts: [workout('w1', { name: 'Edited' }), workout('w2')] });
-    log = trackWorkouts(log, S);
-    assert.deepEqual(pass(log, S, { since: 11 }).items, ['w1']);
-    // The hub's own weigh-in write moves the document to 13.
-    S = doc(13, 'g4', { _wids: ['g1', 'g2', 'g3'], workouts: S.workouts });
-    log = trackWorkouts(log, S);
-    // A revision this route never ended a pass at (the write's own): everything.
-    const p = pass(log, S, { since: 13, wid: 'g4' });
-    assert.equal(p.full, true);
-    assert.ok(p.items.includes('w1'));
-    // Or the hub's own last revision, or the lost one's (a write that answered 12 too).
-    for (const since of [11, 12]) {
-      const q = pass(log, S, { since, wid: since === 11 ? 'g2' : 'g3' });
-      assert.equal(q.full, false, `since ${since}`);
-      assert.ok(q.items.includes('w1'), `since ${since}: the edit still comes`);
+    const token = pass(log, S).next;
+    for (const since of ['5', '0', 'garbage', Buffer.from('{"e":"x","r":5}').toString('base64url'), Buffer.from('[1]').toString('base64url'), 'x'.repeat(5000)]) {
+      assert.equal(pass(log, S, { since }).full, true, since.slice(0, 20));
     }
+    // A token naming a revision this log never reached.
+    const ahead = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(token, 'base64url')), r: 99 })).toString('base64url');
+    assert.equal(pass(log, S, { since: ahead }).full, true);
+    // A restart (a log built afresh) or a restore (the same revision, another document).
+    const restarted = trackWorkouts(undefined, S);
+    assert.equal(pass(restarted, S, { since: token }).full, true);
+    S = doc(5, 'h9', { workouts: [workout('w1')] });
+    log = trackWorkouts(log, S);
+    assert.equal(pass(log, S, { since: token }).full, true);
   });
 
   it('pages in revision order and a change between pages is not missed', () => {
     const ids = Array.from({ length: 25 }, (_, i) => `w${String(i).padStart(2, '0')}`);
     let S = doc(1, 'b1', { workouts: ids.map(id => workout(id)) });
     let log = trackWorkouts(undefined, S);
-    const first = changesSince(log, S, { since: null, limit: 10 });
+    const first = changesSince(log, workoutItems(S), { since: null, limit: 10 });
     assert.equal(first.items.length, 10);
     assert.ok(first.next_cursor);
+    assert.equal(first.next_since, null, 'the token comes with the last page only');
     // A workout already handed out is edited, and a new one logged, before the next page.
     S = doc(2, 'b2', { workouts: [...S.workouts.map(w => (w.id === 'w00' ? { ...w, name: 'Edited' } : w)), workout('w99')] });
     log = trackWorkouts(log, S);
     const seen = [...first.items.map(i => i.id)];
-    let cursor = first.next_cursor;
+    let cursor = first.next_cursor, p;
     while (cursor) {
-      const p = changesSince(log, S, { cursor: decodeCursor(cursor), limit: 10 });
+      p = changesSince(log, workoutItems(S), { cursor: decodeCursor(cursor), limit: 10 });
       seen.push(...p.items.map(i => i.id));
+      if (p.items.some(i => i.id === 'w00')) assert.equal(p.items.find(i => i.id === 'w00').name, 'Edited');
       cursor = p.next_cursor;
     }
     assert.deepEqual(new Set(seen), new Set([...ids, 'w99']));
     assert.equal(seen.filter(id => id === 'w00').length, 2, 'the edited one comes again, as edited');
-    assert.equal(log.items.get('w00').name, 'Edited');
+    assert.ok(p.next_since);
   });
 
   it('a log started over (a restart, a restore) gives a hub from before it everything again', () => {
     const S = doc(9, 'c1', { workouts: [workout('w1')], deleted: { workouts: { 'w0': 50, '2026-01-01|123': 60 } } });
     const log = trackWorkouts(undefined, S);
-    // Even at the very revision: what the hub was given at 9 came from another log, or not from here.
-    const p = pass(log, S, { since: 9 });
+    const p = pass(log, S, { since: 'a-token-of-the-log-before' });
     assert.equal(p.full, true);
     assert.deepEqual(p.items, ['w1']);
     assert.deepEqual(p.deleted.sort(), ['d2026-01-01s123', 'w0']);
   });
 
-  it('a revision ahead of the profile, or a write id it does not descend from, is a full pass', () => {
-    let S = doc(4, 'd2', { _wids: ['d1'], workouts: [workout('w1')] });
-    let log = trackWorkouts(undefined, S);
-    pass(log, S, { since: null });
-    S = doc(5, 'd3', { _wids: ['d1', 'd2'], workouts: [workout('w1')] });
-    log = trackWorkouts(log, S);
-    pass(log, S, { since: 4 });
-    assert.equal(pass(log, S, { since: 12 }).full, true);
-    assert.equal(pass(log, S, { since: 5, wid: 'ffff' }).full, true);
-    assert.equal(pass(log, S, { since: 5, wid: 'd3' }).full, false);
-    assert.equal(pass(log, S, { since: 5, wid: 'd2' }).full, false);
-  });
-
   it('the same revision with another write id starts the log over', () => {
     const log = trackWorkouts(undefined, doc(4, 'e1', { workouts: [workout('w1')] }));
-    const S = doc(4, 'e2', { workouts: [workout('w1', { name: 'Other' })] });
-    const next = trackWorkouts(log, S);
+    const next = trackWorkouts(log, doc(4, 'e2', { workouts: [workout('w1', { name: 'Other' })] }));
     assert.notEqual(next, log);
-    assert.equal(next.items.get('w1').name, 'Other');
+    assert.notEqual(next.epoch, log.epoch);
   });
 
   it('a cursor from before the log started over starts the pass over, in full', () => {
     let S = doc(1, 'f1', { workouts: [workout('w1'), workout('w2')] });
     let log = trackWorkouts(undefined, S);
-    const first = changesSince(log, S, { since: null, limit: 1 });
+    const first = changesSince(log, workoutItems(S), { since: null, limit: 1 });
     S = doc(1, 'f9', { workouts: [workout('w1'), workout('w2')] });
     log = trackWorkouts(log, S);
-    const p = changesSince(log, S, { cursor: decodeCursor(first.next_cursor), limit: 10 });
+    const p = changesSince(log, workoutItems(S), { cursor: decodeCursor(first.next_cursor), limit: 10 });
     assert.equal(p.full, true);
     assert.deepEqual(p.items.map(i => i.id), ['w1', 'w2']);
   });
 
   it('refuses a cursor it did not make', () => {
-    for (const c of ['', 'abc', '!!', Buffer.from('{"s":1}').toString('base64url'), 'x'.repeat(600)]) assert.equal(decodeCursor(c), null, c);
+    for (const c of ['', 'abc', '!!', Buffer.from('{"s":1}').toString('base64url'), 'x'.repeat(600), 'x'.repeat(5000)]) assert.equal(decodeCursor(c), null, c.slice(0, 20));
+  });
+
+  it('caps ids and names on the wire, never splitting a character, and a cursor at the longest id still reads back', () => {
+    const long = 'a' + '💪'.repeat(300);
+    const it = workoutItem(workout(long, { name: 'n'.repeat(500), routineId: 'r'.repeat(300) }), 'kg');
+    assert.equal(Array.from(it.id).length, ID_MAX);
+    assert.equal(it.id, 'a' + '💪'.repeat(ID_MAX - 1));
+    assert.equal(it.name.length, NAME_MAX);
+    assert.equal(it.routine_id.length, ID_MAX);
+    // A removal on record under the long id goes by the same capped one.
+    const S = doc(1, 'k1', { workouts: [workout(long), workout('w2')], deleted: { workouts: { [long + 'x']: 5 } } });
+    const log = trackWorkouts(undefined, S);
+    const first = changesSince(log, workoutItems(S), { limit: 1 });
+    assert.equal(first.items[0].id, it.id);
+    const cursor = decodeCursor(first.next_cursor);
+    assert.ok(cursor, 'the cursor this route made, at the longest id, is one it takes back');
+    assert.deepEqual(changesSince(log, workoutItems(S), { limit: 1, cursor }).items.map(i => i.id), ['w2']);
+  });
+
+  it('a page stays within its byte budget, however many entries it may hold', () => {
+    const run = { id: 'run', target: { mode: 'cardio' }, sets: Array.from({ length: 30 }, () => ({ min: 1, speed: 9, done: true })) };
+    const S = doc(1, 'p1', { workouts: Array.from({ length: 3000 }, (_, i) => workout(`w${i}`, { name: 'x'.repeat(NAME_MAX), entries: [run] })) });
+    const log = trackWorkouts(undefined, S);
+    const page = changesSince(log, workoutItems(S), { limit: 500 });
+    assert.ok(page.items.length < 500 && page.items.length > 100, String(page.items.length));
+    assert.ok(JSON.stringify(page.items).length <= 256 * 1024 + 1024);
+    assert.ok(page.next_cursor);
   });
 });
 
@@ -296,9 +334,16 @@ describe('body weight', () => {
       const P = { unit, bodyweight: [{ d: '2026-10-01', w, t: 1 }] };
       assert.equal(withWeighIn(P, '2026-10-01', weighInOf(P, '2026-10-01').kg), null, `${w} ${unit}`);
     }
+    // A value that stores as exactly what the day holds, even half a step off what was sent.
+    assert.equal(withWeighIn({ unit: 'lb', bodyweight: [{ d: '2026-10-01', w: 180.3, t: 1 }] }, '2026-10-01', (180.25 + 1e-9) / 2.2046226218), null);
+    assert.equal(withWeighIn({ unit: 'kg', bodyweight: [{ d: '2026-10-01', w: 80.4, t: 1 }] }, '2026-10-01', 80.35 + 1e-9), null);
     // A step the app can show is a change.
     assert.notEqual(withWeighIn({ unit: 'kg', bodyweight: [{ d: '2026-10-01', w: 80.45, t: 1 }] }, '2026-10-01', 80.55), null);
     assert.notEqual(withWeighIn({ unit: 'lb', bodyweight: [{ d: '2026-10-01', w: 180.2, t: 1 }] }, '2026-10-01', 81.78), null);
+  });
+
+  it('never stores a weight that rounds to nothing', () => {
+    assert.throws(() => withWeighIn({ unit: 'kg', bodyweight: [{ d: '2026-10-01', w: 78, t: 1 }] }, '2026-10-01', 0.04), RangeError);
   });
 
   it('keeps what else the app stored on the weigh-in', () => {

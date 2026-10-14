@@ -17,13 +17,13 @@
  * this person" from "this person is gone" — and either from the plain `{"error":"not found"}` of an
  * instance with no hub configured, which must never read as a deletion.
  *
- * Reads (workouts changed since a revision, body weight by date) are sync-data.js over the stored
+ * Reads (workouts changed since the last pass, body weight by date) are sync-data.js over the stored
  * document. Writes are one weigh-in at a time, read-modify-written here the way PUT /api/data
  * writes: the stored document read, changed, stamped (sync-stamps.js stampPut) and written with
  * nothing awaited in between, so a browser's save can never land inside it and be lost. Each write
- * names the revision it was decided on (`If-Match`), and one made over any other is refused with a
- * 409, the current entry attached. A write moves the revision, so every open device picks it up on
- * its next poll and merges it like another device's weigh-in. A write needs no CSRF exemption of
+ * names the version it was decided on (`If-Match`, revision and write id), and one made over any
+ * other is refused with a 409, the current entry attached. A write moves the revision, so every
+ * open device picks it up on its next poll and merges it like another device's weigh-in. A write needs no CSRF exemption of
  * its own: the dispatcher's csrfOk already passes any request that carries a Bearer token, which a
  * browser never attaches by itself.
  *
@@ -31,33 +31,39 @@
 import { verifyHubToken, replayCache, HUB_AUDIENCE } from './hub-token.js';
 import { stampPut } from './sync-stamps.js';
 import {
-  isDate, trackWorkouts, changesSince, decodeCursor, bodyweightView, weighInOf, withWeighIn, withoutWeighIn, unitOf
+  isSyncDate, workoutItems, trackWorkouts, changesSince, decodeCursor, bodyweightView, weighInOf, withWeighIn, withoutWeighIn, unitOf
 } from './sync-data.js';
 
 // The answer GET /api/data/rev gives, from the same state document. That route in server.js keeps
 // its own copy of this one line, so it stays exactly as upstream has it; server-sync.test.js pins
 // the two answers to each other.
 const revOf = doc => ({ rev: doc?._rev || 0, ...(doc?._wid ? { wid: doc._wid } : {}) });
-// The document's version as a strong ETag, `"<rev>:<wid>"` (`"<rev>"` before its first write). An
-// `If-Match` may give the revision alone; with the write id it also catches a restored backup that
-// reached the same revision number.
+// The document's version as a strong ETag, `"<rev>:<wid>"` (`"<rev>"` before its first write). A
+// write's `If-Match` must carry the write id whenever the document has one: the revision alone is
+// the same number again after a restored backup, and would let a write decided on the other
+// document through.
 const etagOf = doc => `"${doc?._rev || 0}${doc?._wid ? ':' + doc._wid : ''}"`;
 const IF_MATCH = /^\s*"?(\d{1,15})(?::([0-9a-f]{1,64}))?"?\s*$/;
 const LIMIT_MAX = 500;
 const LIMIT_DEFAULT = 100;
-// A body weight the app could hold, in kg.
-const KG_MAX = 700;
-// How many profiles' workout change logs are kept (sync-data.js trackWorkouts). One that is
-// dropped is rebuilt on its next read, and a hub asking from before that gets everything again.
-const LOGS_MAX = 64;
+// A body weight a person weighs, in kg: anything outside is a mistake (a value in grams, a unit
+// mix-up, one that would round to nothing in the stored unit and vanish without a removal on record).
+const KG_MIN = 20;
+const KG_MAX = 400;
+// A weigh-in's body is a few dozen bytes.
+const BODY_MAX = 4096;
+// How many profiles' workout change logs are kept (sync-data.js trackWorkouts), a few dozen bytes per
+// workout each. One that is dropped is rebuilt on its next read, and costs that hub a full pass, so
+// this sits far above the number of profiles one instance syncs at once.
+const LOGS_MAX = 1000;
 
 const bad = (json, res, code, error) => json(res, 400, { error, code });
 
 export function syncRoutes({ hub, json, findUser, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditFail }) {
   const replays = replayCache();
   const logs = new Map();
-  const logOf = (uid, S) => {
-    const log = trackWorkouts(logs.get(uid), S);
+  const logOf = (uid, S, items) => {
+    const log = trackWorkouts(logs.get(uid), S, items);
     logs.delete(uid);
     logs.set(uid, log);
     while (logs.size > LOGS_MAX) logs.delete(logs.keys().next().value);
@@ -106,7 +112,7 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
   // commitState nothing awaited, so the compare-and-write is atomic for this process.
   const writeWeighIn = change => authed(async (req, res, user) => {
     const date = req.syncDate;
-    if (!isDate(date)) return bad(json, res, 'bad-date', 'date must be a real YYYY-MM-DD date');
+    if (!isSyncDate(date)) return bad(json, res, 'bad-date', 'date must be a real YYYY-MM-DD date, from 1900-01-01 to tomorrow');
     const raw = req.headers['if-match'];
     if (raw == null) return json(res, 428, { error: 'If-Match with the revision this write was decided on is required', code: 'precondition-required' });
     const m = IF_MATCH.exec(String(raw));
@@ -118,6 +124,9 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
     if (again.disabled) return json(res, 401, { error: 'this account has been disabled', code: 'disabled' });
     const cur = stored(res, user.id);
     if (!cur) return;
+    if (cur._wid && !m[2]) {
+      return json(res, 428, { error: 'If-Match must carry the write id: "<rev>:<wid>", as the ETag gives it', code: 'precondition-required' }, { ETag: etagOf(cur) });
+    }
     const rev = cur._rev || 0;
     if (Number(m[1]) !== rev || (m[2] && m[2] !== cur._wid)) {
       return json(res, 409, { error: 'conflict', code: 'rev-mismatch', ...revOf(cur), entry: weighInOf(cur, date) }, { ETag: etagOf(cur) });
@@ -140,19 +149,19 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
       json(res, 200, revOf(doc), { ETag: etagOf(doc) });
     }),
 
-    // Finished workouts changed since a revision, and the ones gone since, a page at a time.
+    // Finished workouts changed since the pass a `next_since` token names, and the ones gone since,
+    // a page at a time. Any `since` that is not such a token of this profile's log is a full pass.
     'GET /api/sync/workouts': authed(async (req, res, user) => {
       const q = new URL(req.url, 'http://x').searchParams;
-      const since = q.get('since'), wid = q.get('wid'), limit = q.get('limit'), cur = q.get('cursor');
-      if (since != null && !/^\d{1,15}$/.test(since)) return bad(json, res, 'bad-since', 'since must be a revision (a whole number)');
-      if (wid != null && !/^[0-9a-f]{1,64}$/.test(wid)) return bad(json, res, 'bad-wid', 'wid must be a write id');
+      const since = q.get('since'), limit = q.get('limit'), cur = q.get('cursor');
       if (limit != null && !(/^\d{1,4}$/.test(limit) && +limit >= 1 && +limit <= LIMIT_MAX)) return bad(json, res, 'bad-limit', `limit must be 1 to ${LIMIT_MAX}`);
       const cursor = cur == null ? null : decodeCursor(cur);
       if (cur != null && !cursor) return bad(json, res, 'bad-cursor', 'cursor is not one this server handed out');
       const S = stored(res, user.id);
       if (!S) return;
-      const page = changesSince(logOf(user.id, S), S, {
-        since: since == null ? null : +since, wid, cursor, limit: limit == null ? LIMIT_DEFAULT : +limit
+      const items = workoutItems(S);
+      const page = changesSince(logOf(user.id, S, items), items, {
+        since, cursor, limit: limit == null ? LIMIT_DEFAULT : +limit
       });
       json(res, 200, { ...revOf(S), unit: unitOf(S), reset_at: Number(S.resetAt) > 0 ? Number(S.resetAt) : null, ...page }, { ETag: etagOf(S) });
     }),
@@ -161,7 +170,7 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
     'GET /api/sync/bodyweight': authed(async (req, res, user) => {
       const q = new URL(req.url, 'http://x').searchParams;
       const from = q.get('from'), to = q.get('to');
-      if ((from != null && !isDate(from)) || (to != null && !isDate(to))) return bad(json, res, 'bad-date', 'from and to must be real YYYY-MM-DD dates');
+      if ((from != null && !isSyncDate(from)) || (to != null && !isSyncDate(to))) return bad(json, res, 'bad-date', 'from and to must be real YYYY-MM-DD dates, from 1900-01-01 to tomorrow');
       if (from != null && to != null && from > to) return bad(json, res, 'bad-range', 'from is after to');
       const S = stored(res, user.id);
       if (!S) return;
@@ -170,10 +179,10 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
 
     'PUT /api/sync/bodyweight/{date}': writeWeighIn({
       async read(req, res) {
-        const body = await readBody(req);
+        const body = await readBody(req, BODY_MAX);
         const kg = body.kg, t = body.t;
-        if (typeof kg !== 'number' || !Number.isFinite(kg) || !(kg > 0) || kg > KG_MAX) {
-          bad(json, res, 'bad-weight', `kg must be a number above 0 and at most ${KG_MAX}`);
+        if (typeof kg !== 'number' || !Number.isFinite(kg) || kg < KG_MIN || kg > KG_MAX) {
+          bad(json, res, 'bad-weight', `kg must be a number from ${KG_MIN} to ${KG_MAX}`);
           return null;
         }
         // Taken for the hub's own record and checked, never used: the server stamps every write

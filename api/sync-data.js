@@ -4,16 +4,14 @@
  * Workouts. The state is one document with no record of when each workout changed, only the
  * revision of the whole. So the routes keep, per profile and in memory, a change log
  * (trackWorkouts): for every workout the revision at which its summary was last seen to change,
- * and for every workout that went away the revision at which it did. "Changed since revision R" is
- * then every entry of the log past R. The log only ever learns at a read, so a change made at
- * revision 9 and first read at 12 is logged at 12. So R means something only when it is a revision
- * this route handed out (the last page of a pass, `served`): one the hub learned elsewhere (its own
- * weigh-in write answered 10) says nothing about what it has read of the workouts, and gets a
- * `full` pass, as does any R after the log was built from nothing (first read, a restart, the
- * profile's data going back in time). And a pass is noted as served when it is answered, not when
- * the answer arrives: so R counts from the pass before the one that ended at R, and what the last
- * pass handed out comes once more. One lost answer then loses nothing, whatever R the hub retries
- * with; the cost is the hub seeing the previous pass's changes twice, which its hashes absorb.
+ * and for every workout that went away the revision at which it did. The log only learns at a
+ * read, so a change made at revision 9 and first read at 12 is logged at 12. A pass of the
+ * workouts route ends with `next_since`, a token naming this log (`epoch`) and the revision it was
+ * read at, and no other route ever hands one out. The next pass, given that token, lists every
+ * entry of the log past that revision: everything the hub has not yet received, however many
+ * answers in between were lost on the way, as long as it sends the last token it did receive.
+ * Anything else as `since` (a revision from another route, a token of a log that started over: a
+ * restart, the profile's data going back in time) gets a `full` pass: everything.
  *
  * Body weight. One value per date, in kg on the wire and in the profile's unit in the state, like
  * the app's own weigh-in (frontend lib/units.js convertBodyWeight: to 0.1 in the stored unit).
@@ -27,6 +25,8 @@ const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v);
 const list = v => (Array.isArray(v) ? v : []);
 const round2 = v => Math.round(v * 100) / 100;
 const instant = v => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
+// At most `n` characters, never cutting a character in two.
+const clip = (s, n) => (s.length <= n ? s : Array.from(s).slice(0, n).join(''));
 
 export const unitOf = S => (S?.unit === 'lb' ? 'lb' : 'kg');
 // A stored body weight in kg, to 0.01: fine enough that kg on the wire and back to lb lands on the
@@ -41,21 +41,30 @@ export function isDate(s) {
   const d = new Date(s + 'T00:00:00Z');
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
+/** A date the hub may name: a real one from 1900-01-01 to tomorrow (UTC, so every zone's today fits). */
+export function isSyncDate(s, now = Date.now()) {
+  return isDate(s) && s >= '1900-01-01' && s <= new Date(now + 86400000).toISOString().slice(0, 10);
+}
 
 /* ------------------------------------------------------------------ workouts */
+
+// What a workout's text fields can be on the wire. The app makes ids of a dozen characters; an
+// imported or hand-edited state can hold anything, and a page must stay a page.
+export const ID_MAX = 128;
+export const NAME_MAX = 200;
 
 // The id a workout goes by on the wire: its own, or for one without (an import from before ids)
 // the data contract's `d<date>s<start>`. One with neither has no stable name and is left out.
 export function workoutId(w) {
-  if (w?.id != null) return String(w.id);
+  if (w?.id != null) return clip(String(w.id), ID_MAX);
   if (w?.start == null) return null;
-  return `d${w.d}s${w.start}`;
+  return clip(`d${w.d}s${w.start}`, ID_MAX);
 }
 // The same, from a key of `deleted.workouts` (sync-stamps.js workoutKey: the id, or `d|start`).
 // App ids are base-36 and never hold a `|`.
 const idOfKey = k => {
   const i = k.lastIndexOf('|');
-  return i < 0 ? k : `d${k.slice(0, i)}s${k.slice(i + 1)}`;
+  return clip(i < 0 ? k : `d${k.slice(0, i)}s${k.slice(i + 1)}`, ID_MAX);
 };
 
 // Done rows of a set: the set, or for a per-side set either side ticked.
@@ -91,11 +100,11 @@ export function workoutItem(w, unit) {
   const bw = Number(w.bw);
   const facts = {
     id,
-    date: typeof w.d === 'string' ? w.d : null,
+    date: typeof w.d === 'string' && isDate(w.d) ? w.d : null,
     start, end,
     duration_min: start && end && end > start ? Math.round((end - start) / 60000) : null,
-    name: typeof w.name === 'string' ? w.name : null,
-    routine_id: w.routineId != null ? String(w.routineId) : null,
+    name: typeof w.name === 'string' ? clip(w.name, NAME_MAX) : null,
+    routine_id: w.routineId != null ? clip(String(w.routineId), ID_MAX) : null,
     sets_done: done,
     strength_sets: strength,
     cardio,
@@ -109,24 +118,8 @@ export function workoutItem(w, unit) {
   return { ...facts, edited_at: instant(Number(w._ts)), content_hash: 'sha256:' + hash };
 }
 
-// Past this many removals on record the log starts over rather than grow: a hub asking from before
-// that is given everything again, which is always correct.
-const GONE_MAX = 5000;
-// Which start of a log a cursor was made against (`epoch`): a log can start over at the revision it
-// had, and after a restart a counter would repeat, so it is random.
-const newEpoch = () => crypto.randomBytes(6).toString('hex');
-// How many served revisions are kept: a hub further behind than this is given everything again.
-const SERVED_MAX = 200;
-
-/**
- * The change log of a profile's workouts, brought up to `S` (see the top of this file). `log` is
- * the previous one (or undefined); the result is it, updated, or a new one.
- * { epoch, base, rev, wid, items: Map<id, item>, seen: Map<id, {rev, hash}>, gone: Map<id, {rev, at}>,
- *   served: revisions a pass ended at, ascending }
- */
-export function trackWorkouts(log, S) {
-  const rev = Number(S?._rev) || 0, wid = typeof S?._wid === 'string' ? S._wid : null;
-  if (log && log.rev === rev && log.wid === wid) return log;
+/** Every workout of `S` as the hub reads it, by id (the first of two with one id). */
+export function workoutItems(S) {
   const unit = unitOf(S);
   const items = new Map();
   for (const w of list(S?.workouts)) {
@@ -134,6 +127,26 @@ export function trackWorkouts(log, S) {
     const it = workoutItem(w, unit);
     if (it && !items.has(it.id)) items.set(it.id, it);
   }
+  return items;
+}
+
+// Past this many removals on record the log starts over rather than grow: a hub asking from before
+// that is given everything again, which is always correct.
+const GONE_MAX = 5000;
+// Which start of a log a token or a cursor was made against: a log can start over at the revision
+// it had, and after a restart a counter would repeat, so it is random.
+const newEpoch = () => crypto.randomBytes(6).toString('hex');
+// The log keeps a short hash per workout, not the summary: it only needs to tell a change.
+const short = item => item.content_hash.slice(7, 23);
+
+/**
+ * The change log of a profile's workouts, brought up to `S` (see the top of this file), whose
+ * summaries are `items` (workoutItems). `log` is the previous one (or undefined); the result is it,
+ * updated, or a new one. { epoch, rev, wid, seen: Map<id, {rev, hash}>, gone: Map<id, {rev, at}> }
+ */
+export function trackWorkouts(log, S, items = workoutItems(S)) {
+  const rev = Number(S?._rev) || 0, wid = typeof S?._wid === 'string' ? S._wid : null;
+  if (log && log.rev === rev && log.wid === wid) return log;
   const removed = new Map();
   if (isMap(S?.deleted?.workouts)) {
     for (const [k, at] of Object.entries(S.deleted.workouts)) if (Number(at) > 0) removed.set(idOfKey(k), Number(at));
@@ -141,14 +154,14 @@ export function trackWorkouts(log, S) {
   // Only a later revision is a continuation. The same number or a lower one with another write id
   // is the data directory gone back in time (a restored backup): start over.
   if (!log || rev <= log.rev || log.gone.size > GONE_MAX) {
-    const fresh = { epoch: newEpoch(), base: rev, rev, wid, items, seen: new Map(), gone: new Map(), served: [] };
-    for (const [id, it] of items) fresh.seen.set(id, { rev, hash: it.content_hash });
+    const fresh = { epoch: newEpoch(), rev, wid, seen: new Map(), gone: new Map() };
+    for (const [id, it] of items) fresh.seen.set(id, { rev, hash: short(it) });
     for (const [id, at] of removed) if (!items.has(id)) fresh.gone.set(id, { rev, at });
     return fresh;
   }
   for (const [id, it] of items) {
     const was = log.seen.get(id);
-    if (!was || was.hash !== it.content_hash) log.seen.set(id, { rev, hash: it.content_hash });
+    if (!was || was.hash !== short(it)) log.seen.set(id, { rev, hash: short(it) });
     log.gone.delete(id);
   }
   for (const id of [...log.seen.keys()]) {
@@ -156,61 +169,76 @@ export function trackWorkouts(log, S) {
     log.seen.delete(id);
     log.gone.set(id, { rev, at: removed.get(id) ?? null });
   }
-  Object.assign(log, { rev, wid, items });
+  Object.assign(log, { rev, wid });
   return log;
 }
 
-const encodeCursor = c => Buffer.from(JSON.stringify(c)).toString('base64url');
+// Tokens and cursors are base64url JSON. Neither is a secret: each is read against the caller's
+// own log only, and a made-up one is at worst a pass the hub asked to miss things from.
+const TOKEN_MAX = 4096;
+const encode = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+function decode(s) {
+  if (typeof s !== 'string' || !s || s.length > TOKEN_MAX || !/^[A-Za-z0-9_-]+$/.test(s)) return null;
+  try { const v = JSON.parse(Buffer.from(s, 'base64url').toString('utf8')); return isMap(v) ? v : null; } catch { return null; }
+}
 /** A cursor this module handed out, or null for anything else. */
 export function decodeCursor(s) {
-  if (typeof s !== 'string' || !s || s.length > 512 || !/^[A-Za-z0-9_-]+$/.test(s)) return null;
-  let c;
-  try { c = JSON.parse(Buffer.from(s, 'base64url').toString('utf8')); } catch { return null; }
-  if (!isMap(c) || !Number.isInteger(c.s) || typeof c.f !== 'boolean' || typeof c.b !== 'string' ||
-      !Number.isInteger(c.r) || typeof c.k !== 'string') return null;
+  const c = decode(s);
+  if (!c || !Number.isInteger(c.s) || typeof c.f !== 'boolean' || typeof c.b !== 'string' ||
+      !Number.isInteger(c.r) || typeof c.k !== 'string' || c.k.length > ID_MAX * 2) return null;
   return c;
 }
+// A `since` token of `log`: the revision a pass of it ended at, or null for anything else.
+function sinceOf(log, token) {
+  const t = decode(token);
+  return t && t.e === log.epoch && Number.isInteger(t.r) && t.r >= 0 && t.r <= log.rev ? t.r : null;
+}
+
+// A page stops at `limit` entries or at about this many bytes of them, whichever comes first.
+const PAGE_BYTES = 256 * 1024;
 
 /**
- * One page of what changed since revision `since`, in revision order (then id), from `log`:
- * workouts changed and workouts gone, each at most once per page. `since` must be a revision a pass
- * of this log ended at, and counts from the pass before it (see the top of this file). `full` says
- * the pass lists every workout there is (and every removal on record): `since` is absent, not one
- * this log served, the first it served, newer than the profile, or `wid` names a document this one
- * does not descend from. A cursor carries the pass on; if the log started over in between, the pass
- * starts over too, in full. The last page of a pass notes its revision in `log.served`.
+ * One page of what changed since the pass `since` (a `next_since` token) ended, in revision order
+ * (then id), from `log` and the current summaries `items`: workouts changed and workouts gone, each
+ * at most once per page. `full` says the pass lists every workout there is (and every removal on
+ * record): no `since`, or one that is not a token of this log. A cursor carries the pass on; if the
+ * log started over in between, the pass starts over too, in full. The last page carries
+ * `next_since`, for the next pass.
  */
-export function changesSince(log, S, { since = null, wid = null, cursor = null, limit = 100 }) {
+export function changesSince(log, items, { since = null, cursor = null, limit = 100 }) {
   let s, full, after = null;
   if (cursor && cursor.b === log.epoch) {
     s = cursor.s; full = cursor.f; after = cursor;
   } else if (cursor) {
     s = -1; full = true;
   } else {
-    const foreign = wid != null && wid !== log.wid && !list(S?._wids).includes(wid);
-    const at = since == null ? -1 : log.served.indexOf(since);
-    // From the pass before the one `since` names: what that pass handed out comes once more, so
-    // one whose answer was lost on the way is not lost with it.
-    full = at < 1 || since > log.rev || foreign;
-    s = full ? -1 : log.served[at - 1];
+    const from = since == null ? null : sinceOf(log, since);
+    full = from == null;
+    s = full ? -1 : from;
   }
   const events = [];
   for (const [id, x] of log.seen) if (x.rev > s) events.push({ rev: x.rev, id });
   for (const [id, x] of log.gone) if (x.rev > s) events.push({ rev: x.rev, id, at: x.at });
   events.sort((a, b) => a.rev - b.rev || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const rest = after ? events.filter(e => e.rev > after.r || (e.rev === after.r && e.id > after.k)) : events;
-  const page = rest.slice(0, limit);
-  const last = page[page.length - 1];
-  const more = rest.length > page.length;
-  if (!more && log.served.at(-1) !== log.rev) {
-    log.served.push(log.rev);
-    if (log.served.length > SERVED_MAX) log.served.shift();
+  const page = [];
+  let bytes = 0;
+  for (const e of rest) {
+    if (page.length >= limit) break;
+    const out = 'at' in e ? { id: e.id, deleted_at: e.at } : items.get(e.id);
+    const size = JSON.stringify(out).length;
+    if (page.length && bytes + size > PAGE_BYTES) break;
+    bytes += size;
+    page.push({ e, out });
   }
+  const more = rest.length > page.length;
+  const last = page.length ? page[page.length - 1].e : null;
   return {
     full,
-    items: page.filter(e => !('at' in e)).map(e => log.items.get(e.id)),
-    deleted: page.filter(e => 'at' in e).map(e => ({ id: e.id, deleted_at: e.at })),
-    next_cursor: more ? encodeCursor({ s, f: full, b: log.epoch, r: last.rev, k: last.id }) : null
+    items: page.filter(p => !('at' in p.e)).map(p => p.out),
+    deleted: page.filter(p => 'at' in p.e).map(p => p.out),
+    next_cursor: more ? encode({ s, f: full, b: log.epoch, r: last.rev, k: last.id }) : null,
+    next_since: more ? null : encode({ e: log.epoch, r: log.rev })
   };
 }
 
@@ -272,21 +300,24 @@ const byDate = (a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
 const stamped = (next, at) => { next._ts = Math.max(Number(next._ts) || 0, at); return next; };
 
 /**
- * `cur` with `date` set to `kg`, as a new document, or null when the day already holds that value
- * to within half the stored step: what the hub read (kg to 0.01) and writes back is no change, and
- * neither is a difference below what the app can show. The day's other fields (anything the app
- * keeps on a weigh-in besides `d`, `w`, `t`) are kept.
+ * `cur` with `date` set to `kg`, as a new document, or null when nothing would change: the value
+ * stored would be the one the day holds, or is within half the stored step of it (what the hub
+ * read, kg to 0.01, written back). The day's other fields (anything the app keeps on a weigh-in
+ * besides `d`, `w`, `t`) are kept. Throws on a value that would not be stored as a weight at all:
+ * the route refuses those first.
  */
 export function withWeighIn(cur, date, kg, { now = Date.now() } = {}) {
   const unit = unitOf(cur);
+  const w = fromKg(kg, unit);
+  if (!(w > 0)) throw new RangeError('not a body weight');
   const old = weighIns(cur).byDay.get(date);
-  if (old && Math.abs(Number(old.w) - (unit === 'lb' ? kg * LB_PER_KG : kg)) < 0.05) return null;
+  if (old && (Number(old.w) === w || Math.abs(Number(old.w) - (unit === 'lb' ? kg * LB_PER_KG : kg)) < 0.05)) return null;
   const next = structuredClone(cur);
   const keep = old ? structuredClone(old) : {};
   const at = stampFor(cur, date, now);
   next.bodyweight = [
     ...list(next.bodyweight).filter(e => !(isMap(e) && e.d === date)),
-    { ...keep, d: date, w: fromKg(kg, unit), t: at }
+    { ...keep, d: date, w, t: at }
   ].sort(byDate);
   return stamped(next, at);
 }

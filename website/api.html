@@ -3230,33 +3230,28 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="m get">GET</span>
     <span class="ep-path"><code>/api/sync/workouts</code></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Sync: finished workouts changed since a revision</span>
+    <span class="ep-sum">Sync: finished workouts changed since the last pass</span>
   </summary>
   <div class="ep-body">
-<p>Every finished workout whose summary changed after revision <code>since</code>, and every workout removed after it, in revision order, a page at a time. Pass back the <code>rev</code> and <code>wid</code> of the last page of the previous pass as <code>since</code> and <code>wid</code>.</p>
-<p>The server learns what changed by comparing summaries when this route is read, against what it handed out before. So <code>since</code> must be a revision a pass of this route ended at, and it counts from the pass before that one: what the last pass handed out comes once more, so an answer lost on the way loses nothing (the hub's hashes absorb the repeat). A change only the hub cannot see (a note, a photo) is no change. Without <code>since</code>, with one no pass of this route ended at (a weigh-in write's revision, a restart, the first pass after one), with one the profile never reached, with a <code>wid</code> the stored document does not descend from, or after the profile's data went back in time (a restored backup), the pass is <code>full</code>: every workout there is and every removal on record. In a full pass, a workout the hub holds that is not listed is no longer in the profile; hold such deletes behind the same guard as a <code>reset_at</code>. A profile with no state file answers 409 <code>no-state</code>, never an empty list.</p>
-<p>A workout is named by its own <code>id</code>, or by <code>d&lt;date&gt;s&lt;start&gt;</code> when it has none (an old import); one with neither is left out. <code>date</code> is the local day as the app stored it, never derived from <code>start</code>.</p>
+<p>Every finished workout whose summary changed after the pass <code>since</code> names, and every workout removed after it, in revision order, a page at a time. The last page of a pass carries <code>next_since</code>, an opaque token no other route hands out: keep the last one that arrived and send it as <code>since</code>. Everything after that pass comes, however many answers in between were lost on the way.</p>
+<p>The server learns what changed by comparing summaries when this route is read. A change only the hub cannot see (a note, a photo) is no change. Without <code>since</code>, or with anything but a token of this profile's current log (a <code>rev</code> from any route, a token from before a restart or from before the profile's data went back in time, a restored backup), the pass is <code>full</code>: every workout there is and every removal on record. In a full pass, a workout the hub holds that is not listed is no longer in the profile; hold such deletes behind the same guard as a <code>reset_at</code>. A profile with no state file answers 409 <code>no-state</code>, never an empty list.</p>
+<p>A workout is named by its own <code>id</code>, or by <code>d&lt;date&gt;s&lt;start&gt;</code> when it has none (an old import); one with neither is left out. <code>date</code> is the local day as the app stored it, never derived from <code>start</code>. Ids are capped at 128 characters and names at 200, and a page stops at <code>limit</code> entries or about 256 KB, whichever comes first.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Hub token only: <code>Authorization: Bearer &lt;ES256 JWS&gt;</code> signed by a key in <code>HUB_JWKS</code>. A session cookie or a paired token is refused.</span></p>
 <p class="ep-h">Query parameters</p><div class="ptab">
   <div class="prow">
     <span class="p-name">since</span>
-    <span class="p-type">integer <span class="p-hint">(0&ndash;)</span></span>
-    <span class="p-desc">The <code>rev</code> the previous pass of this route ended at (never one from another route). Absent: a full pass.</span>
-  </div>
-  <div class="prow">
-    <span class="p-name">wid</span>
     <span class="p-type">string</span>
-    <span class="p-desc">The <code>wid</code> the previous pass ended at: one the stored document does not descend from makes the pass full.</span>
+    <span class="p-desc">The <code>next_since</code> of the last pass that arrived. Absent, or anything else: a full pass.</span>
   </div>
   <div class="prow">
     <span class="p-name">limit</span>
     <span class="p-type">integer <span class="p-hint">(1&ndash;500, default 100)</span></span>
-    <span class="p-desc">Entries (workouts and removals together) per page.</span>
+    <span class="p-desc">Entries (workouts and removals together) per page</span>
   </div>
   <div class="prow">
     <span class="p-name">cursor</span>
     <span class="p-type">string</span>
-    <span class="p-desc">The <code>next_cursor</code> of the page before. A cursor carries the pass on; <code>since</code> and <code>wid</code> are then ignored.</span>
+    <span class="p-desc">The <code>next_cursor</code> of the page before. A cursor carries the pass on; <code>since</code> is then ignored.</span>
   </div>
 </div>
 
@@ -3264,11 +3259,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">One page of changes.<span class="r-sig">{ rev: integer, wid: string, unit: &quot;kg&quot; | &quot;lb&quot;, full: boolean, reset_at: integer | null, items: <a href="#schema-SyncWorkout">SyncWorkout</a>[], deleted: object[], next_cursor: string | null } &middot; sets <code>ETag</code></span></span>
+    <span class="p-desc">One page of changes.<span class="r-sig">{ rev: integer, wid: string, unit: &quot;kg&quot; | &quot;lb&quot;, full: boolean, reset_at: integer | null, items: <a href="#schema-SyncWorkout">SyncWorkout</a>[], deleted: object[], next_cursor: string | null, next_since: string | null } &middot; sets <code>ETag</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">400</span>
-    <span class="p-desc"><code>since</code>, <code>wid</code>, <code>limit</code> or <code>cursor</code> is malformed (<code>code</code>: <code>bad-since</code>, <code>bad-wid</code>, <code>bad-limit</code>, <code>bad-cursor</code>).<span class="r-sig"><code>{&quot;error&quot;:&quot;limit must be 1 to 500&quot;}</code></span></span>
+    <span class="p-desc"><code>limit</code> or <code>cursor</code> is malformed (<code>code</code>: <code>bad-limit</code>, <code>bad-cursor</code>).<span class="r-sig"><code>{&quot;error&quot;:&quot;limit must be 1 to 500&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -3304,12 +3299,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">from</span>
     <span class="p-type">string <span class="p-hint">(date)</span></span>
-    <span class="p-desc">First date (inclusive).</span>
+    <span class="p-desc">First date (inclusive), 1900-01-01 to tomorrow.</span>
   </div>
   <div class="prow">
     <span class="p-name">to</span>
     <span class="p-type">string <span class="p-hint">(date)</span></span>
-    <span class="p-desc">Last date (inclusive).</span>
+    <span class="p-desc">Last date (inclusive), 1900-01-01 to tomorrow.</span>
   </div>
 </div>
 
@@ -3351,24 +3346,24 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">Sync: set the weigh-in of one date</span>
   </summary>
   <div class="ep-body">
-<p>Sets the date's weigh-in to <code>kg</code>, stored in the profile's unit to 0.1 like the app's own weigh-in; any other field the app keeps on that entry stays. Read, changed and written on the server with nothing in between, so a device's save can never be lost inside it; and only over the revision named in <code>If-Match</code>, so a save that landed after the hub read the profile is a 409 to decide again on, never overwritten. The entry's <code>t</code>, and the document's <code>_ts</code>, are the server's clock moved past anything the profile held, so every device's merge keeps it as the newest change, and a correction made on a phone after it still wins. The write moves the revision: open devices pick it up on their next poll. A value within half the stored step of what the date holds (what the hub read, written back) changes nothing (<code>changed: false</code>, same revision).</p>
+<p>Sets the date's weigh-in to <code>kg</code>, stored in the profile's unit to 0.1 like the app's own weigh-in; any other field the app keeps on that entry stays. Read, changed and written on the server with nothing in between, so a device's save can never be lost inside it; and only over the version named in <code>If-Match</code> (revision and write id), so a save that landed after the hub read the profile is a 409 to decide again on, never overwritten. The body is at most 4 KB. The entry's <code>t</code>, and the document's <code>_ts</code>, are the server's clock moved past anything the profile held, so every device's merge keeps it as the newest change, and a correction made on a phone after it still wins. The write moves the revision: open devices pick it up on their next poll. A value within half the stored step of what the date holds (what the hub read, written back) changes nothing (<code>changed: false</code>, same revision).</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Hub token only: <code>Authorization: Bearer &lt;ES256 JWS&gt;</code> signed by a key in <code>HUB_JWKS</code>. A session cookie or a paired token is refused.</span></p>
 <p class="ep-h">Query parameters</p><div class="ptab">
   <div class="prow">
     <span class="p-name">date <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
     <span class="p-type">string <span class="p-hint">(date)</span></span>
-    <span class="p-desc">The day, as a <code>YYYY-MM-DD</code> string.</span>
+    <span class="p-desc">The day, as a <code>YYYY-MM-DD</code> string, 1900-01-01 to tomorrow.</span>
   </div>
   <div class="prow">
     <span class="p-name">If-Match <span class="p-hint">(header)</span><em class="p-req" title="required">required</em></span>
     <span class="p-type">string</span>
-    <span class="p-desc">The <code>ETag</code> this write was decided on: <code>&quot;&lt;rev&gt;:&lt;wid&gt;&quot;</code>, or <code>&quot;&lt;rev&gt;&quot;</code> alone.</span>
+    <span class="p-desc">The <code>ETag</code> this write was decided on, <code>&quot;&lt;rev&gt;:&lt;wid&gt;&quot;</code>. The revision alone is taken only by a document that has no write id yet.</span>
   </div>
 </div>
 <p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
   <div class="prow">
     <span class="p-name">kg<em class="p-req" title="required">required</em></span>
-    <span class="p-type">number <span class="p-hint">(&ndash;700)</span></span>
+    <span class="p-type">number <span class="p-hint">(20&ndash;400)</span></span>
     <span class="p-desc">The weight in kg.</span>
   </div>
   <div class="prow">
@@ -3389,7 +3384,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow rrow">
     <span class="r-code s4">400</span>
-    <span class="p-desc"><code>date</code> (<code>bad-date</code>), <code>kg</code> (<code>bad-weight</code>), <code>t</code> (<code>bad-time</code>) or <code>If-Match</code> (<code>bad-if-match</code>) is malformed.<span class="r-sig"><code>{&quot;error&quot;:&quot;kg must be a number above 0 and at most 700&quot;}</code></span></span>
+    <span class="p-desc"><code>date</code> (<code>bad-date</code>), <code>kg</code> (<code>bad-weight</code>), <code>t</code> (<code>bad-time</code>) or <code>If-Match</code> (<code>bad-if-match</code>) is malformed.<span class="r-sig"><code>{&quot;error&quot;:&quot;kg must be a number from 20 to 400&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -3404,8 +3399,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-desc">Not written. <code>rev-mismatch</code>: the profile moved on since the revision in <code>If-Match</code>; the body carries the current <code>rev</code>, <code>wid</code> and the date's <code>entry</code> (null when it has none) and the <code>ETag</code> header the version to decide again on. <code>no-state</code>: the profile has no data on this server yet (no device has synced), so there is nothing to write into.<span class="r-sig"><code>{&quot;error&quot;:&quot;conflict&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
+    <span class="r-code s4">413</span>
+    <span class="p-desc">The body is over 4 KB.<span class="r-sig"><code>{&quot;error&quot;:&quot;body too large&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
     <span class="r-code s4">428</span>
-    <span class="p-desc">No <code>If-Match</code>. Every weigh-in write names the revision it was decided on.<span class="r-sig"><code>{&quot;error&quot;:&quot;If-Match with the revision this write was decided on is required&quot;}</code></span></span>
+    <span class="p-desc">No <code>If-Match</code>, or one with the revision alone on a document that has a write id. Every weigh-in write names the version it was decided on, <code>&quot;&lt;rev&gt;:&lt;wid&gt;&quot;</code>; the current one is in the <code>ETag</code> header of this answer.<span class="r-sig"><code>{&quot;error&quot;:&quot;If-Match with the revision this write was decided on is required&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s5">503</span>
@@ -3429,12 +3428,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">date <span class="p-hint">(path)</span><em class="p-req" title="required">required</em></span>
     <span class="p-type">string <span class="p-hint">(date)</span></span>
-    <span class="p-desc">The day, as a <code>YYYY-MM-DD</code> string.</span>
+    <span class="p-desc">The day, as a <code>YYYY-MM-DD</code> string, 1900-01-01 to tomorrow.</span>
   </div>
   <div class="prow">
     <span class="p-name">If-Match <span class="p-hint">(header)</span><em class="p-req" title="required">required</em></span>
     <span class="p-type">string</span>
-    <span class="p-desc">The <code>ETag</code> this removal was decided on: <code>&quot;&lt;rev&gt;:&lt;wid&gt;&quot;</code>, or <code>&quot;&lt;rev&gt;&quot;</code> alone.</span>
+    <span class="p-desc">The <code>ETag</code> this removal was decided on, <code>&quot;&lt;rev&gt;:&lt;wid&gt;&quot;</code>. The revision alone is taken only by a document that has no write id yet.</span>
   </div>
 </div>
 
@@ -3462,7 +3461,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow rrow">
     <span class="r-code s4">428</span>
-    <span class="p-desc">No <code>If-Match</code>. Every weigh-in write names the revision it was decided on.<span class="r-sig"><code>{&quot;error&quot;:&quot;If-Match with the revision this write was decided on is required&quot;}</code></span></span>
+    <span class="p-desc">No <code>If-Match</code>, or one with the revision alone on a document that has a write id. Every weigh-in write names the version it was decided on, <code>&quot;&lt;rev&gt;:&lt;wid&gt;&quot;</code>; the current one is in the <code>ETag</code> header of this answer.<span class="r-sig"><code>{&quot;error&quot;:&quot;If-Match with the revision this write was decided on is required&quot;}</code></span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s5">503</span>
@@ -4421,13 +4420,13 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
 <div class="ptab">
   <div class="prow">
     <span class="p-name">id</span>
-    <span class="p-type">string</span>
-    <span class="p-desc">The workout's <code>id</code>, or <code>d&lt;date&gt;s&lt;start&gt;</code> for one without.</span>
+    <span class="p-type">string <span class="p-hint">(&le; 128 chars)</span></span>
+    <span class="p-desc">The workout's <code>id</code>, or <code>d&lt;date&gt;s&lt;start&gt;</code> for one without; cut at 128 characters.</span>
   </div>
   <div class="prow">
     <span class="p-name">date</span>
     <span class="p-type">string | null <span class="p-hint">(date)</span></span>
-    <span class="p-desc">The local day as stored.</span>
+    <span class="p-desc">The local day as stored; null when what is stored is not a date.</span>
   </div>
   <div class="prow">
     <span class="p-name">start</span>
@@ -4446,13 +4445,13 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow">
     <span class="p-name">name</span>
-    <span class="p-type">string | null</span>
-    <span class="p-desc"></span>
+    <span class="p-type">string | null <span class="p-hint">(&le; 200 chars)</span></span>
+    <span class="p-desc">Cut at 200 characters.</span>
   </div>
   <div class="prow">
     <span class="p-name">routine_id</span>
-    <span class="p-type">string | null</span>
-    <span class="p-desc"></span>
+    <span class="p-type">string | null <span class="p-hint">(&le; 128 chars)</span></span>
+    <span class="p-desc">Cut at 128 characters.</span>
   </div>
   <div class="prow">
     <span class="p-name">sets_done</span>
