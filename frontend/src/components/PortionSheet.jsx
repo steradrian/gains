@@ -8,6 +8,8 @@ import { writeErrorText, toastLogged } from '../lib/nutrition/log-feedback.js'
 import { fmtDate } from '../lib/format.js'
 import MacroLine from './MacroLine.jsx'
 import { Button, NumberField } from './ui.jsx'
+import { Chip, ChipRow, Stat } from './blocks.jsx'
+import { SheetHeader } from './sheet-layout.jsx'
 
 // How much of a food, then Log: NutriTrace's quantity prompt (Foods.svelte). Serving size in any
 // unit NutriTrace knows (the food's own household units first), number of servings, and the
@@ -56,8 +58,7 @@ export default function PortionSheet({ food, date, meal, mealName, onLogged, pen
   }
 
   return <div className="portion-sheet">
-    <h3 className="nt-sheet-title">{food.name}</h3>
-    <div className="muted small nt-sheet-sub">{[food.brand, mealName, fmtDate(date, true)].filter(Boolean).join(' · ')}</div>
+    <SheetHeader title={food.name} sub={[food.brand, mealName, fmtDate(date, true)].filter(Boolean).join(' · ')} />
     <div className="portion-grid">
       <label className="portion-f">
         <span className="small muted">{t('Serving size')}</span>
@@ -68,12 +69,11 @@ export default function PortionSheet({ food, date, meal, mealName, onLogged, pen
         <NumberField value={servings} onChange={setServings} aria-label={t('Servings')} />
       </label>
     </div>
-    <div className="chips portion-units" role="radiogroup" aria-label={t('Unit')}>
-      {unitsFor(food).map(u => <button key={u} type="button" role="radio" aria-checked={u === unit}
-        className={'chip' + (u === unit ? ' on' : '')} onClick={() => setUnit(u)}>{u}</button>)}
-    </div>
+    <ChipRow className="portion-units" role="radiogroup" aria-label={t('Unit')}>
+      {unitsFor(food).map(u => <Chip key={u} nocap on={u === unit} role="radio" aria-checked={u === unit} onClick={() => setUnit(u)}>{u}</Chip>)}
+    </ChipRow>
     <div className="portion-sum">
-      <span className="big">{units.energy(scaled.calories || 0)}</span>
+      <Stat value={units.energy(scaled.calories || 0)} />
       <MacroLine p={scaled.proteins} c={scaled.carbohydrates} f={scaled.fat} />
     </div>
     {!draft && <div className="muted small" role="status">{t('Enter an amount above 0.')}</div>}

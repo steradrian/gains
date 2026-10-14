@@ -6,6 +6,7 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { writeErrorText, toastLogged } from '../lib/nutrition/log-feedback.js'
 import { Button, NumberField, TextField } from './ui.jsx'
+import { SheetHeader } from './sheet-layout.jsx'
 
 const KJ_PER_KCAL = 4.184
 
@@ -53,8 +54,7 @@ export default function QuickKcalSheet({ date, meal, mealName, onLogged, pending
   }
 
   return <div className="quick-sheet">
-    <h3 className="nt-sheet-title">{t('Quick kcal')}</h3>
-    <div className="muted small nt-sheet-sub">{mealName} · {fmtDate(date, true)}</div>
+    <SheetHeader title={t('Quick kcal')} sub={mealName + ' · ' + fmtDate(date, true)} />
     <label className="portion-f">
       <span className="small muted">{units.energyUnit}</span>
       <NumberField value={energy} onChange={setEnergy} nullable decimal={false} aria-label={units.energyUnit} autoFocus />

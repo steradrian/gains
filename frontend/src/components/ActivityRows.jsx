@@ -1,6 +1,7 @@
 import { t } from '../lib/i18n.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import Icon from './Icon.jsx'
+import { SectionTitle } from './blocks.jsx'
 
 // NutriTrace's wearable sources, by the name their makers use.
 const DEVICE = { garmin: 'Garmin', fitbit: 'Fitbit', withings: 'Withings', google_health: 'Google Health', health_connect: 'Health Connect', polar: 'Polar', oura: 'Oura' }
@@ -28,7 +29,7 @@ export default function ActivityRows({ rows, target, sum, policy }) {
   const { energy } = useUnits()
   if (!rows.length) return null
   return <div className="activity-rows">
-    <h4 className="sec">{t('Activity')}</h4>
+    <SectionTitle>{t('Activity')}</SectionTitle>
     <ul>
       {rows.map(row => {
         const note = activityNote(row, target, { sum, policy })

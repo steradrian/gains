@@ -6,6 +6,8 @@ import { bwSheet, goalSheet, weighInsSheet, bwDeltaColor } from '../sheets.jsx'
 import LineChart from './LineChart.jsx'
 import Icon from './Icon.jsx'
 import { Button } from './ui.jsx'
+import { Card, Stat } from './blocks.jsx'
+import { Inline } from './layout.jsx'
 
 const daysBefore = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return isoOf(d) }
 
@@ -21,33 +23,30 @@ export default function WeightCard({ date }) {
   const delta = bw && base && base !== bw ? bw.w - base.w : null
   const points = week.map(b => ({ t: weighInTime(b), y: b.w, d: b.d }))
   const signed = delta == null ? '' : (delta > 0 ? '+' : '−') + fmtNum(Math.abs(delta)) + ' ' + S.unit
-  return <div className="card">
-    <div className="row between bw-head">
-      <h2>{t('Body weight')}</h2>
-      <div className="row">
-        <Button size="sm" icon="target" className={S.targetW ? 'bw-goal-btn' : ''} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
-        <Button size="sm" icon="plus" onClick={() => bwSheet({ date })}>{t('Log')}</Button>
-      </div>
-    </div>
+  const actions = <Inline gap={4}>
+    <Button size="sm" icon="target" className={S.targetW ? 'bw-goal-btn' : ''} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
+    <Button size="sm" icon="plus" onClick={() => bwSheet({ date })}>{t('Log')}</Button>
+  </Inline>
+  return <Card title={t('Body weight')} action={actions} className="bw-card">
     {bw ? <>
-      <div className="row bw-now">
-        <div className="big">{fmtNum(bw.w)} <span className="muted bw-unit">{S.unit}</span></div>
-        {!!delta && <span className="small row bw-delta" style={{ color: bwDeltaColor(delta, bw.w) }} aria-label={t('{0} over 7 days', signed)}>
+      <Inline gap={4} align="baseline" className="bw-now">
+        <Stat value={fmtNum(bw.w)} unit={S.unit} />
+        {!!delta && <Inline as="span" gap={1} className="small bw-delta" style={{ color: bwDeltaColor(delta, bw.w) }} aria-label={t('{0} over 7 days', signed)}>
           <Icon name={delta > 0 ? 'arrowUp' : 'arrowDown'} />{fmtNum(Math.abs(delta))}
           <span className="muted"> · {t('7 days')}</span>
-        </span>}
+        </Inline>}
         <span className="dim small bw-when">{fmtDate(bw.d, true)}</span>
-      </div>
-      {S.targetW && <div className="small row bw-goal">
+      </Inline>
+      {S.targetW && <Inline gap={2.5} className="small bw-goal">
         <Icon name="target" />
         <span>{t('Goal')} {fmtNum(S.targetW)} {S.unit} · {Math.abs(S.targetW - bw.w) < 0.05 ? t('reached!') : t(S.targetW > bw.w ? '{0} to gain' : '{0} to lose', fmtNum(Math.abs(S.targetW - bw.w)) + ' ' + S.unit)}</span>
-      </div>}
+      </Inline>}
       {points.length > 1 && <div className="chart bw-chart"><LineChart points={points} h={90} unit={S.unit} goal={S.targetW} /></div>}
-      <div className="row bw-all">
+      <Inline justify="end" className="mt-2">
         <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>
-      </div>
+      </Inline>
     </> : <div className="muted small">{S.weighIn === false
       ? t('No weigh-ins yet. Log your weight to start the curve.')
       : t("No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).")}</div>}
-  </div>
+  </Card>
 }
