@@ -3024,13 +3024,17 @@ paths:
         removed after it, in revision order, a page at a time. Pass back the `rev` and `wid` of
         the last page of the previous pass as `since` and `wid`.
 
-        The server learns what changed by comparing summaries when this route is read, so a
-        change is reported at the revision it was first seen at, never earlier than one already
-        handed out. A change only the hub cannot see (a note, a photo) is no change. Without
-        `since`, with one the profile never reached, with a `wid` the stored document does not
-        descend from (a restored backup), or after the server forgot what it had compared (a
-        restart), the pass is `full`: every workout there is and every removal on record. In a
-        full pass, a workout the hub holds that is not listed is gone too.
+        The server learns what changed by comparing summaries when this route is read, against
+        what it handed out last. So `since` counts from the last revision a pass of this route
+        ended at that is not after it: a revision learned elsewhere (a weigh-in write's answer)
+        misses nothing, it may only bring back what the hub already has. A change only the hub
+        cannot see (a note, a photo) is no change. Without `since`, with one no pass ended at or
+        before (first read, a restart), with one the profile never reached, with a `wid` the stored
+        document does not descend from, or after the profile's data went back in time (a restored
+        backup), the pass is `full`: every workout there is and every removal on record. In a full
+        pass, a workout the hub holds that is not listed is no longer in the profile; hold such
+        deletes behind the same guard as a `reset_at`. A profile with no state file answers 409
+        `no-state`, never an empty list.
 
         A workout is named by its own `id`, or by `d<date>s<start>` when it has none (an old
         import); one with neither is left out. `date` is the local day as the app stored it,
@@ -3039,7 +3043,7 @@ paths:
         - hubToken: []
       parameters:
         - { name: since, in: query, schema: { type: integer, minimum: 0 }, description: 'The `rev` the previous pass ended at. Absent: a full pass.' }
-        - { name: wid, in: query, schema: { type: string }, description: 'The `wid` the previous pass ended at. Without it, a restored backup that lands on the same revision number goes unnoticed.' }
+        - { name: wid, in: query, schema: { type: string }, description: 'The `wid` the previous pass ended at: one the stored document does not descend from makes the pass full.' }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 }, description: Entries (workouts and removals together) per page. }
         - { name: cursor, in: query, schema: { type: string }, description: 'The `next_cursor` of the page before. A cursor carries the pass on; `since` and `wid` are then ignored.' }
       responses:
@@ -3097,6 +3101,7 @@ paths:
               example: { error: "limit must be 1 to 500", code: "bad-limit" }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
+        '409': { $ref: '#/components/responses/SyncNoState' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
 
   /api/sync/bodyweight:
@@ -3150,6 +3155,7 @@ paths:
               example: { error: "from is after to", code: "bad-range" }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
+        '409': { $ref: '#/components/responses/SyncNoState' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
 
   /api/sync/bodyweight/{date}:
@@ -3306,6 +3312,14 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
           example: { error: "state unreadable", code: "state-unreadable" }
+    SyncNoState:
+      description: >-
+        The profile has no state file on this server: no device has synced yet, or the data
+        volume is not the one the profile was written to. Never an empty profile; nothing to sync.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "this profile has no data on this server yet", code: "no-state", rev: 0 }
     SyncWeighInWritten:
       description: >-
         Done, or nothing to do (`changed: false`, same revision). `entry` is the date's weigh-in

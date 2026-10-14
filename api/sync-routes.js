@@ -87,14 +87,19 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
     return handler(req, res, user, v.claims);
   };
 
-  // The stored document, or null after answering 503: a file that cannot be read is never an empty
-  // profile, which would read as every workout and weigh-in deleted.
+  // The stored document, or null once answered: 503 for a file that cannot be read, 409 no-state
+  // for one that is not there (no device has synced, or the data volume is mounted empty). Neither
+  // is ever an empty profile, which would read as every workout and weigh-in deleted, nor one to
+  // write a first document into.
   const stored = (res, uid) => {
     const S = readStateStrict(uid);
-    if (S !== UNREADABLE) return S;
-    console.error('state file unreadable for', uid);
-    json(res, 503, { error: 'state unreadable', code: 'state-unreadable' });
-    return undefined;
+    if (S === UNREADABLE) {
+      console.error('state file unreadable for', uid);
+      json(res, 503, { error: 'state unreadable', code: 'state-unreadable' });
+      return null;
+    }
+    if (!S) json(res, 409, { error: 'this profile has no data on this server yet', code: 'no-state', rev: 0 });
+    return S || null;
   };
 
   // A weigh-in write: the date, the precondition, then (for a body) the body, then the profile
@@ -113,8 +118,7 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
     if (!again) return json(res, 404, { error: 'no such user', code: 'user-gone' });
     if (again.disabled) return json(res, 401, { error: 'this account has been disabled', code: 'disabled' });
     const cur = stored(res, user.id);
-    if (cur === undefined) return;
-    if (!cur) return json(res, 409, { error: 'this profile has no data on this server yet', code: 'no-state', rev: 0 });
+    if (!cur) return;
     const rev = cur._rev || 0;
     if (Number(m[1]) !== rev || (m[2] && m[2] !== cur._wid)) {
       return json(res, 409, { error: 'conflict', code: 'rev-mismatch', ...revOf(cur), entry: weighInOf(cur, date) }, { ETag: etagOf(cur) });
@@ -147,11 +151,11 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
       const cursor = cur == null ? null : decodeCursor(cur);
       if (cur != null && !cursor) return bad(json, res, 'bad-cursor', 'cursor is not one this server handed out');
       const S = stored(res, user.id);
-      if (S === undefined) return;
+      if (!S) return;
       const page = changesSince(logOf(user.id, S), S, {
         since: since == null ? null : +since, wid, cursor, limit: limit == null ? LIMIT_DEFAULT : +limit
       });
-      json(res, 200, { ...revOf(S), unit: unitOf(S), reset_at: Number(S?.resetAt) > 0 ? Number(S.resetAt) : null, ...page }, { ETag: etagOf(S) });
+      json(res, 200, { ...revOf(S), unit: unitOf(S), reset_at: Number(S.resetAt) > 0 ? Number(S.resetAt) : null, ...page }, { ETag: etagOf(S) });
     }),
 
     // Weigh-ins (kg) and removals by date, from and to inclusive.
@@ -161,7 +165,7 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
       if ((from != null && !isDate(from)) || (to != null && !isDate(to))) return bad(json, res, 'bad-date', 'from and to must be real YYYY-MM-DD dates');
       if (from != null && to != null && from > to) return bad(json, res, 'bad-range', 'from is after to');
       const S = stored(res, user.id);
-      if (S === undefined) return;
+      if (!S) return;
       json(res, 200, { ...revOf(S), ...bodyweightView(S, { from, to }) }, { ETag: etagOf(S) });
     }),
 

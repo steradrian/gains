@@ -131,6 +131,7 @@ describe('trackWorkouts and changesSince', () => {
   it('since a revision: only what changed after it, edits and removals included', () => {
     let S = doc(5, 'a1', { workouts: [workout('w1'), workout('w2'), workout('w3')] });
     let log = trackWorkouts(undefined, S);
+    assert.equal(pass(log, S, { since: 5 }).full, true, 'no pass of this log ended at 5 yet');
     assert.deepEqual(pass(log, S, { since: 5 }), { full: false, items: [], deleted: [], pages: 1 });
 
     S = doc(6, 'a2', { workouts: [workout('w1', { name: 'Renamed' }), workout('w3'), workout('w4')], deleted: { workouts: { w2: 200 } } });
@@ -150,6 +151,20 @@ describe('trackWorkouts and changesSince', () => {
     S = doc(8, 'a4', { workouts: [...S.workouts, workout('w2')] });
     log = trackWorkouts(log, S);
     assert.deepEqual(pass(log, S, { since: 7 }), { full: false, items: ['w2'], deleted: [], pages: 1 });
+  });
+
+  it('a revision the hub learned elsewhere (its own weigh-in write) misses nothing', () => {
+    let S = doc(10, 'g1', { workouts: [workout('w1')] });
+    let log = trackWorkouts(undefined, S);
+    pass(log, S, { since: null });                       // a pass ends at 10
+    // w1 edited at 11 (nobody reads workouts), the hub's weigh-in write makes it 12.
+    S = doc(12, 'g3', { _wids: ['g1', 'g2'], workouts: [workout('w1', { name: 'Edited' })] });
+    log = trackWorkouts(log, S);
+    const p = pass(log, S, { since: 12, wid: 'g3' });
+    assert.equal(p.full, false);
+    assert.deepEqual(p.items, ['w1'], 'counted from 10, the last pass at or before 12');
+    // And that pass ended at 12: from there, nothing.
+    assert.deepEqual(pass(log, S, { since: 12, wid: 'g3' }).items, []);
   });
 
   it('pages in revision order and a change between pages is not missed', () => {
@@ -177,8 +192,8 @@ describe('trackWorkouts and changesSince', () => {
   it('a log started over (a restart, a restore) gives a hub from before it everything again', () => {
     const S = doc(9, 'c1', { workouts: [workout('w1')], deleted: { workouts: { 'w0': 50, '2026-01-01|123': 60 } } });
     const log = trackWorkouts(undefined, S);
-    assert.deepEqual(pass(log, S, { since: 9 }).items, [], 'the hub saw this very revision');
-    const p = pass(log, S, { since: 8 });
+    // Even at the very revision: what the hub was given at 9 came from another log, or not from here.
+    const p = pass(log, S, { since: 9 });
     assert.equal(p.full, true);
     assert.deepEqual(p.items, ['w1']);
     assert.deepEqual(p.deleted.sort(), ['d2026-01-01s123', 'w0']);
@@ -187,6 +202,7 @@ describe('trackWorkouts and changesSince', () => {
   it('a revision ahead of the profile, or a write id it does not descend from, is a full pass', () => {
     const S = doc(4, 'd2', { _wids: ['d1'], workouts: [workout('w1')] });
     const log = trackWorkouts(undefined, S);
+    pass(log, S, { since: null });
     assert.equal(pass(log, S, { since: 12 }).full, true);
     assert.equal(pass(log, S, { since: 4, wid: 'ffff' }).full, true);
     assert.equal(pass(log, S, { since: 4, wid: 'd2' }).full, false);

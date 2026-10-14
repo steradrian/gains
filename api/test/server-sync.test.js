@@ -308,6 +308,24 @@ test('a state file that cannot be read is a 503, never an empty profile', async 
     assert.deepEqual(r, { status: 503, body: { error: 'state unreadable', code: 'state-unreadable' } }, `${method} ${p}`);
   }
   assert.equal(fs.readFileSync(path.join(h.dataDir, 'state-u1.json'), 'utf8'), '{not json');
+  // No file at all (a volume mounted empty, a profile no device has synced): never an empty list.
+  for (const p of ['/api/sync/workouts', '/api/sync/workouts?since=3', '/api/sync/bodyweight']) {
+    assert.deepEqual(await h.req('GET', p, { token: tok('adm') }),
+      { status: 409, body: { error: 'this profile has no data on this server yet', code: 'no-state', rev: 0 } }, p);
+  }
+});
+
+test('workouts since a revision the hub got from its own weigh-in write: the change made before it still comes', async t => {
+  const h = await startServer(t, { states: { u1: profile() } });
+  assert.equal((await h.req('GET', '/api/sync/workouts', { token: tok() })).body.rev, 7);
+  const S = profile();
+  S.workouts = [lift('w1', { name: 'Edited' }), S.workouts[1]];
+  const phone = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: S, baseRev: 7, stamped: true } });
+  const w = await put(h, '2026-10-12', { kg: 79 }, `"${phone.body.rev}"`);
+  assert.equal(w.status, 200);
+  const r = await h.req('GET', `/api/sync/workouts?since=${w.body.rev}&wid=${w.body.wid}`, { token: tok() });
+  assert.equal(r.body.full, false);
+  assert.deepEqual(r.body.items.map(i => [i.id, i.name]), [['w1', 'Edited']]);
 });
 
 test('body weight in kg both ways for a profile kept in lb, and the round trip comes home', async t => {

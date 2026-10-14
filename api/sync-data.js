@@ -6,9 +6,11 @@
  * (trackWorkouts): for every workout the revision at which its summary was last seen to change,
  * and for every workout that went away the revision at which it did. "Changed since revision R" is
  * then every entry of the log past R. The log only ever learns at a read, so a change made at
- * revision 9 and first read at 12 is logged at 12: still past any R the hub was given before it.
- * A log built from nothing (first read, a restart, the profile's data going back in time) starts
- * at the revision it was built at, and a hub asking from before that gets everything (`full`).
+ * revision 9 and first read at 12 is logged at 12. That is past R only when R is a revision this
+ * route handed out (the last page of a pass, `served`): a revision the hub learned elsewhere (its own
+ * weigh-in write answered 10) says nothing about what it has read of the workouts. So R is taken
+ * back to the last revision served at or before it, and with none (a log built from nothing: first
+ * read, a restart, the profile's data going back in time) the pass is `full`: everything.
  *
  * Body weight. One value per date, in kg on the wire and in the profile's unit in the state, like
  * the app's own weigh-in (frontend lib/units.js convertBodyWeight: to 0.1 in the stored unit).
@@ -95,9 +97,10 @@ export function workoutItem(w, unit) {
     strength_sets: strength,
     cardio,
     distance_km: cardio.some(c => c.km != null) ? round2(cardio.reduce((n, c) => n + (c.km || 0), 0)) : null,
-    // To 0.1, not 0.01: a unit switch converts every stored `bw` and back lands on the same 0.1 kg
-    // (lib/units.js), so the hash of every workout does not move with it.
-    bodyweight_kg: bw > 0 ? Math.round(toKg(bw, unit) * 10) / 10 : null
+    // To 0.1, not 0.01, and straight from the stored value: a unit switch converts every stored
+    // `bw` and back lands on the same 0.1 kg (lib/units.js), so the hash of every workout does not
+    // move with it.
+    bodyweight_kg: bw > 0 ? Math.round((unit === 'lb' ? bw / LB_PER_KG : bw) * 10) / 10 : null
   };
   const hash = crypto.createHash('sha256').update(JSON.stringify(facts)).digest('hex');
   return { ...facts, edited_at: instant(Number(w._ts)), content_hash: 'sha256:' + hash };
@@ -109,11 +112,14 @@ const GONE_MAX = 5000;
 // Which start of a log a cursor was made against (`epoch`): a log can start over at the revision it
 // had, and after a restart a counter would repeat, so it is random.
 const newEpoch = () => crypto.randomBytes(6).toString('hex');
+// How many served revisions are kept: a hub further behind than this is given everything again.
+const SERVED_MAX = 200;
 
 /**
  * The change log of a profile's workouts, brought up to `S` (see the top of this file). `log` is
  * the previous one (or undefined); the result is it, updated, or a new one.
- * { epoch, base, rev, wid, items: Map<id, item>, seen: Map<id, {rev, hash}>, gone: Map<id, {rev, at}> }
+ * { epoch, base, rev, wid, items: Map<id, item>, seen: Map<id, {rev, hash}>, gone: Map<id, {rev, at}>,
+ *   served: revisions a pass ended at, ascending }
  */
 export function trackWorkouts(log, S) {
   const rev = Number(S?._rev) || 0, wid = typeof S?._wid === 'string' ? S._wid : null;
@@ -132,7 +138,7 @@ export function trackWorkouts(log, S) {
   // Only a later revision is a continuation. The same number or a lower one with another write id
   // is the data directory gone back in time (a restored backup): start over.
   if (!log || rev <= log.rev || log.gone.size > GONE_MAX) {
-    const fresh = { epoch: newEpoch(), base: rev, rev, wid, items, seen: new Map(), gone: new Map() };
+    const fresh = { epoch: newEpoch(), base: rev, rev, wid, items, seen: new Map(), gone: new Map(), served: [] };
     for (const [id, it] of items) fresh.seen.set(id, { rev, hash: it.content_hash });
     for (const [id, at] of removed) if (!items.has(id)) fresh.gone.set(id, { rev, at });
     return fresh;
@@ -164,10 +170,12 @@ export function decodeCursor(s) {
 
 /**
  * One page of what changed since revision `since`, in revision order (then id), from `log`:
- * workouts changed and workouts gone, each at most once per page. `full` says the pass lists every
- * workout there is (and every removal on record): `since` is absent, older than the log, newer than
- * the profile, or names a document this one does not descend from (`wid`). A cursor carries the
- * pass on; if the log started over in between, the pass starts over too, in full.
+ * workouts changed and workouts gone, each at most once per page. `since` counts from the last
+ * revision a pass of this log ended at that is not after it (see the top of this file). `full` says
+ * the pass lists every workout there is (and every removal on record): `since` is absent, no pass of
+ * this log ended at or before it, it is newer than the profile, or `wid` names a document this one
+ * does not descend from. A cursor carries the pass on; if the log started over in between, the pass
+ * starts over too, in full. The last page of a pass notes its revision in `log.served`.
  */
 export function changesSince(log, S, { since = null, wid = null, cursor = null, limit = 100 }) {
   let s, full, after = null;
@@ -177,8 +185,9 @@ export function changesSince(log, S, { since = null, wid = null, cursor = null, 
     s = -1; full = true;
   } else {
     const foreign = wid != null && wid !== log.wid && !list(S?._wids).includes(wid);
-    full = since == null || since < log.base || since > log.rev || foreign;
-    s = full ? -1 : since;
+    const from = since == null ? undefined : log.served.findLast(r => r <= since);
+    full = from === undefined || since > log.rev || foreign;
+    s = full ? -1 : from;
   }
   const events = [];
   for (const [id, x] of log.seen) if (x.rev > s) events.push({ rev: x.rev, id });
@@ -187,11 +196,16 @@ export function changesSince(log, S, { since = null, wid = null, cursor = null, 
   const rest = after ? events.filter(e => e.rev > after.r || (e.rev === after.r && e.id > after.k)) : events;
   const page = rest.slice(0, limit);
   const last = page[page.length - 1];
+  const more = rest.length > page.length;
+  if (!more && log.served.at(-1) !== log.rev) {
+    log.served.push(log.rev);
+    if (log.served.length > SERVED_MAX) log.served.shift();
+  }
   return {
     full,
     items: page.filter(e => !('at' in e)).map(e => log.items.get(e.id)),
     deleted: page.filter(e => 'at' in e).map(e => ({ id: e.id, deleted_at: e.at })),
-    next_cursor: rest.length > page.length ? encodeCursor({ s, f: full, b: log.epoch, r: last.rev, k: last.id }) : null
+    next_cursor: more ? encodeCursor({ s, f: full, b: log.epoch, r: last.rev, k: last.id }) : null
   };
 }
 

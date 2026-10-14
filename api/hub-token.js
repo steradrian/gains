@@ -81,8 +81,9 @@ export function verifyHubToken(hub, token, { audience, scopes, now = Date.now() 
   if (!key) return fail('kid');
   // JWS carries ES256 as r || s, 64 bytes, not the DER node defaults to. Node decodes base64url
   // leniently: the spare low bits of the last character are ignored, so several strings decode to
-  // the same 64 bytes. Only the one canonical spelling is accepted, so a token cannot be re-spelled
-  // into a different string (another log line, another token to the hub's eyes) that still verifies.
+  // the same 64 bytes. Only the canonical spelling is accepted, which closes that encoding-level
+  // malleability. (ECDSA itself still admits a second valid signature, (r, n - s), so a token's
+  // string is not unique; nothing here relies on it being so: replays are keyed on `jti`.)
   const sig = Buffer.from(parts[2], 'base64url');
   if (sig.length !== 64 || sig.toString('base64url') !== parts[2]) return fail('signature');
   let good = false;
