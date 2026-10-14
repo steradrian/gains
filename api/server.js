@@ -2291,8 +2291,8 @@ const routes = {
     // this kernel — 3901 of 3999 back-to-back same-size writes shared one timestamp), and a
     // `_rev` going from 7 to 8 does not change the file's size, so two writes inside one 4 ms
     // tick are the same (mtimeMs, size) key. A reader that sampled between them would then serve
-    // the old revision until some later write happened to land on a different tick. This is the
-    // only writer of a state file in the tree, so evicting here is the whole fix.
+    // the old revision until some later write happened to land on a different tick. The writers of
+    // a state file are this route and commitState below (the sync hub's weigh-ins), and each evicts.
     stateCache.delete(user.id);
     // Starts (or stops) the grace clock of every stored file this write stopped (or started)
     // referencing. Bookkeeping only: the state is already saved, so nothing here may turn a
@@ -2602,9 +2602,14 @@ const routes = {
 };
 
 // How the sync routes store a document they changed (sync-routes.js): the bookkeeping PUT /api/data
-// does once its checks have passed, kept apart so that route stays as upstream has it. Synchronous,
-// so a caller that read `cur` with nothing awaited since has an atomic compare-and-write.
+// does once its checks have passed (server-sync.test.js holds the two to each other), kept apart so
+// that route stays as upstream has it. Synchronous, so a caller that read `cur` with nothing awaited
+// since has an atomic compare-and-write. Where PUT /api/data takes `_ts` from the device that wrote,
+// this write is the server's own and moves it on: a device that compares copies by `_ts`
+// (useStore restoredStateFor) then never takes its older copy for the newer and pushes it back.
 function commitState(uid, cur, next) {
+  const was = Number(cur?._ts) || 0;
+  if (!((Number(next._ts) || 0) > was)) next._ts = Math.max(Date.now(), was + 1);
   const rev = (cur?._rev || 0) + 1;
   next._rev = rev;
   next._wids = [...(Array.isArray(cur?._wids) ? cur._wids : []), ...(cur?._wid ? [cur._wid] : [])]

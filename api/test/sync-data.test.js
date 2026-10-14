@@ -128,43 +128,55 @@ describe('trackWorkouts and changesSince', () => {
     assert.deepEqual(p.deleted, ['w0']);
   });
 
-  it('since a revision: only what changed after it, edits and removals included', () => {
+  it('since a revision: what changed after the pass before it, edits and removals included', () => {
     let S = doc(5, 'a1', { workouts: [workout('w1'), workout('w2'), workout('w3')] });
     let log = trackWorkouts(undefined, S);
     assert.equal(pass(log, S, { since: 5 }).full, true, 'no pass of this log ended at 5 yet');
-    assert.deepEqual(pass(log, S, { since: 5 }), { full: false, items: [], deleted: [], pages: 1 });
 
     S = doc(6, 'a2', { workouts: [workout('w1', { name: 'Renamed' }), workout('w3'), workout('w4')], deleted: { workouts: { w2: 200 } } });
     log = trackWorkouts(log, S);
-    const p = pass(log, S, { since: 5 });
+    // 5 is the first pass this log served: the one before it is everything.
+    assert.equal(pass(log, S, { since: 5 }).full, true);
+
+    // A change the hub cannot see is no change; a write of something else is none either. What the
+    // pass at 6 handed out (w1, w4, w2 gone) comes once more, then no more.
+    S = doc(7, 'a3', { workouts: [workout('w1', { name: 'Renamed', note: 'x' }), workout('w3'), workout('w4')], targetW: 75 });
+    log = trackWorkouts(log, S);
+    const p = pass(log, S, { since: 6 });
     assert.equal(p.full, false);
     assert.deepEqual(p.items, ['w1', 'w4']);
     assert.deepEqual(p.deleted, ['w2']);
-    const page = changesSince(log, S, { since: 5 });
-    assert.deepEqual(page.deleted, [{ id: 'w2', deleted_at: 200 }]);
-
-    // A change the hub cannot see is no change; a write of something else is none either.
-    S = doc(7, 'a3', { workouts: [workout('w1', { name: 'Renamed', note: 'x' }), workout('w3'), workout('w4')], targetW: 75 });
-    log = trackWorkouts(log, S);
-    assert.deepEqual(pass(log, S, { since: 6 }).items, []);
+    assert.deepEqual(changesSince(log, S, { since: 6 }).deleted, [{ id: 'w2', deleted_at: 200 }]);
     // Brought back after a removal: an item again, and no longer gone.
     S = doc(8, 'a4', { workouts: [...S.workouts, workout('w2')] });
     log = trackWorkouts(log, S);
     assert.deepEqual(pass(log, S, { since: 7 }), { full: false, items: ['w2'], deleted: [], pages: 1 });
   });
 
-  it('a revision the hub learned elsewhere (its own weigh-in write) misses nothing', () => {
-    let S = doc(10, 'g1', { workouts: [workout('w1')] });
+  it('an answer lost on the way loses nothing, whichever revision the hub asks from next', () => {
+    let S = doc(10, 'g1', { workouts: [workout('w1'), workout('w2')] });
     let log = trackWorkouts(undefined, S);
-    pass(log, S, { since: null });                       // a pass ends at 10
-    // w1 edited at 11 (nobody reads workouts), the hub's weigh-in write makes it 12.
-    S = doc(12, 'g3', { _wids: ['g1', 'g2'], workouts: [workout('w1', { name: 'Edited' })] });
+    pass(log, S, { since: null });
+    S = doc(11, 'g2', { _wids: ['g1'], workouts: S.workouts });
     log = trackWorkouts(log, S);
-    const p = pass(log, S, { since: 12, wid: 'g3' });
-    assert.equal(p.full, false);
-    assert.deepEqual(p.items, ['w1'], 'counted from 10, the last pass at or before 12');
-    // And that pass ended at 12: from there, nothing.
-    assert.deepEqual(pass(log, S, { since: 12, wid: 'g3' }).items, []);
+    pass(log, S, { since: 10 });                         // passes ended at 10 and 11; the hub has 11
+    // w1 is edited (12) and a pass answers it, but the answer never arrives.
+    S = doc(12, 'g3', { _wids: ['g1', 'g2'], workouts: [workout('w1', { name: 'Edited' }), workout('w2')] });
+    log = trackWorkouts(log, S);
+    assert.deepEqual(pass(log, S, { since: 11 }).items, ['w1']);
+    // The hub's own weigh-in write moves the document to 13.
+    S = doc(13, 'g4', { _wids: ['g1', 'g2', 'g3'], workouts: S.workouts });
+    log = trackWorkouts(log, S);
+    // A revision this route never ended a pass at (the write's own): everything.
+    const p = pass(log, S, { since: 13, wid: 'g4' });
+    assert.equal(p.full, true);
+    assert.ok(p.items.includes('w1'));
+    // Or the hub's own last revision, or the lost one's (a write that answered 12 too).
+    for (const since of [11, 12]) {
+      const q = pass(log, S, { since, wid: since === 11 ? 'g2' : 'g3' });
+      assert.equal(q.full, false, `since ${since}`);
+      assert.ok(q.items.includes('w1'), `since ${since}: the edit still comes`);
+    }
   });
 
   it('pages in revision order and a change between pages is not missed', () => {
@@ -200,13 +212,16 @@ describe('trackWorkouts and changesSince', () => {
   });
 
   it('a revision ahead of the profile, or a write id it does not descend from, is a full pass', () => {
-    const S = doc(4, 'd2', { _wids: ['d1'], workouts: [workout('w1')] });
-    const log = trackWorkouts(undefined, S);
+    let S = doc(4, 'd2', { _wids: ['d1'], workouts: [workout('w1')] });
+    let log = trackWorkouts(undefined, S);
     pass(log, S, { since: null });
+    S = doc(5, 'd3', { _wids: ['d1', 'd2'], workouts: [workout('w1')] });
+    log = trackWorkouts(log, S);
+    pass(log, S, { since: 4 });
     assert.equal(pass(log, S, { since: 12 }).full, true);
-    assert.equal(pass(log, S, { since: 4, wid: 'ffff' }).full, true);
-    assert.equal(pass(log, S, { since: 4, wid: 'd2' }).full, false);
-    assert.equal(pass(log, S, { since: 4, wid: 'd1' }).full, false);
+    assert.equal(pass(log, S, { since: 5, wid: 'ffff' }).full, true);
+    assert.equal(pass(log, S, { since: 5, wid: 'd3' }).full, false);
+    assert.equal(pass(log, S, { since: 5, wid: 'd2' }).full, false);
   });
 
   it('the same revision with another write id starts the log over', () => {
@@ -263,13 +278,27 @@ describe('body weight', () => {
     const back = withWeighIn(S, '2026-10-03', 79, { now: 50 });
     assert.ok(back.bodyweight.find(e => e.d === '2026-10-03').t > 150);
     assert.equal(weighInOf(back, '2026-10-03').kg, 79.02, '174.2 lb');
-    // The caller's own t, when it is the later one.
-    assert.equal(withWeighIn(S, '2026-10-05', 79, { t: 9e12, now: 50 }).bodyweight.at(-1).t, 9e12);
   });
 
-  it('a write of the value the day already holds changes nothing', () => {
+  it('stamps with the server’s clock, never ahead of it, and moves the document’s _ts to the same', () => {
+    const now = 1_760_000_000_000;
+    const next = withWeighIn({ ...S, _ts: now - 5000 }, '2026-10-05', 79, { now });
+    assert.equal(next.bodyweight.find(e => e.d === '2026-10-05').t, now);
+    assert.equal(next._ts, now);
+    const gone = withoutWeighIn({ ...S, _ts: now - 5000 }, '2026-10-01', { now });
+    assert.equal(gone.deleted.bodyweight['2026-10-01'], now);
+    assert.equal(gone._ts, now);
+  });
+
+  it('writing back what was read is no change, to within half the stored step', () => {
     assert.equal(withWeighIn(S, '2026-10-01', 78.38), null);
-    assert.equal(withWeighIn({ unit: 'kg', bodyweight: [{ d: '2026-10-01', w: 78.4, t: 1 }] }, '2026-10-01', 78.4), null);
+    for (const [unit, w] of [['kg', 78.4], ['kg', 80.45], ['lb', 180.25], ['lb', 172.8], ['lb', 176.45]]) {
+      const P = { unit, bodyweight: [{ d: '2026-10-01', w, t: 1 }] };
+      assert.equal(withWeighIn(P, '2026-10-01', weighInOf(P, '2026-10-01').kg), null, `${w} ${unit}`);
+    }
+    // A step the app can show is a change.
+    assert.notEqual(withWeighIn({ unit: 'kg', bodyweight: [{ d: '2026-10-01', w: 80.45, t: 1 }] }, '2026-10-01', 80.55), null);
+    assert.notEqual(withWeighIn({ unit: 'lb', bodyweight: [{ d: '2026-10-01', w: 180.2, t: 1 }] }, '2026-10-01', 81.78), null);
   });
 
   it('keeps what else the app stored on the weigh-in', () => {

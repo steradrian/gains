@@ -3025,13 +3025,14 @@ paths:
         the last page of the previous pass as `since` and `wid`.
 
         The server learns what changed by comparing summaries when this route is read, against
-        what it handed out last. So `since` counts from the last revision a pass of this route
-        ended at that is not after it: a revision learned elsewhere (a weigh-in write's answer)
-        misses nothing, it may only bring back what the hub already has. A change only the hub
-        cannot see (a note, a photo) is no change. Without `since`, with one no pass ended at or
-        before (first read, a restart), with one the profile never reached, with a `wid` the stored
-        document does not descend from, or after the profile's data went back in time (a restored
-        backup), the pass is `full`: every workout there is and every removal on record. In a full
+        what it handed out before. So `since` must be a revision a pass of this route ended at,
+        and it counts from the pass before that one: what the last pass handed out comes once
+        more, so an answer lost on the way loses nothing (the hub's hashes absorb the repeat). A
+        change only the hub cannot see (a note, a photo) is no change. Without `since`, with one no
+        pass of this route ended at (a weigh-in write's revision, a restart, the first pass after
+        one), with one the profile never reached, with a `wid` the stored document does not descend
+        from, or after the profile's data went back in time (a restored backup), the pass is
+        `full`: every workout there is and every removal on record. In a full
         pass, a workout the hub holds that is not listed is no longer in the profile; hold such
         deletes behind the same guard as a `reset_at`. A profile with no state file answers 409
         `no-state`, never an empty list.
@@ -3042,7 +3043,7 @@ paths:
       security:
         - hubToken: []
       parameters:
-        - { name: since, in: query, schema: { type: integer, minimum: 0 }, description: 'The `rev` the previous pass ended at. Absent: a full pass.' }
+        - { name: since, in: query, schema: { type: integer, minimum: 0 }, description: 'The `rev` the previous pass of this route ended at (never one from another route). Absent: a full pass.' }
         - { name: wid, in: query, schema: { type: string }, description: 'The `wid` the previous pass ended at: one the stored document does not descend from makes the pass full.' }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 }, description: Entries (workouts and removals together) per page. }
         - { name: cursor, in: query, schema: { type: string }, description: 'The `next_cursor` of the page before. A cursor carries the pass on; `since` and `wid` are then ignored.' }
@@ -3168,10 +3169,12 @@ paths:
         weigh-in; any other field the app keeps on that entry stays. Read, changed and written on
         the server with nothing in between, so a device's save can never be lost inside it; and only
         over the revision named in `If-Match`, so a save that landed after the hub read the profile
-        is a 409 to decide again on, never overwritten. The entry's `t` is later than anything the
-        profile held, so every device's merge keeps it as the newest change (and never earlier than
-        the `t` sent). The write moves the revision: open devices pick it up on their next poll.
-        The value the date already holds changes nothing (`changed: false`, same revision).
+        is a 409 to decide again on, never overwritten. The entry's `t`, and the document's `_ts`,
+        are the server's clock moved past anything the profile held, so every device's merge keeps
+        it as the newest change, and a correction made on a phone after it still wins. The write
+        moves the revision: open devices pick it up on their next poll. A value within half the
+        stored step of what the date holds (what the hub read, written back) changes nothing
+        (`changed: false`, same revision).
       security:
         - hubToken: []
       parameters:
@@ -3186,7 +3189,7 @@ paths:
               required: [kg]
               properties:
                 kg: { type: number, exclusiveMinimum: 0, maximum: 700, description: The weight in kg. }
-                t: { type: integer, description: 'When the value was taken or last changed on the hub''s side, ms; at most five minutes ahead of the server.' }
+                t: { type: integer, description: 'When the value was taken on the hub''s side, ms. Checked and never used: the server stamps every write by its own clock.' }
               example: { kg: 78.4, t: 1760410000000 }
       responses:
         '200': { $ref: '#/components/responses/SyncWeighInWritten' }

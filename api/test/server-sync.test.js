@@ -252,25 +252,28 @@ test('workouts: everything first, then only what changed since the revision give
   });
   assert.deepEqual(all.body.deleted, []);
 
-  // Nothing since: nothing.
-  const none = await h.req('GET', '/api/sync/workouts?since=7&wid=0123456789abcdef', { token: tok() });
-  assert.deepEqual([none.body.items, none.body.deleted, none.body.full], [[], [], false]);
-
   // A browser (an app that does not stamp) edits w1, removes w2 and logs w3.
   const S = profile();
   S.workouts = [lift('w1', { name: 'Push day, heavy' }), lift('w3', { d: '2026-10-12' })];
   const pushed = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: S, baseRev: 7 } });
   assert.equal(pushed.status, 200);
-  const since = await h.req('GET', `/api/sync/workouts?since=7&wid=0123456789abcdef`, { token: tok() });
-  assert.equal(since.body.rev, pushed.body.rev);
+  // From the first pass: the one before it is everything, so this one is full too.
+  const second = await h.req('GET', '/api/sync/workouts?since=7&wid=0123456789abcdef', { token: tok() });
+  assert.equal(second.body.full, true);
+  assert.deepEqual(second.body.items.map(i => i.id), ['w1', 'w3']);
+  // A write the hub cannot see; then from the second pass: what it handed out comes once more.
+  const quiet = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: { ...h.state('u1'), targetW: 75 }, baseRev: second.body.rev, stamped: true } });
+  assert.equal(quiet.status, 200);
+  const since = await h.req('GET', `/api/sync/workouts?since=${second.body.rev}&wid=${second.body.wid}`, { token: tok() });
+  assert.equal(since.body.rev, quiet.body.rev);
   assert.equal(since.body.full, false);
   assert.deepEqual(since.body.items.map(i => [i.id, i.name]), [['w1', 'Push day, heavy'], ['w3', 'Push day']]);
   assert.deepEqual(since.body.deleted.map(d => d.id), ['w2']);
   assert.ok(since.body.deleted[0].deleted_at > 0, 'the removal on record');
   assert.notEqual(since.body.items[0].content_hash, w1.content_hash);
-  // And from the revision that answer gave, nothing again.
+  // And from the revision that answer gave: nothing changed after the pass before it.
   const after = await h.req('GET', `/api/sync/workouts?since=${since.body.rev}&wid=${since.body.wid}`, { token: tok() });
-  assert.deepEqual([after.body.items, after.body.deleted], [[], []]);
+  assert.deepEqual([after.body.items, after.body.deleted, after.body.full], [[], [], false]);
   // A revision the profile never reached, or a write id it does not descend from: everything.
   assert.equal((await h.req('GET', '/api/sync/workouts?since=99', { token: tok() })).body.full, true);
   assert.equal((await h.req('GET', `/api/sync/workouts?since=${since.body.rev}&wid=ffffffffffffffff`, { token: tok() })).body.full, true);
@@ -315,17 +318,27 @@ test('a state file that cannot be read is a 503, never an empty profile', async 
   }
 });
 
-test('workouts since a revision the hub got from its own weigh-in write: the change made before it still comes', async t => {
+test('a workouts answer lost on the way, then a weigh-in write: the edit it carried still comes', async t => {
   const h = await startServer(t, { states: { u1: profile() } });
-  assert.equal((await h.req('GET', '/api/sync/workouts', { token: tok() })).body.rev, 7);
-  const S = profile();
-  S.workouts = [lift('w1', { name: 'Edited' }), S.workouts[1]];
-  const phone = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: S, baseRev: 7, stamped: true } });
+  const read = async (since, wid) => (await h.req('GET', `/api/sync/workouts${since == null ? '' : `?since=${since}&wid=${wid}`}`, { token: tok() })).body;
+  const first = await read();
+  const quiet = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: { ...h.state('u1'), targetW: 75 }, baseRev: 7, stamped: true } });
+  const second = await read(first.rev, first.wid);                 // the hub is at `second` now
+  assert.equal(second.rev, quiet.body.rev);
+  // A phone edits w1; a pass answers it (`lost`), and the answer never reaches the hub.
+  const S = h.state('u1');
+  S.workouts = [{ ...S.workouts[0], name: 'Edited' }, S.workouts[1]];
+  const phone = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: S, baseRev: second.rev, stamped: true } });
+  const lost = await read(second.rev, second.wid);
+  assert.deepEqual(lost.items.map(i => i.name), ['Edited']);
+  // The hub's weigh-in write moves the document on.
   const w = await put(h, '2026-10-12', { kg: 79 }, `"${phone.body.rev}"`);
   assert.equal(w.status, 200);
-  const r = await h.req('GET', `/api/sync/workouts?since=${w.body.rev}&wid=${w.body.wid}`, { token: tok() });
-  assert.equal(r.body.full, false);
-  assert.deepEqual(r.body.items.map(i => [i.id, i.name]), [['w1', 'Edited']]);
+  // Whichever revision the hub asks from next, the edit comes.
+  for (const [since, wid] of [[w.body.rev, w.body.wid], [second.rev, second.wid], [lost.rev, lost.wid]]) {
+    const r = await read(since, wid);
+    assert.ok(r.items.some(i => i.id === 'w1' && i.name === 'Edited'), `since ${since}`);
+  }
 });
 
 test('body weight in kg both ways for a profile kept in lb, and the round trip comes home', async t => {
@@ -357,7 +370,9 @@ test('body weight in kg both ways for a profile kept in lb, and the round trip c
 
 test('a weigh-in write moves the revision, is what the profile’s own devices read next, and deletes leave a removal on record', async t => {
   const h = await startServer(t, { states: { u1: profile() } });
-  const w = await put(h, '2026-10-12', { kg: 79.6, t: T0 }, '"7:0123456789abcdef"');
+  // A `t` from the hub's clock, far ahead: taken, and not used to order anything.
+  const before = Date.now();
+  const w = await put(h, '2026-10-12', { kg: 79.6, t: before + 86400000 }, '"7:0123456789abcdef"');
   assert.equal(w.status, 200);
   assert.equal(w.body.rev, 8);
   assert.notEqual(w.body.wid, '0123456789abcdef');
@@ -370,8 +385,9 @@ test('a weigh-in write moves the revision, is what the profile’s own devices r
   const entry = doc.bodyweight.find(e => e.d === '2026-10-12');
   assert.equal(entry.w, 79.6);
   assert.ok(entry.t > T0, 'stamped as the newest change, so every device’s merge keeps it');
+  assert.ok(entry.t >= before && entry.t <= Date.now(), 'by the server’s clock, never the caller’s time ahead of it');
   assert.equal(doc.workouts.length, 2);
-  assert.equal(doc._ts, T0, 'the document’s own _ts is the devices’, untouched');
+  assert.equal(doc._ts, entry.t, 'the document’s _ts moves with it, as a device’s own push does');
 
   const del = await h.send('DELETE', '/api/sync/bodyweight/2026-10-09', { token: tok(), ifMatch: w.etag });
   assert.equal(del.status, 200);
@@ -455,7 +471,7 @@ test('a weigh-in write is checked before anything is read or written', async t =
     [() => put(h, '2026-10-12', { kg: 701 }, '"7"'), 400, 'bad-weight'],
     [() => put(h, '2026-10-12', { kg: '80' }, '"7"'), 400, 'bad-weight'],
     [() => put(h, '2026-10-12', {}, '"7"'), 400, 'bad-weight'],
-    [() => put(h, '2026-10-12', { kg: 80, t: Date.now() + 10 * 60000 }, '"7"'), 400, 'bad-time'],
+    [() => put(h, '2026-10-12', { kg: 80, t: -5 }, '"7"'), 400, 'bad-time'],
     [() => put(h, '2026-10-12', { kg: 80, t: 'now' }, '"7"'), 400, 'bad-time'],
     [() => h.send('DELETE', '/api/sync/bodyweight/2026-10-09', { token: tok() }), 428, 'precondition-required'],
     [() => put(h, '2026-10-12', { kg: 80 }, '"0"', tok('adm')), 409, 'no-state']
@@ -467,4 +483,61 @@ test('a weigh-in write is checked before anything is read or written', async t =
   }
   assert.deepEqual(h.state('u1'), before);
   assert.equal(fs.existsSync(path.join(h.dataDir, 'state-adm.json')), false, 'no state made up for a profile without one');
+});
+
+test('writing back what was read is no write: same revision, same file, in kg and in lb', async t => {
+  const h = await startServer(t, {
+    users: [...USERS, user('u3', 'Cy')],
+    states: {
+      u1: profile({ bodyweight: [{ d: '2026-10-10', w: 80.45, t: T0 }] }),
+      u3: profile({ unit: 'lb', bodyweight: [{ d: '2026-10-10', w: 180.25, t: T0 }] })
+    }
+  });
+  for (const uid of ['u1', 'u3']) {
+    const before = fs.readFileSync(path.join(h.dataDir, `state-${uid}.json`), 'utf8');
+    const read = await h.send('GET', '/api/sync/bodyweight', { token: tok(uid) });
+    const kg = read.body.items[0].kg;
+    const echo = await put(h, '2026-10-10', { kg }, read.etag, tok(uid));
+    assert.deepEqual([echo.status, echo.body.changed, echo.body.rev], [200, false, 7], `${uid}: ${kg} kg`);
+    assert.equal(fs.readFileSync(path.join(h.dataDir, `state-${uid}.json`), 'utf8'), before, `${uid}: untouched`);
+  }
+});
+
+test('a sync write keeps the same books as PUT /api/data: revision, write ids, stamps, notes, cache', async t => {
+  const ancestors = Array.from({ length: 50 }, (_, i) => i.toString(16).padStart(16, '0'));
+  const seed = profile({
+    _wids: ancestors, edited: { restSec: T0 }, restSec: 75,
+    deleted: { workouts: { w0: T0 - 1 }, bodyweight: { '2026-10-01': T0 - 2 } },
+    _prior: { restSec: ['2.ab'] }, _unstamped: { fp: 'x', ed: { restSec: T0 } }
+  });
+  const h = await startServer(t, { users: [...USERS, user('u3', 'Cy')], states: { u1: seed, u3: seed } });
+  // The same change both ways: a weigh-in on 2026-10-12. A device sends its whole copy (as the
+  // app does, without the server's own notes); the hub sends one value.
+  const { _prior, _unstamped, ...copy } = structuredClone(seed);
+  copy.bodyweight = [...copy.bodyweight, { d: '2026-10-12', w: 79.5, t: T0 + 1 }];
+  const device = await h.req('PUT', '/api/data', { cookie: session('u1'), body: { state: copy, baseRev: 7, stamped: true } });
+  const hub = await put(h, '2026-10-12', { kg: 79.5 }, '"7:0123456789abcdef"', tok('u3'));
+  assert.equal(device.status, 200);
+  assert.equal(hub.status, 200);
+  const a = h.state('u1'), b = h.state('u3');
+  // What each writer owns differs by design: the write id (random), the weigh-in's stamp and `_ts`
+  // (the device's own; the server's clock for the hub).
+  const books = S => {
+    const { _wid, _ts, ...rest } = structuredClone(S);
+    for (const e of rest.bodyweight) delete e.t;
+    return rest;
+  };
+  assert.deepEqual(books(b), books(a));
+  assert.equal(a._rev, 8);
+  assert.equal(a._wids.length, 50);
+  assert.deepEqual(b._wids, a._wids, 'the same ancestry, capped the same');
+  assert.equal(b._wids.at(-1), '0123456789abcdef');
+  assert.match(b._wid, /^[0-9a-f]{16}$/);
+  assert.ok(b._ts > seed._ts, 'the hub write moves _ts');
+  assert.ok(b._prior && b._unstamped, 'the server’s notes are kept, as PUT /api/data keeps them');
+  // Both are what the devices' poll reads straight away (the stat cache told).
+  for (const [uid, r] of [['u1', device.body], ['u3', hub.body]]) {
+    const s = uid === 'u1' ? session('u1') : session('u3');
+    assert.deepEqual((await h.req('GET', '/api/data/rev', { cookie: s })).body, { rev: r.rev, wid: r.wid }, uid);
+  }
 });

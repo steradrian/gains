@@ -3234,14 +3234,14 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </summary>
   <div class="ep-body">
 <p>Every finished workout whose summary changed after revision <code>since</code>, and every workout removed after it, in revision order, a page at a time. Pass back the <code>rev</code> and <code>wid</code> of the last page of the previous pass as <code>since</code> and <code>wid</code>.</p>
-<p>The server learns what changed by comparing summaries when this route is read, against what it handed out last. So <code>since</code> counts from the last revision a pass of this route ended at that is not after it: a revision learned elsewhere (a weigh-in write's answer) misses nothing, it may only bring back what the hub already has. A change only the hub cannot see (a note, a photo) is no change. Without <code>since</code>, with one no pass ended at or before (first read, a restart), with one the profile never reached, with a <code>wid</code> the stored document does not descend from, or after the profile's data went back in time (a restored backup), the pass is <code>full</code>: every workout there is and every removal on record. In a full pass, a workout the hub holds that is not listed is no longer in the profile; hold such deletes behind the same guard as a <code>reset_at</code>. A profile with no state file answers 409 <code>no-state</code>, never an empty list.</p>
+<p>The server learns what changed by comparing summaries when this route is read, against what it handed out before. So <code>since</code> must be a revision a pass of this route ended at, and it counts from the pass before that one: what the last pass handed out comes once more, so an answer lost on the way loses nothing (the hub's hashes absorb the repeat). A change only the hub cannot see (a note, a photo) is no change. Without <code>since</code>, with one no pass of this route ended at (a weigh-in write's revision, a restart, the first pass after one), with one the profile never reached, with a <code>wid</code> the stored document does not descend from, or after the profile's data went back in time (a restored backup), the pass is <code>full</code>: every workout there is and every removal on record. In a full pass, a workout the hub holds that is not listed is no longer in the profile; hold such deletes behind the same guard as a <code>reset_at</code>. A profile with no state file answers 409 <code>no-state</code>, never an empty list.</p>
 <p>A workout is named by its own <code>id</code>, or by <code>d&lt;date&gt;s&lt;start&gt;</code> when it has none (an old import); one with neither is left out. <code>date</code> is the local day as the app stored it, never derived from <code>start</code>.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Hub token only: <code>Authorization: Bearer &lt;ES256 JWS&gt;</code> signed by a key in <code>HUB_JWKS</code>. A session cookie or a paired token is refused.</span></p>
 <p class="ep-h">Query parameters</p><div class="ptab">
   <div class="prow">
     <span class="p-name">since</span>
     <span class="p-type">integer <span class="p-hint">(0&ndash;)</span></span>
-    <span class="p-desc">The <code>rev</code> the previous pass ended at. Absent: a full pass.</span>
+    <span class="p-desc">The <code>rev</code> the previous pass of this route ended at (never one from another route). Absent: a full pass.</span>
   </div>
   <div class="prow">
     <span class="p-name">wid</span>
@@ -3351,7 +3351,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">Sync: set the weigh-in of one date</span>
   </summary>
   <div class="ep-body">
-<p>Sets the date's weigh-in to <code>kg</code>, stored in the profile's unit to 0.1 like the app's own weigh-in; any other field the app keeps on that entry stays. Read, changed and written on the server with nothing in between, so a device's save can never be lost inside it; and only over the revision named in <code>If-Match</code>, so a save that landed after the hub read the profile is a 409 to decide again on, never overwritten. The entry's <code>t</code> is later than anything the profile held, so every device's merge keeps it as the newest change (and never earlier than the <code>t</code> sent). The write moves the revision: open devices pick it up on their next poll. The value the date already holds changes nothing (<code>changed: false</code>, same revision).</p>
+<p>Sets the date's weigh-in to <code>kg</code>, stored in the profile's unit to 0.1 like the app's own weigh-in; any other field the app keeps on that entry stays. Read, changed and written on the server with nothing in between, so a device's save can never be lost inside it; and only over the revision named in <code>If-Match</code>, so a save that landed after the hub read the profile is a 409 to decide again on, never overwritten. The entry's <code>t</code>, and the document's <code>_ts</code>, are the server's clock moved past anything the profile held, so every device's merge keeps it as the newest change, and a correction made on a phone after it still wins. The write moves the revision: open devices pick it up on their next poll. A value within half the stored step of what the date holds (what the hub read, written back) changes nothing (<code>changed: false</code>, same revision).</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Hub token only: <code>Authorization: Bearer &lt;ES256 JWS&gt;</code> signed by a key in <code>HUB_JWKS</code>. A session cookie or a paired token is refused.</span></p>
 <p class="ep-h">Query parameters</p><div class="ptab">
   <div class="prow">
@@ -3374,7 +3374,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">t</span>
     <span class="p-type">integer</span>
-    <span class="p-desc">When the value was taken or last changed on the hub's side, ms; at most five minutes ahead of the server.</span>
+    <span class="p-desc">When the value was taken on the hub's side, ms. Checked and never used: the server stamps every write by its own clock.</span>
   </div>
 </div>
 <pre><code>{

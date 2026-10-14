@@ -6,11 +6,14 @@
  * (trackWorkouts): for every workout the revision at which its summary was last seen to change,
  * and for every workout that went away the revision at which it did. "Changed since revision R" is
  * then every entry of the log past R. The log only ever learns at a read, so a change made at
- * revision 9 and first read at 12 is logged at 12. That is past R only when R is a revision this
- * route handed out (the last page of a pass, `served`): a revision the hub learned elsewhere (its own
- * weigh-in write answered 10) says nothing about what it has read of the workouts. So R is taken
- * back to the last revision served at or before it, and with none (a log built from nothing: first
- * read, a restart, the profile's data going back in time) the pass is `full`: everything.
+ * revision 9 and first read at 12 is logged at 12. So R means something only when it is a revision
+ * this route handed out (the last page of a pass, `served`): one the hub learned elsewhere (its own
+ * weigh-in write answered 10) says nothing about what it has read of the workouts, and gets a
+ * `full` pass, as does any R after the log was built from nothing (first read, a restart, the
+ * profile's data going back in time). And a pass is noted as served when it is answered, not when
+ * the answer arrives: so R counts from the pass before the one that ended at R, and what the last
+ * pass handed out comes once more. One lost answer then loses nothing, whatever R the hub retries
+ * with; the cost is the hub seeing the previous pass's changes twice, which its hashes absorb.
  *
  * Body weight. One value per date, in kg on the wire and in the profile's unit in the state, like
  * the app's own weigh-in (frontend lib/units.js convertBodyWeight: to 0.1 in the stored unit).
@@ -170,10 +173,10 @@ export function decodeCursor(s) {
 
 /**
  * One page of what changed since revision `since`, in revision order (then id), from `log`:
- * workouts changed and workouts gone, each at most once per page. `since` counts from the last
- * revision a pass of this log ended at that is not after it (see the top of this file). `full` says
- * the pass lists every workout there is (and every removal on record): `since` is absent, no pass of
- * this log ended at or before it, it is newer than the profile, or `wid` names a document this one
+ * workouts changed and workouts gone, each at most once per page. `since` must be a revision a pass
+ * of this log ended at, and counts from the pass before it (see the top of this file). `full` says
+ * the pass lists every workout there is (and every removal on record): `since` is absent, not one
+ * this log served, the first it served, newer than the profile, or `wid` names a document this one
  * does not descend from. A cursor carries the pass on; if the log started over in between, the pass
  * starts over too, in full. The last page of a pass notes its revision in `log.served`.
  */
@@ -185,9 +188,11 @@ export function changesSince(log, S, { since = null, wid = null, cursor = null, 
     s = -1; full = true;
   } else {
     const foreign = wid != null && wid !== log.wid && !list(S?._wids).includes(wid);
-    const from = since == null ? undefined : log.served.findLast(r => r <= since);
-    full = from === undefined || since > log.rev || foreign;
-    s = full ? -1 : from;
+    const at = since == null ? -1 : log.served.indexOf(since);
+    // From the pass before the one `since` names: what that pass handed out comes once more, so
+    // one whose answer was lost on the way is not lost with it.
+    full = at < 1 || since > log.rev || foreign;
+    s = full ? -1 : log.served[at - 1];
   }
   const events = [];
   for (const [id, x] of log.seen) if (x.rev > s) events.push({ rev: x.rev, id });
@@ -251,41 +256,48 @@ export function bodyweightView(S, { from = null, to = null } = {}) {
   return { unit, items, deleted };
 }
 
-// The `t` a write of `date` stores: later than anything the profile holds for that day and than
-// every stamp of the document, so each device's merge takes it as the newest change (as the app's
-// own stampChange does), and never earlier than the caller's own `t`.
-function stampFor(cur, date, t, now) {
-  let m = Math.max(Number(now) || 0, highestStamp(cur) + 1, Number(t) || 0);
+// The stamp a write of `date` carries: the server's clock, moved past anything the profile holds
+// for that day and past every stamp of the document, so each device's merge takes it as the
+// newest change (as the app's own stampChange does). Never a caller's time: one ahead of the clock
+// would outrank a correction made on a phone after it, and the phone's change would be lost.
+function stampFor(cur, date, now) {
+  let m = Math.max(Number(now) || 0, highestStamp(cur) + 1);
   for (const e of list(cur?.bodyweight)) if (isMap(e) && e.d === date) m = Math.max(m, (Number(e.t) || 0) + 1);
   return Math.max(m, Math.abs(Number(cur?.deleted?.bodyweight?.[date]) || 0) + 1);
 }
 const byDate = (a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
+// A changed document is one later change: its `_ts` moves to the change's stamp, as a device's own
+// push does, so a device comparing copies by `_ts` (useStore restoredStateFor) takes this one as
+// the newer and never pushes an older copy back over it.
+const stamped = (next, at) => { next._ts = Math.max(Number(next._ts) || 0, at); return next; };
 
 /**
- * `cur` with `date` set to `kg`, as a new document, or null when the day already holds that value.
- * The day's other fields (anything the app keeps on a weigh-in besides `d`, `w`, `t`) are kept.
+ * `cur` with `date` set to `kg`, as a new document, or null when the day already holds that value
+ * to within half the stored step: what the hub read (kg to 0.01) and writes back is no change, and
+ * neither is a difference below what the app can show. The day's other fields (anything the app
+ * keeps on a weigh-in besides `d`, `w`, `t`) are kept.
  */
-export function withWeighIn(cur, date, kg, { t = null, now = Date.now() } = {}) {
+export function withWeighIn(cur, date, kg, { now = Date.now() } = {}) {
   const unit = unitOf(cur);
-  const w = fromKg(kg, unit);
   const old = weighIns(cur).byDay.get(date);
-  if (old && Number(old.w) === w) return null;
+  if (old && Math.abs(Number(old.w) - (unit === 'lb' ? kg * LB_PER_KG : kg)) < 0.05) return null;
   const next = structuredClone(cur);
   const keep = old ? structuredClone(old) : {};
+  const at = stampFor(cur, date, now);
   next.bodyweight = [
     ...list(next.bodyweight).filter(e => !(isMap(e) && e.d === date)),
-    { ...keep, d: date, w, t: stampFor(cur, date, t, now) }
+    { ...keep, d: date, w: fromKg(kg, unit), t: at }
   ].sort(byDate);
-  return next;
+  return stamped(next, at);
 }
 
 /** `cur` without a weigh-in on `date`, with the removal on record, or null when there is none. */
 export function withoutWeighIn(cur, date, { now = Date.now() } = {}) {
   if (!weighIns(cur).byDay.has(date)) return null;
   const next = structuredClone(cur);
-  const at = stampFor(cur, date, null, now);
+  const at = stampFor(cur, date, now);
   next.bodyweight = list(next.bodyweight).filter(e => !(isMap(e) && e.d === date));
   const del = isMap(next.deleted) ? next.deleted : (next.deleted = {});
   (isMap(del.bodyweight) ? del.bodyweight : (del.bodyweight = {}))[date] = at;
-  return next;
+  return stamped(next, at);
 }

@@ -45,9 +45,8 @@ const etagOf = doc => `"${doc?._rev || 0}${doc?._wid ? ':' + doc._wid : ''}"`;
 const IF_MATCH = /^\s*"?(\d{1,15})(?::([0-9a-f]{1,64}))?"?\s*$/;
 const LIMIT_MAX = 500;
 const LIMIT_DEFAULT = 100;
-// A body weight the app could hold, in kg; and how far ahead of this clock a `t` may be.
+// A body weight the app could hold, in kg.
 const KG_MAX = 700;
-const AHEAD_MS = 5 * 60000;
 // How many profiles' workout change logs are kept (sync-data.js trackWorkouts). One that is
 // dropped is rebuilt on its next read, and a hub asking from before that gets everything again.
 const LOGS_MAX = 64;
@@ -177,13 +176,15 @@ export function syncRoutes({ hub, json, findUser, readStateCached, readStateStri
           bad(json, res, 'bad-weight', `kg must be a number above 0 and at most ${KG_MAX}`);
           return null;
         }
-        if (t != null && !(Number.isSafeInteger(t) && t > 0 && t <= Date.now() + AHEAD_MS)) {
-          bad(json, res, 'bad-time', 't must be a time in ms, at most five minutes ahead');
+        // Taken for the hub's own record and checked, never used: the server stamps every write
+        // with its own clock (sync-data.js stampFor).
+        if (t != null && !(Number.isSafeInteger(t) && t > 0)) {
+          bad(json, res, 'bad-time', 't must be a time in ms');
           return null;
         }
-        return { kg, t: t ?? null };
+        return { kg };
       },
-      apply: (cur, date, { kg, t }) => withWeighIn(cur, date, kg, { t })
+      apply: (cur, date, { kg }) => withWeighIn(cur, date, kg)
     }),
 
     'DELETE /api/sync/bodyweight/{date}': writeWeighIn({
