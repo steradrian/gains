@@ -235,25 +235,6 @@ Read this before hosting openGym for anyone other than yourself.
   `db.json`) gets every user's full history and body weight, can disable or delete accounts, and
   can create or revoke invite codes (the `/api/admin/*` routes in `api/server.js`). Off by
   default — a fresh instance has no admin.
-- **With `ADMIN_RECOVERY=1`, an admin can sign in as anyone who is not an admin.** The
-  lost-passkey recovery code (`POST /api/admin/user/recovery-link`) adds a passkey to a profile
-  on whatever device redeems it — the owner's new phone, or the admin's own. That is the point
-  of it, and it is also a way in that no owner consented to at that moment. What limits it:
-  - off by default: without the flag the route does not exist and the dashboard has no button;
-  - never for an admin account, so one admin cannot take over another;
-  - it signs the profile out everywhere first and voids its pairing and device codes, so the
-    owner notices (every device of theirs is signed out);
-  - the code is 60 bits, shown once, stored as a SHA-256, good for ten minutes and one passkey,
-    and its redemption goes through the usual device-code throttle;
-  - the passkey it adds is marked for good: the owner's list says *Added by admin recovery on
-    <date>*, and `db.json` keeps which admin issued it (`via`, `by` on the credential);
-  - the activity log records the issue (`admin.recovery.link`, admin and target) and the
-    redemption (`auth.link.ok`, `msg: admin-recovery`);
-  - at most 5 codes an hour per admin, so a stolen admin session cannot sweep the user list.
-
-  It does not remove the lost passkey: whoever has it can still sign in until the owner
-  removes it under Settings → Account → Passkeys. Turn the flag on only if you trust every
-  admin with every account, which on this server you already do with their data.
 - **Sessions can't be revoked one device at a time.** Revocation is per *account*, not per
   session: `POST /api/logout/all` kills all of them at once and there is no device list to pick
   from. `POST /api/logout` on its own only clears the cookie in that one browser — a copy taken

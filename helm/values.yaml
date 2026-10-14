@@ -115,7 +115,6 @@ api:
     ALLOW_GUEST: ""          # "0" = no "Continue without account"
     DEFAULT_LANG: ""         # en, de, pt-BR, th, ...
     PASSWORD_LOGIN: ""       # "1" = password sign-in next to passkeys
-    ADMIN_RECOVERY: ""       # "1" = admins can issue a lost-passkey recovery code
     # TRUST_PROXY stays off here on purpose, see kubernetes/deployment.yaml.
     TRUST_PROXY: ""
     SESSION_DAYS: ""         # default 90

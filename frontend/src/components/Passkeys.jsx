@@ -37,9 +37,7 @@ const when = iso => {
 }
 const label = (p, i) => p.name || t('Passkey {0}', i + 1)
 // "Added 3 Sep 2026 · Last used 22 Sep 2026" — a passkey from before either was recorded has none.
-// One an admin's recovery code added (`via`) says so, so the owner can tell it from their own.
-const added = p => p.via === 'admin-recovery' ? t('Added by admin recovery on {0}', when(p.created)) : t('Added {0}', when(p.created))
-const meta = p => [p.created && added(p), p.lastUsed && t('Last used {0}', when(p.lastUsed))].filter(Boolean).join(' · ')
+const meta = p => [p.created && t('Added {0}', when(p.created)), p.lastUsed && t('Last used {0}', when(p.lastUsed))].filter(Boolean).join(' · ')
 
 // The server's refusal in the UI language. The proof codes are the password sheet's; the rest
 // are this feature's own (api/openapi.yaml, tag passkeys).

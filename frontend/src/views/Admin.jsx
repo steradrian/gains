@@ -6,7 +6,6 @@ import { api } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur } from '../lib/format.js'
 import { auditCat, auditLine, fmtWhen } from '../lib/audit.js'
-import { deviceLinkUrl } from '../lib/device-link.js'
 import { workoutVolume, setsDone } from '../lib/history.js'
 import { confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -32,50 +31,22 @@ const rel = ts => {
 }
 const dur = ms => { const m = Math.max(0, Math.floor(ms / 60000)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min' }
 
-// What the clipboard refused to take (copyText), shown selected so it can be copied by hand. The
-// one-time codes are shown once, so "Copied" must never be said of one that was not.
-function ManualCopy({ value }) {
-  return <input className="input" readOnly dir="ltr" value={value} aria-label="Copy this by hand" autoFocus
-    onFocus={e => e.target.select()} style={{ marginTop: 8 }} />
-}
-// → a copy(value) that toasts "Copied" only when it was, and otherwise leaves `manual` set to the
-// value for a ManualCopy.
-function useCopy() {
-  const toast = useUI(s => s.toast)
-  const [manual, setManual] = useState(null)
-  const copy = async v => {
-    if (await copyText(v)) { setManual(null); toast('Copied') }
-    else { setManual(v); toast('Could not copy. It is selected below: copy it by hand.') }
-  }
-  return { copy, manual }
-}
-
 // The one time the reset code is visible. Locked, so a tap beside the sheet cannot lose it
-// before it has been copied or written down.
+// before it has been copied or written down. It is shown once, so "Copied" is said only when the
+// clipboard took it; otherwise the code is shown selected below, to copy by hand.
 function ResetCodeSheet({ name, email, code, expires, close }) {
-  const { copy, manual } = useCopy()
+  const toast = useUI(s => s.toast)
+  const [manual, setManual] = useState(false)
+  const copy = async () => {
+    if (await copyText(code)) { setManual(false); toast('Copied') }
+    else { setManual(true); toast('Could not copy. It is selected below: copy it by hand.') }
+  }
   return <>
     <h3>Reset code for {name}</h3>
     <div className="adm-lead">Give them this code. They choose “Sign in with password” → “Have a reset code from your admin?”, enter their name <b>{name}</b>{email && <> (or their sign-in e-mail <b>{email}</b>)</>}, the code and a new password. It works once, until {new Date(expires).toLocaleString()}, and will not be shown again.</div>
-    <button className="adm-code" style={{ fontSize: 22, width: '100%', padding: '14px 0' }} onClick={() => copy(code)} aria-label="copy code">{code}</button>
-    {manual && <ManualCopy key={manual} value={manual} />}
-    <div style={{ height: 12 }} />
-    <Button variant="primary" onClick={close}>Done</Button>
-  </>
-}
-
-// The one time the recovery code is visible, locked like the reset code. The link is built here,
-// from where the dashboard is served, as Settings builds its own device links.
-function RecoveryLinkSheet({ name, code, expires, close }) {
-  const { copy, manual } = useCopy()
-  const link = deviceLinkUrl(code)
-  return <>
-    <h3>Recovery code for {name}</h3>
-    <div className="adm-lead">Send them this link, or the code. On their new device they open the link (or tap “Use a code from your other device” on the sign-in screen and type the code) and make a passkey there, which signs them in. Then they remove the lost passkey in Settings → Account → Passkeys: until they do, it still signs in. The code works once, until {new Date(expires).toLocaleString()}, and will not be shown again.</div>
-    <button className="adm-code" style={{ fontSize: 22, width: '100%', padding: '14px 0' }} onClick={() => copy(code)} aria-label="copy code">{code}</button>
-    <div style={{ height: 8 }} />
-    <button className="btn" onClick={() => copy(link)}>Copy link</button>
-    {manual && <ManualCopy key={manual} value={manual} />}
+    <button className="adm-code" style={{ fontSize: 22, width: '100%', padding: '14px 0' }} onClick={copy} aria-label="copy code">{code}</button>
+    {manual && <input className="input" readOnly dir="ltr" value={code} aria-label="Copy this by hand" autoFocus
+      onFocus={e => e.target.select()} style={{ marginTop: 8 }} />}
     <div style={{ height: 12 }} />
     <Button variant="primary" onClick={close}>Done</Button>
   </>
@@ -85,8 +56,6 @@ function UserDetail({ id, onChanged, close }) {
   const [d, setD] = useState(null)
   const toast = useUI(s => s.toast)
   const openSheet = useUI(s => s.openSheet)
-  // ADMIN_RECOVERY=1 on the server; without it the route is not there and neither is the button.
-  const recoveryOn = useStore(s => !!s.config?.admin_recovery)
   useEffect(() => { api('/api/admin/user?id=' + encodeURIComponent(id)).then(setD).catch(e => toast(e.message)) }, [id])
   if (!d) return <div className="muted small">Loading…</div>
   const u = d.user
@@ -125,16 +94,6 @@ function UserDetail({ id, onChanged, close }) {
     danger: true,
     onConfirm: () => api('/api/admin/user/password-reset', { method: 'POST', body: JSON.stringify({ id: u.id }) })
       .then(r => { onChanged(); close(); openSheet(done => <ResetCodeSheet name={r.name} email={u.email} code={r.code} expires={r.expires} close={done} />, { locked: true }) })
-      .catch(e => toast(e.message)),
-  })
-  // A lost passkey: a one-time device code, after signing whoever has the old device out.
-  const recoveryLink = () => confirmSheet({
-    title: 'Help ' + u.name + ' back in?',
-    message: 'For a lost passkey. Every device signed in as them is signed out now, and you get a one-time code and link to hand them. On their new device it makes a passkey that signs them in. The lost passkey itself keeps working until they remove it in Settings → Account → Passkeys, so tell them to do that once they are back in. The code is shown once and is valid for 10 minutes.',
-    confirmText: 'Create recovery code',
-    danger: true,
-    onConfirm: () => api('/api/admin/user/recovery-link', { method: 'POST', body: JSON.stringify({ id: u.id }) })
-      .then(r => { onChanged(); close(); openSheet(done => <RecoveryLinkSheet name={r.name} code={r.code} expires={r.expires} close={done} />, { locked: true }) })
       .catch(e => toast(e.message)),
   })
   return <>
@@ -186,10 +145,6 @@ function UserDetail({ id, onChanged, close }) {
         <div className="adm-hint">{u.password
           ? 'For a forgotten password: a one-time code lets them choose a new one. Their current password stops working at once.'
           : 'No password yet. A one-time code lets them set one. That’s the way back in after losing their only passkey.'}</div>
-      </>}
-      {recoveryOn && !u.disabled && <>
-        <button className="btn" style={{ margin: '14px 0 4px' }} onClick={recoveryLink}>Lost passkey</button>
-        <div className="adm-hint">A one-time code that adds a passkey on their new device. Signs them out everywhere first; the lost passkey still works until they remove it.</div>
       </>}
     </>}
     <h4 className="sec">Workout history</h4>
@@ -328,9 +283,6 @@ export default function Admin() {
   const loadInvites = () => api('/api/admin/invites').then(d => setInvites(d.invites)).catch(() => {})
   // poll every 15s so the "training now" section stays live without a manual refresh
   useEffect(() => { if (!user?.admin) return; loadUsers(); loadInvites(); const iv = setInterval(loadUsers, 15000); return () => clearInterval(iv) }, [])
-  // `admin_recovery` is in /api/config only for an admin session, and a copy read before this
-  // admin signed in would hide the Lost passkey button.
-  useEffect(() => { if (user?.admin) useStore.getState().refreshConfig() }, [])
   if (!user?.admin) return null
 
   const openUser = id => openSheet(close => <UserDetail id={id} onChanged={loadUsers} close={close} />)

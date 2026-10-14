@@ -30,7 +30,7 @@ async function startServer(t, { env = { HUB_JWKS: jwks(KEY), HUB_ISSUER: ISSUER 
   fs.writeFileSync(path.join(dataDir, 'state-u1.json'), JSON.stringify({ unit: 'kg', workouts: [], _rev: 7, _wid: '0123456789abcdef' }));
   const child = spawn(process.execPath, ['server.js'], {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', ADMIN_UIDS: '', AUDIT_LOG: '1', HUB_JWKS: '', HUB_ISSUER: '', ADMIN_RECOVERY: '1', ...env }
+    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', ADMIN_UIDS: '', AUDIT_LOG: '1', HUB_JWKS: '', HUB_ISSUER: '', ...env }
   });
   const h = { log: '', dataDir, child };
   child.stdout.on('data', d => h.log += d);
@@ -124,7 +124,7 @@ test('a sync token is no credential on any other route, not even for an admin', 
     ['GET', '/api/account/passkeys'], ['POST', '/api/account/passkeys/options'], ['DELETE', '/api/account/passkeys'],
     ['POST', '/api/account/device-link'], ['GET', '/api/admin/users'], ['GET', '/api/admin/user?id=u1'],
     ['POST', '/api/admin/user/disable', { id: 'u1', disabled: true }], ['POST', '/api/admin/user/delete', { id: 'u1' }],
-    ['POST', '/api/admin/user/recovery-link', { id: 'u1' }], ['POST', '/api/admin/invites/new'],
+    ['POST', '/api/admin/invites/new'],
     ['GET', '/api/coach/status'], ['GET', '/api/admin/coach']
   ];
   for (const [method, p, body = {}] of routes) {

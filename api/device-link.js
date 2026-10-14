@@ -33,14 +33,12 @@ function prune(db, now) {
   db.deviceLinks = (db.deviceLinks || []).filter(l => l && typeof l.h === 'string' && l.exp > now);
 }
 
-// → { code, link }. The code is returned once and never stored. `origin` is only for a link the
-// owner did not make: an admin's recovery code is `{ via: 'admin-recovery', by: <admin id> }`, and
-// the passkey it adds carries that along (POST /api/device-link/verify).
-export function createDeviceLink(db, userId, now = Date.now(), ttlMs = DEVICE_LINK_TTL_MS, origin = null) {
+// → { code, link }. The code is returned once and never stored.
+export function createDeviceLink(db, userId, now = Date.now(), ttlMs = DEVICE_LINK_TTL_MS) {
   prune(db, now);
   db.deviceLinks = db.deviceLinks.filter(l => l.userId !== userId);
   const code = makeLinkCode();
-  const link = { h: hashLinkCode(code), userId, exp: now + ttlMs, created: now, ...(origin ? { via: origin.via, by: origin.by } : {}) };
+  const link = { h: hashLinkCode(code), userId, exp: now + ttlMs, created: now };
   db.deviceLinks.push(link);
   return { code, link };
 }

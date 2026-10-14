@@ -29,7 +29,7 @@ import { createBackoff, createWindow } from './rate-limit.js';
 import {
   listPasskeys, addPasskeyRecord, renamePasskeyRecord, removePasskeyRecord, passkeyRemovalRefused, MAX_PASSKEYS
 } from './passkeys-store.js';
-import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks, DEVICE_LINK_TTL_MS } from './device-link.js';
+import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
@@ -72,10 +72,6 @@ const ALLOW_GUEST = !/^(0|false|no|off)$/i.test(process.env.ALLOW_GUEST || '');
 // every account that opts in, so an instance has to ask for it. While it is off every password
 // route answers 404 and the app shows none of it; hashes already stored stay where they are.
 const PASSWORD_LOGIN = /^(1|true|yes|on)$/i.test(process.env.PASSWORD_LOGIN || '');
-// An admin issuing a lost-passkey recovery code (POST /api/admin/user/recovery-link). Off by
-// default: it lets an admin add a passkey to someone else's profile, a power an instance has to
-// ask for. While it is off the route answers 404 and the dashboard shows no button for it.
-const ADMIN_RECOVERY = /^(1|true|yes|on)$/i.test(process.env.ADMIN_RECOVERY || '');
 // The language the sign-in screen, and every profile that never picked one, starts in (#303) —
 // for an instance whose people share a language. Only a tag's shape is checked here; the app
 // matches it against the languages it has and ignores one it does not know. Unset, it is left
@@ -1761,13 +1757,9 @@ const passkeyRoutes = {
       return json(res, 409, { error: added.error, code: added.code });
     }
     added.row.lastUsed = added.row.created;
-    // An admin's recovery code (POST /api/admin/user/recovery-link): the passkey says so for good,
-    // in the owner's list, and so does the log line.
-    const recovery = link.via === 'admin-recovery';
-    if (recovery) Object.assign(added.row, { via: link.via, by: link.by });
     burnDeviceLink(db, link);
     saveDb();
-    audit(req, 'auth.link.ok', { user, msg: recovery ? 'admin-recovery' : added.row.name || null });
+    audit(req, 'auth.link.ok', { user, msg: added.row.name || null });
     json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   }
 };
@@ -1925,12 +1917,6 @@ function dataWritable() {
   return ok;
 }
 
-// Recovery codes an admin may issue (POST /api/admin/user/recovery-link): 5 an hour per admin.
-// Each one signs a profile out everywhere and opens a way to add a passkey to it, so one admin
-// session — or a stolen admin cookie — cannot walk the whole user list.
-const RECOVERY_LINKS = createWindow({ max: 5, windowMs: 3600000 });
-setInterval(() => RECOVERY_LINKS.sweep(), 600000).unref();
-
 const routes = {
   // 503 rather than a flag in a 200: the container healthcheck is `wget --spider`, which reads
   // the status and nothing else, and an instance that cannot write its data directory is exactly
@@ -1968,8 +1954,6 @@ const routes = {
       // Public like the two flags above: the caps are not a secret, and the absence of the
       // block is how the app knows this server does not take photos and videos at all.
       ...(MEDIA_ON ? { media: mediaConfig(MEDIA_LIMITS) } : {}),
-      // Only the dashboard reads it, so only an admin is told; signing in asks this again.
-      ...(ADMIN_RECOVERY && isAdmin(readSession(req)) ? { admin_recovery: true } : {}),
       ...(readSession(req) ? { coach: coachConfig.publicConfig() } : {})
     });
   },
@@ -2494,45 +2478,6 @@ const routes = {
     audit(req, u.disabled ? 'admin.user.disable' : 'admin.user.enable', { user: admin, target: u });
     json(res, 200, { ok: true, id: u.id, disabled: u.disabled });
   },
-
-  // A way back in for someone who lost their only passkey, on an instance without password
-  // sign-in: an admin makes them a device link (device-link.js), which they redeem on the new
-  // device through the usual /api/device-link/* routes, their throttle and audit, and then remove
-  // the lost passkey in Settings. Whoever has the old device is signed out first: the session
-  // version goes up, which also ends pairing codes and drops any link already waiting. Admin
-  // accounts are refused, as by disable and the password reset — one admin must not be able to
-  // add a passkey to another's account. The code is shown once and stored only as a hash.
-  //
-  // Only with ADMIN_RECOVERY=1; otherwise the route is absent (404). The link carries who issued
-  // it, and the passkey it makes says so in the owner's list (`via`), so a passkey an admin
-  // brought about never passes for one the owner added. 5 an hour per admin (RECOVERY_LINKS).
-  ...(ADMIN_RECOVERY ? {
-    'POST /api/admin/user/recovery-link': async (req, res) => {
-      const admin = requireAdmin(req, res); if (!admin) return;
-      const body = await readBody(req);
-      const u = db.users.find(x => x.id === body.id);
-      if (!u) return json(res, 404, { error: 'no such user' });
-      if (isAdmin(u)) return json(res, 400, { error: 'an admin adds their own passkeys in Settings' });
-      // Redeeming refuses a disabled profile and a full one; better said here than by a dead code.
-      if (u.disabled) return json(res, 409, { error: 'the account is disabled, enable it first', code: 'disabled' });
-      if (passkeyCount(u) >= MAX_PASSKEYS) return json(res, 409, LIMIT);
-      const wait = RECOVERY_LINKS.take(admin.id);
-      if (wait) {
-        audit(req, 'admin.recovery.link', { ok: false, user: admin, target: u, msg: 'rate-limited' });
-        return tooMany(res, wait);
-      }
-      u.sv = sessionVersion(u) + 1;
-      for (const [k, v] of pairings) if (v.uid === u.id) pairings.delete(k);
-      dropDeviceLinks(db, u.id);
-      presence.delete(u.id);
-      const { code, link } = createDeviceLink(db, u.id, Date.now(), DEVICE_LINK_TTL_MS, { via: 'admin-recovery', by: admin.id });
-      saveDb();
-      audit(req, 'admin.recovery.link', { user: admin, target: u });
-      // `link` assumes the app is served at ORIGIN's root; the dashboard builds its own from where
-      // it is served, the way Settings does.
-      json(res, 200, { ok: true, name: u.name, code, link: ORIGIN.replace(/\/+$/, '') + '/?link=' + encodeURIComponent(code), expires: link.exp });
-    }
-  } : {}),
 
   // Disable locks an account out; this removes it. The one destructive action in the app, so the
   // client asks twice and this end refuses the two cases that cannot be undone from the UI

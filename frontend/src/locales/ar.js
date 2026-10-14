@@ -1613,7 +1613,6 @@ export default {
   'Add another device': 'إضافة جهاز آخر',
   'Add this device': 'إضافة هذا الجهاز',
   'Added {0}': 'أُضيف في {0}',
-  'Added by admin recovery on {0}': 'أُضيف عبر استعادة من المسؤول في {0}',
   'Code from your other device': 'الرمز من جهازك الآخر',
   'Confirm with a passkey': 'التأكيد بمفتاح مرور',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'تم التأكيد. أنشئ الآن مفتاح المرور الجديد؛ سيسألك المتصفح أين يحفظه.',

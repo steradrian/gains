@@ -57,8 +57,6 @@ const LABELS = {
   'admin.user.enable': 'Re-enabled an account',
   'admin.user.delete': 'Deleted an account',
   'admin.password.reset': 'Issued a password reset code',
-  // A one-time device code for someone who lost their passkey; they were signed out everywhere.
-  'admin.recovery.link': 'Issued a recovery code',
   'admin.invite.create': 'Created an invite code',
   'admin.invite.revoke': 'Revoked an invite code',
   'admin.audit.clear': 'Cleared the activity log',
@@ -97,8 +95,6 @@ const REASONS = {
   'reset-invalid': 'wrong or expired reset code',
   'link-invalid': 'wrong, used or expired device code',
   'passkey-limit': 'the profile already has as many passkeys as it can hold',
-  // An admin past their hourly allowance of recovery codes (admin.recovery.link).
-  'rate-limited': 'too many recovery codes this hour',
   // What an `auth.throttled` pause was for.
   'password': 'wrong passwords or reset codes',
   'signup': 'wrong invite codes on password signup',

@@ -142,15 +142,6 @@ describe('Settings: the passkey list', () => {
     expect(host.textContent).not.toMatch(/only way in/)
   })
 
-  it('marks the one an admin’s recovery code added, with the day it was added', async () => {
-    mocks.answers['GET /api/account/passkeys'] = { ...LIST, passkeys: [{ ...LIST.passkeys[0], via: 'admin-recovery' }, LIST.passkeys[1]] }
-    const host = mount(<PasskeysSheet close={() => {}} changed={() => {}} />)
-    await settle()
-    const rows = [...host.querySelectorAll('.lrow')].map(r => r.textContent)
-    expect(rows[0]).toMatch(/Added by admin recovery on 1 Sept? 2025 · Last used/)
-    expect(rows[1]).not.toMatch(/admin recovery/)
-  })
-
   it('says why the only passkey stays, and its sheet offers no Remove', async () => {
     mocks.answers['GET /api/account/passkeys'] = { passkeys: [LIST.passkeys[0]], password: false, lastWayIn: true }
     const host = mount(<PasskeysSheet close={() => {}} changed={() => {}} />)

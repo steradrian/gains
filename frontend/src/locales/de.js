@@ -388,7 +388,6 @@ export default {
   'Add another device': 'Weiteres Gerät hinzufügen',
   'Add this device': 'Dieses Gerät hinzufügen',
   'Added {0}': 'Hinzugefügt am {0}',
-  'Added by admin recovery on {0}': 'Per Wiederherstellung durch den Admin hinzugefügt am {0}',
   'Code from your other device': 'Code von deinem anderen Gerät',
   'Confirm with a passkey': 'Mit einem Passkey bestätigen',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'Bestätigt. Erstelle jetzt den neuen Passkey; dein Browser fragt, wo er gespeichert werden soll.',

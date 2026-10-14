@@ -370,7 +370,6 @@ export default {
   'Add another device': '新增其他裝置',
   'Add this device': '新增此裝置',
   'Added {0}': '新增於 {0}',
-  'Added by admin recovery on {0}': '經由管理員復原新增於 {0}',
   'Code from your other device': '來自另一台裝置的配對碼',
   'Confirm with a passkey': '使用通行密鑰確認',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': '驗證成功。現在建立新的通行密鑰，瀏覽器會詢問要儲存在哪裡。',

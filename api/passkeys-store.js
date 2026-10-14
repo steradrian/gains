@@ -40,10 +40,7 @@ export function listPasskeys(db, userId) {
       // Passkeys made before these fields existed have neither; the list leaves the line out.
       created: c.created || null,
       lastUsed: c.lastUsed || null,
-      transports: transportsOf(c.transports),
-      // Added through an admin's recovery code, not by the owner. Which admin (`by`) stays in
-      // db.json and the activity log; the owner is told that it happened, and when (`created`).
-      ...(c.via === 'admin-recovery' ? { via: c.via } : {})
+      transports: transportsOf(c.transports)
     }));
 }
 

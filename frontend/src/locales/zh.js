@@ -374,7 +374,6 @@ export default {
   'Add another device': '添加其他设备',
   'Add this device': '添加此设备',
   'Added {0}': '添加于 {0}',
-  'Added by admin recovery on {0}': '通过管理员恢复添加于 {0}',
   'Code from your other device': '来自你另一台设备的代码',
   'Confirm with a passkey': '用通行密钥确认',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': '已确认。现在创建新的通行密钥，浏览器会问你要把它存在哪里。',

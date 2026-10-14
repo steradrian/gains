@@ -374,7 +374,6 @@ export default {
   'Add another device': 'Başka bir cihaz ekle',
   'Add this device': 'Bu cihazı ekle',
   'Added {0}': 'Eklenme: {0}',
-  'Added by admin recovery on {0}': 'Yönetici kurtarmasıyla eklenme: {0}',
   'Code from your other device': 'Diğer cihazındaki kod',
   'Confirm with a passkey': 'Geçiş anahtarıyla onayla',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'Onaylandı. Şimdi yeni geçiş anahtarını oluştur; tarayıcın onu nerede saklayacağını soracak.',
