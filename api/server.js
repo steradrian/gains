@@ -159,6 +159,17 @@ db.creds = db.creds || [];
 db.subs = db.subs || [];
 db.invites = db.invites || [];
 db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
+db.gone = db.gone || [];                 // { id, at } of deleted profiles, for the sync hub's listing
+// A deleted profile leaves its id and the time behind, and nothing else (GET /api/sync/users says
+// `gone` for it, so a hub that was syncing it can stop, not guess). Kept for 90 days and at most
+// GONE_MAX of them: long enough for any hub that polls to see it, short enough that the file does
+// not grow for ever.
+const GONE_KEEP_MS = 90 * 86400000;
+const GONE_MAX = 1000;
+function noteGone(id) {
+  const cut = Date.now() - GONE_KEEP_MS;
+  db.gone = [...(db.gone || []).filter(g => g && g.id !== id && g.at >= cut), { id, at: Date.now() }].slice(-GONE_MAX);
+}
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
 // 0600: db.json holds passkey credential material. It used to be covered by a blanket 0700 on
 // the whole directory; now that the directory stays traversable, the file carries its own mode.
@@ -2495,6 +2506,7 @@ const routes = {
     if (isAdmin(u) && db.users.filter(isAdmin).length <= 1) return json(res, 400, { error: 'cannot delete the last admin' });
     const name = u.name;
     db.users = db.users.filter(x => x.id !== u.id);
+    noteGone(u.id);
     db.creds = (db.creds || []).filter(c => c.userId !== u.id);
     db.subs = (db.subs || []).filter(x => x.userId !== u.id);
     dropDeviceLinks(db, u.id);
@@ -2598,7 +2610,9 @@ const routes = {
   // Absent unless HUB_JWKS is set. Its own credential, checked there: never sessionOf.
   ...(HUB ? syncRoutes({
     hub: HUB, json, findUser: id => db.users.find(u => u.id === id) || null,
-    readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditFail
+    readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditFail,
+    // Last: server-state-read-cost.test.js reads this call's text up to the first `}`.
+    listProfiles: () => ({ users: db.users, gone: db.gone })
   }) : {})
 };
 
