@@ -8,7 +8,7 @@ import { fmtDate, fmtDateRange, fmtNum, fmtPlate, exerciseNameText, fmtVol, fmtD
 import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, workoutDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, sessionSections, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor, dropGrid } from './lib/plates.js'
-import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
+import { toScale, rirOf, EFFORT_PRESETS, effortColor, effortInk } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
 import { t, tn, dateLocale, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from './lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from './lib/nav.js'
@@ -2087,7 +2087,7 @@ function EffortPicker({ kind, value, onPick, close }) {
       {EFFORT_PRESETS.map(p => {
         const label = fmtNum(toScale(kind, p.rir)) + (p.tail ? '+' : '')
         const on = curRir != null && curRir === p.rir
-        return <div key={p.rir} className={'item menu-item' + (on ? ' on' : '')} style={{ '--bc': p.color }}
+        return <div key={p.rir} className={'item menu-item' + (on ? ' on' : '')} style={{ '--bc': p.color, '--bi': p.ink }}
           {...tappable(() => pick(p.rir))}>
           <span className="lrow-i effpick-n">{label}</span>
           <div className="grow"><div className="tt">{t(p.feel)}</div></div>
@@ -2097,7 +2097,7 @@ function EffortPicker({ kind, value, onPick, close }) {
       <div className="item menu-item effpick-free">
         <div className="grow"><div className="tt">{t('Exact {0}', hd)}</div></div>
         <div className="stp effcell-stp"
-          style={curColor ? { color: curColor, background: `color-mix(in srgb, ${curColor} 20%, var(--surface-2))` } : undefined}>
+          style={curColor ? { color: effortInk(curRir), background: `color-mix(in srgb, ${curColor} 20%, var(--surface-2))` } : undefined}>
           <button aria-label={t('Decrease')} onClick={() => set(stepEffort(kind, v, -1))}><Icon name="minus" /></button>
           <span className="val"><NumberField decimal nullable value={v ?? ''} placeholder="–"
             onChange={nv => set(capEffort(kind, nv))} /></span>

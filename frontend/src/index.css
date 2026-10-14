@@ -61,7 +61,7 @@
      read the colour itself; light darkens each to >= 4.5:1 on --bg, --surface and the 18% tint
      over --surface (accent.test.js measures them). Fills, dots and charts keep the plain colour. */
   --yellow-ink: var(--yellow); --orange-ink: var(--orange); --green-ink: var(--green);
-  --red-ink: #ff7068; --blue-ink: #47a3ff;   /* these two fall short on --surface-2 as they are */
+  --red-ink: #ff7b74; --blue-ink: #47a3ff; --purple-ink: #d188f6;   /* these two fall short on --surface-2 as they are */
 
   /* macro colours: fixed, charts only, always labelled, order P · C · F. Not the accent picker's:
      they avoid green (accent), orange (live) and red (over target). >= 6.5:1 on --surface. */
@@ -110,8 +110,8 @@
   --sep-op:    rgba(60,52,44,.15);
 
   --live: #c76b00;   /* 3.8:1 as a dot */
-  --yellow-ink: #7f6600; --orange-ink: #995900; --green-ink: #1d7331;
-  --red-ink: #af2821; --blue-ink: #005bc0;
+  --yellow-ink: #7b6300; --orange-ink: #8d5200; --green-ink: #1c6e2f;
+  --red-ink: #a82620; --blue-ink: #005bc0; --purple-ink: #7f3ca0;
   --macro-protein: #0a6fdc;   /* 4.9:1 on white */
   --macro-carbs:   #a87b00;   /* 3.8:1 */
   --macro-fat:     #b0369a;   /* 5.5:1 */
@@ -188,8 +188,11 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;let
 input,select,textarea{font:inherit;color:var(--label);letter-spacing:inherit}
 img{max-width:100%}
 a{color:var(--acc-ink);text-decoration:none}
+/* A link inside running text is told apart by more than its colour. */
+p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
 :focus{outline:none}
-:focus-visible{outline:2.5px solid var(--acc);outline-offset:2px;border-radius:6px}
+/* --acc-ink, not --acc: >= 4.5:1 on every fill the ring lands on, so also >= 3:1 as a ring */
+:focus-visible{outline:2.5px solid var(--acc-ink);outline-offset:2px;border-radius:6px}
 button,.chip,.tile,.item,.wday,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
@@ -1196,7 +1199,7 @@ body.chips-dragging *{cursor:inherit}
   font-variant-numeric:tabular-nums;
 }
 .effpick .menu-item.on{background:color-mix(in srgb,var(--bc) 14%,var(--surface))}
-.effpick .menu-on.is-on{color:var(--bc)}
+.effpick .menu-on.is-on{color:var(--bi,var(--bc))}
 .effpick .effpick-free{padding-inline-end:8px}
 .effpick .effpick-free .stp{flex:none;width:148px}
 .effpick .effpick-free .stp .num{font-size:17px;font-weight:600}

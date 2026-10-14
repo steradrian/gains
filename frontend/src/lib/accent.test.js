@@ -6,6 +6,7 @@ import {
   customAccentVars, accentPair, applyAccent, THEMES, isGrey, inkOnBoth, mix, GREY_TEXT, GREY_GAP, tintOver,
 } from './accent.js'
 import { readFileSync } from 'node:fs'
+import { EFFORT_BANDS } from './effort.js'
 
 // The preset accents as index.css draws them (--blue, --green... per theme) and the --acc-ink it
 // sets for each. Read from the stylesheet, so a value edited there is the one measured here.
@@ -38,8 +39,8 @@ describe('--acc-ink of the preset accents (index.css)', () => {
 
 describe('status colours as text (--yellow-ink, --orange-ink, --green-ink, --red-ink, --blue-ink)', () => {
   const FILL = {
-    dark: { yellow: '#ffd60a', orange: '#ff9f0a', green: '#30d158', red: '#ff453a', blue: '#0a84ff' },
-    light: { yellow: '#ffcc00', orange: '#ff9500', green: '#34c759', red: '#ff3b30', blue: '#007aff' },
+    dark: { yellow: '#ffd60a', orange: '#ff9f0a', green: '#30d158', red: '#ff453a', blue: '#0a84ff', purple: '#bf5af2' },
+    light: { yellow: '#ffcc00', orange: '#ff9500', green: '#34c759', red: '#ff3b30', blue: '#007aff', purple: '#af52de' },
   }
   const inkAt = (theme, name) => {
     const light = CSS.indexOf(':root[data-theme="light"] {')
@@ -57,7 +58,23 @@ describe('status colours as text (--yellow-ink, --orange-ink, --green-ink, --red
         expect(contrast(ink, bg), `${name} ${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
       }
     })
+    if (name !== 'blue') it(`${name} in ${theme}: 4.5:1 on the effort cell (20% tint over --surface-2)`, () => {
+      const th = THEMES[theme]
+      expect(contrast(inkAt(theme, name), mix(th.surface2, FILL[theme][name], 0.2))).toBeGreaterThanOrEqual(4.5)
+    })
   }
+  it('every effort band has an ink, in the same order as its colour', () => {
+    for (const b of EFFORT_BANDS) expect(b.ink, b.color).toBe(b.color.replace(/\)$/, '').replace('var(--acc-2', 'var(--acc').concat('-ink)'))
+  })
+})
+
+describe('focus ring and inline links', () => {
+  it('the focus ring is --acc-ink, which clears 4.5:1 (so 3:1 as a ring) on every fill for every preset', () => {
+    expect(CSS).toMatch(/:focus-visible\{outline:2\.5px solid var\(--acc-ink\)/)
+  })
+  it('links in running text are underlined, not told apart by colour alone', () => {
+    expect(CSS).toMatch(/\.sp-version a,\.sp-lic a\{text-decoration:underline/)
+  })
 })
 import { mergeStates, stampChange } from './sync-merge.js'
 
