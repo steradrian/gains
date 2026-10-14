@@ -83,6 +83,7 @@ export const fixtureSyncStatus = (state = 'ok') => ({ state, pending: 0, held: 0
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const ID = /^[A-Za-z0-9_-]{1,64}$/
+const GOALS_KEYS = new Set(['calorieGoalMode', 'calorieGoalFactor', 'goals', 'goalTemplates', 'waterGoalMl', 'calorieAdjustFromActivity', 'diaryShowActivity'])
 
 function onlyKeys(params, allowed) {
   const seen = new Set()
@@ -204,6 +205,14 @@ export function createFakeNutriTrace({
       return notFound()
     }
     if (res === 'settings' && method === 'GET' && n === 3) return json(state.settings)
+    // server/routes/settings.js stores one key per write, as JSON (what is read back is a copy).
+    // The hub is to let through only { key, value } for the keys the Goals page owns.
+    if (res === 'settings' && method === 'PUT' && n === 3) {
+      const exact = body && typeof body === 'object' && Object.keys(body).sort().join() === 'key,value'
+      if (!exact || !GOALS_KEYS.has(body.key)) return json({ error: 'request body refused' }, 403)
+      state.settings[body.key] = structuredClone(body.value)
+      return json({ ok: true })
+    }
     if (res === 'foods') {
       if (method === 'GET' && n === 3) return [...query.keys()].length ? json({ error: 'forbidden' }, 403) : json(state.foods)
       if (method === 'POST' && n === 3) {

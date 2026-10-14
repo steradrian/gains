@@ -15,6 +15,11 @@ is not on the list needs a hub PR first.
   `logFood(date, draft)`, `logQuick(date, item)` or `logWater(date, log)`, including on retry.
   Writes are not optimistic and throw an `NtError`. `removeItem` and `removeWater` undo. Stale
   answers and answers from a previous account are dropped.
+- Settings writes: `useNutrition.saveSetting(key, value)` (`NtApi.putSetting`, one key per
+  `PUT /api/settings`) updates the cache once the server has it. The Goals page owns
+  `calorieGoalMode`, `calorieGoalFactor`, `goals`, `goalTemplates`, `waterGoalMl`,
+  `calorieAdjustFromActivity` and `diaryShowActivity`; `goals.js` holds its rules and
+  `use-goals-form.js` its state. `ntErrorText(e)` (`error-text.js`) is the message for a failed call.
 - `diary.js`: NutriTrace's arithmetic (`totalsOf`, `atPortion`, `calorieTarget`, `macroTarget`),
   units (`energyOf` for kcal or kJ, `waterOf`), `mealsOf` (`isDefault` names are English: translate
   them; saved names show as saved), `recentFoods` and `matchesFood`.
