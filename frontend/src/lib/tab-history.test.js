@@ -93,6 +93,12 @@ describe('switching tabs', () => {
     expect(planSwitch(nav, 'home').nav.stacks.train).toEqual(['/train', '/train/history'])
   })
 
+  it('drops the workout from a stack saved by an older build, too', () => {
+    const nav = { ...start('/home'), stacks: { train: ['/train', '/train/workout'], food: ['/food', '/train/workout', '/me'] } }
+    expect(planSwitch(nav, 'train').stack).toEqual(['/train'])
+    expect(planSwitch(nav, 'food').stack).toEqual(['/food', '/me'])
+  })
+
   it('never keeps the workout in a stack: an ended one would come back as the Start screen', () => {
     const nav = push(push(start('/food'), '/train/workout'), '/me')
     expect(planSwitch(nav, 'home').nav.stacks.food).toEqual(['/food', '/me'])

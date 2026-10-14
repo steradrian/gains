@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isSwitching } from './use-tab-nav.js'
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
 // What sits behind a sheet and must be out of reach while it is open.
@@ -27,7 +28,9 @@ export function useDialogFocus(ref) {
     el.addEventListener('keydown', onKey)
     return () => {
       el.removeEventListener('keydown', onKey)
-      made.forEach(n => n.removeAttribute('inert'))
+      // A sheet that closes into a tab switch (a row opening another tab's page) leaves the page
+      // inert: the switch holds it (App.jsx inert={switching}) and lets it go when it is done.
+      made.forEach(n => { if (!(n.id === 'app' && isSwitching())) n.removeAttribute('inert') })
       if (opener?.isConnected && !document.querySelector('.sheet')) opener.focus?.()
     }
   }, [])

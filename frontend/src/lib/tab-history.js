@@ -49,7 +49,9 @@ const pathOnly = p => p.split(/[?#]/)[0]
 // page opened in it from elsewhere). A page the stack already holds is not stacked again: the
 // stack goes back to it, with the new address (its query may differ: /progress?range=90).
 export function stackFor(nav, target, path) {
-  const kept = nav.stacks[target]?.length ? nav.stacks[target] : [TAB_ROOT[target]]
+  // Compacted again: a stack saved by an older build (sessionStorage) may still hold the workout.
+  const saved = compact(nav.stacks[target] || [])
+  const kept = saved.length ? saved : [TAB_ROOT[target]]
   if (!path) return kept
   const at = kept.findIndex(p => pathOnly(p) === pathOnly(path))
   return at >= 0 ? [...kept.slice(0, at), path] : [...kept, path]

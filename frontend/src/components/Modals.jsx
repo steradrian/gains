@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useUI } from '../store/useUI.js'
 import { keyboardOpen } from '../lib/viewport-guard.js'
+import { noteSheetEntries, onSheetEntry } from '../lib/nav.js'
 
 // Putting the page back after a sheet closes takes up to three goes (see the un-pin below): now,
 // next frame, and once the keyboard's dismiss animation is over. Anything else that wants to
@@ -185,7 +186,17 @@ export default function Modals() {
       // Entries skipped because the app moved on remain in pushedEntries as deliberate
       // leaks until a later popstate consumes them with no corresponding active sheet.
     }
+    noteSheetEntries(sheetEntries.current.filter(e => e.live).length)
   }, [sheets.length])
+
+  // A page loaded on a sheet's entry with no sheet open (a reload, a restored tab): nothing will
+  // ever walk that entry off, and back from it would land on the same page. Step off it once.
+  const staleChecked = useRef(false)
+  useEffect(() => {
+    if (staleChecked.current) return
+    staleChecked.current = true
+    if (onSheetEntry() && !useUI.getState().sheets.length) history.back()
+  }, [])
 
   useEffect(() => {
     const onPop = () => {
@@ -201,6 +212,7 @@ export default function Modals() {
           break
         }
       }
+      noteSheetEntries(sheetEntries.current.filter(e => e.live).length)
       const top = sheets[sheets.length - 1]
       if (top && !top.locked) closeSheet(top.id)
     }

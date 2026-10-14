@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { loadStarterPlan } from './sheets.jsx'
+import { finishWorkout, loadStarterPlan } from './sheets.jsx'
 import { nav } from './lib/nav.js'
 import { switchTab } from './lib/use-tab-nav.js'
 
@@ -401,7 +401,131 @@ describe('the live dock', () => {
   })
 })
 
+// The last gate's findings (review of c544044d), each failing there.
+describe('a sheet\'s entry nobody is closing', () => {
+  it('after a reload on a sheet\'s entry, back still works', async () => {
+    // History as a reload leaves it: Training, History, and the entry of a sheet open on History.
+    window.history.pushState({ marker: true }, '', '#/not-the-app')
+    window.history.pushState({ usr: null, key: 'a', idx: 0 }, '', '#/train')
+    window.history.pushState({ usr: null, key: 'b', idx: 1 }, '', '#/train/history')
+    window.history.pushState({ usr: null, key: 'b', idx: 2, openGymSheet: true }, '')
+    host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
+    await act(async () => { root.render(<App />) })
+    await settle()
+    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    expect(hash()).toBe('#/train')
+  })
+
+  it('a leaked one mid-session: each tap of back goes back, and taps do not pile up', async () => {
+    await launch('#/train')
+    await go(() => nav('/train/history'))
+    window.history.pushState({ ...window.history.state, idx: 2, openGymSheet: true }, '')
+    const backBtn = () => document.querySelector('.sub-hdr button[aria-label="Back"]')
+    await click(backBtn())
+    await click(backBtn())
+    expect(hash()).toBe('#/train')
+    expect(idx()).toBe(0)
+    // No waiting listener left behind to walk back again on the next pop.
+    await click(target('History'))
+    await back()
+    expect(hash()).toBe('#/train')
+  })
+})
+
+describe('Nice! after a finished workout', () => {
+  it('goes back where the session was opened, leaving no Start screen under it', async () => {
+    running()
+    await launch('#/home')
+    await click(document.querySelector('.today-row'))
+    expect(hash()).toBe('#/train/workout')
+    await go(() => finishWorkout())
+    await click(button('Finish anyway'))
+    await click(button('Nice!'))
+    expect(useStore.getState().S.active).toBeNull()
+    expect(hash()).toBe('#/home')
+    expect(idx()).toBe(0)
+    expect(await backLeavesApp()).toBe(true)
+  })
+})
+
+describe('a navigation in the middle of a switch', () => {
+  it('to a third tab, mid-build: that tab, with the arriving tab\'s whole stack put aside', async () => {
+    await launch('#/home')
+    await click(tab('Training'))
+    await click(target('History'))
+    await click(tab('Home'))
+    // The moment the switch back to Training writes its first entry, something opens Body.
+    const realReplace = window.history.replaceState.bind(window.history)
+    let fired = false
+    window.history.replaceState = (s, ...rest) => {
+      realReplace(s, ...rest)
+      if (!fired && s?.usr?.tabSwitch && String(rest[1] || '').includes('/train')) { fired = true; queueMicrotask(() => nav('/progress/body')) }
+    }
+    try {
+      await click(tab('Training'))
+      await settle()
+    } finally { delete window.history.replaceState }
+    expect(fired).toBe(true)
+    expect(hash()).toBe('#/progress/body')
+    expect(lit()).toBe('Progress')
+    await click(tab('Training'))
+    expect(hash()).toBe('#/train/history')
+    // Progress holds its own stack: Body over the Progress hub, nothing of Training under it.
+    await click(tab('Progress'))
+    expect(hash()).toBe('#/progress/body')
+    await back()
+    expect(hash()).toBe('#/progress')
+    expect(await backLeavesApp()).toBe(true)
+  })
+
+  it('a push while walking back is carried out once the switch is done', async () => {
+    await launch('#/home')
+    await click(document.querySelector('.avatar-btn'))
+    expect(hash()).toBe('#/me')
+    // The walk back takes a while, as it can on a device; the push lands in the middle of it.
+    const realGo = window.history.go.bind(window.history)
+    window.history.go = d => { setTimeout(() => realGo(d), 100) }
+    try {
+      await act(async () => { tab('Training').click() })
+      await act(async () => { nav('/train/exercises') })
+      await act(async () => { await new Promise(r => setTimeout(r, 600)) })
+      await settle()
+    } finally { window.history.go = realGo }
+    expect(hash()).toBe('#/train/exercises')
+    expect(lit()).toBe('Training')
+    await back()
+    expect(hash()).toBe('#/train')
+  })
+})
+
+describe('a sheet that closes into a switch', () => {
+  it('leaves the page inert until the switch is done', async () => {
+    await launch('#/home')
+    await click(document.querySelector('.avatar-btn'))
+    await click(plus())
+    const realGo = window.history.go.bind(window.history)
+    window.history.go = d => { setTimeout(() => realGo(d), 200) }
+    try {
+      await act(async () => { [...document.querySelectorAll('.plus-sheet .lrow')].find(r => r.textContent.includes('Gym check-in')).click() })
+      await act(async () => { await new Promise(r => setTimeout(r, 50)) })
+      expect(document.getElementById('app').hasAttribute('inert')).toBe(true)
+      await act(async () => { await new Promise(r => setTimeout(r, 700)) })
+      await settle()
+    } finally { window.history.go = realGo }
+    expect(hash()).toBe('#/train/checkin')
+    expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
+  })
+})
+
 describe('the + sheet', () => {
+  it('tints its rows only with colours a white glyph clears 3:1 on, in both themes', async () => {
+    await launch('#/progress/body')
+    await click(plus())
+    const tints = [...document.querySelectorAll('.plus-sheet .lrow-i')].map(i => i.style.getPropertyValue('--tint'))
+    expect(tints.length).toBeGreaterThan(3)
+    for (const tint of tints) expect(['var(--blue)', 'var(--indigo)', 'var(--purple)', 'var(--pink)'], tint).toContain(tint)
+  })
+
   it('offers what fits the screen first, then the fixed rows', async () => {
     await launch('#/home')
     await click(tab('Training'))

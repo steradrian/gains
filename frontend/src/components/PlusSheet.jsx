@@ -14,13 +14,15 @@ import Elapsed from './Elapsed.jsx'
 const under = (pathname, base) => pathname === base || pathname.startsWith(base + '/')
 
 // The rows for what is on screen ("Here", at most two), as [icon, tint, label, action(close)].
-// Each row has its own tint, as the settings tiles do, so the sheet does not read as one block.
+// Each row has its own tint, as the settings tiles do, so the sheet does not read as one block —
+// from the tints a white glyph clears 3:1 on in both themes (blue, indigo, purple, pink); teal,
+// orange and the default lime accent do not.
 function hereRows(pathname) {
-  if (pathname === '/train/routines') return [['clipboard', 'var(--orange)', t('New routine'), close => { close(); addRoutine() }]]
+  if (pathname === '/train/routines') return [['clipboard', 'var(--indigo)', t('New routine'), close => { close(); addRoutine() }]]
   if (pathname === '/train/history') return [['history', 'var(--indigo)', t('Log past workout'), close => { close(); logPastWorkoutSheet() }]]
   if (under(pathname, '/train/exercises')) return [['dumbbell', 'var(--blue)', t('New exercise'), close => { close(); customExSheet(null, ex => exerciseDetailSheet(ex)) }]]
   if (under(pathname, '/progress/body')) return [
-    ['ruler', 'var(--teal)', t('Log measurements'), close => { close(); measurementLogSheet() }],
+    ['ruler', 'var(--purple)', t('Log measurements'), close => { close(); measurementLogSheet() }],
     ['camera', 'var(--pink)', t('Add photo'), close => closeThenNav(close, '/progress/body/photos')],
   ]
   return []
@@ -43,7 +45,7 @@ function PlusSheet({ close, pathname }) {
         {here.map(([icon, tint, label, act]) => <Row key={label} icon={icon} iconTint={tint} title={label} accessory="chevron" onClick={() => act(close)} />)}
       </Section>}
       <Section title={t('Anytime')}>
-        <Row icon="scale" iconTint="var(--teal)" title={t('Weigh in')} accessory="chevron" onClick={() => { close(); bwSheet() }} />
+        <Row icon="scale" iconTint="var(--indigo)" title={t('Weigh in')} accessory="chevron" onClick={() => { close(); bwSheet() }} />
         <Row icon="play" iconTint="var(--purple)" title={S.active ? t('Resume workout') : t('Start workout')} accessory="chevron" onClick={() => { close(); startOrResume() }}>
           {live && <span className="lrow-v plus-sheet-live"><span className="live-dot" aria-hidden="true" /><Elapsed start={S.active.start} /></span>}
         </Row>

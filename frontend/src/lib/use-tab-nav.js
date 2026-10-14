@@ -11,7 +11,8 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { emptyNav, deadSteps, planSwitch, record, settle } from './tab-history.js'
 import { parentOf, tabOf } from './tab-route.js'
-import { onSheetEntry } from './nav.js'
+import { onSheetEntry, sheetEntriesLive } from './nav.js'
+import { useUI } from '../store/useUI.js'
 
 const NAV_KEY = 'gym_tab_nav'   // this tab's mirror: survives a reload, as its history does
 // A walk back that never lands (history.go past the start does nothing, and says nothing) must not
@@ -58,10 +59,23 @@ let switching = false
 export const isSwitching = () => switching
 
 // Called as a sheet closes, it waits for the sheet's history entry to be walked off first
-// (Modals.jsx): two walks queued in the same moment are not reliably both carried out.
+// (Modals.jsx): two walks queued in the same moment are not reliably both carried out. Only then,
+// though: on a sheet's entry nobody is closing (a leaked one) it goes ahead at once. One wait at
+// a time — a second tap takes the first one's place — and never longer than SHEET_MS.
+const SHEET_MS = 400
+let waiting = null
 const afterSheet = fn => {
-  if (onSheetEntry()) onNextPop(fn)
-  else fn()
+  if (waiting) { window.removeEventListener('popstate', waiting.listener); clearTimeout(waiting.timer); waiting = null }
+  const closing = onSheetEntry() && sheetEntriesLive() > useUI.getState().sheets.length
+  if (!closing) { fn(); return }
+  const go = () => {
+    if (!waiting) return
+    window.removeEventListener('popstate', waiting.listener)
+    clearTimeout(waiting.timer)
+    waiting = null
+    fn()
+  }
+  waiting = { listener: onNextPop(go), timer: setTimeout(go, SHEET_MS) }
 }
 
 // One popstate, then the listener is gone. By hand rather than `{ once: true }`, which not every
@@ -98,8 +112,10 @@ export function useTabNav({ navigate, location, navType }) {
     setFrozen(null)
   }, [])
 
+  // One build step: what it expects to see land, and how many of the stack's pages are in.
   const step = useCallback((p, path, opts) => {
     p.expect = path
+    p.built = (p.built || 0) + 1
     navigate(path, opts)
   }, [navigate])
 
@@ -131,13 +147,13 @@ export function useTabNav({ navigate, location, navType }) {
     next()
   }, [navigate, build])
 
-  const run = useCallback((plan, { shownLocation, shownTab, target, retries = 0 }) => {
+  const run = useCallback((plan, { shownLocation, shownTab, target, retries = 0, intent = null }) => {
     if (!plan) { finish(pending.current); return }
     if (!switching) setFrozen({ location: shownLocation, tab: shownTab })
     switching = true
     navRef.current = plan.nav
     saveNav(plan.nav)
-    const p = { phase: 'unwind', stack: plan.stack, target, retries }
+    const p = { phase: 'unwind', stack: plan.stack, target, retries, intent }
     pending.current = p
     if (plan.back > 0) unwind(p)
     else build(p)
@@ -146,62 +162,89 @@ export function useTabNav({ navigate, location, navType }) {
   // The same switch carried on from wherever the history now is: back to the first entry and the
   // same stack built there. What the first plan put aside stays put aside — planning afresh from
   // the mirror would put aside a half-built history as the tab that was left.
-  const resume = (target, stack, retries) => {
+  const resume = (target, stack, retries, intent) => {
     const idx = historyIdx()
     run({ back: Number.isInteger(idx) ? idx : navRef.current.idx, stack, nav: { ...navRef.current, tab: target } },
-      { target, retries })
+      { target, retries, intent })
   }
 
   useLayoutEffect(() => {
     const p = pending.current
     const path = location.pathname + location.search
     const idx = historyIdx()
+
+    // A location outside a switch: mirrored, or — when it is another tab's page, pushed or
+    // replaced in from wherever — turned into a switch to that tab with the page on top, the entry
+    // it landed on handed back to the tab it came from. The screen stays on the page it came from
+    // (see the render below) until the switch is done.
+    const live = () => {
+      const nav = navRef.current
+      if (crossesTab(nav, location, navType)) {
+        const target = tabOf(location.pathname)
+        const here = Number.isInteger(idx) ? idx : nav.idx + 1
+        const plan = planSwitch({ ...nav, idx: here }, target, { path, leaving: nav.entries.slice(0, here) })
+        run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target })
+        return
+      }
+      const next = record(nav, { idx, path, navType })
+      navRef.current = next
+      saveNav(next)
+      lastShown.current = location
+      // Forward onto a page of a tab that was left: step straight back off it.
+      const dead = deadSteps(next)
+      if (dead) navigate(-dead)
+    }
+
     if (p?.phase === 'unwind') {
       if (navType === 'POP') navRef.current = record(navRef.current, { idx, path, navType })
+      // A push or replace while walking back (a page acting on its own): not lost — carried out
+      // again once the switch is done, as new intent (through a switch, if another tab's).
+      else p.intent = { path, replace: navType === 'REPLACE', state: location.state }
       return
     }
     if (p?.phase === 'build') {
-      navRef.current = record(navRef.current, { idx, path, navType })
       if (navType === 'POP') {
+        navRef.current = record(navRef.current, { idx, path, navType })
         // Somebody walked the history mid-build, or the walk landed late: carry on from there.
-        if (p.retries < RETRIES) { resume(p.target, p.stack, p.retries + 1); return }
-      } else if (path === p.expect && p.queue.length) {
-        step(p, p.queue.shift(), { state: TAB_SWITCH })
+        if (p.retries < RETRIES) { resume(p.target, p.stack, p.retries + 1, p.intent); return }
+      } else if (path === p.expect) {
+        navRef.current = record(navRef.current, { idx, path, navType })
+        if (p.queue.length) { step(p, p.queue.shift(), { state: TAB_SWITCH }); return }
+      } else {
+        // Not the switch's own step: the switch ends where it got to (the mirror is what it had
+        // built), and this navigation is new intent, taken as if it came after it — on top of the
+        // arriving tab, or, for a third tab's page, a switch there that puts the arriving tab's
+        // whole stack aside, not the half of it built so far.
+        const built = p.stack.slice(0, p.built)
+        navRef.current = { ...navRef.current, tab: p.target, entries: built, idx: built.length - 1, top: built.length - 1 }
+        saveNav(navRef.current)
+        finish(p)
+        const target = tabOf(location.pathname)
+        if (target && target !== p.target) {
+          const here = Number.isInteger(idx) ? idx : built.length
+          const plan = planSwitch({ ...navRef.current, idx: here }, target, { path, leaving: p.stack })
+          run(plan, { shownLocation: lastShown.current || location, shownTab: p.target, target })
+          return
+        }
+        live()
         return
       }
-      // Done — or a navigation that is not the switch's own (new intent): it stands as it is.
       navRef.current = settle(navRef.current)
       saveNav(navRef.current)
       lastShown.current = location
       finish(p)
+      if (p.intent) navigate(p.intent.path, { replace: p.intent.replace, state: p.intent.state })
       return
     }
-    const nav = navRef.current
     // The walk the watchdog gave up on, landing late: put the arriving tab back on top of it.
     const stray = late.current
     late.current = null
     if (stray && navType === 'POP' && Date.now() < stray.until) {
-      navRef.current = record(nav, { idx, path, navType })
+      navRef.current = record(navRef.current, { idx, path, navType })
       resume(stray.target, stray.stack, 0)
       return
     }
-    // A page of another tab, pushed or replaced in from wherever: a switch to that tab with the
-    // page on top, the entry it landed on handed back to the tab it came from. The screen stays on
-    // the page it came from (see the render below) until the switch is done.
-    if (crossesTab(nav, location, navType)) {
-      const target = tabOf(location.pathname)
-      const here = Number.isInteger(idx) ? idx : nav.idx + 1
-      const plan = planSwitch({ ...nav, idx: here }, target, { path, leaving: nav.entries.slice(0, here) })
-      run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target })
-      return
-    }
-    const next = record(nav, { idx, path, navType })
-    navRef.current = next
-    saveNav(next)
-    lastShown.current = location
-    // Forward onto a page of a tab that was left: step straight back off it.
-    const dead = deadSteps(next)
-    if (dead) navigate(-dead)
+    live()
     // The location object, not its key: a sheet's entry carries the key of the page under it.
   }, [location])
 
