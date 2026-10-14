@@ -206,6 +206,10 @@ export const useNutrition = create((set, get) => {
       return offResults(await NtApi.searchOnline(query, { lang, signal }), lang)
     },
 
+    /** Saves an online result as one of your foods, the save logging it does. A retry returns the
+     *  food made the first time (its client_key). Resolves to the saved food. */
+    saveFood: food => ownFood(food),
+
     /* --- drafts: build once, log (and retry) the same one --- */
 
     /** A food at (portion, unit) × servings for a meal. Throws invalid (diary.js) for a portion
