@@ -35,6 +35,30 @@ describe('--acc-ink of the preset accents (index.css)', () => {
     expect(CSS).toMatch(/#tabbar button\.start\.rec span\{color:var\(--live-ink\)\}/)
   })
 })
+
+describe('status colours as text (--yellow-ink, --orange-ink, --green-ink, --red-ink, --blue-ink)', () => {
+  const FILL = {
+    dark: { yellow: '#ffd60a', orange: '#ff9f0a', green: '#30d158', red: '#ff453a', blue: '#0a84ff' },
+    light: { yellow: '#ffcc00', orange: '#ff9500', green: '#34c759', red: '#ff3b30', blue: '#007aff' },
+  }
+  const inkAt = (theme, name) => {
+    const light = CSS.indexOf(':root[data-theme="light"] {')
+    const block = theme === 'light' ? CSS.slice(light, CSS.indexOf('}', light)) : CSS.slice(0, light)
+    const m = block.match(new RegExp(`--${name}-ink: ?(#[0-9a-f]{6})`))
+    // a dark ink that is not a hex reads the plain colour (var(--name))
+    return m ? m[1] : theme === 'dark' ? FILL.dark[name] : null
+  }
+  for (const theme of ['dark', 'light']) for (const name of Object.keys(FILL[theme])) {
+    it(`${name} in ${theme}: 4.5:1 on the page, the card and the 18% tint over the card`, () => {
+      const ink = inkAt(theme, name)
+      expect(ink, `--${name}-ink in ${theme}`).toBeTruthy()
+      const th = THEMES[theme]
+      for (const bg of [...th.bgs, mix(th.bgs[1], FILL[theme][name], 0.18)]) {
+        expect(contrast(ink, bg), `${name} ${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+  }
+})
 import { mergeStates, stampChange } from './sync-merge.js'
 
 describe('cleanHex', () => {

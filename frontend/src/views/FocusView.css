@@ -17,7 +17,7 @@
 .focus-tags{display:flex;flex-wrap:wrap;gap:5px}
 .focus-note,.focus-last,.focus-guidance{color:var(--label-2);font-size:12px;line-height:1.35}
 .focus-note{padding-left:8px;border-left:var(--hair) solid var(--sep)}
-.focus-note.pinned{color:var(--yellow);display:flex;gap:5px;align-items:flex-start}
+.focus-note.pinned{color:var(--yellow-ink);display:flex;gap:5px;align-items:flex-start}
 .focus-note .icn{margin-top:1px;flex:none}
 .focus-guidance{display:flex;align-items:center;gap:5px;width:max-content;text-align:left;color:var(--acc-ink);font-weight:600}
 .focus-guidance .icn{font-size:13px}
@@ -26,8 +26,8 @@
 .focus-badge .icn{font-size:13px;flex:none}
 .focus-progress{padding-inline:12px;background:var(--acc);color:var(--on-acc);font-weight:600}
 .focus-badge.plan{background:var(--acc-soft);color:var(--acc-ink);white-space:normal}
-.focus-badge.warning{background:color-mix(in srgb,var(--orange) 14%,transparent);color:var(--orange);white-space:normal}
-.focus-badge .short{color:var(--orange)}
+.focus-badge.warning{background:color-mix(in srgb,var(--orange) 14%,transparent);color:var(--orange-ink);white-space:normal}
+.focus-badge .short{color:var(--orange-ink)}
 .focus-badge-action{margin-inline-start:2px;color:inherit;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
 .focus-set>.stp-w,.focus-side>.stp-w{margin-top:12px}
 .focus-set.complete .stp .num:disabled,.focus-set.locked .stp .num:disabled,.focus-set.complete .focus-timed strong,.focus-set.locked .focus-timed strong{color:color-mix(in srgb,var(--label) 48%,var(--surface))!important;-webkit-text-fill-color:color-mix(in srgb,var(--label) 48%,var(--surface))!important;opacity:1}

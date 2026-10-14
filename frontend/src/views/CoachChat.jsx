@@ -413,7 +413,7 @@ function ReviewCard({ p, S, update, toast, refresh }) {
         {!!marked.evidence?.sessions && <p className="pcard-sum" style={{ fontSize: 13 }}>
           {t('Based on your last {0} sessions', marked.evidence.sessions)}{marked.evidence.from ? ` · ${fmtDate(marked.evidence.from)} – ${fmtDate(marked.evidence.to)}` : ''}
         </p>}
-        {marked.planMoved && <p className="pcard-sum" style={{ fontSize: 13, color: 'var(--yellow)' }}>
+        {marked.planMoved && <p className="pcard-sum" style={{ fontSize: 13, color: 'var(--yellow-ink)' }}>
           {t('Your plan changed since the Coach looked at it. Suggestions that no longer match are greyed out. Ask for a fresh review to see them again.')}
         </p>}
       </div>
@@ -545,9 +545,9 @@ function DebriefBody({ p, S }) {
         </div>)}
       </div>}
     </div>}
-    <DebriefList icon="checkCircle" tint="var(--green)" title={t('What went well')} items={p.highlights} />
-    <DebriefList icon="warning" tint="var(--yellow)" title={t('Worth watching')} items={p.watch} />
-    <DebriefList icon="arrowUp" tint="var(--acc)" title={t('Next time')} items={p.nextTime} />
+    <DebriefList icon="checkCircle" tint="var(--green-ink)" title={t('What went well')} items={p.highlights} />
+    <DebriefList icon="warning" tint="var(--yellow-ink)" title={t('Worth watching')} items={p.watch} />
+    <DebriefList icon="arrowUp" tint="var(--acc-ink)" title={t('Next time')} items={p.nextTime} />
   </>
 }
 const Delta = ({ v, unit, label }) => <span className={'ins-delta' + (v > 0 ? ' up' : v < 0 ? ' down' : '')}>{v > 0 ? '+' : ''}{fmtNum(v)} {unit} {label}</span>
@@ -624,7 +624,7 @@ function ProposalDetail({ entry, S }) {
       <div className="pcard-eyebrow">{kind === 'create' ? t('Plan') : kind === 'debrief' ? t('Workout debrief') : t('Suggestions')} · {fmtDate(new Date(entry.at).toISOString().slice(0, 10))}</div>
       <h2 className="pcard-h">{kind === 'create' ? (b?.name || t('Coach plan')) : kind === 'debrief' ? (entry.workout?.name || t('Workout')) : tn('{0} suggestion', '{0} suggestions', entry.decisions?.length || 0)}</h2>
       {!!entry.summary && <p className="pcard-sum">{entry.summary}</p>}
-      {entry.dismissed && <p className="pcard-sum" style={{ color: 'var(--red)' }}>{t('You declined this.')}</p>}
+      {entry.dismissed && <p className="pcard-sum" style={{ color: 'var(--red-ink)' }}>{t('You declined this.')}</p>}
       {!!entry.evidence?.sessions && <p className="pcard-sum" style={{ fontSize: 13 }}>
         {t('Based on your last {0} sessions', entry.evidence.sessions)}{entry.evidence.from ? ` · ${fmtDate(entry.evidence.from)} – ${fmtDate(entry.evidence.to)}` : ''}
       </p>}
