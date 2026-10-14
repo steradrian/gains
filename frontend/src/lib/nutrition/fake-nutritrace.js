@@ -215,6 +215,20 @@ export function createFakeNutriTrace({
         state.foods.push(food)
         return json(food, 201)
       }
+      // Not on the hub's list yet (the foods PR names it): PUT and DELETE on one of your foods,
+      // the body a plain object without an image or a visibility, no query string.
+      if ((method === 'PUT' || method === 'DELETE') && n === 4 && ID.test(a)) {
+        if ([...query.keys()].length) return json({ error: 'forbidden' }, 403)
+        const food = state.foods.find(f => String(f.id) === a)
+        if (!food) return json({ error: 'Not found' }, 404)
+        if (method === 'DELETE') {
+          state.foods = state.foods.filter(f => f !== food)
+          return json({ ok: true })
+        }
+        if (!isObject(body) || 'img_url' in body || 'imgUrl' in body || 'visibility' in body) return json({ error: 'request body refused' }, 400)
+        Object.assign(food, body, { id: food.id })
+        return json(food)
+      }
       if (method === 'POST' && n === 5 && ID.test(a) && b === 'used') {
         const food = state.foods.find(f => String(f.id) === a)
         if (!food) return json({ error: 'Not found' }, 404)

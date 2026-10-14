@@ -42,6 +42,7 @@
 .hub-tile-i{font-size:22px;color:var(--acc-ink);margin-bottom:6px}
 .hub-tile-t{font-size:17px;font-weight:600;letter-spacing:-.012em}
 .hub-tile-s{font-size:13px;color:var(--label-2)}
+.hub-macros{margin-top:12px;gap:22px}
 /* Progress cards: what the card is, the number, then its context. */
 .hub-card{cursor:pointer}
 .hub-card .hub-card-t{font-size:13px;color:var(--label-2)}

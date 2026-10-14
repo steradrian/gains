@@ -174,6 +174,23 @@ export const useNutrition = create((set, get) => {
     caloriesOut: date => get().goalInputs[date] ?? null,
     adaptiveTdee: () => get().goalInputs[ADAPTIVE_KEY] ?? null,
 
+    /** Creates a food of yours (no `id`; keep the draft, with its `client_key`, and send the same
+     *  one on a retry) or edits one (`id`). Resolves to the food as saved. Throws an NtError. */
+    async saveFood(food) {
+      const g = gen
+      const saved = withImg(typeof food.id === 'number' ? await NtApi.updateFood(food.id, food) : await NtApi.createFood(food))
+      if (g === gen) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
+      return saved
+    },
+
+    /** Removes a food of yours from NutriTrace and from the list. Past diary entries keep theirs. */
+    async deleteFood(id) {
+      const g = gen
+      // 404: already gone (a retry after a lost answer).
+      await NtApi.deleteFood(id).catch(e => { if (e?.status !== 404) throw e })
+      if (g === gen) set(s => ({ foods: { ...s.foods, list: s.foods.list.filter(f => f.id !== id) } }))
+    },
+
     async loadFoods({ force = false } = {}) {
       const cur = get().foods
       if (!force && (cur.status === 'ready' || cur.status === 'loading')) return
