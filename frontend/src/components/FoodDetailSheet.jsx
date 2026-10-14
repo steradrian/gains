@@ -2,11 +2,12 @@ import { useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { fmtDate, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { energyOf, mealsOf, unitsFor } from '../lib/nutrition/diary.js'
+import { energyOf, unitsFor } from '../lib/nutrition/diary.js'
 import { NUTRIENTS, fmtAmount, foodErrorText, nutrientLabel, per100Of, per100Unit } from '../lib/nutrition/foods.js'
-import { mealLabel } from '../lib/nutrition/meal-label.js'
+import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useNutrition } from '../lib/nutrition/store.js'
+import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 import { Button, Row, Section, Segmented, SelectRow, TextField } from './ui.jsx'
 
 const toast = (m, opts) => useUI.getState().toast(m, opts)
@@ -31,7 +32,7 @@ export function FoodDetailSheet({ food, settings, close, onEdit, onSave }) {
   const base = useRef(null)
   if (!base.current) base.current = useDiarySelection.getState().target(settings)
   const { date } = base.current
-  const meals = mealsOf(settings)
+  const names = mealLabels(settings)
   const [meal, setMeal] = useState(base.current.meal)
   const per100 = per100Of(food)
   const both = !!per100 && !(Number(food.portion) === 100 && food.unit === per100Unit(food))
@@ -41,7 +42,7 @@ export function FoodDetailSheet({ food, settings, close, onEdit, onSave }) {
   const [busy, setBusy] = useState(false)
   const draft = useRef({ sig: '', value: null })
   const serving = `${fmtAmount(food.portion ?? 100)} ${food.unit || 'g'}`
-  const mealName = mealLabel(meals.find(m => m.slot === meal) || meals[0])
+  const mealName = names[meal] ?? names[0]
 
   async function log() {
     if (busy) return
@@ -79,11 +80,7 @@ export function FoodDetailSheet({ food, settings, close, onEdit, onSave }) {
   }
 
   return <>
-    <div className="row between">
-      <h3>{food.name}</h3>
-      <Button size="sm" variant="ghost" onClick={close}>{t('Done')}</Button>
-    </div>
-    {food.brand && <div className="muted small">{food.brand}</div>}
+    <SheetHeader title={food.name} sub={food.brand || undefined} action={<Button size="sm" variant="ghost" onClick={close}>{t('Done')}</Button>} />
     {both && <Segmented value={basis} onChange={setBasis}
       options={[{ value: 'per100', label: t('Per 100 {0}', per100Unit(food)) }, { value: 'serving', label: t('Per serving') }]} />}
     {!both && <div className="muted small">{t('Per serving ({0})', serving)}</div>}
@@ -95,10 +92,12 @@ export function FoodDetailSheet({ food, settings, close, onEdit, onSave }) {
         <TextField value={amount} inputMode="decimal" onChange={e => setAmount(e.target.value)} />
       </label>
       <SelectRow title={t('Unit')} value={unit} options={unitsFor(food).map(u => ({ value: u, label: u }))} onChange={setUnit} />
-      <SelectRow title={t('Meal')} value={meal} options={meals.map(m => ({ value: m.slot, label: mealLabel(m) }))} onChange={setMeal} />
+      <SelectRow title={t('Meal')} value={meal} options={names.map((label, slot) => ({ value: slot, label }))} onChange={setMeal} />
     </Section>
-    <Button variant="primary" onClick={log} disabled={busy}>{t('Log to {0}', mealName)}</Button>
-    {!own && onSave && <Button variant="tinted" onClick={save} disabled={busy}>{t('Save as food')}</Button>}
+    <SheetActions>
+      <Button variant="primary" onClick={log} disabled={busy}>{t('Log to {0}', mealName)}</Button>
+      {!own && onSave && <Button variant="tinted" onClick={save} disabled={busy}>{t('Save as food')}</Button>}
+    </SheetActions>
     {own && onEdit && <Section>
       <Row icon="pencil" title={t('Edit food')} accessory="chevron" onClick={() => { close(); onEdit(food) }} />
     </Section>}

@@ -624,8 +624,6 @@ h4.sec{
 .search-row>.ex-view-btn{width:46px;height:auto;border-radius:10px;background:var(--surface-2);font-size:20px}
 :root[data-theme="light"] .search-row>.ex-view-btn{background:rgba(118,118,128,.12)}
 .search-row>.ex-view-btn.on,:root[data-theme="light"] .search-row>.ex-view-btn.on{background:var(--acc-soft);color:var(--acc-ink)}
-/* The controls above the Foods list: source, search, sort, categories. */
-.foods-controls{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
 
 /* ---------------------------------------------------------------- chips -- */
 .chips{

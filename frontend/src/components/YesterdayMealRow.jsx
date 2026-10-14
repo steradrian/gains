@@ -3,10 +3,11 @@ import { useUI } from '../store/useUI.js'
 import { isoOf, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { againDrafts, againItems, againKcal } from '../lib/nutrition/again.js'
-import { energyOf, mealsOf } from '../lib/nutrition/diary.js'
+import { energyOf } from '../lib/nutrition/diary.js'
 import { foodErrorText } from '../lib/nutrition/foods.js'
-import { mealLabel } from '../lib/nutrition/meal-label.js'
+import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useNutrition } from '../lib/nutrition/store.js'
+import { Tag } from './blocks.jsx'
 import { Button, Row, Section } from './ui.jsx'
 
 const toast = (m, opts) => useUI.getState().toast(m, opts)
@@ -33,8 +34,8 @@ export default function YesterdayMealRow({ settings, meal }) {
 
   const items = againItems(entry, meal)
   if (!items) return null
-  const meals = mealsOf(settings)
-  const label = mealLabel(meals.find(m => m.slot === meal) || meals[0])
+  const names = mealLabels(settings)
+  const label = names[meal] ?? names[0]
   const kcal = energyOf(againKcal(items), settings)
   const sig = `${today}|${meal}|${yesterday}`
 
@@ -63,7 +64,7 @@ export default function YesterdayMealRow({ settings, meal }) {
   return <Section>
     <Row icon="history" iconTint="var(--indigo)" title={t('Yesterday’s {0}', label)} subtitle={`${items.map(i => i.name).join(', ')} · ${kcal.value} ${kcal.unit}`}>
       {doneFor === sig
-        ? <span className="tag acc">{t('Logged')}</span>
+        ? <Tag tone="acc">{t('Logged')}</Tag>
         : <Button size="sm" variant="tinted" onClick={again} disabled={busy}>{t('Log again')}</Button>}
     </Row>
   </Section>

@@ -157,7 +157,7 @@ describe('yesterday\'s meal', () => {
 describe('the places', () => {
   it('has a Foods tile with the count, and opens Foods', async () => {
     await openHub()
-    await settle(() => expect(host.querySelector('.hub-tile-s').textContent).toBe('3 foods'))
+    await settle(() => expect(host.querySelector('.hub-tile .v').textContent).toBe('3 foods'))
     expect(host.querySelectorAll('.hub-tile')).toHaveLength(1)
     tap(host.querySelector('.hub-tile'))
     expect(host.textContent).toBe('FOODS PAGE')

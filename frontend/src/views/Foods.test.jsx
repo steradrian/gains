@@ -15,6 +15,9 @@ import Foods from './Foods.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
+// gains-hub #9 isFoodEdit: the keys PUT /api/foods/:id lets through.
+const HUB_FOOD_EDIT = ['name', 'brand', 'barcode', 'portion', 'unit', 'category', 'notes', 'favorite', 'nutrition']
+
 let nt
 let page
 const mounted = []
@@ -215,7 +218,27 @@ describe('creating, editing and deleting a food', () => {
     expect(put.path).toBe('/nt/api/foods/12')
     expect(put.body).toMatchObject({ name: 'Wholemeal bread', nutrition: { calories: 250, proteins: 13 } })
     for (const k of ['img_url', 'imgUrl', 'visibility', 'id']) expect(put.body).not.toHaveProperty(k)
+    expect(Object.keys(put.body).every(k => HUB_FOOD_EDIT.includes(k))).toBe(true)
     expect(nt.state.foods.find(f => f.id === 12).img_url).toBe('/uploads/1700000000000-abcdef12.jpg')
+  })
+
+  it('sends only the edit fields, even for a whole food row as NutriTrace returned it', async () => {
+    await openPage()
+    const row = useNutrition.getState().foods.list.find(f => f.id === 14)
+    await act(() => useNutrition.getState().saveFood({ ...row, favorite: true }))
+    const put = nt.writes().find(w => w.method === 'PUT')
+    expect(Object.keys(put.body).filter(k => !HUB_FOOD_EDIT.includes(k))).toEqual([])
+    expect(put.body).toMatchObject({ name: 'Protein bar', favorite: true })
+  })
+
+  it('says the food was not saved when the hub refuses the body (400)', async () => {
+    await openPage()
+    tap(rowOf('Wholemeal bread'))
+    tap(buttonSaying(topSheet(), 'Edit food'))
+    const sheet = topSheet()
+    nt.failNext('PUT', '/nt/api/foods/12', { status: 400, error: 'request body refused' })
+    tap(buttonSaying(sheet, 'Save'))
+    await settle(() => expect(sheet.querySelector('[role=alert]').textContent).toBe('The food was not saved. Try again.'))
   })
 
   it('deletes a food after asking, and keeps it when the delete fails', async () => {

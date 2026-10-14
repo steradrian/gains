@@ -115,6 +115,10 @@ export function isOffSearchQuery(params) {
 const isObject = v => typeof v === 'object' && v !== null && !Array.isArray(v)
 // fitness-hub isPrivateFoodWithoutImage
 const isPrivateFoodWithoutImage = b => isObject(b) && !('img_url' in b) && !('imgUrl' in b) && b.visibility === 'private'
+// fitness-hub isFoodEdit (gains-hub nt-body-checks.ts FOOD_EDIT_FIELDS): only these keys, anything
+// else is a 400 before NutriTrace sees it. Kept apart from api.js on purpose: it is the hub's list.
+const HUB_FOOD_EDIT_FIELDS = ['name', 'brand', 'barcode', 'portion', 'unit', 'category', 'notes', 'favorite', 'nutrition']
+const isFoodEdit = b => isObject(b) && Object.keys(b).every(k => HUB_FOOD_EDIT_FIELDS.includes(k))
 
 /* ------------------------------------------------------------------ NutriTrace's merge ------- */
 
@@ -215,8 +219,8 @@ export function createFakeNutriTrace({
         state.foods.push(food)
         return json(food, 201)
       }
-      // Not on the hub's list yet (the foods PR names it): PUT and DELETE on one of your foods,
-      // the body a plain object without an image or a visibility, no query string.
+      // PUT and DELETE on one of your foods (gains-hub #9): no query string (403), a PUT body of
+      // the edit fields only (400).
       if ((method === 'PUT' || method === 'DELETE') && n === 4 && ID.test(a)) {
         if ([...query.keys()].length) return json({ error: 'forbidden' }, 403)
         const food = state.foods.find(f => String(f.id) === a)
@@ -225,7 +229,7 @@ export function createFakeNutriTrace({
           state.foods = state.foods.filter(f => f !== food)
           return json({ ok: true })
         }
-        if (!isObject(body) || 'img_url' in body || 'imgUrl' in body || 'visibility' in body) return json({ error: 'request body refused' }, 400)
+        if (!isFoodEdit(body)) return json({ error: 'request body refused' }, 400)
         Object.assign(food, body, { id: food.id })
         return json(food)
       }

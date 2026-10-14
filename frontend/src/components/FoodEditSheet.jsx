@@ -5,6 +5,7 @@ import { UNITS, newUuid } from '../lib/nutrition/diary.js'
 import { NUTRIENTS, categoryChoices, foodErrorText, foodOf, formOf, nutrientLabel } from '../lib/nutrition/foods.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { confirmSheet } from '../sheets.jsx'
+import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 import { Button, Row, Section, SelectRow, Switch, TextArea, TextField } from './ui.jsx'
 
 const toast = m => useUI.getState().toast(m)
@@ -79,10 +80,7 @@ export function FoodEditSheet({ food = null, settings = null, close, onSaved }) 
 
   const shown = NUTRIENTS.filter(n => n.main || more)
   return <>
-    <div className="row between">
-      <h3>{editing ? t('Edit food') : t('New food')}</h3>
-      <Button size="sm" variant="ghost" onClick={close}>{t('Cancel')}</Button>
-    </div>
+    <SheetHeader title={editing ? t('Edit food') : t('New food')} action={<Button size="sm" variant="ghost" onClick={close}>{t('Cancel')}</Button>} />
     <label className="measure-date">
       <span>{t('Name')}</span>
       <TextField value={form.name} maxLength={120} autoFocus={!editing} onChange={e => set({ name: e.target.value })} />
@@ -119,7 +117,9 @@ export function FoodEditSheet({ food = null, settings = null, close, onSaved }) 
       <TextArea value={form.notes} maxLength={500} onChange={e => set({ notes: e.target.value })} />
     </label>
     {problem && <div className="small muted" role="alert">{problem}</div>}
-    <Button variant="primary" onClick={save} disabled={busy}>{t('Save')}</Button>
+    <SheetActions>
+      <Button variant="primary" onClick={save} disabled={busy}>{t('Save')}</Button>
+    </SheetActions>
     {editing && <Section>
       <Row icon="trash" title={t('Delete food')} danger onClick={remove} />
     </Section>}
