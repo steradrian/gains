@@ -1091,7 +1091,7 @@ function AddToRoutine({ ex, close }) {
       })
       const r = isNew ? S().routines[S().routines.length - 1] : st.routines.find(x => x.id === rid)
       toast(t('“{0}” added to {1}', exerciseNameText(ex), r ? r.name : t('routine')))
-      if (isNew && r) nav('/train/plan/r/' + r.id)
+      if (isNew && r) nav('/train/routines/' + r.id)
     }, null, isNew ? null : st.routines.find(x => x.id === rid))
   }
   return <>
@@ -2189,7 +2189,7 @@ function PlanImport({ bundle, close }) {
     update(s => mergePlan(s, bundle, { schedule }))
     close()
     toast(tn('Added {0} routine to your plan', 'Added {0} routines to your plan', bundle.routineCount))
-    nav('/train/plan')
+    nav('/train/routines')
   }
   return <>
     <h3>{bundle.name ? t('Import “{0}”', bundle.name) : t('Import this plan')}</h3>
@@ -2578,7 +2578,7 @@ function WorkoutDetail({ w, close }) {
         try { update(s => { id = saveSessionAsRoutine(s, w, w.name) }) }
         catch (e) { toast(t(e.message)); return }
         close()
-        nav('/train/plan/r/' + id)
+        nav('/train/routines/' + id)
       }
     })}>{t('Save as routine')}</Button>
     <div style={{ height: 8 }} />
@@ -2766,6 +2766,16 @@ export function DayNoteRow({ iso, note }) {
 }
 
 /* ============================ workout lifecycle ============================ */
+// Start / Resume from anywhere (the + sheet, the Training hub): back to the session that is on,
+// else today's planned routines when any of them has exercises, else the Start screen to pick one.
+export function startOrResume() {
+  const st = S()
+  if (st.active) { navToWorkout(); return }
+  const ids = effectiveRoutineIds(st, todayISO())
+  if (ids.some(id => st.routines.find(r => r.id === id)?.ex.length)) { startFlow(ids); return }
+  navToWorkout()
+}
+
 // `routineIds` accepts `string | string[] | null` — `[r.id]` for one routine,
 // `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
 export function startFlow(routineIds) {
@@ -3329,7 +3339,7 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    <Button variant="primary" onClick={() => closeThenNav(close, '/train/home')}>{t('Nice!')}</Button>
+    <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
   </div>
 }
 export function finishWorkout() {

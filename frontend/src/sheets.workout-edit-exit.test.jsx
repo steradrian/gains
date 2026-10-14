@@ -44,7 +44,7 @@ describe('closing the saved-workout editor', () => {
 
   it('a second ask while the prompt is open joins it: one prompt, one save, the latest way out', () => {
     exitWorkoutEdit()
-    exitWorkoutEdit(() => navigated.push('/train/stats'))   // the route exit that raced the X
+    exitWorkoutEdit(() => navigated.push('/progress'))   // the route exit that raced the X
     expect(useUI.getState().sheets.length).toBe(1)
     const host = renderTop()
     act(() => { button(host, 'Save changes').click() })
@@ -53,7 +53,7 @@ describe('closing the saved-workout editor', () => {
     expect(useUI.getState().toastMsg).toBe('Workout updated')
     expect(useUI.getState().sheets.length).toBe(0)
     expect(useStore.getState().S.workouts).toHaveLength(1)
-    expect(navigated).toEqual(['/train/stats'])
+    expect(navigated).toEqual(['/progress'])
   })
 
   it('a stale prompt left open after the editor closed only leaves: no delete offer, no false toast', () => {

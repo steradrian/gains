@@ -4,20 +4,20 @@
 // seemed to do nothing.
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeThenNav, goBack, nav, navToWorkout, setNav } from './nav.js'
+import { closeThenNav, nav, navToWorkout, setNav } from './nav.js'
 
 let calls
 beforeEach(() => {
   calls = []
   setNav((...args) => { calls.push(args) })
-  history.replaceState(null, '', '#/train/home')
+  history.replaceState(null, '', '#/home')
 })
 
 describe('nav', () => {
   it('passes the router its options', () => {
-    nav('/train/plan', { replace: true })
-    nav('/train/stats')
-    expect(calls).toEqual([['/train/plan', { replace: true }], ['/train/stats']])
+    nav('/train/routines', { replace: true })
+    nav('/progress')
+    expect(calls).toEqual([['/train/routines', { replace: true }], ['/progress']])
   })
 
   it('a closing sheet hands its history entry to the next page', () => {
@@ -29,8 +29,8 @@ describe('nav', () => {
   })
 
   it('pushes when the entry is not a sheet\'s (it was spent already)', () => {
-    closeThenNav(() => {}, '/train/home')
-    expect(calls).toEqual([['/train/home']])
+    closeThenNav(() => {}, '/home')
+    expect(calls).toEqual([['/home']])
   })
 
   it('starting from the routine chooser replaces its #/train/workout', () => {
@@ -43,14 +43,6 @@ describe('nav', () => {
     history.pushState({ openGymSheet: true }, '')
     navToWorkout()
     expect(calls).toEqual([['/train/workout', { replace: true }]])
-  })
-
-  it('back from a shared page walks back, or opens the launch screen with nothing behind it', () => {
-    history.replaceState({ idx: 2 }, '', '#/me')
-    goBack()
-    history.replaceState({ idx: 0 }, '', '#/me')
-    goBack()
-    expect(calls).toEqual([[-1], ['/', { replace: true }]])
   })
 
   it('starting from Home pushes, so back returns there', () => {

@@ -81,6 +81,6 @@ describe('Home — the way to the Start screen when a plan already owns today', 
     mount()
     const row = host.querySelector('.today-row')
     expect(row.querySelector('.ttl').textContent).toBe('Push (in progress)')
-    expect(row.querySelector('.tag').textContent).toBe('Resume')
+    expect(row.querySelector('.tag').textContent).toMatch(/^Resume · \d+:\d{2}/)
   })
 })

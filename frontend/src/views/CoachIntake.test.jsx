@@ -113,14 +113,14 @@ describe('CoachIntake — who gets in', () => {
   it('sends you home and renders nothing when the Coach is not available', () => {
     mocks.config = { coach: { enabled: false } }
     mount()
-    expect(mocks.nav).toHaveBeenCalledWith('/train/home', { replace: true })
+    expect(mocks.nav).toHaveBeenCalledWith('/home', { replace: true })
     expect(host.textContent).toBe('')
   })
 
   it('needs a signed-in user as well as a server with the Coach on', () => {
     mocks.user = null
     mount()
-    expect(mocks.nav).toHaveBeenCalledWith('/train/home', { replace: true })
+    expect(mocks.nav).toHaveBeenCalledWith('/home', { replace: true })
   })
 })
 
@@ -146,7 +146,7 @@ describe('CoachIntake — the consent screen', () => {
     mount()
     tap('button', 'Not now')
     expect(mocks.S.coach).toBeUndefined()
-    expect(mocks.nav).toHaveBeenCalledWith('/train/plan')
+    expect(mocks.nav).toHaveBeenCalledWith('/train/routines')
   })
 
   it('a returning athlete whose consent is out of date reads the new terms only, then goes back to the Coach', () => {
@@ -316,7 +316,7 @@ describe('CoachIntake — moving around', () => {
     act(() => host.querySelector('.iconbtn').click())
     expect(eyebrow()).toBe('Before we start')
     act(() => host.querySelector('.iconbtn').click())
-    expect(mocks.nav).toHaveBeenCalledWith('/train/plan')
+    expect(mocks.nav).toHaveBeenCalledWith('/train/routines')
   })
 
   it('Back from the first screen of the editor goes to the conversation, not the plan', () => {

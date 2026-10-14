@@ -22,6 +22,7 @@ import { useMediaPicker } from '../components/CustomMediaField.jsx'
 import { CustomThumb, MediaView, useMediaUrl } from '../components/CustomMedia.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
+import SubHeader from '../components/SubHeader.jsx'
 
 const toast = m => useUI.getState().toast(m)
 
@@ -170,13 +171,10 @@ export default function ProgressPhotos() {
   }
 
   return <>
-    <div className="hdr"><button className="iconbtn" onClick={() => nav('/train/stats')} aria-label={t('Stats')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('Progress photos')}</h1>
-        <div className="sub">{tn('{0} photo', '{0} photos', photos.length)}</div></div>
-      {photos.length >= 2 && (comparing
+    <SubHeader title={t('Progress photos')} sub={tn('{0} photo', '{0} photos', photos.length)}
+      action={photos.length >= 2 && (comparing
         ? <Button size="sm" variant="ghost" onClick={cancelCompare}>{t('Cancel')}</Button>
-        : <Button size="sm" variant="tinted" onClick={() => setComparing(true)}>{t('Compare')}</Button>)}
-    </div>
+        : <Button size="sm" variant="tinted" onClick={() => setComparing(true)}>{t('Compare')}</Button>)} />
 
     {!comparing && showAdd && <div className="row" style={{ marginBottom: 16 }}>
       {today

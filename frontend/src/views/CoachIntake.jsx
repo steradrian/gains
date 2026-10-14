@@ -79,7 +79,7 @@ export default function CoachIntake() {
   }))
   const set = patch => setP(v => ({ ...v, ...patch }))
 
-  if (!coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })) { nav('/train/home', { replace: true }); return null }
+  if (!coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })) { nav('/home',{ replace: true }); return null }
 
   const key = STEPS[step]
   const last = step === STEPS.length - 1
@@ -87,7 +87,7 @@ export default function CoachIntake() {
   const optional = ['equipment', 'limits', 'extras'].includes(key)
 
   const next = () => (last ? finish() : setStep(step + 1))
-  const back = () => (step ? setStep(step - 1) : nav(editing ? '/train/coach' : '/train/plan'))
+  const back = () => (step ? setStep(step - 1) : nav(editing ? '/train/coach' : '/train/routines'))
 
   const agree = () => {
     update(s => { s.coach = { ...(s.coach || emptyCoach()), consent: { agreedAt: new Date().toISOString(), version: CONSENT_VERSION } } })
@@ -139,7 +139,7 @@ export default function CoachIntake() {
     </div>
 
     <div className="ob-body">
-      {key === 'consent' && <Consent onAgree={agree} onDecline={() => nav('/train/plan')} />}
+      {key === 'consent' && <Consent onAgree={agree} onDecline={() => nav('/train/routines')} />}
 
       {key === 'goal' && <>
         <div className="ob-eyebrow">{t('Your goal')}</div>

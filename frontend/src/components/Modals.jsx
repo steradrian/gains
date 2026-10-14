@@ -164,10 +164,13 @@ export default function Modals() {
     if (sheets.length > prev) {
       for (let i = prev; i < sheets.length; i++) {
         sheetEntries.current.push({ openedAt: location.href, live: true })
-        // The page's own router state rides along (its key and `idx`): the entry is the same
-        // page with a sheet over it, and a page pushed or replaced from it — closeThenNav —
-        // then gets a real position from the router instead of NaN (lib/mode-history.js).
-        history.pushState({ ...history.state, openGymSheet: true }, '')
+        // The page's own router state rides along (its key: the entry is the same page with a
+        // sheet over it), with the position this entry really has, one past the page's. A page
+        // the router pushes or replaces from here (closeThenNav) counts on from it, so the
+        // router's `idx` stays the true distance to the first entry (lib/tab-history.js).
+        const state = history.state || {}
+        const at = Number.isInteger(state.idx) ? state.idx + 1 : 1
+        history.pushState({ ...state, idx: at, openGymSheet: true }, '')
         pushedEntries.current++
       }
     } else if (sheets.length < prev) {

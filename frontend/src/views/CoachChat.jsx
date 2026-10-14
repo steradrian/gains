@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { closeThenNav } from '../lib/nav.js'
+import { back } from '../lib/use-tab-nav.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
@@ -60,7 +61,7 @@ export default function CoachChat() {
   // empty state, decide there is no consent, and bounce a consenting user into the intake.
   useEffect(() => {
     if (!storeReady) return
-    if (!ok) nav('/train/home', { replace: true })
+    if (!ok) nav('/home',{ replace: true })
     else if (!ready) nav('/train/coach/intake', { replace: true })
   }, [storeReady, ok, ready])
 
@@ -187,7 +188,7 @@ export default function CoachChat() {
 
   return <div className="narrow chat">
     <div className="chat-hdr">
-      <button className="iconbtn" onClick={() => nav('/train/plan')} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={back} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
       <div className="chat-av"><Icon name="chat" /></div>
       <div className="grow">
         <h1>{t('Coach')}</h1>

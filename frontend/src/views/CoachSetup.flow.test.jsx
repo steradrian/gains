@@ -25,7 +25,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => {
   const state = {
     mobile: true, user: null, config: null, coachLocal: null,
-    nav: vi.fn(), toast: vi.fn(), openSheet: vi.fn(), setCoachLocal: vi.fn(), refreshConfig: vi.fn(),
+    nav: vi.fn(), back: vi.fn(), toast: vi.fn(), openSheet: vi.fn(), setCoachLocal: vi.fn(), refreshConfig: vi.fn(),
   }
   state.snapshot = () => ({
     user: state.user, config: state.config, coachLocal: state.coachLocal,
@@ -46,6 +46,7 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
+vi.mock('../lib/use-tab-nav.js', () => ({ back: (...a) => mocks.back(...a), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
 // A getter, so one test can be the web build and the rest the phone.
 vi.mock('../lib/mobile.js', () => ({ get MOBILE() { return mocks.mobile } }))
 vi.mock('../lib/coach-secrets.js', () => ({
@@ -65,7 +66,7 @@ beforeEach(() => {
   mocks.user = { uid: 'u1', name: 'Ana' }
   mocks.config = { coach: { enabled: true } }
   mocks.coachLocal = null
-  mocks.nav.mockReset(); mocks.toast.mockReset(); mocks.openSheet.mockReset()
+  mocks.nav.mockReset(); mocks.back.mockReset(); mocks.toast.mockReset(); mocks.openSheet.mockReset()
   mocks.setCoachLocal.mockReset().mockResolvedValue(undefined)
   mocks.refreshConfig.mockReset()
   vi.mocked(getApiKey).mockReset().mockResolvedValue(null)
@@ -153,10 +154,10 @@ describe('CoachSetup — "use my self-hosted Gains"', () => {
     expect(rowTitled('Use my self-hosted Gains').textContent).toContain('Loading…')
   })
 
-  it('Back returns to Settings', async () => {
+  it('Back steps back through the tab', async () => {
     await mount()
     await click(host.querySelector('.hdr .iconbtn'))
-    expect(mocks.nav).toHaveBeenCalledWith('/me')
+    expect(mocks.back).toHaveBeenCalled()
   })
 })
 

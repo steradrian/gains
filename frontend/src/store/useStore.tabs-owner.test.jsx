@@ -268,7 +268,7 @@ describe('a guest tab while the other tab signs in or creates a profile', () => 
     server(null)
     localStorage.setItem('gym_state_v1', JSON.stringify(guestCopy(running())))
     localStorage.setItem('gym_guest', '1')
-    location.hash = '#/train/stats'
+    location.hash = '#/progress'
     const A = await openTab(null)
     const B = await openTab(null)
     h.toasts = []
