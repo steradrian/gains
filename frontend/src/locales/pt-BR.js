@@ -4,6 +4,15 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  'Licences': 'Licenças',
+  'It comes with no warranty, to the extent the law allows.': 'Não há garantia alguma, na medida permitida por lei.',
+  'Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.': 'Software livre licenciado sob a GNU Affero General Public License v3.0 ou posterior. Você pode redistribuí-lo e modificá-lo nos termos dessa licença.',
+  'Full licence text': 'Texto completo da licença',
+  'Built on {0} v{1} by {2}.': 'Baseado em {0} v{1}, de {2}.',
+  'Third-party notices': 'Avisos de terceiros',
+  'Exercise media': 'Mídia dos exercícios',
+  'Exercise text': 'Texto dos exercícios',
+  'Icons': 'Ícones',
   '{0} set brings an {1} with it. Switch on Effort per set in Settings to see it.': '{0} série traz um {1} junto. Ative “Esforço por série” nas Configurações para ver.',
   'Add to this set': 'Adicionar a esta série',
   // --- app modes: header switch, Nutrition bar, + sheet ---
