@@ -58,6 +58,7 @@ import FoodHub from './views/FoodHub.jsx'
 import Foods from './views/Foods.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
 import './tab-shell.css'
+import './nutrition.css'
 
 // last known scrollY per tab and route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
