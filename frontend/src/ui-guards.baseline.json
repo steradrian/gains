@@ -5,7 +5,7 @@
     "components/DurationWheel.jsx": 1,
     "components/ErrorBoundary.jsx": 4,
     "components/Heatmap.jsx": 1,
-    "components/MuscleExplorer.jsx": 13,
+    "components/MuscleExplorer.jsx": 3,
     "components/Passkeys.jsx": 41,
     "components/PasswordAuth.jsx": 57,
     "components/QueueRow.jsx": 7,
@@ -29,11 +29,11 @@
     "views/Plan.jsx": 9,
     "views/ProgressHub.jsx": 3,
     "views/ProgressPhotos.jsx": 6,
-    "views/RoutineEdit.jsx": 38,
+    "views/RoutineEdit.jsx": 14,
     "views/Settings.jsx": 45,
     "views/Stats.jsx": 99,
     "views/StructuralBalance.jsx": 22,
-    "views/Workout.jsx": 64
+    "views/Workout.jsx": 18
   },
   "G2css": {
     "admin.css": 1,
@@ -57,7 +57,7 @@
     "components/DurationWheel.jsx": 1,
     "components/ErrorBoundary.jsx": 1,
     "components/LineChart.jsx": 1,
-    "components/MuscleExplorer.jsx": 17,
+    "components/MuscleExplorer.jsx": 1,
     "components/Passkeys.jsx": 10,
     "components/PasswordAuth.jsx": 6,
     "components/PlusSheet.jsx": 1,
@@ -84,12 +84,12 @@
     "views/Plan.jsx": 16,
     "views/ProgressHub.jsx": 3,
     "views/ProgressPhotos.jsx": 2,
-    "views/RoutineEdit.jsx": 9,
+    "views/RoutineEdit.jsx": 2,
     "views/Settings.jsx": 8,
     "views/Stats.jsx": 23,
     "views/StructuralBalance.jsx": 1,
     "views/TrainHub.jsx": 2,
-    "views/Workout.jsx": 35
+    "views/Workout.jsx": 3
   },
   "G4": [
     "Admin",
