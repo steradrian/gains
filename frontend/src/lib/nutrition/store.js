@@ -259,10 +259,13 @@ export const useNutrition = create((set, get) => {
 })
 
 // Another account signing in on this device never sees the last one's data, picks or sync.
+// (Tests that replace useStore with a bare hook have no subscribe; they have no account to change.)
 const who = s => (s.user ? String(s.user.id ?? s.user.name ?? '') : '')
-useStore.subscribe((s, prev) => {
-  if (who(s) === who(prev)) return
-  useNutrition.getState().reset()
-  useDiarySelection.getState().reset()
-  useHubSync.getState().reset()
-})
+if (typeof useStore.subscribe === 'function') {
+  useStore.subscribe((s, prev) => {
+    if (who(s) === who(prev)) return
+    useNutrition.getState().reset()
+    useDiarySelection.getState().reset()
+    useHubSync.getState().reset()
+  })
+}
