@@ -63,8 +63,11 @@ describe('status colours as text (--yellow-ink, --orange-ink, --green-ink, --red
       expect(contrast(inkAt(theme, name), mix(th.surface2, FILL[theme][name], 0.2))).toBeGreaterThanOrEqual(4.5)
     })
   }
-  it('every effort band has an ink, in the same order as its colour', () => {
-    for (const b of EFFORT_BANDS) expect(b.ink, b.color).toBe(b.color.replace(/\)$/, '').replace('var(--acc-2', 'var(--acc').concat('-ink)'))
+  it('every status effort band has the ink of its own colour', () => {
+    for (const b of EFFORT_BANDS.filter(b => b.color !== 'var(--acc-2)')) expect(b.ink, b.color).toBe(b.color.replace(/\)$/, '-ink)'))
+  })
+  it('the Easy band (accent tint) uses neutral text, since no accent ink clears 4.5:1 on every accent tint', () => {
+    expect(EFFORT_BANDS.find(b => b.color === 'var(--acc-2)').ink).toBe('var(--label)')
   })
 })
 
