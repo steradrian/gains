@@ -11,7 +11,7 @@
 // still sit in the browser's forward history. `top` is the last live position: a forward step
 // past it lands on a dead entry, which the shell steps straight back off (`deadSteps`).
 // Pure: the shell feeds it locations and carries out the plans it returns.
-import { TABS, TAB_ROOT, tabOf } from './tab-route.js'
+import { TABS, TAB_ROOT, isWorkoutPath, tabOf } from './tab-route.js'
 
 export const emptyNav = () => ({ entries: [], idx: -1, top: -1, tab: 'home', stacks: {} })
 
@@ -38,16 +38,21 @@ export const settle = nav => ({ ...nav, top: nav.idx, entries: nav.entries.slice
 // How far to step back off a dead forward entry (0 when the position is live).
 export const deadSteps = nav => (nav.idx > nav.top ? nav.idx - nav.top : 0)
 
-// A stack as it is put aside: no gaps, and one entry for a page that sat on two positions (a
-// sheet's entry the router then replaced with the same page, lib/nav.js navToWorkout).
-const compact = paths => paths.filter(Boolean).filter((p, i, all) => i === 0 || p !== all[i - 1])
+// A stack as it is put aside: no gaps, never the workout (a session that has ended there would
+// come back as the Start screen; the dock reopens one that runs), and one entry for a page that
+// sat on two positions (a sheet's entry the router then replaced with the same page).
+const compact = paths => paths.filter(p => p && !isWorkoutPath(p)).filter((p, i, all) => i === 0 || p !== all[i - 1])
+
+const pathOnly = p => p.split(/[?#]/)[0]
 
 // The arriving tab's stack: what it held when it was left, else its root, with `path` on top (a
-// page opened in it from elsewhere) unless it is already there.
+// page opened in it from elsewhere). A page the stack already holds is not stacked again: the
+// stack goes back to it, with the new address (its query may differ: /progress?range=90).
 export function stackFor(nav, target, path) {
   const kept = nav.stacks[target]?.length ? nav.stacks[target] : [TAB_ROOT[target]]
-  if (!path || kept[kept.length - 1] === path) return kept
-  return [...kept, path]
+  if (!path) return kept
+  const at = kept.findIndex(p => pathOnly(p) === pathOnly(path))
+  return at >= 0 ? [...kept.slice(0, at), path] : [...kept, path]
 }
 
 // What showing `target` takes: how far back to walk (to the first entry), then the paths to put

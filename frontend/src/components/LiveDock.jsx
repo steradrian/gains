@@ -26,24 +26,29 @@ export default function LiveDock() {
     return () => document.body.classList.remove('live-docked')
   }, [])
   const counting = work || timer
-  const pct = counting ? Math.max(0, Math.min(100, (counting.left / counting.total) * 100)) : 0
+  const share = counting ? Math.max(0, Math.min(1, counting.left / counting.total)) : 0
   const open = () => { if (!isSwitching()) nav('/train/workout') }
 
   return (
     <div id="timer" className={'dock' + (timer ? ' rest' : '') + (timer?.ready ? ' ready' : '') + (work ? ' working' : '')}>
-      {counting && <div className="bar" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>}
-      <button type="button" className="dock-main" onClick={open} aria-label={t('Open workout')}>
+      {/* transform, not width: the bar moves every second and should not lay the dock out again */}
+      {counting && <div className="bar" aria-hidden="true"><i style={{ transform: `scaleX(${share})` }} /></div>}
+      {/* Its name is what it shows (the routine, how long, the countdown) after "Open workout". */}
+      <button type="button" className="dock-main" onClick={open}>
+        <span className="vh">{t('Open workout')}</span>
         <span className="live-dot" aria-hidden="true" />
         <span className="dock-text">
           <span className="dock-name">{active.name || t('Workout')}</span>
           <span className="dock-sub"><Elapsed start={active.start} /></span>
         </span>
-        {counting && <span className="t" role={timer?.ready ? 'status' : undefined}>
-          {timer?.ready ? t('Ready') : clock(counting.left)}</span>}
+        {counting && <span className="t">{timer?.ready ? t('Ready') : clock(counting.left)}</span>}
       </button>
+      {/* Always there, so a screen reader hears "Ready" the moment it is written into it. */}
+      <span className="vh" role="status">{timer?.ready ? t('Ready') : ''}</span>
       {timer && <div className="acts">
-        {!timer.ready && <Button size="sm" className="adj" icon="plus" disabled={timer.left >= REST_MAX} onClick={() => addRest(30)}>30s</Button>}
-        <Button size="sm" variant="primary" onClick={stopRest}>{timer.ready ? t('Dismiss') : t('Skip')}</Button>
+        {!timer.ready && <Button size="sm" className="adj" icon="plus" disabled={timer.left >= REST_MAX} onClick={() => addRest(30)}
+          aria-label={t('Add 30 seconds')}>30s</Button>}
+        <Button size="sm" variant="primary" className="skip" onClick={stopRest}>{timer.ready ? t('Dismiss') : t('Skip')}</Button>
       </div>}
     </div>
   )

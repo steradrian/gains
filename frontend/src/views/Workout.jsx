@@ -1420,7 +1420,8 @@ function ActiveWorkout() {
   // ⌄ that only leaves the screen (v1.3.11).
   const discardWorkout = () => confirmSheet({
     title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true,
-    onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') },
+    // Off the screen the way it came in (lib/use-tab-nav.js back): the session's page is gone.
+    onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); back() },
   })
   // The header ⋯, in groups: the settings you change at the gym first (their own sheet, the same
   // values as Settings), then what to add, what to change about this workout, and Discard last.

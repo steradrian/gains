@@ -7,10 +7,12 @@ import RootHeader from '../components/RootHeader.jsx'
 export default function FoodHub() {
   return <div className="narrow">
     <RootHeader title={t('Nutrition')} />
-    <div className="empty">
-      <div className="ico"><Icon name="utensils" /></div>
-      <strong>{t('Food logging is on its way')}</strong>
-      <div>{t('Meals, foods, recipes and calorie goals will live here.')}</div>
+    <div className="card">
+      <div className="empty">
+        <div className="ico"><Icon name="utensils" /></div>
+        <strong>{t('Food logging is on its way')}</strong>
+        <div>{t('Meals, foods, recipes and calorie goals will live here.')}</div>
+      </div>
     </div>
   </div>
 }

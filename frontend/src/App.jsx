@@ -218,9 +218,8 @@ function Shell() {
   // One live dock while a workout runs and you are elsewhere (it takes the rest bar's place).
   const docked = !noTabs && !onWorkout && workoutRunning(S)
   // No route of its own (a launch, a home-screen icon): straight into a running workout, else
-  // Home. A route from before the tabs: where it lives now, query and all.
-  const legacy = legacyPath(shown.pathname)
-  const fallback = legacy ? legacy + shown.search : launchPath(workoutRunning(S))
+  // Home. A route from before the tabs: where it lives now, query and fragment and all.
+  const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchPath(workoutRunning(S))
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -285,8 +284,10 @@ function Shell() {
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
       <SyncBanner />
-      {!noTabs && <TabBar tab={tab} lit={tabOf(shown.pathname) === tab} onPlus={() => openPlusSheet(shown.pathname)} />}
+      {/* The dock before the bar: it sits above the bar on screen, so it comes first in the
+          reading and tab order too. */}
       {docked ? <LiveDock /> : <RestTimer />}
+      {!noTabs && <TabBar tab={tab} lit={tabOf(shown.pathname) === tab} onPlus={() => openPlusSheet(shown.pathname)} />}
       <Modals />
       <Toast />
       <TimerFlash />

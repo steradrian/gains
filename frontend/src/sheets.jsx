@@ -12,6 +12,7 @@ import { toScale, rirOf, EFFORT_PRESETS, effortColor, effortInk } from './lib/ef
 import { beep, vibrate } from './lib/sound.js'
 import { t, tn, dateLocale, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from './lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from './lib/nav.js'
+import { back } from './lib/use-tab-nav.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
 import Media, { Thumb } from './components/Media.jsx'
 import CustomMediaField from './components/CustomMediaField.jsx'
@@ -3339,7 +3340,9 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
+    {/* Back where the workout was opened from, its page taken off the tab's stack: going on to
+        Home left the Start screen under it, one back press away (lib/use-tab-nav.js back). */}
+    <Button variant="primary" onClick={() => { close(); back() }}>{t('Nice!')}</Button>
   </div>
 }
 export function finishWorkout() {

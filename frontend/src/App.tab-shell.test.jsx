@@ -224,11 +224,121 @@ describe('a history the mirror does not match', () => {
     await act(async () => { await new Promise(r => setTimeout(r, 450)) })
     await settle()
     expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
-    // Wherever the two walks together took it (one back too many walks off the app's first entry,
-    // and the launch takes over there), it is an app page, whole, not one frozen mid-switch.
-    expect(hash()).toMatch(/^#\/(home|train|food|progress)\b/)
+    // The extra back press is spent walking; the switch still ends on the tab asked for, on its root.
+    expect(hash()).toBe('#/progress')
+    expect(lit()).toBe('Progress')
     await click(tab('Home'))
     expect(hash()).toBe('#/home')
+  })
+})
+
+// history.go in a real WebView lands on a later task, sometimes much later. These hold it back
+// on purpose: inside the watchdog's 400 ms, and past it.
+describe('a walk back that lands late', () => {
+  let realGo, replaces
+  const slowWalks = ms => {
+    realGo = window.history.go.bind(window.history)
+    window.history.go = d => { setTimeout(() => realGo(d), ms) }
+    const realReplace = window.history.replaceState.bind(window.history)
+    replaces = 0
+    window.history.replaceState = (...a) => { replaces++; return realReplace(...a) }
+  }
+  afterEach(() => { if (realGo) { window.history.go = realGo; realGo = null } delete window.history.replaceState })
+  const wait = ms => act(async () => { await new Promise(r => setTimeout(r, ms)) })
+
+  it('inside the watchdog, the switch waits for it and builds once', async () => {
+    await launch('#/home')
+    await click(tab('Training'))
+    await click(target('History'))
+    slowWalks(150)
+    await act(async () => { tab('Progress').click() })
+    await wait(300)
+    await settle()
+    expect(hash()).toBe('#/progress')
+    expect(idx()).toBe(0)
+    expect(replaces).toBe(1)   // one build: the watchdog did not fire before the walk landed
+  })
+
+  it('past the watchdog, the late landing is finished again, and the tab left keeps its stack', async () => {
+    await launch('#/home')
+    await click(tab('Training'))
+    await click(target('History'))
+    slowWalks(600)
+    await act(async () => { tab('Progress').click() })
+    await wait(800)
+    await settle()
+    expect(hash()).toBe('#/progress')
+    expect(idx()).toBe(0)
+    expect(lit()).toBe('Progress')
+    window.history.go = realGo; realGo = null
+    await click(tab('Training'))
+    expect(hash()).toBe('#/train/history')
+    expect(idx()).toBe(1)
+  })
+})
+
+// A finished or discarded session must not stay on any tab's stack: its address shows the Start
+// screen once the session is over.
+describe('a workout that has ended', () => {
+  const discard = async () => {
+    await click(document.querySelector('button[aria-label="Workout options"]'))
+    await click([...document.querySelectorAll('.sheet button, .sheet .lrow, .sheet [role="button"]')].find(b => b.textContent.includes('Discard')))
+    // The confirm dialog's own button.
+    await click([...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Discard'))
+  }
+
+  it('discarded from a Nutrition dock, it leaves Nutrition and Training as they were', async () => {
+    running()
+    await launch('#/home')
+    await click(tab('Nutrition'))
+    await click(document.querySelector('#timer.dock .dock-main'))
+    expect(hash()).toBe('#/train/workout')
+    await discard()
+    expect(useStore.getState().S.active).toBeNull()
+    expect(hash()).toBe('#/food')
+    await click(tab('Home'))
+    await click(tab('Nutrition'))
+    expect(hash()).toBe('#/food')
+    expect(lit()).toBe('Nutrition')
+    await click(tab('Training'))
+    expect(hash()).toBe('#/train')
+  })
+
+  it('ended from Home, it leaves no Start screen under Home', async () => {
+    running()
+    await launch('#/home')
+    await click(document.querySelector('.today-row'))
+    expect(hash()).toBe('#/train/workout')
+    await discard()
+    expect(hash()).toBe('#/home')
+    expect(idx()).toBe(0)
+    expect(await backLeavesApp()).toBe(true)
+  })
+})
+
+// A page the switch arrives at that redirects as it mounts (a missing routine, the Coach for a
+// guest) must get its redirect: it mounts only once the switch is done.
+describe('a page that redirects', () => {
+  it('a missing routine opened from Home lands on Routines, not on a blank page', async () => {
+    await launch('#/home')
+    await go(() => nav('/train/routines/nope'))
+    await settle()
+    expect(hash()).toBe('#/train/routines')
+    expect(lit()).toBe('Training')
+    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Routines')
+  })
+
+  it('a cold #/coach as a guest goes Home with the bar, not a blank Coach page', async () => {
+    await launch('#/coach')
+    expect(hash()).toBe('#/home')
+    expect(document.querySelector('#tabbar')).not.toBeNull()
+    expect(lit()).toBe('Home')
+  })
+
+  it('a cold #/coach/proposal does the same', async () => {
+    await launch('#/coach/proposal')
+    expect(hash()).toBe('#/home')
+    expect(document.querySelector('#tabbar')).not.toBeNull()
   })
 })
 
@@ -304,6 +414,26 @@ describe('the + sheet', () => {
     expect(rows().some(r => r.includes('Soon'))).toBe(false)
   })
 
+  it('is a modal dialog: named, focus moved in and kept there, the page behind out of reach, focus back on +', async () => {
+    await launch('#/home')
+    plus().focus()
+    await click(plus())
+    const dialog = document.querySelector('.plus-sheet[role="dialog"]')
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
+    expect(document.getElementById(dialog.getAttribute('aria-labelledby')).textContent).toBe('Add')
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    for (const id of ['app', 'tabbar']) expect(document.getElementById(id).hasAttribute('inert'), id).toBe(true)
+    const controls = [...dialog.querySelectorAll('button')]
+    controls.at(-1).focus()
+    await act(async () => { dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })) })
+    expect(document.activeElement).toBe(controls[0])
+    await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })) })
+    await settle()
+    expect(document.querySelector('.plus-sheet')).toBeNull()
+    expect(document.getElementById('tabbar').hasAttribute('inert')).toBe(false)
+    expect(document.activeElement).toBe(plus())
+  })
+
   it('names Resume and the time while a workout runs', async () => {
     running()
     await launch('#/home')
@@ -327,7 +457,18 @@ describe('the launch', () => {
 
   it('takes an old route to where it lives now, query kept', async () => {
     await launch('#/stats?focus=weekly-volume')
-    expect(hash()).toBe('#/progress?focus=weekly-volume')
+    // Into Training load, where the weekly volume card is; the hub is its parent, not stacked in.
+    expect(hash()).toBe('#/progress/load?focus=weekly-volume')
+    expect(document.getElementById('weekly-volume') || document.querySelector('.sub-hdr h1').textContent === 'Training load').toBeTruthy()
+    expect(idx()).toBe(0)
+    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    expect(hash()).toBe('#/progress')
+    expect(await backLeavesApp()).toBe(true)
+  })
+
+  it('keeps the fragment of an old route', async () => {
+    await launch('#/history#2026')
+    expect(hash()).toBe('#/train/history#2026')
   })
 
   it('switching programmatically works from code outside the shell', async () => {

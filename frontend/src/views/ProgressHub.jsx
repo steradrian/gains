@@ -19,11 +19,11 @@ function HubCard({ icon, tint, title, value, note, onOpen }) {
     <div className="card tappable hub-card" role="button" {...tappable(onOpen)}>
       <div className="row between">
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: tint }}><Icon name={icon} /></span>
+          <span className="lrow-i" style={{ '--tint': tint }}><Icon name={icon} /></span>
           <div style={{ minWidth: 0 }}>
-            <div className="lbl2">{title}</div>
-            <div className="ttl">{value}</div>
-            {note && <div className="ss">{note}</div>}
+            <div className="hub-card-t">{title}</div>
+            <div className="hub-card-v">{value}</div>
+            {note && <div className="hub-card-n">{note}</div>}
           </div>
         </div>
         <Icon name="chevronRight" className="chev" />

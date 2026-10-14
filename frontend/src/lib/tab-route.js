@@ -56,10 +56,17 @@ const LEGACY = [
   ['/admin', '/me/admin'],
 ]
 
-export function legacyPath(pathname = '') {
-  for (const [from, to] of LEGACY) if (under(pathname, from)) return to + pathname.slice(from.length)
+// The whole new address for an old one, query and fragment kept. Plan's "Weekly muscle volume"
+// link (/stats?focus=weekly-volume) points into Training load, where that card lives now.
+export function legacyPath(pathname = '', search = '', hash = '') {
+  if (pathname === '/stats' && /[?&]focus=weekly-volume\b/.test(search)) return '/progress/load' + search + hash
+  for (const [from, to] of LEGACY) if (under(pathname, from)) return to + pathname.slice(from.length) + search + hash
   return null
 }
+
+// Workout ids are not pages to come back to: once the session is over the address shows the
+// Start screen, so it is never kept in a tab's stack (the dock reopens a running one).
+export const isWorkoutPath = (path = '') => under(path.split(/[?#]/)[0], '/train/workout')
 
 // A live session: not a past workout being edited or logged after the fact, which has no clock.
 export const workoutRunning = S => !!S?.active && !S.active.editingWorkoutId && !S.active.backfill && S.active.start > 0

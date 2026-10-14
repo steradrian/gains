@@ -421,13 +421,9 @@ export default function Settings({ page = null, find = null, via = null }) {
     if (id === 'coach') { nav('/train/coach/setup'); return }
     nav('/me/' + id)
   }
-  // Back the way you came when there is a way (the browser's back, Android's back, this button
-  // all do the same); a page opened from a link with nothing behind it goes up to its parent.
-  const back = () => {
-    const up = PAGES[page]?.parent ? '/me/' + PAGES[page].parent : '/me'
-    if ((window.history.state?.idx || 0) > 0) nav(-1)
-    else nav(up, { replace: true })
-  }
+  // The tab's back (lib/use-tab-nav.js), with this page's own parent for a page opened from a
+  // link with nothing behind it.
+  const back = () => tabBack(PAGES[page]?.parent ? '/me/' + PAGES[page].parent : '/me')
 
   /* ---------------- the pages ---------------- */
   const restRow = <Row icon="timer" iconTint="var(--orange)" title={t('Rest timer')} value={fmtRest(S.restSec)} accessory="chevron"

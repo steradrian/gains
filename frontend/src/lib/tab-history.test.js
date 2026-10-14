@@ -88,9 +88,23 @@ describe('switching tabs', () => {
   })
 
   it('keeps one entry for a page that sat on two positions', () => {
-    let nav = push(start('/train'), '/train/workout')
-    nav = at(nav, 'REPLACE', '/train/workout', 2)   // a sheet's entry the router replaced
-    expect(planSwitch(nav, 'home').nav.stacks.train).toEqual(['/train', '/train/workout'])
+    let nav = push(start('/train'), '/train/history')
+    nav = at(nav, 'REPLACE', '/train/history', 2)   // a sheet's entry the router replaced
+    expect(planSwitch(nav, 'home').nav.stacks.train).toEqual(['/train', '/train/history'])
+  })
+
+  it('never keeps the workout in a stack: an ended one would come back as the Start screen', () => {
+    const nav = push(push(start('/food'), '/train/workout'), '/me')
+    expect(planSwitch(nav, 'home').nav.stacks.food).toEqual(['/food', '/me'])
+  })
+
+  it('opening a page the arriving stack already holds goes back to it instead of stacking it twice', () => {
+    let nav = go(start('/home'), 'progress')
+    nav = at(nav, 'REPLACE', '/progress?range=90', 0)
+    nav = push(nav, '/progress/body?range=90')
+    nav = go(nav, 'train')
+    expect(planSwitch(nav, 'progress', { path: '/progress?range=30' }).stack).toEqual(['/progress?range=30'])
+    expect(planSwitch(nav, 'progress', { path: '/progress/load' }).stack).toEqual(['/progress?range=90', '/progress/body?range=90', '/progress/load'])
   })
 
   it('from the first entry there is nothing to walk back', () => {

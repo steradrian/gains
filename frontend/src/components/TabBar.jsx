@@ -77,7 +77,7 @@ export default function TabBar({ tab, lit, onPlus }) {
   ))
 
   return (
-    <nav id="tabbar">
+    <nav id="tabbar" aria-label={t('Main navigation')}>
       <TabPill active={active} />
       {tabs.slice(0, 2)}
       {/* The + opens the logging sheet on every tab. It is never a page of its own, so never lit,
