@@ -1,14 +1,35 @@
-/* openGym service worker — the app shell and its hashed assets are cached at install and kept
+/* Gains service worker — the app shell and its hashed assets are cached at install and kept
    fresh network-first, media (img/gif) cache-first in a cache of its own. A home-screen app
    reopened without a network comes back from here with the same bundle it last ran; the state
    itself lives in localStorage. `CACHE` carries the build hash (vite.config.js rewrites it), so
    every deploy is a new worker with its own cache and the previous build's files are dropped on
-   activate; the media cache (`MEDIA`) is kept across builds. */
-const CACHE = 'opengym-rt-__BUILD__'
+   activate; the media cache (`MEDIA`) is kept across builds.
+
+   One origin, one worker, several apps: the same origin also serves NutriTrace (nt/api/) and the
+   hub (hub/api/), and anything else the site grows. So the worker (1) only ever creates and
+   deletes caches whose names start with PREFIX, and (2) only ever caches what an allow-list names
+   (cacheable below): the app shell, its built files, its icons. Anything else, an endpoint added
+   next year included, goes to the network untouched.
+
+   How a deploy reaches an open app: a new worker installs (the whole shell must cache, or the
+   install fails and the build on the device stays), skips waiting and claims every open page, so
+   the new build serves from then on. A page that was already open keeps the JavaScript it loaded,
+   though, and is not reloaded: it can run old code against the new build's files and API until
+   it is. The worker therefore tells every open page (a message of type UPDATED_MSG, sent once the
+   new build is active) and leaves the reload to the page, which knows whether a set is half
+   typed. The previous build's chunks are gone with its cache, so an old page that loads a lazy
+   chunk by its old name only gets it while the server still has that file. */
+const PREFIX = 'gains-'
+const CACHE = PREFIX + 'rt-__BUILD__'
+// Caches from before the prefix was renamed from `opengym-`. Moved across (media, the device id)
+// and deleted once, by activate; nothing else on the origin matches this.
+const LEGACY = /^opengym-(?:rt-.+|media-v1|device)$/
+// Posted to every open page when a newer build has taken over; see above.
+const UPDATED_MSG = 'gains-sw-updated'
 // Where the page leaves this browser's push device id (lib/push.js shareDeviceId) for the
 // pushsubscriptionchange handler below, which has no localStorage to read it from. Not a build
 // cache, so activate's sweep leaves it alone.
-const DEVICE_CACHE = 'opengym-device'
+const DEVICE_CACHE = PREFIX + 'device'
 const DEVICE_URL = '/opengym-device-id'
 
 /* Exercise media (img/, gif/) lives in a cache of its own that outlives builds (#281). It used to
@@ -25,7 +46,7 @@ const DEVICE_URL = '/opengym-device-id'
    installed on the home screen only; a browser tab gets what it has shown and nothing more — and
    names it too, so a new name has to change there as well (sw-media.test.js pins the two
    together). */
-const MEDIA = 'opengym-media-v1'
+const MEDIA = PREFIX + 'media-v1'
 const MEDIA_MAX_BYTES = 150 * 1024 * 1024
 const MEDIA_MAX_ITEMS = 3000
 // What an entry without a Content-Length is counted as: a little above the catalogue's average.
@@ -97,19 +118,40 @@ self.addEventListener('activate', e => {
     // shell used to take them anyway, and the app opened on the browser's error page until the
     // next load with a network.
     const c = await caches.open(CACHE)
+    let updated = false
     if (await c.match('index.html')) {
-      // DEVICE_CACHE holds this browser's device id (the push re-register below needs it): not a
-      // build, so an update never sweeps it.
-      const old = (await caches.keys()).filter(k => k !== CACHE && k !== MEDIA && k !== DEVICE_CACHE)
-      // A build from before MEDIA existed kept its media in its own cache: move it across first,
-      // so the first update to this worker does not cost what the device already had offline.
-      await Promise.all(old.map(k => adoptMedia(k).catch(() => {})))
-      await Promise.all(old.map(k => caches.delete(k)))
+      // Only what this worker made is its to delete: a cache of ours that is not this build, the
+      // media or the device id (not a build, so an update never sweeps it), or one of the
+      // pre-rename `opengym-` caches. A cache that belongs to anything else on the origin is
+      // never listed, let alone deleted.
+      const keys = await caches.keys()
+      const builds = keys.filter(k => k !== CACHE && k.startsWith(PREFIX) && k !== MEDIA && k !== DEVICE_CACHE)
+      const legacy = keys.filter(k => LEGACY.test(k))
+      // A build from before MEDIA existed kept its media in its own cache, and the pre-rename
+      // media cache is one too: move it across first, so the first update to this worker does not
+      // cost what the device already had offline.
+      await Promise.all([...builds, ...legacy].map(k => adoptMedia(k).catch(() => {})))
+      await Promise.all(legacy.filter(k => k === 'opengym-device').map(k => adoptDevice(k).catch(() => {})))
+      await Promise.all([...builds, ...legacy].map(k => caches.delete(k)))
       await trimMedia().catch(() => {})
+      // A build was on this device before this one: an update, not a first install.
+      updated = builds.length > 0 || legacy.some(k => k.startsWith('opengym-rt-'))
     }
     await self.clients.claim()
+    if (updated) {
+      try { for (const w of await self.clients.matchAll({ type: 'window' })) w.postMessage({ type: UPDATED_MSG, build: CACHE }) } catch { /* the page finds out on its next load */ }
+    }
   })())
 })
+
+// The device id the page left in the pre-rename cache, carried into this one: a push
+// subscription that rotates before the page has run again has nowhere else to read it from.
+async function adoptDevice(name) {
+  const hit = await (await caches.open(name)).match(DEVICE_URL)
+  if (!hit) return
+  const to = await caches.open(DEVICE_CACHE)
+  if (!(await to.match(DEVICE_URL))) await to.put(DEVICE_URL, hit)
+}
 
 // Only a real answer is kept. A gated instance answers a lapsed session with 401, and an auth
 // proxy in front with its login page, a 200 of HTML after a redirect; stored under an image's
@@ -216,15 +258,61 @@ self.addEventListener('push', e => {
       icon: 'brand/icon-512.png',
       badge: 'brand/icon-180.png',
       tag,
-      renotify: true
+      renotify: true,
+      // Where a tap goes (notificationTarget decides whether it is let through). Kept as given:
+      // the check belongs to the tap, which is when it matters.
+      data: { url: typeof data.url === 'string' ? data.url : '' }
     })
   })())
 })
+
+// Paths from before the tabs, in the notifications already delivered (the Coach push says
+// #/coach). The app redirects them too (lib/tab-route.js, where this table comes from; a test
+// pins the two together), but landing on the right page directly saves a hop. Longest first.
+const LEGACY_ROUTES = [
+  ['/plan/r', '/train/routines'], ['/plan', '/train/schedule'], ['/checkin', '/train/checkin'],
+  ['/workout', '/train/workout'], ['/history', '/train/history'], ['/library', '/train/exercises'],
+  ['/muscles', '/train/exercises/muscles'], ['/coach', '/train/coach'], ['/stats', '/progress'],
+  ['/structural-balance', '/progress/strength/balance'], ['/progress-photos', '/progress/body/photos'],
+  ['/measurements', '/progress/body/measurements'], ['/body', '/progress/body'],
+  ['/settings', '/me'], ['/admin', '/me/admin']
+]
+// Where a notification tap goes, as an absolute URL inside this app, or null. Only a hash route of
+// this very app is accepted: a payload is data from a server, and a tap must never open another
+// site, a path on this origin that is not the app, or a script URL. `#/…`, `./#/…` and the app's
+// own absolute URL with a hash all qualify; the route is mapped from a legacy path to its tab.
+function notificationTarget(raw) {
+  if (typeof raw !== 'string' || !raw || raw.length > 500) return null
+  let base, u
+  try {
+    base = new URL('./', location.href)
+    u = new URL(raw, base)
+  } catch { return null }
+  if (u.origin !== location.origin) return null
+  if (u.pathname !== base.pathname && u.pathname !== base.pathname + 'index.html') return null
+  if (!u.hash.startsWith('#/')) return null
+  const [path, ...q] = u.hash.slice(1).split('?')
+  const query = q.length ? '?' + q.join('?') : ''
+  // The one old address that moved to a different place than its prefix says (tab-route.js).
+  if (path === '/stats' && /[?&]focus=weekly-volume\b/.test(query)) return base.href + '#/progress/load' + query
+  const hit = LEGACY_ROUTES.find(([from]) => path === from || path.startsWith(from + '/'))
+  return base.href + '#' + (hit ? hit[1] + path.slice(hit[0].length) : path) + query
+}
+
+// A tap focuses a window of the app and takes it to the target; with none open, opens the target.
+// A payload with no (or a refused) target keeps what a tap always did: focus, or open the app.
 self.addEventListener('notificationclick', e => {
   e.notification.close()
-  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(clients => {
+  const target = notificationTarget(e.notification.data && e.notification.data.url)
+  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(async clients => {
     const c = clients.find(c => 'focus' in c)
-    return c ? c.focus() : self.clients.openWindow('./')
+    if (!c) return self.clients.openWindow(target || './')
+    await c.focus()
+    if (target && typeof c.navigate === 'function') {
+      // A window that cannot be navigated (not controlled yet, or a browser without it) gets a
+      // new one at the target instead of staying where it was.
+      try { await c.navigate(target) } catch { await self.clients.openWindow(target) }
+    }
   }))
 })
 // The push service rotated the subscription (key change, expiry): subscribe again with the same
@@ -252,6 +340,25 @@ const API = (() => { try { return new URL('api/', location.href).pathname } catc
 // How long a request for the app itself waits on the network before a cached copy answers it.
 const NET_WAIT_MS = 3000
 
+// What the network-first branch below may keep: the app itself and nothing else, named by an
+// allow-list rather than a list of what to leave out. A deny-list only protects the endpoints
+// someone remembered to write down; the gateway's nt/api/ and hub/api/ were each missed once, and
+// the Cache API ignores a response's own `Cache-Control: no-store`. Paths are taken relative to
+// where the worker is served (the site root, or /myGym/), so the same rule holds under a subpath:
+//   the shell        '' and index.html
+//   built files      assets/…  (scripts, styles and the language packs, hashed per build)
+//   brand and icons  brand/…, and the files at the app's root (manifest, favicon, touch icons)
+// The worker's own script is not one of them. Exercise media has its own branch, ahead of this.
+const SCOPE = (() => { try { return new URL('./', location.href).pathname } catch { return '/' } })()
+const ROOT_FILE = /^[^/]+\.(?:png|svg|ico|webmanifest|json|css|js)$/
+function cacheable(pathname) {
+  if (!pathname.startsWith(SCOPE)) return false
+  const rel = pathname.slice(SCOPE.length)
+  if (rel === '' || rel === 'index.html') return true
+  if (rel.startsWith('assets/') || rel.startsWith('brand/')) return true
+  return rel !== 'sw.js' && ROOT_FILE.test(rel)
+}
+
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
   if (e.request.method !== 'GET' || url.origin !== location.origin) return
@@ -261,6 +368,8 @@ self.addEventListener('fetch', e => {
     e.respondWith(media(e))
     return
   }
+  // Not the app: the browser handles it as if there were no worker.
+  if (!cacheable(url.pathname)) return
   // Network first; the copy for the cache is cloned before the response is handed to the page —
   // cloning later, once the page has started reading the body, throws and caches nothing, which
   // is why the shell never used to survive an offline reload.
