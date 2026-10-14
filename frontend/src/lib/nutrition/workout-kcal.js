@@ -1,6 +1,6 @@
-import { t } from '../i18n.js'
+import { t, dateLocale } from '../i18n.js'
 import { useUI } from '../../store/useUI.js'
-import { calorieTarget } from './diary.js'
+import { calorieTarget, energyOf } from './diary.js'
 import { useNutrition } from './store.js'
 import { workoutSyncRow } from './sync.js'
 
@@ -9,14 +9,18 @@ import { workoutSyncRow } from './sync.js'
 // moved the target), or that the target already counts training. Nothing when it neither moved
 // the target nor was already in it (a fixed target with "Adjust goal from activity" off).
 
-const about = kcal => Math.round(kcal / 10) * 10
+// In the person's energy unit (kJ for some), rounded to 10 in that unit.
+function about(kcal, settings) {
+  const e = energyOf(kcal, settings)
+  return (Math.round(e.value / 10) * 10).toLocaleString(dateLocale()) + ' ' + e.unit
+}
 
 /** The toast for a workout's `kcal`, given the day's settings, whether a wearable covers the day
  *  and the target's inputs ({ date, caloriesOut, adaptiveTdee }). Null for no toast. */
 export function workoutKcalMessage({ kcal, settings, covered, inputs }) {
   if (!(kcal > 0)) return null
   const { adjust, fromBurn } = calorieTarget({ settings, ...inputs })
-  if (adjust && !fromBurn && !covered) return t('Added to your day: about {0} kcal (estimate)', about(kcal))
+  if (adjust && !fromBurn && !covered) return t('Added to your day: about {0} (estimate)', about(kcal, settings))
   if (fromBurn || (adjust && covered)) return t('Logged. Your target already includes training.')
   return null
 }

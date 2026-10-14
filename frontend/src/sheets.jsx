@@ -303,13 +303,16 @@ function BwSheet({ required, onDone, close, date }) {
   const st = useStore(s => s.S)
   const unit = st.unit
   const bw = lastBW(st)
-  const day = date || todayISO()
+  // Never a day to come: a weight logged ahead would read as the current one (lastBW).
+  const day = date && date < todayISO() ? date : todayISO()
   const onDay = st.bodyweight.find(b => b.d === day)
   const [v, setV] = useState(onDay ? onDay.w : bw ? bw.w : 70)
   const save = () => {
     const n = Math.round((v || 0) * 10) / 10
     if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
     if (bwTooHeavy(n, unit)) return
+    // `t` is when the weigh-in was logged, the sync's change stamp (lib/sync-merge.js stampChange
+    // restamps it on every edit); charts place it by its day `d` (lib/bodyweight.js weighInTime).
     update(s => {
       const ex = s.bodyweight.find(b => b.d === day)
       if (ex) { ex.w = n; ex.t = Date.now() } else s.bodyweight.push({ d: day, w: n, t: Date.now() })
@@ -2707,9 +2710,13 @@ function Calendar({ start, close, onPick }) {
     return d
   })
   const y = cur.getFullYear(), mo = cur.getMonth()
-  // The shown month only (NutriTrace has no range read: one request per day not cached yet).
+  // The shown month only (NutriTrace has no range read: one request per day not cached yet),
+  // never past today; another month or closing the sheet cancels what is still loading.
   useEffect(() => {
-    if (onPick && nutritionAvailable(useStore.getState().user)) useNutrition.getState().loadLogged(isoOf(new Date(y, mo, 1)), isoOf(new Date(y, mo + 1, 0)))
+    if (!onPick || !nutritionAvailable(useStore.getState().user)) return undefined
+    const ctl = new AbortController()
+    useNutrition.getState().loadLogged(isoOf(new Date(y, mo, 1)), isoOf(new Date(y, mo + 1, 0)), { signal: ctl.signal })
+    return () => ctl.abort()
   }, [onPick, y, mo])
   const byDay = {}
   st.workouts.forEach(w => {
@@ -2735,7 +2742,7 @@ function Calendar({ start, close, onPick }) {
     const dotCls = ws ? 'done' : note ? 'noted' : ovr && planned ? 'ovr' : planned ? 'plan' : ''
     const ate = !!onPick && logged.days.has(iso)
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (note ? ' noted' : '') + (ate ? ' logged' : '') + (iso === todayISO() ? ' today' : '')}
-      title={note ? dayNoteLine(note, t) : undefined} onClick={() => {
+      title={note ? dayNoteLine(note, t) : undefined} disabled={!!onPick && iso > todayISO()} onClick={() => {
       if (onPick) { close(); onPick(iso); return }
       if (!ws) { close(); dayOverrideSheet(iso); return }
       if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }

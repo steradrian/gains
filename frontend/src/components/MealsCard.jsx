@@ -10,6 +10,6 @@ export default function MealsCard({ date, day }) {
   return <div className="card meals-card">
     <h2 className="nt-sr">{t('Meals')}</h2>
     {names.map((name, slot) => <MealRow key={slot} date={date} slot={slot} name={name} items={mealItems(day.entry, slot)} />)}
-    <ActivityRows rows={day.activityRows} target={day.target} />
+    <ActivityRows rows={day.activityRows} target={day.target} sum={day.activitySum} policy={day.settings?.manualActivityPolicy} />
   </div>
 }

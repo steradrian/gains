@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { streakWeeks } from '../lib/history.js'
@@ -20,10 +19,10 @@ import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { useDiaryTarget } from '../lib/nutrition/selection.js'
 import { useDiaryDay } from '../lib/nutrition/use-diary-day.js'
-import { refreshHubStatus } from '../lib/nutrition/sync.js'
 import { useScrolledPast } from '../lib/use-scrolled-past.js'
 
-// The sticky date strip's height: the calories card counts as gone once it passes under it.
+// The sticky date strip's height: the calories card counts as gone once it passes under it
+// (the hook adds the safe-area inset the strip sits below).
 const STRIP_PX = 52
 
 // Home is the day (ia-proposal §2): a date strip, the day's session, then the diary (energy and
@@ -36,10 +35,7 @@ export default function Home() {
   const { date } = useDiaryTarget(null)
   const day = useDiaryDay(date)
   const isToday = date === todayISO()
-  const kcalRef = useRef(null)
-  const kcalGone = useScrolledPast(kcalRef, STRIP_PX)
-
-  useEffect(() => { if (day.on) refreshHubStatus() }, [day.on])
+  const [kcalRef, kcalGone] = useScrolledPast(STRIP_PX)
 
   const { done: doneThisWeek, planned: plannedPerWeek } = weekTally(S, todayISO())
 
@@ -82,7 +78,7 @@ export default function Home() {
 
     {day.on && <>
       <CaloriesCard ref={kcalRef} day={day} />
-      <WaterCard date={date} water={day.water} ready={day.status === 'ready'} />
+      <WaterCard date={date} water={day.water} ready={day.dayReady} />
       <MealsCard date={date} day={day} />
     </>}
 

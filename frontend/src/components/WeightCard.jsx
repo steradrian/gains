@@ -1,6 +1,7 @@
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { fmtNum, fmtDate, isoOf } from '../lib/format.js'
+import { weighInTime } from '../lib/bodyweight.js'
 import { bwSheet, goalSheet, weighInsSheet, bwDeltaColor } from '../sheets.jsx'
 import LineChart from './LineChart.jsx'
 import Icon from './Icon.jsx'
@@ -18,7 +19,7 @@ export default function WeightCard({ date }) {
   // The change across the week: its last weigh-in against the one at or before its start.
   const base = S.bodyweight.filter(b => b.d < from).at(-1) || (week.length > 1 ? week[0] : null)
   const delta = bw && base && base !== bw ? bw.w - base.w : null
-  const points = week.map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
+  const points = week.map(b => ({ t: weighInTime(b), y: b.w, d: b.d }))
   const signed = delta == null ? '' : (delta > 0 ? '+' : '−') + fmtNum(Math.abs(delta)) + ' ' + S.unit
   return <div className="card">
     <div className="row between bw-head">

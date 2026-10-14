@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { foodKcal, matchesFood, recentFoods } from '../lib/nutrition/diary.js'
@@ -50,7 +50,11 @@ export default function FoodPicker({ date, meal, mealName, autoFocus = false, on
     return () => { clearTimeout(timer); ctl.abort() }
   }, [q, lang])
 
-  const pick = food => portionSheet({ food, date, meal, mealName, onLogged })
+  // The entry a failed write may have saved, for as long as this picker is open: an amount edited
+  // and logged again updates it (PortionSheet, QuickKcalSheet).
+  const pending = useRef({ uuid: null, food: null }).current
+  const quickPending = useRef({ uuid: null }).current
+  const pick = food => portionSheet({ food, date, meal, mealName, onLogged, pending })
   const recents = recentFoods(foods.list)
   const own = q ? foods.list.filter(f => matchesFood(f, q)).slice(0, OWN_MAX) : []
 
@@ -79,7 +83,7 @@ export default function FoodPicker({ date, meal, mealName, autoFocus = false, on
       <div className="list">{online.list.map(f => <FoodRow key={f.client_key} food={f} onPick={pick} energy={energy} />)}</div>
     </>}
 
-    <button type="button" className="item food-row fp-quick" onClick={() => quickKcalSheet({ date, meal, mealName, onLogged })}>
+    <button type="button" className="item food-row fp-quick" onClick={() => quickKcalSheet({ date, meal, mealName, onLogged, pending: quickPending })}>
       <span className="lrow-i tint-pink"><Icon name="bolt" /></span>
       <div className="grow"><div className="tt">{t('Quick kcal')}</div><div className="ss">{t('Just a number, no food')}</div></div>
       <Icon name="chevronRight" className="chev" />

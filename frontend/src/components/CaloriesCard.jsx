@@ -25,27 +25,29 @@ const CaloriesCard = forwardRef(function CaloriesCard({ day }, ref) {
     <div className="nt-error small" role="alert">{loadErrorText(day.error)}</div>
     <Button size="sm" onClick={day.reload}>{t('Try again')}</Button>
   </div>
+  // Until the target's inputs are in, no number: a default that then jumps reads as a real one.
   const loading = day.status !== 'ready'
   const eaten = day.totals.calories
   const goal = day.target.target
-  const frac = goal > 0 ? Math.min(1, eaten / goal) : 0
-  const over = day.left < 0
+  const frac = !loading && goal > 0 ? Math.min(1, eaten / goal) : 0
+  const over = !loading && day.left < 0
+  const DASH = '–'
   return <div className={'card kcal-card' + (loading ? ' loading' : '')} ref={ref} aria-busy={loading || undefined}>
     <div className="kcal-top">
       <svg className="kcal-ring" viewBox="0 0 100 100" role="img"
-        aria-label={t('{0} of {1} eaten', units.energy(eaten), units.energy(goal))}>
+        aria-label={loading ? t('Loading…') : t('{0} of {1} eaten', units.energy(eaten), units.energy(goal))}>
         <circle cx="50" cy="50" r={R} className="kcal-ring-bg" />
         <circle cx="50" cy="50" r={R} className={'kcal-ring-fg' + (over ? ' over' : '')}
           strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 50 50)" />
       </svg>
       <div className="kcal-mid" aria-hidden="true">
-        <div className="kcal-left">{units.energyValue(Math.abs(day.left))}</div>
+        <div className="kcal-left">{loading ? DASH : units.energyValue(Math.abs(day.left))}</div>
         <div className="small muted">{over ? t('{0} over', units.energyUnit) : t('{0} left', units.energyUnit)}</div>
       </div>
       <div className="kcal-side small">
-        <div><span className="muted">{t('Eaten')}</span> {units.energy(eaten)}</div>
-        <div><span className="muted">{t('Target')}</span> {units.energy(goal)}</div>
-        {day.target.added > 0 && <div className="muted">{t('incl. {0} from activity', units.energy(day.target.added))}</div>}
+        <div><span className="muted">{t('Eaten')}</span> {loading ? DASH : units.energy(eaten)}</div>
+        <div><span className="muted">{t('Target')}</span> {loading ? DASH : units.energy(goal)}</div>
+        {!loading && day.target.added > 0 && <div className="muted">{t('incl. {0} from activity', units.energy(day.target.added))}</div>}
       </div>
     </div>
     <MacroBar label={t('Protein')} cls="p" value={day.totals.proteins} goal={day.macros.proteins} />
