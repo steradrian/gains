@@ -2595,8 +2595,28 @@ const routes = {
 
   /* ---------- the sync hub (sync-routes.js) ---------- */
   // Absent unless HUB_JWKS is set. Its own credential, checked there: never sessionOf.
-  ...(HUB ? syncRoutes({ hub: HUB, json, findUser: id => db.users.find(u => u.id === id) || null, readStateCached, auditFail }) : {})
+  ...(HUB ? syncRoutes({
+    hub: HUB, json, findUser: id => db.users.find(u => u.id === id) || null,
+    readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditFail
+  }) : {})
 };
+
+// How the sync routes store a document they changed (sync-routes.js): the bookkeeping PUT /api/data
+// does once its checks have passed, kept apart so that route stays as upstream has it. Synchronous,
+// so a caller that read `cur` with nothing awaited since has an atomic compare-and-write.
+function commitState(uid, cur, next) {
+  const rev = (cur?._rev || 0) + 1;
+  next._rev = rev;
+  next._wids = [...(Array.isArray(cur?._wids) ? cur._wids : []), ...(cur?._wid ? [cur._wid] : [])]
+    .filter(x => typeof x === 'string').slice(-WID_KEEP);
+  next._wid = crypto.randomBytes(8).toString('hex');
+  atomicWrite(stateFile(uid), JSON.stringify(next));
+  stateCache.delete(uid);
+  if (MEDIA_ON) {
+    try { MEDIA.noteState(uid, next); } catch (e) { console.error('media noteState', e); }
+  }
+  return { rev, wid: next._wid };
+}
 
 /* ---------- Coach: boot recovery, notifications, scheduled reviews ---------- */
 // A job that was running when the process died is not coming back; say so rather than leaving
@@ -2671,10 +2691,12 @@ const server = http.createServer(async (req, res) => {
   try { url = new URL(req.url, 'http://x'); }
   catch { return json(res, 400, { error: 'bad request' }); }
   let key = req.method + ' ' + url.pathname;
-  // The one route with a parameter in its path. Mapped onto its template key here so the table
+  // The routes with a parameter in their path. Mapped onto their template key here so the table
   // above stays a plain lookup, and so csrfOk and the catch-all see one name for every file.
   const mm = /^\/api\/media\/([0-9a-f]{64})$/.exec(url.pathname);
   if (mm) { key = req.method + ' /api/media/{hash}'; req.mediaHash = mm[1]; }
+  const sd = /^\/api\/sync\/bodyweight\/([^/]+)$/.exec(url.pathname);
+  if (sd) { key = req.method + ' /api/sync/bodyweight/{date}'; req.syncDate = sd[1]; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
   if (!csrfOk(req, key)) {
