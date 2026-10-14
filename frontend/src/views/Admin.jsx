@@ -5,6 +5,7 @@ import { useUI } from '../store/useUI.js'
 import { api } from '../lib/api.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur } from '../lib/format.js'
 import { auditCat, auditLine, fmtWhen } from '../lib/audit.js'
+import { deviceLinkUrl } from '../lib/device-link.js'
 import { workoutVolume, setsDone } from '../lib/history.js'
 import { confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -39,6 +40,23 @@ function ResetCodeSheet({ name, email, code, expires, close }) {
     <h3>Reset code for {name}</h3>
     <div className="adm-lead">Give them this code. They choose “Sign in with password” → “Have a reset code from your admin?”, enter their name <b>{name}</b>{email && <> (or their sign-in e-mail <b>{email}</b>)</>}, the code and a new password. It works once, until {new Date(expires).toLocaleString()}, and will not be shown again.</div>
     <button className="adm-code" style={{ fontSize: 22, width: '100%', padding: '14px 0' }} onClick={copy} aria-label="copy code">{code}</button>
+    <div style={{ height: 12 }} />
+    <Button variant="primary" onClick={close}>Done</Button>
+  </>
+}
+
+// The one time the recovery code is visible, locked like the reset code. The link is built here,
+// from where the dashboard is served, as Settings builds its own device links.
+function RecoveryLinkSheet({ name, code, expires, close }) {
+  const toast = useUI(s => s.toast)
+  const link = deviceLinkUrl(code)
+  const copy = v => { navigator.clipboard?.writeText(v).catch(() => {}); toast('Copied') }
+  return <>
+    <h3>Recovery code for {name}</h3>
+    <div className="adm-lead">Send them this link, or the code. On their new device they open the link (or tap “Use a code from your other device” on the sign-in screen and type the code) and make a passkey there, which signs them in. Then they remove the lost passkey in Settings → Account. It works once, until {new Date(expires).toLocaleString()}, and will not be shown again.</div>
+    <button className="adm-code" style={{ fontSize: 22, width: '100%', padding: '14px 0' }} onClick={() => copy(code)} aria-label="copy code">{code}</button>
+    <div style={{ height: 8 }} />
+    <button className="btn" onClick={() => copy(link)}>Copy link</button>
     <div style={{ height: 12 }} />
     <Button variant="primary" onClick={close}>Done</Button>
   </>
@@ -86,6 +104,16 @@ function UserDetail({ id, onChanged, close }) {
     danger: true,
     onConfirm: () => api('/api/admin/user/password-reset', { method: 'POST', body: JSON.stringify({ id: u.id }) })
       .then(r => { onChanged(); close(); openSheet(done => <ResetCodeSheet name={r.name} email={u.email} code={r.code} expires={r.expires} close={done} />, { locked: true }) })
+      .catch(e => toast(e.message)),
+  })
+  // A lost passkey: a one-time device code, after signing whoever has the old device out.
+  const recoveryLink = () => confirmSheet({
+    title: 'Help ' + u.name + ' back in?',
+    message: 'For a lost passkey. They are signed out everywhere now, on every device, and you get a one-time code and link to hand them. On their new device it makes a passkey that signs them in. It is shown once and is valid for 10 minutes.',
+    confirmText: 'Create recovery code',
+    danger: true,
+    onConfirm: () => api('/api/admin/user/recovery-link', { method: 'POST', body: JSON.stringify({ id: u.id }) })
+      .then(r => { onChanged(); close(); openSheet(done => <RecoveryLinkSheet name={r.name} code={r.code} expires={r.expires} close={done} />, { locked: true }) })
       .catch(e => toast(e.message)),
   })
   return <>
@@ -137,6 +165,10 @@ function UserDetail({ id, onChanged, close }) {
         <div className="adm-hint">{u.password
           ? 'For a forgotten password: a one-time code lets them choose a new one. Their current password stops working at once.'
           : 'No password yet. A one-time code lets them set one. That’s the way back in after losing their only passkey.'}</div>
+      </>}
+      {!u.disabled && <>
+        <button className="btn" style={{ margin: '14px 0 4px' }} onClick={recoveryLink}>Lost passkey</button>
+        <div className="adm-hint">A one-time code that adds a passkey on their new device. Signs them out everywhere first.</div>
       </>}
     </>}
     <h4 className="sec">Workout history</h4>

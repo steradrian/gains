@@ -2479,6 +2479,34 @@ const routes = {
     json(res, 200, { ok: true, id: u.id, disabled: u.disabled });
   },
 
+  // A way back in for someone who lost their only passkey, on an instance without password
+  // sign-in: an admin makes them a device link (device-link.js), which they redeem on the new
+  // device through the usual /api/device-link/* routes, their throttle and audit, and then remove
+  // the lost passkey in Settings. Whoever has the old device is signed out first: the session
+  // version goes up, which also ends pairing codes and drops any link already waiting. Admin
+  // accounts are refused, as by disable and the password reset — one admin must not be able to
+  // add a passkey to another's account. The code is shown once and stored only as a hash.
+  'POST /api/admin/user/recovery-link': async (req, res) => {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const body = await readBody(req);
+    const u = db.users.find(x => x.id === body.id);
+    if (!u) return json(res, 404, { error: 'no such user' });
+    if (isAdmin(u)) return json(res, 400, { error: 'an admin adds their own passkeys in Settings' });
+    // Redeeming refuses a disabled profile and a full one; better said here than by a dead code.
+    if (u.disabled) return json(res, 409, { error: 'the account is disabled, enable it first', code: 'disabled' });
+    if (passkeyCount(u) >= MAX_PASSKEYS) return json(res, 409, LIMIT);
+    u.sv = sessionVersion(u) + 1;
+    for (const [k, v] of pairings) if (v.uid === u.id) pairings.delete(k);
+    dropDeviceLinks(db, u.id);
+    presence.delete(u.id);
+    const { code, link } = createDeviceLink(db, u.id);
+    saveDb();
+    audit(req, 'admin.recovery.link', { user: admin, target: u });
+    // `link` assumes the app is served at ORIGIN's root; the dashboard builds its own from where
+    // it is served, the way Settings does.
+    json(res, 200, { ok: true, name: u.name, code, link: ORIGIN.replace(/\/+$/, '') + '/?link=' + encodeURIComponent(code), expires: link.exp });
+  },
+
   // Disable locks an account out; this removes it. The one destructive action in the app, so the
   // client asks twice and this end refuses the two cases that cannot be undone from the UI
   // afterwards: an admin deleting themselves, and the last admin standing (issue #107).

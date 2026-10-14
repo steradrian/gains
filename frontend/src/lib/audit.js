@@ -57,6 +57,8 @@ const LABELS = {
   'admin.user.enable': 'Re-enabled an account',
   'admin.user.delete': 'Deleted an account',
   'admin.password.reset': 'Issued a password reset code',
+  // A one-time device code for someone who lost their passkey; they were signed out everywhere.
+  'admin.recovery.link': 'Issued a recovery code',
   'admin.invite.create': 'Created an invite code',
   'admin.invite.revoke': 'Revoked an invite code',
   'admin.audit.clear': 'Cleared the activity log',

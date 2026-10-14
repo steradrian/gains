@@ -2227,6 +2227,67 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "no such user" }
 
+  /api/admin/user/recovery-link:
+    post:
+      tags: [admin, passkeys]
+      operationId: adminRecoveryLink
+      summary: 'Admin: make a one-time device link for someone who lost their passkey'
+      description: |
+        For a profile whose only passkey is lost, on an instance without password sign-in.
+        First bumps the profile's session version (every session, paired token and pending
+        pairing code ends, and any unused device link is dropped), then makes a device link
+        exactly like `POST /api/account/device-link`: 12 characters from the pairing
+        alphabet, shown once, stored only as a SHA-256, good for 10 minutes and for one
+        passkey. The person redeems it on their new device through `/api/device-link/*`
+        (throttled and audited as usual), which signs that device in; they then remove the
+        lost passkey in Settings. `link` assumes the app is served at the root of `ORIGIN`.
+        Admin accounts are refused. Audited as `admin.recovery.link`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, description: The user id. }
+      responses:
+        '200':
+          description: The code and its link, once.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, const: true }
+                  name: { type: string }
+                  code: { type: string }
+                  link: { type: string, description: '`<ORIGIN>/?link=<code>`' }
+                  expires: { type: number, description: Expiry (ms). }
+              example: { ok: true, name: "Ada", code: "K7WQ-2MZP-4HXA", link: "https://gym.example.com/?link=K7WQ-2MZP-4HXA", expires: 1790000000000 }
+        '400':
+          description: The target is an admin.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "an admin adds their own passkeys in Settings" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: No user with that id.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "no such user" }
+        '409':
+          description: >-
+            The account is disabled (`code: disabled`), or already has as many passkeys as a
+            profile can hold (`code: passkey-limit`). Nothing was changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "the account is disabled, enable it first", code: "disabled" }
+
   /api/admin/user/delete:
     post:
       tags: [admin]
