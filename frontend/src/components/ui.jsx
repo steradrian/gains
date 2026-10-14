@@ -434,7 +434,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
           <div className="ico"><Icon name="magnifier" /></div>{search.emptyLabel}
         </div>}
       </div>
-      <div style={{ height: 8 }} />
+      <div className="sp-4" />
     </>
   )
 }
@@ -475,7 +475,7 @@ function MultiSelectSheet({ values, options, onToggle, title, doneLabel, close }
           )
         })}
       </div>
-      <div style={{ height: 8 }} />
+      <div className="sp-4" />
       <Button variant="primary" onClick={close}>{doneLabel || t('Done')}</Button>
     </>
   )
