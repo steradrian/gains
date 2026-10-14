@@ -191,7 +191,9 @@ export const EFFORT_BANDS = [
   { rir: 1, max: 1.5, color: 'var(--orange)', ink: 'var(--orange-ink)', feel: 'One more rep in the tank' },
   { rir: 2, max: 2.5, color: 'var(--yellow)', ink: 'var(--yellow-ink)', feel: 'Two more reps' },
   { rir: 3, max: 3.5, color: 'var(--green)', ink: 'var(--green-ink)', feel: 'Three more reps' },
-  { rir: 4, max: Infinity, color: 'var(--acc-2)', ink: 'var(--acc-ink)', feel: 'Easy, warm-up territory' }
+  // The accent can be any colour, custom ones included, so no single accent ink clears 4.5:1 on
+  // its own 20% tint in every case; this label stays neutral and the tint carries the hue.
+  { rir: 4, max: Infinity, color: 'var(--acc-2)', ink: 'var(--label)', feel: 'Easy, warm-up territory' }
 ]
 // The presets shown in the picker, hardest first — the order they read on the scale and the
 // order the colours run. `tail` is the collapsed top bucket ("4+"): its value is the floor it
