@@ -4,6 +4,7 @@ import { useUI } from '../store/useUI.js'
 import { EDIT_BACKDATE_MS } from '../lib/nutrition/fasting.js'
 import { useFasting } from '../lib/nutrition/use-fasting.js'
 import { writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { SheetHeader } from './sheet-layout.jsx'
 import { Button, TextField } from './ui.jsx'
 
 const pad = n => String(n).padStart(2, '0')
@@ -38,7 +39,7 @@ export default function FastStartSheet({ startAt, close }) {
   }
 
   return <div className="fast-start-sheet">
-    <h3 className="nt-sheet-title">{t('When did you start?')}</h3>
+    <SheetHeader title={t('When did you start?')} />
     <label className="portion-f">
       <span className="small muted">{t('Start time')}</span>
       <TextField type="datetime-local" value={value} max={localValue(Date.now())} onChange={e => setValue(e.target.value)} aria-label={t('Start time')} />

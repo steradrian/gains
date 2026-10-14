@@ -12,7 +12,8 @@ import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import FastCard from '../components/FastCard.jsx'
 import FastInsights from '../components/FastInsights.jsx'
 import Icon from '../components/Icon.jsx'
-import SubHeader from '../components/SubHeader.jsx'
+import { Card, EmptyState } from '../components/blocks.jsx'
+import { Page, Stack } from '../components/layout.jsx'
 import { Button, Row, Section } from '../components/ui.jsx'
 
 const HISTORY_SHOWN = 20
@@ -63,55 +64,50 @@ export default function Fasting() {
     setSwitching(false)
   }
 
-  const header = <SubHeader title={t('Fasting')} />
-
+  let body
   if (!available) {
-    return <div>
-      {header}
-      <div className="card"><div className="empty">
-        <div className="ico"><Icon name="timer" /></div>
-        <strong>{t('Fasting lives in the web app')}</strong>
-        <div>{t('Sign in on the web app to track your fasts.')}</div>
-      </div></div>
-    </div>
-  }
-
-  if (!settings.data && (settings.status === 'loading' || settings.status === 'idle')) {
-    return <div>{header}<div className="muted small fp-note" role="status">{t('Loading…')}</div></div>
-  }
-  if (!settings.data) {
-    return <div>{header}<div className="card"><div className="nt-error small" role="alert">{t('Your settings did not load.')}</div>
-      <Button variant="tinted" onClick={() => useNutrition.getState().loadSettings({ force: true })}>{t('Try again')}</Button></div></div>
-  }
-
-  if (!on) {
-    return <div>
-      {header}
-      <div className="card"><div className="empty">
-        <div className="ico"><Icon name="timer" /></div>
-        <strong>{t('Fasting is off')}</strong>
-        <div>{t('Track intermittent fasting: pick a plan, see the time fasted and left, and keep a history.')}</div>
-      </div>
-      {switchError && <div className="nt-error small" role="alert">{switchError}</div>}
-      <Button variant="primary" onClick={() => turn(true)} disabled={switching}>{t('Turn on fasting')}</Button></div>
-    </div>
-  }
-
-  return <div>
-    {header}
-    {status === 'error' && <div className="card"><div className="nt-error small" role="alert">{t('Your fasts did not load.')}</div>
-      <Button variant="tinted" onClick={() => useFasting.getState().load({ force: true })}>{t('Try again')}</Button></div>}
-    {status === 'loading' && <div className="muted small fp-note" role="status">{t('Loading…')}</div>}
-    {status === 'ready' && <>
-      <FastCard />
-      <FastInsights />
-      {history.length > 0 && <Section title={t('History')}>
-        {history.slice(0, HISTORY_SHOWN).map(f => <HistoryRow key={f.id} fast={f} />)}
-      </Section>}
-      <div className="fast-off">
+    body = <Card>
+      <EmptyState icon="timer" title={t('Fasting lives in the web app')}>{t('Sign in on the web app to track your fasts.')}</EmptyState>
+    </Card>
+  } else if (!settings.data && (settings.status === 'loading' || settings.status === 'idle')) {
+    body = <div className="muted small fp-note" role="status">{t('Loading…')}</div>
+  } else if (!settings.data) {
+    body = <Card>
+      <Stack gap={4}>
+        <div className="nt-error small" role="alert">{t('Your settings did not load.')}</div>
+        <Button variant="tinted" onClick={() => useNutrition.getState().loadSettings({ force: true })}>{t('Try again')}</Button>
+      </Stack>
+    </Card>
+  } else if (!on) {
+    body = <Card>
+      <Stack gap={4}>
+        <EmptyState icon="timer" title={t('Fasting is off')}>{t('Track intermittent fasting: pick a plan, see the time fasted and left, and keep a history.')}</EmptyState>
         {switchError && <div className="nt-error small" role="alert">{switchError}</div>}
-        <Button variant="ghost" className="dim" onClick={() => turn(false)} disabled={switching}>{t('Turn off fasting')}</Button>
-      </div>
-    </>}
-  </div>
+        <Button variant="primary" onClick={() => turn(true)} disabled={switching}>{t('Turn on fasting')}</Button>
+      </Stack>
+    </Card>
+  } else {
+    body = <>
+      {status === 'error' && <Card>
+        <Stack gap={4}>
+          <div className="nt-error small" role="alert">{t('Your fasts did not load.')}</div>
+          <Button variant="tinted" onClick={() => useFasting.getState().load({ force: true })}>{t('Try again')}</Button>
+        </Stack>
+      </Card>}
+      {status === 'loading' && <div className="muted small fp-note" role="status">{t('Loading…')}</div>}
+      {status === 'ready' && <>
+        <FastCard />
+        <FastInsights />
+        {history.length > 0 && <Section title={t('History')}>
+          {history.slice(0, HISTORY_SHOWN).map(f => <HistoryRow key={f.id} fast={f} />)}
+        </Section>}
+        <div className="fast-off">
+          {switchError && <div className="nt-error small" role="alert">{switchError}</div>}
+          <Button variant="ghost" className="dim" onClick={() => turn(false)} disabled={switching}>{t('Turn off fasting')}</Button>
+        </div>
+      </>}
+    </>
+  }
+
+  return <Page title={t('Fasting')}>{body}</Page>
 }

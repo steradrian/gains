@@ -8,6 +8,8 @@ import { DEFAULT_GOAL_HOURS, PLANS, lastFinished, leftMs, lengthOf, progressOf, 
 import { useFasting, useNow } from '../lib/nutrition/use-fasting.js'
 import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { fastStartSheet } from './FastStartSheet.jsx'
+import { Card, Chip, ChipRow, Stat } from './blocks.jsx'
+import { Inline, Stack } from './layout.jsx'
 import { Button, NumberField } from './ui.jsx'
 
 const pad = n => String(n).padStart(2, '0')
@@ -46,21 +48,21 @@ function Running({ fast, hour12 }) {
     },
   })
 
-  return <div className={'card fast-card' + (p.reached ? ' reached' : '')}>
-    <div className="lbl2">{p.reached ? t('Goal reached') : t('Fasting')}</div>
-    <div className="big fast-clock">{clock(p.elapsedMs)}</div>
-    <div className="small muted">{p.reached ? t('{0} past your goal', fmtDur(p.elapsedMs - p.goalMs)) : t('{0} to go', fmtDur(leftMs(p.remainingMs)))}</div>
-    <div className="macro-track fast-track" role="progressbar" aria-label={t('Progress to your fasting goal')}
-      aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p.pct)}><i style={{ width: p.pct + '%' }} /></div>
-    <div className="row between small muted fast-times">
-      <span>{t('Started {0}', whenText(Date.parse(fast.start_at), hour12))}</span>
-      <span>{t('Goal {0}', whenText(p.targetAt, hour12))}</span>
-    </div>
-    <div className="fast-actions">
+  return <Card className={'fast-card' + (p.reached ? ' reached' : '')}>
+    <Stack gap={4}>
+      <div className="lbl2">{p.reached ? t('Goal reached') : t('Fasting')}</div>
+      <div className="fast-clock"><Stat value={clock(p.elapsedMs)} /></div>
+      <div className="small muted">{p.reached ? t('{0} past your goal', fmtDur(p.elapsedMs - p.goalMs)) : t('{0} to go', fmtDur(leftMs(p.remainingMs)))}</div>
+      <div className="macro-track fast-track" role="progressbar" aria-label={t('Progress to your fasting goal')}
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p.pct)}><i style={{ width: p.pct + '%' }} /></div>
+      <Inline justify="between" gap={4} className="small muted">
+        <span>{t('Started {0}', whenText(Date.parse(fast.start_at), hour12))}</span>
+        <span>{t('Goal {0}', whenText(p.targetAt, hour12))}</span>
+      </Inline>
       <Button variant="danger" onClick={end} disabled={busy}>{t('End fast')}</Button>
       <Button variant="ghost" icon="pencil" onClick={() => fastStartSheet({ startAt: fast.start_at })}>{t('Change start time')}</Button>
-    </div>
-  </div>
+    </Stack>
+  </Card>
 }
 
 function Idle({ lastFast }) {
@@ -86,21 +88,23 @@ function Idle({ lastFast }) {
     setBusy(false)
   }
 
-  return <div className="card fast-card">
-    <div className="lbl2">{t('Start a fast')}</div>
-    {lastFast && <div className="small muted">{t('Last fast: {0}, ended {1}', fmtDur(lengthOf(lastFast)), fmtAgo(Date.parse(lastFast.end_at)))}</div>}
-    <div className="chips fast-plans" role="radiogroup" aria-label={t('Plan')}>
-      {PLANS.map(p => <button key={p.label} type="button" role="radio" aria-checked={!custom && hours === p.hours}
-        className={'chip nocap' + (!custom && hours === p.hours ? ' on' : '')} onClick={() => { setCustom(false); setHours(p.hours) }}>{p.label}</button>)}
-      <button type="button" role="radio" aria-checked={custom} className={'chip' + (custom ? ' on' : '')} onClick={() => setCustom(true)}>{t('Custom')}</button>
-    </div>
-    {custom && <label className="portion-f">
-      <span className="small muted">{t('Goal in hours')}</span>
-      <NumberField value={hours} onChange={setHours} aria-label={t('Goal in hours')} />
-    </label>}
-    {error && <div className="nt-error small" role="alert">{error}</div>}
-    <Button variant="primary" onClick={start} disabled={busy}>{busy ? t('Saving…') : t('Start fast')}</Button>
-  </div>
+  return <Card className="fast-card">
+    <Stack gap={4}>
+      <div className="lbl2">{t('Start a fast')}</div>
+      {lastFast && <div className="small muted">{t('Last fast: {0}, ended {1}', fmtDur(lengthOf(lastFast)), fmtAgo(Date.parse(lastFast.end_at)))}</div>}
+      <ChipRow role="radiogroup" aria-label={t('Plan')}>
+        {PLANS.map(p => <Chip key={p.label} nocap role="radio" aria-checked={!custom && hours === p.hours} on={!custom && hours === p.hours}
+          onClick={() => { setCustom(false); setHours(p.hours) }}>{p.label}</Chip>)}
+        <Chip role="radio" aria-checked={custom} on={custom} onClick={() => setCustom(true)}>{t('Custom')}</Chip>
+      </ChipRow>
+      {custom && <label className="portion-f">
+        <span className="small muted">{t('Goal in hours')}</span>
+        <NumberField value={hours} onChange={setHours} aria-label={t('Goal in hours')} />
+      </label>}
+      {error && <div className="nt-error small" role="alert">{error}</div>}
+      <Button variant="primary" onClick={start} disabled={busy}>{busy ? t('Saving…') : t('Start fast')}</Button>
+    </Stack>
+  </Card>
 }
 
 // The fast you are in, or the plans to start one (FastingWidget.svelte).

@@ -9,6 +9,7 @@ import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import CameraScan from './CameraScan.jsx'
 import { portionSheet } from './PortionSheet.jsx'
 import { quickKcalSheet } from './QuickKcalSheet.jsx'
+import { SheetHeader } from './sheet-layout.jsx'
 import { Button, TextField } from './ui.jsx'
 
 // What a failed lookup tells the person (not a miss: nobody said the product does not exist).
@@ -85,7 +86,7 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
   }
 
   return <div className="scan-sheet">
-    <h3 className="nt-sheet-title">{t('Scan a barcode')}</h3>
+    <SheetHeader title={t('Scan a barcode')} />
 
     {step.id === 'scan' && <>
       <CameraScan product onFound={onFound} />
