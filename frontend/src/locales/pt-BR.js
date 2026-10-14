@@ -397,6 +397,7 @@ export const PT_BR_OVERRIDES = {
   'Add another device': 'Adicionar outro dispositivo',
   'Add this device': 'Adicionar este dispositivo',
   'Added {0}': 'Adicionada em {0}',
+  'Added by admin recovery on {0}': 'Adicionada por recuperação do administrador em {0}',
   'Code from your other device': 'Código do seu outro dispositivo',
   'Confirm with a passkey': 'Confirmar com uma chave de acesso',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'Confirmado. Agora crie a nova chave de acesso; seu navegador vai perguntar onde guardá-la.',

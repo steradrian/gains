@@ -374,6 +374,7 @@ export default {
   'Add another device': '다른 기기 추가',
   'Add this device': '이 기기 추가',
   'Added {0}': '{0}에 추가됨',
+  'Added by admin recovery on {0}': '관리자 복구로 {0}에 추가됨',
   'Code from your other device': '다른 기기의 코드',
   'Confirm with a passkey': '패스키로 확인',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': '확인되었습니다. 이제 새 패스키를 만드세요. 브라우저가 어디에 보관할지 물어봅니다.',

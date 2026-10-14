@@ -17,7 +17,7 @@ vi.mock('../lib/api.js', () => ({
   }
 }))
 vi.mock('../store/useStore.js', () => {
-  const snap = () => ({ user: { id: 'adm', name: 'Admin', admin: true }, S: {} })
+  const snap = () => ({ user: { id: 'adm', name: 'Admin', admin: true }, S: {}, refreshConfig: () => {} })
   const useStore = selector => selector ? selector(snap()) : snap()
   useStore.getState = snap
   return { useStore }

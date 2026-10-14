@@ -379,6 +379,7 @@ export default {
   'Add another device': 'Másik eszköz hozzáadása',
   'Add this device': 'Az eszköz hozzáadása',
   'Added {0}': 'Hozzáadva: {0}',
+  'Added by admin recovery on {0}': 'Adminisztrátori helyreállítással hozzáadva: {0}',
   'Code from your other device': 'Kód a másik eszközödről',
   'Confirm with a passkey': 'Megerősítés jelszókulccsal',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'Megerősítve. Most hozd létre az új jelszókulcsot; a böngésző megkérdezi, hol tárolja.',

@@ -30,7 +30,7 @@ async function startServer(t, { env = { HUB_JWKS: jwks(KEY), HUB_ISSUER: ISSUER 
   fs.writeFileSync(path.join(dataDir, 'state-u1.json'), JSON.stringify({ unit: 'kg', workouts: [], _rev: 7, _wid: '0123456789abcdef' }));
   const child = spawn(process.execPath, ['server.js'], {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', ADMIN_UIDS: '', AUDIT_LOG: '1', HUB_JWKS: '', HUB_ISSUER: '', ...env }
+    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', ADMIN_UIDS: '', AUDIT_LOG: '1', HUB_JWKS: '', HUB_ISSUER: '', ADMIN_RECOVERY: '1', ...env }
   });
   const h = { log: '', dataDir, child };
   child.stdout.on('data', d => h.log += d);
@@ -141,6 +141,16 @@ test('without HUB_JWKS the sync routes do not exist', async t => {
   for (const p of ['/api/sync/ping', '/api/sync/rev']) {
     assert.deepEqual(await h.req('GET', p, { token: mint(KEY, { sub: 'u1' }) }), { status: 404, body: { error: 'not found' } });
   }
+});
+
+test('HUB_ISSUER without HUB_JWKS boots with one line saying sync is off; neither, or both, says nothing', async t => {
+  const line = /HUB_ISSUER is set but HUB_JWKS is empty/;
+  // stderr and stdout are separate pipes: the boot line on one does not wait for the other.
+  const settled = async h => { await h.req('GET', '/api/health'); return h.log; };
+  const half = await settled(await startServer(t, { env: { HUB_ISSUER: ISSUER } }));
+  assert.equal(half.split('\n').filter(l => line.test(l)).length, 1, half);
+  assert.doesNotMatch(await settled(await startServer(t, { env: {} })), line);
+  assert.doesNotMatch(await settled(await startServer(t)), line);
 });
 
 test('a HUB_JWKS that cannot be used stops the boot instead of switching sync off', async t => {

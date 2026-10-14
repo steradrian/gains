@@ -365,6 +365,7 @@ export default {
   'Add another device': 'Добавить другое устройство',
   'Add this device': 'Добавить это устройство',
   'Added {0}': 'Добавлен {0}',
+  'Added by admin recovery on {0}': 'Добавлен через восстановление администратором {0}',
   'Code from your other device': 'Код с другого устройства',
   'Confirm with a passkey': 'Подтвердить ключом доступа',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'Подтверждено. Теперь создайте новый ключ доступа; браузер спросит, где его хранить.',

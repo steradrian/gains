@@ -405,6 +405,7 @@ export default {
   'Add another device': 'আরেকটি ডিভাইস যোগ করুন',
   'Add this device': 'এই ডিভাইস যোগ করুন',
   'Added {0}': '{0} যোগ হয়েছে',
+  'Added by admin recovery on {0}': 'অ্যাডমিনের পুনরুদ্ধারের মাধ্যমে {0} যোগ হয়েছে',
   'Code from your other device': 'আপনার অন্য ডিভাইসের কোড',
   'Confirm with a passkey': 'পাসকি দিয়ে নিশ্চিত করুন',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'নিশ্চিত হয়েছে। এবার নতুন পাসকি তৈরি করুন; আপনার ব্রাউজার জিজ্ঞেস করবে কোথায় রাখবে।',

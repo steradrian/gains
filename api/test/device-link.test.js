@@ -44,6 +44,15 @@ describe('createDeviceLink', () => {
     assert.equal(db.deviceLinks.length, 2);
   });
 
+  it('records who made a link the owner did not, and nothing for one the owner did', () => {
+    const db = { deviceLinks: [] };
+    const own = createDeviceLink(db, 'user-a', 1000, 60_000);
+    assert.equal('via' in own.link || 'by' in own.link, false);
+    const { link } = createDeviceLink(db, 'user-b', 1000, 60_000, { via: 'admin-recovery', by: 'admin-1' });
+    assert.equal(link.via, 'admin-recovery');
+    assert.equal(link.by, 'admin-1');
+  });
+
   it('makes codes that differ', () => {
     const seen = new Set(Array.from({ length: 200 }, makeLinkCode));
     assert.equal(seen.size, 200);

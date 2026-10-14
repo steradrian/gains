@@ -781,8 +781,13 @@ lost one under **Settings → Account → Passkeys**, confirming with the passke
 with (then **Sign out everywhere**). A browser that is still signed in can give a new device a
 passkey with **Add another device** only if the profile also has a password and
 `PASSWORD_LOGIN=1`: making the code asks for a passkey or the current password first,
-because a session on its own may be a stolen cookie. Otherwise there is no self-service recovery: with `PASSWORD_LOGIN=1` an admin can issue a reset code, and without
-it the only way back is a backup (**Settings → Data & backup → Export backup (JSON)**, from any device still
+because a session on its own may be a stolen cookie. Otherwise there is no self-service recovery: with `PASSWORD_LOGIN=1` an admin can issue a reset code, and
+with `ADMIN_RECOVERY=1` an admin can issue a recovery code (**Admin → the user → Lost passkey**).
+That signs the profile out everywhere and gives a one-time code, good for ten minutes, that adds a
+passkey on the new device; the passkey shows as *Added by admin recovery* in the owner's list, and
+the lost passkey keeps working until it is removed there. An admin can issue at most 5 an hour,
+and never for another admin (see SECURITY.md). Without either, the only way back is a backup
+(**Settings → Data & backup → Export backup (JSON)**, from any device still
 signed in) imported into a new profile. When you ask your admin for help, the id under
 **Settings → Account → Account ID** tells them exactly which account is yours. Adding a second
 passkey early is what keeps one lost phone from being a lost profile.

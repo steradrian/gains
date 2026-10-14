@@ -374,6 +374,7 @@ export default {
   'Add another device': 'दूसरा डिवाइस जोड़ें',
   'Add this device': 'यह डिवाइस जोड़ें',
   'Added {0}': '{0} को जोड़ी गई',
+  'Added by admin recovery on {0}': 'एडमिन रिकवरी से {0} को जोड़ी गई',
   'Code from your other device': 'आपके दूसरे डिवाइस का कोड',
   'Confirm with a passkey': 'पासकी से पुष्टि करें',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'पुष्टि हो गई। अब नई पासकी बनाएँ; आपका ब्राउज़र पूछेगा कि इसे कहाँ रखना है।',

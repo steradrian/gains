@@ -53,6 +53,14 @@ describe('listPasskeys', () => {
     assert.deepEqual(list[0], { id: 'a', name: null, created: null, lastUsed: null, transports: ['internal'] });
     assert.deepEqual(list[1], { id: 'c', name: 'Laptop', created: 'x', lastUsed: 'y', transports: ['internal'] });
   });
+
+  it('says which passkey an admin’s recovery code added, but not which admin', () => {
+    const db = { creds: [{ ...cred('r', 'u1'), created: 'x', via: 'admin-recovery', by: 'a1' }, { ...cred('o', 'u1'), via: 'junk' }] };
+    const [r, o] = listPasskeys(db, 'u1');
+    assert.equal(r.via, 'admin-recovery');
+    assert.equal(r.by, undefined);
+    assert.equal('via' in o, false);
+  });
 });
 
 describe('renamePasskeyRecord', () => {

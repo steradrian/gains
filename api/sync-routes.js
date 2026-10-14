@@ -23,7 +23,12 @@
  * Handed its helpers by server.js, like coach/routes.js, so it closes over nothing of the server. */
 import { verifyHubToken, HUB_AUDIENCE } from './hub-token.js';
 
-export function syncRoutes({ hub, json, findUser, revOf, auditFail }) {
+// The answer GET /api/data/rev gives, from the same state document. That route in server.js keeps
+// its own copy of this one line, so it stays exactly as upstream has it; server-sync.test.js pins
+// the two answers to each other.
+const revOf = doc => ({ rev: doc?._rev || 0, ...(doc?._wid ? { wid: doc._wid } : {}) });
+
+export function syncRoutes({ hub, json, findUser, readStateCached, auditFail }) {
   // Every route below is wrapped in this; there is no other way to reach one.
   const authed = handler => async (req, res) => {
     const auth = req.headers.authorization || '';
@@ -47,7 +52,7 @@ export function syncRoutes({ hub, json, findUser, revOf, auditFail }) {
 
     // The same answer GET /api/data/rev gives the profile's own devices: the hub polls it and
     // reads further only when the number moved.
-    'GET /api/sync/rev': authed(async (req, res, user) => json(res, 200, revOf(user.id)))
+    'GET /api/sync/rev': authed(async (req, res, user) => json(res, 200, revOf(readStateCached(user.id))))
 
     // The data routes (workouts since a revision, body weight per date) go here, each through
     // authed() and each added to openapi.yaml under the `sync` tag.

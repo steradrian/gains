@@ -60,13 +60,13 @@ function newDevice() {
 const user = (id, name, extra = {}) => ({ id, name, created: new Date().toISOString(), ...extra });
 const lost = { id: 'lost-passkey', userId: 'f1', publicKey: 'x', counter: 0 };
 
-async function startServer(t, { users, creds = [lost], deviceLinks = [] }) {
+async function startServer(t, { users, creds = [lost], deviceLinks = [], recovery = '1' }) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-recover-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users, creds, subs: [], invites: [], deviceLinks }));
   const child = spawn(process.execPath, ['server.js'], {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', ADMIN_UIDS: 'a2', AUDIT_LOG: '1', TRUST_PROXY: '1', PASSWORD_LOGIN: '' }
+    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', ADMIN_UIDS: 'a2', AUDIT_LOG: '1', TRUST_PROXY: '1', PASSWORD_LOGIN: '', ADMIN_RECOVERY: recovery }
   });
   const h = { log: '', dataDir };
   child.stdout.on('data', d => h.log += d);
@@ -95,6 +95,19 @@ async function redeem(h, code, device, ip = '198.51.100.8') {
 }
 
 const ADMIN = user('a1', 'Root', { admin: true });
+
+test('without ADMIN_RECOVERY the route is not there, and /api/config tells only an admin it is', async t => {
+  const off = await startServer(t, { users: [ADMIN, user('f1', 'Fia')], recovery: '' });
+  const before = off.db();
+  assert.deepEqual(await off.recover('f1'), { status: 404, body: { error: 'not found' }, cookie: null });
+  assert.deepEqual(off.db(), before);
+  assert.equal('admin_recovery' in (await off.req('GET', '/api/config', { cookie: session('a1') })).body, false);
+
+  const on = await startServer(t, { users: [ADMIN, user('f1', 'Fia')] });
+  assert.equal((await on.req('GET', '/api/config', { cookie: session('a1') })).body.admin_recovery, true);
+  assert.equal('admin_recovery' in (await on.req('GET', '/api/config', { cookie: session('f1') })).body, false);
+  assert.equal('admin_recovery' in (await on.req('GET', '/api/config')).body, false);
+});
 
 test('only an admin can make one, never for an admin, a disabled or a full profile', async t => {
   const full = Array.from({ length: MAX_PASSKEYS }, (_, i) => ({ id: 'k' + i, userId: 'f3', publicKey: 'x', counter: 0 }));
@@ -148,11 +161,42 @@ test('signs the profile out everywhere first, then the code adds one passkey on 
   assert.deepEqual(done.body.user, { id: 'f1', name: 'Fia', admin: false });
   assert.equal((await h.req('GET', '/api/me', { cookie: done.cookie })).body.user.id, 'f1');
   assert.deepEqual(h.db().creds.filter(c => c.userId === 'f1').map(c => c.id).sort(), [lost.id, phone.id].sort());
-  assert.ok(h.audit().some(e => e.ev === 'auth.link.ok' && e.uid === 'f1'));
+  const ok = h.audit().filter(e => e.ev === 'auth.link.ok');
+  assert.deepEqual(ok.map(e => [e.uid, e.msg]), [['f1', 'admin-recovery']]);
+
+  // The passkey it made says where it came from, for good: in db.json with the admin, and in the
+  // owner's list without them. The lost one stays as it was, until the owner removes it.
+  const row = h.db().creds.find(c => c.id === phone.id);
+  assert.equal(row.via, 'admin-recovery');
+  assert.equal(row.by, 'a1');
+  const list = (await h.req('GET', '/api/account/passkeys', { cookie: done.cookie })).body.passkeys;
+  const mine = list.find(p => p.id === phone.id);
+  assert.equal(mine.via, 'admin-recovery');
+  assert.equal(mine.by, undefined);
+  assert.ok(mine.created);
+  assert.equal('via' in list.find(p => p.id === lost.id), false);
 
   // Once only.
   const again = await redeem(h, code, newDevice());
   assert.equal(again.status, 400);
   assert.equal(again.body.code, 'link-invalid');
   assert.equal(h.db().creds.filter(c => c.userId === 'f1').length, 2);
+});
+
+test('an admin issues at most 5 an hour; a refusal changes nothing and is audited', async t => {
+  const h = await startServer(t, { users: [ADMIN, user('a2', 'Other admin'), user('f1', 'Fia'), user('f2', 'Gus')] });
+  // Refused requests spend none of the budget.
+  assert.equal((await h.recover('nobody')).status, 404);
+  for (let i = 0; i < 5; i++) assert.equal((await h.recover(i % 2 ? 'f2' : 'f1')).status, 200, `issue ${i + 1}`);
+  const before = h.db();
+  const sixth = await h.recover('f1');
+  assert.equal(sixth.status, 429);
+  assert.equal(sixth.body.code, 'locked');
+  assert.ok(sixth.body.retryAfter > 0 && sixth.body.retryAfter <= 3600);
+  assert.deepEqual(h.db(), before, 'no sign-out, no new link');
+  const refused = h.audit().filter(e => e.ev === 'admin.recovery.link' && !e.ok);
+  assert.deepEqual(refused.map(e => [e.uid, e.tgt, e.msg]), [['a1', 'f1', 'rate-limited']]);
+  assert.equal(h.audit().filter(e => e.ev === 'admin.recovery.link' && e.ok).length, 5);
+  // Per admin: another admin's budget is their own.
+  assert.equal((await h.recover('f1', 'a2')).status, 200);
 });

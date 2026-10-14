@@ -84,6 +84,8 @@ info:
       log served by `GET /api/admin/audit`.
     - `PASSWORD_LOGIN=1`: adds the `password` routes and `password_login: true` in
       `GET /api/config`. Off by default.
+    - `ADMIN_RECOVERY=1`: adds `POST /api/admin/user/recovery-link` and, for an admin,
+      `admin_recovery: true` in `GET /api/config`. Off by default.
     - `DEFAULT_LANG` (e.g. `pt-BR`; unset by default): `default_lang` in `GET /api/config`,
       the language of the sign-in screen and of every profile that never picked one.
     - `TRUST_PROXY=1`: the throttle reads the client address from proxy headers (set by
@@ -291,6 +293,13 @@ paths:
                       language tag the sign-in screen, and every profile that has never
                       picked a language in Settings, starts in. A profile's own choice
                       always wins; a tag the app has no translation for is ignored.
+                  admin_recovery:
+                    type: boolean
+                    const: true
+                    description: >-
+                      Present (and true) only when the instance runs with ADMIN_RECOVERY=1
+                      and the caller is an admin: the dashboard then offers the lost-passkey
+                      recovery code (`POST /api/admin/user/recovery-link`).
                   media:
                     $ref: '#/components/schemas/MediaConfig'
               examples:
@@ -2240,8 +2249,14 @@ paths:
         alphabet, shown once, stored only as a SHA-256, good for 10 minutes and for one
         passkey. The person redeems it on their new device through `/api/device-link/*`
         (throttled and audited as usual), which signs that device in; they then remove the
-        lost passkey in Settings. `link` assumes the app is served at the root of `ORIGIN`.
-        Admin accounts are refused. Audited as `admin.recovery.link`.
+        lost passkey in Settings, which keeps working until they do. `link` assumes the app
+        is served at the root of `ORIGIN`. Admin accounts are refused.
+
+        Only with `ADMIN_RECOVERY=1`; otherwise the route does not exist (404 `not found`).
+        At most 5 an hour per admin (429). The passkey the code adds is marked
+        `via: admin-recovery` in the owner's list (`GET /api/account/passkeys`). Audited as
+        `admin.recovery.link` (the admin and the target; `ok: false`, `msg: rate-limited`
+        for a refusal), and the redemption as `auth.link.ok` with `msg: admin-recovery`.
       requestBody:
         required: true
         content:
@@ -2287,6 +2302,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "the account is disabled, enable it first", code: "disabled" }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/admin/user/delete:
     post:
@@ -3288,6 +3304,12 @@ components:
               created: { oneOf: [{ type: string }, { type: 'null' }], description: ISO timestamp. }
               lastUsed: { oneOf: [{ type: string }, { type: 'null' }], description: 'ISO timestamp of the last sign-in or confirmation with it.' }
               transports: { type: array, items: { type: string } }
+              via:
+                type: string
+                enum: [admin-recovery]
+                description: >-
+                  Present only on a passkey added with an admin's recovery code
+                  (`POST /api/admin/user/recovery-link`), added at `created`.
         password:
           type: boolean
           description: >-

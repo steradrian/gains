@@ -97,6 +97,8 @@ const REASONS = {
   'reset-invalid': 'wrong or expired reset code',
   'link-invalid': 'wrong, used or expired device code',
   'passkey-limit': 'the profile already has as many passkeys as it can hold',
+  // An admin past their hourly allowance of recovery codes (admin.recovery.link).
+  'rate-limited': 'too many recovery codes this hour',
   // What an `auth.throttled` pause was for.
   'password': 'wrong passwords or reset codes',
   'signup': 'wrong invite codes on password signup',

@@ -374,6 +374,7 @@ export default {
   'Add another device': 'Dodaj kolejne urządzenie',
   'Add this device': 'Dodaj to urządzenie',
   'Added {0}': 'Dodano {0}',
+  'Added by admin recovery on {0}': 'Dodano przez odzyskanie dostępu przez administratora {0}',
   'Code from your other device': 'Kod z drugiego urządzenia',
   'Confirm with a passkey': 'Potwierdź kluczem dostępu',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'Potwierdzono. Teraz utwórz nowy klucz dostępu; przeglądarka zapyta, gdzie go zapisać.',

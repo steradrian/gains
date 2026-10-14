@@ -379,6 +379,7 @@ export default {
   'Add another device': 'เพิ่มอุปกรณ์อื่น',
   'Add this device': 'เพิ่มอุปกรณ์นี้',
   'Added {0}': 'เพิ่มเมื่อ {0}',
+  'Added by admin recovery on {0}': 'เพิ่มผ่านการกู้คืนโดยผู้ดูแลระบบเมื่อ {0}',
   'Code from your other device': 'รหัสจากอุปกรณ์อีกเครื่องของคุณ',
   'Confirm with a passkey': 'ยืนยันด้วยพาสคีย์',
   'Confirmed. Now create the new passkey; your browser will ask where to keep it.': 'ยืนยันแล้ว ตอนนี้สร้างพาสคีย์ใหม่ได้เลย เบราว์เซอร์จะถามว่าจะเก็บไว้ที่ไหน',
