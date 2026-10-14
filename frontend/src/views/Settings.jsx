@@ -413,7 +413,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     look: () => themeLabel + ' · ' + accentLabel(S),
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
-    about: () => 'v' + __APP_VERSION__,
+    about: () => 'v' + BRAND.version,
   }
 
   const open = id => {
@@ -810,7 +810,7 @@ export default function Settings({ page = null, find = null, via = null }) {
           release is newer (checksum verified, see onUpdateRowClick). Gains ships no APK, so the
           web build shows only the version: it updates together with its server. */}
       <Section footer={MOBILE && android ? t('Releases are checked on GitHub. The download is verified against its checksum before the installer opens.') : null}>
-        <Row icon="info" iconTint="var(--grey)" title={t('Version')} value={'v' + __APP_VERSION__} />
+        <Row icon="info" iconTint="var(--grey)" title={t('Version')} value={'v' + BRAND.version} />
         {MOBILE
           ? android && <Row icon="download" iconTint="var(--green)"
               title={updateInfo?.hasUpdate ? t('Update to openGym v{0}', updateInfo.latestVersion) : t('Check for updates')}
@@ -832,8 +832,12 @@ export default function Settings({ page = null, find = null, via = null }) {
         <Row icon="shield" iconTint="var(--grey)" title={t('Licences')} accessory="chevron" onClick={() => open('licences')} />
       </Section>
       <div className="dim small sp-version">
-        {BRAND.name} v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
-        <a href={LINKS.source[0].url} target="_blank" rel="noopener">{t('Source code')}</a>
+        {BRAND.name} v{BRAND.version} · {t('free & open source (AGPL v3)')}<br />
+        <a href={LINKS.source[0].url} target="_blank" rel="noopener">{t('Source code')}</a><br />
+        {/* Attribution the media licence asks for word for word (agreement §8c), so it is not translated
+            and not brand-substituted: it names openGym on purpose. */}
+        Exercise media © Aliaksandr Makatserchyk, <a href={LINKS.media.url} target="_blank" rel="noopener">Gym visual</a>, gymvisual.com.
+        Media licensed for use in {LINKS.upstream.name} only; see <a href={LINKS.upstream.notice} target="_blank" rel="noopener">NOTICE.md</a>
       </div>
     </>,
 
@@ -842,17 +846,17 @@ export default function Settings({ page = null, find = null, via = null }) {
     licences: () => <>
       <Section footer={t('It comes with no warranty, to the extent the law allows.')}>
         <p className="sp-lic">
-          {BRAND.name} v{__APP_VERSION__}<br />
-          {LINKS.copyright.join(' · ')}<br />
+          <span className="sp-lic-title">{BRAND.name} v{BRAND.version}</span>
+          {LINKS.copyright.map(line => <span key={line}>{line}<br /></span>)}
           {t('Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.')}
         </p>
         <Row icon="bookOpen" iconTint="var(--grey)" title={t('Full licence text')} accessory="chevron"
           onClick={() => window.open(LINKS.upstream.license, '_blank', 'noopener')} />
       </Section>
-      <Section title={t('Source code')} footer={t('Built on {0} by {1}.', LINKS.upstream.name, LINKS.upstream.author)}>
+      <Section title={t('Source code')} footer={t('Built on {0} v{1} by {2}.', LINKS.upstream.name, __APP_VERSION__, LINKS.upstream.author)}>
         {LINKS.source.map(l => <Row key={l.url} icon="link" iconTint="var(--grey)" title={l.label} accessory="chevron"
           onClick={() => window.open(l.url, '_blank', 'noopener')} />)}
-        <Row icon="info" iconTint="var(--grey)" title={LINKS.upstream.name} accessory="chevron"
+        <Row icon="link" iconTint="var(--grey)" title={LINKS.upstream.name} accessory="chevron"
           onClick={() => window.open(LINKS.upstream.url, '_blank', 'noopener')} />
       </Section>
       <Section title={t('Third-party notices')}>
@@ -999,7 +1003,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
             value={preview[id]?.() || null} accessory="chevron" onClick={() => open(id)} className="sp-root-row" />)}
         </Section>
       ))}
-      <div className="dim small sp-version">{BRAND.name} v{__APP_VERSION__}</div>
+      <div className="dim small sp-version">{BRAND.name} v{BRAND.version}</div>
     </>}
   </div>
 }

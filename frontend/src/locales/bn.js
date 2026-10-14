@@ -5,7 +5,7 @@ export default {
   'It comes with no warranty, to the extent the law allows.': 'আইন যতটা অনুমতি দেয়, ততটুকু পর্যন্ত এর সঙ্গে কোনো ওয়ারেন্টি নেই।',
   'Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.': 'GNU Affero জেনারেল পাবলিক লাইসেন্স v3.0 বা পরবর্তী সংস্করণের অধীনে লাইসেন্সপ্রাপ্ত মুক্ত সফটওয়্যার। এই শর্তে আপনি এটি বিতরণ ও পরিবর্তন করতে পারেন।',
   'Full licence text': 'সম্পূর্ণ লাইসেন্স পাঠ',
-  'Built on {0} by {1}.': '{1}-এর {0}-এর ওপর ভিত্তি করে তৈরি।',
+  'Built on {0} v{1} by {2}.': '{2}-এর {0} v{1}-এর ওপর ভিত্তি করে তৈরি।',
   'Third-party notices': 'তৃতীয় পক্ষের বিজ্ঞপ্তি',
   'Exercise media': 'ব্যায়ামের মিডিয়া',
   'Exercise text': 'ব্যায়ামের লেখা',

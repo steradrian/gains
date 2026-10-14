@@ -5,7 +5,7 @@ export default {
   'It comes with no warranty, to the extent the law allows.': 'Гарантій немає в тій мірі, в якій це дозволяє закон.',
   'Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.': 'Вільне ПЗ за ліцензією GNU Affero General Public License версії 3.0 або новішої. Ви можете поширювати та змінювати його на цих умовах.',
   'Full licence text': 'Повний текст ліцензії',
-  'Built on {0} by {1}.': 'Засновано на {0} (автор — {1}).',
+  'Built on {0} v{1} by {2}.': 'Засновано на {0} v{1} (автор — {2}).',
   'Third-party notices': 'Повідомлення про сторонні компоненти',
   'Exercise media': 'Медіа вправ',
   'Exercise text': 'Тексти вправ',

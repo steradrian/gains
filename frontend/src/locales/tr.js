@@ -5,7 +5,7 @@ export default {
   'It comes with no warranty, to the extent the law allows.': 'Yasaların izin verdiği ölçüde hiçbir garanti verilmez.',
   'Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.': 'GNU Affero Genel Kamu Lisansı sürüm 3.0 veya sonrası kapsamında lisanslanmış özgür yazılım. Bu koşullar altında dağıtabilir ve değiştirebilirsiniz.',
   'Full licence text': 'Lisansın tam metni',
-  'Built on {0} by {1}.': '{1} tarafından geliştirilen {0} üzerine kuruludur.',
+  'Built on {0} v{1} by {2}.': '{2} tarafından geliştirilen {0} v{1} üzerine kuruludur.',
   'Third-party notices': 'Üçüncü taraf bildirimleri',
   'Exercise media': 'Egzersiz medyası',
   'Exercise text': 'Egzersiz metinleri',

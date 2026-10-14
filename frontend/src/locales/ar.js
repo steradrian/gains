@@ -5,7 +5,7 @@ export default {
   'It comes with no warranty, to the extent the law allows.': 'لا يأتي مع أي ضمان، بالقدر الذي يسمح به القانون.',
   'Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.': 'برنامج حر مرخّص بموجب رخصة GNU Affero العامة الإصدار 3.0 أو أحدث. يمكنك إعادة توزيعه وتعديله وفق هذه الشروط.',
   'Full licence text': 'النص الكامل للرخصة',
-  'Built on {0} by {1}.': 'مبني على {0} من {1}.',
+  'Built on {0} v{1} by {2}.': 'مبني على {0} v{1} من {2}.',
   'Third-party notices': 'إشعارات الجهات الخارجية',
   'Exercise media': 'وسائط التمارين',
   'Exercise text': 'نصوص التمارين',

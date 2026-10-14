@@ -55,6 +55,7 @@
 
   /* a workout in progress (the recording dot and the running tab-bar disc) */
   --live: #ff9f0a;
+  --live-ink: var(--live);
 
   /* macro colours: fixed, charts only, always labelled, order P · C · F. Not the accent picker's:
      they avoid green (accent), orange (live) and red (over target). >= 6.5:1 on --surface. */
@@ -114,7 +115,8 @@
   --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
   --acc-2:#248a3d;
   --on-acc:#ffffff;
-  --acc-ink:#1d7331;
+  --acc-ink:#1c6f2f;
+  --live-ink:#a35800;   /* the running-workout label as text: --live is 3.8:1 as a dot only */
 }
 
 /* accents — Apple's system colours, so a recolour never looks off-system */
@@ -139,19 +141,25 @@
 :root[data-theme="light"][data-accent="pink"],
 :root[data-theme="light"][data-accent="red"]   { --on-acc:#fff }
 
-/* --acc-ink in light: each accent darkened just far enough to read as text or an icon on both
-   --bg and white, >= 5:1 measured (lime 5.9, sky 5.0, orange 5.1, violet 5.0, pink 5.0, red 5.1,
-   teal 5.1, gold 5.0), where the accent itself is 2.0:1 (lime) to 1.4:1 (gold). */
-:root[data-theme="light"][data-accent="lime"]   { --acc-ink:#1d7331 }
-:root[data-theme="light"][data-accent="sky"]    { --acc-ink:#0065d4 }
-:root[data-theme="light"][data-accent="orange"] { --acc-ink:#995900 }
-:root[data-theme="light"][data-accent="violet"] { --acc-ink:#9345ba }
-:root[data-theme="light"][data-accent="pink"]   { --acc-ink:#c92443 }
-:root[data-theme="light"][data-accent="red"]    { --acc-ink:#c42d25 }
-:root[data-theme="light"][data-accent="teal"]   { --acc-ink:#1f7281 }
-:root[data-theme="light"][data-accent="gold"]   { --acc-ink:#7f6600 }
+/* --acc-ink: the accent as text or an icon, >= 4.5:1 on --bg, --surface and on the --acc-soft tint
+   over --surface-2 (a tinted button or tag on a pressed or nested fill); accent.test.js measures
+   every value. Dark accents already clear --bg and --surface; the four that fell short on the tint
+   are lifted. Light darkens each accent just far enough. */
+:root[data-accent="sky"]    { --acc-ink:#47a3ff }
+:root[data-accent="violet"] { --acc-ink:#ce80f5 }
+:root[data-accent="pink"]   { --acc-ink:#ff6a88 }
+:root[data-accent="red"]    { --acc-ink:#ff7068 }
+:root[data-theme="light"][data-accent="lime"]   { --acc-ink:#1c6f2f }
+:root[data-theme="light"][data-accent="sky"]    { --acc-ink:#005bc0 }
+:root[data-theme="light"][data-accent="orange"] { --acc-ink:#8f5300 }
+:root[data-theme="light"][data-accent="violet"] { --acc-ink:#843ea7 }
+:root[data-theme="light"][data-accent="pink"]   { --acc-ink:#b3203c }
+:root[data-theme="light"][data-accent="red"]    { --acc-ink:#af2821 }
+:root[data-theme="light"][data-accent="teal"]   { --acc-ink:#1d6b79 }
+:root[data-theme="light"][data-accent="gold"]   { --acc-ink:#7a6200 }
 /* An orange or gold accent would make the running-workout dot look like the accent. */
 :root[data-accent="orange"], :root[data-accent="gold"] { --live:var(--red) }
+:root[data-theme="light"][data-accent="orange"], :root[data-theme="light"][data-accent="gold"] { --live-ink:#c42d25 }
 
 /* ---------------------------------------------------------------- reset -- */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -479,7 +487,7 @@ h4.sec{
    The disc is orange in either theme, so its glyph is black, not `--on-acc`. */
 #tabbar button.start .cir{color:var(--on-acc)}
 #tabbar button.start.rec .cir{background:var(--live);color:#000;box-shadow:0 6px 18px -4px color-mix(in srgb,var(--live) 55%,transparent)}
-#tabbar button.start.rec span{color:var(--live)}
+#tabbar button.start.rec span{color:var(--live-ink)}
 #tabbar button.start.rec .cir::after{
   content:'';position:absolute;inset:0;border-radius:50%;
   border:2px solid var(--live);animation:ping 1.9s var(--ease) infinite;
@@ -1012,7 +1020,7 @@ body.chips-dragging *{cursor:inherit}
   display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;font-size:12px;
 }
 .wmedia-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  color:var(--acc);font-size:11px;line-height:1.2;text-align:center;padding:6px;
+  color:var(--acc-ink);font-size:11px;line-height:1.2;text-align:center;padding:6px;
   border:1.5px dashed var(--sep)}
 .wmedia-add .icn{font-size:20px}
 .wmedia-add:disabled{opacity:.5;cursor:default}
@@ -1222,7 +1230,7 @@ body.chips-dragging *{cursor:inherit}
 @keyframes swflashr{0%,35%{background:color-mix(in srgb,var(--red) 22%,var(--surface))}100%{background:var(--surface)}}
 /* The first-use hint under the row it nudged. */
 .swhint{display:flex;justify-content:center;padding:4px 0 6px}
-.swhint button{display:inline-flex;align-items:center;gap:8px;background:var(--acc-soft);color:var(--acc);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600;animation:swhintin .3s var(--ease);text-align:start}
+.swhint button{display:inline-flex;align-items:center;gap:8px;background:var(--acc-soft);color:var(--acc-ink);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600;animation:swhintin .3s var(--ease);text-align:start}
 .swhint .icn{font-size:15px;flex:none}
 .swhint .icn:last-child{opacity:.7}
 @keyframes swhintin{from{opacity:0;transform:translateY(-4px)}}
@@ -1397,13 +1405,13 @@ body.chips-dragging *{cursor:inherit}
 .menu-chev{color:var(--label-3);font-size:14px;flex:none}
 [dir="rtl"] .menu-chev{transform:scaleX(-1)}
 .setextra{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px 32px}
-.setextra .chip.add{display:inline-flex;align-items:center;gap:4px;color:var(--acc)}
+.setextra .chip.add{display:inline-flex;align-items:center;gap:4px;color:var(--acc-ink)}
 .setextra .chip.add svg{width:13px;height:13px}
 .setextra .chip.add:disabled{opacity:.35}
 /* why the next target is what it is (issue #17) */
 .progline{
   width:100%;display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;padding:0;
-  text-align: start;font-size:13px;line-height:1.38;color:var(--acc);
+  text-align: start;font-size:13px;line-height:1.38;color:var(--acc-ink);
 }
 .progline.warn{color:var(--yellow)}
 .progline svg{flex:none;margin-top:2px}
@@ -1420,7 +1428,7 @@ body.chips-dragging *{cursor:inherit}
 .setrow .setgo{
   width:30px;height:30px;border-radius:50%;flex:none;
   display:flex;align-items:center;justify-content:center;
-  background:var(--surface-2);color:var(--acc);font-size:14px;
+  background:var(--surface-2);color:var(--acc-ink);font-size:14px;
   transition:background var(--fast),opacity var(--fast);
 }
 .setrow .setgo:disabled{opacity:.3;cursor:default}
@@ -1605,7 +1613,7 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 }
 /* the row a working set usually lands on — the anchor the others are read against */
 .efftbl .r.on{background:var(--acc-soft)}
-.efftbl .r.on .n{color:var(--acc)}
+.efftbl .r.on .n{color:var(--acc-ink)}
 .efftbl .r.on .f{color:var(--label)}
 
 /* --- glyph picker (replaces the emoji grid) --- */
@@ -1820,7 +1828,7 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 /* --- supersets --- */
 .ss-label{
   font-size:12px;font-weight:600;letter-spacing:-.004em;text-transform:none;
-  color:var(--acc);margin-block:8px 5px;margin-inline-start:4px;display:flex;align-items:center;gap:5px;
+  color:var(--acc-ink);margin-block:8px 5px;margin-inline-start:4px;display:flex;align-items:center;gap:5px;
 }
 .ss-label .icn{font-size:13px}
 /* The routine editor's label opens the superset's name and rest (#292). */
@@ -1829,7 +1837,7 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .ss-label-btn .ss-label-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ss-label-btn .dim{font-weight:500;white-space:nowrap}
 /* A1, A2…: a member's place in the round (#293). */
-.ss-pos{flex:none;min-width:26px;height:22px;padding:0 5px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--acc);background:var(--acc-soft, var(--surface-2))}
+.ss-pos{flex:none;min-width:26px;height:22px;padding:0 5px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--acc-ink);background:var(--acc-soft, var(--surface-2))}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
 /* A past workout's detail: each exercise opens its history, and a superset's exercises share the
    routine editor's label and bar. */
@@ -1872,11 +1880,11 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
   .wl-unit .ss-card{padding-inline:0}
 }
 .ss-hd{
-  font-size:12px;font-weight:600;color:var(--acc);margin-bottom:12px;
+  font-size:12px;font-weight:600;color:var(--acc-ink);margin-bottom:12px;
   text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;
 }
 .ss-ex{position:relative}
-.ss-amp{text-align:center;font-size:15px;font-weight:600;color:var(--acc);margin:14px 0 8px}
+.ss-amp{text-align:center;font-size:15px;font-weight:600;color:var(--acc-ink);margin:14px 0 8px}
 
 /* --- workout list view: every unit stacked, the current one outlined --- */
 /* minmax(0, …): a grid's default `auto` track is at least as wide as its widest content, so a set
@@ -2129,8 +2137,10 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .sp-avatar{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:30px;
   background:linear-gradient(160deg,var(--surface-3),var(--surface-2));color:var(--label-2)}
 .sp-acct .lrow-t{font-size:19px;font-weight:600}
-.sp-avatar.on{background:var(--acc-soft);color:var(--acc);font-size:24px;font-weight:700}
+.sp-avatar.on{background:var(--acc-soft);color:var(--acc-ink);font-size:24px;font-weight:700}
 .sp-version{text-align:center;margin-top:4px;line-height:1.6}
+.icn g[data-lucide] *{vector-effect:non-scaling-stroke}
+.sp-lic-title{display:block;margin-bottom:6px;font-size:17px;font-weight:600;color:var(--label)}
 .sp-lic{padding:12px 16px;font-size:13px;line-height:1.45;color:var(--label-2)}
 .sp-lic b{color:var(--label);font-weight:600}
 .sp-lic a{color:var(--acc-ink)}

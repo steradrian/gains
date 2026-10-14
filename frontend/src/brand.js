@@ -9,6 +9,9 @@
 export const BRAND = {
   name: 'Gains',
   shortName: 'Gains',
+  // Gains' own version, shown to users. __APP_VERSION__ is upstream's and stays for the service
+  // worker, update checks and support templates; it only appears on Licences as the base version.
+  version: '0.1.0',
   // Status bar and browser chrome: the page background (index.css --bg) of each theme.
   themeColor: { dark: '#0c0b0a', light: '#f5f4f1' },
   // Where the app is, for the printed footers (no upstream domain).
