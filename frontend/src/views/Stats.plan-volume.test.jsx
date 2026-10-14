@@ -94,7 +94,7 @@ describe('Stats — weekly muscle volume from the plan', () => {
   it('scrolls itself into view when Plan links here', () => {
     vi.useFakeTimers()
     try {
-      window.location.hash = '#/stats?focus=weekly-volume'
+      window.location.hash = '#/train/stats?focus=weekly-volume'
       mocks.S = state()
       const scroll = vi.fn()
       const orig = Element.prototype.scrollIntoView

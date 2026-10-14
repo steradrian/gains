@@ -1,0 +1,88 @@
+/* The two-mode shell: the Training | Nutrition header switch, the per-mode bottom bar with its
+   sliding tab pill, the + sheet and the mode-switch motion. Kept out of index.css so the design
+   tokens there can move independently; it only reads them. --live and --acc-ink arrive with the
+   tokens, so each use names a fallback. */
+
+/* --- header on a mode's root screens --- */
+.mode-hdr{
+  display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;
+  height:52px;margin:-4px 0 2px;
+}
+.seg.seg-mode{
+  justify-self:center;width:min(100%,280px);height:36px;border-radius:10px;
+  background:var(--surface);
+}
+:root[data-theme="light"] .seg.seg-mode{background:rgba(118,112,104,.12)}
+.seg-mode .seg-sel{border-radius:8px;background:var(--surface-3);box-shadow:none}
+:root[data-theme="light"] .seg-mode .seg-sel{
+  background:#fff;
+  box-shadow:var(--shadow-card,0 1px 2px rgba(48,36,24,.05),0 4px 12px -4px rgba(48,36,24,.06));
+}
+/* .seg.seg-mode, not .seg-mode: this file loads before index.css (App.jsx is imported first),
+   so a tie in specificity would go to the .seg rules there. */
+.seg.seg-mode button{font-size:15px;font-weight:600;gap:6px;min-height:32px}
+.seg.seg-mode button:not(.on){font-weight:400;color:var(--label-2)}
+.seg.seg-mode button::before{inset:-4px 0}
+
+/* A workout is running: the recording dot before "Training", in both modes. */
+.live-dot{
+  flex:none;width:8px;height:8px;border-radius:50%;background:var(--live,#ff9f0a);
+  animation:livepulse 1.6s ease-in-out infinite alternate;
+}
+:root[data-theme="light"] .live-dot{background:var(--live,#c76b00)}
+@keyframes livepulse{from{opacity:1}to{opacity:.35}}
+
+.mode-avatar{
+  position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+}
+.mode-avatar-c{
+  width:36px;height:36px;border-radius:50%;background:var(--surface-2);color:var(--label);
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;
+}
+.mode-avatar-c .icn{font-size:20px}
+.mode-avatar:active .mode-avatar-c{opacity:.6}
+.mode-avatar .tab-dot{top:3px;right:3px;box-shadow:0 0 0 2px var(--bg)}
+
+/* --- the page under it --- */
+/* A route change within a mode fades as before; arriving in the other mode is a replacement,
+   not a push: a short crossfade, never a horizontal slide. */
+.route-view{animation:viewfade var(--med) var(--ease)}
+.route-view.mode-in{animation:modefade 180ms var(--ease)}
+@keyframes modefade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.coming-title{flex:1;margin-inline-start:12px}
+.empty strong{display:block;color:var(--label);font-weight:600;margin-bottom:4px}
+
+/* --- bottom bar --- */
+/* Five equal slots (every button flex:1), the centre one the disc's. A mode switch mounts the
+   other mode's four tabs, which fade in; the disc is the same element throughout and only its
+   glyph fades. */
+@keyframes barfade{from{opacity:0}to{opacity:1}}
+#tabbar>button:not(.start){position:relative;z-index:1;color:var(--label-2);font-size:12px;animation:barfade 180ms var(--ease)}
+#tabbar>button.on:not(.start){color:var(--acc-ink,var(--acc))}
+#tabbar>button.start{position:relative;z-index:1}
+#tabbar .cir-glyph{animation:barfade 180ms var(--ease)}
+
+/* The selected tab's pill. The track is the bar's content box (its padding mirrored here), one
+   slot of it is moved by transform only. Static until it has painted twice (TabBar's `ready`). */
+#tabbar .tab-pill-track{position:absolute;z-index:0;top:7px;bottom:calc(6px + var(--sab));inset-inline:6px;pointer-events:none}
+@media (min-width:1000px){#tabbar .tab-pill-track{bottom:9px;inset-inline:10px}}
+#tabbar .tab-pill-slot{
+  position:absolute;top:0;bottom:0;inset-inline-start:0;width:20%;
+  transform:translateX(calc(100% * var(--slot)));transition:opacity var(--fast);
+}
+#tabbar .tab-pill-track.ready .tab-pill-slot{transition:transform var(--med) var(--ease),opacity var(--fast)}
+[dir="rtl"] #tabbar .tab-pill-slot{transform:translateX(calc(-100% * var(--slot)))}
+#tabbar .tab-pill-slot.off{opacity:0}
+#tabbar .tab-pill{
+  position:absolute;top:0;bottom:-1px;left:50%;width:56px;margin-left:-28px;
+  border-radius:99px;background:var(--acc-soft);
+}
+
+/* --- the + sheet --- */
+.plus-sheet-h{margin-bottom:14px}
+.plus-sheet-cap{display:block;font-size:13px;color:var(--label-2)}
+.plus-sheet-h h3{margin:2px 0 0}
+/* A row whose screen is not built yet: greyed, its icon tile too, and nothing to tap. */
+.plus-sheet .lrow.off .lrow-t{color:var(--label-2)}
+.plus-sheet .lrow.off .lrow-i{--tint:var(--label-3)}
+.plus-sheet-live{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-variant-numeric:tabular-nums}

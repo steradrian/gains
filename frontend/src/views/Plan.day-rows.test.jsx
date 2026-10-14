@@ -100,7 +100,7 @@ describe('Plan — the menu', () => {
     expect(host.textContent).not.toContain('Plan design and reviews')
     expect(openMenu().items.filter(Boolean).map(i => i.label)).not.toContain('Coach')
     act(() => coachButton().click())
-    expect(mocks.nav).toHaveBeenCalledWith('/coach')
+    expect(mocks.nav).toHaveBeenCalledWith('/train/coach')
   })
 
   it('leaves the Coach out where it is not available', () => {

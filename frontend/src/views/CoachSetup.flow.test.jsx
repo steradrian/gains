@@ -101,7 +101,7 @@ describe('CoachSetup — where it runs at all', () => {
   it('is a phone screen: the web build is sent straight back to Settings', async () => {
     mocks.mobile = false
     await mount()
-    expect(mocks.nav).toHaveBeenCalledWith('/settings', { replace: true })
+    expect(mocks.nav).toHaveBeenCalledWith('/me', { replace: true })
   })
 
   it('re-asks the paired server what it can do, because the admin may have switched it on', async () => {
@@ -123,7 +123,7 @@ describe('CoachSetup — "use my self-hosted openGym"', () => {
     await settle()
     expect(mocks.setCoachLocal).toHaveBeenCalledWith({ mode: 'server' })
     expect(mocks.toast).toHaveBeenCalledWith('The Coach is on')
-    expect(mocks.nav).toHaveBeenCalledWith('/coach')
+    expect(mocks.nav).toHaveBeenCalledWith('/train/coach')
   })
 
   it('an unpaired phone is asked to connect first, and nothing is written', async () => {
@@ -156,7 +156,7 @@ describe('CoachSetup — "use my self-hosted openGym"', () => {
   it('Back returns to Settings', async () => {
     await mount()
     await click(host.querySelector('.hdr .iconbtn'))
-    expect(mocks.nav).toHaveBeenCalledWith('/settings')
+    expect(mocks.nav).toHaveBeenCalledWith('/me')
   })
 })
 
@@ -340,7 +340,7 @@ describe('CoachSetup — saving', () => {
     expect(mocks.setCoachLocal).toHaveBeenCalledWith({ mode: 'byok', provider: 'anthropic', model: 'claude-opus-5', baseUrl: null })
     expect(setApiKey).toHaveBeenCalledWith('sk-1')
     expect(mocks.toast).toHaveBeenCalledWith('The Coach is on')
-    expect(mocks.nav).toHaveBeenCalledWith('/coach')
+    expect(mocks.nav).toHaveBeenCalledWith('/train/coach')
   })
 
   it('normalises the endpoint it saves for a compatible provider, and saves the model you pick', async () => {
@@ -360,7 +360,7 @@ describe('CoachSetup — saving', () => {
     await click(btn('List models')); await settle()
     await click(btn('Save and use the Coach')); await settle()
     expect(setApiKey).not.toHaveBeenCalled()
-    expect(mocks.nav).toHaveBeenCalledWith('/coach')
+    expect(mocks.nav).toHaveBeenCalledWith('/train/coach')
   })
 
   it('refuses to save a provider with no model picked and no default to fall back on', async () => {

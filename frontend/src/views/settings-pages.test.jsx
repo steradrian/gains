@@ -144,7 +144,7 @@ describe('the root', () => {
     act(() => rowTitled('Timer alerts').click())
     act(() => rowTitled('AI Coach').click())
     act(() => host.querySelector('.sp-acct').click())
-    expect(mocks.navs).toEqual([['/settings/alerts'], ['/coach/setup'], ['/settings/account']])
+    expect(mocks.navs).toEqual([['/me/alerts'], ['/train/coach/setup'], ['/me/account']])
   })
 
   it('searches every setting and a hit goes to its page with the row to flash', () => {
@@ -159,7 +159,7 @@ describe('the root', () => {
     expect(titles()).toEqual(['Vibrate'])
     expect(host.querySelector('.lrow .lrow-s').textContent).toBe('Timer alerts')
     act(() => rowTitled('Vibrate').click())
-    expect(mocks.navs.at(-1)).toEqual(['/settings/alerts', { state: { find: 'Vibrate' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Vibrate' } }])
     type('zzzz')
     expect(host.querySelector('.sp-empty').textContent).toBe('No setting matches “zzzz”.')
   })
@@ -315,7 +315,7 @@ describe('the pages', () => {
     mount('advanced')
     expect(host.querySelector('.sp-back').textContent).toBe('Workout')
     act(() => host.querySelector('.sp-back').click())
-    expect(mocks.navs.at(-1)).toEqual(['/settings/workout', { replace: true }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/workout', { replace: true }])
   })
 
   it('a search hit flashes its row', () => {

@@ -634,7 +634,7 @@ export default function Stats() {
 
   return <>
     <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
-      <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div>
+      <button className="iconbtn" onClick={() => nav('/train/history')} aria-label={t('History')}><Icon name="history" /></button></div>
 
     <div className="tiles">
       <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>
@@ -659,19 +659,19 @@ export default function Stats() {
     {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
       <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Structural balance')}</h2>
         <div className="muted small" style={{ marginTop: 4 }}>{t('See which lift is holding back the rest.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/structural-balance')}>{t('Open')}</Button>
+      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/train/structural-balance')}>{t('Open')}</Button>
     </div>}
     {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
       <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Progress photos')}</h2>
         <div className="muted small" style={{ marginTop: 4 }}>{t('Every photo you kept with a workout, lined up by date. Plus a before/after slider.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/progress-photos')}>{t('Open')}</Button>
+      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/body/photos')}>{t('Open')}</Button>
     </div>}
     <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
       <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Body measurements')}</h2>
         <div className="muted small" style={{ marginTop: 4 }}>{(S.measurements || []).length
           ? t('Last check-in {0}', fmtDate(S.measurements[S.measurements.length - 1].d, true))
           : t('Waist, arms, body fat and anything else you measure, each with its own curve.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/measurements')}>{t('Open')}</Button>
+      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/body/measurements')}>{t('Open')}</Button>
     </div>
     {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
 
@@ -748,7 +748,7 @@ export default function Stats() {
     {workouts.length > 0 && <>
       <div className="row between" style={{ marginBottom: 10 }}>
         <h4 className="sec" style={{ margin: 0 }}>{t('Recent workouts')}</h4>
-        <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={() => nav('/history')}>{t('All')} {workouts.length}</Button>
+        <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={() => nav('/train/history')}>{t('All')} {workouts.length}</Button>
       </div>
       <div className="list">{[...workouts].reverse().slice(0, 6).map(w => <WorkoutRow key={w.id} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
     </>}

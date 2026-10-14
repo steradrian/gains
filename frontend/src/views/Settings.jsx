@@ -6,6 +6,7 @@ import { workoutControls } from '../lib/workout-controls.js'
 import { speedUnitOf } from '../lib/speed.js'
 import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
 import { copyText } from '../lib/clipboard.js'
+import { goBack } from '../lib/nav.js'
 import { useUI } from '../store/useUI.js'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
@@ -63,8 +64,8 @@ export function SettingsRoute() {
   const { page } = useParams()
   const loc = useLocation()
   const ctx = { user: useStore(s => s.user), mobile: MOBILE }
-  if (page && (!PAGES[page] || !pageVisible(PAGES[page].parent || page, ctx))) return <Navigate to="/settings" replace />
-  if (page === 'coach') return <Navigate to="/coach/setup" replace />
+  if (page && (!PAGES[page] || !pageVisible(PAGES[page].parent || page, ctx))) return <Navigate to="/me" replace />
+  if (page === 'coach') return <Navigate to="/train/coach/setup" replace />
   return <Settings key={page || 'root'} page={page || null} find={loc.state?.find || null} via={loc.state?.via || null} />
 }
 
@@ -347,7 +348,7 @@ export default function Settings({ page = null, find = null, via = null }) {
   const kept = t('The changes your server has not seen are kept on this device, and added back when it connects as this account again.')
   // A workout running here is kept aside by the sign-out (useStore stashActive): the confirm says so.
   const running = () => S.active ? ' ' + t('You have a workout running. It waits on this device until you’re back on this account.') : ''
-  const leave = (kind, after) => leaveServer(kind, { exportBackup: doExport, exportBackupZip: doExportZip, done: r => { nav('/home'); if (r.stashed) toast(kept); else if (after) toast(after) } })
+  const leave = (kind, after) => leaveServer(kind, { exportBackup: doExport, exportBackupZip: doExportZip, done: r => { nav('/train/home'); if (r.stashed) toast(kept); else if (after) toast(after) } })
   const disconnect = () => confirmSheet({
     title: t('Disconnect from your server?'),
     message: t('This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.') + running(),
@@ -382,7 +383,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       if (user) api('/api/coach/forget', { method: 'POST', body: '{}' }).catch(() => {})
       if (coachLocal?.mode === 'byok') forgetCoach().catch(() => {})
       resetAll()
-      nav('/home'); toast(t('All data reset'))
+      nav('/train/home'); toast(t('All data reset'))
       clearMediaAfterReset(!!user).catch(() => {})
     },
   })
@@ -416,13 +417,13 @@ export default function Settings({ page = null, find = null, via = null }) {
   }
 
   const open = id => {
-    if (id === 'coach') { nav('/coach/setup'); return }
-    nav('/settings/' + id)
+    if (id === 'coach') { nav('/train/coach/setup'); return }
+    nav('/me/' + id)
   }
   // Back the way you came when there is a way (the browser's back, Android's back, this button
   // all do the same); a page opened from a link with nothing behind it goes up to its parent.
   const back = () => {
-    const up = PAGES[page]?.parent ? '/settings/' + PAGES[page].parent : '/settings'
+    const up = PAGES[page]?.parent ? '/me/' + PAGES[page].parent : '/me'
     if ((window.history.state?.idx || 0) > 0) nav(-1)
     else nav(up, { replace: true })
   }
@@ -629,7 +630,7 @@ export default function Settings({ page = null, find = null, via = null }) {
         </Row>
         {/* Rotation chosen with no loop running yet: the loop is built on Plan. */}
         {mode === 'rotation' && !liveQ && <Row icon="calendar" iconTint="var(--orange)" title={t('Build your loop in Plan')}
-          accessory="chevron" onClick={() => nav('/plan')} />}
+          accessory="chevron" onClick={() => nav('/train/plan')} />}
         {/* Monday or Sunday: the Plan list, the Home strip, the calendar grid and every "this
             week" total follow it. Stored as a getDay() index (see lib/format.js). */}
         <Row icon="calendar" iconTint="var(--orange)" title={t('Week starts on')}>
@@ -843,7 +844,7 @@ export default function Settings({ page = null, find = null, via = null }) {
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
       {user && !DEMO && <ServerSyncSection>
         {MOBILE && <>
-          {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
+          {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/me/admin')} />}
           <AccountIdRow id={user.id} />
           <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} danger onClick={disconnect} />
         </>}
@@ -859,11 +860,11 @@ export default function Settings({ page = null, find = null, via = null }) {
         </> : DEMO ? <>
           <Row icon="info" iconTint="var(--acc)" title={t('You’re in the demo')} subtitle={t('Example data, stored only in this browser. Go wild and change anything you like.')} />
           <Row icon="reset" iconTint="var(--blue)" title={t('Reset demo data')} accessory="chevron"
-            onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/home'); toast(t('Demo data reset')) } })} />
+            onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/train/home'); toast(t('Demo data reset')) } })} />
           <Row icon="rocket" iconTint="var(--indigo)" title={t('Self-host openGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
             onClick={() => window.open(REPO, '_blank', 'noopener')} />
         </> : user ? <>
-          {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
+          {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/me/admin')} />}
           <PasskeysRow state={passkeys.st} changed={credsChanged} />
           <DeviceLinkRow state={passkeys.st} />
           <Row icon="qr" iconTint="var(--blue)" title={t('Pair the mobile app')} subtitle={t('Connect the openGym app on your phone to this account.')} accessory="chevron"
@@ -914,9 +915,9 @@ export default function Settings({ page = null, find = null, via = null }) {
 
   /* ---------------- the root ---------------- */
   return <SettingsRoot ctx={ctx} preview={preview} open={open} user={user} sync={sync}
-    home={() => nav('/home')} go={(hit) => {
-      if (hit.page === 'coach') { nav('/coach/setup'); return }
-      nav('/settings/' + hit.page, hit.isPage ? undefined : { state: hit.via ? { find: hit.title, via: hit.via } : { find: hit.title } })
+    home={goBack} go={(hit) => {
+      if (hit.page === 'coach') { nav('/train/coach/setup'); return }
+      nav('/me/' + hit.page, hit.isPage ? undefined : { state: hit.via ? { find: hit.title, via: hit.via } : { find: hit.title } })
     }} />
 }
 
@@ -937,7 +938,8 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
   return <div className="narrow">
     <div className="sp-nav">
-      <button className="sp-back" onClick={home} aria-label={t('Home')}><Icon name="chevronLeft" /><span>{t('Home')}</span></button>
+      {/* Me opens from the avatar in either mode, so back is back, not a fixed Home. */}
+      <button className="sp-back" onClick={home}><Icon name="chevronLeft" /><span>{t('Back')}</span></button>
     </div>
     <h1 className="sp-root-title">{t('Settings')}</h1>
     <div className="sp-search">

@@ -13,6 +13,9 @@ import { setNav } from './lib/nav.js'
 import { setSystemBarsLight } from './lib/system-bars.js'
 import { initBackButton } from './lib/back.js'
 import { useWakeLock } from './lib/wakelock.js'
+import { isModeRoot, launchPath, legacyPath, workoutRunning } from './lib/mode-route.js'
+import { lastMode, useModeNav } from './lib/use-mode-nav.js'
+import { scrollAction } from './lib/scroll-restore.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { syncPushSubscription } from './lib/push.js'
@@ -20,6 +23,8 @@ import { MOBILE } from './lib/mobile.js'
 import { exitWorkoutEdit, startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
+import ModeHeader from './components/ModeHeader.jsx'
+import { openPlusSheet } from './components/PlusSheet.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Modals from './components/Modals.jsx'
 import Toast from './components/Toast.jsx'
@@ -46,6 +51,8 @@ import CoachChat from './views/CoachChat.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
+import ComingSoon from './views/ComingSoon.jsx'
+import './mode-shell.css'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -83,6 +90,9 @@ function Shell() {
   const needsMobileOnboarding = useStore(s => s.needsMobileOnboarding)
   const langV = useLang()   // re-renders the whole shell when the language (pack) changes
   useEffect(() => { setNav(navigate) }, [navigate])
+  // The mode (Training / Nutrition) comes from the route; `shown` is the location on screen,
+  // which a mode switch holds still while it rebuilds the history underneath (lib/use-mode-nav.js).
+  const { mode, shown, switching, switchMode } = useModeNav({ navigate, location: loc, navType })
   const lastEditPath = useRef(loc.pathname)
   // Any in-app route exit, browser back included, returns to the persisted draft and asks for a
   // save decision. Reload needs no prompt because the draft itself is already in local storage.
@@ -91,9 +101,9 @@ function Shell() {
     lastEditPath.current = loc.pathname
     // The live store, not this render's S: a save that just closed the editor may not have
     // reached this render yet, and asking again would offer to delete the workout it saved.
-    if (previous !== '/workout' || !useStore.getState().S.active?.editingWorkoutId || loc.pathname === '/workout') return
+    if (previous !== '/train/workout' || !useStore.getState().S.active?.editingWorkoutId || loc.pathname === '/train/workout') return
     const destination = loc.pathname + loc.search
-    navigate('/workout', { replace: true })
+    navigate('/train/workout', { replace: true })
     exitWorkoutEdit(() => navigate(destination, { replace: true }))
   }, [loc.pathname, loc.search, S.active?.editingWorkoutId, navigate])
   // A preset key, or the user's own colour as '#rrggbb' (lib/accent.js), already checked.
@@ -143,49 +153,62 @@ function Shell() {
     linkOffered.current = true
     openDeviceLinkRedeem()
   }, [ready, linkCode])
+  // While a mode switch rebuilds the history the page on screen does not change, and a scroll
+  // event then (the browser clamping) is not a position anyone chose.
+  const switchingRef = useRef(false)
+  switchingRef.current = switching
   useEffect(() => {
     const onScroll = () => {
       // Modals pins the body while a sheet is open; scrollY is 0 then, not a position.
-      if (document.body.style.position === 'fixed') return
+      if (document.body.style.position === 'fixed' || switchingRef.current) return
       scrollPositions.set(pathRef.current, window.scrollY)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+  const modeSwitch = !!shown.state?.modeSwitch
   useLayoutEffect(() => {
+    if (switching) return
     const first = pathRef.current === null
-    const samePath = pathRef.current === loc.pathname
-    pathRef.current = loc.pathname
+    const samePath = pathRef.current === shown.pathname
+    pathRef.current = shown.pathname
+    const action = scrollAction({ first, samePath, navType, modeSwitch })
     // A fresh load arrives as a POP with nothing remembered. It goes to the top like any new
     // route — now, not a frame later: that frame landed on top of a scroll a view made on mount
     // (the superset card centring its row, views/Workout.jsx), and a smooth scroll cut off by a
     // scrollTo is simply gone.
-    if (navType !== 'POP' || first) { window.scrollTo(0, 0); return }
+    if (action === 'top') { window.scrollTo(0, 0); return }
     // A POP that stays on the route we are on is not a back-navigation: it is the history
     // entry a sheet pushed (Modals.jsx, #63) being unwound as the sheet closes. Nothing new
     // mounted, Modals puts the page back where it was itself, and a view that scrolled on
     // purpose because the sheet closed — the workout list going to the current exercise after
     // ⋯ → Layout → List (#224) — must not be dragged back to a position recorded before that
     // scroll's event had even been dispatched.
-    if (samePath) return
-    const y = scrollPositions.get(loc.pathname) || 0
+    if (action === 'keep') return
+    const y = scrollPositions.get(shown.pathname) || 0
+    // Into the other mode: the page goes back where it was left before it is first painted.
+    if (modeSwitch) window.scrollTo(0, y)
     // the restored view needs a layout pass before it is tall enough to scroll to y
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, y))
     return () => window.cancelAnimationFrame(frame)
-  }, [loc.pathname, navType])
+  }, [shown.pathname, navType, switching])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && !S.active.editingWorkoutId && S.keepAwake !== false)
   // A running workout has the whole screen (v1.3.11): no tab bar, and the rest bar docks to the
   // bottom edge in its place. Its header's ⌄ goes back to the app, where the tab bar's Resume
   // brings it back.
-  const inWorkout = loc.pathname === '/workout' && !!S.active
+  const inWorkout = shown.pathname === '/train/workout' && !!S.active
   useEffect(() => {
     document.body.classList.toggle('no-tabbar', inWorkout)
     return () => document.body.classList.remove('no-tabbar')
   }, [inWorkout])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
+  const noTabs = inWorkout || shown.pathname === '/train/coach' || needsMobileOnboarding
+  // No route of its own (a launch, a home-screen icon): the running workout, else the mode used
+  // last. A route from before the modes: where it lives now, query and all.
+  const legacy = legacyPath(shown.pathname)
+  const fallback = legacy ? legacy + shown.search : launchPath({ lastMode: lastMode(), workoutRunning: workoutRunning(S) })
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -198,46 +221,60 @@ function Shell() {
 
   return (
     <>
-      {/* keyed on the route: a view that throws is contained, and switching tabs
-          re-mounts the boundary, so the tab bar is always a way out */}
-      <div id="app" className="vfade" key={loc.pathname}>
-        <ErrorBoundary>
-          {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
-            <Routes>
-              <Route path="/home" element={<Home />} />
-              {/* Gym check-in — switched off in Settings, the route falls through to the
-                  catch-all redirect below. */}
-              {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
-              <Route path="/plan" element={<Plan />} />
-              <Route path="/plan/r/:id" element={<RoutineEdit />} />
-              <Route path="/workout" element={<Workout />} />
-              <Route path="/stats" element={<Stats />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/library" element={<Library />} />
-              <Route path="/muscles" element={<Muscles />} />
-              <Route path="/structural-balance" element={<StructuralBalance />} />
-              <Route path="/progress-photos" element={<ProgressPhotos />} />
-              <Route path="/measurements" element={<Measurements />} />
-              <Route path="/settings" element={<SettingsRoute />} />
-              <Route path="/settings/:page" element={<SettingsRoute />} />
-              {/* The Coach screens gate themselves on the instance config; the routes exist
-                  unconditionally so a deep link from a notification lands somewhere sane
-                  rather than on the catch-all. */}
-              <Route path="/coach" element={<CoachChat />} />
-              <Route path="/coach/intake" element={<CoachIntake />} />
-              <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />
-              <Route path="/coach/setup" element={<CoachSetup />} />
-              <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
-              <Route path="*" element={<Navigate to="/home" replace />} />
-            </Routes>
-          )}
-        </ErrorBoundary>
+      <div id="app">
+        {/* Outside the keyed view, so it stays put while the page under it changes. */}
+        {authed && !needsMobileOnboarding && isModeRoot(shown.pathname) && <ModeHeader mode={mode} onSwitch={switchMode} />}
+        {/* keyed on the route: a view that throws is contained, and switching tabs
+            re-mounts the boundary, so the tab bar is always a way out */}
+        <div className={'route-view' + (modeSwitch ? ' mode-in' : '')} key={shown.pathname}>
+          <ErrorBoundary>
+            {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
+              <Routes location={shown}>
+                <Route path="/" element={<Navigate to={fallback} replace />} />
+                <Route path="/train" element={<Navigate to="/train/home" replace />} />
+                <Route path="/train/home" element={<Home />} />
+                {/* Gym check-in — switched off in Settings, the route falls through to the
+                    catch-all redirect below. */}
+                {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
+                <Route path="/train/plan" element={<Plan />} />
+                <Route path="/train/plan/r/:id" element={<RoutineEdit />} />
+                <Route path="/train/workout" element={<Workout />} />
+                <Route path="/train/stats" element={<Stats />} />
+                <Route path="/train/history" element={<History />} />
+                <Route path="/train/library" element={<Library />} />
+                <Route path="/train/muscles" element={<Muscles />} />
+                <Route path="/train/structural-balance" element={<StructuralBalance />} />
+                {/* The Coach screens gate themselves on the instance config; the routes exist
+                    unconditionally so a deep link from a notification lands somewhere sane
+                    rather than on the catch-all. */}
+                <Route path="/train/coach" element={<CoachChat />} />
+                <Route path="/train/coach/intake" element={<CoachIntake />} />
+                <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
+                <Route path="/train/coach/setup" element={<CoachSetup />} />
+                <Route path="/food" element={<Navigate to="/food/diary" replace />} />
+                <Route path="/food/diary" element={<ComingSoon screen="diary" />} />
+                <Route path="/food/foods" element={<ComingSoon screen="foods" />} />
+                <Route path="/food/stats" element={<ComingSoon screen="stats" />} />
+                <Route path="/food/goals" element={<ComingSoon screen="goals" />} />
+                {/* Shared by both modes: they sit on top of whichever one opened them. */}
+                <Route path="/body" element={<Navigate to="/body/measurements" replace />} />
+                <Route path="/body/measurements" element={<Measurements />} />
+                <Route path="/body/photos" element={<ProgressPhotos />} />
+                <Route path="/wellness" element={<ComingSoon screen="wellness" />} />
+                <Route path="/me" element={<SettingsRoute />} />
+                <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/train/home" replace />} />
+                <Route path="/me/:page" element={<SettingsRoute />} />
+                <Route path="*" element={<Navigate to={fallback} replace />} />
+              </Routes>
+            )}
+          </ErrorBoundary>
+        </div>
       </div>
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
       <SyncBanner />
-      {!noTabs && <TabBar onStart={startFlow} />}
+      {!noTabs && <TabBar mode={mode} pathname={shown.pathname} onStart={startFlow} onPlus={openPlusSheet} />}
       <RestTimer />
       <Modals />
       <Toast />

@@ -109,7 +109,7 @@ describe('exercise ids this build does not know', () => {
     seed()
     expect(render(<Home />).textContent).toContain('Push')
     render(<Plan />)
-    const edit = render(<Routes><Route path="/plan/r/:id" element={<RoutineEdit />} /></Routes>, '/plan/r/r1')
+    const edit = render(<Routes><Route path="/train/plan/r/:id" element={<RoutineEdit />} /></Routes>, '/train/plan/r/r1')
     expect(edit.textContent).toContain('Unknown exercise')
     render(<Library />)
     render(<StructuralBalance />)

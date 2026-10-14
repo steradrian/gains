@@ -81,9 +81,9 @@ describe('the routines list', () => {
     expect(r.getAttribute('role')).toBe('button')
     expect(r.tabIndex).toBe(0)
     act(() => { r.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
-    expect(nav).toHaveBeenLastCalledWith('/plan/r/b')
+    expect(nav).toHaveBeenLastCalledWith('/train/plan/r/b')
     click(rowOf('Push A').querySelector('.item'))
-    expect(nav).toHaveBeenLastCalledWith('/plan/r/a')
+    expect(nav).toHaveBeenLastCalledWith('/train/plan/r/a')
     const panes = rowOf('Push A').querySelectorAll('.swpane')
     expect(panes).toHaveLength(2)
     for (const pane of panes) {

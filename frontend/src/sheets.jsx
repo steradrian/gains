@@ -330,7 +330,7 @@ function BwSheet({ required, onDone, close }) {
     <Button variant="primary" onClick={save}>{required ? t('Save & start workout') : t('Save')}</Button>
     {required && <>
       <div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</Button>
-      <div style={{ height: 2 }} /><Button variant="ghost" className="dim" icon="swap" onClick={() => closeThenNav(close, '/workout')}>{t('Choose a different workout')}</Button>
+      <div style={{ height: 2 }} /><Button variant="ghost" className="dim" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</Button>
     </>}
     {!required && recent.length > 0 && <>
       <h4 className="sec">{t('Recent weigh-ins')}</h4>
@@ -1090,7 +1090,7 @@ function AddToRoutine({ ex, close }) {
       })
       const r = isNew ? S().routines[S().routines.length - 1] : st.routines.find(x => x.id === rid)
       toast(t('“{0}” added to {1}', exerciseNameText(ex), r ? r.name : t('routine')))
-      if (isNew && r) nav('/plan/r/' + r.id)
+      if (isNew && r) nav('/train/plan/r/' + r.id)
     }, null, isNew ? null : st.routines.find(x => x.id === rid))
   }
   return <>
@@ -2188,7 +2188,7 @@ function PlanImport({ bundle, close }) {
     update(s => mergePlan(s, bundle, { schedule }))
     close()
     toast(tn('Added {0} routine to your plan', 'Added {0} routines to your plan', bundle.routineCount))
-    nav('/plan')
+    nav('/train/plan')
   }
   return <>
     <h3>{bundle.name ? t('Import “{0}”', bundle.name) : t('Import this plan')}</h3>
@@ -2545,7 +2545,7 @@ function WorkoutDetail({ w, close }) {
     <Button icon="pencil" disabled={!!st.active} onClick={() => {
       saveNote()
       initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      try { update(state => { editCompletedSession(state, w) }); closeThenNav(close, '/workout') }
+      try { update(state => { editCompletedSession(state, w) }); closeThenNav(close, '/train/workout') }
       catch (error) { toast(t(error.message)) }
     }}>{t('Edit workout')}</Button>
     <div style={{ height: 8 }} />
@@ -2577,7 +2577,7 @@ function WorkoutDetail({ w, close }) {
         try { update(s => { id = saveSessionAsRoutine(s, w, w.name) }) }
         catch (e) { toast(t(e.message)); return }
         close()
-        nav('/plan/r/' + id)
+        nav('/train/plan/r/' + id)
       }
     })}>{t('Save as routine')}</Button>
     <div style={{ height: 8 }} />
@@ -2811,7 +2811,7 @@ export function repeatWorkout(w, close) {
       }
     })
     useUI.getState().stopRest()
-    if (close) closeThenNav(close, '/workout'); else navToWorkout()
+    if (close) closeThenNav(close, '/train/workout'); else navToWorkout()
     if (skipped) toast(tn('{0} exercise no longer exists and was left out.', '{0} exercises no longer exist and were left out.', skipped))
   }
   if (st.weighIn === false) { go(null); return }
@@ -3186,7 +3186,7 @@ function WorkoutComplete({ close }) {
 }
 export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
 
-export function saveWorkoutEdits(onExit = () => nav('/history')) {
+export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
   // A save decision left open after the editor already closed (a second prompt from a route
   // exit that raced the first save) has nothing to save or delete: it only finishes leaving.
   if (!S().active?.editingWorkoutId) { onExit(); return }
@@ -3226,7 +3226,7 @@ export function saveWorkoutEdits(onExit = () => nav('/history')) {
 let savePrompt = null
 const promptOpen = () => !!savePrompt && useUI.getState().sheets.some(x => x.id === savePrompt.id)
 
-export function exitWorkoutEdit(onExit = () => nav('/history')) {
+export function exitWorkoutEdit(onExit = () => nav('/train/history')) {
   if (!S().active?.editingWorkoutId) { onExit(); return }
   if (promptOpen()) { savePrompt.onExit = onExit; return }
   const prompt = { id: null, onExit }
@@ -3328,7 +3328,7 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
+    <Button variant="primary" onClick={() => closeThenNav(close, '/train/home')}>{t('Nice!')}</Button>
   </div>
 }
 export function finishWorkout() {

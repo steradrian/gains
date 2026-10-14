@@ -6,6 +6,16 @@ import pt from './pt.js'
 export const PT_BR_OVERRIDES = {
   '{0} set brings an {1} with it. Switch on Effort per set in Settings to see it.': '{0} série traz um {1} junto. Ative “Esforço por série” nas Configurações para ver.',
   'Add to this set': 'Adicionar a esta série',
+  // --- app modes: header switch, Nutrition bar, + sheet ---
+  'Training, workout in progress': 'Treino, treino em andamento',
+  'Logging to': 'Registrando em',
+  'Log food': 'Registrar refeição',
+  'Coming in the next update': 'Chega na próxima atualização',
+  'Log meals and see the day’s calories and macros here.': 'Aqui você vai registrar refeições e ver as calorias e macros do dia.',
+  'Your foods, meals and recipes will live here.': 'Aqui vão ficar seus alimentos, refeições e receitas.',
+  'Calorie and macro trends will show here.': 'Aqui você vai ver a evolução das calorias e macros.',
+  'Calorie, macro and water targets will be set here.': 'Aqui você vai definir as metas de calorias, macros e água.',
+  'Sleep, recovery and synced health data will show here.': 'Aqui você vai ver o sono, a recuperação e os dados de saúde sincronizados.',
   'Copy this exercise’s warm-up sets, and the rest and note from its Exercise settings, into the routine. A note added for today stays with this workout. Your workout history is kept.': 'Copia para a rotina as séries de aquecimento deste exercício, e o descanso e a anotação das Configurações do exercício dele. Uma anotação adicionada para hoje fica com este treino. Seu histórico de treinos é mantido.',
   'Discard workout': 'Descartar treino',
   'Exercise settings': 'Configurações do exercício',

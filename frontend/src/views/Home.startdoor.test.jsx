@@ -51,7 +51,7 @@ describe('Home — the way to the Start screen when a plan already owns today', 
   it('opens the Start screen without starting anything', () => {
     setS(); mount()
     act(() => { door().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    expect(nav).toHaveBeenCalledWith('/workout')
+    expect(nav).toHaveBeenCalledWith('/train/workout')
     expect(startFlow).not.toHaveBeenCalled()
   })
 
@@ -73,7 +73,7 @@ describe('Home — the way to the Start screen when a plan already owns today', 
     expect(row.querySelector('.ttl').textContent).toBe('Push')
     expect(row.querySelector('.tag').textContent).toBe('Edit')
     act(() => { row.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-    expect(nav).toHaveBeenCalledWith('/workout')
+    expect(nav).toHaveBeenCalledWith('/train/workout')
   })
 
   it('still reads a running session as in progress', () => {

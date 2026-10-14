@@ -186,7 +186,7 @@ describe('leaving the server', () => {
     await act(async () => { await confirm().onConfirm() })
     expect(mocks.disconnectServer).toHaveBeenCalledWith(undefined)
     expect(mocks.sheets).toHaveLength(0)
-    expect(mocks.navs).toEqual(['/home'])
+    expect(mocks.navs).toEqual(['/train/home'])
     expect(mocks.toast).toHaveBeenCalledWith('Disconnected. Back to local-only')
   })
 
@@ -208,7 +208,7 @@ describe('leaving the server', () => {
     mocks.disconnectServer.mockResolvedValueOnce({ owed: true, count: 2, stashed: true })
     await act(async () => { buttonByText(sheet, 'Disconnect anyway').click() })
     expect(mocks.disconnectServer).toHaveBeenLastCalledWith({ force: true })
-    expect(mocks.navs).toEqual(['/home'])
+    expect(mocks.navs).toEqual(['/train/home'])
     expect(mocks.toast).toHaveBeenLastCalledWith('The changes your server has not seen are kept on this device, and added back when it connects as this account again.')
   })
 
@@ -228,7 +228,7 @@ describe('leaving the server', () => {
 
     mocks.disconnectServer.mockResolvedValueOnce({ owed: false })
     await act(async () => { buttonByText(sheet, 'Try again').click() })
-    expect(mocks.navs).toEqual(['/home'])
+    expect(mocks.navs).toEqual(['/train/home'])
   })
 
   it('refused by the server, "Try again" makes way for "Pair again" — pairing is what brings the changes over', async () => {
@@ -294,7 +294,7 @@ describe('leaving the server', () => {
     mocks.signOut.mockResolvedValueOnce({ owed: true, count: 4, stashed: true })
     await act(async () => { buttonByText(sheet, 'Sign out anyway').click() })
     expect(mocks.signOut).toHaveBeenLastCalledWith({ force: true })
-    expect(mocks.navs).toEqual(['/home'])
+    expect(mocks.navs).toEqual(['/train/home'])
 
     act(() => rowByTitle(page, 'Sign out everywhere').click())
     expect(confirm().message).toContain('Phones paired with it are disconnected and have to be paired again.')

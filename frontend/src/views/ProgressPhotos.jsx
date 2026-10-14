@@ -170,7 +170,7 @@ export default function ProgressPhotos() {
   }
 
   return <>
-    <div className="hdr"><button className="iconbtn" onClick={() => nav('/stats')} aria-label={t('Stats')}><Icon name="chevronLeft" /></button>
+    <div className="hdr"><button className="iconbtn" onClick={() => nav('/train/stats')} aria-label={t('Stats')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('Progress photos')}</h1>
         <div className="sub">{tn('{0} photo', '{0} photos', photos.length)}</div></div>
       {photos.length >= 2 && (comparing
@@ -183,7 +183,7 @@ export default function ProgressPhotos() {
         ? <Button icon={busy ? 'image' : 'camera'} disabled={!canAdd} onClick={() => fileRef.current?.click()}>
             {busy ? t('Loading…') : t('Add a photo to today')}
           </Button>
-        : <Button icon="dumbbell" onClick={() => nav('/workout')}>{t('Log today’s workout to add a photo')}</Button>}
+        : <Button icon="dumbbell" onClick={() => nav('/train/workout')}>{t('Log today’s workout to add a photo')}</Button>}
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
     </div>}
 

@@ -142,6 +142,6 @@ describe('routine order', () => {
     click(add)
     const created = useStore.getState().S.routines.at(-1)
     expect(created.name).toBe('New routine')
-    expect(nav).toHaveBeenCalledWith('/plan/r/' + created.id)
+    expect(nav).toHaveBeenCalledWith('/train/plan/r/' + created.id)
   })
 })

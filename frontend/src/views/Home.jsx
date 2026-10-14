@@ -10,7 +10,6 @@ import Icon from '../components/Icon.jsx'
 import QueueRow from '../components/QueueRow.jsx'
 import { queueOf, queueView, weekTally, pinState } from '../lib/queue.js'
 import { scheduleModeOf } from '../lib/rotation.js'
-import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { glyphOf } from '../lib/glyphs.js'
@@ -21,8 +20,6 @@ export default function Home() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
-  // The banner switched off and the sync stuck: a dot on the gear (Settings → Show connection status).
-  const trouble = useConnectionTrouble()
   const [weekOffset, setWeekOffset] = useState(0)
 
   const today = new Date()
@@ -95,15 +92,15 @@ export default function Home() {
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
 
   // today's session shown right under the week strip
-  const onToday = () => { if (S.active) nav('/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
+  const onToday = () => { if (S.active) nav('/train/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
   // A chip on the coach week's progress row starts that one routine, in any order. A session
   // already in progress wins, as on the today row — starting another would overwrite it.
-  const onQueueStart = id => { if (S.active) nav('/workout'); else startFlow([id]) }
+  const onQueueStart = id => { if (S.active) nav('/train/workout'); else startFlow([id]) }
 
+  // Settings moved behind the avatar in the mode header (components/ModeHeader.jsx).
   return <div className="narrow">
     <div className="hdr">
       <div><h1>{user ? t('Hi {0}', user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
     </div>
 
     <div className="card">
@@ -112,7 +109,7 @@ export default function Home() {
           next session reaches it through effectiveRoutineIds like any planned routine. */}
       {rotating ? (queue ? <QueueRow S={S} today={todayISO()} onStart={onQueueStart} managed={managedQueue} /> : <div className="empty">
         {t('No rotation yet. Add routines to it in Plan.')}
-        <div style={{ marginTop: 10 }}><Button size="sm" variant="tinted" onClick={() => nav('/plan')}>{t('Set up in Plan')}</Button></div>
+        <div style={{ marginTop: 10 }}><Button size="sm" variant="tinted" onClick={() => nav('/train/plan')}>{t('Set up in Plan')}</Button></div>
       </div>) : <>
         <div className="row between" style={{ marginBottom: 8 }}>
           <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 15 }} onClick={() => setWeekOffset(w => w - 1)} aria-label={t('Previous week')}><Icon name="chevronLeft" /></button>
@@ -152,7 +149,7 @@ export default function Home() {
           way in, "Choose a different workout" on the weigh-in sheet, does not exist when the
           weigh-in is switched off. This is that door, and it starts nothing on its own. */}
       {!S.active && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
-        <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={() => nav('/workout')}>
+        <Button size="sm" variant="ghost" className="dim" icon="swap" onClick={() => nav('/train/workout')}>
           {t('Choose a different workout')}
         </Button>
       </div>}
@@ -161,7 +158,7 @@ export default function Home() {
     {/* Jump to the gym check-in cards (QR membership codes). Shown here as a quick tap on
         arrival at the gym; folds away per user via the "Gym check-in" switch in Settings. */}
     {S.checkIn !== false && (
-      <div className="card tappable" style={{ cursor: 'pointer' }} {...tappable(() => nav('/checkin'))}>
+      <div className="card tappable" style={{ cursor: 'pointer' }} {...tappable(() => nav('/train/checkin'))}>
         <div className="row between">
           <div className="row" style={{ gap: 9 }}>
             <span className="lrow-i" style={{ background: 'var(--blue)' }}><Icon name="qr" /></span>
@@ -183,7 +180,7 @@ export default function Home() {
         </div>
         <div className="muted small" style={{ marginBottom: 12 }}>{t('Set up your weekly routine to get going, or grab a ready-made starter plan.')}</div>
         <Button variant="primary" icon="clipboard" onClick={starterPlanSheet}>{t('Load starter plan')}</Button>
-        <div style={{ height: 8 }} /><Button onClick={() => nav('/plan')}>{t('Build my own plan')}</Button>
+        <div style={{ height: 8 }} /><Button onClick={() => nav('/train/plan')}>{t('Build my own plan')}</Button>
       </div>
     )}
 

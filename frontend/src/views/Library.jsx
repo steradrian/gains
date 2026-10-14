@@ -69,7 +69,7 @@ export default function Library() {
 
   return <>
     <div className="hdr lib-hdr"><div><h1>{t('Exercises')}</h1></div>
-      <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => nav('/muscles')}>{t('By muscle')}</Button>
+      <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => nav('/train/muscles')}>{t('By muscle')}</Button>
       <div className="sub lib-count">{ownCount
         ? tn('{1} animated exercises + 1 of your own', '{1} animated exercises + {0} of your own', ownCount, EXDB.length)
         : t('{0} exercises with animations', EXDB.length)}</div>

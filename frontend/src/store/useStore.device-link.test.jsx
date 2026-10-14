@@ -25,12 +25,12 @@ afterEach(() => { history.replaceState({}, '', '/'); useStore.setState({ user: n
 
 describe('boot with a device-link code', () => {
   it('takes ?link= off the address, keeps the rest of it, and holds the code for the redeem sheet', async () => {
-    history.replaceState({}, '', '/gym/?link=K7WQ-2MZP-4HXA&utm=x#/home')
+    history.replaceState({}, '', '/gym/?link=K7WQ-2MZP-4HXA&utm=x#/train/home')
     await bootSignedOut()
     expect(useStore.getState().linkCode).toBe('K7WQ-2MZP-4HXA')
     expect(window.location.search).toBe('?utm=x')
     expect(window.location.pathname).toBe('/gym/')
-    expect(window.location.hash).toBe('#/home')
+    expect(window.location.hash).toBe('#/train/home')
     expect(useStore.getState().ready).toBe(true)
   })
 

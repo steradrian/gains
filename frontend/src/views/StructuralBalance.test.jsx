@@ -164,7 +164,7 @@ describe('StructuralBalance view', () => {
   it('the back chevron navigates to /stats', () => {
     const host = render()
     act(() => host.querySelector('.iconbtn').click())
-    expect(navSpy).toHaveBeenCalledWith('/stats')
+    expect(navSpy).toHaveBeenCalledWith('/train/stats')
   })
 
   it('changing a role\'s exercise via the picker saves an override and marks it custom', () => {
@@ -207,7 +207,7 @@ describe('the way in from Stats', () => {
     expect(card.textContent).toContain('See which lift is holding back the rest.')
     const open = [...card.querySelectorAll('button')].find(b => b.textContent.includes('Open'))
     act(() => open.click())
-    expect(navSpy).toHaveBeenCalledWith('/structural-balance')
+    expect(navSpy).toHaveBeenCalledWith('/train/structural-balance')
   })
 
   it('is not offered before the first workout', () => {

@@ -4,6 +4,14 @@ export const setNav = fn => { _nav = fn }
 // `opts` goes to the router as is ({ replace: true }).
 export const nav = (to, opts) => (opts ? _nav(to, opts) : _nav(to))
 
+// Back from a page any mode can open (Me, Wellness): to wherever it was opened from. Opened
+// straight from a link there is nothing behind it, so the launch screen instead. `idx` is the
+// router's own position in the history (react-router keeps it in history.state).
+export function goBack() {
+  if (globalThis.history?.state?.idx > 0) _nav(-1)
+  else _nav('/', { replace: true })
+}
+
 // Every open sheet sits on a history entry of its own (Modals.jsx), and closing it walks back
 // only while the page is still where the sheet opened. A sheet that closes and moves to another
 // page at once left that entry behind: back from the new page landed on it, the same page with
@@ -18,9 +26,9 @@ export function closeThenNav(close, to) {
   nav(to, replace ? { replace: true } : undefined)
 }
 
-// Into the workout screen: from the routine chooser (already #/workout) or from a sheet's entry,
-// the session takes that entry, so one back leaves it rather than landing on itself.
+// Into the workout screen: from the routine chooser (already #/train/workout) or from a sheet's
+// entry, the session takes that entry, so one back leaves it rather than landing on itself.
 export function navToWorkout() {
-  const here = String(globalThis.location?.hash || '').startsWith('#/workout')
-  nav('/workout', here || onSheetEntry() ? { replace: true } : undefined)
+  const here = String(globalThis.location?.hash || '').startsWith('#/train/workout')
+  nav('/train/workout', here || onSheetEntry() ? { replace: true } : undefined)
 }

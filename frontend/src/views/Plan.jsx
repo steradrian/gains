@@ -164,7 +164,7 @@ export default function Plan() {
     <div className="hdr">
       <div><h1>{t('Plan')}</h1><div className="sub">{mode === 'rotation' ? t('Your routines in a loop') : t('Your weekly routine')}</div></div>
       <div className="hdr-actions">
-        {showCoach && <Button size="sm" variant="tinted" icon="sparkles" onClick={() => nav('/coach')}>{t('Coach')}</Button>}
+        {showCoach && <Button size="sm" variant="tinted" icon="sparkles" onClick={() => nav('/train/coach')}>{t('Coach')}</Button>}
         <button className="iconbtn" onClick={openMenu} aria-label={t('Plan options')} title={t('Plan options')}><Icon name="share" /></button>
       </div>
     </div>
@@ -370,7 +370,7 @@ function Schedule({ S, update, nav, mode }) {
         shows that card once there is a routine, so the link waits for one too. */}
     {S.routines.length > 0 && <Section className="plan-link">
       <Row icon="chart" iconTint="var(--indigo)" title={t('Weekly muscle volume')} subtitle={t('Now in Stats, next to Muscle balance')}
-        accessory="chevron" onClick={() => nav('/stats?focus=weekly-volume')} />
+        accessory="chevron" onClick={() => nav('/train/stats?focus=weekly-volume')} />
     </Section>}
   </>
 }
@@ -394,7 +394,7 @@ function Routines({ S, update, nav }) {
   const addRoutine = () => {
     const r = { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] }
     update(s => { s.routines.push(r) })
-    nav('/plan/r/' + r.id)
+    nav('/train/plan/r/' + r.id)
   }
   // The same delete as RoutineEdit's "Delete routine" button (lib/routines.js), with an Undo in
   // place of its confirm (v1.3.11): the swipe and the edit-mode minus both land here.
@@ -437,7 +437,7 @@ function Routines({ S, update, nav }) {
               {...reorder.handle(i)}><Icon name="chevronsUpDown" /></button>}
           </div>)}</div>
         : <div className="list routine-list plan-routines">{routines.map(r => {
-          const row = <div key={r.id} className="item plan-routine" {...tappable(() => nav('/plan/r/' + r.id))}>
+          const row = <div key={r.id} className="item plan-routine" {...tappable(() => nav('/train/plan/r/' + r.id))}>
             <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
             <div className="grow"><div className="tt">{r.name}</div><div className="ss">{sub(r)}</div></div>
             <Icon name="chevronRight" className="chev" /></div>
