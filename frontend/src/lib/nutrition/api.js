@@ -65,9 +65,11 @@ import { offSearchUrl } from './off.js'
  *   state: 'pending'|'synced'|'user_edited'|'failed'|'expired'|'deleted' }} WorkoutSyncStatus */
 /**
  * Every failure is an Error with `status` (the HTTP status, 0 without an answer) and `code`:
- * 'offline' (no connection), 'timeout', 'http' (a 4xx/5xx; `message` is the server's `error`),
- * 'bad-response' (a 2xx that is not JSON).
- * @typedef {Error & { status: number, code: 'offline'|'timeout'|'http'|'bad-response' }} NtError
+ * 'offline' (no connection), 'timeout', 'http' (a 4xx/5xx), 'bad-response' (a 2xx that is not
+ * the JSON expected), 'aborted' (the caller's signal), 'invalid' (input refused before any
+ * request: diary.js builders, store.js). `message` is for logs, never for the screen: map
+ * `code`/`status` to a t() string.
+ * @typedef {Error & { status: number, code: 'offline'|'timeout'|'http'|'bad-response'|'aborted'|'invalid' }} NtError
  */
 
 const TIMEOUT_GET_MS = 20000
@@ -83,9 +85,14 @@ export function nutritionAvailable(user) {
 
 const urlOf = path => appBase().replace(/\/$/, '') + path
 
-async function call(method, path, body) {
+// `nullable`: a JSON null is an answer (the hub's status for someone it has not stored yet).
+async function call(method, path, body, { signal, nullable = false } = {}) {
+  if (signal?.aborted) throw failure('aborted', 0, 'aborted')
   const ctl = new AbortController()
-  const timer = setTimeout(() => ctl.abort(), method === 'GET' ? TIMEOUT_GET_MS : TIMEOUT_MS)
+  let timedOut = false
+  const timer = setTimeout(() => { timedOut = true; ctl.abort() }, method === 'GET' ? TIMEOUT_GET_MS : TIMEOUT_MS)
+  const onAbort = () => ctl.abort()
+  signal?.addEventListener('abort', onAbort)
   let res
   try {
     res = await fetch(urlOf(path), {
@@ -96,20 +103,24 @@ async function call(method, path, body) {
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: ctl.signal,
     })
-  } catch (e) {
-    const timedOut = e?.name === 'AbortError'
-    throw failure(timedOut ? 'timeout' : 'offline', 0, timedOut ? 'timeout' : 'offline')
+  } catch {
+    if (timedOut) throw failure('timeout', 0, 'timeout')
+    if (signal?.aborted) throw failure('aborted', 0, 'aborted')
+    throw failure('offline', 0, 'offline')
   } finally {
     clearTimeout(timer)
+    signal?.removeEventListener('abort', onAbort)
   }
-  let data = null
-  try { data = await res.json() } catch { data = null }
-  if (!res.ok) throw failure((data && typeof data.error === 'string' && data.error) || 'HTTP ' + res.status, res.status, 'http')
-  if (data === null || typeof data !== 'object') throw failure('bad response', res.status, 'bad-response')
+  let data
+  let parsed = true
+  try { data = await res.json() } catch { parsed = false }
+  if (!res.ok) throw failure((parsed && data && typeof data.error === 'string' && data.error) || 'HTTP ' + res.status, res.status, 'http')
+  if (parsed && data === null && nullable) return null
+  if (!parsed || data === null || typeof data !== 'object') throw failure('bad response', res.status, 'bad-response')
   return data
 }
 
-const nt = (method, path, body) => call(method, '/nt' + path, body)
+const nt = (method, path, body, opts) => call(method, '/nt' + path, body, opts)
 
 export const NtApi = {
   /** @returns {Promise<DiaryDay>} */
@@ -122,8 +133,13 @@ export const NtApi = {
   getSettings: () => nt('GET', '/api/settings'),
   /** Your own foods, by name. @returns {Promise<Food[]>} (img_url, not imgUrl) */
   getFoods: () => nt('GET', '/api/foods'),
-  /** `client_key` makes a retry return the food made the first time. @returns {Promise<Food>} */
-  createFood: food => nt('POST', '/api/foods', food),
+  /** Saves a food as yours: always private, never with an image (the hub refuses `img_url`,
+   *  `imgUrl` and any other visibility). `client_key` makes a retry return the food made the
+   *  first time. @returns {Promise<Food>} */
+  createFood: food => {
+    const { img_url: _img, imgUrl: _imgUrl, visibility: _vis, id: _id, ...rest } = food
+    return nt('POST', '/api/foods', { ...rest, visibility: 'private' })
+  },
   /** Orders recents (usage_count, last_used_at = the diary date). */
   markFoodUsed: (id, date) => nt('POST', `/api/foods/${encodeURIComponent(id)}/used`, { date }),
   /** @returns {Promise<ActivityRow[]>} */
@@ -134,17 +150,18 @@ export const NtApi = {
   getCaloriesOut: date => nt('GET', `/api/wellness/calories-out?date=${date}`),
   /** @returns {Promise<{ ready: boolean, tdee?: number }>} */
   getAdaptiveTdee: () => nt('GET', '/api/goals/adaptive-tdee'),
-  /** Open Food Facts text search through NutriTrace's proxy (the hub lets this one URL shape by).
-   *  Raw OFF answer: map it with lib/nutrition/off.js offResults. */
-  searchOnline: (query, { page = 1, pageSize = 20, lang = 'en' } = {}) =>
-    nt('GET', '/api/proxy?url=' + encodeURIComponent(offSearchUrl(query, { page, pageSize, lang }))),
+  /** Open Food Facts text search through NutriTrace's proxy (the hub lets this one URL shape by,
+   *  30 a minute per person). Raw OFF answer: map it with off.js offResults. */
+  searchOnline: (query, { page = 1, pageSize = 20, lang = 'en', signal } = {}) =>
+    nt('GET', '/api/proxy?url=' + encodeURIComponent(offSearchUrl(query, { page, pageSize, lang })), undefined, { signal }),
 }
 
 export const HubSync = {
-  /** Runs a cycle (waits up to 8 s for it). @returns {Promise<SyncStatus>} */
-  now: () => call('POST', '/hub/api/sync/now', {}),
-  /** @returns {Promise<SyncStatus>} */
-  status: () => call('GET', '/hub/api/sync/status'),
+  /** Runs a cycle (waits up to 8 s for it). Null for a person the hub has not stored yet.
+   *  @returns {Promise<SyncStatus|null>} */
+  now: () => call('POST', '/hub/api/sync/now', {}, { nullable: true }),
+  /** @returns {Promise<SyncStatus|null>} */
+  status: () => call('GET', '/hub/api/sync/status', undefined, { nullable: true }),
   /** A workout's kcal row as the hub stored it; 404 before the hub has seen it. @returns {Promise<WorkoutSyncStatus>} */
   workout: id => call('GET', `/hub/api/sync/workouts/${encodeURIComponent(id)}`),
 }

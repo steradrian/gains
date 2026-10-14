@@ -157,26 +157,40 @@ export function newUuid() {
 // What a diary item keeps (stores/diary.js _KEEP_FIELDS): the snapshot that protects history,
 // plus what the diary reads. The source food's other fields stay with the food.
 const KEEP_FIELDS = ['uuid', 'meal', 'addedAt', 'updatedAt', 'type', 'id', 'food_server_id', 'is_recipe', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'notes', 'imgUrl', 'source', 'source_meal_id']
-const referenceShape = item => Object.fromEntries(KEEP_FIELDS.filter(k => k in item).map(k => [k, item[k]]))
+function referenceShape(item) {
+  const out = Object.fromEntries(KEEP_FIELDS.filter(k => k in item).map(k => [k, item[k]]))
+  if (Array.isArray(item._splitItems)) out._splitItems = item._splitItems.map(referenceShape)
+  return out
+}
 
-/** A food logged to a meal: `food` already at its portion (atPortion), `quantity` servings. */
+/** The error a builder throws for input it cannot log: an NtError with code 'invalid'. */
+export const invalid = what => Object.assign(new Error(what), { status: 0, code: 'invalid' })
+const positive = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
+const mealSlot = meal => { const n = Number(meal); return Number.isInteger(n) && n >= 0 && n <= 31 ? n : 0 }
+
+/** A food logged to a meal: `food` already at its portion (atPortion), `quantity` servings.
+ *  Throws invalid for servings or a portion that is not a number above 0. */
 export function foodItem(food, { meal, quantity = 1, now = new Date() }) {
+  const servings = positive(quantity)
+  if (servings == null) throw invalid('servings must be a number above 0')
+  if (food.portion != null && positive(food.portion) == null) throw invalid('portion must be a number above 0')
   const imgUrl = typeof food.imgUrl === 'string' && !food.imgUrl.startsWith('data:') ? food.imgUrl : ''
   return referenceShape({
     ...food,
     imgUrl,
-    quantity: parseFloat(quantity) || 1,
+    quantity: servings,
     uuid: newUuid(),
-    meal: Number(meal) || 0,
+    meal: mealSlot(meal),
     addedAt: now.toISOString(),
     food_server_id: typeof food.id === 'number' ? food.id : null,
   })
 }
 
-/** NutriTrace's Quick Calories row (stores/diary.js addQuickCalories). Null without a positive kcal. */
+/** NutriTrace's Quick Calories row (stores/diary.js addQuickCalories). Throws invalid without a
+ *  positive kcal. */
 export function quickCaloriesItem({ kcal, name, proteins, carbohydrates, fat, meal, now = new Date() }) {
-  const calories = Math.max(0, Math.round(Number(kcal) || 0))
-  if (!calories) return null
+  const calories = Math.round(positive(kcal) || 0)
+  if (!calories) throw invalid('kcal must be a number above 0')
   const nutrition = { calories }
   const opt = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : null }
   for (const [k, v] of [['proteins', proteins], ['carbohydrates', carbohydrates], ['fat', fat]]) {
@@ -188,35 +202,66 @@ export function quickCaloriesItem({ kcal, name, proteins, carbohydrates, fat, me
     name: typeof name === 'string' && name.trim() ? name.trim().slice(0, 60) : 'Quick Calories',
     nutrition,
     uuid: newUuid(),
-    meal: Number(meal) || 0,
+    meal: mealSlot(meal),
     addedAt: now.toISOString(),
     food_server_id: null,
   }
 }
 
+/** A water entry (stores/diary.js addWaterLog). Throws invalid unless ml is a finite number above 0. */
 export function waterLog(amountMl, { now = new Date(), hour12 = true } = {}) {
+  const ml = positive(amountMl)
+  if (ml == null || ml > 20000) throw invalid('water must be a number of ml above 0')
   return {
     uuid: newUuid(),
-    amount: Math.round(amountMl),
+    amount: Math.round(ml),
     time: now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12 }),
   }
 }
 
-// A PUT that names only what it adds or removes. NutriTrace merges per uuid
-// (server/lib/diary-merge.js): what the request does not mention stays as it is, and a retry of
-// the same item is the same item. No body_stats and no notes: the server keeps the day's own.
-export const addPayload = ({ items = [], water = [] }) => ({ items, water, deleted_uuids: { items: [], water: [] } })
-export const removePayload = ({ items = [], water = [] }) => ({ items: [], water: [], deleted_uuids: { items, water } })
+/**
+ * The PUT body for a day, as NutriTrace's own client builds it (stores/diary.js
+ * _refetchAndSave + _toApi): the day's current lists, as just read, with `add` appended and the
+ * `remove` uuids taken out and named in deleted_uuids. NutriTrace orders a day by the list the
+ * client sends (server/lib/diary-merge.js), so sending the whole list keeps it in log order.
+ * An entry already in the day (a retry after a lost answer) is not added twice. No body_stats
+ * and no notes: the server keeps the day's own.
+ * @param {import('./api.js').DiaryDay|null} day
+ * @returns {import('./api.js').DiaryWrite}
+ */
+export function dayWrite(day, { addItems = [], addWater = [], removeItems = [], removeWater = [] } = {}) {
+  const merge = (list, add, remove) => {
+    const gone = new Set(remove)
+    const have = new Set()
+    const out = []
+    for (const e of [...(Array.isArray(list) ? list : []), ...add]) {
+      if (!e || typeof e !== 'object' || gone.has(e.uuid) || (e.uuid && have.has(e.uuid))) continue
+      if (e.uuid) have.add(e.uuid)
+      out.push(e)
+    }
+    return out
+  }
+  return {
+    items: merge(day?.items, addItems, removeItems).map(referenceShape),
+    water: merge(day?.water, addWater, removeWater),
+    deleted_uuids: { items: [...removeItems], water: [...removeWater] },
+  }
+}
 
 /* ------------------------------------------------------------------ settings ----------------- */
 
 const DEFAULT_MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks']
 const DEFAULT_MEAL_TIMES = ['08:00', '12:00', '18:00']
 
-/** The meal names, by slot (English defaults: translate them where they are shown). */
-export function mealNamesOf(settings) {
+/**
+ * The meals, by slot. `isDefault`: NutriTrace's English default (the person never saved meal
+ * names), to be translated where it is shown; a saved name is the person's and shows as saved.
+ * @returns {{ slot: number, name: string, isDefault: boolean }[]}
+ */
+export function mealsOf(settings) {
   const names = settings?.mealNames
-  return Array.isArray(names) && names.length && names.every(n => typeof n === 'string') ? names : DEFAULT_MEALS
+  const saved = Array.isArray(names) && names.length > 0 && names.every(n => typeof n === 'string' && n.trim())
+  return (saved ? names : DEFAULT_MEALS).map((name, slot) => ({ slot, name, isDefault: !saved }))
 }
 
 const minutesOf = hhmm => {
@@ -230,7 +275,7 @@ const minutesOf = hhmm => {
  *  18:00 unless changed), the one per-meal clock it keeps. Meals without a time (Snacks by
  *  default) are never the default. */
 export function defaultMeal(settings, now = new Date()) {
-  const count = mealNamesOf(settings).length
+  const count = mealsOf(settings).length
   const times = Array.isArray(settings?.notifMealTimes) && settings.notifMealTimes.length ? settings.notifMealTimes : DEFAULT_MEAL_TIMES
   const at = now.getHours() * 60 + now.getMinutes()
   let best = 0
@@ -277,7 +322,8 @@ export function calorieTarget({ settings, date, caloriesOut = null, adaptiveTdee
   return { base, target: base + added, added, fromBurn, adjust }
 }
 
-const DENSITY = { fat: 9, carbohydrates: 4, proteins: 4 }
+// kcal per gram for a percentage-of-calories goal (Diary.svelte _macroGoal).
+const DENSITY = { fat: 9, 'saturated-fat': 9, carbohydrates: 4, sugars: 4, proteins: 4 }
 
 /** A macro's target in grams on a date, a percentage-of-calories goal converted against the base
  *  target (Diary.svelte _macroGoal). Null without a goal. */
@@ -290,6 +336,24 @@ export function macroTarget(settings, id, date, baseCalories) {
 }
 
 export const waterGoalOf = settings => (Number(settings?.waterGoalMl) > 0 ? Number(settings.waterGoalMl) : 2000)
+
+/* ------------------------------------------------------------------ display units ------------ */
+
+// Stored values are always kcal and ml; these convert for display only, as NutriTrace does.
+
+/** kcal in the person's energy unit (energyUnit 'kcal' | 'kJ'; Nutrition.displayEnergy). */
+export function energyOf(kcal, settings) {
+  const n = parseFloat(kcal) || 0
+  return settings?.energyUnit === 'kJ' ? { value: Math.round(n * 4.184), unit: 'kJ' } : { value: Math.round(n), unit: 'kcal' }
+}
+
+const WATER_UNITS = { oz: [29.5735, 0, 'fl oz'], L: [1000, 2, 'L'], G: [3785.41, 3, 'G'] }
+/** ml in the person's water unit (waterUnit 'ml' | 'oz' | 'L' | 'G'; WaterWidget.svelte formatMl). */
+export function waterOf(ml, settings) {
+  const n = Number(ml) || 0
+  const u = WATER_UNITS[settings?.waterUnit]
+  return u ? { value: Number((n / u[0]).toFixed(u[1])), unit: u[2] } : { value: Math.round(n), unit: 'ml' }
+}
 
 /* ------------------------------------------------------------------ foods -------------------- */
 

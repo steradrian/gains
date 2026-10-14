@@ -1,13 +1,17 @@
 // A fake of NutriTrace and the hub's sync routes at the fetch boundary, for tests. It answers
-// what the hub forwards (fitness-hub src/nt-routes.ts) with NutriTrace's real shapes and merge
-// rules (server/routes/diary.js, foods.js, activity.js, server/lib/diary-merge.js); any other
-// path is a 404, as the hub answers it.
+// what the hub forwards (fitness-hub src/nt-routes.ts), as strictly as the hub does, with
+// NutriTrace's real shapes and merge rules (server/routes/diary.js, foods.js, activity.js,
+// server/lib/diary-merge.js); any other path is a 404, as the hub answers it.
 //
 //   const nt = createFakeNutriTrace({ days: { '2026-10-14': fixtureDay() } })
 //   vi.stubGlobal('fetch', nt.fetch)
 //   ...
-//   expect(nt.requests.at(-1)).toMatchObject({ method: 'PUT', path: '/nt/api/diary/2026-10-14' })
-//   nt.failNext('PUT', '/nt/api/diary/', { status: 500 })   // or 'offline'
+//   expect(nt.writes().at(-1)).toMatchObject({ method: 'PUT', path: '/nt/api/diary/2026-10-14' })
+//   nt.failNext('PUT', '/nt/api/diary/', { status: 500 })              // refused before saving
+//   nt.failNext('PUT', '/nt/api/diary/', 'offline')                    // no connection
+//   nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })  // saved, answer lost
+//   nt.failNext('PUT', '/nt/api/diary/', { lost: true })               // saved, then offline
+//   const slow = nt.hold('GET', '/nt/api/diary/'); ...; slow.release()  // answered now, delivered later
 //
 // Not imported by the app.
 
@@ -71,27 +75,71 @@ export const fixtureOffSearch = () => ({
   ],
 })
 
-/** GET /hub/api/sync/status when all is well. */
+/** GET /hub/api/sync/status when all is well. Pass `syncStatus: null` for a person the hub has
+ *  not stored yet (it answers JSON null). */
 export const fixtureSyncStatus = (state = 'ok') => ({ state, pending: 0, held: 0, last_synced_at: 1760464800000, next_retry_at: null, suspended: null, problems: [] })
 
-/* ------------------------------------------------------------------ the fake ----------------- */
+/* ------------------------------------------------------------------ hub rules ---------------- */
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const ID = /^[A-Za-z0-9_-]{1,64}$/
 
-// server/lib/diary-merge.js, minus legacy echo matching: per uuid, later addedAt/updatedAt wins,
-// tombstones (old or new) drop an entry, unmentioned server entries stay.
-function merge(server, client, deleted, tombstones) {
-  for (const u of deleted) tombstones.add(u)
-  const ts = e => String(e?.updatedAt || e?.addedAt || '')
-  const out = new Map()
-  for (const e of [...server, ...client]) {
-    if (!e || typeof e !== 'object' || tombstones.has(e.uuid)) continue
-    const cur = out.get(e.uuid)
-    if (!cur || ts(e) >= ts(cur)) out.set(e.uuid, e)
+function onlyKeys(params, allowed) {
+  const seen = new Set()
+  for (const key of params.keys()) {
+    if (!allowed.has(key) || seen.has(key)) return false
+    seen.add(key)
   }
-  return [...out.values()]
+  return true
 }
+const boundedInt = (v, max) => v === null || (/^[1-9]\d{0,2}$/.test(v) && Number(v) <= max)
+
+// fitness-hub src/nt-routes.ts isOffSearchQuery, as is.
+export function isOffSearchQuery(params) {
+  if (!onlyKeys(params, new Set(['url']))) return false
+  const raw = params.get('url')
+  if (raw === null || !raw.startsWith('https://search.openfoodfacts.org/search?')) return false
+  let target
+  try { target = new URL(raw) } catch { return false }
+  if (target.origin !== 'https://search.openfoodfacts.org' || target.pathname !== '/search') return false
+  if (target.username !== '' || target.password !== '' || target.hash !== '') return false
+  const s = target.searchParams
+  if (!onlyKeys(s, new Set(['q', 'page', 'page_size', 'langs']))) return false
+  const q = s.get('q')
+  if (q === null || q.trim() === '' || q.length > 200) return false
+  const langs = s.get('langs')
+  if (langs !== null && !/^[a-z]{2}$/.test(langs)) return false
+  return boundedInt(s.get('page'), 100) && boundedInt(s.get('page_size'), 50)
+}
+
+const isObject = v => typeof v === 'object' && v !== null && !Array.isArray(v)
+// fitness-hub isPrivateFoodWithoutImage
+const isPrivateFoodWithoutImage = b => isObject(b) && !('img_url' in b) && !('imgUrl' in b) && b.visibility === 'private'
+
+/* ------------------------------------------------------------------ NutriTrace's merge ------- */
+
+// server/lib/diary-merge.js mergeEntries, minus the legacy echo matching: the client's list in
+// its order (an entry the server holds a strictly newer copy of keeps the server's), then the
+// server's entries the client did not name, in server order. Tombstoned uuids stay out.
+function merge(server, client, deleted, tombstoned) {
+  const ts = e => String(e?.updatedAt || e?.addedAt || '')
+  const gone = new Set([...tombstoned, ...deleted])
+  const serverBy = new Map()
+  for (const e of server) if (e?.uuid && !gone.has(e.uuid) && !serverBy.has(e.uuid)) serverBy.set(e.uuid, e)
+  const pos = new Map()
+  const out = []
+  for (const e of client) {
+    if (!e || typeof e !== 'object' || !e.uuid || gone.has(e.uuid)) continue
+    if (pos.has(e.uuid)) { if (ts(e) >= ts(out[pos.get(e.uuid)])) out[pos.get(e.uuid)] = e; continue }
+    const have = serverBy.get(e.uuid)
+    pos.set(e.uuid, out.length)
+    out.push(!have || ts(e) >= ts(have) ? e : have)
+  }
+  for (const [uuid, e] of serverBy) if (!pos.has(uuid)) out.push(e)
+  return out
+}
+
+/* ------------------------------------------------------------------ the fake ----------------- */
 
 export function createFakeNutriTrace({
   days = {}, settings = fixtureSettings(), foods = fixtureFoods(), activity = {}, activitySum = {},
@@ -101,15 +149,18 @@ export function createFakeNutriTrace({
   const state = {
     days: structuredClone(days), settings: structuredClone(settings), foods: structuredClone(foods),
     activity, activitySum, caloriesOut, adaptiveTdee, offSearch, syncStatus, workouts,
+    // date → [{ kind: 'item'|'water', uuid, deleted_at }]
     tombstones: {},
   }
   const requests = []
   const failures = []
+  const holds = []
   let nextFoodId = Math.max(100, ...state.foods.map(f => f.id + 1))
 
   const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } })
   const notFound = () => json({ error: 'not found' }, 404)
-  const dayOf = date => state.days[date] || emptyDay(date)
+  const tombsOf = date => state.tombstones[date] || []
+  const answerDay = date => ({ ...(state.days[date] || emptyDay(date)), tombstones: tombsOf(date) })
 
   function route(method, path, query, body) {
     const seg = path.split('/').filter(Boolean)
@@ -117,38 +168,50 @@ export function createFakeNutriTrace({
       const sub = seg.slice(3).join('/')
       if (method === 'POST' && sub === 'now') return json(state.syncStatus)
       if (method === 'GET' && sub === 'status') return json(state.syncStatus)
-      if (method === 'GET' && seg[3] === 'workouts' && seg.length === 5) return state.workouts[decodeURIComponent(seg[4])] ? json(state.workouts[decodeURIComponent(seg[4])]) : notFound()
+      if (method === 'GET' && seg[3] === 'workouts' && seg.length === 5) {
+        const row = state.workouts[decodeURIComponent(seg[4])]
+        return row ? json(row) : notFound()
+      }
       return notFound()
     }
     if (seg[0] !== 'nt' || seg[1] !== 'api') return notFound()
     const [, , res, a, b] = seg
     const n = seg.length
     if (res === 'diary') {
-      if (method === 'GET' && n === 3) return json(Object.values(state.days))
+      if (method === 'GET' && n === 3) return json(Object.keys(state.days).map(answerDay))
       if (n !== 4 || !DATE.test(a)) return notFound()
-      if (method === 'GET') return json({ ...dayOf(a), tombstones: [] })
+      if (method === 'GET') return json(answerDay(a))
       if (method === 'PUT') {
-        const cur = dayOf(a)
-        const tomb = (state.tombstones[a] ||= { item: new Set(), water: new Set() })
+        if (!isObject(body)) return json({ error: 'request body refused' }, 400)
+        const cur = state.days[a] || emptyDay(a)
+        const tombs = tombsOf(a)
+        const now = new Date().toISOString()
+        const delItems = body.deleted_uuids?.items || []
+        const delWater = body.deleted_uuids?.water || []
         const next = {
           ...cur,
-          items: merge(cur.items, body?.items || [], body?.deleted_uuids?.items || [], tomb.item),
-          water: merge(cur.water, body?.water || [], body?.deleted_uuids?.water || [], tomb.water),
-          notes: body && 'notes' in body ? body.notes : cur.notes,
+          items: merge(cur.items, body.items || [], delItems, tombs.filter(t => t.kind === 'item').map(t => t.uuid)),
+          water: merge(cur.water, body.water || [], delWater, tombs.filter(t => t.kind === 'water').map(t => t.uuid)),
+          notes: 'notes' in body ? body.notes : cur.notes,
         }
+        const fresh = [...delItems.map(uuid => ({ kind: 'item', uuid })), ...delWater.map(uuid => ({ kind: 'water', uuid }))]
+          .filter(t => !tombs.some(x => x.kind === t.kind && x.uuid === t.uuid))
+          .map(t => ({ ...t, deleted_at: now }))
+        state.tombstones[a] = [...tombs, ...fresh]
         state.days[a] = next
-        return json({ ...next, tombstones: [] })
+        return json(answerDay(a))
       }
       return notFound()
     }
     if (res === 'settings' && method === 'GET' && n === 3) return json(state.settings)
     if (res === 'foods') {
-      if (method === 'GET' && n === 3) return json(state.foods)
+      if (method === 'GET' && n === 3) return [...query.keys()].length ? json({ error: 'forbidden' }, 403) : json(state.foods)
       if (method === 'POST' && n === 3) {
-        if (!body?.name) return json({ error: 'Name required' }, 400)
+        if (!isPrivateFoodWithoutImage(body)) return json({ error: 'request body refused' }, 400)
+        if (!body.name) return json({ error: 'Name required' }, 400)
         const made = state.foods.find(f => (body.client_key && f.client_key === body.client_key) || (body.barcode && f.barcode === body.barcode))
         if (made) return json(made, 200)
-        const food = { usage_count: 0, last_used_at: null, alt_units: null, nutrition_basis: null, density_g_ml: null, ...body, id: nextFoodId++, user_id: 3 }
+        const food = { usage_count: 0, last_used_at: null, alt_units: null, nutrition_basis: null, density_g_ml: null, img_url: null, ...body, id: nextFoodId++, user_id: 3 }
         state.foods.push(food)
         return json(food, 201)
       }
@@ -166,25 +229,39 @@ export function createFakeNutriTrace({
       if (n === 5 && a === 'sum' && DATE.test(b)) return json(state.activitySum[b] || { date: b, manual: 0, wearable: 0, effective: 0, covered_by: null, policy: query.get('policy') || 'wearable_wins' })
       return notFound()
     }
-    if (res === 'wellness' && a === 'calories-out' && method === 'GET') return json({ calories_out: state.caloriesOut[query.get('date')] ?? null })
-    if (res === 'goals' && a === 'adaptive-tdee' && method === 'GET') return json(state.adaptiveTdee)
-    if (res === 'proxy' && method === 'GET' && n === 3) {
-      const url = query.get('url') || ''
-      if (!url.startsWith('https://search.openfoodfacts.org/search?')) return json({ error: 'forbidden' }, 403)
-      return json(state.offSearch)
-    }
+    if (res === 'wellness' && a === 'calories-out' && method === 'GET' && n === 4) return json({ calories_out: state.caloriesOut[query.get('date')] ?? null })
+    if (res === 'goals' && a === 'adaptive-tdee' && method === 'GET' && n === 4) return json(state.adaptiveTdee)
+    if (res === 'proxy' && method === 'GET' && n === 3) return isOffSearchQuery(query) ? json(state.offSearch) : json({ error: 'forbidden' }, 403)
     return notFound()
   }
 
   async function fakeFetch(input, init = {}) {
     const url = new URL(typeof input === 'string' ? input : input.url, 'http://gains.test')
     const method = (init.method || 'GET').toUpperCase()
-    const body = typeof init.body === 'string' ? JSON.parse(init.body) : undefined
+    let body
+    if (typeof init.body === 'string') { try { body = JSON.parse(init.body) } catch { body = init.body } }
     requests.push({ method, path: url.pathname, query: Object.fromEntries(url.searchParams), body })
+    const signal = init.signal
+    const aborted = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
+    if (signal?.aborted) throw aborted()
+    const h = holds.findIndex(x => x.method === method && url.pathname.startsWith(x.prefix))
+    if (h >= 0) {
+      // The server answers now; the answer reaches the app when released (a slow network).
+      const [held] = holds.splice(h, 1)
+      const answer = route(method, url.pathname, url.searchParams, body)
+      await held.gate
+      if (signal?.aborted) throw aborted()
+      return answer
+    }
     const i = failures.findIndex(f => f.method === method && url.pathname.startsWith(f.prefix))
     if (i >= 0) {
       const [f] = failures.splice(i, 1)
       if (f.how === 'offline') throw new TypeError('Failed to fetch')
+      if (f.how.lost) {
+        route(method, url.pathname, url.searchParams, body)
+        if (!f.how.status) throw new TypeError('Failed to fetch')
+        return json({ error: 'upstream timeout' }, f.how.status)
+      }
       return json({ error: f.how.error || 'upstream_error' }, f.how.status || 500)
     }
     return route(method, url.pathname, url.searchParams, body)
@@ -194,8 +271,16 @@ export function createFakeNutriTrace({
     fetch: fakeFetch,
     requests,
     state,
-    /** The next matching request fails: 'offline', or { status, error } as the hub would answer. */
+    /** The next matching request fails (see the header for the forms). */
     failNext(method, prefix, how = { status: 500 }) { failures.push({ method, prefix, how }) },
+    /** The next matching request is answered by the server at once, but the answer reaches the
+     *  app only on `release()`: two requests can then answer in the other order. */
+    hold(method, prefix) {
+      let release
+      const gate = new Promise(r => { release = r })
+      holds.push({ method, prefix, gate })
+      return { release }
+    },
     writes: () => requests.filter(r => r.method !== 'GET'),
   }
 }
