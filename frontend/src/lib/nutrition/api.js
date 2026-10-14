@@ -42,6 +42,15 @@ import { offSearchUrl } from './off.js'
  *   density_g_ml?: number|null, imgUrl?: string, usage_count?: number, last_used_at?: string|null }} Food
  */
 /**
+ * A saved meal or a recipe (GET/POST /api/meals). `items` are its ingredients: foods saved at
+ * the amount used (`portion` + `unit` the total, `quantity` 1) with `nutrition` for that amount.
+ * A meal's `nutrition` is the total of its items. A recipe's `nutrition` and `portion` are per
+ * serving, `servings` the number it makes (null on a recipe saved before servings existed: one).
+ * @typedef {{ id: number, name: string, is_recipe: boolean, items: Food[], nutrition: Nutrition,
+ *   portion: number, unit: string, servings?: number|null, notes?: string|null, img_url?: string|null,
+ *   usage_count?: number, last_used_at?: string|null }} Meal
+ */
+/**
  * GET /api/activity/:date rows. `source: 'opengym'` rows are the hub's workout entries;
  * `covered_by` names the wearable whose active kcal count instead that day (else null).
  * @typedef {{ id: number, date: string, name: string, kcal: number, duration_min: number|null,
@@ -142,6 +151,25 @@ export const NtApi = {
   },
   /** Orders recents (usage_count, last_used_at = the diary date). */
   markFoodUsed: (id, date) => nt('POST', `/api/foods/${encodeURIComponent(id)}/used`, { date }),
+  /** Your saved meals (`recipes` false) or your recipes (true), by name. A recipe is a meal with
+   *  `is_recipe`; both lists come with their ingredients. @returns {Promise<Meal[]>} (img_url, not imgUrl) */
+  getMeals: ({ recipes = false } = {}) => nt('GET', recipes ? '/api/meals?recipes=1' : '/api/meals'),
+  /** Saves a meal or recipe as yours: always private, never with an image. `client_key` makes a
+   *  retry return the one made the first time. @returns {Promise<Meal>} */
+  createMeal: meal => {
+    const { img_url: _img, imgUrl: _imgUrl, visibility: _vis, id: _id, ...rest } = meal
+    return nt('POST', '/api/meals', { ...rest, visibility: 'private' })
+  },
+  /** Edits one of your meals or recipes: the fields to change (NutriTrace keeps what is left
+   *  out), never an image or a visibility. @returns {Promise<Meal>} */
+  updateMeal: (id, meal) => {
+    const { img_url: _img, imgUrl: _imgUrl, visibility: _vis, id: _id, ...rest } = meal
+    return nt('PUT', `/api/meals/${encodeURIComponent(id)}`, rest)
+  },
+  /** Removes a meal or recipe (NutriTrace keeps a tombstone). Days that logged it keep their copy. */
+  deleteMeal: id => nt('DELETE', `/api/meals/${encodeURIComponent(id)}`),
+  /** Orders "most used" and "recent" for a meal or recipe (usage_count, last_used_at = the diary date). */
+  markMealUsed: (id, date) => nt('POST', `/api/meals/${encodeURIComponent(id)}/used`, { date }),
   /** @returns {Promise<ActivityRow[]>} */
   getActivity: date => nt('GET', `/api/activity/${date}`),
   /** @returns {Promise<ActivitySum>} */

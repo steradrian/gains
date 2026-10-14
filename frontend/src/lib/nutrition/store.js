@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { NtApi } from './api.js'
 import { atPortion, dayWrite, foodItem, invalid, quickCaloriesItem, waterLog } from './diary.js'
+import { sortedByName } from './meals.js'
 import { offResults } from './off.js'
 import { useDiarySelection } from './selection.js'
 import { useHubSync } from './sync.js'
@@ -28,6 +29,8 @@ const initial = () => ({
   activity: {},
   goalInputs: {},
   foods: { status: 'idle', list: [], error: null },
+  meals: { status: 'idle', list: [], error: null },
+  recipes: { status: 'idle', list: [], error: null },
   logged: { days: new Set(), checked: new Set() },
 })
 
@@ -238,6 +241,58 @@ export const useNutrition = create((set, get) => {
       return item
     },
 
+    /** Your saved meals (`recipes` false) or recipes (true). Keeps the last list on failure. */
+    async loadMeals({ recipes = false, force = false } = {}) {
+      const key = recipes ? 'recipes' : 'meals'
+      const cur = get()[key]
+      if (!force && (cur.status === 'ready' || cur.status === 'loading')) return
+      const g = gen
+      set({ [key]: { ...cur, status: 'loading' } })
+      try {
+        const rows = await NtApi.getMeals({ recipes })
+        if (g === gen) set({ [key]: { status: 'ready', list: sortedByName((Array.isArray(rows) ? rows : []).map(withImg)), error: null } })
+      } catch (e) {
+        if (g === gen) set({ [key]: { ...get()[key], status: 'error', error: e } })
+      }
+    },
+
+    /** Creates a meal or recipe (no `id`; keep the body, with its `client_key`, and send the same
+     *  one on a retry) or edits one (`id`). Resolves to it as saved. Throws an NtError. */
+    async saveMeal(meal) {
+      const g = gen
+      const saved = withImg(typeof meal.id === 'number' ? await NtApi.updateMeal(meal.id, meal) : await NtApi.createMeal(meal))
+      if (g === gen) {
+        const key = saved.is_recipe ? 'recipes' : 'meals'
+        set(s => ({ [key]: { ...s[key], list: sortedByName([...s[key].list.filter(m => m.id !== saved.id), saved]) } }))
+      }
+      return saved
+    },
+
+    /** Removes a meal or recipe from NutriTrace and from its list. Days that logged it keep it. */
+    async deleteMeal(id) {
+      const g = gen
+      // 404: already gone (a retry after a lost answer).
+      await NtApi.deleteMeal(id).catch(e => { if (e?.status !== 404) throw e })
+      if (g === gen) set(s => ({ meals: { ...s.meals, list: s.meals.list.filter(m => m.id !== id) }, recipes: { ...s.recipes, list: s.recipes.list.filter(m => m.id !== id) } }))
+    },
+
+    /** Logs a meals.js mealDraft draft to the date: all of its entries in one write. Resolves to
+     *  the items logged (undo with removeItem for each). */
+    async logMeal(date, draft) {
+      if (!draft?.meal || !Array.isArray(draft.items) || !draft.items.length || !draft.items.every(i => i?.uuid)) throw invalid('logMeal takes a draftMeal draft')
+      await write(date, { addItems: draft.items })
+      // Orders "most used" for the meal and, as NutriTrace's addDiaryItem does, for each food
+      // it was made of. Fire and forget: the log is done.
+      const { meal } = draft
+      NtApi.markMealUsed(meal.id, date).catch(() => {})
+      if (!meal.is_recipe) {
+        for (const id of new Set(draft.items.map(i => i.food_server_id).filter(id => typeof id === 'number'))) NtApi.markFoodUsed(id, date).catch(() => {})
+      }
+      const key = meal.is_recipe ? 'recipes' : 'meals'
+      set(s => ({ [key]: { ...s[key], list: s[key].list.map(m => (m.id === meal.id ? { ...m, usage_count: (m.usage_count || 0) + 1, last_used_at: m.last_used_at && m.last_used_at > date ? m.last_used_at : date } : m)) } }))
+      return draft.items
+    },
+
     /** Logs a draftQuick item to the date. */
     async logQuick(date, item) {
       if (item?.type !== 'quick_calories' || !item.uuid) throw invalid('logQuick takes a draftQuick item')
@@ -254,6 +309,7 @@ export const useNutrition = create((set, get) => {
 
     // Undo of a log just made: out of the day, and a tombstone for its uuid (deleted_uuids).
     removeItem: (date, uuid) => write(date, { removeItems: [uuid] }),
+    removeItems: (date, uuids) => write(date, { removeItems: uuids }),
     removeWater: (date, uuid) => write(date, { removeWater: [uuid] }),
   }
 })
