@@ -6,7 +6,7 @@
 /* --- header on a mode's root screens --- */
 .mode-hdr{
   display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;
-  height:52px;margin:-4px 0 2px;
+  height:52px;margin:-4px 0 8px;
 }
 .seg.seg-mode{
   justify-self:center;width:min(100%,280px);height:36px;border-radius:10px;
@@ -40,6 +40,10 @@
   display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;
 }
 .mode-avatar-c .icn{font-size:20px}
+:root[data-theme="light"] .mode-avatar-c{
+  background:var(--surface);
+  box-shadow:var(--shadow-card,0 1px 2px rgba(48,36,24,.05),0 4px 12px -4px rgba(48,36,24,.06));
+}
 .mode-avatar:active .mode-avatar-c{opacity:.6}
 .mode-avatar .tab-dot{top:3px;right:3px;box-shadow:0 0 0 2px var(--bg)}
 
@@ -59,7 +63,10 @@
 @keyframes barfade{from{opacity:0}to{opacity:1}}
 #tabbar>button:not(.start){position:relative;z-index:1;color:var(--label-2);font-size:12px;animation:barfade 180ms var(--ease)}
 #tabbar>button.on:not(.start){color:var(--acc-ink,var(--acc))}
+/* Light: the bright accent as 12px text is ~2:1 on the bar; its darker partner reads. */
+:root[data-theme="light"] #tabbar>button.on:not(.start){color:var(--acc-ink,var(--acc-2))}
 #tabbar>button.start{position:relative;z-index:1}
+#tabbar>button.start>span:not(.cir){font-size:12px}
 #tabbar .cir-glyph{animation:barfade 180ms var(--ease)}
 
 /* The selected tab's pill. The track is the bar's content box (its padding mirrored here), one
@@ -73,10 +80,16 @@
 #tabbar .tab-pill-track.ready .tab-pill-slot{transition:transform var(--med) var(--ease),opacity var(--fast)}
 [dir="rtl"] #tabbar .tab-pill-slot{transform:translateX(calc(-100% * var(--slot)))}
 #tabbar .tab-pill-slot.off{opacity:0}
+/* Behind the icon only, so the label reads against the bar rather than the tint. */
 #tabbar .tab-pill{
-  position:absolute;top:0;bottom:-1px;left:50%;width:56px;margin-left:-28px;
+  position:absolute;top:3px;height:32px;left:50%;width:56px;margin-left:-28px;
   border-radius:99px;background:var(--acc-soft);
 }
+:root[data-theme="light"] #tabbar .tab-pill{background:color-mix(in srgb,var(--acc) 20%,transparent)}
+/* Between the two halves of the bar the pill does not travel under the disc: it fades in at
+   its new slot instead (TabBar's `jump`). */
+#tabbar .tab-pill-track.ready .tab-pill-slot.jump{transition:opacity var(--fast)}
+#tabbar .tab-pill-slot.jump .tab-pill{animation:barfade var(--fast) var(--ease)}
 
 /* --- the + sheet --- */
 .plus-sheet-h{margin-bottom:14px}
@@ -85,4 +98,5 @@
 /* A row whose screen is not built yet: greyed, its icon tile too, and nothing to tap. */
 .plus-sheet .lrow.off .lrow-t{color:var(--label-2)}
 .plus-sheet .lrow.off .lrow-i{--tint:var(--label-3)}
+.plus-sheet .lrow-v{font-size:15px}
 .plus-sheet-live{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-variant-numeric:tabular-nums}

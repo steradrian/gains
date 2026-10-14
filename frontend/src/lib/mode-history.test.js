@@ -1,109 +1,107 @@
 // Per-mode back stacks over one linear history. The property that matters: history only ever holds
 // the mode on screen, so walking back never lands in the other mode.
 import { describe, expect, it } from 'vitest'
-import { emptyNav, planSwitch, record } from './mode-history.js'
+import { deadSteps, emptyNav, planSwitch, record, settle } from './mode-history.js'
 
-let n = 0
-const go = (nav, navType, path, key = 'k' + ++n) => record(nav, { key, path, navType })
-const paths = nav => nav.entries.map(e => e.path)
-// What back presses can reach: the entries up to the current one. A browser keeps the entries
-// ahead of a replaced one (forward), and so does the mirror, until the next push drops them.
-const behind = nav => paths(nav).slice(0, nav.idx + 1)
+const at = (nav, navType, path, idx) => record(nav, { idx, path, navType })
+const push = (nav, path) => at(nav, 'PUSH', path, nav.idx + 1)
+const behind = nav => nav.entries.slice(0, nav.idx + 1)
 
-// A browser history as a list plus a position, driven by what a switch plan says.
+// What the shell does with a plan: walk back to 0, replace, push the rest, settle.
 function carryOut(nav, plan) {
-  let next = plan.nav
-  next = record(next, { key: next.entries[0].key, path: next.entries[0].path, navType: 'POP' })
+  let next = at(plan.nav, 'POP', plan.nav.entries[0], 0)
   const [first, ...rest] = plan.stack
-  next = go(next, 'REPLACE', first)
-  for (const p of rest) next = go(next, 'PUSH', p)
-  return next
+  next = at(next, 'REPLACE', first, 0)
+  for (const p of rest) next = push(next, p)
+  return settle(next)
 }
 
+const start = (path = '/train/home', mode) => at(emptyNav(mode), 'POP', path, 0)
+
 describe('mirroring the history', () => {
-  it('follows pushes, replaces and pops by key', () => {
-    let nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    nav = go(nav, 'PUSH', '/train/stats', 'b')
-    nav = go(nav, 'PUSH', '/train/history', 'c')
-    expect(paths(nav)).toEqual(['/train/home', '/train/stats', '/train/history'])
-    expect(nav.idx).toBe(2)
-    nav = record(nav, { key: 'a', path: '/train/home', navType: 'POP' })
+  it('follows pushes, replaces and pops by position', () => {
+    let nav = push(push(start(), '/train/stats'), '/train/history')
+    expect(nav.entries).toEqual(['/train/home', '/train/stats', '/train/history'])
+    nav = at(nav, 'POP', '/train/home', 0)
     expect(nav.idx).toBe(0)
-    nav = go(nav, 'PUSH', '/train/plan', 'd')
-    expect(paths(nav)).toEqual(['/train/home', '/train/plan'])   // forward entries are gone
-    nav = go(nav, 'REPLACE', '/train/plan/r/1', 'e')
-    expect(paths(nav)).toEqual(['/train/home', '/train/plan/r/1'])
+    expect(nav.entries).toHaveLength(3)   // forward is still there…
+    nav = push(nav, '/train/plan')
+    expect(nav.entries).toEqual(['/train/home', '/train/plan'])   // …until a push
+    nav = at(nav, 'REPLACE', '/train/plan/r/1', 1)
+    expect(nav.entries).toEqual(['/train/home', '/train/plan/r/1'])
   })
 
   it('a shared page keeps the mode that opened it', () => {
-    let nav = go(emptyNav(), 'POP', '/food/diary', 'a')
-    nav = go(nav, 'PUSH', '/me', 'b')
-    expect(nav.mode).toBe('food')
+    expect(push(start('/food/diary'), '/me').mode).toBe('food')
   })
 
-  it('a sheet\'s own history entry (no router key) leaves the mirror where it is', () => {
-    let nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    nav = go(nav, 'PUSH', '/train/stats', 'b')
-    nav = record(nav, { key: 'default', path: '/train/stats', navType: 'POP' })
-    expect(nav.idx).toBe(1)
-    expect(paths(nav)).toEqual(['/train/home', '/train/stats'])
+  it('a new document starts the live history where it is, whatever the mirror held', () => {
+    const stale = { ...push(push(start(), '/train/stats'), '/train/history'), idx: -1 }
+    const nav = at(stale, 'POP', '/food/goals', 0)
+    expect(nav.idx).toBe(0)
+    expect(nav.top).toBe(0)
+    expect(planSwitch(nav, 'train').back).toBe(0)
   })
 
-  it('an unknown history starts the mirror over', () => {
-    const nav = go(emptyNav('food'), 'POP', '/food/goals', 'fresh')
-    expect(paths(nav)).toEqual(['/food/goals'])
-    expect(nav.mode).toBe('food')
+  it('an entry with no position counts as the start', () => {
+    expect(at(emptyNav(), 'POP', '/train/home', undefined).idx).toBe(0)
   })
 })
 
 describe('switching modes', () => {
   it('walks back to the first entry and rebuilds the other mode there', () => {
-    let nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    nav = go(nav, 'PUSH', '/train/stats')
-    nav = go(nav, 'PUSH', '/train/history')
+    const nav = push(push(start(), '/train/stats'), '/train/history')
     const plan = planSwitch(nav, 'food')
     expect(plan.back).toBe(2)
     expect(plan.stack).toEqual(['/food/diary'])
-    nav = carryOut(nav, plan)
+    const after = carryOut(nav, plan)
     // Back reaches Nutrition only: one back press from here leaves the app.
-    expect(behind(nav)).toEqual(['/food/diary'])
-    expect(nav.idx).toBe(0)
-    expect(nav.mode).toBe('food')
+    expect(behind(after)).toEqual(['/food/diary'])
+    expect(after.mode).toBe('food')
   })
 
   it('comes back to the mode where it was left, its back stack intact', () => {
-    let nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    nav = go(nav, 'PUSH', '/train/stats')
-    nav = go(nav, 'PUSH', '/train/history')
+    let nav = push(push(start(), '/train/stats'), '/train/history')
     nav = carryOut(nav, planSwitch(nav, 'food'))
-    nav = go(nav, 'PUSH', '/food/goals')
+    nav = push(nav, '/food/goals')
     nav = carryOut(nav, planSwitch(nav, 'train'))
     expect(behind(nav)).toEqual(['/train/home', '/train/stats', '/train/history'])
     expect(nav.idx).toBe(2)
-    // …and Nutrition kept its own.
     nav = carryOut(nav, planSwitch(nav, 'food'))
     expect(behind(nav)).toEqual(['/food/diary', '/food/goals'])
   })
 
   it('takes a page to land on, on top of the mode\'s stack (the + sheet\'s Start)', () => {
-    let nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    nav = carryOut(nav, planSwitch(nav, 'food'))
+    let nav = carryOut(start(), planSwitch(start(), 'food'))
     const plan = planSwitch(nav, 'train', '/train/workout')
     expect(plan.stack).toEqual(['/train/home', '/train/workout'])
-    // Already on top: not twice.
-    nav = carryOut(nav, plan)
-    nav = carryOut(nav, planSwitch(nav, 'food'))
+    nav = carryOut(carryOut(nav, plan), planSwitch(carryOut(nav, plan), 'food'))
     expect(planSwitch(nav, 'train', '/train/workout').stack).toEqual(['/train/home', '/train/workout'])
   })
 
   it('from the first entry there is nothing to walk back', () => {
-    const nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    expect(planSwitch(nav, 'food').back).toBe(0)
+    expect(planSwitch(start(), 'food').back).toBe(0)
   })
 
   it('is nothing to do for the mode already on screen, or no mode', () => {
-    const nav = go(emptyNav(), 'POP', '/train/home', 'a')
-    expect(planSwitch(nav, 'train')).toBeNull()
-    expect(planSwitch(nav, 'me')).toBeNull()
+    expect(planSwitch(start(), 'train')).toBeNull()
+    expect(planSwitch(start(), 'me')).toBeNull()
+  })
+})
+
+describe('the forward history a switch leaves behind', () => {
+  it('is dead: a forward step onto it is stepped back off', () => {
+    const nav = carryOut(push(push(start(), '/train/stats'), '/train/history'), planSwitch(push(push(start(), '/train/stats'), '/train/history'), 'food'))
+    expect(deadSteps(nav)).toBe(0)
+    // Browser Forward: the router lands on what used to be /train/stats.
+    const forward = at(nav, 'POP', '/train/stats', 1)
+    expect(deadSteps(forward)).toBe(1)
+  })
+
+  it('a back and forward inside one mode is live', () => {
+    let nav = push(push(start(), '/train/stats'), '/train/history')
+    nav = at(nav, 'POP', '/train/stats', 1)
+    nav = at(nav, 'POP', '/train/history', 2)
+    expect(deadSteps(nav)).toBe(0)
   })
 })

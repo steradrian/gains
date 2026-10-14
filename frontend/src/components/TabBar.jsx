@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveRoutineIds, effectiveRoutines } from '../lib/history.js'
 import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { slotOf, tabIndex, TABS, workoutRunning } from '../lib/mode-route.js'
+import { isSwitching } from '../lib/use-mode-nav.js'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
 
@@ -42,10 +43,19 @@ export function useSlideReady() {
 // onto the disc's slot. Keyed on the mode, so a switch mounts a new one instead of sliding across.
 function TabPill({ active }) {
   const ready = useSlideReady()
+  const slot = slotOf(Math.max(0, active))
+  // A move from one side of the disc to the other is not slid under it: the pill jumps there
+  // and fades in. `jumps` counts those moves, so each one remounts the pill and replays its fade.
+  const last = useRef({ slot, jump: false, jumps: 0 })
+  if (last.current.slot !== slot) {
+    const jump = (last.current.slot < 2) !== (slot < 2)
+    last.current = { slot, jump, jumps: last.current.jumps + (jump ? 1 : 0) }
+  }
+  const { jump, jumps } = last.current
   return (
     <span className={'tab-pill-track' + (ready ? ' ready' : '')} aria-hidden="true">
-      <span className={'tab-pill-slot' + (active < 0 ? ' off' : '')} style={{ '--slot': slotOf(Math.max(0, active)) }}>
-        <span className="tab-pill" />
+      <span className={'tab-pill-slot' + (active < 0 ? ' off' : '') + (jump ? ' jump' : '')} style={{ '--slot': slot }}>
+        <span key={jumps} className="tab-pill" />
       </span>
     </span>
   )
@@ -76,7 +86,7 @@ export default function TabBar({ mode = 'train', pathname, onStart, onPlus }) {
   // keyed on its slot, stays put and only swaps its glyph.
   const tabs = TABS[mode].map((tab, i) => {
     const [icon, label] = TAB_LOOK[mode][i]
-    return <Tab key={tab.path} active={active === i} icon={icon} label={label()} onClick={() => nav(tab.path)} />
+    return <Tab key={tab.path} active={active === i} icon={icon} label={label()} onClick={() => { if (!isSwitching()) nav(tab.path) }} />
   })
 
   return (

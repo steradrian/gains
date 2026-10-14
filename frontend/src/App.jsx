@@ -54,7 +54,7 @@ import CoachSetup from './views/CoachSetup.jsx'
 import ComingSoon from './views/ComingSoon.jsx'
 import './mode-shell.css'
 
-// last known scrollY per route, so back-navigation can put the page where it was
+// last known scrollY per mode and route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
@@ -166,12 +166,15 @@ function Shell() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-  const modeSwitch = !!shown.state?.modeSwitch
+  // Arriving by a switch, not walking back later onto an entry a switch wrote.
+  const modeSwitch = !!shown.state?.modeSwitch && navType !== 'POP'
+  // A shared page (/me) keeps a scroll position per mode it is opened from.
+  const scrollKey = mode + ' ' + shown.pathname
   useLayoutEffect(() => {
     if (switching) return
     const first = pathRef.current === null
-    const samePath = pathRef.current === shown.pathname
-    pathRef.current = shown.pathname
+    const samePath = pathRef.current === scrollKey
+    pathRef.current = scrollKey
     const action = scrollAction({ first, samePath, navType, modeSwitch })
     // A fresh load arrives as a POP with nothing remembered. It goes to the top like any new
     // route — now, not a frame later: that frame landed on top of a scroll a view made on mount
@@ -185,13 +188,13 @@ function Shell() {
     // ⋯ → Layout → List (#224) — must not be dragged back to a position recorded before that
     // scroll's event had even been dispatched.
     if (action === 'keep') return
-    const y = scrollPositions.get(shown.pathname) || 0
+    const y = scrollPositions.get(scrollKey) || 0
     // Into the other mode: the page goes back where it was left before it is first painted.
     if (modeSwitch) window.scrollTo(0, y)
     // the restored view needs a layout pass before it is tall enough to scroll to y
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, y))
     return () => window.cancelAnimationFrame(frame)
-  }, [shown.pathname, navType, switching])
+  }, [scrollKey, navType, switching])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && !S.active.editingWorkoutId && S.keepAwake !== false)
   // A running workout has the whole screen (v1.3.11): no tab bar, and the rest bar docks to the

@@ -19,7 +19,8 @@ vi.mock('./lib/api.js', async importOriginal => {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 let host, root, originalS, scrolls
-const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => { await new Promise(r => setTimeout(r, 0)) }) }
+// A switch can take a few history walks, each landing on a later task: give them room.
+const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => { await new Promise(r => setTimeout(r, 5)) }) }
 const hash = () => window.location.hash
 const idx = () => window.history.state?.idx
 const seg = label => [...document.querySelectorAll('.seg-mode button')].find(b => b.textContent === label)
@@ -125,6 +126,46 @@ describe('switching modes', () => {
     expect(idx()).toBe(1)
     await back()
     expect(hash()).toBe('#/train/home')
+  })
+})
+
+describe('a history the mirror does not match', () => {
+  it('a sheet\'s entry left under the page does not stop the walk short', async () => {
+    await launch('#/train/stats')
+    // What Modals.jsx leaves behind when a sheet closes as the app moves on.
+    window.history.pushState({ ...window.history.state, openGymSheet: true }, '')
+    await click(tab('Exercises'))
+    const t0 = Date.now()
+    await click(seg('Nutrition'))
+    expect(hash()).toBe('#/food/diary')
+    // Landed by walking, not by the watchdog giving up on the walk.
+    expect(Date.now() - t0).toBeLessThan(300)
+    // On the app's first entry itself, not on the sheet's entry above it: back leaves the app.
+    expect(idx()).toBe(0)
+    expect(window.history.state.openGymSheet).toBeUndefined()
+  })
+
+  it('a walk back that never lands does not freeze the screen', async () => {
+    // A position the browser cannot walk back from: history.go does nothing, no popstate.
+    window.history.replaceState({ idx: 5, key: 'odd', usr: null }, '', '#/train/home')
+    await launch('#/train/home')
+    await act(async () => { seg('Nutrition').click() })
+    await act(async () => { await new Promise(r => setTimeout(r, 450)) })
+    await settle()
+    expect(hash()).toBe('#/food/diary')
+    expect(document.querySelector('.seg-mode button.on').textContent).toBe('Nutrition')
+    await click(tab('Goals'))
+    expect(hash()).toBe('#/food/goals')
+  })
+
+  it('browser Forward onto the mode that was left steps straight back', async () => {
+    await launch('#/train/home')
+    await click(tab('Stats'))
+    await click(seg('Nutrition'))
+    expect(hash()).toBe('#/food/diary')
+    await act(async () => { window.history.forward() })
+    await settle()
+    expect(hash()).toBe('#/food/diary')
   })
 })
 

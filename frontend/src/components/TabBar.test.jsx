@@ -148,7 +148,7 @@ describe('the sliding pill', () => {
     for (const [pathname, s] of Object.entries(at)) {
       act(() => { root.render(bar({ pathname })) })
       expect(slot(), pathname).toBe(s)
-      expect(pillSlot().className).toBe('tab-pill-slot')
+      expect(pillSlot().classList.contains('off'), pathname).toBe(false)
     }
   })
 
@@ -176,6 +176,22 @@ describe('the sliding pill', () => {
     act(() => { root.render(bar({ mode: 'food', pathname: '/food/goals' })) })
     expect(host.querySelector('.tab-pill-track').className).toBe('tab-pill-track')
     expect(slot()).toBe('4')
+  })
+
+  it('slides within one side of the disc, and jumps across it rather than passing under it', () => {
+    act(() => { root.render(bar({ pathname: '/train/home' })) })
+    const pill = () => host.querySelector('.tab-pill')
+    const first = pill()
+    act(() => { root.render(bar({ pathname: '/train/plan' })) })
+    expect(pillSlot().className).toBe('tab-pill-slot')
+    expect(pill()).toBe(first)               // the same pill, slid
+    act(() => { root.render(bar({ pathname: '/train/stats' })) })
+    expect(pillSlot().className).toBe('tab-pill-slot jump')
+    expect(pill()).not.toBe(first)           // a fresh one, fading in at Stats
+    const jumped = pill()
+    act(() => { root.render(bar({ pathname: '/train/library' })) })
+    expect(pillSlot().className).toBe('tab-pill-slot')
+    expect(pill()).toBe(jumped)
   })
 
   it('is decorative', () => {

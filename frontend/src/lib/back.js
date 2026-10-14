@@ -12,6 +12,7 @@
 import { MOBILE } from './mobile.js'
 import { useUI } from '../store/useUI.js'
 import { t } from './i18n.js'
+import { isSwitching } from './use-mode-nav.js'
 
 // How long a first back press stays armed as "press again to exit" (the toast shows 2.2s).
 export const EXIT_WINDOW = 2000
@@ -51,7 +52,9 @@ export async function initBackButton() {
       getSheets: () => useUI.getState().sheets,
       closeSheet: id => useUI.getState().closeSheet(id),
       toast: msg => useUI.getState().toast(msg),
-      goBack: () => window.history.back(),
+      // Not while a mode switch is rebuilding the history (lib/use-mode-nav.js): a back step
+      // in the middle of it would land the switch on the wrong entry.
+      goBack: () => { if (!isSwitching()) window.history.back() },
       exit: () => App.exitApp(),
     })
     const sub = await App.addListener('backButton', handler)
