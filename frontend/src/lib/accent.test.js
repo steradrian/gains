@@ -130,10 +130,18 @@ describe('readable on the theme', () => {
 
 describe('CSS for the own colour', () => {
   it('derives the accent, its pressed shade and its text', () => {
-    expect(customAccentVars('#0a84ff', 'dark')).toEqual({ '--acc': '#0a84ff', '--acc-2': '#0863bf', '--on-acc': '#000000', '--knob-ring': 'transparent' })
+    expect(customAccentVars('#0a84ff', 'dark')).toEqual({ '--acc': '#0a84ff', '--acc-2': '#0863bf', '--on-acc': '#000000', '--knob-ring': 'transparent', '--acc-ink': '#0a84ff' })
     const v = customAccentVars('#000033', 'dark')
     expect(v['--acc']).toBe(readableIn('#000033', 'dark'))
     expect(v['--on-acc']).toBe(inkOn(v['--acc']))
+  })
+  it('the accent as text or an icon (--acc-ink) clears 4.5:1 on the page and card fills in both themes', () => {
+    for (const hex of ['#34c759', '#ffcc00', '#30b0c7', '#ff9500', '#0a84ff', '#000033', '#ffffff']) {
+      for (const theme of ['dark', 'light']) {
+        const ink = customAccentVars(hex, theme)['--acc-ink']
+        for (const bg of THEMES[theme].bgs) expect(contrast(ink, bg), `${hex} ${theme} ${bg}`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
   })
   it('the button text reads on the pressed shade too, not only at rest', () => {
     // #eb0037 in dark mode: black reads on it at rest but only 2.9:1 on its pressed shade

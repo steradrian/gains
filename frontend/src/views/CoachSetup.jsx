@@ -204,7 +204,7 @@ export default function CoachSetup() {
 
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         {!models
-          ? <Button variant="primary" icon="sparkles" disabled={busy} onClick={prepare}>{t('List models')}</Button>
+          ? <Button variant="primary" icon="list" disabled={busy} onClick={prepare}>{t('List models')}</Button>
           : <Button variant="primary" icon="check" disabled={busy} onClick={save}>{t('Save and use the Coach')}</Button>}
         {models && <Button disabled={busy} onClick={prepare}>{t('List models')}</Button>}
       </div>

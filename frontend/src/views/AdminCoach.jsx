@@ -164,7 +164,7 @@ export default function AdminCoach() {
   // Off = a quiet, optional feature: one clean pitch and one button, no half-dimmed controls.
   if (!d.enabled) return <div className="card">
     <div className="adm-hero">
-      <div className="adm-hero-av"><Icon name="sparkles" /></div>
+      <div className="adm-hero-av"><Icon name="chat" /></div>
       <h2>AI Coach</h2>
       <p>An optional coach that designs training plans and reviews what people actually log. Off right now, so nobody sees it anywhere in the app.</p>
       <div className="adm-hero-feats">
@@ -172,7 +172,7 @@ export default function AdminCoach() {
         <div><Icon name="shield" /><span><b>Private by design.</b> A strict allowlist decides what leaves; every change needs the user's yes and can be undone.</span></div>
         <div><Icon name="person" /><span><b>Each user decides.</b> Turning it on only makes the Coach available; every person consents for themselves.</span></div>
       </div>
-      <Button variant="primary" icon="sparkles" disabled={busy} onClick={() => patch({ enabled: true })}>Set up the Coach</Button>
+      <Button variant="primary" icon="chat" disabled={busy} onClick={() => patch({ enabled: true })}>Set up the Coach</Button>
     </div>
   </div>
 
