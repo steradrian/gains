@@ -12,6 +12,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { boundPort } from './helpers.mjs';
 import { ISSUER, hubKey, jwks, mint, badTokens } from './hub-fixtures.mjs';
+import { SEED_BODY_MAX } from '../sync-routes.js';
 
 const API = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SECRET = crypto.randomBytes(32).toString('hex');
@@ -29,12 +30,11 @@ const SEED = () => ({
   unit: 'kg',
   bodyweight: { date: today(), kg: 72.5 },
   coachProfile: { goal: 'fatloss', experience: 'returning', daysPerWeek: 3, preferredDays: [1, 3, 5] },
-  plan: {
-    routines: [{ name: 'Full Body A', emoji: 'figureStrength', ex: [{ id: '0043', sets: 3, reps: 8 }] }],
-    schedule: [{ day: 1, routine: 0 }, { day: 3, routine: 0 }, { day: 5, routine: 0 }]
-  },
+  starter: { templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym' },
   checkIn: false
 });
+// The hub's clock when it took the consent, and the id of the text shown.
+const BUILD = (over = {}) => ({ consentAt: new Date(Date.now() - 60000).toISOString(), consentVersion: 'ai-coach-build-v1', equipment: 'gym', ...over });
 
 async function startServer(t, { users, states = {}, coach = null } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-onb-'));
@@ -73,7 +73,7 @@ test('a new profile with no document gets its first one, and the same write agai
   const before = await h.req('GET', P, { token: mint(KEY, { sub: 'u1' }) });
   assert.equal(before.status, 200);
   assert.deepEqual(before.body, {
-    rev: 0, coachAvailable: false, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+    rev: 0, coachAvailable: false, seed: { starter: true, coachBuild: true }, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
   });
 
   const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: SEED() });
@@ -87,8 +87,8 @@ test('a new profile with no document gets its first one, and the same write agai
   const S = h.state('u1');
   assert.equal(S.checkIn, false);
   assert.deepEqual(S.coach.profile, { goal: 'fatloss', experience: 'returning', daysPerWeek: 3, preferredDays: [1, 3, 5] });
-  assert.equal(S.routines.length, 1);
-  assert.deepEqual(S.week, { 1: [S.routines[0].id], 3: [S.routines[0].id], 5: [S.routines[0].id] });
+  assert.equal(S.routines.length, 3);
+  assert.deepEqual(S.week, { 1: [S.routines[0].id], 3: [S.routines[1].id], 5: [S.routines[2].id] });
   assert.deepEqual(S.bodyweight.map(e => [e.d, e.w]), [[today(), 72.5]]);
 
   // The outbox's retry: a new token, the same body.
@@ -101,7 +101,7 @@ test('a new profile with no document gets its first one, and the same write agai
 
   const view = await h.req('GET', P, { token: mint(KEY, { sub: 'u1' }) });
   assert.deepEqual(view.body.latestWeight, { date: today(), kg: 72.5 });
-  assert.equal(view.body.routines, 1);
+  assert.equal(view.body.routines, 3);
   assert.equal(view.body.plannedDays, 3);
   assert.equal(view.body.checkIn, false);
   assert.deepEqual(view.body.coachProfile, { goal: 'fatloss', experience: 'returning', daysPerWeek: 3, preferredDays: [1, 3, 5] });
@@ -182,11 +182,26 @@ test('a malformed or oversized body is refused before anything is read or writte
   const tok = () => mint(KEY, { sub: 'u1' });
   assert.deepEqual((await h.req('POST', P, { token: tok(), body: { unit: 'stone' } })).body.code, 'bad-unit');
   assert.deepEqual((await h.req('POST', P, { token: tok(), body: { userId: 'u2' } })).body.code, 'bad-field');
-  assert.deepEqual((await h.req('POST', P, { token: tok(), body: { plan: { routines: [], schedule: [] } } })).body.code, 'bad-plan');
+  // A plan of built routines is no field of the seed any more: the hub sends a choice.
+  assert.deepEqual((await h.req('POST', P, { token: tok(), body: { plan: { routines: [], schedule: [] } } })).body.code, 'bad-field');
   assert.equal((await h.req('POST', P, { token: tok(), raw: '{"checkIn":' })).status, 400);
-  const big = await h.req('POST', P, { token: tok(), raw: JSON.stringify({ plan: { routines: [{ name: 'x'.repeat(40000), ex: [] }], schedule: [] } }) });
+  const big = await h.req('POST', P, { token: tok(), raw: JSON.stringify({ checkIn: false, pad: 'x'.repeat(SEED_BODY_MAX) }) });
   assert.equal(big.status, 413);
   assert.equal(h.hasState('u1'), false);
+});
+
+test('the body cap leaves several times the largest valid seed', () => {
+  const longest = {
+    unit: 'kg',
+    bodyweight: { date: '2026-10-15', kg: 123.45678901234567 },
+    coachProfile: { goal: 'endurance', experience: 'returning', daysPerWeek: 7, preferredDays: [0, 1, 2, 3, 4, 5, 6] },
+    coachBuild: BUILD({ consentAt: '2026-10-15T08:30:00.000Z', consentVersion: 'v'.repeat(40), equipment: 'dumbbells' }),
+    checkIn: false
+  };
+  const withStarter = { ...longest, coachBuild: undefined, starter: { templateId: 'upper-lower-ppl', weekdays: [0, 1, 2, 3, 4, 5], equipment: 'dumbbells' } };
+  const size = Math.max(...[longest, withStarter].map(b => Buffer.byteLength(JSON.stringify(b))));
+  assert.ok(size < 600, `${size} bytes`);
+  assert.ok(size * 4 <= SEED_BODY_MAX);
 });
 
 test('an unreadable document is a 503, never a first document over it', async t => {
@@ -242,25 +257,33 @@ test('a refused starter or coach build writes nothing', async t => {
   assert.equal(await code({ starter: STARTER({ weekdays: [1, 3, 3] }) }), 'bad-plan');
   assert.equal(await code({ starter: STARTER({ weekdays: [1, 3, 7] }) }), 'bad-plan');
   assert.equal(await code({ starter: { ...STARTER(), extra: 1 } }), 'bad-plan');
-  assert.equal(await code({ starter: STARTER(), plan: SEED().plan }), 'bad-plan');
-  assert.equal(await code({ coachBuild: { consentAt: new Date().toISOString(), equipment: 'gym' }, starter: STARTER() }), 'bad-coach-build');
-  assert.equal(await code({ coachBuild: { consentAt: 'yesterday', equipment: 'gym' } }), 'bad-coach-build');
-  assert.equal(await code({ coachBuild: { consentAt: new Date(Date.now() + 3600000).toISOString(), equipment: 'gym' } }), 'bad-coach-build');
-  assert.equal(await code({ coachBuild: { consentAt: new Date().toISOString(), equipment: 'gym', prompt: 'x' } }), 'bad-coach-build');
+  assert.equal(await code({ starter: STARTER(), plan: { routines: [], schedule: [] } }), 'bad-field');
+  assert.equal(await code({ coachBuild: BUILD(), starter: STARTER() }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: BUILD({ consentAt: 'yesterday' }) }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: BUILD({ consentAt: new Date(Date.now() + 3600000).toISOString() }) }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: BUILD({ consentVersion: undefined }) }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: { ...BUILD(), prompt: 'x' } }), 'bad-coach-build');
+  assert.equal(h.hasState('u1'), false);
+});
+
+test('an AI coach build is refused, and nothing written, where this server has no AI coach', async t => {
+  const h = await startServer(t, { users: [user('u1', 'Ana')], coach: { enabled: true, provider: 'openai' } });
+  const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { coachProfile: { goal: 'muscle' }, coachBuild: BUILD(), checkIn: false } });
+  assert.deepEqual([r.status, r.body.code], [400, 'coach-unavailable']);
   assert.equal(h.hasState('u1'), false);
 });
 
 test('an AI coach build is recorded as consent and a pending marker, once, and nothing is run', async t => {
   const h = await startServer(t, { users: [user('u1', 'Ana')], coach: { enabled: true, provider: 'fixture' } });
   const consentAt = new Date(Date.now() - 60000).toISOString();
-  const body = { coachProfile: { goal: 'muscle', daysPerWeek: 3 }, coachBuild: { consentAt, equipment: 'dumbbells' }, checkIn: false };
+  const body = { coachProfile: { goal: 'muscle', daysPerWeek: 3 }, coachBuild: BUILD({ consentAt, equipment: 'dumbbells' }), checkIn: false };
   const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body });
   assert.equal(first.status, 200, JSON.stringify(first.body));
   assert.deepEqual(first.body.applied, ['coachProfile', 'coachBuild', 'checkIn']);
   const S = h.state('u1');
   assert.deepEqual(S.coach.profile, { goal: 'muscle', daysPerWeek: 3 });
   assert.deepEqual({ ...S.coach.build, requestedAt: typeof S.coach.build.requestedAt }, {
-    status: 'pending', source: 'onboarding', consentAt, equipment: 'dumbbells', requestedAt: 'number'
+    status: 'pending', source: 'onboarding', consentAt, consentVersion: 'ai-coach-build-v1', equipment: 'dumbbells', requestedAt: 'number'
   });
   assert.equal(S.coach.consent, null, "the Coach's own consent is not given on the person's behalf");
   assert.equal(S.routines, undefined, 'no plan was made: the build is the Coach flow\'s to run');
@@ -274,8 +297,10 @@ test('an AI coach build is recorded as consent and a pending marker, once, and n
 
 test('an AI coach build is not recorded over a plan the profile has', async t => {
   const S = { unit: 'kg', routines: [{ id: 'mine', name: 'Push', ex: [] }], _rev: 2, _wid: 'aaaaaaaaaaaaaaaa', _ts: 10 };
-  const h = await startServer(t, { users: [user('u1', 'Ana', { created: new Date(Date.now() - 400 * DAY).toISOString() })], states: { u1: S } });
-  const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { coachBuild: { consentAt: new Date().toISOString(), equipment: 'gym' } } });
+  const h = await startServer(t, {
+    users: [user('u1', 'Ana', { created: new Date(Date.now() - 400 * DAY).toISOString() })], states: { u1: S }, coach: { enabled: true, provider: 'fixture' }
+  });
+  const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { coachBuild: BUILD() } });
   assert.deepEqual([r.status, r.body.changed, r.body.skipped], [200, false, [{ field: 'coachBuild', reason: 'has-plan' }]]);
   assert.equal(h.state('u1').coach, undefined);
 });

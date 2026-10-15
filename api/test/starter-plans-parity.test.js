@@ -2,25 +2,23 @@
    because the API image has no exercise catalogue to cut them with. This builds every plan from the
    frontend, the way the browser does, and compares: a change to a plan, to the catalogue or to the
    fitting fails here until the copy is regenerated (node api/scripts/print-starter-plans.mjs). Same
-   setup as coach-parity.test.js: the frontend modules load under plain node. */
+   setup as coach-parity.test.js: the frontend modules load under plain node. The equipment choices
+   are the frontend's own (lib/starter.js STARTER_EQUIPMENT_LISTS), imported, never copied. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildStarterPlan, starterPlanOptions } from '../../frontend/src/lib/starter.js';
+import { buildStarterPlan, starterPlanOptions, STARTER_EQUIPMENT_LISTS } from '../../frontend/src/lib/starter.js';
 import { STARTER_EQUIPMENT, STARTER_TEMPLATES, buildStarter } from '../starter-plans.js';
 
-// What the equipment choices stand for in the onboarding (frontend lib/onboarding/plans.js).
-const EQUIPMENT_LIST = { gym: null, dumbbells: ['dumbbell'], none: [] };
-
 test('the equipment choices are the three the onboarding offers', () => {
-  assert.deepEqual([...STARTER_EQUIPMENT].sort(), Object.keys(EQUIPMENT_LIST).sort());
+  assert.deepEqual([...STARTER_EQUIPMENT].sort(), Object.keys(STARTER_EQUIPMENT_LISTS).sort());
 });
 
 test('every plan is the frontend plan, fitted to each equipment choice', () => {
   const regenerate = 'regenerate with: node api/scripts/print-starter-plans.mjs';
   for (const [id, template] of Object.entries(STARTER_TEMPLATES)) {
     for (const equipment of STARTER_EQUIPMENT) {
-      const built = buildStarterPlan(id, EQUIPMENT_LIST[equipment]);
+      const built = buildStarterPlan(id, STARTER_EQUIPMENT_LISTS[equipment]);
       assert.ok(built, `${id} is a frontend plan`);
       const frontend = built.routines.map(r => [r.name, r.emoji, r.ex.map(e => [e.id, e.sets, e.reps])]);
       assert.deepEqual(template.routines[equipment], frontend, `${id} for ${equipment}: ${regenerate}`);

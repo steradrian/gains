@@ -58,8 +58,9 @@ const KG_MIN = 20;
 const KG_MAX = 400;
 // A weigh-in's body is a few dozen bytes.
 const BODY_MAX = 4096;
-// An onboarding seed is at most seven routines of twenty exercises: a few KB.
-const SEED_BODY_MAX = 32 * 1024;
+// An onboarding seed is answers and a plan choice, never routines: every field at its longest is
+// under 600 bytes (test/server-sync-onboarding.test.js measures it). This leaves several times that.
+export const SEED_BODY_MAX = 4096;
 // A profile this new may get its first document from the onboarding write (see the route). One
 // older than that with no document is the empty data volume the `no-state` answer exists for.
 const NEW_PROFILE_MS = 30 * 86400000;
@@ -288,7 +289,7 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
     // between, like the weigh-in writes. A profile with no document yet gets its first one only
     // while it is new (NEW_PROFILE_MS): its devices then merge it like another device's copy.
     'POST /api/sync/onboarding': authed(async (req, res, user) => {
-      const parsed = parseSeed(await readBody(req, SEED_BODY_MAX));
+      const parsed = parseSeed(await readBody(req, SEED_BODY_MAX), Date.now(), { coachAvailable: coachAvailable() });
       if (!parsed.ok) return bad(json, res, parsed.code, parsed.error);
       const again = findUser(user.id);
       if (!again) return json(res, 404, { error: 'no such user', code: 'user-gone' });

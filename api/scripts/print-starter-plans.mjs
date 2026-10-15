@@ -6,15 +6,12 @@
  *
  *   node api/scripts/print-starter-plans.mjs
  */
-import { buildStarterPlan } from '../../frontend/src/lib/starter.js';
+import { buildStarterPlan, STARTER_EQUIPMENT_LISTS } from '../../frontend/src/lib/starter.js';
 import { STARTER_TEMPLATES } from '../starter-plans.js';
-
-// What the equipment choices stand for in the onboarding (lib/onboarding/plans.js EQUIPMENT_LIST).
-const EQUIPMENT_LIST = { gym: null, dumbbells: ['dumbbell'], none: [] };
 
 for (const id of Object.keys(STARTER_TEMPLATES)) {
   console.log(`  '${id}': {`);
-  for (const [equipment, list] of Object.entries(EQUIPMENT_LIST)) {
+  for (const [equipment, list] of Object.entries(STARTER_EQUIPMENT_LISTS)) {
     console.log(`    ${equipment}: [`);
     for (const r of buildStarterPlan(id, list).routines) {
       const ex = r.ex.map(e => `['${e.id}', ${e.sets}, ${e.reps}]`).join(', ');
