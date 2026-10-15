@@ -1,0 +1,112 @@
+// The onboarding's skip map and navigation rules (ux-onboarding §3b).
+import { describe, expect, it } from 'vitest'
+import {
+  codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, previousOf, progressMax, resumeScreen,
+  screenOf, skipTarget, stepOf,
+} from './flow.js'
+
+const body = (o = {}) => ({ sex: null, birthYear: null, heightCm: null, weightKg: null, ...o })
+const full = body({ sex: 'female', birthYear: 1990, heightCm: 168, weightKg: 64 })
+
+describe('paths', () => {
+  it('maps every screen to its hash route and back', () => {
+    expect(pathOf('invite', 'AB12')).toBe('/join/AB12')
+    expect(pathOf('goal')).toBe('/onboarding/goal')
+    expect(screenOf('/join/AB12')).toBe('invite')
+    expect(screenOf('/onboarding/starter')).toBe('starter')
+    expect(screenOf('/onboarding')).toBeNull()
+    expect(screenOf('/onboarding/nope')).toBeNull()
+    expect(screenOf('/home')).toBeNull()
+    expect(codeOf('/join/AB%2012')).toBe('AB 12')
+    expect(codeOf('/join')).toBeNull()
+    expect(isFlowPath('/onboarding')).toBe(true)
+    expect(isFlowPath('/join')).toBe(true)
+    expect(isFlowPath('/joinery')).toBe(false)
+  })
+})
+
+describe('the skip map', () => {
+  it('runs invite → name → passkey → goal → the four About-you steps → training', () => {
+    const order = ['invite', 'name', 'passkey', 'goal', 'sex', 'born', 'height', 'weight']
+    order.forEach((s, i) => expect(nextAfter(s, {})).toBe(i < order.length - 1 ? order[i + 1] : 'training'))
+  })
+
+  it('goes from Training to the end on 0 days or a skip, to Plan otherwise', () => {
+    expect(nextAfter('training', { answers: { trainingDays: 0 } })).toBe('finish')
+    expect(nextAfter('training', { answers: { trainingDays: null } })).toBe('finish')
+    expect(nextAfter('training', { answers: { trainingDays: 3 } })).toBe('plan')
+    expect(nextAfter('plan', {})).toBe('finish')
+    expect(nextAfter('starter', {})).toBe('finish')
+  })
+
+  it('skips You to Training, Training and Plan to the end, and nothing else', () => {
+    for (const s of ['sex', 'born', 'height', 'weight']) expect(skipTarget(s)).toBe('training')
+    expect(skipTarget('training')).toBe('finish')
+    expect(skipTarget('plan')).toBe('finish')
+    expect(skipTarget('goal')).toBeNull()
+    expect(skipTarget('starter')).toBeNull()
+  })
+
+  it('shows Skip only on You, Training and Plan, and no Back once the passkey exists', () => {
+    expect(navOf('goal')).toEqual({ show: true, back: false })
+    expect(navOf('sex').skip).toBe(true)
+    expect(navOf('plan').skip).toBe(true)
+    expect(navOf('starter').skip).toBeUndefined()
+    expect(navOf('invite').show).toBe(false)
+    expect(navOf('passkey').show).toBe(false)
+  })
+})
+
+describe('the detour from the end', () => {
+  it('visits only the missing body steps, then returns to the end', () => {
+    const answers = { body: body({ sex: 'male', heightCm: 180 }) }
+    const detour = detourOf(answers)
+    expect(detour).toEqual(['born', 'weight'])
+    expect(nextAfter('born', { answers, detour })).toBe('weight')
+    expect(nextAfter('weight', { answers, detour })).toBe('finish')
+    expect(nextIsDone('weight', detour)).toBe(true)
+    expect(nextIsDone('born', detour)).toBe(false)
+    // Skip on a detour goes back to the end, not on to Training.
+    expect(skipTarget('born', { detour })).toBe('finish')
+  })
+
+  it('has nothing to visit with all four answers in', () => {
+    expect(detourOf({ body: full })).toEqual([])
+    expect(missingYou({ body: full })).toEqual([])
+  })
+})
+
+describe('progress', () => {
+  it('fills You in quarters and never shrinks going back', () => {
+    let max = [0, 0, 0]
+    for (const s of ['goal', 'sex', 'born']) max = progressMax(max, s)
+    expect(max).toEqual([1, 0.5, 0])
+    expect(progressMax(max, 'sex')).toEqual([1, 0.5, 0])
+    expect(progressMax(max, 'training')).toEqual([1, 1, 1])
+    expect(progressMax(max, 'finish')).toBe(max)
+    expect([stepOf('goal'), stepOf('weight'), stepOf('plan'), stepOf('name')]).toEqual([1, 2, 3, null])
+  })
+})
+
+describe('resuming', () => {
+  it('starts at the first unanswered step', () => {
+    expect(resumeScreen({ goal: null, body: body() })).toBe('goal')
+    expect(resumeScreen({ goal: 'lose', body: body({ sex: 'female' }) })).toBe('born')
+    expect(resumeScreen({ goal: 'lose', body: full })).toBe('training')
+    expect(resumeScreen({ goal: 'lose', body: full, trainingDays: 3 })).toBe('plan')
+    expect(resumeScreen({ goal: 'lose', body: full, trainingDays: 0 })).toBe('finish')
+    expect(resumeScreen({ goal: 'lose', body: full, trainingDays: 3, plan: { kind: 'none' } })).toBe('finish')
+  })
+
+  it('does not ask a skipped step again', () => {
+    expect(resumeScreen({ goal: 'keep', body: body() }, { skippedYou: true })).toBe('training')
+    expect(resumeScreen({ goal: 'keep', body: full, trainingDays: null })).toBe('finish')
+  })
+
+  it('walks a cold Back to the step before', () => {
+    expect(previousOf('born')).toBe('sex')
+    expect(previousOf('finish', { answers: { trainingDays: 2 } })).toBe('plan')
+    expect(previousOf('finish', { answers: { trainingDays: 0 } })).toBe('training')
+    expect(previousOf('goal')).toBeNull()
+  })
+})
