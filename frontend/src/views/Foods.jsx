@@ -4,7 +4,7 @@ import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { energyOf, foodKcal } from '../lib/nutrition/diary.js'
-import { SORTS, categoriesOf, fmtAmount, foodErrorText, searchErrorText, visibleFoods } from '../lib/nutrition/foods.js'
+import { SORTS, categoriesOf, fmtAmount, foodErrorText, per100Unit, searchErrorText, visibleFoods } from '../lib/nutrition/foods.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { MIN_QUERY, useOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import Icon from '../components/Icon.jsx'
@@ -28,6 +28,8 @@ export default function Foods() {
   const [q, setQ] = useState('')
   const [sort, setSort] = useState('alpha')
   const [category, setCategory] = useState('')
+  const [saving, setSaving] = useState(() => new Set())
+  const [saved, setSaved] = useState(() => new Set())
   const online = useOnlineSearch(q, { active: on && mode === 'online', lang: settings?.offSearchLanguage || 'en' })
 
   useEffect(() => {
@@ -65,17 +67,31 @@ export default function Foods() {
     subtitle={[food.brand, `${fmtAmount(food.portion ?? 100)} ${food.unit || 'g'}`].filter(Boolean).join(' · ')}
     trailing={kcalTag(food)} />
 
-  // A result row holds its own Save, so the row is no button itself: the name opens the result.
+  // A result row holds its own Save, so the row is no button itself: its text opens the result.
+  // A Save in flight holds its button, so a second tap does not send a second create.
+  const saveRow = async (result, key) => {
+    setSaving(s => new Set(s).add(key))
+    try {
+      await saveResult(result)
+      setSaved(s => new Set(s).add(key))
+    } catch (e) {
+      toast(foodErrorText(e, { write: true }))
+    } finally {
+      setSaving(s => { const next = new Set(s); next.delete(key); return next })
+    }
+  }
   const resultRow = (result, i) => {
-    const have = owned(result)
-    return <ItemRow key={result.barcode || result.client_key || i}
-      title={<button type="button" className="item-open" onClick={() => foodDetailSheet({ food: result, settings, onSave: have ? undefined : saveResult })}>{result.name}</button>}
-      subtitle={[result.brand, t('per 100 g')].filter(Boolean).join(' · ')}
+    const key = result.barcode || result.client_key || String(i)
+    const have = saved.has(key) || owned(result)
+    return <ItemRow key={key}
+      onOpen={() => foodDetailSheet({ food: result, settings, onSave: have ? undefined : saveResult })}
+      title={result.name}
+      subtitle={[result.brand, t('per 100 {0}', per100Unit(result) || 'g')].filter(Boolean).join(' · ')}
       trailing={<>
         {kcalTag(result)}
         {have
           ? <Tag tone="acc">{t('Saved')}</Tag>
-          : <Button size="sm" variant="tinted" onClick={() => { saveResult(result).catch(e => toast(foodErrorText(e, { write: true }))) }}>{t('Save')}</Button>}
+          : <Button size="sm" variant="tinted" disabled={saving.has(key)} aria-busy={saving.has(key)} onClick={() => saveRow(result, key)}>{t('Save')}</Button>}
       </>} />
   }
 

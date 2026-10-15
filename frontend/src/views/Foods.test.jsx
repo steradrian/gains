@@ -11,6 +11,7 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useHubSync } from '../lib/nutrition/sync.js'
 import { todayISO } from '../lib/format.js'
 import { createFakeNutriTrace, fixtureFoods, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
+import { clearOnlineSearchCache } from '../lib/nutrition/use-online-search.js'
 import Foods from './Foods.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -74,6 +75,7 @@ async function openPage() {
 }
 
 beforeEach(() => {
+  clearOnlineSearchCache()
   nt = createFakeNutriTrace({ foods: foodsFixture(), settings: { ...fixtureSettings(), foodCategories: ['Pantry', 'Bakery', { name: 'Dairy' }] } })
   vi.stubGlobal('fetch', nt.fetch)
   useStore.setState({ user: { id: 3, name: 'Ana' }, pushState: vi.fn(async () => {}) })
@@ -206,6 +208,38 @@ describe('creating, editing and deleting a food', () => {
     expect(names().filter(n => n === 'Skyr')).toHaveLength(1)
   })
 
+  it('keeps a food\'s whole nutrition when only Favorite is changed', async () => {
+    const full = { calories: 112.5, kilojoules: 470, 'omega-3': 0.3, 'saturated-fat': 0.004, proteins: 2.5 }
+    nt.state.foods.find(f => f.id === 12).nutrition = { ...full }
+    await openPage()
+    tap(rowOf('Wholemeal bread'))
+    tap(buttonSaying(topSheet(), 'Edit food'))
+    const sheet = topSheet()
+    tap(sheet.querySelector('[role=switch]'))
+    tap(buttonSaying(sheet, 'Save'))
+    await settle(() => expect(useUI.getState().sheets).toHaveLength(0))
+    const put = nt.writes().find(w => w.method === 'PUT')
+    expect(put.body.favorite).toBe(true)
+    expect(put.body).not.toHaveProperty('nutrition')
+    expect(nt.state.foods.find(f => f.id === 12).nutrition).toEqual(full)
+  })
+
+  it('edits energy in kJ for a kJ user and stores kcal', async () => {
+    nt.state.settings.energyUnit = 'kJ'
+    await openPage()
+    await settle(() => expect(useNutrition.getState().settings.data?.energyUnit).toBe('kJ'))
+    tap(rowOf('Wholemeal bread'))
+    tap(buttonSaying(topSheet(), 'Edit food'))
+    const sheet = topSheet()
+    const field = fieldNear(sheet, 'Calories')
+    expect(field.value).toBe('1033.45')
+    expect(field.closest('label').textContent).toContain('kJ')
+    type(field, '1046')
+    tap(buttonSaying(sheet, 'Save'))
+    await settle(() => expect(useUI.getState().sheets).toHaveLength(0))
+    expect(nt.writes().find(w => w.method === 'PUT').body.nutrition.calories).toBe(250)
+  })
+
   it('edits a food: only the fields, never an image or a visibility', async () => {
     await openPage()
     tap(rowOf('Wholemeal bread'))
@@ -283,6 +317,39 @@ describe('online results', () => {
     expect(post.body).not.toHaveProperty('img_url')
     tap(buttonSaying(page, 'My foods'))
     expect(names()).toContain('Nutella')
+  })
+
+  it('opens a result from its whole text block, and holds Save while it saves', async () => {
+    await openPage()
+    await search('nutella')
+    const opener = page.querySelector('.item button.item-open')
+    expect(opener.textContent).toBe('NutellaFerrero · per 100 g')
+    const slow = nt.hold('POST', '/nt/api/foods')
+    tap(buttonSaying(page, 'Save'))
+    expect(buttonSaying(page, 'Save').disabled).toBe(true)
+    tap(buttonSaying(page, 'Save'))
+    slow.release()
+    await settle(() => expect(page.textContent).toContain('Saved'))
+    expect(nt.writes().filter(w => w.method === 'POST')).toHaveLength(1)
+    tap(opener)
+    expect(useUI.getState().sheets).toHaveLength(1)
+  })
+
+  it('says per 100 ml for a drink', async () => {
+    nt.state.offSearch = { count: 1, page: 1, page_size: 20, products: [{ code: '5449000000996', product_name: 'Cola', brands: 'Coca-Cola', nutrition_data_per: '100ml', serving_size: '330 ml', serving_quantity: 330, nutriments: { 'energy-kcal_100g': 42, carbohydrates_100g: 10.6, sugars_100g: 10.6 } }] }
+    await openPage()
+    await search('cola')
+    expect(page.querySelector('.item .ss').textContent).toBe('Coca-Cola · per 100 ml')
+  })
+
+  it('does not search again for a query it answered when Mine and Online are toggled', async () => {
+    await openPage()
+    await search('nutella')
+    tap(buttonSaying(page, 'My foods'))
+    tap(buttonSaying(page, 'Online'))
+    await settle(() => expect(names()).toEqual(['Nutella']))
+    await act(async () => { await new Promise(r => setTimeout(r, 600)) })
+    expect(nt.requests.filter(r => r.path === '/nt/api/proxy')).toHaveLength(1)
   })
 
   it('asks for more than a letter, and says when the hub rate limit hits', async () => {

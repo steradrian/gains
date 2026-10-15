@@ -88,11 +88,23 @@ describe('today\'s card', () => {
     expect(host.textContent).toBe('HOME PAGE')
   })
 
-  it('says the diary did not load, without the error text', async () => {
+  it('opens Home on today, whichever date Home was left on', async () => {
+    useDiarySelection.getState().setDate(YESTERDAY)
+    await openHub()
+    await settle(() => expect(host.textContent).toContain('kcal left today'))
+    tap(host.querySelector('.card'))
+    expect(host.textContent).toBe('HOME PAGE')
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
+  })
+
+  it('says the diary did not load, without the error text, and tries again', async () => {
     nt.failNext('GET', `/nt/api/diary/${TODAY}`, { status: 500, error: 'database is locked' })
     await openHub()
-    await settle(() => expect(host.textContent).toContain('Today’s diary did not load.'))
+    await settle(() => expect(host.querySelector('[role=alert]')?.textContent).toBe('Today’s diary did not load.'))
     expect(host.textContent).not.toContain('database is locked')
+    expect(host.querySelector('.card').getAttribute('role')).toBeNull()
+    tap(buttonSaying('Try again'))
+    await settle(() => expect(host.textContent).toContain('kcal left today'))
   })
 })
 
@@ -100,7 +112,7 @@ describe('yesterday\'s meal', () => {
   it('logs it again to today at the same meal, and Undo takes it back', async () => {
     useDiarySelection.getState().setMeal(0)
     await openHub()
-    await settle(() => expect(buttonSaying('Log again')).toBeDefined())
+    await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     expect(host.textContent).toContain('Yesterday’s Breakfast')
     expect(host.textContent).toContain('Rolled oats')
     tap(buttonSaying('Log again'))
@@ -117,7 +129,7 @@ describe('yesterday\'s meal', () => {
   it('does not log twice when the answer is lost and it is tapped again', async () => {
     useDiarySelection.getState().setMeal(0)
     await openHub()
-    await settle(() => expect(buttonSaying('Log again')).toBeDefined())
+    await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     nt.failNext('PUT', `/nt/api/diary/${TODAY}`, { lost: true })
     tap(buttonSaying('Log again'))
     await settle(() => expect(toastText()).toContain('Not saved: no connection.'))
@@ -126,10 +138,50 @@ describe('yesterday\'s meal', () => {
     expect(nt.state.days[TODAY].items.filter(i => i.name === 'Rolled oats')).toHaveLength(2)
   })
 
+  it('logs the whole meal in one write, and the same copy sent again adds nothing', async () => {
+    nt.state.days[YESTERDAY].items.push({ uuid: 'it-coffee', meal: 0, addedAt: `${YESTERDAY}T08:05:00.000Z`, type: 'quick_calories', name: 'Coffee', nutrition: { calories: 40 }, food_server_id: null })
+    useDiarySelection.getState().setMeal(0)
+    await openHub()
+    await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
+    const before = nt.state.days[TODAY].items.length
+    tap(buttonSaying('Log again'))
+    await settle(() => expect(host.textContent).toContain('Logged'))
+    expect(nt.writes().filter(w => w.path === `/nt/api/diary/${TODAY}`)).toHaveLength(1)
+    expect(nt.state.days[TODAY].items.length).toBe(before + 2)
+
+    // A fresh mount (another tab, the app reopened) reads Logged off the diary, and the same
+    // copy sent again is the same two entries.
+    const sent = nt.writes().find(w => w.path === `/nt/api/diary/${TODAY}`).body.items.slice(-2)
+    mounted.forEach(r => act(() => r.unmount()))
+    document.body.innerHTML = ''
+    useNutrition.getState().reset()
+    await openHub()
+    await settle(() => expect(host.textContent).toContain('Logged'))
+    expect(buttonSaying('Log again')).toBeUndefined()
+    await act(() => useNutrition.getState().logItems(TODAY, sent))
+    expect(nt.state.days[TODAY].items.length).toBe(before + 2)
+  })
+
+  it('logs it again after an Undo (the undone entries stay tombstoned)', async () => {
+    useDiarySelection.getState().setMeal(0)
+    await openHub()
+    await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
+    tap(buttonSaying('Log again'))
+    await settle(() => expect(host.textContent).toContain('Logged'))
+    const first = nt.state.days[TODAY].items.at(-1).uuid
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
+    tap(buttonSaying('Log again'))
+    await settle(() => expect(host.textContent).toContain('Logged'))
+    const again = nt.state.days[TODAY].items.filter(i => i.name === 'Rolled oats' && i.uuid !== 'it-oats')
+    expect(again).toHaveLength(1)
+    expect(again[0].uuid).not.toBe(first)
+  })
+
   it('logs a quick entry again as a quick entry', async () => {
     useDiarySelection.getState().setMeal(1)
     await openHub()
-    await settle(() => expect(buttonSaying('Log again')).toBeDefined())
+    await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     tap(buttonSaying('Log again'))
     await settle(() => expect(host.textContent).toContain('Logged'))
     const quick = nt.state.days[TODAY].items.filter(i => i.type === 'quick_calories')

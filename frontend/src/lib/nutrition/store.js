@@ -103,6 +103,19 @@ export const useNutrition = create((set, get) => {
     return saved
   }
 
+  // Recents order by this (POST /api/foods/:id/used). Fire and forget, as NutriTrace does.
+  function markUsed(id, date) {
+    NtApi.markFoodUsed(id, date).catch(() => {})
+    set(s => ({
+      foods: {
+        ...s.foods,
+        list: s.foods.list.map(f => (f.id === id
+          ? { ...f, last_used_at: f.last_used_at && f.last_used_at > date ? f.last_used_at : date, usage_count: (f.usage_count || 0) + 1 }
+          : f)),
+      },
+    }))
+  }
+
   return {
     ...initial(),
 
@@ -253,19 +266,20 @@ export const useNutrition = create((set, get) => {
       const saved = await ownFood(draft.food)
       const item = typeof saved.id === 'number' ? { ...draft.item, id: saved.id, food_server_id: saved.id } : draft.item
       await write(date, { addItems: [item] })
-      // Recents order by this (POST /api/foods/:id/used). Fire and forget, as NutriTrace does.
-      if (typeof saved.id === 'number') {
-        NtApi.markFoodUsed(saved.id, date).catch(() => {})
-        set(s => ({
-          foods: {
-            ...s.foods,
-            list: s.foods.list.map(f => (f.id === saved.id
-              ? { ...f, last_used_at: f.last_used_at && f.last_used_at > date ? f.last_used_at : date, usage_count: (f.usage_count || 0) + 1 }
-              : f)),
-          },
-        }))
-      }
+      if (typeof saved.id === 'number') markUsed(saved.id, date)
       return item
+    },
+
+    /** Logs finished items (each with its uuid; foods of yours or quick entries) to the date in
+     *  one write, so they are all logged or none is. Throws when the answer leaves any out (a
+     *  uuid NutriTrace has tombstoned stays out). Resolves to the items. */
+    async logItems(date, items) {
+      if (!items?.length || !items.every(i => i?.uuid)) throw invalid('logItems takes items with uuids')
+      const entry = await write(date, { addItems: items })
+      const have = new Set((entry?.items || []).map(i => i?.uuid))
+      if (!items.every(i => have.has(i.uuid))) throw invalid('the day did not take every item')
+      for (const id of new Set(items.map(i => i.food_server_id).filter(id => typeof id === 'number'))) markUsed(id, date)
+      return items
     },
 
     /** Logs a draftQuick item to the date. */
@@ -284,6 +298,7 @@ export const useNutrition = create((set, get) => {
 
     // Undo of a log just made: out of the day, and a tombstone for its uuid (deleted_uuids).
     removeItem: (date, uuid) => write(date, { removeItems: [uuid] }),
+    removeItems: (date, uuids) => write(date, { removeItems: [...uuids] }),
     removeWater: (date, uuid) => write(date, { removeWater: [uuid] }),
   }
 })

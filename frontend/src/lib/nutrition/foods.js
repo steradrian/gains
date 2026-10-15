@@ -3,7 +3,7 @@
 // (src/lib/nutrition.js NUTRIMENTS) and the editor's fields (src/routes/FoodEditor.svelte).
 // No React and no network here.
 import { t } from '../i18n.js'
-import { atPortion, deriveSodiumSalt, foldText, matchesFood, newUuid } from './diary.js'
+import { atPortion, deriveSodiumSalt, foldText, matchesFood } from './diary.js'
 
 /* ------------------------------------------------------------------ nutrients ---------------- */
 
@@ -159,12 +159,20 @@ export const categoryChoices = settings =>
 
 /* ------------------------------------------------------------------ editor ------------------- */
 
-/** The editor's fields as text, from a saved food or an online result (or empty). */
-export function formOf(food) {
+const KJ_PER_KCAL = 4.184
+const round2 = n => Math.round(n * 100) / 100
+
+/** The unit the editor's energy field is in: the person's (NutriTrace FoodEditor: a kJ user
+ *  types kJ, and it is stored as kcal). */
+export const editorEnergyUnit = settings => (settings?.energyUnit === 'kJ' ? 'kJ' : 'kcal')
+
+/** The editor's fields as text, from a saved food (or empty). Calories show in `energyUnit`. */
+export function formOf(food, { energyUnit = 'kcal' } = {}) {
   const nutrients = {}
   for (const { id } of NUTRIENTS) {
     const v = food?.nutrition?.[id]
-    nutrients[id] = v === undefined || v === null || v === 0 ? '' : String(Math.round(Number(v) * 100) / 100)
+    const shown = id === 'calories' && energyUnit === 'kJ' ? Number(v) * KJ_PER_KCAL : Number(v)
+    nutrients[id] = v === undefined || v === null || v === 0 || !Number.isFinite(shown) ? '' : String(round2(shown))
   }
   return {
     name: food?.name || '',
@@ -186,25 +194,44 @@ const num = s => {
   return Number.isFinite(n) ? n : NaN
 }
 
+// The nutrition to save: the food's own object with the edited fields over it. NutriTrace's PUT
+// replaces `nutrition` whole, and a food holds more than the editor shows (kilojoules, its own
+// ids, values finer than the field's two decimals), so only a field the person changed is
+// written. Sodium and salt are one fact: changing one drops the other, which is derived again.
+function editedNutrition(form, base, original, energyUnit) {
+  const nutrition = { ...(original || {}) }
+  const changed = NUTRIENTS.filter(n => form.nutrients[n.id] !== base.nutrients[n.id]).map(n => n.id)
+  for (const id of changed) {
+    let n = num(form.nutrients[id])
+    if (Number.isNaN(n) || n < 0) return { error: `nutrient:${id}` }
+    if (id === 'calories' && energyUnit === 'kJ') n = round2(n / KJ_PER_KCAL)
+    if (n > 0) nutrition[id] = n
+    else delete nutrition[id]
+  }
+  const sodium = changed.includes('sodium'), salt = changed.includes('salt')
+  if (sodium && !salt) delete nutrition.salt
+  if (salt && !sodium) delete nutrition.sodium
+  deriveSodiumSalt(nutrition)
+  return { nutrition, changed: changed.length > 0 }
+}
+
 /**
- * The editor's text as a food to save. `{ error }` names the first field that cannot be saved:
- * 'name', 'portion' or 'nutrient:<id>'. A saved food keeps the fields the editor does not show
- * (its household units, density, image) because only the edited fields are sent.
+ * The editor's text as a food to save: `food` is the saved food it edits, or null for a new one
+ * (which takes `clientKey`, so a retry after a lost answer saves one food). `{ error }` names the
+ * first field that cannot be saved: 'name', 'portion' or 'nutrient:<id>'. An edit sends
+ * `nutrition` only when a nutrient field changed. A saved food keeps the fields the editor does
+ * not show (its household units, density, image) because only the edit fields are sent.
  * @returns {{ food: object } | { error: string }}
  */
-export function foodOf(form, { id = null, clientKey = null } = {}) {
+export function foodOf(form, { food = null, clientKey = null, energyUnit = 'kcal' } = {}) {
   const name = form.name.trim()
   if (!name) return { error: 'name' }
   const portion = num(form.portion)
   if (!(portion > 0)) return { error: 'portion' }
-  const nutrition = {}
-  for (const { id: nid } of NUTRIENTS) {
-    const n = num(form.nutrients[nid])
-    if (Number.isNaN(n) || n < 0) return { error: `nutrient:${nid}` }
-    if (n > 0) nutrition[nid] = n
-  }
-  deriveSodiumSalt(nutrition)
-  const food = {
+  const editing = typeof food?.id === 'number'
+  const made = editedNutrition(form, formOf(food, { energyUnit }), food?.nutrition, energyUnit)
+  if (made.error) return { error: made.error }
+  const out = {
     name,
     brand: form.brand.trim(),
     barcode: form.barcode.trim(),
@@ -212,11 +239,10 @@ export function foodOf(form, { id = null, clientKey = null } = {}) {
     unit: form.unit,
     category: form.category,
     notes: form.notes.trim(),
-    nutrition,
+    ...(!editing || made.changed ? { nutrition: made.nutrition } : {}),
   }
-  if (id != null) return { food: { ...food, id, favorite: form.favorite } }
-  // The key makes a retry after a lost answer save one food (POST /api/foods).
-  return { food: { ...food, client_key: clientKey || newUuid() } }
+  if (editing) return { food: { ...out, id: food.id, favorite: form.favorite } }
+  return { food: { ...out, client_key: clientKey } }
 }
 
 /** What a failed online search tells the person; 429 is the hub's limit of 30 a minute. */

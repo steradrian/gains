@@ -1,15 +1,18 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { todayISO } from '../lib/format.js'
-import { t, tn } from '../lib/i18n.js'
+import { dateLocale, t, tn } from '../lib/i18n.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
-import { energyOf } from '../lib/nutrition/diary.js'
-import { useDiaryTarget } from '../lib/nutrition/selection.js'
+import { useDiarySelection, useDiaryTarget } from '../lib/nutrition/selection.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiaryDay } from '../lib/nutrition/use-diary-day.js'
+import { useUnits } from '../lib/nutrition/use-units.js'
 import { Card, EmptyState, Stat, StatTile, Tiles } from '../components/blocks.jsx'
 import { Inline, Page } from '../components/layout.jsx'
 import YesterdayMealRow from '../components/YesterdayMealRow.jsx'
+import { Button } from '../components/ui.jsx'
+
+const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
 
 const MACROS = [
   { id: 'proteins', label: () => t('Protein') },
@@ -21,7 +24,8 @@ const MACROS = [
 // log again, and the places nutrition lives. A place gets a tile when its page exists.
 export default function FoodHub() {
   const nav = useNavigate()
-  const { on, status, settings, totals, macros, left } = useDiaryDay(todayISO())
+  const { on, status, settings, totals, macros, left, reload } = useDiaryDay(todayISO())
+  const units = useUnits()
   const foods = useNutrition(s => s.foods)
   const { meal } = useDiaryTarget(settings)
 
@@ -42,27 +46,34 @@ export default function FoodHub() {
     { path: '/food/foods', icon: 'apple', title: t('Foods'), sub: foods.status === 'ready' ? tn('{0} food', '{0} foods', foods.list.length) : t('Your own foods') },
   ]
 
-  const leftIn = energyOf(Math.abs(left), settings)
+  // The card says today, so it opens Home on today, whichever date Home was left on.
+  const openToday = () => {
+    useDiarySelection.getState().setDate(null)
+    nav('/home')
+  }
 
   return <Page root title={t('Nutrition')}>
-    <Card {...tappable(() => nav('/home'))}>
-      {status === 'ready' ? <>
-        <Stat value={leftIn.value.toLocaleString()} />
-        <div className="small muted">{left >= 0 ? t('{0} left today', leftIn.unit) : t('{0} over today', leftIn.unit)}</div>
-        <Inline gap={10} className="mt-6">
-          {MACROS.map(m => {
-            const eaten = Math.round(totals[m.id] || 0)
-            const goal = macros[m.id]
-            return <div key={m.id} className="small">
-              <div className="muted">{m.label()}</div>
-              <b>{goal != null ? t('{0} of {1} g', eaten, Math.round(goal)) : t('{0} g', eaten)}</b>
-            </div>
-          })}
-        </Inline>
-      </> : status === 'error'
-        ? <div className="small muted">{t('Today’s diary did not load.')}</div>
-        : <div className="small muted" role="status">{t('Loading…')}</div>}
-    </Card>
+    {status === 'error'
+      ? <Card>
+        <div className="small muted" role="alert">{t('Today’s diary did not load.')}</div>
+        <Button size="sm" variant="tinted" className="mt-4" onClick={reload}>{t('Try again')}</Button>
+      </Card>
+      : <Card {...tappable(openToday)}>
+        {status === 'ready' ? <>
+          <Stat value={units.energyValue(Math.abs(left))} />
+          <div className="small muted">{left >= 0 ? t('{0} left today', units.energyUnit) : t('{0} over today', units.energyUnit)}</div>
+          <Inline gap={10} className="mt-6">
+            {MACROS.map(m => {
+              const eaten = grams(totals[m.id])
+              const goal = macros[m.id]
+              return <div key={m.id} className="small">
+                <div className="muted">{m.label()}</div>
+                <b>{goal != null ? t('{0} of {1} g', eaten, grams(goal)) : t('{0} g', eaten)}</b>
+              </div>
+            })}
+          </Inline>
+        </> : <div className="small muted" role="status">{t('Loading…')}</div>}
+      </Card>}
     <YesterdayMealRow settings={settings} meal={meal} />
     <Tiles className="hub-tiles">
       {targets.map(x => <StatTile key={x.path} className="hub-tile" icon={x.icon} label={x.title} value={x.sub} onClick={() => nav(x.path)} />)}

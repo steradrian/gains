@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { isoOf, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { againDrafts, againItems, againKcal } from '../lib/nutrition/again.js'
+import { againAttempt, againEntries, againItems, againKcal, againLogged } from '../lib/nutrition/again.js'
 import { energyOf } from '../lib/nutrition/diary.js'
 import { foodErrorText } from '../lib/nutrition/foods.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
@@ -19,16 +19,15 @@ const yesterdayISO = () => {
 }
 
 // "Yesterday's lunch [Log again]": the same meal logged to today, in one tap, when yesterday's
-// meal is there and every entry in it can be logged again (lib/nutrition/again.js). The drafts
-// are built once per meal and sent again on a retry, so a write whose answer was lost does not
-// log an entry twice.
+// meal is there and every entry in it can be logged again (lib/nutrition/again.js). The entries
+// go in one write with uuids that come from the copy itself, so a second tap or a retry is the
+// same entries, and "Logged" is read off today's diary, not remembered here.
 export default function YesterdayMealRow({ settings, meal }) {
   const today = todayISO()
   const yesterday = yesterdayISO()
   const entry = useNutrition(s => s.days[yesterday]?.entry)
+  const target = useNutrition(s => s.days[today])
   const [busy, setBusy] = useState(false)
-  const [doneFor, setDoneFor] = useState('')
-  const drafts = useRef({ sig: '', list: null })
 
   useEffect(() => { useNutrition.getState().loadDay(yesterday) }, [yesterday])
 
@@ -37,22 +36,21 @@ export default function YesterdayMealRow({ settings, meal }) {
   const names = mealLabels(settings)
   const label = names[meal] ?? names[0]
   const kcal = energyOf(againKcal(items), settings)
-  const sig = `${today}|${meal}|${yesterday}`
+  const copy = { from: yesterday, to: today, target: target?.entry }
+  // Which attempt is free depends on today's tombstones: nothing is sent before today is read.
+  const ready = target?.status === 'ready'
+  const attempt = againAttempt(items, copy)
+  const done = ready && againLogged(items, copy, attempt)
 
   async function again() {
-    if (busy) return
+    if (busy || !ready) return
     setBusy(true)
     const n = useNutrition.getState()
     try {
-      if (drafts.current.sig !== sig) drafts.current = { sig, list: againDrafts(items, meal, n) }
-      const logged = []
-      for (const d of drafts.current.list) logged.push(d.food ? await n.logFood(today, d.food) : await n.logQuick(today, d.quick))
-      setDoneFor(sig)
+      const logged = await n.logItems(today, againEntries(items, meal, { from: yesterday, to: today, attempt, n }))
       toast(t('Logged to {0}', label), {
         action: t('Undo'),
-        onAction: async () => {
-          try { for (const item of logged) await useNutrition.getState().removeItem(today, item.uuid) } catch (e) { toast(foodErrorText(e, { write: true })) }
-        },
+        onAction: () => { useNutrition.getState().removeItems(today, logged.map(i => i.uuid)).catch(e => toast(foodErrorText(e, { write: true }))) },
       })
     } catch (e) {
       toast(foodErrorText(e, { write: true }))
@@ -63,9 +61,9 @@ export default function YesterdayMealRow({ settings, meal }) {
 
   return <Section>
     <Row icon="history" iconTint="var(--indigo)" title={t('Yesterday’s {0}', label)} subtitle={`${items.map(i => i.name).join(', ')} · ${kcal.value} ${kcal.unit}`}>
-      {doneFor === sig
+      {done
         ? <Tag tone="acc">{t('Logged')}</Tag>
-        : <Button size="sm" variant="tinted" onClick={again} disabled={busy}>{t('Log again')}</Button>}
+        : <Button size="sm" variant="tinted" onClick={again} disabled={busy || !ready}>{t('Log again')}</Button>}
     </Row>
   </Section>
 }

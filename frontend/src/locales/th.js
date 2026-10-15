@@ -2449,7 +2449,7 @@ export default {
   'Yesterday’s {0}': 'Yesterday’s {0}',
   'Your own foods': 'Your own foods',
   'Zinc': 'Zinc',
-  'per 100 g': 'per 100 g',
+  'per 100 {0}': 'per 100 {0}',
   '{0} g': '{0} g',
   '{0} left today': '{0} left today',
   '{0} must be a number, 0 or more.': '{0} must be a number, 0 or more.',
