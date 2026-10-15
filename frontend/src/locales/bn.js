@@ -2897,4 +2897,8 @@ export default {
   'Search progress': 'অগ্রগতিতে খুঁজুন',
   'Clear search': 'খোঁজ মুছুন',
   'Close search': 'খোঁজ বন্ধ করুন',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'পরিকল্পনা বদলানো হয়েছে',
+  'Trained on {0} of {1} days': '{1} দিনের মধ্যে {0} দিন ট্রেনিং',
+  'of {0}': '{0}-এর মধ্যে',
 }

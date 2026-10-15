@@ -114,3 +114,229 @@
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .hdr.sub-hdr.sticky{background:var(--bg)}
 }
+
+/* ------------------------------------------------------------- date nav -- */
+
+/* MonthBar: the month opens the calendar; Today keeps its place while hidden. */
+.month-bar{
+  position:relative;display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+  min-height:var(--tap-min);margin-bottom:var(--space-4);
+}
+.month-bar::after{content:'';position:absolute;inset-inline:calc(-1 * var(--pad));bottom:0;height:var(--hair);background:var(--sep)}
+.month-bar-l{
+  display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);padding-inline:2px;
+  font-size:var(--fs-callout);font-weight:var(--fw-semibold);color:var(--label);
+}
+.month-bar-l .icn{font-size:14px;color:var(--label-2)}
+.month-bar-today{min-height:var(--tap-min);padding-inline:var(--space-4);font-size:var(--fs-callout);color:var(--acc-ink)}
+.month-bar-today.off{visibility:hidden}
+
+/* WeekStrip: seven equal days. A horizontal swipe changes the week, so the strip keeps vertical
+   panning for the page and takes the horizontal drag itself. */
+.wk-strip{touch-action:pan-y;overflow:hidden;margin-bottom:var(--space-6)}
+.wk-days{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--space-1)}
+.wk-days.from-next{animation:wk-in-next var(--med) var(--ease)}
+.wk-days.from-prev{animation:wk-in-prev var(--med) var(--ease)}
+@keyframes wk-in-next{from{transform:translateX(24px);opacity:0}}
+@keyframes wk-in-prev{from{transform:translateX(-24px);opacity:0}}
+[dir="rtl"] .wk-days.from-next{animation-name:wk-in-prev}
+[dir="rtl"] .wk-days.from-prev{animation-name:wk-in-next}
+.wk-d{
+  display:flex;flex-direction:column;align-items:center;gap:2px;min-width:var(--tap-min);min-height:64px;
+  padding:6px 2px;border-radius:var(--r);color:var(--label);
+  transition:background var(--fast) var(--ease),transform var(--fast) var(--ease);
+}
+.wk-d:active{transform:scale(.96)}
+.wk-n{font-size:var(--fs-footnote);color:var(--label-2)}
+.wk-num{font-size:var(--fs-body);font-variant-numeric:tabular-nums}
+.wk-dot{width:5px;height:5px;margin-top:2px;border-radius:50%}
+.wk-dot.done{background:var(--acc)}
+.wk-dot.plan{background:var(--label-3)}
+.wk-dot.ovr{background:var(--orange)}
+.wk-dot.noted{background:var(--indigo)}
+.wk-d.today .wk-num{color:var(--acc-ink);font-weight:var(--fw-semibold)}
+.wk-d.sel{background:var(--sel-fill)}
+.wk-d.sel,.wk-d.sel .wk-n,.wk-d.sel .wk-num{color:var(--on-sel);font-weight:var(--fw-semibold)}
+.wk-d:disabled{opacity:1}
+.wk-d:disabled .wk-n,.wk-d:disabled .wk-num{color:var(--label-3)}
+
+/* WeekDots: a read-only week, one image. */
+.wk-dots{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--space-1);justify-items:center}
+.wk-dots-d{display:flex;flex-direction:column;align-items:center;gap:var(--space-2)}
+.wk-dots-n{font-size:var(--fs-caption);color:var(--label-2)}
+.wk-dots-c{width:12px;height:12px;border-radius:50%;background:var(--surface-3)}
+.wk-dots-d.done .wk-dots-c{background:var(--acc)}
+
+/* ---------------------------------------------------------------- blocks -- */
+
+/* HeroStatus: the tab's state, centred. */
+.hero{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding-block:var(--space-11);text-align:center}
+.hero-g{font-size:32px;--icon-stroke:1.7;color:var(--label);margin-bottom:var(--space-2)}
+.hero-e{font-size:var(--fs-subhead);color:var(--label-2)}
+.hero-t{font-size:var(--fs-large);font-weight:var(--fw-bold);letter-spacing:-.028em;line-height:1.1}
+.hero-v{display:flex;align-items:baseline;justify-content:center;gap:var(--space-2);font-variant-numeric:tabular-nums}
+.hero-num{font-size:var(--fs-display);font-weight:var(--fw-bold);letter-spacing:var(--ls-display);line-height:1}
+.hero-u{font-size:var(--fs-callout);color:var(--label-2)}
+.hero-c{font-size:var(--fs-subhead);color:var(--label-2);margin-top:var(--space-2)}
+.hero-m{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.hero-mi{display:flex;flex-direction:column;align-items:center;gap:2px;padding-inline:var(--space-4)}
+.hero-mi+.hero-mi{box-shadow:inset var(--hair) 0 0 var(--sep)}
+[dir="rtl"] .hero-mi+.hero-mi{box-shadow:inset calc(-1 * var(--hair)) 0 0 var(--sep)}
+.hero-mi .hero-num{font-size:min(var(--fs-display),12vw)}
+.hero-ml{font-size:var(--fs-callout);color:var(--label)}
+.hero-ms{font-size:var(--fs-subhead);color:var(--label-2)}
+.hero .skel+.skel{margin-top:var(--space-2)}
+
+/* ActionRow / ActionButton: 56px discs on the card surface, none filled (Owner decision 7). */
+.act-row{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:var(--space-4);padding-block:var(--space-4)}
+.act-b{
+  display:flex;flex-direction:column;align-items:center;gap:var(--space-4);min-width:72px;min-height:88px;
+  color:var(--label);text-align:center;
+}
+.act-d{
+  position:relative;width:var(--disc);height:var(--disc);border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:var(--glyph);
+  background:var(--surface);box-shadow:var(--ring-hair),var(--shadow-card);
+  transition:transform var(--fast) var(--ease),background var(--fast) var(--ease);
+}
+.act-b:active .act-d{transform:scale(.94);background:var(--surface-2)}
+.act-b:disabled{opacity:.32}
+.act-l{
+  font-size:var(--fs-subhead);line-height:1.2;color:var(--label);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere;
+}
+.act-badge{position:absolute;top:2px;inset-inline-end:2px;width:10px;height:10px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 2px var(--bg)}
+.act-spin{width:22px;height:22px;border-radius:50%;border:2px solid var(--label-3);border-top-color:var(--label);animation:act-spin .8s linear infinite}
+@keyframes act-spin{to{transform:rotate(1turn)}}
+
+/* MacroGauge: a 270° arc, the macro's own colour, the start cap always drawn. */
+.mg-row{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-6)}
+.mg{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.mg-protein{--mg-c:var(--macro-protein)}
+.mg-carbs{--mg-c:var(--macro-carbs)}
+.mg-fat{--mg-c:var(--macro-fat)}
+.mg-dial{position:relative;width:96px;height:96px}
+.mg-dial svg{display:block;width:100%;height:100%;fill:none;stroke-width:8;stroke-linecap:round}
+.mg-track{stroke:var(--gauge-track)}
+.mg-arc{
+  stroke:var(--mg-c);stroke-dasharray:100;stroke-dashoffset:calc(100 - 100 * var(--mg));
+  transition:stroke-dashoffset var(--hero) var(--ease-io);
+}
+.mg-cap{fill:var(--mg-c);stroke:none}
+.mg-v{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;gap:2px;padding-top:34px}
+.mg-num{font-size:var(--fs-title2);font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums}
+.mg-u{font-size:var(--fs-footnote);color:var(--label-2)}
+.mg-l{font-size:var(--fs-subhead);color:var(--label-2)}
+.mg-of{font-size:var(--fs-caption);color:var(--label-2)}
+
+/* SectionHeader: a tab root's section heading, with a link or as one button. */
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-4)}
+.sec-h-t,.sec-h-b{font-size:var(--fs-title2);font-weight:var(--fw-bold);letter-spacing:var(--ls-title);line-height:1.2}
+.sec-h-b{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);color:var(--label);text-align:start}
+.sec-h-b .icn{font-size:17px;color:var(--label-2);--icon-stroke:2.4}
+.sec-h-l{min-height:var(--tap-min);margin-block:-6px;padding-inline:var(--space-2);font-size:var(--fs-callout);color:var(--acc-ink);flex:none}
+
+/* StatSection: a Progress card whose title opens its page. */
+.card.stat-sec{padding:var(--space-8)}
+.stat-sec-h button{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);width:100%;min-height:var(--tap-min);
+  margin-top:-10px;font-size:var(--fs-title3);font-weight:var(--fw-semibold);letter-spacing:-.017em;color:var(--label);text-align:start;
+}
+.stat-sec-h .icn{font-size:15px;--icon-stroke:2.4}
+.stat-sec-b{display:flex;align-items:center;gap:var(--space-8);margin-top:var(--space-4)}
+.stat-sec-art{flex:none;width:var(--art-w);height:var(--art-h);border-radius:var(--r);overflow:hidden}
+.stat-sec-v{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat-sec-v+.stat-sec-v{padding-inline-start:var(--space-8);box-shadow:inset var(--hair) 0 0 var(--sep)}
+[dir="rtl"] .stat-sec-v+.stat-sec-v{box-shadow:inset calc(-1 * var(--hair)) 0 0 var(--sep)}
+.stat-sec-num{font-size:var(--fs-big);font-weight:var(--fw-bold);letter-spacing:-.026em;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat-sec-u{font-size:var(--fs-callout);font-weight:var(--fw-regular);color:var(--label-2);margin-inline-start:var(--space-2)}
+.stat-sec-l,.stat-sec-n{font-size:var(--fs-subhead);color:var(--label-2)}
+.stat-sec-n{margin-block:var(--space-4)}
+.stat-sec-f{margin-top:var(--space-6)}
+
+/* MediaRow: an ItemRow led by art at 96×72, or the exercise variant's 56px thumb. */
+.item.item-lg{gap:var(--space-7);padding:var(--space-4)}
+.media-lead{flex:none;width:var(--art-w);height:var(--art-h);border-radius:var(--r);overflow:hidden;display:block}
+.media-lead>img,.media-lead>.thumb{width:100%;height:100%;border-radius:0}
+.item-exercise .media-lead{width:var(--thumb-lg);height:var(--thumb-lg)}
+.item.item-lg .tt{font-size:var(--fs-body);font-weight:var(--fw-semibold)}
+.item.item-lg .ss{font-size:var(--fs-subhead)}
+.media-link{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);margin-block:-6px -10px;font-size:var(--fs-subhead);color:var(--acc-ink)}
+.media-link .icn{font-size:18px}
+.media-play{
+  flex:none;width:var(--hdr-btn);height:var(--hdr-btn);border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);color:var(--label);font-size:18px;position:relative;
+}
+.media-play::before{content:'';position:absolute;inset:-4px;border-radius:50%}
+.media-play:active{transform:scale(.94)}
+
+/* StickyActionBar: one pill pinned above the tab bar, resting at the page's end. */
+.sticky-act{
+  position:sticky;bottom:calc(var(--tabbar-h) + var(--sab) + var(--space-4));z-index:6;
+  display:flex;justify-content:center;margin-top:var(--space-8);
+}
+.sticky-act>.btn{width:100%;box-shadow:var(--shadow-float)}
+
+/* EmptyState with art and pills, and InlineNote. */
+.empty.empty-x{padding-block:var(--space-11)}
+.empty .empty-art{margin-bottom:var(--space-6)}
+.empty-acts{display:flex;justify-content:center;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-8)}
+.inote{display:flex;align-items:center;justify-content:center;gap:var(--space-4);padding:var(--space-6);font-size:var(--fs-subhead);color:var(--label-2);text-align:center}
+.inote .icn{font-size:16px;flex:none}
+
+/* Skeleton: a block at the size of what is loading, with a sweep that reduced motion stills. */
+.skel{
+  display:block;width:var(--skel-w);height:var(--skel-h);border-radius:var(--skel-r);flex:none;
+  background-color:var(--skel);background-image:linear-gradient(90deg,transparent,var(--skel-sheen),transparent);
+  background-size:200% 100%;animation:skel 1.4s linear infinite;
+}
+@keyframes skel{from{background-position:100% 0}to{background-position:-100% 0}}
+
+/* Button shape="pill". */
+.btn.btn-pill{width:auto;min-height:var(--tap-min);padding:0 20px;border-radius:var(--r-pill);font-size:var(--fs-subhead);font-weight:var(--fw-semibold)}
+
+/* Segmented tone="strong" (page sub-views, the Progress range) and size="lg". */
+.seg.seg-strong .seg-sel{background:var(--sel-fill);box-shadow:none}
+.seg.seg-strong button.on{color:var(--on-sel);font-weight:var(--fw-semibold)}
+.seg.seg-lg{border-radius:var(--r);padding:3px}
+.seg.seg-lg .seg-sel{top:3px;bottom:3px;inset-inline-start:3px;width:calc((100% - 6px)/var(--n));border-radius:9px}
+.seg.seg-lg button{min-height:36px;font-size:var(--fs-subhead)}
+
+/* Row glyph and accessory="add". */
+.lrow-g{flex:none;display:flex;font-size:var(--glyph);color:var(--label)}
+.lrow:has(.lrow-g){min-height:64px;padding:12px 16px;gap:14px}
+.lrow:has(.lrow-g)+.lrow:has(.lrow-g)::before{inset-inline-start:54px}
+.lrow:has(.lrow-g) .lrow-t{font-size:var(--fs-body);font-weight:var(--fw-medium)}
+.lrow:has(.lrow-g) .lrow-s{font-size:var(--fs-subhead)}
+.lrow-open{display:flex;flex-direction:column;align-self:stretch;justify-content:center;text-align:start}
+.lrow.lrow-add .lrow-open:active{opacity:.6}
+.lrow-plus{
+  position:relative;flex:none;width:var(--disc-sm);height:var(--disc-sm);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--label);font-size:20px;
+  transition:transform var(--fast) var(--ease);
+}
+.lrow-plus::before{content:'';position:absolute;inset:-6px;border-radius:50%}
+.lrow-plus:active{transform:scale(.92)}
+
+/* ------------------------------------------------------------- line art -- */
+/* LineArt (components/line-art.jsx): the onboarding's classes, at the 96×72 slot. */
+.lineart{display:block;width:var(--art-w);height:var(--art-h);background:var(--surface-2);fill:none;pointer-events:none}
+.lineart [class^="il"],.lineart [class*=" il"]{stroke-linecap:round;stroke-linejoin:round}
+.lineart .il{stroke:var(--label-2);stroke-width:var(--il-w)}
+.lineart .il-d{stroke:var(--label-2);stroke-width:var(--il-w-d)}
+.lineart .il-floor{stroke:var(--sep);stroke-width:var(--il-w-d)}
+.lineart .il-mute{stroke:var(--label-3)}
+.lineart .il-acc{stroke:var(--acc-graphic);stroke-width:var(--il-w)}
+.lineart .il-occ{fill:var(--surface)}
+.lineart .il-lit{fill:var(--acc-soft)}
+.lineart .il-dash{stroke-dasharray:4 4}
+/* Draw-in: each path over 480ms, 60ms apart, the accent over --hero; fills after their outline.
+   The keyframes start from nothing drawn, so a still (reduced motion) is the finished scene. */
+.lineart.il-draw [pathLength="1"]{stroke-dasharray:1;animation:il-draw 480ms var(--ease-io) both;animation-delay:calc(var(--i,0) * 60ms)}
+.lineart.il-draw .il-acc[pathLength="1"]{animation-duration:var(--hero)}
+.lineart.il-draw .il-occ[pathLength="1"],.lineart.il-draw .il-lit[pathLength="1"]{animation-name:il-draw,il-fill}
+.lineart.il-draw .il-data{animation:il-fade var(--hero) var(--ease-io) both;animation-delay:240ms}
+@keyframes il-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes il-fill{0%,70%{fill-opacity:0;stroke-opacity:1}100%{fill-opacity:1}}
+.lineart.rm-fade{animation:il-fade 120ms var(--ease) both}
+@keyframes il-fade{from{opacity:0}}

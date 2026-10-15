@@ -2829,4 +2829,8 @@ export default {
   'Search progress': 'ค้นหาความก้าวหน้า',
   'Clear search': 'ล้างการค้นหา',
   'Close search': 'ปิดการค้นหา',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'เปลี่ยนแผนแล้ว',
+  'Trained on {0} of {1} days': 'ฝึก {0} จาก {1} วัน',
+  'of {0}': 'จาก {0}',
 }

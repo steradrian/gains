@@ -47,6 +47,32 @@ warns in development). Make the child the control and drop the row's onClick, or
   20, then 17px (`useTitleFit`), hyphenated at the last step. `sub` centred under it; `children`
   (Page `heading`) is a field as the title, start-aligned; `sticky` pins it.
 
+## The tab roots' blocks (the native redesign; look in `tab-kit.css`)
+
+Built for the four tab restyles (fitness-eval `ui-redesign-components.md`; Owner decisions in
+`redesign-native.md` override it). Each has behaviour tests (`date-nav.test.jsx`,
+`tab-kit.test.jsx`, `line-art.test.jsx`, `blocks.test.jsx`, `ui.test.jsx`). A prop value with no
+class throws in development, as everywhere in the kit.
+
+| Component (file) | Props | What it is |
+|---|---|---|
+| `MonthBar` (date-nav) | `date onPickDate onToday` | The month as a button opening `calendarSheet` (the day picked goes to `onPickDate`); "Today" at the end, hidden but in place on today |
+| `WeekStrip` (date-nav) | `date onSelect marks maxDate weekStart` | The week around `date`: selected (`--sel-fill`), today (`--acc-ink`, `aria-current=date`), a dot per `marks[iso]` (`done`/`plan`/`ovr`/`noted`), days after `maxDate` disabled. Swipe or arrow past an end for the next/previous week; the date does not change |
+| `WeekDots` (date-nav) | `days:[{iso,done}] label` | A read-only week of dots, one `role=img` named by `label` or the count |
+| `HeroStatus` (tab-kit) | `glyph eyebrow title\|value unit caption metrics status tone onRetry` | The tab's state, centred. `metrics` = two values split by a hairline. `status` loading (skeletons, `role=status`), error (caption + Try again), empty (a dash); `tone="over"` puts the caption in orange ink. Never a greeting |
+| `ActionRow` / `ActionButton` (tab-kit) | `children` (2–4) / `icon label onClick disabled busy badge` | Equal columns of 56px discs with labels. No filled primary (Owner decision 7). `busy` = spinner + `aria-busy`; `badge` = a dot and its words in the name |
+| `MacroGauge`, `MacroGauges` (tab-kit) | `macro value target unit label` | A 270° `role=meter` arc in `--macro-*`, start cap always drawn, "of 150 g", "+12 g" in orange ink over target; `MacroGauges` is the 3-column row |
+| `SectionHeader` (tab-kit) | `title link onLink` / `title onOpen` | A tab root's `--fs-title2` heading with a text link, or one button with a chevron. `SectionTitle` stays the small grey one |
+| `StatSection` (tab-kit) | `title onOpen art values footer status note onRetry` | A Progress card: the title + chevron is its one button; 1–2 values split by a hairline, an optional art lead and footer. No icon tile |
+| `MediaRow` (tab-kit) | `art title subtitle link onOpen onPlay playLabel chevron variant="exercise"` | An `.item` led by 96×72 art (56px thumb in the exercise variant). With a `link` line or `onPlay`, the title block opens it and each control is its own button |
+| `StickyActionBar` (tab-kit) | `children` | The page's one main pill, sticky above the tab bar (`--tabbar-h`), resting at the end of the page |
+| `LineArt` (line-art) | `scene state` | `routine {days,next,scheduled}`, `mobility {minutes}`, `scale {kg}`, `equipment {eq}` (`equipmentOf(ex.eq)`). Two strokes, three inks (`--acc-graphic` for data), no figures, ≤8 paths; draws in once a session (`useDrawIn`), fades under reduced motion; `aria-hidden` |
+| `EmptyState` (blocks) | + `art action secondary` | `art` replaces the icon; `action`/`secondary` are `{label, onClick, icon}` pills. Without them the markup is unchanged |
+| `InlineNote`, `Skeleton` (blocks) | `icon children` / `w h r` | A quiet centred status line; a hidden loading block at its size (numbers are px) |
+| `Button` (ui) | + `shape="pill"` | 44px, `--r-pill`, sized to its label (`.btn-pill`) |
+| `Segmented` (ui) | + `tone="strong"` `size="lg"` | The selection fill for page sub-views and the Progress range; 36px buttons. The subtle default stays for in-card ranges |
+| `Row` (ui) | + `glyph`, `accessory="add"` with `onOpen onAdd addLabel` | A bare 24px lead icon; a + disc of its own ("Add to {title}") with the text opening the row, the row itself no button |
+
 ## Tokens and utilities (`src/ui-kit.css`, loaded after `index.css`)
 
 - Space `--space-1`…`--space-12`, `--space-2-5` (5px); rhythm `--gap-list` (8), `--gap-row` and

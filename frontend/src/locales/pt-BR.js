@@ -1705,6 +1705,10 @@ export const PT_BR_OVERRIDES = {
   'Search progress': 'Buscar progresso',
   'Clear search': 'Limpar busca',
   'Close search': 'Fechar busca',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'Plano alterado',
+  'Trained on {0} of {1} days': 'Treinou em {0} de {1} dias',
+  'of {0}': 'de {0}',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

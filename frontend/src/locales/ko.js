@@ -2818,4 +2818,8 @@ export default {
   'Search progress': '진행 상황 검색',
   'Clear search': '검색어 지우기',
   'Close search': '검색 닫기',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': '계획 변경됨',
+  'Trained on {0} of {1} days': '{1}일 중 {0}일 운동',
+  'of {0}': '/ {0}',
 }

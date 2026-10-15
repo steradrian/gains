@@ -21,7 +21,11 @@ export const LEGACY_CSS = ['admin.css', 'coach.css', 'index.css', 'tab-shell.css
 // The only stylesheets whose :root rules may define colour tokens: the theme and the kit's tokens.
 export const THEME_FILES = ['index.css', 'ui-kit.css']
 // Where the hand-built markup G3 looks for is allowed: the primitives themselves.
-export const PRIMITIVE_FILES = ['components/blocks.jsx', 'components/layout.jsx', 'components/sheet-layout.jsx', 'components/ui.jsx']
+export const PRIMITIVE_FILES = [
+  'components/blocks.jsx', 'components/layout.jsx', 'components/sheet-layout.jsx', 'components/ui.jsx',
+  // the native redesign's kit
+  'components/date-nav.jsx', 'components/line-art.jsx', 'components/tab-kit.jsx',
+]
 // Routed views that draw their own chrome and never render <Page> (G4).
 export const PAGE_EXEMPT = ['FocusView', 'Login', 'MobileOnboarding', 'Workout']
 

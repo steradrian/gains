@@ -2818,4 +2818,8 @@ export default {
   'Search progress': '搜索进度',
   'Clear search': '清除搜索',
   'Close search': '关闭搜索',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': '计划已更改',
+  'Trained on {0} of {1} days': '{1} 天中训练了 {0} 天',
+  'of {0}': '/ {0}',
 }

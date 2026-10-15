@@ -2811,4 +2811,8 @@ export default {
   'Search progress': '搜尋進度',
   'Clear search': '清除搜尋',
   'Close search': '關閉搜尋',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': '計畫已變更',
+  'Trained on {0} of {1} days': '{1} 天中訓練了 {0} 天',
+  'of {0}': '/ {0}',
 }

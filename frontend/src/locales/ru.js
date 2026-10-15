@@ -2822,4 +2822,8 @@ export default {
   'Search progress': 'Поиск в прогрессе',
   'Clear search': 'Очистить поиск',
   'Close search': 'Закрыть поиск',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'План изменён',
+  'Trained on {0} of {1} days': 'Тренировки в {0} из {1} дней',
+  'of {0}': 'из {0}',
 }

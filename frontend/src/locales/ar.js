@@ -2873,4 +2873,8 @@ export default {
   'Search progress': 'البحث في التقدم',
   'Clear search': 'مسح البحث',
   'Close search': 'إغلاق البحث',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'تم تغيير الخطة',
+  'Trained on {0} of {1} days': 'تدربت {0} من {1} أيام',
+  'of {0}': 'من {0}',
 }

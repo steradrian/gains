@@ -2821,4 +2821,8 @@ export default {
   'Search progress': 'Keresés a fejlődésben',
   'Clear search': 'Keresés törlése',
   'Close search': 'Keresés bezárása',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'Terv módosítva',
+  'Trained on {0} of {1} days': '{1} napból {0} napon edzés',
+  'of {0}': '/ {0}',
 }

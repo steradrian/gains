@@ -2818,4 +2818,8 @@ export default {
   'Search progress': 'प्रगति में खोजें',
   'Clear search': 'खोज साफ़ करें',
   'Close search': 'खोज बंद करें',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'योजना बदली गई',
+  'Trained on {0} of {1} days': '{1} में से {0} दिन ट्रेनिंग',
+  'of {0}': '{0} में से',
 }

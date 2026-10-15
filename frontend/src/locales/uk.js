@@ -2815,4 +2815,8 @@ export default {
   'Search progress': 'Пошук у прогресі',
   'Clear search': 'Очистити пошук',
   'Close search': 'Закрити пошук',
+  // --- the redesign's week strip and gauges ---
+  'Plan changed': 'План змінено',
+  'Trained on {0} of {1} days': 'Тренування в {0} з {1} днів',
+  'of {0}': 'з {0}',
 }
