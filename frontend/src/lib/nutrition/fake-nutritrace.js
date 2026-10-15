@@ -1,8 +1,7 @@
 // A fake of NutriTrace and the hub's sync routes at the fetch boundary, for tests. It answers
 // what the hub forwards (fitness-hub src/nt-routes.ts), as strictly as the hub does, with
 // NutriTrace's real shapes and merge rules (server/routes/diary.js, foods.js, meals.js,
-// activity.js, server/lib/diary-merge.js); any other path is a 404, as the hub answers it. The
-// meals routes are ahead of the hub: it allows only GET /api/meals/:id today (see the PR).
+// activity.js, server/lib/diary-merge.js); any other path is a 404, as the hub answers it.
 //
 //   const nt = createFakeNutriTrace({ days: { '2026-10-14': fixtureDay() } })
 //   vi.stubGlobal('fetch', nt.fetch)
@@ -133,10 +132,19 @@ export function isOffSearchQuery(params) {
 const isObject = v => typeof v === 'object' && v !== null && !Array.isArray(v)
 // fitness-hub isPrivateFoodWithoutImage
 const isPrivateFoodWithoutImage = b => isObject(b) && !('img_url' in b) && !('imgUrl' in b) && b.visibility === 'private'
-// The same rule for the meals routes this app needs: a new meal is private and has no image, an
-// edit names neither (what the hub has to allow: see the PR's "Hub routes needed").
-const isPrivateMealWithoutImage = b => isPrivateFoodWithoutImage(b) && Array.isArray(b.items)
-const isMealEdit = b => isObject(b) && !('img_url' in b) && !('imgUrl' in b) && !('visibility' in b) && !('id' in b)
+// The meals routes' allow-lists, by key (fitness-hub nt-body-checks.ts MEAL_EDIT_FIELDS,
+// NEW_MEAL_FIELDS, INGREDIENT_FIELDS, ALT_UNIT_FIELDS): a key outside them is a 400, in the meal
+// and in each ingredient. The values' types are not checked here.
+const MEAL_EDIT_KEYS = ['name', 'notes', 'items', 'is_recipe', 'nutrition', 'portion', 'unit', 'servings']
+const NEW_MEAL_KEYS = [...MEAL_EDIT_KEYS, 'client_key', 'visibility']
+const INGREDIENT_KEYS = ['id', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'nutrition_basis', 'alt_units', 'density_g_ml']
+const ALT_UNIT_KEYS = ['abbr', 'grams']
+const hasOnlyKeys = (o, keys) => isObject(o) && Object.keys(o).every(k => keys.includes(k))
+const isIngredient = i => hasOnlyKeys(i, INGREDIENT_KEYS) && ['name', 'portion', 'unit', 'nutrition'].every(k => k in i) &&
+  (i.alt_units == null || (Array.isArray(i.alt_units) && i.alt_units.every(u => hasOnlyKeys(u, ALT_UNIT_KEYS))))
+const hasIngredients = b => !('items' in b) || (Array.isArray(b.items) && b.items.length > 0 && b.items.every(isIngredient))
+const isNewMeal = b => hasOnlyKeys(b, NEW_MEAL_KEYS) && b.visibility === 'private' && Array.isArray(b.items) && 'is_recipe' in b && hasIngredients(b)
+const isMealEdit = b => hasOnlyKeys(b, MEAL_EDIT_KEYS) && hasIngredients(b)
 
 /* ------------------------------------------------------------------ NutriTrace's merge ------- */
 
@@ -257,7 +265,7 @@ export function createFakeNutriTrace({
       }
       if (method === 'GET' && n === 4 && ID.test(a)) return live() ? json(live()) : json({ error: 'Not found' }, 404)
       if (method === 'POST' && n === 3) {
-        if (!isPrivateMealWithoutImage(body)) return json({ error: 'request body refused' }, 400)
+        if (!isNewMeal(body)) return json({ error: 'request body refused' }, 400)
         if (!body.name) return json({ error: 'Name required' }, 400)
         const made = state.meals.find(m => body.client_key && m.client_key === body.client_key)
         if (made) return json(made, 200)
@@ -279,6 +287,7 @@ export function createFakeNutriTrace({
         return json({ ok: true })
       }
       if (method === 'POST' && n === 5 && ID.test(a) && b === 'used') {
+        if (!hasOnlyKeys(body, ['date']) || !DATE.test(String(body.date))) return json({ error: 'request body refused' }, 400)
         const meal = live()
         if (!meal) return json({ error: 'Not found' }, 404)
         meal.usage_count = (meal.usage_count || 0) + 1

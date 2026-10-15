@@ -8,7 +8,7 @@
 //
 // No React and no network here.
 import { t } from '../i18n.js'
-import { atPortion, foodItem, invalid, mealsOf, nutritionOf, scaleFactor, sumNutrition } from './diary.js'
+import { atPortion, foodItem, invalid, nutritionOf, scaleFactor, sumNutrition } from './diary.js'
 
 const positive = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
 const decimal = v => parseFloat(String(v ?? '').replace(',', '.'))
@@ -126,26 +126,12 @@ export function mealDraft(meal, { slot, servings = 1 }) {
 
 /* ------------------------------------------------------------------ text --------------------- */
 
-// NutriTrace's default meal names are English; a name the person saved shows as saved
-// (diary.js mealsOf). Literal t() calls so the string checks see them.
-const DEFAULT_NAMES = {
-  Breakfast: () => t('Breakfast'),
-  Lunch: () => t('Lunch'),
-  Dinner: () => t('Dinner'),
-  Snacks: () => t('Snacks'),
-}
-
-/** The name of a meal slot as the person reads it. */
-export function slotName(settings, slot) {
-  const m = mealsOf(settings).find(x => x.slot === slot) || mealsOf(settings)[0]
-  return m.isDefault && DEFAULT_NAMES[m.name] ? DEFAULT_NAMES[m.name]() : m.name
-}
-
-/** What to tell the person about a failed read or write. Never the error's own message. */
-export function mealErrorText(e, { write = false } = {}) {
-  if (e?.code === 'offline' || e?.code === 'timeout') return write ? t('Not saved: no connection. Try again when you are back online.') : t('Could not load: no connection.')
-  if (e?.code === 'http' && e.status === 401) return write ? t('Not saved: you are signed out. Sign in and try again.') : t('Could not load: you are signed out.')
-  return write ? t('Not saved. Try again.') : t('Could not load. Try again.')
+/** What to tell the person about a failed read of the lists (a failed write: log-feedback.js
+ *  writeErrorText). Never the error's own message. */
+export function mealLoadErrorText(e) {
+  if (e?.code === 'offline' || e?.code === 'timeout') return t('Could not load: no connection.')
+  if (e?.code === 'http' && e.status === 401) return t('Could not load: you are signed out.')
+  return t('Could not load. Try again.')
 }
 
 /** The editor's refusal of a form, as the sentence under it. */

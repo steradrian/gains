@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { tappable } from '../lib/use-sheet-keyboard.js'
 import { energyOf, newUuid, nutritionOf } from '../lib/nutrition/diary.js'
-import { amountOf, formOf, mealErrorText, mealOf, problemText, totalOf, withItems } from '../lib/nutrition/meals.js'
+import { writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { amountOf, formOf, mealOf, problemText, totalOf, withItems } from '../lib/nutrition/meals.js'
 import { useNutrition } from '../lib/nutrition/store.js'
+import { ItemRow, SectionTitle, Tag } from './blocks.jsx'
 import { ingredientSheet } from './IngredientSheet.jsx'
-import Icon from './Icon.jsx'
 import MealNutrition from './MealNutrition.jsx'
+import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 import { Button, TextArea, TextField } from './ui.jsx'
 
 const toast = m => useUI.getState().toast(m)
@@ -15,6 +16,7 @@ const toast = m => useUI.getState().toast(m)
 // Create (no `meal`) or edit a saved meal or recipe. Nothing is sent until Save; a failed save keeps
 // everything typed. A new one carries one key for as long as the sheet is open, so a retry after a
 // lost answer saves it once. A recipe's total weight follows its ingredients until you type it.
+// Tapping an ingredient changes its amount or takes it out.
 export function MealEditSheet({ meal = null, recipe, settings = null, close, onSaved }) {
   const editing = typeof meal?.id === 'number'
   const [form, setForm] = useState(() => formOf(meal, { recipe }))
@@ -45,17 +47,14 @@ export function MealEditSheet({ meal = null, recipe, settings = null, close, onS
       toast(recipe ? t('Recipe saved') : t('Meal saved'))
       onSaved?.(saved)
     } catch (e) {
-      setProblem(mealErrorText(e, { write: true }))
+      setProblem(writeErrorText(e))
       setBusy(false)
     }
   }
 
   const title = recipe ? (editing ? t('Edit recipe') : t('New recipe')) : (editing ? t('Edit meal') : t('New meal'))
   return <>
-    <div className="row between">
-      <h3>{title}</h3>
-      <Button size="sm" variant="ghost" onClick={close}>{t('Cancel')}</Button>
-    </div>
+    <SheetHeader title={title} onClose={close} />
     <label className="measure-date">
       <span>{t('Name')}</span>
       <TextField value={form.name} maxLength={120} autoFocus={!editing} onChange={e => set({ name: e.target.value })} />
@@ -75,19 +74,12 @@ export function MealEditSheet({ meal = null, recipe, settings = null, close, onS
         </span>
       </label>
     </div>}
-    <h4 className="sec">{t('Ingredients')}</h4>
+    <SectionTitle>{t('Ingredients')}</SectionTitle>
     {form.items.length > 0 && <div className="list">
       {form.items.map((item, i) => {
         const kcal = energyOf(nutritionOf(item).calories || 0, settings)
-        return <div key={i} className="item" {...tappable(() => ingredientSheet({ item, settings, onDone: x => changeIngredient(i, x) }))}>
-          <div className="grow">
-            <div className="tt">{item.name}</div>
-            <div className="ss">{amountOf(item)}</div>
-          </div>
-          <span className="tag">{Math.round(kcal.value)} {kcal.unit}</span>
-          <button type="button" className="iconbtn" aria-label={t('Remove {0}', item.name)}
-            onClick={ev => { ev.stopPropagation(); removeIngredient(i) }}><Icon name="trash" /></button>
-        </div>
+        return <ItemRow key={i} title={item.name} subtitle={amountOf(item)} trailing={<Tag>{Math.round(kcal.value)} {kcal.unit}</Tag>}
+          onClick={() => ingredientSheet({ item, settings, onDone: x => changeIngredient(i, x), onRemove: () => removeIngredient(i) })} />
       })}
     </div>}
     <div className="measure-options">
@@ -99,7 +91,9 @@ export function MealEditSheet({ meal = null, recipe, settings = null, close, onS
       <TextArea value={form.notes} maxLength={500} onChange={e => set({ notes: e.target.value })} />
     </label>
     {problem && <div className="small muted" role="alert">{problem}</div>}
-    <Button variant="primary" onClick={save} disabled={busy}>{busy ? t('Saving…') : t('Save')}</Button>
+    <SheetActions>
+      <Button variant="primary" onClick={save} disabled={busy}>{busy ? t('Saving…') : t('Save')}</Button>
+    </SheetActions>
   </>
 }
 

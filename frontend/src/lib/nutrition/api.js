@@ -131,6 +131,24 @@ async function call(method, path, body, { signal, nullable = false } = {}) {
 
 const nt = (method, path, body, opts) => call(method, '/nt' + path, body, opts)
 
+// What the hub lets a meal body carry (fitness-hub nt-body-checks.ts MEAL_EDIT_FIELDS,
+// INGREDIENT_FIELDS, ALT_UNIT_FIELDS): picked by name, because a meal saved in NutriTrace's own UI
+// holds more (img_url and others) and the hub refuses a body with a key it does not list.
+const MEAL_FIELDS = ['name', 'notes', 'items', 'is_recipe', 'nutrition', 'portion', 'unit', 'servings']
+const INGREDIENT_FIELDS = ['id', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'nutrition_basis', 'alt_units', 'density_g_ml']
+const pick = (from, keys) => Object.fromEntries(keys.filter(k => from[k] !== undefined).map(k => [k, from[k]]))
+const ingredientBody = item => {
+  const body = pick(item, INGREDIENT_FIELDS)
+  if (Array.isArray(body.alt_units)) body.alt_units = body.alt_units.map(u => pick(u, ['abbr', 'grams']))
+  return body
+}
+/** The meal fields the hub allows, its ingredients cut the same way. */
+export const mealBody = meal => {
+  const body = pick(meal, MEAL_FIELDS)
+  if (Array.isArray(body.items)) body.items = body.items.map(ingredientBody)
+  return body
+}
+
 export const NtApi = {
   /** @returns {Promise<DiaryDay>} */
   getDiaryDate: date => nt('GET', `/api/diary/${date}`),
@@ -156,16 +174,10 @@ export const NtApi = {
   getMeals: ({ recipes = false } = {}) => nt('GET', recipes ? '/api/meals?recipes=1' : '/api/meals'),
   /** Saves a meal or recipe as yours: always private, never with an image. `client_key` makes a
    *  retry return the one made the first time. @returns {Promise<Meal>} */
-  createMeal: meal => {
-    const { img_url: _img, imgUrl: _imgUrl, visibility: _vis, id: _id, ...rest } = meal
-    return nt('POST', '/api/meals', { ...rest, visibility: 'private' })
-  },
+  createMeal: meal => nt('POST', '/api/meals', { ...mealBody(meal), ...(meal.client_key ? { client_key: meal.client_key } : {}), visibility: 'private' }),
   /** Edits one of your meals or recipes: the fields to change (NutriTrace keeps what is left
    *  out), never an image or a visibility. @returns {Promise<Meal>} */
-  updateMeal: (id, meal) => {
-    const { img_url: _img, imgUrl: _imgUrl, visibility: _vis, id: _id, ...rest } = meal
-    return nt('PUT', `/api/meals/${encodeURIComponent(id)}`, rest)
-  },
+  updateMeal: (id, meal) => nt('PUT', `/api/meals/${encodeURIComponent(id)}`, mealBody(meal)),
   /** Removes a meal or recipe (NutriTrace keeps a tombstone). Days that logged it keep their copy. */
   deleteMeal: id => nt('DELETE', `/api/meals/${encodeURIComponent(id)}`),
   /** Orders "most used" and "recent" for a meal or recipe (usage_count, last_used_at = the diary date). */
