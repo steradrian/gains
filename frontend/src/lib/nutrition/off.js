@@ -4,6 +4,14 @@
 import { deriveSodiumSalt, newUuid } from './diary.js'
 
 export const OFF_SEARCH_BASE = 'https://search.openfoodfacts.org/search'
+export const OFF_PRODUCT_BASE = 'https://world.openfoodfacts.org/api/v3/product'
+
+/** The product URL NutriTrace's proxy fetches for a barcode (src/lib/api.js lookupBarcode):
+ *  `https://world.openfoodfacts.org/api/v3/product/<8-14 digits>?lc=<2 letters>`, nothing else.
+ *  The hub accepts exactly this shape. */
+export function offProductUrl(code, lang = 'en') {
+  return `${OFF_PRODUCT_BASE}/${code}?lc=${/^[a-z]{2}$/.test(lang) ? lang : 'en'}`
+}
 
 function luceneEscape(s) {
   return String(s || '')
@@ -125,9 +133,28 @@ export function mapOffProduct(p, lang = 'en') {
   }
 }
 
+/** Products sold in Romania come first (the owner's rule). The hub lets a search carry only q,
+ *  page, page_size and langs, so Open Food Facts cannot be asked to rank by country: the hits'
+ *  `countries_tags` are read here instead. */
+export const RANK_FIRST_COUNTRY = 'en:romania'
+
+const soldInRankedCountry = p => Array.isArray(p?.countries_tags) && p.countries_tags.includes(RANK_FIRST_COUNTRY)
+
 /** The search answer in either envelope NutriTrace's proxy sends: `hits` (a local OFF mirror) or
- *  `products` (the public API). */
+ *  `products` (the public API), Romanian products first, each group in Open Food Facts' order. */
 export function offResults(data, lang = 'en') {
   const list = Array.isArray(data?.hits) ? data.hits : Array.isArray(data?.products) ? data.products : []
-  return list.map(p => mapOffProduct(p, lang)).filter(Boolean)
+  const ranked = [...list.filter(soldInRankedCountry), ...list.filter(p => !soldInRankedCountry(p))]
+  return ranked.map(p => mapOffProduct(p, lang)).filter(Boolean)
+}
+
+/** A product lookup's answer (v3 says `status: 'success'`, a local mirror `status: 1`) as the
+ *  food it describes, an unsaved one carrying `code`; null when OFF has the product but not
+ *  enough nutrition to log it (mapOffProduct), `undefined` when it has no such product. */
+export function offProduct(data, code, lang = 'en') {
+  if (!data || typeof data !== 'object') return undefined
+  const ok = data.status === 'success' || data.status === 1
+  if (!ok || !data.product || typeof data.product !== 'object') return undefined
+  const food = mapOffProduct(data.product, lang)
+  return food ? { ...food, barcode: food.barcode || code } : null
 }

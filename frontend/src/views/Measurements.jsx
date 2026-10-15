@@ -194,8 +194,8 @@ export default function Measurements() {
         <div>
           <div className="muted small">{field ? t(field.label) : t('Body measurements')}</div>
           {/* Stat takes no className, so the 3px top margin keeps this .big by hand. */}
-          <div className="big mt-3">{latest ? <>{fmtNum(latest.y)} <span className="muted fs-callout">{unit}</span></> : '–'}</div>
-          {delta != null && delta !== 0 && <div className="small muted mt-3">{delta > 0 ? '+' : ''}{fmtNum(delta)} {unit} {t('since previous')}</div>}
+          <div className="big" style={{ marginTop: 3 }}>{latest ? <>{fmtNum(latest.y)} <span className="muted fs-callout">{unit}</span></> : '–'}</div>
+          {delta != null && delta !== 0 && <div className="small muted" style={{ marginTop: 3 }}>{delta > 0 ? '+' : ''}{fmtNum(delta)} {unit} {t('since previous')}</div>}
         </div>
         <Button size="sm" icon="plus" onClick={() => measurementLogSheet()}>{t('Log')}</Button>
       </Inline>

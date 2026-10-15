@@ -1,7 +1,7 @@
 // A fake of NutriTrace and the hub's sync routes at the fetch boundary, for tests. It answers
 // what the hub forwards (fitness-hub src/nt-routes.ts), as strictly as the hub does, with
-// NutriTrace's real shapes and merge rules (server/routes/diary.js, foods.js, activity.js,
-// server/lib/diary-merge.js); any other path is a 404, as the hub answers it.
+// NutriTrace's real shapes and merge rules (server/routes/diary.js, foods.js, meals.js,
+// activity.js, server/lib/diary-merge.js); any other path is a 404, as the hub answers it.
 //
 //   const nt = createFakeNutriTrace({ days: { '2026-10-14': fixtureDay() } })
 //   vi.stubGlobal('fetch', nt.fetch)
@@ -60,6 +60,23 @@ export const fixtureFoods = () => [
   { id: 13, user_id: 3, name: 'Crème fraîche', brand: '', portion: 100, unit: 'g', nutrition: { calories: 292, proteins: 2.4, carbohydrates: 2.8, fat: 30 }, img_url: null, barcode: null, nutrition_basis: 'g', alt_units: null, density_g_ml: null, usage_count: 0, last_used_at: null, visibility: 'private', created_at: '2026-09-03 10:00:00', updated_at: '2026-09-03 10:00:00', deleted_at: null },
 ]
 
+/** GET /api/meals rows (server/routes/meals.js parse: nutrition and items parsed, is_recipe a
+ *  boolean). A meal's nutrition is its total; the recipe's, per serving (4 servings of 300 g). */
+export const fixtureMeals = () => [
+  { id: 21, user_id: 3, name: 'Oats and bread', is_recipe: false, notes: 'Weekday breakfast', portion: 100, unit: 'g', servings: null, visibility: 'private', img_url: null, favorite: 0, usage_count: 4, last_used_at: '2026-10-12', created_at: '2026-09-05 08:00:00', updated_at: '2026-10-12 07:50:00', deleted_at: null,
+    nutrition: { calories: 354, proteins: 16.1, carbohydrates: 55.2, fat: 5.3 },
+    items: [
+      { id: 11, name: 'Rolled oats', brand: '', portion: 60, unit: 'g', quantity: 1, nutrition: { calories: 228, proteins: 8.1, carbohydrates: 36, fat: 4.2 }, nutrition_basis: 'g', alt_units: null, density_g_ml: null },
+      { id: 12, name: 'Wholemeal bread', brand: 'Baker', portion: 51, unit: 'g', quantity: 1, nutrition: { calories: 126, proteins: 8, carbohydrates: 19.2, fat: 1.1 }, nutrition_basis: 'g', alt_units: [{ abbr: 'slice', grams: 36 }], density_g_ml: null },
+    ] },
+  { id: 22, user_id: 3, name: 'Lentil soup', is_recipe: true, notes: null, portion: 300, unit: 'g', servings: 4, visibility: 'private', img_url: null, favorite: 0, usage_count: 1, last_used_at: '2026-10-08', created_at: '2026-09-10 18:00:00', updated_at: '2026-10-08 19:00:00', deleted_at: null,
+    nutrition: { calories: 210, proteins: 12, carbohydrates: 30, fat: 4 },
+    items: [
+      { id: 31, name: 'Red lentils', brand: '', portion: 400, unit: 'g', quantity: 1, nutrition: { calories: 600, proteins: 36, carbohydrates: 108, fat: 4 }, nutrition_basis: 'g', alt_units: null, density_g_ml: null },
+      { id: 32, name: 'Vegetable stock', brand: '', portion: 800, unit: 'g', quantity: 1, nutrition: { calories: 240, proteins: 12, carbohydrates: 12, fat: 12 }, nutrition_basis: 'g', alt_units: null, density_g_ml: null },
+    ] },
+]
+
 /** GET /api/activity/:date: a hub workout row (source 'opengym', server/lib/active-calories.js). */
 export const fixtureActivity = (date = '2026-10-14', coveredBy = null) => [
   { id: 41, user_id: 3, date, name: 'Push A', kcal: 190, duration_min: 55, distance: null, source: 'opengym', met: null, is_template: 0, external_id: 'og:w:abc123', user_edited_at: null, created_at: `${date} 18:30:00`, updated_at: `${date} 18:30:00`, deleted_at: null, covered_by: coveredBy },
@@ -75,6 +92,18 @@ export const fixtureOffSearch = () => ({
   ],
 })
 
+/** The proxy's answer for an Open Food Facts product lookup (api/v3/product/<code>). */
+export const fixtureOffProduct = (code = '3017620422003') => ({
+  code, status: 'success', status_verbose: 'product found',
+  product: { code, product_name: 'Nutella', brands: 'Ferrero', lang: 'fr', nutrition_data_per: '100g', serving_size: '15 g', serving_quantity: 15, nutriments: { 'energy-kcal_100g': 539, energy_100g: 2255, proteins_100g: 6.3, carbohydrates_100g: 57.5, sugars_100g: 56.3, fat_100g: 30.9, 'saturated-fat_100g': 10.6, salt_100g: 0.107, fiber_100g: 0 } },
+})
+
+/** A completed fast as GET /api/fasts answers it (server/routes/fasts.js _row). */
+export const fixtureFast = (id, startAt, endAt, goalHours = 16) => ({
+  id, user_id: 3, start_at: startAt, end_at: endAt, goal_hours: goalHours, notes: null,
+  created_at: startAt.slice(0, 19).replace('T', ' '), updated_at: (endAt || startAt).slice(0, 19).replace('T', ' '),
+})
+
 /** GET /hub/api/sync/status when all is well. Pass `syncStatus: null` for a person the hub has
  *  not stored yet (it answers JSON null). */
 export const fixtureSyncStatus = (state = 'ok') => ({ state, pending: 0, held: 0, last_synced_at: 1760464800000, next_retry_at: null, suspended: null, problems: [] })
@@ -83,6 +112,20 @@ export const fixtureSyncStatus = (state = 'ok') => ({ state, pending: 0, held: 0
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const ID = /^[A-Za-z0-9_-]{1,64}$/
+// PUT /api/settings (fitness-hub src/nt-body-checks.ts WRITABLE_SETTINGS): each key with the type
+// NutriTrace reads it as.
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v)
+const WRITABLE_SETTINGS = {
+  calorieGoalMode: v => ['fixed', 'adaptive', 'dynamic'].includes(v),
+  calorieGoalFactor: v => [0.8, 1, 1.2].includes(v),
+  goals: v => isObj(v) && Object.keys(v).length <= 100 && Object.values(v).every(isObj),
+  goalTemplates: v => Array.isArray(v) && v.length <= 30 && v.every(isObj),
+  waterGoalMl: v => typeof v === 'number' && v >= 1 && v <= 50000,
+  calorieAdjustFromActivity: v => typeof v === 'boolean',
+  diaryShowActivity: v => typeof v === 'boolean',
+  fastingEnabled: v => typeof v === 'boolean',
+  fastingDefaultHours: v => typeof v === 'number' && v >= 1 && v <= 168,
+}
 
 function onlyKeys(params, allowed) {
   const seen = new Set()
@@ -112,9 +155,72 @@ export function isOffSearchQuery(params) {
   return boundedInt(s.get('page'), 100) && boundedInt(s.get('page_size'), 50)
 }
 
+// fitness-hub src/nt-routes.ts isOffProductQuery: the barcode lookup, matched on the raw string.
+const OFF_PRODUCT_URL = /^https:\/\/world\.openfoodfacts\.org\/api\/v3\/product\/\d{8,14}(?:\?lc=[a-z]{2})?$/
+export function isOffProductQuery(params) {
+  if (!onlyKeys(params, new Set(['url']))) return false
+  const raw = params.get('url')
+  return raw !== null && OFF_PRODUCT_URL.test(raw)
+}
+
 const isObject = v => typeof v === 'object' && v !== null && !Array.isArray(v)
+
+// fitness-hub src/nt-body-checks.ts, fasts: an instant as toISOString writes it (or with an offset),
+// never later than now plus 5 minutes of clock skew, and no earlier than maxAgeMs ago.
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/
+const instantUpToNow = maxAgeMs => v => {
+  if (typeof v !== 'string' || !ISO_INSTANT.test(v) || Number.isNaN(Date.parse(v))) return false
+  const at = Date.parse(v)
+  return at <= Date.now() + 5 * 60_000 && at >= Date.now() - maxAgeMs
+}
+const FAST_START_FIELDS = {
+  goal_hours: v => typeof v === 'number' && Number.isFinite(v) && v >= 1 && v <= 168,
+  start_at: instantUpToNow(Number.POSITIVE_INFINITY),
+}
+// (hasOnly, below, is the hub's: every key named in the fields and its value passing.)
+const isFastStart = b => hasOnly(b, FAST_START_FIELDS)
+const isFastStartEdit = b => isObject(b) && Object.keys(b).length === 1 && hasOnly(b, { start_at: instantUpToNow(7 * 24 * 3600_000) })
+const isEmptyObject = b => isObject(b) && Object.keys(b).length === 0
 // fitness-hub isPrivateFoodWithoutImage
 const isPrivateFoodWithoutImage = b => isObject(b) && !('img_url' in b) && !('imgUrl' in b) && b.visibility === 'private'
+// The meals routes' allow-lists with the type of each field, as the hub checks them (fitness-hub
+// nt-body-checks.ts MEAL_EDIT_FIELDS, NEW_MEAL_FIELDS, INGREDIENT_FIELDS, ALT_UNIT_FIELDS, with
+// the ingredient rules of gains-hub#11): a key outside them, or a value of the wrong kind, is a 400,
+// in the meal and in each ingredient.
+const text = max => v => typeof v === 'string' && v.length <= max
+const nonEmptyText = max => v => typeof v === 'string' && v.trim() !== '' && v.length <= max
+const nullable = check => v => v === null || check(v)
+const oneOf = (...allowed) => v => allowed.includes(v)
+const isBool = v => typeof v === 'boolean'
+const numberIn = (min, max) => v => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max
+const integerIn = (min, max) => v => Number.isInteger(v) && v >= min && v <= max
+const positiveAmount = numberIn(Number.MIN_VALUE, 1_000_000)
+const hasOnly = (o, fields) => isObject(o) && Object.entries(o).every(([k, v]) => Object.hasOwn(fields, k) && fields[k](v))
+const hasAll = (o, keys) => keys.every(k => Object.hasOwn(o, k))
+const arrayOf = (check, max) => v => Array.isArray(v) && v.length <= max && v.every(check)
+const isNutrition = v => isObject(v) && Object.keys(v).length <= 100 && Object.entries(v).every(([k, n]) => k.length <= 40 && numberIn(0, 1e9)(n))
+const ALT_UNIT_FIELDS = { abbr: nonEmptyText(20), grams: positiveAmount }
+const INGREDIENT_AMOUNT = numberIn(0, 1_000_000)
+const INGREDIENT_FIELDS = {
+  id: v => integerIn(0, Number.MAX_SAFE_INTEGER)(v) || text(64)(v), name: text(200), brand: nullable(text(200)),
+  portion: INGREDIENT_AMOUNT, unit: text(16), quantity: INGREDIENT_AMOUNT, nutrition: isNutrition,
+  nutrition_basis: nullable(oneOf('g', 'ml')), alt_units: nullable(arrayOf(u => hasOnly(u, ALT_UNIT_FIELDS), 20)),
+  density_g_ml: nullable(positiveAmount), is_recipe: isBool,
+}
+const isIngredient = v => isObject(v) && hasAll(v, ['name', 'portion', 'unit', 'nutrition']) && hasOnly(v, INGREDIENT_FIELDS)
+const MEAL_EDIT_FIELDS = {
+  name: nonEmptyText(200), notes: text(5000), items: v => Array.isArray(v) && v.length > 0 && arrayOf(isIngredient, 100)(v),
+  is_recipe: isBool, nutrition: isNutrition, portion: positiveAmount, unit: nonEmptyText(16), servings: integerIn(1, 1000),
+}
+const NEW_MEAL_FIELDS = { ...MEAL_EDIT_FIELDS, client_key: nonEmptyText(128), visibility: oneOf('private') }
+const isNewMeal = b => isObject(b) && hasAll(b, ['name', 'items', 'is_recipe', 'visibility']) && hasOnly(b, NEW_MEAL_FIELDS)
+const isMealEdit = b => isObject(b) && hasOnly(b, MEAL_EDIT_FIELDS)
+const isMealUsedBump = b => isObject(b) && hasOnly(b, { date: v => typeof v === 'string' && DATE.test(v) })
+
+// fitness-hub isFoodEdit (gains-hub nt-body-checks.ts FOOD_EDIT_FIELDS): only these keys, anything
+// else is a 400 before NutriTrace sees it. Kept apart from api.js on purpose: it is the hub's list.
+const HUB_FOOD_EDIT_FIELDS = ['name', 'brand', 'barcode', 'portion', 'unit', 'category', 'notes', 'favorite', 'nutrition']
+const isFoodEdit = b => isObject(b) && Object.keys(b).every(k => HUB_FOOD_EDIT_FIELDS.includes(k))
 
 /* ------------------------------------------------------------------ NutriTrace's merge ------- */
 
@@ -142,13 +248,14 @@ function merge(server, client, deleted, tombstoned) {
 /* ------------------------------------------------------------------ the fake ----------------- */
 
 export function createFakeNutriTrace({
-  days = {}, settings = fixtureSettings(), foods = fixtureFoods(), activity = {}, activitySum = {},
+  days = {}, settings = fixtureSettings(), foods = fixtureFoods(), meals = fixtureMeals(), activity = {}, activitySum = {},
   caloriesOut = {}, adaptiveTdee = { ready: false }, offSearch = fixtureOffSearch(),
-  syncStatus = fixtureSyncStatus(), workouts = {},
+  syncStatus = fixtureSyncStatus(), workouts = {}, fasts = [], offProducts = { '3017620422003': fixtureOffProduct() },
 } = {}) {
   const state = {
-    days: structuredClone(days), settings: structuredClone(settings), foods: structuredClone(foods),
+    days: structuredClone(days), settings: structuredClone(settings), foods: structuredClone(foods), meals: structuredClone(meals),
     activity, activitySum, caloriesOut, adaptiveTdee, offSearch, syncStatus, workouts,
+    fasts: structuredClone(fasts), offProducts,
     // date → [{ kind: 'item'|'water', uuid, deleted_at }]
     tombstones: {},
   }
@@ -156,6 +263,8 @@ export function createFakeNutriTrace({
   const failures = []
   const holds = []
   let nextFoodId = Math.max(100, ...state.foods.map(f => f.id + 1))
+  let nextFastId = Math.max(1, ...state.fasts.map(f => f.id + 1))
+  let nextMealId = Math.max(100, ...state.meals.map(m => m.id + 1))
 
   const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } })
   const notFound = () => json({ error: 'not found' }, 404)
@@ -204,6 +313,63 @@ export function createFakeNutriTrace({
       return notFound()
     }
     if (res === 'settings' && method === 'GET' && n === 3) return json(state.settings)
+    // server/routes/settings.js stores one key per write, as JSON (what is read back is a copy).
+    // The hub lets through only exactly { key, value } for a writable key, and answers 400 otherwise.
+    if (res === 'settings' && method === 'PUT' && n === 3) {
+      const exact = isObj(body) && Object.keys(body).sort().join() === 'key,value'
+      const check = exact && Object.hasOwn(WRITABLE_SETTINGS, body.key) ? WRITABLE_SETTINGS[body.key] : null
+      if (!check || !check(body.value)) return json({ error: 'request body refused' }, 400)
+      state.settings[body.key] = structuredClone(body.value)
+      return json({ ok: true })
+    }
+    // Fasting (fitness-hub nt-routes.ts): GET /api/fasts takes `limit` only; every other fast route
+    // takes no query (403). Start, end and PATCH bodies are checked (400); DELETE takes no body.
+    if (res === 'fasts') {
+      const active = () => state.fasts.find(f => !f.end_at)
+      const stamp = iso => iso.slice(0, 19).replace('T', ' ')
+      if (n > 3 && [...query.keys()].length) return json({ error: 'forbidden' }, 403)
+      if (method === 'DELETE' && body !== undefined) return json({ error: 'request body refused' }, 400)
+      if (method === 'GET' && n === 3) {
+        const limit = query.get('limit')
+        if ([...query.keys()].some(k => k !== 'limit') || (limit !== null && !(/^[1-9]\d{0,2}$/.test(limit) && Number(limit) <= 365))) return json({ error: 'forbidden' }, 403)
+        return json([...state.fasts].sort((x, y) => y.start_at.localeCompare(x.start_at)).slice(0, limit === null ? 30 : Number(limit)))
+      }
+      if (method === 'GET' && n === 4 && a === 'active') return json(active() || null)
+      if (method === 'POST' && n === 4 && a === 'start') {
+        if (!isFastStart(body)) return json({ error: 'request body refused' }, 400)
+        if (active()) return json({ error: 'A fast is already in progress. End it before starting a new one.' }, 409)
+        const goal = Number(body.goal_hours)
+        let start = new Date(Date.now()).toISOString()
+        const asked = body.start_at ? new Date(body.start_at) : null
+        if (asked && !isNaN(asked.getTime()) && asked.getTime() <= Date.now() && asked.getTime() > Date.now() - 24 * 3600 * 1000) start = asked.toISOString()
+        const fast = { id: nextFastId++, user_id: 3, start_at: start, end_at: null, goal_hours: Number.isFinite(goal) && goal > 0 && goal <= 168 ? Math.round(goal * 10) / 10 : 16, notes: null, created_at: stamp(start), updated_at: stamp(start) }
+        state.fasts.push(fast)
+        return json(fast, 201)
+      }
+      if (n >= 4 && /^[1-9]\d{0,11}$/.test(a)) {
+        const fast = state.fasts.find(f => String(f.id) === a)
+        if (method === 'POST' && n === 5 && b === 'end') {
+          if (!isEmptyObject(body)) return json({ error: 'request body refused' }, 400)
+          if (!fast) return json({ error: 'Fast not found' }, 404)
+          if (fast.end_at) return json({ error: 'Fast is already ended' }, 400)
+          fast.end_at = new Date(Date.now()).toISOString()
+          return json(fast)
+        }
+        if (method === 'PATCH' && n === 4) {
+          if (!isFastStartEdit(body)) return json({ error: 'request body refused' }, 400)
+          if (!fast) return json({ error: 'Fast not found' }, 404)
+          const at = new Date(body.start_at)
+          if (!isNaN(at.getTime())) fast.start_at = at.toISOString()
+          return json(fast)
+        }
+        if (method === 'DELETE' && n === 4) {
+          if (!fast) return json({ error: 'Fast not found' }, 404)
+          state.fasts = state.fasts.filter(f => f !== fast)
+          return json({ ok: true })
+        }
+      }
+      return notFound()
+    }
     if (res === 'foods') {
       if (method === 'GET' && n === 3) return [...query.keys()].length ? json({ error: 'forbidden' }, 403) : json(state.foods)
       if (method === 'POST' && n === 3) {
@@ -215,11 +381,66 @@ export function createFakeNutriTrace({
         state.foods.push(food)
         return json(food, 201)
       }
+      // PUT and DELETE on one of your foods (gains-hub #9): no query string (403), a PUT body of
+      // the edit fields only (400).
+      if ((method === 'PUT' || method === 'DELETE') && n === 4 && ID.test(a)) {
+        if ([...query.keys()].length) return json({ error: 'forbidden' }, 403)
+        const food = state.foods.find(f => String(f.id) === a)
+        if (!food) return json({ error: 'Not found' }, 404)
+        if (method === 'DELETE') {
+          state.foods = state.foods.filter(f => f !== food)
+          return json({ ok: true })
+        }
+        if (!isFoodEdit(body)) return json({ error: 'request body refused' }, 400)
+        Object.assign(food, body, { id: food.id })
+        return json(food)
+      }
       if (method === 'POST' && n === 5 && ID.test(a) && b === 'used') {
         const food = state.foods.find(f => String(f.id) === a)
         if (!food) return json({ error: 'Not found' }, 404)
         food.usage_count = (food.usage_count || 0) + 1
         food.last_used_at = body?.date || food.last_used_at
+        return json({ ok: true })
+      }
+      return notFound()
+    }
+    if (res === 'meals') {
+      const live = () => state.meals.find(m => String(m.id) === a && !m.deleted_at)
+      if (method === 'GET' && n === 3) {
+        // Meals or, with recipes=1 and nothing else, recipes. Any other query is refused.
+        const recipes = query.get('recipes')
+        if (!onlyKeys(query, new Set(['recipes'])) || (recipes !== null && recipes !== '1')) return json({ error: 'forbidden' }, 403)
+        return json(state.meals.filter(m => !m.deleted_at && m.is_recipe === (recipes === '1')).sort((x, y) => x.name.localeCompare(y.name)))
+      }
+      if (method === 'GET' && n === 4 && ID.test(a)) return live() ? json(live()) : json({ error: 'Not found' }, 404)
+      if (method === 'POST' && n === 3) {
+        if (!isNewMeal(body)) return json({ error: 'request body refused' }, 400)
+        if (!body.name) return json({ error: 'Name required' }, 400)
+        const made = state.meals.find(m => body.client_key && m.client_key === body.client_key)
+        if (made) return json(made, 200)
+        const meal = { portion: 100, unit: 'g', servings: null, notes: null, usage_count: 0, last_used_at: null, favorite: 0, img_url: null, items: [], nutrition: {}, ...body, is_recipe: !!body.is_recipe, id: nextMealId++, user_id: 3, deleted_at: null }
+        state.meals.push(meal)
+        return json(meal, 201)
+      }
+      if (method === 'PUT' && n === 4 && ID.test(a)) {
+        if (!isMealEdit(body)) return json({ error: 'request body refused' }, 400)
+        const meal = live()
+        if (!meal) return json({ error: 'Not found' }, 404)
+        Object.assign(meal, body)
+        return json(meal)
+      }
+      if (method === 'DELETE' && n === 4 && ID.test(a)) {
+        const meal = live()
+        if (!meal) return json({ error: 'Not found' }, 404)
+        meal.deleted_at = new Date().toISOString()
+        return json({ ok: true })
+      }
+      if (method === 'POST' && n === 5 && ID.test(a) && b === 'used') {
+        if (!isMealUsedBump(body)) return json({ error: 'request body refused' }, 400)
+        const meal = live()
+        if (!meal) return json({ error: 'Not found' }, 404)
+        meal.usage_count = (meal.usage_count || 0) + 1
+        meal.last_used_at = body?.date || meal.last_used_at
         return json({ ok: true })
       }
       return notFound()
@@ -231,7 +452,12 @@ export function createFakeNutriTrace({
     }
     if (res === 'wellness' && a === 'calories-out' && method === 'GET' && n === 4) return json({ calories_out: state.caloriesOut[query.get('date')] ?? null })
     if (res === 'goals' && a === 'adaptive-tdee' && method === 'GET' && n === 4) return json(state.adaptiveTdee)
-    if (res === 'proxy' && method === 'GET' && n === 3) return isOffSearchQuery(query) ? json(state.offSearch) : json({ error: 'forbidden' }, 403)
+    if (res === 'proxy' && method === 'GET' && n === 3) {
+      if (isOffSearchQuery(query)) return json(state.offSearch)
+      if (!isOffProductQuery(query)) return json({ error: 'forbidden' }, 403)
+      const answer = state.offProducts[new URL(query.get('url')).pathname.split('/').pop()]
+      return answer ? json(answer) : json({ error: 'Upstream 404' }, 404)
+    }
     return notFound()
   }
 

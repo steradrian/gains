@@ -15,16 +15,28 @@ is not on the list needs a hub PR first.
   `logFood(date, draft)`, `logQuick(date, item)` or `logWater(date, log)`, including on retry.
   Writes are not optimistic and throw an `NtError`. `removeItem` and `removeWater` undo. Stale
   answers and answers from a previous account are dropped.
+- Settings writes: `useNutrition.saveSetting(key, value)` (`NtApi.putSetting`, one key per
+  `PUT /api/settings`) updates the cache once the server has it. The Goals page owns
+  `calorieGoalMode`, `calorieGoalFactor`, `goals`, `goalTemplates`, `waterGoalMl`,
+  `calorieAdjustFromActivity` and `diaryShowActivity`; `goals.js` holds its rules and
+  `use-goals-form.js` its state. The hub takes exactly `{ key, value }` per write, type-checks
+  the value, and answers a refused body with 400; a failed save shows `writeErrorText` and keeps the draft.
 - `diary.js`: NutriTrace's arithmetic (`totalsOf`, `atPortion`, `calorieTarget`, `macroTarget`),
   units (`energyOf` for kcal or kJ, `waterOf`), `mealsOf` (`isDefault` names are English: translate
   them; saved names show as saved), `recentFoods` and `matchesFood`.
-- `off.js`: Open Food Facts search URL and hit-to-food mapping.
+- `off.js`: Open Food Facts search URL and hit-to-food mapping. `offResults` ranks products sold
+  in Romania first (`countries_tags`, client side: the hub's search URL takes only q, page,
+  page_size and langs).
+- `use-food-search.js`: `useFoodSearch(query)` is the one search behind every food picker
+  (recents, your foods, Open Food Facts; `components/FoodSearch.jsx` renders it). Online results
+  have no `id`: a place that needs a saved food calls `saveFood` first (the result's `client_key`
+  makes a retry one food). Do not write another search; the Foods online tab uses `use-online-search.js`.
 - `selection.js`: `useDiarySelection` is the one date and meal everything logs to. In
   components use `useDiaryTarget(settings)`, which updates on a pick, at midnight and as the
   clock moves the meal. A sheet that logs takes `{ date, meal }` once when it opens and keeps
   it. Default meal (a Gains rule; NutriTrace has none): the meal whose reminder time
   (`notifMealTimes`) is nearest now. A hand pick (`setMeal`) holds 30 minutes, and
-  `setDate` clears it.
+  `setDate` clears it. `setDate` never goes past today, and the store refuses to log to a later day.
 - `sync.js`: `syncNow()` pushes openGym first, coalesces concurrent calls, keeps at least 5 s
   between runs, and never throws. Also `refreshHubStatus()`, `useHubTrouble()` and
   `workoutSyncRow(id)`. The status is `null` until the hub has stored the person.
