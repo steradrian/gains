@@ -17,15 +17,32 @@
    though, and is not reloaded: it can run old code against the new build's files and API until
    it is. The worker therefore tells every open page (a message of type UPDATED_MSG, sent once the
    new build is active) and leaves the reload to the page, which knows whether a set is half
-   typed. The previous build's chunks are gone with its cache, so an old page that loads a lazy
+   typed: lib/sw-update.js offers a "new version is ready" toast with a Reload action, unless the
+   message's `build` is the build the page itself runs (the page whose fresh index.html started
+   the install), and only once per page. The previous build's chunks are gone with its cache, so an old page that loads a lazy
    chunk by its old name only gets it while the server still has that file. */
 const PREFIX = 'gains-'
-const CACHE = PREFIX + 'rt-__BUILD__'
-// Caches from before the prefix was renamed from `opengym-`. Moved across (media, the device id)
-// and deleted once, by activate; nothing else on the origin matches this.
-const LEGACY = /^opengym-(?:rt-.+|media-v1|device)$/
+// The build stamp (vite.config.js). The same value is written into index.html as
+// <meta name="gains-build">, which is how a page knows which build it is running
+// (lib/sw-update.js): a page compares it with the `build` of UPDATED_MSG.
+const BUILD = '__BUILD__'
+const CACHE = PREFIX + 'rt-' + BUILD
+// Caches from before the prefix was renamed from `opengym-`: the old builds' shells, the media
+// cache and the device id. Their data is moved across and they are deleted by activate, every
+// time it runs, not only once: a tab still running the old JavaScript keeps writing
+// `opengym-device` and rebuilds `opengym-media-v1` after the switch, which would store the
+// media twice. Only a cache holding live data survives a sweep, and none of these does (the
+// shell of a previous build is still live until this build's own shell is cached; see activate).
+// A rollback to a build from before the rename does the same to us: its activate deletes every
+// cache but its own, `gains-*` included, so the media is downloaded again.
+const LEGACY = /^opengym-/
+const LEGACY_BUILD = /^opengym-rt-/
 // Posted to every open page when a newer build has taken over; see above.
 const UPDATED_MSG = 'gains-sw-updated'
+// Posted to the window a notification tap focuses; the page sets its own location.hash, because
+// WindowClient.navigate() is a real navigation (and not available everywhere) for what is only a
+// route change inside the page.
+const NAVIGATE_MSG = 'gains-sw-navigate'
 // Where the page leaves this browser's push device id (lib/push.js shareDeviceId) for the
 // pushsubscriptionchange handler below, which has no localStorage to read it from. Not a build
 // cache, so activate's sweep leaves it alone.
@@ -54,7 +71,15 @@ const MEDIA_GUESS_BYTES = 64 * 1024
 // Trimming lists the whole cache, so it runs after every MEDIA_TRIM_EVERY new entries rather
 // than after each one, and once when a new worker activates.
 const MEDIA_TRIM_EVERY = 20
-const isMediaPath = p => p.includes('/exercise-media/') || p.includes('/img/') || p.includes('/gif/')
+// Where the app is served (the site root, or /myGym/), for every path decision below.
+const SCOPE = (() => { try { return new URL('./', location.href).pathname } catch { return '/' } })()
+// The catalogue's stills and clips (exercise-media/), and img/ and gif/ where an older
+// docker-compose still mounts them, all directly under the app's own path. Not a substring match:
+// any other path that happens to contain /img/ (a user's upload, a future endpoint) is not media.
+// The custom exercises' photos and videos (/api/media/{hash}, api/media.js) are not here either:
+// they are per-account, sit behind the API and are kept in IndexedDB by the page (media-store.js).
+const MEDIA_DIRS = ['exercise-media/still/', 'exercise-media/clip/', 'img/', 'gif/']
+const isMediaPath = p => p.startsWith(SCOPE) && MEDIA_DIRS.some(d => p.startsWith(SCOPE + d))
 
 // The code the app loads only when it needs it (the photo and video ingest, the QR reader...),
 // listed by the build (vite.config.js, scripts/sw-stamp.mjs). Without it the first photo added
@@ -118,28 +143,28 @@ self.addEventListener('activate', e => {
     // shell used to take them anyway, and the app opened on the browser's error page until the
     // next load with a network.
     const c = await caches.open(CACHE)
-    let updated = false
-    if (await c.match('index.html')) {
-      // Only what this worker made is its to delete: a cache of ours that is not this build, the
-      // media or the device id (not a build, so an update never sweeps it), or one of the
-      // pre-rename `opengym-` caches. A cache that belongs to anything else on the origin is
-      // never listed, let alone deleted.
-      const keys = await caches.keys()
-      const builds = keys.filter(k => k !== CACHE && k.startsWith(PREFIX) && k !== MEDIA && k !== DEVICE_CACHE)
-      const legacy = keys.filter(k => LEGACY.test(k))
-      // A build from before MEDIA existed kept its media in its own cache, and the pre-rename
-      // media cache is one too: move it across first, so the first update to this worker does not
-      // cost what the device already had offline.
-      await Promise.all([...builds, ...legacy].map(k => adoptMedia(k).catch(() => {})))
-      await Promise.all(legacy.filter(k => k === 'opengym-device').map(k => adoptDevice(k).catch(() => {})))
-      await Promise.all([...builds, ...legacy].map(k => caches.delete(k)))
-      await trimMedia().catch(() => {})
-      // A build was on this device before this one: an update, not a first install.
-      updated = builds.length > 0 || legacy.some(k => k.startsWith('opengym-rt-'))
-    }
+    const shell = !!(await c.match('index.html'))
+    // Only what this worker made is its to delete: a cache of ours that is not this build, the
+    // media or the device id (not a build, so an update never sweeps it), or one of the
+    // pre-rename `opengym-` caches. A cache that belongs to anything else on the origin is
+    // never listed, let alone deleted.
+    const keys = await caches.keys()
+    const builds = shell ? keys.filter(k => k !== CACHE && k.startsWith(PREFIX) && k !== MEDIA && k !== DEVICE_CACHE) : []
+    // The pre-rename media and device caches hold nothing that is not carried across below, so
+    // they go on every activation; the old builds' shells only with the guard above.
+    const legacy = keys.filter(k => LEGACY.test(k) && (shell || !LEGACY_BUILD.test(k)))
+    // A build from before MEDIA existed kept its media in its own cache, and the pre-rename
+    // media cache is one too: move it across first, so the first update to this worker does not
+    // cost what the device already had offline.
+    await Promise.all([...builds, ...legacy].map(k => adoptMedia(k).catch(() => {})))
+    await Promise.all(legacy.filter(k => k === 'opengym-device').map(k => adoptDevice(k).catch(() => {})))
+    await Promise.all([...builds, ...legacy].map(k => caches.delete(k)))
+    await trimMedia().catch(() => {})
+    // A build was on this device before this one: an update, not a first install.
+    const updated = builds.length > 0 || legacy.some(k => LEGACY_BUILD.test(k))
     await self.clients.claim()
     if (updated) {
-      try { for (const w of await self.clients.matchAll({ type: 'window' })) w.postMessage({ type: UPDATED_MSG, build: CACHE }) } catch { /* the page finds out on its next load */ }
+      try { for (const w of await self.clients.matchAll({ type: 'window' })) w.postMessage({ type: UPDATED_MSG, build: BUILD }) } catch { /* the page finds out on its next load */ }
     }
   })())
 })
@@ -301,6 +326,10 @@ function notificationTarget(raw) {
 
 // A tap focuses a window of the app and takes it to the target; with none open, opens the target.
 // A payload with no (or a refused) target keeps what a tap always did: focus, or open the app.
+// The focused window is told to go there (NAVIGATE_MSG) and sets its own location.hash: the route
+// changes inside the page, with no reload and no lost state (a set half typed, a running timer).
+// WindowClient.navigate() is only the fallback for a window that cannot be messaged, and a window
+// that cannot be navigated either gets a new one at the target.
 self.addEventListener('notificationclick', e => {
   e.notification.close()
   const target = notificationTarget(e.notification.data && e.notification.data.url)
@@ -308,11 +337,9 @@ self.addEventListener('notificationclick', e => {
     const c = clients.find(c => 'focus' in c)
     if (!c) return self.clients.openWindow(target || './')
     await c.focus()
-    if (target && typeof c.navigate === 'function') {
-      // A window that cannot be navigated (not controlled yet, or a browser without it) gets a
-      // new one at the target instead of staying where it was.
-      try { await c.navigate(target) } catch { await self.clients.openWindow(target) }
-    }
+    if (!target) return
+    try { c.postMessage({ type: NAVIGATE_MSG, url: target }); return } catch { /* try navigating it */ }
+    try { await c.navigate(target) } catch { await self.clients.openWindow(target) }
   }))
 })
 // The push service rotated the subscription (key change, expiry): subscribe again with the same
@@ -355,7 +382,6 @@ const NET_WAIT_MS = 3000
 //   built files      assets/…  (scripts, styles and the language packs, hashed per build)
 //   brand and icons  brand/…, and the files at the app's root (manifest, favicon, touch icons)
 // The worker's own script is not one of them. Exercise media has its own branch, ahead of this.
-const SCOPE = (() => { try { return new URL('./', location.href).pathname } catch { return '/' } })()
 const ROOT_FILE = /^[^/]+\.(?:png|svg|ico|webmanifest|json|css|js)$/
 function cacheable(pathname) {
   if (!pathname.startsWith(SCOPE)) return false

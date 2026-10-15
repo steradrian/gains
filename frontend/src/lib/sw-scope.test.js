@@ -14,7 +14,8 @@ import { legacyPath } from './tab-route.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const SW = read('../../public/sw.js')
-const BUILD = 'gains-rt-__BUILD__'
+const STAMP = '__BUILD__'   // what the build rewrites; the page reads the same value from <meta name="gains-build">
+const BUILD = 'gains-rt-' + STAMP
 const ORIGIN = 'https://gym.test'
 
 class Cache {
@@ -127,6 +128,45 @@ describe('the caches the worker deletes', () => {
     await w.activate()
     expect(await w.caches.keys()).toContain('opengym-rt-oldbuild')
   })
+
+  it('drop what a tab still running the old JavaScript rebuilt, on every activation, without storing media twice', async () => {
+    const all = new Map()
+    const w = worker({ all })
+    await (await w.caches.open(BUILD)).put('index.html', new Response('shell'))
+    await (await w.caches.open('opengym-media-v1')).put('/img/0001.jpg', img())
+    await w.activate()
+    expect(all.get('gains-media-v1').m.size).toBe(1)
+
+    // The old tab, still open after the switch: it writes the old device cache and rebuilds the old
+    // media cache with what it has shown, a file we already hold among them.
+    const old = await w.caches.open('opengym-media-v1')
+    await old.put('/img/0001.jpg', img())
+    await old.put('/exercise-media/still/0009.webp', img())
+    await (await w.caches.open('opengym-device')).put('/opengym-device-id', new Response('dev-456'))
+    await w.activate()
+
+    expect(await w.caches.keys()).not.toContain('opengym-media-v1')
+    expect(await w.caches.keys()).not.toContain('opengym-device')
+    expect([...all.get('gains-media-v1').m.keys()].sort()).toEqual([ORIGIN + '/exercise-media/still/0009.webp', ORIGIN + '/img/0001.jpg'])
+    expect(await (await all.get('gains-device').match('/opengym-device-id')).text()).toBe('dev-456')
+  })
+
+  it('drop those caches when there is no shell yet too, keeping the old builds that are still live', async () => {
+    const w = worker()
+    await (await w.caches.open('opengym-media-v1')).put('/img/0001.jpg', img())
+    await w.caches.open('opengym-device')
+    await w.caches.open('opengym-rt-oldbuild')
+    await w.activate()
+    const left = await w.caches.keys()
+    expect(left).toContain('opengym-rt-oldbuild')
+    expect(left).not.toContain('opengym-media-v1')
+    expect(left).not.toContain('opengym-device')
+    expect(await (await w.all.get('gains-media-v1').match('/img/0001.jpg'))).toBeTruthy()
+  })
+
+  it('say in the worker what a rollback to a build from before the rename costs', () => {
+    expect(SW).toMatch(/rollback to a build from before the rename[\s\S]*media is downloaded again/)
+  })
 })
 
 describe('what the worker caches', () => {
@@ -154,6 +194,22 @@ describe('what the worker caches', () => {
         expect(w.all.get(BUILD)?.m.size || 0).toBe(0)
       })
 
+      it('treats as media only the catalogue’s own folders, not any path with img/ or gif/ in it', async () => {
+        const w = worker({ scope })
+        for (const p of ['exercise-media/still/0001.webp', 'exercise-media/clip/0001.mp4', 'img/0001.jpg', 'gif/0001.gif']) {
+          expect((await w.get(at + p)).intercepted, p).toBe(true)
+        }
+        expect([...w.all.get('gains-media-v1').m.keys()]).toHaveLength(4)
+        const other = worker({ scope })
+        const hash = 'a'.repeat(64)
+        for (const p of ['uploads/img/a.jpg', 'nt/img/a.png', 'hub/gif/a.gif', 'some/exercise-media/still/a.webp', 'exercise-media/other/a.webp', 'exercise-media/still', 'myimg/a.jpg', 'imgs/a.jpg', 'api/media/' + hash, 'img', 'gif']) {
+          expect((await other.get(at + p)).intercepted, p).toBe(false)
+        }
+        // …and the same paths from the other end of the origin.
+        if (at !== '/') for (const p of ['/img/0001.jpg', '/gif/0001.gif', '/exercise-media/still/0001.webp']) expect((await other.get(p)).intercepted, p).toBe(false)
+        expect(other.all.size).toBe(0)
+      })
+
       it('keeps the exercise media in its own cache, never in the build’s', async () => {
         const w = worker({ scope })
         expect((await w.get(at + 'exercise-media/still/0001.webp')).intercepted).toBe(true)
@@ -175,12 +231,15 @@ describe('a push and the tap on it', () => {
     expect(w.shown[2].opts.data).toEqual({ url: '' })
   })
 
-  it('focuses a window of the app and takes it to the target', async () => {
+  it('focuses a window of the app and tells it to go to the target, without a navigation', async () => {
+    // WindowClient.navigate() is a real navigation; a hash change inside the page is only a route
+    // change, so the page is messaged and sets location.hash itself.
     const w = worker()
     const win = w.window()
     await w.tap({ url: '#/train/workout' })
     expect(win.focused).toBe(1)
-    expect(win.navigated).toEqual([ORIGIN + '/#/train/workout'])
+    expect(win.messages).toEqual([{ type: 'gains-sw-navigate', url: ORIGIN + '/#/train/workout' }])
+    expect(win.navigated).toEqual([])
     expect(w.opened).toEqual([])
   })
 
@@ -232,6 +291,7 @@ describe('a push and the tap on it', () => {
       await some.tap({ url })
       expect(win.focused, String(url)).toBe(1)
       expect(win.navigated, String(url)).toEqual([])
+      expect(win.messages, String(url)).toEqual([])
       expect(some.opened, String(url)).toEqual([])
     }
     const w = worker()
@@ -239,16 +299,24 @@ describe('a push and the tap on it', () => {
     expect(w.opened).toEqual(['./'])
   })
 
-  it('opens a new window at the target when the one open cannot be navigated', async () => {
-    const w = worker()
-    w.window({ navigate: async () => { throw new TypeError('not allowed') } })
-    await w.tap({ url: '#/food' })
-    expect(w.opened).toEqual([ORIGIN + '/#/food'])
+  it('navigates the window only when it cannot be messaged, and opens a new one when it cannot be navigated either', async () => {
+    const cannotMessage = () => { throw new TypeError('detached') }
+    const navigable = worker()
+    const win = navigable.window({ postMessage: cannotMessage })
+    await navigable.tap({ url: '#/food' })
+    expect(win.navigated).toEqual([ORIGIN + '/#/food'])
+    expect(navigable.opened).toEqual([])
+
+    const neither = worker()
+    neither.window({ postMessage: cannotMessage, navigate: async () => { throw new TypeError('not allowed') } })
+    await neither.tap({ url: '#/food' })
+    expect(neither.opened).toEqual([ORIGIN + '/#/food'])
 
     const noNavigate = worker()
-    const win = noNavigate.window({ navigate: undefined })
+    const plain = noNavigate.window({ navigate: undefined })
     await noNavigate.tap({ url: '#/food' })
-    expect(win.focused).toBe(1)
+    expect(plain.focused).toBe(1)
+    expect(plain.messages).toHaveLength(1)
     expect(noNavigate.opened).toEqual([])
   })
 
@@ -275,7 +343,7 @@ describe('an update reaching an open app', () => {
     await w.caches.open('gains-rt-previous')
     const a = w.window(), b = w.window()
     await w.activate()
-    for (const win of [a, b]) expect(win.messages).toEqual([{ type: 'gains-sw-updated', build: BUILD }])
+    for (const win of [a, b]) expect(win.messages).toEqual([{ type: 'gains-sw-updated', build: STAMP }])
   })
 
   it('is announced after a build from before the rename too', async () => {
@@ -284,7 +352,7 @@ describe('an update reaching an open app', () => {
     await w.caches.open('opengym-rt-previous')
     const a = w.window()
     await w.activate()
-    expect(a.messages).toEqual([{ type: 'gains-sw-updated', build: BUILD }])
+    expect(a.messages).toEqual([{ type: 'gains-sw-updated', build: STAMP }])
   })
 
   it('is not announced on a first install, or when nothing changed', async () => {
