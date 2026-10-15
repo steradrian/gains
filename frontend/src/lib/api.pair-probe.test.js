@@ -34,7 +34,7 @@ describe('pairRedeem when the request never gets an answer', () => {
     expect(e.code).toBe('cors')
   })
 
-  // Something in front of openGym answered in its place: an SSO login (forward-auth), a proxy
+  // Something in front of Gains answered in its place: an SSO login (forward-auth), a proxy
   // rule, a redirect to a sign-in page. The address is right, the proxy needs to let /api/ through.
   const PROXY_MSG = 'That address answers, but a login page or proxy rule replied instead of Gains. Let /api/ through to Gains unchanged. See “Phone app and CORS” in docs/SELF_HOSTING.md.'
   it.each([
@@ -51,7 +51,7 @@ describe('pairRedeem when the request never gets an answer', () => {
     expect(e.message).toBe(PROXY_MSG)
   })
 
-  // Another app, a proxy's own "404 page not found": it answers, but it is not openGym at all.
+  // Another app, a proxy's own "404 page not found": it answers, but it is not Gains at all.
   it.each([
     ['another app\'s JSON', () => new Response(JSON.stringify({ status: 'UP' }), { status: 200, headers: { 'content-type': 'application/json' } })],
     ['a plain-text 404 from a proxy with no route', () => new Response('404 page not found\n', { status: 404, headers: { 'content-type': 'text/plain' } })],

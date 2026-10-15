@@ -7,7 +7,7 @@ import { useConnectionTrouble } from './SyncBanner.jsx'
 
 // The way into Profile (the settings pages), on every tab's root. Its dot is the app's one sync
 // indicator: a sync that is stuck while the connection banner is switched off (#369, #330), or
-// the hub's openGym ↔ NutriTrace sync needing the person (an error, a held delete, suspended).
+// the hub's Gains ↔ NutriTrace sync needing the person (an error, a held delete, suspended).
 export default function AvatarButton() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
