@@ -17,7 +17,7 @@ import { Button, NumberField } from './ui.jsx'
 export function IngredientSheet({ item = null, onDone, onRemove = null, close }) {
   const settings = useNutrition(s => s.settings.data)
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState(null)
+  const [failed, setFailed] = useState(null)
   const alive = useRef(true)
   const [picked, setPicked] = useState(item)
   const [amount, setAmount] = useState(item ? (parseFloat(item.portion) || 0) * (parseFloat(item.quantity) || 1) : 0)
@@ -39,16 +39,18 @@ export function IngredientSheet({ item = null, onDone, onRemove = null, close })
 
   // A food from Open Food Facts or a barcode is saved first (its client_key makes a retry after a
   // lost answer one food), then used: an ingredient points at a saved food.
+  // A save that failed keeps its food, key included: Try again sends that same one, since the
+  // failed POST may have been saved with its answer lost (a rescan would mint a new key).
   const choose = async food => {
     if (saving) return
     if (typeof food.id === 'number') { pick(food); return }
     setSaving(true)
-    setSaveError(null)
+    setFailed(null)
     try {
       const saved = await useNutrition.getState().saveFood(food)
       if (alive.current) pick(saved)
     } catch (e) {
-      if (alive.current) setSaveError(writeErrorText(e))
+      if (alive.current) setFailed({ food, text: writeErrorText(e) })
     }
     if (alive.current) setSaving(false)
   }
@@ -67,9 +69,12 @@ export function IngredientSheet({ item = null, onDone, onRemove = null, close })
   if (!picked) {
     return <>
       <SheetHeader title={t('Add ingredient')} onClose={close} />
-      <FoodSearch onPick={choose} scan={{ onPick: choose }} autoFocus />
       {saving && <div className="muted small" role="status">{t('Saving…')}</div>}
-      {saveError && <div className="nt-error small" role="alert">{saveError}</div>}
+      {failed && <>
+        <div className="nt-error small" role="alert">{failed.text}</div>
+        <Button size="sm" variant="tinted" onClick={() => choose(failed.food)}>{t('Try again')}</Button>
+      </>}
+      <FoodSearch onPick={choose} scan={{ onPick: choose }} autoFocus disabled={saving} />
     </>
   }
 

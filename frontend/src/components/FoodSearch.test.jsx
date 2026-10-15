@@ -135,6 +135,68 @@ describe('the diary picker', () => {
   })
 })
 
+describe('what the search says and shows', () => {
+  const live = () => host.querySelector('.fp-live')
+
+  it('announces the result count in one node that stays in the page', async () => {
+    await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
+    const node = live()
+    expect(node.getAttribute('role')).toBe('status')
+    expect(node.getAttribute('aria-live')).toBe('polite')
+    expect(node.textContent).toBe('')
+    await search(host, 'nutella')
+    expect(live()).toBe(node)
+    expect(node.textContent).toBe('Results: 1')
+    nt.state.offSearch = { products: [] }
+    await search(host, 'zzzz')
+    expect(live()).toBe(node)
+    expect(node.textContent).toBe('No results')
+  })
+
+  it('lists your other foods most used first when nothing is typed', async () => {
+    for (const f of nt.state.foods) f.last_used_at = null
+    nt.state.foods[0].usage_count = 1
+    nt.state.foods[1].usage_count = 5
+    nt.state.foods[2].usage_count = 3
+    await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
+    expect(titles(host).filter(n => !['Create food', 'Quick kcal'].includes(n))).toEqual(['Wholemeal bread', 'Crème fraîche', 'Rolled oats'])
+  })
+
+  it('shows a saved copy of a product under its new name, and not the product again', async () => {
+    nt.state.foods[0].barcode = '3017620422003'
+    nt.state.foods[0].name = 'Hazelnut spread'
+    await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
+    await search(host, 'nutella')
+    expect(titles(host)).toContain('Hazelnut spread')
+    expect(titles(host)).not.toContain('Nutella')
+    expect(host.textContent).toContain('Nothing found online.')
+  })
+
+  it('matches a product with no barcode by the key it was saved under, not by its name', async () => {
+    nt.state.offSearch = { products: [{ product_name: 'Plain oats', nutriments: { 'energy-kcal_100g': 370 } }] }
+    await mount(<div />)
+    await act(async () => { ingredientSheet({ onDone: vi.fn() }) })
+    await settle()
+    await search(lastSheet(), 'plain')
+    await click(row(lastSheet(), 'Plain oats'))
+    useNutrition.setState(s => ({ foods: { ...s.foods, list: s.foods.list.map(f => (f.name === 'Plain oats' ? { ...f, name: 'Granola' } : f)) } }))
+    await click(buttonIn(lastSheet(), 'Choose another food'))
+    await search(lastSheet(), 'plain')
+    expect(titles(lastSheet())).toContain('Granola')
+    expect(titles(lastSheet())).not.toContain('Plain oats')
+  })
+
+  it('carries no string the pickers retired', () => {
+    const packs = import.meta.glob('../locales/*.js', { eager: true })
+    const retired = ['No foods yet. Save some under Foods first.', 'Too many online searches. Wait a minute and try again.', 'Online search failed. Your own foods still work.']
+    expect(Object.keys(packs).length).toBe(18)
+    for (const [file, pack] of Object.entries(packs)) {
+      const keys = Object.keys(pack.default)
+      for (const key of retired) expect(keys, `${file}: ${key}`).not.toContain(key)
+    }
+  })
+})
+
 describe('the ingredient picker', () => {
   const open = async onDone => {
     await mount(<div />)
@@ -198,6 +260,60 @@ describe('the ingredient picker', () => {
     expect(lastSheet().textContent).toContain('Amount')
     await click(buttonIn(lastSheet(), 'Add'))
     expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nutella' }))
+  })
+
+  it('a scanned product whose save failed is retried with the same key, from Try again', async () => {
+    const onDone = vi.fn()
+    nt.failNext('POST', '/nt/api/foods', { lost: true, status: 504 })
+    await open(onDone)
+    await click(buttonIn(lastSheet(), 'Scan a barcode'))
+    camera.hit = { value: '3017620422003', fmt: 'ean13' }
+    await click(buttonIn(lastSheet(), 'camera sees a code'))
+    await click(buttonIn(lastSheet(), 'Use'))
+    // The scan sheet is gone; the failure and the way to retry are at the top of the picker.
+    const alert = lastSheet().querySelector('[role=alert]')
+    expect(alert).not.toBeNull()
+    expect(lastSheet().querySelector('.food-picker').compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+    await click(buttonIn(lastSheet(), 'Try again'))
+    expect(foodPosts()).toHaveLength(2)
+    expect(foodPosts()[1].body.client_key).toBe(foodPosts()[0].body.client_key)
+    expect(nt.state.foods.filter(f => f.name === 'Nutella')).toHaveLength(1)
+    expect(lastSheet().textContent).toContain('Amount')
+  })
+
+  it('shows Saving… at the top and holds the rows while a save is out', async () => {
+    await open(vi.fn())
+    await search(lastSheet(), 'nutella')
+    const slow = nt.hold('POST', '/nt/api/foods')
+    await click(row(lastSheet(), 'Nutella'))
+    const saving = [...lastSheet().querySelectorAll('[role=status]')].find(n => n.textContent === 'Saving…')
+    expect(saving.compareDocumentPosition(lastSheet().querySelector('.food-picker')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(row(lastSheet(), 'Nutella').getAttribute('aria-disabled')).toBe('true')
+    await click(row(lastSheet(), 'Nutella'))
+    expect(foodPosts()).toHaveLength(1)
+    await act(async () => { slow.release() })
+    await settle()
+    expect(lastSheet().textContent).toContain('Amount')
+  })
+
+  it('lists 50 of your foods with Show more', async () => {
+    for (let i = 0; i < 60; i++) nt.state.foods.push({ ...structuredClone(nt.state.foods[2]), id: 200 + i, name: `Food ${String(i).padStart(2, '0')}`, usage_count: 0 })
+    await open(vi.fn())
+    const shown = () => lastSheet().querySelectorAll('.list .item').length
+    const before = shown()
+    expect(lastSheet().querySelectorAll('h4')[1].nextElementSibling.querySelectorAll('.item')).toHaveLength(50)
+    await click(buttonIn(lastSheet(), 'Show more'))
+    expect(shown()).toBeGreaterThan(before)
+    expect(buttonIn(lastSheet(), 'Show more')).toBeUndefined()
+    expect(titles(lastSheet())).toContain('Food 59')
+  })
+
+  it('offers Try again when your foods did not load', async () => {
+    nt.failNext('GET', '/nt/api/foods', 'offline')
+    await open(vi.fn())
+    expect(lastSheet().textContent).toContain('Your foods did not load.')
+    await click(buttonIn(lastSheet(), 'Try again'))
+    expect(titles(lastSheet())).toContain('Rolled oats')
   })
 
   it('creates a food from the typed name and uses it', async () => {
