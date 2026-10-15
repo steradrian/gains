@@ -136,7 +136,7 @@ const plainMap = max => v => isObj(v) && Object.keys(v).length <= max && Object.
 const WRITABLE_SETTINGS = {
   // Goals and Fasting.
   calorieGoalMode: oneOf('fixed', 'adaptive', 'dynamic'),
-  calorieGoalFactor: oneOf(0.8, 1, 1.2),
+  calorieGoalFactor: oneOf(0.8, 1, 1.1, 1.2),
   goals: plainMap(100),
   goalTemplates: arrayOf(isObj, 30),
   waterGoalMl: numberIn(1, 50000),
