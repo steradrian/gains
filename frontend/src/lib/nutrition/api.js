@@ -131,8 +131,9 @@ export const NtApi = {
   saveDiaryDate: (date, payload) => nt('PUT', `/api/diary/${date}`, payload),
   /** @returns {Promise<NtSettings>} */
   getSettings: () => nt('GET', '/api/settings'),
-  /** Upserts one setting. The Goals page writes only calorieGoalMode, calorieGoalFactor, goals,
-   *  goalTemplates, waterGoalMl, calorieAdjustFromActivity and diaryShowActivity. */
+  /** Upserts one setting. The hub takes exactly { key, value } for calorieGoalMode, calorieGoalFactor,
+   *  goals, goalTemplates, waterGoalMl, calorieAdjustFromActivity, diaryShowActivity, fastingEnabled
+   *  and fastingDefaultHours, type-checks the value, and refuses anything else with 400. */
   putSetting: (key, value) => nt('PUT', '/api/settings', { key, value }),
   /** Your own foods, by name. @returns {Promise<Food[]>} (img_url, not imgUrl) */
   getFoods: () => nt('GET', '/api/foods'),

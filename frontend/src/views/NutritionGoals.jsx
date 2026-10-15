@@ -4,14 +4,15 @@ import { useUI } from '../store/useUI.js'
 import { fmtNum } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
-import { ntErrorText } from '../lib/nutrition/error-text.js'
 import { energyOf } from '../lib/nutrition/diary.js'
+import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import {
   MACROS, applyPreset, energyFromUnit, goalNotes, hasWearable, macroGrams,
   previewBase, toggleMacroUnit, waterFromUnit, waterToUnit, waterUnitOf, workoutAdjustState,
 } from '../lib/nutrition/goals.js'
 import { useGoalsForm } from '../lib/nutrition/use-goals-form.js'
-import SubHeader from '../components/SubHeader.jsx'
+import { EmptyState } from '../components/blocks.jsx'
+import { Page } from '../components/layout.jsx'
 import { Button, Row, Section, Segmented, SelectRow, Stepper, Switch, TextField } from '../components/ui.jsx'
 import { confirmSheet, goalSheet } from '../sheets.jsx'
 
@@ -182,7 +183,7 @@ function GoalsForm({ form }) {
       onClick={async () => { if (await form.submit()) toast(t('Goals saved')) }}>
       {save.state === 'saving' ? t('Saving…') : t('Save goals')}
     </Button>
-    {save.state === 'error' && <p className="sect-f" role="alert">{ntErrorText(save.error)} {t('Your changes are still here.')}</p>}
+    {save.state === 'error' && <p className="sect-f" role="alert">{writeErrorText(save.error)} {t('Your changes are still here.')}</p>}
   </>
 }
 
@@ -191,24 +192,21 @@ function GoalsForm({ form }) {
 // openGym's own and the same one Body edits.
 export default function NutritionGoals() {
   const user = useStore(s => s.user)
-  if (nutritionAvailable(user)) return <GoalsPage />
-  return <div>
-    <SubHeader title={t('Goals')} />
-    <div className="empty small">{t('Nutrition needs an account on the web app.')}</div>
-  </div>
+  return <Page title={t('Goals')}>
+    {nutritionAvailable(user)
+      ? <GoalsBody />
+      : <EmptyState className="small">{t('Nutrition needs an account on the web app.')}</EmptyState>}
+  </Page>
 }
 
-function GoalsPage() {
+function GoalsBody() {
   const form = useGoalsForm()
-  return <div>
-    <SubHeader title={t('Goals')} />
-    {form.draft
-      ? <GoalsForm form={form} />
-      : form.status === 'error'
-        ? <div className="empty small" role="alert">
-            <div>{ntErrorText(form.loadError)}</div>
-            <Button size="sm" onClick={form.reload}>{t('Try again')}</Button>
-          </div>
-        : <div className="empty small">{t('Loading…')}</div>}
-  </div>
+  if (form.draft) return <GoalsForm form={form} />
+  if (form.status === 'error') {
+    return <EmptyState className="small">
+      <div role="alert">{t('Goals did not load.')}</div>
+      <Button size="sm" onClick={form.reload}>{t('Try again')}</Button>
+    </EmptyState>
+  }
+  return <EmptyState className="small">{t('Loading…')}</EmptyState>
 }

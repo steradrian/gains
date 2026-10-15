@@ -66,20 +66,32 @@ describe('Nutrition › Goals', () => {
     expect(saveButton().disabled).toBe(true)
   })
 
-  it('keeps the input and says so when the save fails, then saves on retry', async () => {
+  it.each([[500, 'server'], [400, 'the hub refusing the body']])('keeps the input and says so when the save fails (%i, %s), then saves on retry', async status => {
     await open()
     click(byLabel('Increase Daily target'))
-    nt.failNext('PUT', '/nt/api/settings', { status: 500 })
+    nt.failNext('PUT', '/nt/api/settings', { status })
     await click(saveButton())
     await settle()
-    expect(text()).toContain('NutriTrace had a problem. Try again.')
+    expect(text()).toContain('Not saved. Try again.')
     expect(text()).not.toContain('upstream_error')
     expect(field('Daily target').value).toBe('2250')
     expect(nt.state.settings.goals.calories.max).toBe(2200)
     await click(saveButton())
     await settle()
     expect(nt.state.settings.goals.calories.max).toBe(2250)
-    expect(text()).not.toContain('NutriTrace had a problem')
+    expect(text()).not.toContain('Not saved')
+  })
+
+  it('writes one { key, value } per setting with the types the hub checks', async () => {
+    await open()
+    clickText('Adaptive')
+    click(byLabel('Increase Daily water goal'))
+    await click(saveButton())
+    await settle()
+    const bodies = goalWrites().map(w => w.body)
+    expect(bodies.every(b => Object.keys(b).sort().join() === 'key,value')).toBe(true)
+    expect(nt.state.settings.waterGoalMl).toBeGreaterThan(2500)
+    expect(Number.isInteger(nt.state.settings.waterGoalMl)).toBe(true)
   })
 
   it('switches the calorie mode and its factor', async () => {
@@ -190,7 +202,7 @@ describe('Nutrition › Goals', () => {
     root = createRoot(host)
     await act(async () => { root.render(<NutritionGoals />) })
     await settle()
-    expect(text()).toContain('No connection to NutriTrace.')
+    expect(text()).toContain('Goals did not load.')
     await clickText('Try again')
     await settle()
     expect(field('Daily target').value).toBe('2200')

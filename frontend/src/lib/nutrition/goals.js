@@ -5,7 +5,7 @@
 // showInDiary, showInStats, days[7], max | min }. This page edits calories, protein, carbs and fat
 // as one shared number a day; an entry that differs by weekday is shown and left alone, since
 // saving it here would flatten the week.
-import { calorieTarget, waterGoalOf } from './diary.js'
+import { WATER_UNITS, calorieTarget, waterGoalOf } from './diary.js'
 
 export const MACROS = ['proteins', 'carbohydrates', 'fat']
 export const DENSITY = { proteins: 4, carbohydrates: 4, fat: 9 }
@@ -174,15 +174,13 @@ export function workoutAdjustState(mode, adaptive) {
 }
 
 // Water is stored in ml; the page edits it in the person's unit (diary.js waterOf shows it).
-const WATER_ML = { oz: 29.5735, L: 1000, G: 3785.41 }
-const WATER_DECIMALS = { oz: 0, L: 2, G: 3 }
-export const waterUnitOf = settings => (WATER_ML[settings?.waterUnit] ? settings.waterUnit : 'ml')
+export const waterUnitOf = settings => (WATER_UNITS[settings?.waterUnit] ? settings.waterUnit : 'ml')
 export function waterToUnit(ml, unit) {
-  const per = WATER_ML[unit]
-  return per ? Number((ml / per).toFixed(WATER_DECIMALS[unit])) : Math.round(ml)
+  const u = WATER_UNITS[unit]
+  return u ? Number((ml / u[0]).toFixed(u[1])) : Math.round(ml)
 }
 export function waterFromUnit(value, unit) {
-  return Math.round((Number(value) || 0) * (WATER_ML[unit] || 1))
+  return Math.round((Number(value) || 0) * (WATER_UNITS[unit]?.[0] || 1))
 }
 
 // Calories are stored as kcal; a person on kJ edits them in kJ (diary.js energyOf shows them).
