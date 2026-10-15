@@ -8,7 +8,7 @@ import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Slider, NumberField } from '../components/ui.jsx'
 import { syncNow } from '../lib/nutrition/sync.js'
-import { weeklyWeights } from '../lib/bodyweight.js'
+import { deltaTone, weeklyWeights } from '../lib/bodyweight.js'
 import { S, update, ui, toast } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 
@@ -182,12 +182,8 @@ function WeighIns() {
 export const weighInsSheet = () => ui().openSheet(close => <WeighIns close={close} />)
 
 /* ============================ target weight ============================ */
-export function bwDeltaColor(delta, currentW) {
-  if (!delta) return 'var(--label-2)'
-  if (!S().targetW) return 'var(--label)'
-  const up = S().targetW > currentW
-  return (delta > 0) === up ? 'var(--acc-ink)' : 'var(--red-ink)'
-}
+const DELTA_COLOR = { none: 'var(--label-2)', plain: 'var(--label)', toward: 'var(--acc-ink)', away: 'var(--red-ink)' }
+export const bwDeltaColor = (delta, currentW) => DELTA_COLOR[deltaTone(delta, currentW, S().targetW)]
 function GoalSheet({ close }) {
   const st = S()
   const bw = lastBW(st)
