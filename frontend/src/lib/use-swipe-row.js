@@ -96,8 +96,12 @@ export function velocityOf(samples) {
   return dt > 0 ? (b[1] - a[1]) / dt : 0
 }
 
+// The system's setting, or Profile › Appearance › Reduce motion (App.jsx marks the root with it).
 export const reducedMotion = () => {
-  try { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false }
+  try {
+    if (typeof document !== 'undefined' && document.documentElement.dataset.motion === 'reduce') return true
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch { return false }
 }
 
 // One open row at a time, and the click a swipe leaves behind. Shared by every row on the page.

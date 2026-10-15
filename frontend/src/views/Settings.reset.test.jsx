@@ -82,7 +82,7 @@ afterEach(() => {
   host.remove()
 })
 
-const mount = () => act(() => root.render(<Settings page="data" />))
+const mount = () => act(() => root.render(<Settings page="danger" />))
 const resetRow = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Reset everything'))
 const openDialog = () => {
   act(() => { resetRow().click() })
