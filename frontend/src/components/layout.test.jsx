@@ -24,15 +24,38 @@ describe('Page', () => {
       <><SubHeader title="Coach" sub="Intake" action={<button className="iconbtn">+</button>} onBack={back} />x</>)
   })
 
-  it('is RootHeader on a tab root', () => {
-    // The avatar navigates, so both sides render inside a router.
-    same(<MemoryRouter><Page root title="Nutrition" sub="Today"><div className="card">x</div></Page></MemoryRouter>,
-      <MemoryRouter><RootHeader title="Nutrition" sub="Today" /><div className="card">x</div></MemoryRouter>)
+  it('passes heading to SubHeader as the title field (the routine editor)', () => {
+    const field = <input className="input" aria-label="Routine name" />
+    same(<Page heading={field} action={<button className="iconbtn">i</button>}>x</Page>,
+      <><SubHeader action={<button className="iconbtn">i</button>}>{field}</SubHeader>x</>)
   })
 
-  it('throws in development when a root page is given an action or onBack it cannot show', () => {
-    expect(() => html(<MemoryRouter><Page root title="Food" action={<button>+</button>} /></MemoryRouter>)).toThrow(/root page/)
-    expect(() => html(<MemoryRouter><Page root title="Food" onBack={back} /></MemoryRouter>)).toThrow(/root page/)
+  // A design change (Owner decision 11, 2026-10-15): the tab root's header lost its large title
+  // and its sub line. It is the search pill, an optional context button and the avatar; the title
+  // stays only as the page's name for a screen reader.
+  it('is RootHeader on a tab root, with the one context button it may carry', () => {
+    // The avatar navigates and the pill reads the route, so both sides render inside a router.
+    same(<MemoryRouter><Page root title="Nutrition"><div className="card">x</div></Page></MemoryRouter>,
+      <MemoryRouter><RootHeader title="Nutrition" /><div className="card">x</div></MemoryRouter>)
+    same(<MemoryRouter><Page root title="Training" action={<button className="iconbtn">c</button>}>x</Page></MemoryRouter>,
+      <MemoryRouter><RootHeader title="Training" action={<button className="iconbtn">c</button>} />x</MemoryRouter>)
+  })
+
+  it('names a tab root with a hidden h1 and shows no title', () => {
+    const out = html(<MemoryRouter initialEntries={['/food']}><Page root title="Nutrition">x</Page></MemoryRouter>)
+    expect(out).toContain('<h1 class="sr-only">Nutrition</h1>')
+    expect(out.match(/<h1/g)).toHaveLength(1)
+    expect(out).toContain('role="combobox"')
+    expect(out).toContain('class="avatar-btn"')
+  })
+
+  it('throws in development when a root page is given what its header cannot show', () => {
+    const root = props => html(<MemoryRouter><Page root title="Food" {...props} /></MemoryRouter>)
+    expect(() => root({ onBack: back })).toThrow(/root page/)
+    expect(() => root({ sub: 'Today' })).toThrow(/root page/)
+    expect(() => root({ heading: <input /> })).toThrow(/root page/)
+    expect(() => root({ action: <><button>a</button><button>b</button></> })).toThrow(/root page/)
+    expect(() => root({ action: <button>a</button> })).not.toThrow()
   })
 })
 

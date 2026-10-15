@@ -2819,4 +2819,14 @@ export default {
   'Recipe · 1 serving': 'Recipe · 1 serving',
   'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.': 'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.',
   'Updated': 'Updated',
+  // --- the tab-root header's search pill ---
+  'Search {0}': 'ค้นหาใน {0}',
+  'Exercises, routines, workouts': 'ท่า รูทีน การออกกำลังกาย',
+  'Search training': 'ค้นหาการฝึก',
+  'Foods, meals, days': 'อาหาร มื้อ วัน',
+  'Search food': 'ค้นหาอาหาร',
+  'Charts, exercises, workouts': 'กราฟ ท่า การออกกำลังกาย',
+  'Search progress': 'ค้นหาความก้าวหน้า',
+  'Clear search': 'ล้างการค้นหา',
+  'Close search': 'ปิดการค้นหา',
 }

@@ -90,11 +90,5 @@
     "views/TrainHub.jsx": 2,
     "views/Workout.jsx": 3
   },
-  "G4": [
-    "History",
-    "Muscles",
-    "ProgressHub",
-    "RoutineEdit",
-    "TrainHub"
-  ]
+  "G4": []
 }

@@ -2887,4 +2887,14 @@ export default {
   'Recipe · 1 serving': 'Recipe · 1 serving',
   'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.': 'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.',
   'Updated': 'Updated',
+  // --- the tab-root header's search pill ---
+  'Search {0}': '{0}-এ খুঁজুন',
+  'Exercises, routines, workouts': 'ব্যায়াম, রুটিন, ওয়ার্কআউট',
+  'Search training': 'ট্রেনিং-এ খুঁজুন',
+  'Foods, meals, days': 'খাবার, মিল, দিন',
+  'Search food': 'খাবার খুঁজুন',
+  'Charts, exercises, workouts': 'চার্ট, ব্যায়াম, ওয়ার্কআউট',
+  'Search progress': 'অগ্রগতিতে খুঁজুন',
+  'Clear search': 'খোঁজ মুছুন',
+  'Close search': 'খোঁজ বন্ধ করুন',
 }

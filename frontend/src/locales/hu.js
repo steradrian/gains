@@ -2811,4 +2811,14 @@ export default {
   'Recipe · 1 serving': 'Recipe · 1 serving',
   'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.': 'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.',
   'Updated': 'Updated',
+  // --- the tab-root header's search pill ---
+  'Search {0}': 'Keresés: {0}',
+  'Exercises, routines, workouts': 'Gyakorlatok, rutinok, edzések',
+  'Search training': 'Keresés az edzésben',
+  'Foods, meals, days': 'Ételek, étkezések, napok',
+  'Search food': 'Étel keresése',
+  'Charts, exercises, workouts': 'Grafikonok, gyakorlatok, edzések',
+  'Search progress': 'Keresés a fejlődésben',
+  'Clear search': 'Keresés törlése',
+  'Close search': 'Keresés bezárása',
 }

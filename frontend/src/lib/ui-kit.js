@@ -1,6 +1,10 @@
 // Shared by the UI kit's primitives (components/layout.jsx, blocks.jsx, sheet-layout.jsx).
+import { Children, Fragment, isValidElement } from 'react'
 
 export const cx = (...parts) => parts.filter(Boolean).join(' ')
+
+// How many controls a header's `action` holds: one element, or the children of a fragment.
+export const actionCount = node => Children.toArray(isValidElement(node) && node.type === Fragment ? node.props.children : node).length
 
 // The space scale's steps: 1…12 = 2, 4, 6, 8, 10, 12, 14, 16, 18, 22, 24, 32px, with 2.5 = 5px.
 // Gaps may also be 0. A step is its own class suffix: gap={2.5} → g-2.5 (`.g-2\.5` in ui-kit.css).

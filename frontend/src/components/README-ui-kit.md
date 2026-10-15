@@ -9,7 +9,7 @@ shell's job.
 
 | Instead of | Use (file) |
 |---|---|
-| `RootHeader` / `SubHeader` at the top of a routed view | `<Page root title sub>` (no action/onBack: it throws) / `<Page title sub action onBack>` (layout) |
+| `RootHeader` / `SubHeader` at the top of a routed view | `<Page root title action>` (a tab root: `title` is its hidden h1, `action` one context button; sub/heading/onBack throw) / `<Page title sub action onBack heading>` (layout; `heading` is a field standing in for the title) |
 | `<div style={{ height: 8 }} />` | `<Spacer size={4} />` (layout) |
 | `<div className="row between" style={{ gap: 6 }}>` | `<Inline justify="between"\|"end" gap={3} wrap align="start"\|"end"\|"baseline"\|"stretch">` (layout) |
 | a column of blocks with margins | `<Stack gap={6}>` (layout). Never around `.lrow` rows |
@@ -27,6 +27,25 @@ shell's job.
 
 An ItemRow with `onClick` is itself a `role=button`: give it no button, link or field inside (it
 warns in development). Make the child the control and drop the row's onClick, or move it out.
+
+## Headers (`tab-kit.css`; a page never builds or styles its own, ui-guards G8)
+
+- **Tab root** (`RootHeader.jsx`, from `<Page root>`): one pinned 56px row in the gutter,
+  `[SearchPill] [context button] [AvatarButton]`, no visible title (the tab bar names the tab; the
+  `title` is a `.sr-only` h1). A hairline fades in after 4px of scroll. It sits under the
+  connection row (z 44); the search overlay lifts it to `--z-tab-hdr`.
+- **SearchPill** (`scope` home|train|food|progress, `value`, `onChange(text)`, `onOpen`,
+  `expanded`, `controls`): the real input (`role=combobox`, bearmenu's attributes), the tab's long
+  placeholder where it fits the field and its short one where not (`lib/text-fit.js`, measured;
+  re-measured on resize and locale change), a clear button, Escape clears. Focus calls `onOpen`
+  for the overlay; with none it is a plain field. RootHeader reads the scope from the address.
+- **AvatarButton** `mode="profile"|"close"` (`onClose`): 40px, the pill's surface, 44px to tap;
+  close mode is the search overlay's close in the same spot, dot hidden.
+- **Sub-page** (`SubHeader.jsx`, from `<Page>`): back · centred title (`--fs-title2` bold, two
+  balanced lines) · at most two actions (a third throws). The title is centred while it fits and
+  otherwise takes the room between back and the actions; where a word would break it steps down to
+  20, then 17px (`useTitleFit`), hyphenated at the last step. `sub` centred under it; `children`
+  (Page `heading`) is a field as the title, start-aligned; `sticky` pins it.
 
 ## Tokens and utilities (`src/ui-kit.css`, loaded after `index.css`)
 

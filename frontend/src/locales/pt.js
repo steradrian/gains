@@ -2808,4 +2808,14 @@ export default {
   'Recipe · 1 serving': 'Recipe · 1 serving',
   'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.': 'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.',
   'Updated': 'Updated',
+  // --- the tab-root header's search pill ---
+  'Search {0}': 'Pesquisar no {0}',
+  'Exercises, routines, workouts': 'Exercícios, rotinas, treinos',
+  'Search training': 'Pesquisar treino',
+  'Foods, meals, days': 'Alimentos, refeições, dias',
+  'Search food': 'Pesquisar comida',
+  'Charts, exercises, workouts': 'Gráficos, exercícios, treinos',
+  'Search progress': 'Pesquisar progresso',
+  'Clear search': 'Limpar pesquisa',
+  'Close search': 'Fechar pesquisa',
 }
