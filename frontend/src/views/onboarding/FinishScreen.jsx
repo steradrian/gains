@@ -9,6 +9,7 @@ import { completeOnboarding } from '../../lib/onboarding/api.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { detourOf } from '../../lib/onboarding/flow.js'
 import { forget } from '../../lib/onboarding/state.js'
+import { useUI } from '../../store/useUI.js'
 
 // PLACEHOLDER for the Summary (ux-onboarding §3b screen 6, motion-onboarding-summary-v2.md). The
 // Summary and its hand-over to Home are built later, on top of the redesigned Home; until then
@@ -16,9 +17,14 @@ import { forget } from '../../lib/onboarding/state.js'
 // written through its outbox), then Home. Missing body answers can still be added first, by the
 // skip map's detour ("Add my details" → only the missing steps → back here). It keeps a plain
 // floor so the thread has a line to land on, as every onboarding screen does.
+
+// The hub's steps in their order: a step's answer can depend on the one before (a plan on the
+// training days), so failed saves go again one at a time, in this order.
+const HUB_STEPS = ['goal', 'body', 'training', 'plan']
+
 export default function FinishScreen() {
   const navigate = useNavigate()
-  const { state, act, saveHubStep, go } = useOnboarding()
+  const { state, act, saveHubStep, go, refresh } = useOnboarding()
   const [status, setStatus] = useState('idle') // idle | saving | error
   const floor = useRef(null)
   useThreadAnchor(floor, 'line')
@@ -27,13 +33,29 @@ export default function FinishScreen() {
   const finish = async () => {
     setStatus('saving')
     // Nothing completes with an answer the hub has not taken: those are sent again first.
-    const results = await Promise.all(state.unsaved.map(step => saveHubStep(step)))
-    if (results.some(ok => !ok)) { setStatus('error'); return }
+    for (const step of HUB_STEPS.filter(s => state.unsaved.includes(s))) {
+      if (!(await saveHubStep(step))) { setStatus('error'); return }
+    }
+    let done = null
     try {
-      await completeOnboarding(todayISO())
+      done = await completeOnboarding(todayISO())
     } catch (e) {
+      if (e.code === 'plan-unavailable') {
+        // The plan chosen is one this server cannot take (any more): the hub cleared it, so the
+        // Plan step is asked again with what it can take.
+        act({ type: 'plan', plan: null })
+        await refresh()
+        useUI.getState().toast(t('That plan can’t be set up on this server right now. Pick another.'))
+        setStatus('idle')
+        go('plan')
+        return
+      }
       if (e.code !== 'complete') { setStatus('error'); return }
     }
+    // Completed, and Training has not taken its part yet (openGym busy, or behind the hub): the
+    // hub keeps sending it. Said once, so nobody looks for a plan or a weigh-in that is on its way.
+    const training = done?.delivery?.opengym
+    if (training && training !== 'done') useUI.getState().toast(t('Saved. Some of it is still on its way to Training and will show up there soon.'))
     forget()
     act({ type: 'reset' })
     navigate('/home', { replace: true })

@@ -2,20 +2,27 @@
 //
 //   GET  /api/invites/{code}            openGym's invite check, which never uses the invite up
 //   GET  /api/me                        whether the new passkey is synced (user.synced)
-//   GET  /hub/api/onboarding            where the person is: { answers, completedAt, coachAvailable }
-//   PUT  /hub/api/onboarding            one step's answers: { step, answers }
+//   GET  /hub/api/onboarding            where the person is: { answers, completedAt, next, remaining,
+//                                       prefill, coachAvailable, starterAvailable, delivery }
+//   PUT  /hub/api/onboarding            one step's answers: { step, answers } (answers null: skipped)
 //   POST /hub/api/onboarding/preview    the daily targets from the answers so far
-//   POST /hub/api/onboarding/complete   both apps written, once: { today }
+//   POST /hub/api/onboarding/complete   both apps written, once: { today }. 409 `plan-unavailable`:
+//                                       the plan chosen is one this server cannot take; ask again.
 //
 // The hub routes are written to the contract of fitness-eval ux-onboarding.md §3b: the body's four
 // answers each optional, activity and units with their source, trainingDays 0-6 or null, the plan a
-// union of starter | coach | none, and coachAvailable on GET. Where the hub answers otherwise the
-// call fails and the screens say so; nothing here makes an answer up.
+// union of starter | coach | none (the coach as a consent to a text by its id, the time the hub's),
+// and on GET what the person's data answers and which plans this server takes. Where the hub
+// answers otherwise the call fails and the screens say so; nothing here makes an answer up.
 import { api } from '../api.js'
 import { appBase } from '../app-base.js'
+import { COACH_CONSENT_VERSION } from './consent.js'
 
 const HUB = '/hub/api/onboarding'
 const TIMEOUT_MS = 20000
+// The refusals a screen acts on; any other is 'http'.
+const KNOWN_CODES = ['complete', 'plan-unavailable']
+const BODY_FIELDS = ['sex', 'birthYear', 'heightCm', 'weightKg']
 
 const failure = (message, status, code) => Object.assign(new Error(message), { status, code })
 
@@ -40,7 +47,7 @@ async function hub(method, path, body) {
   }
   let data = null
   try { data = await res.json() } catch { data = null }
-  if (!res.ok) throw failure(data?.error || `HTTP ${res.status}`, res.status, data?.code === 'complete' ? 'complete' : 'http')
+  if (!res.ok) throw failure(data?.error || `HTTP ${res.status}`, res.status, KNOWN_CODES.includes(data?.code) ? data.code : 'http')
   if (!data || typeof data !== 'object') throw failure('not JSON', res.status, 'bad-response')
   return data
 }
@@ -68,17 +75,33 @@ export async function passkeySynced() {
   } catch { return null }
 }
 
-/** One step's answers as the hub takes them (§3b). Body answers not given are left out. */
+// The body as the screens hold it: the four answers given, the day and the units with their source.
+function bodyOf(answers) {
+  const out = {}
+  for (const k of BODY_FIELDS) if (answers.body[k] != null) out[k] = answers.body[k]
+  return { ...out, activity: answers.activity, units: answers.units }
+}
+
+// The plan as the hub takes it: the AI coach as a consent to the text shown, by its id, and never
+// a time (the hub stamps it, and a stored choice it sends back carries its stamp).
+function planOf(plan) {
+  if (plan?.kind !== 'coach') return plan
+  return { kind: 'coach', experience: plan.experience ?? null, equipment: plan.equipment, consent: true, consentVersion: plan.consentVersion || COACH_CONSENT_VERSION }
+}
+
+/**
+ * One step's answers as the hub takes them (§3b). Body answers not given are left out, and a body
+ * with nothing the person said (no answer, the assumed day and units) is a skip: null.
+ */
 export function stepAnswers(step, answers) {
   switch (step) {
     case 'goal': return { goal: answers.goal }
     case 'body': {
-      const out = {}
-      for (const k of ['sex', 'birthYear', 'heightCm', 'weightKg']) if (answers.body[k] != null) out[k] = answers.body[k]
-      return { ...out, activity: answers.activity, units: answers.units }
+      const said = BODY_FIELDS.some(k => answers.body[k] != null) || answers.activity.source === 'user' || answers.units.source === 'user'
+      return said ? bodyOf(answers) : null
     }
     case 'training': return { trainingDays: answers.trainingDays ?? null }
-    case 'plan': return answers.plan
+    case 'plan': return planOf(answers.plan)
     default: throw new Error('unknown onboarding step ' + step)
   }
 }
@@ -91,7 +114,7 @@ export function answersFromHub(stored) {
   if (goal && typeof goal.goal === 'string') out.goal = goal.goal
   if (body && typeof body === 'object') {
     out.body = {}
-    for (const k of ['sex', 'birthYear', 'heightCm', 'weightKg']) out.body[k] = body[k] ?? null
+    for (const k of BODY_FIELDS) out.body[k] = body[k] ?? null
     if (body.activity) out.activity = body.activity
     if (body.units) out.units = body.units
   }
@@ -106,7 +129,7 @@ export const saveStep = (step, answers) => hub('PUT', HUB, { step, answers: step
 /** { ready: true, targets: { calories, … } } | { ready: false, missing } from the answers on screen. */
 export const previewTargets = answers => hub('POST', HUB + '/preview', {
   ...(answers.goal ? { goal: stepAnswers('goal', answers) } : {}),
-  body: stepAnswers('body', answers),
+  body: bodyOf(answers),
   ...(answers.trainingDays !== undefined ? { training: stepAnswers('training', answers) } : {}),
 })
 

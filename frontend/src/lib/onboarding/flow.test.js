@@ -1,8 +1,8 @@
 // The onboarding's skip map and navigation rules (ux-onboarding §3b).
 import { describe, expect, it } from 'vitest'
 import {
-  codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, previousOf, progressMax, resumeScreen,
-  screenOf, skipTarget, stepOf,
+  answeredByData, codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, previousOf, progressMax,
+  resumeScreen, screenOf, skipTarget, stepOf,
 } from './flow.js'
 
 const body = (o = {}) => ({ sex: null, birthYear: null, heightCm: null, weightKg: null, ...o })
@@ -45,6 +45,20 @@ describe('the skip map', () => {
     expect(skipTarget('plan')).toBe('finish')
     expect(skipTarget('goal')).toBeNull()
     expect(skipTarget('starter')).toBeNull()
+  })
+
+  it('skips what the person\'s data answers: a whole step, or a body field it holds', () => {
+    const server = { answered: ['goal', 'training', 'plan'], body: ['heightCm'], next: null, remaining: null }
+    expect(answeredByData('goal', server)).toBe(true)
+    expect(answeredByData('height', server)).toBe(true)
+    expect(answeredByData('weight', server)).toBe(false)
+    expect(answeredByData('goal', null)).toBe(false)
+    expect(nextAfter('passkey', { server })).toBe('sex')
+    expect(nextAfter('born', { server })).toBe('weight')
+    // Training and Plan are both answered: on to the end.
+    expect(nextAfter('weight', { answers: { trainingDays: 3 }, server })).toBe('finish')
+    expect(skipTarget('sex', { answers: { trainingDays: 3 }, server })).toBe('finish')
+    expect(nextAfter('training', { answers: { trainingDays: 3 }, server: { ...server, answered: ['plan'] } })).toBe('finish')
   })
 
   it('shows Skip only on You, Training and Plan, and no Back once the passkey exists', () => {
@@ -101,6 +115,17 @@ describe('resuming', () => {
   it('does not ask a skipped step again', () => {
     expect(resumeScreen({ goal: 'keep', body: body() }, { skippedYou: true })).toBe('training')
     expect(resumeScreen({ goal: 'keep', body: full, trainingDays: null })).toBe('finish')
+  })
+
+  it('goes where the hub says, past what the person\'s data answers', () => {
+    const server = (next, answered = [], fields = []) => ({ next, answered, body: fields, remaining: [] })
+    expect(resumeScreen({ goal: null, body: body() }, { server: server('summary', ['goal', 'body', 'training', 'plan']) })).toBe('finish')
+    expect(resumeScreen({ goal: 'keep', body: body() }, { server: server('body', [], ['sex', 'birthYear']) })).toBe('height')
+    expect(resumeScreen({ goal: 'keep', body: full, trainingDays: 3 }, { server: server('plan') })).toBe('plan')
+    // A profile with routines: the Plan step is not asked, whatever the days.
+    expect(resumeScreen({ goal: 'keep', body: full, trainingDays: 3 }, { server: { ...server(null, ['plan']), next: null } })).toBe('finish')
+    // All four answered here, not yet taken by the hub: on as this tab knows.
+    expect(resumeScreen({ goal: 'keep', body: full }, { server: server('body') })).toBe('training')
   })
 
   it('walks a cold Back to the step before', () => {

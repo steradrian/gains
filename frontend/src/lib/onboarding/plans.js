@@ -1,11 +1,8 @@
 // The Plan step's ready-made plan: which starter plan a number of training days gets, the days it
 // suggests, and its sessions fitted to the equipment (lib/starter.js holds the plans themselves).
 // Weekdays are DAYN indexes, as the app's weekly plan keeps them: 0 is Sunday, 1 Monday.
-import { buildStarterPlan, starterPlanDays } from '../starter.js'
+import { buildStarterPlan, starterPlanDays, STARTER_EQUIPMENT_LISTS } from '../starter.js'
 import { EXIDX } from '../exercises.js'
-
-// What each equipment choice leaves available; null is everything (the plan as written).
-const EQUIPMENT_LIST = { gym: null, dumbbells: ['dumbbell'], none: [] }
 
 // The catalogue has no one-day plan: one day gets the two-day full-body plan's first session.
 const TEMPLATE = { 1: 'full-body-2', 2: 'full-body-2', 3: 'full-body', 4: 'upper-lower', 5: 'upper-lower-ppl', 6: 'ppl-6' }
@@ -30,7 +27,7 @@ export const WEEK = [1, 2, 3, 4, 5, 6, 0]
 export function starterSessions(days, equipment = 'gym') {
   const id = templateFor(days)
   if (!id) return []
-  const built = buildStarterPlan(id, EQUIPMENT_LIST[equipment] ?? null)
+  const built = buildStarterPlan(id, STARTER_EQUIPMENT_LISTS[equipment] ?? null)
   if (!built) return []
   return built.routines.slice(0, days).map(r => ({
     name: r.name,

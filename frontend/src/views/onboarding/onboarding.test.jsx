@@ -53,7 +53,7 @@ beforeEach(() => {
   mocks.toasts.length = 0
   Object.values(hub).forEach(f => f.mockReset())
   Object.values(passkeys).forEach(f => f.mockReset())
-  hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, step: null, coachAvailable: true })
+  hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, step: null, coachAvailable: true, starterAvailable: true })
   hub.saveStep.mockResolvedValue({})
   hub.previewTargets.mockResolvedValue({ ready: true, targets: { calories: 1620 } })
   hub.passkeySynced.mockResolvedValue(true)
@@ -292,11 +292,26 @@ describe('5 Plan', () => {
   beforeEach(() => { signedIn(); saved({ answers: { goal: 'keep', body: full, trainingDays: 3 } }) })
 
   it('offers the AI coach only where the server has one', async () => {
-    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false })
+    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false, starterAvailable: true })
     const page = mount('/onboarding/plan')
     await flush()
     expect(radio(page, 'Have the AI coach build one')).toBeUndefined()
     expect([...page.querySelectorAll('[role="radio"]')].every(r => r.getAttribute('aria-checked') === 'false')).toBe(true)
+  })
+
+  it('offers a plan only where the hub says openGym takes it, never from this app\'s own config', async () => {
+    // An openGym from before the ready-made plans: the hub offers neither plan.
+    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false, starterAvailable: false })
+    let page = mount('/onboarding/plan')
+    await flush()
+    expect([...page.querySelectorAll('[role="radio"]')].map(r => r.textContent)).toEqual([expect.stringContaining('No plan for now')])
+    unmountAll()
+    // The hub not reached: nothing is known, and nothing is offered on a guess.
+    hub.loadOnboarding.mockRejectedValue(Object.assign(new Error('x'), { status: 0, code: 'offline' }))
+    page = mount('/onboarding/plan')
+    await flush()
+    expect(radio(page, 'Use a ready-made plan')).toBeUndefined()
+    expect(radio(page, 'Have the AI coach build one')).toBeUndefined()
   })
 
   it('No plan saves the choice and goes to the end; Skip does the same', async () => {
@@ -322,7 +337,10 @@ describe('5 Plan', () => {
     expect(sheetHost.textContent).toContain('These answers go to the AI service')
     click([...sheetHost.querySelectorAll('[role="radio"]')].find(r => r.textContent === 'Dumbbells only'))
     click(button(sheetHost, 'Build my plan'))
-    expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: expect.objectContaining({ kind: 'coach', equipment: 'dumbbells' }) }))
+    // The consent is to the text shown, by its id; the time is the hub's to stamp, never the phone's.
+    const sent = hub.saveStep.mock.calls.findLast(([step]) => step === 'plan')[1].plan
+    expect(sent).toEqual({ kind: 'coach', experience: null, equipment: 'dumbbells', consentVersion: 'ai-coach-build-v1' })
+    expect(sent).not.toHaveProperty('consentAt')
     expect(close).toHaveBeenCalled()
     expect(where(page)).toBe('/onboarding/finish')
     act(() => sheetRoot.unmount())
@@ -387,6 +405,53 @@ describe('the end (placeholder for the Summary)', () => {
     expect(where(page)).toBe('/home')
   })
 
+  it('sends failed saves again one at a time, in step order, before completing', async () => {
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: { kind: 'none' } }, unsaved: ['plan', 'goal', 'training'] })
+    let inFlight = 0
+    let most = 0
+    hub.saveStep.mockImplementation(async () => {
+      most = Math.max(most, ++inFlight)
+      await Promise.resolve()
+      inFlight--
+      return {}
+    })
+    hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' } })
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(hub.saveStep.mock.calls.map(([step]) => step)).toEqual(['goal', 'training', 'plan'])
+    expect(most, 'never two at once').toBe(1)
+    expect(hub.completeOnboarding).toHaveBeenCalled()
+  })
+
+  it('asks the Plan step again when the hub says the plan chosen can no longer be taken here', async () => {
+    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    hub.completeOnboarding.mockRejectedValue(Object.assign(new Error('the AI coach is not available on this server'), { status: 409, code: 'plan-unavailable' }))
+    const page = mount('/onboarding/finish')
+    await flush()
+    // The server's AI coach was turned off since: the hub cleared the plan and offers no coach.
+    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false, starterAvailable: true, next: 'plan', remaining: ['plan'] })
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(where(page)).toBe('/onboarding/plan')
+    expect(mocks.toasts).toEqual(['That plan can’t be set up on this server right now. Pick another.'])
+    expect(radio(page, 'Have the AI coach build one')).toBeUndefined()
+    expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.plan).toBeNull()
+  })
+
+  it('says so when Training has not taken its part yet, and goes Home', async () => {
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
+    hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'retrying', nutritrace: 'done' } })
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(mocks.toasts).toEqual(['Saved. Some of it is still on its way to Training and will show up there soon.'])
+    expect(where(page)).toBe('/home')
+  })
+
   it('detours through only the missing details and comes back', async () => {
     saved({ answers: { goal: 'keep', body: { ...full, birthYear: null }, trainingDays: 0 }, skippedYou: true })
     const page = mount('/onboarding/finish')
@@ -421,6 +486,61 @@ describe('who sees what', () => {
     const page = mount('/onboarding')
     await flush()
     expect(where(page)).toBe('/onboarding/height')
+  })
+})
+
+describe('what the hub says is answered or not needed (§6)', () => {
+  beforeEach(signedIn)
+  // The hub's state for someone whose openGym data answers some steps.
+  const fromHub = ({ answered, answers = {}, training, next, remaining }) => ({
+    answers, completedAt: null, step: null, coachAvailable: true, starterAvailable: true, next, remaining,
+    prefill: { answered, sources: { opengym: 'ok', nutritrace: 'ok' }, ...(training === undefined ? {} : { training: { trainingDays: training } }) },
+  })
+
+  it('skips the Plan step when the profile already has routines, so no plan is chosen that openGym would skip', async () => {
+    saved({ answers: { goal: 'keep', body: full } })
+    hub.loadOnboarding.mockResolvedValue(fromHub({ answered: ['plan'], next: 'training', remaining: ['training'] }))
+    const page = mount('/onboarding/training')
+    await flush()
+    click(radio(page, '3'))
+    later(600)
+    expect(where(page)).toBe('/onboarding/finish')
+    expect(hub.saveStep).not.toHaveBeenCalledWith('plan', expect.anything())
+  })
+
+  it('skips Training when the data holds the days, and plans on those days', async () => {
+    saved({ answers: { goal: 'keep', body: { ...full, weightKg: null } } })
+    hub.loadOnboarding.mockResolvedValue(fromHub({ answered: ['training'], training: 3, next: 'body', remaining: ['body', 'plan'] }))
+    const page = mount('/onboarding/weight')
+    await flush()
+    press(page.querySelector('[role="slider"]'), 'ArrowLeft')
+    click(button(page, 'Next'))
+    expect(where(page)).toBe('/onboarding/plan')
+    expect(page.textContent).toContain('A starter plan for 3 days a week')
+  })
+
+  it('resumes where the hub says, straight to the end when the data answers everything', async () => {
+    hub.loadOnboarding.mockResolvedValue(fromHub({ answered: ['goal', 'body', 'training', 'plan'], training: 4, next: 'summary', remaining: [] }))
+    const page = mount('/onboarding')
+    await flush()
+    expect(where(page)).toBe('/onboarding/finish')
+  })
+
+  it('keeps an AI coach plan when the days change, so after a reload the plan is there and the steps agree with the hub', async () => {
+    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1', consentAt: '2026-10-14T08:00:00.000Z' }
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    let page = mount('/onboarding/training')
+    await flush()
+    click(radio(page, '4'))
+    later(600)
+    unmountAll()
+    // The reload: the tab's answers, and the hub's, which kept the coach plan beside 4 days.
+    const answers = { goal: { goal: 'keep' }, body: full, training: { trainingDays: 4 }, plan: coach }
+    hub.loadOnboarding.mockResolvedValue(fromHub({ answered: [], answers, next: 'summary', remaining: [] }))
+    page = mount('/onboarding')
+    await flush()
+    expect(where(page)).toBe('/onboarding/finish')
+    expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.plan).toEqual(coach)
   })
 })
 

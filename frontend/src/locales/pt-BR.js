@@ -1879,6 +1879,8 @@ export const PT_BR_OVERRIDES = {
   'Picked for {0} day a week. Move a session to another day if you like.': 'Picked for {0} day a week. Move a session to another day if you like.',
   'Picked for {0} days a week. Move a session to another day if you like.': 'Picked for {0} days a week. Move a session to another day if you like.',
   '{0} day a week': '{0} day a week',
+  'That plan can’t be set up on this server right now. Pick another.': 'That plan can’t be set up on this server right now. Pick another.',
+  'Saved. Some of it is still on its way to Training and will show up there soon.': 'Saved. Some of it is still on its way to Training and will show up there soon.',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

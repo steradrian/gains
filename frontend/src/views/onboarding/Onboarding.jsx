@@ -26,10 +26,12 @@ import '../../onboarding.css'
 //   /onboarding/name, passkey, goal, sex, born, height, weight, training, plan, starter, finish
 //
 // `finish` is a PLACEHOLDER for the Summary (views/onboarding/FinishScreen.jsx).
+// Where the hub says the person is, once it has answered: it knows what their data answers.
 function Resume() {
-  const { state } = useOnboarding()
+  const { state, hub } = useOnboarding()
   const signedIn = useStore(s => !!s.user)
   if (!signedIn) return <Navigate to="/" replace />
+  if (hub === 'loading') return null
   return <Navigate to={pathOf(resumeScreen(state.answers, state))} replace />
 }
 

@@ -2,15 +2,19 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { answersFromHub, loadOnboarding, saveStep } from './api.js'
 import { nextAfter, pathOf, previousOf, screenOf, skipTarget } from './flow.js'
 import { forget, initialState, loadSaved, reduce, save } from './state.js'
-import { coachAvailable } from '../coach.js'
 import { nutritionAvailable } from '../nutrition/api.js'
 
 /**
  * The onboarding's state and actions, for OnboardingLayout to provide. `hub` says what the server
  * side can do: 'pre-auth' (no account yet), 'loading', 'ready', 'offline' (answers are kept and sent
  * again), 'unavailable' (no hub to save to: the flow steps aside) or 'complete'.
+ *
+ * The hub's answer at each load fills in what this tab does not know: its answers, what the
+ * person's data answers (those steps are skipped, flow.js answeredByData), where to resume, and
+ * which plans this server takes. A plan is offered only where the hub says so: never from this
+ * app's own config, which cannot say whether openGym's seed takes it.
  */
-export function useOnboardingStore({ user, config, navigate, location, navType }) {
+export function useOnboardingStore({ user, navigate, location, navType }) {
   const [state, dispatch] = useReducer(reduce, undefined, () => loadSaved() || initialState())
   // The state as of the last action, for an action that saves right after it changes something.
   const now = useRef(state)
@@ -22,20 +26,32 @@ export function useOnboardingStore({ user, config, navigate, location, navType }
 
   const [hub, setHub] = useState(user ? 'loading' : 'pre-auth')
   const uid = user?.id
+  // The latest read: an answer to an earlier one (another person's, or the layout gone) is dropped.
+  const reads = useRef(0)
+
+  /** Reads the hub's state again into this tab's. Resolves once it is in (or the read failed). */
+  const refresh = useCallback(async () => {
+    const read = ++reads.current
+    try {
+      const res = await loadOnboarding()
+      if (read !== reads.current) return
+      if (res.completedAt != null) { forget(); setHub('complete'); return }
+      act({
+        type: 'hub', answers: answersFromHub(res.answers), prefill: res.prefill, next: res.next, remaining: res.remaining,
+        coachAvailable: res.coachAvailable, starterAvailable: res.starterAvailable,
+      })
+      setHub('ready')
+    } catch (e) {
+      if (read === reads.current) setHub(e.code === 'offline' || e.code === 'timeout' ? 'offline' : 'unavailable')
+    }
+  }, [act])
+
   useEffect(() => {
     if (!uid) { setHub('pre-auth'); return undefined }
     if (!nutritionAvailable(user)) { setHub('unavailable'); return undefined }
-    let live = true
     setHub('loading')
-    loadOnboarding().then(res => {
-      if (!live) return
-      if (res.completedAt != null) { forget(); setHub('complete'); return }
-      act({ type: 'hub', answers: answersFromHub(res.answers), coachAvailable: res.coachAvailable })
-      setHub('ready')
-    }).catch(e => {
-      if (live) setHub(e.code === 'offline' || e.code === 'timeout' ? 'offline' : 'unavailable')
-    })
-    return () => { live = false }
+    refresh()
+    return () => { reads.current++ }
     // Keyed on the person, not the object: a refreshed user is the same onboarding.
   }, [uid])
 
@@ -91,18 +107,20 @@ export function useOnboardingStore({ user, config, navigate, location, navType }
       act({ type: 'plan', plan: { kind: 'none' } })
       saveHubStep('plan')
     } else {
-      // About you: what was answered stays, and is saved.
-      if (Object.values(now.current.answers.body).some(v => v !== null)) saveHubStep('body')
+      // About you: what was answered stays, and is saved; with nothing answered the hub takes the
+      // step as skipped (api.js stepAnswers), so it does not ask it again either.
+      saveHubStep('body')
       act({ type: 'skipYou' })
     }
     if (to) go(to)
   }, [act, go, saveHubStep])
 
-  const coach = typeof state.coachAvailable === 'boolean' ? state.coachAvailable : coachAvailable(config, user)
+  const coachAvailable = state.coachAvailable === true
+  const starterAvailable = state.starterAvailable === true
 
   return useMemo(() => ({
-    state, hub, screen, coachAvailable: coach,
-    act, saveHubStep, go, back, next, skip,
+    state, hub, screen, coachAvailable, starterAvailable,
+    act, saveHubStep, go, back, next, skip, refresh,
     current: () => now.current,
-  }), [state, hub, screen, coach, act, saveHubStep, go, back, next, skip])
+  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, go, back, next, skip, refresh])
 }

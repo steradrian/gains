@@ -82,14 +82,22 @@ export const missingYou = answers => YOU.filter(step => bodyValue(answers, step)
 export const bodyComplete = answers => missingYou(answers).length === 0
 
 /**
- * The screen after `screen` once it is answered. A detour (started from the final step's "Add my
- * details") visits only the steps it lists, then returns to the end.
+ * Whether the hub said the person's data already answers what `screen` asks (ux-onboarding §6:
+ * "steps already answered by existing data are skipped"): a step it answers in full, or, of About
+ * you, a body field it holds. The Plan step too when the profile has routines (openGym would skip
+ * a plan there). `server` is state.server; null (not loaded) skips nothing.
  */
-export function nextAfter(screen, { answers, detour = null } = {}) {
-  if (detour && YOU.includes(screen)) {
-    const i = detour.indexOf(screen)
-    return i >= 0 && detour[i + 1] ? detour[i + 1] : 'finish'
-  }
+export function answeredByData(screen, server) {
+  if (!server) return false
+  const steps = server.answered || []
+  if (screen === 'goal') return steps.includes('goal')
+  if (YOU.includes(screen)) return steps.includes('body') || (server.body || []).includes(YOU_FIELD[screen])
+  if (screen === 'training' || screen === 'plan') return steps.includes(screen)
+  return false
+}
+
+// The screen after `screen` by the skip map alone.
+function following(screen, answers) {
   switch (screen) {
     case 'invite': return 'name'
     case 'name': return 'passkey'
@@ -107,9 +115,29 @@ export function nextAfter(screen, { answers, detour = null } = {}) {
   }
 }
 
+// From `screen` on, the first screen the person's data does not answer.
+function firstAsked(screen, answers, server) {
+  let at = screen
+  while (answeredByData(at, server)) at = following(at, answers)
+  return at
+}
+
+/**
+ * The screen after `screen` once it is answered, past every step the person's data answers. A
+ * detour (started from the final step's "Add my details") visits only the steps it lists, then
+ * returns to the end.
+ */
+export function nextAfter(screen, { answers, detour = null, server = null } = {}) {
+  if (detour && YOU.includes(screen)) {
+    const i = detour.indexOf(screen)
+    return i >= 0 && detour[i + 1] ? detour[i + 1] : 'finish'
+  }
+  return firstAsked(following(screen, answers), answers, server)
+}
+
 /** Where the nav's Skip goes: You → Training (or back to the end on a detour), Training and Plan → the end. */
-export function skipTarget(screen, { detour = null } = {}) {
-  if (YOU.includes(screen)) return detour ? 'finish' : 'training'
+export function skipTarget(screen, { detour = null, answers, server = null } = {}) {
+  if (YOU.includes(screen)) return detour ? 'finish' : firstAsked('training', answers, server)
   if (screen === 'training' || screen === 'plan') return 'finish'
   return null
 }
@@ -121,15 +149,26 @@ export const nextIsDone = (screen, detour) => !!detour && detour[detour.length -
 export const detourOf = answers => missingYou(answers)
 
 /**
- * The screen to resume at, for a signed-in person: the first unanswered step. `skippedYou` and a
- * training answer of null (skipped) count as answered, so a skip is not asked again here.
+ * The screen to resume at, for a signed-in person: where the hub says (its `next`, from the answers
+ * it holds and what the person's data answers), and otherwise the first unanswered step here.
+ * `skippedYou` and a training answer of null (skipped) count as answered, so a skip is not asked
+ * again; nor is a step the person's data answers.
  */
-export function resumeScreen(answers, { skippedYou = false } = {}) {
+export function resumeScreen(answers, { skippedYou = false, server = null } = {}) {
+  const missing = missingYou(answers).filter(screen => !answeredByData(screen, server))
+  switch (server?.next) {
+    case 'goal': return 'goal'
+    case 'training': return 'training'
+    case 'plan': return 'plan'
+    case 'summary': return 'finish'
+    // The body: its first field not answered here or in the data; all of them answered here (a
+    // save the hub has not taken yet) carries on as below.
+    case 'body': if (missing.length) return missing[0]
+  }
   if (!answers?.goal) return 'goal'
-  const missing = missingYou(answers)
   if (missing.length && !skippedYou) return missing[0]
   if (answers.trainingDays === undefined) return 'training'
-  if (answers.trainingDays && !answers.plan) return 'plan'
+  if (answers.trainingDays && !answers.plan && !answeredByData('plan', server)) return 'plan'
   return 'finish'
 }
 

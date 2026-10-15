@@ -1,6 +1,6 @@
 // The onboarding's answers and what each action does to them.
 import { describe, expect, it } from 'vitest'
-import { initialState, loadSaved, reduce, save } from './state.js'
+import { initialState, loadSaved, planFits, reduce, save } from './state.js'
 
 const units = { weight: 'kg', height: 'cm', source: 'locale' }
 const memory = () => {
@@ -22,13 +22,48 @@ describe('onboarding state', () => {
     expect(s.answers.units).toEqual({ weight: 'lb', height: 'cm', source: 'user' })
   })
 
-  it('drops the plan when the number of training days changes, and keeps it when it does not', () => {
+  it('drops a starter plan, and its card, when the number of training days changes, and keeps it when it does not', () => {
     let s = reduce(initialState(units), { type: 'training', days: 3 })
-    s = reduce(s, { type: 'plan', plan: { kind: 'none' } })
-    expect(reduce(s, { type: 'training', days: 3 }).answers.plan).toEqual({ kind: 'none' })
+    s = reduce(s, { type: 'plan', plan: { kind: 'starter', templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym', experience: 'new' } })
+    expect(reduce(s, { type: 'training', days: 3 }).answers.plan).toMatchObject({ kind: 'starter' })
     const changed = reduce(s, { type: 'training', days: 4 })
     expect(changed.answers.plan).toBeNull()
     expect(changed.pick).toBeNull()
+  })
+
+  it('fits a plan to the days by one rule, the hub\'s', () => {
+    expect([0, 1, 6].map(d => planFits({ kind: 'none' }, d))).toEqual([true, true, true])
+    expect([0, null, 1, 6].map(d => planFits({ kind: 'coach' }, d))).toEqual([false, false, true, true])
+    expect([2, 3, 4].map(d => planFits({ kind: 'starter', weekdays: [1, 3, 5] }, d))).toEqual([false, true, false])
+  })
+
+  it('takes what the person\'s data answers from the hub, under what this tab and the hub hold, and never keeps it across a reload', () => {
+    const store = memory()
+    let s = reduce(initialState(units), { type: 'body', field: 'sex', value: 'male' })
+    s = reduce(s, {
+      type: 'hub', answers: {}, next: 'body', remaining: ['body', 'plan'], starterAvailable: false,
+      prefill: { answered: ['goal', 'training'], goal: { goal: 'build' }, training: { trainingDays: 3 }, body: { sex: 'female', heightCm: 181 }, sources: {} },
+    })
+    expect(s.answers).toMatchObject({ goal: 'build', trainingDays: 3, body: { sex: 'male', heightCm: 181 } })
+    expect(s.server).toEqual({ answered: ['goal', 'training'], body: ['sex', 'heightCm'], next: 'body', remaining: ['body', 'plan'] })
+    expect(s.starterAvailable).toBe(false)
+    save(s, store)
+    expect(loadSaved(store).server).toBeNull()
+  })
+
+  it('clears only a starter that no longer fits the days: an AI coach or no-plan choice stays, as on the hub', () => {
+    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1', consentAt: '2026-10-14T08:00:00.000Z' }
+    const starter = { kind: 'starter', templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym', experience: 'new' }
+    const at3 = plan => reduce(reduce(initialState(units), { type: 'training', days: 3 }), { type: 'plan', plan })
+    expect(reduce(at3(coach), { type: 'training', days: 4 }).answers.plan).toEqual(coach)
+    expect(reduce(at3(coach), { type: 'training', days: 4 }).pick).toBe('coach')
+    expect(reduce(at3({ kind: 'none' }), { type: 'training', days: 5 }).answers.plan).toEqual({ kind: 'none' })
+    expect(reduce(at3(starter), { type: 'training', days: 4 }).answers.plan).toBeNull()
+    expect(reduce(at3(starter), { type: 'training', days: 3 }).answers.plan).toEqual(starter)
+    // No days: nothing to plan around, but "no plan" still stands.
+    expect(reduce(at3(coach), { type: 'training', days: 0 }).answers.plan).toBeNull()
+    expect(reduce(at3(coach), { type: 'skipTraining' }).answers.plan).toBeNull()
+    expect(reduce(at3({ kind: 'none' }), { type: 'skipTraining' }).answers.plan).toEqual({ kind: 'none' })
   })
 
   it('skips Training as null, with no plan', () => {

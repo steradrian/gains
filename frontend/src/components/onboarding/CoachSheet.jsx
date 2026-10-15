@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { t, tn } from '../../lib/i18n.js'
+import { t } from '../../lib/i18n.js'
+import { coachConsentCopy } from '../../lib/onboarding/consent.js'
 import { EQUIPMENT_OPTIONS, EXPERIENCE_OPTIONS } from '../../lib/onboarding/labels.js'
 import { SheetActions, SheetHeader } from '../sheet-layout.jsx'
 import { Button } from '../ui.jsx'
 import ChoiceChips from './ChoiceChips.jsx'
 
 // 5b: the AI coach (§3b; never "Coach" without "AI" and a description). What it reads, where the
-// answers go, and the one tap that sends them: the consent. Experience is optional, equipment
-// defaults to a full gym. Build → onBuild({ experience, equipment }); Not now (or closing) → back
-// on the Plan choice with nothing picked.
+// answers go, and the one tap that sends them: the consent, whose text and id live together in
+// lib/onboarding/consent.js. Experience is optional, equipment defaults to a full gym. Build →
+// onBuild({ experience, equipment }); Not now (or closing) → back on the Plan choice with nothing
+// picked.
 export default function CoachSheet({ days, experience, equipment, onBuild, onDismiss, close }) {
   const [exp, setExp] = useState(experience)
   const [eq, setEq] = useState(equipment || 'gym')
@@ -17,11 +19,11 @@ export default function CoachSheet({ days, experience, equipment, onBuild, onDis
   const dismiss = useRef(onDismiss)
   useEffect(() => () => { if (!built.current) dismiss.current?.() }, [])
   const build = () => { built.current = true; onBuild({ experience: exp ?? null, equipment: eq }) }
+  const consent = coachConsentCopy(days)
   return <>
     <SheetHeader title={t('Have the AI coach build your plan')} />
-    <p className="ob-sheet-p">{tn('An AI model reads your goal, your body details and your {0} training day, then drafts a plan. You review it before anything goes on your week.',
-      'An AI model reads your goal, your body details and your {0} training days, then drafts a plan. You review it before anything goes on your week.', days)}</p>
-    <p className="ob-fine">{t('These answers go to the AI service this Gains server uses. Your food log and your friends are not sent. Tapping Build my plan sends them once.')}</p>
+    <p className="ob-sheet-p">{consent.reads}</p>
+    <p className="ob-fine">{consent.where}</p>
     <ChoiceChips label={t('Your experience (optional)')} options={EXPERIENCE_OPTIONS()} value={exp} onPick={setExp} />
     <ChoiceChips label={t('What you can use')} options={EQUIPMENT_OPTIONS()} value={eq} onPick={setEq} />
     <SheetActions>

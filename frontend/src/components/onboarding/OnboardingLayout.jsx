@@ -24,8 +24,7 @@ export default function OnboardingLayout({ children }) {
   const location = useLocation()
   const navType = useNavigationType()
   const user = useStore(s => s.user)
-  const config = useStore(s => s.config)
-  const store = useOnboardingStore({ user, config, navigate, location, navType })
+  const store = useOnboardingStore({ user, navigate, location, navType })
   const { screen, state, hub, act } = store
   const navRef = useRef(null)
   const host = useRef(null)

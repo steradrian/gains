@@ -2,13 +2,18 @@
 // (components/onboarding/OnboardingLayout.jsx) keeps it in a reducer, mirrors it into session
 // storage so a reload resumes, and saves each answered step to the hub.
 //
-// answers.trainingDays: undefined until asked, null when skipped, 0-6 once answered.
+// answers.trainingDays: undefined until asked, null when skipped, 0-6 once answered (or known from
+//   the person's data, which the hub reads).
 // answers.plan: null, or { kind: 'starter', templateId, weekdays, equipment, experience }
-//   | { kind: 'coach', experience, equipment, consentAt } | { kind: 'none' }.
+//   | { kind: 'coach', experience, equipment, consentVersion, consentAt? } | { kind: 'none' }.
+//   consentAt is the hub's stamp, there once the hub has stored the choice.
+// server: what the hub said at the last load (null until then): the steps the person's data
+//   answers in full (`answered`), the body fields it holds (`body`), its `next` and `remaining`.
 import { localeUnits } from './units.js'
 import { suggestedDays, templateFor } from './plans.js'
 
 const STORE_KEY = 'gains_onboarding'
+const BODY_FIELDS = ['sex', 'birthYear', 'heightCm', 'weightKg']
 
 export function initialState(units = localeUnits()) {
   return {
@@ -34,12 +39,33 @@ export function initialState(units = localeUnits()) {
     // Hub steps whose last save failed: sent again before completing.
     unsaved: [],
     progress: [0, 0, 0],
+    // What this server's openGym can take (the hub reads it): null until known.
     coachAvailable: null,
+    starterAvailable: null,
+    server: null,
   }
+}
+
+/**
+ * Whether a plan fits `days` training days a week. The hub's rule too (fitness-hub
+ * src/onboarding/effective.ts planFits): "no plan" fits anything, the AI coach plans around any
+ * number of days from one, a ready-made plan has one session per training day.
+ */
+export function planFits(plan, days) {
+  if (!plan) return true
+  if (plan.kind === 'none') return true
+  if (plan.kind === 'coach') return (days ?? 0) > 0
+  return plan.weekdays?.length === days
 }
 
 const withAnswers = (s, patch) => ({ ...s, answers: { ...s.answers, ...patch } })
 const unsavedWith = (s, step) => (s.unsaved.includes(step) ? s.unsaved : [...s.unsaved, step])
+// The training days changed: a plan that no longer fits them goes, and its card with it.
+const withDays = (s, days) => {
+  const kept = planFits(s.answers.plan, days ?? 0)
+  const next = withAnswers(s, { trainingDays: days, ...(kept ? {} : { plan: null }) })
+  return kept ? next : { ...next, pick: null }
+}
 
 /** A fresh starter preview for `days`: the plan's own weekdays, the first session selected. */
 export const starterFor = (days, prev) => ({
@@ -50,6 +76,41 @@ export const starterFor = (days, prev) => ({
   equipment: prev?.equipment || 'gym',
 })
 
+// The hub's answers and the person's data under what this tab knows: an answer given here and not
+// saved yet stays, the hub's answer comes next, then what the data holds.
+function fromHub(s, a) {
+  const stored = a.answers || {}
+  const data = a.prefill || {}
+  const known = (...values) => values.find(v => v !== null && v !== undefined) ?? null
+  const body = { ...s.answers.body }
+  for (const k of BODY_FIELDS) body[k] = known(body[k], stored.body?.[k], data.body?.[k])
+  const trainingDays = s.answers.trainingDays !== undefined ? s.answers.trainingDays
+    : stored.trainingDays !== undefined ? stored.trainingDays
+      : data.training?.trainingDays
+  const answers = {
+    ...s.answers,
+    goal: known(s.answers.goal, stored.goal, data.goal?.goal),
+    body,
+    activity: s.answers.activity.source === 'default' && stored.activity ? stored.activity : s.answers.activity,
+    units: s.answers.units.source === 'locale' && stored.units ? stored.units : s.answers.units,
+    trainingDays,
+    plan: known(s.answers.plan, stored.plan),
+  }
+  const server = {
+    answered: Array.isArray(data.answered) ? data.answered : [],
+    body: BODY_FIELDS.filter(k => data.body?.[k] != null),
+    next: typeof a.next === 'string' ? a.next : null,
+    remaining: Array.isArray(a.remaining) ? a.remaining : null,
+  }
+  const flag = (value, current) => (typeof value === 'boolean' ? value : current)
+  return {
+    ...s, answers, server,
+    pick: answers.plan ? answers.plan.kind : s.pick,
+    coachAvailable: flag(a.coachAvailable, s.coachAvailable),
+    starterAvailable: flag(a.starterAvailable, s.starterAvailable),
+  }
+}
+
 export function reduce(s, a) {
   switch (a.type) {
     case 'invite': return { ...s, code: a.code, invite: a.invite ?? s.invite }
@@ -57,49 +118,28 @@ export function reduce(s, a) {
     case 'goal': return withAnswers(s, { goal: a.goal })
     case 'body': return withAnswers(s, { body: { ...s.answers.body, [a.field]: a.value } })
     case 'unit': return withAnswers(s, { units: { ...s.answers.units, [a.kind]: a.unit, source: 'user' } })
-    case 'training': {
-      const changed = s.answers.trainingDays !== a.days
-      const next = withAnswers(s, { trainingDays: a.days, ...(changed ? { plan: null } : {}) })
-      return changed ? { ...next, pick: null, starter: null } : next
-    }
+    case 'training': return s.answers.trainingDays === a.days ? s : withDays(s, a.days)
     case 'skipYou': return { ...s, skippedYou: true, detour: null }
-    case 'skipTraining': return { ...withAnswers(s, { trainingDays: null, plan: null }), pick: null, starter: null }
+    case 'skipTraining': return withDays(s, null)
     case 'pick': return { ...s, pick: a.pick }
     case 'starter': return { ...s, starter: { ...(s.starter || starterFor(s.answers.trainingDays)), ...a.patch } }
     case 'plan': return { ...withAnswers(s, { plan: a.plan }), pick: a.plan ? a.plan.kind : null }
     case 'detour': return { ...s, detour: a.steps && a.steps.length ? a.steps : null }
     case 'saved': return { ...s, unsaved: a.ok ? s.unsaved.filter(x => x !== a.step) : unsavedWith(s, a.step) }
     case 'progress': return { ...s, progress: a.progress }
-    case 'hub': {
-      // What the server holds fills what this tab does not know yet; an answer given here and
-      // not saved yet stays.
-      const stored = a.answers || {}
-      const known = (local, server) => (local === null || local === undefined ? server ?? local : local)
-      const body = { ...s.answers.body }
-      for (const k of Object.keys(body)) body[k] = known(body[k], stored.body?.[k])
-      const answers = {
-        ...s.answers,
-        goal: known(s.answers.goal, stored.goal),
-        body,
-        activity: s.answers.activity.source === 'default' && stored.activity ? stored.activity : s.answers.activity,
-        units: s.answers.units.source === 'locale' && stored.units ? stored.units : s.answers.units,
-        trainingDays: s.answers.trainingDays === undefined ? stored.trainingDays : s.answers.trainingDays,
-        plan: known(s.answers.plan, stored.plan),
-      }
-      return { ...s, answers, coachAvailable: typeof a.coachAvailable === 'boolean' ? a.coachAvailable : s.coachAvailable }
-    }
+    case 'hub': return fromHub(s, a)
     case 'reset': return initialState(s.answers.units)
     default: throw new Error('unknown onboarding action ' + a.type)
   }
 }
 
-/** The state kept for this browser tab, or null. */
+/** The state kept for this browser tab, or null. What the hub said is read again, never kept. */
 export function loadSaved(storage = globalThis.sessionStorage) {
   try {
     const v = JSON.parse(storage?.getItem(STORE_KEY) || 'null')
     if (!v || typeof v !== 'object' || !v.answers || !v.answers.body) return null
     // JSON has no undefined: a training step not asked yet comes back absent.
-    return { ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers } }
+    return { ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers }, server: null }
   } catch { return null }
 }
 

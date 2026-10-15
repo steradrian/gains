@@ -21,11 +21,28 @@ describe('the §3b step bodies', () => {
     })
   })
 
+  it('sends a body with nothing the person said as a skip, so the hub and the screens agree it was skipped', () => {
+    const none = { ...answers, body: { sex: null, birthYear: null, heightCm: null, weightKg: null } }
+    expect(stepAnswers('body', none)).toBeNull()
+    // A unit or a day picked by hand is something said.
+    expect(stepAnswers('body', { ...none, units: { ...none.units, source: 'user' } })).toMatchObject({ units: { source: 'user' } })
+    expect(stepAnswers('body', { ...none, activity: { value: 'physical', source: 'user' } })).toMatchObject({ activity: { value: 'physical' } })
+  })
+
   it('sends training days (null when skipped), the goal and the plan union as they are', () => {
     expect(stepAnswers('training', { ...answers, trainingDays: undefined })).toEqual({ trainingDays: null })
     expect(stepAnswers('goal', answers)).toEqual({ goal: 'lose' })
     expect(stepAnswers('plan', answers)).toBe(answers.plan)
+    expect(stepAnswers('plan', { ...answers, plan: { kind: 'none' } })).toEqual({ kind: 'none' })
     expect(() => stepAnswers('about', answers)).toThrow()
+  })
+
+  it('sends the AI coach as a consent to the text shown, by its id, and never a time of its own', () => {
+    const chosen = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
+    const sent = { kind: 'coach', experience: null, equipment: 'gym', consent: true, consentVersion: 'ai-coach-build-v1' }
+    expect(stepAnswers('plan', { ...answers, plan: chosen })).toEqual(sent)
+    // A choice the hub stored carries the hub's stamp: sent again (a retry), the stamp stays behind.
+    expect(stepAnswers('plan', { ...answers, plan: { ...chosen, consentAt: '2026-10-14T08:00:00.000Z' } })).toEqual(sent)
   })
 
   it('reads the stored steps back into answers', () => {
@@ -58,6 +75,10 @@ describe('the requests', () => {
     await expect(saveStep('goal', answers)).rejects.toMatchObject({ status: 400, code: 'http' })
     vi.stubGlobal('fetch', vi.fn(() => reply(409, { error: 'done', code: 'complete' })))
     await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'complete' })
+    vi.stubGlobal('fetch', vi.fn(() => reply(409, { error: 'the AI coach is not available on this server', code: 'plan-unavailable' })))
+    await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'plan-unavailable' })
+    vi.stubGlobal('fetch', vi.fn(() => reply(400, { error: 'x', code: 'whatever' })))
+    await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'http' })
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('offline'))))
     await expect(saveStep('goal', answers)).rejects.toMatchObject({ status: 0, code: 'offline' })
   })
