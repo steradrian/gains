@@ -134,9 +134,17 @@ above 0. Below it also fails ("lower the baseline"): a migration PR runs
 - **G2** colours (hex, `rgb()`/`hsl()`, names) in legacy CSS outside the theme `:root` rules, and
   in any `.js`/`.jsx`.
 - **G3** classNames holding `card item tile(s) empty lrow tag chip(s) big row`, `h4.sec`, and `<h3>`
-  however they are built (string, ternary, array, template, `cx()`). Not counted in primitive files.
+  however they are built (string, ternary, array, template, `cx()`). Not counted in primitive files
+  (`PRIMITIVE_FILES`: blocks, layout, sheet-layout, ui, and the redesign's date-nav, line-art,
+  tab-kit).
 - **G4** each routed component renders `<Page>`, itself or through a local component.
-  Exempt: Workout, FocusView, Login, MobileOnboarding.
-- **G5** each primitive's markup equals the legacy markup. **G6** only `sheets.jsx` and
-  `src/sheets/` import `src/sheets/*`. **G7** a new stylesheet holds no colour (only `index.css`
-  and `ui-kit.css` define colour tokens on `:root`), no `max-width` and no `max-inline-size`.
+  Exempt: Workout, FocusView, Login, MobileOnboarding. The baseline is empty.
+- **G5** each primitive's markup equals the legacy markup; a deliberate design change (the tab-root
+  header, 2026-10-15) changes the fixture with a comment saying so, never by regenerating it.
+  **G6** only `sheets.jsx` and `src/sheets/` import `src/sheets/*`. **G7** a new stylesheet
+  (`ui-kit.css`, `tab-kit.css`, `nutrition.css`, …) holds no colour (only `index.css` and
+  `ui-kit.css` define colour tokens on `:root`), no `max-width` and no `max-inline-size`, not even
+  in a media query.
+- **G8** no page chooses its own header: nothing past `layout.jsx` imports `RootHeader`/`SubHeader`,
+  no view builds `.hdr`/`.tab-hdr`/`.sub-hdr` (the full-screen views excepted), and `<Page>` takes
+  no `className` or `style`. Width is the shell's too (`page-width.test.js`). Not a ratchet: it is 0.

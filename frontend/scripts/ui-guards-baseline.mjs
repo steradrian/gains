@@ -384,6 +384,54 @@ export function routeViewsWithoutPage(src = SRC) {
   }).sort()
 }
 
+/* ------------------------------------------------------------ G8 page chrome -- */
+
+// A page names itself and its actions through <Page>; its header, and the spacing and width
+// around it, are the kit's and the shell's (owner rule, 2026-10-14). The header components and
+// layout.jsx are where a header is built; the full-screen views draw their own chrome.
+export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx']
+const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
+const exemptView = file => PAGE_EXEMPT.some(name => file === `views/${name}.jsx`)
+
+// Every place a page chooses its own header: importing a header component past <Page>, building
+// a header's classes by hand, or handing <Page> a class or a style of its own. `file: what`.
+export function pageChrome(src = SRC) {
+  const out = []
+  for (const s of jsxFiles(src)) {
+    const file = relative(src, s.path).split(sep).join('/')
+    if (HEADER_FILES.includes(file)) continue
+    const code = stripJs(s.text)
+    for (const [, spec] of code.matchAll(/\bfrom\s*['"]([^'"]*\/(?:RootHeader|SubHeader)\.jsx)['"]/g)) out.push(`${file}: imports ${spec.split('/').pop()}`)
+    if (!exemptView(file)) {
+      for (const m of code.matchAll(/\bclassName\s*=\s*/g)) {
+        const at = m.index + m[0].length
+        const end = code[at] === '{' ? closer(code, at) + 1 : /['"`]/.test(code[at]) ? skipString(code, at) : statementEnd(code, at)
+        const own = tokensIn(code.slice(at, end)).find(tok => HEADER_CLASSES.has(tok))
+        if (own) out.push(`${file}: builds .${own}`)
+      }
+    }
+    for (const m of code.matchAll(/<Page\b/g)) {
+      if (/\s(?:className|style)\s*=/.test(tagAttributes(code, m.index))) out.push(`${file}: styles <Page>`)
+    }
+  }
+  return out.sort()
+}
+
+// The attribute names of the JSX tag that opens at `start`, with every {…} value and string
+// blanked out, up to the `>` that ends the tag.
+function tagAttributes(code, start) {
+  let depth = 0, out = ''
+  for (let i = start + 1; i < code.length; i++) {
+    const c = code[i]
+    if (c === '"' || c === "'" || c === '`') { i = skipString(code, i) - 1; if (!depth) out += '""'; continue }
+    if (c === '{') depth++
+    else if (c === '}') depth--
+    else if (!depth && c === '>') break
+    else if (!depth) out += c
+  }
+  return out
+}
+
 /* ------------------------------------------------------------ G6 sheets facade -- */
 
 // Who imports a module under src/sheets/, other than sheets.jsx and src/sheets/ itself.
