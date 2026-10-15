@@ -106,6 +106,19 @@ export const useNutrition = create((set, get) => {
     return saved
   }
 
+  // Recents order by this (POST /api/foods/:id/used). Fire and forget, as NutriTrace does.
+  function markUsed(id, date) {
+    NtApi.markFoodUsed(id, date).catch(() => {})
+    set(s => ({
+      foods: {
+        ...s.foods,
+        list: s.foods.list.map(f => (f.id === id
+          ? { ...f, last_used_at: f.last_used_at && f.last_used_at > date ? f.last_used_at : date, usage_count: (f.usage_count || 0) + 1 }
+          : f)),
+      },
+    }))
+  }
+
   return {
     ...initial(),
 
@@ -195,6 +208,23 @@ export const useNutrition = create((set, get) => {
     caloriesOut: date => get().goalInputs[date] ?? null,
     adaptiveTdee: () => get().goalInputs[ADAPTIVE_KEY] ?? null,
 
+    /** Creates a food of yours (no `id`; keep the draft, with its `client_key`, and send the same
+     *  one on a retry) or edits one (`id`). Resolves to the food as saved. Throws an NtError. */
+    async saveFood(food) {
+      const g = gen
+      const saved = withImg(typeof food.id === 'number' ? await NtApi.updateFood(food.id, food) : await NtApi.createFood(food))
+      if (g === gen) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
+      return saved
+    },
+
+    /** Removes a food of yours from NutriTrace and from the list. Past diary entries keep theirs. */
+    async deleteFood(id) {
+      const g = gen
+      // 404: already gone (a retry after a lost answer).
+      await NtApi.deleteFood(id).catch(e => { if (e?.status !== 404) throw e })
+      if (g === gen) set(s => ({ foods: { ...s.foods, list: s.foods.list.filter(f => f.id !== id) } }))
+    },
+
     async loadFoods({ force = false } = {}) {
       const cur = get().foods
       if (!force && (cur.status === 'ready' || cur.status === 'loading')) return
@@ -248,18 +278,7 @@ export const useNutrition = create((set, get) => {
       const saved = await ownFood(draft.food)
       const item = typeof saved.id === 'number' ? { ...draft.item, id: saved.id, food_server_id: saved.id } : draft.item
       await write(date, { addItems: [item] })
-      // Recents order by this (POST /api/foods/:id/used). Fire and forget, as NutriTrace does.
-      if (typeof saved.id === 'number') {
-        NtApi.markFoodUsed(saved.id, date).catch(() => {})
-        set(s => ({
-          foods: {
-            ...s.foods,
-            list: s.foods.list.map(f => (f.id === saved.id
-              ? { ...f, last_used_at: f.last_used_at && f.last_used_at > date ? f.last_used_at : date, usage_count: (f.usage_count || 0) + 1 }
-              : f)),
-          },
-        }))
-      }
+      if (typeof saved.id === 'number') markUsed(saved.id, date)
       return item
     },
 
@@ -298,23 +317,34 @@ export const useNutrition = create((set, get) => {
       if (g === gen) set(s => ({ meals: { ...s.meals, list: s.meals.list.filter(m => m.id !== id) }, recipes: { ...s.recipes, list: s.recipes.list.filter(m => m.id !== id) } }))
     },
 
-    /** Logs a meals.js mealDraft draft to the date: all of its entries in one write. Resolves to
-     *  the items logged (undo with removeItem for each). */
-    async logMeal(date, draft) {
-      if (!draft?.meal || !Array.isArray(draft.items) || !draft.items.length || !draft.items.every(i => i?.uuid)) throw invalid('logMeal takes a draftMeal draft')
-      await write(date, { addItems: draft.items })
-      // Orders "most used" for the meal and, as NutriTrace's addDiaryItem does, for each ingredient:
-      // the food's count, or the recipe's when the ingredient is a recipe. Fire and forget: the log
-      // is done.
-      const { meal } = draft
-      NtApi.markMealUsed(meal.id, date).catch(() => {})
-      if (!meal.is_recipe) {
-        const used = new Map(draft.items.filter(i => typeof i.food_server_id === 'number').map(i => [`${i.is_recipe ? 'r' : 'f'}${i.food_server_id}`, i]))
-        for (const i of used.values()) (i.is_recipe ? NtApi.markMealUsed : NtApi.markFoodUsed)(i.food_server_id, date).catch(() => {})
+    /** Logs finished items (each with its uuid; foods of yours, recipes or quick entries) to the date
+     *  in one write, so they are all logged or none is. Throws when the answer leaves any out (a
+     *  uuid NutriTrace has tombstoned stays out). Orders recents for what they point at: a food's
+     *  count, or a recipe's (`is_recipe`), as NutriTrace's addDiaryItem does. Resolves to the items. */
+    async logItems(date, items) {
+      if (!items?.length || !items.every(i => i?.uuid)) throw invalid('logItems takes items with uuids')
+      const entry = await write(date, { addItems: items })
+      const have = new Set((entry?.items || []).map(i => i?.uuid))
+      if (!items.every(i => have.has(i.uuid))) throw invalid('the day did not take every item')
+      const used = new Map(items.filter(i => typeof i.food_server_id === 'number').map(i => [`${i.is_recipe ? 'r' : 'f'}${i.food_server_id}`, i]))
+      for (const i of used.values()) {
+        if (i.is_recipe) NtApi.markMealUsed(i.food_server_id, date).catch(() => {})
+        else markUsed(i.food_server_id, date)
       }
+      return items
+    },
+
+    /** Logs a meals.js mealDraft draft to the date: all of its entries in one write (logItems), and
+     *  the meal's own count. Resolves to the items logged (undo with removeItems). */
+    async logMeal(date, draft) {
+      if (!draft?.meal || !Array.isArray(draft.items)) throw invalid('logMeal takes a draftMeal draft')
+      const items = await get().logItems(date, draft.items)
+      const { meal } = draft
+      // A recipe's own count was bumped with its entry; a saved meal is not an entry, so it is here.
+      if (!meal.is_recipe) NtApi.markMealUsed(meal.id, date).catch(() => {})
       const key = meal.is_recipe ? 'recipes' : 'meals'
       set(s => ({ [key]: { ...s[key], list: s[key].list.map(m => (m.id === meal.id ? { ...m, usage_count: (m.usage_count || 0) + 1, last_used_at: m.last_used_at && m.last_used_at > date ? m.last_used_at : date } : m)) } }))
-      return draft.items
+      return items
     },
 
     /** Logs a draftQuick item to the date. */
@@ -333,7 +363,7 @@ export const useNutrition = create((set, get) => {
 
     // Undo of a log just made: out of the day, and a tombstone for its uuid (deleted_uuids).
     removeItem: (date, uuid) => write(date, { removeItems: [uuid] }),
-    removeItems: (date, uuids) => write(date, { removeItems: uuids }),
+    removeItems: (date, uuids) => write(date, { removeItems: [...uuids] }),
     removeWater: (date, uuid) => write(date, { removeWater: [uuid] }),
   }
 })

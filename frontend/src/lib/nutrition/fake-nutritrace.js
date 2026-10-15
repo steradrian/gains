@@ -180,6 +180,11 @@ const isNewMeal = b => isObject(b) && hasAll(b, ['name', 'items', 'is_recipe', '
 const isMealEdit = b => isObject(b) && hasOnly(b, MEAL_EDIT_FIELDS)
 const isMealUsedBump = b => isObject(b) && hasOnly(b, { date: v => typeof v === 'string' && DATE.test(v) })
 
+// fitness-hub isFoodEdit (gains-hub nt-body-checks.ts FOOD_EDIT_FIELDS): only these keys, anything
+// else is a 400 before NutriTrace sees it. Kept apart from api.js on purpose: it is the hub's list.
+const HUB_FOOD_EDIT_FIELDS = ['name', 'brand', 'barcode', 'portion', 'unit', 'category', 'notes', 'favorite', 'nutrition']
+const isFoodEdit = b => isObject(b) && Object.keys(b).every(k => HUB_FOOD_EDIT_FIELDS.includes(k))
+
 /* ------------------------------------------------------------------ NutriTrace's merge ------- */
 
 // server/lib/diary-merge.js mergeEntries, minus the legacy echo matching: the client's list in
@@ -288,6 +293,20 @@ export function createFakeNutriTrace({
         const food = { usage_count: 0, last_used_at: null, alt_units: null, nutrition_basis: null, density_g_ml: null, img_url: null, ...body, id: nextFoodId++, user_id: 3 }
         state.foods.push(food)
         return json(food, 201)
+      }
+      // PUT and DELETE on one of your foods (gains-hub #9): no query string (403), a PUT body of
+      // the edit fields only (400).
+      if ((method === 'PUT' || method === 'DELETE') && n === 4 && ID.test(a)) {
+        if ([...query.keys()].length) return json({ error: 'forbidden' }, 403)
+        const food = state.foods.find(f => String(f.id) === a)
+        if (!food) return json({ error: 'Not found' }, 404)
+        if (method === 'DELETE') {
+          state.foods = state.foods.filter(f => f !== food)
+          return json({ ok: true })
+        }
+        if (!isFoodEdit(body)) return json({ error: 'request body refused' }, 400)
+        Object.assign(food, body, { id: food.id })
+        return json(food)
       }
       if (method === 'POST' && n === 5 && ID.test(a) && b === 'used') {
         const food = state.foods.find(f => String(f.id) === a)
