@@ -179,6 +179,8 @@ function referenceShape(item) {
 
 /** The error a builder throws for input it cannot log: an NtError with code 'invalid'. */
 export const invalid = what => Object.assign(new Error(what), { status: 0, code: 'invalid' })
+/** The error an edit throws when the entry it edits is gone or was edited elsewhere meanwhile. */
+export const changed = what => Object.assign(new Error(what), { status: 0, code: 'changed' })
 const positive = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
 const mealSlot = meal => { const n = Number(meal); return Number.isInteger(n) && n >= 0 && n <= 31 ? n : 0 }
 
@@ -199,6 +201,42 @@ export function foodItem(food, { meal, quantity = 1, now = new Date() }) {
     food_server_id: typeof food.id === 'number' ? food.id : null,
   })
 }
+
+/** The "HH:MM" an item was logged at, in local time ('' when it has no usable time). */
+export function timeOf(item) {
+  const at = new Date(item?.addedAt)
+  return Number.isNaN(at.getTime()) ? '' : `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+}
+
+/** Whether an item's amount can be edited: a food or recipe row, not a quick-kcal row or a recipe
+ *  split into its ingredients (whose totals come from the ingredients). */
+export const amountEditable = item => !!item && item.type !== 'quick_calories' && !(Array.isArray(item._splitItems) && item._splitItems.length)
+
+/**
+ * A logged item edited, as NutriTrace's edit sheet saves it (Diary.svelte saveEditItem): the same
+ * uuid, so the write replaces the entry where it stands; the amount rescaled through atPortion;
+ * `time` ("HH:MM", local) set on the day it was logged; and `updatedAt` stamped, so the merge
+ * prefers this copy to the one on the server. Build it once and send the same one on a retry.
+ * Throws invalid for servings or a portion that is not a number above 0.
+ */
+export function editedItem(item, { portion, unit, servings, meal, time, now = new Date() }) {
+  const base = amountEditable(item) ? atPortion(item, positive(portion) ?? invalidAmount(), unit) : item
+  const quantity = amountEditable(item) ? positive(servings) ?? invalidAmount() : item.quantity
+  let addedAt = item.addedAt
+  const [h, m] = String(time || '').split(':').map(Number)
+  const from = new Date(item.addedAt)
+  if (Number.isInteger(h) && Number.isInteger(m) && h >= 0 && h < 24 && m >= 0 && m < 60 && !Number.isNaN(from.getTime()) && time !== timeOf(item)) {
+    from.setHours(h, m, 0, 0)
+    addedAt = from.toISOString()
+  }
+  const prev = String(item.updatedAt || item.addedAt || '')
+  const stamp = now.toISOString()
+  const updatedAt = stamp > prev ? stamp : new Date(new Date(prev).getTime() + 1).toISOString()
+  const out = { ...base, quantity, meal: mealSlot(meal), addedAt, updatedAt }
+  if (quantity === undefined) delete out.quantity
+  return referenceShape(out)
+}
+const invalidAmount = () => { throw invalid('amount must be a number above 0') }
 
 /** NutriTrace's Quick Calories row (stores/diary.js addQuickCalories). Throws invalid without a
  *  positive kcal. */

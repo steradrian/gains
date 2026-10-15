@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { NtApi } from './api.js'
-import { atPortion, dayWrite, foodItem, invalid, quickCaloriesItem, waterLog } from './diary.js'
+import { atPortion, changed, dayWrite, foodItem, invalid, quickCaloriesItem, waterLog } from './diary.js'
 import { sortedByName } from './meals.js'
 import { offResults } from './off.js'
 import { useDiarySelection } from './selection.js'
@@ -90,9 +90,21 @@ export const useNutrition = create((set, get) => {
     if ((change.addItems?.length || change.addWater?.length) && !(date <= todayISO())) throw invalid('nothing can be logged to a future day')
     const g = gen
     const current = await NtApi.getDiaryDate(date)
+    // An edit lands on an entry the day still holds. One removed since (here or on another device,
+    // where NutriTrace keeps its tombstone) would otherwise be written back; the day is shown as
+    // it is now instead.
+    if (change.editItems?.some(e => !(current?.items || []).some(i => i?.uuid === e.uuid))) {
+      applyDay(date, issue(date), g, current)
+      throw changed('the entry is no longer in the day')
+    }
     const n = issue(date)
-    const entry = await NtApi.saveDiaryDate(date, dayWrite(current, change))
+    const entry = await NtApi.saveDiaryDate(date, dayWrite(current, { ...change, addItems: [...(change.addItems || []), ...(change.editItems || [])] }))
     applyDay(date, n, g, entry, { fromWrite: true })
+    // The merge keeps the server's copy of an entry it holds a newer one of (edited elsewhere
+    // meanwhile); the day now shows that copy, and this edit was not saved.
+    for (const e of change.editItems || []) {
+      if ((entry?.items || []).find(i => i?.uuid === e.uuid)?.updatedAt !== e.updatedAt) throw changed('a newer copy of the entry exists')
+    }
     return entry
   }
 
@@ -359,6 +371,22 @@ export const useNutrition = create((set, get) => {
       if (!log?.uuid || !(Number(log.amount) > 0)) throw invalid('logWater takes a draftWater entry')
       await write(date, { addWater: [log] })
       return log
+    },
+
+    /** Saves an editedItem (diary.js) over the entry with its uuid. Retry it with the same one.
+     *  Throws 'changed' when the entry is gone or a newer copy exists; the day is then reloaded. */
+    async updateItem(date, item) {
+      if (!item?.uuid || !item.updatedAt) throw invalid('updateItem takes an editedItem')
+      await write(date, { editItems: [item] })
+      return item
+    },
+
+    /** Puts a removed entry back (the Undo of Remove). A removed uuid stays tombstoned, so the
+     *  entry comes back under a new one, built once by the caller and sent again on a retry. */
+    async restoreItem(date, item) {
+      if (!item?.uuid) throw invalid('restoreItem takes an item with a uuid')
+      await write(date, { addItems: [item] })
+      return item
     },
 
     // Undo of a log just made: out of the day, and a tombstone for its uuid (deleted_uuids).

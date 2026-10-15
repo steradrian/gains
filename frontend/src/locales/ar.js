@@ -2762,4 +2762,9 @@ export default {
   'Your nutrition diary, foods and goals stay.': 'Your nutrition diary, foods and goals stay.',
   'On in your device settings, so it is on here too.': 'On in your device settings, so it is on here too.',
   'Training synced, but nutrition did not: the sync service did not answer.': 'Training synced, but nutrition did not: the sync service did not answer.',
+  'Edit {0}, {1}, {2}': 'Edit {0}, {1}, {2}',
+  'Meal {0}': 'Meal {0}',
+  'Not saved: this entry changed elsewhere. The diary now shows its latest state.': 'Not saved: this entry changed elsewhere. The diary now shows its latest state.',
+  'Recipe · 1 serving': 'Recipe · 1 serving',
+  'Updated': 'Updated',
 }

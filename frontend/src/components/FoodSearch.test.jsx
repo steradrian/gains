@@ -91,7 +91,7 @@ describe('Romanian products first', () => {
 describe('the diary picker', () => {
   it('groups recents and your foods, then Open Food Facts with its source named', async () => {
     await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
-    expect(headings(host)).toEqual(['Recent', 'Your foods'])
+    expect(headings(host)).toEqual(['Recent', 'Saved meals', 'Your foods'])
     expect(titles(host)).toContain('Rolled oats')
     await search(host, 'nutella')
     expect(headings(host)).toEqual(['Your foods', 'Open Food Facts'])
@@ -135,6 +135,56 @@ describe('the diary picker', () => {
   })
 })
 
+describe('saved meals in the diary picker', () => {
+  const putItems = () => nt.writes().filter(r => r.method === 'PUT').map(r => r.body.items)
+
+  it('lists saved meals and recipes, and filters them by the typed name', async () => {
+    await mount(<FoodPicker date={TODAY} meal={1} mealName="Lunch" />)
+    expect(titles(host)).toEqual(expect.arrayContaining(['Oats and bread', 'Lentil soup']))
+    await search(host, 'lentil')
+    expect(titles(host)).toContain('Lentil soup')
+    expect(titles(host)).not.toContain('Oats and bread')
+  })
+
+  it('logs a saved meal in one tap: each ingredient, to the meal, in one write, with Undo', async () => {
+    const onLogged = vi.fn()
+    await mount(<FoodPicker date={TODAY} meal={1} mealName="Lunch" onLogged={onLogged} />)
+    await click(row(host, 'Oats and bread'))
+    expect(putItems()).toHaveLength(1)
+    const added = nt.state.days[TODAY].items.filter(i => ['Rolled oats', 'Wholemeal bread'].includes(i.name) && i.meal === 1)
+    expect(added.map(i => i.name)).toEqual(['Rolled oats', 'Wholemeal bread'])
+    expect(useUI.getState().toastMsg).toBe('Logged to Lunch')
+    expect(onLogged).toHaveBeenCalledTimes(1)
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle()
+    expect(nt.state.days[TODAY].items.some(i => added.some(a => a.uuid === i.uuid))).toBe(false)
+  })
+
+  it('logs a recipe as one serving', async () => {
+    await mount(<FoodPicker date={TODAY} meal={2} mealName="Dinner" />)
+    await click(row(host, 'Lentil soup'))
+    const soup = nt.state.days[TODAY].items.find(i => i.name === 'Lentil soup')
+    expect(soup).toMatchObject({ meal: 2, quantity: 1, is_recipe: true })
+  })
+
+  it('sends the same entries when a tap follows a save whose answer was lost', async () => {
+    await mount(<FoodPicker date={TODAY} meal={1} mealName="Lunch" />)
+    nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
+    await click(row(host, 'Oats and bread'))
+    expect(useUI.getState().toastMsg).toBe('Not saved. Try again.')
+    await click(row(host, 'Oats and bread'))
+    expect(nt.state.days[TODAY].items.filter(i => i.name === 'Rolled oats' && i.meal === 1)).toHaveLength(1)
+    expect(nt.state.days[TODAY].items.filter(i => i.name === 'Wholemeal bread')).toHaveLength(1)
+  })
+
+  it('stays out of the ingredient picker', async () => {
+    await act(async () => { ingredientSheet({ onDone: vi.fn() }) })
+    await mount(<></>)
+    await settle()
+    expect(headings(lastSheet())).not.toContain('Saved meals')
+  })
+})
+
 describe('what the search says and shows', () => {
   const live = () => host.querySelector('.fp-live')
 
@@ -159,7 +209,7 @@ describe('what the search says and shows', () => {
     nt.state.foods[1].usage_count = 5
     nt.state.foods[2].usage_count = 3
     await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
-    expect(titles(host).filter(n => !['Create food', 'Quick kcal'].includes(n))).toEqual(['Wholemeal bread', 'Crème fraîche', 'Rolled oats'])
+    expect(titles(host).filter(n => !['Create food', 'Quick kcal', 'Oats and bread', 'Lentil soup'].includes(n))).toEqual(['Wholemeal bread', 'Crème fraîche', 'Rolled oats'])
   })
 
   it('shows a saved copy of a product under its new name, and not the product again', async () => {

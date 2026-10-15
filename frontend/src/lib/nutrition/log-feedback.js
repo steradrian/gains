@@ -5,6 +5,7 @@ import { useUI } from '../../store/useUI.js'
 export function writeErrorText(e) {
   if (e?.code === 'offline' || e?.code === 'timeout') return t('Not saved: no connection. Try again when you are back online.')
   if (e?.status === 401) return t('Not saved: you are signed out. Sign in and try again.')
+  if (e?.code === 'changed') return t('Not saved: this entry changed elsewhere. The diary now shows its latest state.')
   return t('Not saved. Try again.')
 }
 

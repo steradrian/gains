@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { t, tn } from '../lib/i18n.js'
 import { nutritionOf, totalsOf } from '../lib/nutrition/diary.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
+import { diaryItemSheet } from './DiaryItemSheet.jsx'
 import FoodPicker from './FoodPicker.jsx'
 import Icon from './Icon.jsx'
 
@@ -31,9 +32,12 @@ export default function MealRow({ date, slot, name, items }) {
       </button>
     </div>
     {open && items.length > 0 && <ul className="meal-items" id={listId}>
-      {items.map(item => <li key={item.uuid || item.addedAt} className="meal-item">
-        <span className="grow"><span className="tt">{item.name}</span><span className="ss small muted">{amountOf(item)}</span></span>
-        <span className="small">{energy(nutritionOf(item).calories || 0)}</span>
+      {items.map(item => <li key={item.uuid || item.addedAt}>
+        <button type="button" className="meal-item" onClick={() => diaryItemSheet({ date, item })}
+          aria-label={t('Edit {0}, {1}, {2}', item.name, amountOf(item), energy(nutritionOf(item).calories || 0))}>
+          <span className="grow"><span className="tt">{item.name}</span><span className="ss small muted">{amountOf(item)}</span></span>
+          <span className="small">{energy(nutritionOf(item).calories || 0)}</span>
+        </button>
       </li>)}
     </ul>}
     {adding && <div className="meal-picker">

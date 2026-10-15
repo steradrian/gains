@@ -59,6 +59,8 @@ export function startFlow(routineIds) {
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
   if (S().weighIn === false) { beginWorkout(routineIds, null); return }
+  const weighed = S().bodyweight.find(b => b.d === todayISO())
+  if (weighed) { beginWorkout(routineIds, weighed.w); return }
   bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
 }
 export function beginWorkout(routineIds, bw) {
