@@ -167,19 +167,21 @@
 .boot-mark.boot-mark.boot-mark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   box-sizing:border-box;padding-bottom:76px;font-size:56.4px;color:var(--label)}
 
-/* The loader (components/Loader.jsx): a canvas that draws itself in the CSS colour it inherits, so a
+/* Written .x.x.x like the utilities above: ui-kit-cascade.test.js holds every one-class rule in this
+   file to winning over index.css on every primitive's element.
+   The loader (components/Loader.jsx): a canvas that draws itself in the CSS colour it inherits, so a
    muted line gets a muted G and a primary button a white one. */
-.loader{display:block;flex:none}
-.loader-xs{width:14px;height:14px}
-.loader-sm{width:20px;height:20px}
-.loader-md{width:32px;height:32px}
-.loader-lg{width:48px;height:48px}
-.loadline{display:flex;align-items:center;justify-content:center;gap:var(--space-4)}
-.loadline-inline{display:inline-flex;vertical-align:middle;gap:var(--space-3)}
+.loader.loader.loader{display:block;flex:none}
+.loader-xs.loader-xs.loader-xs{width:14px;height:14px}
+.loader-sm.loader-sm.loader-sm{width:20px;height:20px}
+.loader-md.loader-md.loader-md{width:32px;height:32px}
+.loader-lg.loader-lg.loader-lg{width:48px;height:48px}
+.loadline.loadline.loadline{display:flex;align-items:center;justify-content:center;gap:var(--space-4)}
+.loadline-inline.loadline-inline.loadline-inline{display:inline-flex;vertical-align:middle;gap:var(--space-3)}
 
 /* The splash (components/BootSplash.jsx): over everything, the page's own background, the canvas
    in the page's ink. The still G (boot-mark) under the canvas goes once the canvas draws it. */
-.boot-splash{position:fixed;inset:0;z-index:1000;background:var(--bg);opacity:1;transition:opacity .25s ease}
-.boot-splash.leaving{opacity:0;pointer-events:none}
-.boot-splash-canvas{position:absolute;inset:0;width:100%;height:100%;color:var(--label)}
+.boot-splash.boot-splash.boot-splash{position:fixed;inset:0;z-index:1000;background:var(--bg);opacity:1;transition:opacity .25s ease}
+.boot-splash.boot-splash.boot-splash.leaving{opacity:0;pointer-events:none}
+.boot-splash-canvas.boot-splash-canvas.boot-splash-canvas{position:absolute;inset:0;width:100%;height:100%;color:var(--label)}
 .boot-splash[data-drawing] .boot-mark{visibility:hidden}
