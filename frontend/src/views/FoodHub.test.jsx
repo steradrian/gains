@@ -35,6 +35,7 @@ const settle = async check => {
 const tap = el => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
 const buttonSaying = text => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === text)
 const toastText = () => useUI.getState().toastMsg
+const tile = title => [...host.querySelectorAll('.hub-tile')].find(x => x.querySelector('.l').textContent === title)
 
 async function openHub() {
   host = document.createElement('div')
@@ -46,6 +47,7 @@ async function openHub() {
       <Routes>
         <Route path="/food" element={<FoodHub />} />
         <Route path="/food/foods" element={<div>FOODS PAGE</div>} />
+        <Route path="/food/goals" element={<div>GOALS PAGE</div>} />
         <Route path="/home" element={<div>HOME PAGE</div>} />
       </Routes>
     </MemoryRouter>,
@@ -209,10 +211,17 @@ describe('yesterday\'s meal', () => {
 describe('the places', () => {
   it('has a Foods tile with the count, and opens Foods', async () => {
     await openHub()
-    await settle(() => expect(host.querySelector('.hub-tile .v').textContent).toBe('3 foods'))
-    expect(host.querySelectorAll('.hub-tile')).toHaveLength(1)
-    tap(host.querySelector('.hub-tile'))
+    await settle(() => expect(tile('Foods').querySelector('.v').textContent).toBe('3 foods'))
+    tap(tile('Foods'))
     expect(host.textContent).toBe('FOODS PAGE')
+  })
+
+  it('has a Goals tile with the daily target, and opens Goals', async () => {
+    await openHub()
+    expect([...host.querySelectorAll('.hub-tile .l')].map(l => l.textContent)).toEqual(['Foods', 'Goals'])
+    await settle(() => expect(tile('Goals').querySelector('.v').textContent).toBe('2,200 kcal'))
+    tap(tile('Goals'))
+    expect(host.textContent).toBe('GOALS PAGE')
   })
 
   it('says nutrition is in the web app for someone with no session, and asks for nothing', async () => {

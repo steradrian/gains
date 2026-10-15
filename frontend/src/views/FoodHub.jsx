@@ -24,7 +24,7 @@ const MACROS = [
 // log again, and the places nutrition lives. A place gets a tile when its page exists.
 export default function FoodHub() {
   const nav = useNavigate()
-  const { on, status, settings, totals, macros, left, reload } = useDiaryDay(todayISO())
+  const { on, status, settings, totals, target, macros, left, reload } = useDiaryDay(todayISO())
   const units = useUnits()
   const foods = useNutrition(s => s.foods)
   const { meal } = useDiaryTarget(settings)
@@ -41,9 +41,10 @@ export default function FoodHub() {
     </Page>
   }
 
-  // One entry per page that exists. Saved meals, Recipes and Goals add theirs with their pages.
+  // One entry per page that exists. Saved meals and Recipes add theirs with their pages.
   const targets = [
     { path: '/food/foods', icon: 'apple', title: t('Foods'), sub: foods.status === 'ready' ? tn('{0} food', '{0} foods', foods.list.length) : t('Your own foods') },
+    { path: '/food/goals', icon: 'target', title: t('Goals'), sub: status === 'ready' ? units.energy(target.base) : t('Daily target') },
   ]
 
   // The card says today, so it opens Home on today, whichever date Home was left on.

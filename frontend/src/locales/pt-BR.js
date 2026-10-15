@@ -1418,7 +1418,6 @@ export const PT_BR_OVERRIDES = {
   'Brand': 'Brand',
   'Caffeine': 'Caffeine',
   'Calcium': 'Calcium',
-  'Calories': 'Calories',
   'Category': 'Category',
   'Cholesterol': 'Cholesterol',
   'Create a food, or search online and save one.': 'Create a food, or search online and save one.',
