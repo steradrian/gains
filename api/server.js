@@ -37,6 +37,7 @@ import { atomicWrite as durableWrite } from './durable.js';
 import { excusedOn, nudgeFor, nudgeWindowOpen, toneOf } from './nudge.js';
 import { hubKeysFromEnv } from './hub-token.js';
 import { syncRoutes } from './sync-routes.js';
+import { createAggregator } from './audit-aggregate.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -159,6 +160,26 @@ db.creds = db.creds || [];
 db.subs = db.subs || [];
 db.invites = db.invites || [];
 db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
+db.gone = db.gone || [];                 // { id, at } of deleted profiles, for the sync hub's listing
+// A deleted profile leaves its id and the time behind, and nothing else (GET /api/sync/users says
+// `gone` for it, so a hub that was syncing it can stop, not guess). Kept for 90 days and at most
+// GONE_MAX of them: long enough for any hub that polls to see it, short enough that the file does
+// not grow for ever.
+const GONE_KEEP_MS = 90 * 86400000;
+const GONE_MAX = 1000;
+function noteGone(id) {
+  const cut = Date.now() - GONE_KEEP_MS;
+  db.gone = [...(db.gone || []).filter(g => g && g.id !== id && g.at >= cut), { id, at: Date.now() }].slice(-GONE_MAX);
+}
+// Dropped when the listing is read, not only at the next deletion: an instance that deletes nobody
+// for months would otherwise list, and keep in db.json, records past their 90 days.
+function pruneGone() {
+  const cut = Date.now() - GONE_KEEP_MS;
+  const kept = (db.gone || []).filter(g => g && g.at >= cut);
+  if (kept.length === (db.gone || []).length) return;
+  db.gone = kept;
+  saveDb();
+}
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
 // 0600: db.json holds passkey credential material. It used to be covered by a blanket 0700 on
 // the whole directory; now that the directory stays traversable, the file carries its own mode.
@@ -492,6 +513,27 @@ function readStateCached(uid) {
   stateCache.set(uid, { mtimeMs: st.mtimeMs, size: st.size, hitAt: now, S });
   while (stateCache.size > STATE_CACHE_MAX) stateCache.delete(stateCache.keys().next().value);
   return S;
+}
+// The revision and write id of each profile's stored state, for GET /api/sync/users (one profile per
+// listed row, up to a page of them a call). It is a cache of its own, a few bytes an entry, and not
+// stateCache: a listing that went through that one would parse and evict the states the reminder
+// tick and the rev polls keep warm, a page's worth at a time. Same key as stateCache (mtime and
+// size): a stat when the file is unchanged, one parse when it is not, and the parsed document is
+// not kept. A profile with no state file, or a file that cannot be read, is rev 0 and is not kept.
+const VERSION_MAX = 5000;
+const versionIndex = new Map(); // uid -> { mtimeMs, size, v }
+function stateVersion(uid) {
+  let st;
+  try { st = fs.statSync(stateFile(uid)); } catch { versionIndex.delete(uid); return { rev: 0 }; }
+  const hit = versionIndex.get(uid);
+  if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.v;
+  const S = readState(uid);
+  if (!S) return { rev: 0 };
+  const v = { rev: S._rev || 0, ...(S._wid ? { wid: S._wid } : {}) };
+  versionIndex.delete(uid);
+  versionIndex.set(uid, { mtimeMs: st.mtimeMs, size: st.size, v });
+  while (versionIndex.size > VERSION_MAX) versionIndex.delete(versionIndex.keys().next().value);
+  return v;
 }
 // Missed-workout nudge (nudge.js): opt-in on top of the reminder, so it needs everything the
 // reminder does (a push subscription, the reminder on, a zone). Owed from 20:00 — or 2 h after the
@@ -900,6 +942,8 @@ function audit(req, ev, f = {}) {
   if (f.msg) rec.msg = String(f.msg).slice(0, 120);
   // What a failed proof of ownership was guarding (proveOwner): 'email', 'passkey-add', …
   if (f.act) rec.act = String(f.act).slice(0, 40);
+  // How many more of the same this row stands for (auditSyncFail folds repeats into one row).
+  if (Number.isInteger(f.n) && f.n > 0) rec.n = f.n;
   const ip = clientIp(req);
   if (ip) rec.ip = ip;
   try { fs.appendFileSync(auditFile, JSON.stringify(rec) + '\n'); }
@@ -1023,10 +1067,32 @@ function strikeAddress(req, kind) {
 // dropped is a row that says the same thing as the ten before it.
 const FAIL_AUDIT = createWindow({ max: 10, windowMs: 60000 });
 const FAIL_AUDIT_ALL = createWindow({ max: 120, windowMs: 60000 });
-setInterval(() => { FAIL_AUDIT.sweep(); FAIL_AUDIT_ALL.sweep(); }, 60000).unref();
+setInterval(() => { FAIL_AUDIT.sweep(); FAIL_AUDIT_ALL.sweep(); SYNC_FAIL_AUDIT.sweep(); }, 60000).unref();
 function auditFail(req, ev, f) {
   if (FAIL_AUDIT.take(ev + '|' + limitAddress(req)) || FAIL_AUDIT_ALL.take(ev)) return;
   audit(req, ev, f);
+}
+
+// A refused sync token (sync-routes.js) is held harder still. Those come from the hub, one
+// address, and a misconfigured hub fails every call it makes for as long as nobody looks: ten
+// rows a minute was the whole log in about eight hours. Per reason, the first refusal of the hour
+// is written at once and the rest become one row with their count, `n` (audit-aggregate.js).
+// Only the client address fields of the first request are kept for that row, not the request.
+const SYNC_FAIL_WINDOW_MS = 3600000;
+const SYNC_FAIL_AUDIT = createAggregator({
+  windowMs: SYNC_FAIL_WINDOW_MS,
+  write: ({ req, reason, repeats }) => audit(req, 'sync.token.fail', { ok: false, msg: reason, ...(repeats ? { n: repeats } : {}) })
+});
+const addressOf = req => ({
+  headers: {
+    'cf-connecting-ip': req.headers['cf-connecting-ip'],
+    'x-forwarded-for': req.headers['x-forwarded-for'],
+    'x-real-ip': req.headers['x-real-ip']
+  },
+  socket: { remoteAddress: req.socket?.remoteAddress }
+});
+function auditSyncFail(req, reason) {
+  SYNC_FAIL_AUDIT.record(reason, { req: addressOf(req), reason });
 }
 
 /* ---------- password sign-in (#118) ---------- */
@@ -2495,6 +2561,7 @@ const routes = {
     if (isAdmin(u) && db.users.filter(isAdmin).length <= 1) return json(res, 400, { error: 'cannot delete the last admin' });
     const name = u.name;
     db.users = db.users.filter(x => x.id !== u.id);
+    noteGone(u.id);
     db.creds = (db.creds || []).filter(c => c.userId !== u.id);
     db.subs = (db.subs || []).filter(x => x.userId !== u.id);
     dropDeviceLinks(db, u.id);
@@ -2598,7 +2665,9 @@ const routes = {
   // Absent unless HUB_JWKS is set. Its own credential, checked there: never sessionOf.
   ...(HUB ? syncRoutes({
     hub: HUB, json, findUser: id => db.users.find(u => u.id === id) || null,
-    readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditFail
+    readStateCached, stateVersion, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail,
+    // Last: server-state-read-cost.test.js reads this call's text up to the first `}`.
+    listProfiles: () => { pruneGone(); return { users: db.users, gone: db.gone }; }
   }) : {})
 };
 
