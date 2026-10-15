@@ -30,7 +30,7 @@ import {
   listPasskeys, addPasskeyRecord, renamePasskeyRecord, removePasskeyRecord, passkeyRemovalRefused, MAX_PASSKEYS,
   backupFlagsOf, notePasskeyFlags, passkeysSynced
 } from './passkeys-store.js';
-import { usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteStatus } from './invites.js';
+import { usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteStatus, codeHint } from './invites.js';
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { effectiveRoutineId } from './queue.js';
@@ -2635,7 +2635,8 @@ const routes = {
     const invite = newInvite({ code, note: text(body.note).slice(0, 60), name: body.name, createdBy: admin.id });
     db.invites.push(invite);
     saveDb();
-    audit(req, 'admin.invite.create', { user: admin, msg: code });
+    // A hint, never the code: the audit log outlives the invite and is read by more than its maker.
+    audit(req, 'admin.invite.create', { user: admin, msg: codeHint(code) });
     json(res, 200, { invite });
   },
 
@@ -2647,7 +2648,7 @@ const routes = {
     if (inv.usedBy) return json(res, 400, { error: 'already used, cannot revoke' });
     revokeInvite(inv);
     saveDb();
-    audit(req, 'admin.invite.revoke', { user: admin, msg: inv.code });
+    audit(req, 'admin.invite.revoke', { user: admin, msg: codeHint(inv.code) });
     json(res, 200, { ok: true });
   },
 

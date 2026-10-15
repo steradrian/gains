@@ -79,18 +79,23 @@ export function revokeInvite(inv, now = Date.now()) {
 
 /**
  * What the invite landing page may know about `code`, or null for a code that names no invite.
- * `users` resolves the inviter's display name; a deleted inviter is null. The suggested name is
- * only given while the invite can still be used: after that it names someone else's profile.
+ * Names only while the invite can still be used (`users` resolves the inviter's; a deleted
+ * inviter is null): a code that is used, revoked or expired opens nothing, so it tells whoever
+ * holds it nothing about anyone either, only the status.
  */
 export function inviteCheck(invites, users, code, now = Date.now()) {
   if (typeof code !== 'string' || !INVITE_CODE.test(code)) return null;
   const inv = (invites || []).find(i => i.code === code.toUpperCase());
   if (!inv) return null;
   const status = inviteStatus(inv, now);
+  if (status !== 'valid') return { status, inviterName: null, suggestedName: null };
   const inviter = (users || []).find(u => u.id === inv.createdBy);
   return {
     status,
     inviterName: inviter && typeof inviter.name === 'string' && inviter.name ? inviter.name : null,
-    suggestedName: status === 'valid' && inv.name ? inv.name : null
+    suggestedName: inv.name || null
   };
 }
+
+/** How the audit log names a code that may still be live: enough to tell two apart, never usable. */
+export const codeHint = code => (typeof code === 'string' ? `${code.slice(0, 4)}…` : '');

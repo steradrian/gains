@@ -113,6 +113,14 @@ test('a new profile with no document gets its first one, and the same write agai
   assert.equal(stale.status, 409);
 });
 
+test('an older profile that never set check-in keeps it on', async t => {
+  const old = new Date(Date.now() - 90 * DAY).toISOString();
+  const h = await startServer(t, { users: [user('u1', 'Ana', { created: old })], states: { u1: { unit: 'kg', _rev: 3, _wid: 'bbbbbbbbbbbbbbbb' } } });
+  const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { checkIn: false } });
+  assert.deepEqual([r.status, r.body.changed, r.body.skipped], [200, false, [{ field: 'checkIn', reason: 'existing-profile' }]]);
+  assert.equal(h.state('u1').checkIn, undefined);
+});
+
 test('a profile with data gets only what it is missing', async t => {
   const S = {
     unit: 'lb', unitSet: { at: 1, convert: true }, bodyweight: [{ d: '2026-01-01', w: 180, t: 5 }],
@@ -123,7 +131,7 @@ test('a profile with data gets only what it is missing', async t => {
   const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: SEED() });
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.applied, ['bodyweight', 'coachProfile']);
-  assert.deepEqual(r.body.skipped.map(s => s.field + ':' + s.reason), ['unit:chosen', 'plan:has-plan', 'checkIn:in-use']);
+  assert.deepEqual(r.body.skipped.map(s => s.field + ':' + s.reason), ['unit:chosen', 'plan:has-plan', 'checkIn:existing-profile']);
   assert.equal(r.body.rev, 13);
   const after = h.state('u1');
   assert.deepEqual(after.routines, S.routines);

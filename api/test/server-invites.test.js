@@ -50,6 +50,7 @@ async function startServer(t, { users = [ADMIN], creds = [], invites = [], env =
     return { status: r.status, body: await r.json(), headers: r.headers, cookie: setCookie ? setCookie.split(';')[0] : null };
   };
   h.db = () => JSON.parse(fs.readFileSync(path.join(dataDir, 'db.json'), 'utf8'));
+  h.audit = () => { try { return fs.readFileSync(path.join(dataDir, 'audit.log'), 'utf8').trim().split('\n').map(l => JSON.parse(l)); } catch { return []; } };
   // The passkey sign-up the app runs: options with the name and code, then the attestation.
   h.signUp = async (key, { name = 'Ana', code, ip } = {}) => {
     const opt = await h.req('POST', '/api/register/options', { body: { name, code }, ip });
@@ -88,7 +89,20 @@ test('the check answers who invited and the suggested name, needs no session, an
   const done = await h.signUp(key, { code: inv.code, ip: '198.51.100.10' });
   assert.equal(done.status, 200, JSON.stringify(done.body));
   const after = await h.req('GET', `/api/invites/${inv.code}`, { ip: '198.51.100.10' });
-  assert.deepEqual(after.body, { status: 'used', inviterName: 'Adrian', suggestedName: null });
+  assert.deepEqual(after.body, { status: 'used', inviterName: null, suggestedName: null }, 'a spent code names nobody');
+});
+
+test('the audit log never holds a live code, and no log line carries one', async t => {
+  const h = await startServer(t, { env: { AUDIT_LOG: '1' } });
+  const inv = await h.newInvite({ name: 'Ana' });
+  await h.req('GET', `/api/invites/${inv.code}`, { ip: '198.51.100.11' });
+  await h.req('GET', '/api/invites/NOPE0000NOPE0000', { ip: '198.51.100.11' });
+  await h.req('POST', '/api/admin/invites/revoke', { body: { code: inv.code }, cookie: mintSession('adm') });
+  const audit = h.audit();
+  assert.ok(audit.some(e => e.ev === 'admin.invite.create' && e.msg === `${inv.code.slice(0, 4)}…`), JSON.stringify(audit));
+  assert.ok(audit.some(e => e.ev === 'admin.invite.revoke'));
+  assert.ok(!JSON.stringify(audit).includes(inv.code), 'the audit log');
+  assert.ok(!h.log.includes(inv.code) && !h.log.includes('NOPE0000NOPE0000'), 'the container log');
 });
 
 test('an invite works once', async t => {
@@ -106,7 +120,7 @@ test('an expired invite is refused at every way to sign up, and the check says e
   const old = invite('LATE0000LATE0000', { created: iso(Date.now() - 15 * DAY), expiresAt: iso(Date.now() - DAY), name: 'Ana' });
   const h = await startServer(t, { invites: [old] });
   const check = await h.req('GET', '/api/invites/LATE0000LATE0000', { ip: '198.51.100.30' });
-  assert.deepEqual(check.body, { status: 'expired', inviterName: 'Adrian', suggestedName: null });
+  assert.deepEqual(check.body, { status: 'expired', inviterName: null, suggestedName: null });
   const passkey = await h.req('POST', '/api/register/options', { body: { name: 'Ana', code: 'LATE0000LATE0000' }, ip: '198.51.100.30' });
   assert.deepEqual([passkey.status, passkey.body.code], [403, 'invite']);
   const pw = await h.req('POST', '/api/register/password', { body: { name: 'Ana', password: 'correct horse battery staple', code: 'LATE0000LATE0000' }, ip: '198.51.100.30' });
@@ -149,7 +163,7 @@ test('a revoked invite stays on record for the check, leaves the admin list and 
   const h = await startServer(t, { invites: [invite('GONE0000GONE0000', { name: 'Ana' }), invite('KEEP0000KEEP0000')] });
   const admin = mintSession('adm');
   assert.equal((await h.req('POST', '/api/admin/invites/revoke', { body: { code: 'gone0000gone0000' }, cookie: admin })).status, 200);
-  assert.deepEqual((await h.req('GET', '/api/invites/GONE0000GONE0000', { ip: '198.51.100.50' })).body, { status: 'revoked', inviterName: 'Adrian', suggestedName: null });
+  assert.deepEqual((await h.req('GET', '/api/invites/GONE0000GONE0000', { ip: '198.51.100.50' })).body, { status: 'revoked', inviterName: null, suggestedName: null });
   const list = await h.req('GET', '/api/admin/invites', { cookie: admin });
   assert.deepEqual(list.body.invites.map(i => [i.code, i.status]), [['KEEP0000KEEP0000', 'valid']]);
   assert.equal((await h.signUp(softPasskey(), { code: 'GONE0000GONE0000', ip: '198.51.100.50' })).status, 403);

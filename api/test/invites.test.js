@@ -3,7 +3,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  INVITE_TTL_MS, inviteStatus, usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteName
+  INVITE_TTL_MS, inviteStatus, usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteName, codeHint
 } from '../invites.js';
 
 const NOW = Date.UTC(2026, 9, 15, 12);
@@ -84,9 +84,17 @@ describe('inviteCheck', () => {
     assert.deepEqual(inviteCheck(invites, users, 'aaaa1111bbbb2222', NOW), { status: 'valid', inviterName: 'Adrian', suggestedName: 'Ana' });
   });
 
-  it('keeps the inviter for a used or expired one, and drops the suggested name', () => {
-    assert.deepEqual(inviteCheck(invites, users, 'CCCC3333DDDD4444', NOW), { status: 'used', inviterName: 'Adrian', suggestedName: null });
-    assert.deepEqual(inviteCheck(invites, users, 'AAAA1111BBBB2222', NOW + 15 * DAY), { status: 'expired', inviterName: 'Adrian', suggestedName: null });
+  it('names nobody for a used, revoked or expired one: the status only', () => {
+    assert.deepEqual(inviteCheck(invites, users, 'CCCC3333DDDD4444', NOW), { status: 'used', inviterName: null, suggestedName: null });
+    assert.deepEqual(inviteCheck(invites, users, 'AAAA1111BBBB2222', NOW + 15 * DAY), { status: 'expired', inviterName: null, suggestedName: null });
+    const revoked = invites.map(i => ({ ...i }));
+    revokeInvite(revoked[0], NOW);
+    assert.deepEqual(inviteCheck(revoked, users, 'AAAA1111BBBB2222', NOW), { status: 'revoked', inviterName: null, suggestedName: null });
+  });
+
+  it('hints at a code for the audit log without giving it away', () => {
+    assert.equal(codeHint('AAAA1111BBBB2222'), 'AAAA…');
+    assert.equal(codeHint(undefined), '');
   });
 
   it('says nothing of an inviter whose profile is gone', () => {

@@ -138,9 +138,11 @@ const routineId = () => 'r' + crypto.randomBytes(9).toString('base64url').replac
 /**
  * `cur` with the seed applied, as a new document, or `next: null` when nothing changes. `cur` is
  * the stored document, or null for a profile with no document yet (a first one is then made).
+ * `newProfile`: the account was made for this onboarding (the route decides, by its age); only
+ * such a profile gets check-in turned off.
  * → { next, applied: [field], skipped: [{ field, reason }] }
  */
-export function seedState(cur, seed, { now = Date.now(), newId = routineId } = {}) {
+export function seedState(cur, seed, { now = Date.now(), newId = routineId, newProfile = false } = {}) {
   const base = isMap(cur) ? cur : {};
   const next = structuredClone(base);
   const at = Math.max(Number(now) || 0, highestStamp(base) + 1);
@@ -201,6 +203,9 @@ export function seedState(cur, seed, { now = Date.now(), newId = routineId } = {
 
   if (seed.checkIn !== undefined) {
     if (base.checkIn === seed.checkIn || (base.checkIn === undefined && seed.checkIn === true)) skip('checkIn', 'same');
+    // Off by default is for a profile onboarding starts: one that already existed (the owner's, a
+    // returning user's, one with training on it) keeps check-in as it has always read it.
+    else if (!newProfile || list(base.workouts).length > 0) skip('checkIn', 'existing-profile');
     else if (own(base.edited, 'checkIn')) skip('checkIn', 'chosen');
     else if (list(base.gymCards).length > 0) skip('checkIn', 'in-use');
     else {

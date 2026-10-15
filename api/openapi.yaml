@@ -345,8 +345,9 @@ paths:
       summary: Check an invite without using it
       description: |
         For the invite landing page, before anyone signs up: whether the code can still be used,
-        the display name of whoever made it, and the name they typed for the person invited (only
-        while the invite is valid). Nothing else: never the note, who used it, when, or an id. It
+        and, only while it can, the display name of whoever made it and the name they typed for the
+        person invited. A used, revoked or expired code names nobody. Nothing else: never the note,
+        who used it, when, or an id. It
         never uses the invite up. An invite works once and for 14 days after it was made.
 
         No session needed. Counted per address (30 a minute) and for everyone together (600 a
@@ -364,7 +365,7 @@ paths:
                 required: [status, inviterName, suggestedName]
                 properties:
                   status: { type: string, enum: [valid, used, revoked, expired] }
-                  inviterName: { oneOf: [{ type: string }, { type: 'null' }], description: 'Null when the inviter''s profile is gone.' }
+                  inviterName: { oneOf: [{ type: string }, { type: 'null' }], description: 'Only while `valid`; null too when the inviter''s profile is gone.' }
                   suggestedName: { oneOf: [{ type: string }, { type: 'null' }], description: 'Only while `valid`.' }
               example: { status: valid, inviterName: "Adrian", suggestedName: "Ana" }
         '404':
@@ -3443,7 +3444,7 @@ paths:
         - `bodyweight`: `has-entry` (the date has a weigh-in).
         - `coachProfile`: `answered` (the Coach intake has answers).
         - `plan`: `has-plan` (the profile has routines or planned weekdays).
-        - `checkIn`: `same`; `chosen` (the switch was changed on a device); `in-use` (a gym card is saved).
+        - `checkIn`: `same`; `existing-profile` (only a profile under 30 days old with no training gets check-in off); `chosen` (the switch was changed on a device); `in-use` (a gym card is saved).
 
         So the same write sent again changes nothing, and needs no `If-Match`: the decision is made
         here, on the stored document, read and written with nothing in between. Each change is

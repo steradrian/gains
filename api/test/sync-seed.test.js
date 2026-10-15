@@ -72,7 +72,7 @@ describe('parseSeed', () => {
 
 describe('seedState on a new profile', () => {
   it('makes a first document from nothing, every change stamped later than the clock', () => {
-    const { next, applied, skipped } = seedState(null, seed(FULL), { now: NOW, newId });
+    const { next, applied, skipped } = seedState(null, seed(FULL), { now: NOW, newId, newProfile: true });
     assert.deepEqual(applied, ['unit', 'bodyweight', 'coachProfile', 'plan', 'checkIn']);
     assert.deepEqual(skipped, []);
     assert.equal(next.unit, 'lb');
@@ -92,15 +92,15 @@ describe('seedState on a new profile', () => {
 
   it('stamps past anything the profile already holds, so every device takes it as the newest change', () => {
     const cur = { unit: 'kg', _ts: NOW + 5000, edited: { restSec: NOW + 9000 } };
-    const { next } = seedState(cur, seed({ checkIn: false }), { now: NOW, newId });
+    const { next } = seedState(cur, seed({ checkIn: false }), { now: NOW, newId, newProfile: true });
     assert.equal(next.edited.checkIn, NOW + 9001);
     assert.equal(next.edited.restSec, NOW + 9000, 'other stamps kept');
     assert.ok(next._ts > highestStamp(cur));
   });
 
   it('changes nothing when it is sent again', () => {
-    const first = seedState(null, seed(FULL), { now: NOW, newId }).next;
-    const again = seedState(first, seed(FULL), { now: NOW + 60000, newId });
+    const first = seedState(null, seed(FULL), { now: NOW, newId, newProfile: true }).next;
+    const again = seedState(first, seed(FULL), { now: NOW + 60000, newId, newProfile: true });
     assert.equal(again.next, null);
     assert.deepEqual(again.applied, []);
     assert.deepEqual(again.skipped, [
@@ -113,17 +113,26 @@ describe('seedState on a new profile', () => {
   });
 
   it('does not write over a choice a device made after the first write', () => {
-    const first = seedState(null, seed(FULL), { now: NOW, newId }).next;
+    const first = seedState(null, seed(FULL), { now: NOW, newId, newProfile: true }).next;
     // The person turns check-in on in Settings; the hub's retry of the same write then arrives.
     const changed = { ...first, checkIn: true, edited: { ...first.edited, checkIn: NOW + 1000 } };
-    const retry = seedState(changed, seed(FULL), { now: NOW + 2000, newId });
+    const retry = seedState(changed, seed(FULL), { now: NOW + 2000, newId, newProfile: true });
     assert.equal(retry.next, null);
     assert.deepEqual(retry.skipped.find(s => s.field === 'checkIn'), { field: 'checkIn', reason: 'chosen' });
   });
 
   it('reads an absent check-in as on, the way every client does', () => {
-    assert.equal(seedState({}, seed({ checkIn: true }), { now: NOW }).next, null);
-    assert.equal(seedState({}, seed({ checkIn: false }), { now: NOW }).next.checkIn, false);
+    assert.equal(seedState({}, seed({ checkIn: true }), { now: NOW, newProfile: true }).next, null);
+    assert.equal(seedState({}, seed({ checkIn: false }), { now: NOW, newProfile: true }).next.checkIn, false);
+  });
+
+  it('turns check-in off only for a profile made for this onboarding', () => {
+    // An older account that never touched the switch reads it as on, and keeps it on.
+    assert.deepEqual(seedState({ unit: 'kg' }, seed({ checkIn: false }), { now: NOW }).skipped, [{ field: 'checkIn', reason: 'existing-profile' }]);
+    assert.equal(seedState(null, seed({ checkIn: false }), { now: NOW }).next, null);
+    // A new account that already trained is someone's existing profile too.
+    const trained = { workouts: [{ id: 'w1', d: TODAY, entries: [] }] };
+    assert.deepEqual(seedState(trained, seed({ checkIn: false }), { now: NOW, newProfile: true }).skipped, [{ field: 'checkIn', reason: 'existing-profile' }]);
   });
 });
 
@@ -147,7 +156,7 @@ describe('seedState on a profile with data (the owner, a returning user)', () =>
       { field: 'unit', reason: 'chosen' },
       { field: 'coachProfile', reason: 'answered' },
       { field: 'plan', reason: 'has-plan' },
-      { field: 'checkIn', reason: 'in-use' }
+      { field: 'checkIn', reason: 'existing-profile' }
     ]);
     assert.deepEqual(next.routines, cur.routines);
     assert.deepEqual(next.week, cur.week);

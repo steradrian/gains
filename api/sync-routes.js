@@ -298,11 +298,11 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
         console.error('state file unreadable for', user.id);
         return json(res, 503, { error: 'state unreadable', code: 'state-unreadable' });
       }
-      const created = Date.parse(again.created);
-      if (!cur && !(Date.now() - created < NEW_PROFILE_MS)) {
+      const newProfile = Date.now() - Date.parse(again.created) < NEW_PROFILE_MS;
+      if (!cur && !newProfile) {
         return json(res, 409, { error: 'this profile has no data on this server yet', code: 'no-state', rev: 0 });
       }
-      const { next, applied, skipped } = seedState(cur, parsed.seed);
+      const { next, applied, skipped } = seedState(cur, parsed.seed, { newProfile });
       if (!next) return json(res, 200, { ok: true, changed: false, applied, skipped, ...revOf(cur) }, { ETag: etagOf(cur) });
       stampPut(cur, next, { overRead: true, stamped: true });
       const done = commitState(user.id, cur, next);
