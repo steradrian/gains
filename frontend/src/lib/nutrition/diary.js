@@ -102,6 +102,20 @@ function toCanonicalAmount(portion, unit, food) {
   return basis === 'g' ? portion * baseG * d : portion * baseG / d
 }
 
+/** The grams in `portion` of `unit`, or null when the unit has no weight (a piece or slice with no
+ *  household size). The food's own household units come first (a slice of this bread is 36 g),
+ *  then the mass table; a volume counts as water (1 g/ml) unless the food carries a density. */
+export function gramsOfPortion(portion, unit, food = null) {
+  const amount = Number(portion)
+  if (!Number.isFinite(amount)) return null
+  const alt = food ? altUnitGrams(food.alt_units, unit) : null
+  if (alt != null) return amount * alt
+  const baseG = unitToGrams(unit)
+  if (baseG == null) return null
+  const d = Number(food?.density_g_ml)
+  return VOLUME_UNITS.has(String(unit).toLowerCase()) && Number.isFinite(d) && d > 0 ? amount * baseG * d : amount * baseG
+}
+
 /** How much the nutrients scale going from (origPortion, origUnit) to (newPortion, newUnit):
  *  per-food household units first, then the mass/volume table (density across systems), else
  *  the plain ratio of the two numbers. */
@@ -230,14 +244,21 @@ export function waterLog(amountMl, { now = new Date(), hour12 = true } = {}) {
  * @returns {import('./api.js').DiaryWrite}
  */
 export function dayWrite(day, { addItems = [], addWater = [], removeItems = [], removeWater = [] } = {}) {
+  // An added entry whose uuid the day already holds replaces it where it stands: a retry is the
+  // same entry, and an edit after a lost answer is the newer one.
   const merge = (list, add, remove) => {
     const gone = new Set(remove)
-    const have = new Set()
+    const at = new Map()
     const out = []
-    for (const e of [...(Array.isArray(list) ? list : []), ...add]) {
-      if (!e || typeof e !== 'object' || gone.has(e.uuid) || (e.uuid && have.has(e.uuid))) continue
-      if (e.uuid) have.add(e.uuid)
+    for (const e of Array.isArray(list) ? list : []) {
+      if (!e || typeof e !== 'object' || gone.has(e.uuid) || (e.uuid && at.has(e.uuid))) continue
+      if (e.uuid) at.set(e.uuid, out.length)
       out.push(e)
+    }
+    for (const e of add) {
+      if (!e || typeof e !== 'object' || gone.has(e.uuid)) continue
+      if (e.uuid && at.has(e.uuid)) out[at.get(e.uuid)] = e
+      else { if (e.uuid) at.set(e.uuid, out.length); out.push(e) }
     }
     return out
   }
@@ -347,7 +368,7 @@ export function energyOf(kcal, settings) {
   return settings?.energyUnit === 'kJ' ? { value: Math.round(n * 4.184), unit: 'kJ' } : { value: Math.round(n), unit: 'kcal' }
 }
 
-const WATER_UNITS = { oz: [29.5735, 0, 'fl oz'], L: [1000, 2, 'L'], G: [3785.41, 3, 'G'] }
+export const WATER_UNITS = { oz: [29.5735, 0, 'fl oz'], L: [1000, 2, 'L'], G: [3785.41, 3, 'G'] }
 /** ml in the person's water unit (waterUnit 'ml' | 'oz' | 'L' | 'G'; WaterWidget.svelte formatMl). */
 export function waterOf(ml, settings) {
   const n = Number(ml) || 0
