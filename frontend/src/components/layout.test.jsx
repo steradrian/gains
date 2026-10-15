@@ -51,8 +51,13 @@ describe('Stack', () => {
     same(<Stack gap={2.5}>a</Stack>, <div className="stack g-2.5">a</div>)
   })
 
+  it('takes the redesign\'s 24 and 32px steps', () => {
+    same(<Stack gap={11}>a</Stack>, <div className="stack g-11">a</div>)
+    same(<Stack gap={12}>a</Stack>, <div className="stack g-12">a</div>)
+  })
+
   it('throws in development on a gap off the scale', () => {
-    expect(() => html(<Stack gap={11}>a</Stack>)).toThrow(/Stack: gap=11/)
+    expect(() => html(<Stack gap={13}>a</Stack>)).toThrow(/Stack: gap=13/)
   })
 })
 
@@ -64,11 +69,12 @@ describe('Spacer', () => {
   it('takes a size step', () => {
     same(<Spacer size={7} />, <div className="sp-7" />)
     same(<Spacer size={2.5} />, <div className="sp-2.5" />)
+    same(<Spacer size={12} />, <div className="sp-12" />)
   })
 
   it('throws in development on a size off the scale', () => {
     expect(() => html(<Spacer size={0} />)).toThrow(/Spacer: size=0/)
-    expect(() => html(<Spacer size={12} />)).toThrow(/Spacer: size=12/)
+    expect(() => html(<Spacer size={13} />)).toThrow(/Spacer: size=13/)
   })
 })
 

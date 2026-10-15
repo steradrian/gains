@@ -3,8 +3,9 @@
 Build pages from these instead of hand-written markup and inline styles. Each primitive emits
 today's classes and elements (locked by `layout.test.jsx`, `blocks.test.jsx` and
 `sheet-layout.test.jsx`), so `index.css` stays the one source of styling. Spacing props are steps:
-1…10 = 2, 4, 6, 8, 10, 12, 14, 16, 18, 22px, plus 2.5 = 5px; gaps may also be 0. A value the kit
-has no class for throws in development. No primitive sets a page width: that is the shell's job.
+1…12 = 2, 4, 6, 8, 10, 12, 14, 16, 18, 22, 24, 32px, plus 2.5 = 5px; gaps may also be 0. A value
+the kit has no class for throws in development. No primitive sets a page width: that is the
+shell's job.
 
 | Instead of | Use (file) |
 |---|---|
@@ -29,13 +30,28 @@ warns in development). Make the child the control and drop the row's onClick, or
 
 ## Tokens and utilities (`src/ui-kit.css`, loaded after `index.css`)
 
-- Space `--space-1`…`--space-10`, `--space-2-5` (5px); rhythm `--gap-list` (8), `--gap-row` and
-  `--gap-block` (12), `--gap-section` (22). Layout `--tap-min`, `--row-min`, `--item-min`.
+- Space `--space-1`…`--space-12`, `--space-2-5` (5px); rhythm `--gap-list` (8), `--gap-row` and
+  `--gap-block` (12), `--gap-section` (22), `--gap-tab-section` (32, between a redesigned tab
+  root's sections). Layout `--tap-min`, `--row-min`, `--item-min`, `--r-pill`.
 - Type `--fs-caption` 12, `-footnote` 13, `-subhead` 15, `-callout` 16, `-body` 17, `-title3` 20,
-  `-title2` 22, `-tile` 26, `-big` 30, `-large` 34; `--fw-regular|medium|semibold|bold`.
+  `-title2` 22, `-tile` 26, `-big` 30, `-large` 34, `-display` 48; `--fw-regular|medium|semibold|bold`;
+  tracking `--ls-display`, `--ls-title`.
+- Sizes `--hdr-h` 56 and `--hdr-btn` 40 (the headers), `--disc` 56 and `--disc-sm` 36 (action and
+  add discs), `--glyph` 24, `--art-w`×`--art-h` 96×72 (a media row's art), `--thumb-lg` 56,
+  `--tabbar-h` (what the tab bar takes from the bottom, measured: 63px, 81px from 1000px),
+  `--search-panel-w`; layers `--z-search` 47, `--z-tab-hdr` 48. Line art `--il-w`, `--il-w-d`.
+  Motion `--ease-io`, `--hero` (640ms).
+- Colour tokens, in `index.css`'s theme blocks: `--sel-fill`/`--on-sel` (a selected day or
+  segment: the label colour as a fill), `--bar-bg`, `--ring-hair`, `--gauge-track`, `--scrim`,
+  `--skel`/`--skel-sheen`, `--shadow-thumb`, `--shadow-float`, and `--acc-graphic` (the accent as a
+  line-art stroke; a custom accent sets it in `lib/accent.js`). `accent.test.js` measures
+  `--acc-graphic` (3:1 on every fill a scene sits on) and `--on-sel` (7:1) for every preset and
+  own colour. No component reads a hue: fills use `--acc`/`--on-acc`, text `--acc-ink`, line art
+  `--acc-graphic`.
+- `--r-card` is 16px (was 14): every card, list card and tile.
 - Media `--on-media`, `--media-bg`, `--knob`: colours drawn over photos and video.
 - Utilities: `.ink-danger|warn|orange|acc|ok`, `.stack`, `.g-N`, `.sp-N`, `.mb-N`, `.mt-N`, `.m-0`,
-  `.fs-*`, `.fw-*`, `.ta-start|center|end`, `.wrap`, `.jc-end`, `.ai-*` (N: 0…10, 2.5). Each is
+  `.fs-*`, `.fw-*`, `.ta-start|center|end`, `.wrap`, `.jc-end`, `.ai-*` (N: 0…12, 2.5). Each is
   written `.x.x.x` so it beats index.css class rules (`h4.sec`, `.sheet h3`, `.chip.on`);
   `ui-kit-cascade.test.js` checks every utility on every primitive's element. Id rules still win.
 - An odd px or a computed value may stay inline; a new layout gets a class, never a new colour.
