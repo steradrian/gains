@@ -13,6 +13,7 @@ import { Card, EmptyState, Stat, StatTile, Tiles } from '../components/blocks.js
 import { Inline, Page } from '../components/layout.jsx'
 import YesterdayMealRow from '../components/YesterdayMealRow.jsx'
 import { Button } from '../components/ui.jsx'
+import { Loading } from '../components/Loader.jsx'
 
 const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
 
@@ -96,7 +97,7 @@ export default function FoodHub() {
               </div>
             })}
           </Inline>
-        </> : <div className="small muted" role="status">{t('Loading…')}</div>}
+        </> : <Loading className="small muted" />}
       </Card>}
     <YesterdayMealRow settings={settings} meal={meal} />
     <Tiles className="hub-tiles">

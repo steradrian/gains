@@ -24,6 +24,7 @@ import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { Page, Inline } from '../components/layout.jsx'
 import { EmptyState } from '../components/blocks.jsx'
+import { Loader } from '../components/Loader.jsx'
 
 const toast = m => useUI.getState().toast(m)
 
@@ -179,8 +180,8 @@ export default function ProgressPhotos() {
 
     {!comparing && showAdd && <Inline className="mb-8">
       {today
-        ? <Button icon={busy ? 'image' : 'camera'} disabled={!canAdd} onClick={() => fileRef.current?.click()}>
-            {busy ? t('Loading…') : t('Add a photo to today')}
+        ? <Button icon={busy ? undefined : 'camera'} disabled={!canAdd} onClick={() => fileRef.current?.click()}>
+            {busy ? <><Loader size="xs" />{t('Loading…')}</> : t('Add a photo to today')}
           </Button>
         : <Button icon="dumbbell" onClick={() => nav('/train/workout')}>{t('Log today’s workout to add a photo')}</Button>}
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />

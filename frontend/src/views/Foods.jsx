@@ -15,6 +15,7 @@ import { Page, Stack } from '../components/layout.jsx'
 import { foodDetailSheet } from '../components/FoodDetailSheet.jsx'
 import { foodEditSheet } from '../components/FoodEditSheet.jsx'
 import { Button, SearchField, Segmented } from '../components/ui.jsx'
+import { Loading } from '../components/Loader.jsx'
 
 const toast = m => useUI.getState().toast(m)
 
@@ -124,7 +125,7 @@ export default function Foods() {
       <Button size="sm" variant="tinted" onClick={() => useNutrition.getState().loadFoods({ force: true })}>{t('Try again')}</Button>
     </EmptyState>
   } else if (foods.status !== 'ready' && !foods.list.length) {
-    body = <EmptyState><div role="status">{t('Loading…')}</div></EmptyState>
+    body = <EmptyState><Loading /></EmptyState>
   } else if (!foods.list.length) {
     body = <EmptyState icon="apple" title={t('No foods yet')}>
       <div>{t('Create a food, or search online and save one.')}</div>
