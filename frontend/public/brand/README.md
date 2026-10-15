@@ -35,7 +35,8 @@ jumps between them. `scripts/brand-assets.py` renders every raster in the app an
 - **Splash** (`src/components/BootSplash.jsx`, `lib/brand-splash.js`): over the page at launch, the G
   already drawn (it is the still the first frame and the native launch image show), then "gains" arrives
   letter by letter, each settling into its weight. It ends when the animation is over and the app has read
-  its state, then fades; a tap or Enter, Space or Escape ends it early. Once per page load. Not played for
+  its state, then fades; a tap or Enter, Space or Escape ends it early. The page behind it is inert
+  while it plays (the dialogs' counted hold, `holdPage()` in `lib/use-dialog-focus.js`). Once per page load. Not played for
   reduced motion (the device's setting or the app's switch) or without a canvas.
 - Both draw in the CSS colour of their canvas, so they follow the theme with no prop. The letters are
   outlines (`lib/brand-glyphs.js`, 31 KB gzipped, from the kit; Jost, SIL OFL) loaded only when a splash

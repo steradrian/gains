@@ -28,6 +28,7 @@ const q = s => document.querySelector(s)
 const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve() })
 const mount = async () => { act(() => root.render(<BootSplash />)); await settle() }
 const setReady = ready => act(() => { useStore.setState({ ready }) })
+const inert = id => document.getElementById(id).hasAttribute('inert')
 const finish = () => act(() => { mocks.created.at(-1).opts.onComplete() })
 
 beforeEach(() => {
@@ -38,10 +39,12 @@ beforeEach(() => {
   useStore.setState({ ready: false, S: { ...originalS, reduceMotion: false } })
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({}))
   vi.stubGlobal('matchMedia', () => ({ matches: false }))
+  // The page the splash covers, as App.jsx draws it.
+  document.body.innerHTML = '<div id="app"><button id="behind">Start</button></div><nav id="tabbar"></nav><div id="timer"></div>'
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
 })
 afterEach(() => {
-  act(() => root.unmount()); host.remove()
+  act(() => root.unmount()); host.remove(); document.body.innerHTML = ''
   useStore.setState({ S: originalS, ready: false })
   HTMLCanvasElement.prototype.getContext = realGetContext
   vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers()
@@ -62,6 +65,35 @@ describe('BootSplash', () => {
     expect(mocks.created[0].canvas).toBe(box.querySelector('canvas'))
     expect(mocks.created[0].opts.fromG).toBe(true)     // the G is already on screen: it must not redraw
     expect(box.hasAttribute('data-drawing')).toBe(true)  // and the still one under the canvas goes
+  })
+
+  it('puts the page behind it out of reach while it plays, and gives it back as it leaves', async () => {
+    await mount()
+    for (const id of ['app', 'tabbar', 'timer']) expect(inert(id), id).toBe(true)
+    finish()
+    for (const id of ['app', 'tabbar', 'timer']) expect(inert(id), id + ' while it waits for the state').toBe(true)
+    await setReady(true)
+    for (const id of ['app', 'tabbar', 'timer']) expect(inert(id), id + ' once it leaves').toBe(false)
+  })
+
+  it('gives the page back when it is taken away early', async () => {
+    await mount()
+    expect(inert('app')).toBe(true)
+    act(() => root.render(null))
+    expect(inert('app')).toBe(false)
+  })
+
+  it('does not touch the page when it is not played', async () => {
+    HTMLCanvasElement.prototype.getContext.mockImplementation(() => null)
+    await mount()
+    for (const id of ['app', 'tabbar', 'timer']) expect(inert(id), id).toBe(false)
+  })
+
+  it('leaves alone an inert someone else set, and does not lift it', async () => {
+    document.getElementById('app').setAttribute('inert', '')
+    await mount()
+    act(() => root.render(null))
+    expect(inert('app')).toBe(true)
   })
 
   it('stays up after the animation until the app has read its state, then fades and goes', async () => {

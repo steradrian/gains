@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { systemReducesMotion } from '../lib/reduced-motion.js'
 import { loadGlyphs, createSplash } from '../lib/brand-splash.js'
+import { holdPage } from '../lib/use-dialog-focus.js'
 import { BootMark } from './BrandMark.jsx'
 
 // How long the splash takes to leave once it may: the fade (.boot-splash in ui-kit.css) and a margin.
@@ -21,7 +22,7 @@ function canDraw() {
 // from the G the first frame already shows (index.html, the native launch image), so the G stays
 // where it is and "gains" arrives under it. It ends when the animation has finished AND the app has
 // read its state, then fades; a tap, Enter, Space or Escape ends it early (it still waits for the
-// state). Skipped altogether for reduced motion (the device's setting or the app's switch), and where
+// state). The page behind it is inert while it plays. Skipped altogether for reduced motion (the device's setting or the app's switch), and where
 // there is no canvas.
 export default function BootSplash() {
   const ready = useStore(s => s.ready)
@@ -43,6 +44,13 @@ export default function BootSplash() {
       else setPhase('off')
     }).catch(() => { if (!cancelled) setPhase('off') })
     return () => { cancelled = true; splash?.destroy() }
+  }, [phase === 'play'])
+
+  // Under the splash the page is out of reach (inert: no taps, no Tab, nothing read out) until it
+  // starts to leave. The keys below still work: they are on the window, not in the page.
+  useEffect(() => {
+    if (phase !== 'play') return
+    return holdPage()
   }, [phase === 'play'])
 
   useEffect(() => {
