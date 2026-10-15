@@ -21,6 +21,17 @@ is not on the list needs a hub PR first.
   `calorieAdjustFromActivity` and `diaryShowActivity`; `goals.js` holds its rules and
   `use-goals-form.js` its state. The hub takes exactly `{ key, value }` per write, type-checks
   the value, and answers a refused body with 400; a failed save shows `writeErrorText` and keeps the draft.
+- Profile's Nutrition pages (Diary & meals, Water, Foods & scanning, Food sources, Custom
+  nutrients, Categories, Custom units) wrap in `components/NtSettingsGate.jsx` and write through
+  `use-nt-settings.js`: `useNtSettings()` gives `{ data, busy, save }` (`save` resolves false after a
+  toast), `useSheetSave(close)` the save behind an add sheet (the sheet stays open with its fields
+  and the reason), `settingOf(data, key)` a value or NutriTrace's default (`NT_DEFAULTS`).
+  `settings-lists.js` holds the list rules and the shapes the hub takes: a custom unit
+  `{ abbr, full }`, a custom nutrient `{ id: 'custom_…', label, unit }`, a category a name or
+  `{ name, label }`, a water container `{ id, name, volumeMl }`. A stored entry is cleaned to those
+  fields before a list is written back. Not here, because the hub refuses them: sharing, the scanner
+  flashlight (device-only), Yesterday's meals, the diary's nutrition bar and rail widgets, fasting
+  notifications and schedule, USDA's key, Open Food Facts' login.
 - `diary.js`: NutriTrace's arithmetic (`totalsOf`, `atPortion`, `calorieTarget`, `macroTarget`),
   units (`energyOf` for kcal or kJ, `waterOf`), `mealsOf` (`isDefault` names are English: translate
   them; saved names show as saved), `recentFoods` and `matchesFood`.

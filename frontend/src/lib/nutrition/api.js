@@ -167,9 +167,11 @@ export const NtApi = {
   saveDiaryDate: (date, payload) => nt('PUT', `/api/diary/${date}`, payload),
   /** @returns {Promise<NtSettings>} */
   getSettings: () => nt('GET', '/api/settings'),
-  /** Upserts one setting. The hub takes exactly { key, value } for calorieGoalMode, calorieGoalFactor,
-   *  goals, goalTemplates, waterGoalMl, calorieAdjustFromActivity, diaryShowActivity, fastingEnabled
-   *  and fastingDefaultHours, type-checks the value, and refuses anything else with 400. */
+  /** Upserts one setting. The hub takes exactly { key, value } for one of the 66 keys in
+   *  fitness-hub src/nt-body-checks.ts WRITABLE_SETTINGS (goals, fasting, diary, water, foods, food
+   *  sources, custom nutrients, categories, custom units, units and statistics), type-checks the
+   *  value, and refuses anything else with 400. A custom unit is { abbr, full }, a custom nutrient
+   *  { id: 'custom_…', label, unit }, a category a name or { name, label }. */
   putSetting: (key, value) => nt('PUT', '/api/settings', { key, value }),
   /** Your own foods, by name. @returns {Promise<Food[]>} (img_url, not imgUrl) */
   getFoods: () => nt('GET', '/api/foods'),
