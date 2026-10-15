@@ -17,7 +17,6 @@ import { askAddDeviceData } from '../sheets.jsx'
 import { Row, Button } from './ui.jsx'
 import { Spacer } from './layout.jsx'
 import { SheetHeader } from './sheet-layout.jsx'
-import '../gate.css'
 
 // The server's floor (api/password.js MIN_LENGTH), checked here first so the common mistake is
 // answered without a round trip. The server still decides.

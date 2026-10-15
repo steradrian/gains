@@ -5,7 +5,6 @@ import { BRAND } from '../brand.js'
 import { Button } from './ui.jsx'
 import { Spacer } from './layout.jsx'
 import { EmptyState } from './blocks.jsx'
-import '../gate.css'
 
 /**
  * Last line of defence: one bad render used to blank the whole app, with no way back —

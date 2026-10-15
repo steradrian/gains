@@ -15,7 +15,6 @@ import { openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { Spacer, Stack } from '../components/layout.jsx'
 import { Card } from '../components/blocks.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
-import '../gate.css'
 
 function RegisterSheet({ close }) {
   const { setUser, pushState, pullState, loadConfig } = useStore()

@@ -13,7 +13,6 @@ import { normalizeServerUrl } from '../lib/remote.js'
 import { loadCfAccess, saveCfAccess } from '../lib/cf-access.js'
 import { Spacer, Stack } from '../components/layout.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
-import '../gate.css'
 
 // A plain http:// server works (#428), but whatever the app sends, the pairing code and then its
 // token, crosses the network readable. Said once under the field, not in the way: on a home

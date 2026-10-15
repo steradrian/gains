@@ -18,7 +18,6 @@ import { Row, Button } from './ui.jsx'
 import { Spacer } from './layout.jsx'
 import { Card } from './blocks.jsx'
 import { SheetHeader } from './sheet-layout.jsx'
-import '../gate.css'
 
 const ui = () => useUI.getState()
 const toast = m => ui().toast(m)
