@@ -49,7 +49,6 @@ import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } fro
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { useNutrition } from '../lib/nutrition/store.js'
-import CustomNutrientsSettings from '../components/CustomNutrientsSettings.jsx'
 import CustomUnitsSettings from '../components/CustomUnitsSettings.jsx'
 import DiaryMealsSettings from '../components/DiaryMealsSettings.jsx'
 import FeaturesList from '../components/FeaturesList.jsx'
@@ -822,7 +821,6 @@ export default function Settings({ page = null, find = null, via = null }) {
     water: () => <NtSettingsGate><WaterSettings /></NtSettingsGate>,
     foods: () => <NtSettingsGate><FoodsSettings /></NtSettingsGate>,
     sources: () => <NtSettingsGate><FoodSourcesSettings /></NtSettingsGate>,
-    nutrients: () => <NtSettingsGate><CustomNutrientsSettings /></NtSettingsGate>,
     categories: () => <NtSettingsGate><FoodCategoriesSettings /></NtSettingsGate>,
     customUnits: () => <NtSettingsGate><CustomUnitsSettings /></NtSettingsGate>,
 

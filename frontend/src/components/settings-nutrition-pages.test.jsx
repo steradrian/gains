@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // Profile's Nutrition pages (ia-proposal §5) against the fake hub, which holds every write to the
-// rules of fitness-hub src/nt-body-checks.ts: Water, Foods & scanning, Food sources, Custom
-// nutrients, Categories, Custom units and the rest of Diary & meals. Each save is one
+// rules of fitness-hub src/nt-body-checks.ts: Water, Foods & scanning, Food sources,
+// Categories, Custom units and the rest of Diary & meals. Each save is one
 // { key, value } the hub takes, and a refused one keeps what was typed and says so.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -12,7 +12,6 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { featuresFor, pageExists, pageVisible, ROOT_GROUPS, SEARCH, searchSettings } from '../views/settings-pages.js'
 import { bindUI } from './ui.jsx'
-import CustomNutrientsSettings from './CustomNutrientsSettings.jsx'
 import CustomUnitsSettings from './CustomUnitsSettings.jsx'
 import DiaryMealsSettings from './DiaryMealsSettings.jsx'
 import FoodCategoriesSettings from './FoodCategoriesSettings.jsx'
@@ -25,7 +24,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const PAGES = {
   diary: DiaryMealsSettings, water: WaterSettings, foods: FoodsSettings, sources: FoodSourcesSettings,
-  nutrients: CustomNutrientsSettings, categories: FoodCategoriesSettings, customUnits: CustomUnitsSettings,
+  categories: FoodCategoriesSettings, customUnits: CustomUnitsSettings,
 }
 
 let host, root, nt, sheets, sheetRoots
@@ -175,14 +174,11 @@ describe('Water', () => {
 describe('Foods & scanning', () => {
   it('shows NutriTrace\'s defaults and writes each switch as one key', async () => {
     await mount('foods')
-    expect(switchOf('Show thumbnails').getAttribute('aria-checked')).toBe('true')
+    expect(switchOf('Show categories').getAttribute('aria-checked')).toBe('true')
     expect(switchOf('Beep when a barcode scans').getAttribute('aria-checked')).toBe('false')
     await click(switchOf('Show category labels'))
     await click(switchOf('Beep when a barcode scans'))
-    await click(switchOf('Crop photos'))
-    expect(puts()).toEqual([
-      { key: 'foodsShowLabels', value: false }, { key: 'barcodeBeep', value: true }, { key: 'cropPhotos', value: true },
-    ])
+    expect(puts()).toEqual([{ key: 'foodsShowLabels', value: false }, { key: 'barcodeBeep', value: true }])
   })
 
   it('has no flashlight, yesterday\'s meals or other key the hub refuses', async () => {
@@ -212,85 +208,33 @@ describe('Foods & scanning', () => {
   it('a refused save leaves the switch as it was', async () => {
     await mount('foods')
     nt.failNext('PUT', '/nt/api/settings', { status: 400 })
-    await click(switchOf('Crop photos'))
+    await click(switchOf('Beep when a barcode scans'))
     expect(toast).toHaveBeenCalledWith('Not saved. Try again.')
-    expect(switchOf('Crop photos').getAttribute('aria-checked')).toBe('false')
+    expect(switchOf('Beep when a barcode scans').getAttribute('aria-checked')).toBe('false')
   })
 })
 
 describe('Food sources', () => {
   it('has the Open Food Facts switch, and its language, country and portion only while it is on', async () => {
     await mount('sources')
-    expect(titles()).toEqual(['Search Open Food Facts', 'Search language', 'Search country', 'Import nutrition as'])
+    expect(titles()).toEqual(['Search Open Food Facts', 'Search language', 'Search country'])
     await click(switchOf('Search Open Food Facts'))
     expect(puts()).toEqual([{ key: 'offEnabled', value: false }])
     expect(titles()).toEqual(['Search Open Food Facts'])
   })
 
-  it('writes the language as two letters, the country by its English name, and the portion', async () => {
+  it('writes the language as two letters and the country by its English name', async () => {
     await mount('sources')
     expect(valueOf('Search country')).toBe('Worldwide')
     await pick('Search language', 'German')
     await pick('Search country', 'Germany')
-    await pick('Import nutrition as', 'Per serving')
-    expect(puts()).toEqual([
-      { key: 'offSearchLanguage', value: 'de' }, { key: 'offSearchCountry', value: 'Germany' }, { key: 'offImportPortion', value: 'perServing' },
-    ])
+    expect(puts()).toEqual([{ key: 'offSearchLanguage', value: 'de' }, { key: 'offSearchCountry', value: 'Germany' }])
     expect(valueOf('Search language')).toBe('German')
   })
 
   it('has no login, key or USDA row: the hub lets none of them through', async () => {
     await mount('sources')
     expect(titles().join('|')).not.toMatch(/usda|password|username|key/i)
-  })
-})
-
-describe('Custom nutrients', () => {
-  it('adds one as { id: custom_…, label, unit } and shows it', async () => {
-    await mount('nutrients')
-    await click(rowTitled('Add a custom nutrient'))
-    const { box, close } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'Omega 3')
-    await click(buttonOf(box, 'mg'))
-    await click(buttonOf(box, 'Add'))
-    expect(puts()).toEqual([{ key: 'customNutriments', value: [{ id: 'custom_omega_3', label: 'Omega 3', unit: 'mg' }] }])
-    expect(close).toHaveBeenCalled()
-    expect(rowTitled('Omega 3').querySelector('.lrow-s').textContent).toBe('mg')
-  })
-
-  it('refuses a repeat and a name too long for an id, without a request', async () => {
-    await mount('nutrients', { customNutriments: [{ id: 'custom_omega_3', label: 'Omega 3', unit: 'g' }] })
-    await click(rowTitled('Add a custom nutrient'))
-    const { box } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'omega  3')
-    await click(buttonOf(box, 'Add'))
-    expect(box.querySelector('[role="alert"]').textContent).toBe('You already have a nutrient with that name.')
-    await type(fieldOf(box, 'Name'), 'x'.repeat(40))
-    await click(buttonOf(box, 'Add'))
-    expect(box.querySelector('[role="alert"]').textContent).toBe('That name is too long. Shorten it.')
-    expect(puts()).toEqual([])
-  })
-
-  it('keeps the sheet and the name when the save fails, then saves on retry', async () => {
-    await mount('nutrients')
-    await click(rowTitled('Add a custom nutrient'))
-    const { box, close } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'Choline')
-    nt.failNext('PUT', '/nt/api/settings', 'offline')
-    await click(buttonOf(box, 'Add'))
-    expect(box.querySelector('[role="alert"]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
-    expect(fieldOf(box, 'Name').value).toBe('Choline')
-    expect(close).not.toHaveBeenCalled()
-    await click(buttonOf(box, 'Add'))
-    expect(nt.state.settings.customNutriments).toEqual([{ id: 'custom_choline', label: 'Choline', unit: 'g' }])
-  })
-
-  it('removes one and drops the fields the hub does not take from the others', async () => {
-    await mount('nutrients', { customNutriments: [
-      { id: 'custom_a', label: 'A', unit: 'g', name: 'A' }, { id: 'custom_b', label: 'B', unit: 'mg', name: 'B' },
-    ] })
-    await click(rowTitled('A').querySelector('button'))
-    expect(puts()).toEqual([{ key: 'customNutriments', value: [{ id: 'custom_b', label: 'B', unit: 'mg' }] }])
   })
 })
 
@@ -371,15 +315,16 @@ describe('Diary & meals', () => {
     expect(switchOf('Show brand names').getAttribute('aria-checked')).toBe('true')
     expect(switchOf('Show time logged').getAttribute('aria-checked')).toBe('false')
     await click(switchOf('Show time logged'))
-    await click(switchOf('Show day completion'))
-    await click(switchOf('Show unit details'))
-    await click(switchOf('Warn about unit conversions'))
-    await click(switchOf('Show portion size'))
-    await click(switchOf('Show every nutrient'))
+    await click(switchOf('Show macro summary'))
+    await click(switchOf('Ask for quantity when adding'))
     expect(puts()).toEqual([
-      { key: 'diaryShowTimestamps', value: true }, { key: 'diaryShowCompletion', value: true }, { key: 'showUnitMetadata', value: true },
-      { key: 'warnUnitMismatch', value: true }, { key: 'diaryShowPortionSize', value: true }, { key: 'diaryShowAllNutrients', value: true },
+      { key: 'diaryShowTimestamps', value: true }, { key: 'diaryShowMacroSummary', value: false }, { key: 'diaryPromptQuantity', value: false },
     ])
+  })
+
+  it('has none of NutriTrace\'s options Gains has no screen for', async () => {
+    await mount('diary')
+    expect(titles().join('|')).not.toMatch(/photos|every nutrient|nutrition units|portion size|day notes|completion|unit details|conversions/)
   })
 
   it('the default field is one of the two the hub takes', async () => {
@@ -389,13 +334,11 @@ describe('Diary & meals', () => {
     expect(puts()).toEqual([{ key: 'diaryDefaultField', value: 'portion' }])
   })
 
-  it('shows how quick calories add up only while quick calories are on', async () => {
+  it('writes how quick calories show and whether they are offered', async () => {
     await mount('diary')
-    expect(titles()).toContain('Quick calories shown')
     await pick('Quick calories shown', 'One row each')
     await click(switchOf('Show quick calories'))
     expect(puts()).toEqual([{ key: 'quickCaloriesDisplay', value: 'separate' }, { key: 'showQuickCalories', value: false }])
-    expect(titles()).not.toContain('Quick calories shown')
   })
 
   it('asks which wins, wearable or manual, only when activity counts toward the target', async () => {
@@ -468,7 +411,7 @@ describe('Diary & meals', () => {
 
 describe('the Nutrition group, the search and Features', () => {
   const web = { user: { id: 'u' }, mobile: false, nutrition: true }
-  const NEW_PAGES = ['water', 'foods', 'sources', 'nutrients', 'categories', 'customUnits']
+  const NEW_PAGES = ['water', 'foods', 'sources', 'categories', 'customUnits']
 
   it('puts every page in the Nutrition group, on the web app signed in only', () => {
     expect(ROOT_GROUPS.find(g => g.title === 'Nutrition').ids).toEqual(['goals', 'diary', ...NEW_PAGES])
@@ -504,7 +447,7 @@ describe('the Nutrition group, the search and Features', () => {
     const ctx = { ...web, ntSettings: {} }
     const listed = featuresFor(ctx).map(e => e.page + ':' + e.title).filter(k => k.split(':')[0] in PAGES)
     expect(new Set(listed)).toEqual(off)
-    expect(off.size).toBeGreaterThanOrEqual(8)
+    expect([...off].sort()).toEqual(['diary:Show activity under meals', 'diary:Show time logged', 'foods:Beep when a barcode scans'])
     const entry = featuresFor(ctx).find(e => e.title === 'Beep when a barcode scans')
     expect(entry.feature({}, { ntSettings: { barcodeBeep: true } })).toBe(true)
     expect(entry.feature({}, ctx)).toBe(false)
@@ -516,7 +459,6 @@ describe('the Nutrition group, the search and Features', () => {
     expect(searchSettings('water', web, tr)[0]).toMatchObject({ page: 'water', isPage: true })
     expect(searchSettings('open food facts', web, tr).map(h => h.title)).toEqual(expect.arrayContaining(['Food sources', 'Search Open Food Facts']))
     expect(searchSettings('emoji', web, tr).map(h => h.title)).toContain('Add a category')
-    expect(searchSettings('omega', web, tr).map(h => h.title)).toContain('Add a custom nutrient')
     expect(searchSettings('scoop', web, tr).map(h => h.title)).toContain('Add a custom unit')
     expect(searchSettings('barcode', web, tr).map(h => h.title)).toContain('Beep when a barcode scans')
     expect(searchSettings('water', { ...web, nutrition: false }, tr)).toEqual([])

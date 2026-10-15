@@ -1,7 +1,7 @@
 import { UNITS, WATER_UNITS } from './diary.js'
 
 // The list settings NutriTrace's Settings pages edit (src/routes/settings/Water.svelte,
-// Categories.svelte, CustomUnits.svelte, Nutrients.svelte, Diary.svelte), as the hub takes them
+// Categories.svelte, CustomUnits.svelte, Diary.svelte), as the hub takes them
 // (fitness-hub src/nt-body-checks.ts): exactly these shapes, so a stored entry is cleaned to its
 // fields before a list is written back. Each `add*` answers `{ list }` or `{ error }`, an error
 // code the sheet turns into a sentence. No React and no network here.
@@ -15,10 +15,6 @@ export const CATEGORY_LABEL_MAX = 16
 export const CUSTOM_UNITS_MAX = 100
 export const CUSTOM_UNIT_ABBR_MAX = 16
 export const CUSTOM_UNIT_FULL_MAX = 60
-export const CUSTOM_NUTRIENTS_MAX = 50
-export const CUSTOM_NUTRIENT_LABEL_MAX = 60
-export const CUSTOM_NUTRIENT_ID = /^custom_\S{1,33}$/
-export const NUTRIENT_UNITS = ['g', 'mg', 'mcg', 'IU', 'kcal', 'kJ', '%']
 export const MEAL_NAMES_MAX = 12
 export const MEAL_NAME_MAX = 40
 
@@ -82,27 +78,6 @@ export function addCustomUnit(units, { abbr, full }) {
 }
 
 export const removeCustomUnit = (units, abbr) => listOf(units).filter(u => u.abbr !== abbr).map(unitOf)
-
-/* ------------------------------------------------------------------ custom nutrients --------- */
-
-const nutrientOf = n => ({ id: n.id, label: n.label, unit: n.unit })
-
-/** The id NutriTrace gives a custom nutrient: `custom_` and the name, lower case, spaces as `_`. */
-export const customNutrientId = label => 'custom_' + String(label).trim().toLowerCase().replace(/\s+/g, '_')
-
-export function addCustomNutrient(nutrients, { label, unit }) {
-  const list = listOf(nutrients).map(nutrientOf)
-  const clean = String(label || '').trim()
-  if (!clean || clean.length > CUSTOM_NUTRIENT_LABEL_MAX) return { error: 'name' }
-  const id = customNutrientId(clean)
-  if (!CUSTOM_NUTRIENT_ID.test(id)) return { error: 'long' }
-  if (!NUTRIENT_UNITS.includes(unit)) return { error: 'unit' }
-  if (list.some(n => n.id === id)) return { error: 'duplicate' }
-  if (list.length >= CUSTOM_NUTRIENTS_MAX) return { error: 'full' }
-  return { list: [...list, { id, label: clean, unit }] }
-}
-
-export const removeCustomNutrient = (nutrients, id) => listOf(nutrients).filter(n => n.id !== id).map(nutrientOf)
 
 /* ------------------------------------------------------------------ meal names --------------- */
 

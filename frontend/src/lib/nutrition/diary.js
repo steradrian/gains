@@ -139,11 +139,17 @@ export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = n
   return newP / origP
 }
 
-/** The units a food can be logged in: its household units, its own unit, then the catalogue. */
-export function unitsFor(food) {
+/** The abbreviations of the person's own units (Profile › Custom units, `customUnits`). */
+export const customUnitAbbrs = settings =>
+  (Array.isArray(settings?.customUnits) ? settings.customUnits : []).map(u => String(u?.abbr || '')).filter(Boolean)
+
+/** The units a food can be logged in: its household units, its own unit, the person's custom
+ *  units (NutriTrace lists them first in the picker), then the catalogue. */
+export function unitsFor(food, settings = null) {
   const alt = (parseAltUnits(food?.alt_units) || []).map(r => String(r?.abbr || '')).filter(Boolean)
+  const custom = customUnitAbbrs(settings)
   const own = food?.unit && !UNITS.includes(food.unit) && !alt.includes(food.unit) ? [food.unit] : []
-  return [...new Set([...alt, ...own, ...UNITS])]
+  return [...new Set([...alt, ...own, ...custom, ...UNITS])]
 }
 
 /** The food as logged at (portion, unit): NutriTrace's quantity prompt (Foods.svelte

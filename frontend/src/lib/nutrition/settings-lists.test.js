@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addCategory, addContainer, addCustomNutrient, addCustomUnit, customNutrientId, moveMeal, removeCategory,
-  removeContainer, removeCustomNutrient, removeCustomUnit, removeMeal, setMealName, waterToMl,
+  addCategory, addContainer, addCustomUnit, moveMeal, removeCategory,
+  removeContainer, removeCustomUnit, removeMeal, setMealName, waterToMl,
 } from './settings-lists.js'
 
 describe('water containers', () => {
@@ -80,29 +80,6 @@ describe('custom units', () => {
 
   it('removes by abbreviation', () => {
     expect(removeCustomUnit([{ abbr: 'a', full: 'A' }, { abbr: 'b', full: 'B' }], 'a')).toEqual([{ abbr: 'b', full: 'B' }])
-  })
-})
-
-describe('custom nutrients', () => {
-  it('makes the id NutriTrace makes: custom_ and the lower-cased name with underscores', () => {
-    expect(customNutrientId(' Omega 3  Fat ')).toBe('custom_omega_3_fat')
-    expect(addCustomNutrient([], { label: 'Omega 3', unit: 'g' }).list).toEqual([{ id: 'custom_omega_3', label: 'Omega 3', unit: 'g' }])
-  })
-
-  it('refuses a name with no id the hub takes, a repeat, an unknown unit and a 51st', () => {
-    expect(addCustomNutrient([], { label: '   ', unit: 'g' })).toEqual({ error: 'name' })
-    expect(addCustomNutrient([], { label: 'x'.repeat(61), unit: 'g' })).toEqual({ error: 'name' })
-    expect(addCustomNutrient([], { label: 'x'.repeat(34), unit: 'g' })).toEqual({ error: 'long' })
-    expect(addCustomNutrient([], { label: 'x'.repeat(33), unit: 'g' }).list).toHaveLength(1)
-    expect(addCustomNutrient([{ id: 'custom_omega_3', label: 'Omega 3', unit: 'g' }], { label: 'omega  3', unit: 'mg' })).toEqual({ error: 'duplicate' })
-    expect(addCustomNutrient([], { label: 'Omega', unit: 'oz' })).toEqual({ error: 'unit' })
-    const full = Array.from({ length: 50 }, (_, i) => ({ id: 'custom_n' + i, label: 'n' + i, unit: 'g' }))
-    expect(addCustomNutrient(full, { label: 'More', unit: 'g' })).toEqual({ error: 'full' })
-  })
-
-  it('removes by id and drops any field the hub does not take', () => {
-    expect(removeCustomNutrient([{ id: 'custom_a', label: 'A', unit: 'g', name: 'A' }, { id: 'custom_b', label: 'B', unit: 'mg', name: 'B' }], 'custom_a'))
-      .toEqual([{ id: 'custom_b', label: 'B', unit: 'mg' }])
   })
 })
 

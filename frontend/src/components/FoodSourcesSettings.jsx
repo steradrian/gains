@@ -12,9 +12,10 @@ function displayName(type, code) {
 }
 
 // Profile › Food sources (ia-proposal §5; NutriTrace Settings › Connected services, the Open Food
-// Facts part): whether the Open Food Facts search is on, and the language, country and portion it
-// uses. Logins and keys are not settings the hub lets through, and USDA cannot be used through it
-// (no key can be saved), so neither has a row.
+// Facts part): whether the Open Food Facts search is on (the food search, the Foods page's Online
+// tab and barcode lookups), and the language and country it uses (names, and which products come
+// first). Logins and keys are not settings the hub lets through, USDA cannot be used through it
+// (no key can be saved), and Gains imports every product per 100 g, so none of those has a row.
 export default function FoodSourcesSettings() {
   const { data } = useNtSettings()
   const country = code => (OFF_COUNTRIES[code] ? displayName('region', OFF_COUNTRIES[code]) : t('Worldwide'))
@@ -28,10 +29,6 @@ export default function FoodSourcesSettings() {
         <NtChoiceRow k="offSearchCountry" icon="flag" tint="var(--orange)" title={t('Search country')}
           options={Object.keys(OFF_COUNTRIES).map(name => ({ value: name, label: country(name) }))}
           search={{ placeholder: t('Search…'), label: t('Search country'), emptyLabel: t('No match'), match: (o, q) => o.label.toLowerCase().includes(q.trim().toLowerCase()) }} />
-        <NtChoiceRow k="offImportPortion" icon="scale" tint="var(--green)" title={t('Import nutrition as')} options={[
-          { value: 'per100g', label: t('Per 100 g') },
-          { value: 'perServing', label: t('Per serving') },
-        ]} />
       </>}
     </Section>
   )

@@ -5,9 +5,10 @@ import NtChoiceRow from './NtChoiceRow.jsx'
 import NtSwitchRow from './NtSwitchRow.jsx'
 
 // Profile › Foods & scanning (ia-proposal §5; NutriTrace Settings › Foods): what each row of the
-// Foods, Meals and Recipes lists shows, the search source and order, and the barcode scanner and
-// photo crop. The scanner's flashlight is a device setting NutriTrace never syncs, and Yesterday's
-// meals is not one the hub lets through, so neither is here.
+// Foods page shows, the source it opens on and the order of Foods, Meals and Recipes (views/Foods,
+// views/MealCatalog), and the barcode scanner's beep (ScanSheet). Not here: the flashlight is a
+// device setting NutriTrace never syncs, Yesterday's meals is not one the hub lets through, and
+// Gains has no thumbnails in these lists or photo crop.
 export default function FoodsSettings() {
   const { data } = useNtSettings()
   const sorts = [
@@ -26,7 +27,6 @@ export default function FoodsSettings() {
   ]
   return <>
     <Section title={t('Food rows')} footer={t('What shows on each row in the Foods, Meals and Recipes lists.')}>
-      <NtSwitchRow k="foodsShowThumbnails" icon="image" tint="var(--teal)" title={t('Show thumbnails')} />
       <NtSwitchRow k="foodsShowCategories" icon="list" tint="var(--indigo)" title={t('Show categories')} />
       <NtSwitchRow k="foodsShowLabels" icon="flag" tint="var(--orange)" title={t('Show category labels')} />
       <NtSwitchRow k="foodsShowNotes" icon="note" tint="var(--blue)" title={t('Show notes')} />
@@ -37,9 +37,8 @@ export default function FoodsSettings() {
       <NtChoiceRow k="mealsSort" icon="utensils" tint="var(--orange)" title={t('Meals order')} options={sorts} />
       <NtChoiceRow k="recipesSort" icon="cookingPot" tint="var(--red)" title={t('Recipes order')} options={sorts} />
     </Section>
-    <Section title={t('Camera and scanning')}>
+    <Section title={t('Scanning')}>
       <NtSwitchRow k="barcodeBeep" icon="speaker" tint="var(--pink)" title={t('Beep when a barcode scans')} />
-      <NtSwitchRow k="cropPhotos" icon="camera" tint="var(--purple)" title={t('Crop photos')} />
     </Section>
   </>
 }

@@ -30,7 +30,6 @@ export const PAGES = {
   water: { title: 'Water', icon: 'droplet', tint: 'var(--blue)', kw: 'water drink hydration containers bottle glass unit ml oz' },
   foods: { title: 'Foods & scanning', icon: 'scanBarcode', tint: 'var(--green)', kw: 'foods meals recipes list sort order barcode scanner camera photos' },
   sources: { title: 'Food sources', icon: 'globe', tint: 'var(--teal)', kw: 'open food facts off usda online database search language country' },
-  nutrients: { title: 'Custom nutrients', icon: 'apple', tint: 'var(--red)', kw: 'custom nutrients nutrition vitamins minerals omega track' },
   categories: { title: 'Categories', icon: 'list', tint: 'var(--indigo)', kw: 'food categories emoji label groups' },
   customUnits: { title: 'Custom units', icon: 'ruler', tint: 'var(--purple)', kw: 'custom units serving shot scoop stick abbreviation' },
   fields: { title: 'Measurement fields', icon: 'ruler', tint: 'var(--purple)', sheet: true },
@@ -47,13 +46,13 @@ export const PAGE_IDS = Object.keys(PAGES)
 
 // The pages that are NutriTrace's settings, read and written through the hub (lib/nutrition):
 // the web app, signed in. Goals is one too, but lives in the Nutrition tab.
-const NUTRITION_PAGES = ['diary', 'water', 'foods', 'sources', 'nutrients', 'categories', 'customUnits']
+const NUTRITION_PAGES = ['diary', 'water', 'foods', 'sources', 'categories', 'customUnits']
 
 // The root, top to bottom. Whether a row shows is pageVisible's call.
 export const ROOT_GROUPS = [
   { title: 'General', ids: ['appearance', 'units', 'notifications', 'coach', 'features', 'health'] },
   { title: 'Training', ids: ['workout', 'advanced', 'alerts', 'schedule', 'equipment'] },
-  { title: 'Nutrition', ids: ['goals', 'diary', 'water', 'foods', 'sources', 'nutrients', 'categories', 'customUnits'] },
+  { title: 'Nutrition', ids: ['goals', 'diary', 'water', 'foods', 'sources', 'categories', 'customUnits'] },
   { title: 'Body & progress', ids: ['fields'] },
   { title: 'Data', ids: ['backup', 'import', 'media', 'danger'] },
   { title: 'Admin', ids: ['admin'] },
@@ -130,21 +129,13 @@ export const SEARCH = [
   // Features (the NutriTrace switches whose only home is here)
   { page: 'features', title: 'Fasting', icon: 'timer', tint: 'var(--indigo)', kw: 'fast fasting intermittent 16:8 omad', when: c => !!c.nutrition, feature: (S, c) => !!c.fastingOn },
   // Diary & meals
-  { page: 'diary', title: 'Show brand names', icon: 'apple', tint: 'var(--green)', kw: 'brand diary food row', when: ntOn },
-  { page: 'diary', title: 'Show time logged', icon: 'clock', tint: 'var(--purple)', kw: 'timestamp time diary food row', when: ntOn, feature: ntFeature('diaryShowTimestamps') },
-  { page: 'diary', title: 'Show food photos', icon: 'image', tint: 'var(--teal)', kw: 'thumbnail picture image photo diary food row', when: ntOn },
-  { page: 'diary', title: 'Show every nutrient', icon: 'list', tint: 'var(--indigo)', kw: 'all nutrients vitamins minerals totals diary', when: ntOn, feature: ntFeature('diaryShowAllNutrients') },
-  { page: 'diary', title: 'Show nutrition units', icon: 'ruler', tint: 'var(--blue)', kw: 'units grams milligrams suffix diary', when: ntOn },
-  { page: 'diary', title: 'Show portion size', icon: 'scale', tint: 'var(--orange)', kw: 'portion serving size amount diary food row', when: ntOn, feature: ntFeature('diaryShowPortionSize') },
-  { page: 'diary', title: 'Show macro summary', icon: 'chart', tint: 'var(--teal)', kw: 'protein carbs fat bar meal card diary', when: ntOn },
+  { page: 'diary', title: 'Show macro summary', icon: 'chart', tint: 'var(--teal)', kw: 'protein carbs fat bar meal card diary home', when: ntOn },
+  { page: 'diary', title: 'Show brand names', icon: 'apple', tint: 'var(--green)', kw: 'brand diary food row home', when: ntOn },
+  { page: 'diary', title: 'Show time logged', icon: 'clock', tint: 'var(--purple)', kw: 'timestamp time diary food row home', when: ntOn, feature: ntFeature('diaryShowTimestamps') },
   { page: 'diary', title: 'Ask for quantity when adding', icon: 'plusCircle', tint: 'var(--green)', kw: 'prompt portion quantity servings add food diary', when: ntOn },
   { page: 'diary', title: 'Quantity starts in', icon: 'pencil', tint: 'var(--blue)', kw: 'default field cursor servings portion add food', opts: ['Number of servings', 'Serving size'], when: ntOn },
-  { page: 'diary', title: 'Show day notes', icon: 'note', tint: 'var(--orange)', kw: 'notes journal diary day', when: ntOn },
-  { page: 'diary', title: 'Show day completion', icon: 'checkCircle', tint: 'var(--green)', kw: 'complete close finish day check diary', when: ntOn, feature: ntFeature('diaryShowCompletion') },
-  { page: 'diary', title: 'Show unit details', icon: 'ruler', tint: 'var(--teal)', kw: 'unit metadata basis density serving units per 100 ml liquids', when: ntOn, feature: ntFeature('showUnitMetadata') },
-  { page: 'diary', title: 'Warn about unit conversions', icon: 'warning', tint: 'var(--orange)', kw: 'unit mismatch warning density grams ml', when: ntOn, feature: ntFeature('warnUnitMismatch') },
   { page: 'diary', title: 'Show quick calories', icon: 'bolt', tint: 'var(--yellow)', kw: 'quick calories kcal calorie only entry bolt', when: ntOn },
-  { page: 'diary', title: 'Quick calories shown', icon: 'list', tint: 'var(--indigo)', kw: 'quick calories summed separate rows', opts: ['Added into one row', 'One row each'], when: c => ntOn(c) && ntValue(c, 'showQuickCalories') === true },
+  { page: 'diary', title: 'Quick calories shown', icon: 'list', tint: 'var(--indigo)', kw: 'quick calories summed separate rows', opts: ['Added into one row', 'One row each'], when: ntOn },
   { page: 'diary', title: 'Show activity under meals', icon: 'flame', tint: 'var(--orange)', kw: 'activity workouts burned exercise calories diary', when: ntOn, feature: ntFeature('diaryShowActivity') },
   { page: 'diary', title: 'Wearable and manual entries', icon: 'swap', tint: 'var(--indigo)', kw: 'activity policy wearable manual fitbit garmin both additive', opts: ['Wearable wins', 'Manual wins', 'Add them'], when: c => ntOn(c) && ntValue(c, 'diaryShowActivity') === true && c.ntSettings?.calorieAdjustFromActivity === true },
   { page: 'diary', title: 'Default fasting plan', icon: 'timer', tint: 'var(--indigo)', kw: 'fasting default plan goal hours', opts: ['14:10', '16:8', '18:6', '20:4', 'OMAD'], when: c => !!c.nutrition && !!c.fastingOn },
@@ -155,7 +146,6 @@ export const SEARCH = [
   { page: 'water', title: 'Show water in statistics', icon: 'chart', tint: 'var(--teal)', kw: 'water statistics trends hide', when: ntOn },
   { page: 'water', title: 'Add a container', icon: 'plusCircle', tint: 'var(--green)', kw: 'water container bottle glass cup quick add volume', when: ntOn },
   // Foods & scanning
-  { page: 'foods', title: 'Show thumbnails', icon: 'image', tint: 'var(--teal)', kw: 'foods list photo picture image row', when: ntOn },
   { page: 'foods', title: 'Show categories', icon: 'list', tint: 'var(--indigo)', kw: 'foods list category row', when: ntOn },
   { page: 'foods', title: 'Show category labels', icon: 'flag', tint: 'var(--orange)', kw: 'foods list category emoji label row', when: ntOn },
   { page: 'foods', title: 'Show notes', icon: 'note', tint: 'var(--blue)', kw: 'foods list notes row', when: ntOn },
@@ -164,14 +154,11 @@ export const SEARCH = [
   { page: 'foods', title: 'Meals order', icon: 'utensils', tint: 'var(--orange)', kw: 'sort order meals alphabetical recent most used', opts: ['A to Z', 'Most recent', 'Most used'], when: ntOn },
   { page: 'foods', title: 'Recipes order', icon: 'cookingPot', tint: 'var(--red)', kw: 'sort order recipes alphabetical recent most used', opts: ['A to Z', 'Most recent', 'Most used'], when: ntOn },
   { page: 'foods', title: 'Beep when a barcode scans', icon: 'speaker', tint: 'var(--pink)', kw: 'barcode scanner sound beep camera scan', when: ntOn, feature: ntFeature('barcodeBeep') },
-  { page: 'foods', title: 'Crop photos', icon: 'camera', tint: 'var(--purple)', kw: 'photo crop camera picture food', when: ntOn, feature: ntFeature('cropPhotos') },
   // Food sources
   { page: 'sources', title: 'Search Open Food Facts', icon: 'globe', tint: 'var(--teal)', kw: 'off open food facts online database barcode lookup source', when: ntOn },
   { page: 'sources', title: 'Search language', icon: 'chat', tint: 'var(--blue)', kw: 'open food facts language results', when: c => ntOn(c) && ntValue(c, 'offEnabled') === true },
   { page: 'sources', title: 'Search country', icon: 'flag', tint: 'var(--orange)', kw: 'open food facts country region results', when: c => ntOn(c) && ntValue(c, 'offEnabled') === true },
-  { page: 'sources', title: 'Import nutrition as', icon: 'scale', tint: 'var(--green)', kw: 'open food facts import per 100 g serving portion', opts: ['Per 100 g', 'Per serving'], when: c => ntOn(c) && ntValue(c, 'offEnabled') === true },
-  // Custom nutrients, categories, units
-  { page: 'nutrients', title: 'Add a custom nutrient', icon: 'plusCircle', tint: 'var(--green)', kw: 'custom nutrient omega-3 track vitamin mineral', when: ntOn },
+  // Categories, units
   { page: 'categories', title: 'Add a category', icon: 'plusCircle', tint: 'var(--green)', kw: 'food category emoji label dairy proteins', when: ntOn },
   { page: 'customUnits', title: 'Add a custom unit', icon: 'plusCircle', tint: 'var(--green)', kw: 'custom unit shot scoop stick serving abbreviation', when: ntOn },
   // Units & language
