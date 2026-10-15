@@ -5,6 +5,7 @@ import { offResults } from './off.js'
 import { useDiarySelection } from './selection.js'
 import { useHubSync } from './sync.js'
 import { useStore } from '../../store/useStore.js'
+import { todayISO } from '../format.js'
 
 // NutriTrace's data as the app shows it: the diary per date, the settings it adds up against,
 // the day's activity rows, the target's inputs and your foods. Server state read through the hub
@@ -81,6 +82,9 @@ export const useNutrition = create((set, get) => {
   }
 
   async function write(date, change) {
+    // Nothing is logged to a day that has not happened: it would count toward that day's target
+    // before it exists, and a weight logged ahead would become the current one.
+    if ((change.addItems?.length || change.addWater?.length) && !(date <= todayISO())) throw invalid('nothing can be logged to a future day')
     const g = gen
     const current = await NtApi.getDiaryDate(date)
     const n = issue(date)
@@ -97,6 +101,19 @@ export const useNutrition = create((set, get) => {
     const saved = withImg(await NtApi.createFood({ ...food, created_at: new Date().toISOString() }))
     if (g === gen) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
     return saved
+  }
+
+  // Recents order by this (POST /api/foods/:id/used). Fire and forget, as NutriTrace does.
+  function markUsed(id, date) {
+    NtApi.markFoodUsed(id, date).catch(() => {})
+    set(s => ({
+      foods: {
+        ...s.foods,
+        list: s.foods.list.map(f => (f.id === id
+          ? { ...f, last_used_at: f.last_used_at && f.last_used_at > date ? f.last_used_at : date, usage_count: (f.usage_count || 0) + 1 }
+          : f)),
+      },
+    }))
   }
 
   return {
@@ -126,16 +143,30 @@ export const useNutrition = create((set, get) => {
       }
     },
 
-    async loadDay(date, { force = false } = {}) {
+    /** Writes one setting (PUT /api/settings) and, once the server has it, puts it in the cache.
+     *  Throws an NtError and leaves the cache as it was. */
+    async saveSetting(key, value) {
+      const g = gen
+      await NtApi.putSetting(key, value)
+      const cur = get().settings
+      if (g === gen && cur.data) set({ settings: { ...cur, data: { ...cur.data, [key]: value } } })
+    },
+
+    // `signal`: the caller no longer wants the day (the calendar moved on); an aborted load
+    // leaves the day as it was before it.
+    async loadDay(date, { force = false, signal } = {}) {
       const cur = get().days[date]
       if (!force && cur && (cur.status === 'ready' || cur.status === 'loading')) return
+      if (signal?.aborted) return
       const g = gen
       const n = issue(date)
       if (!cur || cur.status !== 'ready') patchDay(date, { status: 'loading' })
       try {
-        applyDay(date, n, g, await NtApi.getDiaryDate(date))
+        applyDay(date, n, g, await NtApi.getDiaryDate(date, { signal }))
       } catch (e) {
-        if (g === gen && n >= (applied[date] || 0) && get().days[date]?.status !== 'ready') patchDay(date, { status: 'error', error: e })
+        if (g !== gen || n < (applied[date] || 0) || get().days[date]?.status === 'ready') return
+        if (e?.code === 'aborted') patchDay(date, { status: cur?.status || 'idle', error: cur?.error || null })
+        else patchDay(date, { status: 'error', error: e })
       }
     },
 
@@ -174,6 +205,23 @@ export const useNutrition = create((set, get) => {
     caloriesOut: date => get().goalInputs[date] ?? null,
     adaptiveTdee: () => get().goalInputs[ADAPTIVE_KEY] ?? null,
 
+    /** Creates a food of yours (no `id`; keep the draft, with its `client_key`, and send the same
+     *  one on a retry) or edits one (`id`). Resolves to the food as saved. Throws an NtError. */
+    async saveFood(food) {
+      const g = gen
+      const saved = withImg(typeof food.id === 'number' ? await NtApi.updateFood(food.id, food) : await NtApi.createFood(food))
+      if (g === gen) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
+      return saved
+    },
+
+    /** Removes a food of yours from NutriTrace and from the list. Past diary entries keep theirs. */
+    async deleteFood(id) {
+      const g = gen
+      // 404: already gone (a retry after a lost answer).
+      await NtApi.deleteFood(id).catch(e => { if (e?.status !== 404) throw e })
+      if (g === gen) set(s => ({ foods: { ...s.foods, list: s.foods.list.filter(f => f.id !== id) } }))
+    },
+
     async loadFoods({ force = false } = {}) {
       const cur = get().foods
       if (!force && (cur.status === 'ready' || cur.status === 'loading')) return
@@ -190,12 +238,16 @@ export const useNutrition = create((set, get) => {
     // Which days from `from` to `to` (at most 42, the calendar's visible weeks) have food logged:
     // `logged.days`, with `logged.checked` the days known either way. NutriTrace has no range
     // read, so each day not already in the cache is one GET /api/diary/:date (and lands in it).
-    async loadLogged(from, to) {
-      const want = isoDays(from, to).filter(d => !get().logged.checked.has(d) && get().days[d]?.status !== 'ready')
-      for (const d of isoDays(from, to)) if (get().days[d]?.status === 'ready') markLogged(d, get().days[d].entry)
+    // Days after today are never read (nothing can be logged to them). `signal` stops the rest,
+    // and aborts the reads in flight, when the calendar moves to another month or closes.
+    async loadLogged(from, to, { signal } = {}) {
+      const today = todayISO()
+      const days = isoDays(from, to).filter(d => d <= today)
+      const want = days.filter(d => !get().logged.checked.has(d) && get().days[d]?.status !== 'ready')
+      for (const d of days) if (get().days[d]?.status === 'ready') markLogged(d, get().days[d].entry)
       const queue = [...want]
       const worker = async () => {
-        while (queue.length) await get().loadDay(queue.shift())
+        while (queue.length && !signal?.aborted) await get().loadDay(queue.shift(), { signal })
       }
       await Promise.all(Array.from({ length: Math.min(LOGGED_CONCURRENCY, queue.length) }, worker))
     },
@@ -205,10 +257,6 @@ export const useNutrition = create((set, get) => {
     async searchOnline(query, lang, { signal } = {}) {
       return offResults(await NtApi.searchOnline(query, { lang, signal }), lang)
     },
-
-    /** Saves an online result as one of your foods, the save logging it does. A retry returns the
-     *  food made the first time (its client_key). Resolves to the saved food. */
-    saveFood: food => ownFood(food),
 
     /* --- drafts: build once, log (and retry) the same one --- */
 
@@ -227,19 +275,20 @@ export const useNutrition = create((set, get) => {
       const saved = await ownFood(draft.food)
       const item = typeof saved.id === 'number' ? { ...draft.item, id: saved.id, food_server_id: saved.id } : draft.item
       await write(date, { addItems: [item] })
-      // Recents order by this (POST /api/foods/:id/used). Fire and forget, as NutriTrace does.
-      if (typeof saved.id === 'number') {
-        NtApi.markFoodUsed(saved.id, date).catch(() => {})
-        set(s => ({
-          foods: {
-            ...s.foods,
-            list: s.foods.list.map(f => (f.id === saved.id
-              ? { ...f, last_used_at: f.last_used_at && f.last_used_at > date ? f.last_used_at : date, usage_count: (f.usage_count || 0) + 1 }
-              : f)),
-          },
-        }))
-      }
+      if (typeof saved.id === 'number') markUsed(saved.id, date)
       return item
+    },
+
+    /** Logs finished items (each with its uuid; foods of yours or quick entries) to the date in
+     *  one write, so they are all logged or none is. Throws when the answer leaves any out (a
+     *  uuid NutriTrace has tombstoned stays out). Resolves to the items. */
+    async logItems(date, items) {
+      if (!items?.length || !items.every(i => i?.uuid)) throw invalid('logItems takes items with uuids')
+      const entry = await write(date, { addItems: items })
+      const have = new Set((entry?.items || []).map(i => i?.uuid))
+      if (!items.every(i => have.has(i.uuid))) throw invalid('the day did not take every item')
+      for (const id of new Set(items.map(i => i.food_server_id).filter(id => typeof id === 'number'))) markUsed(id, date)
+      return items
     },
 
     /** Logs a draftQuick item to the date. */
@@ -258,6 +307,7 @@ export const useNutrition = create((set, get) => {
 
     // Undo of a log just made: out of the day, and a tombstone for its uuid (deleted_uuids).
     removeItem: (date, uuid) => write(date, { removeItems: [uuid] }),
+    removeItems: (date, uuids) => write(date, { removeItems: [...uuids] }),
     removeWater: (date, uuid) => write(date, { removeWater: [uuid] }),
   }
 })

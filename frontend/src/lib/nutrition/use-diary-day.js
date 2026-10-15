@@ -1,11 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { nutritionAvailable } from './api.js'
 import { useNutrition } from './store.js'
 import { calorieTarget, macroTarget, totalsOf, waterGoalOf, waterTotal } from './diary.js'
 
 // One day of the diary as Home shows it: loads what it needs for `date` (the day, the settings,
-// the activity rows when the activity section is on, and the target's inputs) and adds it up.
+// the activity rows and the target's inputs) and adds it up.
+//
+// `status` is 'ready' only once everything the numbers depend on is in: the day, the settings,
+// the Adaptive or Dynamic input when that mode is on, and the activity when it adjusts the
+// target. Until then 'loading', so the target never shows a default that then jumps. A failed
+// day or settings read is 'error' (`error` says which), with `reload` retrying both.
 export function useDiaryDay(date) {
   const user = useStore(s => s.user)
   const on = nutritionAvailable(user)
@@ -17,6 +22,9 @@ export function useDiaryDay(date) {
   const mode = settings?.calorieGoalMode
   const showActivity = !!settings?.diaryShowActivity
   const policy = settings?.manualActivityPolicy
+  // The goal-input load that last finished, as "date|mode": a failed one is not kept in the store
+  // (the next read retries), so the page needs its own word that the attempt is over.
+  const [inputsTried, setInputsTried] = useState(null)
 
   useEffect(() => {
     if (!on) return
@@ -27,10 +35,12 @@ export function useDiaryDay(date) {
   }, [on, date])
 
   useEffect(() => {
-    if (!on || settingsState.status !== 'ready') return
+    if (!on || settingsState.status !== 'ready') return undefined
+    let live = true
     const n = useNutrition.getState()
-    n.loadGoalInputs(date, mode)
+    n.loadGoalInputs(date, mode).then(() => { if (live) setInputsTried(`${date}|${mode}`) })
     n.loadActivity(date, policy)
+    return () => { live = false }
   }, [on, date, settingsState.status, mode, policy])
 
   const entry = day?.entry || null
@@ -49,10 +59,20 @@ export function useDiaryDay(date) {
     fat: macroTarget(settings, 'fat', date, target.base),
   }
 
+  const settingsFailed = settingsState.status === 'error' && !settings
+  const inputsIn = (mode !== 'dynamic' || date in goalInputs) && (mode !== 'adaptive' || 'adaptive' in goalInputs)
+  const inputsReady = inputsIn || inputsTried === `${date}|${mode}`
+  const activityReady = !target.adjust || !!activity
+  const status = day?.status === 'error' || settingsFailed ? 'error'
+    : day?.status === 'ready' && settingsState.status === 'ready' && inputsReady && activityReady ? 'ready'
+    : on ? 'loading' : 'idle'
+
   return {
     on,
-    status: day?.status || 'idle',
-    error: day?.error || null,
+    status,
+    error: day?.status === 'error' ? day.error : settingsFailed ? settingsState.error : null,
+    // The day itself is in (water and meals can show while the target still loads).
+    dayReady: day?.status === 'ready' && !!settings,
     settings,
     settingsStatus: settingsState.status,
     entry,
@@ -61,8 +81,12 @@ export function useDiaryDay(date) {
     macros,
     left: Math.round(target.target - totals.calories),
     water: { total: waterTotal(entry), goal: waterGoalOf(settings) },
-    activityRows: activity?.rows || [],
+    activityRows: showActivity ? activity?.rows || [] : [],
     activitySum: activity?.sum || null,
-    reload: () => useNutrition.getState().loadDay(date, { force: true }),
+    reload: () => {
+      const n = useNutrition.getState()
+      if (settingsState.status !== 'ready') n.loadSettings({ force: true })
+      n.loadDay(date, { force: true })
+    },
   }
 }

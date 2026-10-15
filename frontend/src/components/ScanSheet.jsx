@@ -7,6 +7,7 @@ import { foodKcal } from '../lib/nutrition/diary.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import CameraScan from './CameraScan.jsx'
+import { foodEditSheet } from './FoodEditSheet.jsx'
 import { portionSheet } from './PortionSheet.jsx'
 import { quickKcalSheet } from './QuickKcalSheet.jsx'
 import { SheetHeader } from './sheet-layout.jsx'
@@ -70,6 +71,8 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
   const log = food => { close(); portionSheet({ food, date, meal, mealName, onLogged }) }
   const search = () => { close(); if (onSearch) onSearch() }
   const quick = () => { close(); quickKcalSheet({ date, meal, mealName, onLogged }) }
+  // Foods' create flow, with the scanned code in its Barcode field (no id, so it creates).
+  const create = code => { close(); foodEditSheet({ food: { barcode: code }, settings: useNutrition.getState().settings.data }) }
   const save = async food => {
     if (busy) return
     setBusy(true)
@@ -124,6 +127,7 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
       </div>
       <div className="scan-actions">
         <Button variant="primary" onClick={search}>{t('Search foods')}</Button>
+        <Button variant="tinted" onClick={() => create(step.code)}>{t('New food')}</Button>
         <Button variant="tinted" onClick={quick}>{t('Quick kcal')}</Button>
         <Button variant="ghost" onClick={again}>{t('Scan another')}</Button>
       </div>

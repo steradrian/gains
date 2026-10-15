@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
-import { useHubTrouble } from '../lib/nutrition/sync.js'
+import { useHubStatusRefresh, useHubTrouble } from '../lib/nutrition/sync.js'
 import Icon from './Icon.jsx'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 
@@ -13,6 +13,7 @@ export default function AvatarButton() {
   const user = useStore(s => s.user)
   const connection = useConnectionTrouble()
   const hub = useHubTrouble()
+  useHubStatusRefresh()
   const initial = (user?.name || '').trim().slice(0, 1).toUpperCase()
   const label = connection ? t('Profile') + ', ' + t('Connection problem')
     : hub ? t('Profile') + ', ' + t('Nutrition sync needs attention') : t('Profile')

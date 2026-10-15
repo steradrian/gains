@@ -6,6 +6,8 @@ import { useUnits } from '../lib/nutrition/use-units.js'
 import { toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import Icon from './Icon.jsx'
 import { Button } from './ui.jsx'
+import { Card } from './blocks.jsx'
+import { Inline } from './layout.jsx'
 
 export const WATER_STEP_ML = 250
 
@@ -35,18 +37,18 @@ export default function WaterCard({ date, water, ready }) {
   const [busy, setBusy] = useState(false)
   const pct = water.goal ? Math.min(100, (water.total / water.goal) * 100) : 0
   const add = async () => { setBusy(true); await addWater(date); setBusy(false) }
-  return <div className="card water-card">
-    <div className="row between">
-      <div className="row nt-lead">
+  return <Card className="water-card">
+    <Inline justify="between">
+      <Inline gap={4} className="nt-lead">
         <span className="lrow-i tint-blue"><Icon name="droplet" /></span>
         <div>
           <div className="lbl2">{t('Water')}</div>
           <div className="ttl">{units.water(water.total)} / {units.water(water.goal)}</div>
         </div>
-      </div>
+      </Inline>
       <Button size="sm" variant="tinted" icon="plus" onClick={add} disabled={busy || !ready}
         aria-label={t('Add a glass of water, {0}', units.water(WATER_STEP_ML))}>{units.water(WATER_STEP_ML)}</Button>
-    </div>
+    </Inline>
     <div className="macro-track water-track" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
-  </div>
+  </Card>
 }

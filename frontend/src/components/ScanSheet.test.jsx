@@ -134,6 +134,18 @@ describe('scanning a product', () => {
     expect(lastSheet().textContent).toContain('Log food')
   })
 
+  it('a miss opens the create-food sheet with the scanned barcode filled in', async () => {
+    await openScan()
+    await scan('9999999999999')
+    await click(button('New food', lastSheet()))
+    const field = [...lastSheet().querySelectorAll('input')].find(i => i.value === '9999999999999')
+    expect(field).toBeTruthy()
+    await typeInto([...lastSheet().querySelectorAll('input')][0], 'Mystery bar')
+    await click(button('Save', lastSheet()))
+    const post = nt.writes().find(w => w.method === 'POST' && w.path === '/nt/api/foods')
+    expect(post.body).toMatchObject({ name: 'Mystery bar', barcode: '9999999999999' })
+  })
+
   it('a product listed without calories cannot be logged and says why', async () => {
     const bare = fixtureOffProduct('1234567890128')
     bare.product.nutriments = { proteins_100g: 3 }

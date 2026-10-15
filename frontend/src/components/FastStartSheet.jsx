@@ -25,7 +25,8 @@ export default function FastStartSheet({ startAt, close }) {
     const at = new Date(value)
     if (!value || isNaN(at.getTime())) { setError(t('Enter a date and time.')); return }
     if (at.getTime() > Date.now()) { setError(t('The start cannot be in the future.')); return }
-    if (at.getTime() < Date.now() - EDIT_BACKDATE_MS) { setError(t('The start can be at most 7 days back.')); return }
+    // A minute inside the hub's 7-day line, so the request in flight does not cross it.
+    if (at.getTime() < Date.now() - EDIT_BACKDATE_MS + 60_000) { setError(t('The start can be at most 7 days back.')); return }
     setBusy(true)
     setError(null)
     try {

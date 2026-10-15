@@ -230,14 +230,21 @@ export function waterLog(amountMl, { now = new Date(), hour12 = true } = {}) {
  * @returns {import('./api.js').DiaryWrite}
  */
 export function dayWrite(day, { addItems = [], addWater = [], removeItems = [], removeWater = [] } = {}) {
+  // An added entry whose uuid the day already holds replaces it where it stands: a retry is the
+  // same entry, and an edit after a lost answer is the newer one.
   const merge = (list, add, remove) => {
     const gone = new Set(remove)
-    const have = new Set()
+    const at = new Map()
     const out = []
-    for (const e of [...(Array.isArray(list) ? list : []), ...add]) {
-      if (!e || typeof e !== 'object' || gone.has(e.uuid) || (e.uuid && have.has(e.uuid))) continue
-      if (e.uuid) have.add(e.uuid)
+    for (const e of Array.isArray(list) ? list : []) {
+      if (!e || typeof e !== 'object' || gone.has(e.uuid) || (e.uuid && at.has(e.uuid))) continue
+      if (e.uuid) at.set(e.uuid, out.length)
       out.push(e)
+    }
+    for (const e of add) {
+      if (!e || typeof e !== 'object' || gone.has(e.uuid)) continue
+      if (e.uuid && at.has(e.uuid)) out[at.get(e.uuid)] = e
+      else { if (e.uuid) at.set(e.uuid, out.length); out.push(e) }
     }
     return out
   }
@@ -347,7 +354,7 @@ export function energyOf(kcal, settings) {
   return settings?.energyUnit === 'kJ' ? { value: Math.round(n * 4.184), unit: 'kJ' } : { value: Math.round(n), unit: 'kcal' }
 }
 
-const WATER_UNITS = { oz: [29.5735, 0, 'fl oz'], L: [1000, 2, 'L'], G: [3785.41, 3, 'G'] }
+export const WATER_UNITS = { oz: [29.5735, 0, 'fl oz'], L: [1000, 2, 'L'], G: [3785.41, 3, 'G'] }
 /** ml in the person's water unit (waterUnit 'ml' | 'oz' | 'L' | 'G'; WaterWidget.svelte formatMl). */
 export function waterOf(ml, settings) {
   const n = Number(ml) || 0

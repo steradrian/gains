@@ -78,6 +78,27 @@ describe('the fake answers the new routes as the hub would', () => {
     expect((await call(nt, 'DELETE', `/nt/api/fasts/${started.data.id}`)).status).toBe(404)
   })
 
+  it('refuses what nt-body-checks.ts refuses: future or malformed times, a goal under 1, a body on end or delete, a query on a fast', async () => {
+    const nt = createFakeNutriTrace()
+    const ago = ms => new Date(Date.now() - ms).toISOString()
+    expect((await call(nt, 'POST', '/nt/api/fasts/start', { goal_hours: 0.5 })).status).toBe(400)
+    expect((await call(nt, 'POST', '/nt/api/fasts/start', { goal_hours: 16, start_at: ago(-3600_000) })).status).toBe(400)
+    expect((await call(nt, 'POST', '/nt/api/fasts/start', { goal_hours: 16, start_at: 'yesterday' })).status).toBe(400)
+    expect((await call(nt, 'POST', '/nt/api/fasts/start', { goal_hours: 16, start_at: 1760000000000 })).status).toBe(400)
+    const started = await call(nt, 'POST', '/nt/api/fasts/start', { goal_hours: 16, start_at: ago(-60_000) }) // inside the 5 minute skew
+    expect(started.status).toBe(201)
+    const id = started.data.id
+    expect((await call(nt, 'PATCH', `/nt/api/fasts/${id}`, { start_at: ago(8 * 24 * 3600_000) })).status).toBe(400)
+    expect((await call(nt, 'PATCH', `/nt/api/fasts/${id}`, { start_at: ago(-3600_000) })).status).toBe(400)
+    expect((await call(nt, 'PATCH', `/nt/api/fasts/${id}`, { start_at: ago(6 * 24 * 3600_000) })).status).toBe(200)
+    expect((await call(nt, 'GET', '/nt/api/fasts/active?x=1')).status).toBe(403)
+    expect((await call(nt, 'POST', `/nt/api/fasts/${id}/end`, { now: 1 })).status).toBe(400)
+    expect((await call(nt, 'POST', `/nt/api/fasts/${id}/end`)).status).toBe(400)
+    expect((await call(nt, 'POST', `/nt/api/fasts/${id}/end`, {})).status).toBe(200)
+    expect((await call(nt, 'DELETE', `/nt/api/fasts/${id}`, {})).status).toBe(400)
+    expect((await call(nt, 'DELETE', `/nt/api/fasts/0${id}`)).status).toBe(404)
+  })
+
   it('back-dates a start by at most 24 hours', async () => {
     const nt = createFakeNutriTrace()
     const twoHours = new Date(Date.now() - 2 * 3600 * 1000).toISOString()

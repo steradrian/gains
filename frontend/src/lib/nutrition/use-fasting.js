@@ -109,13 +109,11 @@ export async function setFastingEnabled(on) {
 }
 
 /** Whether the fasting tracker is on: nutrition reachable and the setting on. False until the
- *  settings are read (this asks for them). */
+ *  settings are read; Home's diary and the + sheet, which use this, load them already. */
 export function useFastingOn() {
   const user = useStore(s => s.user)
-  const available = nutritionAvailable(user)
   const on = useNutrition(s => s.settings.data?.fastingEnabled === true)
-  useEffect(() => { if (available) useNutrition.getState().loadSettings() }, [available])
-  return available && on
+  return nutritionAvailable(user) && on
 }
 
 /** The clock, re-read every `ms` while `running`, for a fast's elapsed time. */

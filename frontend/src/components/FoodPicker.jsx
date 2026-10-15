@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { foodKcal, matchesFood, recentFoods } from '../lib/nutrition/diary.js'
@@ -8,18 +8,15 @@ import { quickKcalSheet } from './QuickKcalSheet.jsx'
 import { scanSheet } from './ScanSheet.jsx'
 import Icon from './Icon.jsx'
 import { SearchField } from './ui.jsx'
+import { ItemRow, SectionTitle } from './blocks.jsx'
 
 const OWN_MAX = 20
 const ONLINE_DELAY_MS = 450
 
 function FoodRow({ food, onPick, energy }) {
-  return <button type="button" className="item food-row" onClick={() => onPick(food)}>
-    <div className="grow">
-      <div className="tt">{food.name}</div>
-      <div className="ss">{[food.brand, `${food.portion || 100} ${food.unit || 'g'}`].filter(Boolean).join(' · ')}</div>
-    </div>
-    <span className="food-kcal small">{energy(foodKcal(food))}</span>
-  </button>
+  return <ItemRow className="food-row" onClick={() => onPick(food)} title={food.name}
+    subtitle={[food.brand, `${food.portion || 100} ${food.unit || 'g'}`].filter(Boolean).join(' · ')}
+    trailing={<span className="food-kcal small">{energy(foodKcal(food))}</span>} />
 }
 
 // Choosing what to log, for one date and meal: recents first, then your own foods matching the
@@ -51,7 +48,11 @@ export default function FoodPicker({ date, meal, mealName, autoFocus = false, on
     return () => { clearTimeout(timer); ctl.abort() }
   }, [q, lang])
 
-  const pick = food => portionSheet({ food, date, meal, mealName, onLogged })
+  // The entry a failed write may have saved, for as long as this picker is open: an amount edited
+  // and logged again updates it (PortionSheet, QuickKcalSheet).
+  const pending = useRef({ uuid: null, food: null }).current
+  const quickPending = useRef({ uuid: null }).current
+  const pick = food => portionSheet({ food, date, meal, mealName, onLogged, pending })
   const recents = recentFoods(foods.list)
   const own = q ? foods.list.filter(f => matchesFood(f, q)).slice(0, OWN_MAX) : []
 
@@ -64,7 +65,7 @@ export default function FoodPicker({ date, meal, mealName, autoFocus = false, on
     </div>
 
     {!q && <>
-      <h4 className="sec">{t('Recent')}</h4>
+      <SectionTitle>{t('Recent')}</SectionTitle>
       {foods.status === 'loading' && !foods.list.length && <div className="muted small fp-note">{t('Loading…')}</div>}
       {foods.status === 'error' && <div className="nt-error small" role="alert">{t('Your foods did not load.')}</div>}
       {foods.status === 'ready' && !recents.length && <div className="muted small fp-note">{t('Foods you log show up here. Search to find one.')}</div>}
@@ -72,10 +73,10 @@ export default function FoodPicker({ date, meal, mealName, autoFocus = false, on
     </>}
 
     {q && <>
-      <h4 className="sec">{t('Your foods')}</h4>
+      <SectionTitle>{t('Your foods')}</SectionTitle>
       {own.length ? <div className="list">{own.map(f => <FoodRow key={f.id} food={f} onPick={pick} energy={energy} />)}</div>
         : <div className="muted small fp-note">{t('None of your foods match.')}</div>}
-      <h4 className="sec">{t('Online')}</h4>
+      <SectionTitle>{t('Online')}</SectionTitle>
       {online.status === 'loading' && <div className="muted small fp-note" aria-live="polite">{t('Searching Open Food Facts…')}</div>}
       {online.status === 'error' && <div className="nt-error small" role="alert">{t('Online search failed. Your own foods still work.')}</div>}
       {online.status === 'busy' && <div className="nt-error small" role="alert">{t('Too many online searches. Wait a minute and try again.')}</div>}
@@ -84,10 +85,8 @@ export default function FoodPicker({ date, meal, mealName, autoFocus = false, on
       <div className="list">{online.list.map(f => <FoodRow key={f.client_key} food={f} onPick={pick} energy={energy} />)}</div>
     </>}
 
-    <button type="button" className="item food-row fp-quick" onClick={() => quickKcalSheet({ date, meal, mealName, onLogged })}>
-      <span className="lrow-i tint-pink"><Icon name="bolt" /></span>
-      <div className="grow"><div className="tt">{t('Quick kcal')}</div><div className="ss">{t('Just a number, no food')}</div></div>
-      <Icon name="chevronRight" className="chev" />
-    </button>
+    <ItemRow className="food-row fp-quick" onClick={() => quickKcalSheet({ date, meal, mealName, onLogged, pending: quickPending })}
+      lead={<span className="lrow-i tint-pink"><Icon name="bolt" /></span>}
+      title={t('Quick kcal')} subtitle={t('Just a number, no food')} chevron />
   </div>
 }
