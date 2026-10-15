@@ -29,6 +29,7 @@
  *
  * Handed its helpers by server.js, like coach/routes.js, so it closes over nothing of the server. */
 import { verifyHubToken, replayCache, HUB_AUDIENCE, HUB_USERS_AUDIENCE, HUB_USERS_SCOPE, HUB_SERVICE_SUB } from './hub-token.js';
+import { createWindow } from './rate-limit.js';
 import { stampPut } from './sync-stamps.js';
 import {
   isSyncDate, workoutItems, trackWorkouts, changesSince, decodeCursor, bodyweightView, weighInOf, withWeighIn, withoutWeighIn, unitOf,
@@ -47,6 +48,7 @@ const etagOf = doc => `"${doc?._rev || 0}${doc?._wid ? ':' + doc._wid : ''}"`;
 const IF_MATCH = /^\s*"?(\d{1,15})(?::([0-9a-f]{1,64}))?"?\s*$/;
 const LIMIT_MAX = 500;
 const LIMIT_DEFAULT = 100;
+const LIST_BURST_MAX = 120;
 // A body weight a person weighs, in kg: anything outside is a mistake (a value in grams, a unit
 // mix-up, one that would round to nothing in the stored unit and vanish without a removal on record).
 const KG_MIN = 20;
@@ -60,8 +62,12 @@ const LOGS_MAX = 1000;
 
 const bad = (json, res, code, error) => json(res, 400, { error, code });
 
-export function syncRoutes({ hub, json, findUser, listProfiles, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditFail }) {
+export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail }) {
   const replays = replayCache();
+  // The listing is the hub's alone and a page of it costs a stat per profile, so this is generous:
+  // 120 a minute against the one call a scheduler makes per page. It counts only calls that carry a
+  // valid, unspent token (serviceAuthed), so junk from anywhere cannot spend the hub's allowance.
+  const listBurst = createWindow({ max: LIST_BURST_MAX, windowMs: 60000, maxKeys: 1 });
   const logs = new Map();
   const logOf = (uid, S, items) => {
     const log = trackWorkouts(logs.get(uid), S, items);
@@ -81,14 +87,15 @@ export function syncRoutes({ hub, json, findUser, listProfiles, readStateCached,
     if (!token) { json(res, 401, { error: 'not signed in' }); return null; }
     const v = verifyHubToken(hub, token, { audience, scopes });
     if (!v.ok) {
-      // The reason only, never the token. auditFail keeps a flood of junk out of the log.
-      auditFail(req, 'sync.token.fail', { ok: false, msg: v.reason });
+      // The reason only, never the token. auditSyncFail folds a storm of the same reason into
+      // one counted row an hour (server.js), so a misconfigured hub cannot fill the log.
+      auditSyncFail(req, v.reason);
       json(res, 401, { error: 'invalid sync token', code: 'token-invalid' });
       return null;
     }
     // After the signature: only a token the hub signed can take a place in the cache.
     if (replays.seen(v.claims)) {
-      auditFail(req, 'sync.token.fail', { ok: false, msg: 'replay' });
+      auditSyncFail(req, 'replay');
       json(res, 401, { error: 'sync token already used', code: 'replay' });
       return null;
     }
@@ -114,7 +121,7 @@ export function syncRoutes({ hub, json, findUser, listProfiles, readStateCached,
     const claims = credential(req, res, HUB_USERS_AUDIENCE, [HUB_USERS_SCOPE]);
     if (!claims) return;
     if (claims.sub !== HUB_SERVICE_SUB) {
-      auditFail(req, 'sync.token.fail', { ok: false, msg: 'sub' });
+      auditSyncFail(req, 'sub');
       return json(res, 401, { error: 'invalid sync token', code: 'token-invalid' });
     }
     return handler(req, res);
@@ -171,21 +178,24 @@ export function syncRoutes({ hub, json, findUser, listProfiles, readStateCached,
     // revision, a page at a time, after the id a page's `next_after` gave. This is how the hub finds
     // a person who has logged a workout somewhere else without opening this app here.
     //
-    // PRIVACY: ids, states and revisions only. Never a name, an e-mail address, a credential, a
-    // device, or anything from a profile's data. An id is what the hub already signs per-profile
-    // tokens with, and the revision is what /api/sync/rev gives for that profile. Keep it that way:
-    // this answers for every profile on the instance to a caller that holds no profile's token.
-    // Reading the revisions stats each profile's state file (readStateCached) and parses none of
-    // them that has not changed.
+    // PRIVACY: ids, states, revisions and write ids only. Never a name, an e-mail address, a
+    // credential, a device, or anything from a profile's data. An id is what the hub already signs
+    // per-profile tokens with, and the revision and write id are what /api/sync/rev gives for that
+    // profile. Keep it that way: this answers for every profile on the instance to a caller that
+    // holds no profile's token.
+    //
+    // Reading the versions stats each profile's state file (stateVersion in server.js) and parses
+    // none of them that has not changed, without touching the cache the polling routes share.
     'GET /api/sync/users': serviceAuthed(async (req, res) => {
+      const wait = listBurst.take('list');
+      if (wait) return json(res, 429, { error: 'too many listings, try again shortly', code: 'rate-limited', retryAfter: wait }, { 'Retry-After': String(wait) });
       const q = new URL(req.url, 'http://x').searchParams;
       const after = q.get('after'), limit = q.get('limit');
       if (limit != null && !(/^\d{1,4}$/.test(limit) && +limit >= 1 && +limit <= USERS_LIMIT_MAX)) return bad(json, res, 'bad-limit', `limit must be 1 to ${USERS_LIMIT_MAX}`);
       if (after != null && !USER_ID.test(after)) return bad(json, res, 'bad-cursor', 'after must be the next_after of a previous page');
       const { users, gone } = listProfiles();
       json(res, 200, usersPage({
-        users, gone, after, limit: limit == null ? USERS_LIMIT_DEFAULT : +limit,
-        revOf: id => readStateCached(id)?._rev || 0
+        users, gone, after, limit: limit == null ? USERS_LIMIT_DEFAULT : +limit, versionOf: stateVersion
       }));
     }),
 

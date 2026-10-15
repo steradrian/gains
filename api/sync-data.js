@@ -345,16 +345,22 @@ export function withoutWeighIn(cur, date, { now = Date.now() } = {}) {
  * or go missing, which a page number or an offset into a list that has just changed would. A profile
  * that appears behind the cursor after the pass has gone by is simply not in this pass; the next
  * pass has it. */
-export const USERS_LIMIT_MAX = 500;
-export const USERS_LIMIT_DEFAULT = 100;
+// 64 for both, and not the 500 of the per-profile change list: a page whose profiles are not in the
+// version index yet (server.js stateVersion) parses one state file each, synchronously, and 64 is
+// the number of parsed states the server already keeps (STATE_CACHE_MAX). Most pages stat and
+// nothing more; this only bounds the one that does not.
+export const USERS_LIMIT_MAX = 64;
+export const USERS_LIMIT_DEFAULT = 64;
 // An id as this server mints them, and nothing a query string could use to say something else.
 export const USER_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
-/** `users` are the profiles, `gone` the ones deleted (`{ id, at }`), `revOf(id)` the revision of a
- *  profile's stored state (0 when it has none yet). A profile that is both listed and in `gone` is
- *  listed: the record of a deletion never hides one that exists. → { users, next_after }, where
- *  `next_after` is the id to pass as `after` for the next page, or null at the end. */
-export function usersPage({ users, gone = [], revOf, after = null, limit = USERS_LIMIT_DEFAULT }) {
+/** `users` are the profiles, `gone` the ones deleted (`{ id, at }`), `versionOf(id)` the version of a
+ *  profile's stored state, `{ rev, wid }` (rev 0 and no wid when it has none yet). The write id
+ *  comes with the revision because a restored backup can bring the same revision back with other
+ *  contents (sync-routes.js etagOf). A profile that is both listed and in `gone` is listed: the
+ *  record of a deletion never hides one that exists. → { users, next_after }, where `next_after` is
+ *  the id to pass as `after` for the next page, or null at the end. */
+export function usersPage({ users, gone = [], versionOf, after = null, limit = USERS_LIMIT_DEFAULT }) {
   const rows = new Map();
   for (const g of list(gone)) {
     if (isMap(g) && typeof g.id === 'string' && USER_ID.test(g.id)) rows.set(g.id, { id: g.id, state: 'gone', gone_at: instant(g.at) });
@@ -368,10 +374,15 @@ export function usersPage({ users, gone = [], revOf, after = null, limit = USERS
   const rest = after == null ? ordered : ordered.filter(r => r.id > after);
   const page = rest.slice(0, limit);
   return {
-    // The revision is read for the page only: it costs a stat per profile, not per call.
-    users: page.map(r => (r.state === 'gone'
-      ? { id: r.id, state: 'gone', rev: 0, gone_at: r.gone_at }
-      : { id: r.id, state: r.state, rev: Math.max(0, Number(revOf(r.id)) || 0) })),
+    // The version is read for the page only: it costs a stat per profile, not per call.
+    users: page.map(r => {
+      if (r.state === 'gone') return { id: r.id, state: 'gone', rev: 0, gone_at: r.gone_at };
+      const v = versionOf(r.id) || {};
+      return {
+        id: r.id, state: r.state, rev: Math.max(0, Number(v.rev) || 0),
+        ...(typeof v.wid === 'string' && v.wid ? { wid: v.wid } : {})
+      };
+    }),
     next_after: rest.length > page.length ? page[page.length - 1].id : null
   };
 }

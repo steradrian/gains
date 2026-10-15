@@ -115,17 +115,22 @@ export function Switch({ checked, onChange, disabled, ...accessibility }) {
 
 /* ============================ segmented ============================ */
 
-// options: [{ value, label, icon? }]  — the selected pill slides between cells.
-export function Segmented({ options, value, onChange, className = '' }) {
+// options: [{ value, label, icon?, disabled?, ariaLabel? }]  — the selected pill slides between
+// cells. `ariaLabel` on the control names the group; on an option it replaces the label for a
+// screen reader (to say why the option is disabled).
+export function Segmented({ options, value, onChange, className = '', ariaLabel }) {
   const i = Math.max(0, options.findIndex(o => o.value === value))
   return (
-    <div className={'seg ' + className} style={{ '--n': options.length, '--i': i }}>
+    <div className={'seg ' + className} style={{ '--n': options.length, '--i': i }}
+      role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
       <span className="seg-sel" aria-hidden="true" />
       {options.map(o => (
         <button
           key={o.value}
           className={o.value === value ? 'on' : ''}
           aria-pressed={o.value === value}
+          aria-label={o.ariaLabel}
+          disabled={o.disabled}
           onClick={() => onChange(o.value)}
         >
           {o.icon && <Icon name={o.icon} />}
@@ -476,7 +481,7 @@ function MultiSelectSheet({ values, options, onToggle, title, doneLabel, close }
         })}
       </div>
       <div style={{ height: 8 }} />
-      <Button variant="primary" onClick={close}>{doneLabel || 'Done'}</Button>
+      <Button variant="primary" onClick={close}>{doneLabel || t('Done')}</Button>
     </>
   )
 }
