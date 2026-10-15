@@ -68,9 +68,16 @@ export function trapDialogFocus(el, { enter = 'first', opener = document.activeE
     el.removeEventListener('keydown', onKey)
     held.forEach(release)
     // Back to the opener, unless a sheet that does not hold it has taken over: one still up that
-    // contains the opener is where it was opened from, and gets it back.
-    const open = [...document.querySelectorAll('.sheet, .center, [role="dialog"]')]
-    if (opener?.isConnected && (!open.length || open.some(d => d.contains(opener)))) opener.focus?.()
+    // contains the opener is where it was opened from, and gets it back. Decided once the commit
+    // that closed this dialog is done, not in the cleanup: a layout effect's cleanup runs before
+    // React takes the dialog's own markup out of the page, so it would still count itself, and a
+    // sheet that replaces this one is only in the page after it. A sheet that replaces this one
+    // has moved the focus into itself by then, and is left alone. preventScroll: the page behind
+    // is put back where it was by Modals, and a focus must not move it first.
+    queueMicrotask(() => {
+      const open = [...document.querySelectorAll('.sheet, .center, [role="dialog"]')].filter(d => d !== el && !el.contains(d))
+      if (opener?.isConnected && (!open.length || open.some(d => d.contains(opener)))) opener.focus?.({ preventScroll: true })
+    })
   }
 }
 
