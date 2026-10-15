@@ -122,12 +122,19 @@ describe('the hit area of small controls', () => {
     expect(declsFor('.seg button::before').width).toBe('100%')
   })
 
-  it('a chip inside a scrolling strip is not extended past the strip, which would grow its scroll height', () => {
+  it('a chip inside a scrolling strip gets the full floor, in a strip that is itself that tall so nothing overflows it', () => {
     const d = { ...declsFor('.chip::before'), ...declsFor('.chips .chip::before') }
-    expect(d.top).toBe('0')
-    expect(d.height).toBe('100%')
-    // Sideways it still gets the floor.
-    for (const size of SIZES) expect(evaluate(d.width, size)).toBeGreaterThanOrEqual(TAP)
+    const strip = ALL.filter(r => r.selectors.includes('.chips:not(.wchips)')).reduce((a, r) => ({ ...a, ...r.decls }), {})
+    expect(evaluate(strip['min-height'], 0)).toBe(TAP)
+    expect(strip['align-items']).toBe('center')
+    // Centred on the chip (the general rule), so centred on the strip.
+    expect(d.top).toBe('50%')
+    for (const size of SIZES.filter(s => s <= TAP)) {
+      expect(evaluate(d.height, size), `height for a ${size}px chip`).toBe(TAP)
+      expect(evaluate(d.width, size)).toBeGreaterThanOrEqual(TAP)
+    }
+    // A chip taller than the floor gets exactly its own height: no slop to overflow the strip.
+    expect(evaluate(d.height, 52)).toBe(52)
   })
 
   it('a button that something positions itself keeps its position: the rule for .btn.sm/.xs has no weight', () => {

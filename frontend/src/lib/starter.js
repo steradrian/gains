@@ -37,8 +37,8 @@ const FIVE_BY_FIVE = [
 // Two days a week: the whole body both days, so each session carries what three would split
 // between them (squat or hinge, a press, a pull, and the small stuff).
 const FULL_BODY_2 = [
-  ['fb2-a', 'Full Body A', 'figureStrength', [['0043', 3, 8], ['0025', 3, 8], ['2330', 3, 10], ['0586', 2, 12], ['0426', 2, 10], ['0031', 2, 12], ['0605', 2, 15]]],
-  ['fb2-b', 'Full Body B', 'figureStrength', [['0085', 3, 8], ['0047', 3, 8], ['0027', 3, 10], ['0739', 3, 10], ['0334', 2, 12], ['0241', 2, 12], ['0585', 2, 12]]]
+  ['fb2-a', '2-Day Full Body A', 'figureStrength', [['0043', 3, 8], ['0025', 3, 8], ['2330', 3, 10], ['0586', 2, 12], ['0426', 2, 10], ['0031', 2, 12], ['0605', 2, 15]]],
+  ['fb2-b', '2-Day Full Body B', 'figureStrength', [['0085', 3, 8], ['0047', 3, 8], ['0027', 3, 10], ['0739', 3, 10], ['0334', 2, 12], ['0241', 2, 12], ['0585', 2, 12]]]
 ]
 
 // Five days a week: upper/lower to start the week, then push/pull/legs to finish it. The two
@@ -59,8 +59,8 @@ const PPL_6 = [
   ['ppl6-pull-a', 'Pull A', 'pullup', [['2330', 4, 10], ['0027', 4, 8], ['1323', 3, 10], ['5609', 3, 15], ['0031', 3, 10]]],
   ['ppl6-legs-a', 'Legs A', 'legs', [['0043', 4, 8], ['0085', 3, 10], ['0739', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]],
   ['ppl6-push-b', 'Push B', 'barbell', [['0047', 4, 8], ['0405', 3, 10], ['0289', 3, 10], ['0178', 3, 15], ['0241', 3, 12]]],
-  ['ppl6-pull-b', 'Pull B', 'pullup', [['0198', 3, 10], ['0293', 3, 10], ['0861', 3, 10], ['0313', 3, 12], ['0031', 2, 12]]],
-  ['ppl6-legs-b', 'Legs B', 'legs', [['0032', 3, 5], ['1060', 3, 10], ['0585', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]]
+  ['ppl6-pull-b', 'Pull B', 'pullup', [['1326', 3, 8], ['0293', 3, 10], ['0861', 3, 10], ['0313', 3, 12], ['0031', 2, 12]]],
+  ['ppl6-legs-b', 'Legs B', 'legs', [['0032', 3, 5], ['1992', 3, 10], ['1060', 3, 10], ['0585', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]]
 ]
 
 // [weekday, routineKey] — weekday is a DAYN index, so 1 is Monday. Fixed weeks only: every

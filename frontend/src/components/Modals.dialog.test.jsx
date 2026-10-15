@@ -135,15 +135,91 @@ describe('a sheet is a dialog', () => {
     expect(inert('app')).toBe(true)
   })
 
-  it('leaves a sheet whose content is already a dialog alone: one dialog, one trap', async () => {
-    const Own = ({ close }) => {
-      const ref = useRef(null)
-      return <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="own-title"><h3 id="own-title">Own</h3><button onClick={close}>x</button></div>
-    }
+  it('leaves content that opts out (the + sheet) entirely alone: one dialog, one trap', async () => {
+    const Own = ({ close }) => (
+      <div role="dialog" aria-modal="true" aria-labelledby="own-title" data-own-dialog-focus><h3 id="own-title">Own</h3><button onClick={close}>x</button></div>
+    )
     open(close => <Own close={close} />)
     expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
     expect(q('.sheet').hasAttribute('role')).toBe(false)
     expect(q('.sheet').hasAttribute('aria-modal')).toBe(false)
+    expect(inert('app')).toBe(false)
+  })
+})
+
+describe('a viewer sheet whose content is already a dialog', () => {
+  const Viewer = ({ close }) => (
+    <div className="mviewer" role="dialog" aria-modal="true" aria-label="Photo">
+      <button id="v-close" onClick={close}>Close</button>
+      <button id="v-next">Next</button>
+    </div>
+  )
+
+  it('keeps its own role and name, and still gets focus in, a Tab trap and an inert page', async () => {
+    open(close => <Viewer close={close} />, { kind: 'viewer' })
+    const dialog = q('.mviewer')
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
+    expect(dialog.getAttribute('aria-label')).toBe('Photo')
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    for (const id of ['app', 'tabbar', 'timer']) expect(inert(id), id).toBe(true)
+    q('#v-next').focus()
+    await key(q('#v-next'), 'Tab')
+    expect(document.activeElement).toBe(q('#v-close'))
+    await key(q('#v-close'), 'Tab', { shiftKey: true })
+    expect(document.activeElement).toBe(q('#v-next'))
+  })
+
+  it('gives the page and the focus back on close', async () => {
+    const h = open(close => <Viewer close={close} />, { kind: 'viewer' })
+    closeSheet(h.id)
+    await settle()
+    for (const id of ['app', 'tabbar', 'timer']) expect(inert(id), id).toBe(false)
+    expect(document.activeElement).toBe(document.getElementById('opener'))
+  })
+})
+
+describe('a sheet that replaces another in the same tap', () => {
+  it('hands focus back to what opened the first, not to body, when the second closes', async () => {
+    let second
+    const h = open(close => (
+      <Plain title="First" close={close}>
+        <button id="row" onClick={() => { close(); second = useUI.getState().openSheet(c => <Plain title="Second" close={c} />) }}>Next</button>
+      </Plain>
+    ))
+    q('#row').focus()
+    act(() => { q('#row').click() })
+    await settle()
+    expect(h).toBeTruthy()
+    expect(document.querySelectorAll('.sheet')).toHaveLength(1)
+    closeSheet(second.id)
+    await settle()
+    expect(document.activeElement).toBe(document.getElementById('opener'))
+    expect(inert('app')).toBe(false)
+  })
+
+  it('holds through a chain of three', async () => {
+    let third
+    open(close => (
+      <Plain title="A" close={close}>
+        <button id="row-a" onClick={() => {
+          close()
+          useUI.getState().openSheet(c => (
+            <Plain title="B" close={c}>
+              <button id="row-b" onClick={() => { c(); third = useUI.getState().openSheet(d => <Plain title="C" close={d} />) }}>Next</button>
+            </Plain>
+          ))
+        }}>Next</button>
+      </Plain>
+    ))
+    q('#row-a').focus()
+    act(() => { q('#row-a').click() })
+    await settle()
+    q('#row-b').focus()
+    act(() => { q('#row-b').click() })
+    await settle()
+    closeSheet(third.id)
+    await settle()
+    expect(document.activeElement).toBe(document.getElementById('opener'))
   })
 })
 

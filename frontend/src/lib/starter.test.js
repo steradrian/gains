@@ -29,8 +29,8 @@ const APPROVED = {
   ],
   // The plans for onboarding, which picks one by days a week (2, 5, 6); the chooser does not list them.
   'full-body-2': [
-    [1, 'Full Body A', [['0043', 3, 8], ['0025', 3, 8], ['2330', 3, 10], ['0586', 2, 12], ['0426', 2, 10], ['0031', 2, 12], ['0605', 2, 15]]],
-    [4, 'Full Body B', [['0085', 3, 8], ['0047', 3, 8], ['0027', 3, 10], ['0739', 3, 10], ['0334', 2, 12], ['0241', 2, 12], ['0585', 2, 12]]],
+    [1, '2-Day Full Body A', [['0043', 3, 8], ['0025', 3, 8], ['2330', 3, 10], ['0586', 2, 12], ['0426', 2, 10], ['0031', 2, 12], ['0605', 2, 15]]],
+    [4, '2-Day Full Body B', [['0085', 3, 8], ['0047', 3, 8], ['0027', 3, 10], ['0739', 3, 10], ['0334', 2, 12], ['0241', 2, 12], ['0585', 2, 12]]],
   ],
   'upper-lower-ppl': [
     [1, 'Upper', [['0025', 3, 8], ['0027', 3, 8], ['0426', 3, 10], ['2330', 3, 10], ['0334', 2, 12], ['0241', 2, 12], ['0031', 2, 12]]],
@@ -44,8 +44,8 @@ const APPROVED = {
     [2, 'Pull A', [['2330', 4, 10], ['0027', 4, 8], ['1323', 3, 10], ['5609', 3, 15], ['0031', 3, 10]]],
     [3, 'Legs A', [['0043', 4, 8], ['0085', 3, 10], ['0739', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]],
     [4, 'Push B', [['0047', 4, 8], ['0405', 3, 10], ['0289', 3, 10], ['0178', 3, 15], ['0241', 3, 12]]],
-    [5, 'Pull B', [['0198', 3, 10], ['0293', 3, 10], ['0861', 3, 10], ['0313', 3, 12], ['0031', 2, 12]]],
-    [6, 'Legs B', [['0032', 3, 5], ['1060', 3, 10], ['0585', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]],
+    [5, 'Pull B', [['1326', 3, 8], ['0293', 3, 10], ['0861', 3, 10], ['0313', 3, 12], ['0031', 2, 12]]],
+    [6, 'Legs B', [['0032', 3, 5], ['1992', 3, 10], ['1060', 3, 10], ['0585', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]],
   ],
 }
 const CHOOSER = ['ppl', 'upper-lower', 'full-body', '5x5']
@@ -60,6 +60,18 @@ describe('starter plan catalog', () => {
       { id: 'full-body', days: 3 }, { id: '5x5', days: 3 },
     ])
     for (const { id, days } of starterPlanOptions()) expect(starterPlanDays(id)).toHaveLength(days)
+  })
+
+  it('names every routine differently across all plans', () => {
+    const names = Object.keys(APPROVED).flatMap(id => buildStarterPlan(id).routines.map(r => r.name))
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('Legs B has a quad compound (the hack squat), and Pull B a vertical pull other than the lat pulldown Pull A uses', () => {
+    const ids = name => buildStarterPlan('ppl-6').routines.find(r => r.name === name).ex.map(e => e.id)
+    expect(ids('Legs B')).toContain('1992')
+    expect(ids('Pull B')).not.toContain('0198')
+    expect(ids('Pull B')).not.toContain('2330')
   })
 
   it('changes nothing for an unknown plan id', () => {
@@ -129,7 +141,7 @@ describe('the onboarding plans (2, 5 and 6 days)', () => {
 
   it('2 days is full body A and B, with a rest day or more between the two', () => {
     const plan = build('full-body-2')
-    expect(plan.routines.map(r => r.name)).toEqual(['Full Body A', 'Full Body B'])
+    expect(plan.routines.map(r => r.name)).toEqual(['2-Day Full Body A', '2-Day Full Body B'])
     const [a, b] = plan.schedule.map(s => s.day)
     expect(b - a).toBeGreaterThanOrEqual(2)
     // Each session trains legs, a press, a pull and the arms or shoulders: it is the whole week for that.

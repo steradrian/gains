@@ -31,6 +31,9 @@ function release(id) {
   if (n && !(id === 'app' && isSwitching())) n.removeAttribute('inert')
 }
 
+// The opener of the dialog that closed last, for a dialog that opens in the same tick.
+let replaced = null
+
 // A modal dialog's focus, for `el`: moved into it when it opens, kept inside it with Tab and
 // Shift+Tab, the page behind it made inert, and handed back to what opened it when it closes,
 // unless another sheet took its place (a row opening the next sheet), which then owns the focus.
@@ -43,7 +46,11 @@ function release(id) {
 // (a field the sheet focused for itself) is left where it is. `opener` is what had the focus
 // before the dialog was drawn, for a caller that asked before a field inside could take it.
 // Returns the cleanup.
-export function trapDialogFocus(el, { enter = 'first', opener = document.activeElement } = {}) {
+export function trapDialogFocus(el, { enter = 'first', opener: asked = document.activeElement } = {}) {
+  // A sheet opened by a row of the sheet it replaces (`close(); nextSheet()` in one tap) was
+  // "opened" by a control that left the page with that sheet: it inherits the opener of the dialog
+  // it replaced, so closing the chain ends on what started it.
+  const opener = asked?.isConnected || !replaced?.opener?.isConnected ? asked : replaced.opener
   const held = BACKGROUND.filter(hold)
   const controls = () => [...el.querySelectorAll(FOCUSABLE)]
   const inside = document.activeElement && el.contains(document.activeElement)
@@ -67,6 +74,11 @@ export function trapDialogFocus(el, { enter = 'first', opener = document.activeE
   return () => {
     el.removeEventListener('keydown', onKey)
     held.forEach(release)
+    // The next dialog, mounted in this same tick, reads this to inherit the opener; the entry
+    // is dropped once the tick is over so a later, unrelated dialog never sees it.
+    const entry = { opener }
+    replaced = entry
+    setTimeout(() => { if (replaced === entry) replaced = null }, 0)
     // Back to the opener, unless a sheet that does not hold it has taken over: one still up that
     // contains the opener is where it was opened from, and gets it back. Decided once the commit
     // that closed this dialog is done, not in the cleanup: a layout effect's cleanup runs before
