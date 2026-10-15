@@ -2822,4 +2822,6 @@ export default {
   'Plan changed': '계획 변경됨',
   'Trained on {0} of {1} days': '{1}일 중 {0}일 운동',
   'of {0}': '/ {0}',
+  'over by {0}': '{0} 초과',
+  'Loading today': '오늘 불러오는 중',
 }

@@ -23,7 +23,8 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
   oneOf('HeroStatus', 'status', status, STATUSES)
   oneOf('HeroStatus', 'tone', tone, ['over'])
   if (status === 'loading') {
-    return <div className="hero" role="status" aria-label={t('Loading…')}>
+    return <div className="hero" role="status">
+      <span className="sr-only">{t('Loading today')}</span>
       {glyph && <Skeleton w={32} h={32} r={8} />}
       {eyebrow != null && <Skeleton w={96} h={15} />}
       <Skeleton w={metrics ? 220 : 140} h={title != null ? 34 : 48} r={8} />
@@ -85,10 +86,14 @@ export function MacroGauge({ macro, value, target, unit = 'g', label }) {
   const pct = target > 0 ? Math.min(1, v / target) : 0
   const over = target > 0 && v > target ? v - target : 0
   const amount = fmtNum(v) + ' ' + unit
+  // A meter's value never exceeds its max; with no target the amount is the whole scale.
+  const max = target > 0 ? target : Math.max(v, 1)
+  const valueText = target > 0
+    ? amount + ' ' + t('of {0}', fmtNum(target) + ' ' + unit) + (over > 0 ? ', ' + t('over by {0}', fmtNum(over) + ' ' + unit) : '')
+    : amount
   return (
-    <div className={cx('mg', 'mg-' + macro)} role="meter" aria-label={name} aria-valuenow={v} aria-valuemin={0}
-      aria-valuemax={target > 0 ? target : undefined}
-      aria-valuetext={target > 0 ? amount + ' ' + t('of {0}', fmtNum(target) + ' ' + unit) : amount}>
+    <div className={cx('mg', 'mg-' + macro)} role="meter" aria-label={name} aria-valuenow={Math.min(v, max)} aria-valuemin={0}
+      aria-valuemax={max} aria-valuetext={valueText}>
       <span className="mg-dial">
         <svg viewBox="0 0 100 100" aria-hidden="true">
           <path className="mg-track" d={ARC} pathLength="100" />

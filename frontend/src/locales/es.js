@@ -2822,4 +2822,6 @@ export default {
   'Plan changed': 'Plan cambiado',
   'Trained on {0} of {1} days': 'Entrenaste {0} de {1} días',
   'of {0}': 'de {0}',
+  'over by {0}': 'te pasas por {0}',
+  'Loading today': 'Cargando hoy',
 }

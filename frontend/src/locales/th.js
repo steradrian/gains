@@ -2833,4 +2833,6 @@ export default {
   'Plan changed': 'เปลี่ยนแผนแล้ว',
   'Trained on {0} of {1} days': 'ฝึก {0} จาก {1} วัน',
   'of {0}': 'จาก {0}',
+  'over by {0}': 'เกิน {0}',
+  'Loading today': 'กำลังโหลดข้อมูลวันนี้',
 }

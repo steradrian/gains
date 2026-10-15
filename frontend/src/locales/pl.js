@@ -2822,4 +2822,6 @@ export default {
   'Plan changed': 'Plan zmieniony',
   'Trained on {0} of {1} days': 'Trening w {0} z {1} dni',
   'of {0}': 'z {0}',
+  'over by {0}': 'o {0} za dużo',
+  'Loading today': 'Wczytywanie dnia',
 }

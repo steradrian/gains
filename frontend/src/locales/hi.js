@@ -2822,4 +2822,6 @@ export default {
   'Plan changed': 'योजना बदली गई',
   'Trained on {0} of {1} days': '{1} में से {0} दिन ट्रेनिंग',
   'of {0}': '{0} में से',
+  'over by {0}': '{0} अधिक',
+  'Loading today': 'आज का डेटा लोड हो रहा है',
 }

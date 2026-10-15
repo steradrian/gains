@@ -2822,4 +2822,6 @@ export default {
   'Plan changed': 'Plan değişti',
   'Trained on {0} of {1} days': '{1} günün {0} gününde antrenman',
   'of {0}': '/ {0}',
+  'over by {0}': '{0} fazla',
+  'Loading today': 'Bugün yükleniyor',
 }

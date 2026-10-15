@@ -340,3 +340,13 @@
 @keyframes il-fill{0%,70%{fill-opacity:0;stroke-opacity:1}100%{fill-opacity:1}}
 .lineart.rm-fade{animation:il-fade 120ms var(--ease) both}
 @keyframes il-fade{from{opacity:0}}
+
+/* Reduced motion (ui-redesign-components §1): a press dims to .6 instead of scaling. The two
+   blocks are the same rules, since a media query and an attribute selector cannot share one;
+   tab-kit.reduced-motion.test.js keeps them whole. */
+@media (prefers-reduced-motion: reduce){
+  .avatar-btn:active,.wk-d:active,.media-play:active,.lrow-plus:active{transform:none;opacity:.6}
+  .act-b:active .act-d{transform:none;opacity:.6}
+}
+html[data-motion=reduce] .avatar-btn:active,html[data-motion=reduce] .wk-d:active,html[data-motion=reduce] .media-play:active,html[data-motion=reduce] .lrow-plus:active{transform:none;opacity:.6}
+html[data-motion=reduce] .act-b:active .act-d{transform:none;opacity:.6}

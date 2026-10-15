@@ -1709,6 +1709,8 @@ export const PT_BR_OVERRIDES = {
   'Plan changed': 'Plano alterado',
   'Trained on {0} of {1} days': 'Treinou em {0} de {1} dias',
   'of {0}': 'de {0}',
+  'over by {0}': '{0} acima',
+  'Loading today': 'Carregando hoje',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

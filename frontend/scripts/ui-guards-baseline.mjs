@@ -401,8 +401,12 @@ export function pageChrome(src = SRC) {
     const file = relative(src, s.path).split(sep).join('/')
     if (HEADER_FILES.includes(file)) continue
     const code = stripJs(s.text)
-    for (const [, spec] of code.matchAll(/\bfrom\s*['"]([^'"]*\/(?:RootHeader|SubHeader)\.jsx)['"]/g)) out.push(`${file}: imports ${spec.split('/').pop()}`)
+    // static, dynamic and lazy imports, with or without the extension
+    for (const [, spec] of code.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\(\s*)['"]([^'"]*\/(?:RootHeader|SubHeader)(?:\.jsx)?)['"]/g)) out.push(`${file}: imports ${spec.split('/').pop().replace(/(?:\.jsx)?$/, '.jsx')}`)
     if (!exemptView(file)) {
+      if (file.startsWith('views/')) {
+        for (const m of code.matchAll(/<(header|h1)\b/g)) out.push(`${file}: renders its own <${m[1]}>`)
+      }
       for (const m of code.matchAll(/\bclassName\s*=\s*/g)) {
         const at = m.index + m[0].length
         const end = code[at] === '{' ? closer(code, at) + 1 : /['"`]/.test(code[at]) ? skipString(code, at) : statementEnd(code, at)
@@ -411,20 +415,22 @@ export function pageChrome(src = SRC) {
       }
     }
     for (const m of code.matchAll(/<Page\b/g)) {
-      if (/\s(?:className|style)\s*=/.test(tagAttributes(code, m.index))) out.push(`${file}: styles <Page>`)
+      const attrs = tagAttributes(code, m.index)
+      if (/\s(?:className|style)\s*=/.test(attrs) || /\s\.\.\.spread\b/.test(attrs)) out.push(`${file}: styles <Page>`)
     }
   }
-  return out.sort()
+  return [...new Set(out)].sort()
 }
 
 // The attribute names of the JSX tag that opens at `start`, with every {…} value and string
-// blanked out, up to the `>` that ends the tag.
+// blanked out, up to the `>` that ends the tag. A `{...x}` spread shows as ` ...spread`, since
+// it can carry a className or a style the guard cannot see.
 function tagAttributes(code, start) {
   let depth = 0, out = ''
   for (let i = start + 1; i < code.length; i++) {
     const c = code[i]
     if (c === '"' || c === "'" || c === '`') { i = skipString(code, i) - 1; if (!depth) out += '""'; continue }
-    if (c === '{') depth++
+    if (c === '{') { if (!depth && /^\{\s*\.\.\./.test(code.slice(i, i + 12))) out += ' ...spread'; depth++ }
     else if (c === '}') depth--
     else if (!depth && c === '>') break
     else if (!depth) out += c

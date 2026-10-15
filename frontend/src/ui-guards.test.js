@@ -47,7 +47,7 @@ describe('UI guards (ratchet)', () => {
     expect(fresh.filter(f => newCssViolations(f.text, f.file) > 0).map(f => f.file)).toEqual([])
   })
 
-  it('G8: no page chooses its own header: no header component past <Page>, no hand-built header, no class or style on <Page>', () => {
+  it('G8: no page chooses its own header: no header component past <Page>, no hand-built header, no own <header> or <h1> in a view, no class, style or spread on <Page>', () => {
     expect(pageChrome()).toEqual([])
   })
 })
@@ -63,9 +63,45 @@ describe('G8 finds a page choosing its own chrome', () => {
       writeFileSync(join(dir, 'views', 'D.jsx'), `export default () => <Page title={t('D')} action={<i style={{ x: 1 }} className="y" />}>x</Page>`)
       writeFileSync(join(dir, 'views', 'Workout.jsx'), `export default () => <div className="hdr whdr-bar" />`)
       writeFileSync(join(dir, 'components', 'layout.jsx'), `import RootHeader from './RootHeader.jsx'`)
-      expect(pageChrome(dir)).toEqual(['views/A.jsx: imports SubHeader.jsx', 'views/B.jsx: builds .hdr', 'views/C.jsx: styles <Page>'])
+      expect(pageChrome(dir)).toEqual(['views/A.jsx: imports SubHeader.jsx', 'views/B.jsx: builds .hdr', 'views/B.jsx: renders its own <h1>', 'views/C.jsx: styles <Page>'])
       expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx'])
     } finally { rmSync(dir, { recursive: true, force: true }) }
+  })
+
+  // One fixture per way past the guard; each must be caught on its own.
+  const caught = (source, file = 'views/X.jsx') => {
+    const dir = mkdtempSync(join(tmpdir(), 'ui-guards-'))
+    try {
+      for (const d of ['views', 'components']) mkdirSync(join(dir, d))
+      writeFileSync(join(dir, file), source)
+      return pageChrome(dir)
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  }
+
+  it('an import without the .jsx extension', () => {
+    expect(caught(`import SubHeader from '../components/SubHeader'\nexport default () => <Page title="X" />`)).toEqual(['views/X.jsx: imports SubHeader.jsx'])
+  })
+
+  it('a lazy or dynamic import', () => {
+    expect(caught(`const H = lazy(() => import('../components/RootHeader'))\nexport default () => <Page title="X" />`)).toEqual(['views/X.jsx: imports RootHeader.jsx'])
+    expect(caught(`const load = () => import('../components/SubHeader.jsx')\nexport default () => <Page title="X" />`)).toEqual(['views/X.jsx: imports SubHeader.jsx'])
+  })
+
+  it('a className held in a variable on <Page>', () => {
+    expect(caught(`export default () => <Page title="X" className={c}>x</Page>`)).toEqual(['views/X.jsx: styles <Page>'])
+  })
+
+  it('a spread on <Page>, of an object literal or of props', () => {
+    expect(caught(`export default () => <Page title="X" {...{ className }}>x</Page>`)).toEqual(['views/X.jsx: styles <Page>'])
+    expect(caught(`export default props => <Page title="X" {...props}>x</Page>`)).toEqual(['views/X.jsx: styles <Page>'])
+    expect(caught(`export default () => <Page title="X" action={<a {...p} />}>x</Page>`)).toEqual([])
+  })
+
+  it('a view that renders its own <header> or <h1>, but not a component', () => {
+    expect(caught(`export default () => <Page title="X"><header>x</header></Page>`)).toEqual(['views/X.jsx: renders its own <header>'])
+    expect(caught(`export default () => <Page title="X"><h1>x</h1></Page>`)).toEqual(['views/X.jsx: renders its own <h1>'])
+    expect(caught(`export default () => <h1>x</h1>`, 'components/Card.jsx')).toEqual([])
+    expect(caught(`export default () => <h1>x</h1>`, 'views/Login.jsx')).toEqual([])
   })
 })
 

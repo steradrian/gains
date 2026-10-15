@@ -2826,4 +2826,6 @@ export default {
   'Plan changed': 'План изменён',
   'Trained on {0} of {1} days': 'Тренировки в {0} из {1} дней',
   'of {0}': 'из {0}',
+  'over by {0}': 'превышение на {0}',
+  'Loading today': 'Загрузка за сегодня',
 }

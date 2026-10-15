@@ -50,7 +50,10 @@ describe('HeroStatus', () => {
   it('stands skeletons in while it loads, announced once', () => {
     render(<HeroStatus glyph="flame" eyebrow="x" value="1" caption="y" status="loading" />)
     expect($('.hero').getAttribute('role')).toBe('status')
-    expect($('.hero').getAttribute('aria-label')).toBe('Loading…')
+    expect($('.hero').hasAttribute('aria-label')).toBe(false)
+    // real text for a screen reader to read, visually hidden; the skeletons say nothing
+    expect($('.hero .sr-only').textContent).toBe('Loading today')
+    expect($('.hero').textContent).toBe('Loading today')
     expect($$('.skel')).toHaveLength(4)
     expect($$('.skel').every(s => s.getAttribute('aria-hidden') === 'true')).toBe(true)
   })
@@ -129,13 +132,29 @@ describe('MacroGauge', () => {
     expect($('.mg-arc').style.getPropertyValue('--mg')).toBe('1')
     expect($('.mg-of').textContent).toBe('+12 g')
     expect($('.mg-of').classList.contains('ink-orange')).toBe(true)
+    // the meter never reads above its max, and says the overshoot in words
+    const m = $('.mg')
+    expect(m.getAttribute('aria-valuenow')).toBe('250')
+    expect(m.getAttribute('aria-valuemax')).toBe('250')
+    expect(m.getAttribute('aria-valuetext')).toBe('262 g of 250 g, over by 12 g')
+  })
+
+  it('is at most its max at the target, and is not "over" there', () => {
+    render(<MacroGauge macro="carbs" value={250} target={250} />)
+    expect($('.mg').getAttribute('aria-valuenow')).toBe('250')
+    expect($('.mg').getAttribute('aria-valuetext')).toBe('250 g of 250 g')
   })
 
   it('shows the value alone with no target, and throws on a macro it has no colour for', () => {
     render(<MacroGauge macro="protein" value={40} />)
     expect($('.mg-of')).toBeNull()
-    expect($('.mg').hasAttribute('aria-valuemax')).toBe(false)
+    // no target: the amount is the whole scale, so now never exceeds max
+    expect($('.mg').getAttribute('aria-valuenow')).toBe('40')
+    expect($('.mg').getAttribute('aria-valuemax')).toBe('40')
     expect($('.mg').getAttribute('aria-valuetext')).toBe('40 g')
+    render(<MacroGauge macro="protein" value={0} />)
+    expect($('.mg').getAttribute('aria-valuemax')).toBe('1')
+    expect($('.mg').getAttribute('aria-valuenow')).toBe('0')
     expect(() => render(<MacroGauge macro="fibre" value={3} />)).toThrow(/MacroGauge: macro="fibre"/)
   })
 })

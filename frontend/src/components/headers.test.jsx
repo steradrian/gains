@@ -48,12 +48,8 @@ describe('SearchPill', () => {
   it('is the real input, with bearmenu\'s attributes, inside a search landmark', () => {
     render(<Pill scope="train" />)
     const input = $('[role="search"] input')
-    expect(input.getAttribute('role')).toBe('combobox')
     expect(input.getAttribute('type')).toBe('text')
     expect(input.getAttribute('inputmode')).toBe('search')
-    expect(input.getAttribute('aria-haspopup')).toBe('dialog')
-    expect(input.getAttribute('aria-expanded')).toBe('false')
-    expect(input.hasAttribute('aria-controls')).toBe(false)
     for (const [k, v] of [['autocomplete', 'off'], ['autocorrect', 'off'], ['autocapitalize', 'off'], ['spellcheck', 'false'], ['enterkeyhint', 'search']]) {
       expect(input.getAttribute(k), k).toBe(v)
     }
@@ -112,8 +108,32 @@ describe('SearchPill', () => {
     render(<Pill onOpen={onOpen} expanded controls="search-overlay" />)
     act(() => $('input').focus())
     expect(onOpen).toHaveBeenCalledTimes(1)
+    expect($('input').getAttribute('role')).toBe('combobox')
+    expect($('input').getAttribute('aria-haspopup')).toBe('dialog')
     expect($('input').getAttribute('aria-expanded')).toBe('true')
     expect($('input').getAttribute('aria-controls')).toBe('search-overlay')
+  })
+
+  it('claims a combobox only with an overlay to open (onOpen)', () => {
+    render(<Pill />)
+    for (const a of ['role', 'aria-haspopup', 'aria-expanded', 'aria-controls']) expect($('input').hasAttribute(a), a).toBe(false)
+    render(<Pill onOpen={() => {}} />)
+    expect($('input').getAttribute('role')).toBe('combobox')
+    expect($('input').getAttribute('aria-expanded')).toBe('false')
+    expect($('input').hasAttribute('aria-controls')).toBe(false)
+  })
+
+  it('is one label around the glyph and the input, so a tap anywhere on the pill reaches the input', () => {
+    render(<Pill />)
+    const pill = $('[role="search"]')
+    expect(pill.tagName).toBe('LABEL')
+    expect(pill.contains($('.spill-g'))).toBe(true)
+    expect(pill.contains($('input'))).toBe(true)
+    // the browser focuses a label's control on a click; happy-dom forwards the click itself
+    const onClick = vi.fn()
+    $('input').addEventListener('click', onClick)
+    act(() => { pill.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })) })
+    expect(onClick).toHaveBeenCalledTimes(1)
   })
 })
 

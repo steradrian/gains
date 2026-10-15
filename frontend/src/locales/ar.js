@@ -2877,4 +2877,6 @@ export default {
   'Plan changed': 'تم تغيير الخطة',
   'Trained on {0} of {1} days': 'تدربت {0} من {1} أيام',
   'of {0}': 'من {0}',
+  'over by {0}': 'تجاوز بمقدار {0}',
+  'Loading today': 'جارٍ تحميل اليوم',
 }

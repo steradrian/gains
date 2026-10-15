@@ -2822,4 +2822,6 @@ export default {
   'Plan changed': '计划已更改',
   'Trained on {0} of {1} days': '{1} 天中训练了 {0} 天',
   'of {0}': '/ {0}',
+  'over by {0}': '超出 {0}',
+  'Loading today': '加载今日数据',
 }

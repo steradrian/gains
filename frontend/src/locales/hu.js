@@ -2825,4 +2825,6 @@ export default {
   'Plan changed': 'Terv módosítva',
   'Trained on {0} of {1} days': '{1} napból {0} napon edzés',
   'of {0}': '/ {0}',
+  'over by {0}': 'túllépés: {0}',
+  'Loading today': 'A mai nap betöltése',
 }
