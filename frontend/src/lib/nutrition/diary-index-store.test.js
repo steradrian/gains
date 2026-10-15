@@ -19,6 +19,22 @@ describe('the diary index stores', () => {
     expect(await s.load()).toEqual({ meta: null, days: [] })
   })
 
+  it('IndexedDB: destroy deletes the database, and says so when it cannot', async () => {
+    const asked = []
+    const answering = outcome => ({
+      deleteDatabase: name => {
+        asked.push(name)
+        const r = {}
+        setTimeout(() => { if (outcome === 'blocked') r.onblocked?.(); else r.onsuccess?.() }, 0)
+        return r
+      },
+    })
+    await idbIndexStore({ idb: answering('done') }).destroy()
+    expect(asked).toEqual(['gains-diary-index'])
+    await expect(idbIndexStore({ idb: answering('blocked') }).destroy()).rejects.toThrow('blocked')
+    await expect(idbIndexStore({ idb: undefined }).destroy()).rejects.toThrow()
+  })
+
   it('IndexedDB: answers false where there is none, or where opening fails', async () => {
     expect(await idbIndexStore({ idb: undefined }).open()).toBe(false)
     const refusing = { open: () => { const r = {}; setTimeout(() => { r.error = new Error('blocked'); r.onerror?.() }, 0); return r } }

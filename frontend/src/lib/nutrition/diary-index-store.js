@@ -6,6 +6,8 @@
  *   apply({ put, remove, meta })    → days to put, dates to remove and the meta record, in ONE
  *                                     transaction (`meta` left out keeps the saved one)
  *   wipe()                          → everything gone, in one transaction
+ *   destroy()                       → the whole database deleted (IndexedDB: deleteDatabase), for
+ *                                     when wipe() fails; the store is opened again after it
  *
  * IndexedDB database 'gains-diary-index': object store 'days' (keyPath `date`, one record per
  * day) and 'meta' (one record, { v, owner, cursor, total, complete, syncedAt }). Opening can fail
@@ -76,6 +78,19 @@ export function idbIndexStore({ idb = globalThis.indexedDB } = {}) {
       t.objectStore(META).clear()
       await done(t)
     },
+    // The way out when wipe() fails: the whole database deleted. Rejects when it cannot be (a
+    // tab still holding it open), so the caller knows the days are still there.
+    async destroy() {
+      try { db?.close() } catch { /* already closed */ }
+      db = null
+      if (!idb) throw new Error('no indexedDB')
+      await new Promise((resolve, reject) => {
+        const r = idb.deleteDatabase(DB)
+        r.onsuccess = () => resolve()
+        r.onerror = () => reject(r.error)
+        r.onblocked = () => reject(new Error('blocked'))
+      })
+    },
   }
 }
 
@@ -92,6 +107,10 @@ export function memoryIndexStore() {
       if (next) meta = structuredClone(next)
     },
     async wipe() {
+      days.clear()
+      meta = null
+    },
+    async destroy() {
       days.clear()
       meta = null
     },

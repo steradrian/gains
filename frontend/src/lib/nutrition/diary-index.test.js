@@ -33,6 +33,7 @@ function setup(api, { store = memoryIndexStore() } = {}) {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   __test.restore()
   now += 60_000
   useStore.setState({ user: { id: 7, name: 'A' } })
@@ -253,6 +254,116 @@ describe('integrity and accounts', () => {
     await resetDiaryIndex()
     expect(diaryIndexDays()).toEqual([])
     expect(useDiaryIndex.getState()).toMatchObject({ status: 'idle', complete: false })
+  })
+})
+
+// Every state the days were served in, to prove a day was never on screen for even one render.
+function watchDays() {
+  const seen = []
+  const off = useDiaryIndex.subscribe(() => seen.push(...diaryIndexDays().map(d => d.date)))
+  return { seen, off }
+}
+const hanging = { getDiaryIndex: () => new Promise(() => {}) }
+const tick = () => new Promise(r => setTimeout(r, 20))
+const mine = { v: 1, owner: '7', cursor: 'c1', total: 1, complete: true, syncedAt: 0 }
+
+describe('a saved copy is trusted only on its meta', () => {
+  it.each([
+    ['no meta', null],
+    ['an invalid meta', { v: 1, owner: 7, cursor: 'c1' }],
+    ['another account\'s meta', { ...mine, owner: '99' }],
+    ['an older schema version', { ...mine, v: 0 }],
+  ])('%s: its days are never served, and the saved copy is wiped', async (_name, savedMeta) => {
+    const store = memoryIndexStore()
+    await store.apply({ put: [day('2026-09-01', '2026-09-01T10:00:00Z')], ...(savedMeta ? { meta: savedMeta } : {}) })
+    setup(hanging, { store })
+    const { seen, off } = watchDays()
+    syncDiaryIndex()
+    await tick()
+    off()
+    expect(seen).not.toContain('2026-09-01')
+    expect(diaryIndexDays()).toEqual([])
+    expect((await store.load()).days).toEqual([])
+  })
+
+  it('this account\'s own copy at this version is served at once, before the first page', async () => {
+    const store = memoryIndexStore()
+    await store.apply({ put: [day('2026-09-01', '2026-09-01T10:00:00Z')], meta: mine })
+    setup(hanging, { store })
+    syncDiaryIndex()
+    await tick()
+    expect(diaryIndexDays().map(d => d.date)).toEqual(['2026-09-01'])
+  })
+})
+
+describe('a change stamp is stored in one format', () => {
+  it('turns NutriTrace\'s stamp into the ISO instant, so it orders against a local patch, and keeps nothing it cannot read', async () => {
+    const api = fakeApi(page([day('2026-10-01', '2026-10-11 19:42:07'), day('2026-10-02', 'last tuesday')]))
+    setup(api)
+    await syncDiaryIndex()
+    expect(diaryIndexDays().map(d => [d.date, d.rev])).toEqual([['2026-10-02', ''], ['2026-10-01', '2026-10-11T19:42:07Z']])
+    expect((await backend.load()).days.map(d => d.rev).sort()).toEqual(['', '2026-10-11T19:42:07Z'])
+    // An older local save does not replace the newer server copy, though the server wrote its stamp with a space.
+    patchDiaryDay('2026-10-01', { updated_at: '2026-10-11 19:00:00', items: [] })
+    expect(diaryIndexDays().find(d => d.date === '2026-10-01').items).toHaveLength(1)
+  })
+})
+
+describe('a wipe that fails is not silent', () => {
+  const failing = base => ({ ...base, wipe: async () => { throw new Error('locked') } })
+  const stuck = base => ({ ...failing(base), destroy: async () => { throw new Error('blocked') } })
+  const owed = () => localStorage.getItem(__test.OWED_KEY)
+
+  it('is tried again as deleting the database, and nothing is owed once that works', async () => {
+    const base = memoryIndexStore()
+    await base.apply({ put: [day('2026-09-01', '2026-09-01T10:00:00Z')], meta: { ...mine, owner: '99' } })
+    setup(fakeApi(page([day('2026-10-01', '2026-10-01T10:00:00Z')])), { store: failing(base) })
+    await syncDiaryIndex()
+    expect((await base.load()).days.map(d => d.date)).toEqual(['2026-10-01'])
+    expect(owed()).toBeNull()
+  })
+
+  it('that cannot be done either is owed: remembered, the session runs on memory, and the old days are never served', async () => {
+    const base = memoryIndexStore()
+    await base.apply({ put: [day('2026-09-01', '2026-09-01T10:00:00Z')], meta: { ...mine, owner: '99' } })
+    setup(fakeApi(page([day('2026-10-01', '2026-10-01T10:00:00Z')])), { store: stuck(base) })
+    const { seen, off } = watchDays()
+    await syncDiaryIndex()
+    off()
+    expect(owed()).toBe('1')
+    expect(seen).not.toContain('2026-09-01')
+    expect(diaryIndexDays().map(d => d.date)).toEqual(['2026-10-01'])
+  })
+
+  it('is retried at the next open before anything is read, and while it fails no day of the store is served', async () => {
+    const base = memoryIndexStore()
+    // The same account's days: the owner check cannot tell them from a clean copy, the owed flag can.
+    await base.apply({ put: [day('2026-09-01', '2026-09-01T10:00:00Z')], meta: mine })
+    localStorage.setItem(__test.OWED_KEY, '1')
+    setup(hanging, { store: stuck(base) })
+    const { seen, off } = watchDays()
+    syncDiaryIndex()
+    await tick()
+    expect(seen).not.toContain('2026-09-01')
+    expect(owed()).toBe('1')
+    // The store lets go this time: the wipe goes through before the first read, and the flag clears.
+    __test.restore()
+    setup(hanging, { store: base })
+    syncDiaryIndex()
+    await tick()
+    off()
+    expect(seen).not.toContain('2026-09-01')
+    expect((await base.load()).days).toEqual([])
+    expect(owed()).toBeNull()
+  })
+
+  it('on sign-out is not swallowed either: the saved copy is owed', async () => {
+    const base = memoryIndexStore()
+    await base.apply({ put: [day('2026-09-01', '2026-09-01T10:00:00Z')], meta: mine })
+    setup(fakeApi(page([])), { store: stuck(base) })
+    await syncDiaryIndex()
+    await resetDiaryIndex()
+    expect(owed()).toBe('1')
   })
 })
 

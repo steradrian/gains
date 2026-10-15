@@ -24,6 +24,9 @@ const MIN_GAP_MS = 30_000
 const IDLE_FALLBACK_MS = 1500
 const LOCK = 'gains-diary-index'
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+// Set before the saved copy is wiped and cleared once it is: still there at the next open means
+// the last wipe never finished, and nothing is read from the store until it has.
+const OWED_KEY = 'gains_diary_index_wipe_owed'
 
 /** status: 'idle' | 'loading' | 'ready' | 'error'. `complete`: every day has landed. `stale`: the
  *  last sync failed and the cache is served as it was. `offline`: it failed for lack of a
@@ -90,7 +93,7 @@ function cleanDay(d) {
   if (!isObj(d) || typeof d.date !== 'string' || !DATE.test(d.date)) return null
   const day = {
     date: d.date,
-    rev: typeof d.rev === 'string' ? d.rev : '',
+    rev: normalizeRev(d.rev),
     kcal: Number.isFinite(d.kcal) ? d.kcal : 0,
     items: (Array.isArray(d.items) ? d.items : []).map(cleanItem).filter(Boolean),
   }
@@ -142,14 +145,54 @@ const sameDay = (a, b) => a.rev === b.rev && JSON.stringify(a) === JSON.stringif
 
 /* ------------------------------------------------------------------ storage ------------------ */
 
+const owedStorage = () => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } }
+const isOwed = () => { try { return owedStorage()?.getItem(OWED_KEY) === '1' } catch { return false } }
+const setOwed = on => {
+  try { if (on) owedStorage()?.setItem(OWED_KEY, '1'); else owedStorage()?.removeItem(OWED_KEY) } catch { /* no storage: the owner check on load is the guard */ }
+}
+
+// Empties the saved copy. A wipe that fails is tried again as deleting the whole database; false
+// when neither worked, the wipe still owed.
+async function settleOwed(s) {
+  try {
+    await s.wipe()
+  } catch {
+    try {
+      await s.destroy()
+      if (!(await s.open())) return false
+    } catch {
+      return false
+    }
+  }
+  setOwed(false)
+  return true
+}
+
+// The memory store this session fell back to: emptying it says nothing about the saved copy, so
+// it never settles what is owed.
+let fallback = null
+
+async function wipeStore(s) {
+  if (s === fallback) {
+    await s.wipe()
+    return true
+  }
+  setOwed(true)
+  return settleOwed(s)
+}
+
 function backendOf() {
   backend ??= (async () => {
     const s = env.openBackend()
     let ok = false
     try { ok = await s.open() } catch { ok = false }
+    // The last session could not finish a wipe: it comes before anything is read, and a store
+    // that still cannot be emptied is not used (this session runs on memory).
+    if (ok && isOwed()) ok = await settleOwed(s)
     if (ok) return s
     const m = memoryIndexStore()
     await m.open()
+    fallback = m
     return m
   })()
   return backend
@@ -160,6 +203,7 @@ function backendOf() {
 async function fallBackToMemory() {
   const m = memoryIndexStore()
   await m.open()
+  fallback = m
   store = m
   backend = Promise.resolve(m)
   return m
@@ -178,9 +222,12 @@ function validMeta(m) {
 }
 
 // Reads what the last visit (or another tab) saved. Days patched here since, newer than what is
-// saved, stay.
-async function ensureLoaded(g, refresh) {
-  if (loadedGen === g && !refresh) return
+// saved, stay. What was saved is shown only when the meta that vouches for it is `owner`'s, at
+// this schema version: days with no meta, an invalid one, another account's or an older version's
+// are never put in front of the person, and the saved copy is reported as `discarded`, for the
+// caller to wipe.
+async function ensureLoaded(g, refresh, owner) {
+  if (loadedGen === g && !refresh) return false
   store = await backendOf()
   let snap
   try {
@@ -189,28 +236,35 @@ async function ensureLoaded(g, refresh) {
     await fallBackToMemory()
     snap = { meta: null, days: [] }
   }
-  if (g !== gen) return
+  if (g !== gen) return false
+  const saved = validMeta(snap.meta)
+  const mine = !!saved && saved.owner === owner && saved.v === VERSION
   const stored = new Map()
-  for (const d of snap.days) {
-    const day = cleanDay(d)
-    if (day) stored.set(day.date, day)
+  if (mine) {
+    for (const d of snap.days) {
+      const day = cleanDay(d)
+      if (day) stored.set(day.date, day)
+    }
   }
   for (const [date, local] of days) {
     if (local.rev > (stored.get(date)?.rev ?? '')) stored.set(date, local)
   }
   days = stored
-  meta = validMeta(snap.meta)
+  meta = mine ? saved : null
   loadedGen = g
   bump()
   publish({ complete: !!meta?.complete, ...(meta?.complete && useDiaryIndex.getState().status === 'idle' ? { status: 'ready' } : {}) })
+  return !mine && (!!snap.meta || snap.days.length > 0)
 }
 
+// Empties the memory copy and the saved one. A saved copy that cannot be emptied is owed (see
+// OWED_KEY) and the rest of the session runs on memory.
 async function wipeAll(g) {
   days = new Map()
   meta = null
   bump()
   publish({ complete: false })
-  try { await store.wipe() } catch { await fallBackToMemory() }
+  if (!(await wipeStore(store))) await fallBackToMemory()
   return g === gen
 }
 
@@ -265,9 +319,9 @@ async function fetchPage(g, signal, run) {
 async function work(g, refresh) {
   const signal = ctl.signal
   const owner = ownerNow()
-  await ensureLoaded(g, refresh)
+  const discarded = await ensureLoaded(g, refresh, owner)
   if (g !== gen) return
-  if (meta && (meta.owner !== owner || meta.v !== VERSION) && !(await wipeAll(g))) return
+  if (discarded && !(await wipeAll(g))) return
   publish(meta?.complete ? (useDiaryIndex.getState().status === 'idle' ? { status: 'ready' } : {}) : { status: 'loading' })
 
   const run = { limit: DEFAULT_LIMIT }
@@ -396,8 +450,11 @@ export function resetDiaryIndex() {
   started = false
   version += 1
   publish({ ...initialState(), version })
-  const wipe = store ? store.wipe() : backendOf().then(s => s.wipe())
-  return Promise.resolve(wipe).catch(() => {})
+  const wipe = async () => {
+    const s = store || await backendOf()
+    if (!(await wipeStore(s))) await fallBackToMemory()
+  }
+  return wipe().catch(() => {})
 }
 
 /* ------------------------------------------------------------------ triggers ----------------- */
@@ -457,6 +514,7 @@ export const __test = {
   VERSION,
   DEFAULT_LIMIT,
   MIN_GAP_MS,
+  OWED_KEY,
   /** Replaces what the module talks to: { api, openBackend, now, idle }. */
   configure: options => { env = { ...env, ...options } },
   /** Back to a module nobody has used. */
@@ -471,6 +529,7 @@ export const __test = {
     meta = null
     backend = null
     store = null
+    fallback = null
     loadedGen = -1
     inflight = null
     ctl = null
