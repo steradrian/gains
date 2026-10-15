@@ -159,21 +159,51 @@ describe('editing', () => {
     expect(itemButton('Rolled oats')).toBeUndefined()
   })
 
-  it('does not overwrite a newer copy edited elsewhere', async () => {
+  // The other device edited while the sheet was open, so before this edit's stamp (set at the last
+  // keystroke) but after the entry was logged: the case a "newer than ours" check misses.
+  it('does not revert an edit another device made while the sheet was open', async () => {
     await click(itemButton('Rolled oats'))
     await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
-    Object.assign(serverItem('it-oats'), { quantity: 5, updatedAt: '2999-01-01T00:00:00.000Z' })
+    Object.assign(serverItem('it-oats'), { quantity: 5, updatedAt: new Date(Date.now() - 5000).toISOString() })
     await click(named(lastSheet(), 'Save'))
+    expect(puts()).toHaveLength(0)
     expect(serverItem('it-oats').quantity).toBe(5)
     expect(toast()).toBe('Not saved: this entry changed elsewhere. The diary now shows its latest state.')
     expect(useNutrition.getState().days[TODAY].entry.items.find(i => i.uuid === 'it-oats').quantity).toBe(5)
+  })
+
+  it('refuses a sheet reopened on a stale cached entry, then saves from the refreshed one', async () => {
+    await click(itemButton('Rolled oats'))
+    await click(named(lastSheet(), 'Cancel'))
+    Object.assign(serverItem('it-oats'), { quantity: 4, updatedAt: new Date(Date.now() - 60000).toISOString() })
+    await click(itemButton('Rolled oats'))
+    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    await click(named(lastSheet(), 'Save'))
+    expect(puts()).toHaveLength(0)
+    expect(serverItem('it-oats').quantity).toBe(4)
+    await click(itemButton('Rolled oats'))
+    expect(lastSheet().querySelector('input[aria-label="Servings"]').value).toBe('4')
+    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    await click(named(lastSheet(), 'Save'))
+    expect(serverItem('it-oats').quantity).toBe(2)
+  })
+
+  it('keeps the fields it does not edit, and every field of the day\'s other entries', async () => {
+    Object.assign(serverItem('it-oats'), { food_device: 'phone-1', x_custom: { a: 1 } })
+    Object.assign(serverItem('it-quick'), { food_device: 'phone-2', x_custom: 'kept' })
+    await useNutrition.getState().loadDay(TODAY, { force: true })
+    await click(itemButton('Rolled oats'))
+    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    await click(named(lastSheet(), 'Save'))
+    expect(serverItem('it-oats')).toMatchObject({ quantity: 2, food_device: 'phone-1', x_custom: { a: 1 }, food_server_id: 11 })
+    expect(serverItem('it-quick')).toMatchObject({ food_device: 'phone-2', x_custom: 'kept' })
   })
 })
 
 describe('removing', () => {
   it('removes the entry with a tombstone, and Undo puts it back under a new uuid', async () => {
     await click(itemButton('Rolled oats'))
-    await click(named(lastSheet(), 'Remove'))
+    await click(named(lastSheet(), 'Remove Rolled oats'))
     expect(nt.state.days[TODAY].items.map(i => i.uuid)).toEqual(['it-quick'])
     expect(nt.state.tombstones[TODAY]).toEqual([expect.objectContaining({ kind: 'item', uuid: 'it-oats' })])
     expect(toast()).toBe('Removed Rolled oats')
@@ -186,10 +216,33 @@ describe('removing', () => {
     expect(itemButton('Rolled oats')).toBeDefined()
   })
 
+  it('Undo puts the entry back where it was, not at the end of the day', async () => {
+    await click(itemButton('Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats'))
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle()
+    expect(nt.state.days[TODAY].items.map(i => i.name)).toEqual(['Rolled oats', 'Quick Calories'])
+  })
+
+  it('a failed Undo offers Try again, which sends the same entry and restores it once', async () => {
+    await click(itemButton('Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats'))
+    nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle()
+    expect(toast()).toBe('Not saved. Try again.')
+    expect(useUI.getState().toastAction.label).toBe('Try again')
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle()
+    const [first, second] = puts().slice(1).map(r => r.body.items.find(i => i.name === 'Rolled oats'))
+    expect(second).toEqual(first)
+    expect(nt.state.days[TODAY].items.filter(i => i.name === 'Rolled oats')).toHaveLength(1)
+  })
+
   it('keeps the sheet and says so when the remove fails', async () => {
     await click(itemButton('Rolled oats'))
     nt.failNext('PUT', '/nt/api/diary/', 'offline')
-    await click(named(lastSheet(), 'Remove'))
+    await click(named(lastSheet(), 'Remove Rolled oats'))
     expect(lastSheet().querySelector('[role=alert]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
     expect(serverItem('it-oats')).toBeDefined()
   })

@@ -46,7 +46,7 @@ export function DiaryItemSheet({ date, item, close }) {
     setBusy(true)
     setError('')
     try {
-      await useNutrition.getState().updateItem(date, draft)
+      await useNutrition.getState().updateItem(date, draft, item)
       close()
       useUI.getState().toast(t('Updated'))
     } catch (e) {
@@ -65,10 +65,11 @@ export function DiaryItemSheet({ date, item, close }) {
     setBusy(true)
     setError('')
     try {
+      const at = useNutrition.getState().days[date]?.entry?.items?.findIndex(i => i.uuid === item.uuid)
       await useNutrition.getState().removeItem(date, item.uuid)
       const back = { ...item, uuid: newUuid() }
       close()
-      toastLogged(t('Removed {0}', item.name), () => useNutrition.getState().restoreItem(date, back))
+      toastLogged(t('Removed {0}', item.name), () => useNutrition.getState().restoreItem(date, back, at >= 0 ? at : null))
     } catch (e) {
       setError(writeErrorText(e))
       setBusy(false)
@@ -107,7 +108,7 @@ export function DiaryItemSheet({ date, item, close }) {
       <Button variant="primary" onClick={save} disabled={!draft || busy || !dirty}>{busy ? t('Saving…') : t('Save')}</Button>
     </SheetActions>
     <Section>
-      <Row icon="trash" title={t('Remove')} danger onClick={remove} />
+      <Row icon="trash" title={t('Remove {0}', item.name)} danger onClick={remove} />
     </Section>
   </>
 }

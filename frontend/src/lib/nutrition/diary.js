@@ -118,7 +118,10 @@ export function gramsOfPortion(portion, unit, food = null) {
 
 /** How much the nutrients scale going from (origPortion, origUnit) to (newPortion, newUnit):
  *  per-food household units first, then the mass/volume table (density across systems), else
- *  the plain ratio of the two numbers. */
+ *  the plain ratio of the two numbers. A custom unit (Profile › Custom units, `{ abbr, full }`) has
+ *  no weight, so it is always that last case, as in NutriTrace (units.js): a food saved as 1 shot
+ *  logged as 2 shot is 2×; a food saved as 100 g logged as 100 shot is 1×, because only the two
+ *  numbers are compared. */
 export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = null) {
   const op = parseFloat(origPortion)
   const np = parseFloat(newPortion)
@@ -139,11 +142,17 @@ export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = n
   return newP / origP
 }
 
-/** The units a food can be logged in: its household units, its own unit, then the catalogue. */
-export function unitsFor(food) {
+/** The abbreviations of the person's own units (Profile › Custom units, `customUnits`). */
+export const customUnitAbbrs = settings =>
+  (Array.isArray(settings?.customUnits) ? settings.customUnits : []).map(u => String(u?.abbr || '')).filter(Boolean)
+
+/** The units a food can be logged in: its household units, its own unit, the person's custom
+ *  units (NutriTrace lists them first in the picker), then the catalogue. */
+export function unitsFor(food, settings = null) {
   const alt = (parseAltUnits(food?.alt_units) || []).map(r => String(r?.abbr || '')).filter(Boolean)
+  const custom = customUnitAbbrs(settings)
   const own = food?.unit && !UNITS.includes(food.unit) && !alt.includes(food.unit) ? [food.unit] : []
-  return [...new Set([...alt, ...own, ...UNITS])]
+  return [...new Set([...alt, ...own, ...custom, ...UNITS])]
 }
 
 /** The food as logged at (portion, unit): NutriTrace's quantity prompt (Foods.svelte
@@ -170,7 +179,7 @@ export function newUuid() {
 
 // What a diary item keeps (stores/diary.js _KEEP_FIELDS): the snapshot that protects history,
 // plus what the diary reads. The source food's other fields stay with the food.
-const KEEP_FIELDS = ['uuid', 'meal', 'addedAt', 'updatedAt', 'type', 'id', 'food_server_id', 'is_recipe', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'notes', 'imgUrl', 'source', 'source_meal_id']
+const KEEP_FIELDS = ['uuid', 'meal', 'addedAt', 'updatedAt', 'type', 'id', 'food_server_id', 'is_recipe', 'food_device', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'notes', 'imgUrl', 'source', 'source_meal_id']
 function referenceShape(item) {
   const out = Object.fromEntries(KEEP_FIELDS.filter(k => k in item).map(k => [k, item[k]]))
   if (Array.isArray(item._splitItems)) out._splitItems = item._splitItems.map(referenceShape)
@@ -229,13 +238,16 @@ export function editedItem(item, { portion, unit, servings, meal, time, now = ne
     from.setHours(h, m, 0, 0)
     addedAt = from.toISOString()
   }
-  const prev = String(item.updatedAt || item.addedAt || '')
+  const prev = stampOf(item)
   const stamp = now.toISOString()
   const updatedAt = stamp > prev ? stamp : new Date(new Date(prev).getTime() + 1).toISOString()
   const out = { ...base, quantity, meal: mealSlot(meal), addedAt, updatedAt }
   if (quantity === undefined) delete out.quantity
-  return referenceShape(out)
+  return out
 }
+
+/** The version of an entry the merge compares: when it was last edited, else when it was logged. */
+export const stampOf = item => String(item?.updatedAt || item?.addedAt || '')
 const invalidAmount = () => { throw invalid('amount must be a number above 0') }
 
 /** NutriTrace's Quick Calories row (stores/diary.js addQuickCalories). Throws invalid without a
@@ -301,7 +313,9 @@ export function dayWrite(day, { addItems = [], addWater = [], removeItems = [], 
     return out
   }
   return {
-    items: merge(day?.items, addItems, removeItems).map(referenceShape),
+    // The day's other entries go back as they came: they may carry fields this client does not
+    // know (another device's food_device, a field an import added), and a write must not strip them.
+    items: merge(day?.items, addItems, removeItems),
     water: merge(day?.water, addWater, removeWater),
     deleted_uuids: { items: [...removeItems], water: [...removeWater] },
   }

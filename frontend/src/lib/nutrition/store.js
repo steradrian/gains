@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { NtApi } from './api.js'
-import { atPortion, changed, dayWrite, foodItem, invalid, quickCaloriesItem, waterLog } from './diary.js'
+import { atPortion, changed, dayWrite, foodItem, invalid, quickCaloriesItem, stampOf, waterLog } from './diary.js'
 import { sortedByName } from './meals.js'
 import { offResults } from './off.js'
 import { useDiarySelection } from './selection.js'
@@ -90,21 +90,30 @@ export const useNutrition = create((set, get) => {
     if ((change.addItems?.length || change.addWater?.length) && !(date <= todayISO())) throw invalid('nothing can be logged to a future day')
     const g = gen
     const current = await NtApi.getDiaryDate(date)
-    // An edit lands on an entry the day still holds. One removed since (here or on another device,
-    // where NutriTrace keeps its tombstone) would otherwise be written back; the day is shown as
-    // it is now instead.
-    if (change.editItems?.some(e => !(current?.items || []).some(i => i?.uuid === e.uuid))) {
+    // An edit lands on the entry it was made from. If the day no longer holds it (removed here or on
+    // another device, where NutriTrace keeps its tombstone), or holds another version of it than the
+    // one the edit opened (edited elsewhere, or the sheet was opened on a stale cache), writing
+    // would revert or resurrect someone else's change: the day is shown as it is now instead. A
+    // copy carrying this edit's own stamp is its earlier try, whose answer was lost: allowed.
+    const edits = change.edits || []
+    const stale = edits.some(({ item, from }) => {
+      const held = (current?.items || []).find(i => i?.uuid === item.uuid)
+      return !held || (stampOf(held) !== from && stampOf(held) !== item.updatedAt)
+    })
+    if (stale) {
       applyDay(date, issue(date), g, current)
-      throw changed('the entry is no longer in the day')
+      throw changed('the entry is gone or was changed since it was opened')
     }
     const n = issue(date)
-    const entry = await NtApi.saveDiaryDate(date, dayWrite(current, { ...change, addItems: [...(change.addItems || []), ...(change.editItems || [])] }))
-    applyDay(date, n, g, entry, { fromWrite: true })
-    // The merge keeps the server's copy of an entry it holds a newer one of (edited elsewhere
-    // meanwhile); the day now shows that copy, and this edit was not saved.
-    for (const e of change.editItems || []) {
-      if ((entry?.items || []).find(i => i?.uuid === e.uuid)?.updatedAt !== e.updatedAt) throw changed('a newer copy of the entry exists')
+    const body = dayWrite(current, { ...change, addItems: [...(change.addItems || []), ...edits.map(e => e.item)] })
+    if (change.at != null) {
+      // A restored entry goes back where it stood, not at the end of the day.
+      const uuid = change.addItems?.[0]?.uuid
+      const from = body.items.findIndex(i => i?.uuid === uuid)
+      if (from !== -1) body.items.splice(Math.min(change.at, body.items.length - 1), 0, ...body.items.splice(from, 1))
     }
+    const entry = await NtApi.saveDiaryDate(date, body)
+    applyDay(date, n, g, entry, { fromWrite: true })
     return entry
   }
 
@@ -269,8 +278,8 @@ export const useNutrition = create((set, get) => {
 
     /** Online results for a search, mapped to unsaved foods (off.js). Throws an NtError
      *  ('aborted' once `signal` aborts: a newer search replaced this one). */
-    async searchOnline(query, lang, { signal } = {}) {
-      return offResults(await NtApi.searchOnline(query, { lang, signal }), lang)
+    async searchOnline(query, lang, { signal, country } = {}) {
+      return offResults(await NtApi.searchOnline(query, { lang, country, signal }), lang, country)
     },
 
     /* --- drafts: build once, log (and retry) the same one --- */
@@ -373,19 +382,21 @@ export const useNutrition = create((set, get) => {
       return log
     },
 
-    /** Saves an editedItem (diary.js) over the entry with its uuid. Retry it with the same one.
-     *  Throws 'changed' when the entry is gone or a newer copy exists; the day is then reloaded. */
-    async updateItem(date, item) {
-      if (!item?.uuid || !item.updatedAt) throw invalid('updateItem takes an editedItem')
-      await write(date, { editItems: [item] })
+    /** Saves an editedItem (diary.js) made from `opened`, the entry as the sheet showed it. Retry
+     *  it with the same one. Throws 'changed' when the day no longer holds `opened` as it was (the
+     *  entry is gone, or was edited elsewhere); the day is then reloaded. */
+    async updateItem(date, item, opened) {
+      if (!item?.uuid || !item.updatedAt || !opened) throw invalid('updateItem takes an editedItem and the entry it was made from')
+      await write(date, { edits: [{ item, from: stampOf(opened) }] })
       return item
     },
 
-    /** Puts a removed entry back (the Undo of Remove). A removed uuid stays tombstoned, so the
-     *  entry comes back under a new one, built once by the caller and sent again on a retry. */
-    async restoreItem(date, item) {
+    /** Puts a removed entry back (the Undo of Remove) at position `at` of the day. A removed uuid
+     *  stays tombstoned, so the entry comes back under a new one, built once by the caller and
+     *  sent again on a retry. */
+    async restoreItem(date, item, at = null) {
       if (!item?.uuid) throw invalid('restoreItem takes an item with a uuid')
-      await write(date, { addItems: [item] })
+      await write(date, { addItems: [item], at })
       return item
     },
 
