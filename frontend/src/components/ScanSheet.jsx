@@ -88,7 +88,20 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
     if (alive.current) setBusy(false)
   }
 
-  return <div className="scan-sheet">
+  // Each step has one heading line (marked data-step-heading; the sheet title on the scan step).
+  // It takes focus when the step changes, so a screen reader hears the new step, not silence.
+  const rootRef = useRef(null)
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    const root = rootRef.current
+    const el = root?.querySelector('[data-step-heading]') ?? root?.querySelector('h3')
+    if (!el) return
+    el.tabIndex = -1
+    el.focus({ preventScroll: true })
+  }, [step.id])
+
+  return <div className="scan-sheet" ref={rootRef}>
     <SheetHeader title={t('Scan a barcode')} />
 
     {step.id === 'scan' && <>
@@ -101,11 +114,11 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
       </form>
     </>}
 
-    {step.id === 'looking' && <div className="muted small fp-note" role="status">{t('Looking up {0}…', step.code)}</div>}
+    {step.id === 'looking' && <div className="muted small fp-note" role="status" data-step-heading>{t('Looking up {0}…', step.code)}</div>}
 
     {step.id === 'found' && <>
-      <div className="scan-hit">
-        <div className="tt">{step.food.name}</div>
+      <div className="scan-hit" role="status">
+        <div className="tt" data-step-heading>{step.food.name}</div>
         <div className="ss muted small">{[step.food.brand, `${step.food.portion || 100} ${step.food.unit || 'g'}`, units.energy(foodKcal(step.food))].filter(Boolean).join(' · ')}</div>
         <div className="ss muted small">{step.kind === 'own' ? t('One of your foods') : t('From Open Food Facts')}</div>
       </div>
@@ -120,7 +133,7 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
 
     {step.id === 'miss' && <>
       <div className="scan-hit" role="status">
-        <div className="tt">{step.noNutrition ? t('No energy value for {0}', step.code) : t('No product found for {0}', step.code)}</div>
+        <div className="tt" data-step-heading>{step.noNutrition ? t('No energy value for {0}', step.code) : t('No product found for {0}', step.code)}</div>
         <div className="ss muted small">{step.noNutrition
           ? t('Open Food Facts lists it without calories, so it cannot be logged from here.')
           : t('It is not in your foods or in Open Food Facts.')}</div>
@@ -134,7 +147,7 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, cl
     </>}
 
     {step.id === 'error' && <>
-      <div className="nt-error small" role="alert">{step.text}</div>
+      <div className="nt-error small" role="alert" data-step-heading>{step.text}</div>
       <div className="scan-actions">
         <Button variant="primary" onClick={() => lookUp(step.code)}>{t('Try again')}</Button>
         <Button variant="ghost" onClick={again}>{t('Scan another')}</Button>

@@ -44,7 +44,8 @@ export const useFasting = create((set, get) => ({
   },
 
   /** Starts a fast of `goalHours`, optionally back-dated to `startAt` (an ISO instant). Resolves to
-   *  the running fast. */
+   *  `{ fast, started }`: `started` is false when a fast was already running elsewhere (a 409); that
+   *  fast is loaded and is the one returned, and it is not this call's to announce as started. */
   async start(goalHours, startAt) {
     const g = gen
     let fast
@@ -53,14 +54,14 @@ export const useFasting = create((set, get) => ({
     } catch (e) {
       if (e?.status === 409) {
         await get().load({ force: true })
-        if (get().active) return get().active
+        if (get().active) return { fast: get().active, started: false }
       }
       throw e
     }
     if (g === gen) set({ status: 'ready', active: fast })
     // NutriTrace's widget remembers the last plan as the next one's default. Not worth failing for.
-    NtApi.putSetting('fastingDefaultHours', goalHours).catch(() => {})
-    return fast
+    useNutrition.getState().saveSetting('fastingDefaultHours', goalHours).catch(() => {})
+    return { fast, started: true }
   },
 
   /** Ends the running fast. Resolves to the finished fast, or null when there was none (it was
@@ -89,7 +90,8 @@ export const useFasting = create((set, get) => ({
     const running = get().active
     if (!running) return null
     const fast = await NtApi.editFastStart(running.id, startAt)
-    if (g === gen) set({ active: fast })
+    // A fast ended elsewhere answers with its end: it is no longer the running one.
+    if (g === gen) set(s => ({ active: fast.end_at ? null : fast, history: fast.end_at ? [fast, ...s.history.filter(f => f.id !== fast.id)] : s.history }))
     return fast
   },
 

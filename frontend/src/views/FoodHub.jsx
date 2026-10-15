@@ -56,13 +56,18 @@ export default function FoodHub() {
     </Page>
   }
 
+  const fastingSub = !settings ? t('Loading…')
+    : !fastingOn ? t('Off')
+    : fasting.active ? fmtDur(progressOf(fasting.active, now).elapsedMs) : t('Start a fast')
+
   // One entry per page that exists.
   const targets = [
     { path: '/food/foods', icon: 'apple', title: t('Foods'), sub: foods.status === 'ready' ? tn('{0} food', '{0} foods', foods.list.length) : t('Your own foods') },
     { path: '/food/meals', icon: 'bookOpen', title: t('Saved meals'), sub: meals.status === 'ready' ? tn('{0} meal', '{0} meals', meals.list.length) : t('Loading…') },
     { path: '/food/recipes', icon: 'cookingPot', title: t('Recipes'), sub: recipes.status === 'ready' ? tn('{0} recipe', '{0} recipes', recipes.list.length) : t('Loading…') },
     { path: '/food/goals', icon: 'target', title: t('Goals'), sub: status === 'ready' ? units.energy(target.base) : t('Daily target') },
-    ...(fastingOn ? [{ path: '/food/fasting', icon: 'timer', title: t('Fasting'), sub: fasting.active ? fmtDur(progressOf(fasting.active, now).elapsedMs) : t('Start a fast') }] : []),
+    // Always there: the Fasting page is where fasting is switched on, so the way in cannot depend on it.
+    { path: '/food/fasting', icon: 'timer', title: t('Fasting'), sub: fastingSub },
   ]
 
   // The card says today, so it opens Home on today, whichever date Home was left on.

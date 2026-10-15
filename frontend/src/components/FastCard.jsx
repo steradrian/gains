@@ -80,8 +80,8 @@ function Idle({ lastFast }) {
     setBusy(true)
     setError(null)
     try {
-      await useFasting.getState().start(goal)
-      useUI.getState().toast(t('Fast started: {0} h goal', goal))
+      const { started } = await useFasting.getState().start(goal)
+      useUI.getState().toast(started ? t('Fast started: {0} h goal', goal) : t('A fast is already running'))
     } catch (e) {
       setError(writeErrorText(e))
     }

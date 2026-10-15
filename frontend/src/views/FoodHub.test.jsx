@@ -221,16 +221,22 @@ describe('the places', () => {
 
   it('has a Goals tile with the daily target, and opens Goals', async () => {
     await openHub()
-    expect([...host.querySelectorAll('.hub-tile .l')].map(l => l.textContent)).toEqual(['Foods', 'Saved meals', 'Recipes', 'Goals'])
+    expect([...host.querySelectorAll('.hub-tile .l')].map(l => l.textContent)).toEqual(['Foods', 'Saved meals', 'Recipes', 'Goals', 'Fasting'])
     await settle(() => expect(tile('Goals').querySelector('.v').textContent).toBe('2,200 kcal'))
     tap(tile('Goals'))
     expect(host.textContent).toBe('GOALS PAGE')
   })
 
-  it('has a Fasting tile only while fasting is on, and opens the Fasting page', async () => {
+  it('always has a Fasting tile, "Off" while fasting is off, so the page where it is switched on is reachable', async () => {
     await openHub()
-    await settle(() => expect(tile('Goals').querySelector('.v').textContent).toBe('2,200 kcal'))
-    expect(tile('Fasting')).toBeUndefined()
+    await settle(() => expect(tile('Fasting').querySelector('.v').textContent).toBe('Off'))
+    tap(tile('Fasting'))
+    expect(host.textContent).toBe('FASTING PAGE')
+    expect(nt.requests.some(r => r.path.startsWith('/nt/api/fasts'))).toBe(false)
+  })
+
+  it('the Fasting tile reads "Start a fast" while fasting is on, and opens the Fasting page', async () => {
+    await openHub()
     document.body.innerHTML = ''
     nt = createFakeNutriTrace({ days: { [TODAY]: fixtureDay(TODAY) }, settings: { ...fixtureSettings(), fastingEnabled: true } })
     vi.stubGlobal('fetch', nt.fetch)

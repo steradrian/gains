@@ -29,7 +29,7 @@ function HistoryRow({ fast }) {
   })
   return <Row icon={hitGoal(fast) ? 'checkCircle' : 'timer'} iconTint={hitGoal(fast) ? 'var(--green)' : 'var(--grey)'}
     title={fmtDur(lengthOf(fast))} subtitle={`${when} · ${t('Goal {0} h', fast.goal_hours)}`}>
-    <button type="button" className="iconbtn" onClick={remove} aria-label={t('Remove this fast ({0})', when)}><Icon name="trash" /></button>
+    <button type="button" className="iconbtn fast-remove" onClick={remove} aria-label={t('Delete fast {0}', when)}><Icon name="trash" /></button>
   </Row>
 }
 
@@ -49,8 +49,14 @@ export default function Fasting() {
     if (!available) return
     useNutrition.getState().loadSettings()
   }, [available])
+  // A fast started or ended on another device shows up when the page opens and when the app
+  // comes back to the front.
   useEffect(() => {
-    if (available && on) useFasting.getState().load()
+    if (!available || !on) return undefined
+    useFasting.getState().load({ force: true })
+    const refresh = () => { if (document.visibilityState === 'visible') useFasting.getState().load({ force: true }) }
+    document.addEventListener('visibilitychange', refresh)
+    return () => document.removeEventListener('visibilitychange', refresh)
   }, [available, on])
 
   const turn = async next => {

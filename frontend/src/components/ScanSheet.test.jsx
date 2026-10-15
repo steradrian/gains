@@ -117,6 +117,24 @@ describe('scanning a product', () => {
     expect(useNutrition.getState().foods.list.some(f => f.barcode === '3017620422003')).toBe(true)
   })
 
+  it('an 8-digit UPC-E is expanded to its UPC-A, then the EAN-13, before the lookup', async () => {
+    await openScan()
+    await scan('04252614')
+    expect(proxyCalls()[0].query.url).toContain('/product/0042100005264?')
+  })
+
+  it('announces each step and moves focus to its heading', async () => {
+    await openScan()
+    await scan('3017620422003')
+    const hit = lastSheet().querySelector('.scan-hit')
+    expect(hit.getAttribute('role')).toBe('status')
+    expect(document.activeElement).toBe(hit.querySelector('.tt'))
+    await click(button('Scan another', lastSheet()))
+    expect(document.activeElement.tagName).toBe('H3')
+    await scan('9999999999999')
+    expect(document.activeElement).toBe(lastSheet().querySelector('.scan-hit .tt'))
+  })
+
   it('a 12-digit UPC-A is looked up as the EAN-13 Open Food Facts files it under', async () => {
     await openScan()
     await scan('036000291452')

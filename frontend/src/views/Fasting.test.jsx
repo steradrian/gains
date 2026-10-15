@@ -181,6 +181,57 @@ describe('the Fasting page', () => {
     await click(button('Start fast'))
     expect(host.querySelector('[role="alert"]')).toBeNull()
     expect(text()).toContain('16h 0m to go')
+    // The other device's fast is not announced as started here.
+    expect(useUI.getState().toastMsg).toBe('A fast is already running')
+  })
+
+  it('a fast started or ended on another device shows up when the app comes back to the front', async () => {
+    await mount(<Fasting />)
+    expect(button('Start fast')).toBeTruthy()
+    nt.state.fasts.push(running(2 * H))
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    await settle()
+    expect(button('End fast')).toBeTruthy()
+    nt.state.fasts[0].end_at = new Date().toISOString()
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    await settle()
+    expect(button('Start fast')).toBeTruthy()
+  })
+
+  it('opening the page re-reads fasts a stale cache holds', async () => {
+    await mount(<Fasting />)
+    act(() => root.render(<div />))
+    nt.state.fasts.push(running(2 * H))
+    await mount(<Fasting />)
+    expect(button('End fast')).toBeTruthy()
+  })
+
+  it('moving the start of a fast that was ended elsewhere leaves it out of the running slot', async () => {
+    useFake({ fasts: [running(3 * H)] })
+    await mount(<Fasting />)
+    nt.state.fasts[0].end_at = new Date().toISOString()
+    await click(button('Change start time'))
+    const pad = n => String(n).padStart(2, '0')
+    const d = new Date(Date.now() - 4 * H)
+    await typeInto(lastSheet().querySelector('input[type="datetime-local"]'), `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`)
+    await click(button('Save', lastSheet()))
+    expect(useFasting.getState().active).toBeNull()
+    expect(useFasting.getState().history.map(f => f.id)).toContain(5)
+  })
+
+  it('starting a fast puts the plan in the cached settings, so the next screen defaults to it', async () => {
+    await mount(<Fasting />)
+    await click(button('18:6'))
+    await click(button('Start fast'))
+    expect(useNutrition.getState().settings.data.fastingDefaultHours).toBe(18)
+  })
+
+  it('names a history delete button by its date and gives it a 44px target', async () => {
+    useFake({ fasts: [finished(1, 1, 17)] })
+    await mount(<Fasting />)
+    const del = host.querySelector('.lrow button')
+    expect(del.getAttribute('aria-label')).toMatch(/^Delete fast /)
+    expect(del.classList.contains('fast-remove')).toBe(true)
   })
 
   it('needs the web app and a signed-in person', async () => {

@@ -63,6 +63,25 @@ describe('CameraScan in product mode', () => {
     expect(host.querySelector('video')).toBeNull()
   })
 
+  it('lets go of the camera while the tab is hidden and opens it again on return', async () => {
+    decode.mockResolvedValue(null)
+    const setVisibility = state => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
+      document.dispatchEvent(new Event('visibilitychange'))
+    }
+    await act(async () => { root.render(<CameraScan product onFound={vi.fn()} />) })
+    await wait(30)
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1)
+    await act(async () => { setVisibility('hidden') })
+    expect(stopTrack).toHaveBeenCalledTimes(1)
+    const calls = decode.mock.calls.length
+    await wait(400)
+    expect(decode.mock.calls.length).toBeLessThanOrEqual(calls + 1)
+    await act(async () => { setVisibility('visible') })
+    await wait(30)
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2)
+  })
+
   it('stops the camera when it goes away', async () => {
     decode.mockResolvedValue(null)
     await act(async () => { root.render(<CameraScan product onFound={vi.fn()} />) })

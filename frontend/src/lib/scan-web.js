@@ -42,13 +42,23 @@ export async function decodeImageData(img) {
 // scans a product. Same shape as the QR path: pixels in, { value, fmt } out.
 const PRODUCT_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e']
 let _productDetector = null
-function productDetector() {
+// The native detector only when it reads all four product formats; a browser without
+// BarcodeDetector, or with a partial list, goes to ZXing alone.
+async function productDetector() {
   if (_productDetector !== null) return _productDetector
   try {
-    _productDetector = (typeof BarcodeDetector === 'function') ? new BarcodeDetector({ formats: PRODUCT_FORMATS }) : false
+    if (typeof BarcodeDetector !== 'function') {
+      _productDetector = false
+    } else {
+      const supported = typeof BarcodeDetector.getSupportedFormats === 'function' ? await BarcodeDetector.getSupportedFormats() : []
+      _productDetector = PRODUCT_FORMATS.every(f => supported.includes(f)) ? new BarcodeDetector({ formats: PRODUCT_FORMATS }) : false
+    }
   } catch (e) { _productDetector = false }
   return _productDetector
 }
+
+/** Forgets the detector probe (tests change what the browser offers). */
+export function resetProductDetector() { _productDetector = null }
 
 let _zxing = null
 async function loadZxing() {
@@ -101,13 +111,14 @@ export async function decodeSource(source, { product = false } = {}) {
   ctx.drawImage(source, 0, 0, w, h)
 
   if (product) {
-    const native = productDetector()
+    const native = await productDetector()
     if (native) {
+      // It reads every product format, so a frame it finds nothing in has none: no ZXing pass.
       try {
         const found = await native.detect(_canvas)
         const b = found && found.find(x => x.rawValue)
-        if (b) return { value: b.rawValue, fmt: normalizeFmt(b.format) }
-      } catch (e) { /* fall through to ZXing */ }
+        return b ? { value: b.rawValue, fmt: normalizeFmt(b.format) } : null
+      } catch (e) { /* a detector that throws falls through to ZXing */ }
     }
     return decodeProductImageData(ctx.getImageData(0, 0, w, h))
   }

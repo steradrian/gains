@@ -32,9 +32,9 @@ export default function PlusFastRow({ close }) {
   const start = async () => {
     setBusy(true)
     try {
-      await useFasting.getState().start(hours)
+      const { started } = await useFasting.getState().start(hours)
       close()
-      useUI.getState().toast(t('Fast started: {0} h goal', hours))
+      useUI.getState().toast(started ? t('Fast started: {0} h goal', hours) : t('A fast is already running'))
     } catch (e) {
       useUI.getState().toast(writeErrorText(e))
       setBusy(false)
