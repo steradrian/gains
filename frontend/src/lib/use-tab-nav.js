@@ -9,7 +9,7 @@
 // navigation that lands in another tab's pages, from whatever code made it (a Profile row opening
 // Routines): the push is turned into a switch, so a tab's stack never holds another tab's page.
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import { emptyNav, deadSteps, planSwitch, record, settle } from './tab-history.js'
+import { emptyNav, deadSteps, onVisitPage, planSwitch, record, settle } from './tab-history.js'
 import { parentOf, tabOf } from './tab-route.js'
 import { onSheetEntry, sheetEntriesLive } from './nav.js'
 import { useUI } from '../store/useUI.js'
@@ -42,10 +42,11 @@ const historyIdx = () => globalThis.history?.state?.idx
 // A navigation into another tab's pages: to be carried out as a switch. Not a replace of the very
 // first entry, though: with nothing under it in the tab, that is a cold redirect (an old link, a
 // page sending a guest Home) and it only changes which tab is on screen.
-// Nor a page the global search opens on top of its overlay (`searchVisit`, lib/search/session.js):
-// it stays on this tab's stack, so back returns to the overlay.
+// Nor a page the global search opens on top of its overlay (`searchVisit`, lib/search/session.js),
+// nor a link followed from such a page or its own address replaced: they stay on this tab's
+// stack, so back walks down them to the overlay.
 function crossesTab(nav, location, navType) {
-  if (navType === 'POP' || nav.idx < 0 || location.state?.searchVisit) return false
+  if (navType === 'POP' || nav.idx < 0 || location.state?.searchVisit || onVisitPage(nav)) return false
   const target = tabOf(location.pathname)
   if (!target || target === nav.tab) return false
   const idx = historyIdx()

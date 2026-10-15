@@ -17,7 +17,9 @@ export function useTrailing(r) {
   return { value: r.value, unit: r.unit || null }
 }
 
-// One search result: a single button over the whole row (no control inside it), 64px, the media
+// One search result: one option of the results listbox (a button with role=option, out of the
+// tab order, aria-selected while the arrow keys are on it), over the whole row with no control
+// inside it, 64px, the media
 // slot, the title over the subtitle with the matched words in bold, and what trails it: a value
 // ("420" over "kcal", "80 kg × 5" over "3 d ago"), a setting's current value, the "Off" label of a
 // feature that is off, or a page's chevron (ui-search.md §7, §8). `reason` (a suggestion) leads
@@ -35,7 +37,7 @@ export default function ResultRow({ r, onOpen, trail = true }) {
     trailing ? [trailing.value, trailing.unit].filter(Boolean).join(' ') : null,
   ].filter(Boolean).join(', ')
   return (
-    <button type="button" id={rowId(r.key)} data-search-row="" className={'sr-row' + (active ? ' on' : '') + (r.off ? ' off' : '')}
+    <button type="button" role="option" aria-selected={active} id={rowId(r.key)} data-search-row="" className={'sr-row' + (active ? ' on' : '') + (r.off ? ' off' : '')}
       onClick={() => onOpen(r)} aria-label={label} tabIndex={-1}>
       <ResultMedia media={r.media} />
       <span className="sr-text">

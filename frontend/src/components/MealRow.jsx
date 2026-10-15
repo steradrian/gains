@@ -14,7 +14,7 @@ import MacroLine from './MacroLine.jsx'
 // opens the food picker right under it, logging to this meal on the shown date. What the list and
 // the meal show follows Profile › Diary & meals (brand names, time logged, quick calories, macro
 // summary).
-// `find`: the uuid of an entry in it the address asks for (MealsCard useFindEntry): the meal opens
+// `find`: the uuid of an entry in it a search's Day result asks for (FoodHub `?find=`): the meal opens
 // and that entry is scrolled to and flashed once.
 export default function MealRow({ date, slot, name, items, find = null }) {
   const { energy } = useUnits()

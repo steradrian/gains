@@ -61,13 +61,17 @@ export function settingsResults(words, S, ctx, tr = t, { all = false } = {}) {
     const secondary = isPage ? [] : [pageTrail(entry.page, tr), entry.page ? PAGES[entry.page]?.title : '']
     const m = all && !words.length ? { score: 0, ranges: [], exact: false, wordPrefix: false } : matchRecord(words, { title, aliases, secondary })
     if (!m) return
+    const id = (entry.page || 'root') + ':' + entry.title
     out.push({
       type: 'setting',
-      id: (entry.page || 'root') + ':' + entry.title,
+      id,
+      // The row's identity (its DOM id, its React key, how often it was opened) like every result's.
+      key: 'setting:' + id,
       title,
       ranges: m.ranges,
       subtitle: isPage ? tr('Profile') : trailOf(entry.page, tr),
-      glyph: entry.icon || (entry.page ? PAGES[entry.page]?.icon : 'gear') || 'gear',
+      media: { kind: 'glyph', glyph: entry.icon || (entry.page ? PAGES[entry.page]?.icon : 'gear') || 'gear' },
+      frecency: 0,
       value: isPage ? null : settingValue(entry, S, ctx),
       score: m.score, exact: m.exact, wordPrefix: m.wordPrefix,
       entry: { page: entry.page, title: entry.title, via: entry.via || null, isPage, sheet: !!(isPage && PAGES[entry.page]?.sheet), to: isPage ? PAGES[entry.page]?.to || null : null },

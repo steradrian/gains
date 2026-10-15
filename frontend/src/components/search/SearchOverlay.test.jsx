@@ -10,7 +10,8 @@ vi.mock('../../sheets.jsx', async orig => ({ ...(await orig()), exerciseDetailSh
 
 const { useStore } = await import('../../store/useStore.js')
 const { setNav } = await import('../../lib/nav.js')
-const { endSearch, useSearch } = await import('../../lib/search/session.js')
+const { endSearch, syncSearchWithHistory, useSearch } = await import('../../lib/search/session.js')
+const { addRecent, clearRecents, noteOpened, useRecents } = await import('../../lib/search/recents.js')
 const { createFakeNutriTrace } = await import('../../lib/nutrition/fake-nutritrace.js')
 const { useNutrition } = await import('../../lib/nutrition/store.js')
 const { clearOnlineSearchCache } = await import('../../lib/nutrition/use-online-search.js')
@@ -35,6 +36,8 @@ afterEach(() => {
   act(() => root.unmount())
   host.remove()
   act(() => endSearch())
+  clearRecents()
+  useRecents.setState({ opened: {} })
   delete document.documentElement.dataset.motion
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -57,16 +60,20 @@ async function type(value) {
 const key = (k, opts = {}) => act(() => { pill().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...opts })) })
 
 describe('the search overlay', () => {
-  it('opens on the pill\'s focus, as a non-modal dialog the pill controls, with the tab\'s shortcuts', async () => {
+  it('opens on the pill\'s focus: the pill a combobox controlling the results listbox, with the tab\'s shortcuts', async () => {
     await mount()
+    expect(pill().getAttribute('aria-haspopup')).toBe('listbox')
+    expect(pill().getAttribute('aria-expanded')).toBe('false')
     await act(async () => pill().focus())
     await wait(50)
-    const dialog = $('#gains-search')
-    expect(dialog.getAttribute('role')).toBe('dialog')
-    expect(dialog.hasAttribute('aria-modal')).toBe(false)
+    expect(pill().getAttribute('role')).toBe('combobox')
     expect(pill().getAttribute('aria-expanded')).toBe('true')
-    expect(pill().getAttribute('aria-controls')).toBe('gains-search')
+    expect(pill().getAttribute('aria-controls')).toBe('gains-search-list')
+    const list = $('#gains-search-list')
+    expect(list.getAttribute('role')).toBe('listbox')
+    expect(list.closest('#gains-search')).not.toBeNull()
     expect($$('.chip-lg').map(c => c.textContent)).toEqual(['History', 'Exercises', 'Routines', 'Body'])
+    expect($$('.chip-lg').every(c => c.getAttribute('role') === 'option')).toBe(true)
     expect($('.avatar-btn').getAttribute('aria-label')).toBe('Close search')
   })
 
@@ -146,6 +153,163 @@ describe('the search overlay', () => {
     expect($('.sr-best')).not.toBeNull()
     await key('ArrowDown')
     expect(pill().getAttribute('aria-activedescendant')).toBeTruthy()
+  })
+
+  it('the results are a listbox of groups named by their headings, every row an option with a unique id', async () => {
+    await mount()
+    await act(async () => pill().focus())
+    // A page, settings and exercises: three groups.
+    await type('rest')
+    const list = $('#gains-search-list')
+    const options = [...list.querySelectorAll('[role="option"]')]
+    expect(options.length).toBeGreaterThan(3)
+    expect(options.map(o => o.id)).toEqual([...new Set(options.map(o => o.id))])
+    for (const o of options) {
+      expect(o.getAttribute('aria-selected')).toBe('false')
+      // No control inside an option.
+      expect(o.querySelector('button, a, input')).toBeNull()
+    }
+    const groups = [...list.querySelectorAll('[role="group"]')]
+    expect(groups.length).toBeGreaterThan(1)
+    for (const g of groups) {
+      const heading = document.getElementById(g.getAttribute('aria-labelledby'))
+      expect(heading.tagName).toBe('H2')
+      expect(g.contains(heading)).toBe(true)
+    }
+    // The summary line is not an option, and sits outside the listbox.
+    expect(list.querySelector('.sr-summary')).toBeNull()
+  })
+
+  it('walks the options with the arrows from group to group, Home and End, and Enter activates the active one', async () => {
+    await mount()
+    await act(async () => pill().focus())
+    await type('rest')
+    const options = () => [...$('#gains-search-list').querySelectorAll('[role="option"]')]
+    const groupOf = el => el.closest('[role="group"]')?.getAttribute('aria-labelledby') || null
+    const seen = []
+    for (let i = 0; i < options().length; i++) {
+      await key('ArrowDown')
+      const id = pill().getAttribute('aria-activedescendant')
+      const el = document.getElementById(id)
+      expect(el).toBe(options()[i])
+      expect(options().filter(o => o.getAttribute('aria-selected') === 'true')).toEqual([el])
+      seen.push(groupOf(el))
+    }
+    // It crossed from one group into the next without stopping.
+    expect(new Set(seen.filter(Boolean)).size).toBeGreaterThan(1)
+    await key('Home')
+    expect(pill().getAttribute('aria-activedescendant')).toBe(options()[0].id)
+    await key('End')
+    const last = options().at(-1)
+    expect(pill().getAttribute('aria-activedescendant')).toBe(last.id)
+    // Up from the first option leaves the list.
+    await key('Home')
+    await key('ArrowUp')
+    expect(pill().hasAttribute('aria-activedescendant')).toBe(false)
+    // Enter on an option in the second group opens it.
+    const target = options().find(o => groupOf(o) && groupOf(o) !== groupOf(options().find(x => groupOf(x))))
+    while (pill().getAttribute('aria-activedescendant') !== target.id) await key('ArrowDown')
+    const open = vi.spyOn(target, 'click')
+    await key('Enter')
+    expect(open).toHaveBeenCalledTimes(1)
+  })
+
+  it('before typing: Go to, Recent and Suggested are groups of the same listbox, and the arrows walk them all, × and Clear included', async () => {
+    addRecent({ kind: 'query', query: 'squat' })
+    addRecent({ kind: 'result', type: 'page', id: '/train/history', label: 'History', query: 'hist' })
+    await mount()
+    await act(async () => pill().focus())
+    await wait(50)
+    const options = () => [...$('#gains-search-list').querySelectorAll('[role="option"]')]
+    const names = options().map(o => o.getAttribute('aria-label') || o.textContent.trim())
+    expect(names).toEqual(['History', 'Exercises', 'Routines', 'Body', 'Clear',
+      expect.stringContaining('History'), 'Remove History from recent', 'squat', 'Remove squat from recent'])
+    const labels = new Set(options().map(o => o.closest('[role="group"]').getAttribute('aria-labelledby')))
+    expect([...labels]).toEqual(['sr-goto', 'sr-recent'])
+    // Down to the second ×, Enter: "squat" goes, and the arrows are handed to the entry before it.
+    for (let i = 0; i < 9; i++) await key('ArrowDown')
+    expect(pill().getAttribute('aria-activedescendant')).toBe('sr-x_q_squat')
+    await key('Enter')
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['hist'])
+    expect(document.getElementById(pill().getAttribute('aria-activedescendant'))?.getAttribute('aria-label')).toContain('History')
+  })
+
+  it('a result in both Recent and Suggested shows once, in Recent', async () => {
+    addRecent({ kind: 'result', type: 'page', id: '/train/history', label: 'History', query: '' })
+    noteOpened('page:/train/history')
+    noteOpened('page:/train/history')
+    await mount()
+    await act(async () => pill().focus())
+    await wait(50)
+    const ids = $$('#gains-search-list [role="option"]').map(o => o.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids.filter(id => id === 'sr-page__train_history')).toHaveLength(1)
+    expect($('#sr-sugg')).toBeNull()
+  })
+
+  it('a slow source\'s note is a disabled option the arrows still reach; its error is one option that retries', async () => {
+    const nt = createFakeNutriTrace()
+    vi.stubGlobal('fetch', nt.fetch)
+    clearOnlineSearchCache()
+    useNutrition.getState().reset()
+    useStore.setState({ user: { id: 7, name: 'A' } })
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    await mount()
+    await act(async () => pill().focus())
+    await type('nutella')
+    await wait(50)
+    const note = $('#sr-note_online')
+    expect(note.getAttribute('role')).toBe('option')
+    expect(note.getAttribute('aria-disabled')).toBe('true')
+    while (pill().getAttribute('aria-activedescendant') !== 'sr-note_online') await key('ArrowDown')
+    await key('Enter')
+    expect(useSearch.getState()).toMatchObject({ open: true, live: true })
+  })
+
+  it('the pill shows the query only while the overlay does', async () => {
+    await mount()
+    await act(async () => pill().focus())
+    await type('history')
+    await key('ArrowDown')
+    await key('Enter')
+    expect(useSearch.getState()).toMatchObject({ open: false, live: true, query: 'history' })
+    expect(pill().value).toBe('')
+    expect(pill().getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('a back press or the scrim that ends the visit lets go of the pill', async () => {
+    await mount()
+    await act(async () => pill().focus())
+    expect(document.activeElement).toBe(pill())
+    // Android back: the pop lands under the overlay's entry.
+    await act(async () => syncSearchWithHistory({ idx: 0 }))
+    expect(useSearch.getState().live).toBe(false)
+    expect(document.activeElement).not.toBe(pill())
+    await act(async () => pill().focus())
+    expect(useSearch.getState().open).toBe(true)
+    await wait(50)
+    await act(async () => $('.search-scrim').click())
+    expect(useSearch.getState().live).toBe(false)
+    expect(document.activeElement).not.toBe(pill())
+    // Focused again, it opens again.
+    await act(async () => pill().focus())
+    expect(useSearch.getState().open).toBe(true)
+  })
+
+  it('the tab\'s context button steps aside while search is open and comes back on close; under reduced motion at once', async () => {
+    document.documentElement.dataset.motion = 'reduce'
+    const ctx = () => $$('button').find(b => b.getAttribute('aria-label') === 'Context')
+    await act(async () => root.render(<MemoryRouter initialEntries={['/home']}>
+      <RootHeader title="Home" action={<button type="button" className="iconbtn" aria-label="Context">c</button>} /><SearchOverlay />
+    </MemoryRouter>))
+    await wait(50)
+    expect(ctx().closest('.hdr-slot')).not.toBeNull()
+    await act(async () => pill().focus())
+    await wait(50)
+    expect(ctx()).toBeUndefined()
+    await act(async () => $('.avatar-btn').click())
+    await wait(50)
+    expect(ctx()).toBeDefined()
   })
 
   it('speaks the results once typing has stopped, in one polite region', async () => {

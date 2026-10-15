@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useNutrition } from './store.js'
 import { clearOnlineSearchCache, useOnlineSearch } from './use-online-search.js'
+import { noteAnswer, resetOffBudget } from './off-budget.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -35,6 +36,7 @@ const flush = () => act(async () => { await Promise.resolve() })
 
 beforeEach(() => {
   vi.useFakeTimers()
+  resetOffBudget()
   clearOnlineSearchCache()
   stubSearch()
   root = createRoot(document.createElement('div'))
@@ -96,6 +98,20 @@ describe('useOnlineSearch', () => {
     show({ q: 'nutella', lang: 'de' })
     await wait(500)
     expect(calls.map(c => c.lang)).toEqual(['en', 'de'])
+  })
+
+  it('asks nothing while the hub has paused every search, counts down, and asks once the pause is over', async () => {
+    noteAnswer({ status: 429, headers: new Headers({ 'Retry-After': '3' }) })
+    show({ q: 'oats' })
+    await wait(600)
+    expect(calls).toHaveLength(0)
+    expect(seen).toMatchObject({ status: 'paused', seconds: 3 })
+    await wait(1000)
+    expect(seen.seconds).toBe(2)
+    await wait(2000)
+    await wait(500)
+    expect(calls.map(c => c.q)).toEqual(['oats'])
+    expect(seen.status).toBe('loading')
   })
 
   it('does not keep a failed search, so the next try asks again', async () => {

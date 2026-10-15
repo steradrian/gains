@@ -245,16 +245,20 @@ export function foodResults(words, { foods = [], meals = [], recipes = [] }) {
 
 /* ------------------------------------------------------------------ days --------------------- */
 
+// A day the index holds only part of (diary-index.js `truncated`) is still found by what it
+// holds, and says it is partial.
 export function dayResults(words, days, mealNames, date) {
   const out = []
   const rest = date ? date.rest : words
   for (const d of days) {
     if (date && !inRange(d.date, date)) continue
     const recency = Date.parse(d.date + 'T12:00:00') / 864e8
-    const base = { type: 'day', id: d.date, key: keyOf('day', d.date), media: { kind: 'date', iso: d.date }, value: d.kcal, unit: 'kcal', date: d.date, frecency: recency }
+    const partial = d.truncated === true
+    const base = { type: 'day', id: d.date, key: keyOf('day', d.date), media: { kind: 'date', iso: d.date }, value: d.kcal, unit: 'kcal', date: d.date, frecency: recency, partial }
+    const mark = partial ? t('partly indexed') : null
     if (!rest.length) {
-      if (!d.items.length) continue
-      out.push({ ...base, title: fmtDate(d.date, true), ranges: [], subtitle: tn('{0} item', '{0} items', d.items.length), uuid: null, score: 30 })
+      if (!d.items.length && !partial) continue
+      out.push({ ...base, title: fmtDate(d.date, true), ranges: [], subtitle: [tn('{0} item', '{0} items', d.items.length), mark].filter(Boolean).join(' · '), uuid: null, score: 30 })
       continue
     }
     let best = null
@@ -269,7 +273,7 @@ export function dayResults(words, days, mealNames, date) {
     const when = d.date === todayISO() ? t('Today') : fmtDate(d.date, true)
     out.push({
       ...base, title: best.item.name, ranges: best.m.ranges, uuid: best.item.uuid,
-      subtitle: [meal, when, more ? t('+{0} more', more) : null].filter(Boolean).join(' · '),
+      subtitle: [meal, when, more ? t('+{0} more', more) : null, mark].filter(Boolean).join(' · '),
       score: best.m.score, exact: false, wordPrefix: false,
     })
   }

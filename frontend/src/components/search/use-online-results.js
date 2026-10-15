@@ -67,7 +67,10 @@ export function useOnlineResults({ query, words, tab, group, ownCount, nutrition
     return () => clearInterval(id)
   }, [pausedUntil, q])
 
+  // The retry at the end of a countdown asks again for the query it held, but nobody tapped: it is
+  // spent from the automatic budget, never the ten kept for taps.
   const tapped = asked && asked.q === q
+  const retrying = tapped && asked.retry === true
   const auto = autoOnline({ query: q, tab, group, ownCount })
 
   useEffect(() => {
@@ -76,7 +79,7 @@ export function useOnlineResults({ query, words, tab, group, ownCount, nutrition
     if (hit) { setState({ status: 'ready', q, results: hit, error: null }); return undefined }
     if (!isOnline) { setState({ status: 'offline', q, results: [], error: null }); return undefined }
     if (!tapped && !auto) { setState({ status: 'tap', q, results: [], error: null }); return undefined }
-    const kind = tapped ? 'tap' : 'auto'
+    const kind = tapped && !retrying ? 'tap' : 'auto'
     if (!canSearch(kind)) {
       setState({ status: Date.now() < useOffBudget.getState().pausedUntil ? 'paused' : 'tap', q, results: [], error: null })
       return undefined
@@ -93,7 +96,7 @@ export function useOnlineResults({ query, words, tab, group, ownCount, nutrition
       }
     }, tapped ? 0 : DEBOUNCE_MS)
     return () => { clearTimeout(timer); ctl.abort() }
-  }, [enabled, q, lang, country, isOnline, tapped, auto, asked?.n])
+  }, [enabled, q, lang, country, isOnline, tapped, retrying, auto, asked?.n])
 
   const own = new Set()
   const rows = state.status === 'ready' && state.q === q

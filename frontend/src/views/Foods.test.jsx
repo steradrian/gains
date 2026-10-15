@@ -12,6 +12,7 @@ import { useHubSync } from '../lib/nutrition/sync.js'
 import { todayISO } from '../lib/format.js'
 import { createFakeNutriTrace, fixtureFoods, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { clearOnlineSearchCache } from '../lib/nutrition/use-online-search.js'
+import { resetOffBudget } from '../lib/nutrition/off-budget.js'
 import Foods from './Foods.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -76,6 +77,7 @@ async function openPage() {
 
 beforeEach(() => {
   clearOnlineSearchCache()
+  resetOffBudget()
   nt = createFakeNutriTrace({ foods: foodsFixture(), settings: { ...fixtureSettings(), foodCategories: ['Pantry', 'Bakery', { name: 'Dairy' }] } })
   vi.stubGlobal('fetch', nt.fetch)
   useStore.setState({ user: { id: 3, name: 'Ana' }, pushState: vi.fn(async () => {}) })
@@ -352,7 +354,7 @@ describe('online results', () => {
     expect(nt.requests.filter(r => r.path === '/nt/api/proxy')).toHaveLength(1)
   })
 
-  it('asks for more than a letter, and says when the hub rate limit hits', async () => {
+  it('asks for more than a letter, and when the hub rate limit hits waits out its pause, asking nothing', async () => {
     await openPage()
     tap(buttonSaying(page, 'Online'))
     type(page.querySelector('.searchf input'), 'n')
@@ -360,7 +362,12 @@ describe('online results', () => {
     expect(nt.requests.some(r => r.path === '/nt/api/proxy')).toBe(false)
     nt.failNext('GET', '/nt/api/proxy', { status: 429, error: 'rate limited' })
     type(page.querySelector('.searchf input'), 'nutella')
-    await settle(() => expect(page.textContent).toContain('Too many searches.'))
+    await settle(() => expect(page.textContent).toContain('Open Food Facts paused · back in'))
+    const asked = nt.requests.filter(r => r.path === '/nt/api/proxy').length
+    type(page.querySelector('.searchf input'), 'nutella spread')
+    await act(async () => { await new Promise(r => setTimeout(r, 600)) })
+    expect(nt.requests.filter(r => r.path === '/nt/api/proxy')).toHaveLength(asked)
+    expect(page.textContent).toContain('Open Food Facts paused · back in')
   })
 })
 

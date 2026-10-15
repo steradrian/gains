@@ -9,6 +9,7 @@
 // older hub, the first call) a local count of the last minute stands in. A 429 pauses every search
 // for its Retry-After (15 s when it says nothing, 60 s at most), and the countdown is shown.
 import { create } from 'zustand'
+import { useStore } from '../../store/useStore.js'
 
 export const AUTO_PER_MIN = 20
 export const TAP_RESERVE = 10
@@ -60,4 +61,12 @@ export function resetOffBudget() {
   spent = []
   server = null
   useOffBudget.setState({ pausedUntil: 0 })
+}
+
+// Signing out, or another account signing in: the searches counted and a pause are the last
+// person's, not the next one's.
+if (typeof useStore.subscribe === 'function') {
+  useStore.subscribe((s, prev) => {
+    if (prev.user && String(prev.user.id ?? '') !== String(s.user?.id ?? '')) resetOffBudget()
+  })
 }

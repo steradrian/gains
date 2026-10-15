@@ -27,8 +27,8 @@ const isMac = () => {
 // The global search's field, always in a tab root's header and always the real input: there is no
 // icon that turns into a field. The whole pill is its label, so a tap on the magnifier or the
 // padding focuses the input. Focusing it asks the search overlay to open (`onOpen`) and the focus
-// stays here while it is open (`expanded`, `controls` naming the overlay, `activeDescendant` the
-// row the arrow keys are on). With no overlay (`onOpen` left out) it is a plain field and claims
+// stays here while it is open: a combobox (`expanded`, `controls` naming the results listbox,
+// `activeDescendant` the option the arrow keys are on). With no overlay (`onOpen` left out) it is a plain field and claims
 // no combobox, popup or expansion.
 // `value` / `onChange(text)` (left out, the input keeps its own text); the clear button (and
 // Escape) empties it and keeps the focus. Escape on an empty field is `onEscape`'s, every other
@@ -57,7 +57,7 @@ export default function SearchPill({ scope = 'home', value, onChange, onOpen, ex
       {onOpen ? <Suspense fallback={glyph}><MotionMagnifier active={expanded} replayToken={replay} className="spill-g" /></Suspense> : glyph}
       <input ref={input} className="spill-i" type="text" inputMode="search"
         role={onOpen ? 'combobox' : undefined} aria-label={scoped || long}
-        aria-haspopup={onOpen ? 'dialog' : undefined} aria-expanded={onOpen ? expanded : undefined}
+        aria-haspopup={onOpen ? 'listbox' : undefined} aria-expanded={onOpen ? expanded : undefined}
         aria-controls={onOpen && expanded ? controls : undefined}
         aria-activedescendant={onOpen && expanded && activeDescendant ? activeDescendant : undefined}
         aria-autocomplete={onOpen ? 'list' : undefined}

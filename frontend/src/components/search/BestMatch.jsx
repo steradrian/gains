@@ -32,7 +32,7 @@ export default function BestMatch({ r, onOpen }) {
   const trailing = useTrailing(r)
   const dest = destination(r)
   return (
-    <button type="button" id={rowId(r.key)} data-search-row="" className={'sr-best' + (active ? ' on' : '')} onClick={() => onOpen(r)} tabIndex={-1}
+    <button type="button" role="option" aria-selected={active} id={rowId(r.key)} data-search-row="" className={'sr-best' + (active ? ' on' : '')} onClick={() => onOpen(r)} tabIndex={-1}
       aria-label={t('Best match, {0}, opens {1}', [r.title, r.subtitle].filter(Boolean).join(', '), dest)}>
       <ResultMedia media={r.media} size="lg" />
       <span className="sr-best-t">

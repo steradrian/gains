@@ -16,13 +16,15 @@ import { uid } from '../format.js'
 import { useDiarySelection } from '../nutrition/selection.js'
 import { nav } from '../nav.js'
 
-/** The overlay's element id, which the pill's aria-controls names. */
+/** The overlay's element id. */
 export const SEARCH_OVERLAY_ID = 'gains-search'
+/** The results listbox inside it, which the pill (the combobox) controls. */
+export const SEARCH_LIST_ID = 'gains-search-list'
 
 const idxOf = state => (Number.isInteger(state?.idx) ? state.idx : 0)
 const historyState = () => { try { return globalThis.history?.state ?? null } catch { return null } }
 
-// `active`: the id of the row the arrow keys are on (the pill's aria-activedescendant).
+// `active`: the id of the option the arrow keys are on (the pill's aria-activedescendant).
 const closed = () => ({ open: false, live: false, id: null, base: -1, query: '', group: null, scrollTop: 0, origin: null, date: undefined, active: null })
 
 export const useSearch = create(() => ({ ...closed(), tab: 'home' }))
@@ -48,7 +50,8 @@ export function openSearch(tab) {
     if (!s.open) useSearch.setState({ open: true })
     return
   }
-  if (s.live) endSearch()
+  // The pill this focus came from keeps it: the visit before ends without the blur.
+  if (s.live) finish()
   const id = uid()
   const base = idxOf(here) + 1
   try { history.pushState({ ...(here || {}), idx: base, gainsSearch: id }, '') } catch { /* no history: the overlay still opens */ }
@@ -66,11 +69,18 @@ export function closeSearch() {
   if (onEntry) { suppress++; try { history.back() } catch { suppress-- } }
 }
 
-/** The visit is over (closed, a tab tapped, walked back past it): forget it, the date back. */
-export function endSearch() {
-  if (!useSearch.getState().live) return
+const finish = () => {
   restoreDate()
   useSearch.setState({ ...closed() })
+}
+
+/** The visit is over (closed, a tab tapped, walked back past it, the scrim): forget it, the date
+ *  back, and the pill let go. A pill that kept the focus would keep the keyboard up over a page
+ *  with no overlay, and a tap on it would open nothing, being focused already. */
+export function endSearch() {
+  if (!useSearch.getState().live) return
+  finish()
+  if (pill && pill.isConnected && pill === globalThis.document?.activeElement) pill.blur()
 }
 
 export const setQuery = query => useSearch.setState(s => (s.query === query ? s : { query, active: null }))

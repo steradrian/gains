@@ -148,11 +148,54 @@ describe('local patches', () => {
     expect((await backend.load()).days[0].items.map(i => i.uuid)).toEqual(['b'])
   })
 
+  it('reads a split recipe\'s nested splits as the server does, six levels down, and skips blank names', async () => {
+    setup(fakeApi(page([])))
+    await syncDiaryIndex()
+    const nest = (depth, name) => (depth === 0 ? [] : [{ name: name + depth, _splitItems: nest(depth - 1, name) }])
+    patchDiaryDay('2026-10-12', {
+      date: '2026-10-12', updated_at: '2026-10-12 10:00:00',
+      items: [{ uuid: 'c', meal: 0, name: 'Burrito bowl', is_recipe: true, brand: '  ', nutrition: { calories: 700 }, _splitItems: [
+        { name: 'Rice' }, { name: ' ' }, null, { name: 'Salsa', _splitItems: [{ name: 'Tomato' }, { name: 'Onion' }] }, ...nest(8, 'L'),
+      ] }],
+    })
+    const [item] = diaryIndexDays()[0].items
+    expect(item.parts).toEqual(['Rice', 'Salsa', 'Tomato', 'Onion', 'L8', 'L7', 'L6', 'L5', 'L4', 'L3'])
+    expect(item).not.toHaveProperty('brand')
+  })
+
   it('an answer without a stamp never replaces one with it', async () => {
     setup(fakeApi(page([day('2026-10-01', '2026-10-01T10:00:00Z')])))
     await syncDiaryIndex()
     patchDiaryDay('2026-10-01', { items: [] })
     expect(diaryIndexDays()[0].items).toHaveLength(1)
+  })
+})
+
+describe('a day the server trimmed to fit its page', () => {
+  it('stays searchable over what came, marked partial, kept across a reload, and a whole read replaces it', async () => {
+    const big = { ...day('2026-10-03', '2026-10-03T10:00:00Z'), kcal: 9000, truncated: true }
+    setup(fakeApi(page([big])))
+    await syncDiaryIndex()
+    expect(diaryIndexDays()[0]).toMatchObject({ date: '2026-10-03', truncated: true, kcal: 9000 })
+    expect((await backend.load()).days[0].truncated).toBe(true)
+    // A read of the whole day, at the same change: the full copy wins and the mark goes.
+    patchDiaryDay('2026-10-03', { date: '2026-10-03', updated_at: '2026-10-03 10:00:00', items: [
+      { uuid: 'u-2026-10-03', meal: 1, name: 'Chicken bowl', quantity: 1, nutrition: { calories: 640 } },
+      { uuid: 'late', meal: 2, name: 'Cheesecake', quantity: 1, nutrition: { calories: 8360 } },
+    ] })
+    expect(diaryIndexDays()[0].truncated).toBeUndefined()
+    expect(diaryIndexDays()[0].items).toHaveLength(2)
+  })
+
+  it('a trimmed copy of the same change never replaces the whole day held', async () => {
+    setup(fakeApi(page([day('2026-10-04', '2026-10-04T10:00:00Z', [
+      { uuid: 'a', name: 'Oats', food_id: 1, meal: 0, kcal: 300 }, { uuid: 'b', name: 'Soup', food_id: 2, meal: 1, kcal: 200 },
+    ])])))
+    await syncDiaryIndex()
+    __test.configure({ api: fakeApi(page([{ ...day('2026-10-04', '2026-10-04T10:00:00Z', [{ uuid: 'a', name: 'Oats', food_id: 1, meal: 0, kcal: 300 }]), truncated: true }], { next: 'c2' })) })
+    await syncDiaryIndex({ force: true })
+    expect(diaryIndexDays()[0].items).toHaveLength(2)
+    expect(diaryIndexDays()[0].truncated).toBeUndefined()
   })
 })
 

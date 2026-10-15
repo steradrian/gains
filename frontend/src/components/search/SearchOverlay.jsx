@@ -18,7 +18,8 @@ import BeforeTyping from './BeforeTyping.jsx'
 import BestMatch from './BestMatch.jsx'
 import NoResults from './NoResults.jsx'
 import ResultGroup from './ResultGroup.jsx'
-import ResultRow, { rowId } from './ResultRow.jsx'
+import ResultList from './ResultList.jsx'
+import ResultRow from './ResultRow.jsx'
 import ScopeToken from './ScopeToken.jsx'
 import { SkeletonRows, SourceNote } from './SourceStatus.jsx'
 import SummaryLine from './SummaryLine.jsx'
@@ -42,9 +43,11 @@ function useSettled(value, ms) {
 const PAGE = 60
 
 // The overlay (fitness-eval ux-search.md, ui-search.md): a results surface under the header,
-// whose pill stays the only input and keeps the focus, so it is a non-modal dialog the pill
-// controls. On a phone it fills the screen below the header; at 1000px and up it is a 680px panel
-// over the dimmed page, with a footer naming the keys. It opens and closes with bearmenu's springs.
+// whose pill stays the only input and keeps the focus. The pill is a combobox and what it pops up
+// is the results listbox (ResultList) in here: its groups, its options, the one the arrow keys
+// are on as the pill's aria-activedescendant (§6). On a phone it fills the screen below the
+// header; at 1000px and up it is a 680px panel over the dimmed page, with a footer naming the
+// keys. It opens and closes with bearmenu's springs.
 export default function SearchOverlay() {
   const open = useSearch(s => s.open)
   const reduced = useReducedMotionPref()
@@ -57,7 +60,7 @@ export default function SearchOverlay() {
   return <LazyMotion features={domAnimation}>
     <MotionConfig reducedMotion={reduced ? 'always' : 'never'}>
       <AnimatePresence>
-        {open && <m.div key="search" className="search-ov" id={SEARCH_OVERLAY_ID} role="dialog" aria-label={t('Search')}
+        {open && <m.div key="search" className="search-ov" id={SEARCH_OVERLAY_ID}
           variants={surface} initial="hidden" animate="visible" exit="exit">
           {/* Desktop: the dimmed page closes it; out of the tab order, Escape is the key for it. */}
           <button type="button" className="search-scrim" tabIndex={-1} aria-label={t('Close search')} onClick={closeSearch} />
@@ -100,13 +103,13 @@ function OverlayBody() {
   const idx = data.index
   const daysStatus = !data.nutrition || local.groups.days.length ? null
     : !idx.complete && idx.status !== 'error' && !data.days.length ? <SkeletonRows />
-    : idx.offline && !data.days.length ? <SourceNote kind="offline-days" />
-    : idx.status === 'error' && !data.days.length ? <SourceNote kind="error" source={t('your diary')} onRetry={() => syncDiaryIndex({ force: true })} />
+    : idx.offline && !data.days.length ? <SourceNote kind="offline-days" place="days" />
+    : idx.status === 'error' && !data.days.length ? <SourceNote kind="error" place="days" source={t('your diary')} onRetry={() => syncDiaryIndex({ force: true })} />
     : null
   const onlineStatus = online.status === 'loading' ? <SkeletonRows />
-    : online.status === 'paused' ? <SourceNote kind="paused" seconds={online.seconds} source={t('Open Food Facts')} />
-    : online.status === 'error' ? <SourceNote kind="error" source={t('Open Food Facts')} onRetry={online.retry} />
-    : online.status === 'offline' ? <SourceNote kind="offline" />
+    : online.status === 'paused' ? <SourceNote kind="paused" place="online" seconds={online.seconds} source={t('Open Food Facts')} />
+    : online.status === 'error' ? <SourceNote kind="error" place="online" source={t('Open Food Facts')} onRetry={online.retry} />
+    : online.status === 'offline' ? <SourceNote kind="offline" place="online" />
     : online.status === 'tap' ? <ResultRow r={{ type: 'action', key: 'online-ask', title: t('Search Open Food Facts for “{0}”', settled.trim()), media: { kind: 'glyph', glyph: 'globe' } }} onOpen={online.ask} />
     : null
   const rowsOf = g => (g === 'online' ? online.rows : local.groups[g])
@@ -131,11 +134,12 @@ function OverlayBody() {
     : t('{0}: {1}', tn('{0} result', '{0} results', total), summary.map(e => groupCount(e.group, e.count)).join(', '))
     + (online.status === 'paused' ? '. ' + t('Open Food Facts paused') : online.status === 'error' ? '. ' + t('Couldn’t reach {0}', t('Open Food Facts')) : '')
 
-  // The pill's keys: ↑ ↓ across every row, Home and End, Enter opens the row or keeps the query
-  // in Recent, Backspace in an empty pill drops the scope.
+  // The pill's keys: ↑ ↓ across every option of the listbox, from group to group, Home and End,
+  // Enter activates the active option or keeps the query in Recent, Backspace in an empty pill
+  // drops the scope.
   useEffect(() => {
     setOverlayKeys(e => {
-      const rows = [...(scroller.current?.querySelectorAll('[data-search-row]') || [])]
+      const rows = [...(scroller.current?.querySelectorAll('[role="listbox"] [role="option"]') || [])]
       const at = rows.findIndex(r => r.id === useSearch.getState().active)
       const go = i => {
         const el = rows[i]
@@ -179,14 +183,16 @@ function OverlayBody() {
           <ScopeToken group={group} count={scopedRows.length} onClear={() => scope(null)} />
         </m.div>
       </AnimatePresence>
-      <div className="sr-card">
-        <m.div key={group + '|' + settled} variants={LIST_CONTAINER} initial="hidden" animate="show">
-          {scopedRows.slice(0, limit).map((r, i) => (i < 12
-            ? <m.div key={r.key} variants={LIST_ITEM}><ResultRow r={r} onOpen={open} /></m.div>
-            : <ResultRow key={r.key} r={r} onOpen={open} />))}
-        </m.div>
-      </div>
-      {!scopedRows.length && statusOf(group)}
+      <ResultList>
+        <div className="sr-card">
+          <m.div key={group + '|' + settled} variants={LIST_CONTAINER} initial="hidden" animate="show">
+            {scopedRows.slice(0, limit).map((r, i) => (i < 12
+              ? <m.div key={r.key} variants={LIST_ITEM}><ResultRow r={r} onOpen={open} /></m.div>
+              : <ResultRow key={r.key} r={r} onOpen={open} />))}
+          </m.div>
+        </div>
+        {!scopedRows.length && statusOf(group)}
+      </ResultList>
     </>
   } else if (!hasQuery) {
     body = <BeforeTyping data={data} tab={tab} onOpen={open} onChip={chip} onQuery={setQuery} />
@@ -195,17 +201,19 @@ function OverlayBody() {
   } else {
     body = <m.div key={settled} variants={LIST_CONTAINER} initial="hidden" animate="show">
       <m.div variants={LIST_ITEM}><SummaryLine entries={summary} onScope={scope} /></m.div>
-      {local.best && <m.div variants={LIST_ITEM}><BestMatch r={local.best.result} onOpen={open} /></m.div>}
-      {shown.map(g => {
-        const rows = rowsOf(g)
-        const status = statusOf(g)
-        return <AnimatePresence key={g} mode="wait" initial={false}>
-          <m.div key={status ? 'status' : 'rows'} variants={skeletonSwapVariants} initial="hidden" animate="show" exit="exit">
-            <ResultGroup id={'sr-g-' + g} title={groupTitle(g)} rows={rows.slice(0, GROUP_LIMIT)} total={rows.length}
-              onOpen={open} onShowAll={() => scope(g)} status={rows.length ? null : status} />
-          </m.div>
-        </AnimatePresence>
-      })}
+      <ResultList>
+        {local.best && <m.div variants={LIST_ITEM}><BestMatch r={local.best.result} onOpen={open} /></m.div>}
+        {shown.map(g => {
+          const rows = rowsOf(g)
+          const status = statusOf(g)
+          return <AnimatePresence key={g} mode="wait" initial={false}>
+            <m.div key={status ? 'status' : 'rows'} variants={skeletonSwapVariants} initial="hidden" animate="show" exit="exit">
+              <ResultGroup id={'sr-g-' + g} group={g} title={groupTitle(g)} rows={rows.slice(0, GROUP_LIMIT)} total={rows.length}
+                onOpen={open} onShowAll={() => scope(g)} status={rows.length ? null : status} />
+            </m.div>
+          </AnimatePresence>
+        })}
+      </ResultList>
     </m.div>
   }
 

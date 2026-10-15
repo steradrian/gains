@@ -1,10 +1,11 @@
-// The header's two animated glyphs (fitness-eval ui-search.md §10.3, §10.4), copied from bearmenu:
-// the search pill's magnifier (MotionSearch) and the avatar's swap to the close ×  (the city pill's
-// mode="close"). They load with the search chunk, so the `motion` engine never weighs on the first
-// paint: until then the header shows the same glyphs standing still (SearchPill, AvatarButton).
+// The header's motion (fitness-eval ui-search.md §2, §10.3, §10.4), copied from bearmenu: the
+// search pill's magnifier (MotionSearch), the avatar's swap to the close ×  (the city pill's
+// mode="close"), and the context button stepping aside. They load with the search chunk, so the
+// `motion` engine never weighs on the first paint: until then the header shows the same things
+// standing still (SearchPill, AvatarButton, RootHeader).
 import { useCallback, useEffect, useRef } from 'react'
 import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m, useAnimationControls } from 'motion/react'
-import { GESTURE_MS, HOLD_GRACE_MS, ICON_SWAP_SPRING, beats, returnTransition } from '../../lib/motion.js'
+import { CONTENT_SPRING, EXIT_EASE, GESTURE_MS, HOLD_GRACE_MS, ICON_SWAP_SPRING, SURFACE_SPRING, beats, ease, returnTransition } from '../../lib/motion.js'
 import { useReducedMotionPref } from './use-reduced-motion.js'
 
 // The parts' pivots (the lens at its handle's end, 21,21; the dot at its centre, 11,11) are
@@ -94,6 +95,36 @@ export function MotionMagnifier({ active = false, replayToken = 0, className }) 
         <m.circle variants={FOUND} opacity={0} className="mm-dot" fill="currentColor" cx="11" cy="11" r="2.5" />
       </m.g>
     </m.svg>
+  </LazyMotion>
+}
+
+// The context button's slot (ui-search.md §2). Its width carries the row's gap ahead of it
+// (search.css .hdr-slot), so at 0 the pill has every pixel the button held.
+const FADE_S = 0.12
+const SLOT = {
+  out: { width: 0, overflow: 'hidden', transition: { width: { ...CONTENT_SPRING, delay: FADE_S } } },
+  in: { width: 'auto', transition: { width: SURFACE_SPRING }, transitionEnd: { overflow: 'visible' } },
+}
+const BUTTON = {
+  out: { opacity: 0, scale: 0.8, transition: { duration: FADE_S, ease: EXIT_EASE } },
+  in: { opacity: 1, scale: 1, transition: { duration: FADE_S, ease: ease.enter, delay: FADE_S / 2 } },
+}
+const NOW = { duration: 0 }
+const SLOT_REDUCED = { out: { width: 0, overflow: 'hidden', transition: NOW }, in: { width: 'auto', transition: NOW, transitionEnd: { overflow: 'visible' } } }
+const BUTTON_REDUCED = { out: { opacity: 0, transition: NOW }, in: { opacity: 1, transition: NOW } }
+
+/** The tab's context button stepping aside while search is open: it fades and shrinks in 120 ms,
+ *  then its slot closes on CONTENT_SPRING, so the pill's width follows the spring into the room
+ *  instead of jumping. It comes back in reverse on SURFACE_SPRING. Reduced motion: it just goes
+ *  and comes. Nothing animates on the first mount. */
+export function ContextSlot({ show, children }) {
+  const reduced = useReducedMotionPref()
+  return <LazyMotion features={domAnimation}>
+    <AnimatePresence initial={false}>
+      {show && <m.div key="slot" className="hdr-slot" variants={reduced ? SLOT_REDUCED : SLOT} initial="out" animate="in" exit="out">
+        <m.div className="hdr-slot-in" variants={reduced ? BUTTON_REDUCED : BUTTON}>{children}</m.div>
+      </m.div>}
+    </AnimatePresence>
   </LazyMotion>
 }
 

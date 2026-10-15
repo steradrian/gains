@@ -66,6 +66,22 @@ describe('the local search', () => {
     expect(groups.foods.map(r => r.type)).toEqual(expect.arrayContaining(['food', 'meal']))
   })
 
+  it('finds a day the index holds only part of by what it holds, and says it is partial', () => {
+    const days = [{ ...data().days[0], truncated: true }]
+    const [hit] = searchLocal('chicken', data({ days })).groups.days
+    expect(hit).toMatchObject({ uuid: 'u1', partial: true, subtitle: expect.stringContaining('partly indexed') })
+    expect(listAll('days', data({ days }))[0].subtitle).toBe('2 items · partly indexed')
+    expect(searchLocal('chicken', data()).groups.days[0].partial).toBe(false)
+  })
+
+  it('every setting row has its own key and glyph', () => {
+    const { groups } = searchLocal('rest', data())
+    const keys = groups.settings.map(r => r.key)
+    expect(keys.every(k => typeof k === 'string' && k.startsWith('setting:'))).toBe(true)
+    expect(new Set(keys).size).toBe(keys.length)
+    expect(groups.settings.every(r => r.media?.kind === 'glyph' && r.media.glyph)).toBe(true)
+  })
+
   it('leaves nutrition out when it is off', () => {
     const { groups } = searchLocal('chicken', data({ nutrition: false }))
     expect(groups.foods).toEqual([])

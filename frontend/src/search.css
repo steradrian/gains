@@ -90,8 +90,10 @@ body.search-open #tabbar,body.search-open #timer.dock{
   display:flex;align-items:center;gap:var(--space-6);padding:var(--space-4) var(--space-7);min-height:64px;width:100%;
   text-align:start;position:relative;transition:background var(--fast) var(--ease);
 }
-.sr-row:active,.sr-row.on{background:var(--surface-2)}
-.sr-row.on::after{content:'';position:absolute;inset-block:0;inset-inline-start:0;width:2px;background:var(--acc-ink)}
+.sr-row:active,.sr-row.on,.sr-row.sr-on{background:var(--surface-2)}
+.sr-row.on::after,.sr-row.sr-on::after{content:'';position:absolute;inset-block:0;inset-inline-start:0;width:2px;background:var(--acc-ink)}
+/* The active option that is not a row (a chip, an ×, Clear, Show all, a note): ringed in the accent. */
+.chip.sr-on,.sr-x.sr-on,.btn.sr-on,.sr-note-row.sr-on,.sr-note-opt.sr-on{outline:2px solid var(--acc-ink);outline-offset:-2px}
 .sr-card .sr-row+.sr-row::before,.sr-card div+div>.sr-row::before,.sr-recent+.sr-recent::before{
   content:'';position:absolute;top:0;inset-inline-start:74px;inset-inline-end:0;height:var(--hair);background:var(--sep)
 }
@@ -166,7 +168,7 @@ body.search-open #tabbar,body.search-open #timer.dock{
 .sr-note .icn{font-size:20px;color:var(--label-2)}
 .sr-note.err .icn{color:var(--orange-ink)}
 .sr-count{font-weight:var(--fw-medium);font-variant-numeric:tabular-nums}
-.sr-note-row{display:flex;align-items:center;justify-content:space-between;padding-inline-end:var(--space-4)}
+.sr-note-row{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:start;padding-inline-end:var(--space-4)}
 .sr-empty{max-height:30vh}
 
 /* ------------------------------------------------------------------ the diary's found entry -- */

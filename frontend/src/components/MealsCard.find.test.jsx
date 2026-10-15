@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
-// A search's Day result lands on `?date=&find=<uuid>`: wherever the diary renders, the entry's
-// meal opens and the entry flashes; on another date, or with nothing to find, nothing moves.
+// MealsCard's `find`: the entry's meal opens and the entry flashes; with nothing to find, or an
+// entry the day does not hold, nothing moves. The route that sets it is FoodHub.find.test.jsx.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import MealsCard from './MealsCard.jsx'
 
@@ -21,20 +20,20 @@ const day = {
   ] },
   activityRows: [], target: {}, activitySum: null,
 }
-const render = url => act(() => root.render(<MemoryRouter initialEntries={[url]}><MealsCard date="2026-10-11" day={day} /></MemoryRouter>))
+const render = find => act(() => root.render(<MealsCard date="2026-10-11" day={day} find={find} />))
 const toggles = () => [...host.querySelectorAll('.meal-toggle')]
 
-describe('MealsCard and ?find=', () => {
+describe('MealsCard and find', () => {
   it('opens the meal that holds the entry and flashes it', () => {
-    render('/food?date=2026-10-11&find=b')
+    render('b')
     expect(toggles().map(b => b.getAttribute('aria-expanded'))).toEqual(['false', 'true', 'false', 'false'])
     expect(host.querySelector('li.flash-find').textContent).toContain('Chicken bowl')
   })
 
-  it('does nothing on another date, or without a find', () => {
-    render('/food?date=2026-10-12&find=b')
+  it('does nothing for an entry the day does not hold, or without a find', () => {
+    render('zzz')
     expect(toggles().every(b => b.getAttribute('aria-expanded') === 'false')).toBe(true)
-    render('/home')
+    render(null)
     expect(host.querySelector('.flash-find')).toBeNull()
   })
 })

@@ -83,15 +83,24 @@ function cleanItem(i) {
   return out
 }
 
+// `truncated`: the server sent only the items that fit its page (a day over 2 MiB on its own,
+// api-contract.md); the day is kept and searched over those, marked partial, until a read of the
+// whole day (patchDiaryDay) replaces it.
 function cleanDay(d) {
   if (!isObj(d) || typeof d.date !== 'string' || !DATE.test(d.date)) return null
-  return {
+  const day = {
     date: d.date,
     rev: typeof d.rev === 'string' ? d.rev : '',
     kcal: Number.isFinite(d.kcal) ? d.kcal : 0,
     items: (Array.isArray(d.items) ? d.items : []).map(cleanItem).filter(Boolean),
   }
+  if (d.truncated === true) day.truncated = true
+  return day
 }
+
+// Whether a page's copy of a day may replace the one held: a newer change, or the same one with
+// no fewer items (a trimmed copy never replaces the whole day read at the same rev).
+const replaces = (incoming, local) => !local || incoming.rev > local.rev || (incoming.rev === local.rev && !(incoming.truncated && !local.truncated))
 
 // The food an item points at, as the server writes `food_id`: not a recipe (its id is a meal's),
 // null when the item has no saved food.
@@ -101,16 +110,31 @@ function foodIdOf(item) {
   return typeof id === 'number' ? id : null
 }
 
+const isText = v => typeof v === 'string' && v.trim() !== ''
+
+// The names of what a split recipe was exploded into, nested splits included, as the server
+// reads them (server/lib/diary-index.js partNames): six levels at most.
+const PARTS_MAX_DEPTH = 6
+function partNames(children, depth = 1) {
+  const names = []
+  if (depth > PARTS_MAX_DEPTH || !Array.isArray(children)) return names
+  for (const child of children) {
+    if (!isObj(child)) continue
+    if (isText(child.name)) names.push(child.name)
+    if (Array.isArray(child._splitItems)) names.push(...partNames(child._splitItems, depth + 1))
+  }
+  return names
+}
+
 function indexItem(item) {
-  const split = Array.isArray(item._splitItems) ? item._splitItems : []
   return cleanItem({
     uuid: item.uuid,
     name: item.name,
-    brand: item.brand,
+    brand: isText(item.brand) ? item.brand : undefined,
     food_id: foodIdOf(item),
     meal: item.meal,
     kcal: Math.round(nutritionOf(item).calories || 0),
-    parts: split.map(c => c?.name),
+    parts: partNames(item._splitItems),
   })
 }
 
@@ -261,8 +285,7 @@ async function work(g, refresh) {
         continue
       }
       const day = cleanDay(raw)
-      const local = day && days.get(day.date)
-      if (day && (!local || day.rev >= local.rev)) put.push(day)
+      if (day && replaces(day, days.get(day.date))) put.push(day)
     }
     const more = page.has_more === true
     const next = {
@@ -284,8 +307,7 @@ async function work(g, refresh) {
     if (g !== gen) return
     // A day patched while the page was being written may be newer than the page's copy.
     for (const day of put) {
-      const local = days.get(day.date)
-      if (!local || day.rev >= local.rev) days.set(day.date, day)
+      if (replaces(day, days.get(day.date))) days.set(day.date, day)
     }
     for (const date of remove) days.delete(date)
     meta = next

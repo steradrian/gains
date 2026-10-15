@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { AUTO_PER_MIN, canSearch, noteAnswer, noteSearch, pausedFor, resetOffBudget, TAP_RESERVE } from './off-budget.js'
 import { autoOnline } from '../../components/search/use-online-results.js'
+import { useStore } from '../../store/useStore.js'
 
 const res = (status, headers = {}) => ({ status, headers: new Headers(headers) })
 
@@ -40,6 +41,21 @@ describe('the Open Food Facts budget (ux-search.md §5)', () => {
     resetOffBudget()
     noteAnswer(res(429, { 'Retry-After': '600' }), now)
     expect(pausedFor(now)).toBe(60)
+  })
+
+  it('signing out, or another account, forgets the count and the pause', () => {
+    useStore.setState({ user: { id: 1, name: 'A' } })
+    const now = Date.now()
+    noteAnswer(res(429, { 'Retry-After': '30' }), now)
+    expect(pausedFor(now)).toBe(30)
+    useStore.setState({ user: null })
+    expect(pausedFor(now)).toBe(0)
+    expect(canSearch('tap', now)).toBe(true)
+    useStore.setState({ user: { id: 1, name: 'A' } })
+    for (let i = 0; i < AUTO_PER_MIN; i++) noteSearch('auto', now)
+    expect(canSearch('auto', now)).toBe(false)
+    useStore.setState({ user: { id: 2, name: 'B' } })
+    expect(canSearch('auto', now)).toBe(true)
   })
 
   it('searches by itself only from three letters, from Home or Nutrition or scoped to foods, with under five of your foods', () => {
