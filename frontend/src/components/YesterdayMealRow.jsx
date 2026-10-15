@@ -3,7 +3,7 @@ import { useUI } from '../store/useUI.js'
 import { isoOf, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { againAttempt, againEntries, againItems, againKcal, againLogged } from '../lib/nutrition/again.js'
-import { energyOf } from '../lib/nutrition/diary.js'
+import { energyOf, mealItems } from '../lib/nutrition/diary.js'
 import { foodErrorText } from '../lib/nutrition/foods.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -21,8 +21,10 @@ const yesterdayISO = () => {
 // "Yesterday's lunch [Log again]": the same meal logged to today, in one tap, when yesterday's
 // meal is there and every entry in it can be logged again (lib/nutrition/again.js). The entries
 // go in one write with uuids that come from the copy itself, so a second tap or a retry is the
-// same entries, and "Logged" is read off today's diary, not remembered here.
-export default function YesterdayMealRow({ settings, meal }) {
+// same entries, and "Logged" is read off today's diary, not remembered here. `whileEmpty` (Home's
+// live row): only while today's meal is still empty; once it has anything the row goes, the
+// toast's Undo still there.
+export default function YesterdayMealRow({ settings, meal, whileEmpty = false }) {
   const today = todayISO()
   const yesterday = yesterdayISO()
   const entry = useNutrition(s => s.days[yesterday]?.entry)
@@ -33,6 +35,7 @@ export default function YesterdayMealRow({ settings, meal }) {
 
   const items = againItems(entry, meal)
   if (!items) return null
+  if (whileEmpty && (target?.status !== 'ready' || mealItems(target.entry, meal).length)) return null
   const names = mealLabels(settings)
   const label = names[meal] ?? names[0]
   const kcal = energyOf(againKcal(items), settings)
