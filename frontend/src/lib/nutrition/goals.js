@@ -63,11 +63,14 @@ export function withGoalValue(old, value, { percent = false } = {}) {
 }
 
 /** The `goals` setting after the draft is applied over `base`. Entries the page does not touch,
- *  and weekday-specific ones, pass through unchanged. */
-export function goalsAfter(base, draft) {
+ *  and weekday-specific ones, pass through unchanged. `only` limits it to those goal ids (the
+ *  ones the person changed on this page). A blank calorie target never removes the calorie goal. */
+export function goalsAfter(base, draft, only = null) {
   const next = { ...(base || {}) }
   const put = (id, value, percent) => {
+    if (only && !only.has(id)) return
     if (isPerWeekday(next[id])) return
+    if (id === 'calories' && positive(value) == null) return
     // An entry the person did not change stays as NutriTrace wrote it.
     if (sharedValue(next[id]) === (positive(value) ?? null) && !!next[id]?.isPercent === percent) return
     const entry = withGoalValue(next[id], value, { percent })
@@ -81,23 +84,45 @@ export function goalsAfter(base, draft) {
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
-/**
- * The settings writes a draft needs, as [key, value] pairs, only for what changed against the
- * saved `settings`. `workoutApplies` says whether the workout-kcal setting can matter in the
- * draft's mode; turning it on also turns on the diary's activity line, which the target needs.
- */
-export function writesFor(settings, draft) {
-  const out = []
-  const saved = draftOf(settings)
-  if (draft.mode !== saved.mode) out.push(['calorieGoalMode', draft.mode])
-  if (draft.factor !== saved.factor) out.push(['calorieGoalFactor', draft.factor])
-  const goals = goalsAfter(draft.baseGoals || settings?.goals || {}, draft)
-  if (!same(goals, settings?.goals || {})) out.push(['goals', goals])
-  if (draft.waterMl > 0 && draft.waterMl !== saved.waterMl) out.push(['waterGoalMl', Math.round(draft.waterMl)])
-  if (draft.adjust !== (settings?.calorieAdjustFromActivity === true)) {
-    out.push(['calorieAdjustFromActivity', draft.adjust])
-    if (draft.adjust && settings?.diaryShowActivity !== true) out.push(['diaryShowActivity', true])
+/** The goal ids the draft changed against the snapshot it was made from. A template that was
+ *  applied replaces every goal, so it names all of them. */
+function changedGoalIds(draft, snapshot) {
+  if (draft.baseGoals) return null
+  const was = draftOf(snapshot)
+  const out = new Set()
+  if (draft.kcal !== was.kcal) out.add('calories')
+  for (const id of MACROS) {
+    if (draft.macros[id].value !== was.macros[id].value || draft.macros[id].percent !== was.macros[id].percent) out.add(id)
   }
+  return out
+}
+
+/** The `goals` setting as the person's changes on this page leave `settings`: what they changed
+ *  against `snapshot` is applied, everything else stays as `settings` has it now. */
+export function goalsFor(settings, draft, snapshot = settings) {
+  return goalsAfter(draft.baseGoals || settings?.goals || {}, draft, changedGoalIds(draft, snapshot))
+}
+
+/**
+ * The settings writes a draft needs, as [key, value] pairs. `snapshot` is the settings the draft
+ * was made from: only what the person changed against it is written, and only when `settings`
+ * (the server's current ones) do not already hold it, so a change made elsewhere meanwhile is
+ * never reverted. The workout setting needs the diary's activity line on (`diary.js`
+ * calorieTarget reads both), so that is written first and a retry after a failed second write
+ * still has it.
+ */
+export function writesFor(settings, draft, snapshot = settings) {
+  const out = []
+  const was = draftOf(snapshot)
+  const now = draftOf(settings)
+  const changed = (key) => draft[key] !== was[key] && draft[key] !== now[key]
+  if (changed('mode')) out.push(['calorieGoalMode', draft.mode])
+  if (changed('factor')) out.push(['calorieGoalFactor', draft.factor])
+  const goals = goalsFor(settings, draft, snapshot)
+  if (!same(goals, settings?.goals || {})) out.push(['goals', goals])
+  if (draft.waterMl > 0 && changed('waterMl')) out.push(['waterGoalMl', Math.round(draft.waterMl)])
+  if (draft.adjust && settings?.diaryShowActivity !== true) out.push(['diaryShowActivity', true])
+  if (changed('adjust')) out.push(['calorieAdjustFromActivity', draft.adjust])
   return out
 }
 
@@ -116,7 +141,16 @@ export function settingsWith(settings, draft) {
 export function gramsToPercent(grams, kcal, perGram) {
   const g = Number(grams)
   if (!Number.isFinite(g) || !(kcal > 0)) return null
-  return Math.round((g * perGram * 100) / kcal)
+  // The fewest decimals (0 to 2) that still convert back to the same whole grams, so switching
+  // the unit on and off never drifts the target (goal-resolver.js gramsGoalToPercent).
+  const exact = (g * perGram * 100) / kcal
+  const wanted = Math.round(g)
+  for (const places of [0, 1, 2]) {
+    const f = 10 ** places
+    const pct = Math.round(exact * f) / f
+    if (percentToGrams(pct, kcal, perGram) === wanted) return pct
+  }
+  return Math.round(exact * 100) / 100
 }
 export function percentToGrams(percent, kcal, perGram) {
   const p = Number(percent)
@@ -138,20 +172,26 @@ export function toggleMacroUnit(macro, id, kcal) {
   return { ...macro, percent, value: converted ?? macro.value }
 }
 
-/** A preset as grams against `kcal` (applyMacroPreset). */
-export function applyPreset(name, kcal) {
+/** A preset as grams against `kcal` (applyMacroPreset), laid over the draft's `macros`. A macro
+ *  that differs by weekday is left as it is; null when there is nothing for the preset to set. */
+export function applyPreset(name, kcal, macros) {
   const split = MACRO_PRESETS[name]
   if (!split || !(kcal > 0)) return null
   const out = {}
-  for (const id of MACROS) out[id] = { value: percentToGrams(split[id], kcal, DENSITY[id]), percent: false, perWeekday: false }
-  return out
+  for (const id of MACROS) {
+    out[id] = macros?.[id]?.perWeekday
+      ? macros[id]
+      : { value: percentToGrams(split[id], kcal, DENSITY[id]), percent: false, perWeekday: false }
+  }
+  return MACROS.every(id => out[id].perWeekday) ? null : out
 }
 
-/** The calories the draft's mode lands on, from the figures the server gave. */
-export function previewBase(settings, draft, { caloriesOut = null, adaptive = null } = {}) {
+/** The calories the draft's mode lands on today, from the figures the server gave. `date` is the
+ *  day (a weekday-specific target resolves to its weekday). */
+export function previewBase(settings, draft, { caloriesOut = null, adaptive = null, date = null } = {}) {
   const adaptiveTdee = adaptive?.ready && adaptive.tdee != null ? adaptive.tdee : null
   const s = settingsWith(settings, draft)
-  const { base, fromBurn } = calorieTarget({ settings: s, date: null, caloriesOut, adaptiveTdee })
+  const { base, fromBurn } = calorieTarget({ settings: s, date, caloriesOut, adaptiveTdee })
   return { kcal: base, fromBurn }
 }
 
@@ -166,10 +206,15 @@ export function goalNotes(kcal, grams) {
 }
 
 /** Whether the workout-kcal setting can change the target in this mode (decision-workout-kcal.md):
- *  never in Dynamic or a ready Adaptive, opt-in in Fixed and while Adaptive is still learning. */
-export function workoutAdjustState(mode, adaptive) {
+ *  never in Dynamic or a ready Adaptive, opt-in in Fixed and while Adaptive is still learning.
+ *  'pending': Adaptive, and the server has not yet said whether its estimate is ready
+ *  (`adaptiveStatus` 'loading' or 'failed'), so which of the two applies is not known. */
+export function workoutAdjustState(mode, adaptive, adaptiveStatus = adaptive ? 'ready' : 'loading') {
   if (mode === 'dynamic') return 'burn'
-  if (mode === 'adaptive' && adaptive?.ready) return 'burn'
+  if (mode === 'adaptive') {
+    if (adaptiveStatus !== 'ready') return 'pending'
+    if (adaptive?.ready) return 'burn'
+  }
   return 'optin'
 }
 
@@ -192,10 +237,36 @@ export function makeTemplate(name, goals, waterMl, now = Date.now()) {
   return { id: now, name, createdAt: new Date(now).toISOString(), goals: { ...goals }, waterGoalMl: waterMl, goalCount }
 }
 
+// NutriTrace keeps at most this many templates (the hub refuses a longer list).
+export const MAX_TEMPLATES = 30
+
+/** A template saved under the old schema holds `kilojoules`: it becomes `calories` in kcal and
+ *  the old key goes (Goals.svelte _migrateKilojoulesGoal). */
+export function migrateKilojoules(goals) {
+  if (!goals?.kilojoules) return goals
+  const next = { ...goals }
+  const kj = next.kilojoules
+  if (!next.calories) {
+    const days = Array.isArray(kj.days) ? kj.days : null
+    const hasDays = days && days.some(v => v != null && Number.isFinite(v) && v > 0)
+    const shared = kj.max ?? kj.min
+    if ((shared != null && Number.isFinite(shared) && shared > 0) || hasDays) {
+      const calories = {
+        ...kj,
+        max: kj.max != null ? kj.max / 4.184 : undefined,
+        min: kj.min != null ? kj.min / 4.184 : undefined,
+        days: days ? days.map(v => (v != null ? v / 4.184 : null)) : undefined,
+      }
+      next.calories = Object.fromEntries(Object.entries(calories).filter(([, v]) => v !== undefined))
+    }
+  }
+  delete next.kilojoules
+  return next
+}
+
 /** The draft after applying a template: its goals replace the saved ones, as in NutriTrace. */
 export function applyTemplate(draft, tpl) {
-  const goals = { ...(tpl.goals || {}) }
-  delete goals.kilojoules
+  const goals = migrateKilojoules({ ...(tpl.goals || {}) })
   const fresh = draftOf({ goals, calorieGoalMode: draft.mode, calorieGoalFactor: draft.factor })
   return {
     ...draft,

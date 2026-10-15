@@ -193,6 +193,80 @@ describe('Nutrition › Goals', () => {
     expect(nt.state.settings.goals.calories.max).toBe(1800)
   })
 
+  const typeInto = (input, value) => act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  const tpl = (id, name = 'T' + id) => ({ id, name, createdAt: '2026-01-01T00:00:00.000Z', goals: { calories: { max: 2000, min: 2000, sharedGoal: true } }, waterGoalMl: 2000, goalCount: 2 })
+
+  it('does not put back a setting that was changed elsewhere while the page was open', async () => {
+    await open()
+    click(byLabel('Increase Daily target'))
+    nt.state.settings.waterGoalMl = 3500
+    nt.state.settings.calorieGoalMode = 'adaptive'
+    await click(saveButton())
+    await settle()
+    expect(nt.state.settings.goals.calories.max).toBe(2250)
+    expect(nt.state.settings.waterGoalMl).toBe(3500)
+    expect(nt.state.settings.calorieGoalMode).toBe('adaptive')
+    expect(goalWrites().map(w => w.body.key)).toEqual(['goals'])
+  })
+
+  it('refuses a template past the limit, even when the list filled up elsewhere, and says so', async () => {
+    await open({ settings: { ...fixtureSettings(), goalTemplates: Array.from({ length: 29 }, (_, i) => tpl(i + 1)) } })
+    nt.state.settings.goalTemplates.push(tpl(30))
+    await typeInto(host.querySelector('input[placeholder="Template name"]'), 'One too many')
+    const before = goalWrites().length
+    await click([...host.querySelectorAll('button')].find(b => b.textContent === 'Save template'))
+    await settle()
+    expect(text()).toContain('You can keep up to 30 templates. Delete one to save another.')
+    expect(goalWrites()).toHaveLength(before)
+    expect(nt.state.settings.goalTemplates).toHaveLength(30)
+    expect([...host.querySelectorAll('button')].find(b => b.textContent === 'Save template').disabled).toBe(true)
+  })
+
+  it('names the template in its delete button and labels the template field', async () => {
+    await open({ settings: { ...fixtureSettings(), goalTemplates: [tpl(1, 'Cut')] } })
+    expect(byLabel('Delete Cut')).not.toBeNull()
+    expect(byLabel('Template name')).not.toBeNull()
+  })
+
+  it('labels the g/% control of each macro and marks Dynamic disabled with the reason', async () => {
+    await open()
+    expect(byLabel('Protein unit').getAttribute('role')).toBe('group')
+    const dynamic = [...host.querySelectorAll('.seg button')].find(b => b.textContent === 'Dynamic')
+    expect(dynamic.disabled).toBe(true)
+    expect(dynamic.getAttribute('aria-label')).toContain('Dynamic needs a connected wearable.')
+  })
+
+  it('locks the workout switch, with the reason, when the Adaptive estimate did not load', async () => {
+    nt = createFakeNutriTrace({ settings: { ...fixtureSettings(), calorieGoalMode: 'adaptive' } })
+    nt.failNext('GET', '/nt/api/goals/adaptive-tdee', 'offline')
+    vi.stubGlobal('fetch', nt.fetch)
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    await act(async () => { root.render(<NutritionGoals />) })
+    await settle()
+    expect(byLabel('Count workouts toward the target').disabled).toBe(true)
+    expect(text()).toContain('The adaptive estimate did not load, so this cannot be changed yet.')
+  })
+
+  it('words the calorie notes in kJ for a kJ user', async () => {
+    const settings = { ...fixtureSettings(), energyUnit: 'kJ', goals: { ...fixtureSettings().goals, calories: { min: 1000, max: 1000, sharedGoal: true } } }
+    await open({ settings })
+    expect(text()).toContain('very low (4,184 kJ)')
+    expect(text()).not.toMatch(/very low \([^)]*kcal/)
+  })
+
+  it('will not save while the calorie target is blanked, and keeps the goal', async () => {
+    await open()
+    await typeInto(field('Daily target'), '')
+    expect(saveButton().disabled).toBe(true)
+    expect(text()).toContain('Enter a daily target to save.')
+    expect(nt.state.settings.goals.calories.max).toBe(2200)
+  })
+
   it('shows an error with a retry when the settings cannot be read', async () => {
     nt = createFakeNutriTrace()
     nt.failNext('GET', '/nt/api/settings', 'offline')
