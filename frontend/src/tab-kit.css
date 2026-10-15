@@ -186,6 +186,22 @@
 .hero-ml{font-size:var(--fs-callout);color:var(--label)}
 .hero-ms{font-size:var(--fs-subhead);color:var(--label-2)}
 .hero .skel+.skel{margin-top:var(--space-2)}
+/* `action` (a ⋯ at the top end, 40px, 44px to tap), `link`, and the lines after the metrics. */
+.hero{position:relative}
+.hero.hero-has-a{padding-inline:calc(var(--hdr-btn) + var(--space-2))}
+.hero-a{position:absolute;top:var(--space-6);inset-inline-end:0}
+.hero-a>.iconbtn{width:var(--hdr-btn);height:var(--hdr-btn);font-size:20px}
+.hero-l{display:inline-flex;align-items:center;gap:2px;min-height:var(--tap-min);margin-block:-6px;font-size:var(--fs-callout);color:var(--acc-ink)}
+.hero-l .icn{font-size:14px;--icon-stroke:2.4}
+.hero>*+.hero-m{margin-top:var(--space-8)}
+.hero>.hero-a+.hero-m{margin-top:0}
+.hero-macros{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2) var(--space-8);margin-top:var(--space-6);
+  font-size:var(--fs-subhead);color:var(--label-2);font-variant-numeric:tabular-nums;
+}
+
+/* TabSection: a tab root's sections, --gap-tab-section apart. */
+.tab-sec{margin-bottom:var(--gap-tab-section)}
 
 /* ActionRow / ActionButton: 56px discs on the card surface, none filled (Owner decision 7). */
 .act-row{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:var(--space-4);padding-block:var(--space-4)}
