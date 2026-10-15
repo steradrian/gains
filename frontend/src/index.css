@@ -143,7 +143,7 @@
   --shadow-float: 0 12px 40px -12px rgba(48,36,24,.22);
   --shadow-thumb: 0 3px 8px rgba(48,36,24,.12), 0 1px 1px rgba(48,36,24,.06);
   /* --surface-3 on white is about 1.3:1 and the empty arc vanished */
-  --gauge-track: color-mix(in srgb,var(--label) 12%,var(--surface));
+  --gauge-track: #c8c4bd;
   --scrim: rgba(26,24,20,.28);
   --acc-graphic: var(--acc-ink);
 
