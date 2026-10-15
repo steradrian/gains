@@ -18,7 +18,9 @@ export const emptyNav = () => ({ entries: [], idx: -1, top: -1, tab: 'home', sta
 // The tab on screen: the route's own, or for a shared page (Profile, the workout) the one under it.
 const tabFor = (nav, path) => tabOf(path.split('?')[0]) || nav.tab
 
-export function record(nav, { idx, path, navType }) {
+// `keepTab`: a page the global search opened on top of its overlay (lib/search/session.js). It
+// may be another tab's page, and it still sits on this tab's stack: back returns to the overlay.
+export function record(nav, { idx, path, navType, keepTab = false }) {
   // No position (an entry nothing wrote one into): count it as the start of a history.
   const at = Number.isInteger(idx) && idx >= 0 ? idx : 0
   // Forward onto a page of a tab that was left: not this tab's page, nothing to mirror.
@@ -29,7 +31,7 @@ export function record(nav, { idx, path, navType }) {
   // The first location of a document starts the live history wherever it is. A replace past the
   // top is the router taking over a sheet's entry (closeThenNav): live, as the page it became.
   const top = navType === 'PUSH' || nav.idx < 0 ? at : navType === 'REPLACE' ? Math.max(nav.top, at) : nav.top
-  return { ...nav, tab: tabFor(nav, path), entries, idx: at, top }
+  return { ...nav, tab: keepTab && nav.idx >= 0 ? nav.tab : tabFor(nav, path), entries, idx: at, top }
 }
 
 // A finished switch: what is ahead of here belongs to the tab that was left.
@@ -62,17 +64,20 @@ export function stackFor(nav, target, path) {
 // - another tab: its own stack comes back (plus `path`), this one is put aside;
 // - the tab on screen with `toRoot` (its bar button tapped again): back down to its root.
 // Null when there is nothing to do.
+// - another tab's bar button while a search visit shows its page (`toRoot`): that tab's root.
+// The stack put aside never keeps another tab's page (one a search visit put on top of it).
 export function planSwitch(nav, target, { path, toRoot = false, leaving } = {}) {
   if (!TABS.includes(target)) return null
-  const here = compact(leaving || nav.entries.slice(0, nav.idx + 1))
+  const own = p => { const tab = tabOf(pathOnly(p)); return !tab || tab === nav.tab }
+  const here = compact(leaving || nav.entries.slice(0, nav.idx + 1)).filter(own)
   if (target === nav.tab) {
     if (!toRoot) return null
-    if (here.length <= 1 && here[0] === TAB_ROOT[target]) return null
+    if (here.length <= 1 && here[0] === TAB_ROOT[target] && nav.entries.slice(0, nav.idx + 1).every(p => !p || own(p))) return null
     return { back: Math.max(0, nav.idx), stack: [TAB_ROOT[target]], nav }
   }
   return {
     back: Math.max(0, nav.idx),
-    stack: stackFor(nav, target, path),
+    stack: toRoot ? [TAB_ROOT[target]] : stackFor(nav, target, path),
     nav: { ...nav, tab: target, stacks: { ...nav.stacks, [nav.tab]: here } },
   }
 }

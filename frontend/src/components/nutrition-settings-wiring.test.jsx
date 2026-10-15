@@ -31,7 +31,7 @@ vi.mock('./CameraScan.jsx', () => ({
 }))
 const beep = vi.hoisted(() => vi.fn())
 vi.mock('../lib/sound.js', async orig => ({ ...(await orig()), beep }))
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
+vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/home', search: '' }) }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const TODAY = todayISO()

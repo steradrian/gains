@@ -166,3 +166,33 @@ describe('the forward history a switch leaves behind', () => {
     expect(deadSteps(nav)).toBe(0)
   })
 })
+
+describe('a search visit (lib/search/session.js)', () => {
+  // Home, its search overlay's entry (pushed by hand, like a sheet's: no location of its own), and
+  // another tab's page opened from it.
+  const visiting = () => record(start('/home'), { idx: 2, path: '/food?date=2026-10-11&find=u1', navType: 'PUSH', keepTab: true })
+
+  it('keeps another tab\'s page on this tab\'s stack, so back walks to the overlay and Home', () => {
+    let nav = visiting()
+    expect(nav.tab).toBe('home')
+    expect(behind(nav)).toEqual(['/home', undefined, '/food?date=2026-10-11&find=u1'])
+    nav = at(nav, 'POP', '/home', 1)
+    expect(nav).toMatchObject({ tab: 'home', idx: 1 })
+  })
+
+  it('a tab tapped then never puts that page aside with this tab', () => {
+    const nav = go(visiting(), 'progress')
+    expect(nav.stacks.home).toEqual(['/home'])
+    expect(behind(nav)).toEqual(['/progress'])
+  })
+
+  it('this tab\'s own button goes back to its root; the lit one goes to that tab\'s root', () => {
+    expect(planSwitch(visiting(), 'home', { toRoot: true })).toMatchObject({ stack: ['/home'] })
+    let nav = start('/progress')
+    nav = push(nav, '/progress/body')
+    nav = go(nav, 'home')
+    nav = at(nav, 'POP', '/home', 1)
+    nav = record(nav, { idx: 2, path: '/progress/strength', navType: 'PUSH', keepTab: true })
+    expect(planSwitch(nav, 'progress', { toRoot: true })).toMatchObject({ stack: ['/progress'] })
+  })
+})
