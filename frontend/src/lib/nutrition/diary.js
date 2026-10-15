@@ -118,7 +118,10 @@ export function gramsOfPortion(portion, unit, food = null) {
 
 /** How much the nutrients scale going from (origPortion, origUnit) to (newPortion, newUnit):
  *  per-food household units first, then the mass/volume table (density across systems), else
- *  the plain ratio of the two numbers. */
+ *  the plain ratio of the two numbers. A custom unit (Profile › Custom units, `{ abbr, full }`) has
+ *  no weight, so it is always that last case, as in NutriTrace (units.js): a food saved as 1 shot
+ *  logged as 2 shot is 2×; a food saved as 100 g logged as 100 shot is 1×, because only the two
+ *  numbers are compared. */
 export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = null) {
   const op = parseFloat(origPortion)
   const np = parseFloat(newPortion)
@@ -139,11 +142,17 @@ export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = n
   return newP / origP
 }
 
-/** The units a food can be logged in: its household units, its own unit, then the catalogue. */
-export function unitsFor(food) {
+/** The abbreviations of the person's own units (Profile › Custom units, `customUnits`). */
+export const customUnitAbbrs = settings =>
+  (Array.isArray(settings?.customUnits) ? settings.customUnits : []).map(u => String(u?.abbr || '')).filter(Boolean)
+
+/** The units a food can be logged in: its household units, its own unit, the person's custom
+ *  units (NutriTrace lists them first in the picker), then the catalogue. */
+export function unitsFor(food, settings = null) {
   const alt = (parseAltUnits(food?.alt_units) || []).map(r => String(r?.abbr || '')).filter(Boolean)
+  const custom = customUnitAbbrs(settings)
   const own = food?.unit && !UNITS.includes(food.unit) && !alt.includes(food.unit) ? [food.unit] : []
-  return [...new Set([...alt, ...own, ...UNITS])]
+  return [...new Set([...alt, ...own, ...custom, ...UNITS])]
 }
 
 /** The food as logged at (portion, unit): NutriTrace's quantity prompt (Foods.svelte
@@ -170,7 +179,7 @@ export function newUuid() {
 
 // What a diary item keeps (stores/diary.js _KEEP_FIELDS): the snapshot that protects history,
 // plus what the diary reads. The source food's other fields stay with the food.
-const KEEP_FIELDS = ['uuid', 'meal', 'addedAt', 'updatedAt', 'type', 'id', 'food_server_id', 'is_recipe', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'notes', 'imgUrl', 'source', 'source_meal_id']
+const KEEP_FIELDS = ['uuid', 'meal', 'addedAt', 'updatedAt', 'type', 'id', 'food_server_id', 'is_recipe', 'food_device', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'notes', 'imgUrl', 'source', 'source_meal_id']
 function referenceShape(item) {
   const out = Object.fromEntries(KEEP_FIELDS.filter(k => k in item).map(k => [k, item[k]]))
   if (Array.isArray(item._splitItems)) out._splitItems = item._splitItems.map(referenceShape)
@@ -179,6 +188,8 @@ function referenceShape(item) {
 
 /** The error a builder throws for input it cannot log: an NtError with code 'invalid'. */
 export const invalid = what => Object.assign(new Error(what), { status: 0, code: 'invalid' })
+/** The error an edit throws when the entry it edits is gone or was edited elsewhere meanwhile. */
+export const changed = what => Object.assign(new Error(what), { status: 0, code: 'changed' })
 const positive = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
 const mealSlot = meal => { const n = Number(meal); return Number.isInteger(n) && n >= 0 && n <= 31 ? n : 0 }
 
@@ -199,6 +210,45 @@ export function foodItem(food, { meal, quantity = 1, now = new Date() }) {
     food_server_id: typeof food.id === 'number' ? food.id : null,
   })
 }
+
+/** The "HH:MM" an item was logged at, in local time ('' when it has no usable time). */
+export function timeOf(item) {
+  const at = new Date(item?.addedAt)
+  return Number.isNaN(at.getTime()) ? '' : `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+}
+
+/** Whether an item's amount can be edited: a food or recipe row, not a quick-kcal row or a recipe
+ *  split into its ingredients (whose totals come from the ingredients). */
+export const amountEditable = item => !!item && item.type !== 'quick_calories' && !(Array.isArray(item._splitItems) && item._splitItems.length)
+
+/**
+ * A logged item edited, as NutriTrace's edit sheet saves it (Diary.svelte saveEditItem): the same
+ * uuid, so the write replaces the entry where it stands; the amount rescaled through atPortion;
+ * `time` ("HH:MM", local) set on the day it was logged; and `updatedAt` stamped, so the merge
+ * prefers this copy to the one on the server. Build it once and send the same one on a retry.
+ * Throws invalid for servings or a portion that is not a number above 0.
+ */
+export function editedItem(item, { portion, unit, servings, meal, time, now = new Date() }) {
+  const base = amountEditable(item) ? atPortion(item, positive(portion) ?? invalidAmount(), unit) : item
+  const quantity = amountEditable(item) ? positive(servings) ?? invalidAmount() : item.quantity
+  let addedAt = item.addedAt
+  const [h, m] = String(time || '').split(':').map(Number)
+  const from = new Date(item.addedAt)
+  if (Number.isInteger(h) && Number.isInteger(m) && h >= 0 && h < 24 && m >= 0 && m < 60 && !Number.isNaN(from.getTime()) && time !== timeOf(item)) {
+    from.setHours(h, m, 0, 0)
+    addedAt = from.toISOString()
+  }
+  const prev = stampOf(item)
+  const stamp = now.toISOString()
+  const updatedAt = stamp > prev ? stamp : new Date(new Date(prev).getTime() + 1).toISOString()
+  const out = { ...base, quantity, meal: mealSlot(meal), addedAt, updatedAt }
+  if (quantity === undefined) delete out.quantity
+  return out
+}
+
+/** The version of an entry the merge compares: when it was last edited, else when it was logged. */
+export const stampOf = item => String(item?.updatedAt || item?.addedAt || '')
+const invalidAmount = () => { throw invalid('amount must be a number above 0') }
 
 /** NutriTrace's Quick Calories row (stores/diary.js addQuickCalories). Throws invalid without a
  *  positive kcal. */
@@ -263,7 +313,9 @@ export function dayWrite(day, { addItems = [], addWater = [], removeItems = [], 
     return out
   }
   return {
-    items: merge(day?.items, addItems, removeItems).map(referenceShape),
+    // The day's other entries go back as they came: they may carry fields this client does not
+    // know (another device's food_device, a field an import added), and a write must not strip them.
+    items: merge(day?.items, addItems, removeItems),
     water: merge(day?.water, addWater, removeWater),
     deleted_uuids: { items: [...removeItems], water: [...removeWater] },
   }

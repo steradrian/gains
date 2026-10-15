@@ -183,7 +183,7 @@ describe('Home is the diary', () => {
     expect(host.querySelector('.activity-row')).toBeNull()
   })
 
-  it('+250 ml logs a glass to the shown day, with Undo', async () => {
+  it('+250 ml (a person with no water containers) logs a glass to the shown day, with Undo', async () => {
     await mount(<Home />)
     await click(button('Add a glass of water, 250 ml'))
     expect(puts()).toHaveLength(1)
@@ -208,7 +208,7 @@ describe('Home is the diary', () => {
     await mount(<Home />)
     await click(button('Add to Lunch'))
     const picker = host.querySelector('.meal-picker')
-    expect([...picker.querySelectorAll('.food-row .tt')].map(n => n.textContent)).toEqual(['Create food', 'Rolled oats', 'Wholemeal bread', 'Crème fraîche', 'Quick kcal'])
+    expect([...picker.querySelectorAll('.food-row .tt')].map(n => n.textContent)).toEqual(['Create food', 'Rolled oats', 'Wholemeal bread', 'Oats and bread', 'Lentil soup', 'Crème fraîche', 'Quick kcal'])
     await typeInto(picker.querySelector('input'), 'nut')
     await settle(150)
     await vi.waitFor(() => expect(picker.textContent).toContain('Nutella'), { timeout: 2000 })
