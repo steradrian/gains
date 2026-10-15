@@ -19,6 +19,23 @@ const inkOf = (theme, key) => {
   const m = CSS.match(new RegExp(`:root${theme === 'light' ? '\\[data-theme="light"\\]' : ''}\\[data-accent="${key}"\\]\\s*\\{[^}]*--acc-ink:(#[0-9a-f]{6})`))
   return m ? m[1] : PRESET_FILL[theme][key]
 }
+// Light-theme gauge: the track must be visible on the card and page, and each macro arc must read on it.
+describe('light --gauge-track (index.css)', () => {
+  const light = CSS.slice(CSS.indexOf(':root[data-theme="light"] {'))
+  const token = name => light.match(new RegExp(`${name}:\\s*([^;]+);`))[1].trim()
+  const resolve = value => {
+    const cm = value.match(/^color-mix\(in srgb,\s*var\((--[\w-]+)\)\s*(\d+)%,\s*var\((--[\w-]+)\)\)$/)
+    return cm ? mix(resolve(token(cm[3])), resolve(token(cm[1])), Number(cm[2]) / 100) : value
+  }
+  const track = resolve(token('--gauge-track'))
+  it('is at least 1.5:1 against the card and the page', () => {
+    for (const name of ['--surface', '--bg']) expect(contrast(track, resolve(token(name))), `${track} on ${name}`).toBeGreaterThanOrEqual(1.5)
+  })
+  it('sits at least 2:1 under each macro arc', () => {
+    for (const name of ['--macro-protein', '--macro-carbs', '--macro-fat']) expect(contrast(resolve(token(name)), track), `${name} on ${track}`).toBeGreaterThanOrEqual(2)
+  })
+})
+
 describe('--acc-ink of the preset accents (index.css)', () => {
   for (const theme of ['dark', 'light']) for (const key of Object.keys(PRESET_FILL[theme])) {
     it(`${key} in ${theme}: 4.5:1 on the page, the card, the nested fill and the tint over it`, () => {
