@@ -1,7 +1,7 @@
 // The hero's vertical rhythm belongs to the shell: the hero takes a top pad from --hero-pad-top
 // (shorter right under the WeekStrip, past the sr-only status line DayNav renders between them),
-// owns no bottom space inside a TabSection, and the ⋯ follows the same variable. At the narrowest
-// widths the metrics take back the column the ⋯ reserves.
+// owns no bottom space inside a TabSection, and the ⋯ follows the same variable. At every width
+// the metrics take back the column the ⋯ reserves.
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -22,12 +22,9 @@ describe('tab-kit.css hero rhythm', () => {
     expect(flat).toMatch(/\.hero-a\{position:absolute;top:var\(--hero-pad-top\)/)
   })
 
-  // The range form: the G7 guard (ui-guards.test.js) counts any `max-width:` in a new stylesheet.
-  it('gives the ⋯ column back to the metrics only below 340px', () => {
-    const at = flat.indexOf('@media (width<340px){')
-    expect(at).toBeGreaterThan(-1)
-    const block = flat.slice(at, flat.indexOf('} }', at))
-    expect(block).toContain('margin-inline:calc(-1 * (var(--hdr-btn) + var(--space-2)))')
-    expect(flat.slice(0, at)).not.toContain('margin-inline:calc(-1 * (var(--hdr-btn)')
+  it('gives the ⋯ column back to the metrics and the P/C/F line at every width', () => {
+    expect(flat).toContain('.hero-has-a>.hero-m,.hero-has-a>.hero-macros{margin-inline:calc(-1 * (var(--hdr-btn) + var(--space-2)))}')
+    expect(flat).toContain('.hero-has-a>.hero-m{width:auto;align-self:stretch}')
+    expect(flat).not.toContain('@media (width<340px)')
   })
 })
