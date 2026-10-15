@@ -9,7 +9,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
-import { clearOnlineSearchCache } from '../lib/nutrition/use-online-search.js'
+import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { createFakeNutriTrace, fixtureFoods, fixtureMeals, fixtureOffSearch, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { mealRows } from '../lib/nutrition/meal-rows.js'
 import { offResults } from '../lib/nutrition/off.js'
@@ -53,7 +53,7 @@ const puts = path => nt.requests.filter(r => r.method === 'PUT' && r.path === pa
 async function mount(el, settings = {}, extra = {}) {
   act(() => root.render(null))
   useUI.setState({ sheets: [] })
-  clearOnlineSearchCache()
+  resetOnlineSearch()
   useNutrition.getState().reset()
   nt = createFakeNutriTrace({ settings: { ...fixtureSettings(), ...settings }, ...extra })
   vi.stubGlobal('fetch', nt.fetch)

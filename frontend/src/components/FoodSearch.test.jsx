@@ -10,7 +10,8 @@ import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
-import { clearOnlineSearchCache } from '../lib/nutrition/use-online-search.js'
+import { resetOffBudget } from '../lib/nutrition/off-budget.js'
+import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { offResults } from '../lib/nutrition/off.js'
 import { createFakeNutriTrace, fixtureDay, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
 import FoodPicker from './FoodPicker.jsx'
@@ -64,7 +65,8 @@ beforeEach(() => {
   }))
   useNutrition.getState().reset()
   useDiarySelection.getState().reset()
-  clearOnlineSearchCache()
+  resetOnlineSearch()
+  resetOffBudget()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
   camera.hit = null
   host = document.createElement('div')
@@ -112,6 +114,15 @@ describe('the diary picker', () => {
     await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
     await search(host, 'bread')
     expect(host.querySelector('[role=alert]').textContent).toBe('The search did not finish: no connection.')
+    expect(titles(host)).toContain('Wholemeal bread')
+  })
+
+  it('announces the hub\'s pause in a status region, with the seconds to go', async () => {
+    nt.failNext('GET', '/nt/api/proxy', { status: 429, error: 'rate limited' })
+    await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
+    await search(host, 'bread')
+    const note = [...host.querySelectorAll('[role=status]')].find(n => n.textContent.includes('paused'))
+    expect(note?.textContent).toMatch(/Open Food Facts paused · back in \d+ s/)
     expect(titles(host)).toContain('Wholemeal bread')
   })
 

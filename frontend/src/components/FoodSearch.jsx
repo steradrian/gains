@@ -78,7 +78,7 @@ export default function FoodSearch({ onPick, scan = {}, savedMeals, autoFocus = 
       <SectionTitle>{t('Open Food Facts')}</SectionTitle>
       {online.status === 'loading' && <div className="muted small fp-note">{t('Searching Open Food Facts…')}</div>}
       {online.status === 'error' && <div className="nt-error small" role="alert">{searchErrorText(online.error)}</div>}
-      {online.status === 'paused' && <div className="muted small fp-note">{t('{0} paused · back in', t('Open Food Facts'))} {t('{0} s', online.seconds)}</div>}
+      {online.status === 'paused' && <div className="muted small fp-note" role="status">{t('{0} paused · back in', t('Open Food Facts'))} {t('{0} s', online.seconds)}</div>}
       {online.status === 'ready' && !online.results.length && <div className="muted small fp-note">{t('Nothing found online.')}</div>}
       {online.status === 'idle' && <div className="muted small fp-note">{t('Type at least two letters to search online.')}</div>}
       {rows(online.results)}

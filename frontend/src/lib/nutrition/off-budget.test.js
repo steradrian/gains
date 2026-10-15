@@ -34,7 +34,8 @@ describe('the Open Food Facts budget (ux-search.md §5)', () => {
     noteAnswer(res(429, { 'Retry-After': '12' }), now)
     expect(canSearch('tap', now)).toBe(false)
     expect(pausedFor(now)).toBe(12)
-    expect(canSearch('tap', now + 12_001)).toBe(false) // the hub said 0 left: only a fresh answer opens it
+    expect(canSearch('tap', now + 11_999)).toBe(false)
+    expect(canSearch('auto', now + 12_001)).toBe(true) // the hub's window is over: the pause was the wait
     resetOffBudget()
     noteAnswer(res(429), now)
     expect(pausedFor(now)).toBe(15)

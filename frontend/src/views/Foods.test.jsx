@@ -11,7 +11,7 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useHubSync } from '../lib/nutrition/sync.js'
 import { todayISO } from '../lib/format.js'
 import { createFakeNutriTrace, fixtureFoods, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
-import { clearOnlineSearchCache } from '../lib/nutrition/use-online-search.js'
+import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { resetOffBudget } from '../lib/nutrition/off-budget.js'
 import Foods from './Foods.jsx'
 
@@ -76,7 +76,7 @@ async function openPage() {
 }
 
 beforeEach(() => {
-  clearOnlineSearchCache()
+  resetOnlineSearch()
   resetOffBudget()
   nt = createFakeNutriTrace({ foods: foodsFixture(), settings: { ...fixtureSettings(), foodCategories: ['Pantry', 'Bakery', { name: 'Dairy' }] } })
   vi.stubGlobal('fetch', nt.fetch)

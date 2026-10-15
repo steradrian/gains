@@ -49,7 +49,10 @@ export function noteAnswer(res, now = Date.now()) {
     const after = parseInt(res.headers?.get?.('Retry-After'), 10)
     const s = Math.min(PAUSE_MAX_S, Number.isFinite(after) && after > 0 ? after : PAUSE_DEFAULT_S)
     useOffBudget.setState({ pausedUntil: now + s * 1000 })
-    server = { remaining: 0, at: now }
+    // The pause is the whole of the wait: the hub's window is over at its Retry-After, so the count
+    // starts again after it, and the next answer's RateLimit-Remaining says where it stands.
+    spent = []
+    server = null
   }
 }
 

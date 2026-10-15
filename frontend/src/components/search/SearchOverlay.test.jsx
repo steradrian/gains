@@ -14,7 +14,7 @@ const { endSearch, syncSearchWithHistory, useSearch } = await import('../../lib/
 const { addRecent, clearRecents, noteOpened, useRecents } = await import('../../lib/search/recents.js')
 const { createFakeNutriTrace } = await import('../../lib/nutrition/fake-nutritrace.js')
 const { useNutrition } = await import('../../lib/nutrition/store.js')
-const { clearOnlineSearchCache } = await import('../../lib/nutrition/use-online-search.js')
+const { resetOnlineSearch } = await import('../../lib/nutrition/use-online-search.js')
 const { customExSheet } = await import('../../sheets.jsx')
 const RootHeader = (await import('../RootHeader.jsx')).default
 const SearchOverlay = (await import('./SearchOverlay.jsx')).default
@@ -134,7 +134,7 @@ describe('the search overlay', () => {
   it('offline: your own results work, and Online says it comes back with the connection', async () => {
     const nt = createFakeNutriTrace()
     vi.stubGlobal('fetch', nt.fetch)
-    clearOnlineSearchCache()
+    resetOnlineSearch()
     useNutrition.getState().reset()
     useStore.setState({ user: { id: 7, name: 'A' } })
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
@@ -250,7 +250,7 @@ describe('the search overlay', () => {
   it('a slow source\'s note is a disabled option the arrows still reach; its error is one option that retries', async () => {
     const nt = createFakeNutriTrace()
     vi.stubGlobal('fetch', nt.fetch)
-    clearOnlineSearchCache()
+    resetOnlineSearch()
     useNutrition.getState().reset()
     useStore.setState({ user: { id: 7, name: 'A' } })
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
