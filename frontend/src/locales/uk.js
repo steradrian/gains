@@ -2622,4 +2622,7 @@ export default {
   '{0} ingredients': { one: '{0} ingredient', few: '{0} ingredients', many: '{0} ingredients' },
   '{0} meals': { one: '{0} meal', few: '{0} meals', many: '{0} meals' },
   '{0} recipes': { one: '{0} recipe', few: '{0} recipes', many: '{0} recipes' },
+  'Open Food Facts': 'Open Food Facts',
+  'Create food': 'Create food',
+  'Use': 'Use',
 }

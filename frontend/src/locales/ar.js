@@ -2680,4 +2680,7 @@ export default {
   '{0} ingredients': '{0} ingredients',
   '{0} meals': '{0} meals',
   '{0} recipes': '{0} recipes',
+  'Open Food Facts': 'Open Food Facts',
+  'Create food': 'Create food',
+  'Use': 'Use',
 }
