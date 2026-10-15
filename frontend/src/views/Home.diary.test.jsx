@@ -183,9 +183,9 @@ describe('Home is the diary', () => {
     expect(host.querySelector('.activity-row')).toBeNull()
   })
 
-  it('+250 ml (the small bottle, NutriTrace\'s first container) logs to the shown day, with Undo', async () => {
+  it('+250 ml (a person with no water containers) logs a glass to the shown day, with Undo', async () => {
     await mount(<Home />)
-    await click(button('Add Small Bottle, 250 ml'))
+    await click(button('Add a glass of water, 250 ml'))
     expect(puts()).toHaveLength(1)
     expect(puts()[0].body.water.map(w => w.amount)).toEqual([250, 250])
     expect(text()).toContain('500 ml / 2,500 ml')
@@ -198,9 +198,9 @@ describe('Home is the diary', () => {
   it('a glass whose answer was lost is counted once when tapped again', async () => {
     await mount(<Home />)
     nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
-    await click(button('Add Small Bottle, 250 ml'))
+    await click(button('Add a glass of water, 250 ml'))
     expect(useUI.getState().toastMsg).toBe('Not saved. Try again.')
-    await click(button('Add Small Bottle, 250 ml'))
+    await click(button('Add a glass of water, 250 ml'))
     expect(nt.state.days[TODAY].water.map(w => w.amount)).toEqual([250, 250])
   })
 

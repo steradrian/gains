@@ -118,7 +118,10 @@ export function gramsOfPortion(portion, unit, food = null) {
 
 /** How much the nutrients scale going from (origPortion, origUnit) to (newPortion, newUnit):
  *  per-food household units first, then the mass/volume table (density across systems), else
- *  the plain ratio of the two numbers. */
+ *  the plain ratio of the two numbers. A custom unit (Profile › Custom units, `{ abbr, full }`) has
+ *  no weight, so it is always that last case, as in NutriTrace (units.js): a food saved as 1 shot
+ *  logged as 2 shot is 2×; a food saved as 100 g logged as 100 shot is 1×, because only the two
+ *  numbers are compared. */
 export function scaleFactor(origPortion, origUnit, newPortion, newUnit, food = null) {
   const op = parseFloat(origPortion)
   const np = parseFloat(newPortion)

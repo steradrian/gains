@@ -6,10 +6,11 @@ import { EmptyState } from './blocks.jsx'
 
 // What a NutriTrace settings page shows until NutriTrace's settings are here: a loading line, or
 // the failure with a way to ask again. Once they are, the page itself, which reads them with
-// useNtSettings.
+// useNtSettings. It asks again each time a page opens: settings cached from an earlier visit may
+// have been changed in NutriTrace since, and a page shows what is there now.
 export default function NtSettingsGate({ children }) {
   const settings = useNutrition(s => s.settings)
-  useEffect(() => { useNutrition.getState().loadSettings() }, [])
+  useEffect(() => { useNutrition.getState().loadSettings({ force: true }) }, [])
 
   if (settings.data) return children
   if (settings.status === 'error') {

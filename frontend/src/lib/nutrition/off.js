@@ -20,11 +20,18 @@ function luceneEscape(s) {
     .replace(/\|\|/g, '\\|\\|')
 }
 
+/** A country by its English name as Open Food Facts tags it: "United Kingdom" is en:united-kingdom. */
+export const countryTag = country => 'en:' + String(country).toLowerCase().replace(/\s+/g, '-')
+
 /** The search URL NutriTrace's proxy fetches. The hub accepts exactly this shape. */
-export function offSearchUrl(query, { page = 1, pageSize = 20, lang = 'en' } = {}) {
+export function offSearchUrl(query, { page = 1, pageSize = 20, lang = 'en', country = null } = {}) {
+  // A country other than World narrows the search itself, inside `q` as NutriTrace does
+  // (api.js _offSearchUrl): `+countries_tags:"en:germany"`. 80 characters, escaped at most to 160,
+  // plus the filter (36 for the longest country): under the hub's 200 for q, and no
+  // parameter beyond q, page, page_size and langs (fitness-hub src/nt-routes.ts).
+  const filter = country && country !== 'World' ? ` +countries_tags:"${countryTag(country)}"` : ''
   const params = new URLSearchParams({
-    // 80 characters, escaped at most to 160: under the hub's 200 (fitness-hub src/nt-routes.ts).
-    q: luceneEscape(String(query).trim().slice(0, 80)),
+    q: luceneEscape(String(query).trim().slice(0, 80)) + filter,
     page_size: String(Math.min(50, Math.max(1, pageSize))),
     page: String(Math.min(100, Math.max(1, page))),
     langs: /^[a-z]{2}$/.test(lang) ? lang : 'en',
@@ -141,7 +148,7 @@ export const RANK_FIRST_COUNTRY = 'en:romania'
 /** The country whose products come first: the one picked in Profile › Food sources (`offSearchCountry`,
  *  by its English name, "United Kingdom" → en:united-kingdom), and Romania while it is World or unset. */
 export function rankTagOf(country) {
-  return country && country !== 'World' ? 'en:' + String(country).toLowerCase().replace(/\s+/g, '-') : RANK_FIRST_COUNTRY
+  return country && country !== 'World' ? countryTag(country) : RANK_FIRST_COUNTRY
 }
 
 /** The search answer in either envelope NutriTrace's proxy sends: `hits` (a local OFF mirror) or

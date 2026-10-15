@@ -17,13 +17,15 @@ export default function FoodsSettings() {
     { value: 'most', label: t('Most used') },
   ]
   const source = settingOf(data, 'foodsDefaultSource')
-  // A source that is switched off is offered only while it is the one chosen, so the row never
-  // shows a bare key.
+  // Foods opens on your foods (`local`) or on the Open Food Facts tab (`off`); Gains has no other
+  // source, so `all` and `usda` (which NutriTrace offers) would do what `local` does. They show
+  // only while one of them is what NutriTrace has stored, marked as legacy, so the row never shows
+  // a bare key. Open Food Facts is offered while it is on, or while it is the stored value.
   const sources = [
-    { value: 'all', label: t('All sources') },
+    ...(source === 'all' ? [{ value: 'all', label: t('{0} (legacy)', t('All sources')) }] : []),
     { value: 'local', label: t('Your foods') },
     ...(settingOf(data, 'offEnabled') || source === 'off' ? [{ value: 'off', label: t('Open Food Facts') }] : []),
-    ...(settingOf(data, 'usdaEnabled') || source === 'usda' ? [{ value: 'usda', label: t('USDA') }] : []),
+    ...(source === 'usda' ? [{ value: 'usda', label: t('{0} (legacy)', t('USDA')) }] : []),
   ]
   return <>
     <Section title={t('Food rows')} footer={t('What shows on each row in the Foods, Meals and Recipes lists.')}>

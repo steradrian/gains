@@ -11,6 +11,7 @@ import { useUI } from '../store/useUI.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { featuresFor, pageExists, pageVisible, ROOT_GROUPS, SEARCH, searchSettings } from '../views/settings-pages.js'
+import { _setLangState } from '../lib/i18n-core.js'
 import { bindUI } from './ui.jsx'
 import CustomUnitsSettings from './CustomUnitsSettings.jsx'
 import DiaryMealsSettings from './DiaryMealsSettings.jsx'
@@ -48,6 +49,7 @@ function openedSheet() {
   sheetRoots.push([sheetRoot, box])
   return { box, close }
 }
+const sheetBox = () => sheetRoots.at(-1)[1]
 const fieldOf = (box, label) => box.querySelector(`input[aria-label="${label}"]`)
 const buttonOf = (box, label) => [...box.querySelectorAll('button')].find(b => b.textContent === label)
 const type = async (el, value) => {
@@ -93,11 +95,12 @@ afterEach(() => {
 })
 
 describe('Water', () => {
-  it('shows NutriTrace\'s defaults until something is saved, and the unit one write', async () => {
+  it('shows NutriTrace\'s defaults until something is saved (no containers), and the unit one write', async () => {
     await mount('water')
-    expect(titles()).toEqual(expect.arrayContaining(['Water unit', 'Show water in the diary', 'Show water in statistics', 'Small Bottle', 'Standard Bottle', 'Add a container']))
-    expect(valueOf('Water unit')).toBe('Milliliters (ml)')
+    expect(titles()).toEqual(['Water unit', 'Show water in the diary', 'Show water in statistics', 'Add a container'])
+    await mount('water', { waterContainers: [{ id: '2', name: 'Standard Bottle', volumeMl: 500 }] })
     expect(rowTitled('Standard Bottle').querySelector('.lrow-s').textContent).toBe('500 ml')
+    expect(valueOf('Water unit')).toBe('Milliliters (ml)')
     expect(switchOf('Show water in the diary').getAttribute('aria-checked')).toBe('true')
     await pick('Water unit', 'Fluid ounces (fl oz)')
     expect(puts()).toEqual([{ key: 'waterUnit', value: 'oz' }])
@@ -198,7 +201,7 @@ describe('Foods & scanning', () => {
   it('offers Open Food Facts as a search source only while it is on', async () => {
     await mount('foods', { offEnabled: false })
     await click(rowTitled('Search in'))
-    expect([...openedSheet().box.querySelectorAll('.lrow-t')].map(e => e.textContent)).toEqual(['All sources', 'Your foods'])
+    expect([...openedSheet().box.querySelectorAll('.lrow-t')].map(e => e.textContent)).toEqual(['Your foods'])
     useNutrition.getState().reset()
     await mount('foods', { offEnabled: true })
     await pick('Search in', 'Open Food Facts')
@@ -374,6 +377,9 @@ describe('Diary & meals', () => {
     await click(rowTitled('Breakfast'))
     ;({ box } = openedSheet())
     await click(buttonOf(box, 'Remove'))
+    expect(puts()).toHaveLength(2)   // asked first: what was logged under it moves
+    expect(openedSheet().box.textContent).toContain('What was logged under it moves to the meal that takes its place.')
+    await click(buttonOf(sheetBox(), 'Remove'))
     expect(puts().map(p => p.value)).toEqual([
       ['Breakfast', 'Lunch', 'Dinner', 'Supper'], ['Breakfast', 'Dinner', 'Lunch', 'Supper'], ['Dinner', 'Lunch', 'Supper'],
     ])
@@ -406,6 +412,128 @@ describe('Diary & meals', () => {
     await mount('diary', { fastingEnabled: true, fastingDefaultHours: 16 })
     await pick('Default fasting plan', '20:4')
     expect(puts()).toEqual([{ key: 'fastingDefaultHours', value: 20 }])
+  })
+})
+
+describe('a list is changed over what the server has now, not over what the page loaded', () => {
+  it('meal names: a meal added in NutriTrace after the page loaded survives a rename here', async () => {
+    await mount('diary', { mealNames: ['Breakfast', 'Lunch', 'Dinner'] })
+    nt.state.settings.mealNames = ['Breakfast', 'Lunch', 'Dinner', 'Supper']
+    await click(rowTitled('Lunch'))
+    const { box } = openedSheet()
+    await type(fieldOf(box, 'Name'), 'Brunch')
+    await click(buttonOf(box, 'Save'))
+    expect(puts()).toEqual([{ key: 'mealNames', value: ['Breakfast', 'Brunch', 'Dinner', 'Supper'] }])
+  })
+
+  it('meal names: a meal that is no longer where it was is not renamed over another one', async () => {
+    await mount('diary', { mealNames: ['Breakfast', 'Lunch', 'Dinner'] })
+    nt.state.settings.mealNames = ['Breakfast', 'Dinner', 'Lunch']
+    await click(rowTitled('Lunch'))
+    const { box, close } = openedSheet()
+    await type(fieldOf(box, 'Name'), 'Brunch')
+    await click(buttonOf(box, 'Save'))
+    expect(puts()).toEqual([])
+    expect(box.querySelector('[role="alert"]').textContent).toBe('The meals changed somewhere else. Close this and open it again.')
+    expect(close).not.toHaveBeenCalled()
+  })
+
+  it('water containers: a container added elsewhere survives removing another', async () => {
+    await mount('water', { waterContainers: [{ id: '1', name: 'Mug', volumeMl: 300 }] })
+    nt.state.settings.waterContainers = [{ id: '1', name: 'Mug', volumeMl: 300 }, { id: '2', name: 'Pot', volumeMl: 900 }]
+    await click(rowTitled('Mug').querySelector('button'))
+    expect(puts()).toEqual([{ key: 'waterContainers', value: [{ id: '2', name: 'Pot', volumeMl: 900 }] }])
+  })
+
+  it('categories and custom units: an add keeps what was added elsewhere', async () => {
+    await mount('categories', { foodCategories: ['Dairy'] })
+    nt.state.settings.foodCategories = ['Dairy', 'Fish']
+    await click(rowTitled('Add a category'))
+    let { box } = openedSheet()
+    await type(fieldOf(box, 'Name'), 'Fruit')
+    await click(buttonOf(box, 'Add'))
+    expect(puts().at(-1)).toEqual({ key: 'foodCategories', value: ['Dairy', 'Fish', 'Fruit'] })
+    await mount('customUnits', { customUnits: [{ abbr: 'shot', full: 'shot' }] })
+    nt.state.settings.customUnits = [{ abbr: 'shot', full: 'shot' }, { abbr: 'scoop', full: 'scoop' }]
+    await click(rowTitled('Add a custom unit'))
+    ;({ box } = openedSheet())
+    await type(fieldOf(box, 'Abbreviation'), 'stick')
+    await click(buttonOf(box, 'Add'))
+    expect(puts().at(-1).value.map(u => u.abbr)).toEqual(['shot', 'scoop', 'stick'])
+  })
+
+  it('a page asks again when it opens, so it shows what NutriTrace has now', async () => {
+    await mount('water', { waterContainers: [{ id: '1', name: 'Mug', volumeMl: 300 }] })
+    nt.state.settings.waterContainers = [{ id: '1', name: 'Mug', volumeMl: 300 }, { id: '2', name: 'Pot', volumeMl: 900 }]
+    act(() => root.render(null))
+    act(() => root.render(<NtSettingsGate><WaterSettings /></NtSettingsGate>))
+    await settle()
+    expect(titles()).toContain('Pot')
+  })
+
+  it('a failed re-read saves nothing and says so', async () => {
+    await mount('categories', { foodCategories: ['Dairy'] })
+    await click(rowTitled('Add a category'))
+    const { box, close } = openedSheet()
+    await type(fieldOf(box, 'Name'), 'Fruit')
+    nt.failNext('GET', '/nt/api/settings', 'offline')
+    await click(buttonOf(box, 'Add'))
+    expect(puts()).toEqual([])
+    expect(box.querySelector('[role="alert"]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
+    expect(close).not.toHaveBeenCalled()
+  })
+})
+
+describe('meal names only save what was typed', () => {
+  const FR = { Breakfast: 'Petit-déjeuner', Lunch: 'Déjeuner', Dinner: 'Dîner', Snacks: 'Collations' }
+  afterEach(() => _setLangState('en', {}))
+
+  it('the default names show translated and stay NutriTrace\'s own when another meal is renamed', async () => {
+    _setLangState('fr', FR)
+    await mount('diary', { mealNames: undefined })
+    expect(titles()).toEqual(expect.arrayContaining(['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Collations']))
+    await click(rowTitled('Collations'))
+    const { box } = openedSheet()
+    await type(fieldOf(box, 'Name'), 'Soir')
+    await click(buttonOf(box, 'Save'))
+    expect(puts()).toEqual([{ key: 'mealNames', value: ['Breakfast', 'Lunch', 'Dinner', 'Soir'] }])
+  })
+
+  it('saving a default name without changing it does not make the translation the saved name', async () => {
+    _setLangState('fr', FR)
+    await mount('diary', { mealNames: undefined })
+    await click(rowTitled('Déjeuner'))
+    const { box } = openedSheet()
+    await click(buttonOf(box, 'Move up'))
+    expect(puts()).toEqual([{ key: 'mealNames', value: ['Lunch', 'Breakfast', 'Dinner', 'Snacks'] }])
+    await mount('diary', { mealNames: undefined })
+    await click(rowTitled('Déjeuner'))
+    await click(buttonOf(openedSheet().box, 'Save'))
+    expect(puts().at(-1)).toEqual({ key: 'mealNames', value: ['Breakfast', 'Lunch', 'Dinner', 'Snacks'] })
+  })
+})
+
+describe('Foods & scanning › Search in', () => {
+  it('offers your foods and Open Food Facts, not the sources that do the same as your foods', async () => {
+    await mount('foods', { offEnabled: true })
+    await click(rowTitled('Search in'))
+    expect([...openedSheet().box.querySelectorAll('.lrow-t')].map(e => e.textContent)).toEqual(['Your foods', 'Open Food Facts'])
+  })
+
+  it('shows a stored legacy value, marked, while it is the stored one', async () => {
+    await mount('foods', { foodsDefaultSource: 'usda' })
+    expect(valueOf('Search in')).toBe('USDA (legacy)')
+    await mount('foods', { foodsDefaultSource: 'all' })
+    expect(valueOf('Search in')).toBe('All sources (legacy)')
+  })
+})
+
+describe('the remove buttons', () => {
+  it('are named, with a 48px hit area class, not a small button', async () => {
+    await mount('water', { waterContainers: [{ id: '1', name: 'Mug', volumeMl: 300 }] })
+    const remove = rowTitled('Mug').querySelector('button')
+    expect(remove.getAttribute('aria-label')).toBe('Remove Mug')
+    expect(remove.className).toBe('iconbtn')
   })
 })
 

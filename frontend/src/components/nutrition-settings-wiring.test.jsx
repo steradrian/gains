@@ -88,6 +88,8 @@ describe('Water', () => {
   it('waterUnit: the card reads the day in the unit, and the buttons carry it', async () => {
     await mount(<WaterCard date={TODAY} water={water} ready />, { waterUnit: 'oz' })
     expect(host.textContent).toContain('17 fl oz / 85 fl oz')
+    expect(buttonSaying(host, 'Add a glass of water, 8 fl oz')).toBeTruthy()
+    await mount(<WaterCard date={TODAY} water={water} ready />, { waterUnit: 'oz', waterContainers: [{ id: 'b', name: 'Standard Bottle', volumeMl: 500 }] })
     expect(buttonSaying(host, 'Add Standard Bottle, 17 fl oz')).toBeTruthy()
   })
 
@@ -99,7 +101,10 @@ describe('Water', () => {
     expect(write.body.water.at(-1)).toMatchObject({ amount: 750 })
   })
 
-  it('waterContainers: with none left there is still a glass', async () => {
+  it('waterContainers: a person who never set any keeps the plain 250 ml glass, not NutriTrace\'s two bottles', async () => {
+    await mount(<WaterCard date={TODAY} water={water} ready />)
+    expect([...host.querySelectorAll('button')].map(b => b.textContent)).toEqual(['250 ml'])
+    expect(buttonSaying(host, 'Add a glass of water, 250 ml')).toBeTruthy()
     await mount(<WaterCard date={TODAY} water={water} ready />, { waterContainers: [] })
     expect([...host.querySelectorAll('button')].map(b => b.textContent)).toEqual(['250 ml'])
   })
@@ -190,6 +195,39 @@ describe('adding food', () => {
     expect(document.activeElement.getAttribute('aria-label')).toBe('Servings')
   })
 
+  it('diaryPromptQuantity: off, a scanned product is logged at once too', async () => {
+    camera.hit = { value: '3017620422003', fmt: 'ean13' }
+    await mount(<><ScanSheet date={TODAY} meal={0} mealName="Breakfast" close={() => {}} /><Sheets /></>, { diaryPromptQuantity: false })
+    await click(buttonSaying(host, 'camera sees a code'))
+    await click(buttonSaying(host, 'Log'))
+    expect(host.querySelector('.portion-sheet')).toBeNull()
+    expect(puts(`/nt/api/diary/${TODAY}`)[0].body.items[0]).toMatchObject({ name: 'Nutella', quantity: 1, meal: 0 })
+    await mount(<><ScanSheet date={TODAY} meal={0} mealName="Breakfast" close={() => {}} /><Sheets /></>, { diaryPromptQuantity: true })
+    await click(buttonSaying(host, 'camera sees a code'))
+    await click(buttonSaying(host, 'Log'))
+    expect(puts(`/nt/api/diary/${TODAY}`)).toHaveLength(0)
+    expect(host.querySelector('.portion-sheet')).toBeTruthy()
+  })
+
+  it('customUnits: an entry in a custom unit is stored in it, scaled by the numbers alone (NutriTrace\'s ratio)', async () => {
+    const settings = { customUnits: [{ abbr: 'shot', full: 'shot glass' }] }
+    const log = async food => {
+      await mount(<PortionSheet food={food} date={TODAY} meal={0} mealName="Breakfast" close={() => {}} />, settings)
+      await click([...host.querySelectorAll('.portion-units [role="radio"]')].find(b => b.textContent === 'shot'))
+      await type(host.querySelector('input[aria-label="Serving size"]'), '2')
+      await click(buttonSaying(host, 'Log'))
+      return puts(`/nt/api/diary/${TODAY}`)[0].body.items[0]
+    }
+    // Saved per 100 g: 2 shot compares 2 with 100, because a shot has no weight.
+    const fromGrams = await log(fixtureFoods()[0])
+    expect(fromGrams).toMatchObject({ portion: 2, unit: 'shot' })
+    expect(fromGrams.nutrition.calories).toBeCloseTo(7.6, 5)
+    // Saved as 1 shot: 2 shot is twice the nutrition.
+    const fromShots = await log({ ...fixtureFoods()[0], portion: 1, unit: 'shot', nutrition: { calories: 50 } })
+    expect(fromShots).toMatchObject({ portion: 2, unit: 'shot' })
+    expect(fromShots.nutrition.calories).toBe(100)
+  })
+
   it('customUnits: the portion sheet offers them, first among the catalogue', async () => {
     const settings = { customUnits: [{ abbr: 'shot', full: 'shot glass' }] }
     expect(unitsFor(fixtureFoods()[0], settings).slice(0, 2)).toEqual(['shot', 'g'])
@@ -216,6 +254,22 @@ describe('food sources', () => {
     await act(async () => { await new Promise(r => setTimeout(r, 700)) })
     await settle()
     expect(proxy()[0].query.url).toContain('langs=de')
+  })
+
+  it('offSearchCountry: a country filters the search itself, inside q, and the hub takes the URL', async () => {
+    await mount(search, { offSearchCountry: 'United Kingdom' }, { offSearch: fixtureOffSearch() })
+    await type(host.querySelector('input'), 'nutella')
+    await act(async () => { await new Promise(r => setTimeout(r, 700)) })
+    await settle()
+    const inner = new URL(proxy()[0].query.url)
+    expect([...inner.searchParams.keys()].sort()).toEqual(['langs', 'page', 'page_size', 'q'])
+    expect(inner.searchParams.get('q')).toBe('nutella +countries_tags:"en:united-kingdom"')
+    expect(host.textContent).toContain('Nutella')   // the fake answers 403 for a URL the hub's rule refuses
+    await mount(search, { offSearchCountry: 'World' }, { offSearch: fixtureOffSearch() })
+    await type(host.querySelector('input'), 'nutella')
+    await act(async () => { await new Promise(r => setTimeout(r, 700)) })
+    await settle()
+    expect(new URL(proxy()[0].query.url).searchParams.get('q')).toBe('nutella')
   })
 
   it('offSearchCountry: that country\'s products come first, Romania while it is World', () => {

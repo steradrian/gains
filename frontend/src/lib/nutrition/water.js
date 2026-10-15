@@ -4,9 +4,8 @@ import { settingOf } from './use-nt-settings.js'
 export const WATER_STEP_ML = 250
 
 /**
- * The quick-add buttons for water: the containers from Profile › Water (NutriTrace's
- * waterContainers, its two bottles until the list is changed), or one glass when the list is
- * empty. `name` is the container's own name, null for the glass.
+ * The quick-add buttons for water: the containers from Profile › Water (`waterContainers`), or one
+ * glass while the person has none. `name` is the container's own name, null for the glass.
  */
 export function waterButtons(settings) {
   const list = settingOf(settings, 'waterContainers')

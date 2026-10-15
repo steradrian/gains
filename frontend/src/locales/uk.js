@@ -2794,4 +2794,8 @@ export default {
   'shot': 'shot',
   'shot glass': 'shot glass',
   '{0} entries': '{0} entries',
+  '{0} (legacy)': '{0} (legacy)',
+  'No containers: Home adds a 250 ml glass. Add one and its button replaces the glass.': 'No containers: Home adds a 250 ml glass. Add one and its button replaces the glass.',
+  'The meals changed somewhere else. Close this and open it again.': 'The meals changed somewhere else. Close this and open it again.',
+  'What was logged under it moves to the meal that takes its place.': 'What was logged under it moves to the meal that takes its place.',
 }
