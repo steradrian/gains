@@ -11,6 +11,7 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { useFastingOn } from '../lib/nutrition/use-fasting.js'
 import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { pageExists, pageVisible, searchSettings } from '../views/settings-pages.js'
+import { bindUI } from './ui.jsx'
 import DiaryMealsSettings from './DiaryMealsSettings.jsx'
 import FeaturesList from './FeaturesList.jsx'
 
@@ -80,6 +81,27 @@ describe('Diary & meals', () => {
     await settle()
     expect(rowTitled('Default fasting plan').querySelector('.lrow-v').textContent).toBe('18:6')
   })
+
+  it('picking a plan writes fastingDefaultHours, one { key, value } the hub allows', async () => {
+    let sheet = null
+    bindUI({ getState: () => ({ openSheet: render => { sheet = render; return { close: () => {} } } }) })
+    setUp({ fastingEnabled: true, fastingDefaultHours: 16 })
+    act(() => root.render(<DiaryMealsSettings />))
+    await settle()
+    act(() => rowTitled('Default fasting plan').click())
+    const box = document.createElement('div')
+    document.body.appendChild(box)
+    const sheetRoot = createRoot(box)
+    act(() => sheetRoot.render(sheet(() => {})))
+    const option = [...box.querySelectorAll('button.lrow')].find(b => b.querySelector('.lrow-t')?.textContent === '20:4')
+    await act(async () => { option.click() })
+    act(() => sheetRoot.unmount())
+    box.remove()
+    await settle()
+    expect(puts().map(r => r.body)).toEqual([{ key: 'fastingDefaultHours', value: 20 }])
+    expect(nt.state.settings.fastingDefaultHours).toBe(20)
+    expect(rowTitled('Default fasting plan').querySelector('.lrow-v').textContent).toBe('20:4')
+  })
 })
 
 describe('Features › Fasting', () => {
@@ -103,6 +125,21 @@ describe('Features › Fasting', () => {
     expect(puts().map(r => r.body)).toEqual([{ key: 'fastingEnabled', value: true }])
     expect(host.querySelector('.plus-fast').textContent).toBe('fast row')
     expect(rowTitled('Fasting').querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('settings that did not load say so with Try again, instead of a switch that never wakes', async () => {
+    setUp({ fastingEnabled: false })
+    nt.failNext('GET', '/nt/api/settings', { status: 500 })
+    await act(async () => { await useNutrition.getState().loadSettings().catch(() => {}) })
+    act(() => root.render(<Harness />))
+    await settle()
+    expect(rowTitled('Fasting').textContent).toContain('Your settings did not load.')
+    expect(rowTitled('Fasting').querySelector('[role="switch"]')).toBeNull()
+    await act(async () => { [...rowTitled('Fasting').querySelectorAll('button')].find(b => b.textContent === 'Try again').click() })
+    await settle()
+    const sw = rowTitled('Fasting').querySelector('[role="switch"]')
+    expect(sw.getAttribute('aria-checked')).toBe('false')
+    expect(sw.disabled || sw.getAttribute('aria-disabled') === 'true').toBe(false)
   })
 })
 

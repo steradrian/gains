@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { FEATURES, PAGES, PAGE_IDS, ROOT_GROUPS, SEARCH, pageVisible, searchSettings, pageTrail, fold } from './settings-pages.js'
+import { PAGES, PAGE_IDS, ROOT_GROUPS, SEARCH, featuresFor, pageExists, pageVisible, searchSettings, pageTrail, fold } from './settings-pages.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -37,7 +37,17 @@ vi.mock('../lib/use-tab-nav.js', () => ({ back: parent => mocks.backs.push(paren
 vi.mock('../lib/api.js', () => ({ api: vi.fn(path => Promise.resolve(path === '/api/account/passkeys' ? { passkeys: [] } : {})), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false }))
 vi.mock('../lib/push.js', () => ({ pushSupported: () => mocks.push, enablePush: vi.fn(), disablePush: vi.fn(), sendTestPush: vi.fn(), syncPushSubscription: vi.fn(() => Promise.resolve(mocks.pushOn)) }))
 vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => true }))
-vi.mock('../lib/mobile.js', () => ({ get MOBILE() { return mocks.MOBILE }, isAndroid: () => Promise.resolve(false), shareExport: vi.fn(), shareExportBlob: vi.fn(), syncReminder: vi.fn() }))
+// The rest of the module is for the real store's freshState (the Features test reads it).
+vi.mock('../lib/mobile.js', async importOriginal => ({
+  ...(await importOriginal()),
+  get MOBILE() { return mocks.MOBILE }, isAndroid: () => Promise.resolve(!!mocks.android), shareExport: vi.fn(), shareExportBlob: vi.fn(), syncReminder: vi.fn(),
+}))
+vi.mock('../lib/update.js', () => ({ checkForUpdate: () => Promise.resolve({ hasUpdate: false }), downloadAndInstall: vi.fn(), fetchChecksum: vi.fn(), RELEASES_PAGE: '' }))
+vi.mock('../lib/health-sync.js', async importOriginal => ({
+  ...(await importOriginal()),
+  healthStatus: () => Promise.resolve({ status: 'available', granted: false }), loadHealth: () => Promise.resolve({ on: false, written: {}, error: null }),
+  enableHealth: vi.fn(), disableHealth: vi.fn(), openHealthConnect: vi.fn(), onHealthChange: () => () => {},
+}))
 vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('./Measurements.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
@@ -59,6 +69,7 @@ beforeEach(() => {
   mocks.user = null
   mocks.sync = null
   mocks.MOBILE = false
+  mocks.android = false
   mocks.push = false
   mocks.pushOn = false
   mocks.toast = vi.fn()
@@ -195,6 +206,30 @@ describe('the root', () => {
     expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Vibrate' } }])
     type('zzzz')
     expect(host.querySelector('.sp-empty').textContent).toBe('No setting matches “zzzz”.')
+  })
+
+  // Review of #37: a hit for a row on the root itself lands on the same page, and the results it
+  // was picked from stayed up, so the flash lit the result row instead of the real one.
+  it('a hit for a row on the root itself closes the results and flashes the real row', () => {
+    mocks.user = { id: 'u1', name: 'Dana' }
+    mocks.sync = { status: 'ok', server: 'https://gym.example', lastSynced: Date.now() }
+    mount()
+    const input = host.querySelector('.sp-search input')
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'sync now')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    const sectTitles = () => [...host.querySelectorAll('.sect-t')].map(e => e.textContent)
+    expect(sectTitles()).toEqual(['1 result'])
+    act(() => rowTitled('Sync now').click())
+    expect(mocks.navs.at(-1)).toEqual(['/me', { state: { find: 'Sync now' } }])
+    // the route hands the same page the row to find (SettingsRoute)
+    mount(null, 'Sync now')
+    expect(sectTitles()).not.toContain('1 result')
+    expect(host.querySelector('.sp-search input').value).toBe('')
+    const lit = host.querySelector('.sp-flash')
+    expect(lit?.querySelector('.lrow-t').textContent).toBe('Sync now')
+    expect(lit.closest('.sect').querySelector('.sect-t').textContent).toBe('Sync')
   })
 })
 
@@ -487,9 +522,8 @@ describe('translations', () => {
       expect(missing, file).toEqual([])
     }
   })
-  it('the root groups only name real pages, and every Features row is a searchable row', () => {
+  it('the root groups only name real pages', () => {
     for (const g of ROOT_GROUPS) for (const id of g.ids) expect(PAGES[id], id).toBeTruthy()
-    for (const f of FEATURES) expect(SEARCH.some(e => e.page === f.page && e.title === f.title), f.title).toBe(true)
   })
 })
 
@@ -511,9 +545,49 @@ describe('Features', () => {
     expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Flash the screen' } }])
   })
 
-  it('every row it lists starts off in a new profile', () => {
-    const fresh = { wc: {}, reminder: { on: false }, enOnly: {} }
-    for (const f of FEATURES) expect(f.on(fresh, { baseLang: 'de' }), f.title).toBe(false)
+  it('a reminder that waits on push opens Notifications with Push notifications to flash instead', () => {
+    mocks.MOBILE = true
+    mount('features')
+    act(() => rowTitled('Workout day reminder').click())
+    expect(mocks.navs.at(-1)).toEqual(['/me/notifications', { state: { find: 'Workout day reminder', via: 'Push notifications' } }])
+  })
+
+  it('every row it lists starts off in a new profile', async () => {
+    const { freshState } = await vi.importActual('../store/useStore.js')
+    const listed = SEARCH.filter(e => e.feature)
+    expect(listed.length).toBeGreaterThan(10)
+    for (const e of listed) expect(e.feature(freshState(), { baseLang: 'de', systemMotion: false }), e.title).not.toBe(true)
+  })
+
+  // Every switch a new profile shows off, on every page, has to be on Features: a browser signed
+  // in with push, an Android phone, and an Android phone with the reminder on (for its nudge).
+  it('lists every switch that is off in a new profile, wherever it is', async () => {
+    const { freshState } = await vi.importActual('../store/useStore.js')
+    const scenarios = {
+      'web, signed in, push': () => { mocks.user = { id: 'u1', name: 'Dana' }; mocks.sync = { status: 'ok', server: 'https://gym.example' }; mocks.push = true },
+      'Android phone': () => { mocks.MOBILE = true; mocks.android = true },
+      'Android phone, reminder on': () => { mocks.MOBILE = true; mocks.android = true; mocks.S.reminder = { ...mocks.S.reminder, on: true } },
+    }
+    for (const [name, setUp] of Object.entries(scenarios)) {
+      mocks.S = { ...freshState(), lang: 'en', equipProfiles: [{ id: 'p1', name: 'Home', equipment: [] }] }
+      mocks.user = null; mocks.sync = null; mocks.MOBILE = false; mocks.android = false; mocks.push = false
+      setUp()
+      const off = new Set()
+      for (const page of PAGE_IDS) {
+        if (page === 'features' || page === 'account' || !pageExists(page, { user: mocks.user, mobile: mocks.MOBILE })) continue
+        mount(page)
+        await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve() })
+        for (const row of host.querySelectorAll('.lrow')) {
+          if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(row.querySelector('.lrow-t').textContent)
+        }
+        act(() => root.render(null))
+      }
+      mount('features')
+      await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve() })
+      const have = titles()
+      expect(off.size, name).toBeGreaterThan(3)
+      for (const title of off) expect(have, `${name}: ${title}`).toContain(title)
+    }
   })
 })
 
@@ -523,5 +597,18 @@ describe('Appearance', () => {
     expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Body weight', 'Show connection status'])
     act(() => rowTitled('Reduce motion').querySelector('[role="switch"]').click())
     expect(mocks.S.reduceMotion).toBe(true)
+  })
+
+  it('reduce motion shows on, and says why, when the device already reduces motion', () => {
+    const real = window.matchMedia
+    window.matchMedia = q => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })
+    try {
+      mount('appearance')
+      const sw = rowTitled('Reduce motion').querySelector('[role="switch"]')
+      expect(sw.getAttribute('aria-checked')).toBe('true')
+      expect(rowTitled('Reduce motion').querySelector('.lrow-s').textContent).toBe('On in your device settings, so it is on here too.')
+      mount('features')
+      expect(rowTitled('Reduce motion').querySelector('.lrow-v').textContent).toBe('On')
+    } finally { window.matchMedia = real }
   })
 })

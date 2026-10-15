@@ -40,9 +40,17 @@ export default function SyncStatusCard() {
     if (busy) return
     setBusy(true)
     try {
+      // openGym first (the hub reads the change from there), so the hub run need not push again.
       const st = await useStore.getState().syncNow()
-      const hubStatus = nutrition ? await hubSyncNow() : null
-      const line = nutrition && isHubTrouble(hubStatus) ? t('Nutrition sync needs attention') : connectionView(st)?.line
+      const trainingView = connectionView(st)
+      // A training sync that failed says so first; then the hub's half: no answer, or a state that
+      // needs the person, is not "All synced".
+      let line = trainingView?.line
+      if (nutrition && trainingView?.tone === 'ok') {
+        const hubStatus = await hubSyncNow({ pushed: true })
+        if (!hubStatus) line = t('Training synced, but nutrition did not: the sync service did not answer.')
+        else if (isHubTrouble(hubStatus)) line = t('Nutrition sync needs attention')
+      }
       if (line) useUI.getState().toast(line)
     } finally {
       setBusy(false)

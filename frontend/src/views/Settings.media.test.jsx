@@ -12,7 +12,7 @@ import { jpeg } from '../lib/media-samples.test-util.js'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Settings → Data with photos and videos: the JSON export says it leaves them out, the zip export
-   carries them, Import takes either, and "Reset everything" takes the files too — on the server
+   carries them, Import takes either, and "Reset training data" takes the files too — on the server
    once the empty state is there, and on this device except what a stash still refers to. */
 const mocks = vi.hoisted(() => {
   const state = { S: null, user: null, config: null, sync: { status: 'ok' }, stashed: new Set() }
@@ -219,7 +219,7 @@ describe('Settings — photos and videos', () => {
     await media.put(other, new Blob(['x']), { mime: 'image/png', pending: true })
     mocks.stashed = new Set([other])
     await mount('danger')
-    act(() => { row('Reset everything').click() })
+    act(() => { row('Reset training data').click() })
     act(() => { mocks.confirmSheet.mock.calls[0][0].onConfirm() })
     await until(async () => !(await media.has(HASH)))
     expect(mocks.pushState).toHaveBeenCalled()
@@ -233,7 +233,7 @@ describe('Settings — photos and videos', () => {
     mocks.config = { media: { imageMB: 2 } }
     mocks.sync = { status: 'offline' }
     await mount('danger')
-    act(() => { row('Reset everything').click() })
+    act(() => { row('Reset training data').click() })
     act(() => { mocks.confirmSheet.mock.calls[0][0].onConfirm() })
     await until(() => mocks.pushState.mock.calls.length > 0)
     await settle()
@@ -245,7 +245,7 @@ describe('Settings — photos and videos', () => {
     mocks.confirmSheet.mockClear(); mocks.api.mockClear()
     await media.put(HASH, new Blob([PHOTO]), { mime: 'image/jpeg', pending: true })
     await mount('danger')
-    act(() => { row('Reset everything').click() })
+    act(() => { row('Reset training data').click() })
     act(() => { mocks.confirmSheet.mock.calls[0][0].onConfirm() })
     await until(async () => !(await media.has(HASH)))
     expect(mocks.api).not.toHaveBeenCalled()

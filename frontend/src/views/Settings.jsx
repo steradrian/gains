@@ -7,6 +7,7 @@ import { speedUnitOf } from '../lib/speed.js'
 import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
 import { copyText } from '../lib/clipboard.js'
 import { back as tabBack } from '../lib/use-tab-nav.js'
+import { PROFILE_RENAMED } from '../lib/tab-route.js'
 import { useUI } from '../store/useUI.js'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
@@ -53,6 +54,7 @@ import FeaturesList from '../components/FeaturesList.jsx'
 import SyncStatusCard from '../components/SyncStatusCard.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
 import { manageMeasurementsSheet } from './Measurements.jsx'
+import { systemReducesMotion } from '../lib/reduced-motion.js'
 import { PAGES, ROOT_GROUPS, pageExists, pageVisible, searchSettings } from './settings-pages.js'
 import { BRAND, LINKS } from '../brand.js'
 
@@ -67,15 +69,18 @@ import { BRAND, LINKS } from '../brand.js'
 // results back, while Settings opened afresh from anywhere (the gear, a tab) starts at the root.
 let lastQuery = { q: '', key: null }
 
-// The route: /me and /me/<page>. A page that lives in a tab (the phone's Coach setup) goes there;
-// an unknown page, or one this device does not have, goes back to the root.
+// The route: /me and /me/<page>. A page renamed by the §5 merge goes to its new name (tab-route.js);
+// a page that lives in a tab (the phone's Coach setup) goes there; an unknown page, or one this
+// device does not have, goes back to the root. Keyed on the history entry too, so a search hit for
+// a row on the root itself, which lands on the same path, flashes it every time.
 export function SettingsRoute() {
   const { page } = useParams()
   const loc = useLocation()
   const ctx = { user: useStore(s => s.user), mobile: MOBILE }
+  if (page && PROFILE_RENAMED[page]) return <Navigate to={'/me/' + PROFILE_RENAMED[page]} replace state={loc.state} />
   if (page && PAGES[page]?.to && pageVisible(page, ctx)) return <Navigate to={PAGES[page].to} replace />
   if (page && !pageExists(page, ctx)) return <Navigate to="/me" replace />
-  return <Settings key={page || 'root'} page={page || null} find={loc.state?.find || null} via={loc.state?.via || null} />
+  return <Settings key={(page || 'root') + ':' + loc.key} page={page || null} find={loc.state?.find || null} via={loc.state?.via || null} />
 }
 
 // "Mon" / "Sun" in the app's language, for the Schedule defaults row's preview.
@@ -356,17 +361,18 @@ export default function Settings({ page = null, find = null, via = null }) {
   // profile on the server, and — when it runs with the phone's own key — a file on the device.
   // Each is cleared on its own; forgetCoach() alone would pick one by mode. A failed call must
   // not stop the reset.
+  // Training data only: NutriTrace's diary, foods and goals are not openGym's to wipe.
   const resetEverything = () => confirmSheet({
-    title: t('Reset everything?'),
+    title: t('Reset training data?'),
     message: user
       ? t('Deletes your plan, workouts, body weight, photos and videos from your profile on this server and on every signed-in device. This cannot be undone.')
       : t('Deletes your plan, workouts, body weight, photos and videos on this device. This cannot be undone.'),
-    confirmText: t('Delete everything'), danger: true,
+    confirmText: t('Delete training data'), danger: true,
     onConfirm: () => {
       if (user) api('/api/coach/forget', { method: 'POST', body: '{}' }).catch(() => {})
       if (coachLocal?.mode === 'byok') forgetCoach().catch(() => {})
       resetAll()
-      nav('/home'); toast(t('All data reset'))
+      nav('/home'); toast(t('Training data reset'))
       clearMediaAfterReset(!!user).catch(() => {})
     },
   })
@@ -378,13 +384,14 @@ export default function Settings({ page = null, find = null, via = null }) {
 
   /* ---------------- what the pages and the search need to know about this device ---------------- */
   const canVibrate = vibrateSupported()
+  const systemMotion = systemReducesMotion()
   const ctx = {
     user, mobile: MOBILE, android, demo: DEMO, wakeOK, hasMedia, pwOn, webauthn: webauthnOK(),
     sound: !!S.sound, playOnSilent: playOnSilentSupported(), canVibrate, vibrate: S.vibrate !== false,
     profiles: (S.equipProfiles || []).length > 0, nameLang: EXERCISE_NAME_LANGS.includes(baseLang(lang)),
     pushOK: !MOBILE && pushSupported(), reminderOn: !!S.reminder?.on, nudge: !!S.reminder?.nudge,
     autoBackup: !!S.autoBackup, synced: !!sync, installTip: !MOBILE && !standalone(), androidWeb: IS_ANDROID,
-    baseLang: baseLang(lang),
+    baseLang: baseLang(lang), systemMotion,
     nutrition, ntSettings, fastingOn: ntSettings?.fastingEnabled === true,
   }
   const mode = scheduleModeOf(S)
@@ -726,11 +733,12 @@ export default function Settings({ page = null, find = null, via = null }) {
             onChange={v => update(s => { s.exFigure = v })}
           />
         </Row>
-        {/* On top of the system's own setting, which the app always follows (index.css): for a
-            phone whose system setting is off, or a person who wants it here only. */}
+        {/* On top of the device's own setting, which the app always follows (index.css,
+            lib/reduced-motion.js): with that on, the switch shows on and says where it is set. */}
         <Row icon="minimize" iconTint="var(--blue)" title={t('Reduce motion')}
-          subtitle={t('Turns off animations and slide-ins in this app.')}>
-          <Switch aria-label={t('Reduce motion')} checked={S.reduceMotion === true} onChange={v => update(s => { s.reduceMotion = v })} />
+          subtitle={systemMotion ? t('On in your device settings, so it is on here too.') : t('Turns off animations and slide-ins in this app.')}>
+          <Switch aria-label={t('Reduce motion')} checked={systemMotion || S.reduceMotion === true} disabled={systemMotion}
+            onChange={v => update(s => { s.reduceMotion = v })} />
         </Row>
       </Section>
       <Section title={t('On Home')}>
@@ -790,8 +798,11 @@ export default function Settings({ page = null, find = null, via = null }) {
 
     media: () => <Section><MediaRow /></Section>,
 
-    danger: () => <Section footer={t('Export a backup first if you might want any of it back.')}>
-      <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={resetEverything} />
+    danger: () => <Section footer={<>
+      {t('Export a backup first if you might want any of it back.')}
+      {ctx.nutrition && <> {t('Your nutrition diary, foods and goals stay.')}</>}
+    </>}>
+      <Row icon="trash" iconTint="var(--red)" title={t('Reset training data')} danger onClick={resetEverything} />
     </Section>,
 
     // Health Connect on the Android app (§5 "Connected apps & health").
@@ -970,7 +981,8 @@ function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
     </div>
     {hits ? (hits.length ? <Section title={tn('{0} result', '{0} results', hits.length)}>
       {hits.slice(0, 40).map(h => (
-        <Row key={h.page + ':' + h.title} icon={h.icon} iconTint={h.tint} title={h.label} subtitle={h.trail} accessory="chevron" onClick={() => go(h)} />
+        <Row key={h.page + ':' + h.title} icon={h.icon} iconTint={h.tint} title={h.label} subtitle={h.trail} accessory="chevron"
+          onClick={() => { if (!h.isPage && h.page == null) set(''); go(h) }} />
       ))}
     </Section> : <div className="sp-empty">{t('No setting matches “{0}”.', q.trim())}</div>) : <>
       <Section>
@@ -1353,7 +1365,7 @@ function EquipmentCard({ S, update }) {
 // display names are free text and need not be unique. copyText also reaches the clipboard on a
 // plain-http LAN address, where the Clipboard API is missing and password sign-in (#118) is the
 // usual way in; where no copy works at all the id is still on screen to read out.
-/* After "Reset everything": the photos and videos go too. Signed in, the empty state is pushed
+/* After "Reset training data": the photos and videos go too. Signed in, the empty state is pushed
    first and, once the server holds it, the server is asked to drop every file that state no
    longer refers to (POST /api/media/sweep) — asked before the push landed, it would still see the
    old state and keep everything, which is the safe side. Then this device keeps only the files a
