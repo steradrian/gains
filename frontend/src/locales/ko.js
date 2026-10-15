@@ -2828,6 +2828,7 @@ export default {
   'Favourite': '즐겨찾기',
   'Find any page, setting, exercise, workout, food or day.': '페이지, 설정, 운동, 운동 기록, 음식, 날짜를 찾아보세요.',
   'Food details': '음식 상세',
+  'Food item': '식품',
   'Go to': '이동',
   'Includes {0}': '{0} 포함',
   'Last week': '지난주',

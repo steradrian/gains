@@ -2828,6 +2828,7 @@ export default {
   'Favourite': 'Favorito',
   'Find any page, setting, exercise, workout, food or day.': 'Encuentra cualquier página, ajuste, ejercicio, entreno, alimento o día.',
   'Food details': 'Detalles del alimento',
+  'Food item': 'Alimento',
   'Go to': 'Ir a',
   'Includes {0}': 'Incluye {0}',
   'Last week': 'La semana pasada',

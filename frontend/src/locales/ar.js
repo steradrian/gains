@@ -2883,6 +2883,7 @@ export default {
   'Favourite': 'مفضّل',
   'Find any page, setting, exercise, workout, food or day.': 'ابحث عن أي صفحة أو إعداد أو تمرين أو حصة أو طعام أو يوم.',
   'Food details': 'تفاصيل الطعام',
+  'Food item': 'صنف غذائي',
   'Go to': 'انتقل إلى',
   'Includes {0}': 'يتضمن {0}',
   'Last week': 'الأسبوع الماضي',

@@ -9,7 +9,7 @@ import { rowId, useTrailing } from './ResultRow.jsx'
 
 const TYPE = {
   page: () => t('Page'), setting: () => t('Setting'), exercise: () => t('Exercise'), routine: () => t('Routine'), workout: () => t('Workout'),
-  food: () => t('Food'), meal: () => t('Saved meal'), recipe: () => t('Recipe'), day: () => t('Day'),
+  food: () => t('Food item'), meal: () => t('Saved meal'), recipe: () => t('Recipe'), day: () => t('Day'),
 }
 
 // Where the best match opens, named on the card.

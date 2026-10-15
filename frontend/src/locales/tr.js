@@ -2828,6 +2828,7 @@ export default {
   'Favourite': 'Favori',
   'Find any page, setting, exercise, workout, food or day.': 'Herhangi bir sayfayı, ayarı, egzersizi, antrenmanı, besini veya günü bulun.',
   'Food details': 'Besin ayrıntıları',
+  'Food item': 'Besin',
   'Go to': 'Git',
   'Includes {0}': 'İçerir: {0}',
   'Last week': 'Geçen hafta',

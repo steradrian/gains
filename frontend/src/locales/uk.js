@@ -2825,6 +2825,7 @@ export default {
   'Favourite': 'Обране',
   'Find any page, setting, exercise, workout, food or day.': 'Знайдіть будь-яку сторінку, налаштування, вправу, тренування, продукт або день.',
   'Food details': 'Відомості про продукт',
+  'Food item': 'Продукт',
   'Go to': 'Перейти',
   'Includes {0}': 'Містить: {0}',
   'Last week': 'Минулий тиждень',

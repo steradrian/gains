@@ -2839,6 +2839,7 @@ export default {
   'Favourite': 'รายการโปรด',
   'Find any page, setting, exercise, workout, food or day.': 'ค้นหาหน้า การตั้งค่า ท่า การออกกำลังกาย อาหาร หรือวันได้ทุกอย่าง',
   'Food details': 'รายละเอียดอาหาร',
+  'Food item': 'รายการอาหาร',
   'Go to': 'ไปที่',
   'Includes {0}': 'รวม {0}',
   'Last week': 'สัปดาห์ที่แล้ว',

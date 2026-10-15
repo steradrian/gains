@@ -2828,6 +2828,7 @@ export default {
   'Favourite': 'पसंदीदा',
   'Find any page, setting, exercise, workout, food or day.': 'कोई भी पेज, सेटिंग, व्यायाम, वर्कआउट, भोजन या दिन खोजें।',
   'Food details': 'भोजन का विवरण',
+  'Food item': 'खाद्य पदार्थ',
   'Go to': 'यहाँ जाएँ',
   'Includes {0}': '{0} शामिल',
   'Last week': 'पिछला सप्ताह',

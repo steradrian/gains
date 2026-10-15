@@ -2831,6 +2831,7 @@ export default {
   'Favourite': 'Kedvenc',
   'Find any page, setting, exercise, workout, food or day.': 'Találj meg bármilyen oldalt, beállítást, gyakorlatot, edzést, ételt vagy napot.',
   'Food details': 'Étel részletei',
+  'Food item': 'Élelmiszer',
   'Go to': 'Ugrás ide',
   'Includes {0}': 'Tartalmazza: {0}',
   'Last week': 'Múlt hét',

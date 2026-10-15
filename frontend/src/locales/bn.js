@@ -2907,6 +2907,7 @@ export default {
   'Favourite': 'পছন্দের',
   'Find any page, setting, exercise, workout, food or day.': 'যেকোনো পেজ, সেটিং, ব্যায়াম, ওয়ার্কআউট, খাবার বা দিন খুঁজুন।',
   'Food details': 'খাবারের বিবরণ',
+  'Food item': 'খাবারের আইটেম',
   'Go to': 'যান',
   'Includes {0}': '{0} আছে',
   'Last week': 'গত সপ্তাহ',
