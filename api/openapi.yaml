@@ -3393,7 +3393,9 @@ paths:
         What the hub's first-run onboarding may skip asking: the unit (and whether it was chosen or
         is held by stored weights), the latest weigh-in, how many routines and planned weekdays there
         are, the Coach intake answers, and whether gym check-in is on. Nothing else of the profile.
-        A profile with no document yet answers with nothing answered (`rev` 0).
+        A profile with no document yet answers with nothing answered (`rev` 0). `coachAvailable` is
+        the server's, not the profile's: whether this instance has an AI coach connected, which is
+        the only case the onboarding offers to have it build a plan.
       security:
         - hubToken: []
       responses:
@@ -3408,6 +3410,7 @@ paths:
                 properties:
                   rev: { type: integer }
                   wid: { type: string }
+                  coachAvailable: { type: boolean }
                   unit: { type: string, enum: [kg, lb] }
                   unitChosen: { type: boolean }
                   latestWeight:
@@ -3426,7 +3429,7 @@ paths:
                           daysPerWeek: { oneOf: [{ type: integer }, { type: 'null' }] }
                           preferredDays: { type: array, items: { type: integer } }
                   checkIn: { type: boolean }
-              example: { rev: 4, wid: "9f2c01ab33de4e10", unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 3, plannedDays: 3, coachProfile: null, checkIn: false }
+              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: false, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 3, plannedDays: 3, coachProfile: null, checkIn: false }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
@@ -3436,14 +3439,27 @@ paths:
       summary: 'Sync: write the onboarding answers into the profile'
       description: |
         The hub's first-run onboarding, written once: the unit, the first weigh-in, the Coach
-        intake answers, a starter plan (routines and the weekdays they go on) and the gym check-in
-        switch. Every field is optional, and each goes in only where the profile has not decided it
-        already; one it has is left as it is and listed in `skipped` with why:
+        intake answers, a plan and the gym check-in switch. Every field is optional, and each goes
+        in only where the profile has not decided it already; one it has is left as it is and
+        listed in `skipped` with why.
+
+        A plan comes one of three ways, and only one per request (`bad-plan` or `bad-coach-build`
+        otherwise):
+
+        - `plan`: routines and the weekdays they go on, as the app built them.
+        - `starter`: a ready-made plan by choice (`templateId`, `weekdays`, `equipment`), built
+          here from the plans the app offers, already fitted to the equipment. Session i of the
+          plan goes on `weekdays[i]`; `full-body-2` also runs on one weekday, with its first session.
+        - `coachBuild`: the person agreed to the AI coach building a plan from their answers. It is
+          recorded (`coach.build`: `status` pending, `source` onboarding, `consentAt`, `equipment`,
+          `requestedAt`) for the Coach flow to pick up; nothing is run, no model is called and the
+          Coach's own consent is not given on the person's behalf.
 
         - `unit`: `same`; `chosen` (a unit switch on record); `has-data` (stored weights a switch would convert).
         - `bodyweight`: `has-entry` (the date has a weigh-in).
         - `coachProfile`: `answered` (the Coach intake has answers).
-        - `plan`: `has-plan` (the profile has routines or planned weekdays).
+        - `plan` (also what `starter` is applied as): `has-plan` (the profile has routines or planned weekdays).
+        - `coachBuild`: `requested` (a build is already on record); `has-plan`.
         - `checkIn`: `same`; `existing-profile` (only a profile under 30 days old with no training gets check-in off); `chosen` (the switch was changed on a device); `in-use` (a gym card is saved).
 
         So the same write sent again changes nothing, and needs no `If-Match`: the decision is made
@@ -3511,6 +3527,27 @@ paths:
                         properties:
                           day: { type: integer, minimum: 0, maximum: 6 }
                           routine: { type: integer, minimum: 0 }
+                starter:
+                  type: object
+                  required: [templateId, weekdays, equipment]
+                  additionalProperties: false
+                  properties:
+                    templateId: { type: string, enum: [full-body-2, full-body, upper-lower, upper-lower-ppl, ppl-6] }
+                    weekdays:
+                      type: array
+                      minItems: 1
+                      maxItems: 6
+                      uniqueItems: true
+                      description: 'The weekday (0 = Sunday) of each session, in order. 1 or 2 for full-body-2, 3 for full-body, 4 for upper-lower, 5 for upper-lower-ppl, 6 for ppl-6.'
+                      items: { type: integer, minimum: 0, maximum: 6 }
+                    equipment: { type: string, enum: [gym, dumbbells, none] }
+                coachBuild:
+                  type: object
+                  required: [consentAt, equipment]
+                  additionalProperties: false
+                  properties:
+                    consentAt: { type: string, format: date-time, description: 'When the person agreed, in UTC (Date.toISOString). Not in the future.' }
+                    equipment: { type: string, enum: [gym, dumbbells, none] }
                 checkIn: { type: boolean }
             example:
               unit: kg
@@ -3540,7 +3577,7 @@ paths:
                   wid: { type: string }
               example: { ok: true, changed: true, applied: [bodyweight, plan, checkIn], skipped: [{ field: unit, reason: same }], rev: 5, wid: "77a0c3d2e91b4f08" }
         '400':
-          description: 'A field is malformed or unknown (`bad-field`, `bad-unit`, `bad-date`, `bad-weight`, `bad-coach-profile`, `bad-plan`, `bad-check-in`).'
+          description: 'A field is malformed or unknown (`bad-field`, `bad-unit`, `bad-date`, `bad-weight`, `bad-coach-profile`, `bad-plan`, `bad-coach-build`, `bad-check-in`).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

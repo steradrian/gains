@@ -202,7 +202,7 @@ describe('seedView', () => {
     };
     const v = seedView(S);
     assert.deepEqual(v, {
-      unit: 'lb', unitChosen: true, latestWeight: { date: '2026-10-01', kg: 80.01 },
+      coachAvailable: false, unit: 'lb', unitChosen: true, latestWeight: { date: '2026-10-01', kg: 80.01 },
       routines: 1, plannedDays: 2,
       coachProfile: { goal: 'fatloss', experience: null, daysPerWeek: 4, preferredDays: [1, 3] },
       checkIn: false
@@ -213,7 +213,101 @@ describe('seedView', () => {
 
   it('answers for a profile with nothing', () => {
     assert.deepEqual(seedView({}), {
-      unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+      coachAvailable: false, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
     });
+  });
+
+  it('carries the server’s word on the AI coach, true only when it is exactly true', () => {
+    assert.equal(seedView({}, { coachAvailable: true }).coachAvailable, true);
+    assert.equal(seedView({}, { coachAvailable: 'yes' }).coachAvailable, false);
+    assert.equal(seedView({}, {}).coachAvailable, false);
+  });
+});
+
+describe('a starter choice', () => {
+  const STARTER = { templateId: 'upper-lower', weekdays: [6, 0, 2, 4], equipment: 'none' };
+
+  it('is built into the plan the profile gets', () => {
+    const s = seed({ starter: STARTER });
+    assert.equal(s.starter, undefined, 'past parseSeed it is a plan');
+    assert.deepEqual(s.plan.schedule, [{ day: 6, routine: 0 }, { day: 0, routine: 1 }, { day: 2, routine: 2 }, { day: 4, routine: 3 }]);
+    const { next, applied } = seedState(null, s, { now: NOW, newId, newProfile: true });
+    assert.deepEqual(applied, ['plan']);
+    assert.deepEqual(next.routines.map(r => r.name), ['Upper A', 'Lower A', 'Upper B', 'Lower B']);
+    assert.deepEqual(Object.keys(next.week).sort(), ['0', '2', '4', '6']);
+    assert.ok(next.routines.every(r => r.ex.every(e => e.weight === 0)));
+  });
+
+  it('is refused by its own code when it is not a choice the onboarding offers', () => {
+    const code = starter => parseSeed({ starter }, NOW).code;
+    assert.equal(code(null), 'bad-plan');
+    assert.equal(code('full-body'), 'bad-plan');
+    assert.equal(code({ ...STARTER, templateId: 'ppl' }), 'bad-plan', 'a catalogue plan the onboarding never offers');
+    assert.equal(code({ ...STARTER, templateId: '__proto__' }), 'bad-plan');
+    assert.equal(code({ ...STARTER, equipment: 'barbell' }), 'bad-plan');
+    assert.equal(code({ ...STARTER, equipment: undefined }), 'bad-plan');
+    assert.equal(code({ ...STARTER, weekdays: 'mon' }), 'bad-plan');
+    assert.equal(code({ ...STARTER, weekdays: [1, 2, 3] }), 'bad-plan');
+    assert.equal(code({ ...STARTER, weekdays: [1, 2, 3, 3] }), 'bad-plan');
+    assert.equal(code({ ...STARTER, weekdays: [1, 2, 3, -1] }), 'bad-plan');
+    assert.equal(code({ ...STARTER, weekdays: [1, 2, 3, 4.5] }), 'bad-plan');
+    assert.equal(code({ ...STARTER, routines: [] }), 'bad-plan');
+    assert.equal(parseSeed({ starter: STARTER, plan: PLAN }, NOW).code, 'bad-plan', 'one way to get a plan at a time');
+  });
+
+  it('runs on one weekday for the two-day plan, and on no other count', () => {
+    assert.equal(seed({ starter: { templateId: 'full-body-2', weekdays: [3], equipment: 'gym' } }).plan.routines.length, 1);
+    assert.equal(parseSeed({ starter: { templateId: 'full-body-2', weekdays: [], equipment: 'gym' } }, NOW).code, 'bad-plan');
+    assert.equal(parseSeed({ starter: { templateId: 'full-body-2', weekdays: [1, 2, 3], equipment: 'gym' } }, NOW).code, 'bad-plan');
+  });
+});
+
+describe('an AI coach build', () => {
+  const AT = '2026-10-15T08:30:00.000Z';
+  const BUILD = { consentAt: AT, equipment: 'gym' };
+
+  it('is recorded as a pending marker in the Coach state, with no consent of the Coach’s own given', () => {
+    const { next, applied } = seedState(null, seed({ coachProfile: { goal: 'general' }, coachBuild: BUILD }), { now: NOW, newId, newProfile: true });
+    assert.deepEqual(applied, ['coachProfile', 'coachBuild']);
+    assert.deepEqual(next.coach.build, { status: 'pending', source: 'onboarding', consentAt: AT, equipment: 'gym', requestedAt: NOW });
+    assert.equal(next.coach.consent, null);
+    assert.deepEqual(next.coach.profile, { goal: 'general' });
+    assert.equal(next.coach.log.length, 0);
+    assert.equal(next.routines, undefined);
+    assert.equal(next.edited.coach, NOW);
+  });
+
+  it('makes the Coach state when the profile has none, and keeps what a profile with some holds', () => {
+    const cur = { coach: { consent: { agreedAt: 'x', version: 2 }, profile: null, log: [{ id: 1 }] } };
+    const { next } = seedState(cur, seed({ coachBuild: BUILD }), { now: NOW });
+    assert.deepEqual(next.coach.consent, { agreedAt: 'x', version: 2 });
+    assert.deepEqual(next.coach.log, [{ id: 1 }]);
+    assert.equal(next.coach.build.status, 'pending');
+  });
+
+  it('is recorded once, and not over a plan', () => {
+    const first = seedState(null, seed({ coachBuild: BUILD }), { now: NOW, newProfile: true }).next;
+    const again = seedState(first, seed({ coachBuild: { ...BUILD, consentAt: '2026-10-15T08:45:00Z' } }), { now: NOW + 5000 });
+    assert.equal(again.next, null);
+    assert.deepEqual(again.skipped, [{ field: 'coachBuild', reason: 'requested' }]);
+    assert.deepEqual(seedState({ routines: [{ id: 'r', name: 'A', ex: [] }] }, seed({ coachBuild: BUILD }), { now: NOW }).skipped, [{ field: 'coachBuild', reason: 'has-plan' }]);
+  });
+
+  it('is refused unless it is a UTC timestamp that is not in the future, and nothing else', () => {
+    const code = coachBuild => parseSeed({ coachBuild }, NOW).code;
+    assert.equal(code(null), 'bad-coach-build');
+    assert.equal(code({ equipment: 'gym' }), 'bad-coach-build');
+    assert.equal(code({ consentAt: AT }), 'bad-coach-build');
+    assert.equal(code({ ...BUILD, consentAt: '2026-10-15' }), 'bad-coach-build');
+    assert.equal(code({ ...BUILD, consentAt: '2026-10-15T08:30:00+02:00' }), 'bad-coach-build', 'UTC, as Date.toISOString writes it');
+    assert.equal(code({ ...BUILD, consentAt: '2026-13-45T25:61:61Z' }), 'bad-coach-build');
+    assert.equal(code({ ...BUILD, consentAt: 1760516000000 }), 'bad-coach-build');
+    assert.equal(code({ ...BUILD, consentAt: '2019-12-31T23:59:59Z' }), 'bad-coach-build');
+    assert.equal(code({ ...BUILD, consentAt: '2026-10-15T09:11:00Z' }), 'bad-coach-build', 'more than ten minutes ahead');
+    assert.equal(code({ ...BUILD, equipment: 'cables' }), 'bad-coach-build');
+    assert.equal(code({ ...BUILD, model: 'x' }), 'bad-coach-build');
+    assert.equal(parseSeed({ coachBuild: BUILD, plan: PLAN }, NOW).code, 'bad-coach-build', 'a build or a plan, not both');
+    assert.equal(parseSeed({ coachBuild: BUILD, starter: { templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym' } }, NOW).code, 'bad-coach-build');
+    assert.equal(parseSeed({ coachBuild: { ...BUILD, consentAt: '2026-10-15T09:09:00Z' } }, NOW).ok, true, 'a little ahead is a clock’s skew');
   });
 });

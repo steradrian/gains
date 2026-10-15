@@ -16,6 +16,7 @@
 import crypto from 'node:crypto';
 import { highestStamp } from './sync-stamps.js';
 import { bodyweightView, fromKg, isSyncDate, unitOf, weighInOf } from './sync-data.js';
+import { buildStarter, STARTER_EQUIPMENT, STARTER_TEMPLATES } from './starter-plans.js';
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v);
 const list = v => (Array.isArray(v) ? v : []);
@@ -40,14 +41,25 @@ const emptyCoach = () => ({ consent: null, profile: null, cadence: 'off', lastRe
 const intIn = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
 const text = (v, max) => typeof v === 'string' && v.trim() !== '' && v.length <= max;
 
+// When the person agreed to the AI build, as the browser writes it (Date.toISOString). Later than
+// the onboarding's existence and no more than a clock's skew ahead of this server.
+const CONSENT_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+const CONSENT_EARLIEST = Date.UTC(2020, 0, 1);
+const CONSENT_SKEW_MS = 10 * 60 * 1000;
+
 /**
  * The seed body, checked: { ok: true, seed } or { ok: false, code, error }. Every field is
  * optional; an unknown one is refused, so a typo is never silently dropped.
+ *
+ * A plan comes one of three ways, and only one: `plan` (routines and weekdays, as the app built
+ * them), `starter` (a choice of ready-made plan, built here: starter-plans.js) or `coachBuild`
+ * (the person asked the AI coach for one, which is recorded and never run here). `starter` is
+ * expanded into `plan`, so past this function there are two.
  */
 export function parseSeed(body, now = Date.now()) {
   const bad = (code, error) => ({ ok: false, code, error });
   if (!isMap(body)) return bad('bad-body', 'the body must be a JSON object');
-  const known = new Set(['unit', 'bodyweight', 'coachProfile', 'plan', 'checkIn']);
+  const known = new Set(['unit', 'bodyweight', 'coachProfile', 'plan', 'starter', 'coachBuild', 'checkIn']);
   for (const k of Object.keys(body)) if (!known.has(k)) return bad('bad-field', `unknown field ${k.slice(0, 40)}`);
   const seed = {};
   if (body.unit !== undefined) {
@@ -85,11 +97,53 @@ export function parseSeed(body, now = Date.now()) {
     if (!plan.ok) return plan;
     seed.plan = plan.plan;
   }
+  if (body.starter !== undefined) {
+    if (body.plan !== undefined) return bad('bad-plan', 'send a plan or a starter, not both');
+    const starter = parseStarter(body.starter);
+    if (!starter.ok) return starter;
+    seed.plan = starter.plan;
+  }
+  if (body.coachBuild !== undefined) {
+    if (body.plan !== undefined || body.starter !== undefined) return bad('bad-coach-build', 'a coachBuild and a plan are two ways to get a plan: send one');
+    const build = parseCoachBuild(body.coachBuild, now);
+    if (!build.ok) return build;
+    seed.coachBuild = build.coachBuild;
+  }
   if (body.checkIn !== undefined) {
     if (typeof body.checkIn !== 'boolean') return bad('bad-check-in', 'checkIn must be a boolean');
     seed.checkIn = body.checkIn;
   }
   return { ok: true, seed };
+}
+
+// { templateId, weekdays, equipment }: a ready-made plan (starter-plans.js) and the weekday of each
+// of its sessions in order, built into the same { routines, schedule } a `plan` is.
+function parseStarter(s) {
+  const bad = error => ({ ok: false, code: 'bad-plan', error });
+  if (!isMap(s)) return bad('starter must be { templateId, weekdays, equipment }');
+  for (const k of Object.keys(s)) if (!['templateId', 'weekdays', 'equipment'].includes(k)) return bad(`unknown starter field ${k.slice(0, 40)}`);
+  if (typeof s.templateId !== 'string' || !Object.hasOwn(STARTER_TEMPLATES, s.templateId)) {
+    return bad(`starter.templateId must be one of ${Object.keys(STARTER_TEMPLATES).join(', ')}`);
+  }
+  if (!STARTER_EQUIPMENT.includes(s.equipment)) return bad(`starter.equipment must be one of ${STARTER_EQUIPMENT.join(', ')}`);
+  if (!Array.isArray(s.weekdays) || !s.weekdays.every(d => intIn(d, 0, 6)) || new Set(s.weekdays).size !== s.weekdays.length) {
+    return bad('starter.weekdays must be distinct weekdays 0 to 6');
+  }
+  const days = STARTER_TEMPLATES[s.templateId].days;
+  if (!days.includes(s.weekdays.length)) return bad(`starter.weekdays must hold ${days.join(' or ')} weekdays for ${s.templateId}`);
+  return { ok: true, plan: buildStarter(s) };
+}
+
+// { consentAt, equipment }: the person agreed to the AI coach building a plan from their answers.
+// Recorded in the profile as a pending build for the Coach to pick up; nothing is run from here.
+function parseCoachBuild(b, now) {
+  const bad = error => ({ ok: false, code: 'bad-coach-build', error });
+  if (!isMap(b)) return bad('coachBuild must be { consentAt, equipment }');
+  for (const k of Object.keys(b)) if (!['consentAt', 'equipment'].includes(k)) return bad(`unknown coachBuild field ${k.slice(0, 40)}`);
+  const at = typeof b.consentAt === 'string' && CONSENT_AT.test(b.consentAt) ? Date.parse(b.consentAt) : NaN;
+  if (!Number.isFinite(at) || at < CONSENT_EARLIEST || at > now + CONSENT_SKEW_MS) return bad('coachBuild.consentAt must be a UTC timestamp, not in the future');
+  if (!STARTER_EQUIPMENT.includes(b.equipment)) return bad(`coachBuild.equipment must be one of ${STARTER_EQUIPMENT.join(', ')}`);
+  return { ok: true, coachBuild: { consentAt: new Date(at).toISOString(), equipment: b.equipment } };
 }
 
 // { routines: [{ name, emoji?, ex: [{ id, sets, reps }] }], schedule: [{ day, routine }] }: the
@@ -201,6 +255,21 @@ export function seedState(cur, seed, { now = Date.now(), newId = routineId, newP
     }
   }
 
+  // The AI coach build is recorded, never run: consent and a pending marker in the Coach's own
+  // state, for the Coach flow to pick up. Only for a profile with no plan to build on top of, and
+  // only once (a request already on record stands, whatever it came to).
+  if (seed.coachBuild !== undefined) {
+    if (isMap(base.coach?.build)) skip('coachBuild', 'requested');
+    else if (list(base.routines).length > 0 || plannedDays(base) > 0) skip('coachBuild', 'has-plan');
+    else {
+      const coach = isMap(next.coach) ? next.coach : emptyCoach();
+      coach.build = { status: 'pending', source: 'onboarding', consentAt: seed.coachBuild.consentAt, equipment: seed.coachBuild.equipment, requestedAt: at };
+      next.coach = coach;
+      edited.coach = at;
+      applied.push('coachBuild');
+    }
+  }
+
   if (seed.checkIn !== undefined) {
     if (base.checkIn === seed.checkIn || (base.checkIn === undefined && seed.checkIn === true)) skip('checkIn', 'same');
     // Off by default is for a profile onboarding starts: one that already existed (the owner's, a
@@ -224,12 +293,14 @@ export function seedState(cur, seed, { now = Date.now(), newId = routineId, newP
 /**
  * What the profile has already answered, for the onboarding to skip: the unit (and whether it was
  * chosen), the latest weigh-in, whether there is a plan, and the Coach intake answers. Nothing
- * else of the profile, and no names.
+ * else of the profile, and no names. `coachAvailable`: this server has an AI coach a person may
+ * ask for a plan (coach/config.js publicConfig), which is the server's, not the profile's, to say.
  */
-export function seedView(S) {
+export function seedView(S, { coachAvailable = false } = {}) {
   const latest = bodyweightView(S).items.at(-1) || null;
   const p = isMap(S?.coach?.profile) ? S.coach.profile : null;
   return {
+    coachAvailable: coachAvailable === true,
     unit: unitOf(S),
     unitChosen: !!S?.unitSet || holdsWeights(S),
     latestWeight: latest ? { date: latest.date, kg: latest.kg } : null,

@@ -36,9 +36,11 @@ const SEED = () => ({
   checkIn: false
 });
 
-async function startServer(t, { users, states = {} } = {}) {
+async function startServer(t, { users, states = {}, coach = null } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-onb-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
+  // The fixture provider counts as connected (coach/config.js isConnected): an AI coach on offer.
+  if (coach) fs.writeFileSync(path.join(dataDir, 'coach.json'), JSON.stringify(coach));
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users, creds: [], subs: [], invites: [] }));
   for (const [uid, S] of Object.entries(states)) {
     fs.writeFileSync(path.join(dataDir, `state-${uid}.json`), typeof S === 'string' ? S : JSON.stringify(S));
@@ -71,7 +73,7 @@ test('a new profile with no document gets its first one, and the same write agai
   const before = await h.req('GET', P, { token: mint(KEY, { sub: 'u1' }) });
   assert.equal(before.status, 200);
   assert.deepEqual(before.body, {
-    rev: 0, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+    rev: 0, coachAvailable: false, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
   });
 
   const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: SEED() });
@@ -192,4 +194,88 @@ test('an unreadable document is a 503, never a first document over it', async t 
   assert.equal((await h.req('GET', P, { token: mint(KEY, { sub: 'u1' }) })).status, 503);
   assert.equal((await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: SEED() })).status, 503);
   assert.equal(h.rawState('u1'), '{"unit":', 'the file is left for a restore');
+});
+
+test('the view says whether this server has an AI coach to ask', async t => {
+  const none = await startServer(t, { users: [user('u1', 'Ana')] });
+  assert.equal((await none.req('GET', P, { token: mint(KEY, { sub: 'u1' }) })).body.coachAvailable, false);
+  // Switched on but with no model to reach is still no coach (coach/config.js isConnected).
+  const unplugged = await startServer(t, { users: [user('u1', 'Ana')], coach: { enabled: true, provider: 'openai' } });
+  assert.equal((await unplugged.req('GET', P, { token: mint(KEY, { sub: 'u1' }) })).body.coachAvailable, false);
+  const on = await startServer(t, { users: [user('u1', 'Ana')], coach: { enabled: true, provider: 'fixture' } });
+  assert.equal((await on.req('GET', P, { token: mint(KEY, { sub: 'u1' }) })).body.coachAvailable, true);
+});
+
+const STARTER = (over = {}) => ({ templateId: 'full-body', weekdays: [1, 3, 6], equipment: 'dumbbells', ...over });
+
+test('a starter choice is built into routines on the chosen weekdays, and sent again it changes nothing', async t => {
+  const h = await startServer(t, { users: [user('u1', 'Ana')] });
+  const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { starter: STARTER(), checkIn: false } });
+  assert.equal(first.status, 200, JSON.stringify(first.body));
+  assert.deepEqual(first.body.applied, ['plan', 'checkIn']);
+  const S = h.state('u1');
+  assert.deepEqual(S.routines.map(r => r.name), ['Full Body A', 'Full Body B', 'Full Body C']);
+  assert.deepEqual(S.routines[0].ex[0], { id: '0413', sets: 3, reps: 8, weight: 0 }, 'the dumbbell cut, not the barbell squat');
+  assert.deepEqual(S.week, { 1: [S.routines[0].id], 3: [S.routines[1].id], 6: [S.routines[2].id] });
+
+  const again = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { starter: STARTER(), checkIn: false } });
+  assert.deepEqual([again.status, again.body.changed], [200, false]);
+  assert.deepEqual(h.state('u1'), S);
+  assert.deepEqual(again.body.skipped.map(s => s.field + ':' + s.reason), ['plan:has-plan', 'checkIn:same']);
+});
+
+test('a starter is left out where the profile already has a plan', async t => {
+  const S = { unit: 'kg', routines: [{ id: 'mine', name: 'Push', ex: [] }], week: { 2: ['mine'] }, _rev: 2, _wid: 'aaaaaaaaaaaaaaaa', _ts: 10 };
+  const h = await startServer(t, { users: [user('u1', 'Ana', { created: new Date(Date.now() - 400 * DAY).toISOString() })], states: { u1: S } });
+  const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { starter: STARTER() } });
+  assert.deepEqual([r.status, r.body.changed, r.body.skipped], [200, false, [{ field: 'plan', reason: 'has-plan' }]]);
+  assert.deepEqual(h.state('u1').routines, S.routines);
+});
+
+test('a refused starter or coach build writes nothing', async t => {
+  const h = await startServer(t, { users: [user('u1', 'Ana')] });
+  const tok = () => mint(KEY, { sub: 'u1' });
+  const code = async body => (await h.req('POST', P, { token: tok(), body })).body.code;
+  assert.equal(await code({ starter: STARTER({ templateId: 'bro-split' }) }), 'bad-plan');
+  assert.equal(await code({ starter: STARTER({ equipment: 'cables' }) }), 'bad-plan');
+  assert.equal(await code({ starter: STARTER({ weekdays: [1, 3] }) }), 'bad-plan', 'three sessions need three weekdays');
+  assert.equal(await code({ starter: STARTER({ weekdays: [1, 3, 3] }) }), 'bad-plan');
+  assert.equal(await code({ starter: STARTER({ weekdays: [1, 3, 7] }) }), 'bad-plan');
+  assert.equal(await code({ starter: { ...STARTER(), extra: 1 } }), 'bad-plan');
+  assert.equal(await code({ starter: STARTER(), plan: SEED().plan }), 'bad-plan');
+  assert.equal(await code({ coachBuild: { consentAt: new Date().toISOString(), equipment: 'gym' }, starter: STARTER() }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: { consentAt: 'yesterday', equipment: 'gym' } }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: { consentAt: new Date(Date.now() + 3600000).toISOString(), equipment: 'gym' } }), 'bad-coach-build');
+  assert.equal(await code({ coachBuild: { consentAt: new Date().toISOString(), equipment: 'gym', prompt: 'x' } }), 'bad-coach-build');
+  assert.equal(h.hasState('u1'), false);
+});
+
+test('an AI coach build is recorded as consent and a pending marker, once, and nothing is run', async t => {
+  const h = await startServer(t, { users: [user('u1', 'Ana')], coach: { enabled: true, provider: 'fixture' } });
+  const consentAt = new Date(Date.now() - 60000).toISOString();
+  const body = { coachProfile: { goal: 'muscle', daysPerWeek: 3 }, coachBuild: { consentAt, equipment: 'dumbbells' }, checkIn: false };
+  const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body });
+  assert.equal(first.status, 200, JSON.stringify(first.body));
+  assert.deepEqual(first.body.applied, ['coachProfile', 'coachBuild', 'checkIn']);
+  const S = h.state('u1');
+  assert.deepEqual(S.coach.profile, { goal: 'muscle', daysPerWeek: 3 });
+  assert.deepEqual({ ...S.coach.build, requestedAt: typeof S.coach.build.requestedAt }, {
+    status: 'pending', source: 'onboarding', consentAt, equipment: 'dumbbells', requestedAt: 'number'
+  });
+  assert.equal(S.coach.consent, null, "the Coach's own consent is not given on the person's behalf");
+  assert.equal(S.routines, undefined, 'no plan was made: the build is the Coach flow\'s to run');
+  assert.ok(S.edited.coach > 0, 'stamped, so every device merges it');
+
+  const again = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body });
+  assert.deepEqual([again.status, again.body.changed], [200, false]);
+  assert.deepEqual(again.body.skipped.map(s => s.field + ':' + s.reason), ['coachProfile:answered', 'coachBuild:requested', 'checkIn:same']);
+  assert.deepEqual(h.state('u1'), S);
+});
+
+test('an AI coach build is not recorded over a plan the profile has', async t => {
+  const S = { unit: 'kg', routines: [{ id: 'mine', name: 'Push', ex: [] }], _rev: 2, _wid: 'aaaaaaaaaaaaaaaa', _ts: 10 };
+  const h = await startServer(t, { users: [user('u1', 'Ana', { created: new Date(Date.now() - 400 * DAY).toISOString() })], states: { u1: S } });
+  const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { coachBuild: { consentAt: new Date().toISOString(), equipment: 'gym' } } });
+  assert.deepEqual([r.status, r.body.changed, r.body.skipped], [200, false, [{ field: 'coachBuild', reason: 'has-plan' }]]);
+  assert.equal(h.state('u1').coach, undefined);
 });

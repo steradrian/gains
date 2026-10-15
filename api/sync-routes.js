@@ -70,7 +70,7 @@ const LOGS_MAX = 1000;
 
 const bad = (json, res, code, error) => json(res, 400, { error, code });
 
-export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail }) {
+export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail, coachAvailable }) {
   const replays = replayCache();
   // The listing is the hub's alone and a page of it costs a stat per profile, so this is generous:
   // 120 a minute against the one call a scheduler makes per page. It counts only calls that carry a
@@ -277,7 +277,7 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
         console.error('state file unreadable for', user.id);
         return json(res, 503, { error: 'state unreadable', code: 'state-unreadable' });
       }
-      json(res, 200, { ...revOf(S), ...seedView(S || {}) }, { ETag: etagOf(S) });
+      json(res, 200, { ...revOf(S), ...seedView(S || {}, { coachAvailable: coachAvailable() }) }, { ETag: etagOf(S) });
     }),
 
     // The hub's onboarding answers, written once into the profile: the unit, the first weigh-in,
