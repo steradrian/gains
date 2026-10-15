@@ -147,6 +147,8 @@ let focusOnMount = false
 export const registerPill = el => { pill = el }
 export const setOverlayKeys = fn => { keys = fn }
 export const overlayKey = e => keys?.(e)
+/** Back to the pill, for a control of the overlay that leaves the page. */
+export const focusPill = () => { if (pill?.isConnected) pill.focus({ preventScroll: true }) }
 
 /** ⌘K, Ctrl K and `/`: the pill on screen gets the focus (which opens the overlay); with none on
  *  screen (a sub-page, Profile) the tab's root is opened and its pill focused once it is there. */

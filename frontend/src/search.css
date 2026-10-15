@@ -92,8 +92,8 @@ body.search-open #tabbar,body.search-open #timer.dock{
 }
 .sr-row:active,.sr-row.on,.sr-row.sr-on{background:var(--surface-2)}
 .sr-row.on::after,.sr-row.sr-on::after{content:'';position:absolute;inset-block:0;inset-inline-start:0;width:2px;background:var(--acc-ink)}
-/* The active option that is not a row (a chip, an ×, Clear, Show all, a note): ringed in the accent. */
-.chip.sr-on,.sr-x.sr-on,.btn.sr-on,.sr-note-row.sr-on,.sr-note-opt.sr-on{outline:2px solid var(--acc-ink);outline-offset:-2px}
+/* The active option that is not a row (an ×, Show all, a note): ringed in the accent. */
+.sr-x.sr-on,.btn.sr-on,.sr-note-row.sr-on,.sr-note-opt.sr-on{outline:2px solid var(--acc-ink);outline-offset:-2px}
 .sr-card .sr-row+.sr-row::before,.sr-card div+div>.sr-row::before,.sr-recent+.sr-recent::before{
   content:'';position:absolute;top:0;inset-inline-start:74px;inset-inline-end:0;height:var(--hair);background:var(--sep)
 }

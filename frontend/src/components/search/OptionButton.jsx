@@ -1,8 +1,8 @@
 import { cx } from '../../lib/ui-kit.js'
 import { useSearch } from '../../lib/search/session.js'
 
-// One option of the results listbox that is not a result row: a shortcut chip, a Recent entry's
-// ×, Clear, "Show all N", Retry (fitness-eval ux-search.md §6). Like a row it is a button with
+// One option of the results listbox that is not a result row: a Recent entry's ×, "Show all N",
+// Retry (fitness-eval ux-search.md §6). Like a row it is a button with
 // role=option, out of the tab order: the focus stays in the pill, the arrow keys make it the
 // active option (`sr-on`, aria-selected) and Enter clicks it. `id` must be unique in the list.
 // `as`: a kit primitive that renders the button itself (Chip), given these props.

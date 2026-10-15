@@ -72,9 +72,34 @@ describe('the search overlay', () => {
     const list = $('#gains-search-list')
     expect(list.getAttribute('role')).toBe('listbox')
     expect(list.closest('#gains-search')).not.toBeNull()
-    expect($$('.chip-lg').map(c => c.textContent)).toEqual(['History', 'Exercises', 'Routines', 'Body'])
-    expect($$('.chip-lg').every(c => c.getAttribute('role') === 'option')).toBe(true)
+    // The shortcuts are actions, not choices: plain buttons in the tab order, outside the listbox.
+    const chips = $$('.chip-lg')
+    expect(chips.map(c => c.textContent)).toEqual(['History', 'Exercises', 'Routines', 'Body'])
+    for (const c of chips) {
+      expect(c.hasAttribute('role')).toBe(false)
+      expect(c.tabIndex).toBe(0)
+      expect(list.contains(c)).toBe(false)
+    }
+    expect(list.querySelectorAll('[role="option"]')).toHaveLength(0)
     expect($('.avatar-btn').getAttribute('aria-label')).toBe('Close search')
+  })
+
+  it('the keyboard order is the pill, then the shortcuts and Clear, then the listbox the arrows walk', async () => {
+    addRecent({ kind: 'query', query: 'squat' })
+    await mount()
+    await act(async () => pill().focus())
+    await wait(50)
+    const tabbable = [...document.querySelectorAll('button, input, [tabindex]')].filter(el => el.tabIndex >= 0 && !el.closest('[inert]'))
+    const order = tabbable.map(el => el.matches('.spill-i') ? 'pill' : el.classList.contains('avatar-btn') ? 'avatar'
+      : el.classList.contains('chip-lg') ? 'chip' : el.classList.contains('sr-clear') ? 'clear' : el.closest('#gains-search-list') ? 'listbox' : 'other:' + el.className)
+    expect(order).toEqual(['pill', 'avatar', 'chip', 'chip', 'chip', 'chip', 'clear'])
+    const list = $('#gains-search-list')
+    expect(list.contains($('.sr-clear'))).toBe(false)
+    expect(list.compareDocumentPosition($('.sr-clear')) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+    // Clear does what it says, and the focus goes back to the pill instead of leaving with it.
+    await act(async () => $('.sr-clear').click())
+    expect(useRecents.getState().list).toEqual([])
+    expect(document.activeElement).toBe(pill())
   })
 
   it('shows the best match and the groups, walks them with the arrows and opens one with Enter', async () => {
@@ -214,7 +239,7 @@ describe('the search overlay', () => {
     expect(open).toHaveBeenCalledTimes(1)
   })
 
-  it('before typing: Go to, Recent and Suggested are groups of the same listbox, and the arrows walk them all, × and Clear included', async () => {
+  it('before typing: Recent is a group of the listbox, and the arrows walk its entries and their ×, but not the shortcuts or Clear', async () => {
     addRecent({ kind: 'query', query: 'squat' })
     addRecent({ kind: 'result', type: 'page', id: '/train/history', label: 'History', query: 'hist' })
     await mount()
@@ -222,12 +247,11 @@ describe('the search overlay', () => {
     await wait(50)
     const options = () => [...$('#gains-search-list').querySelectorAll('[role="option"]')]
     const names = options().map(o => o.getAttribute('aria-label') || o.textContent.trim())
-    expect(names).toEqual(['History', 'Exercises', 'Routines', 'Body', 'Clear',
-      expect.stringContaining('History'), 'Remove History from recent', 'squat', 'Remove squat from recent'])
+    expect(names).toEqual([expect.stringContaining('History'), 'Remove History from recent', 'squat', 'Remove squat from recent'])
     const labels = new Set(options().map(o => o.closest('[role="group"]').getAttribute('aria-labelledby')))
-    expect([...labels]).toEqual(['sr-goto', 'sr-recent'])
+    expect([...labels]).toEqual(['sr-recent'])
     // Down to the second ×, Enter: "squat" goes, and the arrows are handed to the entry before it.
-    for (let i = 0; i < 9; i++) await key('ArrowDown')
+    for (let i = 0; i < 4; i++) await key('ArrowDown')
     expect(pill().getAttribute('aria-activedescendant')).toBe('sr-x_q_squat')
     await key('Enter')
     expect(useRecents.getState().list.map(r => r.query)).toEqual(['hist'])
