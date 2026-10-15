@@ -17,6 +17,7 @@ import { useStore } from '../../store/useStore.js'
 // The most the hub's GET /api/fasts takes (nt-routes.ts isFastsListQuery). A year of daily fasts,
 // so Progress's range control has the fasts of a whole year to count.
 const HISTORY_LIMIT = 365
+export const FASTS_SHOWN_MAX = HISTORY_LIMIT
 
 const initial = () => ({ status: 'idle', active: null, history: [], error: null })
 

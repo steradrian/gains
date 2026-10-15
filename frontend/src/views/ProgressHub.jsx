@@ -2,12 +2,13 @@ import { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { doneUnits, setsDone, streakWeeks, workoutDay } from '../lib/history.js'
-import { fmtNum, todayISO } from '../lib/format.js'
+import { fmtNum } from '../lib/format.js'
 import { weighInTime } from '../lib/bodyweight.js'
 import { t, tn } from '../lib/i18n.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { seriesOf, summaryOf, unitOf, windowOf } from '../lib/nutrition/trends.js'
+import { useFresh, useToday } from '../lib/nutrition/use-freshness.js'
 import { useTrends, useWellness } from '../lib/nutrition/use-trends.js'
 import { headlines, presentMetrics, recoveryWindow } from '../lib/nutrition/wellness.js'
 import { bwDeltaColor } from '../sheets.jsx'
@@ -47,11 +48,13 @@ function trendsLine(status, summary, protein, unit, proteinUnit) {
   if (!summary) return { value: t('No food logged yet'), note: t('Calories, macros and any nutrient over time') }
   return {
     value: t('{0} {1} a day', fmtNum(summary.avg), unit),
-    note: (protein ? t('Protein {0} {1}', fmtNum(protein.avg), proteinUnit) + ' · ' : '') + tn('{0} day logged', '{0} days logged', summary.count),
+    note: protein
+      ? tn('{0} day logged · protein {1} {2}', '{0} days logged · protein {1} {2}', summary.count, fmtNum(protein.avg), proteinUnit)
+      : tn('{0} day logged', '{0} days logged', summary.count),
   }
 }
 
-const readout = h => h.label + ' ' + fmtNum(h.avg) + (h.unit ? ' ' + h.unit : '')
+const readout = h => (h.unit ? t('{0} {1} {2}', h.label, fmtNum(h.avg), h.unit) : t('{0} {1}', h.label, fmtNum(h.avg)))
 
 // The Progress tab's root: one range for the whole page, and a card per area — Body, Strength,
 // Training load, Nutrition trends, Recovery — each opening its page at the same range. The last
@@ -68,16 +71,16 @@ export default function ProgressHub() {
   const wellness = useWellness()
   const range = rangeFrom(search, 90)
 
+  const today = useToday()
   useEffect(() => {
-    if (!nutrition) return
-    useNutrition.getState().loadSettings()
-    useTrends.getState().load()
-    useWellness.getState().load()
-  }, [nutrition])
-  const win = useMemo(() => windowOf(range, trends.days, todayISO()), [range, trends.days])
+    if (nutrition) useNutrition.getState().loadSettings({ force: true })
+  }, [nutrition, today])
+  useFresh(useTrends, nutrition, today)
+  useFresh(useWellness, nutrition, today)
+  const win = useMemo(() => windowOf(range, trends.days, today), [range, trends.days, today])
   const calories = useMemo(() => summaryOf(seriesOf(trends.days, 'calories', win, settings)), [trends.days, win, settings])
   const protein = useMemo(() => summaryOf(seriesOf(trends.days, 'proteins', win, settings)), [trends.days, win, settings])
-  const recovery = useMemo(() => headlines(wellness.byDate, recoveryWindow(range, todayISO())), [wellness.byDate, range])
+  const recovery = useMemo(() => headlines(wellness.byDate, recoveryWindow(range, today)), [wellness.byDate, range, today])
   const hasWearable = wellness.status === 'ready' && presentMetrics(wellness.byDate).length > 0
   const trendsText = trendsLine(trends.status, calories, protein, unitOf('calories', settings), unitOf('proteins', settings))
   // Kept in the address, so the tab's stack (and a reload) comes back to the range it was left on.

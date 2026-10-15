@@ -3,7 +3,7 @@
 // logged left out, a goal line where the person has a goal, and the average, lowest and highest.
 // No React and no network here; `days` is GET /api/diary (every day with a row).
 import { t } from '../i18n.js'
-import { calorieTarget, energyOf, macroTarget, nutritionOf, resolveGoalFor, sumNutrition, waterGoalOf, waterOf, waterTotal } from './diary.js'
+import { energyOf, nutritionOf, sumNutrition, waterGoalOf, waterOf, waterTotal } from './diary.js'
 
 const DAY = 86400000
 
@@ -77,7 +77,8 @@ export function daysBetween(from, to) {
 export function windowOf(range, days, today) {
   const end = dayKey(new Date(new Date(today + 'T12:00:00').getTime() - DAY))
   if (range > 0) return { from: dayKey(new Date(new Date(end + 'T12:00:00').getTime() - (range - 1) * DAY)), to: end }
-  const first = days.filter(d => d.date < today && (d.items?.length || 0) > 0).map(d => d.date).sort()[0]
+  // A day of water alone counts: the explorer charts water too.
+  const first = days.filter(d => d.date < today && ((d.items?.length || 0) > 0 || (d.water?.length || 0) > 0)).map(d => d.date).sort()[0]
   return first ? { from: first, to: end } : null
 }
 
@@ -129,23 +130,34 @@ export const pointsOf = series => series
   .filter(p => p.value != null)
   .map(p => ({ t: new Date(p.date + 'T12:00:00').getTime(), y: p.value, d: p.date }))
 
-/** The person's goal for a metric, averaged over the days shown (a weekday split moves it), in
- *  display units; null without one. A Dynamic or Adaptive calorie target is worked out per day
- *  from a wearable or the weight trend and is not kept, so it has no line here, and neither has a
- *  percentage goal that would be turned into grams against it. */
-export function goalOf(settings, metric, window) {
-  if (!settings || !window) return null
-  if (metric === 'water') return settings.waterGoalMl > 0 ? shown('water', waterGoalOf(settings), settings) : null
-  const goal = settings.goals?.[metric]
-  if (!goal) return null
-  const fixed = (settings.calorieGoalMode || 'fixed') === 'fixed'
-  const dates = daysBetween(window.from, window.to)
-  if (!dates.length) return null
-  if (metric === 'calories') {
-    if (!fixed) return null
-    return shown('calories', mean(dates.map(d => resolveGoalFor(goal, d) ?? 0)), settings)
+// One target for a whole range, as Statistics draws it (goal-resolver.js resolveRangeGoal): a shared
+// goal is its value, a weekday split the average of its positive days. Zero is no goal.
+function rangeGoal(g) {
+  if (!g) return null
+  const positive = v => (Number(v) > 0 ? Number(v) : null)
+  if (g.sharedGoal === false && Array.isArray(g.days) && g.days.length === 7) {
+    const days = g.days.map(positive).filter(v => v != null)
+    if (days.length) return mean(days)
   }
-  if (goal.isPercent && !fixed) return null
-  const targets = dates.map(d => macroTarget(settings, metric, d, calorieTarget({ settings, date: d }).base)).filter(v => v != null)
-  return targets.length ? round1(mean(targets)) : null
+  return positive(g.max) ?? positive(g.min)
+}
+
+const PERCENT_DENSITY = { fat: 9, 'saturated-fat': 9, carbohydrates: 4, sugars: 4, proteins: 4 }
+
+/** The person's goal line for a metric, in display units: `{ value, base }`, or null without one.
+ *  `base` is true for the calorie line under a Dynamic or Adaptive target: that target moves every
+ *  day with the wearable or the weight trend and is not kept, so the line is the fixed goal under
+ *  it, which NutriTrace labels "Base Goal". A percentage macro goal is grams against the fixed
+ *  calorie goal (2000 without one), in every mode. */
+export function goalOf(settings, metric) {
+  if (!settings) return null
+  if (metric === 'water') return settings.waterGoalMl > 0 ? { value: shown('water', waterGoalOf(settings), settings), base: false } : null
+  const goal = rangeGoal(settings.goals?.[metric])
+  if (goal == null) return null
+  if (metric === 'calories') return { value: shown('calories', goal, settings), base: (settings.calorieGoalMode || 'fixed') !== 'fixed' }
+  const density = PERCENT_DENSITY[metric]
+  if (settings.goals[metric].isPercent && density) {
+    return { value: Math.round(((rangeGoal(settings.goals.calories) ?? 2000) * goal) / 100 / density), base: false }
+  }
+  return { value: round1(goal), base: false }
 }

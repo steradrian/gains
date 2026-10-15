@@ -29,18 +29,30 @@ export const recoveryMetricFrom = value => recoveryMetrics().find(m => m.value =
 
 const MAX_SOURCE_ROWS = FETCH_DAYS + 2
 
+// Seeded actual values from the wearable's own app win over the ones NutriTrace calculated, as
+// Wellness.svelte reads them (the *_actual keys).
+const ACTUAL = { sleep_score: 'sleep_score_actual', readiness_score: 'readiness_score_actual', sleep_duration_min: 'sleep_duration_min_actual' }
+const KEPT = [...recoveryMetrics().map(m => m.value), ...Object.values(ACTUAL)]
+
 /** Both sources in one map. Garmin wins a metric both report for a day, as Statistics reads them
- *  (garmin, then Fitbit). Anything that is not a number is dropped. */
+ *  (garmin, then Fitbit); an `_actual` value then wins over the calculated one. Anything that is
+ *  not a number is dropped. */
 export function mergeSources(fitbit, garmin) {
   const out = {}
   for (const source of [fitbit, garmin]) {
     if (!source || typeof source !== 'object') continue
     for (const [date, row] of Object.entries(source).slice(0, MAX_SOURCE_ROWS)) {
       if (!row || typeof row !== 'object') continue
-      for (const m of recoveryMetrics()) {
-        const v = Number(row[m.value])
-        if (row[m.value] != null && Number.isFinite(v)) (out[date] ??= {})[m.value] = v
+      for (const key of KEPT) {
+        const v = Number(row[key])
+        if (row[key] != null && Number.isFinite(v)) (out[date] ??= {})[key] = v
       }
+    }
+  }
+  for (const row of Object.values(out)) {
+    for (const [metric, actual] of Object.entries(ACTUAL)) {
+      if (row[actual] != null) row[metric] = row[actual]
+      delete row[actual]
     }
   }
   return out
@@ -55,11 +67,16 @@ export function recoveryWindow(range, today) {
   return { from, to: today }
 }
 
+// Counted up through the day, so the day in progress reads as a dip: NutriTrace's Statistics leaves
+// today out of these two (Statistics.svelte isCumulative) and keeps it for the point-in-time ones.
+const CUMULATIVE = new Set(['steps', 'active_minutes'])
+
 /** The per-day series of one metric over a window, in shown units: [{ date, value|null }]. */
 export function recoverySeries(byDate, metric, window) {
   const def = recoveryMetrics().find(m => m.value === metric)
   if (!def || !window) return []
-  return daysBetween(window.from, window.to).map(date => {
+  const to = CUMULATIVE.has(metric) ? dayKey(new Date(new Date(window.to + 'T12:00:00').getTime() - DAY)) : window.to
+  return daysBetween(window.from, to).map(date => {
     const raw = byDate[date]?.[metric]
     return { date, value: raw == null ? null : Math.round(raw * def.scale * 10) / 10 }
   })

@@ -13,7 +13,10 @@ import { resetSyncThrottle } from '../lib/nutrition/sync.js'
 import { useFasting } from '../lib/nutrition/use-fasting.js'
 import { useTrends } from '../lib/nutrition/use-trends.js'
 import { createFakeNutriTrace, fixtureFast, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
+import { bindUI } from '../components/ui.jsx'
 import Trends from './Trends.jsx'
+
+bindUI(useUI)
 
 const navigate = vi.fn()
 let search = ''
@@ -25,7 +28,12 @@ const ago = n => isoOf(new Date(Date.now() - n * 24 * H))
 let nt, host, root
 
 const settle = async (ms = 0) => { for (let i = 0; i < 5; i++) await act(async () => { await new Promise(r => setTimeout(r, ms)) }) }
-const mount = async () => { await act(async () => { root.render(<Trends />) }); await settle() }
+function Sheets() {
+  const sheets = useUI(s => s.sheets)
+  return sheets.map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
+}
+const mount = async () => { await act(async () => { root.render(<><Trends /><Sheets /></>) }); await settle() }
+const visible = async () => { await act(async () => { document.dispatchEvent(new Event('visibilitychange')) }); await settle() }
 const text = () => host.textContent
 const button = label => [...host.querySelectorAll('button, [role="button"]')].find(b => (b.getAttribute('aria-label') || b.textContent).trim().startsWith(label))
 const click = async el => { await act(async () => { el.click() }); await settle() }
@@ -135,6 +143,91 @@ describe('Nutrition trends', () => {
     expect(text()).toContain('Daily average')
   })
 
+  it('asks again when the page comes back to the front, and keeps the numbers on screen meanwhile', async () => {
+    await mount()
+    expect(text()).toContain('1,500')
+    nt.state.days[ago(4)] = meal(ago(4), 3000, 100)
+    const slow = nt.hold('GET', '/nt/api/diary')
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    expect(text()).toContain('Daily average')
+    expect(text()).not.toContain('Loading…')
+    await act(async () => { slow.release() })
+    await settle()
+    expect(text()).toContain('1,875') // (3000 + 2000 + 1000 + 1500) / 4
+  })
+
+  it('asks again after the diary changes, as a save on Home does', async () => {
+    await mount()
+    nt.state.days[ago(4)] = meal(ago(4), 3000, 100)
+    await act(async () => { useNutrition.setState(s => ({ days: { ...s.days, [ago(4)]: { status: 'ready' } } })) })
+    await settle()
+    expect(text()).toContain('1,875')
+  })
+
+  it('moves its window at midnight, so yesterday is counted once the day is over', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      vi.setSystemTime(Date.now())
+      useFake({ days: { [ago(0)]: meal(ago(0), 1800, 90) } })
+      await mount()
+      expect(text()).toContain('Nothing logged in this range')
+      vi.setSystemTime(Date.now() + 24 * H)
+      await visible()
+      expect(text()).toContain('1,800')
+      expect(text()).not.toContain('Nothing logged in this range')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('draws the base goal, and says what it is, under a Dynamic target', async () => {
+    useFake({ settings: { ...fixtureSettings(), calorieGoalMode: 'dynamic' } })
+    await mount()
+    expect(text()).toContain('Base goal: 2,200 kcal')
+  })
+
+  it('charts water on All when only water was ever logged', async () => {
+    useFake({ days: { [ago(2)]: { date: ago(2), items: [], water: [{ uuid: 'w', amount: 750 }], body_stats: {}, notes: '', completed_at: null, completed_meals: [], tombstones: [] } } })
+    search = '?metric=water&range=0'
+    await mount()
+    expect(host.querySelector('.chart polyline')).not.toBeNull()
+    expect(text()).toContain('750')
+  })
+
+  it('gives the chart a text alternative: its summary as a label and the days in a table', async () => {
+    await mount()
+    const chart = host.querySelector('[role="img"]')
+    expect(chart.getAttribute('aria-label')).toBe('Calories: average 1,500 kcal, lowest 1,000, highest 2,000, 3 days logged')
+    expect(chart.querySelector('polyline')).not.toBeNull()
+    const rows = [...host.querySelectorAll('table.vh tbody tr')]
+    expect(rows).toHaveLength(3)
+    expect(rows.at(-1).textContent).toContain('1,500')
+  })
+
+  it('thins a long range to a short table', async () => {
+    const days = {}
+    for (let i = 1; i <= 200; i++) days[ago(i)] = meal(ago(i), 2000, 100)
+    useFake({ days })
+    search = '?range=365'
+    await mount()
+    const rows = host.querySelectorAll('table.vh tbody tr')
+    expect(rows.length).toBeLessThanOrEqual(63)
+    expect(rows.length).toBeGreaterThan(30)
+  })
+
+  it('marks the selected tile as pressed', async () => {
+    search = '?metric=proteins'
+    await mount()
+    expect(button('Protein').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Calories').getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('labels the nutrient search', async () => {
+    await mount()
+    await click([...host.querySelectorAll('button')].find(b => b.textContent.includes('Nutrient')))
+    expect(host.querySelector('[data-sheet] [aria-label="Search nutrients"]')).not.toBeNull()
+  })
+
   it('points a signed-out guest to the web app and asks for nothing', async () => {
     useStore.setState({ user: null })
     await mount()
@@ -157,6 +250,17 @@ describe('Fasting insights', () => {
     await click(button('3M'))
     expect(navigate).toHaveBeenCalledWith('/progress/trends?range=90', { replace: true })
     expect(nt.requests.some(r => r.path === '/nt/api/fasts' && r.query.limit === '365')).toBe(true)
+  })
+
+  it('say on All that only the latest 365 are counted, and nothing otherwise', async () => {
+    const fasts = Array.from({ length: 366 }, (_, i) => finished(i + 1, i + 1, 16))
+    useFake({ settings: { ...fixtureSettings(), fastingEnabled: true }, fasts })
+    search = '?range=0'
+    await mount()
+    expect(text()).toContain('Counting your latest 365 fasts.')
+    search = '?range=365'
+    await mount()
+    expect(text()).not.toContain('Counting your latest')
   })
 
   it('are left out when fasting is off', async () => {

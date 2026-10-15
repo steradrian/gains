@@ -113,6 +113,38 @@ describe('Recovery', () => {
     expect(text()).toContain('No wearable data yet')
   })
 
+  it.each([403, 404])('reads a %i from the hub as not available yet, not as an error', async status => {
+    nt.failNext('GET', '/nt/api/wellness/fitbit', { status })
+    nt.failNext('GET', '/nt/api/wellness/garmin', { status })
+    await mount(<Recovery />)
+    expect(text()).toContain('Not available yet')
+    expect(host.querySelector('[role="alert"]')).toBeNull()
+    expect(text()).not.toContain('did not load')
+  })
+
+  it('does not count today in steps, which are still adding up', async () => {
+    useFake({ wellness: { fitbit: { [ago(0)]: { steps: 500, resting_hr: 60 }, [ago(2)]: { steps: 9000, resting_hr: 54 } } } })
+    search = '?metric=steps&range=30'
+    await mount(<Recovery />)
+    // 9,000 alone; with today it would read 4,750
+    expect(text()).toContain('9,000')
+    expect(text()).not.toContain('4,750')
+  })
+
+  it('picks up a wearable connected while the page is open, and new readings, when it comes back to the front', async () => {
+    useFake({ settings: fixtureSettings(), wellness: wearable() })
+    await mount(<Recovery />)
+    expect(text()).toContain('No wearable data yet')
+    nt.state.settings.fitbitEnabled = true
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    await settle()
+    expect(text()).toContain('Resting heart rate')
+    nt.state.wellness.fitbit[ago(1)] = { sleep_duration_min: 600 }
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    await settle()
+    expect(text()).toContain('8.3') // (7 + 8 + 10) / 3 h of sleep
+  })
+
   it('still shows the other wearable when one fails', async () => {
     nt.failNext('GET', '/nt/api/wellness/garmin', { status: 500 })
     await mount(<Recovery />)
@@ -145,8 +177,7 @@ describe('the Progress hub', () => {
     await mount(<ProgressHub />)
     expect(text()).toContain('Nutrition trends')
     expect(text()).toContain('2,000 kcal a day')
-    expect(text()).toContain('Protein 100 g')
-    expect(text()).toContain('2 days logged')
+    expect(text()).toContain('2 days logged · protein 100 g')
     expect(text()).toContain('Sleep 7.5 h')
     expect(text()).toContain('Resting heart rate 54 bpm')
     await click(button('Nutrition trends'))
@@ -168,6 +199,29 @@ describe('the Progress hub', () => {
     expect(text()).not.toContain('Nutrition trends')
     expect(text()).not.toContain('Recovery')
     expect(nt.requests).toHaveLength(0)
+  })
+
+  it('hides the Recovery card while the hub does not forward the wearable routes', async () => {
+    nt.failNext('GET', '/nt/api/wellness/fitbit', { status: 404 })
+    nt.failNext('GET', '/nt/api/wellness/garmin', { status: 404 })
+    await mount(<ProgressHub />)
+    expect(text()).toContain('Nutrition trends')
+    expect(button('Recovery')).toBeUndefined()
+  })
+
+  it('refreshes its averages when the diary changes, and when it comes back to the front', async () => {
+    useFake({ settings: fixtureSettings(), days: { [ago(1)]: diaryDay(1) } })
+    await mount(<ProgressHub />)
+    expect(text()).toContain('2,000 kcal a day')
+    nt.state.days[ago(2)] = { ...diaryDay(2), items: [{ ...diaryDay(2).items[0], nutrition: { calories: 1000, proteins: 50 } }] }
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    await settle()
+    expect(text()).toContain('1,500 kcal a day')
+    nt.state.days[ago(3)] = { ...diaryDay(3), items: [{ ...diaryDay(3).items[0], nutrition: { calories: 600, proteins: 50 } }] }
+    // what a save on Home does: the store's days change
+    await act(async () => { useNutrition.setState(s => ({ days: { ...s.days } })) })
+    await settle()
+    expect(text()).toContain('1,200 kcal a day')
   })
 
   it('keeps the Recovery card when the range has no readings', async () => {
