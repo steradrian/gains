@@ -15,6 +15,7 @@ import { useHubSync, resetSyncThrottle } from '../lib/nutrition/sync.js'
 import { createFakeNutriTrace, emptyDay, fixtureActivity, fixtureActivitySum, fixtureDay, fixtureFoods, fixtureSettings, fixtureSyncStatus } from '../lib/nutrition/fake-nutritrace.js'
 import { workoutKcalMessage, reportWorkoutKcal } from '../lib/nutrition/workout-kcal.js'
 import Home from './Home.jsx'
+import DayNav from '../components/DayNav.jsx'
 import PortionSheet from '../components/PortionSheet.jsx'
 import QuickKcalSheet from '../components/QuickKcalSheet.jsx'
 import AvatarButton from '../components/AvatarButton.jsx'
@@ -170,7 +171,10 @@ describe('Home is the hub', () => {
     expect(host.querySelector('.sec-h-t').textContent).toBe('Today’s food')
     expect(pills().map(p => p.textContent)).toEqual(['Breakfast228', 'Lunch450', 'Dinner', 'Snacks'])
     expect(pills()[2].querySelector('[data-icon="plus"]')).toBeTruthy()
-    expect(pills()[0].getAttribute('aria-label')).toBe('Log food to Breakfast, 228 kcal so far')
+    // WCAG 2.5.3: the name holds the visible words, "Breakfast 228", in that order.
+    expect(pills()[0].getAttribute('aria-label')).toBe('Breakfast 228 kcal, Log food')
+    expect(pills()[1].getAttribute('aria-label')).toMatch(/^Lunch 450\b/)
+    expect(pills()[2].getAttribute('aria-label')).toBe('Log food to Dinner')
     await click(pills()[2])
     expect(lastSheet().querySelector('.logging-to').textContent).toBe('Logging toToday · Dinner')
   })
@@ -215,6 +219,43 @@ describe('Home is the hub', () => {
     await click(day(tomorrow))
     expect(useDiarySelection.getState().day()).toBe(TODAY)
     expect(lastSheet().querySelector('h3').textContent).toBe(fmtDate(tomorrow, true))
+    // A screen reader is told which day it opened.
+    expect(host.querySelector('[role="status"].sr-only').textContent).toBe('Change this day, ' + fmtDate(tomorrow, true))
+  })
+
+  // The month's calendar disables days to come for a date picker; on Home and Training they open
+  // "change this day" instead, on Nutrition they stay dimmed.
+  const calendarDay = iso => {
+    const cell = [...lastSheet().querySelectorAll('.cal-d')].find(b => b.textContent === String(Number(iso.slice(-2))))
+    return cell
+  }
+  const openCalendar = async iso => {
+    await click(host.querySelector('.month-bar-l'))
+    if (iso.slice(0, 7) !== TODAY.slice(0, 7)) await click(button('Next month', lastSheet()))
+  }
+
+  it('a day to come in the calendar opens "change this day" for it and leaves the date, announced', async () => {
+    await mount(<Home />)
+    await openCalendar(tomorrow)
+    expect(calendarDay(tomorrow).disabled).toBe(false)
+    await click(calendarDay(tomorrow))
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
+    expect(lastSheet().querySelector('h3').textContent).toBe(fmtDate(tomorrow, true))
+    expect(host.querySelector('[role="status"].sr-only').textContent).toBe('Change this day, ' + fmtDate(tomorrow, true))
+    // Days up to today still pick the date.
+    await act(async () => { useUI.setState({ sheets: [] }) })
+    if (yesterday.slice(0, 7) === TODAY.slice(0, 7)) {
+      await openCalendar(yesterday)
+      await click(calendarDay(yesterday))
+      expect(useDiarySelection.getState().day()).toBe(yesterday)
+    }
+  })
+
+  it('on Nutrition a day to come stays dimmed in the calendar', async () => {
+    await mount(<DayNav future="off" />)
+    await openCalendar(tomorrow)
+    expect(calendarDay(tomorrow).disabled).toBe(true)
+    expect(host.querySelector('[role="status"]')).toBeNull()
   })
 
   it('on first run the hero says the numbers count from the first log, and stops once there is one', async () => {
@@ -234,6 +275,13 @@ describe('Home is the hub', () => {
   it('says nothing about a first log to someone whose diary has food', async () => {
     await mount(<Home />)
     expect(text()).not.toContain('Counts from your first log')
+  })
+
+  it('an existing user with an empty today but yesterday logged never sees the first-run line, and it stays gone', async () => {
+    useFake({ days: { [TODAY]: emptyDay(TODAY), [yesterday]: fixtureDay(yesterday) } })
+    await mount(<Home />)
+    expect(text()).not.toContain('Counts from your first log')
+    expect(localStorage.getItem('gains.diaryLogged')).toBe('1')
   })
 
   it('offers yesterday\'s meal again while today\'s is empty, and the row goes once it is logged', async () => {

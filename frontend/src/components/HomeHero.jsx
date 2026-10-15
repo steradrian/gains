@@ -2,10 +2,11 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t, tn, dateLocale } from '../lib/i18n.js'
-import { durPart, exCount, fmtDate, todayISO, DAYN } from '../lib/format.js'
+import { durPart, exCount, fmtDate, todayISO, yesterdayISO, DAYN } from '../lib/format.js'
 import { workoutDuration } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { trainingDay } from '../lib/training-day.js'
+import { nameOf, trainingDay, workoutLabel } from '../lib/training-day.js'
+import { useNutrition } from '../lib/nutrition/store.js'
 import { loadErrorText } from '../lib/nutrition/log-feedback.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { dayHasLog, hasLogged, markLogged } from '../lib/nutrition/first-log.js'
@@ -42,7 +43,7 @@ function statusOf(day, date) {
     }
     case 'rest': return {
       glyph: 'moon', title: t('Rest day'),
-      caption: day.next ? t('Next session: {0}, {1}', t(DAYN[day.next.weekday]), day.next.routine.name) : null,
+      caption: day.next ? t('Next session: {0}, {1}', t(DAYN[day.next.weekday]), nameOf(day.next.routines)) : null,
     }
     case 'past-logged': {
       const one = day.workouts.length === 1 ? day.workouts[0] : null
@@ -52,7 +53,7 @@ function statusOf(day, date) {
         caption: one ? workoutLine(one) : null,
         link: one
           ? { label: t('See workout'), onClick: () => workoutDetailSheet(one) }
-          : { label: t('See workouts'), onClick: () => menuSheet({ title: past, items: day.workouts.map(w => ({ icon: 'checkCircle', label: w.name, sub: workoutLine(w), onClick: () => workoutDetailSheet(w) })) }) },
+          : { label: t('See workouts'), onClick: () => menuSheet({ title: past, items: day.workouts.map(w => ({ icon: 'checkCircle', label: workoutLabel(w), sub: workoutLine(w), onClick: () => workoutDetailSheet(w) })) }) },
       }
     }
     case 'past-missed': return { glyph: 'calendar', eyebrow: past, title: day.name, caption: t('Planned, not logged') }
@@ -70,8 +71,14 @@ export default function HomeHero({ date, day }) {
   const units = useUnits()
   const today = todayISO()
   const training = statusOf(trainingDay(S, date, today), date)
-  const logged = day.status === 'ready' && dayHasLog(day.entry)
+  // "First log" is read off every day loaded so far, not just the selected one: yesterday (which
+  // Home's live row loads) or a day opened in the calendar with a log means this person has one.
+  // The caption waits for yesterday's read so an existing user never sees it flash.
+  const yesterday = yesterdayISO()
+  const logged = useNutrition(s => Object.values(s.days).some(d => d?.status === 'ready' && dayHasLog(d.entry)))
+  const yesterdayRead = useNutrition(s => s.days[yesterday]?.status === 'ready' || s.days[yesterday]?.status === 'error')
   useEffect(() => { if (logged) markLogged() }, [logged])
+  useEffect(() => { if (day.on) useNutrition.getState().loadDay(yesterday) }, [day.on, yesterday])
 
   const more = () => menuSheet({
     title: date === today ? t('Today') : fmtDate(date, true),
@@ -102,6 +109,6 @@ export default function HomeHero({ date, day }) {
         {grams(day.totals[m.id])}{day.macros[m.id] != null && '/' + grams(day.macros[m.id])} g
       </span>)}
     </p>}
-    {ready && date === today && !logged && !hasLogged() && <p className="hero-c">{t('Counts from your first log')}</p>}
+    {ready && date === today && yesterdayRead && !logged && !hasLogged() && <p className="hero-c">{t('Counts from your first log')}</p>}
   </HeroStatus>
 }

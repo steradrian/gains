@@ -2837,6 +2837,7 @@ export default {
   'View plan': 'Terv megtekintése',
   '{0} eaten': '{0} elfogyasztva',
   '{0} of {1} this week': '{0} / {1} ezen a héten',
+  '{0} this week': '{0} ezen a héten',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
 }

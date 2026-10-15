@@ -35,12 +35,13 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
   }
   const shown = status === 'empty' ? EMPTY : value
   return <div className={cx('hero', action && 'hero-has-a')}>
-    {action && <div className="hero-a">{action}</div>}
     {glyph && <Icon name={glyph} className="hero-g" />}
     {eyebrow != null && <div className="hero-e">{eyebrow}</div>}
     {title != null
       ? <h2 className="hero-t">{title}</h2>
       : shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
+    {/* After the heading in reading order; placed at the top end by CSS. */}
+    {action && <div className="hero-a">{action}</div>}
     {caption != null && <div className={cx('hero-c', tone === 'over' && 'ink-orange')}>{caption}</div>}
     {link && <button type="button" className="hero-l" onClick={link.onClick}>{link.label}<Icon name="chevronRight" /></button>}
     {metrics && <div className="hero-m">

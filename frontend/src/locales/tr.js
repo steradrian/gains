@@ -2834,6 +2834,7 @@ export default {
   'View plan': 'Planı gör',
   '{0} eaten': '{0} yenildi',
   '{0} of {1} this week': 'Bu hafta {1} içinde {0}',
+  '{0} this week': 'Bu hafta {0}',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
 }

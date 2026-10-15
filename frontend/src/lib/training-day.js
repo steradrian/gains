@@ -4,6 +4,27 @@ import { queueOf, pinState, queueView } from './queue.js'
 import { scheduleModeOf } from './rotation.js'
 import { workoutRunning } from './tab-route.js'
 import { dayNoteOf } from './day-notes.js'
+import { t } from './i18n-core.js'
+
+/** A workout's name as a list shows it: a saved session can have none. */
+export const workoutLabel = w => w.name || t('Workout')
+
+// The workouts of each day, built once per workouts array: the store clones S on every change, so
+// a new array is a new index, and the week strip's nine reads a render (and the clock's ticks)
+// cost one pass over the history instead of one each.
+const byDayCache = new WeakMap()
+export function workoutsByDay(workouts) {
+  let index = byDayCache.get(workouts)
+  if (!index) {
+    index = new Map()
+    for (const w of workouts) {
+      const day = workoutDay(w)
+      if (day) index.set(day, [...(index.get(day) || []), w])
+    }
+    byDayCache.set(workouts, index)
+  }
+  return index
+}
 
 /**
  * What a day holds for training, as Home's hero and the Training hub's today row tell it. One
@@ -21,8 +42,8 @@ import { dayNoteOf } from './day-notes.js'
  */
 export function trainingDay(S, date = todayISO(), today = todayISO()) {
   if (date < today) {
-    const workouts = S.workouts.filter(w => workoutDay(w) === date)
-    if (workouts.length) return { kind: 'past-logged', workouts }
+    const workouts = workoutsByDay(S.workouts).get(date)
+    if (workouts) return { kind: 'past-logged', workouts }
     const routines = effectiveRoutines(S, date)
     if (routines.length) return { kind: 'past-missed', routines, ids: routines.map(r => r.id), name: nameOf(routines) }
     return { kind: 'past-rest' }
@@ -57,12 +78,13 @@ export function nextSession(S, today = todayISO()) {
   return scheduleModeOf(S) === 'rotation' && !plannerQueue ? null : nextTrainingDay(S, today)
 }
 
-const nameOf = routines => routines.map(r => r.name).join(' + ')
+/** A day's routines as one session name (§9): "Push + Pull". */
+export const nameOf = routines => routines.map(r => r.name).join(' + ')
 
 /** The week strip's dot for a day: trained, a day off with a note (#261, excused rather than
  *  missed), a changed plan, the plan, or nothing. */
 export function dayMark(S, iso) {
-  if (S.workouts.some(w => workoutDay(w) === iso)) return 'done'
+  if (workoutsByDay(S.workouts).has(iso)) return 'done'
   if (dayNoteOf(S, iso)) return 'noted'
   const planned = effectiveRoutineIds(S, iso).length > 0
   if (!planned) return undefined

@@ -47,14 +47,15 @@ describe('HeroStatus', () => {
     expect($('.hero-ms').textContent).toBe('860 eaten')
   })
 
-  it('puts the caption under the title, then the metrics, a link, an action at the top end and lines after', () => {
+  it('puts the caption under the title, then the metrics, a link, an action (after the heading, shown at the top end) and lines after', () => {
     const onLink = vi.fn()
     render(<HeroStatus glyph="moon" title="Rest day" caption="Next: Push, Thursday" link={{ label: 'See workout', onClick: onLink }}
       action={<button type="button" aria-label="Day options">…</button>}
       metrics={[{ value: '1,240', label: 'kcal left' }, { value: '250', unit: 'ml', label: 'Water' }]}>
       <p className="extra">8/160 g</p>
     </HeroStatus>)
-    const parts = ['hero-a', 'hero-g', 'hero-t', 'hero-c', 'hero-l', 'hero-m', 'extra']
+    // The action follows the heading in reading order; CSS puts it at the top end.
+    const parts = ['hero-g', 'hero-t', 'hero-a', 'hero-c', 'hero-l', 'hero-m', 'extra']
     const order = [...$('.hero').children].map(c => parts.find(p => c.classList.contains(p)))
     expect(order).toEqual(parts)
     expect($('.hero').classList.contains('hero-has-a')).toBe(true)

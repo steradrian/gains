@@ -2834,6 +2834,7 @@ export default {
   'View plan': 'Voir le plan',
   '{0} eaten': '{0} consommées',
   '{0} of {1} this week': '{0} sur {1} cette semaine',
+  '{0} this week': '{0} cette semaine',
   '{0} PR': '{0} record perso',
   '{0} PRs': '{0} records perso',
 }
