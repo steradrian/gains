@@ -6,6 +6,7 @@ import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { startDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { isSwitching, onTabSwitch, popToRoot } from '../../lib/use-tab-nav.js'
 import { isTabRoot, tabOf } from '../../lib/tab-route.js'
+import { holdPage } from '../../lib/search/hold-page.js'
 import { closeSearch, endSearch, focusSearch, setQuery, syncSearchWithHistory, takeSuppressed, useSearch } from '../../lib/search/session.js'
 import { nav } from '../../lib/nav.js'
 
@@ -49,7 +50,8 @@ export default function SearchHost() {
   // A page pushed or replaced from wherever while the overlay is up (a sheet's own link).
   useEffect(() => { if (!isSwitching()) syncSearchWithHistory() }, [loc])
 
-  // The page behind stays where it was (bearmenu: <html> is the scroller, so both are held).
+  // The page behind stays where it was (bearmenu: <html> is the scroller, so both are held) and
+  // out of reach: inert, the header and the overlay apart (lib/search/hold-page.js).
   useLayoutEffect(() => {
     document.body.classList.toggle('search-open', open)
     if (!open) return undefined
@@ -58,11 +60,13 @@ export default function SearchHost() {
     const prev = [html.style.overflow, document.body.style.overflow]
     html.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
+    const releasePage = holdPage()
     // The keyboard's height, so the last row scrolls clear of it.
     const vv = window.visualViewport
     const inset = () => html.style.setProperty('--search-kb', Math.max(0, window.innerHeight - (vv.height + vv.offsetTop)) + 'px')
     if (vv) { inset(); vv.addEventListener('resize', inset); vv.addEventListener('scroll', inset) }
     return () => {
+      releasePage()
       html.style.overflow = prev[0]
       document.body.style.overflow = prev[1]
       document.body.classList.remove('search-open')
