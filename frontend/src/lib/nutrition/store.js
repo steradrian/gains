@@ -303,12 +303,14 @@ export const useNutrition = create((set, get) => {
     async logMeal(date, draft) {
       if (!draft?.meal || !Array.isArray(draft.items) || !draft.items.length || !draft.items.every(i => i?.uuid)) throw invalid('logMeal takes a draftMeal draft')
       await write(date, { addItems: draft.items })
-      // Orders "most used" for the meal and, as NutriTrace's addDiaryItem does, for each food
-      // it was made of. Fire and forget: the log is done.
+      // Orders "most used" for the meal and, as NutriTrace's addDiaryItem does, for each ingredient:
+      // the food's count, or the recipe's when the ingredient is a recipe. Fire and forget: the log
+      // is done.
       const { meal } = draft
       NtApi.markMealUsed(meal.id, date).catch(() => {})
       if (!meal.is_recipe) {
-        for (const id of new Set(draft.items.map(i => i.food_server_id).filter(id => typeof id === 'number'))) NtApi.markFoodUsed(id, date).catch(() => {})
+        const used = new Map(draft.items.filter(i => typeof i.food_server_id === 'number').map(i => [`${i.is_recipe ? 'r' : 'f'}${i.food_server_id}`, i]))
+        for (const i of used.values()) (i.is_recipe ? NtApi.markMealUsed : NtApi.markFoodUsed)(i.food_server_id, date).catch(() => {})
       }
       const key = meal.is_recipe ? 'recipes' : 'meals'
       set(s => ({ [key]: { ...s[key], list: s[key].list.map(m => (m.id === meal.id ? { ...m, usage_count: (m.usage_count || 0) + 1, last_used_at: m.last_used_at && m.last_used_at > date ? m.last_used_at : date } : m)) } }))

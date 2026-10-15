@@ -8,14 +8,22 @@
 //
 // No React and no network here.
 import { t } from '../i18n.js'
-import { atPortion, foodItem, invalid, nutritionOf, scaleFactor, sumNutrition } from './diary.js'
+import { atPortion, foodItem, gramsOfPortion, invalid, nutritionOf, scaleFactor, sumNutrition } from './diary.js'
 
 const positive = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
 const decimal = v => parseFloat(String(v ?? '').replace(',', '.'))
+const round2 = n => Math.round(n * 100) / 100
 
-// MealEditor.svelte toGrams: how a recipe's total weight is guessed from its ingredients.
-const GRAMS = { g: 1, ml: 1, oz: 28.35, cup: 240, tbsp: 15, tsp: 5, piece: 100, serving: 100 }
-const gramsOf = item => (parseFloat(item.portion) || 0) * (GRAMS[item.unit] || 1) * (parseFloat(item.quantity) || 1)
+// How a recipe's total weight is guessed from its ingredients (MealEditor.svelte toGrams). Its
+// table had no kg, l, lb or slice, so those counted as 1 g; the real mass and volume table is used
+// here, and the food's own household units. A piece or serving with no size is 100 g, as in
+// NutriTrace; any other unit with no weight adds nothing rather than a made-up gram.
+const UNSIZED = { piece: 100, serving: 100 }
+const gramsOf = item => {
+  const portion = parseFloat(item.portion) || 0
+  const g = gramsOfPortion(portion, item.unit, item) ?? portion * (UNSIZED[item.unit] ?? 0)
+  return g * (parseFloat(item.quantity) || 1)
+}
 const gramsOfAll = items => Math.round(items.reduce((s, i) => s + gramsOf(i), 0))
 
 /** The nutrients of a list of ingredients, added up. */
@@ -59,50 +67,85 @@ export const amountOf = item => {
  *  strings, as typed. */
 export function formOf(meal, { recipe }) {
   const items = Array.isArray(meal?.items) ? meal.items : []
-  const servings = servingsOf(meal)
   return {
     name: meal?.name || '',
     notes: meal?.notes || '',
     items,
+    // What the ingredients were when the editor opened: an edit sends them only if they changed.
+    baseItems: items,
     unit: meal?.unit || 'g',
-    amount: recipe && meal ? String(Math.round((parseFloat(meal.portion) || 0) * servings * 100) / 100 || gramsOfAll(items) || '') : '',
-    servings: String(meal ? servings : 1),
+    amount: recipe && meal ? String(round2((parseFloat(meal.portion) || 0) * servingsOf(meal)) || gramsOfAll(items) || '') : '',
+    // A recipe saved before servings existed has none: the field stays blank until the person
+    // sets one, and saving leaves it unset (NutriTrace keeps null rather than filling in 1).
+    servings: !meal ? '1' : meal.servings == null ? '' : String(servingsOf(meal)),
+    // The person typed a total weight: adding an ingredient no longer replaces it.
+    amountTyped: false,
   }
 }
 
-/** The form with other ingredients. A recipe's total weight follows them, as in NutriTrace. */
+/** The form with other ingredients. A recipe's total weight follows them, as in NutriTrace, until
+ *  the person types a weight of their own. */
 export function withItems(form, items, { recipe }) {
-  if (!recipe) return { ...form, items }
+  if (!recipe || form.amountTyped) return { ...form, items }
   const grams = gramsOfAll(items)
   return { ...form, items, unit: 'g', amount: grams > 0 ? String(grams) : '' }
 }
 
+const sameJson = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+const scaled = (nutrition, f) => Object.fromEntries(Object.entries(nutrition || {}).map(([k, v]) => [k, v * f]))
+
 /**
  * The body to save, or why not: `error` is 'name', 'items', 'servings' or 'amount'. A recipe is
  * saved per serving: its total weight and nutrients divided by the servings it makes.
+ *
+ * A new one sends everything. An edit (`original`, the saved meal) sends only what changed, because
+ * NutriTrace's PUT keeps any field left out: a rename must not rewrite the ingredients (the hub
+ * lets through ten fields of each) or recompute the totals of a recipe imported from CookTrace,
+ * whose own rollup NutriTrace deliberately keeps (MealEditor.svelte save()). Changing only the
+ * servings or the weight of a recipe rescales its stored per-serving values instead.
  * @returns {{ error: string } | { meal: object }}
  */
-export function mealOf(form, { recipe, clientKey = null }) {
+export function mealOf(form, { recipe, clientKey = null, original = null }) {
   const name = form.name.trim()
   if (!name) return { error: 'name' }
   if (!form.items.length) return { error: 'items' }
-  const total = totalOf(form.items)
-  const body = { name, notes: form.notes.trim(), items: form.items, is_recipe: recipe }
-  if (clientKey) body.client_key = clientKey
-  if (!recipe) return { meal: { ...body, nutrition: total } }
-  const servings = Number(form.servings)
-  if (!Number.isInteger(servings) || servings < 1) return { error: 'servings' }
+  const notes = form.notes.trim()
+  const blankServings = form.servings === '' && original != null && original.servings == null
+  const servings = blankServings ? 1 : Number(form.servings)
+  if (recipe && (!Number.isInteger(servings) || servings < 1)) return { error: 'servings' }
+  const start = original ? formOf(original, { recipe }) : null
   const amount = form.amount === '' ? gramsOfAll(form.items) || 100 : decimal(form.amount)
-  if (!(amount > 0)) return { error: 'amount' }
-  return {
-    meal: {
-      ...body,
-      portion: amount / servings,
-      unit: form.unit || 'g',
-      servings,
-      nutrition: Object.fromEntries(Object.entries(total).map(([k, v]) => [k, v / servings])),
-    },
+  if (recipe && !(amount > 0)) return { error: 'amount' }
+
+  if (!original) {
+    const body = { name, notes, items: form.items, is_recipe: recipe }
+    if (clientKey) body.client_key = clientKey
+    const total = totalOf(form.items)
+    if (!recipe) return { meal: { ...body, nutrition: total } }
+    return { meal: { ...body, portion: amount / servings, unit: form.unit || 'g', servings, nutrition: scaled(total, 1 / servings) } }
   }
+
+  const body = {}
+  if (name !== original.name) body.name = name
+  if (notes !== (original.notes || '').trim()) body.notes = notes
+  const itemsChanged = !sameJson(form.items, form.baseItems)
+  if (itemsChanged) {
+    body.items = form.items
+    const total = totalOf(form.items)
+    if (!recipe) body.nutrition = total
+    else Object.assign(body, { portion: amount / servings, unit: form.unit || 'g', nutrition: scaled(total, 1 / servings) })
+  } else if (recipe) {
+    const before = servingsOf(original)
+    if (servings !== before) {
+      body.nutrition = scaled(nutritionOf({ nutrition: original.nutrition }), before / servings)
+      // An import with no stored weight (CookTrace) has nothing to scale: the weight shown is used.
+      const stored = parseFloat(original.portion)
+      body.portion = stored > 0 ? stored * before / servings : amount / servings
+    }
+    if (form.amount !== start.amount) body.portion = amount / servings
+  }
+  if (recipe && !blankServings && (itemsChanged || form.servings !== start.servings)) body.servings = servings
+  return { meal: body }
 }
 
 /* ------------------------------------------------------------------ logging ------------------ */

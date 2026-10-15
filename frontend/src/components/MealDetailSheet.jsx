@@ -11,36 +11,44 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { confirmSheet } from '../sheets.jsx'
 import MealNutrition from './MealNutrition.jsx'
 import { mealEditSheet } from './MealEditSheet.jsx'
-import { ItemRow, SectionTitle, Tag } from './blocks.jsx'
+import { EmptyState, ItemRow, SectionTitle, Tag } from './blocks.jsx'
 import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 import { Button, NumberField, Row, Section } from './ui.jsx'
 
 const toast = m => useUI.getState().toast(m)
 
-// A saved meal or recipe: what is in it, and Log. The date and meal are the ones the diary has
-// selected, taken once as the sheet opens, so what the button says is what it logs to. The log is
-// built once per amount: Log again after a failure sends the same entries, so a save whose answer
-// was lost does not log twice, and a meal's entries go in one diary write, all or none. Reads the
-// meal from the store, so an edit shows here at once.
-export function MealDetailSheet({ id, recipe, settings = null, close }) {
+// A saved meal or recipe: what is in it, and Log. The settings (energy unit, meal names) are read
+// live, and the date and meal are the ones the diary has selected, taken once the settings are in
+// so the meal count is right and the button says what it logs to. The log is built once per
+// amount: Log again after a failure sends the same entries, so a save whose answer was lost does
+// not log twice, and a meal's entries go in one diary write, all or none. Reads the meal from the
+// store, so an edit shows here at once.
+export function MealDetailSheet({ id, recipe, close }) {
   const meal = useNutrition(s => (recipe ? s.recipes : s.meals).list.find(m => m.id === id))
-  const [target] = useState(() => useDiarySelection.getState().target(settings))
+  const settings = useNutrition(s => s.settings.data)
+  const settingsStatus = useNutrition(s => s.settings.status)
+  const [target, setTarget] = useState(null)
   const [servings, setServings] = useState(1)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const settled = settingsStatus === 'ready' || settingsStatus === 'error'
+
+  useEffect(() => { useNutrition.getState().loadSettings() }, [])
+  useEffect(() => { if (settled && !target) setTarget(useDiarySelection.getState().target(settings)) }, [settled, target, settings])
 
   // Deleted from here (or by a sync): nothing left to show.
   useEffect(() => { if (!meal) close() }, [meal, close])
 
+  const labels = mealLabels(settings)
+  const slot = target && target.meal < labels.length ? target.meal : 0
   const draft = useMemo(() => {
-    if (!meal) return null
-    try { return mealDraft(meal, { slot: target.meal, servings }) } catch { return null }
-  }, [meal, target.meal, servings])
+    if (!meal || !target) return null
+    try { return mealDraft(meal, { slot, servings }) } catch { return null }
+  }, [meal, target, slot, servings])
 
   if (!meal) return null
 
-  const labels = mealLabels(settings)
-  const where = labels[target.meal] ?? labels[0]
+  const where = labels[slot]
   const per = recipe ? nutritionOf({ nutrition: meal.nutrition }) : totalOf(meal.items)
   const eatenKcal = energyOf(Math.round((per.calories || 0) * (Number(servings) || 0)), settings)
 
@@ -92,20 +100,22 @@ export function MealDetailSheet({ id, recipe, settings = null, close }) {
     </>}
     {meal.notes && <div className="small muted">{meal.notes}</div>}
     <SectionTitle>{t('Log')}</SectionTitle>
-    <div className="small muted">{t('Logging to {0} · {1}', where, fmtDate(target.date, true))}</div>
+    {!target
+      ? <EmptyState><div role="status">{t('Loading…')}</div></EmptyState>
+      : <div className="small muted">{t('Logging to {0} · {1}', where, fmtDate(target.date, true))}</div>}
     {recipe && <label className="measure-date">
       <span>{t('Servings eaten')}</span>
       <NumberField value={servings} onChange={setServings} aria-label={t('Servings eaten')} />
     </label>}
-    {!draft && <div className="small muted" role="status">{recipe ? t('Enter servings above 0.') : t('This meal has no ingredients to log.')}</div>}
+    {target && !draft && <div className="small muted" role="status">{recipe ? t('Enter servings above 0.') : t('This meal has no ingredients to log.')}</div>}
     {draft && recipe && <div className="small muted">{t('{0} in total', `${eatenKcal.value} ${eatenKcal.unit}`)}</div>}
     {error && <div className="small muted" role="alert">{error}</div>}
     <SheetActions>
-      <Button variant="primary" onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : t('Log to {0}', where)}</Button>
+      <Button variant="primary" onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : target ? t('Log to {0}', where) : t('Log')}</Button>
     </SheetActions>
     <Section>
-      <Row icon="pencil" title={t('Edit')} onClick={() => mealEditSheet({ meal, recipe, settings })} />
-      <Row icon="trash" title={recipe ? t('Delete recipe') : t('Delete meal')} danger onClick={remove} />
+      <Row icon="pencil" title={t('Edit')} onClick={() => mealEditSheet({ meal, recipe })} />
+      <Row icon="trash" title={t('Delete {0}', meal.name)} danger onClick={remove} />
     </Section>
   </>
 }

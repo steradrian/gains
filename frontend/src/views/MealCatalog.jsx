@@ -39,7 +39,7 @@ export default function MealCatalog({ recipes }) {
     </Page>
   }
 
-  const create = () => mealEditSheet({ recipe: recipes, settings })
+  const create = () => mealEditSheet({ recipe: recipes })
   const list = catalog.list.filter(m => matchesFood(m, q))
 
   const row = meal => {
@@ -48,7 +48,7 @@ export default function MealCatalog({ recipes }) {
       ? `${tn('{0} serving', '{0} servings', servingsOf(meal))} · ${t('per serving')}`
       : tn('{0} ingredient', '{0} ingredients', meal.items.length)
     return <ItemRow key={meal.id} title={meal.name} subtitle={sub} trailing={<Tag>{kcal.value} {kcal.unit}</Tag>} chevron
-      onClick={() => mealDetailSheet({ id: meal.id, recipe: recipes, settings })} />
+      onClick={() => mealDetailSheet({ id: meal.id, recipe: recipes })} />
   }
 
   let body

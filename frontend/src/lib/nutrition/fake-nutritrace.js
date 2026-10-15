@@ -146,19 +146,39 @@ export function isOffSearchQuery(params) {
 const isObject = v => typeof v === 'object' && v !== null && !Array.isArray(v)
 // fitness-hub isPrivateFoodWithoutImage
 const isPrivateFoodWithoutImage = b => isObject(b) && !('img_url' in b) && !('imgUrl' in b) && b.visibility === 'private'
-// The meals routes' allow-lists, by key (fitness-hub nt-body-checks.ts MEAL_EDIT_FIELDS,
-// NEW_MEAL_FIELDS, INGREDIENT_FIELDS, ALT_UNIT_FIELDS): a key outside them is a 400, in the meal
-// and in each ingredient. The values' types are not checked here.
-const MEAL_EDIT_KEYS = ['name', 'notes', 'items', 'is_recipe', 'nutrition', 'portion', 'unit', 'servings']
-const NEW_MEAL_KEYS = [...MEAL_EDIT_KEYS, 'client_key', 'visibility']
-const INGREDIENT_KEYS = ['id', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'nutrition_basis', 'alt_units', 'density_g_ml']
-const ALT_UNIT_KEYS = ['abbr', 'grams']
-const hasOnlyKeys = (o, keys) => isObject(o) && Object.keys(o).every(k => keys.includes(k))
-const isIngredient = i => hasOnlyKeys(i, INGREDIENT_KEYS) && ['name', 'portion', 'unit', 'nutrition'].every(k => k in i) &&
-  (i.alt_units == null || (Array.isArray(i.alt_units) && i.alt_units.every(u => hasOnlyKeys(u, ALT_UNIT_KEYS))))
-const hasIngredients = b => !('items' in b) || (Array.isArray(b.items) && b.items.length > 0 && b.items.every(isIngredient))
-const isNewMeal = b => hasOnlyKeys(b, NEW_MEAL_KEYS) && b.visibility === 'private' && Array.isArray(b.items) && 'is_recipe' in b && hasIngredients(b)
-const isMealEdit = b => hasOnlyKeys(b, MEAL_EDIT_KEYS) && hasIngredients(b)
+// The meals routes' allow-lists with the type of each field, as the hub checks them (fitness-hub
+// nt-body-checks.ts MEAL_EDIT_FIELDS, NEW_MEAL_FIELDS, INGREDIENT_FIELDS, ALT_UNIT_FIELDS, with
+// the ingredient rules of gains-hub#11): a key outside them, or a value of the wrong kind, is a 400,
+// in the meal and in each ingredient.
+const text = max => v => typeof v === 'string' && v.length <= max
+const nonEmptyText = max => v => typeof v === 'string' && v.trim() !== '' && v.length <= max
+const nullable = check => v => v === null || check(v)
+const oneOf = (...allowed) => v => allowed.includes(v)
+const isBool = v => typeof v === 'boolean'
+const numberIn = (min, max) => v => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max
+const integerIn = (min, max) => v => Number.isInteger(v) && v >= min && v <= max
+const positiveAmount = numberIn(Number.MIN_VALUE, 1_000_000)
+const hasOnly = (o, fields) => isObject(o) && Object.entries(o).every(([k, v]) => Object.hasOwn(fields, k) && fields[k](v))
+const hasAll = (o, keys) => keys.every(k => Object.hasOwn(o, k))
+const arrayOf = (check, max) => v => Array.isArray(v) && v.length <= max && v.every(check)
+const isNutrition = v => isObject(v) && Object.keys(v).length <= 100 && Object.entries(v).every(([k, n]) => k.length <= 40 && numberIn(0, 1e9)(n))
+const ALT_UNIT_FIELDS = { abbr: nonEmptyText(20), grams: positiveAmount }
+const INGREDIENT_AMOUNT = numberIn(0, 1_000_000)
+const INGREDIENT_FIELDS = {
+  id: v => integerIn(0, Number.MAX_SAFE_INTEGER)(v) || text(64)(v), name: text(200), brand: nullable(text(200)),
+  portion: INGREDIENT_AMOUNT, unit: text(16), quantity: INGREDIENT_AMOUNT, nutrition: isNutrition,
+  nutrition_basis: nullable(oneOf('g', 'ml')), alt_units: nullable(arrayOf(u => hasOnly(u, ALT_UNIT_FIELDS), 20)),
+  density_g_ml: nullable(positiveAmount), is_recipe: isBool,
+}
+const isIngredient = v => isObject(v) && hasAll(v, ['name', 'portion', 'unit', 'nutrition']) && hasOnly(v, INGREDIENT_FIELDS)
+const MEAL_EDIT_FIELDS = {
+  name: nonEmptyText(200), notes: text(5000), items: v => Array.isArray(v) && v.length > 0 && arrayOf(isIngredient, 100)(v),
+  is_recipe: isBool, nutrition: isNutrition, portion: positiveAmount, unit: nonEmptyText(16), servings: integerIn(1, 1000),
+}
+const NEW_MEAL_FIELDS = { ...MEAL_EDIT_FIELDS, client_key: nonEmptyText(128), visibility: oneOf('private') }
+const isNewMeal = b => isObject(b) && hasAll(b, ['name', 'items', 'is_recipe', 'visibility']) && hasOnly(b, NEW_MEAL_FIELDS)
+const isMealEdit = b => isObject(b) && hasOnly(b, MEAL_EDIT_FIELDS)
+const isMealUsedBump = b => isObject(b) && hasOnly(b, { date: v => typeof v === 'string' && DATE.test(v) })
 
 /* ------------------------------------------------------------------ NutriTrace's merge ------- */
 
@@ -310,7 +330,7 @@ export function createFakeNutriTrace({
         return json({ ok: true })
       }
       if (method === 'POST' && n === 5 && ID.test(a) && b === 'used') {
-        if (!hasOnlyKeys(body, ['date']) || !DATE.test(String(body.date))) return json({ error: 'request body refused' }, 400)
+        if (!isMealUsedBump(body)) return json({ error: 'request body refused' }, 400)
         const meal = live()
         if (!meal) return json({ error: 'Not found' }, 404)
         meal.usage_count = (meal.usage_count || 0) + 1

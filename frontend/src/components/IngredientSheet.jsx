@@ -14,13 +14,15 @@ const SHOWN = 50
 // One ingredient of a meal or recipe: pick one of your foods and say how much, or (with `item`)
 // change the amount of one already in it, or take it out (`onRemove`). Hands the ingredient to
 // `onDone` and closes.
-export function IngredientSheet({ item = null, settings = null, onDone, onRemove = null, close }) {
+export function IngredientSheet({ item = null, onDone, onRemove = null, close }) {
   const foods = useNutrition(s => s.foods)
+  const settings = useNutrition(s => s.settings.data)
   const [q, setQ] = useState('')
   const [picked, setPicked] = useState(item)
   const [amount, setAmount] = useState(item ? (parseFloat(item.portion) || 0) * (parseFloat(item.quantity) || 1) : 0)
   const [unit, setUnit] = useState(item?.unit || 'g')
 
+  useEffect(() => { useNutrition.getState().loadSettings() }, [])
   useEffect(() => { if (!item) useNutrition.getState().loadFoods() }, [item])
 
   const ingredient = useMemo(() => {
@@ -88,7 +90,7 @@ export function IngredientSheet({ item = null, settings = null, onDone, onRemove
     <SheetActions>
       <Button variant="primary" onClick={done} disabled={!ingredient}>{item ? t('Save') : t('Add')}</Button>
       {!item && <Button variant="ghost" onClick={() => setPicked(null)}>{t('Choose another food')}</Button>}
-      {item && onRemove && <Button variant="ghost" onClick={remove}>{t('Remove')}</Button>}
+      {item && onRemove && <Button variant="ghost" onClick={remove}>{t('Remove {0}', item.name)}</Button>}
     </SheetActions>
   </>
 }

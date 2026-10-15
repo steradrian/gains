@@ -135,11 +135,12 @@ const nt = (method, path, body, opts) => call(method, '/nt' + path, body, opts)
 // INGREDIENT_FIELDS, ALT_UNIT_FIELDS): picked by name, because a meal saved in NutriTrace's own UI
 // holds more (img_url and others) and the hub refuses a body with a key it does not list.
 const MEAL_FIELDS = ['name', 'notes', 'items', 'is_recipe', 'nutrition', 'portion', 'unit', 'servings']
-const INGREDIENT_FIELDS = ['id', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'nutrition_basis', 'alt_units', 'density_g_ml']
+const INGREDIENT_FIELDS = ['id', 'name', 'brand', 'portion', 'unit', 'quantity', 'nutrition', 'nutrition_basis', 'alt_units', 'density_g_ml', 'is_recipe']
 const pick = (from, keys) => Object.fromEntries(keys.filter(k => from[k] !== undefined).map(k => [k, from[k]]))
 const ingredientBody = item => {
   const body = pick(item, INGREDIENT_FIELDS)
   if (Array.isArray(body.alt_units)) body.alt_units = body.alt_units.map(u => pick(u, ['abbr', 'grams']))
+  if ('is_recipe' in body) body.is_recipe = !!body.is_recipe
   return body
 }
 /** The meal fields the hub allows, its ingredients cut the same way. */
