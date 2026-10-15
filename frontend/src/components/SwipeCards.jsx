@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { reducedMotion } from '../lib/use-swipe-row.js'
+import { reducedMotion } from '../lib/reduced-motion.js'
 
 // What a card swipe never starts on: things that take a sideways drag themselves (a slider, a
 // chip row that scrolls, a video's scrubber, a text area), and what has its own swipe (a set row,

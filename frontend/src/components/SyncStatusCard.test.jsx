@@ -60,6 +60,29 @@ describe('SyncStatusCard', () => {
     expect(syncNow).toHaveBeenCalledTimes(1)
     expect(nt.requests.some(r => r.method === 'POST' && r.path === '/hub/api/sync/now')).toBe(true)
     expect(toast).toHaveBeenCalledWith('Nutrition sync needs attention')
+    // openGym was synced by the first half: the hub run does not push it a second time
+    expect(useStore.getState().pushState).not.toHaveBeenCalled()
+  })
+
+  it('a hub that does not answer is not "All synced": the toast says nutrition did not sync', async () => {
+    setUp()
+    act(() => root.render(<SyncStatusCard />))
+    await settle()
+    nt.failNext('POST', '/hub/api/sync/now', 'offline')
+    await act(async () => { rowTitled('Sync now').click() })
+    await settle()
+    expect(toast).toHaveBeenCalledWith('Training synced, but nutrition did not: the sync service did not answer.')
+    expect(toast).not.toHaveBeenCalledWith('All synced')
+  })
+
+  it('a training sync that fails says so, without asking the hub', async () => {
+    setUp({ sync: { status: 'error', lastError: { status: 502, code: 'http' } } })
+    act(() => root.render(<SyncStatusCard />))
+    await settle()
+    await act(async () => { rowTitled('Sync now').click() })
+    await settle()
+    expect(toast).toHaveBeenCalledWith('Server error (HTTP 502)')
+    expect(nt.requests.some(r => r.path === '/hub/api/sync/now')).toBe(false)
   })
 
   it('a person the hub has not stored yet reads "Not synced yet"', async () => {
