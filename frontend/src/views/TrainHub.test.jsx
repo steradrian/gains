@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { fmtDate, isoOf, startOfWeek, todayISO, weekStartOf } from '../lib/format.js'
-import { dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
+import { calendarSheet, dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
 import TrainHub from './TrainHub.jsx'
 
 const nav = vi.fn()
@@ -199,6 +199,8 @@ describe('Training — Your plan', () => {
     const rows = planRows()
     expect(rows.map(x => x.querySelector('.lrow-t').textContent)).toEqual(['Push', 'Pull + Legs'])
     expect(rows[0].querySelector('.lrow-k')).toBeTruthy()
+    expect(rows[0].querySelector('.lrow-s').textContent).toContain('Done')
+    expect(rows[1].querySelector('.lrow-s').textContent).not.toContain('Done')
     tap(rows[0])
     expect(workoutDetailSheet).toHaveBeenCalledWith(w)
     tap(rows[1])
@@ -261,6 +263,27 @@ describe('Training — Routines', () => {
     expect(push.querySelector('.il-d.il-mute')).toBeNull()
   })
 
+  it('a rotation or a coach week schedules its routines too: not muted', () => {
+    setS({ week: {}, scheduleMode: 'rotation', rotation: { id: 'rot', sequence: ['r2'] } }); mount()
+    const [push, pull] = media()
+    expect(pull.querySelector('.il-d.il-mute')).toBeNull()
+    expect(push.querySelector('.il-d.il-mute')).toBeTruthy()
+    act(() => root.unmount()); root = createRoot(host)
+    setS({ week: {}, queue: { ids: ['r1'], since: Date.now() - 86400000, startsOn: TODAY, label: 'US W1' } }); mount()
+    const [push2, pull2] = media()
+    expect(push2.querySelector('.il-d.il-mute')).toBeNull()
+    expect(pull2.querySelector('.il-d.il-mute')).toBeTruthy()
+  })
+
+  it('▶ on a routine with no exercises opens it to add some instead of starting an empty session', () => {
+    setS({ routines: [r('e1', 'Empty', 0), ...routines] }); mount()
+    const play = media()[0].querySelector('.media-play')
+    expect(play.getAttribute('aria-label')).toBe('Add exercise, Empty')
+    tap(play)
+    expect(startFlow).not.toHaveBeenCalled()
+    expect(nav).toHaveBeenCalledWith('/train/routines/e1')
+  })
+
   it('with a session in progress, ▶ goes back to it instead of starting another', () => {
     setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } }); mount()
     tap(media()[0].querySelector('.media-play'))
@@ -275,6 +298,47 @@ describe('Training — Routines', () => {
     tap(pill('Load starter plan'))
     expect(starterPlanSheet).toHaveBeenCalled()
     expect(media().map(x => x.querySelector('.tt').textContent)).toEqual(['Freestyle'])
+  })
+})
+
+// The Home review fixes live in code both tabs share; Training has to show them too.
+describe('Training — the shared Home fixes', () => {
+  const tomorrow = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return isoOf(d) })()
+
+  it('a rest day names every routine of the next session', () => {
+    setS({ week: { [new Date(tomorrow + 'T12:00:00').getDay()]: ['r1', 'r2'] } }); mount()
+    expect(hero().caption).toMatch(/^Next session: \w+, Push \+ Pull$/)
+  })
+
+  it('the ⋯ comes after the heading in reading order', () => {
+    setS(); mount()
+    const title = host.querySelector('.hero-t'), more = host.querySelector('.hero-more')
+    expect(title.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('a workout with no name still has a label in the See workouts menu', () => {
+    const a = at(yesterday, 8, { name: '' })
+    const b = at(yesterday, 18, { name: 'Pull' })
+    setS({ workouts: [a, b], week: {} })
+    act(() => useDiarySelection.getState().setDate(yesterday)); mount()
+    tap(host.querySelector('.hero-l'))
+    expect(menuSheet.mock.calls.at(-1)[0].items.map(i => i.label)).toEqual(['Workout', 'Pull'])
+  })
+
+  it('the hero sits in a TabSection like every other block', () => {
+    setS(); mount()
+    expect(host.querySelector('.hero').closest('.tab-sec')).toBeTruthy()
+  })
+
+  it('a day to come in the calendar opens "change this day" for it, announced, without moving the date', () => {
+    setS(); mount()
+    tap(host.querySelector('.month-bar-l'))
+    const opts = calendarSheet.mock.calls.at(-1)[1]
+    expect(opts.onFuture).toBeTypeOf('function')
+    act(() => opts.onFuture(tomorrow))
+    expect(dayOverrideSheet).toHaveBeenCalledWith(tomorrow)
+    expect(host.querySelector('[role="status"].sr-only').textContent).toBe('Change this day, ' + fmtDate(tomorrow, true))
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
   })
 })
 
