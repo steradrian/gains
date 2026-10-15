@@ -31,7 +31,7 @@ export default function TrainHub() {
 
   return <Page root title={t('Training')}>
     <DayNav />
-    <TrainingHero date={date} />
+    <TabSection><TrainingHero date={date} /></TabSection>
     <TabSection><TrainActions date={date} showCoach={showCoach} /></TabSection>
     {S.routines.length > 0 && <TabSection><TrainPlan /></TabSection>}
     <TabSection><TrainRoutines /></TabSection>

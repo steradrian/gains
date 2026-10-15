@@ -2828,6 +2828,7 @@ export default {
   'View plan': '플랜 보기',
   '{0} eaten': '{0} 섭취',
   '{0} of {1} this week': '이번 주 {0}/{1}',
+  '{0} this week': '이번 주 {0}',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
 

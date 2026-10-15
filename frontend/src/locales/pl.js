@@ -2828,6 +2828,7 @@ export default {
   'View plan': 'Zobacz plan',
   '{0} eaten': 'Zjedzono {0}',
   '{0} of {1} this week': '{0} z {1} w tym tygodniu',
+  '{0} this week': '{0} w tym tygodniu',
   '{0} PR': '{0} rekord',
   '{0} PRs': { one: '{0} rekord', few: '{0} rekordy', many: '{0} rekordów' },
 

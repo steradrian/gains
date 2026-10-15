@@ -2828,6 +2828,7 @@ export default {
   'View plan': '查看计划',
   '{0} eaten': '已摄入 {0}',
   '{0} of {1} this week': '本周 {0}/{1}',
+  '{0} this week': '本周 {0}',
   '{0} PR': '{0} 个 PR',
   '{0} PRs': '{0} 个 PR',
 

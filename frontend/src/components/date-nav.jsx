@@ -14,14 +14,15 @@ const fmt = (iso, options) => noon(iso).toLocaleDateString(dateLocale(), options
 
 // The month of `date` as a button that opens the calendar (onPickDate gets the day picked there),
 // and "Today" at the other end. Today keeps its place while today is the date (hidden, not
-// removed), so the label never moves.
-export function MonthBar({ date, onPickDate, onToday }) {
+// removed), so the label never moves. `onPickFuture`: days after today are tappable in the calendar
+// and go there, not to onPickDate; without it they are dimmed.
+export function MonthBar({ date, onPickDate, onPickFuture, onToday }) {
   const today = todayISO()
   const month = fmt(date, { month: 'long', year: 'numeric' })
   return (
     <div className="month-bar">
       <button type="button" className="month-bar-l" aria-haspopup="dialog" aria-label={t('Choose a day, {0}', month)}
-        onClick={() => calendarSheet(date, { onPick: onPickDate })}>
+        onClick={() => calendarSheet(date, { onPick: onPickDate, onFuture: onPickFuture })}>
         <span>{month}</span><Icon name="chevronDown" />
       </button>
       <button type="button" className={cx('month-bar-today', date === today && 'off')} onClick={onToday}>{t('Today')}</button>

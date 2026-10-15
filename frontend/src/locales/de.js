@@ -2848,6 +2848,7 @@ export default {
   'View plan': 'Plan ansehen',
   '{0} eaten': '{0} gegessen',
   '{0} of {1} this week': '{0} von {1} diese Woche',
+  '{0} this week': '{0} diese Woche',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PRs',
 

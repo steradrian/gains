@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { t, dateLocale } from '../lib/i18n.js'
-import { todayISO } from '../lib/format.js'
+import { todayISO, yesterdayISO } from '../lib/format.js'
+import { useNutrition } from '../lib/nutrition/store.js'
 import { loadErrorText } from '../lib/nutrition/log-feedback.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { dayHasLog, hasLogged, markLogged } from '../lib/nutrition/first-log.js'
@@ -23,8 +24,14 @@ export default function HomeHero({ date, day }) {
   const units = useUnits()
   const today = todayISO()
   const training = useTrainingHero(date)
-  const logged = day.status === 'ready' && dayHasLog(day.entry)
+  // "First log" is read off every day loaded so far, not just the selected one: yesterday (which
+  // Home's live row loads) or a day opened in the calendar with a log means this person has one.
+  // The caption waits for yesterday's read so an existing user never sees it flash.
+  const yesterday = yesterdayISO()
+  const logged = useNutrition(s => Object.values(s.days).some(d => d?.status === 'ready' && dayHasLog(d.entry)))
+  const yesterdayRead = useNutrition(s => s.days[yesterday]?.status === 'ready' || s.days[yesterday]?.status === 'error')
   useEffect(() => { if (logged) markLogged() }, [logged])
+  useEffect(() => { if (day.on) useNutrition.getState().loadDay(yesterday) }, [day.on, yesterday])
 
   if (!day.on) return <HeroStatus {...training} />
 
@@ -46,6 +53,6 @@ export default function HomeHero({ date, day }) {
         {grams(day.totals[m.id])}{day.macros[m.id] != null && '/' + grams(day.macros[m.id])} g
       </span>)}
     </p>}
-    {ready && date === today && !logged && !hasLogged() && <p className="hero-c">{t('Counts from your first log')}</p>}
+    {ready && date === today && yesterdayRead && !logged && !hasLogged() && <p className="hero-c">{t('Counts from your first log')}</p>}
   </HeroStatus>
 }

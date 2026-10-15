@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { t } from '../lib/i18n.js'
+import { t, tn } from '../lib/i18n.js'
 import { routineCount, todayISO, DAYN } from '../lib/format.js'
 import { streakWeeks } from '../lib/history.js'
-import { queueView, weekTally } from '../lib/queue.js'
-import { nextSession, trainingDay } from '../lib/training-day.js'
+import { queueOf, queueView, weekTally } from '../lib/queue.js'
+import { nameOf, nextSession, trainingDay } from '../lib/training-day.js'
 import { Card } from './blocks.jsx'
 import { LineArt } from './line-art.jsx'
 import PlanWelcome from './PlanWelcome.jsx'
@@ -25,13 +25,15 @@ export default function HomeWeek() {
   const { done, planned } = weekTally(S, today)
   const queue = queueView(S, today)
   const header = <SectionHeader title={t('This week')} link={t('View plan')} onLink={() => nav('/train')} />
+  const total = S.workouts.length ? tn('{0} workout total', '{0} workouts total', S.workouts.length) : null
 
   if (!planned && !queue) {
     return <>
       {header}
       <Card>
         <MediaRow art={<LineArt scene="routine" state={{ days: S.routines.length, scheduled: false }} />}
-          title={routineCount(S.routines.length)} subtitle={t('Not scheduled')}
+          title={routineCount(S.routines.length)}
+          subtitle={[t('Not scheduled'), done > 0 && t('{0} this week', done), total].filter(Boolean).join(' · ')}
           link={{ icon: 'calendar', label: t('Schedule'), onClick: () => nav('/train/schedule') }} />
       </Card>
     </>
@@ -43,7 +45,7 @@ export default function HomeWeek() {
     const day = trainingDay(S, today, today)
     const after = day.kind === 'planned' ? null : nextSession(S, today)
     if (day.kind === 'planned') next = { when: t('Today'), name: day.name }
-    else if (after) next = { when: t(DAYN[after.weekday]), name: after.routines.map(r => r.name).join(' + ') }
+    else if (after) next = { when: t(DAYN[after.weekday]), name: nameOf(after.routines) }
   }
   const streak = streakWeeks(S)
   return <>
@@ -51,7 +53,7 @@ export default function HomeWeek() {
     <Card>
       <MediaRow art={<LineArt scene="routine" state={{ days: planned, next: next ? 0 : null }} />}
         title={t('{0} of {1} this week', done, planned)}
-        subtitle={[streak > 0 && t('{0} week streak', streak), next && t('Next session: {0}, {1}', next.when, next.name)].filter(Boolean).join(' · ') || null}
+        subtitle={[streak > 0 && t('{0} week streak', streak), next && t('Next session: {0}, {1}', next.when, next.name), total].filter(Boolean).join(' · ') || null}
         onOpen={() => nav('/train')} chevron />
       {queue && <QueueRow S={S} today={today} />}
     </Card>

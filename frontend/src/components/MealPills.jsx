@@ -26,7 +26,7 @@ export default function MealPills({ date, day }) {
         const items = day.dayReady ? mealItems(day.entry, slot) : []
         const kcal = items.length ? totalsOf(items).calories : null
         return <Chip key={slot} nocap onClick={() => open(slot)}
-          aria-label={kcal != null ? t('Log food to {0}, {1} so far', name, units.energy(kcal)) : t('Log food to {0}', name)}>
+          aria-label={kcal != null ? `${name} ${units.energy(kcal)}, ${t('Log food')}` : t('Log food to {0}', name)}>
           {name}{kcal != null ? <span className="meal-pill-v">{units.energyValue(kcal)}</span> : <Icon name="plus" />}
         </Chip>
       })}

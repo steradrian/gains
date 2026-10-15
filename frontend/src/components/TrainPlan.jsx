@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { fmtDate, isoOf, startOfWeek, todayISO, weekStartOf, DAYN } from '../lib/format.js'
-import { effectiveRoutines, workoutDay } from '../lib/history.js'
+import { effectiveRoutines } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
 import { queueView } from '../lib/queue.js'
 import { scheduleModeOf } from '../lib/rotation.js'
+import { workoutLabel, workoutsByDay } from '../lib/training-day.js'
 import { dayOverrideSheet } from '../sheets.jsx'
 import { Card, InlineNote } from './blocks.jsx'
 import QueueRow from './QueueRow.jsx'
@@ -16,11 +17,12 @@ import { Row, Section } from './ui.jsx'
 // The days of the week `today` is in that hold a session: trained (its workouts), or planned.
 function weekSessions(S, today) {
   const start = startOfWeek(today, weekStartOf(S))
+  const byDay = workoutsByDay(S.workouts)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
     const iso = isoOf(d)
-    return { iso, weekday: d.getDay(), workouts: S.workouts.filter(w => workoutDay(w) === iso), routines: effectiveRoutines(S, iso) }
+    return { iso, weekday: d.getDay(), workouts: byDay.get(iso) ?? [], routines: effectiveRoutines(S, iso) }
   }).filter(d => d.workouts.length || d.routines.length)
 }
 
@@ -44,8 +46,8 @@ export default function TrainPlan() {
     <Section>
       {sessions.map(d => {
         const done = d.workouts.length > 0
-        const names = done ? d.workouts.map(w => w.name || t('Workout done')) : d.routines.map(r => r.name)
-        const when = [t(DAYN[d.weekday]), d.iso === today && t('Today'), !done && d.iso < today && t('Planned, not logged')].filter(Boolean).join(' · ')
+        const names = done ? d.workouts.map(w => workoutLabel(w)) : d.routines.map(r => r.name)
+        const when = [t(DAYN[d.weekday]), d.iso === today && t('Today'), done && t('Done'), !done &&d.iso < today && t('Planned, not logged')].filter(Boolean).join(' · ')
         return <Row key={d.iso} glyph={done ? 'checkCircle' : glyphOf(d.routines[0].emoji)} title={names.join(' + ')} subtitle={when}
           accessory={done ? 'check' : 'chevron'}
           onClick={() => (done ? workoutsSheet(fmtDate(d.iso, true), d.workouts) : dayOverrideSheet(d.iso))} />

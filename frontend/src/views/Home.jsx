@@ -18,7 +18,7 @@ import WeightCard from '../components/WeightCard.jsx'
 // glance and the next thing to log in a tap or two, across training and food. The month and week
 // pick the day every tab shares; the hero says how it is going; the action row does the most-used
 // things; then what is live right now, the day's meals as pills (the diary is on Nutrition), the
-// week and body weight.
+// week and body weight. Every block below the date is a TabSection: the rhythm is the shell's.
 export default function Home() {
   const S = useStore(s => s.S)
   const { date } = useDiaryTarget(null)
@@ -28,15 +28,17 @@ export default function Home() {
 
   return <Page root title={t('Home')}>
     <DayNav />
-    <HomeHero date={date} day={day} />
+    <TabSection><HomeHero date={date} day={day} /></TabSection>
     <TabSection><HomeActions date={date} day={day} /></TabSection>
     {/* Only what is true right now: the running fast, yesterday's meal while today's is empty. */}
-    {day.on && <>
-      <TodayFastRow />
-      {isToday && <YesterdayMealRow settings={day.settings} meal={meal} whileEmpty />}
-    </>}
+    <TabSection>
+      {day.on && <>
+        <TodayFastRow />
+        {isToday && <YesterdayMealRow settings={day.settings} meal={meal} whileEmpty />}
+      </>}
+    </TabSection>
     {day.on && <TabSection><MealPills date={date} day={day} /></TabSection>}
     <TabSection><HomeWeek /></TabSection>
-    {S.showWeightCard !== false && <WeightCard date={date} />}
+    {S.showWeightCard !== false && <TabSection><WeightCard date={date} /></TabSection>}
   </Page>
 }

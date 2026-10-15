@@ -92,6 +92,20 @@ describe('Home — the hero and the first action', () => {
     expect(startFlow).not.toHaveBeenCalled()
   })
 
+  it('a rest day names every routine of the next session, as This week does', () => {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+    const pull = { id: 'r2', name: 'Pull', emoji: null, ex: [{ id: '0025' }] }
+    setS({ routines: [...routines, pull], week: { [tomorrow.getDay()]: ['r1', 'r2'] } }); mount()
+    expect(hero().caption).toMatch(/^Next session: \w+, Push \+ Pull$/)
+    expect(host.querySelector('.item-lg .ss').textContent).toMatch(/Next session: \w+, Push \+ Pull/)
+  })
+
+  it('the ⋯ comes after the heading in reading order', () => {
+    setS(); mount()
+    const title = host.querySelector('.hero-t'), more = host.querySelector('.hero-more')
+    expect(title.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('done: the session with its time and PRs, the way to it, and Workout for another', () => {
     const start = Date.now() - 60 * 60000
     const w = { id: 'w1', d: TODAY, start, end: start + 52 * 60000, routineIds: ['r1'], routineId: 'r1', name: 'Push', prs: ['a', 'b'], entries: [] }
@@ -146,6 +160,15 @@ describe('Home — the hero and the first action', () => {
     expect(logPastWorkoutSheet).toHaveBeenCalledWith({ iso: yesterday })
   })
 
+  it('a workout with no name still has a label in the See workouts menu', () => {
+    const at = h => new Date(yesterday + `T${h}:00:00`).getTime()
+    const a = { id: 'a', d: yesterday, start: at(8), end: at(9), routineIds: [], name: '', entries: [] }
+    const b = { id: 'b', d: yesterday, start: at(18), end: at(19), routineIds: [], name: 'Push', entries: [] }
+    setS({ workouts: [a, b] }); act(() => useDiarySelection.getState().setDate(yesterday)); mount()
+    tap(host.querySelector('.hero-l'))
+    expect(menuSheet.mock.calls.at(-1)[0].items.map(i => i.label)).toEqual(['Workout', 'Push'])
+  })
+
   it('a session in progress keeps the first slot on a past day too', () => {
     setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } })
     act(() => useDiarySelection.getState().setDate(yesterday)); mount()
@@ -167,7 +190,7 @@ describe('Home — This week', () => {
     const now = Date.now()
     setS({ workouts: [{ id: 'w', d: TODAY, start: now - 3600000, end: now, routineIds: ['r1'], routineId: 'r1', name: 'Push', entries: [] }] }); mount()
     expect(host.querySelector('.item-lg .tt').textContent).toBe('1 of 7 this week')
-    expect(host.querySelector('.item-lg .ss').textContent).toMatch(/^1 week streak · Next session: \w+, Push$/)
+    expect(host.querySelector('.item-lg .ss').textContent).toMatch(/^1 week streak · Next session: \w+, Push · 1 workout total$/)
     tap(host.querySelector('.item-lg'))
     expect(nav).toHaveBeenCalledWith('/train')
     tap([...host.querySelectorAll('.sec-h-l')].find(b => b.textContent === 'View plan'))
@@ -181,4 +204,13 @@ describe('Home — This week', () => {
     tap(host.querySelector('.media-link'))
     expect(nav).toHaveBeenCalledWith('/train/schedule')
   })
+
+  it('with nothing scheduled it still counts the sessions done this week and in all', () => {
+    const now = Date.now()
+    const w = (id, d) => ({ id, d, start: now - 3600000, end: now, routineIds: [], name: 'Freestyle', entries: [] })
+    const old = '2020-01-06'
+    setS({ week: {}, workouts: [w('a', old), w('b', TODAY)] }); mount()
+    expect(host.querySelector('.item-lg .ss').textContent).toBe('Not scheduled · 1 this week · 2 workouts total')
+  })
+
 })

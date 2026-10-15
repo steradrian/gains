@@ -4,7 +4,7 @@ import { t, tn } from '../lib/i18n.js'
 import { durPart, exCount, fmtDate, todayISO, DAYN } from '../lib/format.js'
 import { workoutDuration } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { trainingDay } from '../lib/training-day.js'
+import { nameOf, trainingDay, workoutLabel } from '../lib/training-day.js'
 import { dayOverrideSheet, menuSheet, workoutDetailSheet } from '../sheets.jsx'
 import Elapsed from './Elapsed.jsx'
 import Icon from './Icon.jsx'
@@ -16,7 +16,7 @@ const workoutLine = w => [...durPart(workoutDuration(w)), ...(w.prs?.length ? [t
 /** A day's logged workouts: the one's detail, or a list of them to pick from. */
 export function workoutsSheet(title, workouts) {
   if (workouts.length === 1) { workoutDetailSheet(workouts[0]); return }
-  menuSheet({ title, items: workouts.map(w => ({ icon: 'checkCircle', label: w.name, sub: workoutLine(w), onClick: () => workoutDetailSheet(w) })) })
+  menuSheet({ title, items: workouts.map(w => ({ icon: 'checkCircle', label: workoutLabel(w), sub: workoutLine(w), onClick: () => workoutDetailSheet(w) })) })
 }
 
 // The training status of the selected day (ux-redesign-tabs §1.1): what it says, and the link to
@@ -36,7 +36,7 @@ function statusOf(day, date) {
     }
     case 'rest': return {
       glyph: 'moon', title: t('Rest day'),
-      caption: day.next ? t('Next session: {0}, {1}', t(DAYN[day.next.weekday]), day.next.routine.name) : null,
+      caption: day.next ? t('Next session: {0}, {1}', t(DAYN[day.next.weekday]), nameOf(day.next.routines)) : null,
     }
     case 'past-logged': {
       const one = day.workouts.length === 1 ? day.workouts[0] : null
