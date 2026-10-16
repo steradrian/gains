@@ -24,7 +24,6 @@ import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
 import { BRAND } from './brand.js'
 import { exitWorkoutEdit } from './sheets.jsx'
-import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
 import LiveDock from './components/LiveDock.jsx'
 import { openPlusSheet } from './components/PlusSheet.jsx'
@@ -41,6 +40,8 @@ import MobileOnboarding from './views/MobileOnboarding.jsx'
 import { isFlowPath } from './lib/onboarding/flow.js'
 import { useOnboardingResume } from './lib/onboarding/use-onboarding-resume.js'
 import Home from './views/Home.jsx'
+import { BootMark } from './components/BrandMark.jsx'
+import BootSplash from './components/BootSplash.jsx'
 
 // The first-run onboarding is reached once per person, from an invite: its screens, art and
 // styles come in their own chunk, not in the load every launch pays for.
@@ -250,11 +251,7 @@ function Shell() {
 
   const authed = user || isGuest
   if (!ready && !authed) return (
-    <div id="app">
-      <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center', fontSize: 34, color: 'var(--label-3)' }}>
-        <Icon name="dumbbell" />
-      </div>
-    </div>
+    <div id="app"><BootMark /></div>
   )
 
   return (
@@ -342,5 +339,5 @@ export default function App() {
     initBackButton().then(fn => { if (gone) fn(); else stop = fn })
     return () => { gone = true; stop?.() }
   }, [])
-  return <HashRouter><Shell /></HashRouter>
+  return <HashRouter><BootSplash /><Shell /></HashRouter>
 }

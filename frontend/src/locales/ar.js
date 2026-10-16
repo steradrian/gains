@@ -2955,7 +2955,6 @@ export default {
   'Use this plan': 'Use this plan',
   'Want a plan to follow?': 'Want a plan to follow?',
   'We couldn’t check this invite': 'We couldn’t check this invite',
-  'Weight': 'Weight',
   'Weight in kilograms': 'Weight in kilograms',
   'Weight in pounds': 'Weight in pounds',
   'Weight {0}.': 'Weight {0}.',
@@ -3025,6 +3024,7 @@ export default {
   'That plan can’t be set up on this server right now. Pick another.': 'That plan can’t be set up on this server right now. Pick another.',
   'Saved. Some of it is still on its way to Training and will show up there soon.': 'Saved. Some of it is still on its way to Training and will show up there soon.',
   'Gains is busy right now. Try again in a moment. Nothing you answered is lost.': 'Gains is busy right now. Try again in a moment. Nothing you answered is lost.',
+  'Loading Coach status…': 'جارٍ تحميل حالة المدرب…',
   // --- the global search ---
   '+{0} more': '+{0} أخرى',
   'Best match, {0}, opens {1}': 'أفضل نتيجة، {0}، تفتح {1}',

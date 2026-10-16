@@ -1878,6 +1878,7 @@ export const PT_BR_OVERRIDES = {
   'That plan can’t be set up on this server right now. Pick another.': 'That plan can’t be set up on this server right now. Pick another.',
   'Saved. Some of it is still on its way to Training and will show up there soon.': 'Saved. Some of it is still on its way to Training and will show up there soon.',
   'Gains is busy right now. Try again in a moment. Nothing you answered is lost.': 'Gains is busy right now. Try again in a moment. Nothing you answered is lost.',
+  'Loading Coach status…': 'Carregando o status do Coach…',
   // --- the global search ---
   'Couldn’t reach {0}': 'Não foi possível acessar {0}',
   'Days need a connection the first time': 'Os dias precisam de conexão na primeira vez',
