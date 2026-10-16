@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -37,10 +37,13 @@ import TimerFlash from './components/TimerFlash.jsx'
 import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
-import Onboarding from './views/onboarding/Onboarding.jsx'
 import { isFlowPath } from './lib/onboarding/flow.js'
 import { useOnboardingResume } from './lib/onboarding/use-onboarding-resume.js'
 import Home from './views/Home.jsx'
+
+// The first-run onboarding is reached once per person, from an invite: its screens, art and
+// styles come in their own chunk, not in the load every launch pays for.
+const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -262,7 +265,7 @@ function Shell() {
           every screen, and it brings each screen in itself. */}
       <div id="app" className={inFlow ? undefined : 'vfade'} key={inFlow ? 'onboarding' : shown.pathname} inert={switching || undefined}>
         <ErrorBoundary>
-          {inFlow && !needsMobileOnboarding ? <Onboarding /> : !authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
+          {inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> :!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
             <Routes location={shown}>
               <Route path="/" element={<Navigate to={fallback} replace />} />
               {/* Home */}
