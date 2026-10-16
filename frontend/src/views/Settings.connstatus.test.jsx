@@ -5,6 +5,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 import { bindUI } from '../components/ui.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -57,6 +58,7 @@ bindUI({ getState: () => ({ openSheet: render => { sheet = render; return { clos
 
 let host, root
 beforeEach(() => {
+  stubHubOffline()
   sheet = null
   mocks.S = {
     unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',

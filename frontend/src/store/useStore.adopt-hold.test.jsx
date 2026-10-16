@@ -88,7 +88,9 @@ function serverWith(doc) {
 const TWELVE = Array.from({ length: 12 }, (_, i) => workout('s' + i, `2026-09-${String(i + 1).padStart(2, '0')}`))
 const SERVER = { _ts: 1000, _rev: 5, unit: 'kg', workouts: TWELVE, routines: [], bodyweight: [] }
 let DEF
-beforeAll(async () => { DEF = (await import('./useStore.js')).DEF })
+// The cold import of the store pulls in most of the app. It takes a few seconds alone and passed
+// the 10 s hook timeout in a full run on a loaded machine; the 60 s is for that one cold import.
+beforeAll(async () => { DEF = (await import('./useStore.js')).DEF }, 60_000)
 function localPhone() {
   h.files.clear()
   localStorage.clear()

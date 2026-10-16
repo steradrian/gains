@@ -5,7 +5,7 @@ import { createContext, useContext } from 'react'
 
 /** The answers, the actions and the flow's navigation (lib/onboarding/use-onboarding-store.js). */
 export const OnboardingContext = createContext(null)
-/** The thread: { register(el, opts), svg, path } (components/onboarding/ThreadProvider.jsx). */
+/** The thread: { register(el, opts), finish(), svg, path } (components/onboarding/ThreadProvider.jsx). */
 export const ThreadContext = createContext(null)
 
 export function useOnboarding() {

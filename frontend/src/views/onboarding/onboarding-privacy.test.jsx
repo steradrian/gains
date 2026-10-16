@@ -198,7 +198,7 @@ describe('a shared device', () => {
     expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
     expect(reload).toHaveBeenCalledTimes(1)
     expect(sessionStorage.getItem(STORE)).toBeNull()
-    expect(page.querySelector('h1').textContent).toBe('That’s everything for now')
+    expect(page.querySelector('h1').textContent).toBe('You’re all set, Maria')
     expect(button(page, 'Go to Home').disabled).toBe(true)
   })
 
@@ -235,7 +235,7 @@ describe('a shared device', () => {
     expect(hub.completeOnboarding).not.toHaveBeenCalled()
     expect(sessionStorage.getItem(STORE)).toBeNull()
     // Until the reload the screen is busy, not a failure with a way to try again.
-    expect(page.querySelector('h1').textContent).toBe('That’s everything for now')
+    expect(page.querySelector('h1').textContent).toBe('You’re all set, Maria')
     expect(page.textContent).not.toContain('Check your connection')
     expect(button(page, 'Try again')).toBeUndefined()
     expect(button(page, 'Go to Home').disabled).toBe(true)

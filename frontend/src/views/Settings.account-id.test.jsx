@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -68,7 +69,8 @@ const idRow = el => [...el.querySelectorAll('.lrow')].find(r => r.querySelector(
 
 let writeText
 beforeEach(() => {
-  mocks.S = { unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none', gifSize: 'full', workouts: [], routines: [], exWeights: {} }
+  stubHubOffline()
+  mocks.S ={ unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none', gifSize: 'full', workouts: [], routines: [], exWeights: {} }
   mocks.user = { id: ID, name: 'andi' }
   mocks.MOBILE = false
   mocks.toast.mockClear()

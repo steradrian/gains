@@ -3,6 +3,7 @@ import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { useDiaryTarget } from '../lib/nutrition/selection.js'
 import { useDiaryDay } from '../lib/nutrition/use-diary-day.js'
+import { useFirstHome } from '../lib/onboarding/handover.js'
 import { Page } from '../components/layout.jsx'
 import { TabSection } from '../components/tab-kit.jsx'
 import DayNav from '../components/DayNav.jsx'
@@ -25,6 +26,8 @@ export default function Home() {
   const day = useDiaryDay(date)
   const isToday = date === todayISO()
   const { meal } = useDiaryTarget(day.settings)
+  // Straight from the onboarding Summary: the sections come in once, never on a tab visit.
+  useFirstHome()
 
   return <Page root title={t('Home')}>
     <DayNav />
@@ -37,8 +40,8 @@ export default function Home() {
         {isToday && <YesterdayMealRow settings={day.settings} meal={meal} whileEmpty />}
       </>}
     </TabSection>
-    {day.on && <TabSection><MealPills date={date} day={day} /></TabSection>}
-    <TabSection><HomeWeek /></TabSection>
-    {S.showWeightCard !== false && <TabSection><WeightCard date={date} /></TabSection>}
+    {day.on && <TabSection className="home-meals"><MealPills date={date} day={day} /></TabSection>}
+    <TabSection className="home-week"><HomeWeek /></TabSection>
+    {S.showWeightCard !== false && <TabSection className="home-body"><WeightCard date={date} /></TabSection>}
   </Page>
 }

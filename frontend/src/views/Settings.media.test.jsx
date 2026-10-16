@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 import { createMediaStore, memoryBackend, _setMediaStore } from '../lib/media-store.js'
 import { _resetMediaOwed } from '../lib/media-owed.js'
 import { readZip, zipStore } from '../lib/zip.js'
@@ -82,6 +83,7 @@ const stateWithPhoto = () => ({
 })
 
 beforeEach(async () => {
+  stubHubOffline()
   HASH = await sha256Hex(PHOTO)
   media = createMediaStore(memoryBackend())
   _setMediaStore(media)
