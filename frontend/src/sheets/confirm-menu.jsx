@@ -1,20 +1,23 @@
 import { t } from '../lib/i18n.js'
 import Icon from '../components/Icon.jsx'
-import { Spacer } from '../components/layout.jsx'
 import { Button } from '../components/ui.jsx'
+import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { cx } from '../lib/ui-kit.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { ui } from './shared.js'
 
 /* ============================ custom confirm dialog ============================ */
-function ConfirmDialog({ title, message, confirmText, cancelText, danger, onConfirm, onCancel, close }) {
-  return <div className="ta-center" style={{ padding: '4px 0' }}>
-    {title && <h3 className="mb-4">{title}</h3>}
-    <div className="muted mb-9 lh-150">{message}</div>
-    <button className={'btn ' + (danger ? 'danger' : 'primary')} onClick={() => { close(); onConfirm && onConfirm() }}>{confirmText || t('Confirm')}</button>
-    <Spacer size={4} />
-    <Button variant="ghost" className="dim" onClick={() => { close(); onCancel && onCancel() }}>{cancelText || t('Cancel')}</Button>
-  </div>
+// The action the sheet exists for first (never a filled primary when it destroys something), the
+// safe exit last. `choice`: the second button is an answer of its own, not a way out, so it reads as
+// a peer instead of dimmed.
+function ConfirmDialog({ title, message, confirmText, cancelText, danger, choice, onConfirm, onCancel, close }) {
+  return <>
+    <SheetHeader title={title} sub={message} />
+    <SheetActions>
+      <Button variant={danger ? 'danger' : 'primary'} onClick={() => { close(); onConfirm && onConfirm() }}>{confirmText || t('Confirm')}</Button>
+      <Button variant={choice ? 'plain' : 'ghost'} className={choice ? undefined : 'dim'} onClick={() => { close(); onCancel && onCancel() }}>{cancelText || t('Cancel')}</Button>
+    </SheetActions>
+  </>
 }
 // "1 workouts and 1 weigh-ins" read wrong: a count of one takes the singular, per noun. Four
 // whole sentences rather than two spliced counts, so every language keeps its own word order.
@@ -47,7 +50,7 @@ export function askAddDeviceData(extras) {
     title: logged ? t('Add this device\'s workouts to your profile?') : t('Add this device\'s plan to your profile?'),
     message: logged ? addDeviceDataMessage(extras.workouts, extras.bodyweight) : addDeviceSetupMessage(extras.routines),
     confirmText: t('Add them'), cancelText: t('Keep profile as is'),
-    onConfirm: () => resolve(true), onCancel: () => resolve(false), locked: true
+    onConfirm: () => resolve(true), onCancel: () => resolve(false), locked: true, choice: true
   }))
 }
 /* ============================ menu sheet ============================ */
@@ -88,8 +91,14 @@ export function menuSheet(opts) {
   ui().openSheet(close => <MenuSheet {...opts} close={close} />)
 }
 
-// Themed replacement for window.confirm — callback-based (no blocking). The backdrop, Escape and
-// back are a Cancel: they run the same onCancel the button does.
+// Themed replacement for window.confirm — callback-based (no blocking), a bottom sheet. The
+// backdrop, a drag, Escape and back are a Cancel: they run the same onCancel the button does.
+// `locked` has to be answered, so there is no way out but its buttons. A destructive or locked one
+// is an alertdialog: it interrupts with a question to weigh, which a screen reader reads out.
 export function confirmSheet(opts) {
-  ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, { kind: 'center', ...(opts.locked ? { locked: true } : {}), onDismiss: opts.onCancel })
+  ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, {
+    ...(opts.locked ? { locked: true } : {}),
+    ...(opts.danger || opts.locked ? { role: 'alertdialog' } : {}),
+    onDismiss: opts.onCancel,
+  })
 }

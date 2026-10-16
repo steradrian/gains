@@ -214,7 +214,7 @@ function endTone(enabled, kind) {
 }
 
 export const useUI = create((set, get) => ({
-  sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
+  sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'viewer', locked, onDismiss }
   toastMsg: '',
   toastAction: null,   // { label, run, id } while the toast offers an action (Undo)
   swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
@@ -234,12 +234,15 @@ export const useUI = create((set, get) => ({
 
   // `onDismiss` runs when the sheet is sent off other than by its own buttons: the backdrop, a drag,
   // Escape, Android back (components/Modals.jsx). A sheet whose Cancel does something passes the
-  // same handler, so every way out behaves like Cancel.
-  openSheet(render, { kind = 'sheet', locked = false, onDismiss } = {}) {
+  // same handler, so every way out behaves like Cancel. `role: 'alertdialog'` for a sheet that
+  // interrupts with a question to weigh (lib/use-sheet-dialog.js); the default is a dialog.
+  openSheet(render, { kind = 'sheet', locked = false, onDismiss, role } = {}) {
     const id = uid()
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss }] }))
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, role }] }))
     const close = () => get().closeSheet(id)
-    return { id, close, lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) })) }
+    // A lock that is already the value asked for writes nothing: no new sheets array, no re-render.
+    const lock = v => set(s => s.sheets.some(x => x.id === id && x.locked !== v) ? { sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) } : s)
+    return { id, close, lock }
   },
   closeSheet(id) { set(s => ({ sheets: s.sheets.filter(x => x.id !== id) })) },
   closeAll() { set({ sheets: [] }) },

@@ -224,7 +224,8 @@ p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;
 :focus-visible{outline:2.5px solid var(--acc-ink);outline-offset:2px;border-radius:6px}
 /* A sheet takes the focus itself when it opens (lib/use-sheet-dialog.js): the dialog is where you
    are, not a control, so no ring around the whole sheet. Its controls keep theirs. */
-[role="dialog"][tabindex="-1"]:focus-visible{outline:none}
+[role="dialog"][tabindex="-1"]:focus-visible,
+[role="alertdialog"][tabindex="-1"]:focus-visible{outline:none}
 button,.chip,.tile,.item,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
@@ -466,7 +467,7 @@ h4.sec{
 .btn.sm{padding:8px 14px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
 .btn.sm .icn{font-size:16px}
 .btn.xs{padding:5px 10px;width:auto;font-size:13px;border-radius:7px;gap:4px}
-.btn:disabled{opacity:.32;pointer-events:none}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.32;pointer-events:none}
 .weekly-volume-toggle{padding-block:0}
 .weekly-volume-toggle .icn{transition:transform var(--fast) var(--ease)}
 .weekly-volume-toggle[aria-expanded="true"] .icn{transform:rotate(180deg)}
@@ -1552,7 +1553,8 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 .sheet{
   position:absolute;inset-inline-start:0;inset-inline-end:0;bottom:0;background:var(--bg-el);
   border-radius:var(--r-xl) var(--r-xl) 0 0;
-  padding:8px 18px calc(20px + var(--sab));
+  --sheet-gutter:18px;
+  padding:8px var(--sheet-gutter) calc(20px + var(--sab));
   /* A tall sheet stops short of the status bar / Dynamic Island: every cap carries the top
      safe-area inset, which the layout viewport does not (viewport-fit=cover). */
   max-height:90vh;max-height:min(90vh,calc(100dvh - var(--sat) - 8px - var(--native-kb,0px)));
@@ -1582,20 +1584,6 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   background:var(--bg-el);
 }
 :root[data-theme="light"] .picker-search{background:var(--bg)}
-.center{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:min(84vw,300px);background:var(--bg-el);border-radius:var(--r-lg);padding:20px;
-  max-height:calc(100dvh - 2*var(--sat) - 24px);overflow-y:auto;
-  box-shadow:0 20px 60px -12px rgba(0,0,0,.5);
-  animation:pop .28s var(--ease);
-}
-:root[data-theme="light"] .center{background:#fff}
-/* a dialog with a field centres in what the Android 15 keyboard leaves */
-:root[data-native-kb] .center{
-  top:calc((100% - var(--native-kb)) / 2);
-  max-height:calc(100dvh - var(--native-kb) - 2*var(--sat) - 24px);
-}
-@keyframes pop{from{transform:translate(-50%,-50%) scale(.94);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 
 /* --- RIR/RPE conversion table (effort help sheet) ---
    The two scales only click when you see them side by side, so the numbers get fixed-width
@@ -1950,7 +1938,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   body.no-tabbar.resting #app{padding-bottom:calc(130px + var(--sab))}
   .workout-end-spacer{height:40px}
   .tiles{grid-template-columns:repeat(4,1fr)}
-  .center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
   #tabbar{
     left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:520px;
     border:var(--hair) solid var(--sep-op);border-radius:var(--r-xl);
@@ -1958,7 +1945,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   }
   #tabbar button.start{margin-top:-26px}
   .sheet{left:50%;right:auto;margin-left:-320px;width:640px;border-radius:var(--r-xl) var(--r-xl) 0 0}
-  .center{width:340px}
   #timer{left:50%;right:auto;margin-left:-260px;width:520px;bottom:112px}
   body.no-tabbar #timer{left:50%;right:auto;bottom:16px;border-radius:var(--r-xl);padding-bottom:10px;box-shadow:var(--shadow-float)}
   .exmedia img,.exmedia video{height:380px}

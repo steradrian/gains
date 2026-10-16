@@ -2,7 +2,7 @@
 // (SyncBanner.jsx), the "Server & sync" block in Settings, and the question a sign-out or a
 // disconnect asks when the server has not got everything yet. The store decides the state
 // (useStore.js, `sync` — see statusOf there); this file only words it and offers what to do.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
@@ -15,7 +15,7 @@ import { askAddDeviceData, menuSheet } from '../sheets.jsx'
 import { ConnectSheet, CfAccessSheet } from '../views/MobileOnboarding.jsx'
 import { passwordOn, openPasswordSignIn } from './PasswordAuth.jsx'
 import { Section, Row, Button } from './ui.jsx'
-import { Spacer } from './layout.jsx'
+import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 
 const ui = () => useUI.getState()
 const toast = m => ui().toast(m)
@@ -165,7 +165,7 @@ export async function leaveServer(kind, { exportBackup, exportBackupZip, done })
   const r = await attempt(kind)
   if (!r) return
   if (r.owed && !r.stashed) {
-    ui().openSheet(close => <OwedSheet kind={kind} count={r.count} media={r.media || 0} exportBackup={exportBackup} exportBackupZip={exportBackupZip} done={done} close={close} />, { kind: 'center', locked: true })
+    const sheet = ui().openSheet(close => <OwedSheet kind={kind} count={r.count} media={r.media || 0} exportBackup={exportBackup} exportBackupZip={exportBackupZip} done={done} close={close} lock={v => sheet.lock(v)} />)
     return
   }
   done(r)
@@ -174,65 +174,90 @@ export async function leaveServer(kind, { exportBackup, exportBackupZip, done })
 // `media`: photos or videos of custom exercises the server has not confirmed (useStore
 // unsyncedChanges). They are owed like any change, so the sheet names them; while there are any,
 // its export writes the backup with them (the plain JSON would leave exactly those out).
-export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup, exportBackupZip, done, close }) {
+export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup, exportBackupZip, done, close, lock }) {
   const sync = useStore(s => s.sync)
   const [count, setCount] = useState(count0)
   const [media, setMedia] = useState(media0)
-  const [busy, setBusy] = useState(false)
+  // Which request is out, if any: 'retry' or 'anyway'.
+  const [busy, setBusy] = useState(null)
   const [tried, setTried] = useState(false)
+  // Set at once, where `busy` waits for a render: a second tap in the same frame is ignored.
+  const flying = useRef(false)
+  // A request in flight cannot be walked away from: the sheet takes no drag, backdrop, Escape or
+  // back until it answers (`lock` is the opened sheet's). Idle, any of them is Cancel.
+  useEffect(() => { lock?.(!!busy) }, [busy, lock])
   const view = connectionView(sync)
   // Refused because it is paired or signed in to a server that no longer takes it: trying
   // again cannot work, and pairing or signing in again brings the changes to the server.
   const refused = sync?.status === 'auth'
   const finish = r => { close(); done(r) }
+  // While a request is out the buttons stay in the page and keep focus (aria-disabled, not
+  // disabled: a disabled button drops focus out of the sheet's trap to <body>); a press is ignored.
+  const idle = fn => e => { if (!flying.current) fn(e) }
+  // `busy` is always put back, whatever the request does: a sheet left locked cannot be closed.
+  const request = async (what, run) => {
+    if (flying.current) return null
+    flying.current = true
+    setBusy(what)
+    try { return await run() }
+    finally { flying.current = false; setBusy(null) }
+  }
   const retry = async () => {
-    setBusy(true)
-    await useStore.getState().syncNow()
-    // Past the refusals too, as the Settings row does: a proxy's limit or the server's caps may
-    // have been fixed since, and a file refused for good would otherwise hold this sheet open on
-    // every try.
-    await syncMedia({ force: true, retryRejected: true })
-    const r = await attempt(kind)
-    setBusy(false)
+    const r = await request('retry', async () => {
+      await useStore.getState().syncNow()
+      // Past the refusals too, as the Settings row does: a proxy's limit or the server's caps may
+      // have been fixed since, and a file refused for good would otherwise hold this sheet open on
+      // every try.
+      await syncMedia({ force: true, retryRejected: true })
+      return attempt(kind)
+    }).catch(() => { setTried(true); return null })
     if (!r) return
     if (!r.owed || r.stashed) return finish(r)
     setCount(r.count); setMedia(r.media || 0); setTried(true)
   }
   const anyway = async () => {
-    setBusy(true)
-    const r = await attempt(kind, { force: true })
-    setBusy(false)
+    // `attempt` toasts its own failures; what can still reject is the toast itself. Like retry, a
+    // rejection ends in a sheet that is open and unlocked, not in an unhandled rejection.
+    const r = await request('anyway', () => attempt(kind, { force: true })).catch(() => { setTried(true); return null })
     if (!r) return
     if (r.owed && !r.stashed) { toast(t('Couldn’t keep a copy of the changes on this device. Nothing was removed.')); return }
     finish(r)
   }
-  return <div className="ta-center" style={{ padding: '4px 0' }}>
-    {/* Not SheetHeader: that h3 has no bottom margin, this one keeps its 8px. */}
-    <h3 className="mb-4">{t('Not everything is on your server yet')}</h3>
+  const wait = busy ? true : undefined   // aria-busy / aria-disabled are set or left off, never "false"
+  return <>
+    {/* A button that changes its label is not announced; this line is, politely. It is mounted from
+        the start so the change is, and sits outside the aria-busy subtree: inside it, assistive tech
+        may hold the update back until busy clears, which is the same render that empties it. */}
+    <div className="sr-only" role="status">{busy === 'retry' ? t('Syncing…') : ''}</div>
+    <div aria-busy={wait}>
+    <SheetHeader title={t('Not everything is on your server yet')} />
     {(count !== 0 || !media) && <div className="mb-3 fw-semibold">
       {count > 0 ? t('Not on your server yet: {0}', changeCount(count)) : t('Some changes on this device have not reached your server.')}
     </div>}
     {media > 0 && <div className="mb-3 fw-semibold">{tn('{0} photo or video has not reached your server yet.', '{0} photos or videos have not reached your server yet.', media)}</div>}
     {(tried || refused) && view && <div className="small ink-danger mb-3">{view.line}</div>}
     {/* It names the button below it: Try again, or Pair again / Sign in where the server refuses. */}
-    <div className="muted small mb-9" style={{ lineHeight: 1.5 }}>
+    <div className="muted small lh-150">
       {refused
         ? (MOBILE
           ? t('Pair again, or export a backup first. Going ahead anyway keeps a copy of these changes on this device until it connects to this server as this account again. Then they’re added back.')
           : t('Sign in again, or export a backup first. Going ahead anyway keeps a copy of these changes on this device until it connects to this server as this account again. Then they’re added back.'))
         : t('Try again, or export a backup first. Going ahead anyway keeps a copy of these changes on this device until it connects to this server as this account again. Then they’re added back.')}
     </div>
-    {refused && MOBILE && <><button className="btn primary" disabled={busy} onClick={() => { close(); pairAgain() }}>{t('Pair again')}</button><Spacer size={4} /></>}
-    {refused && !MOBILE && canSignIn() && <><button className="btn primary" disabled={busy} onClick={() => { close(); signInAgain() }}>{pwOn() ? t('Sign in') : t('Sign in with passkey')}</button><Spacer size={4} /></>}
-    {!refused && <><button className="btn primary" disabled={busy} onClick={retry}>{busy ? t('Syncing…') : t('Try again')}</button><Spacer size={4} /></>}
-    {media > 0 && exportBackupZip
-      ? <Button icon="share" disabled={busy} onClick={exportBackupZip}>{t('Export with photos & videos (.zip)')}</Button>
-      : <Button icon="share" disabled={busy} onClick={exportBackup}>{t('Export backup (JSON)')}</Button>}
-    <Spacer size={4} />
-    <button className="btn danger" disabled={busy} onClick={anyway}>{LEAVE[kind].anyway()}</button>
-    <Spacer size={4} />
-    <Button variant="ghost" className="dim" disabled={busy} onClick={close}>{t('Cancel')}</Button>
-  </div>
+    {/* The way on first, then the backup, then the one that goes ahead with changes unsent, and
+        the exit last. Locked only while a request is out: dismissing is Cancel, which is harmless. */}
+    <SheetActions>
+      {refused && MOBILE && <Button variant="primary" aria-disabled={wait} onClick={idle(() => { close(); pairAgain() })}>{t('Pair again')}</Button>}
+      {refused && !MOBILE && canSignIn() && <Button variant="primary" aria-disabled={wait} onClick={idle(() => { close(); signInAgain() })}>{pwOn() ? t('Sign in') : t('Sign in with passkey')}</Button>}
+      {!refused && <Button variant="primary" aria-disabled={wait} onClick={retry}>{busy === 'retry' ? t('Syncing…') : t('Try again')}</Button>}
+      {media > 0 && exportBackupZip
+        ? <Button icon="share" aria-disabled={wait} onClick={idle(exportBackupZip)}>{t('Export with photos & videos (.zip)')}</Button>
+        : <Button icon="share" aria-disabled={wait} onClick={idle(exportBackup)}>{t('Export backup (JSON)')}</Button>}
+      <Button variant="danger" aria-disabled={wait} onClick={anyway}>{LEAVE[kind].anyway()}</Button>
+      <Button variant="ghost" className="dim" aria-disabled={wait} onClick={idle(close)}>{t('Cancel')}</Button>
+    </SheetActions>
+    </div>
+  </>
 }
 
 /* ---------------------------------------------------------------- Settings ------------------- */

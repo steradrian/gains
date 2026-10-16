@@ -250,7 +250,7 @@ describe('every way out is a Cancel', () => {
     expect(onCancel).toHaveBeenCalledTimes(2)
 
     act(() => { confirmSheet({ title: 'Delete it?', onConfirm, onCancel }) })
-    await click(all('.center button').find(b => b.textContent === 'Cancel'))
+    await click(all('.sheet button').find(b => b.textContent === 'Cancel'))
     expect(onCancel).toHaveBeenCalledTimes(3)
     expect(onConfirm).not.toHaveBeenCalled()
   })

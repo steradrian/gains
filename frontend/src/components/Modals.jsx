@@ -70,7 +70,8 @@ function dismissSheet(id) {
 const NO_SWAP = { out: new Set(), in: new Set() }
 const SwapContext = createContext(NO_SWAP)
 
-// One bottom sheet (or centered dialog) with swipe-to-dismiss.
+// One bottom sheet with swipe-to-dismiss. There is no centred dialog: a question is a sheet too
+// (confirmSheet), so the thumb that opened it reaches Cancel, and ui-guards G10 keeps it that way.
 function Sheet({ sheet, covered }) {
   const { closeSheet } = useUI()
   const ref = useRef(null)
@@ -82,9 +83,8 @@ function Sheet({ sheet, covered }) {
   // the top sheet that allows it is the one handler in Modals below. Focus goes back the moment the
   // sheet is closed, not when its way out has finished playing.
   const dialog = useRef(null)
-  useSheetDialog(dialog, present)
-  // A bottom sheet rises with its scrim and goes back down with it. The centred dialog keeps its
-  // CSS entrance for now and, like the viewer, goes at once.
+  useSheetDialog(dialog, present, sheet.role)
+  // A bottom sheet rises with its scrim and goes back down with it. The viewer goes at once.
   useEnterExit(phase => {
     if (sheet.kind !== 'sheet') return []
     if (phase === 'enter') return swap.in.has(sheet.id) ? [[ref.current, PRESETS.sheet]] : [[back.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
@@ -155,7 +155,7 @@ function Sheet({ sheet, covered }) {
   const onMouseMove = e => move(e, e.clientX, e.clientY)
   const onMouseUp = () => onTouchEnd()
 
-  // non-passive touchmove so preventDefault works (bottom sheets only; centered dialogs have no ref)
+  // non-passive touchmove so preventDefault works (the viewer has no ref)
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -177,14 +177,6 @@ function Sheet({ sheet, covered }) {
   // backdrop to tap, no drag to dismiss — the viewer has its own close button, and back closes
   // it like any sheet.
   if (sheet.kind === 'viewer') return <div ref={dialog} {...layer}>{sheet.render(close)}</div>
-  if (sheet.kind === 'center') {
-    return (
-      <div {...layer}>
-        <div className="mback" aria-hidden="true" onClick={dismiss} />
-        <div className="center" ref={dialog}><EmptySurface value="sheet">{sheet.render(close)}</EmptySurface></div>
-      </div>
-    )
-  }
   // The grab bar says the sheet can be pulled away; a locked one cannot, so it has none.
   return (
     <div {...layer}>

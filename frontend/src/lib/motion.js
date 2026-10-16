@@ -113,8 +113,6 @@ export const EASE = {
 }
 /** --shift-xs, --shift-sm, --shift-md, --shift-x in px. */
 export const SHIFT = { xs: 4, sm: 8, md: 16, x: 24 }
-/** --pop-from, --pop-to: a centred dialog's scale in and out. */
-export const POP = { from: 0.94, to: 0.97 }
 
 // A preset is what one element does on the way in and on the way out: keyframes, a duration and an
 // easing per phase, and `rm`, what it does instead when the app keeps still (opacity only, --rm,

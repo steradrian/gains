@@ -95,7 +95,7 @@ export default function CameraScan({ onFound, onCancel, product = false }) {
             <video ref={videoRef} playsInline muted autoPlay />
             <div className="cam-frame wide" aria-hidden="true" />
           </div>
-          <div className="muted small cam-note center">{t('Point the camera at the barcode')}</div>
+          <div className="muted small cam-note ta-center">{t('Point the camera at the barcode')}</div>
         </>
   }
 

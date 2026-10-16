@@ -57,7 +57,6 @@
   --slow:340ms; --exit-fast:100ms; --exit:160ms; --exit-slow:260ms; --rm:120ms;
   --ease-exit:cubic-bezier(.55,0,1,.45);
   --shift-xs:4px; --shift-sm:8px; --shift-md:16px; --shift-x:24px;
-  --pop-from:.94; --pop-to:.97;
 
   /* media: drawn over photos and video, the same in both themes */
   --on-media:#fff; --media-bg:#000; --knob:#fff;
@@ -193,6 +192,27 @@
 .gate-logo.gate-logo.gate-logo{font-size:54px;display:flex;justify-content:center}
 .gate-title.gate-title.gate-title{letter-spacing:-.028em;margin:10px 0 4px}
 .gate-qr.gate-qr.gate-qr{width:fit-content;margin:0 auto 14px}
+
+/* A sheet's celebration icon (workout complete, the summary): the only centred part of a sheet. */
+.sheet > .sheet-hero{display:flex;justify-content:center;font-size:44px;color:var(--acc-ink)}
+
+/* SheetActions sticky: the buttons stay on the sheet's bottom edge while the content scrolls under
+   them. A sheet that ends in one gives up its own bottom padding and the footer carries it (20px
+   plus the safe area), so the bar rests on the edge and does not move at the end of the scroll. It
+   spans the sheet's gutters (--sheet-gutter, index.css), takes the sheet's own surface and draws a
+   hairline on top. With the Android keyboard up the sheet drops the safe area from its foot
+   (index.css, data-native-kb), and so does this.
+   A control reached by Tab must not end up under the bar (WCAG 2.4.11): the sheet scrolls it clear
+   of the bar's height, which SheetActions measures into --foot-h (sheet-layout.jsx). Written
+   with :has() at a higher specificity than the sheet's own rules in index.css, native-kb included. */
+.sheet:has(> .sheet-foot){padding-bottom:0;scroll-padding-bottom:calc(var(--foot-h,84px) + 8px)}
+:root[data-native-kb] .sheet:has(> .sheet-foot){padding-bottom:0;scroll-padding-bottom:calc(var(--foot-h,84px) + 8px)}
+.sheet > .sheet-foot{
+  position:sticky;bottom:0;z-index:1;
+  margin-inline:calc(-1 * var(--sheet-gutter));padding:var(--space-7) var(--sheet-gutter) calc(20px + var(--sab));
+  background:inherit;border-top:var(--hair) solid var(--sep-op);
+}
+:root[data-native-kb] .sheet > .sheet-foot{padding-bottom:20px}
 
 /* StatTile value sizes below the default 26px */
 .tile .v.v-sm{font-size:var(--fs-body)}

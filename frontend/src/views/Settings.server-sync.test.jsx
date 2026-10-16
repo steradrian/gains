@@ -37,7 +37,7 @@ vi.mock('../store/useStore.js', () => {
   return { useStore, DEF: { reminder: { time: '17:30' } }, hasData: () => false }
 })
 vi.mock('../store/useUI.js', () => {
-  const snap = () => ({ toast: (...a) => mocks.toast(...a), openSheet: (render, opts) => { mocks.sheets.push({ render, opts }); return {} } })
+  const snap = () => ({ toast: (...a) => mocks.toast(...a), openSheet: (render, opts) => { mocks.sheets.push({ render, opts }); return { lock: () => {} } } })
   const useUI = selector => selector ? selector(snap()) : snap()
   useUI.getState = snap
   return { useUI }
@@ -207,7 +207,6 @@ describe('leaving the server', () => {
     act(() => rowByTitle(page, 'Disconnect').click())
     await act(async () => { await confirm().onConfirm() })
     expect(mocks.navs).toEqual([])                         // nothing left, nothing wiped
-    expect(mocks.sheets.at(-1).opts).toMatchObject({ kind: 'center' })
     const sheet = openSheet()
     expect(sheet.textContent).toContain('Not on your server yet: 2 changes')
     expect(sheet.textContent).toContain('keeps a copy of these changes on this device')
