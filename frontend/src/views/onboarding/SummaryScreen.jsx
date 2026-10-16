@@ -76,7 +76,7 @@ export default function SummaryScreen() {
   // only turns into that line where there is a target; otherwise the line is a horizontal one.
   const vertical = !!targets && nutritionAvailable(user)
   const { finish, status, setbacks, leave } = useFinish({
-    home: () => handOver({ unwind: motion.unwind, go: () => leave('/home') }),
+    home: () => handOver({ unwind: motion.unwind, go: () => leave('/home'), flat: !vertical }),
   })
   const missing = detourOf(answers)
 

@@ -296,6 +296,61 @@ describe('Go to Home: stage A', () => {
   })
 })
 
+describe('Go to Home: the shape the transition carries', () => {
+  const ghost = { goal: 'keep', body: none, trainingDays: 3, plan: starter }
+  // What the Summary and the root look like at the moment the View Transition starts, and after it ends.
+  async function transition(answers, { nutrition = true } = {}) {
+    recorder = recordAnimations()
+    hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' } })
+    const page = await summaryWithTarget(answers, { animated: true })
+    mocks.nutrition.on = nutrition
+    rerender()
+    const root = document.documentElement
+    const seen = {}
+    let finished
+    document.startViewTransition = vi.fn(update => {
+      seen.stageA = page.querySelector('.ob-sum-thread')?.classList.contains('flat')
+      seen.flat = root.classList.contains('vt-flat')
+      seen.named = root.classList.contains('vt-handover')
+      update()
+      return { finished: new Promise(r => { finished = r }) }
+    })
+    await act(async () => { button(page, 'Go to Home').click() })
+    for (let i = 0; i < 6; i++) await flush()
+    return { seen, root, end: async () => { finished(); await flush() } }
+  }
+  afterEach(() => { delete document.startViewTransition })
+
+  it('a ghost Summary with nutrition on: a horizontal stage A, and the transition goes to the horizontal hairline', async () => {
+    const { seen, root, end } = await transition(ghost)
+    expect(document.startViewTransition).toHaveBeenCalledTimes(1)
+    expect(seen).toEqual({ stageA: true, flat: true, named: true })
+    expect(root.classList.contains('vt-flat')).toBe(true)
+    await end()
+    expect(root.classList.contains('vt-flat')).toBe(false)
+    expect(root.classList.contains('vt-handover')).toBe(false)
+  })
+
+  it('a ghost Summary with nutrition off: the same', async () => {
+    const { seen, root, end } = await transition(ghost, { nutrition: false })
+    expect(seen).toEqual({ stageA: true, flat: true, named: true })
+    await end()
+    expect(root.classList.contains('vt-flat')).toBe(false)
+  })
+
+  it('a full-data Summary: a vertical stage A, and the transition goes to the hero hairline', async () => {
+    const { seen, root, end } = await transition(lose)
+    expect(seen).toEqual({ stageA: false, flat: false, named: true })
+    await end()
+    expect(root.classList.contains('vt-flat')).toBe(false)
+  })
+
+  it('full data with nutrition off is flat as well: Home has no split to land on', async () => {
+    const { seen } = await transition(lose, { nutrition: false })
+    expect(seen).toEqual({ stageA: true, flat: true, named: true })
+  })
+})
+
 describe('reduced motion switched on mid-flight', () => {
   it('finishes everything that is moving and says the target', async () => {
     recorder = recordAnimations()
@@ -333,13 +388,15 @@ describe('reduced motion switched on mid-flight', () => {
       update()
       return { finished: new Promise(() => {}), skipTransition: skip }
     })
-    await handOver({ unwind: async () => {}, go: vi.fn() })
+    await handOver({ unwind: async () => {}, go: vi.fn(), flat: true })
     const root = document.documentElement
     expect(root.classList.contains('vt-handover')).toBe(true)
+    expect(root.classList.contains('vt-flat')).toBe(true)
     root.dataset.motion = 'reduce'
     await act(async () => { await vi.advanceTimersByTimeAsync(10) })
     expect(skip).toHaveBeenCalledTimes(1)
     expect(root.classList.contains('vt-handover')).toBe(false)
+    expect(root.classList.contains('vt-flat')).toBe(false)
     delete document.startViewTransition
   })
 
@@ -423,10 +480,19 @@ describe('the stylesheets', () => {
     expect(css('tab-kit.css')).toMatch(/\.hero-target\{padding-top:0\}/)
   })
 
-  it('the thread takes the name on the DOM Home mounts, with no state class to orphan it', () => {
+  it('the thread goes to the hairline of its own shape, and the DOM Home mounts still decides when there is no hero hairline', () => {
     const kit = css('tab-kit.css')
-    expect(kit).toMatch(/html\.vt-handover:not\(:has\(\.hero-hair\)\) \.month-bar-hair\{view-transition-name:thread\}/)
-    expect(kit + css('onboarding.css') + readFileSync(resolve(process.cwd(), 'src/lib/onboarding/handover.js'), 'utf8')).not.toContain('vt-flat')
+    const rule = kit.split('\n').find(l => l.endsWith('{view-transition-name:thread}'))
+    const selectors = rule.slice(0, -'{view-transition-name:thread}'.length).split(',')
+    expect(selectors).toEqual([
+      'html.vt-handover:not(.vt-flat) .hero-hair',
+      'html.vt-handover.vt-flat .month-bar-hair',
+      'html.vt-handover:not(:has(.hero-hair)) .month-bar-hair',
+    ])
+    // vt-flat is set and cleared with vt-handover, so it can't outlive the transition.
+    const handover = readFileSync(resolve(process.cwd(), 'src/lib/onboarding/handover.js'), 'utf8')
+    expect(handover).toMatch(/classList\.toggle\('vt-flat', flat\)/)
+    expect(handover).toMatch(/classList\.remove\('vt-handover', 'vt-flat'\)/)
   })
 })
 

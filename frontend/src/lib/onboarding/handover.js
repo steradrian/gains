@@ -4,10 +4,11 @@ import { onReducedMotion, reducedMotion } from '../reduced-motion.js'
 
 // The Summary's hand-over into Home (fitness-eval motion-onboarding-summary-v2 §3, §4). Stage A,
 // the unwind, runs on the Summary (the ring turns back into a line); stage B is a View Transition
-// in which Home mounts and the line, named `thread`, moves onto Home's hero hairline (or, where
-// Home's hero has none, the MonthBar's). The names live in CSS under html.vt-handover, so they
-// exist only from just before the transition starts until it has finished; which of the two
-// hairlines takes the name is decided there, on the DOM Home mounts (tab-kit.css).
+// in which Home mounts and the line, named `thread`, moves onto Home's hero hairline (a vertical
+// line) or the MonthBar's (a horizontal one: the ghost arc, or where Home's hero has none). The
+// names live in CSS under html.vt-handover, so they exist only from just before the transition
+// starts until it has finished; html.vt-flat says the line is horizontal, and the orphan guard
+// (no hero hairline on the DOM Home mounts) is decided in tab-kit.css.
 //
 // kcal-value and water-value are not named: Home reads the diary after it mounts, so on the frame
 // the transition captures its hero may still show dashes, not the target (the spec's fallback:
@@ -51,9 +52,11 @@ export function useFirstHome() {
  * Home (synchronously, inside the transition). Without View Transitions the line unwinds and Home
  * comes in with its cascade; under reduced motion there is no unwind and no transition, Home
  * simply fades in, and so it does when that is switched on while the unwind or the transition runs
- * (the transition is skipped, its names cleared).
+ * (the transition is skipped, its names cleared). `flat` is the shape stage A left: a horizontal
+ * line (the ghost arc, never closed into a number) goes onto the MonthBar's hairline, a vertical
+ * one onto the hero's, so the transition never stretches one into the other.
  */
-export async function handOver({ unwind, go }) {
+export async function handOver({ unwind, go, flat = false }) {
   if (reducedMotion()) {
     firstHome = 'fade'
     go()
@@ -69,8 +72,9 @@ export async function handOver({ unwind, go }) {
   const root = document.documentElement
   if (typeof document.startViewTransition !== 'function') { go(); return }
   root.classList.add('vt-handover')
+  root.classList.toggle('vt-flat', flat)
   let off = () => {}
-  const clear = () => { off(); root.classList.remove('vt-handover') }
+  const clear = () => { off(); root.classList.remove('vt-handover', 'vt-flat') }
   try {
     const vt = document.startViewTransition(() => flushSync(go))
     off = onReducedMotion(() => {

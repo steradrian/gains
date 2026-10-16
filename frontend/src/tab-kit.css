@@ -498,9 +498,12 @@ html.home-first #tabbar{animation:home-bar 320ms var(--ease) 120ms both}
 @keyframes home-bar{from{transform:translateY(100%)}}
 /* Reduced motion: Home replaces the Summary with one 120ms fade, nothing else moves. */
 html.home-fade.home-fade #app{animation:home-in 120ms linear both!important}
-/* The Summary's thread lands on the hero's hairline, or where Home's hero has none (no nutrition,
-   so no split) on the MonthBar's: picked on the DOM Home mounts, so it can never be orphaned. */
-html.vt-handover .hero-hair,html.vt-handover:not(:has(.hero-hair)) .month-bar-hair{view-transition-name:thread}
+/* The Summary's thread lands on the hero's hairline when stage A left a vertical line, and on the
+   MonthBar's when it left a horizontal one (vt-flat: the ghost arc, never closed into a number), so
+   a snapshot is never stretched into the other shape. Where Home's hero has no hairline (no
+   nutrition) the MonthBar's takes the name whatever the shape: picked on the DOM Home mounts, so
+   it can never be orphaned. One element holds the name in each case. */
+html.vt-handover:not(.vt-flat) .hero-hair,html.vt-handover.vt-flat .month-bar-hair,html.vt-handover:not(:has(.hero-hair)) .month-bar-hair{view-transition-name:thread}
 ::view-transition-group(thread){animation-duration:400ms;animation-timing-function:cubic-bezier(.2,0,0,1)}
 html.vt-handover::view-transition-old(root){animation:home-out 140ms linear both}
 html.vt-handover::view-transition-new(root){animation:home-in 200ms linear 60ms both}
