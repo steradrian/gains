@@ -739,6 +739,9 @@ export const useStore = create((set, get) => {
         import('./useUI.js').then(({ useUI }) => useUI.getState().toast(t('Back online and synced with the server.'))).catch(() => {})
       }
     } catch (e) {
+      // The page is reloading as someone else (holdForRestart): the document the server sent is
+      // the new session's, and merging it here to push again would write it into their account.
+      if (restarting) return
       if (e.status === 409 && e.data && attempt < 2) {
         // Another device wrote since this one last read. The server sent its document along;
         // merge and push once more against that revision. A second refusal in a row leaves the

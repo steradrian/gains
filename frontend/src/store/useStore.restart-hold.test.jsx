@@ -10,19 +10,20 @@ vi.mock('../lib/api.js', () => ({ api: vi.fn(), setRemoteAuth: vi.fn() }))
 vi.mock('./useUI.js', () => ({ useUI: { getState: () => ({ toast: vi.fn(), stopRest: vi.fn(), abandonWork: vi.fn() }) } }))
 vi.mock('../sheets.jsx', () => ({ askAddDeviceData: async () => true }))
 
-import { api } from '../lib/api.js'
-import { DEF, useStore } from './useStore.js'
-
 const clone = v => JSON.parse(JSON.stringify(v))
 const MARIA = { id: 'u1', name: 'Maria' }
 const BEA = { id: 'u2', name: 'Bea' }
+// The store is loaded afresh for each test: the hold lasts for the life of the page.
+let api, DEF, useStore
 const puts = () => api.mock.calls.filter(([, o]) => o?.method === 'PUT')
 const logWorkout = id => useStore.getState().update(s => { s.workouts = [...s.workouts, { id, d: '2026-09-01', start: 1, end: 2, entries: [] }] })
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.useFakeTimers()
+  vi.resetModules()
   localStorage.clear()
-  api.mockReset()
+  ;({ api } = await import('../lib/api.js'))
+  ;({ DEF, useStore } = await import('./useStore.js'))
   api.mockResolvedValue({ ok: true, rev: 1 })
   useStore.setState({ S: { ...clone(DEF), _ts: 1 }, user: null, ready: true })
   useStore.getState().setUser(MARIA)
@@ -30,16 +31,6 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); localStorage.clear() })
 
 describe('holding the store for a restart', () => {
-  it('(control) a change pushes after its debounce, and the pagehide flush pushes one still waiting', async () => {
-    logWorkout('w0')
-    await vi.advanceTimersByTimeAsync(2000)
-    expect(puts()).toHaveLength(1)
-    logWorkout('w1')
-    window.dispatchEvent(new Event('pagehide'))
-    await vi.advanceTimersByTimeAsync(0)
-    expect(puts()).toHaveLength(2)
-  })
-
   it('keeps the cached user when it names someone else already (another tab wrote it)', () => {
     localStorage.setItem('gym_user', JSON.stringify(BEA))
     useStore.getState().holdForRestart()
@@ -81,5 +72,17 @@ describe('holding the store for a restart', () => {
     useStore.getState().holdForRestart()
     await useStore.getState().pullState()
     expect(api).not.toHaveBeenCalled()
+  })
+
+  // Last, because it leaves a store that pushes behind it. It shows the pushes the others look for
+  // do happen without the hold.
+  it('(control) a change pushes after its debounce, and the pagehide flush pushes one still waiting', async () => {
+    logWorkout('w0')
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(puts()).toHaveLength(1)
+    logWorkout('w1')
+    window.dispatchEvent(new Event('pagehide'))
+    await vi.advanceTimersByTimeAsync(0)
+    expect(puts()).toHaveLength(2)
   })
 })
