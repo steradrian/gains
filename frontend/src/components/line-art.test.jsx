@@ -35,8 +35,11 @@ const CASES = [
 ]
 
 describe('LineArt', () => {
-  it('knows its six scenes', () => {
-    expect(LINE_ART_SCENES).toEqual(['routine', 'mobility', 'scale', 'equipment', 'plate', 'chart'])
+  it('knows its scenes: six of its own and the empty states\' thirteen', () => {
+    expect(LINE_ART_SCENES).toEqual([
+      'routine', 'mobility', 'scale', 'equipment', 'plate', 'chart',
+      'calendar', 'week', 'envelope', 'key', 'coach', 'search', 'rotation', 'favourites', 'photo', 'tape', 'pantry', 'fasting', 'recovery',
+    ])
     expect(() => render(<LineArt scene="figure" />)).toThrow(/LineArt: scene="figure"/)
   })
 
@@ -115,13 +118,27 @@ describe('LineArt', () => {
   })
 
   it('ILLUSTRATIONS: each name draws a scene in its empty state', () => {
-    expect(Object.keys(ILLUSTRATIONS)).toEqual(['scale', 'routine', 'plate', 'barbell', 'dumbbell', 'chart'])
+    expect(Object.keys(ILLUSTRATIONS)).toEqual([
+      'scale', 'routine', 'plate', 'barbell', 'dumbbell', 'chart',
+      'calendar', 'week', 'envelope', 'key', 'coach', 'search', 'rotation', 'favourites', 'photo', 'tape', 'pantry', 'fasting', 'recovery',
+    ])
     for (const { scene } of Object.values(ILLUSTRATIONS)) expect(LINE_ART_SCENES).toContain(scene)
     render(<LineArt scene={ILLUSTRATIONS.scale.scene} state={ILLUSTRATIONS.scale.state} />)
     expect(svg().querySelector('.il-acc')).toBeNull()
     render(<LineArt scene={ILLUSTRATIONS.routine.scene} state={ILLUSTRATIONS.routine.state} />)
     expect(svg().querySelector('.il-dash')).not.toBeNull()
   })
+
+  for (const [name, { scene, state }] of Object.entries(ILLUSTRATIONS)) {
+    it(`illustration ${name}: inks from classes only, drawn in back to front with the accent last`, () => {
+      render(<LineArt scene={scene} state={state} />)
+      expect(svg().querySelector('[fill], [stroke]')).toBeNull()
+      const order = [...svg().querySelectorAll('[pathLength]')].map(e => Number(e.style.getPropertyValue('--i')))
+      expect(order).toEqual([...order].sort((a, b) => a - b))
+      expect(new Set(order).size).toBe(order.length)
+      if (svg().querySelector('.il-acc')) expect(shapes().at(-1).classList.contains('il-acc')).toBe(true)
+    })
+  }
 
   it('drawKey counts the first showing under its own name, not the scene\'s', () => {
     render(<LineArt scene="equipment" state={{ eq: 'barbell' }} drawKey="empty:barbell" />)
