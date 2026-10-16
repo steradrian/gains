@@ -8,7 +8,7 @@ import {
 import { anchorsByWorkout, resolveSetRir } from '../lib/recovery.js'
 import { bodyweightKgOf } from '../lib/structuralBalance.js'
 import LineChart from './LineChart.jsx'
-import { Card, SectionTitle } from './blocks.jsx'
+import { Card, EmptyState, SectionTitle } from './blocks.jsx'
 import { Inline } from './layout.jsx'
 import { Segmented } from './ui.jsx'
 
@@ -48,7 +48,7 @@ export default function EffortCard({ S }) {
   return <Card title={<>{t('Effort')} <span className="dim">· {t('how close to failure')}{estimated ? ' · ' + t('estimated') : ''}</span></>}>
     <Segmented className="seg-range" value={win} onChange={setWin}
       options={[{ value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
-    {sum.rated === 0 && sum.est === 0 ? <div className="muted small">{t('No rated sets in this period.')}</div> : <>
+    {sum.rated === 0 && sum.est === 0 ? <EmptyState illustration="chart" title={t('No rated sets in this period.')} /> : <>
       <Inline justify="between" align="end" gap={6}>
         <div>
           <div className="stat-v">{sum.avg == null ? '–' : fmtNum(toScale(kind, sum.avg)) + ' ' + hd}</div>

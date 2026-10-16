@@ -66,12 +66,11 @@ export default function TrainingLoad() {
       />
     </Card>}
     {view === 'muscles' && (hasMuscles ? <MuscleBalance S={S} />
-      : <EmptyState icon="dumbbell" title={t('No workouts yet')}>{t('Log a workout and the muscles it worked light up here.')}</EmptyState>)}
+      : <EmptyState illustration="calendar" title={t('No workouts yet')} body={t('Log a workout and the muscles it worked light up here.')} />)}
     {view === 'plan' && (S.routines.length > 0 ? <WeeklyPlanVolume S={S} />
-      : <EmptyState icon="clipboard" title={t('No routines yet')}
-        secondary={{ icon: 'clipboard', label: t('Routines'), onClick: () => nav('/train/routines') }}>
-        {t('Build a routine and the muscle volume it plans each week shows up here.')}
-      </EmptyState>)}
+      : <EmptyState illustration="routine" title={t('No routines yet')}
+        body={t('Build a routine and the muscle volume it plans each week shows up here.')}
+        secondary={{ icon: 'clipboard', label: t('Routines'), onClick: () => nav('/train/routines') }} />)}
     {view === 'effort' && <EffortCard S={S} />}
   </Page>
 }

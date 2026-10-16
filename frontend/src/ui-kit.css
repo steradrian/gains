@@ -192,7 +192,6 @@
 .gate-wrap.gate-wrap.gate-wrap{justify-content:center;min-height:78vh}
 .gate-logo.gate-logo.gate-logo{font-size:54px;display:flex;justify-content:center}
 .gate-title.gate-title.gate-title{letter-spacing:-.028em;margin:10px 0 4px}
-.gate-empty.gate-empty.gate-empty{margin-top:18vh}
 .gate-qr.gate-qr.gate-qr{width:fit-content;margin:0 auto 14px}
 
 /* StatTile value sizes below the default 26px */

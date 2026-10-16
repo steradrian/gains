@@ -34,7 +34,7 @@ vi.mock('../lib/demo.js', () => ({ DEMO: false }))
 vi.mock('../lib/coach.js', () => ({ coachAvailable: () => false }))
 
 import Plan from './Plan.jsx'
-import { menuSheet, confirmSheet } from '../sheets.jsx'
+import { menuSheet, confirmSheet, starterPlanSheet } from '../sheets.jsx'
 import { todayISO, isoOf, fmtDate } from '../lib/format.js'
 
 const routines = [
@@ -65,6 +65,8 @@ const pickMode = label => click(modeButtons().find(b => b.textContent === label)
 const selectedMode = () => modeButtons().find(b => b.className.includes('on'))?.textContent
 const headings = () => [...host.querySelectorAll('h4.sec')].map(h => h.firstChild.textContent)
 const subtitle = () => host.querySelector('.hdr .sub').textContent
+const emptyTitle = () => host.querySelector('.empty .empty-t')?.textContent
+const emptyArt = () => host.querySelector('.empty .empty-art svg.lineart')
 
 describe('Plan — How you train', () => {
   it('nothing saved: Fixed Week with the weekdays, and no rotation buttons of its own', () => {
@@ -87,7 +89,8 @@ describe('Plan — How you train', () => {
     expect(selectedMode()).toBe('Rotation')
     expect(headings()).toContain('The loop')
     expect(headings()).not.toContain('This week')
-    expect(host.textContent).toContain('No rotation yet.')
+    expect(emptyTitle()).toBe('No rotation yet')
+    expect(emptyArt()).not.toBeNull()
     // the subtitle stops saying "weekly" once you train in a loop
     expect(subtitle()).toBe('Your routines in a loop')
   })
@@ -212,7 +215,7 @@ describe('Plan — the loop', () => {
     expect(mocks.S.week).toEqual({ 1: ['c'] })
     remount()
     expect(selectedMode()).toBe('Rotation')
-    expect(host.textContent).toContain('No rotation yet.')
+    expect(emptyTitle()).toBe('No rotation yet')
     // swapping the only routine: add another one back in, same rotation id
     click(byLabel('Add routine to the rotation'))
     act(() => menuSheet.mock.calls.at(-1)[0].items.find(i => i.label === 'B').onClick())
@@ -294,7 +297,8 @@ describe('Plan — someone else’s queue, and a broken one', () => {
 
   it('a malformed queue offers recovery instead of a loop full of nothing', () => {
     mount({ queue: { ids: ['gone'], since: Date.now() } })
-    expect(host.textContent).toContain('This rotation couldn’t be read')
+    expect(host.querySelector('[role=alert]').textContent).toContain('This rotation couldn’t be read')
+    expect(host.querySelector('.empty')).toBeNull()
     click(byLabel('Discard it'))
     expect(mocks.S.queue).toBe(null)
   })
@@ -320,6 +324,28 @@ describe('Plan — someone else’s queue, and a broken one', () => {
     pickMode('Rotation')
     expect(mocks.S.queue).toBe(null)
     expect(mocks.S.scheduleMode).toBe('rotation')
+  })
+})
+
+describe('Plan — no routines', () => {
+  it('Schedule shows the routine illustration, and its action opens the starter plan', () => {
+    starterPlanSheet.mockClear()
+    mount({ routines: [], week: {} })
+    expect(emptyTitle()).toBe('No routines yet')
+    expect(emptyArt()).not.toBeNull()
+    expect(host.querySelector('.card .empty')).toBeNull()
+    click([...host.querySelectorAll('.empty-acts button')].find(b => b.textContent === 'Load starter plan'))
+    expect(starterPlanSheet).toHaveBeenCalledTimes(1)
+  })
+
+  it('the Routines list shows it too, with the same action', () => {
+    starterPlanSheet.mockClear()
+    mocks.S = baseS({ routines: [], week: {} })
+    act(() => root.render(<Plan view="routines" />))
+    expect(emptyTitle()).toBe('No routines yet')
+    expect(emptyArt()).not.toBeNull()
+    click([...host.querySelectorAll('.empty-acts button')].find(b => b.textContent === 'Load starter plan'))
+    expect(starterPlanSheet).toHaveBeenCalledTimes(1)
   })
 })
 

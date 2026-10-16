@@ -194,7 +194,6 @@
 }
 .qchip .icn{font-size:14px;color:var(--acc-ink)}
 .qchip:active{transform:scale(.96);background:var(--surface-2)}
-.chat-empty{font-size:14px;color:var(--label-2);line-height:1.45;padding:14px 4px}
 
 /* ---------- the numbers behind a card ---------- */
 .ins{padding:6px 18px 4px;display:grid;gap:10px;min-width:0}

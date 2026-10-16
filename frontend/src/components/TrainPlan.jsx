@@ -8,7 +8,7 @@ import { queueView } from '../lib/queue.js'
 import { scheduleModeOf } from '../lib/rotation.js'
 import { workoutLabel, workoutsByDay } from '../lib/training-day.js'
 import { dayOverrideSheet } from '../sheets.jsx'
-import { Card, InlineNote } from './blocks.jsx'
+import { Card, EmptyState } from './blocks.jsx'
 import QueueRow from './QueueRow.jsx'
 import { SectionHeader } from './tab-kit.jsx'
 import { workoutsSheet } from './TrainingHero.jsx'
@@ -37,10 +37,10 @@ export default function TrainPlan() {
   const header = <SectionHeader title={t('Your plan')} link={t('Edit')} onLink={() => nav('/train/schedule')} />
 
   if (queueView(S, today)) return <>{header}<Card><QueueRow S={S} today={today} /></Card></>
-  if (scheduleModeOf(S) === 'rotation') return <>{header}<InlineNote icon="repeat">{t('No rotation yet. Add routines to it in Plan.')}</InlineNote></>
+  if (scheduleModeOf(S) === 'rotation') return <>{header}<EmptyState illustration="rotation" title={t('No rotation yet')} body={t('Add routines to it in Plan.')} /></>
 
   const sessions = weekSessions(S, today)
-  if (!sessions.length) return <>{header}<InlineNote icon="calendar">{t('Nothing planned this week')}</InlineNote></>
+  if (!sessions.length) return <>{header}<EmptyState illustration="week" title={t('Nothing planned this week')} /></>
   return <>
     {header}
     <Section>
