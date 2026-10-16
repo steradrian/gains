@@ -8,6 +8,9 @@ import { dropGrid } from '../lib/plates.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { Thumb } from '../components/Media.jsx'
 import Icon from '../components/Icon.jsx'
+import { Chip, ChipRow, EmptyState, ItemRow, SectionTitle } from '../components/blocks.jsx'
+import { Inline, Spacer } from '../components/layout.jsx'
+import { SheetHeader } from '../components/sheet-layout.jsx'
 import { Button } from '../components/ui.jsx'
 import MuscleExplorer from '../components/MuscleExplorer.jsx'
 import ExerciseViewToggle from '../components/ExerciseViewToggle.jsx'
@@ -106,16 +109,16 @@ function ExercisePicker({ onPick, title, close, like }) {
           onClick={ev => { ev.stopPropagation(); onPick(e, true) }}><Icon name="plus" /></button>
       </div>
   if (byMuscle) return <>
-    <div className="row between" style={{ marginBottom: 10 }}><h3>{title || t('Add exercise')}</h3>
+    <Inline justify="between" className="mb-5"><h3>{title || t('Add exercise')}</h3>
       <Button size="sm" variant="ghost" onClick={() => setByMuscle(false)}>{t('All')}</Button>
-    </div>
+    </Inline>
     <MuscleExplorer onPick={onPick} />
   </>
 
   return <>
-    <div className="row between" style={{ marginBottom: 10 }}><h3>{title || t('Add exercise')}</h3>
+    <Inline justify="between" className="mb-5"><h3>{title || t('Add exercise')}</h3>
       <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => setByMuscle(true)}>{t('By muscle')}</Button>
-    </div>
+    </Inline>
     {/* .picker-search is what index.css keys the keyboard-aware sheet layout on: the sheet
         lifts above the keys and the search stays put while the list scrolls under it. */}
     <div className="picker-search"><div className="search-row"><div className={'search' + (narrowed ? ' has-count' : '') + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
@@ -123,44 +126,46 @@ function ExercisePicker({ onPick, title, close, like }) {
       {narrowed && <span className="search-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}
       {q && <button className="clear" onClick={() => { setQ(''); setShown(50) }} aria-label={t('Clear')}><Icon name="xmark" /></button>}</div>
       <ExerciseViewToggle /></div></div>
-    {profile && <div className="small dim row" style={{ margin: '8px 0 2px', gap: 6, alignItems: 'center' }}>
-      <Icon name="kettlebell" style={{ fontSize: 13 }} />
+    {profile && <Inline gap={3} className="small dim mt-4 mb-1">
+      <Icon name="kettlebell" className="fs-footnote" />
       {showAll ? t('Showing all equipment') : t('Showing what you have in "{0}"', profile.name)}
-      <button className="chip nocap" style={{ marginInlineStart: 'auto', padding: '3px 10px', fontSize: 12 }} onClick={() => setShowAll(v => !v)}>
+      <Chip nocap className="fs-caption" style={{ marginInlineStart: 'auto', padding: '3px 10px' }} onClick={() => setShowAll(v => !v)}>
         {showAll ? t('Filter by "{0}"', profile.name) : t('Show all equipment')}
-      </button>
-    </div>}
+      </Chip>
+    </Inline>}
     {/* Changing muscle group keeps the equipment filter: if it still has exercises under the new
         group the filter stays applied, and if not the eqOn fallback above drops it for this view
         without forgetting the choice (issue #71). The favourites/chosen chips still clear it —
         those are cross-body-part views where a stale equipment filter would be confusing. */}
-    <div className="chips" ref={bpStrip} style={{ margin: eqOpts.length > 1 || catOpts.length > 1 ? '10px 0 6px' : '10px 0' }}>
-      {likeTg && <button className={'chip nocap' + (bp === SAME ? ' on' : '')} onClick={() => { setBp(SAME); setShown(50) }}><Icon name="figureStrength" style={{ fontSize: 12, display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Same muscle: {0}', t(MUSCLE_NAME[likeTg] || likeTg))}</button>}
-      {favCount > 0 && <button className={'chip' + (bp === '☆' ? ' on' : '')} onClick={() => { setBp('☆'); setEq(''); setShown(50) }}><Icon name="starFill" className="fav-star" />{t('Favourites')} ({favCount})</button>}
-      {chosenCount > 0 && <button className={'chip' + (bp === '★' ? ' on' : '')} onClick={() => { setBp('★'); setEq(''); setShown(50) }}><Icon name="starFill" style={{ fontSize: 12, display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Chosen')} ({chosenCount})</button>}
-      <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setShown(50) }}>{t('All')}</button>
-      {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setShown(50) }}>{t(b)}</button>)}
-    </div>
-    {catOpts.length > 1 && <div className="chips" ref={catStrip} style={{ marginBottom: eqOpts.length > 1 ? 6 : 10 }}>
-      <button className={'chip nocap' + (!catOn ? ' on' : '')} onClick={() => { setCat(''); setShown(50) }}>{t('Any type')}</button>
-      {catOpts.map(x => <button key={x} className={'chip' + (catOn === x ? ' on' : '')} onClick={() => { setCat(x); setShown(50) }}>{t(x)}</button>)}
-    </div>}
-    {eqOpts.length > 1 && <div className="chips" ref={eqStrip} style={{ marginBottom: 10 }}>
-      <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</button>
-      {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</button>)}
-    </div>}
+    <ChipRow ref={bpStrip} className={'mt-5 ' + (eqOpts.length > 1 || catOpts.length > 1 ? 'mb-3' : 'mb-5')}>
+      {likeTg && <Chip nocap on={bp === SAME} onClick={() => { setBp(SAME); setShown(50) }}><Icon name="figureStrength" className="fs-caption" style={{ display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Same muscle: {0}', t(MUSCLE_NAME[likeTg] || likeTg))}</Chip>}
+      {favCount > 0 && <Chip on={bp === '☆'} onClick={() => { setBp('☆'); setEq(''); setShown(50) }}><Icon name="starFill" className="fav-star" />{t('Favourites')} ({favCount})</Chip>}
+      {chosenCount > 0 && <Chip on={bp === '★'} onClick={() => { setBp('★'); setEq(''); setShown(50) }}><Icon name="starFill" className="fs-caption" style={{ display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Chosen')} ({chosenCount})</Chip>}
+      <Chip nocap on={!bp} onClick={() => { setBp(''); setShown(50) }}>{t('All')}</Chip>
+      {BODYPARTS.map(b => <Chip key={b} on={bp === b} onClick={() => { setBp(b); setShown(50) }}>{t(b)}</Chip>)}
+    </ChipRow>
+    {catOpts.length > 1 && <ChipRow ref={catStrip} className={eqOpts.length > 1 ? 'mb-3' : 'mb-5'}>
+      <Chip nocap on={!catOn} onClick={() => { setCat(''); setShown(50) }}>{t('Any type')}</Chip>
+      {catOpts.map(x => <Chip key={x} on={catOn === x} onClick={() => { setCat(x); setShown(50) }}>{t(x)}</Chip>)}
+    </ChipRow>}
+    {eqOpts.length > 1 && <ChipRow ref={eqStrip} className="mb-5">
+      <Chip nocap on={!eqOn} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</Chip>
+      {eqOpts.map(x => <Chip key={x} on={eqOn === x} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</Chip>)}
+    </ChipRow>}
     <div className={'list' + (st.exerciseView === 'cards' ? ' ex-grid' : '')}>
-      {!special && <div className="item ex-new" {...tappable(() => customExSheet(null, ex => onPick(ex), q.trim()))}>
-        <div className="thumb thumb-x"><Icon name="plusCircle" /></div>
-        <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, and a photo or video if you like')}</div></div><Icon name="plus" className="chev" />
-      </div>}
+      {!special && <ItemRow className="ex-new"
+        lead={<div className="thumb thumb-x"><Icon name="plusCircle" /></div>}
+        title={t('Create your own exercise')}
+        subtitle={t('name + body part, and a photo or video if you like')}
+        trailing={<Icon name="plus" className="chev" />}
+        onClick={() => customExSheet(null, ex => onPick(ex), q.trim())} />}
       {f.slice(0, shown).map(pickRow)}
-      {f.length === 0 && bp === '★' && <div className="empty">{t('Nothing picked yet. Add some exercises and they’ll show up here.')}</div>}
-      {f.length === 0 && bp === '☆' && <div className="empty">{t('No favourites yet. Tap the star on an exercise to add one.')}</div>}
-      {similar.length > 0 && <h4 className="sec similar-label">{f.length ? t('Similar exercises') : t('No exact match. These come close:')}</h4>}
+      {f.length === 0 && bp === '★' && <EmptyState>{t('Nothing picked yet. Add some exercises and they’ll show up here.')}</EmptyState>}
+      {f.length === 0 && bp === '☆' && <EmptyState>{t('No favourites yet. Tap the star on an exercise to add one.')}</EmptyState>}
+      {similar.length > 0 && <SectionTitle className="similar-label">{f.length ? t('Similar exercises') : t('No exact match. These come close:')}</SectionTitle>}
       {similar.map(pickRow)}
     </div>
-    {f.length > shown && <><div style={{ height: 8 }} /><Button ref={moreRef} onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></>}
+    {f.length > shown && <><Spacer size={4} /><Button ref={moreRef} onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></>}
   </>
 }
 // `title` names what the pick is for when it is not an add — the routine editor's Replace (#110).
@@ -224,14 +229,14 @@ export function swapActiveWorkoutExercise(index) {
 
     if (current.sg) {
       ui().openSheet(close => <>
-        <h3>{t('Swap exercise?')}</h3>
-        <div className="muted small" style={{ marginBottom: 12 }}>
+        <SheetHeader title={t('Swap exercise?')} />
+        <div className="muted small mb-6">
           {t('Logged sets stay with the original exercise. Choose where the replacement belongs.')}
         </div>
         <Button variant="primary" onClick={() => { close(); apply({ loggedConfirmed: true, groupDisposition: 'keep' }) }}>
           {t('Keep replacement in this group')}
         </Button>
-        <div style={{ height: 8 }} />
+        <Spacer size={4} />
         <Button variant="ghost" onClick={() => { close(); apply({ loggedConfirmed: true, groupDisposition: 'detach' }) }}>
           {t('Insert after this group')}
         </Button>
