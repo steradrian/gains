@@ -2044,7 +2044,7 @@ function ActiveWorkout() {
         <ExerciseBlock entryIdx={cur} onPairPrev={onPairPrev} onPairNext={onPairNext} {...blockProps(cur)} />
       )}
       </SwipeCards>
-    </>) : <EmptyState icon="shuffle">{t('Freestyle workout. Add your first exercise and off you go.')}</EmptyState>}
+    </>) : <EmptyState illustration="dumbbell" title={t('Freestyle workout')} body={t('Add your first exercise and off you go.')} />}
 
     <Spacer size={6} />
     {!listMode && <Inline>

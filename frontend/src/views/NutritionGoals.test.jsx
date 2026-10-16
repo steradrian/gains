@@ -47,6 +47,15 @@ afterEach(() => {
 })
 
 describe('Nutrition › Goals', () => {
+  it('without a web account, says so under the plate and asks NutriTrace for nothing', async () => {
+    useStore.setState({ user: null })
+    await open()
+    expect(host.querySelector('.empty[data-surface=page] .lineart[data-scene=plate]')).not.toBeNull()
+    expect(host.querySelector('.empty h2').textContent).toBe('Nutrition lives in the web app')
+    expect(text()).toContain('Nutrition needs an account on the web app.')
+    expect(nt.requests).toHaveLength(0)
+  })
+
   it('shows what NutriTrace has saved', async () => {
     await open()
     expect(field('Daily target').value).toBe('2200')
@@ -288,7 +297,8 @@ describe('Nutrition › Goals', () => {
     root = createRoot(host)
     await act(async () => { root.render(<NutritionGoals />) })
     await settle()
-    expect(text()).toContain('Goals did not load.')
+    expect(host.querySelector('[role=alert]').textContent).toBe('Goals did not load.')
+    expect(host.querySelector('.empty')).toBeNull()
     await clickText('Try again')
     await settle()
     expect(field('Daily target').value).toBe('2200')

@@ -152,7 +152,7 @@ function WeighIns() {
   const n = weeks.reduce((sum, w) => sum + w.n, 0)
   if (!n) return <>
     <SheetHeader title={t('Weigh-ins')} />
-    <EmptyState icon="scale">{t('No weigh-ins yet. Log your weight to start the curve.')}</EmptyState>
+    <EmptyState illustration="scale" title={t('No weigh-ins yet')} body={t('Log your weight to start the curve.')} />
   </>
   return <>
     <SheetHeader title={t('Weigh-ins')} sub={tn('{0} weigh-in', '{0} weigh-ins', n)} />

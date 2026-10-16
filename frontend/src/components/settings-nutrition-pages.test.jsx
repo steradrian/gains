@@ -599,3 +599,20 @@ describe('the Nutrition group, the search and Features', () => {
     expect(searchSettings('wearable manual', { ...web, ntSettings: { diaryShowActivity: true } }, tr).map(h => h.title)).not.toContain('Wearable and manual entries')
   })
 })
+
+describe('NtSettingsGate', () => {
+  it('says the settings did not load, with Try again, and shows the page once they do', async () => {
+    useNutrition.getState().reset()
+    nt = createFakeNutriTrace({ settings: { timeFormat: '24h' } })
+    nt.failNext('GET', '/nt/api/settings', { status: 500 })
+    vi.stubGlobal('fetch', nt.fetch)
+    act(() => root.render(<NtSettingsGate><WaterSettings /></NtSettingsGate>))
+    await settle()
+    expect(host.querySelector('[role="alert"]').textContent).toBe('Your settings did not load.')
+    expect(host.querySelector('.empty')).toBeNull()
+    expect(titles()).toEqual([])
+    await click([...host.querySelectorAll('button')].find(b => b.textContent === 'Try again'))
+    expect(host.querySelector('[role="alert"]')).toBeNull()
+    expect(titles()).toContain('Water unit')
+  })
+})

@@ -50,6 +50,7 @@ describe('RoutineEdit — Add exercise at the top', () => {
     mount([])
     expect(addButton()).toBeTruthy()
     expect(host.textContent).toContain('No exercises yet.')
+    expect(host.querySelector('.empty[data-surface=page] .lineart[data-scene=routine]')).not.toBeNull()
   })
 
   it('adds at the defaults from "+", and through the settings from a tap', () => {

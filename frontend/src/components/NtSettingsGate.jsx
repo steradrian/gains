@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 import { t } from '../lib/i18n.js'
 import { useNutrition } from '../lib/nutrition/store.js'
-import { Button } from './ui.jsx'
-import { EmptyState } from './blocks.jsx'
+import { LoadError } from './blocks.jsx'
 import { Loading } from './Loader.jsx'
 
 // What a NutriTrace settings page shows until NutriTrace's settings are here: a loading line, or
@@ -15,10 +14,7 @@ export default function NtSettingsGate({ children }) {
 
   if (settings.data) return children
   if (settings.status === 'error') {
-    return <EmptyState className="small">
-      <div role="alert">{t('Your settings did not load.')}</div>
-      <Button size="sm" onClick={() => useNutrition.getState().loadSettings({ force: true })}>{t('Try again')}</Button>
-    </EmptyState>
+    return <LoadError message={t('Your settings did not load.')} onRetry={() => useNutrition.getState().loadSettings({ force: true })} />
   }
-  return <EmptyState className="small"><Loading /></EmptyState>
+  return <Loading />
 }

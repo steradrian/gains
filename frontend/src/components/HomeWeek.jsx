@@ -26,12 +26,8 @@ export default function HomeWeek() {
   const today = todayISO()
 
   if (planRefused && !S.active) {
-    return <Card>
-      <EmptyState art={<LineArt scene="routine" state={{ days: 0 }} />} title={t('Your plan couldn’t be set up')}
-        action={{ label: t('Open Training'), onClick: () => nav('/train') }}>
-        {t('Pick one in Training.')}
-      </EmptyState>
-    </Card>
+    return <EmptyState illustration="routine" title={t('Your plan couldn’t be set up')} body={t('Pick one in Training.')}
+      action={{ label: t('Open Training'), onClick: () => nav('/train') }} />
   }
 
   if (!S.routines.length && !S.active) return <PlanWelcome />

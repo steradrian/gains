@@ -7,7 +7,6 @@ import { useDiaryDay } from '../lib/nutrition/use-diary-day.js'
 import { useScrolledPast } from '../lib/use-scrolled-past.js'
 import { EmptyState } from '../components/blocks.jsx'
 import { Page } from '../components/layout.jsx'
-import { LineArt } from '../components/line-art.jsx'
 import { SectionHeader, TabSection } from '../components/tab-kit.jsx'
 import DayNav from '../components/DayNav.jsx'
 import KcalLeftButton from '../components/KcalLeftButton.jsx'
@@ -59,9 +58,8 @@ export default function FoodHub() {
 
   if (!day.on) {
     return <Page root title={t('Nutrition')}>
-      <EmptyState art={<LineArt scene="plate" />} title={t('Nutrition lives in the web app')}>
-        {t('Sign in on the web app to log food and see your day here.')}
-      </EmptyState>
+      <EmptyState illustration="plate" title={t('Nutrition lives in the web app')}
+        body={t('Sign in on the web app to log food and see your day here.')} />
     </Page>
   }
 

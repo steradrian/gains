@@ -100,7 +100,10 @@ describe('weigh-ins sheet', () => {
     install({ bodyweight: [] })
     weighInsSheet()
     const host = mountTopSheet()
-    expect(host.querySelector('.empty')).toBeTruthy()
+    // Mounted without the sheet root, which is what gives it the sheet surface (Modals.jsx).
+    expect(host.querySelector('.empty .lineart[data-scene=scale]')).toBeTruthy()
+    expect(host.querySelector('.empty .empty-t').textContent).toBe('No weigh-ins yet')
+    expect(host.textContent).toContain('Log your weight to start the curve.')
     expect(host.querySelector('.chart')).toBeNull()
   })
 
