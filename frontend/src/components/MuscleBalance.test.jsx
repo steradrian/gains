@@ -306,7 +306,8 @@ describe('MuscleBalance — weekly planned vs completed volume', () => {
     expect(comparison().textContent).toContain('No workouts in this period yet.')
     expect(comparison().textContent).not.toContain('Planned')
     expect(comparison().querySelector('[aria-label*="Planned"]')).toBeNull()
-    expect(comparison().querySelector('.inote').textContent).toBe('No workouts in this period yet.')
+    expect(comparison().querySelector('.empty .empty-t').textContent).toBe('No workouts in this period yet.')
+    expect(comparison().querySelector('.empty .empty-art svg.lineart')).not.toBeNull()
   })
 
   it('omits 0/0 mappings while retaining planned-positive completed-zero rows', () => {

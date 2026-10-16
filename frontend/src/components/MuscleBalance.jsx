@@ -13,7 +13,7 @@ import { isWarmupRow } from '../lib/workout-model.js'
 import { cx } from '../lib/ui-kit.js'
 import { exerciseHistorySheet } from '../sheets.jsx'
 import BodyMap, { BodyMapLegend } from './BodyMap.jsx'
-import { InlineNote } from './blocks.jsx'
+import { EmptyState, InlineNote } from './blocks.jsx'
 import { Inline } from './layout.jsx'
 import { MuscleRow, PeriodNav, SectionHeader, StatCard } from './tab-kit.jsx'
 import { Button, Row, Section, Segmented } from './ui.jsx'
@@ -159,7 +159,7 @@ export default function MuscleBalance({ S }) {
           value={fmtNum(done(sel))} unit={vsPlan && target(sel) > 0 ? t('/ {0} sets', fmtNum(target(sel))) : t('sets')}
           caption={vsPlan ? (pct(sel) == null ? t('Not in your plan this week') : t('{0}% of plan', pct(sel))) : done(sel) ? null : on ? t('no hard sets') : t('not trained')} />
         : !empty && <InlineNote icon="info">{t('Tap a muscle to see its numbers.')}</InlineNote>}
-      {empty ? <InlineNote>{t('No workouts in this period yet.')}</InlineNote> : <>
+      {empty ? <EmptyState illustration="calendar" title={t('No workouts in this period yet.')} /> : <>
         <SectionHeader title={t('Muscles')} />
         <Section className="mus-list">
           {shown.map(m => <MuscleRow key={m} data-muscle-volume={m} level={levels[m] || 0} title={name(m)}

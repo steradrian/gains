@@ -17,7 +17,7 @@ import { useListReorder, moved } from '../lib/use-list-reorder.js'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 import { nav as navigateTo } from '../lib/nav.js'
 import { Inline, Page } from '../components/layout.jsx'
-import { EmptyState, ItemRow, SectionTitle } from '../components/blocks.jsx'
+import { EmptyState, ItemRow, LoadError, SectionTitle } from '../components/blocks.jsx'
 import { queueOf, queueView } from '../lib/queue.js'
 import { deriveSessionName } from '../lib/session-merge.js'
 import { markUndone, undoMarks } from '../lib/sync-merge.js'
@@ -268,19 +268,14 @@ function Schedule({ S, update, nav, mode }) {
       </Row>
     </Section>
 
-    {!S.routines.length && <EmptyState className="plan-empty" icon="clipboard">
-      {t('No routines yet.')}<br />{t('Make one, or grab the starter plan to get going.')}
-      <div className="mt-6"><Button icon="clipboard" onClick={starterPlanSheet}>{t('Load starter plan')}</Button></div>
-    </EmptyState>}
+    {!S.routines.length && <EmptyState illustration="routine" title={t('No routines yet')}
+      body={t('Make one, or grab the starter plan to get going.')}
+      action={{ icon: 'clipboard', label: t('Load starter plan'), onClick: starterPlanSheet }} />}
 
     {/* A queue payload that arrived unusable: a fix-up, shown whichever way you train. Giving it
         up also gives up S.scheduleMode='rotation', or the loop would sit there with no queue. */}
-    {recovery && <EmptyState>
-      {t('This rotation couldn’t be read. Another device may have written it.')}
-      <div className="mt-5">
-        <Button size="sm" variant="tinted" aria-label={t('Discard it')} onClick={() => update(s => { s.queue = null; s.scheduleMode = 'week' })}>{t('Discard it')}</Button>
-      </div>
-    </EmptyState>}
+    {recovery && <LoadError message={t('This rotation couldn’t be read. Another device may have written it.')}
+      retryLabel={t('Discard it')} onRetry={() => update(s => { s.queue = null; s.scheduleMode = 'week' })} />}
 
     {mode === 'week' ? <>
       <SectionTitle>{t('This week')}</SectionTitle>
@@ -322,7 +317,8 @@ function Schedule({ S, update, nav, mode }) {
               onDelete={() => takeOut(id)}>{row}</SwipeRow>
             : row
         })}
-      </div> : <EmptyState>{t('No rotation yet. Add routines in the order you want to train them. The first one you haven’t logged stays up next.')}</EmptyState>}
+      </div> : <EmptyState illustration="rotation" title={t('No rotation yet')}
+        body={t('Add routines in the order you want to train them. The first one you haven’t logged stays up next.')} />}
       {seq.length > 0 && <p className="sect-f">
         {qv ? (qv.waiting ? t('Next round starts {0}.', fmtDate(qv.startsOn, true)) : t('{0} of {1} done this round.', doneCount, qv.items.length)) + ' ' : ''}
         {external ? '' : editing ? t('Drag to reorder. Tap the minus to take one out.') : t('Trained out of order? Just pick another routine on Home.')}
@@ -430,9 +426,7 @@ function Routines({ S, update, nav }) {
             : row
         })}</div>}
       <p className="sect-f">{edit ? t('Drag to reorder. Tap the minus to delete.') : t('Tap a routine to edit it. Reorder and delete are behind Edit.')}</p>
-    </> : <>
-      <EmptyState icon="clipboard">{t('No routines yet.')}<br />{t('Make one, or grab the starter plan to get going.')}</EmptyState>
-      <Button icon="clipboard" onClick={starterPlanSheet}>{t('Load starter plan')}</Button>
-    </>}
+    </> : <EmptyState illustration="routine" title={t('No routines yet')} body={t('Make one, or grab the starter plan to get going.')}
+      action={{ icon: 'clipboard', label: t('Load starter plan'), onClick: starterPlanSheet }} />}
   </>
 }

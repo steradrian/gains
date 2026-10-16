@@ -95,7 +95,7 @@ function MeasurementLog({ sourceDate, close }) {
           <i>{fieldUnit(field, S.unit)}</i>
         </span>
       </label>)}
-    </div> : <EmptyState className="small">{t('Choose at least one measurement first.')}</EmptyState>}
+    </div> : <EmptyState illustration="tape" title={t('Choose at least one measurement first.')} />}
     <SheetActions>
       <Button variant="primary" onClick={save} disabled={!fields.length}>{t('Save')}</Button>
       <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
@@ -212,10 +212,9 @@ export default function Measurements() {
           <Segmented className="seg-range" value={range} onChange={setRange} options={rangeOptions()} />
           <div className="chart"><LineChart points={points} h={170} unit={unit} color="var(--teal)" label={t(field.label)} /></div>
         </Card>
-      </> : <EmptyState icon="ruler" title={t('Nothing to chart yet')}
-        secondary={{ icon: 'gear', label: t('Choose measurements'), onClick: manageMeasurementsSheet }}>
-        {t('Choose the measurements you want to track, then log your first check-in.')}
-      </EmptyState>}
+      </> : <EmptyState illustration="tape" title={t('Nothing to chart yet')}
+        body={t('Choose the measurements you want to track, then log your first check-in.')}
+        secondary={{ icon: 'gear', label: t('Choose measurements'), onClick: manageMeasurementsSheet }} />}
     </TabSection>
 
     <SectionHeader title={t('Measurement history')} />
@@ -232,6 +231,6 @@ export default function Measurements() {
         </Inline>
         {previewFields.length > 0 && <div className="measure-preview">{previewFields.map(({ field: f, value }) => <span key={f.key}>{t(f.label)} <b>{fmtNum(value)} {fieldUnit(f, S.unit)}</b></span>)}</div>}
       </Card>
-    })}</div> : <EmptyState className="small">{t('No measurements yet')}</EmptyState>}
+    })}</div> : <EmptyState illustration="tape" title={t('No measurements yet')} />}
   </>
 }

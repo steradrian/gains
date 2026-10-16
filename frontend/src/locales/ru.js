@@ -1290,7 +1290,6 @@ export default {
   'Focus only on my routine “{0}”. Improve it: exercise choice, order, sets and reps, rep ranges, progression. Leave the other routines alone.': 'Сосредоточься только на моей программе «{0}». Улучши её: выбор упражнений, порядок, подходы и повторения, диапазоны повторений, прогрессия. Остальные программы не трогай.',
   'Improve my routine “{0}”.': 'Улучши мою программу «{0}».',
   'Improve which routine?': 'Какую программу улучшить?',
-  'You don’t have any routines yet. Ask the Coach for a plan first.': 'У вас пока нет программ. Сначала попросите у Тренера план.',
   'Review my last workout': 'Оценить последнюю тренировку',
   'What went well, what to watch, what to do next time': 'Что удалось, за чем следить, что делать в следующий раз',
   'Improve a routine': 'Улучшить программу',
@@ -1340,7 +1339,6 @@ export default {
   'Your week was set to this schedule.': 'Ваша неделя настроена по этому расписанию.',
   'Imported without changing your week.': 'Импортировано без изменения недели.',
   'This plan was imported before the app kept proposals; only its summary is left.': 'Этот план импортирован до того, как приложение стало хранить предложения; осталось только резюме.',
-  'Nothing yet. Every plan, suggestion and debrief will be kept here, whether you said yes or no.': 'Пока ничего. Каждый план, предложение и разбор будут храниться здесь, ответили вы «да» или «нет».',
   'Debrief: {0}': 'Разбор: {0}',
   'Could not load': 'Не удалось загрузить',
   'Could not save': 'Не удалось сохранить',
@@ -1349,7 +1347,6 @@ export default {
   'Your lifts count towards the medians': 'Ваши результаты учитываются в медианах',
   'Off. You see nothing and share nothing': 'Выкл. Вы ничего не видите и ничем не делитесь',
   'Loading…': 'Загрузка…',
-  'Not enough people are sharing yet ({0} of {1} needed). Rope in your gym mates!': 'Пока делится слишком мало людей (нужно {1}, есть {0}). Зовите товарищей по залу!',
   'Not available right now.': 'Сейчас недоступно.',
   'People': 'Людей',
   'Your sessions / wk': 'Ваши сессии / нед.',
@@ -1833,7 +1830,6 @@ export default {
   'Add routine to the rotation': 'Добавить программу в ротацию',
   'Add to the rotation': 'Добавить в ротацию',
   'Build a rotation instead': 'Создать ротацию вместо этого',
-  'No rotation yet. Add routines in the order you want to train them. The first one you haven’t logged stays up next.': 'Ротации пока нет. Добавляйте программы в том порядке, в котором хотите их тренировать. Первая незаписанная всегда идёт следующей.',
   'Use this rotation': 'Использовать эту ротацию',
   'Use this rotation?': 'Использовать эту ротацию?',
   'Your own loop gets replaced.': 'Ваш собственный круг будет заменён.',
@@ -1843,7 +1839,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'Не удалось прочитать эту ротацию. Возможно, она была записана с другого устройства.',
   'Discard it': 'Отменить её',
   'Use Fixed Week': 'Использовать фиксированную неделю',
-  'No rotation yet. Add routines to it in Plan.': 'Ротации пока нет. Добавьте в неё программы в разделе «План».',
   'Round complete': 'Круг пройден',
   'Next round starts {0}.': 'Следующий круг начнётся {0}.',
   // --- plural forms, read by tn(). Russian needs three where English has two, so these
@@ -3192,4 +3187,12 @@ export default {
   // --- Freestyle workout empty state, title and body split: English until the translation pass ---
   'Freestyle workout': 'Freestyle workout',
   'Add your first exercise and off you go.': 'Add your first exercise and off you go.',
+  // --- Empty-state title/body splits (Plan, Training, Coach): English until the translation pass ---
+  'No rotation yet': 'No rotation yet',
+  'Add routines in the order you want to train them. The first one you haven’t logged stays up next.': 'Add routines in the order you want to train them. The first one you haven’t logged stays up next.',
+  'Add routines to it in Plan.': 'Add routines to it in Plan.',
+  'Ask the Coach for a plan first.': 'Ask the Coach for a plan first.',
+  'Every plan, suggestion and debrief will be kept here, whether you said yes or no.': 'Every plan, suggestion and debrief will be kept here, whether you said yes or no.',
+  'Not enough people are sharing yet': 'Not enough people are sharing yet',
+  '{0} of {1} needed. Rope in your gym mates!': '{0} of {1} needed. Rope in your gym mates!',
 }
