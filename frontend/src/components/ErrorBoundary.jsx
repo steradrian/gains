@@ -3,8 +3,8 @@ import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { BRAND } from '../brand.js'
 import { Button } from './ui.jsx'
-import { Spacer } from './layout.jsx'
-import { EmptyState } from './blocks.jsx'
+import { Spacer, Stack } from './layout.jsx'
+import { LoadError } from './blocks.jsx'
 
 /**
  * Last line of defence: one bad render used to blank the whole app, with no way back —
@@ -23,11 +23,8 @@ export default class ErrorBoundary extends Component {
     if (!this.state.failed) return this.props.children
     const active = useStore.getState().S.active
     return (
-      <div>
-        <EmptyState icon="info" className="gate-empty">
-          <div className="fw-semibold mb-3">{t('Something went wrong')}</div>
-          {t('This screen could not be drawn. Your data is safe on this device.')}
-        </EmptyState>
+      <Stack className="gate-wrap">
+        <LoadError title={t('Something went wrong')} message={t('This screen could not be drawn. Your data is safe on this device.')} />
         <Button variant="primary" icon="reset" onClick={() => location.reload()}>{t('Reload Gains')}</Button>
         {active && <>
           <Spacer size={4} />
@@ -36,7 +33,7 @@ export default class ErrorBoundary extends Component {
             location.reload()
           }}>{t('Discard the running workout')}</Button>
         </>}
-      </div>
+      </Stack>
     )
   }
 }

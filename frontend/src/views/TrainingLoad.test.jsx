@@ -58,7 +58,8 @@ const segLabels = () => [...seg().querySelectorAll('button')].map(b => b.textCon
 const segButton = label => [...seg().querySelectorAll('button')].find(b => b.textContent === label)
 const selected = () => [...seg().querySelectorAll('button[aria-pressed="true"]')].map(b => b.textContent)
 const cardTitles = () => [...host.querySelectorAll('.card h2')].map(h => h.textContent.trim())
-const emptyTitle = () => host.querySelector('.empty strong')?.textContent
+const emptyTitle = () => host.querySelector('.empty .empty-t')?.textContent
+const emptyArt = () => host.querySelector('.empty .empty-art svg.lineart')
 const buttonWithText = text => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === text)
 const click = el => { expect(el, 'expected an element to click').toBeTruthy(); act(() => el.click()) }
 
@@ -160,6 +161,18 @@ describe('TrainingLoad — Effort segment', () => {
     expect(selected()).toEqual(['Effort'])
   })
 
+  it('a window with no rated sets is a card-sized empty state with the chart illustration', () => {
+    const old = workout('old', '2020-01-01', Array.from({ length: 6 }, () => set({ rir: 2 })))
+    mocks.S = state({ workouts: [old] })
+    mount('?view=effort')
+    expect(host.querySelector('.card .empty[data-surface="card"] .empty-art svg.lineart')).not.toBeNull()
+    expect(emptyTitle()).toBe('No rated sets in this period.')
+    expect(host.textContent).not.toContain('average effort')
+    click(buttonWithText('All'))
+    expect(host.querySelector('.empty')).toBeNull()
+    expect(host.textContent).toContain('average effort')
+  })
+
   it('badges estimated numbers on unrated import history', () => {
     mocks.S = state({ workouts: unratedWorkouts() })
     mount('?view=effort')
@@ -235,6 +248,7 @@ describe('TrainingLoad — Muscles and Plan', () => {
     mocks.S = state({ routines: [], week: {} })
     mount('?view=muscles')
     expect(emptyTitle()).toBe('No workouts yet')
+    expect(emptyArt()).not.toBeNull()
     expect(host.querySelector('[data-body-map]')).toBeNull()
   })
 
@@ -248,6 +262,7 @@ describe('TrainingLoad — Muscles and Plan', () => {
     mocks.S = state({ routines: [], week: {} })
     mount('?view=plan')
     expect(emptyTitle()).toBe('No routines yet')
+    expect(emptyArt()).not.toBeNull()
     expect(host.querySelector('[data-weekly-muscle-volume]')).toBeNull()
     click(buttonWithText('Routines'))
     expect(mocks.nav).toHaveBeenCalledWith('/train/routines')

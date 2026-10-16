@@ -212,7 +212,9 @@ describe('Training — Your plan', () => {
   it('nothing planned this week says so', () => {
     setS({ week: {} }); mount()
     expect(planRows()).toHaveLength(0)
-    expect(section('Your plan').querySelector('.inote').textContent).toBe('Nothing planned this week')
+    const empty = section('Your plan').querySelector('.empty')
+    expect(empty.querySelector('.empty-t').textContent).toBe('Nothing planned this week')
+    expect(empty.querySelector('.empty-art svg.lineart')).not.toBeNull()
   })
 
   it('a coach week shows its progress row, whose chip starts that session', () => {
@@ -232,7 +234,10 @@ describe('Training — Your plan', () => {
 
   it('rotation chosen with nothing built yet points to Plan', () => {
     setS({ scheduleMode: 'rotation', week: {} }); mount()
-    expect(section('Your plan').querySelector('.inote').textContent).toBe('No rotation yet. Add routines to it in Plan.')
+    const empty = section('Your plan').querySelector('.empty')
+    expect(empty.querySelector('.empty-t').textContent).toBe('No rotation yet')
+    expect(empty.querySelector('.empty-b').textContent).toBe('Add routines to it in Plan.')
+    expect(empty.querySelector('.empty-art svg.lineart')).not.toBeNull()
     expect(section('Your plan').querySelector('.queue')).toBeNull()
   })
 })

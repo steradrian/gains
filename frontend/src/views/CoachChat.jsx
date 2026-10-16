@@ -33,7 +33,7 @@ import { useCoachStatus, requestReview, requestDebrief, requestPlan, refinePlan,
 import { confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Page, Spacer } from '../components/layout.jsx'
-import { Tag } from '../components/blocks.jsx'
+import { EmptyState, InlineNote, LoadError, Tag } from '../components/blocks.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import LineChart from '../components/LineChart.jsx'
@@ -148,7 +148,7 @@ export default function CoachChat() {
     <SheetHeader title={t('Improve which routine?')} />
     <div className="sect-b">
       {(S.routines || []).map(r => <Row key={r.id} icon={glyphOf(r.emoji)} iconTint="var(--acc)" title={r.name} subtitle={tn('{0} exercise', '{0} exercises', (r.ex || []).length)} accessory="chevron" onClick={() => { close(); askImprove(r) }} />)}
-      {!(S.routines || []).length && <div className="chat-empty">{t('You don’t have any routines yet. Ask the Coach for a plan first.')}</div>}
+      {!(S.routines || []).length && <EmptyState illustration="routine" title={t('No routines yet')} body={t('Ask the Coach for a plan first.')} />}
     </div>
     <Spacer size={5} />
   </div>)
@@ -658,7 +658,8 @@ function HistorySheet({ S, close, openSheet }) {
   const icon = { create: ['clipboard', 'var(--indigo)'], review: ['chat', 'var(--acc)'], debrief: ['checkCircle', 'var(--green)'], revert: ['reset', 'var(--blue)'] }
   return <div className="chat-menu">
     <SheetHeader title={t('Everything the Coach proposed')} />
-    {!log.length && <div className="chat-empty">{t('Nothing yet. Every plan, suggestion and debrief will be kept here, whether you said yes or no.')}</div>}
+    {!log.length && <EmptyState illustration="coach" title={t('Nothing yet')}
+      body={t('Every plan, suggestion and debrief will be kept here, whether you said yes or no.')} />}
     <div className="sect-b">
       {log.map(e => {
         const [ic, tint] = icon[e.kind] || ['chat', 'var(--acc)']
@@ -704,10 +705,11 @@ function CohortSheet({ S, update, toast }) {
         <Switch checked={sharing} disabled={busy || !d} onChange={share} />
       </Row>
     </Section>
-    {!d && <div className="chat-empty"><Loading /></div>}
-    {d && sharing && !d.ok && <div className="chat-empty">{d.people != null
-      ? t('Not enough people are sharing yet ({0} of {1} needed). Rope in your gym mates!', d.people, d.minPeople)
-      : t('Not available right now.')}</div>}
+    {!d && <Loading />}
+    {d && sharing && !d.ok && (d.people != null
+      ? <EmptyState illustration="coach" title={t('Not enough people are sharing yet')}
+        body={t('{0} of {1} needed. Rope in your gym mates!', d.people, d.minPeople)} />
+      : <LoadError message={t('Not available right now.')} />)}
     {d && sharing && d.ok && <div className="ins" style={{ padding: 0 }}>
       <div className="ins-tiles">
         <Tile v={d.people} l={t('People')} />
@@ -726,7 +728,7 @@ function CohortSheet({ S, update, toast }) {
           </div>
         })}
       </div>}
-      {!d.exercises.length && <div className="chat-empty">{t('No exercise is trained by three or more people yet.')}</div>}
+      {!d.exercises.length && <InlineNote>{t('No exercise is trained by three or more people yet.')}</InlineNote>}
     </div>}
     <Spacer size={5} />
   </div>

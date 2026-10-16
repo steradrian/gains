@@ -7,6 +7,7 @@ import { CONSENT_VERSION } from '../lib/coach.js'   // the consent a fixture gra
 import { effectiveRoutine } from '../lib/history.js'
 import { todayISO } from '../lib/format.js'
 import { back } from '../lib/use-tab-nav.js'
+import { cohortStats } from '../lib/coach-api.js'
 
 // The chat is where a plan is imported. These pin that the Import button applies the pending
 // plan through the store, writes the decision into the thread, and leaves today startable.
@@ -247,5 +248,67 @@ describe('the Coach chat', () => {
     expect(byText(/^Compare$/)).toBeFalsy()
     await mount(null, null, { community: true })
     expect(byText(/^Compare$/)).toBeTruthy()
+  })
+})
+
+// The Coach's sheets are opened through the UI store; their content is what openSheet was given.
+describe('the Coach sheets: empty and unavailable states', () => {
+  const sheets = []
+  afterEach(async () => {
+    for (const s of sheets.splice(0)) await act(async () => { s.root.unmount() })
+  })
+  const showLastSheet = async () => {
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const r = createRoot(el)
+    const render = mocks.openSheet.mock.calls.at(-1)[0]
+    await act(async () => { r.render(render(() => {})) })
+    sheets.push({ root: r })
+    return el
+  }
+  const emptyOf = el => ({
+    title: el.querySelector('.empty .empty-t')?.textContent,
+    body: el.querySelector('.empty .empty-b')?.textContent,
+    art: el.querySelector('.empty .empty-art svg.lineart'),
+  })
+
+  it('the history sheet with nothing proposed says so, with its illustration', async () => {
+    await mount(null)
+    await click(container.querySelector('[aria-label="More"]'))
+    const menu = await showLastSheet()
+    await click([...menu.querySelectorAll('button')].find(b => /Everything the Coach proposed/.test(b.textContent)))
+    const history = await showLastSheet()
+    const empty = emptyOf(history)
+    expect(empty.title).toBe('Nothing yet')
+    expect(empty.body).toContain('Every plan, suggestion and debrief')
+    expect(empty.art).not.toBeNull()
+  })
+
+  it('the comparison sheet with too few people sharing is an empty state', async () => {
+    vi.mocked(cohortStats).mockResolvedValueOnce({ ok: false, sharing: true, people: 2, minPeople: 5 })
+    await mount(null, null, { community: true })
+    await click(byText(/^Compare$/))
+    const empty = emptyOf(await showLastSheet())
+    expect(empty.title).toBe('Not enough people are sharing yet')
+    expect(empty.body).toBe('2 of 5 needed. Rope in your gym mates!')
+    expect(empty.art).not.toBeNull()
+  })
+
+  it('the comparison sheet when the numbers are unavailable is an error, not an empty state', async () => {
+    vi.mocked(cohortStats).mockResolvedValueOnce({ ok: false, sharing: true })
+    await mount(null, null, { community: true })
+    await click(byText(/^Compare$/))
+    const sheet = await showLastSheet()
+    expect(sheet.querySelector('[role=alert]').textContent).toContain('Not available right now.')
+    expect(sheet.querySelector('.empty')).toBeNull()
+  })
+
+  it('the comparison sheet with no shared exercise yet is a hint under the tiles', async () => {
+    vi.mocked(cohortStats).mockResolvedValueOnce({ ok: true, sharing: true, people: 5, sessionsPerWeek: { you: 3, median: 3 }, rankPct: 50, exercises: [] })
+    await mount(null, null, { community: true })
+    await click(byText(/^Compare$/))
+    const sheet = await showLastSheet()
+    expect(sheet.querySelector('.inote').textContent).toBe('No exercise is trained by three or more people yet.')
+    expect(sheet.querySelector('.empty')).toBeNull()
   })
 })
