@@ -11,6 +11,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => ({ answers: {}, sheets: [] }))
 vi.mock('../lib/api.js', () => ({
+  remoteServer: () => '',
   api: path => {
     const key = path.split('?')[0]
     return key in mocks.answers ? Promise.resolve(mocks.answers[key]) : Promise.reject(new Error('not found'))
