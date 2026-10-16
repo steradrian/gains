@@ -58,6 +58,28 @@ describe('exercise sheet: Progress link', () => {
     expect(useSearch.getState()).toMatchObject({ live: true, open: false })
   })
 
+  it('takes the sheet\'s history entry (replace) when the sheet sits on one', () => {
+    act(() => { openSearch('home') })
+    history.replaceState({ ...(history.state || {}), gainsSheet: 'x' }, '')
+    exerciseDetailSheet(EXIDX[EX], { progress: true })
+    const btn = progressBtn(renderTop())
+    act(() => { btn.click() })
+    expect(navigate.mock.calls[0][1].replace).toBe(true)
+  })
+
+  it('is offered for an exercise logged only in a deload, which Strength still charts', () => {
+    useStore.setState(s => ({ S: { ...s.S, workouts: [{ ...logged, excludeFromProgression: true }] } }))
+    exerciseDetailSheet(EXIDX[EX], { progress: true })
+    expect(progressBtn(renderTop())).toBeTruthy()
+  })
+
+  it('sits beside History, in one row', () => {
+    exerciseDetailSheet(EXIDX[EX], { progress: true })
+    const host = renderTop()
+    const row = progressBtn(host).parentElement
+    expect([...row.querySelectorAll('button')].map(b => b.textContent)).toEqual(['History', 'Progress'])
+  })
+
   it('is not on a sheet opened anywhere else', () => {
     exerciseDetailSheet(EXIDX[EX])
     expect(progressBtn(renderTop())).toBeUndefined()

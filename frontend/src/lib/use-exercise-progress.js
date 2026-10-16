@@ -30,6 +30,13 @@ const firstAvailable = (...values) => {
   return []
 }
 
+// Every exercise id with a logged entry, deloads and warm-up-only entries included: the list
+// Strength's picker offers.
+const loggedIds = workouts => [...new Set(workouts.flatMap(w => w.entries.map(e => e.id)))]
+
+/** Whether Strength can chart this catalogue exercise: it is in the log at all. */
+export const hasProgress = (S, id) => !!EXIDX[id] && loggedIds(S.workouts || []).includes(id)
+
 export function useExerciseProgress(S, { exId, exRange, exMetric }) {
   const exFrom = useMemo(() => rangeStart(exRange), [exRange])
   const inExRange = p => p.t >= exFrom
@@ -98,7 +105,7 @@ export function useExerciseProgress(S, { exId, exRange, exMetric }) {
     }
     return { mx: 0, unit: S.unit }
   }
-  const exHist = [...new Set(workouts.flatMap(w => w.entries.map(e => e.id)))].filter(id => EXIDX[id] || nameOf(id) !== id)
+  const exHist = loggedIds(workouts).filter(id => EXIDX[id] || nameOf(id) !== id)
   const exCurrent = Object.fromEntries(exHist.map(id => [id, currentOf(id)]))
   exHist.sort((a, b) => exCurrent[b].mx - exCurrent[a].mx || nameOf(a).localeCompare(nameOf(b)))
   const curEx = exId && exHist.includes(exId) ? exId : exHist[0] || null
