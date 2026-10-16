@@ -42,7 +42,7 @@ describe('opening a result', () => {
 
   it('an exercise, a workout, a food, a meal, a recipe and an online food: their sheets, over the overlay', () => {
     open({ type: 'exercise', id: '0025', ex: { id: '0025' } })
-    expect(sheets.exerciseDetailSheet).toHaveBeenCalledWith({ id: '0025' })
+    expect(sheets.exerciseDetailSheet).toHaveBeenCalledWith({ id: '0025' }, { progress: true })
     open({ type: 'workout', id: 'w1', workout: { id: 'w1' } })
     expect(sheets.workoutDetailSheet).toHaveBeenCalledWith({ id: 'w1' })
     open({ type: 'food', id: 11, food: { id: 11 } })

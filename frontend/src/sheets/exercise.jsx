@@ -5,7 +5,9 @@ import { ALL_EQUIPMENT } from '../lib/equipment.js'
 import { fmtDate, fmtNum, exerciseNameText, fmtVol, uid, exCount } from '../lib/format.js'
 import { lastEntryFor, bestWeightFor, setLabel, cleanupSg, modeOf } from '../lib/history.js'
 import { t, tn, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
-import { nav } from '../lib/nav.js'
+import { nav, onSheetEntry } from '../lib/nav.js'
+import { hasProgress } from '../lib/use-exercise-progress.js'
+import { visit } from '../lib/search/session.js'
 import Media from '../components/Media.jsx'
 import CustomMediaField from '../components/CustomMediaField.jsx'
 import { mediaOf, normalizeMediaRef, cleanUrl } from '../lib/media-refs.js'
@@ -13,6 +15,7 @@ import { syncMedia } from '../lib/media-sync.js'
 import LineChart from '../components/LineChart.jsx'
 import Stepper from '../components/Stepper.jsx'
 import Icon from '../components/Icon.jsx'
+import { Inline } from '../components/layout.jsx'
 import { Button, Segmented, MultiSelectRow } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 import { exerciseMuscleSnapshot, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from '../lib/muscles.js'
@@ -86,10 +89,13 @@ export function detailTags(ex) {
   return out
 }
 
-function ExerciseDetail({ ex, close }) {
+// `progress` (opened from a Search result, ux-search §4): a way on to the exercise's strength chart.
+// The page takes the sheet's history entry, so back from it lands on the overlay.
+function ExerciseDetail({ ex, close, progress }) {
   useLang() // the description and steps arrive in their own chunk the first time a sheet asks
   const st = useStore(s => s.S)
   const last = lastEntryFor(st, ex.id)
+  const charted = progress && hasProgress(st, ex.id)
   const best = bestWeightFor(st, ex.id, currentDbLoad(st, ex.id))
   const fav = isFav(st, ex.id)
   const flipFav = () => {
@@ -112,7 +118,10 @@ function ExerciseDetail({ ex, close }) {
     {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow-ink)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
-    {last && <Button icon="history" style={{ marginTop: 4 }} onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
+    {(last || charted) && <Inline gap={4} className="exd-row">
+      {last && <Button icon="history" onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
+      {charted && <Button icon="chart" trailingIcon="chevronRight" onClick={() => { const replace = onSheetEntry(); close(); visit('/progress/strength?ex=' + encodeURIComponent(ex.id), { replace }) }}>{t('Progress')}</Button>}
+    </Inline>}
     {isCustomEx(ex) && <div className="row" style={{ gap: 8, marginTop: 8 }}>
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
       <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
@@ -140,7 +149,7 @@ function ExerciseDetail({ ex, close }) {
       <Icon name="pencil" /> {t('Suggest a fix for this exercise')}</a>}
   </>
 }
-export const exerciseDetailSheet = ex => ui().openSheet(close => <ExerciseDetail ex={ex} close={close} />)
+export const exerciseDetailSheet = (ex, { progress = false } = {}) => ui().openSheet(close => <ExerciseDetail ex={ex} close={close} progress={progress} />)
 
 /* ============================ exercise history ============================ */
 // What you did on this exercise before, reachable mid-workout (issue #43): the curve first,

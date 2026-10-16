@@ -1004,6 +1004,8 @@ body.chips-dragging *{cursor:inherit}
 .cmf-sub .icn{font-size:13px}
 .cmf-note{margin:0 4px 6px;line-height:1.35}
 .cmf-link{margin-top:4px}
+.exd-row{margin-top:4px}
+.exd-row>.btn{flex:1}
 /* A logged workout's photos and videos (WorkoutMedia.jsx): a grid of posters with an Add tile,
    and the full-screen viewer they open in. Logical properties only, so RTL mirrors by itself. */
 .wmedia{margin:4px 0 12px}
