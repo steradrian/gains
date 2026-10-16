@@ -118,7 +118,7 @@ function ExerciseDetail({ ex, close, progress }) {
     {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow-ink)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
-    {(last || charted) && <Inline gap={2} className="exd-row">
+    {(last || charted) && <Inline gap={4} className="exd-row">
       {last && <Button icon="history" onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
       {charted && <Button icon="chart" trailingIcon="chevronRight" onClick={() => { const replace = onSheetEntry(); close(); visit('/progress/strength?ex=' + encodeURIComponent(ex.id), { replace }) }}>{t('Progress')}</Button>}
     </Inline>}
