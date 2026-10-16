@@ -95,9 +95,9 @@ describe('menu sheet title', () => {
     return host.querySelector('h3')
   }
   it('shows a sentence as written', () => {
-    expect(titleOf({ title: 'Convert to lb?' }).className).toBe('')
+    expect(titleOf({ title: 'Convert to lb?' }).classList.contains('capitalize')).toBe(false)
   })
   it('still title-cases an exercise name when asked to', () => {
-    expect(titleOf({ title: 'barbell curl', titleClass: 'capitalize' }).className).toBe('capitalize')
+    expect(titleOf({ title: 'barbell curl', titleClass: 'capitalize' }).classList.contains('capitalize')).toBe(true)
   })
 })
