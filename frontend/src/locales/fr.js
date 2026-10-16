@@ -3166,6 +3166,6 @@ export default {
   'Prefilled as their profile name when they open the link.': 'Prefilled as their profile name when they open the link.',
   'Their name': 'Their name',
   // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
-  'No sets logged for {0} yet': 'No sets logged for {0} yet',
+  'No sets logged yet': 'No sets logged yet',
   'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
 }

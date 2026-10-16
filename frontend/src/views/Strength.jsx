@@ -23,7 +23,8 @@ import { Row, Section, Segmented, selectSheet } from '../components/ui.jsx'
 // Deep link: /progress/strength?ex=<exercise id>[&range=<days>] opens on that exercise (Search's
 // exercise sheet links to it with ?ex=). An id with no logged sessions, or none in the catalogue,
 // stays on that exercise: its card and an empty state in place of the chart, the picker still
-// there to switch. Without ?ex= the exercise trained heaviest opens. Without ?range= the chart
+// there to switch, and ⋯ offering just its details. With no workouts at all, "No lifts yet"
+// shows whatever ?ex= says. Without ?ex= the exercise trained heaviest opens. Without ?range= the chart
 // starts on All; picking another exercise or range writes it to the address (replace), so a
 // reload comes back to it.
 export default function Strength() {
@@ -56,17 +57,20 @@ export default function Strength() {
       match: (option, query) => matchExercise(p.matcherOf(option.value), query),
     },
   })
+  // An id that is neither in the catalogue nor in the log: no name to show but the id itself.
+  const unknownEx = id => !EXIDX[id] && p.nameOf(id) === id
   const exerciseCard = (id, subtitle) => <TabSection>
     <MediaRow variant="exercise" art={<Thumb ex={EXIDX[id] || { id, n: p.nameOf(id), missing: true }} />}
-      title={labelOf(id)} subtitle={subtitle} onOpen={openPicker} chevron />
+      title={unknownEx(id) ? t('Unknown exercise') : labelOf(id)} subtitle={subtitle} onOpen={openPicker} chevron />
   </TabSection>
-  const more = curEx && !unlogged && <button type="button" className="iconbtn" aria-label={t('More')} onClick={() => menuSheet({
-    title: labelOf(curEx),
-    items: [
-      EXIDX[curEx] && { icon: 'info', label: t('Exercise details'), onClick: () => exerciseDetailSheet(EXIDX[curEx]) },
-      { icon: 'history', label: t('Exercise history'), onClick: () => exerciseHistorySheet(curEx) },
-    ],
+  const detailsItem = id => EXIDX[id] && { icon: 'info', label: t('Exercise details'), onClick: () => exerciseDetailSheet(EXIDX[id]) }
+  const moreButton = (id, items) => <button type="button" className="iconbtn" aria-label={t('More')} onClick={() => menuSheet({
+    title: labelOf(id), items,
   })}><Icon name="more" /></button>
+  // The exercise with no sets has no history to open: only its details, and only for a catalogue id.
+  const more = !curEx ? null
+    : unlogged ? EXIDX[exId] && moreButton(exId, [detailsItem(exId)])
+    : moreButton(curEx, [detailsItem(curEx), { icon: 'history', label: t('Exercise history'), onClick: () => exerciseHistorySheet(curEx) }])
 
   if (!curEx) {
     return <Page title={t('Strength')}>
@@ -75,10 +79,12 @@ export default function Strength() {
   }
 
   if (unlogged) {
-    return <Page title={t('Strength')}>
+    return <Page title={t('Strength')} action={more}>
       {exerciseCard(exId, t('Change exercise'))}
       <TabSection>
-        <EmptyState icon="trophy" title={t('No sets logged for {0} yet', labelOf(exId))}>{t('Log it in a workout and its curve shows up here.')}</EmptyState>
+        <Card>
+          <EmptyState icon="trophy" title={t('No sets logged yet')}>{t('Log it in a workout and its curve shows up here.')}</EmptyState>
+        </Card>
       </TabSection>
     </Page>
   }

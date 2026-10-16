@@ -220,20 +220,46 @@ describe('Strength: ?ex= deep link', () => {
     mocks.search = '?ex=' + DEADLIFT
     mount(both())
     expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Deadlift')
-    expect(host.querySelector('.empty').textContent).toContain('No sets logged for Barbell Deadlift yet')
-    expect(host.querySelector('.empty').textContent).toContain('Log it in a workout and its curve shows up here.')
+    const empty = host.querySelector('.card .empty')
+    expect(empty.textContent).toContain('No sets logged yet')
+    expect(empty.textContent).not.toContain('Deadlift')
+    expect(empty.textContent).toContain('Log it in a workout and its curve shows up here.')
     expect(host.textContent).not.toContain('Barbell Full Squat')
     expect(host.querySelector('.hero-num')).toBeNull()
     expect(host.querySelector('.seg')).toBeNull()
+  })
+
+  it('shows the same empty state for an id that is not in the catalogue, without printing the raw id', () => {
+    mocks.search = '?ex=not-a-lift'
+    mount(both())
+    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Unknown exercise')
+    expect(host.querySelector('.card .empty').textContent).toContain('No sets logged yet')
+    expect(host.textContent).not.toContain('not-a-lift')
+    expect(host.querySelector('.hero-num')).toBeNull()
+  })
+
+  it('offers only Exercise details on the empty state of a catalogue exercise', () => {
+    mocks.search = '?ex=' + DEADLIFT
+    mount(both())
+    act(() => host.querySelector('button[aria-label="More"]').click())
+    const { title, items } = mocks.menuSheet.mock.calls[0][0]
+    expect(title).toBe('Barbell Deadlift')
+    expect(items.filter(Boolean).map(i => i.label)).toEqual(['Exercise details'])
+    items[0].onClick()
+    expect(mocks.exerciseDetailSheet).toHaveBeenCalledWith(expect.objectContaining({ id: DEADLIFT }))
+  })
+
+  it('offers no menu on the empty state of an unknown id', () => {
+    mocks.search = '?ex=not-a-lift'
+    mount(both())
     expect(host.querySelector('button[aria-label="More"]')).toBeNull()
   })
 
-  it('shows the same empty state for an id that is not in the catalogue', () => {
-    mocks.search = '?ex=not-a-lift'
-    mount(both())
-    expect(host.querySelector('.item-exercise .tt').textContent).toBe('not-a-lift')
-    expect(host.querySelector('.empty').textContent).toContain('No sets logged for not-a-lift yet')
-    expect(host.querySelector('.hero-num')).toBeNull()
+  it('shows No lifts yet with no workouts, whatever ?ex= says', () => {
+    mocks.search = '?ex=' + DEADLIFT
+    mount([])
+    expect(host.textContent).toContain('No lifts yet')
+    expect(host.textContent).not.toContain('No sets logged yet')
   })
 
   it('keeps the picker on an unlogged exercise and switches to a logged one', () => {
