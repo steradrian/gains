@@ -5,7 +5,8 @@ import { DAYN } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from '../lib/starter.js'
 import Icon from '../components/Icon.jsx'
-import { tappable } from '../lib/use-sheet-keyboard.js'
+import { Chip, ChipRow, ItemRow } from '../components/blocks.jsx'
+import { SheetHeader } from '../components/sheet-layout.jsx'
 import { update, ui, toast } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 
@@ -71,22 +72,23 @@ function StarterPlanChooser({ close }) {
     })
   }
   return <>
-    <h3>{t('Choose starter plan')}</h3>
+    <SheetHeader title={t('Choose starter plan')} />
     {profiles.length > 0
-      ? <div className="chips" style={{ margin: '0 0 10px' }}>
+      ? <ChipRow className="mb-5">
           <div className="small dim" style={{ width: '100%' }}>{t('Fit to my equipment')}</div>
-          <button className={'chip nocap' + (!fit ? ' on' : '')} onClick={() => setFitId('')}>{t('As written')}</button>
-          {profiles.map(p => <button key={p.id} className={'chip nocap' + (fit?.id === p.id ? ' on' : '')} onClick={() => setFitId(p.id)}>{p.name}</button>)}
-        </div>
-      : <div className="small dim" style={{ margin: '0 0 10px' }}>{t('Add an equipment profile in Settings to fit a plan to what you own.')}</div>}
+          <Chip nocap on={!fit} onClick={() => setFitId('')}>{t('As written')}</Chip>
+          {profiles.map(p => <Chip key={p.id} nocap on={fit?.id === p.id} onClick={() => setFitId(p.id)}>{p.name}</Chip>)}
+        </ChipRow>
+      : <div className="small dim mb-5">{t('Add an equipment profile in Settings to fit a plan to what you own.')}</div>}
     <div className="list">
       {starterPlanOptions().map(({ id, days }) => {
         const { name, about } = PLAN_COPY[id]()
-        return <div key={id} className="item" {...tappable(() => choose(id, name))}>
-          <span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="clipboard" /></span>
-          <div className="grow"><div className="tt">{name}</div><div className="ss">{t('{0} days per week', days)} · {about}</div></div>
-          <Icon name="chevronRight" className="chev" />
-        </div>
+        return <ItemRow key={id}
+          lead={<span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="clipboard" /></span>}
+          title={name}
+          subtitle={<>{t('{0} days per week', days)} · {about}</>}
+          chevron
+          onClick={() => choose(id, name)} />
       })}
     </div>
   </>

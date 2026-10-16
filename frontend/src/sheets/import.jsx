@@ -3,6 +3,9 @@ import { useStore } from '../store/useStore.js'
 import { fmtDate, fmtDateRange } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { t, tn } from '../lib/i18n.js'
+import { SectionTitle, Tiles } from '../components/blocks.jsx'
+import { Inline, Spacer } from '../components/layout.jsx'
+import { SheetHeader } from '../components/sheet-layout.jsx'
 import { Button, Switch, TextField } from '../components/ui.jsx'
 import { parseImport, mergeImport } from '../lib/import-csv.js'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from '../lib/import-hevy.js'
@@ -36,12 +39,12 @@ function ImportSummary({ parsed, close }) {
   }
 
   return <>
-    <h3>{parsed.source ? t('Import from {0}', parsed.source) : t('Import history')}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>
+    <SheetHeader title={parsed.source ? t('Import from {0}', parsed.source) : t('Import history')} />
+    <div className="muted small mb-6">
       {fmtDateRange(parsed.from, parsed.to, true)}
     </div>
 
-    <div className="tiles" style={{ textAlign: 'start' }}>
+    <Tiles className="ta-start">
       {isBW ? <>
         <div className="tile"><div className="l">{t('Weigh-ins')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.bodyweight.length}</div></div>
         <div className="tile"><div className="l">{t('New')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fresh}</div></div>
@@ -51,32 +54,32 @@ function ImportSummary({ parsed, close }) {
         <div className="tile"><div className="l">{t('Exercises matched')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.matched}</div></div>
         <div className="tile"><div className="l">{t('Added as your own')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.created}</div></div>
       </>}
-    </div>
+    </Tiles>
 
-    {parsed.mixedUnits ? <div className="small" style={{ color: 'var(--yellow-ink)', marginBottom: 10 }}>
+    {parsed.mixedUnits ? <div className="small ink-warn mb-5">
       {t('The file mixes kg and lb, so each set is converted to {0}.', st.unit)}
-    </div> : parsed.converted ? <div className="small" style={{ color: 'var(--yellow-ink)', marginBottom: 10 }}>
+    </div> : parsed.converted ? <div className="small ink-warn mb-5">
       {t('The file is in {0} and your profile is in {1}, so weights get converted.', parsed.fileUnit, st.unit)}
     </div> : null}
-    {!isBW && !parsed.fileUnit && !parsed.mixedUnits && <div className="small dim" style={{ marginBottom: 10 }}>
+    {!isBW && !parsed.fileUnit && !parsed.mixedUnits && <div className="small dim mb-5">
       {t('The file doesn’t say which unit it uses, so numbers are imported as they are.')}
     </div>}
-    {have > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
+    {have > 0 && <div className="small dim mb-5">
       {t('{0} days already have data here and will be left alone.', have)}
     </div>}
     {/* The file rated its sets. Say so: the column is off by default, so the ratings would
         otherwise arrive invisibly and look like they had been dropped. */}
-    {!isBW && (parsed.rirSets + parsed.rpeSets) > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
+    {!isBW && (parsed.rirSets + parsed.rpeSets) > 0 && <div className="small dim mb-5">
       {effortLine(effortOf(st), parsed.rirSets || parsed.rpeSets, parsed.rirSets ? 'RIR' : 'RPE')}
     </div>}
     {/* Rows the parser could not use (no date or name, nothing measured, impossible numbers)
         are left out; say how many, so a short history does not look like a lost one. */}
-    {!isBW && parsed.skipped > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
+    {!isBW && parsed.skipped > 0 && <div className="small dim mb-5">
       {tn('{0} row skipped (couldn’t read it)', '{0} rows skipped (couldn’t read them)', parsed.skipped)}
     </div>}
     {!isBW && parsed.unmatchedNames.length > 0 && <>
-      <h4 className="sec">{t('Not in the library, so they’re added as your own exercises')}</h4>
-      <div className="mchips" style={{ marginBottom: 12 }}>
+      <SectionTitle>{t('Not in the library, so they’re added as your own exercises')}</SectionTitle>
+      <div className="mchips mb-6">
         {parsed.unmatchedNames.slice(0, 12).map(n => <span key={n} className="mchip capitalize">{n}</span>)}
         {parsed.unmatchedNames.length > 12 && <span className="mchip">+{parsed.unmatchedNames.length - 12}</span>}
       </div>
@@ -85,7 +88,7 @@ function ImportSummary({ parsed, close }) {
     <Button variant="primary" onClick={doImport} disabled={!fresh}>
       {fresh ? t('Import') : t('Nothing new to import')}
     </Button>
-    <div style={{ height: 8 }} />
+    <Spacer size={4} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
   </>
 }
@@ -201,11 +204,11 @@ function HevyImportSheet({ close }) {
 
   if (!payload) {
     return <>
-      <h3>{t('Import from Hevy')}</h3>
-      <div className="muted small" style={{ marginBottom: 14, lineHeight: 1.5 }}>
+      <SheetHeader title={t('Import from Hevy')} />
+      <div className="muted small mb-7 lh-150">
         {t('Pull your history with a Hevy Pro API key. The key is only used for this import and is not saved.')}
       </div>
-      <label className="small dim" style={{ display: 'block', marginBottom: 6 }}>{t('Hevy API key')}</label>
+      <label className="small dim mb-3" style={{ display: 'block' }}>{t('Hevy API key')}</label>
       <TextField
         ref={keyRef}
         type="password"
@@ -217,15 +220,15 @@ function HevyImportSheet({ close }) {
         onChange={e => setApiKey(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !busy) fetchAccount() }}
       />
-      <div className="small" style={{ margin: '10px 0 16px', lineHeight: 1.45 }}>
+      <div className="small mt-5 mb-8 lh-145">
         <a href={HEVY_DEV_SETTINGS} target="_blank" rel="noopener noreferrer">{t('Get your API key')}</a>
         <span className="dim"> · {t('Hevy → Settings → Developer')}</span>
       </div>
-      {busy && <div className="small dim" style={{ marginBottom: 12 }}>{hevyProgressLabel(progress)}</div>}
+      {busy && <div className="small dim mb-6">{hevyProgressLabel(progress)}</div>}
       <Button variant="primary" onClick={fetchAccount} disabled={busy || !apiKey.trim()}>
         {busy ? t('Fetching from Hevy…') : t('Fetch from Hevy')}
       </Button>
-      <div style={{ height: 8 }} />
+      <Spacer size={4} />
       <Button variant="ghost" className="dim" onClick={close} disabled={busy}>{t('Cancel')}</Button>
     </>
   }
@@ -246,51 +249,51 @@ function HevyImportSheet({ close }) {
   ])].sort()
 
   return <>
-    <h3>{t('Import from Hevy')}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>
+    <SheetHeader title={t('Import from Hevy')} />
+    <div className="muted small mb-6">
       {w.from && (w.from === w.to ? fmtDate(w.from, true) : fmtDate(w.from, true) + ' – ' + fmtDate(w.to, true))}
       {!w.from && b.from && (b.from === b.to ? fmtDate(b.from, true) : fmtDate(b.from, true) + ' – ' + fmtDate(b.to, true))}
     </div>
 
-    <div className="tiles" style={{ textAlign: 'start' }}>
+    <Tiles className="ta-start">
       <div className="tile"><div className="l">{t('Workouts')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.workouts.length}</div></div>
       <div className="tile"><div className="l">{t('Routines')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{r.routines.length}</div></div>
       <div className="tile"><div className="l">{t('Exercises matched')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.matched + r.matched}</div></div>
       <div className="tile"><div className="l">{t('Added as your own')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.created + r.created}</div></div>
-    </div>
+    </Tiles>
 
-    {w.workouts.length > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', gap: 12 }}>
+    {w.workouts.length > 0 && <Inline justify="between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)' }}>
       <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Import workouts')}</div>
+        <div className="tt fs-subhead">{t('Import workouts')}</div>
         <div className="small dim">{t('{0} new · {1} days already here', freshW, haveW)}</div>
       </div>
       <Switch checked={wantWorkouts} onChange={setWantWorkouts} />
-    </div>}
-    {r.routines.length > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', gap: 12 }}>
+    </Inline>}
+    {r.routines.length > 0 && <Inline justify="between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)' }}>
       <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Import routines')}</div>
+        <div className="tt fs-subhead">{t('Import routines')}</div>
         <div className="small dim">{t('{0} routines · {1} exercises, added as new plans', freshR, r.exerciseCount)}</div>
       </div>
       <Switch checked={wantRoutines} onChange={setWantRoutines} />
-    </div>}
-    {b.bodyweight.length > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', gap: 12, marginBottom: 8 }}>
+    </Inline>}
+    {b.bodyweight.length > 0 && <Inline justify="between" className="mb-4" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)' }}>
       <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Import weigh-ins')}</div>
+        <div className="tt fs-subhead">{t('Import weigh-ins')}</div>
         <div className="small dim">{t('{0} new · {1} days already here', freshB, haveB)}</div>
       </div>
       <Switch checked={wantBody} onChange={setWantBody} />
-    </div>}
-    {!b.bodyweight.length && <div style={{ borderBottom: '1px solid var(--sep)', marginBottom: 8 }} />}
+    </Inline>}
+    {!b.bodyweight.length && <div className="mb-4" style={{ borderBottom: '1px solid var(--sep)' }} />}
 
-    {(w.converted || r.converted) && <div className="small" style={{ color: 'var(--yellow-ink)', marginBottom: 10 }}>
+    {(w.converted || r.converted) && <div className="small ink-warn mb-5">
       {t('Hevy stores weights in kg, so they’ll be converted to {0}.', st.unit)}
     </div>}
-    {wantWorkouts && (w.rirSets + w.rpeSets) > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
+    {wantWorkouts && (w.rirSets + w.rpeSets) > 0 && <div className="small dim mb-5">
       {effortLine(effortOf(st), w.rirSets || w.rpeSets, w.rirSets ? 'RIR' : 'RPE')}
     </div>}
     {unmatched.length > 0 && <>
-      <h4 className="sec">{t('Not in the library, so they’re added as your own exercises')}</h4>
-      <div className="mchips" style={{ marginBottom: 12 }}>
+      <SectionTitle>{t('Not in the library, so they’re added as your own exercises')}</SectionTitle>
+      <div className="mchips mb-6">
         {unmatched.slice(0, 12).map(n => <span key={n} className="mchip capitalize">{n}</span>)}
         {unmatched.length > 12 && <span className="mchip">+{unmatched.length - 12}</span>}
       </div>
@@ -299,7 +302,7 @@ function HevyImportSheet({ close }) {
     <Button variant="primary" onClick={doImport} disabled={!canImport}>
       {canImport ? t('Import') : t('Nothing new to import')}
     </Button>
-    <div style={{ height: 8 }} />
+    <Spacer size={4} />
     <Button variant="ghost" className="dim" onClick={() => { setPayload(null); wipeKey() }}>{t('Back')}</Button>
   </>
 }
