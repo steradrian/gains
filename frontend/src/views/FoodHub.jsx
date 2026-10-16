@@ -10,7 +10,7 @@ import { Page } from '../components/layout.jsx'
 import { LineArt } from '../components/line-art.jsx'
 import { SectionHeader, TabSection } from '../components/tab-kit.jsx'
 import DayNav from '../components/DayNav.jsx'
-import KcalLeftBar from '../components/KcalLeftBar.jsx'
+import KcalLeftButton from '../components/KcalLeftButton.jsx'
 import NutritionHero from '../components/NutritionHero.jsx'
 import NutritionMacros from '../components/NutritionMacros.jsx'
 import NutritionActions from '../components/NutritionActions.jsx'
@@ -27,11 +27,11 @@ const HEADER_PX = 56
 const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && isoOf(new Date(s + 'T12:00:00')) === s
 
 // The Nutrition tab's root (ux-redesign-tabs §4.2, Owner decision 9): the month and week on the
-// date every tab shares (a day to come is dimmed), the energy left as the hero, the macros, the
-// action row, then the diary for that day (the meals with their items, yesterday's meal inside
+// date every tab shares (a day to come is dimmed), the energy left as the hero, the action row,
+// the macros, then the diary for that day (the meals with their items, yesterday's meal inside
 // the empty one it matches, activity, the running fast and water) and the Library list. Once the
-// hero scrolls away, "N left" stays pinned under the header. Without nutrition (the phone build, a
-// guest) it is one empty state.
+// hero scrolls away, "N left" takes the header's context slot and scrolls back to the top. Without
+// nutrition (the phone build, a guest) it is one empty state.
 // `/food?date=YYYY-MM-DD` opens it on that day (today or before; a day to come is today).
 export default function FoodHub() {
   const location = useLocation()
@@ -65,12 +65,11 @@ export default function FoodHub() {
     </Page>
   }
 
-  return <Page root title={t('Nutrition')}>
+  return <Page root title={t('Nutrition')} action={heroGone && day.status === 'ready' ? <KcalLeftButton left={day.left} /> : undefined}>
     <DayNav future="off" />
-    <KcalLeftBar left={heroGone && day.status === 'ready' ? day.left : null} />
-    <TabSection><NutritionHero day={day} ref={heroRef} /></TabSection>
-    {day.status !== 'error' && <TabSection><NutritionMacros day={day} /></TabSection>}
+    <TabSection><NutritionHero date={date} day={day} ref={heroRef} /></TabSection>
     <TabSection><NutritionActions date={date} day={day} /></TabSection>
+    {day.status !== 'error' && <TabSection><NutritionMacros day={day} /></TabSection>}
     <TabSection>
       <SectionHeader title={isToday ? t('Today’s diary') : t('Diary')} />
       <MealsCard date={date} day={day} find={find && (!find.date || find.date === date) ? find.uuid : null} again={isToday ? meal : null} />

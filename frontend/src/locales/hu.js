@@ -2788,6 +2788,8 @@ export default {
   'of {0}': '/ {0}',
   'over by {0}': 'túllépés: {0}',
   'Loading today': 'A mai nap betöltése',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'A Coach állapotának betöltése…',
   // --- the global search ---
   '+{0} more': '+{0} további',

@@ -46,7 +46,7 @@ export default function MealRow({ date, slot, name, items, find = null, children
   return <div className={'meal-row' + (open || adding ? ' expanded' : '')}>
     <div className="meal-head">
       <button type="button" className="meal-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}
-        aria-controls={listId} disabled={!items.length}>
+        aria-controls={listId} disabled={!items.length} data-meal-slot={slot}>
         <span className="meal-name">{name}</span>
         <span className="meal-sub small muted">{items.length ? tn('{0} item', '{0} items', items.length) : t('Nothing yet')}</span>
         <span className="meal-kcal small">{items.length ? energy(totals.calories) : ''}</span>

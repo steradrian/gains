@@ -2785,6 +2785,8 @@ export default {
   'of {0}': '/ {0}',
   'over by {0}': '{0} 초과',
   'Loading today': '오늘 불러오는 중',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': '코치 상태 불러오는 중…',
   // --- the global search ---
   '+{0} more': '+{0}개 더',

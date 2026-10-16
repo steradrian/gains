@@ -2778,6 +2778,8 @@ export default {
   'of {0}': '/ {0}',
   'over by {0}': '超出 {0}',
   'Loading today': '載入今日資料',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': '載入 Coach 狀態…',
   // --- the global search ---
   '+{0} more': '還有 {0} 項',

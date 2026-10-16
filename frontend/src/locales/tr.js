@@ -2785,6 +2785,8 @@ export default {
   'of {0}': '/ {0}',
   'over by {0}': '{0} fazla',
   'Loading today': 'Bugün yükleniyor',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'Coach durumu yükleniyor…',
   // --- the global search ---
   '+{0} more': '+{0} daha',

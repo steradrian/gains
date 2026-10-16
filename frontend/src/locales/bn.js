@@ -2864,6 +2864,8 @@ export default {
   'of {0}': '{0}-এর মধ্যে',
   'over by {0}': '{0} বেশি',
   'Loading today': 'আজকের তথ্য লোড হচ্ছে',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'কোচের অবস্থা লোড হচ্ছে…',
   // --- the global search ---
   '+{0} more': '+{0}টি আরও',

@@ -2796,6 +2796,8 @@ export default {
   'of {0}': 'จาก {0}',
   'over by {0}': 'เกิน {0}',
   'Loading today': 'กำลังโหลดข้อมูลวันนี้',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'กำลังโหลดสถานะโค้ช…',
   // --- the global search ---
   '+{0} more': 'อีก {0} รายการ',

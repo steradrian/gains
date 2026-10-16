@@ -1695,6 +1695,8 @@ export const PT_BR_OVERRIDES = {
   'of {0}': 'de {0}',
   'over by {0}': '{0} acima',
   'Loading today': 'Carregando hoje',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'Carregando o status do Coach…',
   // --- the global search ---
   'Couldn’t reach {0}': 'Não foi possível acessar {0}',

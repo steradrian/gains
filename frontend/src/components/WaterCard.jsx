@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { t } from '../lib/i18n.js'
 import { useUI } from '../store/useUI.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -37,16 +37,21 @@ export const waterAria = (button, units) => (button.name
 
 // Water for the day against its goal, with a tap for each container (Profile › Water), or a glass
 // when there are none (ia-proposal §2), as an inset-list row of the diary. Hidden when
-// Profile › Water says not to show it here.
+// Profile › Water says not to show it here. The buttons are a group named by the row's title and
+// total ("Water, 250 ml / 2,500 ml"), which is what tells them from the action row's button of
+// the same name.
 export default function WaterCard({ date, water, ready }) {
   const units = useUnits()
   const settings = useNutrition(s => s.settings.data)
   const [busy, setBusy] = useState(false)
+  const id = useId()
+  const titleId = id + '-t'
+  const totalId = id + '-v'
   if (!settingOf(settings, 'waterShowInDiary')) return null
   const add = async ml => { setBusy(true); await addWater(date, ml); setBusy(false) }
   return <Section className="water-card">
-    <Row glyph="droplet" title={t('Water')} subtitle={`${units.water(water.total)} / ${units.water(water.goal)}`}>
-      <span className="water-adds">
+    <Row glyph="droplet" title={t('Water')} titleId={titleId} subtitle={`${units.water(water.total)} / ${units.water(water.goal)}`} subtitleId={totalId}>
+      <span className="water-adds" role="group" aria-labelledby={`${titleId} ${totalId}`}>
         {waterButtons(settings).map(b => (
           <Button key={b.id} size="sm" variant="tinted" icon="plus" onClick={() => add(b.ml)} disabled={busy || !ready}
             aria-label={waterAria(b, units)}>{units.water(b.ml)}</Button>

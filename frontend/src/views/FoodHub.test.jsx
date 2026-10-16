@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // The Nutrition root against the foundation's fake, routed: the hero and the macros for the
 // shared date, over target, an empty day, a past day, the /food?date= deep link, yesterday's meal
-// inside the empty meal it matches, the Library rows that open the places, the pinned "left"
+// inside the empty meal it matches, the Library rows that open the places, the header's "left"
 // readout, and the empty state without nutrition.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -137,6 +137,34 @@ describe('the hero and the macros', () => {
     expect([...host.querySelectorAll('.meal-sub')].map(s => s.textContent)).toEqual(['Nothing yet', 'Nothing yet', 'Nothing yet', 'Nothing yet'])
   })
 
+  it('puts the action row straight after the hero, then the macros', async () => {
+    await openHub()
+    await settle(() => expect(heroValue()).toBe('1,522'))
+    const sections = [...host.querySelectorAll('.tab-sec')]
+    expect(sections[0].querySelector('.hero')).not.toBeNull()
+    expect(sections[1].querySelector('.act-row')).not.toBeNull()
+    expect(sections[2].querySelector('.mg')).not.toBeNull()
+  })
+
+  it('names the day while a past day loads, not "today"', async () => {
+    useDiarySelection.getState().setDate(YESTERDAY)
+    await openHub()
+    const text = host.querySelector('.hero[role="status"] .sr-only')?.textContent
+    expect(text).toMatch(/^Loading /)
+    expect(text).not.toBe('Loading today')
+  })
+
+  it('groups the water row\'s buttons under its title and total', async () => {
+    await openHub()
+    await settle(() => expect(heroValue()).toBe('1,522'))
+    const group = host.querySelector('.water-adds')
+    expect(group.getAttribute('role')).toBe('group')
+    const name = group.getAttribute('aria-labelledby').split(' ').map(id => host.querySelector(`[id="${id}"]`).textContent).join(' ')
+    expect(name).toMatch(/^Water \d[\d,.]* ml \/ [\d,.]+ ml$/)
+    // The action row's button shares the quick-add's name: the group is what tells them apart.
+    expect(host.querySelectorAll('button[aria-label^="Add "]').length).toBeGreaterThanOrEqual(2)
+  })
+
   it('"Set targets" opens Goals', async () => {
     await openHub()
     await settle(() => expect(heroValue()).toBe('1,522'))
@@ -172,7 +200,7 @@ describe('the hero and the macros', () => {
   })
 })
 
-describe('the pinned "left" readout', () => {
+describe('the header\'s "left" readout', () => {
   let observers
   beforeEach(() => {
     observers = []
@@ -187,16 +215,29 @@ describe('the pinned "left" readout', () => {
       o.cb([{ isIntersecting: !gone, boundingClientRect: { top: gone ? -200 : 120 } }])
     }
   })
-  const pill = () => host.querySelector('.kcal-left-pill')
+  const pill = () => host.querySelector('.hdr-slot .hdr-left')
 
-  it('appears once the hero has scrolled away, and goes when it is back', async () => {
+  it('takes the header\'s context slot once the hero has scrolled away, and goes when it is back', async () => {
     await openHub()
     await settle(() => expect(heroValue()).toBe('1,522'))
     expect(pill()).toBeNull()
     scrollHero(true)
-    expect(pill().textContent).toBe('1,522 kcal left')
+    await settle(() => expect(pill()).not.toBeNull())
+    expect(pill().textContent).toBe('1,522 left')
+    expect(pill().getAttribute('aria-label')).toBe('1,522 kcal left')
     scrollHero(false)
-    expect(pill()).toBeNull()
+    await settle(() => expect(pill()).toBeNull())
+  })
+
+  it('scrolls back to the top when tapped', async () => {
+    const scrollTo = vi.fn()
+    vi.stubGlobal('scrollTo', scrollTo)
+    await openHub()
+    await settle(() => expect(heroValue()).toBe('1,522'))
+    scrollHero(true)
+    await settle(() => expect(pill()).not.toBeNull())
+    tap(pill())
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
   })
 
   it('says over, in orange ink, past the target', async () => {
@@ -204,7 +245,8 @@ describe('the pinned "left" readout', () => {
     await openHub()
     await settle(() => expect(heroValue()).toBe('478'))
     scrollHero(true)
-    expect(pill().textContent).toBe('478 kcal over')
+    await settle(() => expect(pill()).not.toBeNull())
+    expect(pill().textContent).toBe('478 over')
     expect(pill().classList.contains('over')).toBe(true)
   })
 })
@@ -256,12 +298,15 @@ describe('yesterday\'s meal, inside the empty meal it matches', () => {
     const again = mealRow('Dinner').querySelector('.meal-again')
     expect(again.textContent).toContain('Yesterday’s Dinner')
     expect(again.textContent).toContain('Lentil soup · 228 kcal')
+    expect(buttonSaying('Log again').getAttribute('aria-label')).toBe('Log yesterday’s Dinner again')
     tap(buttonSaying('Log again'))
     await settle(() => expect(toastText()).toBe('Logged to Dinner'))
     const fresh = nt.state.days[TODAY].items.find(i => i.name === 'Lentil soup')
     expect(fresh).toMatchObject({ meal: 2, food_server_id: 11, portion: 60, unit: 'g', quantity: 1 })
-    // Dinner has something now: the offer goes, the toast's Undo stays.
+    // Dinner has something now: the offer goes, the toast's Undo stays, and focus lands on Dinner
+    // rather than falling back to the body.
     await settle(() => expect(host.querySelector('.meal-again')).toBeNull())
+    await settle(() => expect(document.activeElement).toBe(mealRow('Dinner').querySelector('.meal-toggle')))
     await act(async () => { useUI.getState().runToastAction() })
     await settle(() => expect(nt.state.days[TODAY].items.some(i => i.uuid === fresh.uuid)).toBe(false))
     await settle(() => expect(mealRow('Dinner').querySelector('.meal-again')).not.toBeNull())

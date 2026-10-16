@@ -2840,6 +2840,8 @@ export default {
   'of {0}': 'من {0}',
   'over by {0}': 'تجاوز بمقدار {0}',
   'Loading today': 'جارٍ تحميل اليوم',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'جارٍ تحميل حالة المدرب…',
   // --- the global search ---
   '+{0} more': '+{0} أخرى',

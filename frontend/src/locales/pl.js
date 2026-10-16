@@ -2785,6 +2785,8 @@ export default {
   'of {0}': 'z {0}',
   'over by {0}': 'o {0} za dużo',
   'Loading today': 'Wczytywanie dnia',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'Wczytywanie stanu Coacha…',
   // --- the global search ---
   '+{0} more': '+{0} więcej',

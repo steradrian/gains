@@ -2782,6 +2782,8 @@ export default {
   'of {0}': 'з {0}',
   'over by {0}': 'перевищення на {0}',
   'Loading today': 'Завантаження за сьогодні',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'Завантаження стану Coach…',
   // --- the global search ---
   '+{0} more': '+{0} ще',

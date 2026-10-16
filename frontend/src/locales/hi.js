@@ -2785,6 +2785,8 @@ export default {
   'of {0}': '{0} में से',
   'over by {0}': '{0} अधिक',
   'Loading today': 'आज का डेटा लोड हो रहा है',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': 'कोच की स्थिति लोड हो रही है…',
   // --- the global search ---
   '+{0} more': '+{0} और',

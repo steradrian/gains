@@ -17,7 +17,8 @@ const toast = (m, opts) => useUI.getState().toast(m, opts)
 // go in one write with uuids that come from the copy itself, so a second tap or a retry is the
 // same entries, and "Logged" is read off today's diary, not remembered here. `whileEmpty` (Home's
 // live row, Nutrition's diary): only while today's meal is still empty; once it has anything the
-// row goes, the toast's Undo still there. `inline`: a line inside that empty meal of the diary
+// row goes, the toast's Undo still there, and focus moves to the meal's own control
+// (`data-meal-slot`: the diary's meal row, Home's meal pill). `inline`: a line inside that empty meal of the diary
 // (ux-redesign-tabs §4.2), not a row of its own.
 export default function YesterdayMealRow({ settings, meal, whileEmpty = false, inline = false }) {
   const today = todayISO()
@@ -50,6 +51,8 @@ export default function YesterdayMealRow({ settings, meal, whileEmpty = false, i
         action: t('Undo'),
         onAction: () => { useNutrition.getState().removeItems(today, logged.map(i => i.uuid)).catch(e => toast(foodErrorText(e, { write: true }))) },
       })
+      // The row goes now that the meal has entries: focus follows to that meal, not to the body.
+      requestAnimationFrame(() => document.querySelector(`[data-meal-slot="${meal}"]`)?.focus())
     } catch (e) {
       toast(foodErrorText(e, { write: true }))
     } finally {
@@ -61,7 +64,7 @@ export default function YesterdayMealRow({ settings, meal, whileEmpty = false, i
   const subtitle = `${items.map(i => i.name).join(', ')} · ${kcal.value} ${kcal.unit}`
   const control = done
     ? <Tag tone="acc">{t('Logged')}</Tag>
-    : <Button size="sm" variant="tinted" onClick={again} disabled={busy || !ready}>{t('Log again')}</Button>
+    : <Button size="sm" variant="tinted" onClick={again} disabled={busy || !ready} aria-label={t('Log yesterday’s {0} again', label)}>{t('Log again')}</Button>
   if (inline) {
     return <div className="meal-again">
       <span className="grow"><span className="tt">{title}</span><span className="ss small muted">{subtitle}</span></span>

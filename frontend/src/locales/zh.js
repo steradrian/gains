@@ -2785,6 +2785,8 @@ export default {
   'of {0}': '/ {0}',
   'over by {0}': '超出 {0}',
   'Loading today': '加载今日数据',
+  'Loading {0}': 'Loading {0}',
+  'Log yesterday’s {0} again': 'Log yesterday’s {0} again',
   'Loading Coach status…': '加载 Coach 状态…',
   // --- the global search ---
   '+{0} more': '还有 {0} 项',
