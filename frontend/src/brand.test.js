@@ -17,7 +17,12 @@ describe('brand', () => {
     expect(LINKS.copyright[0]).toBe('Copyright © 2026 Duarte Santos (openGym)')
     expect(LINKS.copyright[1]).toContain('steradrian')
     expect(LINKS.upstream.name).toBe('openGym')
-    expect(LINKS.upstream.url).toContain('/openGym')
+  })
+
+  it('links only to our own repositories for source, never to the upstream project', () => {
+    expect(LINKS.upstream.url).toBeUndefined()
+    for (const l of LINKS.source) expect(l.url).toContain('github.com/steradrian/')
+    expect(LINKS.upstream.notice).toContain('github.com/steradrian/')
   })
 
   it('keeps the credit out of every other string: a name that arrives as an argument is shown as given', () => {

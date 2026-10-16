@@ -872,8 +872,6 @@ export default function Settings({ page = null, find = null, via = null }) {
       <Section title={t('Source code')} footer={t('Built on {0} v{1} by {2}.', LINKS.upstream.name, __APP_VERSION__, LINKS.upstream.author)}>
         {LINKS.source.map(l => <Row key={l.url} icon="link" iconTint="var(--grey)" title={l.label} accessory="chevron"
           onClick={() => window.open(l.url, '_blank', 'noopener')} />)}
-        <Row icon="link" iconTint="var(--grey)" title={LINKS.upstream.name} accessory="chevron"
-          onClick={() => window.open(LINKS.upstream.url, '_blank', 'noopener')} />
       </Section>
       <Section title={t('Third-party notices')}>
         <p className="sp-lic">
