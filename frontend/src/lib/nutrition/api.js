@@ -1,5 +1,5 @@
 // NutriTrace (nutrition) and the hub's sync routes, as the browser reaches them: same origin, the
-// openGym session cookie, through the hub at /nt/api/* and /hub/api/sync/*. The hub checks the
+// Gains session cookie, through the hub at /nt/api/* and /hub/api/sync/*. The hub checks the
 // session and the request's origin itself (Sec-Fetch-Site), so there is no token to send, and it
 // forwards only the routes in fitness-hub src/nt-routes.ts: a call to anything else is a 404.
 // Every shape here is NutriTrace's own (server/routes/*.js, src/lib/api.js, src/stores/diary.js).
@@ -33,6 +33,24 @@ import { offProductUrl, offSearchUrl } from './off.js'
  * PUT /api/diary/:date body. The server merges per uuid: entries named are added or updated,
  * uuids in deleted_uuids removed, everything else kept (lib/nutrition/diary.js addPayload).
  * @typedef {{ items: DiaryItem[], water: WaterLog[], deleted_uuids: { items: string[], water: string[] } }} DiaryWrite
+ */
+/**
+ * One item of a diary index day (GET /api/diary/index). `brand` is left out when empty; `food_id`
+ * is null for quick calories, recipes and unsaved foods; `meal` is the slot index; `kcal` the
+ * item's total. `parts` names the ingredients of a recipe logged split.
+ * @typedef {{ uuid: string, name: string, brand?: string, food_id: number|null, meal: number,
+ *   kcal: number, parts?: string[] }} DiaryIndexItem
+ */
+/**
+ * One day of the index: `rev` is the row's last change (`YYYY-MM-DDTHH:MM:SSZ`, compared as text).
+ * A day deleted on the server comes as `{ date, rev, deleted: true }`, without items.
+ * @typedef {{ date: string, rev: string, kcal?: number, items?: DiaryIndexItem[], deleted?: true }} DiaryIndexDay
+ */
+/**
+ * GET /api/diary/index: days in change order. `next` is the opaque cursor to pass as `since`
+ * (always set); `total` the live days the person has; `has_more` whether another call returns
+ * more right now.
+ * @typedef {{ days: DiaryIndexDay[], total: number, next: string, has_more: boolean }} DiaryIndexPage
  */
 /**
  * A food (GET/POST /api/foods). Nutrition is per `portion` `unit` (100 g for most). The client
@@ -91,7 +109,7 @@ const TIMEOUT_MS = 30000
 
 const failure = (message, status, code) => Object.assign(new Error(message), { status, code })
 
-/** The web app behind the hub has nutrition; a phone build talks to openGym alone, and so does a
+/** The web app behind the hub has nutrition; a phone build talks to Gains alone, and so does a
  *  guest (no session for the hub to check). */
 export function nutritionAvailable(user) {
   return !MOBILE && !!user
@@ -100,7 +118,9 @@ export function nutritionAvailable(user) {
 const urlOf = path => appBase().replace(/\/$/, '') + path
 
 // `nullable`: a JSON null is an answer (the hub's status for someone it has not stored yet).
-async function call(method, path, body, { signal, nullable = false } = {}) {
+// `onResponse(res)`: the answer's status and headers, before its body is read, for the one caller
+// that needs them (the Open Food Facts budget reads RateLimit-* and Retry-After, off-budget.js).
+async function call(method, path, body, { signal, nullable = false, onResponse } = {}) {
   if (signal?.aborted) throw failure('aborted', 0, 'aborted')
   const ctl = new AbortController()
   let timedOut = false
@@ -125,6 +145,7 @@ async function call(method, path, body, { signal, nullable = false } = {}) {
     clearTimeout(timer)
     signal?.removeEventListener('abort', onAbort)
   }
+  try { onResponse?.(res) } catch { /* a reader's mistake never fails the request */ }
   let data
   let parsed = true
   try { data = await res.json() } catch { parsed = false }
@@ -163,6 +184,15 @@ export const NtApi = {
   getDiaryDate: date => nt('GET', `/api/diary/${date}`),
   /** Every day with a row (the calendar's logged marks). @returns {Promise<DiaryDay[]>} */
   getAllDiary: () => nt('GET', '/api/diary'),
+  /** The search index of your diary days, paged by cursor (lib/nutrition/diary-index.js reads it).
+   *  Only the params given are sent: `since` is the previous page's `next`, `limit` 1-500 days.
+   *  @returns {Promise<DiaryIndexPage>} */
+  getDiaryIndex: ({ since, limit, signal } = {}) => {
+    const query = []
+    if (since) query.push('since=' + encodeURIComponent(since))
+    if (limit != null) query.push('limit=' + encodeURIComponent(limit))
+    return nt('GET', '/api/diary/index' + (query.length ? '?' + query.join('&') : ''), undefined, { signal })
+  },
   /** @param {DiaryWrite} payload @returns {Promise<DiaryDay>} the day after the merge */
   saveDiaryDate: (date, payload) => nt('PUT', `/api/diary/${date}`, payload),
   /** @returns {Promise<NtSettings>} */
@@ -220,9 +250,10 @@ export const NtApi = {
    *  for Garmin. Both dates are required: the hub takes exactly `from` and `to`. */
   getWellness: (source, from, to) => nt('GET', `/api/wellness/${source === 'garmin' ? 'garmin' : 'fitbit'}/data?from=${from}&to=${to}`),
   /** Open Food Facts text search through NutriTrace's proxy (the hub lets this one URL shape by,
-   *  30 a minute per person). Raw OFF answer: map it with off.js offResults. */
-  searchOnline: (query, { page = 1, pageSize = 40, lang = 'en', country = null, signal } = {}) =>
-    nt('GET', '/api/proxy?url=' + encodeURIComponent(offSearchUrl(query, { page, pageSize, lang, country })), undefined, { signal }),
+   *  30 a minute per person). Raw OFF answer: map it with off.js offResults. `onResponse` sees the
+   *  answer's headers (the budget's RateLimit-*), 429 included. */
+  searchOnline: (query, { page = 1, pageSize = 40, lang = 'en', country = null, signal, onResponse } = {}) =>
+    nt('GET', '/api/proxy?url=' + encodeURIComponent(offSearchUrl(query, { page, pageSize, lang, country })), undefined, { signal, onResponse }),
   /** One Open Food Facts product by barcode, through the same proxy (the hub lets this second URL
    *  shape by, under the same cap). Raw OFF answer: map it with off.js offProduct. An unknown
    *  barcode is a 404 (`status` 404 on the NtError). */
