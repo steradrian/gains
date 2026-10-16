@@ -1,3 +1,6 @@
+> The chart's names (`opengym`) are inherited from the project Gains was forked from; its default images
+> are Gains' (`ghcr.io/steradrian/gains-api` and `gains-web`, tag `main` or a commit SHA).
+
 # openGym Helm chart
 
 Installs openGym on Kubernetes: the API and the web container in a single pod, a PVC for the data, a
@@ -13,8 +16,8 @@ Read [docs/SELF_HOSTING.md](../docs/SELF_HOSTING.md) first. The passkey requirem
 ## Install
 
 ```bash
-git clone https://github.com/DuarteSantos8/openGym
-cd openGym
+git clone https://github.com/steradrian/gains
+cd gains
 
 helm install opengym ./helm -n fitness --create-namespace \
   --set api.env.RP_ID=gym.example.com \
