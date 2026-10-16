@@ -5,7 +5,6 @@ import CoachSheet from '../../components/onboarding/CoachSheet.jsx'
 import StepScreen from '../../components/onboarding/StepScreen.jsx'
 import PlanScene from '../../components/onboarding/scenes/PlanScene.jsx'
 import { t, tn } from '../../lib/i18n.js'
-import { COACH_CONSENT_VERSION } from '../../lib/onboarding/consent.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { pathOf } from '../../lib/onboarding/flow.js'
 import { useLater } from '../../lib/onboarding/use-later.js'
@@ -15,8 +14,8 @@ import { useUI } from '../../store/useUI.js'
 // plan opens its preview; the AI coach opens its sheet; no plan goes to the end. Each plan only
 // where the hub says this server takes it, so nobody chooses a plan openGym would refuse. Skip in
 // the nav is "no plan". Only asked for one training day or more, and not of a profile that already
-// has routines (the flow skips this step then). The coach's consent is the text's id: its time is
-// the hub's.
+// has routines (the flow skips this step then). The coach's consent is to the hub's text, by its
+// id: its time is the hub's.
 const SAY = () => ({
   starter: t('A ready-made plan, one row per training day'),
   coach: t('Your AI coach drafts the plan for you to review'),
@@ -30,11 +29,12 @@ export default function PlanScreen() {
   const later = useLater()
   if (!days) return <Navigate to={pathOf('training')} replace />
 
+  const consent = state.coachConsent
   const coach = () => useUI.getState().openSheet(close => (
-    <CoachSheet days={days} experience={state.starter?.experience ?? null} equipment={state.starter?.equipment ?? 'gym'}
+    <CoachSheet consent={consent} days={days} experience={state.starter?.experience ?? null} equipment={state.starter?.equipment ?? 'gym'}
       onDismiss={() => act({ type: 'pick', pick: state.answers.plan && state.answers.plan.kind !== 'coach' ? state.answers.plan.kind : null })}
       onBuild={({ experience, equipment }) => {
-        act({ type: 'plan', plan: { kind: 'coach', experience, equipment, consentVersion: COACH_CONSENT_VERSION } })
+        act({ type: 'plan', plan: { kind: 'coach', experience, equipment, consentVersion: consent.version } })
         saveHubStep('plan')
         close()
         go('finish')

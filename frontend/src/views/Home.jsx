@@ -20,6 +20,7 @@ import { tappable } from '../lib/use-sheet-keyboard.js'
 import { useDiaryTarget } from '../lib/nutrition/selection.js'
 import { useDiaryDay } from '../lib/nutrition/use-diary-day.js'
 import { useScrolledPast } from '../lib/use-scrolled-past.js'
+import { usePlanRefused } from '../lib/onboarding/use-plan-refused.js'
 
 // The pinned tab-root header (--hdr-h) and the sticky date strip under it: the calories card
 // counts as gone once it passes under both (the hook adds the safe-area inset they sit below).
@@ -31,6 +32,8 @@ const STRIP_PX = 56 + 52
 export default function Home() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
+  const user = useStore(s => s.user)
+  const planRefused = usePlanRefused(user, S.routines.length > 0)
   const { date } = useDiaryTarget(null)
   const day = useDiaryDay(date)
   const isToday = date === todayISO()
@@ -61,7 +64,20 @@ export default function Home() {
       </Card>
     )}
 
-    {!S.routines.length && !S.active && (
+    {/* The plan chosen at onboarding could not be set up (openGym refused it after the rest went
+        in): said here, with the way to pick one, instead of the welcome, until a plan exists. */}
+    {planRefused && !S.active && (
+      <Card>
+        <Inline gap={5} className="mb-3">
+          <span className="lrow-i"><Icon name="calendar" /></span>
+          <div className="fs-title2 fw-semibold">{t('Your plan couldn’t be set up')}</div>
+        </Inline>
+        <div className="muted small mb-6">{t('Pick one in Training.')}</div>
+        <Button variant="primary" onClick={() => nav('/train')}>{t('Open Training')}</Button>
+      </Card>
+    )}
+
+    {!planRefused && !S.routines.length && !S.active && (
       <Card>
         <Inline gap={5} className="mb-3">
           <span className="lrow-i"><Icon name="calendar" /></span>

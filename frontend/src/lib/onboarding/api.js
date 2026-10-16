@@ -3,7 +3,9 @@
 //   GET  /api/invites/{code}            openGym's invite check, which never uses the invite up
 //   GET  /api/me                        whether the new passkey is synced (user.synced)
 //   GET  /hub/api/onboarding            where the person is: { answers, completedAt, next, remaining,
-//                                       prefill, coachAvailable, starterAvailable, delivery }
+//                                       prefill, coachAvailable, starterAvailable, coachConsent,
+//                                       delivery, plan }. `plan` { status: 'refused' }: openGym
+//                                       refused the plan after completing (lib/onboarding/use-plan-refused.js).
 //   PUT  /hub/api/onboarding            one step's answers: { step, answers } (answers null: skipped)
 //   POST /hub/api/onboarding/preview    the daily targets from the answers so far
 //   POST /hub/api/onboarding/complete   both apps written, once: { today }. 409 `plan-unavailable`:
@@ -16,7 +18,6 @@
 // answers otherwise the call fails and the screens say so; nothing here makes an answer up.
 import { api } from '../api.js'
 import { appBase } from '../app-base.js'
-import { COACH_CONSENT_VERSION } from './consent.js'
 
 const HUB = '/hub/api/onboarding'
 const TIMEOUT_MS = 20000
@@ -82,11 +83,12 @@ function bodyOf(answers) {
   return { ...out, activity: answers.activity, units: answers.units }
 }
 
-// The plan as the hub takes it: the AI coach as a consent to the text shown, by its id, and never
-// a time (the hub stamps it, and a stored choice it sends back carries its stamp).
+// The plan as the hub takes it: the AI coach as a consent to the text shown, by the id the hub
+// sent with it, and never a time (the hub stamps it, and a stored choice it sends back carries its
+// stamp).
 function planOf(plan) {
   if (plan?.kind !== 'coach') return plan
-  return { kind: 'coach', experience: plan.experience ?? null, equipment: plan.equipment, consent: true, consentVersion: plan.consentVersion || COACH_CONSENT_VERSION }
+  return { kind: 'coach', experience: plan.experience ?? null, equipment: plan.equipment, consent: true, consentVersion: plan.consentVersion }
 }
 
 /**

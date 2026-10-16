@@ -6,7 +6,8 @@
 //   the person's data, which the hub reads).
 // answers.plan: null, or { kind: 'starter', templateId, weekdays, equipment, experience }
 //   | { kind: 'coach', experience, equipment, consentVersion, consentAt? } | { kind: 'none' }.
-//   consentAt is the hub's stamp, there once the hub has stored the choice.
+//   consentVersion is the id of the text the hub sent (coachConsent); consentAt is the hub's
+//   stamp, there once the hub has stored the choice.
 // server: what the hub said at the last load (null until then): the steps the person's data
 //   answers in full (`answered`), the body fields it holds (`body`), its `next` and `remaining`.
 import { localeUnits } from './units.js'
@@ -42,9 +43,18 @@ export function initialState(units = localeUnits()) {
     // What this server's openGym can take (the hub reads it): null until known.
     coachAvailable: null,
     starterAvailable: null,
+    // The AI coach consent text and its id, as the hub sent it (lib/onboarding/consent.js): null
+    // until known.
+    coachConsent: null,
     server: null,
   }
 }
+
+// The hub's consent text, in the shape the coach sheet shows: { version, reads: { one, other }, where }.
+const isText = v => typeof v === 'string' && v.length > 0
+const consentOf = c => (c && isText(c.version) && c.reads && isText(c.reads.one) && isText(c.reads.other) && isText(c.where)
+  ? { version: c.version, reads: { one: c.reads.one, other: c.reads.other }, where: c.where }
+  : null)
 
 /**
  * Whether a plan fits `days` training days a week. The hub's rule too (fitness-hub
@@ -108,6 +118,7 @@ function fromHub(s, a) {
     pick: answers.plan ? answers.plan.kind : s.pick,
     coachAvailable: flag(a.coachAvailable, s.coachAvailable),
     starterAvailable: flag(a.starterAvailable, s.starterAvailable),
+    coachConsent: consentOf(a.coachConsent),
   }
 }
 
@@ -139,7 +150,7 @@ export function loadSaved(storage = globalThis.sessionStorage) {
     const v = JSON.parse(storage?.getItem(STORE_KEY) || 'null')
     if (!v || typeof v !== 'object' || !v.answers || !v.answers.body) return null
     // JSON has no undefined: a training step not asked yet comes back absent.
-    return { ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers }, server: null }
+    return { ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers }, server: null, coachConsent: null }
   } catch { return null }
 }
 

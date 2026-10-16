@@ -38,7 +38,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
       if (res.completedAt != null) { forget(); setHub('complete'); return }
       act({
         type: 'hub', answers: answersFromHub(res.answers), prefill: res.prefill, next: res.next, remaining: res.remaining,
-        coachAvailable: res.coachAvailable, starterAvailable: res.starterAvailable,
+        coachAvailable: res.coachAvailable, starterAvailable: res.starterAvailable, coachConsent: res.coachConsent,
       })
       setHub('ready')
     } catch (e) {
@@ -55,17 +55,39 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     // Keyed on the person, not the object: a refreshed user is the same onboarding.
   }, [uid])
 
+  // The hub's saves go one at a time, in the order asked, so an older answer can never land after
+  // a newer one (a plan before the training it fits, or arrow keys run through the cards). A step
+  // asked again while its save is still waiting to go is not sent twice: that save reads the
+  // answers when it goes, so it carries the latest and the last answer wins. With nothing on its
+  // way, a save goes at once.
+  const tail = useRef(null)
+  const waiting = useRef(new Map())
+
   /** Saves one hub step from the latest answers; a failure marks it to be sent again. */
-  const saveHubStep = useCallback(async step => {
-    try {
-      await saveStep(step, now.current.answers)
-      act({ type: 'saved', step, ok: true })
-      return true
-    } catch {
-      act({ type: 'saved', step, ok: false })
-      return false
+  const saveHubStep = useCallback(step => {
+    const queued = waiting.current.get(step)
+    if (queued) return queued
+    const send = async () => {
+      waiting.current.delete(step)
+      try {
+        await saveStep(step, now.current.answers)
+        act({ type: 'saved', step, ok: true })
+        return true
+      } catch {
+        act({ type: 'saved', step, ok: false })
+        return false
+      }
     }
+    const before = tail.current
+    const run = before ? before.then(send) : send()
+    if (before) waiting.current.set(step, run)
+    tail.current = run
+    run.then(() => { if (tail.current === run) tail.current = null })
+    return run
   }, [act])
+
+  /** Resolves once every save asked for so far has had its answer. */
+  const savesSettled = useCallback(() => tail.current ?? Promise.resolve(true), [])
 
   // The flow's own history, mirrored from the router's, so Back walks it where it can and a cold
   // entry (a reload, a link) goes to the step before instead of out of the app.
@@ -115,12 +137,13 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     if (to) go(to)
   }, [act, go, saveHubStep])
 
-  const coachAvailable = state.coachAvailable === true
+  // The AI coach only with the consent text the hub sent: nobody agrees to a text not shown.
+  const coachAvailable = state.coachAvailable === true && state.coachConsent != null
   const starterAvailable = state.starterAvailable === true
 
   return useMemo(() => ({
     state, hub, screen, coachAvailable, starterAvailable,
-    act, saveHubStep, go, back, next, skip, refresh,
+    act, saveHubStep, savesSettled, go, back, next, skip, refresh,
     current: () => now.current,
-  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, go, back, next, skip, refresh])
+  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh])
 }

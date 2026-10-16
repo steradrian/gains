@@ -9,10 +9,10 @@ import { button, flush, mount, radio, saved, unmountAll, where } from './onboard
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
-  const state = { user: null, sheets: [], toasts: [] }
+  const state = { user: null, sheets: [], toasts: [], pullState: vi.fn(async () => {}) }
   state.store = () => ({
     user: state.user, config: {}, S: {},
-    setUser: vi.fn(u => { state.user = u }), pushState: vi.fn(), pullState: vi.fn(async () => {}), adoptProfile: vi.fn(async () => {}),
+    setUser: vi.fn(u => { state.user = u }), pushState: vi.fn(), pullState: state.pullState, adoptProfile: vi.fn(async () => {}),
   })
   return state
 })
@@ -44,6 +44,23 @@ const press = (el, key) => act(() => { el.dispatchEvent(new KeyboardEvent('keydo
 const click = el => act(() => { el.click() })
 const later = ms => act(() => { vi.advanceTimersByTime(ms) })
 const full = { sex: 'female', birthYear: 1990, heightCm: 168, weightKg: 64 }
+// The AI coach consent as the hub sends it (fitness-hub src/onboarding/consent.ts), the one copy.
+const CONSENT = {
+  version: 'ai-coach-build-v1',
+  reads: {
+    one: 'An AI model reads your goal, your body details and your {0} training day, then drafts a plan. You review it before anything goes on your week.',
+    other: 'An AI model reads your goal, your body details and your {0} training days, then drafts a plan. You review it before anything goes on your week.',
+  },
+  where: 'These answers go to the AI service this Gains server uses. Your food log and your friends are not sent. Tapping Build my plan sends them once.',
+}
+// Renders the sheet the screen opened (the shell's sheet host is mocked away).
+function openedSheet(close = vi.fn()) {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  act(() => root.render(mocks.sheets.at(-1)(close)))
+  return { host, close, done: () => { act(() => root.unmount()); host.remove() } }
+}
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -51,9 +68,10 @@ beforeEach(() => {
   mocks.user = null
   mocks.sheets.length = 0
   mocks.toasts.length = 0
+  mocks.pullState.mockClear()
   Object.values(hub).forEach(f => f.mockReset())
   Object.values(passkeys).forEach(f => f.mockReset())
-  hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, step: null, coachAvailable: true, starterAvailable: true })
+  hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, step: null, coachAvailable: true, starterAvailable: true, coachConsent: CONSENT })
   hub.saveStep.mockResolvedValue({})
   hub.previewTargets.mockResolvedValue({ ready: true, targets: { calories: 1620 } })
   hub.passkeySynced.mockResolvedValue(true)
@@ -166,6 +184,34 @@ describe('2 Goal', () => {
     expect(document.activeElement).toBe(radio(page, 'Keep my weight'))
     later(1000)
     expect(where(page)).toBe('/onboarding/goal')
+  })
+
+  it('saves rapid arrow keys one at a time, the last answer last, and an older answer never after it', async () => {
+    const page = mount('/onboarding/goal')
+    await flush()
+    // Each save answers only when told to, so they would cross if sent together.
+    const answers = []
+    let inFlight = 0
+    let most = 0
+    hub.saveStep.mockImplementation((step, a) => {
+      most = Math.max(most, ++inFlight)
+      return new Promise(resolve => answers.push(() => { inFlight--; resolve({ step, goal: a.goal }) }))
+    })
+    const first = radio(page, 'Lose weight')
+    act(() => first.focus())
+    press(first, 'ArrowDown')
+    press(document.activeElement, 'ArrowDown')
+    press(document.activeElement, 'ArrowDown')
+    press(document.activeElement, 'ArrowUp')
+    expect(radio(page, 'Build muscle').getAttribute('aria-checked')).toBe('true')
+    // One on its way, one more waiting for it: the three presses after the first are one save.
+    expect(hub.saveStep).toHaveBeenCalledTimes(1)
+    while (answers.length) await act(async () => { answers.shift()() ; await Promise.resolve() })
+    await flush()
+    expect(most, 'never two at once').toBe(1)
+    const sent = hub.saveStep.mock.calls.map(([, a]) => a.goal)
+    expect(sent).toEqual(['keep', 'build'])
+    expect(sent.at(-1)).toBe('build')
   })
 
   it('has no Skip and no way back to making the account', async () => {
@@ -347,6 +393,36 @@ describe('5 Plan', () => {
     sheetHost.remove()
   })
 
+  it('shows the consent text the hub sends, and agrees to that text by the id it came with', async () => {
+    // A text the app has never seen: it shows what the hub sent, never a copy of its own.
+    const v2 = {
+      version: 'ai-coach-build-v2',
+      reads: { one: 'A model reads your {0} day.', other: 'A model reads your {0} days and your goal.' },
+      where: 'They go to this server’s AI service, once.',
+    }
+    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: true, starterAvailable: true, coachConsent: v2 })
+    const page = mount('/onboarding/plan')
+    await flush()
+    click(radio(page, 'Have the AI coach build one'))
+    later(640)
+    const sheet = openedSheet()
+    expect(sheet.host.textContent).toContain('A model reads your 3 days and your goal.')
+    expect(sheet.host.textContent).toContain('They go to this server’s AI service, once.')
+    expect(sheet.host.textContent).not.toContain('These answers go to the AI service')
+    click(button(sheet.host, 'Build my plan'))
+    const sent = hub.saveStep.mock.calls.findLast(([step]) => step === 'plan')[1].plan
+    expect(sent.consentVersion).toBe('ai-coach-build-v2')
+    sheet.done()
+    expect(where(page)).toBe('/onboarding/finish')
+  })
+
+  it('offers no AI coach while the hub has sent no consent text to show', async () => {
+    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: true, starterAvailable: true })
+    const page = mount('/onboarding/plan')
+    await flush()
+    expect(radio(page, 'Have the AI coach build one')).toBeUndefined()
+  })
+
   it('Not now on the coach sheet puts the choice back to nothing picked', async () => {
     const page = mount('/onboarding/plan')
     await flush()
@@ -452,6 +528,72 @@ describe('the end (placeholder for the Summary)', () => {
     expect(where(page)).toBe('/home')
   })
 
+  it('reads openGym again once it took its write, so Home shows the plan and the weigh-in', async () => {
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
+    hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' }, plan: null })
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(mocks.pullState).toHaveBeenCalledTimes(1)
+    expect(mocks.toasts).toEqual([])
+    expect(where(page)).toBe('/home')
+  })
+
+  it('never says a write Training refused for good is on its way: it says what to do, and where', async () => {
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
+    hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'failed', nutritrace: 'done' }, plan: null })
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(mocks.toasts).toEqual([])
+    expect(mocks.pullState).not.toHaveBeenCalled()
+    expect(where(page)).toBe('/onboarding/finish')
+    expect(page.querySelector('h1').textContent).toBe('Not everything could be set up')
+    expect(page.querySelector('.ob-sub').textContent).toBe('Training didn’t take your answers. Add your weight and a plan there.')
+    click(button(page, 'Open Training'))
+    expect(where(page)).toBe('/train')
+  })
+
+  it('says a refused plan plainly, with Training to pick one, and Home as the other way on', async () => {
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: { kind: 'starter', templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym', experience: 'new' } } })
+    hub.completeOnboarding.mockResolvedValue({
+      completedAt: 1, delivery: { opengym: 'done', nutritrace: 'failed' }, plan: { status: 'refused', kind: 'starter', code: 'bad-plan' },
+    })
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(page.querySelector('.ob-sub').textContent).toBe(
+      'Your plan couldn’t be set up. Pick one in Training. Food didn’t take your targets. Set them in Food goals.',
+    )
+    expect(button(page, 'Open Training')).toBeTruthy()
+    expect(button(page, 'Open Food goals')).toBeTruthy()
+    // The rest of the write went in: it is read into the app.
+    expect(mocks.pullState).toHaveBeenCalledTimes(1)
+    click(button(page, 'Go to Home'))
+    expect(where(page)).toBe('/home')
+  })
+
+  it('finishes with no plan, and no Plan screen of one card, when the hub refuses the plan and offers no other', async () => {
+    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    hub.completeOnboarding
+      .mockRejectedValueOnce(Object.assign(new Error('the AI coach is not available on this server'), { status: 409, code: 'plan-unavailable' }))
+      .mockResolvedValueOnce({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' }, plan: null })
+    const page = mount('/onboarding/finish')
+    await flush()
+    hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false, starterAvailable: false, next: 'plan', remaining: ['plan'] })
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    await flush()
+    expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: { kind: 'none' } }))
+    expect(hub.completeOnboarding).toHaveBeenCalledTimes(2)
+    expect(mocks.toasts).toEqual([])
+    expect(where(page)).toBe('/home')
+  })
+
   it('detours through only the missing details and comes back', async () => {
     saved({ answers: { goal: 'keep', body: { ...full, birthYear: null }, trainingDays: 0 }, skippedYou: true })
     const page = mount('/onboarding/finish')
@@ -517,6 +659,16 @@ describe('what the hub says is answered or not needed (§6)', () => {
     click(button(page, 'Next'))
     expect(where(page)).toBe('/onboarding/plan')
     expect(page.textContent).toContain('A starter plan for 3 days a week')
+  })
+
+  it('never goes round Plan and Training when the data says 0 days: the end, whatever step the hub names', async () => {
+    // An older hub still names the Plan step beside 0 days from the data.
+    hub.loadOnboarding.mockResolvedValue(fromHub({ answers: { goal: { goal: 'keep' }, body: null }, answered: ['goal', 'training'], training: 0, next: 'plan', remaining: ['plan'] }))
+    const page = mount('/onboarding')
+    await flush()
+    expect(where(page)).toBe('/onboarding/finish')
+    later(2000)
+    expect(where(page)).toBe('/onboarding/finish')
   })
 
   it('resumes where the hub says, straight to the end when the data answers everything', async () => {

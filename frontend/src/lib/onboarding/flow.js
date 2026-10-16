@@ -159,7 +159,9 @@ export function resumeScreen(answers, { skippedYou = false, server = null } = {}
   switch (server?.next) {
     case 'goal': return 'goal'
     case 'training': return 'training'
-    case 'plan': return 'plan'
+    // No training day (the person's, or their data's): the Plan step has nothing to plan, and would
+    // only send them back to Training. The end, as the skip map has it.
+    case 'plan': return answers?.trainingDays ? 'plan' : 'finish'
     case 'summary': return 'finish'
     // The body: its first field not answered here or in the data; all of them answered here (a
     // save the hub has not taken yet) carries on as below.
