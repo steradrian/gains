@@ -9,7 +9,7 @@ import { _setLangState } from '../lib/i18n-core.js'
 import Strength from './Strength.jsx'
 
 const mocks = vi.hoisted(() => ({
-  charts: [], S: null, search: '', nav: vi.fn(),
+  charts: [], S: null, search: '', nav: vi.fn(), selectSheet: vi.fn(),
   menuSheet: vi.fn(), exerciseDetailSheet: vi.fn(), exerciseHistorySheet: vi.fn(), workoutDetailSheet: vi.fn(),
 }))
 vi.mock('../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
@@ -22,11 +22,13 @@ vi.mock('../sheets.jsx', () => ({
   menuSheet: mocks.menuSheet, exerciseDetailSheet: mocks.exerciseDetailSheet,
   exerciseHistorySheet: mocks.exerciseHistorySheet, workoutDetailSheet: mocks.workoutDetailSheet,
 }))
+vi.mock('../components/ui.jsx', async importOriginal => ({ ...(await importOriginal()), selectSheet: mocks.selectSheet }))
 vi.mock('../components/LineChart.jsx', () => ({ default: props => { mocks.charts.push(props); return null } }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const BENCH = '0025'
 const SQUAT = '0043'
+const DEADLIFT = '0032'
 const BIKE = '2138'
 const DAY = 86400000
 // A bench session `ago` days back, two working sets at weight w.
@@ -47,7 +49,7 @@ let root, host
 afterEach(() => {
   act(() => root.unmount()); host.remove()
   mocks.charts = []; mocks.search = ''
-  for (const key of ['nav', 'menuSheet', 'exerciseDetailSheet', 'exerciseHistorySheet', 'workoutDetailSheet']) mocks[key].mockClear()
+  for (const key of ['nav', 'selectSheet', 'menuSheet', 'exerciseDetailSheet', 'exerciseHistorySheet', 'workoutDetailSheet']) mocks[key].mockClear()
 })
 
 function mount(workouts, settings = {}) {
@@ -207,11 +209,71 @@ describe('Strength: ?ex= deep link', () => {
     expect(hero().num).toBe('80')
   })
 
-  it('falls back to the heaviest exercise for an id with no sessions', () => {
-    mocks.search = '?ex=not-a-lift'
+  it('opens on the heaviest exercise without ?ex=', () => {
     mount(both())
     expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Full Squat')
     expect(hero().num).toBe('120')
+    expect(host.textContent).not.toContain('No sets logged')
+  })
+
+  it('stays on a catalogue exercise with no sessions and says so instead of charting another', () => {
+    mocks.search = '?ex=' + DEADLIFT
+    mount(both())
+    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Deadlift')
+    const empty = host.querySelector('.card .empty')
+    expect(empty.textContent).toContain('No sets logged yet')
+    expect(empty.textContent).not.toContain('Deadlift')
+    expect(empty.textContent).toContain('Log it in a workout and its curve shows up here.')
+    expect(host.textContent).not.toContain('Barbell Full Squat')
+    expect(host.querySelector('.hero-num')).toBeNull()
+    expect(host.querySelector('.seg')).toBeNull()
+  })
+
+  it('shows the same empty state for an id that is not in the catalogue, without printing the raw id', () => {
+    mocks.search = '?ex=not-a-lift'
+    mount(both())
+    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Unknown exercise')
+    expect(host.querySelector('.card .empty').textContent).toContain('No sets logged yet')
+    expect(host.textContent).not.toContain('not-a-lift')
+    expect(host.querySelector('.hero-num')).toBeNull()
+  })
+
+  it('offers only Exercise details on the empty state of a catalogue exercise', () => {
+    mocks.search = '?ex=' + DEADLIFT
+    mount(both())
+    act(() => host.querySelector('button[aria-label="More"]').click())
+    const { title, items } = mocks.menuSheet.mock.calls[0][0]
+    expect(title).toBe('Barbell Deadlift')
+    expect(items.filter(Boolean).map(i => i.label)).toEqual(['Exercise details'])
+    items[0].onClick()
+    expect(mocks.exerciseDetailSheet).toHaveBeenCalledWith(expect.objectContaining({ id: DEADLIFT }))
+  })
+
+  it('offers no menu on the empty state of an unknown id', () => {
+    mocks.search = '?ex=not-a-lift'
+    mount(both())
+    expect(host.querySelector('button[aria-label="More"]')).toBeNull()
+  })
+
+  it('shows No lifts yet with no workouts, whatever ?ex= says', () => {
+    mocks.search = '?ex=' + DEADLIFT
+    mount([])
+    expect(host.textContent).toContain('No lifts yet')
+    expect(host.textContent).not.toContain('No sets logged yet')
+  })
+
+  it('keeps the picker on an unlogged exercise and switches to a logged one', () => {
+    mocks.search = '?ex=' + DEADLIFT
+    mount(both())
+    act(() => host.querySelector('.item-exercise').click())
+    expect(mocks.selectSheet).toHaveBeenCalledTimes(1)
+    const { options, onChange } = mocks.selectSheet.mock.calls[0][0]
+    expect(options.map(o => o.value).sort()).toEqual([BENCH, SQUAT])
+    act(() => onChange(BENCH))
+    expect(mocks.nav).toHaveBeenLastCalledWith('/progress/strength?ex=' + BENCH, { replace: true })
+    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Bench Press')
+    expect(host.querySelector('.empty')).toBeNull()
+    expect(hero().num).toBe('80')
   })
 })
 

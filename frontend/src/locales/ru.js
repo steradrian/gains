@@ -3169,4 +3169,7 @@ export default {
   'Note (only you see this)': 'Note (only you see this)',
   'Prefilled as their profile name when they open the link.': 'Prefilled as their profile name when they open the link.',
   'Their name': 'Their name',
+  // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
+  'No sets logged yet': 'No sets logged yet',
+  'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
 }
