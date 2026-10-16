@@ -156,13 +156,13 @@ function calendar() {
 
 // The onboarding's week of day tiles (Training), five at this width and all muted; the middle one
 // dashed with an accent + in it.
-const WEEK_TILES = [0, 1, 3, 4].map(i => rr(9.5 + 16 * i, 40, 13, 24, 3.5)).join('')
+const WEEK_TILES = [0, 1, 3, 4].map(i => rr(9.5 + 16 * i, 26, 13, 38, 3.5)).join('')
 function week() {
   return <>
     {FLOOR}
     <path className="il il-d il-mute" d={WEEK_TILES} {...at(1)} />
-    <rect className="il-d il-mute il-dash" x="41.5" y="40" width="13" height="24" rx="3.5" />
-    <path className="il-acc" d="M48 48v8M44 52h8" {...at(2)} />
+    <rect className="il-d il-mute il-dash" x="41.5" y="26" width="13" height="38" rx="3.5" />
+    <path className="il-acc" d="M48 41v8M44 45h8" {...at(2)} />
   </>
 }
 
@@ -177,15 +177,16 @@ function envelope() {
   </>
 }
 
-// The onboarding's key on its ring (Name), lying on the floor: the bow dashed, with no initial.
+// The onboarding's key on its ring (Name), lying on the floor: the bow dashed, with no initial, the
+// ring in the accent.
 function key() {
   return <>
     {FLOOR}
-    <circle className="il" cx="16" cy="52" r="6" {...at(1)} />
-    <path className="il il-d" d="M22 52H28" {...at(2)} />
+    <path className="il il-d" d="M22 52H28" {...at(1)} />
     <circle className="il il-mute il-dash" cx="40" cy="52" r="12" />
-    <path className="il" d="M52 52H84" {...at(3)} />
-    <path className="il il-d" d="M64 52v8h4v-3h4v3h4v-3h4v3h4V52" {...at(4)} />
+    <path className="il" d="M52 52H84" {...at(2)} />
+    <path className="il il-d" d="M64 52v8h4v-3h4v3h4v-3h4v3h4V52" {...at(3)} />
+    <circle className="il-acc" cx="16" cy="52" r="6" {...at(4)} />
   </>
 }
 
@@ -248,16 +249,17 @@ function photo() {
   </>
 }
 
-// No measurements: a tape measure's case with the tape run out along the floor, muted ticks, the
-// end tab in the accent.
+// No measurements: a tape measure's case (thumb lock on top, hub and its pin) with the tape run out
+// of it along the floor, muted ticks, the end tab in the accent.
 function tape() {
   return <>
     {FLOOR}
-    <rect className="il-d" x="30" y="58" width="52" height="6" rx="1" {...at(1)} />
+    <rect className="il-d" x="46" y="58" width="36" height="6" rx="1" {...at(1)} />
     <path className="il-d il-mute" d="M58 58v3M62 58v2M66 58v3M70 58v2M74 58v3M78 58v2" {...at(2)} />
-    <rect className="il il-occ" x="12" y="24" width="42" height="40" rx="10" {...at(3)} />
-    <circle className="il-d" cx="33" cy="44" r="7" {...at(4)} />
-    <path className="il-acc" d="M82 54V64" {...at(5)} />
+    <path className="il" d="M22 24v-5h12v5" {...at(3)} />
+    <rect className="il il-occ" x="12" y="24" width="42" height="40" rx="10" {...at(4)} />
+    <path className="il-d" d="M24 44a9 9 0 1 0 18 0a9 9 0 1 0-18 0M31.5 44a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0" {...at(5)} />
+    <path className="il-acc" d="M82 54V64" {...at(6)} />
   </>
 }
 
@@ -282,7 +284,7 @@ function fasting() {
     <circle className="il il-occ" cx="40" cy="42" r="22" {...at(1)} />
     <path className="il-d il-mute" d="M40 24v3M58 42h-3M40 60v-3M22 42h3" {...at(2)} />
     <path className="il-d" d="M40 42V31M40 42h8" {...at(3)} />
-    <path className="il" d="M72 16v10M76 16v10M80 16v10M72 26a4 4 0 0 0 8 0M76 30V64" transform="rotate(-16 76 64)" {...at(4)} />
+    <path className="il" d="M80 16v10M84 16v10M88 16v10M80 26a4 4 0 0 0 8 0M84 30V64" transform="rotate(-16 84 64)" {...at(4)} />
     <path className="il-acc" d="M40 20A22 22 0 1 1 20.95 53" {...at(5)} />
   </>
 }
