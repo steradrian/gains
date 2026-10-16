@@ -244,7 +244,6 @@ export default {
   'reached!': 'elérve!',
   '{0} to gain': 'még {0} felszedendő',
   '{0} to lose': 'még {0} leadandó',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': 'Még nincs mérés. Rögzítsd a súlyodat a görbe indításához (minden edzés előtt is megkérdezzük).',
   // --- exercise detail / picker / config ---
   'Best:': 'Legjobb:',
   'Add to my plan': 'Hozzáadás a tervemhez',
@@ -379,7 +378,6 @@ export default {
   'Superset {0} / {1}': 'Szuperszett {0} / {1}',
   'Exercise {0} / {1}': 'Gyakorlat {0} / {1}',
   'Superset · do these back-to-back, rest when done': 'Szuperszett · végezd egymás után, pihenj csak utána',
-  'Freestyle workout. Add your first exercise and off you go.': 'Szabad edzés. Add hozzá az első gyakorlatot, és mehet.',
   'Finish workout early · {0} exercises': 'Edzés korai befejezése · {0} gyakorlat',
   'Rest’s over. Next set!': 'Vége a pihenőnek. Jöhet a következő sorozat!',
   // --- home ---
@@ -1048,7 +1046,6 @@ export default {
   'Vibrate': 'Rezgés',
   'Weigh in before workouts': 'Súlymérés edzés előtt',
   'Asks for your body weight when a workout starts. Off starts the session straight away.': 'Edzés indításakor rákérdez a testsúlyodra. Kikapcsolva az edzés azonnal indul.',
-  'No weigh-ins yet. Log your weight to start the curve.': 'Még nincs mérés. Rögzítsd a súlyodat a görbe indításához.',
   'Music playing on this phone stops during a workout and does not resume by itself.': 'A telefonon szóló zene edzés közben leáll, és nem indul újra magától.',
   'The quieter three-beep sound from before 1.3.9, instead of the louder chime.': 'Az 1.3.9 előtti halkabb, három sípolásból álló hang a hangosabb csengés helyett.',
   'Import from Hevy': 'Importálás a Hevyből',
@@ -3192,4 +3189,7 @@ export default {
   // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
   'No sets logged yet': 'No sets logged yet',
   'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
+  // --- Freestyle workout empty state, title and body split: English until the translation pass ---
+  'Freestyle workout': 'Freestyle workout',
+  'Add your first exercise and off you go.': 'Add your first exercise and off you go.',
 }

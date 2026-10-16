@@ -7,7 +7,7 @@ import { sortFoods } from '../lib/nutrition/foods.js'
 import { mealKcal, mealLoadErrorText, servingsOf } from '../lib/nutrition/meals.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
-import { Card, EmptyState, ItemRow, Tag } from '../components/blocks.jsx'
+import { EmptyState, ItemRow, LoadError, Tag } from '../components/blocks.jsx'
 import { Page } from '../components/layout.jsx'
 import { mealDetailSheet } from '../components/MealDetailSheet.jsx'
 import { mealEditSheet } from '../components/MealEditSheet.jsx'
@@ -23,7 +23,6 @@ export default function MealCatalog({ recipes }) {
   const settings = useNutrition(s => s.settings.data)
   const [q, setQ] = useState('')
   const title = recipes ? t('Recipes') : t('Saved meals')
-  const icon = recipes ? 'cookingPot' : 'bookOpen'
 
   useEffect(() => {
     if (!on) return
@@ -34,11 +33,8 @@ export default function MealCatalog({ recipes }) {
 
   if (!on) {
     return <Page title={title}>
-      <Card>
-        <EmptyState icon={icon} title={recipes ? t('Recipes live in the web app') : t('Saved meals live in the web app')}>
-          {t('Sign in on the web app to use them here.')}
-        </EmptyState>
-      </Card>
+      <EmptyState illustration="plate" title={recipes ? t('Recipes live in the web app') : t('Saved meals live in the web app')}
+        body={t('Sign in on the web app to use them here.')} />
     </Page>
   }
 
@@ -57,19 +53,15 @@ export default function MealCatalog({ recipes }) {
 
   let body
   if (catalog.status === 'error' && !catalog.list.length) {
-    body = <EmptyState>
-      <div role="alert">{mealLoadErrorText(catalog.error)}</div>
-      <Button size="sm" variant="tinted" onClick={() => useNutrition.getState().loadMeals({ recipes, force: true })}>{t('Try again')}</Button>
-    </EmptyState>
+    body = <LoadError message={mealLoadErrorText(catalog.error)} onRetry={() => useNutrition.getState().loadMeals({ recipes, force: true })} />
   } else if (catalog.status !== 'ready' && !catalog.list.length) {
-    body = <EmptyState><Loading /></EmptyState>
+    body = <Loading />
   } else if (!catalog.list.length) {
-    body = <EmptyState icon={icon} title={recipes ? t('No recipes yet') : t('No saved meals yet')}>
-      {recipes ? t('Save a dish with its ingredients and log it by the serving.') : t('Save the foods you eat together and log them in one tap.')}
-      <Button size="sm" variant="tinted" icon="plus" onClick={create}>{recipes ? t('New recipe') : t('New meal')}</Button>
-    </EmptyState>
+    body = <EmptyState illustration="plate" title={recipes ? t('No recipes yet') : t('No saved meals yet')}
+      body={recipes ? t('Save a dish with its ingredients and log it by the serving.') : t('Save the foods you eat together and log them in one tap.')}
+      action={{ label: recipes ? t('New recipe') : t('New meal'), icon: 'plus', onClick: create }} />
   } else if (!list.length) {
-    body = <EmptyState icon="magnifier">{t('No match')}</EmptyState>
+    body = <EmptyState illustration="search" title={t('No match')} />
   } else {
     body = <div className="list">{list.map(row)}</div>
   }

@@ -243,7 +243,6 @@ export default {
   'reached!': '달성!',
   '{0} to gain': '{0} 증량 남음',
   '{0} to lose': '{0} 감량 남음',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': '아직 체중 기록이 없어요. 체중을 기록하면 그래프가 시작돼요(매 운동 전에도 물어봐요).',
   'Best:': '최고 기록:',
   'Add to my plan': '내 계획에 추가',
   'How to': '운동 방법',
@@ -381,7 +380,6 @@ export default {
   'Superset {0} / {1}': '슈퍼세트 {0} / {1}',
   'Exercise {0} / {1}': '운동 {0} / {1}',
   'Superset · do these back-to-back, rest when done': '슈퍼세트 · 연달아 수행하고, 전부 끝난 뒤 휴식',
-  'Freestyle workout. Add your first exercise and off you go.': '자유 운동. 첫 운동을 추가하고 바로 시작하세요.',
   'Finish workout early · {0} exercises': '일찍 마치기 · 운동 {0}개',
   'Rest’s over. Next set!': '휴식 끝. 다음 세트!',
   'Hi {0}': '안녕하세요 {0}',
@@ -617,7 +615,6 @@ export default {
   'Vibrate': '진동',
   'Weigh in before workouts': '운동 전 체중 기록',
   'Asks for your body weight when a workout starts. Off starts the session straight away.': '운동을 시작할 때 체중을 물어봅니다. 끄면 세션이 바로 시작됩니다.',
-  'No weigh-ins yet. Log your weight to start the curve.': '아직 체중 기록이 없어요. 체중을 기록하면 그래프가 시작돼요.',
   'Music playing on this phone stops during a workout and does not resume by itself.': '운동 중에는 이 휴대폰에서 재생 중인 음악이 멈추며, 자동으로 다시 재생되지 않습니다.',
   'The quieter three-beep sound from before 1.3.9, instead of the louder chime.': '더 큰 차임벨 대신 1.3.9 이전의 더 조용한 세 번의 비프음을 사용합니다.',
   'Sounds': '소리',
@@ -3189,4 +3186,7 @@ export default {
   // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
   'No sets logged yet': 'No sets logged yet',
   'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
+  // --- Freestyle workout empty state, title and body split: English until the translation pass ---
+  'Freestyle workout': 'Freestyle workout',
+  'Add your first exercise and off you go.': 'Add your first exercise and off you go.',
 }

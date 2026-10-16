@@ -241,7 +241,6 @@ export default {
   'reached!': '已達成！',
   '{0} to gain': '還需增重 {0}',
   '{0} to lose': '還需減重 {0}',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': '還沒有量體重的紀錄。記一下體重，曲線就開始了（每次訓練前我們也會問）。',
   'Best:': '最佳紀錄：',
   'Add to my plan': '加入我的計畫',
   'How to': '動作要領',
@@ -377,7 +376,6 @@ export default {
   'Superset {0} / {1}': '超級組 {0} / {1}',
   'Exercise {0} / {1}': '動作 {0} / {1}',
   'Superset · do these back-to-back, rest when done': '超級組 · 動作連續進行不間斷，全數完成後再休息',
-  'Freestyle workout. Add your first exercise and off you go.': '自由訓練。新增第一個動作，開練吧。',
   'Finish workout early · {0} exercises': '提早結束訓練 · 共 {0} 個動作',
   'Rest’s over. Next set!': '休息結束，下一組！',
   'Hi {0}': '嗨，{0}',
@@ -613,7 +611,6 @@ export default {
   'Vibrate': '震動提醒',
   'Weigh in before workouts': '訓練前記錄體重',
   'Asks for your body weight when a workout starts. Off starts the session straight away.': '開始訓練時提示輸入體重。關閉後將直接進入訓練。',
-  'No weigh-ins yet. Log your weight to start the curve.': '還沒有量體重的紀錄。記一下體重，曲線就開始了。',
   'Music playing on this phone stops during a workout and does not resume by itself.': '訓練期間正在播放的音樂將會暫停，且不會自動恢復播放。',
   'Data': '資料管理',
   'Export backup (JSON)': '匯出備份（JSON）',
@@ -3182,4 +3179,7 @@ export default {
   // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
   'No sets logged yet': 'No sets logged yet',
   'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
+  // --- Freestyle workout empty state, title and body split: English until the translation pass ---
+  'Freestyle workout': 'Freestyle workout',
+  'Add your first exercise and off you go.': 'Add your first exercise and off you go.',
 }

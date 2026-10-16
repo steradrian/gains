@@ -2716,6 +2716,13 @@ describe('exercise chips at the top of the workout (#323)', () => {
     await mount([], 0)
     expect(container.querySelector('.wchips')).toBeNull()
   })
+
+  it('says so with the dumbbell, a title and a body, when nothing has been added yet', async () => {
+    await mount([], 0)
+    expect(container.querySelector('.empty[data-surface=page] .lineart[data-scene=equipment]')).not.toBeNull()
+    expect(container.querySelector('.empty h2').textContent).toBe('Freestyle workout')
+    expect(container.querySelector('.empty p').textContent).toBe('Add your first exercise and off you go.')
+  })
 })
 
 describe('workout controls: the more menu and the set menu', () => {

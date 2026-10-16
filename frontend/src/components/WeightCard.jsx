@@ -6,7 +6,7 @@ import { bwSheet, goalSheet, weighInsSheet, bwDeltaColor } from '../sheets.jsx'
 import LineChart from './LineChart.jsx'
 import Icon from './Icon.jsx'
 import { Button } from './ui.jsx'
-import { Card, Stat } from './blocks.jsx'
+import { Card, EmptyState, Stat } from './blocks.jsx'
 import { Inline } from './layout.jsx'
 
 const daysBefore = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - n); return isoOf(d) }
@@ -45,8 +45,7 @@ export default function WeightCard({ date }) {
       <Inline justify="end" className="mt-2">
         <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>
       </Inline>
-    </> : <div className="muted small">{S.weighIn === false
-      ? t('No weigh-ins yet. Log your weight to start the curve.')
-      : t("No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).")}</div>}
+    </> : <EmptyState illustration="scale" title={t('No weigh-ins yet')}
+      body={S.weighIn === false ? t('Log your weight to start the curve.') : t('Log your weight to start the curve. We also ask before every workout.')} />}
   </Card>
 }

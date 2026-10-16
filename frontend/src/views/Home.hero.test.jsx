@@ -180,6 +180,9 @@ describe('Home — This week', () => {
   it('with no routines, welcomes with a starter plan or your own', () => {
     setS({ routines: [], week: {} }); mount()
     expect(host.textContent).toContain('Welcome!')
+    const empty = host.querySelector('.empty[data-surface=page]')
+    expect(empty.querySelector('.lineart[data-scene=routine]')).not.toBeNull()
+    expect(empty.closest('.card')).toBeNull()
     const pill = label => [...host.querySelectorAll('.empty-acts button')].find(b => b.textContent === label)
     expect(pill('Load starter plan')).toBeTruthy()
     tap(pill('Build my own plan'))

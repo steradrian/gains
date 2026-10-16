@@ -127,6 +127,8 @@ describe('Nutrition trends', () => {
     await mount()
     expect(text()).toContain('Nothing logged in this range')
     expect(host.querySelector('.chart polyline')).toBeNull()
+    // The titled range Card stays; the empty state is its body, not a second card.
+    expect(host.querySelector('.card .empty[data-surface="card"] .empty-art svg.lineart')).not.toBeNull()
   })
 
   it('does not count today, which is still being logged', async () => {
@@ -139,6 +141,8 @@ describe('Nutrition trends', () => {
     nt.failNext('GET', '/nt/api/diary', { status: 500 })
     await mount()
     expect(text()).toContain('The diary did not load.')
+    expect(host.querySelector('[role="alert"]').textContent).toContain('The diary did not load.')
+    expect(host.querySelector('.empty')).toBeNull()
     await click(button('Try again'))
     expect(text()).toContain('Daily average')
   })
@@ -232,6 +236,8 @@ describe('Nutrition trends', () => {
     useStore.setState({ user: null })
     await mount()
     expect(text()).toContain('Nutrition trends live in the web app')
+    expect(host.querySelector('.empty[data-surface="page"] .empty-art svg.lineart')).not.toBeNull()
+    expect(host.querySelector('.card .empty')).toBeNull()
     expect(nt.requests).toHaveLength(0)
   })
 })

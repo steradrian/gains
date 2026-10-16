@@ -234,7 +234,6 @@ export default {
   'reached!': 'досягнуто!',
   '{0} to gain': 'набрати {0}',
   '{0} to lose': 'скинути {0}',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': 'Записів поки немає. Внеси вагу, щоб почати криву (ми також питаємо перед кожним тренуванням).',
   'Best:': 'Рекорд:',
   'Add to my plan': 'Додати в мій план',
   'How to': 'Техніка виконання',
@@ -363,7 +362,6 @@ export default {
   'Superset {0} / {1}': 'Суперсет {0} / {1}',
   'Exercise {0} / {1}': 'Вправа {0} / {1}',
   'Superset · do these back-to-back, rest when done': 'Суперсет · виконуй підряд, відпочинок наприкінці',
-  'Freestyle workout. Add your first exercise and off you go.': 'Довільне тренування. Додай першу вправу, і вперед.',
   'Finish workout early · {0} exercises': 'Завершити раніше · вправ: {0}',
   'Rest’s over. Next set!': 'Відпочинок скінчився. Наступний підхід!',
   'Hi {0}': 'Привіт, {0}',
@@ -1330,7 +1328,6 @@ export default {
   "Copy": "Копія",
   "Weigh in before workouts": "Зважування перед тренуванням",
   "Asks for your body weight when a workout starts. Off starts the session straight away.": 'Запитує твою вагу на початку тренування. Якщо вимкнено, сесія починається одразу.',
-  'No weigh-ins yet. Log your weight to start the curve.': 'Записів поки немає. Внеси вагу, щоб почати криву.',
   "Music playing on this phone stops during a workout and does not resume by itself.": "Музика, що грає на цьому телефоні, зупиняється під час тренування і сама не відновлюється.",
   'The quieter three-beep sound from before 1.3.9, instead of the louder chime.': 'Тихіший звук із трьох сигналів, як до версії 1.3.9, замість гучнішого дзвону.',
   'Deletes your plan, workouts, body weight, photos and videos from your profile on this server and on every signed-in device. This cannot be undone.': 'Видаляє план, тренування, вагу тіла, фото й відео з профілю на цьому сервері й на всіх пристроях, де виконано вхід. Скасувати неможливо.',
@@ -3186,4 +3183,7 @@ export default {
   // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
   'No sets logged yet': 'No sets logged yet',
   'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
+  // --- Freestyle workout empty state, title and body split: English until the translation pass ---
+  'Freestyle workout': 'Freestyle workout',
+  'Add your first exercise and off you go.': 'Add your first exercise and off you go.',
 }

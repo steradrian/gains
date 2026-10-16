@@ -11,7 +11,7 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { confirmSheet } from '../sheets.jsx'
 import MealNutrition from './MealNutrition.jsx'
 import { mealEditSheet } from './MealEditSheet.jsx'
-import { EmptyState, ItemRow, SectionTitle, Tag } from './blocks.jsx'
+import { ItemRow, SectionTitle, Tag } from './blocks.jsx'
 import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 import { Button, NumberField, Row, Section } from './ui.jsx'
 import { Loading } from './Loader.jsx'
@@ -102,7 +102,7 @@ export function MealDetailSheet({ id, recipe, close }) {
     {meal.notes && <div className="small muted">{meal.notes}</div>}
     <SectionTitle>{t('Log')}</SectionTitle>
     {!target
-      ? <EmptyState><Loading /></EmptyState>
+      ? <Loading />
       : <div className="small muted">{t('Logging to {0} · {1}', where, fmtDate(target.date, true))}</div>}
     {recipe && <label className="measure-date">
       <span>{t('Servings eaten')}</span>

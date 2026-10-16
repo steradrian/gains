@@ -11,7 +11,7 @@ import {
   previewBase, toggleMacroUnit, waterFromUnit, waterToUnit, waterUnitOf, workoutAdjustState,
 } from '../lib/nutrition/goals.js'
 import { useGoalsForm } from '../lib/nutrition/use-goals-form.js'
-import { EmptyState } from '../components/blocks.jsx'
+import { EmptyState, LoadError } from '../components/blocks.jsx'
 import { Page } from '../components/layout.jsx'
 import { Button, Row, Section, Segmented, SelectRow, Stepper, Switch, TextField } from '../components/ui.jsx'
 import { confirmSheet, goalSheet } from '../sheets.jsx'
@@ -221,7 +221,7 @@ export default function NutritionGoals() {
   return <Page title={t('Goals')}>
     {nutritionAvailable(user)
       ? <GoalsBody />
-      : <EmptyState className="small">{t('Nutrition needs an account on the web app.')}</EmptyState>}
+      : <EmptyState illustration="plate" title={t('Nutrition lives in the web app')} body={t('Nutrition needs an account on the web app.')} />}
   </Page>
 }
 
@@ -229,10 +229,7 @@ function GoalsBody() {
   const form = useGoalsForm()
   if (form.draft) return <GoalsForm form={form} />
   if (form.status === 'error') {
-    return <EmptyState className="small">
-      <div role="alert">{t('Goals did not load.')}</div>
-      <Button size="sm" onClick={form.reload}>{t('Try again')}</Button>
-    </EmptyState>
+    return <LoadError message={t('Goals did not load.')} onRetry={form.reload} />
   }
-  return <EmptyState className="small"><Loading /></EmptyState>
+  return <Loading />
 }

@@ -10,9 +10,9 @@ import { useWellness } from '../lib/nutrition/use-trends.js'
 import { presentMetrics, recoverySeries, recoveryWindow } from '../lib/nutrition/wellness.js'
 import ChartData from '../components/ChartData.jsx'
 import LineChart from '../components/LineChart.jsx'
-import { Card, EmptyState, StatTile, Tiles } from '../components/blocks.jsx'
-import { Page, Stack } from '../components/layout.jsx'
-import { Button, Segmented } from '../components/ui.jsx'
+import { Card, EmptyState, LoadError, StatTile, Tiles } from '../components/blocks.jsx'
+import { Page } from '../components/layout.jsx'
+import { Segmented } from '../components/ui.jsx'
 import { rangeFrom, rangeOptions, storedRange } from '../lib/progress-range.js'
 import { Loading } from '../components/Loader.jsx'
 
@@ -40,26 +40,16 @@ export default function Recovery() {
 
   let body
   if (!available) {
-    body = <Card>
-      <EmptyState icon="heart" title={t('Recovery lives in the web app')}>{t('Sign in on the web app to see your wearable data here.')}</EmptyState>
-    </Card>
+    body = <EmptyState illustration="recovery" title={t('Recovery lives in the web app')} body={t('Sign in on the web app to see your wearable data here.')} />
   } else if (unavailable) {
-    body = <Card>
-      <EmptyState icon="heart" title={t('Not available yet')}>{t('Wearable data will show up here once your server supports it.')}</EmptyState>
-    </Card>
+    body = <EmptyState illustration="recovery" title={t('Not available yet')} body={t('Wearable data will show up here once your server supports it.')} />
   } else if (status === 'error') {
-    body = <Card>
-      <Stack gap={4}>
-        <div className="nt-error small" role="alert">{t('Your wearable data did not load.')}</div>
-        <Button variant="tinted" onClick={() => useWellness.getState().load({ force: true })}>{t('Try again')}</Button>
-      </Stack>
-    </Card>
+    body = <LoadError message={t('Your wearable data did not load.')} onRetry={() => useWellness.getState().load({ force: true })} />
   } else if (status !== 'ready') {
     body = <Loading className="muted small fp-note" />
   } else if (!metric) {
-    body = <Card>
-      <EmptyState icon="heart" title={t('No wearable data yet')}>{t('Connect a wearable in NutriTrace and its sleep, heart and activity readings show up here.')}</EmptyState>
-    </Card>
+    body = <EmptyState illustration="recovery" title={t('No wearable data yet')}
+      body={t('Connect a wearable in NutriTrace and its sleep, heart and activity readings show up here.')} />
   } else {
     const summary = summaries[metric.value]
     const points = pointsOf(recoverySeries(byDate, metric.value, win))
@@ -83,7 +73,7 @@ export default function Recovery() {
               <StatTile label={t('Recorded')} size="xs" value={tn('{0} day', '{0} days', summary.count)} />
             </Tiles>
           </>
-          : <EmptyState icon="heart" title={t('Nothing recorded in this range')}>{t('Pick a longer range to see earlier days.')}</EmptyState>}
+          : <EmptyState illustration="chart" title={t('Nothing recorded in this range')} body={t('Pick a longer range to see earlier days.')} />}
       </Card>
     </>
   }

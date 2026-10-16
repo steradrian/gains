@@ -243,7 +243,6 @@ export default {
   'reached!': 'osiągnięty!',
   '{0} to gain': '{0} do przybrania',
   '{0} to lose': '{0} do zrzucenia',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': 'Brak pomiarów wagi. Zapisz wagę, aby zacząć krzywą (pytamy o nią też przed każdym treningiem).',
   'Best:': 'Rekord:',
   'Add to my plan': 'Dodaj do mojego planu',
   'How to': 'Wykonanie',
@@ -381,7 +380,6 @@ export default {
   'Superset {0} / {1}': 'Superseria {0} / {1}',
   'Exercise {0} / {1}': 'Ćwiczenie {0} / {1}',
   'Superset · do these back-to-back, rest when done': 'Superseria · rób jedno po drugim, odpocznij na końcu',
-  'Freestyle workout. Add your first exercise and off you go.': 'Trening dowolny. Dodaj pierwsze ćwiczenie i jazda!',
   'Finish workout early · {0} exercises': { one: 'Zakończ wcześniej · {0} ćwiczenie', few: 'Zakończ wcześniej · {0} ćwiczenia', many: 'Zakończ wcześniej · {0} ćwiczeń', other: 'Zakończ wcześniej · {0} ćwiczeń' },
   'Rest’s over. Next set!': 'Koniec przerwy. Następna seria!',
   'Hi {0}': 'Cześć, {0}',
@@ -617,7 +615,6 @@ export default {
   'Vibrate': 'Wibracje',
   'Weigh in before workouts': 'Ważenie przed treningiem',
   'Asks for your body weight when a workout starts. Off starts the session straight away.': 'Pyta o twoją masę ciała przy rozpoczęciu treningu. Gdy wyłączone, sesja zaczyna się od razu.',
-  'No weigh-ins yet. Log your weight to start the curve.': 'Brak pomiarów wagi. Zapisz wagę, aby zacząć krzywą.',
   'Music playing on this phone stops during a workout and does not resume by itself.': 'Muzyka odtwarzana na tym telefonie zatrzymuje się podczas treningu i nie wznawia się sama.',
   'The quieter three-beep sound from before 1.3.9, instead of the louder chime.': 'Cichszy dźwięk trzech sygnałów sprzed wersji 1.3.9 zamiast głośniejszego dzwonka.',
   'Sounds': 'Dźwięki',
@@ -3189,4 +3186,7 @@ export default {
   // --- Strength: a deep-linked exercise with no sets: English until the translation pass ---
   'No sets logged yet': 'No sets logged yet',
   'Log it in a workout and its curve shows up here.': 'Log it in a workout and its curve shows up here.',
+  // --- Freestyle workout empty state, title and body split: English until the translation pass ---
+  'Freestyle workout': 'Freestyle workout',
+  'Add your first exercise and off you go.': 'Add your first exercise and off you go.',
 }

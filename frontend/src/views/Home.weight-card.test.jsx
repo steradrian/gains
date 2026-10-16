@@ -40,6 +40,14 @@ describe('Home body-weight card preference', () => {
     expect(weightHeading()).toBeTruthy()
   })
 
+  it('with no weigh-in yet, says so under the scale inside the card', () => {
+    mountWith(true)
+    const empty = weightHeading().closest('.card').querySelector('.empty')
+    expect(empty.dataset.surface).toBe('card')
+    expect(empty.querySelector('.lineart[data-scene=scale]')).not.toBeNull()
+    expect(empty.querySelector('h3').textContent).toBe('No weigh-ins yet')
+  })
+
   it('hides only the Home card when disabled', () => {
     mountWith(false)
     expect(weightHeading()).toBeFalsy()

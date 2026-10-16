@@ -16,9 +16,9 @@ import { useTrends } from '../lib/nutrition/use-trends.js'
 import ChartData from '../components/ChartData.jsx'
 import FastInsights from '../components/FastInsights.jsx'
 import LineChart from '../components/LineChart.jsx'
-import { Card, EmptyState, SectionTitle, StatTile, Tiles } from '../components/blocks.jsx'
-import { Page, Stack } from '../components/layout.jsx'
-import { Button, Section, Segmented, SelectRow } from '../components/ui.jsx'
+import { Card, EmptyState, LoadError, SectionTitle, StatTile, Tiles } from '../components/blocks.jsx'
+import { Page } from '../components/layout.jsx'
+import { Section, Segmented, SelectRow } from '../components/ui.jsx'
 import { rangeFrom, rangeOptions, storedRange } from '../lib/progress-range.js'
 import { LoadingList } from '../components/Loader.jsx'
 
@@ -71,16 +71,9 @@ export default function Trends() {
 
   let body
   if (!available) {
-    body = <Card>
-      <EmptyState icon="chart" title={t('Nutrition trends live in the web app')}>{t('Sign in on the web app to see your food over time.')}</EmptyState>
-    </Card>
+    body = <EmptyState illustration="plate" title={t('Nutrition trends live in the web app')} body={t('Sign in on the web app to see your food over time.')} />
   } else if (status === 'error' && !days.length) {
-    body = <Card>
-      <Stack gap={4}>
-        <div className="nt-error small" role="alert">{loadErrorText(error)}</div>
-        <Button variant="tinted" onClick={() => useTrends.getState().load({ force: true })}>{t('Try again')}</Button>
-      </Stack>
-    </Card>
+    body = <LoadError message={loadErrorText(error)} onRetry={() => useTrends.getState().load({ force: true })} />
   } else if (status !== 'ready') {
     body = <LoadingList />
   } else {
@@ -119,16 +112,11 @@ export default function Trends() {
               ? t('Base goal: {0} {1}. Your target moves each day; this is the fixed goal under it.', fmtNum(goal.value), unit)
               : t('Goal: {0} {1}', fmtNum(goal.value), unit)}</div>}
           </>
-          : <EmptyState icon="chart" title={t('Nothing logged in this range')}>{t('Today is not counted until the day is over.')}</EmptyState>}
+          : <EmptyState illustration="chart" title={t('Nothing logged in this range')} body={t('Today is not counted until the day is over.')} />}
       </Card>
       {fastingOn && <>
         <SectionTitle>{t('Fasting')}</SectionTitle>
-        {fasting.status === 'error' && <Card>
-          <Stack gap={4}>
-            <div className="nt-error small" role="alert">{t('Your fasts did not load.')}</div>
-            <Button variant="tinted" onClick={() => useFasting.getState().load({ force: true })}>{t('Try again')}</Button>
-          </Stack>
-        </Card>}
+        {fasting.status === 'error' && <LoadError message={t('Your fasts did not load.')} onRetry={() => useFasting.getState().load({ force: true })} />}
         {fasting.status === 'ready' && <FastInsights since={range ? Date.now() - range * DAY : 0} />}
         {fasting.status === 'ready' && range === 0 && fasting.history.length >= FASTS_SHOWN_MAX
           && <div className="muted small">{t('Counting your latest {0} fasts.', FASTS_SHOWN_MAX)}</div>}

@@ -10,7 +10,7 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { MIN_QUERY, useOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import Icon from '../components/Icon.jsx'
-import { Card, Chip, ChipRow, EmptyState, ItemRow, Tag } from '../components/blocks.jsx'
+import { Chip, ChipRow, EmptyState, ItemRow, LoadError, Tag } from '../components/blocks.jsx'
 import { Page, Stack } from '../components/layout.jsx'
 import { foodDetailSheet } from '../components/FoodDetailSheet.jsx'
 import { foodEditSheet } from '../components/FoodEditSheet.jsx'
@@ -50,9 +50,7 @@ export default function Foods() {
 
   if (!on) {
     return <Page title={t('Foods')}>
-      <Card>
-        <EmptyState icon="apple" title={t('Foods live in the web app')}>{t('Sign in on the web app to keep your foods here.')}</EmptyState>
-      </Card>
+      <EmptyState illustration="pantry" title={t('Foods live in the web app')} body={t('Sign in on the web app to keep your foods here.')} />
     </Page>
   }
 
@@ -115,27 +113,20 @@ export default function Foods() {
 
   let body
   if (mode === 'online') {
-    if (q.trim().length < MIN_QUERY) body = <EmptyState icon="globe">{t('Type a food to search Open Food Facts.')}</EmptyState>
+    if (q.trim().length < MIN_QUERY) body = <EmptyState illustration="search" title={t('Type a food to search Open Food Facts.')} />
     else if (online.status !== 'ready') body = <OnlineStatus online={online} query={q.trim()} />
-    else if (!online.results.length) body = <EmptyState icon="magnifier">{t('No results online.')}</EmptyState>
+    else if (!online.results.length) body = <EmptyState illustration="search" title={t('No results online.')} />
     else body = <div className="list">{online.results.map(resultRow)}</div>
   } else if (foods.status === 'error' && !foods.list.length) {
-    body = <EmptyState>
-      <div role="alert">{foodErrorText(foods.error)}</div>
-      <Button size="sm" variant="tinted" onClick={() => useNutrition.getState().loadFoods({ force: true })}>{t('Try again')}</Button>
-    </EmptyState>
+    body = <LoadError message={foodErrorText(foods.error)} onRetry={() => useNutrition.getState().loadFoods({ force: true })} />
   } else if (foods.status !== 'ready' && !foods.list.length) {
     body = <LoadingList />
   } else if (!foods.list.length) {
-    body = <EmptyState icon="apple" title={t('No foods yet')}>
-      <div>{t('Create a food, or search online and save one.')}</div>
-      <Button size="sm" variant="tinted" icon="plus" onClick={() => foodEditSheet({ settings })}>{t('New food')}</Button>
-    </EmptyState>
+    body = <EmptyState illustration="pantry" title={t('No foods yet')} body={t('Create a food, or search online and save one.')}
+      action={{ label: t('New food'), icon: 'plus', onClick: () => foodEditSheet({ settings }) }} />
   } else if (!list.length) {
-    body = <EmptyState icon="magnifier">
-      {t('No match')}
-      {offOn && q.trim().length >= MIN_QUERY && <Button size="sm" variant="tinted" onClick={() => setMode('online')}>{t('Search online')}</Button>}
-    </EmptyState>
+    body = <EmptyState illustration="search" title={t('No match')}
+      action={offOn && q.trim().length >= MIN_QUERY ? { label: t('Search online'), onClick: () => setMode('online') } : undefined} />
   } else {
     body = <div className="list">{list.map(row)}</div>
   }
