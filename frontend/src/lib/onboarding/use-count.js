@@ -5,11 +5,13 @@ const easeOut = p => 1 - Math.pow(1 - p, 3)
 
 /**
  * A number that counts to `target` over `ms` (an ease-out), from wherever it shows now, so a new
- * target mid-count carries on from there. Reduced motion and a non-number jump straight there.
+ * target mid-count carries on from there. `from`: where the first count starts (the Summary's
+ * count-ups start at 0; by default the first value simply shows); `delay`: ms before it moves.
+ * Reduced motion and a non-number jump straight there.
  */
-export function useCount(target, ms = 320) {
-  const [shown, setShown] = useState(target)
-  const now = useRef(target)
+export function useCount(target, ms = 320, { from, delay = 0 } = {}) {
+  const [shown, setShown] = useState(from ?? target)
+  const now = useRef(from ?? target)
   useEffect(() => {
     const start = now.current
     const jump = !Number.isFinite(target) || !Number.isFinite(start) || start === target
@@ -27,8 +29,9 @@ export function useCount(target, ms = 320) {
       setShown(now.current)
       if (p < 1) id = requestAnimationFrame(step)
     }
-    id = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(id)
+    const wait = delay > 0 ? setTimeout(() => { id = requestAnimationFrame(step) }, delay) : null
+    if (!wait) id = requestAnimationFrame(step)
+    return () => { clearTimeout(wait); cancelAnimationFrame(id) }
   }, [target, ms])
   return shown
 }

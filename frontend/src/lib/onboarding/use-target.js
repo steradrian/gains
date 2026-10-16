@@ -16,10 +16,11 @@ let answer = null
 const keyOf = (a, uid) => JSON.stringify([uid, a.goal, a.body, a.activity?.value, a.trainingDays ?? null])
 
 /**
- * What the live ring on About you shows (§3b): { lo, hi, answered, exact }. `exact` is the hub's
- * calorie target once all four body answers are in (POST /hub/api/onboarding/preview, asked for the
- * person `uid` the answers are), null until it answers or when it cannot; until then lo–hi is the
- * estimate's range (lib/onboarding/estimate.js).
+ * What the live ring on About you shows (§3b): { lo, hi, answered, exact, targets }. `exact` is the
+ * hub's calorie target once all four body answers are in (POST /hub/api/onboarding/preview, asked
+ * for the person `uid` the answers are), null until it answers or when it cannot; until then lo–hi
+ * is the estimate's range (lib/onboarding/estimate.js). `targets`: the hub's whole answer with it
+ * ({ calories, proteinG, carbsG, fatG, waterMl, … }), which the Summary shows.
  */
 export function useTarget(answers, uid) {
   // Through the store's hubCall like every hub request: it waits out a Retry-After the hub has
@@ -28,13 +29,13 @@ export function useTarget(answers, uid) {
   const range = estimateRange(answers)
   const complete = bodyComplete(answers)
   const key = complete ? keyOf(answers, uid) : null
-  const [exact, setExact] = useState(() => (key && key === asked ? answer : null))
+  const [targets, setTargets] = useState(() => (key && key === asked ? answer : null))
   useEffect(() => {
-    if (!key) { setExact(null); return undefined }
+    if (!key) { setTargets(null); return undefined }
     let live = true
-    const show = ask => ask.then(v => { if (live) setExact(v) })
+    const show = ask => ask.then(v => { if (live) setTargets(v) })
     if (key === asked) {
-      setExact(answer)
+      setTargets(answer)
       show(asking)
       return () => { live = false }
     }
@@ -43,7 +44,7 @@ export function useTarget(answers, uid) {
       asked = key
       answer = null
       const ask = hubCall(() => previewTargets(answers, uid)).then(res => {
-        const v = res?.ready && Number.isFinite(res.targets?.calories) ? res.targets.calories : null
+        const v = res?.ready && Number.isFinite(res.targets?.calories) ? res.targets : null
         // An older ask landing late never stands in for the latest one's answer.
         if (asking === ask) answer = v
         return v
@@ -58,7 +59,7 @@ export function useTarget(answers, uid) {
     return () => { live = false; clearTimeout(timer) }
     // keyed on the answers' content, not the object
   }, [key])
-  return { ...range, exact }
+  return { ...range, exact: targets?.calories ?? null, targets }
 }
 
 export const kcalText = n => Math.round(n).toLocaleString(dateLocale())

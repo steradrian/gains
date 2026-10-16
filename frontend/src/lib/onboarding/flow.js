@@ -2,8 +2,7 @@
 // skip map; prototype v4 nextAfter/skipYou/startDetour). Pure: the screens and the layout read it,
 // the tests pin it.
 //
-// The flow ends on `finish`, a PLACEHOLDER for the Summary: it completes the onboarding and goes
-// Home. The Summary and its hand-over to Home are built later, on top of the redesigned Home.
+// The flow ends on `finish`, the Summary: it completes the onboarding and hands over to Home.
 
 export const SCREENS = ['invite', 'name', 'passkey', 'goal', 'sex', 'born', 'height', 'weight', 'training', 'plan', 'starter', 'finish']
 // About you, one micro-step each.

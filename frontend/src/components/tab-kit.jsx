@@ -1,5 +1,5 @@
 import { Children } from 'react'
-import { t } from '../lib/i18n.js'
+import { dateLocale, t } from '../lib/i18n.js'
 import { fmtNum } from '../lib/format.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
@@ -23,9 +23,14 @@ const EMPTY = '–'
 // the end. status: loading (skeletons at the same sizes), error (the caption and a retry),
 // empty (the values as dashes). tone="over": over a target, said in orange ink, not as an alarm.
 // `ref` reaches the hero's box in every state (Nutrition puts "N left" in the header once it scrolls away).
-export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', loadingLabel, tone, onRetry, children, ref }) {
+// variant="target": the onboarding Summary's hero. The value sits inside `ring` (the Summary's own
+// thread ring), the unit under it; everything else is the same hero, so Home and the Summary
+// never drift apart. Two metrics are split by a real 1×64 hairline element (`.hero-hair`), which
+// the Summary's hand-over names as its thread.
+export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', loadingLabel, tone, onRetry, variant, ring, children, ref }) {
   oneOf('HeroStatus', 'status', status, STATUSES)
   oneOf('HeroStatus', 'tone', tone, ['over'])
+  oneOf('HeroStatus', 'variant', variant, ['target'])
   if (status === 'loading') {
     return <div className="hero" role="status" ref={ref}>
       <span className="sr-only">{loadingLabel ?? t('Loading today')}</span>
@@ -36,17 +41,23 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     </div>
   }
   const shown = status === 'empty' ? EMPTY : value
-  return <div className={cx('hero', action && 'hero-has-a')} ref={ref}>
+  const target = variant === 'target'
+  return <div className={cx('hero', action && 'hero-has-a', target && 'hero-target')} ref={ref}>
     {glyph && <Icon name={glyph} className="hero-g" />}
     {eyebrow != null && <div className="hero-e">{eyebrow}</div>}
-    {title != null
-      ? <h2 className="hero-t">{title}</h2>
-      : shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
+    {title != null && <h2 className="hero-t">{title}</h2>}
+    {target && <div className="hero-ring">
+      {ring}
+      {shown != null && <p className="hero-v"><span className="hero-num">{shown}</span></p>}
+    </div>}
+    {target && unit && status !== 'empty' && <div className="hero-u">{unit}</div>}
+    {!target && title == null && shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
     {/* After the heading in reading order; placed at the top end by CSS. */}
     {action && <div className="hero-a">{action}</div>}
     {caption != null && <div className={cx('hero-c', tone === 'over' && 'ink-orange')}>{caption}</div>}
     {link && <button type="button" className="hero-l" onClick={link.onClick}>{link.label}<Icon name="chevronRight" /></button>}
-    {metrics && <div className="hero-m">
+    {metrics && <div className={cx('hero-m', metrics.length === 1 && 'one')}>
+      {metrics.length === 2 && <span className="hero-hair" aria-hidden="true" />}
       {metrics.map(m => <div key={m.label} className="hero-mi">
         <p className="hero-v"><span className="hero-num">{status === 'empty' ? EMPTY : m.value}</span>{m.unit && status !== 'empty' && <span className="hero-u">{m.unit}</span>}</p>
         <div className="hero-ml">{m.label}</div>
@@ -56,6 +67,24 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     {children}
     {status === 'error' && onRetry && <Button variant="tinted" size="sm" className="mt-4" onClick={onRetry}>{t('Try again')}</Button>}
   </div>
+}
+
+// The hero's compact protein, carbs and fat line, in grams: `eaten` against `targets`
+// ("82/150 g", Home), or the targets alone ("150 g", the onboarding Summary). Keys are the
+// diary's: proteins, carbohydrates, fat.
+const HERO_MACROS = [
+  { id: 'proteins', cls: 'p', label: () => t('Protein') },
+  { id: 'carbohydrates', cls: 'c', label: () => t('Carbs') },
+  { id: 'fat', cls: 'f', label: () => t('Fat') },
+]
+const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
+export function HeroMacros({ eaten, targets = {} }) {
+  return <p className="hero-macros">
+    {HERO_MACROS.map(m => <span key={m.id}>
+      <i className={'mdot ' + m.cls} aria-hidden="true" /><span className="sr-only">{m.label()} </span>
+      {eaten ? <>{grams(eaten[m.id])}{targets[m.id] != null && '/' + grams(targets[m.id])}</> : grams(targets[m.id])} g
+    </span>)}
+  </p>
 }
 
 // One section of a redesigned tab root: the root's sections sit --gap-tab-section apart, which is

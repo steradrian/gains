@@ -1,26 +1,20 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/ui.jsx'
-import StepScreen from '../../components/onboarding/StepScreen.jsx'
-import { useThreadAnchor } from '../../lib/onboarding/use-thread-anchor.js'
-import { todayISO } from '../../lib/format.js'
-import { t } from '../../lib/i18n.js'
-import { completeOnboarding } from '../../lib/onboarding/api.js'
-import { useOnboarding } from '../../lib/onboarding/contexts.js'
-import { detourOf, planOwed } from '../../lib/onboarding/flow.js'
+import { todayISO } from '../format.js'
+import { t } from '../i18n.js'
+import { completeOnboarding } from './api.js'
+import { useOnboarding } from './contexts.js'
+import { planOwed } from './flow.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 
-// PLACEHOLDER for the Summary (ux-onboarding §3b screen 6, motion-onboarding-summary-v2.md). The
-// Summary and its hand-over to Home are built later, on top of the redesigned Home; until then
-// this step only finishes: every answer saved, the onboarding completed on the hub (both apps
-// written through its outbox), then Home. Missing body answers can still be added first, by the
-// skip map's detour ("Add my details" → only the missing steps → back here). It keeps a plain
-// floor so the thread has a line to land on, as every onboarding screen does.
+// Finishing the onboarding, from the Summary's Go to Home (views/onboarding/SummaryScreen.jsx):
+// every answer saved, the onboarding completed on the hub (both apps written through its outbox),
+// then Home.
 //
 // What the hub says each app did with its write is said as it is: still on its way only where it
 // is being tried again (openGym down or busy), and a write refused for good, or a plan openGym
-// could not set up, stays on screen with where to put it right.
+// could not set up, stays on screen (`setbacks`) with where to put it right.
 //
 // Nothing completes without the plan the days call for: an AI coach plan (and the consent in it)
 // does not survive a reload, so with training days and no plan chosen here or stored on the hub,
@@ -42,19 +36,22 @@ function setbacksOf(done) {
   return setbacks.plan || setbacks.training || setbacks.food ? setbacks : null
 }
 
-export default function FinishScreen() {
+/**
+ * { finish, status, setbacks, leave }. status: idle | saving | error | busy (the hub asked to
+ * wait). `home()` is how a finished onboarding goes Home (the Summary's hand-over); by default it
+ * leaves for /home at once. `leave(to)` drops the flow's state and goes to `to`.
+ */
+export function useFinish({ home } = {}) {
   const navigate = useNavigate()
-  const { state, hub, act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy, signedInElsewhere, restarting } = useOnboarding()
-  const [status, setStatus] = useState('idle') // idle | saving | error | busy (the hub asked to wait)
+  const { act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy, signedInElsewhere, restarting } = useOnboarding()
+  const [status, setStatus] = useState('idle')
   const [setbacks, setSetbacks] = useState(null)
-  const floor = useRef(null)
-  useThreadAnchor(floor, 'line')
-  const missing = detourOf(state.answers)
 
   const leave = to => {
     discard()
     navigate(to, { replace: true })
   }
+  const toHome = home || (() => leave('/home'))
 
   // `again`: the second go, after the hub refused a plan and nothing was left to pick instead.
   const finish = async (again = false) => {
@@ -131,48 +128,8 @@ export default function FinishScreen() {
       return
     }
     if (ON_ITS_WAY.includes(done?.delivery?.opengym)) useUI.getState().toast(t('Saved. Some of it is still on its way to Training and will show up there soon.'))
-    leave('/home')
+    toHome()
   }
-  const details = () => {
-    act({ type: 'detour', steps: missing })
-    go(missing[0])
-  }
-  const art = <svg className="ob-fin-art" viewBox="0 0 320 16" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-    <path ref={floor} d="M16 8 H304" />
-  </svg>
 
-  if (setbacks) {
-    const lines = [
-      setbacks.plan && t('Your plan couldn’t be set up. Pick one in Training.'),
-      setbacks.training && t('Training didn’t take your answers. Add your weight and a plan there.'),
-      setbacks.food && t('Food didn’t take your targets. Set them in Food goals.'),
-    ].filter(Boolean)
-    const toTraining = setbacks.plan || setbacks.training
-    return (
-      <StepScreen key="setbacks" titleId="ob-finish-t" title={t('Not everything could be set up')} sub={lines.join(' ')} stage={art}
-        footer={<>
-          {toTraining && <Button variant="primary" onClick={() => leave('/train')}>{t('Open Training')}</Button>}
-          {setbacks.food && <Button variant={toTraining ? 'tinted' : 'primary'} onClick={() => leave('/food/goals')}>{t('Open Food goals')}</Button>}
-          <Button variant="plain" onClick={() => leave('/home')}>{t('Go to Home')}</Button>
-        </>} />
-    )
-  }
-  const failed = status === 'error' || status === 'busy'
-  // The hub's answer on this tab is still on its way (a reload): whether a plan is stored there
-  // is not known yet, so nothing is finished before it is.
-  const reading = hub === 'loading'
-  return (
-    <StepScreen titleId="ob-finish-t"
-      title={failed ? t('Your answers could not be saved yet') : t('That’s everything for now')}
-      sub={status === 'busy' ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
-        : failed ? t('Check your connection and try again. Nothing you answered is lost.') : t('Your answers set up your Home.')}
-      stage={art}
-      footer={<>
-        <Button variant="primary" disabled={status === 'saving' || reading} aria-busy={status === 'saving' || undefined} onClick={() => finish()}>
-          {failed ? t('Try again') : t('Go to Home')}
-        </Button>
-        {failed && <Button variant="plain" onClick={() => navigate('/home', { replace: true })}>{t('Finish later')}</Button>}
-        {!failed && missing.length > 0 && <Button variant="tinted" onClick={details}>{t('Add my details')}</Button>}
-      </>} />
-  )
+  return { finish, status, setbacks, leave }
 }

@@ -3,7 +3,8 @@ import { useThreadAnchor } from '../../lib/onboarding/use-thread-anchor.js'
 
 // 5a: the line the seven day tiles stand on (UI decision 2), 8 below them, spanning the row
 // exactly: its viewBox is the measured width, so the round caps end flush. The screen's anchor.
-export default function StarterBaseline() {
+// The Summary's line where the ring will be is the same line in its own place (`className`).
+export default function StarterBaseline({ className = 'ob-pl-base' }) {
   const svg = useRef(null)
   const line = useRef(null)
   const [w, setW] = useState(320)
@@ -19,7 +20,7 @@ export default function StarterBaseline() {
   }, [])
   useThreadAnchor(line, 'line')
   return (
-    <svg ref={svg} className="ob-pl-base" viewBox={`0 0 ${w} 2`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <svg ref={svg} className={className} viewBox={`0 0 ${w} 2`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
       <path ref={line} d={`M0.75 1 H${w - 0.75}`} />
     </svg>
   )

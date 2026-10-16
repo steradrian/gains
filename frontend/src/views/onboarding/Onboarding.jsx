@@ -4,7 +4,6 @@ import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { pathOf, resumeScreen } from '../../lib/onboarding/flow.js'
 import { useStore } from '../../store/useStore.js'
 import BornScreen from './BornScreen.jsx'
-import FinishScreen from './FinishScreen.jsx'
 import GoalScreen from './GoalScreen.jsx'
 import HeightScreen from './HeightScreen.jsx'
 import InviteScreen from './InviteScreen.jsx'
@@ -13,6 +12,7 @@ import PasskeyScreen from './PasskeyScreen.jsx'
 import PlanScreen from './PlanScreen.jsx'
 import SexScreen from './SexScreen.jsx'
 import StarterScreen from './StarterScreen.jsx'
+import SummaryScreen from './SummaryScreen.jsx'
 import TrainingScreen from './TrainingScreen.jsx'
 import WeightScreen from './WeightScreen.jsx'
 import '../../onboarding.css'
@@ -25,7 +25,7 @@ import '../../onboarding.css'
 //   /onboarding   resume at the first unanswered step
 //   /onboarding/name, passkey, goal, sex, born, height, weight, training, plan, starter, finish
 //
-// `finish` is a PLACEHOLDER for the Summary (views/onboarding/FinishScreen.jsx).
+// `finish` is the Summary (views/onboarding/SummaryScreen.jsx), which hands over to Home.
 // Where the hub says the person is, once it has answered: it knows what their data answers.
 function Resume() {
   const { state, hub } = useOnboarding()
@@ -51,7 +51,7 @@ export default function Onboarding() {
         <Route path="/onboarding/training" element={<TrainingScreen />} />
         <Route path="/onboarding/plan" element={<PlanScreen />} />
         <Route path="/onboarding/starter" element={<StarterScreen />} />
-        <Route path="/onboarding/finish" element={<FinishScreen />} />
+        <Route path="/onboarding/finish" element={<SummaryScreen />} />
         <Route path="*" element={<Resume />} />
       </Routes>
     </OnboardingLayout>
