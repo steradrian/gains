@@ -12,6 +12,8 @@ import { birthPlan, checkP, dOf, evalAt, lineP, planBetween } from './thread-geo
 const HOLD = '.ob-hd > *, .ob-cap, .ob-controls > *, .ob-pk-read, .ob-ruler, .ob-wheel, .ob-field, .ob-pl-hint, .ob-pl-sess, .ob-pl-fit, .ob-pass-t, .ob-pass-s'
 // The art starts this long before the thread lands, so it visibly grows from the line.
 const LEAD_MS = 120
+// When a screen has landed: OnboardingLayout brings it in over 320ms after a 60ms delay.
+export const LAND_MS = 380
 
 /** An anchor's resting shape in viewport coordinates, or null where it cannot be measured. */
 export function measureAnchor(el) {
@@ -154,18 +156,31 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
       }
     } else {
       const plan = planBetween(from, dest)
+      claim(el)
       if (plan.arrive) {
-        claim(el)
         el.ownerSVGElement?.style.setProperty('--lead', Math.max(0, plan.arrive - LEAD_MS) + 'ms')
         holdCrossed(from, dest, el, plan.arrive)
         start(from, plan, el)
+      } else {
+        // The floors coincide (the goal-to-weight run): the thread holds the line still, painted
+        // where it was, while the new screen fades and slides in under it, and hands it over once
+        // the screen has landed.
+        start(from, { segs: [], total: LAND_MS, arrive: 0 }, el)
       }
     }
     if (dest) last = dest
     return () => {
       anchors.delete(el)
       onCount(anchors.size)
-      if (owned === el) { run?.cancel(); release() }
+      if (owned === el) {
+        // Interrupted mid-flight: the next run starts from the shape on screen, not from this
+        // anchor at rest.
+        const flying = run && live ? live : null
+        if (flying) last = flying
+        run?.cancel()
+        release()
+        if (flying) return
+      }
       // Measured on the way out, while it is still in place: where the next run starts.
       const rest = !run && el.isConnected ? measureAnchor(el) : null
       if (rest) last = rest
