@@ -70,19 +70,47 @@ beforeAll(() => {
 // Letter spacing is written in em, so its computed px depends on the font size around it, which
 // differs per fixture (happy-dom resolves em against the parent's). Compare it back in em, or a
 // utility reads as lost where it won.
-const value = (el, p) => {
-  const v = getComputedStyle(el).getPropertyValue(p)
+const value = (style, parent, p) => {
+  const v = style.getPropertyValue(p)
   if (p !== 'letter-spacing' || !v.endsWith('px')) return v
-  return `${(parseFloat(v) / parseFloat(getComputedStyle(el.parentElement).fontSize)).toFixed(3)}em`
+  return `${(parseFloat(v) / parseFloat(parent.fontSize)).toFixed(3)}em`
 }
 
-const computed = (html, cls) => {
+// getComputedStyle is the cost of this file: happy-dom matches every rule of index.css against the
+// element on each call (about 25 ms, and one call per utility per fixture is 111 x 32 x 2 calls,
+// minutes under load, past the 5 s test timeout). Utilities that set different properties do not
+// compete with each other, so they share one element: the utilities are packed into groups with no
+// property in common, and each element carries a whole group, on the fixture and on the bare-div
+// control alike. That is a dozen calls per fixture, and a utility is still compared with its own
+// value on a bare div, with every class on the element that is not the one under test the same on
+// both sides.
+const overlaps = (a, b) => a === b || a.startsWith(`${b}-`) || b.startsWith(`${a}-`) ||
+  (a === 'gap' && b.endsWith('-gap')) || (b === 'gap' && a.endsWith('-gap'))
+
+const groups = []
+for (const u of utilities) {
+  const ps = props(u.decls)
+  const group = groups.find(g => !g.props.some(q => ps.some(p => overlaps(p, q))))
+  if (group) { group.utilities.push(u); group.props.push(...ps) } else groups.push({ utilities: [u], props: ps })
+}
+
+const computed = (html, group) => {
   const host = document.createElement('div')
   host.innerHTML = html.replace(' T', ' data-t')
   document.body.appendChild(host)
   const el = host.querySelector('[data-t]')
-  el.classList.add(cls)
-  return { values: Object.fromEntries(props(utilities.find(u => u.cls === cls).decls).map(p => [p, value(el, p)])), done: () => host.remove() }
+  for (const { cls } of group.utilities) el.classList.add(cls)
+  const style = getComputedStyle(el), parent = getComputedStyle(el.parentElement)
+  const result = Object.fromEntries(group.utilities.flatMap(({ cls, decls }) =>
+    props(decls).map(p => [`${cls} ${p}`, value(style, parent, p)])))
+  host.remove()
+  return result
+}
+
+const controls = new Map()
+const control = group => {
+  if (!controls.has(group)) controls.set(group, computed('<div T></div>', group))
+  return controls.get(group)
 }
 
 describe('ui-kit utilities win the cascade', () => {
@@ -94,14 +122,12 @@ describe('ui-kit utilities win the cascade', () => {
   for (const [name, html] of Object.entries(FIXTURES)) {
     it(`on ${name}`, () => {
       const lost = []
-      for (const { cls } of utilities) {
-        const control = computed('<div T></div>', cls)
-        const target = computed(html, cls)
-        for (const [p, want] of Object.entries(control.values)) {
-          if (!want) lost.push(`${cls} ${p}: no computed value on a bare div`)
-          else if (target.values[p] !== want) lost.push(`${cls} ${p}: ${target.values[p]} (wants ${want})`)
+      for (const group of groups) {
+        const target = computed(html, group)
+        for (const [key, want] of Object.entries(control(group))) {
+          if (!want) lost.push(`${key}: no computed value on a bare div`)
+          else if (target[key] !== want) lost.push(`${key}: ${target[key]} (wants ${want})`)
         }
-        control.done(); target.done()
       }
       expect(lost).toEqual([])
     })

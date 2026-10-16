@@ -105,6 +105,15 @@ export const starterPlanDays = id => PLANS[id]?.schedule.map(([day]) => day) ?? 
 // "barbell bench press" and "dumbbell bench press" read as the same lift.
 const EQ_WORDS = new Set(ALL_EQUIPMENT.flatMap(e => e.split(/[^a-z0-9]+/)).concat(['lever', 'leverage', 'machine', 'sled']))
 const words = ex => new Set(ex.n.toLowerCase().split(/[^a-z0-9]+/).filter(w => w && !EQ_WORDS.has(w)))
+// What substituteFor compares, per exercise: it weighs every candidate of the body part on every
+// call, and cutting the name and the muscles into sets each time was most of the cost of fitting
+// a plan (a few seconds for the plans' tests under load).
+const traits = new WeakMap()
+const traitsOf = ex => {
+  let t = traits.get(ex)
+  if (!t) traits.set(ex, t = { words: words(ex), muscles: new Set([ex.mg, ...(ex.sm || [])]) })
+  return t
+}
 const jaccard = (a, b) => {
   const inter = [...a].filter(x => b.has(x)).length
   return inter ? inter / (a.size + b.size - inter) : 0
@@ -123,15 +132,16 @@ const NEEDS_BALL = /exercise ball|stability ball|swiss ball|bosu/i
 // `taken` keeps a routine from ending up with the same exercise twice. null when nothing fits.
 export const substituteFor = (ex, equipment, taken) => {
   const hasBall = equipment.includes('stability ball') || equipment.includes('bosu ball')
-  const exWords = words(ex), exSm = new Set([ex.mg, ...(ex.sm || [])])
+  const { words: exWords, muscles: exSm } = traitsOf(ex)
   const loaded = ex.eq !== 'body weight'
   let best = null, bestScore = -Infinity
   for (const c of Object.values(EXIDX)) {
     if (c.bp !== ex.bp || taken.has(c.id) || !eqAvailable(equipment, c)) continue
     if (NOT_A_LIFT.test(c.n) || (!hasBall && NEEDS_BALL.test(c.n))) continue
-    const sm = jaccard(exSm, new Set([c.mg, ...(c.sm || [])]))
+    const cTraits = traitsOf(c)
+    const sm = jaccard(exSm, cTraits.muscles)
     if (c.tg !== ex.tg && c.mg !== ex.mg && !sm) continue
-    const score = 2 * (c.tg === ex.tg) + (c.mg === ex.mg) + 3 * jaccard(exWords, words(c)) + 2 * sm
+    const score = 2 * (c.tg === ex.tg) + (c.mg === ex.mg) + 3 * jaccard(exWords, cTraits.words) + 2 * sm
       - (loaded && c.eq === 'body weight' ? 3 : 0)
     // id as the last key: the same equipment always gives the same plan
     if (score > bestScore || (score === bestScore && c.id < best.id)) { best = c; bestScore = score }
