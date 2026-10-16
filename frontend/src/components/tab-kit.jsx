@@ -21,11 +21,12 @@ const EMPTY = '–'
 // day's workout). `action`: one control at the top end (a ⋯ menu). `children`: quiet lines at
 // the end. status: loading (skeletons at the same sizes), error (the caption and a retry),
 // empty (the values as dashes). tone="over": over a target, said in orange ink, not as an alarm.
-export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', tone, onRetry, children }) {
+// `ref` reaches the hero's box in every state (Nutrition pins "N left" once it scrolls away).
+export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', tone, onRetry, children, ref }) {
   oneOf('HeroStatus', 'status', status, STATUSES)
   oneOf('HeroStatus', 'tone', tone, ['over'])
   if (status === 'loading') {
-    return <div className="hero" role="status">
+    return <div className="hero" role="status" ref={ref}>
       <span className="sr-only">{t('Loading today')}</span>
       {glyph && <Skeleton w={32} h={32} r={8} />}
       {eyebrow != null && <Skeleton w={96} h={15} />}
@@ -34,7 +35,7 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     </div>
   }
   const shown = status === 'empty' ? EMPTY : value
-  return <div className={cx('hero', action && 'hero-has-a')}>
+  return <div className={cx('hero', action && 'hero-has-a')} ref={ref}>
     {glyph && <Icon name={glyph} className="hero-g" />}
     {eyebrow != null && <div className="hero-e">{eyebrow}</div>}
     {title != null
