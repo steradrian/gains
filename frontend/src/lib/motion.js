@@ -201,3 +201,14 @@ export function hold(anim) {
   try { anim.commitStyles?.() } catch { /* not rendered: there is no frame to keep */ }
   anim.cancel?.()
 }
+
+const KEYFRAME_META = new Set(['offset', 'easing', 'composite'])
+/** Takes back what hold() left on `el` as its own style: every property `preset` animates. */
+export function unhold(el, preset) {
+  const steps = [preset.enter, preset.exit, preset.rm?.enter, preset.rm?.exit]
+  for (const frame of steps.flatMap(step => step?.keyframes || [])) {
+    for (const prop of Object.keys(frame)) {
+      if (!KEYFRAME_META.has(prop)) el.style.removeProperty(prop.replace(/[A-Z]/g, c => '-' + c.toLowerCase()))
+    }
+  }
+}

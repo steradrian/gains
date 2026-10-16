@@ -5,7 +5,7 @@
  * while #toast, the live region, stays in the page throughout. */
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Toast from './Toast.jsx'
 import { useUI } from '../store/useUI.js'
 import { MS, PRESETS, setMotionDriver } from '../lib/motion.js'
@@ -63,6 +63,22 @@ describe('the toast\'s way in and out', () => {
     expect(nudge.keyframes).toEqual(PRESETS.nudge.enter.keyframes)
   })
 
+  it('comes back whole when a new message arrives while it leaves, after a way in cut short', async () => {
+    await set({ toastMsg: 'Saved' })
+    const el = pill()
+    await set({ toastMsg: '' })
+    const exit = driver.on(el).at(-1)
+    await set({ toastMsg: 'Set restored' })
+    expect(pill()).toBe(el)
+    expect(el.textContent).toBe('Set restored')
+    expect(exit.playState).toBe('idle')
+    // not resting on the half-faded, lowered frame the cut-short way in was stopped on
+    expect(el.style.opacity).toBe('')
+    expect(el.style.transform).toBe('')
+    const after = driver.on(el).slice(driver.on(el).indexOf(exit) + 1)
+    expect(after.map(a => a.keyframes)).toEqual([PRESETS.toast.enter.keyframes])
+  })
+
   it('only fades, and does not nudge, when the app keeps still', async () => {
     document.documentElement.dataset.motion = 'reduce'
     await set({ toastMsg: 'Saved' })
@@ -73,5 +89,30 @@ describe('the toast\'s way in and out', () => {
       expect(anim.keyframes.every(k => Object.keys(k).every(p => p === 'opacity'))).toBe(true)
       expect(anim.options.duration).toBe(MS.rm)
     }
+  })
+})
+
+describe('the toast\'s action from the keyboard', () => {
+  const undoToast = run => set({ toastMsg: 'Set removed', toastAction: { label: 'Undo', run, id: 1, icon: 'undo' } })
+  const undo = () => document.querySelector('#toast .toast-act')
+
+  it('gives the focus back to where it was before the Undo, not to the page body', async () => {
+    const field = document.createElement('button')
+    document.body.appendChild(field)
+    field.focus()
+    const run = vi.fn()
+    await undoToast(run)
+    undo().focus()
+    await act(async () => { undo().click() })
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).toBe(field)
+  })
+
+  it('leaves nothing focused inside the leaving pill when there is nowhere to go back to', async () => {
+    await undoToast(() => {})
+    undo().focus()
+    await act(async () => { undo().click() })
+    expect(pill().hasAttribute('inert')).toBe(true)
+    expect(pill().contains(document.activeElement)).toBe(false)
   })
 })

@@ -103,19 +103,29 @@ describe('Presence', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('plays the way out back when the child returns while leaving, and keeps it', async () => {
+  it('comes back in full when the child returns while leaving, and keeps it', async () => {
     await render('Saved')
     const el = note()
+    // taken out before its way in was over: that frame is kept as its own style for the way out
     await render(null)
     const exit = driver.calls.at(-1)
+    expect(el.style.opacity).toBe('0')
     await render('Saved again')
     expect(note()).toBe(el)
     expect(el.hasAttribute('data-leaving')).toBe(false)
     expect(el.hasAttribute('inert')).toBe(false)
-    expect(exit.reversed).toBe(true)
     expect(el.textContent).toBe('Saved again')
-    // the reversed exit reaching its start does not take the child away
-    await act(async () => { exit.finish() })
+    // the way out is dropped, the kept frame is gone and the way in plays from the start: not a
+    // reversed exit, which would come to rest on the half-faded frame
+    expect(exit.playState).toBe('idle')
+    expect(el.style.opacity).toBe('')
+    expect(el.style.transform).toBe('')
+    const again = driver.calls.at(-1)
+    expect(again).not.toBe(exit)
+    expect(again.keyframes).toEqual(RISE.enter.keyframes)
+    // and nothing still pending takes it away
+    await act(async () => { driver.running().forEach(a => a.finish()) })
+    await act(async () => { await new Promise(r => setTimeout(r, 160 + 120)) })
     expect(note()).toBe(el)
   })
 

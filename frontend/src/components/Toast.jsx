@@ -23,21 +23,43 @@ function ToastPill({ msg, action }) {
   const { present } = usePresence()
   const { pauseToast, resumeToast, runToastAction } = useUI.getState()
   useEnterExit(() => [[ref.current, PRESETS.toast]])
-  // A new message over one still showing: the pill stays where it is and takes the new text with
-  // a small nudge, rather than leaving and coming back.
-  const said = useRef(msg)
+  // The last thing focused outside the pill while it is up, for the focus to go back to when its
+  // action is run from the keyboard: the pill goes out of reach at once, and the focus with it.
+  const before = useRef(null)
   useLayoutEffect(() => {
+    const note = el => { if (el && el !== document.body && !ref.current?.contains(el)) before.current = el }
+    note(document.activeElement)
+    const onFocus = e => note(e.target)
+    document.addEventListener('focusin', onFocus)
+    return () => document.removeEventListener('focusin', onFocus)
+  }, [])
+  // (An action that put the focus somewhere itself is left to it.)
+  const run = () => {
+    runToastAction()
+    if (!ref.current?.contains(document.activeElement)) return
+    const back = before.current
+    if (back?.isConnected && !back.closest('[inert]')) back.focus?.({ preventScroll: true })
+    else document.activeElement.blur?.()
+  }
+  // A new message over one still showing: the pill stays where it is and takes the new text with
+  // a small nudge, rather than leaving and coming back. One that arrives while the pill is leaving
+  // brings it back with its full way in instead, and a nudge on top would fight that.
+  const said = useRef(msg)
+  const shown = useRef(present)
+  useLayoutEffect(() => {
+    const showing = shown.current
+    shown.current = present
     if (said.current === msg) return
     said.current = msg
-    if (present) play(ref.current, PRESETS.nudge, 'enter')
-  }, [msg])
+    if (present && showing) play(ref.current, PRESETS.nudge, 'enter')
+  }, [msg, present])
   const live = !!(present && action)
   return <div ref={ref} className={'toast-pill' + (action ? ' has-action' : '')} {...leavingProps(present)}
     onPointerEnter={live ? pauseToast : undefined} onPointerDown={live ? pauseToast : undefined}
     onPointerLeave={live ? resumeToast : undefined} onPointerCancel={live ? resumeToast : undefined}
     onPointerUp={live ? (e => { if (e.pointerType !== 'mouse') resumeToast() }) : undefined}>
     <span className="toast-msg">{msg}</span>
-    {action && <button type="button" className="toast-act" key={action.id} onClick={runToastAction}>
+    {action && <button type="button" className="toast-act" key={action.id} onClick={run}>
       <Icon name={action.icon} />{action.label}
     </button>}
   </div>

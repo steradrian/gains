@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
+import { usePresence } from '../components/presence.jsx'
 import { isSwitching } from './use-tab-nav.js'
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -105,10 +106,16 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
   }
 }
 
+// For content that runs its own trap (`data-own-dialog-focus`, the + sheet). It follows the
+// presence of the sheet it sits in (components/presence.jsx), the way useSheetDialog does: a closed
+// sheet still playing its way out has let go of the focus and the page already, and one that
+// replaces it in the same tap inherits its opener. A layout effect, so that the release lands
+// before the replacing sheet's trap reads it.
 export function useDialogFocus(ref) {
-  useEffect(() => {
+  const { present } = usePresence()
+  useLayoutEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!present || !el) return
     return trapDialogFocus(el)
-  }, [])
+  }, [present])
 }

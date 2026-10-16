@@ -6,7 +6,7 @@
  * not one of the sheet's own buttons behaves like its Cancel.
  *
  * The real Modals on the real store; the Web Animations API is the fake driver. */
-import React, { act } from 'react'
+import React, { act, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Modals, { scrollRestorePending } from './Modals.jsx'
@@ -14,6 +14,7 @@ import { useUI } from '../store/useUI.js'
 import { confirmSheet } from '../sheets.jsx'
 import { MS, PRESETS, setMotionDriver } from '../lib/motion.js'
 import { fakeMotionDriver } from '../lib/motion.test-util.js'
+import { useDialogFocus } from '../lib/use-dialog-focus.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -30,6 +31,23 @@ const Plain = ({ title = 'Weigh in', close }) => <>
   <h3>{title}</h3>
   <button onClick={close}>Done</button>
 </>
+// Content that runs its own focus trap, the way the + sheet does (PlusSheet.jsx): one row closes
+// it, the other closes it and opens the next sheet in the same tap.
+function OwnFocus({ close, next }) {
+  const ref = useRef(null)
+  useDialogFocus(ref)
+  return <div ref={ref} role="dialog" aria-modal="true" aria-label="Add" data-own-dialog-focus>
+    <button onClick={close}>Weigh in</button>
+    <button onClick={() => { close(); next() }}>New routine</button>
+  </div>
+}
+const button = text => all('button').find(b => b.textContent === text)
+const goBack = () => act(async () => { window.dispatchEvent(new PopStateEvent('popstate')) })
+const drag = (el, dy) => act(async () => {
+  el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 100, clientY: 100 }))
+  el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 100 + dy }))
+  el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 100, clientY: 100 + dy }))
+})
 
 beforeEach(async () => {
   document.body.innerHTML = '<div id="app"><button id="opener">Open</button></div><nav id="tabbar"></nav><div id="timer"></div><div id="root"></div>'
@@ -63,6 +81,7 @@ describe('a bottom sheet\'s way in and out', () => {
   })
 
   it('is closed the moment it is closed: focus is back, the page is live, the sheet is out of reach while it leaves', async () => {
+    const go = vi.spyOn(history, 'go').mockImplementation(() => {})
     open(close => <Plain close={close} />)
     const sheet = q('.sheet')
     expect(document.activeElement).toBe(sheet)
@@ -71,6 +90,7 @@ describe('a bottom sheet\'s way in and out', () => {
     await click(sheet.querySelector('button'))
     await flushMicrotasks()
     expect(useUI.getState().sheets).toHaveLength(0)
+    expect(go).toHaveBeenCalledWith(-1)
     // still on screen, playing its way out from where it is...
     expect(q('.sheet')).toBe(sheet)
     const exit = driver.on(sheet).at(-1)
@@ -110,6 +130,57 @@ describe('a bottom sheet\'s way in and out', () => {
     expect(document.activeElement).toBe(document.getElementById('opener'))
   })
 
+  it('closes every sheet at once on closeAll, each history entry walked back, each leaving where it stands', async () => {
+    const go = vi.spyOn(history, 'go').mockImplementation(() => {})
+    open(c => <Plain title="First" close={c} />)
+    open(c => <Plain title="Second" close={c} />)
+    const sheets = all('.sheet')
+    expect(sheets).toHaveLength(2)
+
+    await act(async () => { useUI.getState().closeAll() })
+    await flushMicrotasks()
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(go).toHaveBeenCalledWith(-2)
+    expect(all('.sheet')).toEqual(sheets)
+    for (const sheet of sheets) expect(sheet.parentElement.hasAttribute('inert')).toBe(true)
+    expect(document.activeElement).toBe(document.getElementById('opener'))
+    expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
+
+    await finishAll()
+    expect(q('#modal-root')).toBeNull()
+  })
+
+  it('a sheet with its own focus trap (the + sheet) lets go the moment it is closed, not when its way out ends', async () => {
+    open(close => <OwnFocus close={close} next={() => {}} />)
+    const sheet = q('.sheet')
+    expect(document.activeElement).toBe(button('Weigh in'))
+    expect(document.getElementById('app').hasAttribute('inert')).toBe(true)
+
+    await click(button('Weigh in'))
+    await flushMicrotasks()
+    expect(q('.sheet')).toBe(sheet)
+    expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
+    expect(document.getElementById('tabbar').hasAttribute('inert')).toBe(false)
+    expect(document.activeElement).toBe(document.getElementById('opener'))
+  })
+
+  it('a sheet with its own focus trap swapped for the next one hands that one its opener', async () => {
+    open(close => <OwnFocus close={close} next={() => useUI.getState().openSheet(c => <Plain title="New routine" close={c} />)} />)
+    const own = q('.sheet')
+    await click(button('New routine'))
+    await flushMicrotasks()
+    const next = all('.sheet').find(s => s !== own)
+    expect(document.activeElement).toBe(next)
+    expect(document.getElementById('app').hasAttribute('inert')).toBe(true)
+
+    // closed while the first is still fading out: back on what opened the first
+    await click(next.querySelector('button'))
+    await flushMicrotasks()
+    expect(q('.sheet')).not.toBeNull()
+    expect(document.activeElement).toBe(document.getElementById('opener'))
+    expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
+  })
+
   it('fades instead of moving when the app keeps still', async () => {
     document.documentElement.dataset.motion = 'reduce'
     const { close } = open(c => <Plain close={c} />)
@@ -130,7 +201,7 @@ describe('a bottom sheet\'s way in and out', () => {
 describe('every way out is a Cancel', () => {
   beforeEach(() => { setMotionDriver(null) })
 
-  it('runs onDismiss on the backdrop, on Escape and on back, and not on the sheet\'s own close', async () => {
+  it('runs onDismiss on the backdrop, on Escape and on a drag, and not on the sheet\'s own close', async () => {
     const onDismiss = vi.fn()
     open(c => <Plain close={c} />, { onDismiss })
     await click(q('.mback'))
@@ -142,8 +213,30 @@ describe('every way out is a Cancel', () => {
     expect(onDismiss).toHaveBeenCalledTimes(2)
 
     open(c => <Plain close={c} />, { onDismiss })
+    await drag(q('.sheet'), 200)
+    expect(onDismiss).toHaveBeenCalledTimes(3)
+    expect(useUI.getState().sheets).toHaveLength(0)
+
+    open(c => <Plain close={c} />, { onDismiss })
     await click(q('.sheet button'))
-    expect(onDismiss).toHaveBeenCalledTimes(2)
+    expect(onDismiss).toHaveBeenCalledTimes(3)
+  })
+
+  it('runs onDismiss on back', async () => {
+    const onDismiss = vi.fn()
+    open(c => <Plain close={c} />, { onDismiss })
+    await goBack()
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('a locked sheet stays on back and on a drag, and nothing is cancelled', async () => {
+    const onDismiss = vi.fn()
+    open(c => <Plain close={c} />, { onDismiss, locked: true })
+    await goBack()
+    await drag(q('.sheet'), 200)
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(onDismiss).not.toHaveBeenCalled()
   })
 
   it('a confirm\'s backdrop and Escape run the same onCancel as its Cancel button', async () => {

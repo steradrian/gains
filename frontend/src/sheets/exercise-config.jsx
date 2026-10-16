@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { isCardio, isBodyweightEq, smOf, isAssisted, isCustomEx } from '../lib/exercises.js'
 import { fmtNum } from '../lib/format.js'
@@ -10,6 +10,7 @@ import Stepper from '../components/Stepper.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
+import { useSheetClosed } from '../components/presence.jsx'
 import { Button, Switch, Segmented, SelectRow, Row, NumberField } from '../components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS } from '../lib/glyphs.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
@@ -554,15 +555,16 @@ function EffortPicker({ kind, value, onPick, close }) {
   // the band's minimum, one tap of + — or typing the `1` of `10` — was a committed rating, fired
   // under the sheet you were still typing into, and on the last set of the last exercise it
   // stacked workoutCompleteSheet on top of the picker. So typing moves the mirror only, and the
-  // rating is written once, when the sheet goes away: Done, the backdrop, a swipe or Escape all
-  // unmount this. A preset row still commits on the spot, which is what makes it one tap.
+  // rating is written once, when the sheet is closed: Done, the backdrop, a swipe or Escape. Closed,
+  // not gone: the sheet is still playing its way out when the set row under it is live again. A
+  // preset row still commits on the spot, which is what makes it one tap.
   const typed = useRef(value ?? null)
   const done = useRef(false)
   const set = nv => { typed.current = nv; setV(nv) }
-  useEffect(() => () => {
+  useSheetClosed(() => {
     if (done.current) return
     if (typed.current !== (value ?? null)) onPick(typed.current)
-  }, [])
+  })
   // `v` is in the profile's own scale (whatever sits on the set: s.rir or s.rpe). Compare in
   // RIR so the tick lands on the right preset on either scale, and so a typed RPE colours the
   // same as the RIR it equals.

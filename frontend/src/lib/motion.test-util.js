@@ -1,6 +1,8 @@
 // A stand-in for the Web Animations API, for tests (happy-dom has none), handed to
 // setMotionDriver: every animate() call is recorded with its keyframes and options, and runs
-// until the test finishes or cancels it.
+// until the test finishes or cancels it. commitStyles() writes the frame it is on into the
+// element's own style, as the real one does; the fake is always on its first keyframe.
+const META = new Set(['offset', 'easing', 'composite'])
 export function fakeMotionDriver() {
   const calls = []
   const animate = (el, keyframes, options) => {
@@ -10,7 +12,9 @@ export function fakeMotionDriver() {
       el, keyframes, options, finished, playState: 'running', reversed: false,
       finish() { if (anim.playState !== 'running') return; anim.playState = 'finished'; resolve(anim) },
       cancel() { if (anim.playState !== 'running') return; anim.playState = 'idle'; reject(new Error('AbortError')) },
-      commitStyles() {},
+      commitStyles() {
+        for (const [prop, value] of Object.entries(keyframes[0] || {})) if (!META.has(prop)) el.style[prop] = value
+      },
       reverse() { anim.reversed = !anim.reversed },
     }
     calls.push(anim)

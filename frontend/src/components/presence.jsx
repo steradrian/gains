@@ -1,5 +1,5 @@
-import { Children, Component, createContext, isValidElement, useCallback, useContext, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
-import { hold, motionStep, play } from '../lib/motion.js'
+import { Children, Component, createContext, isValidElement, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
+import { hold, motionStep, play, unhold } from '../lib/motion.js'
 
 // The kit's enter and exit (fitness-eval spec-motion-enter-exit.md §4). Anything that appears or
 // goes away animates through here, never with a bare mount or a CSS keyframe of its own.
@@ -8,7 +8,7 @@ import { hold, motionStep, play } from '../lib/motion.js'
 // with `present: false`, until the child says its way out is over (`safeToRemove`). The logical
 // state changes at once (the store no longer has the sheet, the toast has no message); only the
 // DOM node outlives it, by its exit. A key that comes back while it is still leaving is present
-// again, and its exit plays back the way it came.
+// again, and plays its way in again.
 //
 // useEnterExit is what a child calls to do that with the Web Animations API (lib/motion.js), which
 // the CSS rule that stops every animation under reduced motion does not reach: the presets carry
@@ -23,6 +23,27 @@ const ALWAYS = { present: true, safeToRemove: () => {} }
  *  `safeToRemove`. Outside a Presence a component is always present. */
 export function usePresence() {
   return useContext(PresenceContext) || ALWAYS
+}
+
+/** Runs `fn` once, when the sheet (or whatever else a Presence holds) is closed: the moment it stops
+ *  being present, not when its way out is over and it unmounts. What closing it means (a typed
+ *  rating written, a pick undone) has then happened before the page under it, live again at once,
+ *  can take the next tap, and it never waits on a timer that a backgrounded app may not run.
+ *  Outside a Presence it runs at unmount. */
+export function useSheetClosed(fn) {
+  const { present } = usePresence()
+  const call = useRef(fn)
+  useLayoutEffect(() => { call.current = fn })
+  const fired = useRef(false)
+  const fire = () => {
+    if (fired.current) return
+    fired.current = true
+    call.current?.()
+  }
+  useEffect(() => { if (!present) fire() }, [present])
+  // Set again on mount: StrictMode's rehearsal unmount runs the cleanup, and the real close after it
+  // must still count.
+  useEffect(() => { fired.current = false; return fire }, [])
 }
 
 /** What a leaving element carries from its first leaving render: out of reach of a finger, the
@@ -98,9 +119,11 @@ export function useEnterExit(layers) {
   const read = useRef(layers)
   useLayoutEffect(() => { read.current = layers })
   const anims = useRef([])
+  const moved = useRef([])
   const out = useRef(null)
   const run = phase => {
     const moves = read.current(phase).filter(([el]) => el)
+    moved.current = moves
     anims.current = moves.map(([el, preset]) => play(el, preset, phase)).filter(Boolean)
     return Math.max(0, ...moves.map(([, preset]) => motionStep(preset, phase)?.ms || 0))
   }
@@ -108,18 +131,23 @@ export function useEnterExit(layers) {
   useLayoutEffect(() => { run('enter') }, [])
   useLayoutEffect(() => {
     if (present) {
-      // Back while still leaving: the exit plays back to where it started.
+      // Back while still leaving: the way out is dropped and the way in plays again. Playing the
+      // exit backwards would end on the frame an interrupted way in was stopped on, which hold()
+      // left as the element's own style: half faded and off its place, for good.
       const was = out.current
       if (!was) return
       out.current = null
       clearTimeout(was.timer)
-      for (const anim of anims.current) anim.reverse?.()
+      for (const anim of anims.current) anim.cancel?.()
+      for (const [el, preset] of [...was.held, ...moved.current]) unhold(el, preset)
+      run('enter')
       return
     }
     for (const anim of anims.current) hold(anim)
+    const held = moved.current
     const ms = run('exit')
     if (!anims.current.length) { safeToRemove(); return }
-    const token = { timer: 0 }
+    const token = { timer: 0, held }
     out.current = token
     const end = () => {
       if (out.current !== token) return
