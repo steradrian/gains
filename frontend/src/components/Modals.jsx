@@ -1,9 +1,11 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { keyboardOpen } from '../lib/viewport-guard.js'
+import { PRESETS } from '../lib/motion.js'
 import { noteSheetEntries, onSheetEntry } from '../lib/nav.js'
 import { useSheetDialog } from '../lib/use-sheet-dialog.js'
 import { EmptySurface } from './blocks.jsx'
+import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
 
 // Putting the page back after a sheet closes takes up to three goes (see the un-pin below): now,
 // next frame, and once the keyboard's dismiss animation is over. Anything else that wants to
@@ -47,15 +49,51 @@ const drainScrollRestore = close => {
   }
 }
 
+// Every way out of a sheet that is not one of its own buttons (the backdrop, a drag, Escape,
+// Android back) is the same one, and it behaves like the sheet's Cancel: a sheet that has something
+// to undo when it is not gone through (confirmSheet's onCancel) says so as `onDismiss`, and it runs
+// whichever way the sheet was sent off. A locked sheet stays. Looked up by id, so a handler bound
+// on the first render still sees a sheet locked since. Returns whether it closed.
+function dismissSheet(id) {
+  const ui = useUI.getState()
+  const sheet = ui.sheets.find(s => s.id === id)
+  if (!sheet || sheet.locked) return false
+  ui.closeSheet(id)
+  sheet.onDismiss?.()
+  return true
+}
+
+// Which sheets are swapping in this commit: a tap that closes one sheet and opens the next
+// (`close(); nextSheet()`) reaches the store as one batch with both a removal and an addition.
+// The one going fades where it stands with its scrim gone at once, and the one coming rises over
+// a scrim already there, so the backdrop never flashes (spec §2.1, Replacement).
+const NO_SWAP = { out: new Set(), in: new Set() }
+const SwapContext = createContext(NO_SWAP)
+
 // One bottom sheet (or centered dialog) with swipe-to-dismiss.
 function Sheet({ sheet, covered }) {
   const { closeSheet } = useUI()
   const ref = useRef(null)
+  const back = useRef(null)
+  const swap = useContext(SwapContext)
+  const { present } = usePresence()
   // The element that is the dialog, whichever kind of sheet this is: named by its header, focus
   // moved in and kept there, the page behind inert, focus back on what opened it. Escape closing
-  // the top sheet that allows it is the one handler in Modals below.
+  // the top sheet that allows it is the one handler in Modals below. Focus goes back the moment the
+  // sheet is closed, not when its way out has finished playing.
   const dialog = useRef(null)
-  useSheetDialog(dialog)
+  useSheetDialog(dialog, present)
+  // A bottom sheet rises with its scrim and goes back down with it. The centred dialog keeps its
+  // CSS entrance for now and, like the viewer, goes at once.
+  useEnterExit(phase => {
+    if (sheet.kind !== 'sheet') return []
+    if (phase === 'enter') return swap.in.has(sheet.id) ? [[ref.current, PRESETS.sheet]] : [[back.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
+    if (swap.out.has(sheet.id)) {
+      if (back.current) back.current.hidden = true
+      return [[ref.current, PRESETS.sheetSwap]]
+    }
+    return [[back.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
+  })
   // startY null = no gesture. axis stays null until the finger has travelled far enough to
   // tell a vertical pull from a sideways scroll; 'x' hands the gesture to whatever scrolls
   // horizontally under it (chip strips, heatmap) and the sheet stays put.
@@ -105,11 +143,11 @@ function Sheet({ sheet, covered }) {
   const onTouchEnd = () => {
     const el = ref.current, d = drag.current
     if (d.startY === null) return
-    el.style.transition = 'transform .2s'
-    // a long pull, or a short but fast flick, dismisses
+    // a long pull, or a short but fast flick, dismisses: closed at once, and the way out carries
+    // on down from where the finger let go
     const flick = d.delta > 30 && d.vy > 0.6
-    if ((d.delta > 90 || flick) && !sheet.locked) { el.style.transform = 'translateY(110%)'; setTimeout(() => closeSheet(sheet.id), 180) }
-    else el.style.transform = ''
+    if ((d.delta > 90 || flick) && !sheet.locked) { el.style.transition = 'none'; dismissSheet(sheet.id) }
+    else { el.style.transition = 'transform .2s'; el.style.transform = '' }
     drag.current = idle()
   }
   // Mouse drag (desktop testing / trackpads): same swipe-to-dismiss behaviour.
@@ -130,27 +168,30 @@ function Sheet({ sheet, covered }) {
   }, [])
 
   const close = () => closeSheet(sheet.id)
+  const dismiss = () => { dismissSheet(sheet.id) }
   // A sheet under a newer one is out of reach, to the keyboard and to a screen reader, until the
-  // newer one closes: `inert` on its wrapper (a stacked sheet's background is the sheet below).
-  const inert = covered ? true : undefined
+  // newer one closes: `inert` on its wrapper (a stacked sheet's background is the sheet below). So
+  // is one on its way out, which taps also go through to the page.
+  const layer = { ...leavingProps(present), inert: covered || !present ? true : undefined }
   // Full screen, on black: a photo or video opened from a workout (WorkoutMedia.jsx). No
   // backdrop to tap, no drag to dismiss — the viewer has its own close button, and back closes
   // it like any sheet.
-  if (sheet.kind === 'viewer') return <div ref={dialog} inert={inert}>{sheet.render(close)}</div>
+  if (sheet.kind === 'viewer') return <div ref={dialog} {...layer}>{sheet.render(close)}</div>
   if (sheet.kind === 'center') {
     return (
-      <div inert={inert}>
-        <div className="mback" aria-hidden="true" onClick={() => { if (!sheet.locked) close() }} />
+      <div {...layer}>
+        <div className="mback" aria-hidden="true" onClick={dismiss} />
         <div className="center" ref={dialog}><EmptySurface value="sheet">{sheet.render(close)}</EmptySurface></div>
       </div>
     )
   }
+  // The grab bar says the sheet can be pulled away; a locked one cannot, so it has none.
   return (
-    <div inert={inert}>
-      <div className="mback" aria-hidden="true" onClick={() => { if (!sheet.locked) close() }} />
+    <div {...layer}>
+      <div className="mback" ref={back} aria-hidden="true" onClick={dismiss} />
       <div className="sheet" ref={el => { ref.current = el; dialog.current = el }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
         onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
-        <div className="grab" />
+        {!sheet.locked && <div className="grab" />}
         <EmptySurface value="sheet">{sheet.render(close)}</EmptySurface>
       </div>
     </div>
@@ -159,7 +200,6 @@ function Sheet({ sheet, covered }) {
 
 export default function Modals() {
   const sheets = useUI(s => s.sheets)
-  const closeSheet = useUI(s => s.closeSheet)
   const prevLen = useRef(0)
   const suppressPop = useRef(false)
   const pushedEntries = useRef(0)
@@ -224,16 +264,16 @@ export default function Modals() {
       }
       noteSheetEntries(sheetEntries.current.filter(e => e.live).length)
       const top = sheets[sheets.length - 1]
-      if (top && !top.locked) closeSheet(top.id)
+      if (top) dismissSheet(top.id)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [sheets, closeSheet])
+  }, [sheets])
 
   // lock the page behind any open sheet (iOS-safe)
   useEffect(() => {
     if (!sheets.length) return
-    const onKey = e => { if (e.key === 'Escape') { const top = useUI.getState().sheets[useUI.getState().sheets.length - 1]; if (top && !top.locked) useUI.getState().closeSheet(top.id) } }
+    const onKey = e => { if (e.key === 'Escape') { const top = useUI.getState().sheets.at(-1); if (top) dismissSheet(top.id) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [sheets.length])
@@ -296,10 +336,28 @@ export default function Modals() {
     }
   }, [sheets.length > 0])
 
-  if (!sheets.length) return null
+  // The store says which sheets are open; a sheet it has let go of stays on screen for its way
+  // out. #modal-root is up while anything is drawn, and `live` only while a sheet is open: a sheet
+  // still leaving lets the page under it take taps again.
+  const [drawn, setDrawn] = useState(false)
+  if (sheets.length && !drawn) setDrawn(true)
+  const shownIds = useRef([])
+  const swap = useMemo(() => {
+    const was = shownIds.current
+    const gone = was.filter(id => !sheets.some(s => s.id === id))
+    const added = sheets.filter(s => !was.includes(s.id)).map(s => s.id)
+    return gone.length && added.length ? { out: new Set(gone), in: new Set(added) } : NO_SWAP
+  }, [sheets])
+  useLayoutEffect(() => { shownIds.current = sheets.map(s => s.id) }, [sheets])
+
+  if (!sheets.length && !drawn) return null
   return (
-    <div id="modal-root" className="open">
-      {sheets.map((s, i) => <Sheet key={s.id} sheet={s} covered={i < sheets.length - 1} />)}
+    <div id="modal-root" className={sheets.length ? 'open live' : 'open'}>
+      <SwapContext.Provider value={swap}>
+        <Presence onExitComplete={() => { if (!useUI.getState().sheets.length) setDrawn(false) }}>
+          {sheets.map((s, i) => <Sheet key={s.id} sheet={s} covered={i < sheets.length - 1} />)}
+        </Presence>
+      </SwapContext.Provider>
     </div>
   )
 }

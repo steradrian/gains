@@ -88,7 +88,8 @@ export function menuSheet(opts) {
   ui().openSheet(close => <MenuSheet {...opts} close={close} />)
 }
 
-// Themed replacement for window.confirm — callback-based (no blocking).
+// Themed replacement for window.confirm — callback-based (no blocking). The backdrop, Escape and
+// back are a Cancel: they run the same onCancel the button does.
 export function confirmSheet(opts) {
-  ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, { kind: 'center', ...(opts.locked ? { locked: true } : {}) })
+  ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, { kind: 'center', ...(opts.locked ? { locked: true } : {}), onDismiss: opts.onCancel })
 }

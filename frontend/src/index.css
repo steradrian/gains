@@ -527,12 +527,12 @@ h4.sec{
    Where backdrop-filter is genuinely unsupported there is no glass either — only the alpha,
    and the page shows through unblurred, which is the worst of both. Older Android WebViews
    never had it, and "reduce transparency" accessibility settings drop it. Those surfaces go
-   fully opaque instead. Keep this in sync with the rules above. */
+   fully opaque instead. Keep this in sync with the rules above. Each fallback comes after the
+   rule it overrides, at the same specificity, or the cascade drops it: the rest timer's and the
+   toast's sit with their own rules further down. */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   #tabbar{background:var(--bg-el)}
   :root[data-theme="light"] #tabbar{background:var(--bg-el)}
-  #timer{background:var(--surface)}
-  #toast{background:var(--surface-2)}
 }
 
 /* ----------------------------------------------------------------- list -- */
@@ -1466,6 +1466,9 @@ body.chips-dragging *{cursor:inherit}
   box-shadow:0 12px 34px -8px rgba(0,0,0,.55);
   animation:slideup var(--med) var(--ease);
 }
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  #timer{background:var(--surface)}
+}
 @keyframes slideup{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
 #timer .bar{position:absolute;top:0;inset-inline-start:0;inset-inline-end:0;height:3px;background:var(--surface-3)}
 #timer .bar i{display:block;height:100%;background:var(--acc);transition:width 1s linear}
@@ -1538,6 +1541,9 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 /* ---------------------------------------------------------------- modal -- */
 #modal-root{position:fixed;inset:0;z-index:100;display:none}
 #modal-root.open{display:block}
+/* A sheet on its way out is closed: the page under it takes taps again (components/presence.jsx).
+   !important because a leaving toast with an action still has the class that made it tappable. */
+#modal-root:not(.live),[data-leaving]{pointer-events:none!important}
 .mback{
   position:absolute;inset:0;background:rgba(0,0,0,.4);
   -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
@@ -1551,7 +1557,7 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
      safe-area inset, which the layout viewport does not (viewport-fit=cover). */
   max-height:90vh;max-height:min(90vh,calc(100dvh - var(--sat) - 8px - var(--native-kb,0px)));
   overflow-y:auto;scroll-padding-bottom:calc(20px + var(--sab));
-  animation:sheetup .34s var(--ease);
+  /* no CSS entrance: it rises and leaves with its scrim through the kit (Modals.jsx, lib/motion.js) */
   overscroll-behavior:contain;touch-action:pan-y;will-change:transform;
 }
 .sheet:has(.picker-search){
@@ -1569,7 +1575,6 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   padding-bottom:20px;scroll-padding-bottom:20px;
 }
 :root[data-theme="light"] .sheet{background:var(--bg)}
-@keyframes sheetup{from{transform:translateY(100%)}to{transform:none}}
 .sheet .grab{width:36px;height:5px;border-radius:99px;background:var(--label-4);margin:6px auto 14px}
 .sheet h3{font-size:20px;font-weight:600;letter-spacing:-.021em;margin-bottom:14px}
 .picker-search{
@@ -1757,24 +1762,31 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 .pr .icn{font-size:13px}
 
 /* --- toast --- */
+/* #toast is the live region, always in the page and drawn only through the pill inside it, which
+   comes and goes through the kit (components/Toast.jsx). Centred with `translate`, so the pill's
+   own transform is free for its motion. */
 #toast{
-  position:fixed;left:50%;transform:translateX(-50%) translateY(6px);
-  bottom:calc(96px + var(--sab));z-index:200;
+  position:fixed;left:50%;translate:-50% 0;
+  bottom:calc(96px + var(--sab));z-index:200;pointer-events:none;
+  /* As wide as its text up to 88vw. Without a width, left:50% left it half the screen to wrap
+     in, so a long message stood as a narrow column. */
+  width:max-content;max-width:88vw;
+}
+.toast-pill{
   background:color-mix(in srgb,var(--surface-2) 88%,transparent);
   -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
   /* 22px, not a pill radius: one line (about 41px high) still reads as a pill, and a toast that
      wraps to four lines is a rounded box instead of a circle over the page. */
   border-radius:var(--r-xl);padding:11px 20px;font-size:15px;font-weight:500;
   box-shadow:0 10px 30px -6px rgba(0,0,0,.5);
-  opacity:0;pointer-events:none;transition:opacity var(--med),transform var(--med) var(--ease);
-  /* As wide as its text up to 88vw. Without a width, left:50% left it half the screen to wrap
-     in, so a long message stood as a narrow column. */
-  width:max-content;max-width:88vw;text-align:center;
+  text-align:center;
 }
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .toast-pill{background:var(--surface-2)}
+}
 /* With an action (Undo): the message, then the button at the end, and the toast takes taps. */
-#toast.has-action{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:4px 6px 4px 18px;text-align:start}
-#toast.has-action .toast-msg{flex:1;min-width:0;padding:7px 0}
+.toast-pill.has-action{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:4px 6px 4px 18px;text-align:start}
+.toast-pill.has-action .toast-msg{flex:1;min-width:0;padding:7px 0}
 #toast .toast-act{flex:none;display:inline-flex;align-items:center;gap:5px;color:var(--acc-ink);font-weight:700;padding:8px 12px;border-radius:14px;min-height:36px}
 #toast .toast-act:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
 #toast .toast-act .icn{font-size:16px}
