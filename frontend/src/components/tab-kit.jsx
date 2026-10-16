@@ -88,9 +88,10 @@ export function HeroMacros({ eaten, targets = {} }) {
 }
 
 // One section of a redesigned tab root: the root's sections sit --gap-tab-section apart, which is
-// the kit's rhythm and not the page's to choose.
-export function TabSection({ children }) {
-  return <section className="tab-sec">{children}</section>
+// the kit's rhythm and not the page's to choose. `className`: a name for the section to be found
+// by (Home's first-visit cascade), never a layout.
+export function TabSection({ children, className }) {
+  return <section className={cx('tab-sec', className)}>{children}</section>
 }
 
 // A row of two to four actions, equal widths. Per Owner decision 7 none of them is filled: the

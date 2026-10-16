@@ -40,8 +40,8 @@ export default function Home() {
         {isToday && <YesterdayMealRow settings={day.settings} meal={meal} whileEmpty />}
       </>}
     </TabSection>
-    {day.on && <TabSection><MealPills date={date} day={day} /></TabSection>}
-    <TabSection><HomeWeek /></TabSection>
-    {S.showWeightCard !== false && <TabSection><WeightCard date={date} /></TabSection>}
+    {day.on && <TabSection className="home-meals"><MealPills date={date} day={day} /></TabSection>}
+    <TabSection className="home-week"><HomeWeek /></TabSection>
+    {S.showWeightCard !== false && <TabSection className="home-body"><WeightCard date={date} /></TabSection>}
   </Page>
 }

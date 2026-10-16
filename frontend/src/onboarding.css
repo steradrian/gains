@@ -281,20 +281,23 @@ body.kb-open .ob-kst .ob-k-andrei{opacity:0}
 .ob-fin-line{position:absolute;left:0;top:7px;width:100%;height:2px;overflow:visible;pointer-events:none}
 .ob-fin-line path,.ob-sum-line path{fill:none;stroke:var(--sep);stroke-width:var(--il-w-d);stroke-linecap:round}
 .ob-sum{position:relative}
-.ob-sum .hero{padding-top:0}
-.ob-sum .hero-ring{width:100%}
-.ob-sum .hero-ring>.ob-sum-ring{left:50%;width:168px;margin-left:-84px}
-/* The line the thread lands on, from the ring's 9 o'clock to the content's end; it shows only
-   while it turns into the ring (lib/onboarding/use-summary-motion.js). */
-.ob-sum .hero-ring>.ob-sum-line{inset:auto;left:calc(50% - 84px);right:0;width:auto;top:83px;height:2px;opacity:0;transform-origin:0 50%}
-[dir="rtl"] .ob-sum .hero-ring>.ob-sum-line{left:0;right:calc(50% - 84px);transform-origin:100% 50%}
+.ob-sum .hero-ring>.ob-sum-ring{left:50%;right:auto;width:168px;margin-left:-84px}
+/* The ring's stroke is centred on r=80 in the 168 box, so its 9 o'clock point is 80px left of the
+   middle (84 less the 4 of the stroke's half). The line and the thread both start exactly there.
+   The line the thread lands on runs from that point to the content's end; it shows only while it
+   turns into the ring (lib/onboarding/use-summary-motion.js). */
+.ob-sum .hero-ring>.ob-sum-line{inset:auto;inset-inline:calc(50% - 80px) 0;width:auto;top:83px;height:2px;opacity:0;transform-origin:0 50%}
+/* Right to left the ring is drawn from 3 o'clock, mirrored whole, and everything that starts at its
+   start point starts at the other side (the thread and the line by logical inset). */
+[dir="rtl"] .ob-sum .hero-ring>.ob-sum-line{transform-origin:100% 50%}
+[dir="rtl"] .ob-sum-ring{transform-origin:center;scale:-1 1}
 .ob-sum-ring circle{fill:none}
 .ob-sum-track{stroke:var(--surface-2);stroke-width:8px}
 .ob-sum-fg{stroke:var(--acc-graphic);stroke-width:8px;stroke-linecap:round}
 .ob-sum-ghost{stroke:var(--label-3);stroke-width:2.5px;stroke-linecap:round}
 /* What the ring unwinds into on Go to Home: Home's 1×64 hero hairline, or (no target) a line
    toward the MonthBar's. Not shown before the hand-over. */
-.ob-sum-thread{position:absolute;left:calc(50% - 84px);top:50%;width:var(--hair);height:64px;margin-top:-32px;background:var(--sep);transform:scale(0)}
-.ob-sum-thread.flat{right:0;width:auto;height:var(--hair);margin-top:0;transform:scaleX(0);transform-origin:0 50%}
-.ob-sum .hero-c{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 var(--space-2)}
+.ob-sum-thread{position:absolute;inset-inline-start:calc(50% - 80px - var(--hair) / 2);top:50%;width:var(--hair);height:64px;margin-top:-32px;background:var(--sep);transform:scale(0)}
+.ob-sum-thread.flat{inset-inline:calc(50% - 80px) 0;width:auto;height:var(--hair);margin-top:calc(var(--hair) / -2);transform:scaleX(0);transform-origin:0 50%}
+[dir="rtl"] .ob-sum-thread.flat{transform-origin:100% 50%}
 html.vt-handover .ob-sum-thread{view-transition-name:thread}
