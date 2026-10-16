@@ -102,7 +102,9 @@ const ids = xs => (xs || []).map(x => x.id)
 // Server rev 5 holds w1 and the push-day routine at 10 reps; the phone is paired and in step.
 const SERVER_STATE = { _ts: 1000, _rev: 5, unit: 'kg', restSec: 90, workouts: [workout('w1', '2026-09-10')], routines: [routine('push', 10)], bodyweight: [] }
 let DEF
-beforeAll(async () => { DEF = (await import('./useStore.js')).DEF })
+// The cold import of the store pulls in most of the app. It takes a few seconds alone and passed
+// the 10 s hook timeout in a full run on a loaded machine; the 60 s is for that one cold import.
+beforeAll(async () => { DEF = (await import('./useStore.js')).DEF }, 60_000)
 // `synced`: it last agreed with the server under this version, so it knows what that copy was.
 function pairedPhone({ localStorage: withLocal = true, mirror, synced = true } = {}) {
   h.files.clear()
