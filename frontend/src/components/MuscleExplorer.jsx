@@ -11,7 +11,7 @@ import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
 import ExerciseViewToggle from './ExerciseViewToggle.jsx'
 import { Button } from './ui.jsx'
-import { Card, Chip, ChipRow, EmptyState, SectionTitle, Tag } from './blocks.jsx'
+import { Card, Chip, ChipRow, EmptyState, InlineNote, SectionTitle, Tag } from './blocks.jsx'
 import { Inline, Spacer } from './layout.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
@@ -68,7 +68,7 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan }) {
       </ChipRow>
     </Card>
 
-    {!selected && onPick && <EmptyState icon="figureStrength">{t('Choose a muscle to see exercises that train it.')}</EmptyState>}
+    {!selected && onPick && <InlineNote icon="figureStrength">{t('Choose a muscle to see exercises that train it.')}</InlineNote>}
 
     {selected && <>
       <Inline justify="between" className="mt-1 mb-5">
@@ -104,7 +104,7 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan }) {
             </>}
           </div>
         })}
-        {exercises.length === 0 && <EmptyState icon="magnifier">{t('No match')}</EmptyState>}
+        {exercises.length === 0 && <EmptyState illustration="search" title={t('No match')} />}
       </div>
       {exercises.length > shown && <><Spacer size={5} /><Button ref={moreRef} onClick={() => setShown(s => s + 40)}>{t('Show more')}</Button></>}
     </>}

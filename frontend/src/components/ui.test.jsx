@@ -428,7 +428,8 @@ describe('selectSheet', () => {
     expect(rows().map(r => r.querySelector('.lrow-t').textContent)).toEqual(['Squat'])
     type('zzz')
     expect(rows()).toHaveLength(0)
-    expect(sheet.querySelector('.empty').textContent).toContain('No match')
+    expect(sheet.querySelector('.empty .lineart[data-scene=search]')).not.toBeNull()
+    expect(sheet.querySelector('.empty .empty-t').textContent).toBe('No match')
   })
 
   it('opens from a SelectRow with the row\'s title, or its sheetTitle, and shows the current label', () => {

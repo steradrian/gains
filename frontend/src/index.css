@@ -2109,7 +2109,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* a row a search result jumped to: a short accent wash that fades out */
 .lrow.sp-flash,.btn.sp-flash{animation:spflash 1.8s ease}
 @keyframes spflash{0%,45%{background:var(--acc-soft)}100%{background:transparent}}
-.sp-empty{color:var(--label-2);text-align:center;padding:28px 12px;line-height:1.4}
 
 /* ----------------------------------------------------------- RTL (Arabic) -- */
 /* Directional icons flip: back chevrons point right, trailing chevrons point left. */

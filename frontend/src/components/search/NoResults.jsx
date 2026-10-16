@@ -9,7 +9,7 @@ import ResultRow from './ResultRow.jsx'
 // are passed.
 export default function NoResults({ query, actions }) {
   return <>
-    <EmptyState icon="magnifier" title={t('Nothing matches “{0}”', query.trim())} className="sr-empty" />
+    <EmptyState illustration="search" title={t('Nothing matches “{0}”', query.trim())} />
     <ResultList>
       {actions.length > 0 && <div className="sr-card">
         {actions.map(a => <ResultRow key={a.key} r={{ type: 'action', key: a.key, title: a.title, subtitle: a.subtitle, media: { kind: 'glyph', glyph: a.glyph } }} onOpen={a.run} />)}

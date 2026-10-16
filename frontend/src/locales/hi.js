@@ -443,7 +443,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} एनिमेटेड व्यायाम + 1 आपका अपना',
   '{1} animated exercises + {0} of your own': '{1} एनिमेटेड व्यायाम + {0} आपके अपने',
   'Search…': 'खोजें…',
-  'No workouts yet. Your first one will land here.': 'अभी कोई वर्कआउट नहीं। आपका पहला यहीं दिखेगा।',
   'Enter a name': 'नाम दर्ज करें',
   'Profile created, and this device’s data moved into it': 'प्रोफ़ाइल बन गई, और इस डिवाइस का डेटा उसमें आ गया',
   'Profile created, and your data moved into it': 'प्रोफ़ाइल बन गई, और आपका डेटा उसमें आ गया',

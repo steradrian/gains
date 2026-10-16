@@ -12,7 +12,7 @@ import { addRecent } from '../../lib/search/recents.js'
 import { syncDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { customExSheet, weighInsSheet } from '../../sheets.jsx'
-import { Kbd } from '../blocks.jsx'
+import { EmptySurface, Kbd } from '../blocks.jsx'
 import { foodEditSheet } from '../FoodEditSheet.jsx'
 import BeforeTyping from './BeforeTyping.jsx'
 import BestMatch from './BestMatch.jsx'
@@ -197,7 +197,7 @@ function OverlayBody() {
   } else if (!hasQuery) {
     body = <BeforeTyping data={data} tab={tab} onOpen={open} onChip={chip} onQuery={setQuery} />
   } else if (noResults) {
-    body = <NoResults query={query} actions={actions} />
+    body = <EmptySurface value="sheet"><NoResults query={query} actions={actions} /></EmptySurface>
   } else {
     body = <m.div key={settled} variants={LIST_CONTAINER} initial="hidden" animate="show">
       <m.div variants={LIST_ITEM}><SummaryLine entries={summary} onScope={scope} /></m.div>

@@ -39,7 +39,7 @@ import { REST_MAX, REST_PAUSE_MIN, REST_PAUSE_MAX, fmtRest, fmtDuration } from '
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmentProfileSheet, plateInventorySheet, dumbbellInventorySheet, menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Page, Spacer } from '../components/layout.jsx'
-import { Card } from '../components/blocks.jsx'
+import { Card, EmptyState } from '../components/blocks.jsx'
 import { SheetHeader, SheetActions } from '../components/sheet-layout.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
@@ -994,7 +994,7 @@ function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
         <Row key={h.page + ':' + h.title} icon={h.icon} iconTint={h.tint} title={h.label} subtitle={h.trail} accessory="chevron"
           onClick={() => { if (!h.isPage && h.page == null) set(''); go(h) }} />
       ))}
-    </Section> : <div className="sp-empty">{t('No setting matches “{0}”.', q.trim())}</div>) : <>
+    </Section> : <EmptyState illustration="search" title={t('No setting matches “{0}”.', q.trim())} />) : <>
       <Section>
         <button className="lrow tap sp-acct" onClick={() => open('account')}>
           <span className={'sp-avatar' + (initial ? ' on' : '')} aria-hidden="true">{initial || <Icon name="personCircle" />}</span>

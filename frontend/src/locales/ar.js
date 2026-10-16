@@ -423,7 +423,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} تمرين متحرك + 1 خاص بك',
   '{1} animated exercises + {0} of your own': { zero: '{1} تمرين متحرك + {0} خاص بك', one: '{1} تمرين متحرك + {0} خاص بك', two: '{1} تمرين متحرك + {0} خاصان بك', few: '{1} تمرين متحرك + {0} تمارين خاصة', many: '{1} تمرين متحرك + {0} تمرينًا خاصًا', other: '{1} تمرين متحرك + {0} تمرين خاص' },
   'Search…': 'بحث…',
-  'No workouts yet. Your first one will land here.': 'لا توجد تمارين بعد. أول تمرين لك سيحطّ هنا.',
   'Enter a name': 'أدخل اسماً',
   'Profile created, and this device’s data moved into it': 'تم إنشاء الملف الشخصي، ونُقلت بيانات هذا الجهاز إليه',
   'Profile created, and your data moved into it': 'تم إنشاء الملف الشخصي، ونُقلت بياناتك إليه',

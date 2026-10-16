@@ -443,7 +443,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} ćwiczeń z animacją + 1 własne',
   '{1} animated exercises + {0} of your own': { one: '{1} ćwiczeń z animacją + {0} własne', few: '{1} ćwiczeń z animacją + {0} własne', many: '{1} ćwiczeń z animacją + {0} własnych', other: '{1} ćwiczeń z animacją + {0} własnego' },
   'Search…': 'Szukaj…',
-  'No workouts yet. Your first one will land here.': 'Brak treningów. Twój pierwszy wyląduje tutaj.',
   'Enter a name': 'Podaj imię',
   'Profile created, and this device’s data moved into it': 'Profil utworzony, a dane z tego urządzenia zostały do niego przeniesione',
   'Profile created, and your data moved into it': 'Profil utworzony, a twoje dane zostały do niego przeniesione',

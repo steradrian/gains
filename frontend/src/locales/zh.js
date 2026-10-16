@@ -443,7 +443,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} 个动画动作 + 1 个自建',
   '{1} animated exercises + {0} of your own': '{1} 个动画动作 + {0} 个自建',
   'Search…': '搜索…',
-  'No workouts yet. Your first one will land here.': '还没有训练。你的第一次训练会出现在这里。',
   'Enter a name': '请输入名字',
   'Profile created, and this device’s data moved into it': '档案已创建，本设备的数据已转入',
   'Profile created, and your data moved into it': '档案已创建，你的数据已转入',
