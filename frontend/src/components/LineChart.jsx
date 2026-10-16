@@ -1,23 +1,25 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { fmtNum, fmtDate, MONTHS, isoOf } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
-import { EmptyState } from './blocks.jsx'
+import { EmptyState, EmptySurface } from './blocks.jsx'
 
 const W = 340   // viewBox width; the svg stretches to its container, height comes from `h`
+const CHART_HEIGHTS = [56, 90, 96, 120, 140, 150, 160, 170]   // the `h` the app passes; an empty chart rounds to one
 
 // points: [{ t: ms, y: num, d?: iso, m?: 0..1, note?: str }] sorted by t.
 //   m    marks the point — a second reading carried by the same dot (bigger and more solid =
 //        more of it). Used for effort on the weight curve, where the two belong on one line:
 //        the same weight with less left in the tank is not the same session.
 //   note extra text for that point's tooltip.
-// opts: { h, unit, color, axes, goal, invert, series, label, decorative }
+// opts: { h, unit, color, axes, goal, invert, series, label, decorative, empty }
 //   label names the chart for a screen reader ("Weight"); the sentence adds its first and last reading.
+//   empty is what the chart says when it has no points, { title, body? }: "No data yet" without it.
 //   invert flips the y axis, for a scale that counts down as it gets harder (RIR). Without it
 //   a curve of reps-in-reserve reads upside down, with the hardest sets at the floor.
 //   series draws several lines instead of one: [{ points, color }] (issue #145, one per set
 //   number). `points` then only anchors the hover — one per date, its `note` the tooltip — and
 //   the y axis spans every series.
-export default function LineChart({ points, h = 150, unit = '', color = 'var(--acc)', axes = true, goal = null, invert = false, series = null, label = '', decorative = false }) {
+export default function LineChart({ points, h = 150, unit = '', color = 'var(--acc)', axes = true, goal = null, invert = false, series = null, label = '', decorative = false, empty = null }) {
   const svgRef = useRef(null)
   const wrapRef = useRef(null)
   const tipRef = useRef(null)
@@ -48,7 +50,15 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
     tip.style.top = (cy < th + 14 ? Math.min(ch - th - M, cy + 14) : M) + 'px'
   })
 
-  if (!points || points.length === 0) return <EmptyState className="small">{t('No data yet')}</EmptyState>
+  if (!points || points.length === 0) {
+    // At the height the chart would be (tab-kit.css has a class per size), so the card holds still.
+    const sized = CHART_HEIGHTS.reduce((a, b) => (Math.abs(b - h) < Math.abs(a - h) ? b : a))
+    return <div className={`chart-empty chart-h-${sized}`}>
+      <EmptySurface value="chart">
+        <EmptyState illustration="chart" title={empty?.title ?? t('No data yet')} body={empty?.body} />
+      </EmptySurface>
+    </div>
+  }
   const H = h
   const P = { l: axes ? 34 : 8, r: 12, t: 10, b: axes ? 22 : 8 }
   const single = points.length === 1

@@ -5,7 +5,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resetDrawIn } from '../lib/use-draw-in.js'
-import { EQUIPMENT, LineArt, LINE_ART_SCENES, equipmentOf } from './line-art.jsx'
+import { EQUIPMENT, ILLUSTRATIONS, LineArt, LINE_ART_SCENES, equipmentOf } from './line-art.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -29,12 +29,14 @@ const shapes = () => [...svg().querySelectorAll('path, rect, circle')].filter(e 
 const CASES = [
   ['routine', {}], ['routine', { days: 3, next: 1 }], ['routine', { days: 2, scheduled: false }],
   ['mobility', { minutes: 20 }], ['mobility', {}], ['scale', { kg: 82.4 }], ['scale', {}],
-  ...EQUIPMENT.map(eq => ['equipment', { eq }]), ['plate', {}],
+  ...EQUIPMENT.map(eq => ['equipment', { eq }]), ['plate', {}], ['chart', {}],
+  // every empty-state illustration, in the state it is drawn in
+  ...Object.values(ILLUSTRATIONS).map(({ scene, state }) => [scene, state]),
 ]
 
 describe('LineArt', () => {
-  it('knows its five scenes', () => {
-    expect(LINE_ART_SCENES).toEqual(['routine', 'mobility', 'scale', 'equipment', 'plate'])
+  it('knows its six scenes', () => {
+    expect(LINE_ART_SCENES).toEqual(['routine', 'mobility', 'scale', 'equipment', 'plate', 'chart'])
     expect(() => render(<LineArt scene="figure" />)).toThrow(/LineArt: scene="figure"/)
   })
 
@@ -60,6 +62,14 @@ describe('LineArt', () => {
     expect(svg().querySelector('path.il-acc').getAttribute('d')).toBe('M48 26v16M40 34h16')
     render(<LineArt scene="routine" state={{ days: 2, scheduled: false }} />)
     expect(svg().querySelectorAll('path.il-mute')).toHaveLength(2)
+  })
+
+  it('chart: both axes stand on the floor line, like every other scene', () => {
+    render(<LineArt scene="chart" state={{}} />)
+    const floorY = /^M\d+ (\d+)H/.exec(svg().querySelector('.il-floor').getAttribute('d'))[1]
+    const axes = svg().querySelector('path.il:not(.il-mute)').getAttribute('d')
+    expect(axes).toBe(`M22 10V${floorY}H84`)
+    expect(shapes().at(-1).classList.contains('il-acc')).toBe(true)
   })
 
   it('mobility: the accent arc is the minutes out of an hour', () => {
@@ -101,6 +111,29 @@ describe('LineArt', () => {
     expect(svg().classList.contains('il-draw')).toBe(false)
     // another scene has its own first time
     render(<LineArt scene="scale" state={{}} />)
+    expect(svg().classList.contains('il-draw')).toBe(true)
+  })
+
+  it('ILLUSTRATIONS: each name draws a scene in its empty state', () => {
+    expect(Object.keys(ILLUSTRATIONS)).toEqual(['scale', 'routine', 'plate', 'barbell', 'dumbbell', 'chart'])
+    for (const { scene } of Object.values(ILLUSTRATIONS)) expect(LINE_ART_SCENES).toContain(scene)
+    render(<LineArt scene={ILLUSTRATIONS.scale.scene} state={ILLUSTRATIONS.scale.state} />)
+    expect(svg().querySelector('.il-acc')).toBeNull()
+    render(<LineArt scene={ILLUSTRATIONS.routine.scene} state={ILLUSTRATIONS.routine.state} />)
+    expect(svg().querySelector('.il-dash')).not.toBeNull()
+  })
+
+  it('drawKey counts the first showing under its own name, not the scene\'s', () => {
+    render(<LineArt scene="equipment" state={{ eq: 'barbell' }} drawKey="empty:barbell" />)
+    expect(svg().classList.contains('il-draw')).toBe(true)
+    render(<LineArt scene="equipment" state={{ eq: 'dumbbell' }} drawKey="empty:dumbbell" />)
+    expect(svg().classList.contains('il-draw')).toBe(true)
+    act(() => root.unmount())
+    root = createRoot(host)
+    render(<LineArt scene="equipment" state={{ eq: 'barbell' }} drawKey="empty:barbell" />)
+    expect(svg().classList.contains('il-draw')).toBe(false)
+    // the scene's own key is a different one
+    render(<LineArt scene="equipment" state={{ eq: 'barbell' }} />)
     expect(svg().classList.contains('il-draw')).toBe(true)
   })
 

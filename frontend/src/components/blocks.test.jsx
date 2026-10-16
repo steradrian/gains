@@ -6,11 +6,15 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { resetDrawIn } from '../lib/use-draw-in.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
+import { useUI } from '../store/useUI.js'
 import Icon from './Icon.jsx'
+import LineChart from './LineChart.jsx'
+import Modals from './Modals.jsx'
 import { Button } from './ui.jsx'
-import { Card, ItemRow, Tiles, StatTile, Stat, EmptyState, InlineNote, Skeleton, SectionTitle, Tag, Chip, ChipRow } from './blocks.jsx'
+import { Card, ItemRow, Tiles, StatTile, Stat, EmptyState, EmptySurface, LoadError, InlineNote, Skeleton, SectionTitle, Tag, Chip, ChipRow } from './blocks.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -186,6 +190,161 @@ describe('EmptyState', () => {
     act(() => host.querySelectorAll('button')[0].click())
     act(() => host.querySelectorAll('button')[1].click())
     expect([log.mock.calls.length, goal.mock.calls.length]).toEqual([1, 1])
+    act(() => root.unmount())
+  })
+})
+
+// The component of the owner rule (2026-10-16): content in, variant from context, no way to style it.
+describe('EmptyState with an illustration', () => {
+  let host, root
+  beforeEach(() => {
+    resetDrawIn()
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+  })
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+    delete document.documentElement.dataset.motion
+  })
+  const render = el => act(() => root.render(el))
+  const empty = () => host.querySelector('.empty')
+  const content = <EmptyState illustration="scale" title="No weigh-ins yet" body="Log your weight to start the curve." />
+
+  it('is a page with its own surface and an h2 when nothing above it says otherwise', () => {
+    render(content)
+    expect(empty().dataset.surface).toBe('page')
+    expect(empty().querySelector('h2').textContent).toBe('No weigh-ins yet')
+    expect(empty().querySelector('p.empty-b').textContent).toBe('Log your weight to start the curve.')
+    expect(empty().querySelector('.empty-art svg.lineart').dataset.scene).toBe('scale')
+  })
+
+  it('is a card inside a Card, with an h3', () => {
+    render(<Card>{content}</Card>)
+    expect(empty().dataset.surface).toBe('card')
+    expect(empty().querySelector('h3').textContent).toBe('No weigh-ins yet')
+  })
+
+  it('is a sheet inside an opened sheet, with an h4, and a card again for a Card inside it', () => {
+    render(<Modals />)
+    act(() => { useUI.getState().openSheet(() => content) })
+    expect(empty().dataset.surface).toBe('sheet')
+    expect(empty().querySelector('h4').textContent).toBe('No weigh-ins yet')
+    act(() => { useUI.getState().closeAll() })
+    act(() => { useUI.getState().openSheet(() => <Card>{content}</Card>, { kind: 'center' }) })
+    expect(empty().dataset.surface).toBe('card')
+    act(() => { useUI.getState().closeAll() })
+    act(() => { useUI.getState().openSheet(() => content, { kind: 'center' }) })
+    expect(empty().dataset.surface).toBe('sheet')
+    act(() => { useUI.getState().closeAll() })
+  })
+
+  it('is a chart in a LineChart with no points: a p, and no actions', () => {
+    render(<LineChart points={[]} />)
+    expect(empty().dataset.surface).toBe('chart')
+    expect(empty().querySelector('p.empty-t').textContent).toBe('No data yet')
+    expect(empty().querySelector('.lineart').dataset.scene).toBe('chart')
+    expect(empty().querySelector('button, .empty-acts')).toBeNull()
+    render(<LineChart points={[]} empty={{ title: 'Too few workouts', body: 'Pick a longer period.' }} />)
+    expect(empty().querySelector('.empty-t').textContent).toBe('Too few workouts')
+    expect(empty().querySelector('.empty-b').textContent).toBe('Pick a longer period.')
+  })
+
+  it('holds the height of the chart it stands in for: a class per size, the nearest for any other', () => {
+    render(<LineChart points={[]} h={140} />)
+    expect(host.querySelector('.chart-empty').className).toBe('chart-empty chart-h-140')
+    render(<LineChart points={[]} h={100} />)
+    expect(host.querySelector('.chart-empty').className).toBe('chart-empty chart-h-96')
+    render(<LineChart points={[]} />)
+    expect(host.querySelector('.chart-empty').className).toBe('chart-empty chart-h-150')
+  })
+
+  it('takes the nearest surface: a chart inside a Card is a chart', () => {
+    render(<Card><LineChart points={[]} /></Card>)
+    expect(empty().dataset.surface).toBe('chart')
+  })
+
+  it('hides its drawing from a screen reader and has no role of its own', () => {
+    render(<Card>{content}</Card>)
+    expect(empty().querySelector('svg').getAttribute('aria-hidden')).toBe('true')
+    expect(empty().querySelector('svg').getAttribute('focusable')).toBe('false')
+    expect(empty().hasAttribute('role')).toBe(false)
+    expect(host.querySelector('[role]')).toBeNull()
+  })
+
+  it('ends with pills that call their handlers, and a disabled action does not', () => {
+    const log = vi.fn(), plan = vi.fn()
+    render(<EmptyState illustration="routine" title="No routines yet"
+      action={{ label: 'Load starter plan', icon: 'plus', onClick: log }} secondary={{ label: 'Build my own plan', onClick: plan }} />)
+    const [a, b] = host.querySelectorAll('.empty-acts button')
+    expect(a.className).toContain('primary')
+    expect(a.className).toContain('btn-pill')
+    act(() => a.click())
+    act(() => b.click())
+    expect([log.mock.calls.length, plan.mock.calls.length]).toEqual([1, 1])
+    render(<EmptyState illustration="routine" title="x" action={{ label: 'Turn on', onClick: log, disabled: true }} />)
+    expect(host.querySelector('.empty-acts button').disabled).toBe(true)
+  })
+
+  it('throws in development on a prop it does not take, a missing title and an unregistered illustration', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() => html(<EmptyState illustration="scale" title="a" className="small" />)).toThrow(/className not allowed/)
+    expect(() => html(<EmptyState illustration="scale" title="a" icon="history" />)).toThrow(/icon not allowed/)
+    expect(() => html(<EmptyState illustration="scale" title="a">text</EmptyState>)).toThrow(/children not allowed/)
+    expect(() => html(<EmptyState illustration="scale" title="a" data-x="1" />)).toThrow(/data-x not allowed/)
+    expect(() => html(<EmptyState illustration="scale" />)).toThrow(/title is required/)
+    expect(() => html(<EmptyState illustration="sofa" title="a" />)).toThrow(/EmptyState: illustration="sofa"/)
+    expect(() => html(<EmptyState title="a" body="b" />)).toThrow(/body needs an illustration/)
+  })
+
+  it('throws in development on an action or a secondary in a chart', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() => html(<EmptySurface value="chart"><EmptyState illustration="chart" title="a" action={{ label: 'x', onClick: go }} /></EmptySurface>)).toThrow(/a chart has no actions/)
+    expect(() => html(<EmptySurface value="chart"><EmptyState illustration="chart" title="a" secondary={{ label: 'x', onClick: go }} /></EmptySurface>)).toThrow(/a chart has no actions/)
+  })
+
+  it('draws each illustration in once a session, by name, and fades in under reduced motion', () => {
+    render(<EmptyState illustration="barbell" title="a" />)
+    expect(empty().querySelector('svg').classList.contains('il-draw')).toBe(true)
+    render(<EmptyState illustration="barbell" title="b" />)
+    expect(empty().querySelector('svg').classList.contains('il-draw')).toBe(true)   // same element, same name: still its first showing
+    act(() => root.unmount())
+    root = createRoot(host)
+    render(<EmptyState illustration="barbell" title="a" />)
+    expect(empty().querySelector('svg').classList.contains('il-draw')).toBe(false)
+    // another name on the same scene has its own first time
+    render(<EmptyState illustration="dumbbell" title="a" />)
+    expect(empty().querySelector('svg').classList.contains('il-draw')).toBe(true)
+    document.documentElement.dataset.motion = 'reduce'
+    render(<EmptyState illustration="plate" title="a" />)
+    expect(empty().querySelector('svg').classList.contains('rm-fade')).toBe(true)
+  })
+
+  it('still renders the legacy markup for a call with no illustration', () => {
+    render(<Card><EmptyState icon="history">No workouts yet.</EmptyState></Card>)
+    expect(empty().className).toBe('empty')
+    expect(empty().dataset.surface).toBeUndefined()
+  })
+})
+
+describe('LoadError', () => {
+  it('says what failed in a role=alert line and retries from a tinted button', () => {
+    const retry = vi.fn()
+    const host = document.createElement('div')
+    const root = createRoot(host)
+    act(() => root.render(<LoadError message="Your settings did not load." onRetry={retry} />))
+    expect(host.querySelector('[role=alert]').textContent).toBe('Your settings did not load.')
+    const button = host.querySelector('button')
+    expect(button.textContent).toBe('Try again')
+    expect(button.className).toContain('tinted')
+    act(() => button.click())
+    expect(retry).toHaveBeenCalledTimes(1)
+    act(() => root.render(<LoadError title="Something went wrong" message="Reload." onRetry={retry} retryLabel="Reload" />))
+    expect(host.querySelector('[role=alert]').textContent).toBe('Something went wrongReload.')
+    expect(host.querySelector('button').textContent).toBe('Reload')
+    act(() => root.render(<LoadError message="Gone." />))
+    expect(host.querySelector('button')).toBeNull()
     act(() => root.unmount())
   })
 })

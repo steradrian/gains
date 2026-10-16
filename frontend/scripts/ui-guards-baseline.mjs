@@ -438,6 +438,181 @@ function tagAttributes(code, start) {
   return out
 }
 
+/* ------------------------------------------------------------ G9 empty states -- */
+
+// One EmptyState everywhere (owner rule, 2026-10-16; docs/reviews/plan-empty-states.md): a call
+// site passes content only, and the component picks its surface from where it stands. So a call
+// takes `illustration title body action secondary` and nothing else, names a registered
+// illustration, is not wrapped in a Card, and the classes and the surface context that belong to
+// the component are used nowhere else. Until the call sites have moved over, the legacy ones are
+// in the baseline (a list, compared an entry at a time like G4, a finding that happens twice in a
+// file reading `(x2)`); the last milestone empties it.
+export const EMPTY_PROPS = ['illustration', 'title', 'body', 'action', 'secondary']
+export const EMPTY_CLASSES = ['empty', 'empty-x', 'empty-art', 'empty-acts', 'chat-empty', 'adm-empty', 'sp-empty', 'sr-empty', 'plan-empty', 'gate-empty']
+// The classes only the component may style (the kit owns the first four).
+const EMPTY_OWN_CSS = ['chat-empty', 'adm-empty', 'sp-empty', 'sr-empty', 'plan-empty', 'gate-empty']
+// The component's own classes: a rule for one of them in any stylesheet but the kit's is a page
+// shaping the empty state (`.x .empty[data-surface]{padding:0}`).
+const EMPTY_KIT_CSS = ['empty', 'empty-x', 'empty-art', 'empty-acts', 'empty-t', 'empty-b']
+const EMPTY_KIT_SHEET = 'tab-kit.css'
+export const EMPTY_BUILDERS = ['components/blocks.jsx']
+export const EMPTY_SURFACE_FILES = ['components/blocks.jsx', 'components/Modals.jsx', 'components/LineChart.jsx', 'components/search/SearchOverlay.jsx']
+
+// The tag that opens at `start` (a `<`): its name, its attributes as { name, value } (`value` the
+// source of a string or of a {…}, null for a bare one, a spread as name '...'), whether it closes
+// itself, and the index just past it.
+function parseTag(code, start) {
+  let i = start + 1
+  while (/[\w.]/.test(code[i] ?? '')) i++
+  const name = code.slice(start + 1, i)
+  const attrs = []
+  let selfClosing = false
+  while (i < code.length) {
+    const c = code[i]
+    if (/\s/.test(c)) { i++; continue }
+    if (c === '/' && code[i + 1] === '>') { selfClosing = true; i += 2; break }
+    if (c === '>') { i++; break }
+    if (c === '{') { const end = closer(code, i); attrs.push({ name: '...', value: code.slice(i + 1, end) }); i = end + 1; continue }
+    const word = /[\w:$-]+/y
+    word.lastIndex = i
+    const m = word.exec(code)
+    if (!m) { i++; continue }
+    i += m[0].length
+    let value = null
+    const eq = /\s*=\s*/y
+    eq.lastIndex = i
+    if (eq.exec(code)) {
+      i = eq.lastIndex
+      if (code[i] === '{') { const end = closer(code, i); value = code.slice(i + 1, end); i = end + 1 } else if (/['"`]/.test(code[i])) { const end = skipString(code, i); value = code.slice(i, end); i = end }
+    }
+    attrs.push({ name: m[0], value })
+  }
+  return { name, attrs, selfClosing, end: i }
+}
+
+// The names an `illustration` value can take, or null when it is not a string literal or a
+// ternary of them.
+function illustrationNames(value) {
+  let e = value.trim()
+  while (e.startsWith('(') && closer(e, 0) === e.length - 1) e = e.slice(1, -1).trim()
+  const branches = ternary(e)
+  if (branches) {
+    const names = branches.map(illustrationNames)
+    return names.some(n => n == null) ? null : names.flat()
+  }
+  const lit = /^(['"])([^'"\\]*)\1$/.exec(e) ?? /^`([^`$\\]*)`$/.exec(e)
+  return lit ? [lit.at(-1)] : null
+}
+
+// The keys of `export const ILLUSTRATIONS = {…}` in line-art.jsx.
+function registeredIllustrations(src) {
+  let file = join(src, 'components', 'line-art.jsx')
+  try { statSync(file) } catch { file = join(SRC, 'components', 'line-art.jsx') }
+  const code = stripJs(readFileSync(file, 'utf8'))
+  const def = /\bexport\s+const\s+ILLUSTRATIONS\s*=\s*\{/.exec(code)
+  if (!def) return []
+  const open = def.index + def[0].length - 1
+  return splitTop(code.slice(open + 1, closer(code, open)), [','])
+    .map(entry => /^(['"]?)([\w$-]+)\1\s*:/.exec(entry)?.[2]).filter(Boolean)
+}
+
+// The pattern for an EmptyState tag in this file: its own name and any local name it is imported
+// under (`import { EmptyState as Empty }`).
+function emptyStateTag(code) {
+  const names = new Set(['EmptyState'])
+  for (const m of code.matchAll(/\bimport\s*(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from/g)) {
+    for (const spec of m[1].split(',')) {
+      const alias = /^\s*(?:type\s+)?EmptyState\s+as\s+(\w+)\s*$/.exec(spec)
+      if (alias) names.add(alias[1])
+    }
+  }
+  return `<(?:${[...names].join('|')})(?![\\w.])`
+}
+
+// Whether the first child after `at` is an <EmptyState: whitespace, an emptied {/* */} comment and
+// one wrapping <Stack> are looked through.
+function startsWithEmptyState(code, at, tag, throughStack = true) {
+  let i = at
+  const skip = () => { const m = /^(?:\s+|\{\s*\})*/.exec(code.slice(i)); i += m[0].length }
+  skip()
+  const open = new RegExp(tag, 'y')
+  open.lastIndex = i
+  if (open.test(code)) return true
+  if (throughStack && /^<Stack\b/.test(code.slice(i, i + 7))) {
+    const stack = parseTag(code, i)
+    return !stack.selfClosing && startsWithEmptyState(code, stack.end, tag, false)
+  }
+  return false
+}
+
+// A Card with a heading of its own is a section, so it may hold an empty state. `title={null}` and
+// its kin name no heading.
+const titled = card => card.attrs.some(a => a.name === '...' || (a.name === 'title' && !(a.value != null && /^\s*(?:null|undefined|false|''|""|``)\s*$/.test(a.value))))
+
+// `file: what`, a second one of the same in a file as `file: what (x2)`, so a new legacy call in a
+// file that already has one is a change to the list.
+function tally(found) {
+  const counts = new Map()
+  for (const f of found) counts.set(f, (counts.get(f) ?? 0) + 1)
+  return [...counts].map(([f, n]) => (n > 1 ? `${f} (x${n})` : f)).sort()
+}
+
+// Every place a page does something with an empty state that the component owns. `file: what`.
+export function emptyStates(src = SRC) {
+  const registry = registeredIllustrations(src)
+  const out = []
+  for (const s of jsxFiles(src)) {
+    const file = relative(src, s.path).split(sep).join('/')
+    const code = stripJs(s.text)
+    const emptyTag = emptyStateTag(code)
+    for (const m of code.matchAll(new RegExp(emptyTag, 'g'))) {
+      const tag = parseTag(code, m.index)
+      const names = tag.attrs.map(a => a.name)
+      for (const extra of new Set(names.filter(n => n !== '...' && !EMPTY_PROPS.includes(n)))) out.push(`${file}: takes ${extra}`)
+      if (names.includes('...')) out.push(`${file}: takes a spread`)
+      if (!tag.selfClosing) out.push(`${file}: has children`)
+      const illustration = tag.attrs.find(a => a.name === 'illustration')
+      if (!illustration && !names.includes('...')) out.push(`${file}: has no illustration`)
+      else if (illustration) {
+        const found = illustration.value == null ? null : illustrationNames(illustration.value)
+        if (!found) out.push(`${file}: illustration is not a string literal`)
+        else for (const name of found) if (!registry.includes(name)) out.push(`${file}: illustration "${name}" not registered`)
+      }
+    }
+    // A titled Card is a card variant on purpose (a section with its own heading); a bare one is the
+    // page's surface, which the component brings itself.
+    for (const m of code.matchAll(/<Card\b/g)) {
+      const card = parseTag(code, m.index)
+      if (card.selfClosing || titled(card)) continue
+      if (startsWithEmptyState(code, card.end, emptyTag)) out.push(`${file}: wraps EmptyState in Card`)
+    }
+    if (!EMPTY_BUILDERS.includes(file)) {
+      // One finding per place that builds the class, not per file.
+      const built = text => new Set(tokensIn(text).filter(tok => EMPTY_CLASSES.includes(tok)))
+      const inside = []
+      for (const m of code.matchAll(/\bclassName\s*=\s*/g)) {
+        const at = m.index + m[0].length
+        const end = code[at] === '{' ? closer(code, at) + 1 : /['"`]/.test(code[at]) ? skipString(code, at) : statementEnd(code, at)
+        inside.push([at, end])
+        built(code.slice(at, end)).forEach(tok => out.push(`${file}: builds .${tok}`))
+      }
+      for (const m of code.matchAll(/\b(?:cx|clsx|classNames)\s*\(/g)) {
+        if (inside.some(([a, b]) => m.index >= a && m.index < b)) continue
+        const open = m.index + m[0].length - 1
+        built(code.slice(open, closer(code, open) + 1)).forEach(tok => out.push(`${file}: builds .${tok}`))
+      }
+    }
+    if (!EMPTY_SURFACE_FILES.includes(file) && /\bEmptySurface\b/.test(code)) out.push(`${file}: provides an empty-state surface`)
+  }
+  for (const css of cssFiles(src)) {
+    const file = relative(src, css.path).split(sep).join('/')
+    const sheet = stripCss(css.text)
+    const classes = file === EMPTY_KIT_SHEET ? EMPTY_OWN_CSS : [...EMPTY_OWN_CSS, ...EMPTY_KIT_CSS]
+    for (const cls of classes) out.push(...Array(count(sheet, new RegExp(`\\.${cls}(?![\\w-])`, 'g'))).fill(`${file}: styles .${cls}`))
+  }
+  return tally(out)
+}
+
 /* ------------------------------------------------------------ G6 sheets facade -- */
 
 // Who imports a module under src/sheets/, other than sheets.jsx and src/sheets/ itself.
@@ -464,6 +639,7 @@ export function measure(src = SRC) {
     G2js: perFile(codeFiles(src), jsColours),
     G3: perFile(jsx.filter(f => !PRIMITIVE_FILES.includes(f.file)), handBuilt),
     G4: routeViewsWithoutPage(src).filter(name => !PAGE_EXEMPT.includes(name)),
+    G9: emptyStates(src),
   }
 }
 
@@ -488,5 +664,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const m = measure()
   writeFileSync(BASELINE, JSON.stringify(m, null, 2) + '\n')
   const total = o => Object.values(o).reduce((a, b) => a + b, 0)
-  console.log(`ui-guards baseline: G1 ${total(m.G1)} literal style properties, G2 ${total(m.G2css)} CSS / ${total(m.G2js)} JS colours, G3 ${total(m.G3)} hand-built, G4 ${m.G4.length} views without <Page>`)
+  console.log(`ui-guards baseline: G1 ${total(m.G1)} literal style properties, G2 ${total(m.G2css)} CSS / ${total(m.G2js)} JS colours, G3 ${total(m.G3)} hand-built, G4 ${m.G4.length} views without <Page>, G9 ${m.G9.length} empty-state findings`)
 }

@@ -3,6 +3,7 @@ import { useUI } from '../store/useUI.js'
 import { keyboardOpen } from '../lib/viewport-guard.js'
 import { noteSheetEntries, onSheetEntry } from '../lib/nav.js'
 import { useSheetDialog } from '../lib/use-sheet-dialog.js'
+import { EmptySurface } from './blocks.jsx'
 
 // Putting the page back after a sheet closes takes up to three goes (see the un-pin below): now,
 // next frame, and once the keyboard's dismiss animation is over. Anything else that wants to
@@ -140,7 +141,7 @@ function Sheet({ sheet, covered }) {
     return (
       <div inert={inert}>
         <div className="mback" aria-hidden="true" onClick={() => { if (!sheet.locked) close() }} />
-        <div className="center" ref={dialog}>{sheet.render(close)}</div>
+        <div className="center" ref={dialog}><EmptySurface value="sheet">{sheet.render(close)}</EmptySurface></div>
       </div>
     )
   }
@@ -150,7 +151,7 @@ function Sheet({ sheet, covered }) {
       <div className="sheet" ref={el => { ref.current = el; dialog.current = el }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
         onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
         <div className="grab" />
-        {sheet.render(close)}
+        <EmptySurface value="sheet">{sheet.render(close)}</EmptySurface>
       </div>
     </div>
   )
