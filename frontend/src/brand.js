@@ -26,7 +26,6 @@ export const LINKS = {
   upstream: {
     name: 'openGym',
     author: 'Duarte Santos',
-    url: 'https://github.com/DuarteSantos8/openGym',
     notice: 'https://github.com/steradrian/gains/blob/main/NOTICE.md',
     license: 'https://www.gnu.org/licenses/agpl-3.0.html',
   },
