@@ -19,7 +19,7 @@ export function usePlanRefused(user, hasPlan) {
     if (!ask) return undefined
     if (settled.has(uid)) { setRefused(settled.get(uid)); return undefined }
     let live = true
-    loadOnboarding().then(res => {
+    loadOnboarding(uid).then(res => {
       const answer = res?.plan?.status === 'refused'
       if (isFinal(res)) settled.set(uid, answer)
       if (live) setRefused(answer)

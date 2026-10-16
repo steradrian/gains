@@ -17,7 +17,7 @@ export function useOnboardingResume({ user, ready, pathname, navigate }) {
     asked.current = true
     if (hasData(useStore.getState().S)) return
     const askedOf = user.id
-    loadOnboarding().then(s => {
+    loadOnboarding(askedOf).then(s => {
       // Someone else signed in (or out) while it was out: the answer is about the one before.
       if (useStore.getState().user?.id !== askedOf) return
       const started = s.step != null || Object.keys(s.answers || {}).length > 0
