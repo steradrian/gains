@@ -12,7 +12,7 @@ import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import FastCard from '../components/FastCard.jsx'
 import FastInsights from '../components/FastInsights.jsx'
 import Icon from '../components/Icon.jsx'
-import { Card, EmptyState } from '../components/blocks.jsx'
+import { EmptyState, LoadError } from '../components/blocks.jsx'
 import { Page, Stack } from '../components/layout.jsx'
 import { Button, Row, Section } from '../components/ui.jsx'
 import { Loading } from '../components/Loader.jsx'
@@ -73,34 +73,21 @@ export default function Fasting() {
 
   let body
   if (!available) {
-    body = <Card>
-      <EmptyState icon="timer" title={t('Fasting lives in the web app')}>{t('Sign in on the web app to track your fasts.')}</EmptyState>
-    </Card>
+    body = <EmptyState illustration="fasting" title={t('Fasting lives in the web app')} body={t('Sign in on the web app to track your fasts.')} />
   } else if (!settings.data && (settings.status === 'loading' || settings.status === 'idle')) {
     body = <Loading className="muted small fp-note" />
   } else if (!settings.data) {
-    body = <Card>
-      <Stack gap={4}>
-        <div className="nt-error small" role="alert">{t('Your settings did not load.')}</div>
-        <Button variant="tinted" onClick={() => useNutrition.getState().loadSettings({ force: true })}>{t('Try again')}</Button>
-      </Stack>
-    </Card>
+    body = <LoadError message={t('Your settings did not load.')} onRetry={() => useNutrition.getState().loadSettings({ force: true })} />
   } else if (!on) {
-    body = <Card>
-      <Stack gap={4}>
-        <EmptyState icon="timer" title={t('Fasting is off')}>{t('Track intermittent fasting: pick a plan, see the time fasted and left, and keep a history.')}</EmptyState>
-        {switchError && <div className="nt-error small" role="alert">{switchError}</div>}
-        <Button variant="primary" onClick={() => turn(true)} disabled={switching}>{t('Turn on fasting')}</Button>
-      </Stack>
-    </Card>
+    body = <Stack gap={4}>
+      <EmptyState illustration="fasting" title={t('Fasting is off')}
+        body={t('Track intermittent fasting: pick a plan, see the time fasted and left, and keep a history.')}
+        action={{ label: t('Turn on fasting'), onClick: () => turn(true), disabled: switching }} />
+      {switchError && <div className="nt-error small" role="alert">{switchError}</div>}
+    </Stack>
   } else {
     body = <>
-      {status === 'error' && <Card>
-        <Stack gap={4}>
-          <div className="nt-error small" role="alert">{t('Your fasts did not load.')}</div>
-          <Button variant="tinted" onClick={() => useFasting.getState().load({ force: true })}>{t('Try again')}</Button>
-        </Stack>
-      </Card>}
+      {status === 'error' && <LoadError message={t('Your fasts did not load.')} onRetry={() => useFasting.getState().load({ force: true })} />}
       {status === 'loading' && <Loading className="muted small fp-note" />}
       {status === 'ready' && <>
         <FastCard />

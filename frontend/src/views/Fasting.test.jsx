@@ -79,6 +79,8 @@ describe('the Fasting page', () => {
     useFake({ settings: fixtureSettings() })
     await mount(<Fasting />)
     expect(text()).toContain('Fasting is off')
+    expect(host.querySelector('.empty[data-surface="page"] .empty-art svg.lineart')).not.toBeNull()
+    expect(host.querySelector('.card .empty')).toBeNull()
     await click(button('Turn on fasting'))
     expect(nt.writes()).toEqual([expect.objectContaining({ method: 'PUT', path: '/nt/api/settings', body: { key: 'fastingEnabled', value: true } })])
     expect(text()).toContain('Start a fast')
@@ -234,10 +236,34 @@ describe('the Fasting page', () => {
     expect(del.classList.contains('fast-remove')).toBe(true)
   })
 
+  it('says why fasting did not turn on, beside the empty state, and the button works again', async () => {
+    useFake({ settings: fixtureSettings() })
+    await mount(<Fasting />)
+    nt.failNext('PUT', '/nt/api/settings', 'offline')
+    await click(button('Turn on fasting'))
+    const alert = host.querySelector('[role="alert"]')
+    expect(alert.textContent).toBe('Not saved: no connection. Try again when you are back online.')
+    expect(alert.closest('.empty')).toBeNull()
+    expect(button('Turn on fasting').disabled).toBe(false)
+  })
+
+  it('says the settings did not load, with Try again that loads the page', async () => {
+    useFake({ settings: fixtureSettings() })
+    nt.failNext('GET', '/nt/api/settings', { status: 500 })
+    await mount(<Fasting />)
+    expect(host.querySelector('[role="alert"]').textContent).toBe('Your settings did not load.')
+    expect(host.querySelector('.empty')).toBeNull()
+    await click(button('Try again'))
+    expect(host.querySelector('[role="alert"]')).toBeNull()
+    expect(text()).toContain('Fasting is off')
+  })
+
   it('needs the web app and a signed-in person', async () => {
     useStore.setState({ user: null })
     await mount(<Fasting />)
     expect(text()).toContain('Fasting lives in the web app')
+    expect(host.querySelector('.empty[data-surface="page"] .empty-art svg.lineart')).not.toBeNull()
+    expect(host.querySelector('.card .empty')).toBeNull()
     expect(nt.requests).toEqual([])
   })
 })
