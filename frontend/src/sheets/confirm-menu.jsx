@@ -1,16 +1,18 @@
 import { t } from '../lib/i18n.js'
 import Icon from '../components/Icon.jsx'
+import { Spacer } from '../components/layout.jsx'
 import { Button } from '../components/ui.jsx'
+import { cx } from '../lib/ui-kit.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { ui } from './shared.js'
 
 /* ============================ custom confirm dialog ============================ */
 function ConfirmDialog({ title, message, confirmText, cancelText, danger, onConfirm, onCancel, close }) {
-  return <div style={{ textAlign: 'center', padding: '4px 0' }}>
-    {title && <h3 style={{ marginBottom: 8 }}>{title}</h3>}
-    <div className="muted" style={{ marginBottom: 18, lineHeight: 1.5 }}>{message}</div>
+  return <div className="ta-center" style={{ padding: '4px 0' }}>
+    {title && <h3 className="mb-4">{title}</h3>}
+    <div className="muted mb-9 lh-150">{message}</div>
     <button className={'btn ' + (danger ? 'danger' : 'primary')} onClick={() => { close(); onConfirm && onConfirm() }}>{confirmText || t('Confirm')}</button>
-    <div style={{ height: 8 }} />
+    <Spacer size={4} />
     <Button variant="ghost" className="dim" onClick={() => { close(); onCancel && onCancel() }}>{cancelText || t('Cancel')}</Button>
   </div>
 }
@@ -64,8 +66,8 @@ function MenuSheet({ title, titleClass = '', subtitle, items, sections, close })
     .map(g => ({ title: g.title, items: (g.items || []).filter(Boolean) }))
     .filter(g => g.items.length)
   return <>
-    {title && <h3 className={titleClass || undefined} style={{ marginBottom: subtitle ? 2 : 10 }}>{title}</h3>}
-    {subtitle && <div className="muted small" style={{ marginBottom: 10 }}>{subtitle}</div>}
+    {title && <h3 className={cx(titleClass, subtitle ? 'mb-1' : 'mb-5')}>{title}</h3>}
+    {subtitle && <div className="muted small mb-5">{subtitle}</div>}
     {groups.map((g, gi) => <div key={gi} className={'menu-group' + (sections ? ' grouped' : '')}>
       {g.title && <div className="menu-sec">{g.title}</div>}
       <div className="list menu-list">
