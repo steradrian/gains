@@ -247,7 +247,6 @@ export default {
   'reached!': 'erreicht!',
   '{0} to gain': 'noch {0} zunehmen',
   '{0} to lose': 'noch {0} abnehmen',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': 'Noch keine Einträge. Trag dein Gewicht ein, um die Kurve zu starten (wir fragen auch vor jedem Training).',
   // --- exercise detail / picker / config ---
   'Best:': 'Bestwert:',
   'Add to my plan': 'Zu meinem Plan',
@@ -389,7 +388,6 @@ export default {
   'Superset {0} / {1}': 'Supersatz {0} / {1}',
   'Exercise {0} / {1}': 'Übung {0} / {1}',
   'Superset · do these back-to-back, rest when done': 'Supersatz · direkt nacheinander, Pause erst danach',
-  'Freestyle workout. Add your first exercise and off you go.': 'Freies Training. Füge deine erste Übung hinzu und los geht’s.',
   'Finish workout early · {0} exercises': 'Training vorzeitig beenden · {0} Übungen',
   'Rest’s over. Next set!': 'Pause vorbei. Nächster Satz!',
   // --- home ---
@@ -632,7 +630,6 @@ export default {
   'Vibrate': 'Vibration',
   'Weigh in before workouts': 'Vor dem Training wiegen',
   'Asks for your body weight when a workout starts. Off starts the session straight away.': 'Fragt beim Start eines Trainings nach deinem Körpergewicht. Aus startet die Einheit direkt.',
-  'No weigh-ins yet. Log your weight to start the curve.': 'Noch keine Einträge. Trag dein Gewicht ein, um die Kurve zu starten.',
   'Music playing on this phone stops during a workout and does not resume by itself.': 'Musik, die auf diesem Telefon läuft, stoppt während eines Trainings und setzt nicht von selbst wieder ein.',
   'The quieter three-beep sound from before 1.3.9, instead of the louder chime.': 'Der leisere Dreifach-Piepton aus der Zeit vor 1.3.9 statt des lauteren Klingeltons.',
   'Sounds': 'Töne',

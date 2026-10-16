@@ -244,7 +244,6 @@ export default {
   'reached!': 'ถึงเป้าแล้ว!',
   '{0} to gain': 'ต้องเพิ่มอีก {0}',
   '{0} to lose': 'ต้องลดอีก {0}',
-  'No weigh-ins yet. Log your weight to start the curve (we also ask before every workout).': 'ยังไม่มีการชั่งน้ำหนัก บันทึกน้ำหนักเพื่อเริ่มกราฟได้เลย (เราจะถามก่อนออกกำลังกายทุกครั้งด้วย)',
   // --- exercise detail / picker / config ---
   'Best:': 'ดีที่สุด:',
   'Add to my plan': 'เพิ่มเข้าแผนของฉัน',
@@ -379,7 +378,6 @@ export default {
   'Superset {0} / {1}': 'ซูเปอร์เซ็ต {0} / {1}',
   'Exercise {0} / {1}': 'ท่า {0} / {1}',
   'Superset · do these back-to-back, rest when done': 'ซูเปอร์เซ็ต · ทำต่อเนื่องกัน แล้วค่อยพักหลังทำครบทั้งคู่',
-  'Freestyle workout. Add your first exercise and off you go.': 'ออกกำลังกายแบบฟรีสไตล์ เพิ่มท่าแรกแล้วลุยเลย',
   'Finish workout early · {0} exercises': 'จบก่อนกำหนด · {0} ท่า',
   'Rest’s over. Next set!': 'หมดเวลาพักแล้ว เซ็ตถัดไป!',
   // --- home ---
@@ -1056,7 +1054,6 @@ export default {
   'Vibrate': 'การสั่น',
   'Weigh in before workouts': 'ชั่งน้ำหนักก่อนออกกำลังกาย',
   'Asks for your body weight when a workout starts. Off starts the session straight away.': 'ถามน้ำหนักตัวเมื่อเริ่มออกกำลังกาย ถ้าปิด เซสชันจะเริ่มทันที',
-  'No weigh-ins yet. Log your weight to start the curve.': 'ยังไม่มีการชั่งน้ำหนัก บันทึกน้ำหนักเพื่อเริ่มกราฟได้เลย',
   'Music playing on this phone stops during a workout and does not resume by itself.': 'เพลงที่เล่นอยู่บนโทรศัพท์นี้จะหยุดระหว่างการออกกำลังกาย และจะไม่เล่นต่อเอง',
   'The quieter three-beep sound from before 1.3.9, instead of the louder chime.': 'เสียงบี๊บสามครั้งที่เบากว่าแบบก่อนเวอร์ชัน 1.3.9 แทนเสียงกริ่งที่ดังกว่า',
   'Import from Hevy': 'นำเข้าจาก Hevy',
