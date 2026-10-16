@@ -821,7 +821,74 @@ describe('who sees what', () => {
   describe('a rate limit (429) is busy, not gone', () => {
     const tooMany = retryAfter => Object.assign(new Error('busy'), { status: 429, code: 'busy', retryAfter })
     const waitFor = ms => act(async () => { vi.advanceTimersByTime(ms) })
-    beforeEach(signedIn)
+    // No jitter on a wait, so each test advances exactly the Retry-After (the jitter has its own test).
+    let random
+    beforeEach(() => { signedIn(); random = vi.spyOn(Math, 'random').mockReturnValue(0) })
+    afterEach(() => { random.mockRestore() })
+
+    it('says busy, not "check your connection", when completing is rate limited with a Retry-After of 0', async () => {
+      saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
+      hub.completeOnboarding.mockRejectedValueOnce(tooMany(0)).mockResolvedValueOnce({ completedAt: 1 })
+      const page = mount('/onboarding/finish')
+      await flush()
+      await act(async () => { button(page, 'Go to Home').click() })
+      await flush()
+      expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
+      expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+      await act(async () => { button(page, 'Try again').click() })
+      await flush()
+      expect(hub.completeOnboarding).toHaveBeenCalledTimes(2)
+      expect(where(page)).toBe('/home')
+    })
+
+    it('says busy when a save at the finish is rate limited with a Retry-After of 0', async () => {
+      saved({ answers: { goal: 'keep', body: full, trainingDays: 0 }, unsaved: ['goal'] })
+      hub.saveStep.mockRejectedValueOnce(tooMany(0))
+      const page = mount('/onboarding/finish')
+      await flush()
+      await act(async () => { button(page, 'Go to Home').click() })
+      await flush()
+      expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+    })
+
+    it('sends the target preview only once the hub\'s Retry-After has passed, like every other request', async () => {
+      saved({ answers: { goal: 'keep', body: { sex: 'male', birthYear: 1985, heightCm: 181, weightKg: null } } })
+      hub.loadOnboarding.mockRejectedValueOnce(tooMany(5))
+      const page = mount('/onboarding/weight')
+      await flush()
+      press(page.querySelector('[role="slider"]'), 'ArrowLeft')
+      await waitFor(300)
+      await flush()
+      expect(hub.previewTargets).not.toHaveBeenCalled()
+      await waitFor(4600)
+      await flush()
+      expect(hub.previewTargets).not.toHaveBeenCalled()
+      await waitFor(100)
+      await flush()
+      expect(hub.previewTargets).toHaveBeenCalledTimes(1)
+      expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
+    })
+
+    it('holds the saves back after the preview is rate limited', async () => {
+      // Answers of their own: the target's cache outlives a test.
+      saved({ answers: { goal: 'keep', body: { sex: 'male', birthYear: 1986, heightCm: 182, weightKg: null } } })
+      hub.previewTargets.mockRejectedValueOnce(tooMany(3))
+      const page = mount('/onboarding/weight')
+      await flush()
+      press(page.querySelector('[role="slider"]'), 'ArrowLeft')
+      await waitFor(300)
+      await flush()
+      expect(hub.previewTargets).toHaveBeenCalledTimes(1)
+      click(button(page, 'Next'))
+      await flush()
+      expect(hub.saveStep).not.toHaveBeenCalled()
+      await waitFor(2900)
+      await flush()
+      expect(hub.saveStep).not.toHaveBeenCalled()
+      await waitFor(100)
+      await flush()
+      expect(hub.saveStep).toHaveBeenCalledWith('body', expect.anything(), 'u1')
+    })
 
     it('keeps the unsaved answers, says the hub is busy, and asks again only once its Retry-After has passed', async () => {
       saved({ answers: { goal: 'lose', body: full }, unsaved: ['goal'] })

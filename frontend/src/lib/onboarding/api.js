@@ -17,7 +17,8 @@
 //
 // Every PUT and POST names the person it was composed for (X-Expected-User, the uid the answers
 // belong to). A save queued under one account can reach the hub after another signed in; the hub
-// then refuses it, 409 `wrong-user`, and the caller drops it: it belongs to the person before.
+// then refuses it, 409 `wrong-user`. A write with no person to name is refused here, before any
+// request, with the same code: it is not anyone's to send. Only reads go without a name.
 // A 429 is `busy` (the hub's per-person limit): the answers stand, and `retryAfter` is the seconds
 // the hub asked to wait.
 //
@@ -56,8 +57,10 @@ export const waitSeconds = e => e?.retryAfter ?? DEFAULT_WAIT_S
 
 // Same origin, the openGym session cookie: the hub checks both itself. No referrer: an invite
 // code is in the address, and this is the app's own server, which needs none. `expectedUser`: the
-// person a write was composed for.
+// person a write was composed for; without one nothing but a GET goes out, since the hub's
+// check against another account's answers rides on that header.
 async function hub(method, path, body, expectedUser = null) {
+  if (method !== 'GET' && !expectedUser) throw failure('no person to write for', 0, 'wrong-user')
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS)
   let res
@@ -70,7 +73,7 @@ async function hub(method, path, body, expectedUser = null) {
       headers: {
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        ...(expectedUser ? { [EXPECTED_USER]: expectedUser } : {}),
+        ...(method === 'GET' ? {} : { [EXPECTED_USER]: expectedUser }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: ctl.signal,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { dateLocale, t } from '../i18n.js'
 import { previewTargets } from './api.js'
+import { useOnboarding } from './contexts.js'
 import { bodyComplete } from './flow.js'
 import { estimateRange } from './estimate.js'
 
@@ -21,6 +22,9 @@ const keyOf = (a, uid) => JSON.stringify([uid, a.goal, a.body, a.activity?.value
  * estimate's range (lib/onboarding/estimate.js).
  */
 export function useTarget(answers, uid) {
+  // Through the store's hubCall like every hub request: it waits out a Retry-After the hub has
+  // asked for, and a 429 here holds the saves back too.
+  const { hubCall } = useOnboarding()
   const range = estimateRange(answers)
   const complete = bodyComplete(answers)
   const key = complete ? keyOf(answers, uid) : null
@@ -38,7 +42,7 @@ export function useTarget(answers, uid) {
     const timer = setTimeout(() => {
       asked = key
       answer = null
-      const ask = previewTargets(answers, uid).then(res => {
+      const ask = hubCall(() => previewTargets(answers, uid)).then(res => {
         const v = res?.ready && Number.isFinite(res.targets?.calories) ? res.targets.calories : null
         // An older ask landing late never stands in for the latest one's answer.
         if (asking === ask) answer = v

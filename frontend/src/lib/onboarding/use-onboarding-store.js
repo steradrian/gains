@@ -13,6 +13,11 @@ import { nutritionAvailable } from '../nutrition/api.js'
 const NOT_THEIRS = [401, 403, 404, 410]
 const hubDown = e => !NOT_THEIRS.includes(e.status)
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+// Up to this much is added to a wait on the hub's Retry-After, at random per waiter: a save, a
+// preview and a read held back by the same 429 would otherwise all go out in the same millisecond
+// and be limited together again. Half a second spreads them, and is small beside the seconds a
+// Retry-After asks for.
+const WAKE_JITTER_MS = 500
 
 /**
  * The onboarding's state and actions, for OnboardingLayout to provide. `hub` says what the server
@@ -56,22 +61,44 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     act({ type: 'reset' })
   }, [act])
 
+  /**
+   * The hub refused a write as made for another account while this tab still holds the same
+   * person it wrote for: whoever is signed in is not who this tab thinks (the session changed in
+   * another tab, and this one has not heard). Nothing in the store can read who that is without
+   * running the app's boot again, so the page starts over: the answers on screen are dropped, and
+   * the reload reads the signed-in person and re-keys everything to them.
+   */
+  const signedInElsewhere = useCallback(() => {
+    discard()
+    window.location.reload()
+  }, [discard])
+
   const [hub, setHub] = useState(user ? 'loading' : 'pre-auth')
   // The latest read: an answer to an earlier one (another person's, or the layout gone) is dropped.
   const reads = useRef(0)
 
-  // When the hub said it is busy, the time before which nothing more is sent to it.
+  // When the hub said it is busy, the time before which nothing more is sent to it, and whether
+  // its last answer was a 429 at all (a Retry-After of 0 is a 429 with no wait left).
   const busyUntil = useRef(0)
-  /** Whether the hub's last answer was "busy" and its Retry-After has not passed. */
-  const busy = useCallback(() => Date.now() < busyUntil.current, [])
-  /** Runs one hub request, after any Retry-After the hub has asked for; a 429 starts the next wait. */
+  const limited = useRef(false)
+  /** Whether the hub's last answer was "busy": a 429 is that, whatever wait it asked for. */
+  const busy = useCallback(() => limited.current || Date.now() < busyUntil.current, [])
+  /**
+   * Runs one hub request, after any Retry-After the hub has asked for; a 429 starts the next wait.
+   * Callers waiting on the same Retry-After wake a little apart (WAKE_JITTER_MS), and each looks
+   * again when it wakes: one the first of them gets limited again is not followed by the rest.
+   */
   const hubCall = useCallback(async request => {
-    const wait = busyUntil.current - Date.now()
-    if (wait > 0) await sleep(wait)
+    for (let wait = busyUntil.current - Date.now(); wait > 0; wait = busyUntil.current - Date.now()) {
+      await sleep(wait + Math.random() * WAKE_JITTER_MS)
+    }
     try {
-      return await request()
+      const res = await request()
+      limited.current = false
+      return res
     } catch (e) {
-      if (e.status === 429) busyUntil.current = Date.now() + waitSeconds(e) * 1000
+      limited.current = e.status === 429
+      if (limited.current) busyUntil.current = Date.now() + waitSeconds(e) * 1000
       throw e
     }
   }, [])
@@ -120,7 +147,8 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
    * Saves one hub step from the latest answers; a failure marks it to be sent again. The request
    * names the person its answers belong to, read together with them: when someone else has signed
    * in by the time it arrives the hub refuses it (`wrong-user`) and it is dropped, for it is not
-   * this person's to send again or to mark unsaved.
+   * this person's to send again or to mark unsaved. A refusal with the same person still on this
+   * tab is the other way round: the tab is the one out of date (`signedInElsewhere`).
    */
   const saveHubStep = useCallback(step => {
     const queued = waiting.current.get(step)
@@ -136,6 +164,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
         return true
       } catch (e) {
         if (e.code !== 'wrong-user') act({ type: 'saved', step, ok: false })
+        else if (person === people.current) signedInElsewhere()
         return false
       }
     }
@@ -145,7 +174,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     tail.current = run
     run.then(() => { if (tail.current === run) tail.current = null })
     return run
-  }, [act, hubCall])
+  }, [act, hubCall, signedInElsewhere])
 
   /** Resolves once every save asked for so far has had its answer. */
   const savesSettled = useCallback(() => tail.current ?? Promise.resolve(true), [])
@@ -204,7 +233,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
 
   return useMemo(() => ({
     state, hub, screen, coachAvailable, starterAvailable,
-    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy,
+    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy, signedInElsewhere,
     current: () => now.current,
-  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy])
+  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy, signedInElsewhere])
 }

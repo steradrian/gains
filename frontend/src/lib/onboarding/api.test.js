@@ -59,9 +59,9 @@ describe('the requests', () => {
   it('PUTs one step, previews and completes on the person\'s date', async () => {
     const fetch = vi.fn(() => reply(200, { ok: true }))
     vi.stubGlobal('fetch', fetch)
-    await saveStep('goal', answers)
-    await previewTargets(answers)
-    await completeOnboarding('2026-10-15')
+    await saveStep('goal', answers, 'u-ada')
+    await previewTargets(answers, 'u-ada')
+    await completeOnboarding('2026-10-15', 'u-ada')
     const [put, preview, complete] = fetch.mock.calls
     expect(put[0]).toMatch(/\/hub\/api\/onboarding$/)
     expect(JSON.parse(put[1].body)).toEqual({ step: 'goal', answers: { goal: 'lose' } })
@@ -72,15 +72,38 @@ describe('the requests', () => {
 
   it('says why a request failed: the server refused, it was already complete, or no answer', async () => {
     vi.stubGlobal('fetch', vi.fn(() => reply(400, { error: 'bad' })))
-    await expect(saveStep('goal', answers)).rejects.toMatchObject({ status: 400, code: 'http' })
+    await expect(saveStep('goal', answers, 'u-ada')).rejects.toMatchObject({ status: 400, code: 'http' })
     vi.stubGlobal('fetch', vi.fn(() => reply(409, { error: 'done', code: 'complete' })))
-    await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'complete' })
+    await expect(completeOnboarding('2026-10-15', 'u-ada')).rejects.toMatchObject({ code: 'complete' })
     vi.stubGlobal('fetch', vi.fn(() => reply(409, { error: 'the AI coach is not available on this server', code: 'plan-unavailable' })))
-    await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'plan-unavailable' })
+    await expect(completeOnboarding('2026-10-15', 'u-ada')).rejects.toMatchObject({ code: 'plan-unavailable' })
     vi.stubGlobal('fetch', vi.fn(() => reply(400, { error: 'x', code: 'whatever' })))
-    await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'http' })
+    await expect(completeOnboarding('2026-10-15', 'u-ada')).rejects.toMatchObject({ code: 'http' })
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('offline'))))
-    await expect(saveStep('goal', answers)).rejects.toMatchObject({ status: 0, code: 'offline' })
+    await expect(saveStep('goal', answers, 'u-ada')).rejects.toMatchObject({ status: 0, code: 'offline' })
+  })
+
+  it('writes nothing without a person to name: no request at all, refused as not that person\'s', async () => {
+    const fetch = vi.fn(() => reply(200, { ok: true }))
+    vi.stubGlobal('fetch', fetch)
+    for (const uid of [undefined, null, '']) {
+      await expect(saveStep('goal', answers, uid)).rejects.toMatchObject({ status: 0, code: 'wrong-user' })
+      await expect(previewTargets(answers, uid)).rejects.toMatchObject({ status: 0, code: 'wrong-user' })
+      await expect(completeOnboarding('2026-10-15', uid)).rejects.toMatchObject({ status: 0, code: 'wrong-user' })
+    }
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('still reads without a person: the invite check and the onboarding read are GETs', async () => {
+    const fetch = vi.fn(() => reply(200, { status: 'valid', inviterName: null, suggestedName: null }))
+    vi.stubGlobal('fetch', fetch)
+    await checkInvite('AB12')
+    await loadOnboarding()
+    expect(fetch).toHaveBeenCalledTimes(2)
+    for (const [, init] of fetch.mock.calls) {
+      expect(init.method).toBe('GET')
+      expect(init.headers).not.toHaveProperty('X-Expected-User')
+    }
   })
 
   it('names the person every write was composed for, and a read names no one', async () => {
@@ -120,6 +143,13 @@ describe('the requests', () => {
     expect(long.retryAfter).toBe(60)
     expect(waitSeconds(long)).toBe(60)
     expect(waitSeconds({ retryAfter: null })).toBe(5)
+  })
+
+  it('says a 429 asking for no wait (Retry-After: 0) is still busy, with a wait of none', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: false, status: 429, headers: new Headers({ 'retry-after': '0' }), json: async () => ({}) })))
+    const e = await loadOnboarding().catch(err => err)
+    expect(e).toMatchObject({ status: 429, code: 'busy', retryAfter: 0 })
+    expect(waitSeconds(e)).toBe(0)
   })
 
   it('checks an invite: an unknown code is invalid, no answer is unavailable', async () => {

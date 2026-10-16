@@ -44,7 +44,7 @@ function setbacksOf(done) {
 
 export default function FinishScreen() {
   const navigate = useNavigate()
-  const { state, hub, act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy } = useOnboarding()
+  const { state, hub, act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy, signedInElsewhere } = useOnboarding()
   const [status, setStatus] = useState('idle') // idle | saving | error | busy (the hub asked to wait)
   const [setbacks, setSetbacks] = useState(null)
   const floor = useRef(null)
@@ -74,6 +74,7 @@ export default function FinishScreen() {
     // Nothing completes with an answer the hub has not taken: those are sent again first.
     for (const step of HUB_STEPS.filter(s => current().unsaved.includes(s))) {
       if (!(await saveHubStep(step))) {
+        // A save refused as another account's starts the page over itself (saveHubStep).
         if (someoneElse()) setStatus('idle')
         else fail()
         return
@@ -83,7 +84,15 @@ export default function FinishScreen() {
     try {
       done = await hubCall(() => completeOnboarding(todayISO(), owner))
     } catch (e) {
-      if (e.code === 'wrong-user') { setStatus('idle'); return }
+      if (e.code === 'wrong-user') {
+        // Someone else signed in while this waited: the store has already started over for them,
+        // and what is on screen is theirs. Otherwise this tab is the one out of date, and it
+        // starts over (the button stays busy until it does): never an idle screen of answers that
+        // are no longer the signed-in person's.
+        if (someoneElse()) setStatus('idle')
+        else signedInElsewhere()
+        return
+      }
       if (e.code === 'plan-unavailable') {
         // The plan chosen is one this server cannot take (any more), or no longer fits the days:
         // the hub cleared it. With another plan to offer, the Plan step is asked again; with none,
