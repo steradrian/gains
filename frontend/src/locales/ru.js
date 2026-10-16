@@ -2811,7 +2811,7 @@ export default {
   'Copy link to open in Chrome': 'Copy link to open in Chrome',
   'Copy link to open in your browser': 'Copy link to open in your browser',
   '{0} step left': '{0} step left',
-  '{0} steps left': '{0} steps left',
+  '{0} steps left': { one: '{0} step left', few: '{0} steps left', many: '{0} steps left' },
   'Could not copy the link': 'Could not copy the link',
   'Create my account': 'Create my account',
   'Days a week. Pick 0 if you’re only tracking food.': 'Days a week. Pick 0 if you’re only tracking food.',
