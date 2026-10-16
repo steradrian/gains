@@ -25,7 +25,7 @@ export function targetOf(r) {
       if (e.isPage) return { kind: 'route', path: e.to || '/me/' + e.page }
       return { kind: 'route', path: e.page ? '/me/' + e.page : '/me', state: e.via ? { find: e.title, via: e.via } : { find: e.title } }
     }
-    case 'exercise': return { kind: 'sheet', open: () => exerciseDetailSheet(r.ex) }
+    case 'exercise': return { kind: 'sheet', open: () => exerciseDetailSheet(r.ex, { progress: true }) }
     case 'routine': return { kind: 'route', path: '/train/routines/' + encodeURIComponent(r.id) }
     case 'workout': return { kind: 'sheet', open: () => workoutDetailSheet(r.workout) }
     case 'food': return { kind: 'sheet', open: () => foodDetailSheet({ food: r.food, settings: settings(), onEdit: f => foodEditSheet({ food: f, settings: settings() }) }) }
