@@ -225,6 +225,7 @@ describe('seedView', () => {
       coachAvailable: false, seed: CAPABILITY, unit: 'lb', unitChosen: true, latestWeight: { date: '2026-10-01', kg: 80.01 },
       routines: 1, plannedDays: 2,
       coachProfile: { goal: 'fatloss', experience: null, daysPerWeek: 4, preferredDays: [1, 3] },
+      coachBuild: null,
       checkIn: false
     });
     const text = JSON.stringify(v);
@@ -233,8 +234,39 @@ describe('seedView', () => {
 
   it('answers for a profile with nothing', () => {
     assert.deepEqual(seedView({}), {
-      coachAvailable: false, seed: CAPABILITY, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+      coachAvailable: false, seed: CAPABILITY, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, coachBuild: null, checkIn: true
     });
+    assert.ok(Object.hasOwn(seedView({}), 'coachBuild'), 'present as null: none on record, not an older openGym');
+  });
+
+  it('says the AI coach build on record: its state, consent and when it was recorded, nothing else', () => {
+    const build = { consentAt: '2026-10-15T08:30:00Z', consentVersion: 'ai-coach-build-v1', equipment: 'dumbbells' };
+    const recorded = seedState(null, seed({ coachBuild: build }), { now: NOW, newProfile: true }).next;
+    assert.deepEqual(seedView(recorded).coachBuild, {
+      status: 'pending', consentAt: '2026-10-15T08:30:00.000Z', consentVersion: 'ai-coach-build-v1', requestedAt: NOW
+    });
+    const S = { coach: { build: { ...recorded.coach.build, note: 'bad knee', chat: ['hi'] } } };
+    const text = JSON.stringify(seedView(S));
+    for (const secret of ['equipment', 'onboarding', 'knee', 'chat']) assert.ok(!text.includes(secret), secret);
+  });
+
+  it('a later state is passed on as it is, so it never reads as pending', () => {
+    const build = status => seedView({ coach: { build: { status, consentAt: '2026-10-15T08:30:00.000Z', consentVersion: 'v1', requestedAt: NOW } } }).coachBuild;
+    assert.equal(build('built').status, 'built');
+    assert.equal(build('failed').status, 'failed');
+    for (const odd of [undefined, null, 7, { s: 1 }, '', 'Pending!', 'x'.repeat(41)]) assert.equal(build(odd).status, 'unknown', String(odd));
+  });
+
+  it('rebuilds a malformed marker field by field: a bad member is null, a marker that is not a map is none', () => {
+    assert.deepEqual(seedView({ coach: { build: { status: 'pending', consentAt: 'yesterday', consentVersion: 'Has Spaces', requestedAt: 1.5 } } }).coachBuild, {
+      status: 'pending', consentAt: null, consentVersion: null, requestedAt: null
+    });
+    assert.deepEqual(seedView({ coach: { build: {} } }).coachBuild, { status: 'unknown', consentAt: null, consentVersion: null, requestedAt: null });
+    assert.equal(seedView({ coach: { build: { status: 'pending' } } }).coachBuild.requestedAt, null);
+    assert.equal(seedView({ coach: { build: { status: 'pending', requestedAt: -1 } } }).coachBuild.requestedAt, null);
+    for (const build of [null, 'pending', ['pending'], true, 0]) assert.equal(seedView({ coach: { build } }).coachBuild, null, JSON.stringify(build));
+    assert.equal(seedView({ coach: null }).coachBuild, null);
+    assert.equal(seedView({ coach: { profile: { goal: 'muscle' } } }).coachBuild, null);
   });
 
   it('says what the seed route takes, so a hub sends a plan only to an openGym that takes it', () => {

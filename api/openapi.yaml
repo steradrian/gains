@@ -3391,7 +3391,8 @@ paths:
       description: |
         What the hub's first-run onboarding may skip asking: the unit (and whether it was chosen or
         is held by stored weights), the latest weigh-in, how many routines and planned weekdays there
-        are, the Coach intake answers, and whether gym check-in is on. Nothing else of the profile.
+        are, the Coach intake answers, whether gym check-in is on, and the AI coach build on record
+        (status, consent time and version, request time). Nothing else of the profile.
         A profile with no document yet answers with nothing answered (`rev` 0). `coachAvailable` is
         the server's, not the profile's: whether this instance has an AI coach connected, which is
         the only case the onboarding offers to have it build a plan. `seed` is the server's too:
@@ -3442,8 +3443,22 @@ paths:
                           experience: { oneOf: [{ type: string }, { type: 'null' }] }
                           daysPerWeek: { oneOf: [{ type: integer }, { type: 'null' }] }
                           preferredDays: { type: array, items: { type: integer } }
+                  coachBuild:
+                    description: |
+                      The AI coach build on record (`coach.build`), if any: the hub reads it to tell a build whose
+                      answer was lost from one openGym refused. `null`: none on record. Absent: an openGym from
+                      before this field, which cannot say (not the same as `null`). Not the same as `seed.coachBuild`
+                      (whether the POST takes the field). A has-plan skip writes none: see `routines`/`plannedDays`.
+                    oneOf:
+                      - { type: 'null' }
+                      - type: object
+                        properties:
+                          status: { type: string, description: 'pending is the only one written today; a reader treats any other as not pending. A value on record that is not a short id reads as unknown.' }
+                          consentAt: { oneOf: [{ type: string, format: date-time }, { type: 'null' }] }
+                          consentVersion: { oneOf: [{ type: string }, { type: 'null' }] }
+                          requestedAt: { oneOf: [{ type: integer }, { type: 'null' }], description: 'When openGym recorded it, in ms.' }
                   checkIn: { type: boolean }
-              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: false, seed: { starter: true, coachBuild: true, starterTemplates: { full-body-2: [1, 2], full-body: [3], upper-lower: [4], upper-lower-ppl: [5], ppl-6: [6] } }, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 3, plannedDays: 3, coachProfile: null, checkIn: false }
+              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: true, seed: { starter: true, coachBuild: true, starterTemplates: { full-body-2: [1, 2], full-body: [3], upper-lower: [4], upper-lower-ppl: [5], ppl-6: [6] } }, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 0, plannedDays: 0, coachProfile: null, coachBuild: { status: pending, consentAt: "2026-10-14T09:12:03.120Z", consentVersion: "coach-2026-10", requestedAt: 1760433123400 }, checkIn: false }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
