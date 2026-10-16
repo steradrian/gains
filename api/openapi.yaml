@@ -3458,7 +3458,7 @@ paths:
                           consentVersion: { oneOf: [{ type: string }, { type: 'null' }] }
                           requestedAt: { oneOf: [{ type: integer }, { type: 'null' }], description: 'When openGym recorded it, in ms.' }
                   checkIn: { type: boolean }
-              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: true, seed: { starter: true, coachBuild: true, starterTemplates: { full-body-2: [1, 2], full-body: [3], upper-lower: [4], upper-lower-ppl: [5], ppl-6: [6] } }, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 0, plannedDays: 0, coachProfile: null, coachBuild: { status: pending, consentAt: "2026-10-14T09:12:03.120Z", consentVersion: "coach-2026-10", requestedAt: 1760433123400 }, checkIn: false }
+              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: true, seed: { starter: true, coachBuild: true, starterTemplates: { full-body-2: [1, 2], full-body: [3], upper-lower: [4], upper-lower-ppl: [5], ppl-6: [6] } }, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 0, plannedDays: 0, coachProfile: null, coachBuild: { status: pending, consentAt: "2026-10-14T09:12:03.120Z", consentVersion: "coach-2026-10", requestedAt: 1791969125400 }, checkIn: false }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
