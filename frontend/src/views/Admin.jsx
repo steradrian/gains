@@ -3,6 +3,9 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { api } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
+import { t, tn } from '../lib/i18n.js'
+import { BRAND } from '../brand.js'
+import { inviteLink, canShareLink, shareLink } from '../lib/invite-link.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur } from '../lib/format.js'
 import { auditCat, auditLine, fmtWhen } from '../lib/audit.js'
 import { workoutVolume, setsDone } from '../lib/history.js'
@@ -17,8 +20,7 @@ import '../admin.css'
 import { Loading } from '../components/Loader.jsx'
 
 // Admin-only operator dashboard (owner passkey + admin flag; guarded again server-side).
-// Deliberately English-only — it isn't part of the translated end-user surface, so it stays
-// out of the per-language string packs.
+// English-only, apart from the invite card, which goes through t() like the rest of the app.
 //
 // One page of cards, each opening with a sentence that says what it is for. An operator who
 // looks at this twice a year should not have to remember what "synced 3d ago" or an invite
@@ -161,44 +163,101 @@ function UserDetail({ id, onChanged, close }) {
   </>
 }
 
+// How long an open invite has left, from the server's own `expiresAt` and `status` (the server
+// decides what is expired; the days are only a reading of its timestamp). Nothing when the
+// record carries no time.
+export function inviteExpiry(i, now = Date.now()) {
+  if (i.status === 'expired') return t('Expired')
+  const at = Date.parse(i.expiresAt)
+  if (Number.isNaN(at)) return ''
+  const days = Math.ceil((at - now) / 86400000)
+  return days <= 0 ? t('Expires today') : tn('Expires in {0} day', 'Expires in {0} days', days)
+}
+
+// The server caps these too (api/invites.js INVITE_NAME_MAX; the note at 60); the sheet stops at
+// the same length so nothing is silently cut. Codes are always server-generated and random: the
+// code is the only barrier to signing up, so there is deliberately no field to choose one.
+const INVITE_NAME_MAX = 40
+const INVITE_NOTE_MAX = 60
+
+// Both fields are optional; empty ones are left out of the request, which then makes a plain code.
+function NewInviteSheet({ onCreate, close }) {
+  const [name, setName] = useState('')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    const body = {}
+    if (name.trim()) body.name = name.trim()
+    if (note.trim()) body.note = note.trim()
+    setBusy(true)
+    if (await onCreate(body)) close()
+    else setBusy(false)
+  }
+  return <>
+    <SheetHeader title={t('New invite')} />
+    <label className="adm-field-l" htmlFor="inv-name">{t('Their name')}</label>
+    <input id="inv-name" className="input" maxLength={INVITE_NAME_MAX} value={name} onChange={e => setName(e.target.value)} />
+    <div className="adm-field-h">{t('Prefilled as their profile name when they open the link.')}</div>
+    <label className="adm-field-l" htmlFor="inv-note">{t('Note (only you see this)')}</label>
+    <input id="inv-note" className="input" maxLength={INVITE_NOTE_MAX} value={note} onChange={e => setNote(e.target.value)} />
+    <Spacer size={6} />
+    <Button variant="primary" onClick={submit} disabled={busy}>{t('Create invite')}</Button>
+  </>
+}
+
 function InvitesCard({ invites, reload, inviteOnly }) {
   const toast = useUI(s => s.toast)
-  const gen = () => api('/api/admin/invites/new', { method: 'POST', body: '{}' })
-    .then(async ({ invite }) => { reload(); toast('Code ' + invite.code + (await copyText(invite.code) ? ' created & copied' : ' created')) })
-    .catch(e => toast(e.message))
+  const openSheet = useUI(s => s.openSheet)
+  const canShare = canShareLink()
+  const create = body => api('/api/admin/invites/new', { method: 'POST', body: JSON.stringify(body) })
+    .then(async ({ invite }) => { reload(); toast(await copyText(inviteLink(invite.code)) ? t('Invite created and link copied') : t('Invite created. Copy its link from the list.')); return true })
+    .catch(e => { toast(e.message); return false })
+  const gen = () => openSheet(close => <NewInviteSheet onCreate={create} close={close} />)
   const revoke = code => confirmSheet({
-    title: 'Revoke code ' + code + '?', message: 'Anyone who has it can no longer use it. People who already signed up with it are not affected.',
-    confirmText: 'Revoke', danger: true,
+    title: t('Revoke invite {0}?', code), message: t('Anyone who has it can no longer use it. People who already signed up with it are not affected.'),
+    confirmText: t('Revoke'), danger: true,
     onConfirm: () => api('/api/admin/invites/revoke', { method: 'POST', body: JSON.stringify({ code }) })
-      .then(() => { toast('Code revoked'); reload() }).catch(e => toast(e.message))
+      .then(() => { toast(t('Invite revoked')); reload() }).catch(e => toast(e.message))
   })
-  // The codes are listed on the card, so a refused copy only has to say so.
-  const copy = async code => toast(await copyText(code) ? 'Copied ' + code : 'Could not copy ' + code)
+  const copy = async code => toast(await copyText(inviteLink(code)) ? t('Link copied') : t('Could not copy the link'))
+  const share = async code => {
+    try { await shareLink(inviteLink(code), BRAND.name) } catch { toast(t('Could not share the link')) }
+  }
   const open = (invites || []).filter(i => !i.usedBy)
   const used = (invites || []).filter(i => i.usedBy)
-  return <Card title="Invite codes" action={<Button variant="primary" size="sm" onClick={gen} icon="plus">New code</Button>}>
+  return <Card title={t('Invite codes')} action={<Button variant="primary" size="sm" onClick={gen} icon="plus">{t('New code')}</Button>}>
     <div className="adm-lead">
       {inviteOnly
-        ? 'Sign-up is invite-only: someone needs one of these codes to create a profile. Each code works once.'
-        : 'Sign-up is open, so codes are optional here. They only record who invited whom.'}
+        ? t('Sign-up is invite-only: someone needs one of these invite links to create a profile. Each link works once.')
+        : t('Sign-up is open, so invites are optional here. They only record who invited whom.')}
     </div>
     {open.length ? <>
-      <div className="adm-group-t">Unused · tap to copy</div>
-      {open.map(i => <Inline key={i.code} justify="between" style={{ padding: '6px 0', borderBottom: 'var(--hair) solid var(--sep)' }}>
-        <button className="adm-code" onClick={() => copy(i.code)} aria-label={'copy ' + i.code}>{i.code}</button>
-        <Inline gap={2}>
-          <button className="iconbtn adm-iconbtn" onClick={() => copy(i.code)} aria-label="copy"><Icon name="copy" /></button>
-          <button className="iconbtn adm-iconbtn ink-danger" onClick={() => revoke(i.code)} aria-label="revoke"><Icon name="trash" /></button>
-        </Inline>
-      </Inline>)}
+      <div className="adm-group-t">{t('Unused')}</div>
+      {open.map(i => {
+        const live = i.status !== 'expired'
+        const expiry = inviteExpiry(i)
+        return <div key={i.code} className="adm-inv-row">
+          <div className="adm-inv-main">
+            <span className="adm-code">{i.code}</span>
+            {i.name && <span className="adm-inv-exp">{t('For {0}', i.name)}</span>}
+            {i.note && <span className="adm-inv-exp">{i.note}</span>}
+            {expiry && <span className={'adm-inv-exp' + (live ? '' : ' ink-danger')}>{expiry}</span>}
+          </div>
+          <Inline gap={2}>
+            {live && <button className="iconbtn adm-iconbtn" onClick={() => copy(i.code)} aria-label={t('Copy link')} title={t('Copy link')}><Icon name="copy" /></button>}
+            {live && canShare && <button className="iconbtn adm-iconbtn" onClick={() => share(i.code)} aria-label={t('Share')} title={t('Share')}><Icon name="share" /></button>}
+            <button className="iconbtn adm-iconbtn ink-danger" onClick={() => revoke(i.code)} aria-label={t('Revoke')} title={t('Revoke')}><Icon name="trash" /></button>
+          </Inline>
+        </div>
+      })}
     </> : null}
     {used.length ? <>
-      <div className={'adm-group-t ' + (open.length ? 'mt-6' : 'mt-0')}>Already used</div>
-      {used.map(i => <Inline key={i.code} justify="between" className="dim" style={{ padding: '6px 0', fontSize: '.82rem' }}>
-        <span style={{ fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', letterSpacing: '.06em' }}>{i.code}</span><span>→ {i.usedByName || 'used'}</span>
+      <div className={'adm-group-t ' + (open.length ? 'mt-6' : 'mt-0')}>{t('Already used')}</div>
+      {used.map(i => <Inline key={i.code} justify="between" className="dim adm-inv-used">
+        <span className="adm-inv-usedcode">{i.code}</span><span>{i.usedByName ? t('Used by {0}', i.usedByName) : t('Used')}</span>
       </Inline>)}
     </> : null}
-    {!open.length && !used.length && <div className="adm-empty">No codes yet. "New code" makes one and copies it to your clipboard.</div>}
+    {!open.length && !used.length && <div className="adm-empty">{t('No invites yet. "New code" makes one and copies its link to your clipboard.')}</div>}
   </Card>
 }
 

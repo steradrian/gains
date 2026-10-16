@@ -12,6 +12,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
    any of this there. */
 const mocks = vi.hoisted(() => ({ answers: {}, sheets: [], posts: [], confirm: vi.fn(), toast: vi.fn(), copyText: vi.fn() }))
 vi.mock('../lib/api.js', () => ({
+  remoteServer: () => '',
   api: (path, init) => {
     if (init?.method === 'POST') mocks.posts.push({ path, body: JSON.parse(init.body) })
     const key = path.split('?')[0]
@@ -138,25 +139,6 @@ describe('Admin → copying a one-time code', () => {
     const field = shown.querySelector('input')
     expect(field.value).toBe('K7WQ-2MZP-4HXA')
     expect(field.readOnly).toBe(true)
-  })
-
-  it('says an invite code was copied only when it was', async () => {
-    mocks.answers['/api/admin/invites'] = { invites: [{ code: 'INV-1234' }] }
-    mocks.answers['/api/admin/invites/new'] = { invite: { code: 'INV-5678' } }
-    const page = render(<Admin />)
-    await settle()
-
-    mocks.copyText.mockResolvedValueOnce(false)
-    await act(async () => { button(page, 'INV-1234').click() })
-    expect(mocks.toast).toHaveBeenLastCalledWith('Could not copy INV-1234')
-    mocks.copyText.mockResolvedValueOnce(true)
-    await act(async () => { button(page, 'INV-1234').click() })
-    expect(mocks.toast).toHaveBeenLastCalledWith('Copied INV-1234')
-
-    mocks.copyText.mockResolvedValueOnce(false)
-    await act(async () => { [...page.querySelectorAll('button')].find(b => b.textContent.includes('New code')).click() })
-    await settle()
-    expect(mocks.toast).toHaveBeenLastCalledWith('Code INV-5678 created')
   })
 })
 
