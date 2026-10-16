@@ -121,11 +121,12 @@ function plate() {
   </>
 }
 
-// A chart with nothing in it: two axes, a dashed flat line, the accent dot where it would start.
+// A chart with nothing in it: two axes standing on the floor, a dashed flat line, the accent dot
+// where it would start.
 function chart() {
   return <>
     {FLOOR}
-    <path className="il" d="M22 10V58H84" {...at(1)} />
+    <path className="il" d="M22 10V64H84" {...at(1)} />
     <path className="il il-mute il-dash" d="M30 40H80" />
     <circle className="il-acc" cx="30" cy="40" r="3" {...at(2)} />
   </>

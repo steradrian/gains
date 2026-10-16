@@ -4,6 +4,7 @@ import { t } from '../lib/i18n.js'
 import { EmptyState, EmptySurface } from './blocks.jsx'
 
 const W = 340   // viewBox width; the svg stretches to its container, height comes from `h`
+const CHART_HEIGHTS = [56, 90, 96, 120, 140, 150, 160, 170]   // the `h` the app passes; an empty chart rounds to one
 
 // points: [{ t: ms, y: num, d?: iso, m?: 0..1, note?: str }] sorted by t.
 //   m    marks the point — a second reading carried by the same dot (bigger and more solid =
@@ -50,9 +51,13 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
   })
 
   if (!points || points.length === 0) {
-    return <EmptySurface value="chart">
-      <EmptyState illustration="chart" title={empty?.title ?? t('No data yet')} body={empty?.body} />
-    </EmptySurface>
+    // At the height the chart would be (tab-kit.css has a class per size), so the card holds still.
+    const sized = CHART_HEIGHTS.reduce((a, b) => (Math.abs(b - h) < Math.abs(a - h) ? b : a))
+    return <div className={`chart-empty chart-h-${sized}`}>
+      <EmptySurface value="chart">
+        <EmptyState illustration="chart" title={empty?.title ?? t('No data yet')} body={empty?.body} />
+      </EmptySurface>
+    </div>
   }
   const H = h
   const P = { l: axes ? 34 : 8, r: 12, t: 10, b: axes ? 22 : 8 }

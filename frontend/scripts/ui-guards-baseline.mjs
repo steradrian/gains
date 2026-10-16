@@ -445,11 +445,16 @@ function tagAttributes(code, start) {
 // takes `illustration title body action secondary` and nothing else, names a registered
 // illustration, is not wrapped in a Card, and the classes and the surface context that belong to
 // the component are used nowhere else. Until the call sites have moved over, the legacy ones are
-// in the baseline (a list, compared an entry at a time like G4); the last milestone empties it.
+// in the baseline (a list, compared an entry at a time like G4, a finding that happens twice in a
+// file reading `(x2)`); the last milestone empties it.
 export const EMPTY_PROPS = ['illustration', 'title', 'body', 'action', 'secondary']
 export const EMPTY_CLASSES = ['empty', 'empty-x', 'empty-art', 'empty-acts', 'chat-empty', 'adm-empty', 'sp-empty', 'sr-empty', 'plan-empty', 'gate-empty']
 // The classes only the component may style (the kit owns the first four).
 const EMPTY_OWN_CSS = ['chat-empty', 'adm-empty', 'sp-empty', 'sr-empty', 'plan-empty', 'gate-empty']
+// The component's own classes: a rule for one of them in any stylesheet but the kit's is a page
+// shaping the empty state (`.x .empty[data-surface]{padding:0}`).
+const EMPTY_KIT_CSS = ['empty', 'empty-x', 'empty-art', 'empty-acts', 'empty-t', 'empty-b']
+const EMPTY_KIT_SHEET = 'tab-kit.css'
 export const EMPTY_BUILDERS = ['components/blocks.jsx']
 export const EMPTY_SURFACE_FILES = ['components/blocks.jsx', 'components/Modals.jsx', 'components/LineChart.jsx', 'components/search/SearchOverlay.jsx']
 
@@ -511,18 +516,45 @@ function registeredIllustrations(src) {
     .map(entry => /^(['"]?)([\w$-]+)\1\s*:/.exec(entry)?.[2]).filter(Boolean)
 }
 
+// The pattern for an EmptyState tag in this file: its own name and any local name it is imported
+// under (`import { EmptyState as Empty }`).
+function emptyStateTag(code) {
+  const names = new Set(['EmptyState'])
+  for (const m of code.matchAll(/\bimport\s*(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from/g)) {
+    for (const spec of m[1].split(',')) {
+      const alias = /^\s*(?:type\s+)?EmptyState\s+as\s+(\w+)\s*$/.exec(spec)
+      if (alias) names.add(alias[1])
+    }
+  }
+  return `<(?:${[...names].join('|')})(?![\\w.])`
+}
+
 // Whether the first child after `at` is an <EmptyState: whitespace, an emptied {/* */} comment and
 // one wrapping <Stack> are looked through.
-function startsWithEmptyState(code, at, throughStack = true) {
+function startsWithEmptyState(code, at, tag, throughStack = true) {
   let i = at
   const skip = () => { const m = /^(?:\s+|\{\s*\})*/.exec(code.slice(i)); i += m[0].length }
   skip()
-  if (code.startsWith('<EmptyState', i) && !/[\w]/.test(code[i + 11] ?? '')) return true
+  const open = new RegExp(tag, 'y')
+  open.lastIndex = i
+  if (open.test(code)) return true
   if (throughStack && /^<Stack\b/.test(code.slice(i, i + 7))) {
     const stack = parseTag(code, i)
-    return !stack.selfClosing && startsWithEmptyState(code, stack.end, false)
+    return !stack.selfClosing && startsWithEmptyState(code, stack.end, tag, false)
   }
   return false
+}
+
+// A Card with a heading of its own is a section, so it may hold an empty state. `title={null}` and
+// its kin name no heading.
+const titled = card => card.attrs.some(a => a.name === '...' || (a.name === 'title' && !(a.value != null && /^\s*(?:null|undefined|false|''|""|``)\s*$/.test(a.value))))
+
+// `file: what`, a second one of the same in a file as `file: what (x2)`, so a new legacy call in a
+// file that already has one is a change to the list.
+function tally(found) {
+  const counts = new Map()
+  for (const f of found) counts.set(f, (counts.get(f) ?? 0) + 1)
+  return [...counts].map(([f, n]) => (n > 1 ? `${f} (x${n})` : f)).sort()
 }
 
 // Every place a page does something with an empty state that the component owns. `file: what`.
@@ -532,7 +564,8 @@ export function emptyStates(src = SRC) {
   for (const s of jsxFiles(src)) {
     const file = relative(src, s.path).split(sep).join('/')
     const code = stripJs(s.text)
-    for (const m of code.matchAll(/<EmptyState\b/g)) {
+    const emptyTag = emptyStateTag(code)
+    for (const m of code.matchAll(new RegExp(emptyTag, 'g'))) {
       const tag = parseTag(code, m.index)
       const names = tag.attrs.map(a => a.name)
       for (const extra of new Set(names.filter(n => n !== '...' && !EMPTY_PROPS.includes(n)))) out.push(`${file}: takes ${extra}`)
@@ -550,32 +583,34 @@ export function emptyStates(src = SRC) {
     // page's surface, which the component brings itself.
     for (const m of code.matchAll(/<Card\b/g)) {
       const card = parseTag(code, m.index)
-      if (card.selfClosing || card.attrs.some(a => a.name === 'title' || a.name === '...')) continue
-      if (startsWithEmptyState(code, card.end)) out.push(`${file}: wraps EmptyState in Card`)
+      if (card.selfClosing || titled(card)) continue
+      if (startsWithEmptyState(code, card.end, emptyTag)) out.push(`${file}: wraps EmptyState in Card`)
     }
     if (!EMPTY_BUILDERS.includes(file)) {
-      const classes = new Set()
+      // One finding per place that builds the class, not per file.
+      const built = text => new Set(tokensIn(text).filter(tok => EMPTY_CLASSES.includes(tok)))
       const inside = []
       for (const m of code.matchAll(/\bclassName\s*=\s*/g)) {
         const at = m.index + m[0].length
         const end = code[at] === '{' ? closer(code, at) + 1 : /['"`]/.test(code[at]) ? skipString(code, at) : statementEnd(code, at)
         inside.push([at, end])
-        tokensIn(code.slice(at, end)).filter(tok => EMPTY_CLASSES.includes(tok)).forEach(tok => classes.add(tok))
+        built(code.slice(at, end)).forEach(tok => out.push(`${file}: builds .${tok}`))
       }
       for (const m of code.matchAll(/\b(?:cx|clsx|classNames)\s*\(/g)) {
         if (inside.some(([a, b]) => m.index >= a && m.index < b)) continue
         const open = m.index + m[0].length - 1
-        tokensIn(code.slice(open, closer(code, open) + 1)).filter(tok => EMPTY_CLASSES.includes(tok)).forEach(tok => classes.add(tok))
+        built(code.slice(open, closer(code, open) + 1)).forEach(tok => out.push(`${file}: builds .${tok}`))
       }
-      classes.forEach(tok => out.push(`${file}: builds .${tok}`))
     }
     if (!EMPTY_SURFACE_FILES.includes(file) && /\bEmptySurface\b/.test(code)) out.push(`${file}: provides an empty-state surface`)
   }
   for (const css of cssFiles(src)) {
+    const file = relative(src, css.path).split(sep).join('/')
     const sheet = stripCss(css.text)
-    for (const cls of EMPTY_OWN_CSS) if (new RegExp(`\\.${cls}(?![\\w-])`).test(sheet)) out.push(`${relative(src, css.path).split(sep).join('/')}: styles .${cls}`)
+    const classes = file === EMPTY_KIT_SHEET ? EMPTY_OWN_CSS : [...EMPTY_OWN_CSS, ...EMPTY_KIT_CSS]
+    for (const cls of classes) out.push(...Array(count(sheet, new RegExp(`\\.${cls}(?![\\w-])`, 'g'))).fill(`${file}: styles .${cls}`))
   }
-  return [...new Set(out)].sort()
+  return tally(out)
 }
 
 /* ------------------------------------------------------------ G6 sheets facade -- */

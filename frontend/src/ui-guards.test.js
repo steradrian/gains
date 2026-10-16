@@ -185,6 +185,46 @@ describe('G9 finds an empty state a page shapes itself', () => {
     } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 
+  it('a page stylesheet\'s rule for the component\'s own classes, once per mention, but not the kit\'s', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ui-guards-'))
+    try {
+      mkdirSync(join(dir, 'components'))
+      writeFileSync(join(dir, 'components', 'line-art.jsx'), LINE_ART)
+      writeFileSync(join(dir, 'index.css'), '.x .empty[data-surface]{padding:0}\n.empty .ico{font-size:34px}\n/* .empty-art{} */\n.y .empty-acts{gap:0}\n.is-empty{x:1}')
+      writeFileSync(join(dir, 'tab-shell.css'), '.empty strong{display:block}')
+      writeFileSync(join(dir, 'tab-kit.css'), '.empty[data-surface]{padding:0}\n.empty-acts{gap:8px}\n.empty .empty-art{x:1}')
+      expect(emptyStates(dir)).toEqual(['index.css: styles .empty (x2)', 'index.css: styles .empty-acts', 'tab-shell.css: styles .empty'])
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  })
+
+  it('a second legacy call in a file is a new finding, not the one already listed', () => {
+    const legacy = `<EmptyState title="a" />`
+    expect(caught(`export default () => <>${legacy}</>`)).toEqual(['views/X.jsx: has no illustration'])
+    expect(caught(`export default () => <>${legacy}${legacy}</>`)).toEqual(['views/X.jsx: has no illustration (x2)'])
+    expect(ratchet(caught(`export default () => <>${legacy}${legacy}</>`), ['views/X.jsx: has no illustration'])).toEqual([
+      'views/X.jsx: has no illustration (x2): new, not allowed',
+      `views/X.jsx: has no illustration: fixed, ${LOWER}`,
+    ])
+    expect(caught(`export default () => <><div className="chat-empty" /><div className="chat-empty" /></>`)).toEqual(['views/X.jsx: builds .chat-empty (x2)'])
+  })
+
+  it('EmptyState under another name', () => {
+    expect(caught(`import { Card, EmptyState as Empty } from '../components/blocks.jsx'\nexport default () => <Empty illustration="sofa" title="a" icon="x">hi</Empty>`))
+      .toEqual(['views/X.jsx: has children', 'views/X.jsx: illustration "sofa" not registered', 'views/X.jsx: takes icon'])
+    expect(caught(`import { EmptyState as E2 } from '../components/blocks.jsx'\nexport default () => <E2 title="a" />`)).toEqual(['views/X.jsx: has no illustration'])
+    expect(caught(`import { EmptyState as Empty } from '../components/blocks.jsx'\nexport default () => <Card><Empty illustration="scale" title="a" /></Card>`)).toEqual(['views/X.jsx: wraps EmptyState in Card'])
+    expect(caught(`import { Foo as Empty } from './x'\nexport default () => <Empty title="a" icon="x" />`)).toEqual([])
+  })
+
+  it('a Card whose title is null, empty or false is not a titled one', () => {
+    const wrapped = ['views/X.jsx: wraps EmptyState in Card']
+    for (const title of ['{null}', '{undefined}', '{false}', '""', '{""}', '{\'\'}']) {
+      expect(caught(`export default () => <Card title=${title}><EmptyState illustration="scale" title="a" /></Card>`), title).toEqual(wrapped)
+    }
+    expect(caught(`export default () => <Card title={name}><EmptyState illustration="scale" title="a" /></Card>`)).toEqual([])
+    expect(caught(`export default () => <Card title={on ? t('A') : null}><EmptyState illustration="scale" title="a" /></Card>`)).toEqual([])
+  })
+
   it('the surface context, imported, imported lazily or by a path without the extension, outside its four files', () => {
     const provided = ['views/X.jsx: provides an empty-state surface']
     expect(caught(`import { EmptySurface } from '../components/blocks.jsx'\nexport default () => <EmptySurface value="sheet" />`)).toEqual(provided)

@@ -64,6 +64,14 @@ describe('LineArt', () => {
     expect(svg().querySelectorAll('path.il-mute')).toHaveLength(2)
   })
 
+  it('chart: both axes stand on the floor line, like every other scene', () => {
+    render(<LineArt scene="chart" state={{}} />)
+    const floorY = /^M\d+ (\d+)H/.exec(svg().querySelector('.il-floor').getAttribute('d'))[1]
+    const axes = svg().querySelector('path.il:not(.il-mute)').getAttribute('d')
+    expect(axes).toBe(`M22 10V${floorY}H84`)
+    expect(shapes().at(-1).classList.contains('il-acc')).toBe(true)
+  })
+
   it('mobility: the accent arc is the minutes out of an hour', () => {
     render(<LineArt scene="mobility" state={{ minutes: 20 }} />)
     expect(svg().querySelector('.il-acc').getAttribute('stroke-dasharray')).toBe('20 60')

@@ -251,6 +251,15 @@ describe('EmptyState with an illustration', () => {
     expect(empty().querySelector('.empty-b').textContent).toBe('Pick a longer period.')
   })
 
+  it('holds the height of the chart it stands in for: a class per size, the nearest for any other', () => {
+    render(<LineChart points={[]} h={140} />)
+    expect(host.querySelector('.chart-empty').className).toBe('chart-empty chart-h-140')
+    render(<LineChart points={[]} h={100} />)
+    expect(host.querySelector('.chart-empty').className).toBe('chart-empty chart-h-96')
+    render(<LineChart points={[]} />)
+    expect(host.querySelector('.chart-empty').className).toBe('chart-empty chart-h-150')
+  })
+
   it('takes the nearest surface: a chart inside a Card is a chart', () => {
     render(<Card><LineChart points={[]} /></Card>)
     expect(empty().dataset.surface).toBe('chart')
