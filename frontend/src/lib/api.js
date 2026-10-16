@@ -24,6 +24,7 @@ export const webauthnOK = () => typeof window.PublicKeyCredential !== 'undefined
 let remoteBase = ''
 let remoteToken = null
 export function setRemoteAuth(base, token) { remoteBase = base || ''; remoteToken = token || null }
+export const remoteServer = () => remoteBase
 // A Cloudflare Access service token (lib/cf-access.js): sent only to the origin it was entered
 // for, never on a same-origin request, where the browser's own Access session cookie already
 // does the job, and never to a server that merely happens to be paired or typed in.
