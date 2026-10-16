@@ -72,9 +72,28 @@
   /* Dark separates surfaces by lightness alone, so a card casts nothing; light adds the two below. */
   --shadow-card: none;
   --shadow-overlay: 0 -8px 28px -12px rgba(0,0,0,.6);
+  /* a floating bar or panel (the desktop tab bar, the docked timer, the search panel) */
+  --shadow-float: 0 12px 40px -10px rgba(0,0,0,.5);
+  /* a segmented control's sliding thumb: dark separates it by lightness alone */
+  --shadow-thumb: none;
+
+  /* The native redesign's surfaces (fitness-eval ui-redesign-components §2, ui-search §12).
+     A selected day or segment is the label colour as a fill, with the page colour on it: about
+     18:1 in dark and 15:1 in light, whatever the accent (accent.test.js measures it). */
+  --sel-fill: var(--label);
+  --on-sel: var(--bg);
+  --bar-bg: color-mix(in srgb,var(--bg) 94%,transparent);
+  --ring-hair: inset 0 0 0 var(--hair) var(--sep);
+  --gauge-track: var(--surface-3);
+  --scrim: rgba(0,0,0,.35);
+  --skel: color-mix(in srgb,var(--label) 8%,transparent);
+  --skel-sheen: color-mix(in srgb,var(--label) 6%,transparent);
+  /* The accent as a line-art stroke: >= 3:1 on every fill a scene sits on. Dark draws the accent
+     itself; light its ink, since the light fills are too pale for the plain accent. */
+  --acc-graphic: var(--acc);
 
   /* geometry */
-  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-card:14px;
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-card:16px;
   --pad:16px;
   --icon-stroke:1.7;
 
@@ -87,6 +106,7 @@
      under the status and navigation bars, the app passes the bars themselves as --native-sat and
      --native-sab (MainActivity.java). The larger one wins, so a WebView that learns to report
      the bars does not count them twice. */
+  --app-top:8px;   /* #app's own top padding under the bars; a pinned header pulls itself over it */
   --sab:max(env(safe-area-inset-bottom,0px),var(--native-sab,0px));
   --sat:max(env(safe-area-inset-top,0px),var(--native-sat,0px));
   /* height of the connection indicator under the status bar, 0 while there is none — set by
@@ -120,6 +140,12 @@
   --macro-fat:     #b0369a;   /* 5.5:1 */
   --shadow-card: 0 1px 2px rgba(48,36,24,.05), 0 4px 12px -4px rgba(48,36,24,.06);
   --shadow-overlay: 0 -8px 28px -12px rgba(48,36,24,.2);
+  --shadow-float: 0 12px 40px -12px rgba(48,36,24,.22);
+  --shadow-thumb: 0 3px 8px rgba(48,36,24,.12), 0 1px 1px rgba(48,36,24,.06);
+  /* --surface-3 on white is about 1.3:1 and the empty arc vanished */
+  --gauge-track: #c8c4bd;
+  --scrim: rgba(26,24,20,.28);
+  --acc-graphic: var(--acc-ink);
 
   --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
   --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
@@ -199,7 +225,7 @@ p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;
 /* A sheet takes the focus itself when it opens (lib/use-sheet-dialog.js): the dialog is where you
    are, not a control, so no ring around the whole sheet. Its controls keep theirs. */
 [role="dialog"][tabindex="-1"]:focus-visible{outline:none}
-button,.chip,.tile,.item,.wday,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
+button,.chip,.tile,.item,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
 /* icons inherit colour and optical size from their context */
@@ -231,7 +257,7 @@ html[data-motion=reduce] *{animation:none!important;transition:none!important}
 
 /* ---------------------------------------------------------------- layout -- */
 #app{
-  padding:calc(var(--sat) + var(--conn) + 8px) var(--pad) calc(88px + var(--sab));
+  padding:calc(var(--sat) + var(--conn) + var(--app-top)) var(--pad) calc(88px + var(--sab));
   max-width:var(--page-w);margin:0 auto;
 }
 /* Android 15 with the keyboard up: room to scroll the last field on a page above the keys.
@@ -350,11 +376,6 @@ h4.sec{
 .divider{height:var(--hair);background:var(--sep);margin:14px 0;border:0}
 .row{display:flex;align-items:center;gap:12px}
 .row.between{justify-content:space-between}
-/* The body-weight card header (Home and Stats): title on the left, Goal + Log on the right. In
-   German the title and the two buttons ("Ziel", "+ Eintragen") outgrow a 320px card by about
-   55px, so the button pair may drop to a second line — still flush right, hence the auto margin. */
-.bw-head{flex-wrap:wrap;row-gap:8px}
-.bw-head>.row{margin-inline-start:auto}
 
 /* ----------------------------------------------------------------- card -- */
 .card{
@@ -417,17 +438,6 @@ h4.sec{
 .lrow.danger,.lrow.danger .lrow-t{color:var(--red-ink)}
 /* A warning under a settings row reads at subtitle size: a sentence, not a row title. */
 .lrow.backup-lost .lrow-t{font-size:13px;line-height:1.3;color:var(--label-2);letter-spacing:0}
-/* The Stats exercise name gets its own line so long names cannot run into the title.
-   Two columns only — label/value on the left, chevron on the right — so this is for rows
-   WITHOUT an icon. `.lrow-i` is not placed here; on a row that has one it would auto-place
-   into the grid and push the layout around. Give it a leading column before using this
-   anywhere else. */
-.lrow.lrow-stack-value{
-  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;
-}
-.lrow.lrow-stack-value .lrow-m{grid-column:1;grid-row:1}
-.lrow.lrow-stack-value .lrow-v{grid-column:1;grid-row:2;width:100%;max-width:none;text-align:start}
-.lrow.lrow-stack-value .lrow-c{grid-column:2;grid-row:1 / span 2;align-self:center}
 /* an (i) before a row's control: painted small and dim so the control stays the loud thing,
    but with a finger-sized target like everything else — the padding is the hit area and the
    vertical negative margin keeps it from making the row taller. The horizontal ones pull the
@@ -523,27 +533,6 @@ h4.sec{
   :root[data-theme="light"] #tabbar{background:var(--bg-el)}
   #timer{background:var(--surface)}
   #toast{background:var(--surface-2)}
-}
-
-/* ------------------------------------------------------------ week strip -- */
-.week{display:flex;justify-content:space-between;gap:4px}
-.wday{
-  flex:1;text-align:center;padding:8px 2px 9px;border-radius:10px;
-  background:none;border:none;transition:background var(--fast);
-}
-.wday .lbl{font-size:11px;color:var(--label-3);font-weight:500;text-transform:uppercase;letter-spacing:.03em}
-.wday .num{font-size:17px;font-weight:400;margin:4px 0;letter-spacing:-.012em}
-.wday .dot{width:5px;height:5px;border-radius:50%;background:transparent;margin:0 auto}
-.wday .dot.plan{background:var(--label-3)}
-.wday .dot.ovr{background:var(--orange)}
-.wday .dot.done{background:var(--acc)}
-/* a day off with a note on it (#261, lib/day-notes.js): the same colour on every calendar */
-.wday .dot.noted{background:var(--indigo)}
-.wday:active{background:var(--surface-2)}
-.wday.today .num{
-  background:var(--acc);color:var(--on-acc);font-weight:600;
-  width:31px;height:31px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;margin:2px auto;
 }
 
 /* ----------------------------------------------------------------- list -- */
@@ -796,10 +785,9 @@ body.chips-dragging *{cursor:inherit}
   width:calc((100% - 4px)/var(--n));
   transform:translateX(calc(100% * var(--i)));
   background:var(--surface);border-radius:7px;
-  box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.06);
+  box-shadow:var(--shadow-thumb);
   transition:transform var(--med) var(--ease);
 }
-:root[data-theme="light"] .seg-sel{background:#fff}
 .seg button{
   position:relative;z-index:1;padding:6px 8px;font-size:14px;font-weight:500;
   letter-spacing:-.006em;color:var(--label);display:flex;align-items:center;
@@ -1746,7 +1734,6 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 .stat-v{font-size:26px;font-weight:600;letter-spacing:-.026em;line-height:1.1}
 .mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .mchip{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--surface-2);color:var(--label-2)}
-.mchip.miss{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange-ink)}
 
 /* --- stat tiles --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -1940,32 +1927,10 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   .wl-unit{padding:10px 8px 2px}
 }
 
-/* --- home: today's session row --- */
-.today-row{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  margin-top:12px;padding:12px 14px;border-radius:var(--r);background:var(--surface-2);
-  transition:background var(--fast);width:100%;text-align: start;cursor:pointer;
-}
-.today-row:active{background:var(--surface-3)}
-.today-row .lbl2{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--label-2)}   /* --label-3 was 1.7:1 on the row in light */
-.today-row .ttl{
-  font-weight:500;font-size:17px;line-height:1.25;text-transform:capitalize;
-  letter-spacing:-.012em;margin-top:2px;
-  /* two lines before the ellipsis: "Leg Day — in progress" grows past one line in hu/tr/th/pt-BR */
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;
-}
-
-/* Only where a pointer really hovers — on a phone :hover sticks to the row after the tap.
-   Lighter than :active, which goes all the way to --surface-3, so the two stay distinct. */
-@media (hover:hover){
-  .today-row:hover{background:color-mix(in srgb,var(--surface-2),var(--surface-3) 60%)}
-  :root[data-theme="light"] .today-row:hover{background:color-mix(in srgb,var(--surface-2),var(--surface-3) 85%)}
-}
-
 /* --------------------------------------------------- desktop (≥1000px) --- */
 @media (min-width:1000px){
-  :root{--page-w:640px}
-  #app{padding-top:calc(var(--conn) + 32px);padding-bottom:calc(128px + var(--sab))}
+  :root{--page-w:640px;--app-top:32px}
+  #app{padding-bottom:calc(128px + var(--sab))}
   body.resting #app{padding-bottom:calc(220px + var(--sab))}
   body.no-tabbar #app{padding-bottom:calc(40px + var(--sab))}
   body.no-tabbar.resting #app{padding-bottom:calc(130px + var(--sab))}
@@ -1975,13 +1940,13 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   #tabbar{
     left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:520px;
     border:var(--hair) solid var(--sep-op);border-radius:var(--r-xl);
-    padding:7px 10px 9px;box-shadow:0 12px 40px -10px rgba(0,0,0,.5);
+    padding:7px 10px 9px;box-shadow:var(--shadow-float);
   }
   #tabbar button.start{margin-top:-26px}
   .sheet{left:50%;right:auto;margin-left:-320px;width:640px;border-radius:var(--r-xl) var(--r-xl) 0 0}
   .center{width:340px}
   #timer{left:50%;right:auto;margin-left:-260px;width:520px;bottom:112px}
-  body.no-tabbar #timer{left:50%;right:auto;bottom:16px;border-radius:var(--r-xl);padding-bottom:10px;box-shadow:0 12px 40px -10px rgba(0,0,0,.5)}
+  body.no-tabbar #timer{left:50%;right:auto;bottom:16px;border-radius:var(--r-xl);padding-bottom:10px;box-shadow:var(--shadow-float)}
   .exmedia img,.exmedia video{height:380px}
   .hm-wrap{display:flex;flex-direction:column;align-items:center}
 }
@@ -2082,8 +2047,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .plan [data-reorder-row]{transition:transform var(--fast) var(--ease)}
 .plan-link{margin-top:24px}
 .plan-empty{padding:28px 20px}
-/* Stats: the card Plan links to clears the sticky banners when it is scrolled to */
-#weekly-volume{scroll-margin-top:calc(var(--sat) + var(--conn) + 96px)}
 
 /* ------------------------------------------------- duration wheel picker -- */
 /* components/DurationWheel.jsx: two scroll-snap wheels under one highlight band. --dw-item is

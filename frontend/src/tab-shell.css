@@ -1,5 +1,5 @@
-/* The tab shell: the four-tab bar with its sliding pill and centre +, the headers of a tab's root
-   and of the pages under it, the hubs' targets, the + sheet and the live dock. Kept out of
+/* The tab shell: the four-tab bar with its sliding pill and centre +, the hubs' targets, the +
+   sheet and the live dock. Kept out of
    index.css so the design tokens there can move independently; it only reads them.
    This file loads before index.css (App.jsx is imported first), so a rule here that has to win
    over one there is written one step more specific. */
@@ -17,43 +17,23 @@
 :root{--tab-pill:var(--acc-soft)}
 :root[data-theme="light"]{--tab-pill:color-mix(in srgb,var(--acc) 20%,transparent)}
 
-/* --- headers --- */
-/* A tab's root: the large title and the avatar (the way into Profile, and the sync dot). */
-.hdr.root-hdr{align-items:center}
-.avatar-btn{position:relative;flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center}
-.avatar-c{
-  width:36px;height:36px;border-radius:50%;background:var(--surface-2);color:var(--label);
-  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;
-}
-.avatar-c .icn{font-size:20px}
-:root[data-theme="light"] .avatar-c{background:var(--surface);box-shadow:var(--shadow-card)}
-.avatar-btn:active .avatar-c{opacity:.6}
-.avatar-btn .tab-dot{top:3px;right:3px;box-shadow:0 0 0 2px var(--bg)}
-/* The only sync indicator: --orange is 2:1 on the light ground, its ink 5.7:1. */
-:root[data-theme="light"] .avatar-btn .tab-dot{background:var(--orange-ink)}
-/* Every other page: back · title · the page's own action. */
-.hdr.sub-hdr{align-items:center;justify-content:flex-start}
-.sub-hdr-t{flex:1;min-width:0;margin-inline-start:6px}
-.hdr.sub-hdr>.hdr-actions{margin-inline-start:auto}
+/* The headers of a tab's root and of the pages under it live in tab-kit.css. */
 
 /* --- hubs --- */
 .hub-tiles{margin-bottom:16px}
 .tile.hub-tile{cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:96px}
-.hub-tile-i{font-size:22px;color:var(--acc-ink);margin-bottom:6px}
-.hub-tile-t{font-size:17px;font-weight:600;letter-spacing:-.012em}
-.hub-tile-s{font-size:13px;color:var(--label-2)}
-/* The same tile from StatTile (FoodHub): the icon over the title in .l, the line under it in .v. */
+/* StatTile's (FoodHub): the icon over the title in .l, the line under it in .v. */
 .tile.hub-tile .l{flex-direction:column;align-items:flex-start;gap:2px;color:var(--label);font-size:17px;font-weight:600;letter-spacing:-.012em}
 .tile.hub-tile .l .icn{font-size:22px;color:var(--acc-ink);margin-bottom:6px}
 .tile.hub-tile .v{font-size:13px;font-weight:400;letter-spacing:0;line-height:inherit;margin-top:0;color:var(--label-2)}
+/* "Resume · 12:34" on the Today card stays one tag, never broken over two lines. */
+.today-row .tag{white-space:nowrap;flex:none}
+.card>.today-row:first-child{margin-top:0}
 /* Progress cards: what the card is, the number, then its context. */
 .hub-card{cursor:pointer}
 .hub-card .hub-card-t{font-size:13px;color:var(--label-2)}
 .hub-card .hub-card-v{font-size:17px;font-weight:600;letter-spacing:-.012em;margin-top:1px}
 .hub-card .hub-card-n{font-size:13px;color:var(--label-2);margin-top:1px}
-.iconbtn.wk-nav{width:32px;height:32px;font-size:15px}
-/* "Resume · 12:34" on the Today card stays one tag, never broken over two lines. */
-.today-row .tag{white-space:nowrap;flex:none}
 .empty strong{display:block;color:var(--label);font-weight:600;margin-bottom:4px}
 
 /* --- bottom bar --- */
