@@ -176,7 +176,6 @@ export default {
   'Body': 'Body',
   'Here': 'Here',
   'In Progress, under Training load': 'In Progress, under Training load',
-  'Library': 'Library',
   'Log past workout': 'Log past workout',
   'Main navigation': 'Main navigation',
   'New exercise': 'New exercise',
@@ -187,12 +186,12 @@ export default {
   'Progress': 'Progress',
   'Resume workout': 'Resume workout',
   'Routine name': 'Routine name',
-  'Start a different workout': 'Start a different workout',
   'Training': 'Training',
   'Training load': 'Training load',
   'Training settings': 'Training settings',
   'Weigh in': 'Weigh in',
   '{0} of your own': '{0} of your own',
+  'Weight, measurements and photos': 'Weight, measurements and photos',
   '{0}, workout in progress': '{0}, workout in progress',
   'By muscle': 'Per muscolo',
   'Explore muscles': 'Esplora i muscoli',
@@ -389,7 +388,6 @@ export default {
   'Rest’s over. Next set!': 'Riposo finito. Prossima serie!',
   'Hi {0}': 'Ciao {0}',
   'This week': 'Questa settimana',
-  '{0} (in progress)': '{0} (in corso)',
   'Resume ▶': 'Riprendi ▶',
   'Welcome!': 'Benvenuto!',
   'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Imposta la tua routine settimanale per iniziare, o prendi un piano iniziale già pronto.',
@@ -1193,7 +1191,6 @@ export default {
   'Local keeps everything on this phone. Connecting syncs to your own openGym server instead. You can switch later in Settings.': 'Locale mantiene tutto su questo telefono. Connettersi sincronizza invece con il tuo server openGym. Potrai cambiarlo più tardi nelle Impostazioni.',
 
   // --- workout notes and planned warm-ups ---
-  '{0} (done)': '{0} (fatto)',
   'Workout done': 'Allenamento fatto',
   'reps': 'rip.',
   'Most reps in a set per workout': 'Più rip. in una serie per allenamento',
@@ -1898,7 +1895,6 @@ export default {
   'Discard it': 'Scartala',
   'Use Fixed Week': 'Usa Settimana fissa',
   'No rotation yet. Add routines to it in Plan.': 'Ancora nessuna rotazione. Aggiungi routine nel Piano.',
-  'Set up in Plan': 'Configura nel Piano',
   'Round complete': 'Giro completato',
   'Next round starts {0}.': 'Il prossimo giro inizia {0}.',
   'Pyramid sets': 'Serie piramidale',
@@ -2867,4 +2863,10 @@ export default {
   'sets': 'serie',
   'this period': 'in questo periodo',
   '{0}% of plan': '{0}% del piano',
+
+  // --- the redesigned Training tab ---
+  'See all': 'Mostra tutto',
+  'Nothing planned this week': 'Niente in programma questa settimana',
+  'Pick exercises as you go': 'Scegli gli esercizi man mano',
+  'Start a freestyle workout': 'Inizia un allenamento libero',
 }
