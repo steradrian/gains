@@ -2977,7 +2977,6 @@ export default {
   'Days need a connection the first time': 'Для днів потрібне підключення під час першого відкриття',
   'Did you mean “{0}”?': 'Ви мали на увазі «{0}»?',
   'Edit routine': 'Змінити програму',
-  'Exercise details': 'Відомості про вправу',
   'Favourite': 'Обране',
   'Find any page, setting, exercise, workout, food or day.': 'Знайдіть будь-яку сторінку, налаштування, вправу, тренування, продукт або день.',
   'Food details': 'Відомості про продукт',

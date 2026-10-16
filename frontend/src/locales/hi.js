@@ -2980,7 +2980,6 @@ export default {
   'Days need a connection the first time': 'पहली बार दिनों के लिए कनेक्शन चाहिए',
   'Did you mean “{0}”?': 'क्या आपका मतलब “{0}” था?',
   'Edit routine': 'रूटीन संपादित करें',
-  'Exercise details': 'व्यायाम का विवरण',
   'Favourite': 'पसंदीदा',
   'Find any page, setting, exercise, workout, food or day.': 'कोई भी पेज, सेटिंग, व्यायाम, वर्कआउट, भोजन या दिन खोजें।',
   'Food details': 'भोजन का विवरण',

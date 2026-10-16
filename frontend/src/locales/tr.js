@@ -2980,7 +2980,6 @@ export default {
   'Days need a connection the first time': 'Günler ilk seferde bağlantı gerektirir',
   'Did you mean “{0}”?': '“{0}” mi demek istediniz?',
   'Edit routine': 'Rutini düzenle',
-  'Exercise details': 'Egzersiz ayrıntıları',
   'Favourite': 'Favori',
   'Find any page, setting, exercise, workout, food or day.': 'Herhangi bir sayfayı, ayarı, egzersizi, antrenmanı, besini veya günü bulun.',
   'Food details': 'Besin ayrıntıları',

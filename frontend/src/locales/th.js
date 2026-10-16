@@ -2991,7 +2991,6 @@ export default {
   'Days need a connection the first time': 'วันต้องใช้การเชื่อมต่อในครั้งแรก',
   'Did you mean “{0}”?': 'คุณหมายถึง “{0}” หรือไม่',
   'Edit routine': 'แก้ไขรูทีน',
-  'Exercise details': 'รายละเอียดท่า',
   'Favourite': 'รายการโปรด',
   'Find any page, setting, exercise, workout, food or day.': 'ค้นหาหน้า การตั้งค่า ท่า การออกกำลังกาย อาหาร หรือวันได้ทุกอย่าง',
   'Food details': 'รายละเอียดอาหาร',

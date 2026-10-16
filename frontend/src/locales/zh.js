@@ -2980,7 +2980,6 @@ export default {
   'Days need a connection the first time': '首次查看日期需要联网',
   'Did you mean “{0}”?': '你是想找“{0}”吗？',
   'Edit routine': '编辑训练计划',
-  'Exercise details': '动作详情',
   'Favourite': '已收藏',
   'Find any page, setting, exercise, workout, food or day.': '查找任何页面、设置、动作、训练、食物或日期。',
   'Food': '饮食',

@@ -3000,7 +3000,6 @@ export default {
   'Days need a connection the first time': 'Tage brauchen beim ersten Mal eine Verbindung',
   'Did you mean “{0}”?': 'Meintest du „{0}“?',
   'Edit routine': 'Routine bearbeiten',
-  'Exercise details': 'Übungsdetails',
   'Favourite': 'Favorit',
   'Find any page, setting, exercise, workout, food or day.': 'Finde jede Seite, Einstellung, Übung, jedes Training, Lebensmittel oder jeden Tag.',
   'Food details': 'Lebensmitteldetails',
