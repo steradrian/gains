@@ -116,6 +116,7 @@ export default function Foods() {
     if (q.trim().length < MIN_QUERY) body = <EmptyState icon="globe">{t('Type a food to search Open Food Facts.')}</EmptyState>
     else if (online.status === 'error') body = <EmptyState><div role="alert">{searchErrorText(online.error)}</div></EmptyState>
     else if (online.status === 'paused') body = <EmptyState icon="hourglass"><div role="status">{t('{0} paused · back in', t('Open Food Facts'))} {t('{0} s', online.seconds)}</div></EmptyState>
+    else if (online.status === 'tap') body = <EmptyState icon="globe"><Button size="sm" variant="tinted" onClick={online.ask}>{t('Search Open Food Facts for “{0}”', q.trim())}</Button></EmptyState>
     else if (online.status !== 'ready') body = <EmptyState><div role="status">{t('Searching…')}</div></EmptyState>
     else if (!online.results.length) body = <EmptyState icon="magnifier">{t('No results online.')}</EmptyState>
     else body = <div className="list">{online.results.map(resultRow)}</div>
@@ -144,7 +145,8 @@ export default function Foods() {
     action={<Button size="sm" variant="tinted" icon="plus" onClick={() => foodEditSheet({ settings })}>{t('New')}</Button>}>
     <Stack gap={5} className="mb-6">
       {offOn && <Segmented value={mode} onChange={setMode} options={[{ value: 'mine', label: t('My foods') }, { value: 'online', label: t('Online') }]} />}
-      <SearchField value={q} placeholder={mode === 'online' ? t('Search Open Food Facts') : t('Search your foods')} onChange={e => setQ(e.target.value)} onClear={() => setQ('')} />
+      <SearchField value={q} placeholder={mode === 'online' ? t('Search Open Food Facts') : t('Search your foods')} onChange={e => setQ(e.target.value)} onClear={() => setQ('')}
+        enterKeyHint="search" onKeyDown={e => { if (e.key === 'Enter' && mode === 'online' && online.status === 'tap') online.ask() }} />
       {mode === 'mine' && foods.list.length > 1 && <Segmented value={sort} onChange={setSort}
         options={SORTS.map(s => ({ value: s, label: s === 'alpha' ? t('A to Z') : s === 'recent' ? t('Recent') : t('Most used') }))} />}
       {mode === 'mine' && categories.length > 0 && <ChipRow>

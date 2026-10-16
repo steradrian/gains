@@ -44,7 +44,8 @@ export default function FoodSearch({ onPick, scan = {}, savedMeals, autoFocus = 
   return <div className="food-picker">
     <div className="fp-search">
       <SearchField value={query} onChange={e => { setQuery(e.target.value); setLimit(OWN_SHOWN) }} onClear={() => setQuery('')}
-        placeholder={t('Search foods')} aria-label={t('Search foods')} autoFocus={autoFocus} enterKeyHint="search" />
+        placeholder={t('Search foods')} aria-label={t('Search foods')} autoFocus={autoFocus} enterKeyHint="search"
+        onKeyDown={e => { if (e.key === 'Enter' && online.status === 'tap') online.ask() }} />
       <Button size="sm" variant="tinted" icon="scanBarcode" className="fp-scan" aria-label={t('Scan a barcode')}
         onClick={() => scanSheet(scan)} />
     </div>
@@ -79,6 +80,7 @@ export default function FoodSearch({ onPick, scan = {}, savedMeals, autoFocus = 
       {online.status === 'loading' && <div className="muted small fp-note">{t('Searching Open Food Facts…')}</div>}
       {online.status === 'error' && <div className="nt-error small" role="alert">{searchErrorText(online.error)}</div>}
       {online.status === 'paused' && <div className="muted small fp-note" role="status">{t('{0} paused · back in', t('Open Food Facts'))} {t('{0} s', online.seconds)}</div>}
+      {online.status === 'tap' && <Button size="sm" variant="tinted" icon="globe" onClick={online.ask}>{t('Search Open Food Facts for “{0}”', q)}</Button>}
       {online.status === 'ready' && !online.results.length && <div className="muted small fp-note">{t('Nothing found online.')}</div>}
       {online.status === 'idle' && <div className="muted small fp-note">{t('Type at least two letters to search online.')}</div>}
       {rows(online.results)}

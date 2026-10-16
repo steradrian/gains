@@ -115,13 +115,63 @@ describe('useOnlineSearch', () => {
     expect(seen.status).toBe('loading')
   })
 
-  it('a food picker stays inside the client budget too: spent, it asks nothing and says so', async () => {
+  it('a food picker stays inside the client budget too: spent, it asks nothing and says paused, with the countdown', async () => {
     for (let i = 0; i < AUTO_PER_MIN; i++) noteSearch('auto')
     show({ q: 'oats' })
     await wait(600)
     expect(calls).toHaveLength(0)
-    expect(seen.status).toBe('error')
-    expect(seen.error).toMatchObject({ status: 429 })
+    expect(seen.status).toBe('paused')
+    expect(seen.seconds).toBeGreaterThan(50)
+    // The count ages out, and the query is asked once it has.
+    await wait(60_000)
+    expect(seen.status).toBe('loading')
+    await wait(500)
+    expect(calls.map(c => c.q)).toEqual(['oats'])
+  })
+
+  it('the picker\'s search action is a tap: it spends the ten kept for taps when typing may not', async () => {
+    for (let i = 0; i < AUTO_PER_MIN; i++) noteSearch('auto')
+    show({ q: 'oats' })
+    await wait(600)
+    expect(seen.status).toBe('paused')
+    act(() => seen.ask())
+    await wait(0)
+    expect(calls.map(c => c.q)).toEqual(['oats'])
+    expect(seen.status).toBe('loading')
+  })
+
+  it('a burst that ends in a 429, then typing: counted down, then waiting for a tap, which the picker\'s search action is', async () => {
+    noteAnswer({ status: 429, headers: new Headers({ 'Retry-After': '2', 'RateLimit-Remaining': '0' }) })
+    show({ q: 'oats' })
+    await wait(600)
+    expect(seen).toMatchObject({ status: 'paused', seconds: 2 })
+    // The pause is over, and the bucket is not: typing asks nothing, whatever is typed.
+    await wait(2000)
+    expect(seen.status).toBe('tap')
+    show({ q: 'oatmeal' })
+    await wait(2000)
+    show({ q: 'oatmeal bar' })
+    await wait(600)
+    expect(calls).toHaveLength(0)
+    expect(seen.status).toBe('tap')
+    // The search key: a search the person asked for, which goes at once.
+    act(() => seen.ask())
+    await wait(0)
+    expect(calls.map(c => c.q)).toEqual(['oatmeal bar'])
+    expect(seen.status).toBe('loading')
+    calls[0].answer([{ name: 'Oatmeal bar' }])
+    await flush()
+    expect(seen).toMatchObject({ status: 'ready', results: [{ name: 'Oatmeal bar' }] })
+  })
+
+  it('shows paused, not an error, when the budget runs out while the search waits its turn', async () => {
+    show({ q: 'oats' })
+    await wait(300)
+    for (let i = 0; i < AUTO_PER_MIN; i++) noteSearch('auto')
+    await wait(200)
+    expect(calls).toHaveLength(0)
+    expect(seen.status).toBe('paused')
+    expect(seen.error).toBeNull()
   })
 
   it('does not keep a failed search, so the next try asks again', async () => {
@@ -159,6 +209,21 @@ describe('fetchOnline', () => {
     calls[0].answer([{ name: 'Oats' }])
     await expect(b).resolves.toEqual([{ name: 'Oats' }])
     expect(cachedOnline('oats')).toEqual([{ name: 'Oats' }])
+  })
+
+  it('a caller asking for the query after the last one left starts a search of its own, not the abandoned one', async () => {
+    const gone = new AbortController()
+    const a = fetchOnline('rice', { signal: gone.signal })
+    gone.abort()
+    // At once: a search that is aborted only settles later, which must not be a window to join it.
+    const b = fetchOnline('rice')
+    await expect(a).rejects.toMatchObject({ code: 'aborted' })
+    expect(calls[0].signal.aborted).toBe(true)
+    expect(calls).toHaveLength(2)
+    expect(calls[1].signal.aborted).toBe(false)
+    calls[1].answer([{ name: 'Rice' }])
+    await expect(b).resolves.toEqual([{ name: 'Rice' }])
+    expect(cachedOnline('rice')).toEqual([{ name: 'Rice' }])
   })
 
   it('abandons the request when the last caller waiting on it leaves', async () => {

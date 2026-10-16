@@ -92,7 +92,10 @@ export function useOnlineResults({ query, words, tab, group, ownCount, nutrition
         if (!ctl.signal.aborted) setState({ status: 'ready', q, results, error: null })
       } catch (e) {
         if (e?.code === 'aborted' || ctl.signal.aborted) return
-        setState({ status: e?.status === 429 ? 'paused' : e?.code === 'offline' ? 'offline' : 'error', q, results: [], error: e })
+        // A 429 is the hub's pause (counted down), or the client's own budget running out while
+        // this waited its turn (nothing to count down: a tap asks again).
+        const spent = e?.status === 429 ? (Date.now() < useOffBudget.getState().pausedUntil ? 'paused' : 'tap') : null
+        setState({ status: spent || (e?.code === 'offline' ? 'offline' : 'error'), q, results: [], error: e })
       }
     }, tapped ? 0 : DEBOUNCE_MS)
     return () => { clearTimeout(timer); ctl.abort() }

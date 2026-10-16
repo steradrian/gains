@@ -10,7 +10,7 @@ import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
-import { resetOffBudget } from '../lib/nutrition/off-budget.js'
+import { noteAnswer, resetOffBudget } from '../lib/nutrition/off-budget.js'
 import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { offResults } from '../lib/nutrition/off.js'
 import { createFakeNutriTrace, fixtureDay, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
@@ -124,6 +124,30 @@ describe('the diary picker', () => {
     const note = [...host.querySelectorAll('[role=status]')].find(n => n.textContent.includes('paused'))
     expect(note?.textContent).toMatch(/Open Food Facts paused · back in \d+ s/)
     expect(titles(host)).toContain('Wholemeal bread')
+  })
+
+  describe('after a 429 whose pause is over (the hub\'s bucket is empty, only a tap may spend it)', () => {
+    const ASK = 'Search Open Food Facts for “nutella”'
+    beforeEach(() => noteAnswer({ status: 429, headers: new Headers({ 'Retry-After': '1', 'RateLimit-Remaining': '0' }) }, Date.now() - 5000))
+
+    it('typing asks nothing, and the button is the search the person asks for', async () => {
+      await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
+      await search(host, 'nutella')
+      expect(searches()).toHaveLength(0)
+      await click(buttonIn(host, ASK))
+      expect(searches()).toHaveLength(1)
+      expect(titles(host)).toContain('Nutella')
+      expect(buttonIn(host, ASK)).toBeUndefined()
+    })
+
+    it('the search key is that search too', async () => {
+      await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
+      await search(host, 'nutella')
+      expect(searches()).toHaveLength(0)
+      await act(async () => { host.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+      await settle(10)
+      expect(searches()).toHaveLength(1)
+    })
   })
 
   it('logs a picked online result, saving it as a food first', async () => {

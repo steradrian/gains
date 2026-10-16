@@ -20,9 +20,11 @@ const savedCopy = (foods, result) =>
  *   own      your foods, `limit` of them: matching the query (and any saved copy of an online
  *            result, however renamed), or (no query) the rest of them, most used first;
  *            `ownTotal` is how many there are before the limit
- *   online   Open Food Facts, Romanian products first (off.js): { status, results, error, seconds },
+ *   online   Open Food Facts, Romanian products first (off.js): { status, results, error, seconds, ask },
  *            where status is 'idle' (nothing asked: the query is under two characters) | 'loading' |
- *            'ready' | 'error' | 'paused' (the hub's limit was hit: `seconds` until it asks again).
+ *            'ready' | 'error' | 'paused' (the search budget is spent, the hub's limit hit or the
+ *            client's own: `seconds` until it asks again) | 'tap' (only a search asked for goes
+ *            now, after a 429: `ask()` is that search, for the search key and a button).
  *            A product you already saved is left out (it is in `own`).
  *   foods    the store's foods ({ status, list, error }), for the loading and error notes
  * Loads your foods once. Results come back as the unsaved foods they are: save one before using
@@ -67,5 +69,5 @@ export function useFoodSearch(query, { limit = OWN_SHOWN } = {}) {
     return foods.list.filter(f => !recent.has(f.id)).sort(mostUsed)
   }, [foods.list, recents, saved, q])
 
-  return { query: q, recents, own: allOwn.slice(0, limit), ownTotal: allOwn.length, online: { status, results, error: online.error, seconds: online.seconds }, foods }
+  return { query: q, recents, own: allOwn.slice(0, limit), ownTotal: allOwn.length, online: { status, results, error: online.error, seconds: online.seconds, ask: online.ask }, foods }
 }

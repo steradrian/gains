@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { useNutrition } from './store.js'
-import { canSearch, noteAnswer, noteSearch, pausedFor, useOffBudget } from './off-budget.js'
+import { canSearch, noteAnswer, noteSearch, useOffBudget, waitFor } from './off-budget.js'
 
 const DEBOUNCE_MS = 500
 export const MIN_QUERY = 2
@@ -54,7 +54,7 @@ function start(key, q, { lang, country, kind }) {
   const ctl = new AbortController()
   const was = epoch
   noteSearch(kind)
-  const entry = { ctl, watchers: 0, promise: null }
+  const entry = { key, ctl, watchers: 0, promise: null }
   entry.promise = useNutrition.getState().searchOnline(q.trim(), lang, { signal: ctl.signal, country, onResponse: res => noteAnswer(res) })
     .then(results => {
       if (was === epoch) remember(key, results)
@@ -66,14 +66,19 @@ function start(key, q, { lang, country, kind }) {
 }
 
 // One caller's wait on a shared search: its own `signal` ends its wait with 'aborted', and the
-// search itself only when nobody is waiting on it any more.
+// search itself only when nobody is waiting on it any more. An abandoned search is dropped from
+// the ones in flight at once: its promise only rejects, so a caller asking for the same query
+// next must start a search of its own, not join that one.
 function watch(entry, signal) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(aborted()); return }
     entry.watchers += 1
     const leave = () => {
       entry.watchers -= 1
-      if (entry.watchers === 0) entry.ctl.abort()
+      if (entry.watchers === 0) {
+        entry.ctl.abort()
+        if (inflight.get(entry.key) === entry) inflight.delete(entry.key)
+      }
       reject(aborted())
     }
     signal?.addEventListener('abort', leave, { once: true })
@@ -101,26 +106,34 @@ export async function fetchOnline(q, { lang = 'en', country = null, signal, kind
 // Open Food Facts results for what is typed, once typing pauses. Nothing is asked for a query
 // under MIN_QUERY characters, while the search is off, or for one already answered this session.
 // A newer query aborts the one in flight; an aborted search is not an error, and an answer to a
-// query no longer typed never shows. While the hub has paused every search (a 429, off-budget.js,
-// whoever ran into it) nothing is asked: the status is 'paused' with the `seconds` left, and the
-// query is asked once the pause is over.
-// status: 'idle' | 'loading' | 'ready' | 'error' | 'paused'
+// query no longer typed never shows. While the budget is spent (the hub paused every search with a
+// 429, off-budget.js, whoever ran into it, or the client's own count has no room) nothing is
+// asked: the status is 'paused' with the `seconds` left, and the query is asked once the wait is
+// over. After a 429 typing never asks again by itself, as the budget keeps its last ten for the
+// searches a person asks for: the status is then 'tap', and `ask()` is that search, from an
+// explicit action (the picker's search key); it is spent from the ten kept for it.
+// status: 'idle' | 'loading' | 'ready' | 'error' | 'paused' | 'tap'
 export function useOnlineSearch(query, { active, lang, country = null }) {
   const q = query.trim()
   const [state, setState] = useState({ status: 'idle', query: '', results: [], error: null })
+  const [asked, setAsked] = useState(null)        // { q, n }: an explicit search for this query
   const pausedUntil = useOffBudget(s => s.pausedUntil)
+  // Until when the client's own count has no room, as the last search found it.
+  const [spentUntil, setSpentUntil] = useState(0)
   const [now, setNow] = useState(() => Date.now())
-  const paused = pausedUntil > now
+  const until = Math.max(pausedUntil, spentUntil)
+  const paused = until > now
+  const tapped = asked?.q === q
 
-  // The countdown ticks while a pause lasts, and its end asks again.
+  // The countdown ticks while a wait lasts, and its end asks again.
   useEffect(() => {
     setNow(Date.now())
-    const left = pausedUntil - Date.now()
+    const left = until - Date.now()
     if (left <= 0) return undefined
     const tick = setInterval(() => setNow(Date.now()), 1000)
     const end = setTimeout(() => { clearInterval(tick); setNow(Date.now()) }, left)
     return () => { clearInterval(tick); clearTimeout(end) }
-  }, [pausedUntil])
+  }, [until])
 
   useEffect(() => {
     if (!active || q.length < MIN_QUERY) {
@@ -132,23 +145,41 @@ export function useOnlineSearch(query, { active, lang, country = null }) {
       setState({ status: 'ready', query: q, results: hit, error: null })
       return undefined
     }
-    if (paused) {
-      setState({ status: 'paused', query: q, results: [], error: null })
+    const kind = tapped ? 'tap' : 'auto'
+    const held = spentFor(kind)
+    if (held) {
+      setSpentUntil(held.until)
+      setState({ status: held.status, query: q, results: [], error: null })
       return undefined
     }
     const ctl = new AbortController()
     setState(s => ({ ...s, status: 'loading', query: q, error: null }))
     const timer = setTimeout(async () => {
       try {
-        const results = await fetchOnline(q, { lang, country, signal: ctl.signal })
+        const results = await fetchOnline(q, { lang, country, signal: ctl.signal, kind })
         if (!ctl.signal.aborted) setState({ status: 'ready', query: q, results, error: null })
       } catch (e) {
         if (e?.code === 'aborted' || ctl.signal.aborted) return
-        setState({ status: Date.now() < useOffBudget.getState().pausedUntil ? 'paused' : 'error', query: q, results: [], error: e })
+        // The budget ran out while this waited its turn: the same wait as before the search.
+        const held = e?.status === 429 ? spentFor(kind) : null
+        if (held) setSpentUntil(held.until)
+        setState({ status: held ? held.status : 'error', query: q, results: [], error: held ? null : e })
       }
-    }, DEBOUNCE_MS)
+    }, tapped ? 0 : DEBOUNCE_MS)
     return () => { clearTimeout(timer); ctl.abort() }
-  }, [active, q, lang, country, paused])
+  }, [active, q, lang, country, paused, tapped, asked?.n])
 
-  return { ...state, seconds: pausedFor(now) }
+  return { ...state, seconds: Math.max(0, Math.ceil((until - now) / 1000)), ask: () => setAsked(a => ({ q, n: (a?.n || 0) + 1 })) }
+}
+
+// Why a search of this kind cannot go now, or null when it can: 'paused' with when it comes back,
+// or 'tap' when only a search the person asks for can say. The hub's pause is counted down first,
+// whatever follows it.
+function spentFor(kind) {
+  const at = Date.now()
+  const pausedUntil = useOffBudget.getState().pausedUntil
+  if (at < pausedUntil) return { status: 'paused', until: pausedUntil }
+  const wait = waitFor(kind, at)
+  if (wait <= 0) return null
+  return wait === Infinity ? { status: 'tap', until: 0 } : { status: 'paused', until: at + wait }
 }
