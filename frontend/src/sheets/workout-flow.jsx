@@ -150,7 +150,7 @@ function LogPastWorkout({ initial, close }) {
     const existing = workoutsOn(st, date)
     if (!existing.length) { go(null); return }
     ui().openSheet(c => <SameDayChoice iso={date} existing={existing} close={c}
-      onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />)
+      onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { role: 'alertdialog' })
   }
 
   return <>
@@ -549,7 +549,7 @@ export function exitWorkoutEdit(onExit = () => nav('/train/history')) {
       <Button variant="danger" onClick={() => { close(); leave() }}>{t("Don't save")}</Button>
       <Button variant="ghost" className="dim" onClick={close}>{t('Keep editing')}</Button>
     </SheetActions>
-  </>)?.id
+  </>, { role: 'alertdialog' })?.id
   savePrompt = prompt
 }
 
@@ -569,7 +569,7 @@ function LastAndNext({ st, w }) {
   const rows = finishCompare(st, w)
   if (!rows.length) return null
   const nextWord = { up: t('step up'), hold: t('same again'), down: t('lighter'), deload: t('deload') }
-  return <div style={{ textAlign: 'start', marginBottom: 14 }}>
+  return <div style={{ marginBottom: 14 }}>
     <h4 className="sec">{t('Last time and next time')}</h4>
     <div className="list">{rows.map(row => {
       const ex = EXIDX[row.id]

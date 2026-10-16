@@ -83,7 +83,6 @@
 /* --- barcode scan sheet --- */
 .scan-sheet .cam-frame.wide{width:84%;aspect-ratio:2.4}
 .cam-note{margin:12px 0}
-.cam-note.center{text-align:center}
 .scan-type{display:flex;gap:8px;align-items:center;margin-top:12px}
 .scan-type .field{flex:1;min-width:0}
 .scan-hit{display:flex;flex-direction:column;gap:2px;margin:8px 0 14px}

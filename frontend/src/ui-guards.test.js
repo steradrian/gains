@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  BASELINE, EMPTY_PROPS, HEADER_FILES, centredSheets, LEGACY_CSS, LOWER, PAGE_EXEMPT, PRIMITIVE_FILES, cssColours, cssFiles, emptyStates, handBuilt,
+  BASELINE, EMPTY_PROPS, HEADER_FILES, centredSheets, codeFiles, LEGACY_CSS, LOWER, PAGE_EXEMPT, PRIMITIVE_FILES, cssColours, cssFiles, emptyStates, handBuilt,
   jsColours, measure, newCssViolations, pageChrome, ratchet, routeViewsWithoutPage, sheetsImporters, staticStyles,
 } from '../scripts/ui-guards-baseline.mjs'
 
@@ -123,8 +123,15 @@ describe('G10 finds a centred dialog', () => {
     expect(centredSheets()).toEqual([])
   })
 
-  it('has no box of its own in any stylesheet', () => {
-    expect(cssFiles().filter(f => /(^|[^\w-])\.center\b/.test(f.text)).map(f => f.file)).toEqual([])
+  it('has no box of its own in any stylesheet, alone or compounded (.cam-note.center)', () => {
+    expect(cssFiles().filter(f => /\.center\b/.test(f.text)).map(f => f.file)).toEqual([])
+  })
+
+  it('leaves no element carrying a bare "center" class: the rule that styled it is gone', () => {
+    const bare = /\bclass(?:Name)?=(?:"[^"]*|'[^']*|\{[^}]*)(?:^|[\s"'`])center(?=[\s"'`}])/
+    expect(codeFiles().filter(f => bare.test(f.text)).map(f => f.file)).toEqual([])
+    expect(bare.test('<div className="muted small cam-note center">')).toBe(true)
+    expect(bare.test('<div className="muted small ta-center">')).toBe(false)
   })
 
   it('catches the kind in either quote, a template, a spread and a test', () => {

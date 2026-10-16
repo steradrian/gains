@@ -125,7 +125,10 @@ class throws in development, as everywhere in the kit.
   sheet itself on open (never on a field: a phone raises its keyboard), Tab kept inside, the page
   behind it `inert`, Escape closing it unless it is locked, and focus back on what opened it
   (`lib/use-sheet-dialog.js`, `lib/use-dialog-focus.js`). Give a sheet a heading, or it has no name.
-  A sheet that focuses a field itself keeps it. Stacked sheets work in any closing order: the one
+  `SheetHeader`'s `sub` line describes it (`aria-describedby`), so a confirm's question is read out;
+  `openSheet(..., { role: 'alertdialog' })` for one that interrupts with a question to weigh (a
+  destructive or locked `confirmSheet` does it itself). A sticky `SheetActions` reports its height
+  as `--foot-h` on the sheet, which the sheet's `scroll-padding-bottom` clears. A sheet that focuses a field itself keeps it. Stacked sheets work in any closing order: the one
   under a newer sheet is inert, and the page stays inert until the last closes. Content that is
   already a dialog (a photo viewer) keeps its own role and name and still gets focus in, the trap,
   the inert page and focus return; only content marked `data-own-dialog-focus` (the + sheet, which

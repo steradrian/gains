@@ -93,7 +93,12 @@ export function menuSheet(opts) {
 
 // Themed replacement for window.confirm — callback-based (no blocking), a bottom sheet. The
 // backdrop, a drag, Escape and back are a Cancel: they run the same onCancel the button does.
-// `locked` has to be answered, so there is no way out but its buttons.
+// `locked` has to be answered, so there is no way out but its buttons. A destructive or locked one
+// is an alertdialog: it interrupts with a question to weigh, which a screen reader reads out.
 export function confirmSheet(opts) {
-  ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, { ...(opts.locked ? { locked: true } : {}), onDismiss: opts.onCancel })
+  ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, {
+    ...(opts.locked ? { locked: true } : {}),
+    ...(opts.danger || opts.locked ? { role: 'alertdialog' } : {}),
+    onDismiss: opts.onCancel,
+  })
 }

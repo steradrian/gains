@@ -2,7 +2,7 @@
 // (SyncBanner.jsx), the "Server & sync" block in Settings, and the question a sign-out or a
 // disconnect asks when the server has not got everything yet. The store decides the state
 // (useStore.js, `sync` — see statusOf there); this file only words it and offers what to do.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
@@ -178,38 +178,51 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
   const sync = useStore(s => s.sync)
   const [count, setCount] = useState(count0)
   const [media, setMedia] = useState(media0)
-  const [busy, setBusy] = useState(false)
+  // Which request is out, if any: 'retry' or 'anyway'.
+  const [busy, setBusy] = useState(null)
   const [tried, setTried] = useState(false)
+  // Set at once, where `busy` waits for a render: a second tap in the same frame is ignored.
+  const flying = useRef(false)
   // A request in flight cannot be walked away from: the sheet takes no drag, backdrop, Escape or
   // back until it answers (`lock` is the opened sheet's). Idle, any of them is Cancel.
-  useEffect(() => { lock?.(busy) }, [busy])
+  useEffect(() => { lock?.(!!busy) }, [busy, lock])
   const view = connectionView(sync)
   // Refused because it is paired or signed in to a server that no longer takes it: trying
   // again cannot work, and pairing or signing in again brings the changes to the server.
   const refused = sync?.status === 'auth'
   const finish = r => { close(); done(r) }
+  // While a request is out the buttons stay in the page and keep focus (aria-disabled, not
+  // disabled: a disabled button drops focus out of the sheet's trap to <body>); a press is ignored.
+  const idle = fn => e => { if (!flying.current) fn(e) }
+  // `busy` is always put back, whatever the request does: a sheet left locked cannot be closed.
+  const request = async (what, run) => {
+    if (flying.current) return null
+    flying.current = true
+    setBusy(what)
+    try { return await run() }
+    finally { flying.current = false; setBusy(null) }
+  }
   const retry = async () => {
-    setBusy(true)
-    await useStore.getState().syncNow()
-    // Past the refusals too, as the Settings row does: a proxy's limit or the server's caps may
-    // have been fixed since, and a file refused for good would otherwise hold this sheet open on
-    // every try.
-    await syncMedia({ force: true, retryRejected: true })
-    const r = await attempt(kind)
-    setBusy(false)
+    const r = await request('retry', async () => {
+      await useStore.getState().syncNow()
+      // Past the refusals too, as the Settings row does: a proxy's limit or the server's caps may
+      // have been fixed since, and a file refused for good would otherwise hold this sheet open on
+      // every try.
+      await syncMedia({ force: true, retryRejected: true })
+      return attempt(kind)
+    }).catch(() => { setTried(true); return null })
     if (!r) return
     if (!r.owed || r.stashed) return finish(r)
     setCount(r.count); setMedia(r.media || 0); setTried(true)
   }
   const anyway = async () => {
-    setBusy(true)
-    const r = await attempt(kind, { force: true })
-    setBusy(false)
+    const r = await request('anyway', () => attempt(kind, { force: true }))
     if (!r) return
     if (r.owed && !r.stashed) { toast(t('Couldn’t keep a copy of the changes on this device. Nothing was removed.')); return }
     finish(r)
   }
-  return <>
+  const wait = busy ? true : undefined   // aria-busy / aria-disabled are set or left off, never "false"
+  return <div aria-busy={wait}>
     <SheetHeader title={t('Not everything is on your server yet')} />
     {(count !== 0 || !media) && <div className="mb-3 fw-semibold">
       {count > 0 ? t('Not on your server yet: {0}', changeCount(count)) : t('Some changes on this device have not reached your server.')}
@@ -227,16 +240,18 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
     {/* The way on first, then the backup, then the one that goes ahead with changes unsent, and
         the exit last. Locked only while a request is out: dismissing is Cancel, which is harmless. */}
     <SheetActions>
-      {refused && MOBILE && <Button variant="primary" disabled={busy} onClick={() => { close(); pairAgain() }}>{t('Pair again')}</Button>}
-      {refused && !MOBILE && canSignIn() && <Button variant="primary" disabled={busy} onClick={() => { close(); signInAgain() }}>{pwOn() ? t('Sign in') : t('Sign in with passkey')}</Button>}
-      {!refused && <Button variant="primary" disabled={busy} onClick={retry}>{busy ? t('Syncing…') : t('Try again')}</Button>}
+      {refused && MOBILE && <Button variant="primary" aria-disabled={wait} onClick={idle(() => { close(); pairAgain() })}>{t('Pair again')}</Button>}
+      {refused && !MOBILE && canSignIn() && <Button variant="primary" aria-disabled={wait} onClick={idle(() => { close(); signInAgain() })}>{pwOn() ? t('Sign in') : t('Sign in with passkey')}</Button>}
+      {!refused && <Button variant="primary" aria-disabled={wait} onClick={retry}>{busy === 'retry' ? t('Syncing…') : t('Try again')}</Button>}
       {media > 0 && exportBackupZip
-        ? <Button icon="share" disabled={busy} onClick={exportBackupZip}>{t('Export with photos & videos (.zip)')}</Button>
-        : <Button icon="share" disabled={busy} onClick={exportBackup}>{t('Export backup (JSON)')}</Button>}
-      <Button variant="danger" disabled={busy} onClick={anyway}>{LEAVE[kind].anyway()}</Button>
-      <Button variant="ghost" className="dim" disabled={busy} onClick={close}>{t('Cancel')}</Button>
+        ? <Button icon="share" aria-disabled={wait} onClick={idle(exportBackupZip)}>{t('Export with photos & videos (.zip)')}</Button>
+        : <Button icon="share" aria-disabled={wait} onClick={idle(exportBackup)}>{t('Export backup (JSON)')}</Button>}
+      <Button variant="danger" aria-disabled={wait} onClick={anyway}>{LEAVE[kind].anyway()}</Button>
+      <Button variant="ghost" className="dim" aria-disabled={wait} onClick={idle(close)}>{t('Cancel')}</Button>
     </SheetActions>
-  </>
+    {/* A button that changes its label is not announced; this line is, politely, and is there from the start so the change is. */}
+    <div className="sr-only" role="status">{busy === 'retry' ? t('Syncing…') : ''}</div>
+  </div>
 }
 
 /* ---------------------------------------------------------------- Settings ------------------- */

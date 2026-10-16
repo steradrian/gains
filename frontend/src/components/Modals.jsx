@@ -83,7 +83,7 @@ function Sheet({ sheet, covered }) {
   // the top sheet that allows it is the one handler in Modals below. Focus goes back the moment the
   // sheet is closed, not when its way out has finished playing.
   const dialog = useRef(null)
-  useSheetDialog(dialog, present)
+  useSheetDialog(dialog, present, sheet.role)
   // A bottom sheet rises with its scrim and goes back down with it. The viewer goes at once.
   useEnterExit(phase => {
     if (sheet.kind !== 'sheet') return []

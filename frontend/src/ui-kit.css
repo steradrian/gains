@@ -198,16 +198,22 @@
 .sheet > .sheet-hero{display:flex;justify-content:center;font-size:44px;color:var(--acc-ink)}
 
 /* SheetActions sticky: the buttons stay on the sheet's bottom edge while the content scrolls under
-   them. The sheet pads its foot by 20px plus the safe area, so the footer sits that far below its
-   normal place (bottom) and puts the padding back inside itself; it spans the sheet's 18px
-   gutters, takes the sheet's own surface and draws a hairline on top. With the Android keyboard up
-   the sheet drops the safe area from its foot (index.css, data-native-kb), and so does this. */
+   them. A sheet that ends in one gives up its own bottom padding and the footer carries it (20px
+   plus the safe area), so the bar rests on the edge and does not move at the end of the scroll. It
+   spans the sheet's gutters (--sheet-gutter, index.css), takes the sheet's own surface and draws a
+   hairline on top. With the Android keyboard up the sheet drops the safe area from its foot
+   (index.css, data-native-kb), and so does this.
+   A control reached by Tab must not end up under the bar (WCAG 2.4.11): the sheet scrolls it clear
+   of the bar's height, which SheetActions measures into --foot-h (sheet-layout.jsx). Written
+   with :has() at a higher specificity than the sheet's own rules in index.css, native-kb included. */
+.sheet:has(> .sheet-foot){padding-bottom:0;scroll-padding-bottom:calc(var(--foot-h,84px) + 8px)}
+:root[data-native-kb] .sheet:has(> .sheet-foot){padding-bottom:0;scroll-padding-bottom:calc(var(--foot-h,84px) + 8px)}
 .sheet > .sheet-foot{
-  position:sticky;bottom:calc(-1 * (20px + var(--sab)));z-index:1;
-  margin-inline:-18px;padding:var(--space-7) 18px calc(20px + var(--sab));
+  position:sticky;bottom:0;z-index:1;
+  margin-inline:calc(-1 * var(--sheet-gutter));padding:var(--space-7) var(--sheet-gutter) calc(20px + var(--sab));
   background:inherit;border-top:var(--hair) solid var(--sep-op);
 }
-:root[data-native-kb] .sheet > .sheet-foot{bottom:-20px;padding-bottom:20px}
+:root[data-native-kb] .sheet > .sheet-foot{padding-bottom:20px}
 
 /* StatTile value sizes below the default 26px */
 .tile .v.v-sm{font-size:var(--fs-body)}

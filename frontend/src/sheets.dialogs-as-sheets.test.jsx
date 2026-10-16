@@ -34,6 +34,13 @@ const btn = (text, within = top()) => [...within.querySelectorAll('button')].fin
 const labels = (within = top()) => [...within.querySelectorAll('button')].map(b => b.textContent.trim())
 const variant = b => ['primary', 'danger', 'plain', 'ghost', 'dim'].filter(c => b.classList.contains(c))
 const sheets = () => useUI.getState().sheets
+const describedBy = el => document.getElementById(el.getAttribute('aria-describedby'))?.textContent
+// A pull down the sheet with the mouse, as a trackpad does: the same gesture as a finger's.
+const drag = async (el, dy) => {
+  await act(async () => { el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 10, clientY: 10 })) })
+  await act(async () => { el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 10, clientY: 10 + dy })) })
+  await act(async () => { window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 })) })
+}
 
 beforeEach(async () => {
   localStorage.clear()
@@ -93,6 +100,29 @@ describe('confirmSheet', () => {
     expect(sheets()).toHaveLength(0)
   })
 
+  it('reads its question out: the dialog is described by the message line', () => {
+    ask({ onConfirm: vi.fn() })
+    expect(describedBy(top())).toBe('This cannot be undone.')
+    expect(top().getAttribute('aria-modal')).toBe('true')
+    expect(top().getAttribute('aria-labelledby')).toBeTruthy()
+  })
+
+  it('has no description when it asks no question', () => {
+    ask({ onConfirm: vi.fn(), message: undefined })
+    expect(top().hasAttribute('aria-describedby')).toBe(false)
+  })
+
+  it('is a plain dialog, and an alertdialog when it is destructive or locked', () => {
+    ask({ onConfirm: vi.fn() })
+    expect(top().getAttribute('role')).toBe('dialog')
+    act(() => useUI.getState().closeAll())
+    ask({ onConfirm: vi.fn(), danger: true })
+    expect(top().getAttribute('role')).toBe('alertdialog')
+    act(() => useUI.getState().closeAll())
+    ask({ onConfirm: vi.fn(), locked: true })
+    expect(top().getAttribute('role')).toBe('alertdialog')
+  })
+
   it('treats the backdrop and Escape as Cancel', async () => {
     const onConfirm = vi.fn(), onCancel = vi.fn()
     ask({ onConfirm, onCancel })
@@ -114,6 +144,7 @@ describe('askAddDeviceData', () => {
     expect(top().querySelector('.grab')).toBeNull()
     await backdrop()
     await escape()
+    await drag(top(), 150)
     expect(sheets()).toHaveLength(1)
   })
 
@@ -158,6 +189,12 @@ describe('the same-day choice', () => {
     expect(variant(btn('Add as second workout'))).toEqual(['primary'])
     expect(variant(btn('Replace'))).toEqual(['danger'])
     expect(variant(btn('Cancel'))).toEqual(['ghost', 'dim'])
+  })
+
+  it('is an alertdialog that reads the day it warns about', async () => {
+    await open()
+    expect(top().getAttribute('role')).toBe('alertdialog')
+    expect(describedBy(top())).toBe('There is already a workout on that day.')
   })
 
   it('adds a second workout, or replaces the one that is there', async () => {
@@ -249,6 +286,11 @@ describe('Save workout changes?', () => {
     expect(variant(btn('Keep editing'))).toEqual(['ghost', 'dim'])
   })
 
+  it('is an alertdialog described by what it offers', () => {
+    expect(top().getAttribute('role')).toBe('alertdialog')
+    expect(describedBy(top())).toBe('Save your edits to this workout, or keep the original record.')
+  })
+
   it('Save changes saves the edit and leaves', async () => {
     await click(btn('Save changes'))
     expect(S().workouts[0].entries[0].sets[0].w).toBe(50)
@@ -321,6 +363,47 @@ describe('the finish summary', () => {
     expect(sheets()).toHaveLength(0)
     expect(back).toHaveBeenCalledTimes(1)
   })
+
+  it('has saved the workout by the time it is up, so letting go of the sheet loses nothing', () => {
+    expect(S().workouts).toHaveLength(1)
+    expect(S().workouts[0].name).toBe('Core')
+    expect(S().active).toBeNull()
+  })
+
+  it('a long pull down dismisses it and goes back once; a short one springs back', async () => {
+    await drag(top(), 20)
+    expect(sheets()).toHaveLength(1)
+    expect(back).not.toHaveBeenCalled()
+    await drag(top(), 150)
+    expect(sheets()).toHaveLength(0)
+    expect(back).toHaveBeenCalledTimes(1)
+    expect(S().workouts).toHaveLength(1)
+  })
+})
+
+describe('a sheet\'s lock', () => {
+  it('writes nothing to the store when it is already the value asked for, and one write when it changes', () => {
+    let handle
+    act(() => { handle = useUI.getState().openSheet(() => <h3>Hi</h3>) })
+    const before = sheets()
+    act(() => handle.lock(false))
+    expect(sheets()).toBe(before)
+    act(() => handle.lock(true))
+    expect(sheets()).not.toBe(before)
+    expect(sheets()[0].locked).toBe(true)
+    const locked = sheets()
+    act(() => handle.lock(true))
+    expect(sheets()).toBe(locked)
+  })
+
+  it('leaves the store alone for a sheet that has gone', () => {
+    let handle
+    act(() => { handle = useUI.getState().openSheet(() => <h3>Hi</h3>) })
+    act(() => handle.close())
+    const after = sheets()
+    act(() => handle.lock(true))
+    expect(sheets()).toBe(after)
+  })
 })
 
 describe('the unsent-changes sheet', () => {
@@ -369,10 +452,62 @@ describe('the unsent-changes sheet', () => {
     await backdrop()
     await escape()
     expect(sheets()).toHaveLength(1)
+    await drag(top(), 150)
+    expect(sheets()).toHaveLength(1)
     await act(async () => { release() })
     await settle()
     expect(sheets()[0].locked).toBe(false)
     expect(top().querySelector('.grab')).toBeTruthy()
+    await backdrop()
+    expect(sheets()).toHaveLength(0)
+  })
+
+  it('keeps its buttons, and the focus on the one that was pressed, while a request is out', async () => {
+    await open()
+    const retry = btn('Try again')
+    retry.focus()
+    await click(retry)
+    expect(btn('Syncing…')).toBe(retry)
+    expect(document.activeElement).toBe(retry)
+    for (const b of top().querySelectorAll('button')) {
+      expect(b.disabled, b.textContent).toBe(false)
+      expect(b.getAttribute('aria-disabled'), b.textContent).toBe('true')
+    }
+    // A press on any of them does nothing meanwhile.
+    await click(btn('Sign out anyway'))
+    await click(btn('Syncing…'))
+    await click(btn('Cancel'))
+    expect(signOut).toHaveBeenCalledTimes(1)
+    expect(syncNow).toHaveBeenCalledTimes(1)
+    expect(sheets()).toHaveLength(1)
+    await act(async () => { release() })
+    await settle()
+    expect(btn('Try again').hasAttribute('aria-disabled')).toBe(false)
+  })
+
+  it('says it is busy and that it is syncing, for a screen reader', async () => {
+    await open()
+    const status = () => top().querySelector('[role="status"]')
+    const busy = () => top().querySelector('[aria-busy]')
+    expect(status().textContent).toBe('')
+    expect(busy()).toBeNull()
+    await click(btn('Try again'))
+    expect(status().textContent).toBe('Syncing…')
+    expect(busy().getAttribute('aria-busy')).toBe('true')
+    await act(async () => { release() })
+    await settle()
+    expect(status().textContent).toBe('')
+    expect(busy()).toBeNull()
+  })
+
+  it('is unlocked again when the sync itself rejects, not left locked for good', async () => {
+    useStore.setState({ syncNow: vi.fn(async () => { throw new Error('offline') }) })
+    await open()
+    await click(btn('Try again'))
+    await settle()
+    expect(sheets()[0].locked).toBe(false)
+    expect(btn('Try again').hasAttribute('aria-disabled')).toBe(false)
+    expect(top().querySelector('[aria-busy]')).toBeNull()
     await backdrop()
     expect(sheets()).toHaveLength(0)
   })
