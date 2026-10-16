@@ -49,6 +49,8 @@ describe('WeeklyPlanVolume — weekly muscle volume from the plan', () => {
   it('says so when the plan has no volume', () => {
     render(state({ week: { 1: ['stale'] } }))
     expect(card().textContent).toContain('No muscle volume planned.')
+    expect(card().querySelector('.empty[data-surface=card] .lineart[data-scene=routine]')).not.toBeNull()
+    expect(card().querySelector('.empty h3').textContent).toBe('No muscle volume planned.')
     expect(card().querySelector('.mrow')).toBeNull()
   })
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { fmtNum } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { loadOfWeeklyPlan, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
-import { Card } from './blocks.jsx'
+import { Card, EmptyState } from './blocks.jsx'
 import { Spacer } from './layout.jsx'
 import { Button } from './ui.jsx'
 
@@ -24,7 +24,7 @@ export default function WeeklyPlanVolume({ S }) {
       <span className="nm">{t(MUSCLE_NAME[muscle])}</span>
       <span className="bar"><i style={{ width: Math.round(load[muscle] / max * 100) + '%' }} /></span>
       <span className="v">{t('{0} sets', fmtNum(Math.round(load[muscle] * 10) / 10))}</span>
-    </div>) : <div className="muted small">{t('No muscle volume planned.')}</div>}
+    </div>) : <EmptyState illustration="routine" title={t('No muscle volume planned.')} />}
     {muscles.length > ROWS && <>
       <Spacer size={4} />
       <Button className="weekly-plan-toggle" trailingIcon={all ? 'chevronUp' : 'chevronDown'} aria-expanded={all}

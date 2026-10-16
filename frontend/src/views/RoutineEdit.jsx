@@ -562,7 +562,7 @@ export default function RoutineEdit() {
           : item}
       </div>
     })}{reorder.drag && <div className="routine-drop-indicator" data-testid="routine-drop-indicator"
-      aria-hidden="true" style={{ top: `${reorder.drag.indicatorTop}px` }} />}</div> : <EmptyState icon="dumbbell">{t('No exercises yet. Add your first one!')}</EmptyState>}
+      aria-hidden="true" style={{ top: `${reorder.drag.indicatorTop}px` }} />}</div> : <EmptyState illustration="routine" title={t('No exercises yet. Add your first one!')} />}
 
     {/* Coverage of the routine as planned, so a gap shows up while you're building it
         rather than after a month of training around it. */}

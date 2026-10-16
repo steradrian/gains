@@ -7,7 +7,6 @@ import { t } from '../lib/i18n.js'
 import { rangeFrom, rangeOptions, rangeStart, storedRange } from '../lib/progress-range.js'
 import { bwSheet, goalSheet, weighInsSheet } from '../sheets.jsx'
 import { Card, EmptyState } from './blocks.jsx'
-import { LineArt } from './line-art.jsx'
 import LineChart from './LineChart.jsx'
 import { ActionButton, ActionRow, HeroStatus, TabSection } from './tab-kit.jsx'
 import { Segmented } from './ui.jsx'
@@ -55,9 +54,8 @@ export default function BodyWeight() {
           <div className="chart"><LineChart points={points} h={160} unit={S.unit} goal={goal} label={t('Weight')} /></div>
         </Card>
       </TabSection>
-    </> : <EmptyState art={<LineArt scene="scale" />} title={t('No weigh-ins yet')}
-      secondary={{ icon: 'plus', label: t('Log weight'), onClick: () => bwSheet() }}>
-      {S.weighIn === false ? t('Log your weight to start the curve.') : t('Log your weight to start the curve. We also ask before every workout.')}
-    </EmptyState>}
+    </> : <EmptyState illustration="scale" title={t('No weigh-ins yet')}
+      body={S.weighIn === false ? t('Log your weight to start the curve.') : t('Log your weight to start the curve. We also ask before every workout.')}
+      secondary={{ icon: 'plus', label: t('Log weight'), onClick: () => bwSheet() }} />}
   </>
 }
