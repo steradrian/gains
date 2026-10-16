@@ -1,12 +1,13 @@
 import { useLayoutEffect } from 'react'
 import { flushSync } from 'react-dom'
-import { reducedMotion } from '../reduced-motion.js'
+import { onReducedMotion, reducedMotion } from '../reduced-motion.js'
 
 // The Summary's hand-over into Home (fitness-eval motion-onboarding-summary-v2 §3, §4). Stage A,
 // the unwind, runs on the Summary (the ring turns back into a line); stage B is a View Transition
-// in which Home mounts and the line, named `thread`, moves onto Home's hero hairline (or, with no
-// target, the MonthBar's). The names live in CSS under html.vt-handover, so they exist only from
-// just before the transition starts until it has finished.
+// in which Home mounts and the line, named `thread`, moves onto Home's hero hairline (or, where
+// Home's hero has none, the MonthBar's). The names live in CSS under html.vt-handover, so they
+// exist only from just before the transition starts until it has finished; which of the two
+// hairlines takes the name is decided there, on the DOM Home mounts (tab-kit.css).
 //
 // kcal-value and water-value are not named: Home reads the diary after it mounts, so on the frame
 // the transition captures its hero may still show dashes, not the target (the spec's fallback:
@@ -47,25 +48,38 @@ export function useFirstHome() {
 
 /**
  * Goes Home from the Summary. `unwind()` is stage A and resolves when it is done; `go()` leaves for
- * Home (synchronously, inside the transition); `flat`: no target, so the line goes to the MonthBar.
- * Without View Transitions the line unwinds and Home comes in with its cascade; under reduced
- * motion there is no unwind and no transition, Home simply fades in.
+ * Home (synchronously, inside the transition). Without View Transitions the line unwinds and Home
+ * comes in with its cascade; under reduced motion there is no unwind and no transition, Home
+ * simply fades in, and so it does when that is switched on while the unwind or the transition runs
+ * (the transition is skipped, its names cleared).
  */
-export async function handOver({ unwind, go, flat = false }) {
+export async function handOver({ unwind, go }) {
   if (reducedMotion()) {
     firstHome = 'fade'
     go()
     return
   }
   await unwind()
+  if (reducedMotion()) {
+    firstHome = 'fade'
+    go()
+    return
+  }
   firstHome = 'cascade'
   const root = document.documentElement
   if (typeof document.startViewTransition !== 'function') { go(); return }
   root.classList.add('vt-handover')
-  root.classList.toggle('vt-flat', flat)
-  const clear = () => root.classList.remove('vt-handover', 'vt-flat')
+  let off = () => {}
+  const clear = () => { off(); root.classList.remove('vt-handover') }
   try {
     const vt = document.startViewTransition(() => flushSync(go))
+    off = onReducedMotion(() => {
+      // Home not mounted yet: it fades in, not cascades. Mounted: its cascade stops where it is.
+      if (firstHome) firstHome = 'fade'
+      else root.classList.remove('home-first')
+      vt.skipTransition?.()
+      clear()
+    })
     vt.finished.then(clear, clear)
   } catch {
     clear()

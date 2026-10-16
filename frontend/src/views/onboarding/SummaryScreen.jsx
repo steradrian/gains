@@ -15,6 +15,7 @@ import { useCount } from '../../lib/onboarding/use-count.js'
 import { useFinish } from '../../lib/onboarding/use-finish.js'
 import { COUNT, GHOST, RING_C, useSummaryMotion } from '../../lib/onboarding/use-summary-motion.js'
 import { kcalText, useTarget } from '../../lib/onboarding/use-target.js'
+import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -61,7 +62,8 @@ function statusOf(answers, go) {
 export default function SummaryScreen() {
   const navigate = useNavigate()
   const { state, act, saveHubStep, go, hub } = useOnboarding()
-  const name = useStore(s => s.user?.name)
+  const user = useStore(s => s.user)
+  const name = user?.name
   const units = useUnits()
   const screen = useRef(null)
   const answers = state.answers
@@ -69,9 +71,12 @@ export default function SummaryScreen() {
   const target = useTarget(answers, state.uid)
   const targets = full ? target.targets : null
   const kind = full ? 'ring' : 'ghost'
-  const motion = useSummaryMotion(screen, kind)
+  const motion = useSummaryMotion(screen, kind, { zeroDays: answers.trainingDays === 0 })
+  // Home's hero has its 1×64 split (the thread's vertical end) only with nutrition, and the ring
+  // only turns into that line where there is a target; otherwise the line is a horizontal one.
+  const vertical = !!targets && nutritionAvailable(user)
   const { finish, status, setbacks, leave } = useFinish({
-    home: () => handOver({ unwind: motion.unwind, go: () => leave('/home'), flat: !targets }),
+    home: () => handOver({ unwind: motion.unwind, go: () => leave('/home') }),
   })
   const missing = detourOf(answers)
 
@@ -111,12 +116,12 @@ export default function SummaryScreen() {
     go(missing[0])
   }
   const openSheet = which => useUI.getState().openSheet(close => (
-    <SummarySheet which={which} answers={answers} close={close} onPick={v => {
-      if (which === 'goal') { act({ type: 'goal', goal: v }); saveHubStep('goal') }
-      else { act({ type: 'activity', value: v }); saveHubStep('body') }
-    }} />
+    <SummarySheet which={which} answers={answers} close={close}
+      onPick={v => act(which === 'goal' ? { type: 'goal', goal: v } : { type: 'activity', value: v })}
+      onDone={() => saveHubStep(which === 'goal' ? 'goal' : 'body')} />
   ))
-  // The CTA is live from the first frame: what is still moving jumps to its end, then it finishes.
+  // The CTA is live from the first frame: what is still moving, the thread's flight too, jumps to
+  // its end, then it finishes.
   const goHome = () => {
     motion.finishRuns()
     finish()
@@ -131,7 +136,7 @@ export default function SummaryScreen() {
         : <circle className="ob-sum-ghost" cx="84" cy="84" r="80" strokeDasharray={`${GHOST.toFixed(2)} ${RING_C.toFixed(2)}`}
           transform="translate(0 168) scale(1 -1) rotate(180 84 84)" />}
     </svg>
-    <span className={kind === 'ring' ? 'ob-sum-thread' : 'ob-sum-thread flat'} aria-hidden="true" />
+    <span className={vertical ? 'ob-sum-thread' : 'ob-sum-thread flat'} aria-hidden="true" />
   </>
   const goal = answers.goal || 'keep'
   const activity = answers.activity?.value || 'sitting'
@@ -144,7 +149,7 @@ export default function SummaryScreen() {
       stage={<div ref={screen} className="ob-sum">
         <HeroStatus variant="target" {...statusOf(answers, go)} ring={ring}
           value={targets ? kcalText(shown ?? 0) : null} unit={targets ? t('kcal a day') : undefined}
-          metrics={[{ label: t('Water'), value: water.value, unit: water.unit, sub: targets ? t('a day') : t('default') }]}>
+          metrics={[{ label: t('Water'), value: water.value, unit: water.unit, sub: targets ? t('a day') : t('for now') }]}>
           {targets && <HeroMacros targets={{ proteins: targets.proteinG, carbohydrates: targets.carbsG, fat: targets.fatG }} />}
           {targets && <p className="hero-c ob-sum-tail">
             {t('{0} · Adaptive, adjusts to your logs over about 3 weeks', GOAL_LINE()[goal])}
