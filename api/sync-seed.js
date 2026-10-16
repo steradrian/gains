@@ -47,12 +47,25 @@ const CONSENT_VERSION = /^[a-z0-9-]{1,40}$/;
  * What the seed route takes beyond its first fields, said in GET /api/sync/onboarding (seedView),
  * so a hub sends a ready-made plan or an AI coach build only to an openGym that takes it. An
  * openGym from before them says nothing, and refuses both as unknown fields.
+ *
+ * `starterTemplates`: each ready-made plan this server builds, and the numbers of weekdays it runs
+ * at (starter-plans.js). The hub checks a starter choice against these when the person makes it,
+ * so a template and weekdays that do not go together are refused then, not at delivery; it keeps
+ * no copy of its own.
  */
-export const SEED_CAPABILITY = Object.freeze({ starter: true, coachBuild: true });
+export const SEED_CAPABILITY = Object.freeze({
+  starter: true,
+  coachBuild: true,
+  starterTemplates: Object.freeze(Object.fromEntries(
+    Object.entries(STARTER_TEMPLATES).map(([id, template]) => [id, Object.freeze([...template.days])])
+  ))
+});
 
 /**
- * The seed body, checked: { ok: true, seed } or { ok: false, code, error }. Every field is
- * optional; an unknown one is refused, so a typo is never silently dropped.
+ * The seed body, checked: { ok: true, seed } or { ok: false, code, field, error }. Every field is
+ * optional; an unknown one is refused, so a typo is never silently dropped. `field` names the
+ * top-level field refused (null: the body as a whole), so a hub can tell a refused plan from a
+ * refused weigh-in and send the rest without it.
  *
  * A plan comes one of two ways, and only one: `starter` (a choice of ready-made plan, built here:
  * starter-plans.js) or `coachBuild` (the person asked the AI coach for one, which is recorded and
@@ -60,23 +73,25 @@ export const SEED_CAPABILITY = Object.freeze({ starter: true, coachBuild: true }
  * expanded into `plan`, so past this function there is `plan` or `coachBuild`.
  */
 export function parseSeed(body, now = Date.now(), { coachAvailable = false } = {}) {
-  const bad = (code, error) => ({ ok: false, code, error });
-  if (!isMap(body)) return bad('bad-body', 'the body must be a JSON object');
+  const refuse = field => (code, error) => ({ ok: false, code, field, error });
+  if (!isMap(body)) return refuse(null)('bad-body', 'the body must be a JSON object');
   const known = new Set(['unit', 'bodyweight', 'coachProfile', 'starter', 'coachBuild', 'checkIn']);
-  for (const k of Object.keys(body)) if (!known.has(k)) return bad('bad-field', `unknown field ${k.slice(0, 40)}`);
+  for (const k of Object.keys(body)) if (!known.has(k)) return refuse(k.slice(0, 40))('bad-field', `unknown field ${k.slice(0, 40)}`);
   const seed = {};
   if (body.unit !== undefined) {
-    if (body.unit !== 'kg' && body.unit !== 'lb') return bad('bad-unit', 'unit must be kg or lb');
+    if (body.unit !== 'kg' && body.unit !== 'lb') return refuse('unit')('bad-unit', 'unit must be kg or lb');
     seed.unit = body.unit;
   }
   if (body.bodyweight !== undefined) {
     const b = body.bodyweight;
+    const bad = refuse('bodyweight');
     if (!isMap(b) || !isSyncDate(b.date, now)) return bad('bad-date', 'bodyweight.date must be a real YYYY-MM-DD date, from 1900-01-01 to tomorrow');
     if (typeof b.kg !== 'number' || !Number.isFinite(b.kg) || b.kg < KG_MIN || b.kg > KG_MAX) return bad('bad-weight', `bodyweight.kg must be a number from ${KG_MIN} to ${KG_MAX}`);
     seed.bodyweight = { date: b.date, kg: b.kg };
   }
   if (body.coachProfile !== undefined) {
     const p = body.coachProfile;
+    const bad = refuse('coachProfile');
     if (!isMap(p)) return bad('bad-coach-profile', 'coachProfile must be an object');
     for (const k of Object.keys(p)) if (!['goal', 'experience', 'daysPerWeek', 'preferredDays'].includes(k)) return bad('bad-coach-profile', `unknown coachProfile field ${k.slice(0, 40)}`);
     if (p.goal !== undefined && !COACH_GOALS.includes(p.goal)) return bad('bad-coach-profile', `coachProfile.goal must be one of ${COACH_GOALS.join(', ')}`);
@@ -96,20 +111,21 @@ export function parseSeed(body, now = Date.now(), { coachAvailable = false } = {
     };
   }
   if (body.starter !== undefined) {
-    const starter = parseStarter(body.starter);
+    const starter = parseStarter(body.starter, refuse('starter'));
     if (!starter.ok) return starter;
     seed.plan = starter.plan;
   }
   if (body.coachBuild !== undefined) {
+    const bad = refuse('coachBuild');
     if (body.starter !== undefined) return bad('bad-coach-build', 'a coachBuild and a starter are two ways to get a plan: send one');
-    const build = parseCoachBuild(body.coachBuild, now);
+    const build = parseCoachBuild(body.coachBuild, now, bad);
     if (!build.ok) return build;
     // A consent to a build that nothing on this server could run is never recorded.
     if (coachAvailable !== true) return bad('coach-unavailable', 'this server has no AI coach to build a plan');
     seed.coachBuild = build.coachBuild;
   }
   if (body.checkIn !== undefined) {
-    if (typeof body.checkIn !== 'boolean') return bad('bad-check-in', 'checkIn must be a boolean');
+    if (typeof body.checkIn !== 'boolean') return refuse('checkIn')('bad-check-in', 'checkIn must be a boolean');
     seed.checkIn = body.checkIn;
   }
   return { ok: true, seed };
@@ -117,8 +133,8 @@ export function parseSeed(body, now = Date.now(), { coachAvailable = false } = {
 
 // { templateId, weekdays, equipment }: a ready-made plan (starter-plans.js) and the weekday of each
 // of its sessions in order, built into the same { routines, schedule } a `plan` is.
-function parseStarter(s) {
-  const bad = error => ({ ok: false, code: 'bad-plan', error });
+function parseStarter(s, refuse) {
+  const bad = error => refuse('bad-plan', error);
   if (!isMap(s)) return bad('starter must be { templateId, weekdays, equipment }');
   for (const k of Object.keys(s)) if (!['templateId', 'weekdays', 'equipment'].includes(k)) return bad(`unknown starter field ${k.slice(0, 40)}`);
   if (typeof s.templateId !== 'string' || !Object.hasOwn(STARTER_TEMPLATES, s.templateId)) {
@@ -136,8 +152,8 @@ function parseStarter(s) {
 // { consentAt, consentVersion, equipment }: the person agreed to the AI coach building a plan from
 // their answers, at `consentAt` by the hub's clock, to the text `consentVersion` names. Recorded in
 // the profile as a pending build for the Coach to pick up; nothing is run from here.
-function parseCoachBuild(b, now) {
-  const bad = error => ({ ok: false, code: 'bad-coach-build', error });
+function parseCoachBuild(b, now, refuse) {
+  const bad = error => refuse('bad-coach-build', error);
   if (!isMap(b)) return bad('coachBuild must be { consentAt, consentVersion, equipment }');
   for (const k of Object.keys(b)) if (!['consentAt', 'consentVersion', 'equipment'].includes(k)) return bad(`unknown coachBuild field ${k.slice(0, 40)}`);
   const at = typeof b.consentAt === 'string' && CONSENT_AT.test(b.consentAt) ? Date.parse(b.consentAt) : NaN;
@@ -271,7 +287,7 @@ export function seedView(S, { coachAvailable = false } = {}) {
   const p = isMap(S?.coach?.profile) ? S.coach.profile : null;
   return {
     coachAvailable: coachAvailable === true,
-    seed: { ...SEED_CAPABILITY },
+    seed: structuredClone(SEED_CAPABILITY),
     unit: unitOf(S),
     unitChosen: !!S?.unitSet || holdsWeights(S),
     latestWeight: latest ? { date: latest.date, kg: latest.kg } : null,

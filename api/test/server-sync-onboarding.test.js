@@ -73,7 +73,9 @@ test('a new profile with no document gets its first one, and the same write agai
   const before = await h.req('GET', P, { token: mint(KEY, { sub: 'u1' }) });
   assert.equal(before.status, 200);
   assert.deepEqual(before.body, {
-    rev: 0, coachAvailable: false, seed: { starter: true, coachBuild: true }, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+    rev: 0, coachAvailable: false,
+    seed: { starter: true, coachBuild: true, starterTemplates: { 'full-body-2': [1, 2], 'full-body': [3], 'upper-lower': [4], 'upper-lower-ppl': [5], 'ppl-6': [6] } },
+    unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
   });
 
   const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: SEED() });
@@ -271,6 +273,21 @@ test('an AI coach build is refused, and nothing written, where this server has n
   const r = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: { coachProfile: { goal: 'muscle' }, coachBuild: BUILD(), checkIn: false } });
   assert.deepEqual([r.status, r.body.code], [400, 'coach-unavailable']);
   assert.equal(h.hasState('u1'), false);
+});
+
+test('a refusal names the field refused, and the same body without it is taken', async t => {
+  const h = await startServer(t, { users: [user('u1', 'Ana')] });
+  const tok = () => mint(KEY, { sub: 'u1' });
+  const body = { bodyweight: { date: today(), kg: 72.5 }, starter: STARTER({ weekdays: [1, 3] }), checkIn: false };
+  const refused = await h.req('POST', P, { token: tok(), body });
+  assert.deepEqual([refused.status, refused.body.code, refused.body.field], [400, 'bad-plan', 'starter']);
+  const coach = await h.req('POST', P, { token: tok(), body: { bodyweight: body.bodyweight, coachBuild: BUILD() } });
+  assert.deepEqual([coach.status, coach.body.code, coach.body.field], [400, 'coach-unavailable', 'coachBuild']);
+  assert.equal(h.hasState('u1'), false);
+
+  const { starter, ...rest } = body;
+  const sent = await h.req('POST', P, { token: tok(), body: rest });
+  assert.deepEqual([sent.status, sent.body.applied], [200, ['bodyweight', 'checkIn']]);
 });
 
 test('an AI coach build is recorded as consent and a pending marker, once, and nothing is run', async t => {

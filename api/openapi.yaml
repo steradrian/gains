@@ -3398,7 +3398,9 @@ paths:
         the only case the onboarding offers to have it build a plan. `seed` is the server's too:
         which plan fields the POST takes (`starter`, `coachBuild`). A hub sends those only where
         this says so; an openGym from before them answers without `seed`, and refuses both fields
-        as `bad-field`.
+        as `bad-field`. `seed.starterTemplates` names each ready-made plan this server builds and
+        the numbers of weekdays it runs at, so a hub checks a person's choice against them when it
+        is made and keeps no list of its own.
       security:
         - hubToken: []
       responses:
@@ -3420,6 +3422,10 @@ paths:
                     properties:
                       starter: { type: boolean }
                       coachBuild: { type: boolean }
+                      starterTemplates:
+                        type: object
+                        description: 'Each `starter.templateId` the POST takes, and the numbers of weekdays it runs at.'
+                        additionalProperties: { type: array, items: { type: integer, minimum: 1, maximum: 6 } }
                   unit: { type: string, enum: [kg, lb] }
                   unitChosen: { type: boolean }
                   latestWeight:
@@ -3438,7 +3444,7 @@ paths:
                           daysPerWeek: { oneOf: [{ type: integer }, { type: 'null' }] }
                           preferredDays: { type: array, items: { type: integer } }
                   checkIn: { type: boolean }
-              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: false, seed: { starter: true, coachBuild: true }, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 3, plannedDays: 3, coachProfile: null, checkIn: false }
+              example: { rev: 4, wid: "9f2c01ab33de4e10", coachAvailable: false, seed: { starter: true, coachBuild: true, starterTemplates: { full-body-2: [1, 2], full-body: [3], upper-lower: [4], upper-lower-ppl: [5], ppl-6: [6] } }, unit: kg, unitChosen: true, latestWeight: { date: "2026-10-14", kg: 81.2 }, routines: 3, plannedDays: 3, coachProfile: null, checkIn: false }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
@@ -3552,11 +3558,11 @@ paths:
                   wid: { type: string }
               example: { ok: true, changed: true, applied: [bodyweight, plan, checkIn], skipped: [{ field: unit, reason: same }], rev: 5, wid: "77a0c3d2e91b4f08" }
         '400':
-          description: 'A field is malformed or unknown (`bad-field`, `bad-unit`, `bad-date`, `bad-weight`, `bad-coach-profile`, `bad-plan`, `bad-coach-build`, `bad-check-in`), or a coach build reached a server with no AI coach (`coach-unavailable`).'
+          description: 'A field is malformed or unknown (`bad-field`, `bad-unit`, `bad-date`, `bad-weight`, `bad-coach-profile`, `bad-plan`, `bad-coach-build`, `bad-check-in`), or a coach build reached a server with no AI coach (`coach-unavailable`). `field` names the top-level field refused (null: the body as a whole), so the same body without it can be sent: nothing of a refused body is written.'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
-              example: { error: "unknown field units", code: "bad-field" }
+              example: { error: "this server has no AI coach to build a plan", code: "coach-unavailable", field: coachBuild }
         '401': { $ref: '#/components/responses/SyncUnauthorized' }
         '404': { $ref: '#/components/responses/SyncUserGone' }
         '409':
@@ -3850,6 +3856,9 @@ components:
         retryAfter:
           type: integer
           description: 429 only. The same number of seconds as the Retry-After header.
+        field:
+          oneOf: [{ type: string }, { type: 'null' }]
+          description: The onboarding seed's 400 only. The top-level field refused, or null for the body as a whole.
 
     Ok:
       type: object

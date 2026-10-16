@@ -4,6 +4,15 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseSeed, SEED_CAPABILITY, seedState, seedView } from '../sync-seed.js';
 import { highestStamp } from '../sync-stamps.js';
+import { STARTER_TEMPLATES } from '../starter-plans.js';
+
+// What GET /api/sync/onboarding says the seed takes: both plan fields, and each ready-made plan
+// with the weekday counts it runs at.
+const CAPABILITY = {
+  starter: true,
+  coachBuild: true,
+  starterTemplates: { 'full-body-2': [1, 2], 'full-body': [3], 'upper-lower': [4], 'upper-lower-ppl': [5], 'ppl-6': [6] }
+};
 
 const NOW = Date.UTC(2026, 9, 15, 9);
 const TODAY = '2026-10-15';
@@ -60,6 +69,24 @@ describe('parseSeed', () => {
   it('takes a plan only as a choice: built routines are an unknown field', () => {
     assert.equal(parseSeed({ plan: BUILT_PLAN }, NOW).code, 'bad-field');
     assert.equal(parseSeed({ starter: STARTER_2, plan: BUILT_PLAN }, NOW).code, 'bad-field');
+  });
+
+  it('names the field it refused, so a hub can send the rest without a refused plan', () => {
+    const field = (body, opts) => parseSeed(body, NOW, opts).field;
+    assert.equal(field(null), null, 'the body as a whole');
+    assert.equal(field({ units: 'kg' }), 'units', 'an unknown field by its own name');
+    assert.equal(field({ unit: 'st' }), 'unit');
+    assert.equal(field({ bodyweight: { date: TODAY, kg: 8000 } }), 'bodyweight');
+    assert.equal(field({ coachProfile: {} }), 'coachProfile');
+    assert.equal(field({ checkIn: 'no' }), 'checkIn');
+    assert.equal(field({ starter: { ...STARTER_2, templateId: 'ppl' } }), 'starter');
+    assert.equal(field({ starter: { ...STARTER_2, weekdays: [1, 2, 3] } }), 'starter');
+    const build = { consentAt: '2026-10-15T08:30:00.000Z', consentVersion: 'ai-coach-build-v1', equipment: 'gym' };
+    assert.equal(field({ coachBuild: build }), 'coachBuild', 'no AI coach here');
+    assert.equal(field({ coachBuild: { ...build, consentAt: 'soon' } }, { coachAvailable: true }), 'coachBuild');
+    assert.equal(field({ coachBuild: build, starter: STARTER_2 }, { coachAvailable: true }), 'coachBuild');
+    // The weigh-in in the same body is not what was refused.
+    assert.equal(field({ bodyweight: { date: TODAY, kg: 80 }, coachBuild: build }), 'coachBuild');
   });
 });
 
@@ -195,7 +222,7 @@ describe('seedView', () => {
     };
     const v = seedView(S);
     assert.deepEqual(v, {
-      coachAvailable: false, seed: { starter: true, coachBuild: true }, unit: 'lb', unitChosen: true, latestWeight: { date: '2026-10-01', kg: 80.01 },
+      coachAvailable: false, seed: CAPABILITY, unit: 'lb', unitChosen: true, latestWeight: { date: '2026-10-01', kg: 80.01 },
       routines: 1, plannedDays: 2,
       coachProfile: { goal: 'fatloss', experience: null, daysPerWeek: 4, preferredDays: [1, 3] },
       checkIn: false
@@ -206,7 +233,7 @@ describe('seedView', () => {
 
   it('answers for a profile with nothing', () => {
     assert.deepEqual(seedView({}), {
-      coachAvailable: false, seed: { starter: true, coachBuild: true }, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+      coachAvailable: false, seed: CAPABILITY, unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
     });
   });
 
@@ -216,6 +243,21 @@ describe('seedView', () => {
     assert.equal(parseSeed({ starter: STARTER_2 }, NOW).ok, SEED_CAPABILITY.starter);
     const build = { consentAt: '2026-10-15T08:30:00.000Z', consentVersion: 'ai-coach-build-v1', equipment: 'gym' };
     assert.equal(parseSeed({ coachBuild: build }, NOW, { coachAvailable: true }).ok, SEED_CAPABILITY.coachBuild);
+  });
+
+  it('says each ready-made plan and the weekday counts it runs at, exactly what parseSeed takes', () => {
+    const { starterTemplates } = seedView({}).seed;
+    assert.deepEqual(Object.keys(starterTemplates).sort(), Object.keys(STARTER_TEMPLATES).sort());
+    for (const [templateId, counts] of Object.entries(starterTemplates)) {
+      for (let n = 1; n <= 6; n++) {
+        const weekdays = [0, 1, 2, 3, 4, 5].slice(0, n);
+        const taken = parseSeed({ starter: { templateId, weekdays, equipment: 'gym' } }, NOW).ok;
+        assert.equal(taken, counts.includes(n), `${templateId} on ${n} days`);
+      }
+    }
+    // A view handed out is a copy: changing it changes nothing here.
+    starterTemplates['full-body'].push(6);
+    assert.deepEqual(seedView({}).seed.starterTemplates['full-body'], [3]);
   });
 
   it('carries the server’s word on the AI coach, true only when it is exactly true', () => {

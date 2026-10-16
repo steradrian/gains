@@ -290,7 +290,8 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
     // while it is new (NEW_PROFILE_MS): its devices then merge it like another device's copy.
     'POST /api/sync/onboarding': authed(async (req, res, user) => {
       const parsed = parseSeed(await readBody(req, SEED_BODY_MAX), Date.now(), { coachAvailable: coachAvailable() });
-      if (!parsed.ok) return bad(json, res, parsed.code, parsed.error);
+      // Which field was refused goes with the code: the hub sends the rest without a refused plan.
+      if (!parsed.ok) return json(res, 400, { error: parsed.error, code: parsed.code, field: parsed.field });
       const again = findUser(user.id);
       if (!again) return json(res, 404, { error: 'no such user', code: 'user-gone' });
       if (again.disabled) return json(res, 401, { error: 'this account has been disabled', code: 'disabled' });
