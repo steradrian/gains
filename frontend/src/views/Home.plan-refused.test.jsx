@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // The plan chosen at onboarding that openGym could not set up (the hub's state: plan refused, the
-// rest of the write in): Home says so in place of the welcome, with Training to pick one, until a
-// plan exists.
+// rest of the write in): Home's This week (components/HomeWeek.jsx) says so in place of the
+// welcome, with Training to pick one, until a plan exists.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -12,8 +12,8 @@ import Home from './Home.jsx'
 const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
-  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
+  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(), menuSheet: vi.fn(),
+  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(), workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
 }))
 // The diary's cards read NutriTrace; this is about the plan only.
 vi.mock('../lib/nutrition/use-diary-day.js', () => ({ useDiaryDay: () => ({ on: false }) }))
