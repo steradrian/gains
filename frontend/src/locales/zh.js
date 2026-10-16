@@ -105,7 +105,6 @@ export default {
   // --- nutrition diary on Home: English until the translation pass ---
   '{0} items': '{0} items',
   '{0} left': '{0} left',
-  '{0} of {1} eaten': '{0} of {1} eaten',
   '{0} over': '{0} over',
   '{0} over 7 days': '{0} over 7 days',
   '7 days': '7 days',
@@ -156,7 +155,6 @@ export default {
   'Snacks': 'Snacks',
   'Stop adding to {0}': 'Stop adding to {0}',
   'Tap a day to see it': 'Tap a day to see it',
-  'Target': 'Target',
   'The diary did not load: no connection.': 'The diary did not load: no connection.',
   'The diary did not load: you are signed out.': 'The diary did not load: you are signed out.',
   'The diary did not load.': 'The diary did not load.',
@@ -2946,4 +2944,9 @@ export default {
   'Nothing planned this week': '本周暂无安排',
   'Pick exercises as you go': '边练边选动作',
   'Start a freestyle workout': '开始自由训练',
+
+  // --- the redesigned Nutrition tab ---
+  'Library': '资料库',
+  'Set targets': '设定目标',
+  '{0} eaten · {1} goal': '已摄入 {0} · 目标 {1}',
 }

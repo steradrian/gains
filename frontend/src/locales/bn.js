@@ -105,7 +105,6 @@ export default {
   // --- nutrition diary on Home: English until the translation pass ---
   '{0} items': '{0} items',
   '{0} left': '{0} left',
-  '{0} of {1} eaten': '{0} of {1} eaten',
   '{0} over': '{0} over',
   '{0} over 7 days': '{0} over 7 days',
   '7 days': '7 days',
@@ -156,7 +155,6 @@ export default {
   'Snacks': 'Snacks',
   'Stop adding to {0}': 'Stop adding to {0}',
   'Tap a day to see it': 'Tap a day to see it',
-  'Target': 'Target',
   'The diary did not load: no connection.': 'The diary did not load: no connection.',
   'The diary did not load: you are signed out.': 'The diary did not load: you are signed out.',
   'The diary did not load.': 'The diary did not load.',
@@ -3025,4 +3023,9 @@ export default {
   'Nothing planned this week': 'এই সপ্তাহে কিছু পরিকল্পনা করা নেই',
   'Pick exercises as you go': 'চলতে চলতে ব্যায়াম বেছে নিন',
   'Start a freestyle workout': 'ফ্রিস্টাইল ওয়ার্কআউট শুরু করুন',
+
+  // --- the redesigned Nutrition tab ---
+  'Library': 'লাইব্রেরি',
+  'Set targets': 'লক্ষ্য ঠিক করুন',
+  '{0} eaten · {1} goal': '{0} খাওয়া হয়েছে · লক্ষ্য {1}',
 }

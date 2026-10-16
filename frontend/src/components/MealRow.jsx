@@ -15,8 +15,9 @@ import MacroLine from './MacroLine.jsx'
 // the meal show follows Profile › Diary & meals (brand names, time logged, quick calories, macro
 // summary).
 // `find`: the uuid of an entry in it a search's Day result asks for (FoodHub `?find=`): the meal opens
-// and that entry is scrolled to and flashed once.
-export default function MealRow({ date, slot, name, items, find = null }) {
+// and that entry is scrolled to and flashed once. `children`: a line under the meal's head
+// (yesterday's meal to log again, MealsCard).
+export default function MealRow({ date, slot, name, items, find = null, children }) {
   const { energy } = useUnits()
   const settings = useNutrition(s => s.settings.data)
   const [open, setOpen] = useState(!!find)
@@ -56,6 +57,7 @@ export default function MealRow({ date, slot, name, items, find = null }) {
         <Icon name={adding ? 'xmark' : 'plus'} />
       </button>
     </div>
+    {children}
     {items.length > 0 && settingOf(settings, 'diaryShowMacroSummary') && <MacroLine p={totals.proteins} c={totals.carbohydrates} f={totals.fat} />}
     {open && items.length > 0 && <ul className="meal-items" id={listId} ref={listRef}>
       {rows.map(row => {
