@@ -157,7 +157,10 @@ describe('Photos segment: the list', () => {
   it('shows the empty state with no photos', () => {
     setWorkouts([workout('2026-01-01')])
     mount()
-    expect(text()).toContain('No progress photos yet')
+    const empty = host.querySelector('.empty[data-surface=page]')
+    expect(empty.querySelector('.lineart[data-scene=photo]')).not.toBeNull()
+    expect(empty.querySelector('h2').textContent).toBe('No progress photos yet')
+    expect(empty.querySelector('p').textContent).toBe('Add one to a day you trained, and line them up here by date.')
     expect(thumbs()).toHaveLength(0)
   })
 
@@ -165,7 +168,7 @@ describe('Photos segment: the list', () => {
     setWorkouts([workout('2026-01-01', [img(1)]), workout('2026-02-01', [img(2), img(3)])])
     mount()
     expect(text()).toContain('3 photos')
-    expect(text()).not.toContain('No progress photos yet')
+    expect(host.querySelector('.empty')).toBeNull()
     expect([...host.querySelectorAll('.wmedia-grid')].map(g => g.children.length)).toEqual([2, 1])
     act(() => root.render(<div />))
     setWorkouts([workout('2026-01-01', [img(1)])])

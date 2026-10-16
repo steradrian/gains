@@ -207,7 +207,8 @@ describe('the root', () => {
     act(() => rowTitled('Vibrate').click())
     expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Vibrate' } }])
     type('zzzz')
-    expect(host.querySelector('.sp-empty').textContent).toBe('No setting matches “zzzz”.')
+    expect(host.querySelector('.empty[data-surface=page] .lineart[data-scene=search]')).not.toBeNull()
+    expect(host.querySelector('.empty h2').textContent).toBe('No setting matches “zzzz”.')
   })
 
   // Review of #37: a hit for a row on the root itself lands on the same page, and the results it

@@ -113,7 +113,7 @@ export default function Library() {
         trailing={<Icon name="plus" className="chev" />}
         onClick={() => customExSheet(null, ex => exerciseDetailSheet(ex), q.trim())} />
       {f.slice(0, shown).map(row)}
-      {f.length === 0 && !similar.length && <EmptyState icon="magnifier">{t('No match')}</EmptyState>}
+      {f.length === 0 && !similar.length && <EmptyState illustration="search" title={t('No match')} />}
       {similar.length > 0 && <SectionTitle className="similar-label">{f.length ? t('Similar exercises') : t('No exact match. These come close:')}</SectionTitle>}
       {similar.map(row)}
     </div>

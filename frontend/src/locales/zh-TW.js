@@ -439,7 +439,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} 個動畫動作 + 1 個自訂',
   '{1} animated exercises + {0} of your own': '{1} 個動畫動作 + {0} 個自訂',
   'Search…': '搜尋…',
-  'No workouts yet. Your first one will land here.': '還沒有訓練紀錄。你的第一次訓練會出現在這裡。',
   'Enter a name': '請輸入名稱',
   'Profile created, and this device’s data moved into it': '個人檔案已建立，本裝置的資料已轉移進去',
   'Profile created, and your data moved into it': '個人檔案已建立，你的資料已轉移進去',

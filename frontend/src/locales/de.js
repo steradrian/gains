@@ -456,7 +456,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} Übungen mit Animation + 1 eigene',
   '{1} animated exercises + {0} of your own': '{1} Übungen mit Animation + {0} eigene',
   'Search…': 'Suchen…',
-  'No workouts yet. Your first one will land here.': 'Noch keine Trainings. Dein erstes landet hier.',
   // --- login / account ---
   'Enter a name': 'Gib einen Namen ein',
   'Profile created, and this device’s data moved into it': 'Profil erstellt, die Daten von diesem Gerät sind jetzt drin',

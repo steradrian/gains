@@ -447,7 +447,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} ท่าพร้อมภาพเคลื่อนไหว + ของคุณ 1 ท่า',
   '{1} animated exercises + {0} of your own': '{1} ท่าพร้อมภาพเคลื่อนไหว + ของคุณ {0} ท่า',
   'Search…': 'ค้นหา…',
-  'No workouts yet. Your first one will land here.': 'ยังไม่มีการออกกำลังกาย ครั้งแรกของคุณจะมาโผล่ตรงนี้',
   // --- login / account ---
   'Enter a name': 'กรอกชื่อ',
   'Profile created, and this device’s data moved into it': 'สร้างโปรไฟล์แล้ว และย้ายข้อมูลจากเครื่องนี้เข้าไปแล้ว',

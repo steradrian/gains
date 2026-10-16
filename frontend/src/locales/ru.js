@@ -435,7 +435,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} упр. с анимацией + 1 своё',
   '{1} animated exercises + {0} of your own': { one: '{1} упр. с анимацией + {0} своё', few: '{1} упр. с анимацией + {0} своих', many: '{1} упр. с анимацией + {0} своих', other: '{1} упр. с анимацией + {0} своего' },
   'Search…': 'Поиск…',
-  'No workouts yet. Your first one will land here.': 'Тренировок пока нет. Первая появится здесь.',
   'Enter a name': 'Введите имя',
   'Profile created, and this device’s data moved into it': 'Профиль создан, данные с этого устройства перенесены в него',
   'Profile created, and your data moved into it': 'Профиль создан, данные перенесены в него',

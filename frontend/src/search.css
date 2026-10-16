@@ -171,7 +171,6 @@ body.search-open #tabbar,body.search-open #timer.dock{
 .sr-note-row{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:start;padding-inline-end:var(--space-4)}
 .sr-note-row>.sr-note{flex:1;min-width:0}
 .sr-note-row>.btn{min-height:44px;flex:none}
-.sr-empty{max-height:30vh}
 
 /* ------------------------------------------------------------------ the diary's found entry -- */
 

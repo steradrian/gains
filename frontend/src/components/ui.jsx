@@ -15,6 +15,7 @@
 
 import { useRef, useState, useEffect, useCallback, forwardRef } from 'react'
 import Icon from './Icon.jsx'
+import { EmptyState } from './blocks.jsx'
 import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
@@ -455,9 +456,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
             {o.value === value && <Icon name="check" className="lrow-k" />}
           </button>
         ))}
-        {!visible.length && search && <div className="empty">
-          <div className="ico"><Icon name="magnifier" /></div>{search.emptyLabel}
-        </div>}
+        {!visible.length && search && <EmptyState illustration="search" title={search.emptyLabel} />}
       </div>
       <div className="sp-4" />
     </>

@@ -3,7 +3,7 @@ import { Page } from '../components/layout.jsx'
 import { t, tn } from '../lib/i18n.js'
 import { WorkoutRow, DayNoteRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
 import { Button } from '../components/ui.jsx'
-import Icon from '../components/Icon.jsx'
+import { EmptyState } from '../components/blocks.jsx'
 import { dayNoteOf } from '../lib/day-notes.js'
 
 // Newest first: every workout, and in between them the days off you left a note on (#261). A
@@ -24,6 +24,6 @@ export default function History() {
     {rows.length ? <div className="list">{rows.map(r => r.w
       ? <WorkoutRow key={r.w.id} w={r.w} onClick={() => workoutDetailSheet(r.w)} />
       : <DayNoteRow key={'note-' + r.d} iso={r.d} note={r.note} />)}</div>
-      : <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No workouts yet. Your first one will land here.')}</div>}
+      : <EmptyState illustration="calendar" title={t('No workouts yet')} />}
   </Page>
 }

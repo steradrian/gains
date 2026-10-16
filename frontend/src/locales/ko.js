@@ -443,7 +443,6 @@ export default {
   '{1} animated exercises + 1 of your own': '애니메이션 운동 {1}개 + 내 운동 1개',
   '{1} animated exercises + {0} of your own': '애니메이션 운동 {1}개 + 내 운동 {0}개',
   'Search…': '검색…',
-  'No workouts yet. Your first one will land here.': '아직 운동 기록이 없어요. 첫 운동이 여기에 쌓일 거예요.',
   'Enter a name': '이름을 입력하세요',
   'Profile created, and this device’s data moved into it': '프로필이 생성되었고 이 기기의 데이터가 옮겨졌어요',
   'Profile created, and your data moved into it': '프로필이 생성되었고 데이터가 옮겨졌어요',

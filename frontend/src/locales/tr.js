@@ -443,7 +443,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} animasyonlu egzersiz + 1 özel',
   '{1} animated exercises + {0} of your own': '{1} animasyonlu egzersiz + {0} özel',
   'Search…': 'Ara…',
-  'No workouts yet. Your first one will land here.': 'Henüz antrenman yok. İlkin buraya düşecek.',
   'Enter a name': 'Bir isim gir',
   'Profile created, and this device’s data moved into it': 'Profil oluşturuldu ve bu cihazdaki veriler içine taşındı',
   'Profile created, and your data moved into it': 'Profil oluşturuldu ve verilerin içine taşındı',
