@@ -4,7 +4,7 @@
 // seemed to do nothing.
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeThenNav, nav, navToWorkout, setNav } from './nav.js'
+import { closeThenNav, closeThenReplace, nav, navToWorkout, noteSheetEntries, setNav } from './nav.js'
 
 let calls
 beforeEach(() => {
@@ -21,7 +21,7 @@ describe('nav', () => {
   })
 
   it('a closing sheet hands its history entry to the next page', () => {
-    history.pushState({ openGymSheet: true }, '')
+    history.pushState({ gainsSheet: true }, '')
     const close = vi.fn()
     closeThenNav(close, '/me/workout')
     expect(close).toHaveBeenCalledOnce()
@@ -33,6 +33,42 @@ describe('nav', () => {
     expect(calls).toEqual([['/home']])
   })
 
+  describe('closeThenReplace', () => {
+    it('replaces the page at once when no sheet entry sits on it', () => {
+      const close = vi.fn()
+      closeThenReplace(close, '/progress/body/photos')
+      expect(close).toHaveBeenCalledOnce()
+      expect(calls).toEqual([['/progress/body/photos', { replace: true }]])
+    })
+
+    it('waits for the sheet\'s entry to be walked off, then replaces the page under it', () => {
+      history.pushState({ gainsSheet: true }, '')
+      noteSheetEntries(1)
+      const close = vi.fn()
+      closeThenReplace(close, '/progress/body/photos')
+      expect(close).toHaveBeenCalledOnce()
+      expect(calls).toEqual([])
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      expect(calls).toEqual([['/progress/body/photos', { replace: true }]])
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      expect(calls).toHaveLength(1)
+      noteSheetEntries(0)
+    })
+
+    it('replaces anyway when the walk-off never comes', () => {
+      vi.useFakeTimers()
+      history.pushState({ gainsSheet: true }, '')
+      noteSheetEntries(1)
+      closeThenReplace(() => {}, '/progress/body/photos')
+      vi.advanceTimersByTime(500)
+      expect(calls).toEqual([['/progress/body/photos', { replace: true }]])
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      expect(calls).toHaveLength(1)
+      noteSheetEntries(0)
+      vi.useRealTimers()
+    })
+  })
+
   it('starting from the routine chooser replaces its #/train/workout', () => {
     history.replaceState(null, '', '#/train/workout')
     navToWorkout()
@@ -40,7 +76,7 @@ describe('nav', () => {
   })
 
   it('starting through the weigh-in sheet replaces the sheet\'s entry', () => {
-    history.pushState({ openGymSheet: true }, '')
+    history.pushState({ gainsSheet: true }, '')
     navToWorkout()
     expect(calls).toEqual([['/train/workout', { replace: true }]])
   })
