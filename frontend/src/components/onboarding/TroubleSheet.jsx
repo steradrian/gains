@@ -5,7 +5,15 @@ import { SheetActions, SheetHeader } from '../sheet-layout.jsx'
 import { Button } from '../ui.jsx'
 
 // "Having trouble?" after a passkey prompt was cancelled or could not open: what a passkey needs,
-// and the link to open in a real browser (an in-app browser cannot save one).
+// and the link to open in a real browser (an in-app browser cannot save one): the phone's own,
+// Chrome on Android and Safari on iOS (an iPad says Macintosh, with touch).
+function copyLabel() {
+  const ua = navigator.userAgent
+  if (/Android/.test(ua)) return t('Copy link to open in Chrome')
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return t('Copy link to open in Safari')
+  return t('Copy link to open in your browser')
+}
+
 export default function TroubleSheet({ close }) {
   const copy = async () => {
     const ok = await copyText(window.location.href).then(() => true, () => false)
@@ -16,7 +24,7 @@ export default function TroubleSheet({ close }) {
     <SheetHeader title={t('Having trouble?')} />
     <p className="ob-sheet-p">{t('Passkeys need Safari or Chrome, with Face ID, Touch ID or a screen lock turned on. Some apps open links in their own browser, which can’t save one.')}</p>
     <SheetActions>
-      <Button variant="primary" onClick={copy}>{t('Copy link to open in Safari')}</Button>
+      <Button variant="primary" onClick={copy}>{copyLabel()}</Button>
       <Button onClick={close}>{t('Close')}</Button>
     </SheetActions>
   </>

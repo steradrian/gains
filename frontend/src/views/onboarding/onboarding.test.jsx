@@ -135,6 +135,22 @@ describe('1 Name + passkey', () => {
     expect(mocks.sheets).toHaveLength(1)
   })
 
+  it.each([
+    ['Android', 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36', 'Copy link to open in Chrome'],
+    ['iOS', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', 'Copy link to open in Safari'],
+  ])('names the phone\'s own browser for the link on %s', async (_, ua, label) => {
+    const agent = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ua)
+    saved({ code: 'AB12', invite: { status: 'valid', inviterName: null, suggestedName: 'Maria' }, answers: {} })
+    passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
+    const page = mount('/onboarding/name')
+    await act(async () => { button(page, 'Create passkey').click() })
+    click(button(page, 'Having trouble?'))
+    const sheet = openedSheet()
+    expect(button(sheet.host, label)).toBeTruthy()
+    sheet.done()
+    agent.mockRestore()
+  })
+
   it('makes the account and moves to the passkey result, which moves on to the goal by itself', async () => {
     saved({ code: 'AB12', answers: {} })
     passkeys.passkeyRegister.mockResolvedValue({ id: 'u1', name: 'Maria' })
@@ -259,6 +275,8 @@ describe('3 About you', () => {
     press(wheel, 'Enter')
     const field = page.querySelector('input[aria-label="Year you were born"]')
     expect(document.activeElement).toBe(field)
+    // Not inside the slider, whose children are presentational: the field is reachable.
+    expect(field.closest('[role="slider"]')).toBeNull()
     act(() => { field.value = '1850' })
     press(field, 'Enter')
     expect(mocks.toasts).toContain('Kept within 1926–2011')
@@ -275,6 +293,42 @@ describe('3 About you', () => {
     press(field, 'Escape')
     expect(page.querySelector('.ob-pk-in')).toBeNull()
     expect(wheel.getAttribute('aria-valuenow')).toBe('1990')
+  })
+
+  it('3b: the live caption speaks once the wheel settles, not at every step on the way', async () => {
+    saved({ answers: { goal: 'keep', body: { ...full, birthYear: 1990 } } })
+    const page = mount('/onboarding/born')
+    await flush()
+    const cap = () => page.querySelector('.ob-cap').textContent
+    expect(cap()).toMatch(/^Born 1990\. /)
+    const wheel = page.querySelector('[role="slider"]')
+    const spin = () => act(() => { wheel.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true })) })
+    spin()
+    expect(wheel.getAttribute('aria-valuenow')).toBe('1991')
+    spin()
+    expect(wheel.getAttribute('aria-valuenow')).toBe('1992')
+    expect(cap()).toMatch(/^Born 1990\. /)
+    later(240)
+    expect(cap()).toMatch(/^Born 1992\. /)
+  })
+
+  it('3d: the hub\'s target still on its way when Back is tapped shows on the screen before, asked once', async () => {
+    // Answers of their own: the target's cache outlives a test.
+    saved({ answers: { goal: 'keep', body: { sex: 'male', birthYear: 1985, heightCm: 181, weightKg: null } } })
+    let reply
+    hub.previewTargets.mockImplementation(() => new Promise(resolve => { reply = resolve }))
+    const page = mount('/onboarding/weight')
+    await flush()
+    press(page.querySelector('[role="slider"]'), 'ArrowLeft')
+    later(300)
+    expect(hub.previewTargets).toHaveBeenCalledTimes(1)
+    click(page.querySelector('[aria-label="Back"]'))
+    expect(where(page)).toBe('/onboarding/height')
+    later(300)
+    await act(async () => { reply({ ready: true, targets: { calories: 2480 } }) })
+    await flush()
+    expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target:')
+    expect(hub.previewTargets).toHaveBeenCalledTimes(1)
   })
 
   it('3c: the ruler steps with the arrows and switches to feet and inches', async () => {
@@ -721,6 +775,19 @@ describe('what the hub says is answered or not needed (§6)', () => {
     expect(where(page)).toBe('/onboarding/finish')
     later(2000)
     expect(where(page)).toBe('/onboarding/finish')
+  })
+
+  it('says how many steps are left from the hub\'s remaining, as the progress bar counts them, politely', async () => {
+    saved({ answers: { goal: 'keep' } })
+    hub.loadOnboarding.mockResolvedValue(fromHub({ answered: [], answers: { goal: { goal: 'keep' } }, next: 'body', remaining: ['body', 'training', 'plan'] }))
+    const page = mount('/onboarding/sex')
+    await flush()
+    const left = page.querySelector('.ob-nav [aria-live="polite"]')
+    expect(left.textContent).toBe('2 steps left')
+    expect(page.querySelector('[role="progressbar"]').getAttribute('aria-valuetext')).toBe('Step 2 of 3: You, 1 of 4')
+    click(button(page, 'Skip'))
+    expect(where(page)).toBe('/onboarding/training')
+    expect(page.querySelector('.ob-nav [aria-live="polite"]').textContent).toBe('1 step left')
   })
 
   it('resumes where the hub says, straight to the end when the data answers everything', async () => {

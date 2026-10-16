@@ -19,7 +19,10 @@
 [dir="rtl"] .ob-nbtn .icn{transform:scaleX(-1)}
 .ob-nend{height:44px;padding:0 12px;font-size:17px;color:var(--acc-ink);white-space:nowrap;justify-self:end;transition:opacity var(--fast)}
 .ob-nend:active{opacity:.5}
-.ob-prog{display:flex;gap:4px;width:min(100%,168px);justify-self:center;transition:opacity var(--med)}
+.ob-mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.ob-mid:has(.ob-left:empty){gap:0}
+.ob-prog{display:flex;gap:4px;width:min(100%,168px);transition:opacity var(--med)}
+.ob-left{font-size:var(--fs-caption);line-height:1.2;color:var(--label-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ob-prog.off{opacity:0}
 .ob-prog>span{flex:1;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden}
 .ob-prog>span>i{display:block;height:100%;background:var(--acc-graphic);transform:scaleX(var(--fill,0));transform-origin:left center;transition:transform var(--ob-slow) var(--ease)}
@@ -163,7 +166,9 @@ body.kb-open .ob-foot{padding-top:8px;padding-bottom:8px}
 .ob-wh-row.on{color:var(--label)}
 .ob-pk.untouched .ob-wh-row,.ob-pk.untouched .ob-wh-row.on{color:var(--label-3)}
 .ob-wheel.typing .ob-wh-in{visibility:hidden}
-.ob-wheel .ob-pk-in{position:absolute;left:50%;top:44px;height:44px;margin-left:-70px;font-size:22px}
+/* The year's field sits beside the wheel (not in its slider), over the band: 4px margin + 44px. */
+.ob-pk:has(> .ob-wheel){position:relative}
+.ob-pk > .ob-pk-in{position:absolute;left:50%;top:48px;height:44px;margin-left:-70px;font-size:22px}
 
 /* "Why we ask" sits in the fixed header: its 44px target may reach 12px into the gap above the stage. */
 .ob-why{display:flex;width:max-content;align-items:center;gap:6px;min-height:44px;margin:2px 0 -12px;padding:0 2px;font-size:15px;color:var(--acc-ink)}

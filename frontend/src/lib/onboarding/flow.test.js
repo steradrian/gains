@@ -2,8 +2,26 @@
 import { describe, expect, it } from 'vitest'
 import {
   answeredByData, codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, previousOf, progressMax,
-  resumeScreen, screenOf, skipTarget, stepOf,
+  resumeScreen, screenOf, skipTarget, stepOf, stepsLeft,
 } from './flow.js'
+
+describe('steps left (§6), counted as the progress bar counts them', () => {
+  it('counts the bar\'s steps the hub still names, from the one on screen', () => {
+    expect(stepsLeft(['goal', 'body', 'training', 'plan'], 'goal')).toBe(3)
+    // Training and its plan are one step of the bar.
+    expect(stepsLeft(['body', 'training', 'plan'], 'height')).toBe(2)
+    expect(stepsLeft(['training', 'plan'], 'training')).toBe(1)
+    // A step behind the one on screen is not left, whatever an older read said.
+    expect(stepsLeft(['goal', 'body', 'training', 'plan'], 'plan')).toBe(1)
+    expect(stepsLeft([], 'weight')).toBe(0)
+  })
+
+  it('says nothing where the bar is not shown or the hub has not answered', () => {
+    expect(stepsLeft(['plan'], 'finish')).toBeNull()
+    expect(stepsLeft(['goal'], 'name')).toBeNull()
+    expect(stepsLeft(null, 'goal')).toBeNull()
+  })
+})
 
 const body = (o = {}) => ({ sex: null, birthYear: null, heightCm: null, weightKg: null, ...o })
 const full = body({ sex: 'female', birthYear: 1990, heightCm: 168, weightKg: 64 })

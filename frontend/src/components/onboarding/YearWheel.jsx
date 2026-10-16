@@ -48,8 +48,10 @@ export default function YearWheel({ range, value, onChange, onBad }) {
             {years.map(y => <div key={y} className={cx('ob-wh-row', y === picker.value && 'on')}>{y}</div>)}
           </div>
         </div>
-        {typing && <TypeIn initial={value == null ? '' : String(value)} label={t('Year you were born')} onDone={done} />}
       </div>
+      {/* Beside the slider, over its band: a slider's children are presentational, a field inside
+          one is not reachable. */}
+      {typing && <TypeIn initial={value == null ? '' : String(value)} label={t('Year you were born')} onDone={done} />}
     </div>
   )
 }

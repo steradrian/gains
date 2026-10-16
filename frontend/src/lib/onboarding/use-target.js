@@ -4,9 +4,11 @@ import { previewTargets } from './api.js'
 import { bodyComplete } from './flow.js'
 import { estimateRange } from './estimate.js'
 
-// The answers the hub's preview was last asked for, and its answer: every About-you screen shows
-// the same ring, so moving between them asks once.
+// The answers the hub's preview was last asked for, the ask itself, and its answer: every About-you
+// screen shows the same ring, so moving between them asks once. A screen that arrives while the
+// ask is still out (Back right after the weight settles) waits on that ask, not on a new one.
 let asked = null
+let asking = null
 let answer = null
 
 const keyOf = a => JSON.stringify([a.goal, a.body, a.activity?.value, a.trainingDays ?? null])
@@ -23,20 +25,29 @@ export function useTarget(answers) {
   const [exact, setExact] = useState(() => (key && key === asked ? answer : null))
   useEffect(() => {
     if (!key) { setExact(null); return undefined }
-    if (key === asked) { setExact(answer); return undefined }
     let live = true
+    const show = ask => ask.then(v => { if (live) setExact(v) })
+    if (key === asked) {
+      setExact(answer)
+      show(asking)
+      return () => { live = false }
+    }
     // Settled answers only: a ruler being dragged asks once it stops.
     const timer = setTimeout(() => {
       asked = key
       answer = null
-      previewTargets(answers).then(res => {
-        answer = res?.ready && Number.isFinite(res.targets?.calories) ? res.targets.calories : null
-        if (live) setExact(answer)
-      }).catch(() => {
+      const ask = previewTargets(answers).then(res => {
+        const v = res?.ready && Number.isFinite(res.targets?.calories) ? res.targets.calories : null
+        // An older ask landing late never stands in for the latest one's answer.
+        if (asking === ask) answer = v
+        return v
+      }, () => {
         // No answer is not an answer: the same answers ask again next time.
-        asked = null
-        if (live) setExact(null)
+        if (asking === ask) { asked = null; asking = null }
+        return null
       })
+      asking = ask
+      show(ask)
     }, 300)
     return () => { live = false; clearTimeout(timer) }
     // keyed on the answers' content, not the object

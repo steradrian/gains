@@ -7,6 +7,7 @@ import CalendarScene from '../../components/onboarding/scenes/CalendarScene.jsx'
 import { t } from '../../lib/i18n.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { yearRange } from '../../lib/onboarding/units.js'
+import { useSettledCaption } from '../../lib/onboarding/use-settled-caption.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
@@ -16,14 +17,20 @@ export default function BornScreen() {
   const year = state.answers.body.birthYear
   const target = useTarget(state.answers)
   const [settled, setSettled] = useState(year != null)
+  const [moving, setMoving] = useState(false)
   const range = yearRange()
+  const caption = useSettledCaption(settled && !moving && year != null, `${t('Born {0}.', year)} ${targetSentence(target)}`)
   return (
     <StepScreen fixedHeader titleId="ob-born-t" title={t('When were you born?')} sub={t('Just the year. Spin the wheel, or tap the year to type it.')}
       stage={<CalendarScene year={year} after={<TargetRing target={target} />} />}
-      caption={settled && year != null ? `${t('Born {0}.', year)} ${targetSentence(target)}` : ''}
+      caption={caption}
       footer={<NextButton screen="born" ready={year != null} />}>
       <YearWheel range={range} value={year} onBad={msg => useUI.getState().toast(msg)}
-        onChange={(v, final) => { act({ type: 'body', field: 'birthYear', value: v }); if (final) setSettled(true) }} />
+        onChange={(v, final) => {
+          act({ type: 'body', field: 'birthYear', value: v })
+          setMoving(!final)
+          if (final) setSettled(true)
+        }} />
     </StepScreen>
   )
 }

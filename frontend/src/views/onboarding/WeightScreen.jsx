@@ -7,6 +7,7 @@ import ScaleScene from '../../components/onboarding/scenes/ScaleScene.jsx'
 import { t } from '../../lib/i18n.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { WEIGHT, parseWeight, weightFrom, weightTo } from '../../lib/onboarding/units.js'
+import { useSettledCaption } from '../../lib/onboarding/use-settled-caption.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
@@ -25,10 +26,11 @@ export default function WeightScreen() {
   const unitName = unit === 'kg' ? t('kilograms') : t('pounds')
   const otherName = unit === 'kg' ? t('pounds') : t('kilograms')
   const shown = value ?? scale.start
+  const caption = useSettledCaption(settled && !live && kg != null, `${t('Weight {0}.', scale.say(shown))} ${targetSentence(target)}`)
   return (
     <StepScreen fixedHeader titleId="ob-weight-t" title={t('What do you weigh today?')} sub={t('Saved as your first weigh-in. Only you see it.')}
       stage={<ScaleScene kg={kg} unit={unit} live={live} after={<TargetRing target={target} />} />}
-      caption={settled && kg != null ? `${t('Weight {0}.', scale.say(shown))} ${targetSentence(target)}` : ''}
+      caption={caption}
       footer={<NextButton screen="weight" ready={kg != null} />}>
       <RulerPicker scale={scale} value={value} label={t('Weight')} onBad={msg => useUI.getState().toast(msg)}
         onChange={(v, final) => {

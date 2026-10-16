@@ -7,6 +7,7 @@ import DoorScene from '../../components/onboarding/scenes/DoorScene.jsx'
 import { t } from '../../lib/i18n.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { HEIGHT, heightFrom, heightTo, parseHeight } from '../../lib/onboarding/units.js'
+import { useSettledCaption } from '../../lib/onboarding/use-settled-caption.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
@@ -25,10 +26,11 @@ export default function HeightScreen() {
   const unitName = unit === 'cm' ? t('centimetres') : t('feet and inches')
   const otherName = unit === 'cm' ? t('feet and inches') : t('centimetres')
   const shown = value ?? scale.start
+  const caption = useSettledCaption(settled && !live && cm != null, `${t('Height {0}.', scale.say(shown))} ${targetSentence(target)}`)
   return (
     <StepScreen fixedHeader titleId="ob-height-t" title={t('How tall are you?')} sub={t('Drag the ruler, or tap the number to type it.')}
       stage={<DoorScene cm={cm} live={live} after={<TargetRing target={target} />} />}
-      caption={settled && cm != null ? `${t('Height {0}.', scale.say(shown))} ${targetSentence(target)}` : ''}
+      caption={caption}
       footer={<NextButton screen="height" ready={cm != null} />}>
       <RulerPicker scale={scale} value={value} label={t('Height')} onBad={msg => useUI.getState().toast(msg)}
         onChange={(v, final) => {

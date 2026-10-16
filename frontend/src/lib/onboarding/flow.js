@@ -75,7 +75,20 @@ export const stepOf = screen => {
   return !want ? null : want[2] ? 3 : want[1] ? 2 : 1
 }
 
-const bodyValue = (answers, step) => answers?.body?.[YOU_FIELD[step]] ?? null
+// The bar's step each of the hub's steps belongs to: the plan is part of Training.
+const BAR_STEP = { goal: 1, body: 2, training: 3, plan: 3 }
+/**
+ * "N steps left" (ux-onboarding §6): the bar's steps, from the one `screen` is on, that the hub's
+ * `remaining` still names. Counted as the bar counts them, so it never says more are left than the
+ * bar has still to fill. null where the bar is not shown or the hub has not said.
+ */
+export function stepsLeft(remaining, screen) {
+  const at = stepOf(screen)
+  if (!at || !Array.isArray(remaining)) return null
+  return new Set(remaining.map(s => BAR_STEP[s]).filter(n => n >= at)).size
+}
+
+const bodyValue =(answers, step) => answers?.body?.[YOU_FIELD[step]] ?? null
 /** The About-you steps still unanswered, in order. */
 export const missingYou = answers => YOU.filter(step => bodyValue(answers, step) === null)
 /** All four body answers in: the server works the target out only then (§3b). */
