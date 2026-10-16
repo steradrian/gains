@@ -27,6 +27,7 @@ import { prefetchAllowed } from '../lib/media-prefetch.js'
 import { LOOP_MAX_SEC } from '../lib/media-limits.js'
 import { reducedMotion } from '../lib/reduced-motion.js'
 import Icon from './Icon.jsx'
+import EquipmentThumb from './EquipmentThumb.jsx'
 import { Loader } from './Loader.jsx'
 
 /** Opens a link after a tap: sanitised again here, since plan files and backups can bring any
@@ -101,8 +102,10 @@ export function CustomThumb({ ex }) {
   if (poster.url && broken !== poster.url) {
     return <img className="thumb" loading="lazy" decoding="async" draggable={false} src={poster.url} alt="" onError={() => setBroken(poster.url)} />
   }
-  const icon = m?.kind === 'video' || (link && linkKind(link) === 'video') ? 'play' : link ? 'link' : 'dumbbell'
-  return <div className="thumb thumb-x"><Icon name={icon} /></div>
+  // A video or a link says so; anything else is the equipment it is done with, as a catalogue
+  // exercise without a picture.
+  const icon = m?.kind === 'video' || (link && linkKind(link) === 'video') ? 'play' : link ? 'link' : null
+  return icon ? <div className="thumb thumb-x"><Icon name={icon} /></div> : <EquipmentThumb ex={ex} />
 }
 
 /* ------------------------------------------------------------------ links ---------------- */

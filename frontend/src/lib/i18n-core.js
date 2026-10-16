@@ -3,11 +3,6 @@
 // (import.meta.glob lazy
 // loads, the React subscription hook) live in i18n.js and re-export from here.
 
-import { brandText } from '../brand.js'
-
-// Every string passes through brandText in t() and tn() before its {n} arguments go in: upstream's
-// name becomes the brand name here and nowhere else, so the locale packs stay untouched
-// (brand.js), and a name that arrives as an argument (the upstream credit) is left alone.
 export const LANGS = {
   en: 'English', de: 'Deutsch', 'de-CH': 'Deutsch (Schweiz)', es: 'Español', fr: 'Français',
   it: 'Italiano', pt: 'Português (Portugal)', 'pt-BR': 'Português (Brasil)', pl: 'Polski',
@@ -79,16 +74,20 @@ export const getLang = () => lang
 export const dateLocale = () => DATE_LOCALES[lang] || 'en-GB'
 export const getVersion = () => version
 
+// A key ending in " (short)" is a second, tighter wording of the English text before it, for a
+// place that is too narrow for some languages (a segment of five at 320px): packs translate it
+// shorter, and with no pack (English) it reads as the plain text.
+const SHORT = / \(short\)$/
+
 // Translate a source string; {0},{1}… are replaced with args (also on the English fallback).
 export function t(s, ...args) {
-  let v = dict[s] || s
+  let v = dict[s] || (typeof s === 'string' ? s.replace(SHORT, '') : s)
   // A plural key (an object of forms, read by tn()) reached through plain t() — a call site
   // that was not moved to tn(). Pick a form rather than crash on replaceAll.
   if (v && typeof v === 'object') {
     const forms = v
     v = (typeof args[0] === 'number' && forms[pluralCategory(args[0])]) || forms.other || forms.many || forms.one || s
   }
-  v = brandText(v)
   for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
   return v
 }
@@ -124,7 +123,7 @@ export function tn(one, other, n, ...rest) {
   if (forms && typeof forms === 'object') {
     const form = forms[pluralCategory(n)] || forms.other || forms.many || forms.one
     if (form) {
-      let v = brandText(form)
+      let v = form
       const args = [n, ...rest]
       for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
       return v

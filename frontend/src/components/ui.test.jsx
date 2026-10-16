@@ -2,7 +2,10 @@
 import React, { act, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Slider, Stepper, NumberField, numWidthCh, SLIDER_GRAB_PX } from './ui.jsx'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { Slider, Stepper, NumberField, numWidthCh, SLIDER_GRAB_PX, Segmented, Button, Row, SelectRow, bindUI, selectSheet } from './ui.jsx'
+import Icon from './Icon.jsx'
+import { useUI } from '../store/useUI.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -311,5 +314,137 @@ describe('NumberField select on tap', () => {
     act(() => input.focus())
     act(() => input.blur())
     expect(mouseup(input).defaultPrevented).toBe(false)
+  })
+})
+
+// The redesign's additive props: each existing usage renders exactly what it did before them.
+describe('the redesign\'s additions to Segmented, Button and Row', () => {
+  const html = el => renderToStaticMarkup(el)
+  const OPTS = [{ value: 30, label: '1M' }, { value: 90, label: '3M' }]
+  const go = () => {}
+
+  it('Segmented keeps its markup, and takes tone="strong" and size="lg" as classes', () => {
+    const seg = '<span class="seg-sel" aria-hidden="true"></span><button class="" aria-pressed="false">'
+      + '<span>1M</span></button><button class="on" aria-pressed="true"><span>3M</span></button></div>'
+    expect(html(<Segmented options={OPTS} value={90} onChange={go} />)).toBe('<div class="seg " style="--n:2;--i:1">' + seg)
+    expect(html(<Segmented options={OPTS} value={90} onChange={go} className="seg-range" />)).toBe('<div class="seg seg-range" style="--n:2;--i:1">' + seg)
+    expect(html(<Segmented options={OPTS} value={90} onChange={go} tone="strong" size="lg" className="seg-range" />))
+      .toBe('<div class="seg seg-strong seg-lg seg-range" style="--n:2;--i:1">' + seg)
+    expect(() => html(<Segmented options={OPTS} value={90} onChange={go} tone="loud" />)).toThrow(/Segmented: tone="loud"/)
+  })
+
+  it('Button keeps its markup and takes shape="pill"', () => {
+    expect(html(<Button variant="primary" icon="plus">Log</Button>))
+      .toBe(html(<button className="btn primary "><Icon name="plus" /><span>Log</span></button>))
+    expect(html(<Button variant="primary" shape="pill">Log</Button>)).toBe('<button class="btn primary btn-pill "><span>Log</span></button>')
+    expect(() => html(<Button shape="round">x</Button>)).toThrow(/Button: shape="round"/)
+  })
+
+  it('Row keeps its markup, and leads with a bare glyph', () => {
+    expect(html(<Row icon="gear" title="Settings" accessory="chevron" onClick={go} />)).toBe(html(
+      <button className="lrow tap " onClick={go}><span className="lrow-i"><Icon name="gear" /></span>
+        <span className="lrow-m"><span className="lrow-t">Settings</span></span><Icon name="chevronRight" className="lrow-c" /></button>))
+    expect(html(<Row glyph="apple" title="Foods" subtitle="12 foods" accessory="chevron" onClick={go} />)).toBe(html(
+      <button className="lrow tap " onClick={go}><span className="lrow-g"><Icon name="apple" /></span>
+        <span className="lrow-m"><span className="lrow-t">Foods</span><span className="lrow-s">12 foods</span></span>
+        <Icon name="chevronRight" className="lrow-c" /></button>))
+  })
+
+  it('Row accessory="add" is no button itself: its text opens it and the + adds, each reachable', () => {
+    const onOpen = vi.fn(), onAdd = vi.fn()
+    act(() => root.render(<Row glyph="ruler" title="Waist" subtitle="82 cm" accessory="add" onOpen={onOpen} onAdd={onAdd} />))
+    const row = host.querySelector('.lrow')
+    expect(row.tagName).toBe('DIV')
+    expect(row.classList.contains('lrow-add')).toBe(true)
+    const [open, plus] = row.querySelectorAll('button')
+    expect(open.className).toBe('lrow-m lrow-open')
+    expect(plus.getAttribute('aria-label')).toBe('Add to Waist')
+    act(() => open.click())
+    act(() => plus.click())
+    expect([onOpen.mock.calls.length, onAdd.mock.calls.length]).toEqual([1, 1])
+    act(() => root.render(<Row title={<b>Hips</b>} accessory="add" onAdd={onAdd} addLabel="Log hips" />))
+    expect(host.querySelector('.lrow-plus').getAttribute('aria-label')).toBe('Log hips')
+    expect(host.querySelector('.lrow-open')).toBeNull()
+    expect(() => html(<Row title="x" accessory="add" onClick={go} />)).toThrow(/not onClick/)
+    expect(() => html(<Row title="x" accessory="arrow" />)).toThrow(/Row: accessory="arrow"/)
+  })
+})
+
+describe('selectSheet', () => {
+  const OPTIONS = [
+    { value: 'bench', label: 'Bench press', subtitle: 'Chest' },
+    { value: 'squat', label: 'Squat' },
+    { value: 'row', label: 'Row' },
+  ]
+  const SEARCH = { placeholder: 'Search exercises', label: 'Search', emptyLabel: 'No match', match: (o, q) => o.label.toLowerCase().includes(q.trim().toLowerCase()) }
+  let sheet, sheetRoot
+
+  // Opens the sheet through the UI store and renders what it holds, as the shell does.
+  const open = args => {
+    bindUI(useUI)
+    useUI.getState().closeAll()
+    selectSheet(args)
+    const entry = useUI.getState().sheets.at(-1)
+    sheet = document.createElement('div')
+    document.body.appendChild(sheet)
+    sheetRoot = createRoot(sheet)
+    act(() => sheetRoot.render(entry.render(() => useUI.getState().closeSheet(entry.id))))
+    return entry
+  }
+  afterEach(() => {
+    if (sheetRoot) act(() => sheetRoot.unmount())
+    sheet?.remove()
+    sheetRoot = sheet = null
+    useUI.getState().closeAll()
+  })
+  const rows = () => [...sheet.querySelectorAll('.lrow')]
+
+  it('lists the options under the title, with a check on the current value and subtitles', () => {
+    open({ title: 'Choose exercise', value: 'squat', options: OPTIONS, onChange: vi.fn() })
+    expect(sheet.querySelector('h3').textContent).toBe('Choose exercise')
+    expect(rows().map(r => r.querySelector('.lrow-t').textContent)).toEqual(['Bench press', 'Squat', 'Row'])
+    expect(rows()[0].querySelector('.lrow-s').textContent).toBe('Chest')
+    expect(rows().map(r => !!r.querySelector('.lrow-k'))).toEqual([false, true, false])
+    expect(sheet.querySelector('.picker-search')).toBeNull()
+  })
+
+  it('picks an option: closes the sheet and reports the value', () => {
+    const onChange = vi.fn()
+    open({ title: 'Choose exercise', value: 'squat', options: OPTIONS, onChange })
+    act(() => rows()[2].click())
+    expect(onChange).toHaveBeenCalledWith('row')
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('filters with the search it is given, and says when nothing matches', () => {
+    open({ title: 'Choose exercise', value: 'squat', options: OPTIONS, onChange: vi.fn(), search: SEARCH })
+    const input = sheet.querySelector('.picker-search input')
+    expect(input.getAttribute('placeholder')).toBe('Search exercises')
+    const type = value => act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    type('sq')
+    expect(rows().map(r => r.querySelector('.lrow-t').textContent)).toEqual(['Squat'])
+    type('zzz')
+    expect(rows()).toHaveLength(0)
+    expect(sheet.querySelector('.empty').textContent).toContain('No match')
+  })
+
+  it('opens from a SelectRow with the row\'s title, or its sheetTitle, and shows the current label', () => {
+    bindUI(useUI)
+    const onChange = vi.fn()
+    act(() => root.render(<SelectRow title="Measurement" sheetTitle="Choose measurement" value="b" onChange={onChange}
+      options={[{ value: 'a', label: 'Waist' }, { value: 'b', label: 'Chest' }]} />))
+    const row = host.querySelector('.lrow')
+    expect(row.querySelector('.lrow-v').textContent).toBe('Chest')
+    act(() => row.click())
+    expect(useUI.getState().sheets).toHaveLength(1)
+  })
+
+  it('has no stacked-value layout on SelectRow any more', () => {
+    bindUI(useUI)
+    act(() => root.render(<SelectRow title="Measurement" value="a" stackedValue onChange={vi.fn()} options={[{ value: 'a', label: 'Waist' }]} />))
+    expect(host.querySelector('.lrow-stack-value')).toBeNull()
   })
 })

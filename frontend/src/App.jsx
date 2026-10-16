@@ -19,6 +19,7 @@ import { scrollAction } from './lib/scroll-restore.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
+import { installDayReset } from './lib/nutrition/selection.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
 import { BRAND } from './brand.js'
@@ -42,16 +43,16 @@ import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
-import Stats from './views/Stats.jsx'
+import Body from './views/Body.jsx'
+import Strength from './views/Strength.jsx'
+import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
 import Library from './views/Library.jsx'
 import Muscles from './views/Muscles.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
-import ProgressPhotos from './views/ProgressPhotos.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
-import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
 import TrainHub from './views/TrainHub.jsx'
@@ -153,6 +154,9 @@ function Shell() {
   // Click-drag a horizontal chip strip to scroll it sideways (lib/hchips.js) — on a desktop
   // browser there's otherwise no way to reach the filters past the edge.
   useEffect(() => installChipDrag(), [])
+  // The day picked on the week strip goes back to today after half an hour away
+  // (lib/nutrition/selection.js).
+  useEffect(() => installDayReset(), [])
   // Once per signed-in boot, hand the server this browser's push subscription again (see
   // lib/push.js): a subscription the instance lost is back before the next reminder is due,
   // with nobody having to visit Settings. Web only — the APK has no service worker.
@@ -278,12 +282,12 @@ function Shell() {
               <Route path="/food/fasting" element={<Fasting />} />
               {/* Progress */}
               <Route path="/progress" element={<ProgressHub />} />
-              <Route path="/progress/body" element={<Stats section="body" />} />
-              <Route path="/progress/body/measurements" element={<Measurements />} />
-              <Route path="/progress/body/photos" element={<ProgressPhotos />} />
-              <Route path="/progress/strength" element={<Stats section="strength" />} />
+              <Route path="/progress/body" element={<Body segment="weight" />} />
+              <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
+              <Route path="/progress/body/photos" element={<Body segment="photos" />} />
+              <Route path="/progress/strength" element={<Strength />} />
               <Route path="/progress/strength/balance" element={<StructuralBalance />} />
-              <Route path="/progress/load" element={<Stats section="load" />} />
+              <Route path="/progress/load" element={<TrainingLoad />} />
               <Route path="/progress/trends" element={<Trends />} />
               <Route path="/progress/recovery" element={<Recovery />} />
               {/* Opened from any tab, on top of it: the workout and Profile. */}

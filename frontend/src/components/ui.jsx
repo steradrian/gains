@@ -1,4 +1,4 @@
-// openGym control set.
+// Gains control set.
 //
 // Every input in the app is built here rather than styled on top of a native
 // widget. Native controls are the single loudest "unfinished" tell: a checkbox
@@ -18,6 +18,7 @@ import Icon from './Icon.jsx'
 import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
+import { cx, oneOf } from '../lib/ui-kit.js'
 
 /* ============================ text ============================ */
 
@@ -118,10 +119,15 @@ export function Switch({ checked, onChange, disabled, ...accessibility }) {
 // options: [{ value, label, icon?, disabled?, ariaLabel? }]  — the selected pill slides between
 // cells. `ariaLabel` on the control names the group; on an option it replaces the label for a
 // screen reader (to say why the option is disabled).
-export function Segmented({ options, value, onChange, className = '', ariaLabel }) {
+// tone="strong": the thumb is the selection fill (--sel-fill / --on-sel), for a page's sub-views
+// and the Progress range; the default subtle thumb stays for ranges inside a card. size="lg":
+// 36px buttons at --fs-subhead (48px to tap).
+export function Segmented({ options, value, onChange, className = '', ariaLabel, tone, size }) {
+  oneOf('Segmented', 'tone', tone, ['strong'])
+  oneOf('Segmented', 'size', size, ['lg'])
   const i = Math.max(0, options.findIndex(o => o.value === value))
   return (
-    <div className={'seg ' + className} style={{ '--n': options.length, '--i': i }}
+    <div className={'seg ' + cx(tone && 'seg-' + tone, size && 'seg-' + size, className)} style={{ '--n': options.length, '--i': i }}
       role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
       <span className="seg-sel" aria-hidden="true" />
       {options.map(o => (
@@ -318,19 +324,32 @@ export function Section({ title, footer, children, className = '' }) {
   )
 }
 
-export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none', onClick, danger, children, className = '' }) {
+// `glyph`: a bare 24px icon leading the row in the label colour, the redesign's inset-list lead,
+// instead of the tinted `icon` tile. accessory="add": a + disc of its own at the end (`onAdd`,
+// named `addLabel` or "Add to {title}"); the row is then no button itself, and its text opens it
+// (`onOpen`), so both stay reachable.
+export function Row({ icon, iconTint, glyph, title, subtitle, value, accessory = 'none', onClick, onOpen, onAdd, addLabel, danger, children, className = '' }) {
+  oneOf('Row', 'accessory', accessory, ['none', 'chevron', 'check', 'add'])
+  const add = accessory === 'add'
+  if (import.meta.env.DEV && add && onClick) throw new Error('Row: accessory="add" takes onOpen and onAdd, not onClick')
   const Tag = onClick ? 'button' : 'div'
+  const text = <>
+    <span className="lrow-t">{title}</span>
+    {subtitle && <span className="lrow-s">{subtitle}</span>}
+  </>
   return (
-    <Tag className={'lrow' + (onClick ? ' tap' : '') + (danger ? ' danger' : '') + ' ' + className} onClick={onClick}>
+    <Tag className={'lrow' + (onClick ? ' tap' : '') + (add ? ' lrow-add' : '') + (danger ? ' danger' : '') + ' ' + className} onClick={onClick}>
       {icon && <span className="lrow-i" style={iconTint ? { '--tint': iconTint } : null}><Icon name={icon} /></span>}
-      <span className="lrow-m">
-        <span className="lrow-t">{title}</span>
-        {subtitle && <span className="lrow-s">{subtitle}</span>}
-      </span>
+      {glyph && <span className="lrow-g"><Icon name={glyph} /></span>}
+      {add && onOpen
+        ? <button type="button" className="lrow-m lrow-open" onClick={onOpen}>{text}</button>
+        : <span className="lrow-m">{text}</span>}
       {children}
       {value != null && <span className="lrow-v">{value}</span>}
       {accessory === 'chevron' && <Icon name="chevronRight" className="lrow-c" />}
       {accessory === 'check' && <Icon name="check" className="lrow-k" />}
+      {add && <button type="button" className="lrow-plus" onClick={onAdd}
+        aria-label={addLabel || (typeof title === 'string' ? t('Add to {0}', title) : t('Add'))}><Icon name="plus" /></button>}
     </Tag>
   )
 }
@@ -341,18 +360,19 @@ export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none'
 // theme entirely — on dark mode it flashes a white sheet — and can't show more
 // than a bare label per option. This opens our own sheet with a checkmark on the
 // current value, which is also how iOS itself handles a long option list.
-export function SelectRow({ icon, iconTint, title, value, options, onChange, sheetTitle, stackedValue = false, search }) {
+export function SelectRow({ icon, iconTint, title, value, options, onChange, sheetTitle, search }) {
   const cur = options.find(o => o.value === value)
-  const open = () => {
-    const { openSheet } = require_ui()
-    const h = openSheet(close => <SelectSheet title={sheetTitle || title} value={value} options={options}
-      onChange={onChange} search={search} close={close} />)
-    return h
-  }
   return (
-    <Row icon={icon} iconTint={iconTint} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
-      className={stackedValue ? 'lrow-stack-value' : ''} />
+    <Row icon={icon} iconTint={iconTint} title={title} value={cur ? cur.label : value} accessory="chevron"
+      onClick={() => selectSheet({ title: sheetTitle || title, value, options, onChange, search })} />
   )
+}
+
+// SelectRow's sheet on its own, for a picker opened from something other than a row (the
+// Strength page's exercise card): the options with a check on `value`, and `search` to filter.
+export function selectSheet({ title, value, options, onChange, search }) {
+  const { openSheet } = require_ui()
+  return openSheet(close => <SelectSheet title={title} value={value} options={options} onChange={onChange} search={search} close={close} />)
 }
 
 function SelectSheet({ title, value, options, onChange, search, close }) {
@@ -497,9 +517,11 @@ function require_ui() {
 
 /* ============================ buttons ============================ */
 
-export function Button({ variant = 'plain', size, icon, trailingIcon, children, className = '', ...rest }) {
+// shape="pill": a 44px rounded pill sized to its label (empty states, the sticky action bar).
+export function Button({ variant = 'plain', size, shape, icon, trailingIcon, children, className = '', ...rest }) {
+  oneOf('Button', 'shape', shape, ['pill'])
   return (
-    <button className={`btn ${variant}${size ? ' ' + size : ''} ${className}`} {...rest}>
+    <button className={`btn ${variant}${size ? ' ' + size : ''}${shape ? ' btn-' + shape : ''} ${className}`} {...rest}>
       {icon && <Icon name={icon} />}
       {children && <span>{children}</span>}
       {trailingIcon && <Icon name={trailingIcon} />}
