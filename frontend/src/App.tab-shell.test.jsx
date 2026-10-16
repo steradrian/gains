@@ -8,7 +8,7 @@
 // the app's, and a back press that leaves the app lands on it.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -66,6 +66,14 @@ function quit() {
   act(() => root.unmount())
   host.remove()
 }
+
+// The first render of the app pulls in the code App loads on demand (the search overlay and the
+// header motion, which brings in framer-motion). Left to the first test, vitest transforms it
+// inside that test's 5 s: about 4 s of the first test's 5.4 s under a loaded machine, and the
+// timeout then left that test running into the next ones. Here it has its own, longer, budget.
+beforeAll(async () => {
+  await Promise.all([import('./components/search/SearchOverlay.jsx'), import('./components/search/header-motion.jsx')])
+}, 60_000)
 
 beforeEach(() => {
   originalS = useStore.getState().S

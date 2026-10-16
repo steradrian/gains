@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -74,7 +75,8 @@ function mount(el) {
 }
 const settle = () => act(() => new Promise(r => setTimeout(r, 0)))
 beforeEach(() => {
-  mocks.S = { unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none', gifSize: 'full', workouts: [], routines: [], exWeights: {} }
+  stubHubOffline()
+  mocks.S ={ unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none', gifSize: 'full', workouts: [], routines: [], exWeights: {} }
   mocks.user = USER
   mocks.MOBILE = true
   mocks.sync = sync('ok', { lastSynced: Date.now() - 5 * 60000 })

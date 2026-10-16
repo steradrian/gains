@@ -56,11 +56,13 @@ vi.mock('../sheets.jsx', () => ({
 }))
 
 import Settings from './Settings.jsx'
+import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
 globalThis.__APP_VERSION__ ??= 'test'
 
 let host, root
 beforeEach(() => {
+  stubHubOffline()
   mocks.S = {
     unit: 'kg', restSec: 90, restPauseSec: 15, sound: true, vibrate: true, effort: 'none', gifSize: 'full', lang: 'en',
     workouts: [], routines: [], exWeights: {}, equipProfiles: [{ id: 'p1', name: 'Home', equipment: [] }], activeEquipId: 'p1',
