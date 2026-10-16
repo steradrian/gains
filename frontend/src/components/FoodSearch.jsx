@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { t } from '../lib/i18n.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
-import { searchErrorText } from '../lib/nutrition/foods.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { OWN_SHOWN, useFoodSearch } from '../lib/nutrition/use-food-search.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
@@ -9,6 +8,7 @@ import { useUnits } from '../lib/nutrition/use-units.js'
 import { ItemRow, SectionTitle } from './blocks.jsx'
 import { foodEditSheet } from './FoodEditSheet.jsx'
 import Icon from './Icon.jsx'
+import OnlineStatus from './OnlineStatus.jsx'
 import SavedMealsGroup from './SavedMealsGroup.jsx'
 import { scanSheet } from './ScanSheet.jsx'
 import { Button, SearchField } from './ui.jsx'
@@ -77,10 +77,7 @@ export default function FoodSearch({ onPick, scan = {}, savedMeals, autoFocus = 
 
     {q && settingOf(settings, 'offEnabled') && <>
       <SectionTitle>{t('Open Food Facts')}</SectionTitle>
-      {online.status === 'loading' && <div className="muted small fp-note">{t('Searching Open Food Facts…')}</div>}
-      {online.status === 'error' && <div className="nt-error small" role="alert">{searchErrorText(online.error)}</div>}
-      {online.status === 'paused' && <div className="muted small fp-note" role="status">{t('{0} paused · back in', t('Open Food Facts'))} {t('{0} s', online.seconds)}</div>}
-      {online.status === 'tap' && <Button size="sm" variant="tinted" icon="globe" onClick={online.ask}>{t('Search Open Food Facts for “{0}”', q)}</Button>}
+      <OnlineStatus online={online} query={q} />
       {online.status === 'ready' && !online.results.length && <div className="muted small fp-note">{t('Nothing found online.')}</div>}
       {online.status === 'idle' && <div className="muted small fp-note">{t('Type at least two letters to search online.')}</div>}
       {rows(online.results)}

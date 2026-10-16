@@ -112,7 +112,12 @@ export async function fetchOnline(q, { lang = 'en', country = null, signal, kind
 // over. After a 429 typing never asks again by itself, as the budget keeps its last ten for the
 // searches a person asks for: the status is then 'tap', and `ask()` is that search, from an
 // explicit action (the picker's search key); it is spent from the ten kept for it.
-// status: 'idle' | 'loading' | 'ready' | 'error' | 'paused' | 'tap'
+// While the device is offline (and the answer is not cached) the status is 'offline', and the
+// search is asked when the connection returns. A search that fails on the wire is an 'error':
+// `ask()` runs it again.
+// status: 'idle' | 'loading' | 'ready' | 'error' | 'paused' | 'tap' | 'offline'
+const isConnected = () => typeof navigator === 'undefined' || navigator.onLine !== false
+
 export function useOnlineSearch(query, { active, lang, country = null }) {
   const q = query.trim()
   const [state, setState] = useState({ status: 'idle', query: '', results: [], error: null })
@@ -124,6 +129,14 @@ export function useOnlineSearch(query, { active, lang, country = null }) {
   const until = Math.max(pausedUntil, spentUntil)
   const paused = until > now
   const tapped = asked?.q === q
+  const [connected, setConnected] = useState(isConnected)
+
+  useEffect(() => {
+    const sync = () => setConnected(isConnected())
+    window.addEventListener('online', sync)
+    window.addEventListener('offline', sync)
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('offline', sync) }
+  }, [])
 
   // The countdown ticks while a wait lasts, and its end asks again.
   useEffect(() => {
@@ -143,6 +156,10 @@ export function useOnlineSearch(query, { active, lang, country = null }) {
     const hit = cachedOnline(q, { lang, country })
     if (hit) {
       setState({ status: 'ready', query: q, results: hit, error: null })
+      return undefined
+    }
+    if (!connected) {
+      setState({ status: 'offline', query: q, results: [], error: null })
       return undefined
     }
     const kind = tapped ? 'tap' : 'auto'
@@ -167,7 +184,7 @@ export function useOnlineSearch(query, { active, lang, country = null }) {
       }
     }, tapped ? 0 : DEBOUNCE_MS)
     return () => { clearTimeout(timer); ctl.abort() }
-  }, [active, q, lang, country, paused, tapped, asked?.n])
+  }, [active, q, lang, country, paused, connected, tapped, asked?.n])
 
   return { ...state, seconds: Math.max(0, Math.ceil((until - now) / 1000)), ask: () => setAsked(a => ({ q, n: (a?.n || 0) + 1 })) }
 }

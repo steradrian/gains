@@ -24,7 +24,8 @@ const savedCopy = (foods, result) =>
  *            where status is 'idle' (nothing asked: the query is under two characters) | 'loading' |
  *            'ready' | 'error' | 'paused' (the search budget is spent, the hub's limit hit or the
  *            client's own: `seconds` until it asks again) | 'tap' (only a search asked for goes
- *            now, after a 429: `ask()` is that search, for the search key and a button).
+ *            now, after a 429: `ask()` is that search, for the search key and a row; it is also
+ *            the retry of an 'error') | 'offline' (asked when the connection returns).
  *            A product you already saved is left out (it is in `own`).
  *   foods    the store's foods ({ status, list, error }), for the loading and error notes
  * Loads your foods once. Results come back as the unsaved foods they are: save one before using

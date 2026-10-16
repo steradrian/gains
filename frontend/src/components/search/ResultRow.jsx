@@ -25,7 +25,9 @@ export function useTrailing(r) {
 // feature that is off, or a page's chevron (ui-search.md §7, §8). `reason` (a suggestion) leads
 // the subtitle. `active`: the row the arrow keys are on. `trail` false: nothing trails (a Recent
 // row, whose × sits there instead).
-export default function ResultRow({ r, onOpen, trail = true }) {
+// `standalone`: the row outside the results listbox (a food picker's online row): a plain button in
+// the tab order, with no option role.
+export default function ResultRow({ r, onOpen, trail = true, standalone = false }) {
   const active = useSearch(s => s.active === rowId(r.key))
   const value = useTrailing(r)
   const trailing = trail ? value : null
@@ -37,8 +39,8 @@ export default function ResultRow({ r, onOpen, trail = true }) {
     trailing ? [trailing.value, trailing.unit].filter(Boolean).join(' ') : null,
   ].filter(Boolean).join(', ')
   return (
-    <button type="button" role="option" aria-selected={active} id={rowId(r.key)} data-search-row="" className={'sr-row' + (active ? ' on' : '') + (r.off ? ' off' : '')}
-      onClick={() => onOpen(r)} aria-label={label} tabIndex={-1}>
+    <button type="button" {...(standalone ? {} : { role: 'option', 'aria-selected': active, 'data-search-row': '', tabIndex: -1 })} id={rowId(r.key)}
+      className={'sr-row' + (active ? ' on' : '') + (r.off ? ' off' : '')} onClick={() => onOpen(r)} aria-label={label}>
       <ResultMedia media={r.media} />
       <span className="sr-text">
         <span className="sr-title">{r.fav && <Icon name="starFill" className="sr-fav" />}<Highlight text={r.title} ranges={r.ranges} /></span>
