@@ -15,12 +15,28 @@ const LEAD_MS = 120
 // When a screen has landed: OnboardingLayout brings it in over 320ms after a 60ms delay.
 export const LAND_MS = 380
 
+/**
+ * The translation the screen of `el` is in right now, [x, y]: OnboardingLayout slides each screen
+ * in, and an anchor that registers while it does (the invite's scene arrives with the check's
+ * answer) is measured where it will be at rest, not where the slide has it.
+ */
+function slideOf(el) {
+  const screen = el.closest?.('.ob-screen')
+  const tf = screen ? getComputedStyle(screen).transform : 'none'
+  if (!tf || tf === 'none' || typeof DOMMatrixReadOnly !== 'function') return [0, 0]
+  try {
+    const m = new DOMMatrixReadOnly(tf)
+    return [m.m41, m.m42]
+  } catch { return [0, 0] }
+}
+
 /** An anchor's resting shape in viewport coordinates, or null where it cannot be measured. */
 export function measureAnchor(el) {
   const own = el?.ownerSVGElement
   const m = typeof el?.getScreenCTM === 'function' ? el.getScreenCTM() : null
   if (!m || !own) return null
-  const map = (x, y) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]
+  const [sx, sy] = slideOf(el)
+  const map = (x, y) => [m.a * x + m.c * y + m.e - sx, m.b * x + m.d * y + m.f - sy]
   const scale = Math.hypot(m.a, m.b)
   const cs = getComputedStyle(el)
   const form = el.getAttribute('data-thread')
@@ -41,6 +57,25 @@ export function measureAnchor(el) {
 }
 // A zero-size line (display:none, not laid out) is no place to land.
 const hasLength = shape => Math.abs(shape.p[24] - shape.p[0]) + Math.abs(shape.p[25] - shape.p[1]) > 0.5
+// Whether an anchor is somewhere else than it was measured: an end off by half a pixel, or its weight.
+const moved = (a, b) => [0, 1, 24, 25].some(i => Math.abs(a.p[i] - b.p[i]) > 0.5) || Math.abs(a.w - b.w) > 0.1
+const MAX_HOPS = 2
+
+/**
+ * How far past a whole CSS pixel the anchor's own <svg> box starts, [x, y]. A browser may paint an
+ * SVG root pixel-snapped (Chromium rounds its box to whole CSS px, at every DPR) while
+ * getScreenCTM gives the unsnapped place, so a line drawn at the CTM lands up to half a pixel off
+ * the line on screen (scripts/thread-handoff-check.mjs). The layer's own <svg> is set at the same
+ * offset and its path drawn back by it: whatever the browser does to the one root it does to the
+ * other, and the thread is painted where the anchor is.
+ */
+export function subpixelOf(el) {
+  const box = el?.ownerSVGElement?.getBoundingClientRect?.()
+  if (!box || !Number.isFinite(box.left) || !Number.isFinite(box.top)) return [0, 0]
+  const [sx, sy] = slideOf(el)
+  const x = box.left - sx, y = box.top - sy
+  return [x - Math.floor(x), y - Math.floor(y)]
+}
 
 /**
  * layer(): { svg, path } of ThreadLayer, read when a run starts. blocked(): whether to skip the
@@ -91,12 +126,18 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
       x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: arrive, easing: 'linear', fill: 'backwards' })
     }
   }
-  function start(base, plan, el) {
+  // `dest`: the anchor's shape as the plan was made for it; `hops`: how many times this landing
+  // has been moved on already.
+  function start(base, plan, el, dest = null, hops = 0) {
     const { svg } = layer()
     if (!svg) return
     if (fade) { fade.cancel(); fade = null }
     const { top, bottom } = clip(el)
-    svg.style.clipPath = `inset(${Math.max(0, top)}px 0 ${Math.max(0, window.innerHeight - bottom)}px 0)`
+    const [sx, sy] = subpixelOf(el)
+    svg.style.left = sx + 'px'
+    svg.style.top = sy + 'px'
+    layer().path?.setAttribute('transform', `translate(${-sx} ${-sy})`)
+    svg.style.clipPath = `inset(${Math.max(0, top - sy)}px 0 ${Math.max(0, window.innerHeight - bottom + sy)}px 0)`
     svg.style.visibility = 'visible'
     svg.style.willChange = 'contents'
     live = base
@@ -116,7 +157,31 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
       if (r.dead) return
       if (t0 === null) t0 = now
       const t = now - t0
-      if (t >= plan.total) { r.finish(); return }
+      if (t >= plan.total) {
+        // Landed: the anchor is measured again. One that moved while the thread flew (the screen's
+        // header grew above it, a font came in) is glided on to, never handed a line where it is
+        // not. Twice at most: an anchor that keeps moving gets the line where it is. A check is
+        // left out: it is measured where it sits once its disc has popped (data-k), which it has
+        // not yet at landing.
+        const at = dest && dest.form !== 'check' && hops < MAX_HOPS && el.isConnected ? measureAnchor(el) : null
+        if (at && moved(dest, at)) {
+          r.cancel()
+          last = at
+          start(live, planBetween(live, at), el, at, hops + 1)
+          return
+        }
+        // The end shape itself for one frame, then the swap: the last frame painted before the
+        // anchor shows is the anchor's shape, not one a few ms short of it.
+        if (!r.home) {
+          r.home = true
+          live = evalAt(base, plan.segs, plan.total)
+          paint(live)
+          id = requestAnimationFrame(frame)
+          return
+        }
+        r.finish()
+        return
+      }
       live = evalAt(base, plan.segs, t)
       paint(live)
       id = requestAnimationFrame(frame)
@@ -152,7 +217,7 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
         born = true
         const plan = birthPlan(dest)
         claim(el)
-        start(plan.base, plan, el)
+        start(plan.base, plan, el, dest)
       }
     } else {
       const plan = planBetween(from, dest)
@@ -160,12 +225,12 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
       if (plan.arrive) {
         el.ownerSVGElement?.style.setProperty('--lead', Math.max(0, plan.arrive - LEAD_MS) + 'ms')
         holdCrossed(from, dest, el, plan.arrive)
-        start(from, plan, el)
+        start(from, plan, el, dest)
       } else {
         // The floors coincide (the goal-to-weight run): the thread holds the line still, painted
         // where it was, while the new screen fades and slides in under it, and hands it over once
         // the screen has landed.
-        start(from, { segs: [], total: LAND_MS, arrive: 0 }, el)
+        start(from, { segs: [], total: LAND_MS, arrive: 0 }, el, dest)
       }
     }
     if (dest) last = dest

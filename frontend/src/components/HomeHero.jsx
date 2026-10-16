@@ -1,20 +1,14 @@
 import { useEffect } from 'react'
-import { t, dateLocale } from '../lib/i18n.js'
+import { t } from '../lib/i18n.js'
 import { todayISO, yesterdayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { loadErrorText } from '../lib/nutrition/log-feedback.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { dayHasLog, hasLogged, markLogged } from '../lib/nutrition/first-log.js'
-import { HeroStatus } from './tab-kit.jsx'
+import { HeroMacros, HeroStatus } from './tab-kit.jsx'
 import { useTrainingHero } from './TrainingHero.jsx'
 
 const EMPTY = '–'
-const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
-const MACROS = [
-  { id: 'proteins', cls: 'p', label: () => t('Protein') },
-  { id: 'carbohydrates', cls: 'c', label: () => t('Carbs') },
-  { id: 'fat', cls: 'f', label: () => t('Fat') },
-]
 
 // Home's hero for the selected day: its training status with ⋯ (a different workout, change this
 // day; TrainingHero.jsx, which Training shows alone), then, with nutrition, `kcal left (eaten) |
@@ -47,12 +41,7 @@ export default function HomeHero({ date, day }) {
   ]
   return <HeroStatus {...training} metrics={metrics} status={day.status === 'error' ? 'error' : 'ready'} onRetry={day.reload}>
     {day.status === 'error' && <p className="hero-c" role="alert">{loadErrorText(day.error)}</p>}
-    {ready && <p className="hero-macros">
-      {MACROS.map(m => <span key={m.id}>
-        <i className={'mdot ' + m.cls} aria-hidden="true" /><span className="sr-only">{m.label()} </span>
-        {grams(day.totals[m.id])}{day.macros[m.id] != null && '/' + grams(day.macros[m.id])} g
-      </span>)}
-    </p>}
+    {ready && <HeroMacros eaten={day.totals} targets={day.macros} />}
     {ready && date === today && yesterdayRead && !logged && !hasLogged() && <p className="hero-c">{t('Counts from your first log')}</p>}
   </HeroStatus>
 }

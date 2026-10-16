@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { ThreadContext } from '../../lib/onboarding/contexts.js'
 import { createThreadEngine } from '../../lib/onboarding/thread-engine.js'
-import { reducedMotion } from '../../lib/reduced-motion.js'
+import { onReducedMotion, reducedMotion } from '../../lib/reduced-motion.js'
 import { useUI } from '../../store/useUI.js'
 
 // The thread's owner for the whole flow: it outlives every screen, so the line one screen rests on
@@ -21,22 +21,22 @@ export default function ThreadProvider({ navRef, children }) {
     onCount: n => svg.current?.setAttribute('data-anchors', String(n)),
   }), [navRef])
 
-  // A resize, a return to the tab or reduced motion switched on mid-run: finish and snap.
+  // A resize, a return to the tab or reduced motion switched on mid-run (the device's setting or
+  // the app's): finish and snap.
   useEffect(() => {
     const finish = () => engine.finish()
     const onVisible = () => { if (document.visibilityState === 'visible') finish() }
-    const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
     window.addEventListener('resize', finish)
     document.addEventListener('visibilitychange', onVisible)
-    mq?.addEventListener?.('change', finish)
+    const offMotion = onReducedMotion(finish)
     return () => {
       window.removeEventListener('resize', finish)
       document.removeEventListener('visibilitychange', onVisible)
-      mq?.removeEventListener?.('change', finish)
+      offMotion()
       engine.abort()
     }
   }, [engine])
 
-  const value = useMemo(() => ({ register: engine.register, svg, path }), [engine])
+  const value = useMemo(() => ({ register: engine.register, finish: engine.finish, svg, path }), [engine])
   return <ThreadContext.Provider value={value}>{children}</ThreadContext.Provider>
 }

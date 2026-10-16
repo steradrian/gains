@@ -26,6 +26,8 @@ export function MonthBar({ date, onPickDate, onPickFuture, onToday }) {
         <span>{month}</span><Icon name="chevronDown" />
       </button>
       <button type="button" className={cx('month-bar-today', date === today && 'off')} onClick={onToday}>{t('Today')}</button>
+      {/* The hairline is an element: the onboarding Summary's thread lands on it by name. */}
+      <span className="month-bar-hair" aria-hidden="true" />
     </div>
   )
 }

@@ -63,8 +63,10 @@ export default function InviteScreen() {
       sub={t('This invite stays unused, so it still works for someone else.')}
       footer={<Button variant="primary" onClick={() => navigate('/home', { replace: true })}>{t('Open {0}', BRAND.name)}</Button>} />
   }
+  // No scene while the check is out: the answer brings the inviter's initial and a subtitle, which
+  // move the scene down, and the thread is born on the floor where it will stay.
   if (check.kind === 'loading') {
-    return <StepScreen noNav titleId="ob-inv-t" title={t('Checking your invite…')} stage={stage} />
+    return <StepScreen noNav titleId="ob-inv-t" title={t('Checking your invite…')} />
   }
   if (check.kind === 'unavailable') {
     return <StepScreen noNav titleId="ob-inv-t" title={t('We couldn’t check this invite')} stage={stage}

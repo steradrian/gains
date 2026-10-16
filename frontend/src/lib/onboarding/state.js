@@ -148,6 +148,8 @@ export function reduce(s, a) {
     case 'name': return { ...s, name: a.name }
     case 'goal': return withAnswers(s, { goal: a.goal })
     case 'body': return withAnswers(s, { body: { ...s.answers.body, [a.field]: a.value } })
+    // The Summary's activity chip: the person's own answer from then on.
+    case 'activity': return withAnswers(s, { activity: { value: a.value, source: 'user' } })
     case 'unit': return withAnswers(s, { units: { ...s.answers.units, [a.kind]: a.unit, source: 'user' } })
     case 'training': return s.answers.trainingDays === a.days ? { ...s, daysSaid: true } : { ...withDays(s, a.days), daysSaid: true }
     case 'skipYou': return { ...s, skippedYou: true, detour: null }
