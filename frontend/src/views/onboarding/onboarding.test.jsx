@@ -821,10 +821,10 @@ describe('who sees what', () => {
   describe('a rate limit (429) is busy, not gone', () => {
     const tooMany = retryAfter => Object.assign(new Error('busy'), { status: 429, code: 'busy', retryAfter })
     const waitFor = ms => act(async () => { vi.advanceTimersByTime(ms) })
-    // No jitter on a wait, so each test advances exactly the Retry-After (the jitter has its own test).
-    let random
-    beforeEach(() => { signedIn(); random = vi.spyOn(Math, 'random').mockReturnValue(0) })
-    afterEach(() => { random.mockRestore() })
+    // A wait is the Retry-After and up to this much more (the store's jitter): "not yet" is checked
+    // at the Retry-After, "now" once the jitter has also passed.
+    const JITTER = 500
+    beforeEach(signedIn)
 
     it('says busy, not "check your connection", when completing is rate limited with a Retry-After of 0', async () => {
       saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
@@ -851,6 +851,20 @@ describe('who sees what', () => {
       expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
     })
 
+    it('drops the busy notice once a later request gets through, and reads the hub again', async () => {
+      saved({ answers: { goal: 'lose', body: full } })
+      hub.loadOnboarding.mockRejectedValueOnce(tooMany(1))
+      const page = mount('/onboarding/goal')
+      await flush()
+      expect(page.querySelector('.ob [role="status"]').textContent).toContain('Gains is busy right now.')
+      click(radio(page, 'Build muscle'))
+      await waitFor(1000 + JITTER)
+      await flush()
+      expect(hub.saveStep).toHaveBeenCalledTimes(1)
+      expect(hub.loadOnboarding).toHaveBeenCalledTimes(2)
+      expect(page.querySelector('.ob [role="status"]')).toBeNull()
+    })
+
     it('sends the target preview only once the hub\'s Retry-After has passed, like every other request', async () => {
       saved({ answers: { goal: 'keep', body: { sex: 'male', birthYear: 1985, heightCm: 181, weightKg: null } } })
       hub.loadOnboarding.mockRejectedValueOnce(tooMany(5))
@@ -863,7 +877,7 @@ describe('who sees what', () => {
       await waitFor(4600)
       await flush()
       expect(hub.previewTargets).not.toHaveBeenCalled()
-      await waitFor(100)
+      await waitFor(100 + JITTER)
       await flush()
       expect(hub.previewTargets).toHaveBeenCalledTimes(1)
       expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
@@ -885,7 +899,7 @@ describe('who sees what', () => {
       await waitFor(2900)
       await flush()
       expect(hub.saveStep).not.toHaveBeenCalled()
-      await waitFor(100)
+      await waitFor(100 + JITTER)
       await flush()
       expect(hub.saveStep).toHaveBeenCalledWith('body', expect.anything(), 'u1')
     })
@@ -903,7 +917,7 @@ describe('who sees what', () => {
       await act(async () => { button(page, 'Try again').click() })
       await waitFor(6000)
       expect(hub.loadOnboarding).toHaveBeenCalledTimes(1)
-      await waitFor(1000)
+      await waitFor(1000 + JITTER)
       await flush()
       expect(hub.loadOnboarding).toHaveBeenCalledTimes(2)
       expect(button(page, 'Try again')).toBeUndefined()
@@ -917,7 +931,7 @@ describe('who sees what', () => {
       await act(async () => { button(page, 'Try again').click() })
       await waitFor(4000)
       expect(hub.loadOnboarding).toHaveBeenCalledTimes(1)
-      await waitFor(1000)
+      await waitFor(1000 + JITTER)
       await flush()
       expect(hub.loadOnboarding).toHaveBeenCalledTimes(2)
     })
@@ -938,7 +952,7 @@ describe('who sees what', () => {
       await act(async () => { button(page, 'Try again').click() })
       await waitFor(3000)
       expect(hub.saveStep).toHaveBeenCalledTimes(1)
-      await waitFor(1000)
+      await waitFor(1000 + JITTER)
       await flush()
       expect(hub.saveStep).toHaveBeenCalledTimes(2)
       expect(hub.completeOnboarding).toHaveBeenCalled()
@@ -956,7 +970,7 @@ describe('who sees what', () => {
       expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.goal).toBe('keep')
       await act(async () => { button(page, 'Try again').click() })
       expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
-      await waitFor(2000)
+      await waitFor(2000 + JITTER)
       await flush()
       expect(hub.completeOnboarding).toHaveBeenCalledTimes(2)
       expect(where(page)).toBe('/home')

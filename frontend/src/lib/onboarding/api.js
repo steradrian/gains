@@ -16,9 +16,10 @@
 //                                       the plan chosen is one this server cannot take; ask again.
 //
 // Every PUT and POST names the person it was composed for (X-Expected-User, the uid the answers
-// belong to). A save queued under one account can reach the hub after another signed in; the hub
-// then refuses it, 409 `wrong-user`. A write with no person to name is refused here, before any
-// request, with the same code: it is not anyone's to send. Only reads go without a name.
+// belong to), and so does the GET of the person's state: a request composed under one account can
+// reach the hub after another signed in; the hub then refuses it, 409 `wrong-user`. One with no
+// person to name is refused here, before any request, as `no-user` (a failure like any other, not
+// a sign that the session changed). Only the invite check, which has no one yet, goes unnamed.
 // A 429 is `busy` (the hub's per-person limit): the answers stand, and `retryAfter` is the seconds
 // the hub asked to wait.
 //
@@ -57,10 +58,11 @@ export const waitSeconds = e => e?.retryAfter ?? DEFAULT_WAIT_S
 
 // Same origin, the openGym session cookie: the hub checks both itself. No referrer: an invite
 // code is in the address, and this is the app's own server, which needs none. `expectedUser`: the
-// person a write was composed for; without one nothing but a GET goes out, since the hub's
-// check against another account's answers rides on that header.
-async function hub(method, path, body, expectedUser = null) {
-  if (method !== 'GET' && !expectedUser) throw failure('no person to write for', 0, 'wrong-user')
+// person a request was composed for, since the hub's check against another account's answers
+// rides on that header: without one a write is not sent at all (`no-user`), and neither is a read
+// that is the person's own (`named`); only the pre-auth invite check goes out unnamed.
+async function hub(method, path, body, expectedUser = null, named = method !== 'GET') {
+  if (named && !expectedUser) throw failure('no person to ask for', 0, 'no-user')
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS)
   let res
@@ -73,7 +75,7 @@ async function hub(method, path, body, expectedUser = null) {
       headers: {
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        ...(method === 'GET' ? {} : { [EXPECTED_USER]: expectedUser }),
+        ...(expectedUser ? { [EXPECTED_USER]: expectedUser } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: ctl.signal,
@@ -165,7 +167,10 @@ export function answersFromHub(stored) {
   return out
 }
 
-export const loadOnboarding = () => hub('GET', HUB)
+// `uid`: the signed-in person the answer is wanted for. The read is the person's own and the hub
+// refuses it as `wrong-user` when the session is someone else's, so it is never merged into
+// another person's state; with no one to name there is nothing to ask.
+export const loadOnboarding = uid => hub('GET', HUB, undefined, uid, true)
 // `uid` on each write: the signed-in person the answers belong to (state.uid).
 export const saveStep = (step, answers, uid) => hub('PUT', HUB, { step, answers: stepAnswers(step, answers) }, uid)
 

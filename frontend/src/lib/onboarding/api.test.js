@@ -83,39 +83,36 @@ describe('the requests', () => {
     await expect(saveStep('goal', answers, 'u-ada')).rejects.toMatchObject({ status: 0, code: 'offline' })
   })
 
-  it('writes nothing without a person to name: no request at all, refused as not that person\'s', async () => {
+  it('sends nothing without a person to name: no request at all, refused as `no-user`, not as another account\'s', async () => {
     const fetch = vi.fn(() => reply(200, { ok: true }))
     vi.stubGlobal('fetch', fetch)
     for (const uid of [undefined, null, '']) {
-      await expect(saveStep('goal', answers, uid)).rejects.toMatchObject({ status: 0, code: 'wrong-user' })
-      await expect(previewTargets(answers, uid)).rejects.toMatchObject({ status: 0, code: 'wrong-user' })
-      await expect(completeOnboarding('2026-10-15', uid)).rejects.toMatchObject({ status: 0, code: 'wrong-user' })
+      await expect(saveStep('goal', answers, uid)).rejects.toMatchObject({ status: 0, code: 'no-user' })
+      await expect(previewTargets(answers, uid)).rejects.toMatchObject({ status: 0, code: 'no-user' })
+      await expect(completeOnboarding('2026-10-15', uid)).rejects.toMatchObject({ status: 0, code: 'no-user' })
+      await expect(loadOnboarding(uid)).rejects.toMatchObject({ status: 0, code: 'no-user' })
     }
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('still reads without a person: the invite check and the onboarding read are GETs', async () => {
+  it('checks an invite with no one named: it is the one request before there is an account', async () => {
     const fetch = vi.fn(() => reply(200, { status: 'valid', inviterName: null, suggestedName: null }))
     vi.stubGlobal('fetch', fetch)
     await checkInvite('AB12')
-    await loadOnboarding()
-    expect(fetch).toHaveBeenCalledTimes(2)
-    for (const [, init] of fetch.mock.calls) {
-      expect(init.method).toBe('GET')
-      expect(init.headers).not.toHaveProperty('X-Expected-User')
-    }
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch.mock.calls[0][1].method).toBe('GET')
+    expect(fetch.mock.calls[0][1].headers).not.toHaveProperty('X-Expected-User')
   })
 
-  it('names the person every write was composed for, and a read names no one', async () => {
+  it('names the person on every request of the onboarding, the read of their state too', async () => {
     const fetch = vi.fn(() => reply(200, { ok: true }))
     vi.stubGlobal('fetch', fetch)
     await saveStep('goal', answers, 'u-ada')
     await previewTargets(answers, 'u-ada')
     await completeOnboarding('2026-10-15', 'u-ada')
-    await loadOnboarding()
+    await loadOnboarding('u-ada')
     const [put, preview, complete, read] = fetch.mock.calls
-    for (const [, init] of [put, preview, complete]) expect(init.headers['X-Expected-User'], init.method).toBe('u-ada')
-    expect(read[1].headers).not.toHaveProperty('X-Expected-User')
+    for (const [, init] of [put, preview, complete, read]) expect(init.headers['X-Expected-User'], init.method).toBe('u-ada')
     // The body keeps the hub's strict shape: the person is in the header, never the body.
     expect(JSON.parse(put[1].body)).toEqual({ step: 'goal', answers: { goal: 'lose' } })
     expect(JSON.parse(complete[1].body)).toEqual({ today: '2026-10-15' })
@@ -133,13 +130,13 @@ describe('the requests', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-10-15T08:00:00Z'))
     vi.stubGlobal('fetch', busy({ 'retry-after': 'Thu, 15 Oct 2026 08:00:12 GMT' }))
-    await expect(loadOnboarding()).rejects.toMatchObject({ code: 'busy', retryAfter: 12 })
+    await expect(loadOnboarding('u')).rejects.toMatchObject({ code: 'busy', retryAfter: 12 })
     vi.useRealTimers()
     vi.stubGlobal('fetch', busy({}))
-    await expect(loadOnboarding()).rejects.toMatchObject({ code: 'busy', retryAfter: null })
+    await expect(loadOnboarding('u')).rejects.toMatchObject({ code: 'busy', retryAfter: null })
     // A wait is never longer than a minute, whatever is asked, and one that names none is short.
     vi.stubGlobal('fetch', busy({ 'retry-after': '86400' }))
-    const long = await loadOnboarding().catch(e => e)
+    const long = await loadOnboarding('u').catch(e => e)
     expect(long.retryAfter).toBe(60)
     expect(waitSeconds(long)).toBe(60)
     expect(waitSeconds({ retryAfter: null })).toBe(5)
@@ -147,7 +144,7 @@ describe('the requests', () => {
 
   it('says a 429 asking for no wait (Retry-After: 0) is still busy, with a wait of none', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: false, status: 429, headers: new Headers({ 'retry-after': '0' }), json: async () => ({}) })))
-    const e = await loadOnboarding().catch(err => err)
+    const e = await loadOnboarding('u').catch(err => err)
     expect(e).toMatchObject({ status: 429, code: 'busy', retryAfter: 0 })
     expect(waitSeconds(e)).toBe(0)
   })

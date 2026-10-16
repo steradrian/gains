@@ -44,7 +44,7 @@ function setbacksOf(done) {
 
 export default function FinishScreen() {
   const navigate = useNavigate()
-  const { state, hub, act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy, signedInElsewhere } = useOnboarding()
+  const { state, hub, act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy, signedInElsewhere, restarting } = useOnboarding()
   const [status, setStatus] = useState('idle') // idle | saving | error | busy (the hub asked to wait)
   const [setbacks, setSetbacks] = useState(null)
   const floor = useRef(null)
@@ -63,8 +63,10 @@ export default function FinishScreen() {
     // The person who tapped is no longer the one signed in: what follows is not theirs to finish.
     const someoneElse = () => current().uid !== owner
     const fail = () => setStatus(busy() ? 'busy' : 'error')
+    // The page starting over (the hub refused a request as another account's, `restarting()`):
+    // nothing more is sent or shown here, and the button stays busy until the reload.
     // A save still on its way (a tap just before this one) lands first.
-    await savesSettled()
+    if ((await savesSettled()) === 'restarting') return
     // No plan chosen for the days given, here or on the hub: asked again, never dropped.
     if (planOwed(current().answers, current().server)) {
       setStatus('idle')
@@ -73,8 +75,9 @@ export default function FinishScreen() {
     }
     // Nothing completes with an answer the hub has not taken: those are sent again first.
     for (const step of HUB_STEPS.filter(s => current().unsaved.includes(s))) {
-      if (!(await saveHubStep(step))) {
-        // A save refused as another account's starts the page over itself (saveHubStep).
+      const saved = await saveHubStep(step)
+      if (saved === 'restarting') return
+      if (saved !== 'saved') {
         if (someoneElse()) setStatus('idle')
         else fail()
         return
@@ -84,6 +87,7 @@ export default function FinishScreen() {
     try {
       done = await hubCall(() => completeOnboarding(todayISO(), owner))
     } catch (e) {
+      if (restarting()) return
       if (e.code === 'wrong-user') {
         // Someone else signed in while this waited: the store has already started over for them,
         // and what is on screen is theirs. Otherwise this tab is the one out of date, and it
@@ -99,7 +103,10 @@ export default function FinishScreen() {
         // it would be a screen of one card, so "no plan" is the answer and this finishes.
         act({ type: 'plan', plan: null })
         // Without the hub's answer there is no knowing what it offers now: try again, from here.
-        if (!(await refresh())) { fail(); return }
+        if (!(await refresh())) {
+          if (!restarting()) fail()
+          return
+        }
         const now = current()
         const offered = !!now.answers.trainingDays && (now.starterAvailable === true || (now.coachAvailable === true && !!now.coachConsent))
         if (!offered && !again) {

@@ -9,11 +9,13 @@ import { button, flush, mount, radio, rerender, saved, stubReload, unmountAll, w
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-const mocks = vi.hoisted(() => ({ user: null, sheets: [] }))
+// `setUser` is one spy, and does not change `user`: what asks for the cached user to be cleared
+// (the page starting over) is asserted on, and the screen stays up for the rest of the test.
+const mocks = vi.hoisted(() => ({ user: null, sheets: [], setUser: vi.fn() }))
 vi.mock('../../store/useStore.js', () => {
   const snap = () => ({
     user: mocks.user, config: {}, S: {},
-    setUser: vi.fn(u => { mocks.user = u }), pushState: vi.fn(), pullState: vi.fn(), adoptProfile: vi.fn(async () => {}),
+    setUser: mocks.setUser, pushState: vi.fn(), pullState: vi.fn(), adoptProfile: vi.fn(async () => {}),
   })
   const useStore = selector => (selector ? selector(snap()) : snap())
   useStore.getState = snap
@@ -61,6 +63,7 @@ beforeEach(() => {
   sessionStorage.clear()
   mocks.user = null
   mocks.sheets.length = 0
+  mocks.setUser.mockReset()
   Object.values(hub).forEach(f => f.mockReset())
   hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, step: null, coachAvailable: true, starterAvailable: true, coachConsent: null })
   hub.saveStep.mockResolvedValue({})
@@ -229,6 +232,46 @@ describe('a shared device', () => {
     expect(reload).toHaveBeenCalledTimes(1)
     expect(hub.completeOnboarding).not.toHaveBeenCalled()
     expect(sessionStorage.getItem(STORE)).toBeNull()
+    // Until the reload the screen is busy, not a failure with a way to try again.
+    expect(page.querySelector('h1').textContent).toBe('That’s everything for now')
+    expect(page.textContent).not.toContain('Check your connection')
+    expect(button(page, 'Try again')).toBeUndefined()
+    expect(button(page, 'Go to Home').disabled).toBe(true)
+  })
+
+  it('the cached user is cleared before the page reloads, so a boot that cannot reach /api/me does not take the stale person for the signed-in one', async () => {
+    mocks.user = MARIA
+    saved({ answers: { goal: 'keep', body, trainingDays: 0 } })
+    const reload = stubReload()
+    hub.completeOnboarding.mockRejectedValue(wrongUser())
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(mocks.setUser).toHaveBeenCalledWith(null)
+    expect(mocks.setUser.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0])
+  })
+
+  it('a save that a refused tap was waiting on starts the page over, and the finish sends nothing more', async () => {
+    mocks.user = MARIA
+    const starter = { kind: 'starter', templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym', experience: 'new' }
+    saved({ answers: { goal: 'keep', body, trainingDays: 3, plan: starter } })
+    // The hub offers no plan any more: "no plan" is saved, and the completion goes again.
+    hub.loadOnboarding.mockResolvedValue({
+      answers: { goal: { goal: 'keep' }, training: { trainingDays: 3 } }, completedAt: null, step: null, coachAvailable: false, starterAvailable: false, coachConsent: null,
+    })
+    hub.completeOnboarding.mockRejectedValueOnce(Object.assign(new Error('x'), { status: 409, code: 'plan-unavailable' }))
+    hub.saveStep.mockRejectedValue(wrongUser())
+    const reload = stubReload()
+    const page = mount('/onboarding/finish')
+    await flush()
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(hub.saveStep).toHaveBeenCalledTimes(1)
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
+    expect(page.textContent).not.toContain('Check your connection')
+    expect(button(page, 'Go to Home').disabled).toBe(true)
   })
 
   it('a save still waiting for A\'s turn is dropped when B signs in', async () => {
