@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { useStore } from '../store/useStore.js'
 import { api } from '../lib/api.js'
+import { t } from '../lib/i18n.js'
 import Icon from '../components/Icon.jsx'
 import { Inline, Spacer } from '../components/layout.jsx'
 import { Card, Chip, Tiles } from '../components/blocks.jsx'
@@ -117,7 +118,7 @@ export default function AdminCoach() {
     setBusy(false)
   }
 
-  if (!d) return <Card><Loading className="muted small">Loading Coach status…</Loading></Card>
+  if (!d) return <Card><Loading className="muted small">{t('Loading Coach status…')}</Loading></Card>
 
   if (d.disabledByEnv) return <Card>
     <h2 className="mb-3">AI Coach</h2>

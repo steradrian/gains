@@ -60,7 +60,7 @@ function UserDetail({ id, onChanged, close }) {
   const toast = useUI(s => s.toast)
   const openSheet = useUI(s => s.openSheet)
   useEffect(() => { api('/api/admin/user?id=' + encodeURIComponent(id)).then(setD).catch(e => toast(e.message)) }, [id])
-  if (!d) return <Loading className="muted small">Loading…</Loading>
+  if (!d) return <Loading className="muted small" />
   const u = d.user
   // The document comes straight off the user's state file. PUT /api/data drops null and
   // shapeless entries now, but a file written before it did still answers with them, and this

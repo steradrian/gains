@@ -1,18 +1,21 @@
 // The splash: the G draws itself, then "gains" arrives letter by letter, each letter settling into
 // its weight (Jost 200, 350, 500, 650, 800). The brand kit's timing and layout (gains-logo.js),
-// drawn in the CSS colour of the canvas like the loader (brand-motion.js), over a transparent
+// drawn in the CSS colour of the canvas (brand-motion.js), over a transparent
 // canvas: the page behind it is the background.
 //
 // The letters are outlines (brand-glyphs.js, 31 KB gzipped) and load only when a splash is going to
 // play, through loadGlyphs().
 import { drawMark, ease, run } from './brand-motion.js'
 
-export const SPLASH_LOOP = 3.6
-// The timeline in seconds: the G is drawn by G_DONE, the letters follow, the last has settled by END.
-export const G_DONE = 0.29 * SPLASH_LOOP
-export const SPLASH_END = 3.2
 const WEIGHTS = [200, 350, 500, 650, 800]
 const LETTERS = 'gains'
+// The timeline, as fractions of SPLASH_LOOP: the G is drawn by 0.29, the first letter starts at 0.30,
+// each next one STAGGER later, and each takes SETTLE to reach its weight. The splash ends when the
+// last letter has settled: no hold after it, the app is not kept waiting for a tail.
+const LETTERS_FROM = 0.30, STAGGER = 0.04, SETTLE = 0.10, FADE_IN = 0.04
+export const SPLASH_LOOP = 1.8
+export const G_DONE = 0.29 * SPLASH_LOOP
+export const SPLASH_END = SPLASH_LOOP * (LETTERS_FROM + (LETTERS.length - 1) * STAGGER + SETTLE)
 // Layout in css px: the G's box is 100 wide, its centre 38 above the middle of the screen (the
 // place index.html and BootMark hold it), the letters' baseline 48 below the middle.
 const G_UP = 38, BASE_DOWN = 48, EM = 42, TRACK = 5
@@ -45,8 +48,8 @@ function drawLetter(ctx, GLY, ch, wt, x, y, em, alpha, ink) {
 
 // The frame at time t (seconds into the splash's loop) on a w x h css px canvas at `dpr`.
 export function drawSplash(ctx, GLY, t, w, h, dpr, ink) {
-  const p = (t % SPLASH_LOOP) / SPLASH_LOOP
-  const stage = p < 0.04 ? p / 0.04 : p > 0.9 ? Math.max(0, (1 - p) / 0.1) : 1
+  const p = Math.min(1, t / SPLASH_LOOP)
+  const stage = p < 0.04 ? p / 0.04 : 1
   const cx = w * dpr / 2, cy = h * dpr / 2 - G_UP * dpr
   const gf = ease(seg(p, 0.04, 0.29))
   if (gf > 0.001) drawMark(ctx, 0, gf, 100 * dpr, cx - 50 * dpr, cy - 50 * dpr, ink, stage)
@@ -55,9 +58,9 @@ export function drawSplash(ctx, GLY, t, w, h, dpr, ink) {
   const adv = LETTERS.split('').map((ch, i) => GLY.w[WEIGHTS[i]][ch].a)
   let x = cx - (adv.reduce((n, a) => n + a, 0) + TRACK * (LETTERS.length - 1)) * em / 1000 / 2
   for (let j = 0; j < LETTERS.length; j++) {
-    const s0 = 0.30 + j * 0.07, q = easeOut(seg(p, s0, s0 + 0.14))
+    const s0 = LETTERS_FROM + j * STAGGER, q = easeOut(seg(p, s0, s0 + SETTLE))
     const wt = 100 + (WEIGHTS[j] - 100) * q
-    const alpha = stage * Math.min(1, seg(p, s0, s0 + 0.04))
+    const alpha = stage * Math.min(1, seg(p, s0, s0 + FADE_IN))
     if (alpha > 0.001) {
       // Centre the letter on its own advance as its weight (and so its width) changes.
       const a0 = GLY.w[Math.min(800, Math.max(100, Math.round(wt / 50) * 50))][LETTERS[j]].a

@@ -8,6 +8,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import BootSplash, { LEAVE_MS, resetBootSplash } from './BootSplash.jsx'
+import { MIN_SHOW_MS } from '../lib/splash-rules.js'
 import { useStore } from '../store/useStore.js'
 
 const mocks = vi.hoisted(() => ({ created: [], ok: true, glyphs: Promise.resolve({ glyphs: true }) }))
@@ -29,7 +30,8 @@ const settle = () => act(async () => { await Promise.resolve(); await Promise.re
 const mount = async () => { act(() => root.render(<BootSplash />)); await settle() }
 const setReady = ready => act(() => { useStore.setState({ ready }) })
 const inert = id => document.getElementById(id).hasAttribute('inert')
-const finish = () => act(() => { mocks.created.at(-1).opts.onComplete() })
+const elapse = ms => act(() => { vi.advanceTimersByTime(ms) })
+const finish = () => elapse(MIN_SHOW_MS)   // it has now been up for the minimum
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -40,6 +42,7 @@ beforeEach(() => {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({}))
   vi.stubGlobal('matchMedia', () => ({ matches: false }))
   // The page the splash covers, as App.jsx draws it.
+  window.location.hash = ''; window.location.search = ''
   document.body.innerHTML = '<div id="app"><button id="behind">Start</button></div><nav id="tabbar"></nav><div id="timer"></div>'
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
 })
@@ -96,24 +99,84 @@ describe('BootSplash', () => {
     expect(inert('app')).toBe(true)
   })
 
-  it('stays up after the animation until the app has read its state, then fades and goes', async () => {
+  it('stays up past the minimum until the app has read its state, then fades and goes', async () => {
     await mount()
     finish()
     expect(q('.boot-splash').className).toBe('boot-splash')
-    act(() => { vi.advanceTimersByTime(60000) })
+    elapse(60000)
     expect(q('.boot-splash')).not.toBeNull()            // not on a timer alone
     await setReady(true)
     expect(q('.boot-splash').className).toBe('boot-splash leaving')
-    act(() => { vi.advanceTimersByTime(LEAVE_MS) })
+    elapse(LEAVE_MS)
     expect(q('.boot-splash')).toBeNull()
   })
 
-  it('stays up after the app is ready until the animation has finished', async () => {
+  it('stays up after the app is ready until it has been up for the minimum', async () => {
     await mount()
+    elapse(300)
     await setReady(true)
     expect(q('.boot-splash').className).toBe('boot-splash')
+    elapse(MIN_SHOW_MS - 300 - 1)
+    expect(q('.boot-splash').className).toBe('boot-splash')
+    elapse(1)
+    expect(q('.boot-splash').className).toBe('boot-splash leaving')
+  })
+
+  it('leaves at the later of the app being ready and the minimum: ready at 2 s leaves at 2 s, not after a tail', async () => {
+    await mount()
+    elapse(2000)
+    expect(q('.boot-splash').className).toBe('boot-splash')
+    await setReady(true)
+    expect(q('.boot-splash').className).toBe('boot-splash leaving')
+    elapse(LEAVE_MS)
+    expect(q('.boot-splash')).toBeNull()
+  })
+
+  it('the page is back in reach by the minimum plus the fade at the latest when the app is ready at once', async () => {
+    await mount()
+    await setReady(true)
     finish()
     expect(q('.boot-splash').className).toBe('boot-splash leaving')
+    elapse(LEAVE_MS)
+    expect(q('.boot-splash')).toBeNull()
+    expect(inert('app')).toBe(false)
+  })
+
+  it('is dropped, and never draws, when the app is ready before the letters have loaded', async () => {
+    let release
+    mocks.glyphs = new Promise(r => { release = r })
+    act(() => root.render(<BootSplash />))
+    expect(q('.boot-splash')).not.toBeNull()
+    expect(inert('app')).toBe(true)
+    await setReady(true)
+    expect(q('.boot-splash')).toBeNull()
+    expect(inert('app')).toBe(false)
+    release({ glyphs: true }); await settle()
+    expect(mocks.created).toHaveLength(0)
+  })
+
+  it('is not played at all when the app is already ready at mount', async () => {
+    useStore.setState({ ready: true })
+    await mount()
+    expect(q('.boot-splash')).toBeNull()
+    expect(mocks.created).toHaveLength(0)
+  })
+
+  it.each([
+    ['a route in the hash (a deep link or a notification tap)', () => { window.location.hash = '#/train/workout' }],
+    ['a pairing link query', () => { window.location.search = '?link=ABC123' }],
+  ])('is not played on a launch with %s', async (_, launch) => {
+    launch()
+    await mount()
+    expect(q('.boot-splash')).toBeNull()
+    expect(mocks.created).toHaveLength(0)
+    expect(inert('app')).toBe(false)
+  })
+
+  it('is still played on a plain cold start, with or without an empty hash', async () => {
+    window.location.hash = '#/'
+    await mount()
+    expect(q('.boot-splash')).not.toBeNull()
   })
 
   it('a tap ends it early, and it still waits for the state', async () => {

@@ -80,7 +80,7 @@ export function ActionButton({ icon, label, ariaLabel, onClick, disabled = false
     <button type="button" className="act-b" onClick={onClick} disabled={disabled} aria-busy={busy || undefined}
       aria-label={badge ? name + ', ' + badge : ariaLabel}>
       <span className="act-d">
-        {busy ? <Loader size="sm" /> : <Icon name={icon} />}
+        {busy ? <Loader size="icon" /> : <Icon name={icon} />}
         {badge && <span className="act-badge" aria-hidden="true" />}
       </span>
       <span className="act-l">{label}</span>

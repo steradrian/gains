@@ -133,10 +133,12 @@ class throws in development, as everywhere in the kit.
 
 ## The loader
 
-The app's one loading animation is the G (`lib/brand-motion.js`), on a canvas that reads its own CSS
-`color` every frame: muted in a muted line, the theme's ink elsewhere, white in a primary button, and
-the whole G, still, under Reduce motion. It is decoration (`aria-hidden`): the words next to it are
-announced. `loading-lines.test.js` fails a page that draws "Loading…" as a bare word in an element. The
+The app's one loading animation is the G: `BrandMark` (an SVG cropped to the G, so the G fills the
+size the loader is given) with its stroke animated in `ui-kit.css` by dash offset. It takes the CSS
+`color` around it: muted in a muted line, the theme's ink elsewhere, white in a primary button, and
+the whole G, still, under Reduce motion. Sizes `xs sm md lg`, and `icon` (the 24px glyph size, for a
+button that swaps its icon for it). It is decoration (`aria-hidden`): the words next to it are
+announced. A list that is loading shows `Skeleton` rows, not a loader. `loading-lines.test.js` fails a page that draws "Loading…" as a bare word in an element. The
 string is fine where it is not a line of its own (a button label, a row subtitle, a tile value, an
 `aria-label`); in a button or a row, put `<Loader size="xs" />` where the icon goes.
 

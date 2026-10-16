@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MARK } from './brand-mark.js'
 import {
-  CENTRE, GEO, GROOVE, LOADER_CYCLE, createLoader, drawMark, ease, flowRange, pathSpec, run, tracePortion,
+  CENTRE, GEO, GROOVE, drawMark, ease, pathSpec, run, tracePortion,
 } from './brand-motion.js'
 import { G_DONE, SPLASH_END, SPLASH_LOOP, createSplash, drawSplash, loadGlyphs } from './brand-splash.js'
 
@@ -124,24 +124,7 @@ describe('drawMark', () => {
   })
 })
 
-describe('the loader\'s loop', () => {
-  it('draws for 44% of 2.4 s, holds to 56%, then erases', () => {
-    expect(LOADER_CYCLE).toBe(2.4)
-    expect(flowRange(0)).toEqual([0, 0])
-    const [a0, a1] = flowRange(0.22 * LOADER_CYCLE)
-    expect(a0).toBe(0)
-    expect(a1).toBeGreaterThan(0.4); expect(a1).toBeLessThan(0.6)
-    expect(flowRange(0.5 * LOADER_CYCLE)).toEqual([0, 1])
-    expect(flowRange(0.78 * LOADER_CYCLE)[1]).toBe(1)
-    expect(flowRange(0.78 * LOADER_CYCLE)[0]).toBeGreaterThan(0.4)
-    expect(flowRange(0.999 * LOADER_CYCLE)[0]).toBeGreaterThan(0.99)
-  })
-
-  it('is the same every cycle', () => {
-    const [a0, a1] = flowRange(0.7), [b0, b1] = flowRange(0.7 + LOADER_CYCLE * 5)
-    near(a0, b0, 1e-9); near(a1, b1, 1e-9)
-  })
-
+describe('ease', () => {
   it('eases in and out and stays inside 0..1', () => {
     expect([ease(-1), ease(0), ease(0.5), ease(1), ease(2)]).toEqual([0, 0, 0.5, 1, 1])
     expect(ease(0.25)).toBeLessThan(0.25)
@@ -224,20 +207,6 @@ describe('run: a canvas, a clock and a colour', () => {
     expect(done).toBe(1)
   })
 
-  it('the loader shows the whole G when reduced, and animates otherwise', () => {
-    const still = recorder()
-    createLoader(canvasWith(still), { reduced: true })
-    expect(ops(still, 'stroke')).toHaveLength(2)
-    expect(frames).toHaveLength(0)
-    createLoader(canvasWith(recorder()))
-    expect(frames).toHaveLength(1)
-  })
-
-  it('the loader draws nothing while the G is fully erased', () => {
-    const ctx = recorder()
-    createLoader(canvasWith(ctx))   // t = 0
-    expect(ops(ctx, 'stroke')).toHaveLength(0)
-  })
 })
 
 describe('the splash', () => {
@@ -248,11 +217,19 @@ describe('the splash', () => {
   afterEach(() => { delete globalThis.Path2D })
   const frame = t => { const ctx = recorder(); drawSplash(ctx, GLY, t, 400, 800, 1, 'INK'); return ctx }
 
-  it('the timeline: the G is drawn by 1.04 s, the letters settle before the end, and the end is 3.2 s', () => {
-    expect(G_DONE).toBeCloseTo(1.044, 3)
-    expect(SPLASH_END).toBe(3.2)
-    expect(SPLASH_END).toBeLessThan(SPLASH_LOOP * 0.9)   // the fade-out of the kit's loop is never reached
-    expect(SPLASH_LOOP * (0.30 + 4 * 0.07 + 0.14)).toBeLessThan(SPLASH_END)
+  it('the timeline: about a second end to end, the last letter (stagger 0.04, settle 0.10 of the loop) ends it with no hold', () => {
+    expect(SPLASH_END).toBeCloseTo(SPLASH_LOOP * (0.30 + 4 * 0.04 + 0.10), 9)
+    expect(SPLASH_END).toBeGreaterThan(0.95)
+    expect(SPLASH_END).toBeLessThan(1.1)
+    expect(G_DONE).toBeLessThan(SPLASH_END)
+    // from the handover (the G already on screen) the animation itself is about half a second
+    expect(SPLASH_END - G_DONE).toBeLessThan(0.6)
+  })
+
+  it('the last letter has settled exactly at the end: nothing moves after it', () => {
+    const a = frame(SPLASH_END), b = frame(SPLASH_END + 5)
+    expect(ops(b, 'fill')).toEqual(ops(a, 'fill'))
+    expect(ops(b, 'translate')).toEqual(ops(a, 'translate'))
   })
 
   it('opens empty, draws the G first and the letters after it', () => {
@@ -260,7 +237,7 @@ describe('the splash', () => {
     const g = frame(G_DONE)
     expect(ops(g, 'stroke')).toHaveLength(2)
     expect(ops(g, 'fill')).toHaveLength(0)
-    const mid = frame(1.6)
+    const mid = frame(SPLASH_LOOP * 0.4)
     expect(ops(mid, 'fill').length).toBeGreaterThan(0)
   })
 

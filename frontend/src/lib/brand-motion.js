@@ -1,17 +1,15 @@
-// The Gains G in motion: the loader, and the part of the splash that draws the G. Canvas 2D, no
+// The Gains G in motion on a canvas: the part of the splash that draws the G. Canvas 2D, no
 // dependencies. The geometry and timing are the brand kit's (gains-logo.js); what is different is
 // that the colour is not a parameter but the CSS `color` of the canvas, read on every frame, so the
 // mark follows the theme (the light ink on the dark theme, the dark one on the light) without a
-// prop having to say so, and a theme switched while it spins is picked up on the next frame.
+// prop having to say so, and a theme switched while it plays is picked up on the next frame.
 // BrandMark.jsx draws the same G still, from the same numbers (brand-motion.test.js keeps them in
-// step). The letters of the splash are lib/brand-splash.js.
+// step); the loader is BrandMark animated in CSS. The letters of the splash are lib/brand-splash.js.
 
 // Units of a 100 box with y up: the ring's centre line has radius R and is drawn from A0 degrees
 // round to 360, then the bar runs back along y = 50 to BAR_END. The groove is a second line, GR out
 // from the centre, that steps up to the bar's level and ends at GBAR.
 export const GEO = { R: 24, W: 8.4, A0: 40, BAR_END: 51, GR: 25.2, GW: 1.1, GBAR: 52.5 }
-// The loader's loop: draw, hold, erase.
-export const LOADER_CYCLE = 2.4
 
 // Cubic ease in and out, clamped.
 export function ease(x) {
@@ -78,14 +76,6 @@ export function drawMark(ctx, f0, f1, size, ox, oy, ink, alpha = 1) {
   ctx.restore()
 }
 
-// Which part of the G is drawn at time t of the loop: draw in the first 44%, hold to 56%, erase.
-export function flowRange(t) {
-  const p = (t % LOADER_CYCLE) / LOADER_CYCLE
-  if (p < 0.44) return [0, ease(p / 0.44)]
-  if (p < 0.56) return [0, 1]
-  return [ease((p - 0.56) / 0.44), 1]
-}
-
 // Runs `draw(ctx, t, w, h, dpr, ink)` on a canvas: sized from its CSS box, scaled for the screen
 // (to maxDpr), `ink` read from its CSS colour. Ends at `endAt` seconds with a last frame and
 // `onComplete`, or runs until destroyed. `reduced` draws the one frame at `stillAt` and stops.
@@ -115,14 +105,4 @@ export function run(canvas, draw, { maxDpr = 2, startAt = 0, endAt = null, still
   // splash taking over from the still G) must not blink off in between.
   if (reduced) { frame(stillAt); finish() } else { frame(startAt); raf = requestAnimationFrame(step) }
   return { ok: true, destroy() { if (raf !== null) cancelAnimationFrame(raf); raf = null; done = true } }
-}
-
-// The loader on a canvas: the G drawing itself, holding, erasing, again. `reduced`: the whole G, still.
-export function createLoader(canvas, { reduced = false, maxDpr } = {}) {
-  return run(canvas, (ctx, t, w, h, dpr, ink) => {
-    const [f0, f1] = flowRange(t)
-    if (f1 - f0 < 0.001) return
-    const s = Math.min(w, h) * dpr
-    drawMark(ctx, f0, f1, s, (w * dpr - s) / 2, (h * dpr - s) / 2, ink)
-  }, { reduced, maxDpr, stillAt: 1.2 })
 }
