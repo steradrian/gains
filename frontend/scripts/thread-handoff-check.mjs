@@ -39,6 +39,16 @@ if (OUT) mkdirSync(OUT, { recursive: true })
 const USER = { id: 'u1', name: 'Maria', synced: true }
 const HUB = { answers: {}, completedAt: null, next: 'goal', remaining: ['goal', 'body', 'training', 'plan'], coachAvailable: false, starterAvailable: true, prefill: { answered: [], sources: { opengym: 'ok', nutritrace: 'ok' } } }
 
+// The scenes' own art is hidden for the whole walk, so the two frames compare the thread with its
+// anchor and nothing else. The thread is an overlay above the screen, and a scene's art stands on
+// its line (the envelope's pocket, the calendar's and the scale's feet, the key's bow over the
+// shaft's end): while the thread flies it covers those pixels and at the hand-off they are on top
+// again. That is the art finishing, not the line moving, and it is not what this check measures.
+const ONLY_THE_LINE = `
+  svg:not(.ob-thread) *:not([data-thread]) { visibility: hidden !important }
+  svg:not(.ob-thread) [data-thread]:not([data-thread-claim]) { visibility: visible !important }
+`
+
 const json = (route, status, body) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 function answer(signedIn) {
   return route => {
@@ -47,7 +57,7 @@ function answer(signedIn) {
     const p = url.pathname
     if (p === '/api/config') return json(route, 200, {})
     if (p === '/api/me') return signedIn ? json(route, 200, { user: USER }) : json(route, 401, { error: 'not signed in' })
-    if (p.startsWith('/api/invites/')) return json(route, 200, { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' })
+    if (p.startsWith('/hub/api/invite/')) return json(route, 200, { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' })
     if (p === '/api/data/rev') return json(route, 200, { rev: 0, wid: 'handoff-check' })
     if (p === '/hub/api/onboarding') return json(route, 200, method === 'GET' ? HUB : {})
     if (p === '/hub/api/onboarding/preview') return json(route, 200, { ready: true, targets: { calories: 1850 } })
@@ -151,6 +161,7 @@ async function walk(browser, base, dpr, signedIn, start, steps) {
   await page.clock.install({ time: T0 })
   await page.clock.pauseAt(T0 + 1000)
   await page.goto(base + start)
+  await page.addStyleTag({ content: ONLY_THE_LINE })
   let failed = false
   for (const [name, trigger] of steps) {
     const { n, ratio, before, after } = await handoff(page, dpr, () => trigger(page))
