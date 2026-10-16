@@ -14,7 +14,8 @@ vi.mock('../../store/useStore.js', () => ({
   hasData: () => false,
 }))
 vi.mock('../nutrition/api.js', () => ({ nutritionAvailable: () => true }))
-vi.mock('./api.js', () => ({ loadOnboarding: () => mocks.read.promise }))
+const load = vi.hoisted(() => ({ loadOnboarding: vi.fn() }))
+vi.mock('./api.js', () => load)
 
 const MARIA = { id: 'u1', name: 'Maria' }
 const BEA = { id: 'u2', name: 'Bea' }
@@ -36,6 +37,8 @@ beforeEach(() => {
   navigate.mockReset()
   mocks.user = MARIA
   mocks.read = deferred()
+  load.loadOnboarding.mockReset()
+  load.loadOnboarding.mockImplementation(() => mocks.read.promise)
   root = createRoot(document.createElement('div'))
   act(() => root.render(<Probe user={MARIA} />))
 })
@@ -45,6 +48,8 @@ describe('boot resume', () => {
   it('sends a person who had started back into the flow', async () => {
     mocks.read.resolve(started)
     await act(async () => { await mocks.read.promise })
+    // The read names the person it is for.
+    expect(load.loadOnboarding).toHaveBeenCalledWith('u1')
     expect(navigate).toHaveBeenCalledWith('/onboarding', { replace: true })
   })
 

@@ -52,6 +52,8 @@ describe('Home — a plan the onboarding could not set up', () => {
     expect(text()).toContain('Your plan couldn’t be set up')
     expect(text()).toContain('Pick one in Training.')
     expect(text()).not.toContain('Welcome!')
+    // The read is for the signed-in person, named to the hub.
+    expect(hub.loadOnboarding).toHaveBeenCalledWith('u1')
     const open = [...host.querySelectorAll('button')].find(b => b.textContent.includes('Open Training'))
     act(() => { open.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     expect(nav).toHaveBeenCalledWith('/train')

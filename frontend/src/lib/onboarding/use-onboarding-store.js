@@ -4,6 +4,7 @@ import { nextAfter, pathOf, previousOf, screenOf, skipTarget } from './flow.js'
 import { forget } from './session.js'
 import { initialState, loadSaved, reduce, save } from './state.js'
 import { nutritionAvailable } from '../nutrition/api.js'
+import { useStore } from '../../store/useStore.js'
 
 // The only answers that say there is no onboarding to be had here: not signed in to the hub, not
 // allowed, no hub at this address, gone. Anything else that fails to read says nothing about
@@ -13,6 +14,11 @@ import { nutritionAvailable } from '../nutrition/api.js'
 const NOT_THEIRS = [401, 403, 404, 410]
 const hubDown = e => !NOT_THEIRS.includes(e.status)
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+// Up to this much is added to a wait on the hub's Retry-After, at random per waiter: a save, a
+// preview and a read held back by the same 429 would otherwise all go out in the same millisecond
+// and be limited together again. Half a second spreads them, and is small beside the seconds a
+// Retry-After asks for.
+const WAKE_JITTER_MS = 500
 
 /**
  * The onboarding's state and actions, for OnboardingLayout to provide. `hub` says what the server
@@ -56,22 +62,65 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     act({ type: 'reset' })
   }, [act])
 
+  /**
+   * The hub refused a request as made for another account while this tab still holds the same
+   * person it wrote for: whoever is signed in is not who this tab thinks (the session changed in
+   * another tab, and this one has not heard). Nothing in the store can read who that is without
+   * running the app's boot again, so the page starts over: the answers on screen are dropped, the
+   * cached user goes too (a boot that cannot reach /api/me would otherwise take it for the
+   * signed-in one and be refused the same way), nothing of this tab's copy can be pushed under
+   * the new session (the app's store holds for the restart, and leaves the user and the screens
+   * as they are), and the reload reads the signed-in person and re-keys everything to them. Once
+   * started it is not started again, and nothing more is sent: `restarting()` says so.
+   */
+  const restarting = useRef(false)
+  const signedInElsewhere = useCallback(() => {
+    if (restarting.current) return
+    restarting.current = true
+    useStore.getState().holdForRestart()
+    discard()
+    window.location.reload()
+  }, [discard])
+
   const [hub, setHub] = useState(user ? 'loading' : 'pre-auth')
+  // For hubCall, which comes before the read it asks for again.
+  const hubNow = useRef(hub)
+  hubNow.current = hub
+  const reading = useRef(0)
+  const refreshNow = useRef(null)
   // The latest read: an answer to an earlier one (another person's, or the layout gone) is dropped.
   const reads = useRef(0)
 
-  // When the hub said it is busy, the time before which nothing more is sent to it.
+  // When the hub said it is busy, the time before which nothing more is sent to it, and whether
+  // its last answer was a 429 at all (a Retry-After of 0 is a 429 with no wait left).
   const busyUntil = useRef(0)
-  /** Whether the hub's last answer was "busy" and its Retry-After has not passed. */
-  const busy = useCallback(() => Date.now() < busyUntil.current, [])
-  /** Runs one hub request, after any Retry-After the hub has asked for; a 429 starts the next wait. */
-  const hubCall = useCallback(async request => {
-    const wait = busyUntil.current - Date.now()
-    if (wait > 0) await sleep(wait)
+  const limited = useRef(false)
+  /** Whether the hub's last answer was "busy": a 429 is that, whatever wait it asked for. */
+  const busy = useCallback(() => limited.current || Date.now() < busyUntil.current, [])
+  /**
+   * Runs one hub request, after any Retry-After the hub has asked for; a 429 starts the next wait.
+   * Callers waiting on the same Retry-After wake a little apart (WAKE_JITTER_MS), and each looks
+   * again when it wakes: one the first of them gets limited again is not followed by the rest.
+   * `stillAsked`: whether the request is still wanted once the wait is over (a save for a person
+   * who has since gone); when it is not, nothing is sent and the call fails `stale`.
+   * A request the hub answers while the layout says "busy" or "offline" (a read that did not
+   * get through) is proof it is there: the read goes again, unless `reread` is false: the
+   * completion's answer is the end of the onboarding, and a read after it would only say so and
+   * take the screen showing what did not go in away.
+   */
+  const hubCall = useCallback(async (request, { stillAsked, reread = true } = {}) => {
+    for (let wait = busyUntil.current - Date.now(); wait > 0; wait = busyUntil.current - Date.now()) {
+      await sleep(wait + Math.random() * WAKE_JITTER_MS)
+    }
+    if (restarting.current || (stillAsked && !stillAsked())) throw Object.assign(new Error('no longer asked'), { status: 0, code: 'stale' })
     try {
-      return await request()
+      const res = await request()
+      limited.current = false
+      if (reread && !reading.current && (hubNow.current === 'busy' || hubNow.current === 'offline')) refreshNow.current?.()
+      return res
     } catch (e) {
-      if (e.status === 429) busyUntil.current = Date.now() + waitSeconds(e) * 1000
+      limited.current = e.status === 429
+      if (limited.current) busyUntil.current = Date.now() + waitSeconds(e) * 1000
       throw e
     }
   }, [])
@@ -79,8 +128,11 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
   /** Reads the hub's state again into this tab's. Resolves true once it is in, false if the read failed. */
   const refresh = useCallback(async () => {
     const read = ++reads.current
+    // The person it is read for, named to the hub: an answer about someone else is never merged in.
+    const person = now.current.uid
+    reading.current++
     try {
-      const res = await hubCall(loadOnboarding)
+      const res = await hubCall(() => loadOnboarding(person))
       if (read !== reads.current) return false
       if (res.completedAt != null) { discard(); setHub('complete'); return true }
       act({
@@ -91,13 +143,17 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
       return true
     } catch (e) {
       if (read === reads.current) {
-        if (e.status === 429) setHub('busy')
+        if (e.code === 'wrong-user') signedInElsewhere()
+        else if (e.status === 429) setHub('busy')
         else if (hubDown(e)) setHub('offline')
         else { discard(); setHub('unavailable') }
       }
       return false
+    } finally {
+      reading.current--
     }
-  }, [act, discard, hubCall])
+  }, [act, discard, hubCall, signedInElsewhere])
+  refreshNow.current = refresh
 
   useEffect(() => {
     if (!uid) { setHub('pre-auth'); return undefined }
@@ -120,35 +176,50 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
    * Saves one hub step from the latest answers; a failure marks it to be sent again. The request
    * names the person its answers belong to, read together with them: when someone else has signed
    * in by the time it arrives the hub refuses it (`wrong-user`) and it is dropped, for it is not
-   * this person's to send again or to mark unsaved.
+   * this person's to send again or to mark unsaved. A refusal with the same person still on this
+   * tab is the other way round: the tab is the one out of date (`signedInElsewhere`).
+   * The person and their uid are those of the moment it is asked, and a save that comes due after
+   * a wait (or after another save) for anyone else sends nothing: it never takes up whoever is
+   * signed in by then. Resolves 'saved', 'failed', or 'restarting': the page is starting over,
+   * and nothing more is to be sent or shown.
    */
   const saveHubStep = useCallback(step => {
-    const queued = waiting.current.get(step)
-    if (queued) return queued
     const person = people.current
+    const uid = now.current.uid
+    const key = `${person}:${step}`
+    const queued = waiting.current.get(key)
+    if (queued) return queued
     const send = async () => {
-      waiting.current.delete(step)
+      waiting.current.delete(key)
+      if (restarting.current) return 'restarting'
       // Asked for one person, due after another signed in: the answers now are not the ones it was for.
-      if (person !== people.current) return false
+      if (person !== people.current) return 'failed'
       try {
-        await hubCall(() => saveStep(step, now.current.answers, now.current.uid))
+        await hubCall(() => saveStep(step, now.current.answers, uid), { stillAsked: () => person === people.current })
+        if (person !== people.current) return 'failed'
         act({ type: 'saved', step, ok: true })
-        return true
+        return 'saved'
       } catch (e) {
-        if (e.code !== 'wrong-user') act({ type: 'saved', step, ok: false })
-        return false
+        if (restarting.current) return 'restarting'
+        if (person !== people.current) return 'failed'
+        if (e.code === 'wrong-user') { signedInElsewhere(); return 'restarting' }
+        act({ type: 'saved', step, ok: false })
+        return 'failed'
       }
     }
     const before = tail.current
     const run = before ? before.then(send) : send()
-    if (before) waiting.current.set(step, run)
+    if (before) waiting.current.set(key, run)
     tail.current = run
     run.then(() => { if (tail.current === run) tail.current = null })
     return run
-  }, [act, hubCall])
+  }, [act, hubCall, signedInElsewhere])
 
-  /** Resolves once every save asked for so far has had its answer. */
-  const savesSettled = useCallback(() => tail.current ?? Promise.resolve(true), [])
+  /** Resolves once every save asked for so far has had its answer: 'restarting' if the page is starting over. */
+  const savesSettled = useCallback(async () => {
+    const last = await (tail.current ?? 'saved')
+    return restarting.current ? 'restarting' : last
+  }, [])
 
   // The flow's own history, mirrored from the router's, so Back walks it where it can and a cold
   // entry (a reload, a link) goes to the step before instead of out of the app.
@@ -204,7 +275,8 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
 
   return useMemo(() => ({
     state, hub, screen, coachAvailable, starterAvailable,
-    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy,
+    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy, signedInElsewhere,
+    restarting: () => restarting.current,
     current: () => now.current,
-  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy])
+  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy, signedInElsewhere])
 }

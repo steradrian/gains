@@ -92,18 +92,19 @@ export const rememberScroll = scrollTop => { useSearch.setState({ scrollTop }) }
  * Opens a route on top of the overlay. The overlay steps aside (the session stays live), and the
  * page arrives with `searchVisit` so that another tab's page is pushed here rather than switched to.
  * `date` (a Day result) is the shared date the page should show: the current one is kept and put
- * back afterwards. `state` is the router state the page reads (`find`, `via`).
+ * back afterwards. `state` is the router state the page reads (`find`, `via`). `replace`: the page
+ * takes the history entry of the sheet it was opened from, so back lands on the overlay.
  */
-export function visit(path, { date, state } = {}) {
+export function visit(path, { date, state, replace } = {}) {
   const s = useSearch.getState()
-  if (!s.live) { nav(path, state ? { state } : undefined); return }
+  if (!s.live) { nav(path, state || replace ? { state, replace } : undefined); return }
   if (date !== undefined) {
     const sel = useDiarySelection.getState()
     if (s.date === undefined) useSearch.setState({ date: sel.date })
     sel.setDate(date)
   }
   useSearch.setState({ open: false })
-  nav(path, { state: { ...(state || {}), searchVisit: s.id } })
+  nav(path, { state: { ...(state || {}), searchVisit: s.id }, ...(replace ? { replace } : {}) })
 }
 
 /**
