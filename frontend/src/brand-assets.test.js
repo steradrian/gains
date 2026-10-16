@@ -36,6 +36,13 @@ describe('web icons', () => {
     for (const icon of maskable) expect(png('public', icon.src).type, icon.src).toBe(2)
   })
 
+  it('no icon mixes purposes; there is a maskable at 192 and 512 and a monochrome one', () => {
+    for (const icon of manifest.icons) expect(icon.purpose, icon.src).toMatch(/^(any|maskable|monochrome)$/)
+    const has = (purpose, sizes) => manifest.icons.some(i => i.purpose === purpose && i.sizes === sizes)
+    expect(has('maskable', '192x192') && has('maskable', '512x512')).toBe(true)
+    expect(manifest.icons.some(i => i.purpose === 'monochrome')).toBe(true)
+  })
+
   it('the Apple touch icon is full bleed too (iOS rounds it itself)', () => {
     expect(png('public', 'brand', 'icon-180.png')).toEqual({ w: 180, h: 180, type: 2 })
   })
@@ -119,7 +126,7 @@ describe('the Android launcher', () => {
       expect(xml, name).toContain('<background android:drawable="@color/ic_launcher_background"/>')
       expect(xml, name).toContain('<foreground android:drawable="@mipmap/ic_launcher_foreground"/>')
     }
-    expect(read(...RES, 'values', 'ic_launcher_background.xml')).toContain('<color name="ic_launcher_background">#111111</color>')
+    expect(read(...RES, 'values', 'ic_launcher_background.xml')).toContain('<color name="ic_launcher_background">#0c0b0a</color>')
   })
 
   it('leaves no background layer image behind (the colour replaced it)', () => {
@@ -151,6 +158,11 @@ describe('the iOS shell', () => {
     const names = c.images.map(i => i.filename)
     expect(names).toHaveLength(6)
     expect(names.filter(n => n.endsWith('-dark.png'))).toHaveLength(3)
-    for (const n of names) expect(png(...XCA, 'Splash.imageset', n), n).toMatchObject({ w: 2732, h: 2732 })
+    // 1400 pt square at each scale, centred by the storyboard without scaling: the G is the same size on every screen
+    for (const image of c.images) {
+      const scale = Number(image.scale[0])
+      expect(png(...XCA, 'Splash.imageset', image.filename), image.filename).toMatchObject({ w: 1400 * scale, h: 1400 * scale })
+    }
+    expect(read('ios', 'App', 'App', 'Base.lproj', 'LaunchScreen.storyboard')).toContain('contentMode="center"')
   })
 })
