@@ -19,13 +19,17 @@ let titles = 0
 // Focus goes to the sheet itself, not to its first control: many sheets open on a text field (the
 // food search, a weight) and a phone raises its keyboard for a focused field. A sheet that
 // focuses a field of its own on open keeps it.
-export function useSheetDialog(ref) {
+//
+// `present` is the sheet's presence (components/presence.jsx): a sheet that has been closed stays
+// on screen while its way out plays, and everything above is handed back the moment it is closed,
+// not when it is gone: the page is live again and the focus is back on the opener.
+export function useSheetDialog(ref, present = true) {
   // Asked while rendering, before the sheet is in the page: a field inside that focuses itself
   // as it mounts would otherwise be taken for what opened the sheet.
   const [opener] = useState(() => (typeof document === 'undefined' ? null : document.activeElement))
   useLayoutEffect(() => {
     const sheet = ref.current
-    if (!sheet || sheet.querySelector(OWN_FOCUS)) return
+    if (!present || !sheet || sheet.querySelector(OWN_FOCUS)) return
     // Content that is already a dialog (a photo viewer) keeps its role and name and is the
     // element focus is moved into and trapped in; it only gets the rest of the handling.
     const own = sheet.querySelector('[role="dialog"]')
@@ -56,5 +60,5 @@ export function useSheetDialog(ref) {
       watch?.disconnect()
       release()
     }
-  }, [])
+  }, [present])
 }

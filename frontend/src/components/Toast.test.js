@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8')
-const rule = css.match(/\n#toast\{([^}]*)\}/)[1]
+// #toast places it (the live region); the pill inside is what is drawn.
+const region = css.match(/\n#toast\{([^}]*)\}/)[1]
+const rule = css.match(/\n\.toast-pill\{([^}]*)\}/)[1]
 const px = v => {
   const token = v.match(/^var\((--[\w-]+)\)$/)
   const value = token ? css.match(new RegExp(`${token[1]}:\\s*([^;]+);`))[1].trim() : v
@@ -26,7 +28,7 @@ describe('the toast', () => {
   // left:50% leaves a box without a width half the screen to wrap in: the same message stood as
   // a column about 206 CSS px wide and as tall.
   it('wraps a long message across the screen, not in half of it', () => {
-    expect(rule).toMatch(/left:50%/)
-    expect(rule).toMatch(/width:max-content;max-width:88vw/)
+    expect(region).toMatch(/left:50%/)
+    expect(region).toMatch(/width:max-content;max-width:88vw/)
   })
 })
