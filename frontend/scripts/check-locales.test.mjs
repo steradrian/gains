@@ -15,14 +15,15 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const script = join(here, 'check-locales.mjs')
 
-const run = packs => {
+const run = (packs, raw = false) => {
   const dir = mkdtempSync(join(tmpdir(), 'check-locales-'))
   try {
     mkdirSync(join(dir, 'scripts'))
     mkdirSync(join(dir, 'src', 'locales'), { recursive: true })
     copyFileSync(script, join(dir, 'scripts', 'check-locales.mjs'))
+    // raw: the values are source text already, for a pack JSON.stringify could not produce.
     for (const [lang, dict] of Object.entries(packs))
-      writeFileSync(join(dir, 'src', 'locales', `${lang}.js`), `export default ${JSON.stringify(dict, null, 2)}\n`)
+      writeFileSync(join(dir, 'src', 'locales', `${lang}.js`), raw ? dict : `export default ${JSON.stringify(dict, null, 2)}\n`)
     const r = spawnSync(process.execPath, [join(dir, 'scripts', 'check-locales.mjs')], { encoding: 'utf8' })
     return { code: r.status, out: r.stdout + r.stderr }
   } finally { rmSync(dir, { recursive: true, force: true }) }
@@ -67,6 +68,14 @@ describe('check-locales.mjs', () => {
     const r = run({ de, fr: { Save: 'Enregistrer' } })
     expect(r.code).toBe(1)
     expect(r.out).toContain('missing')
+  })
+
+  // The imported object has already collapsed a repeated key, so the script reads the source text.
+  it('fails a key written twice in one pack, naming pack, key and both lines', () => {
+    const pack = `export default {\n  'Save': 'Speichern',\n  'Edit': 'Bearbeiten',\n  'Save': 'Sichern',\n}\n`
+    const r = run({ de: pack }, true)
+    expect(r.code).toBe(1)
+    expect(r.out).toContain('de.js: duplicate key "Save" at lines 2 and 4')
   })
 
   // The app's own packs, so the suite carries the same check CI does rather than only the rule.

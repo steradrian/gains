@@ -75,7 +75,7 @@ test('a new profile with no document gets its first one, and the same write agai
   assert.deepEqual(before.body, {
     rev: 0, coachAvailable: false,
     seed: { starter: true, coachBuild: true, starterTemplates: { 'full-body-2': [1, 2], 'full-body': [3], 'upper-lower': [4], 'upper-lower-ppl': [5], 'ppl-6': [6] } },
-    unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, checkIn: true
+    unit: 'kg', unitChosen: false, latestWeight: null, routines: 0, plannedDays: 0, coachProfile: null, coachBuild: null, checkIn: true
   });
 
   const first = await h.req('POST', P, { token: mint(KEY, { sub: 'u1' }), body: SEED() });
@@ -310,6 +310,23 @@ test('an AI coach build is recorded as consent and a pending marker, once, and n
   assert.deepEqual([again.status, again.body.changed], [200, false]);
   assert.deepEqual(again.body.skipped.map(s => s.field + ':' + s.reason), ['coachProfile:answered', 'coachBuild:requested', 'checkIn:same']);
   assert.deepEqual(h.state('u1'), S);
+});
+
+test('the view says the AI coach build on record, so a hub whose answer was lost can tell it from a refusal', async t => {
+  const h = await startServer(t, { users: [user('u1', 'Ana')], coach: { enabled: true, provider: 'fixture' } });
+  const tok = () => mint(KEY, { sub: 'u1' });
+  assert.equal((await h.req('GET', P, { token: tok() })).body.coachBuild, null, 'none on record yet');
+
+  const consentAt = new Date(Date.now() - 60000).toISOString();
+  const sent = await h.req('POST', P, { token: tok(), body: { coachBuild: BUILD({ consentAt, consentVersion: 'coach-2026-10', equipment: 'none' }) } });
+  assert.deepEqual(sent.body.applied, ['coachBuild']);
+  const { requestedAt } = h.state('u1').coach.build;
+
+  const view = await h.req('GET', P, { token: tok() });
+  assert.equal(view.status, 200);
+  assert.deepEqual(view.body.coachBuild, { status: 'pending', consentAt, consentVersion: 'coach-2026-10', requestedAt });
+  assert.equal(view.body.seed.coachBuild, true, 'the capability is unchanged beside the state');
+  assert.ok(!JSON.stringify(view.body).includes('onboarding'), 'the source is not passed on');
 });
 
 test('an AI coach build is not recorded over a plan the profile has', async t => {
