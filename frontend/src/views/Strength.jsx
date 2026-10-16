@@ -20,8 +20,8 @@ import { Row, Section, Segmented, selectSheet } from '../components/ui.jsx'
 // (its card opens the picker), its best, the chart metric, the range, the chart, the last five
 // sessions and the way into Structural balance. ⋯ holds the exercise's details and its history.
 //
-// Deep link: /progress/strength?ex=<exercise id>[&range=<days>] opens on that exercise (nothing
-// links to it with ?ex= yet; Search will add its "Progress" link for an exercise). An id with no
+// Deep link: /progress/strength?ex=<exercise id>[&range=<days>] opens on that exercise (Search's
+// exercise sheet links to it with ?ex=). An id with no
 // logged sessions falls back to the exercise trained heaviest. Without ?range= the chart starts on
 // All; picking another exercise or range writes it to the address (replace), so a reload comes
 // back to it.
