@@ -2980,7 +2980,6 @@ export default {
   'Days need a connection the first time': '처음에는 날짜 보기에 연결이 필요합니다',
   'Did you mean “{0}”?': '“{0}”을(를) 찾으셨나요?',
   'Edit routine': '루틴 편집',
-  'Exercise details': '운동 상세',
   'Favourite': '즐겨찾기',
   'Find any page, setting, exercise, workout, food or day.': '페이지, 설정, 운동, 운동 기록, 음식, 날짜를 찾아보세요.',
   'Food details': '음식 상세',

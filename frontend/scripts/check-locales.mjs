@@ -10,7 +10,7 @@
 // The reference is the union of all locales, not one blessed file: a key added to a
 // single locale then flags the other ten instead of passing unnoticed.
 
-import { readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -20,6 +20,25 @@ const files = readdirSync(localesDir).filter(f => f.endsWith('.js')).sort()
 if (!files.length) {
   console.error(`No locale files found in ${localesDir}`)
   process.exit(1)
+}
+
+// A key written twice in an object literal collapses at import — the last one silently wins — so
+// duplicates are invisible to everything below and are found in the source text instead. Packs
+// keep one entry per line at two-space indent; a key in a nested plural object sits deeper and
+// is not matched.
+const keyLine = /^  (?:(['"])((?:\\.|(?!\1).)*)\1|([A-Za-z_$][\w$]*))\s*:/
+let failed = false
+for (const file of files) {
+  const firstSeen = new Map()
+  readFileSync(join(localesDir, file), 'utf8').split('\n').forEach((line, i) => {
+    const m = keyLine.exec(line)
+    if (!m) return
+    const key = m[3] ?? new Function(`return ${m[1]}${m[2]}${m[1]}`)()
+    if (firstSeen.has(key)) {
+      failed = true
+      console.error(`${file}: duplicate key ${JSON.stringify(key)} at lines ${firstSeen.get(key)} and ${i + 1}`)
+    } else firstSeen.set(key, i + 1)
+  })
 }
 
 const locales = new Map()
@@ -44,7 +63,6 @@ const union = [...seen.keys()]
 // translation is free to move the placeholders around the sentence, never to change the set.
 const marks = s => [...String(s).matchAll(/\{\d+\}/g)].map(m => m[0]).sort().join(' ')
 
-let failed = false
 for (const [lang, dict] of locales) {
   const keys = new Set(Object.keys(dict))
   const missing = union.filter(k => !keys.has(k))
@@ -77,7 +95,7 @@ for (const [lang, dict] of locales) {
 }
 
 if (failed) {
-  console.error('\nEvery locale must carry the same keys, each translated to something, with the source string\'s {n} placeholders.')
+  console.error('\nEvery locale must carry the same keys, once each, translated to something, with the source string\'s {n} placeholders.')
   process.exit(1)
 }
 

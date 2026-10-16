@@ -2984,7 +2984,6 @@ export default {
   'Days need a connection the first time': 'При первом открытии дням нужно подключение',
   'Did you mean “{0}”?': 'Вы имели в виду «{0}»?',
   'Edit routine': 'Изменить программу',
-  'Exercise details': 'Сведения об упражнении',
   'Favourite': 'Избранное',
   'Find any page, setting, exercise, workout, food or day.': 'Найдите любую страницу, настройку, упражнение, тренировку, продукт или день.',
   'Food details': 'Сведения о продукте',

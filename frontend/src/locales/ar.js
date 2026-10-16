@@ -3035,7 +3035,6 @@ export default {
   'Days need a connection the first time': 'تحتاج الأيام إلى اتصال في المرة الأولى',
   'Did you mean “{0}”?': 'هل تقصد “{0}”؟',
   'Edit routine': 'تعديل الروتين',
-  'Exercise details': 'تفاصيل التمرين',
   'Favourite': 'مفضّل',
   'Find any page, setting, exercise, workout, food or day.': 'ابحث عن أي صفحة أو إعداد أو تمرين أو حصة أو طعام أو يوم.',
   'Food details': 'تفاصيل الطعام',

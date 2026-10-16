@@ -10,7 +10,7 @@
 import React, { act, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import Modals from './Modals.jsx'
+import Modals, { scrollRestorePending } from './Modals.jsx'
 import { useUI } from '../store/useUI.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -43,6 +43,13 @@ beforeEach(async () => {
 afterEach(async () => {
   await act(async () => { useUI.getState().closeAll?.(); root.unmount() })
   await settle()
+  // Closing a sheet arms a RESTORE_MS timer (and a frame callback) that puts the page back; they
+  // reach for window and document when they fire. Let them fire here, while the page is still
+  // ours: left pending they run after this file's environment is torn down and surface as
+  // "window is not defined" unhandled errors on whichever run is slow enough to lose the race.
+  while (scrollRestorePending()) await act(async () => { await new Promise(r => setTimeout(r, 25)) })
+  await settle()
+  expect(scrollRestorePending()).toBe(false)
   document.body.innerHTML = ''
 })
 

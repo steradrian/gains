@@ -3059,7 +3059,6 @@ export default {
   'Days need a connection the first time': 'প্রথমবার দিনের জন্য সংযোগ লাগে',
   'Did you mean “{0}”?': 'আপনি কি “{0}” বোঝাতে চেয়েছেন?',
   'Edit routine': 'রুটিন সম্পাদনা',
-  'Exercise details': 'ব্যায়ামের বিবরণ',
   'Favourite': 'পছন্দের',
   'Find any page, setting, exercise, workout, food or day.': 'যেকোনো পেজ, সেটিং, ব্যায়াম, ওয়ার্কআউট, খাবার বা দিন খুঁজুন।',
   'Food details': 'খাবারের বিবরণ',
