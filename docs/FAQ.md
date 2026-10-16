@@ -96,10 +96,11 @@ an exercise and something measured. See [DATA_IMPORTS.md](DATA_IMPORTS.md).
 
 ### Can I reuse the exercise images in my own project?
 
-No. They are © Aliaksandr Makatserchyk, Gym visual, licensed for use in Gains only and not covered
-by Gains' license. Anything outside Gains needs your own licence from
-[gymvisual.com](https://gymvisual.com/). Details in [NOTICE.md](../NOTICE.md). The exercise text in
-[catalogue/](../catalogue/README.md) is a different story: that's Gains', and fixes are welcome.
+No. They are © Aliaksandr Makatserchyk, Gym visual, licensed to the openGym project and not covered
+by the AGPL. Gains is a fork of openGym and uses them unmodified, at 180 px, non-commercially.
+Anything else needs your own licence from [gymvisual.com](https://gymvisual.com/). Details in
+[NOTICE.md](../NOTICE.md). The exercise text in [catalogue/](../catalogue/README.md) is a different
+story: that's openGym's, under openGym's AGPL, and fixes are welcome.
 
 ### Where do I ask something that isn't here?
 
