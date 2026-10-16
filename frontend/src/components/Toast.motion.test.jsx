@@ -108,6 +108,20 @@ describe('the toast\'s action from the keyboard', () => {
     expect(document.activeElement).toBe(field)
   })
 
+  it('does not hand the focus back after a tap, which would open the soft keyboard of the field it returns to', async () => {
+    const field = document.createElement('input')
+    document.body.appendChild(field)
+    field.focus()
+    const run = vi.fn()
+    await undoToast(run)
+    // A finger focuses the button, and its click carries a pointer's detail (a keyboard's is 0).
+    undo().focus()
+    await act(async () => { undo().dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })) })
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(document.activeElement).not.toBe(field)
+    expect(pill().contains(document.activeElement)).toBe(false)
+  })
+
   it('leaves nothing focused inside the leaving pill when there is nowhere to go back to', async () => {
     await undoToast(() => {})
     undo().focus()

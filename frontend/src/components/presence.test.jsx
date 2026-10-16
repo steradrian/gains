@@ -6,7 +6,7 @@
 import React, { act, useRef, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
+import { Presence, leavingProps, useEnterExit, usePresence, useSheetClosed } from './presence.jsx'
 import { MS, setMotionDriver } from '../lib/motion.js'
 import { fakeMotionDriver } from '../lib/motion.test-util.js'
 
@@ -149,6 +149,42 @@ describe('Presence', () => {
     await render('Saved')
     await render(null)
     expect(note()).toBeNull()
+  })
+})
+
+describe('useSheetClosed', () => {
+  function Closing({ onClosed }) {
+    const ref = useRef(null)
+    useSheetClosed(onClosed)
+    useEnterExit(() => [[ref.current, RISE]])
+    return <div ref={ref} className="note" />
+  }
+  const renderClosing = (show, onClosed) => act(async () => {
+    root.render(<Presence>{show ? <Closing key="c" onClosed={onClosed} /> : null}</Presence>)
+  })
+
+  it('runs the latest callback once, as the child stops being present, and not again when it unmounts', async () => {
+    const first = vi.fn()
+    const latest = vi.fn()
+    await renderClosing(true, first)
+    await renderClosing(true, latest)
+    expect(latest).not.toHaveBeenCalled()
+    await renderClosing(false, latest)
+    // before the way out is over: the child is still in the page
+    expect(note()).not.toBeNull()
+    expect(latest).toHaveBeenCalledTimes(1)
+    await act(async () => { driver.calls.at(-1).finish() })
+    expect(note()).toBeNull()
+    expect(latest).toHaveBeenCalledTimes(1)
+    expect(first).not.toHaveBeenCalled()
+  })
+
+  it('runs at unmount where there is no Presence around it', async () => {
+    const onClosed = vi.fn()
+    await act(async () => { root.render(<Closing onClosed={onClosed} />) })
+    expect(onClosed).not.toHaveBeenCalled()
+    await act(async () => { root.render(null) })
+    expect(onClosed).toHaveBeenCalledTimes(1)
   })
 })
 

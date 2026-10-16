@@ -33,12 +33,15 @@ function ToastPill({ msg, action }) {
     document.addEventListener('focusin', onFocus)
     return () => document.removeEventListener('focusin', onFocus)
   }, [])
-  // (An action that put the focus somewhere itself is left to it.)
-  const run = () => {
+  // (An action that put the focus somewhere itself is left to it.) A tap or a click is not the
+  // keyboard: a finger focuses the button too (Android), and sending the focus back to the field
+  // typed in before would open its soft keyboard again. Only a click with no pointer behind it
+  // (`detail` 0: Enter, Space, a screen reader) takes the focus back; a pointer's just lets go.
+  const run = e => {
     runToastAction()
     if (!ref.current?.contains(document.activeElement)) return
     const back = before.current
-    if (back?.isConnected && !back.closest('[inert]')) back.focus?.({ preventScroll: true })
+    if (e.detail === 0 && back?.isConnected && !back.closest('[inert]')) back.focus?.({ preventScroll: true })
     else document.activeElement.blur?.()
   }
   // A new message over one still showing: the pill stays where it is and takes the new text with

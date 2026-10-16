@@ -40,7 +40,9 @@ export function useSheetClosed(fn) {
     fired.current = true
     call.current?.()
   }
-  useEffect(() => { if (!present) fire() }, [present])
+  // A layout effect, after the one that keeps `call` current: in the commit that flips `present`,
+  // before the browser paints or takes another tap, however the close came about.
+  useLayoutEffect(() => { if (!present) fire() }, [present])
   // Set again on mount: StrictMode's rehearsal unmount runs the cleanup, and the real close after it
   // must still count.
   useEffect(() => { fired.current = false; return fire }, [])
