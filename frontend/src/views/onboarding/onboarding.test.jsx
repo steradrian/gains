@@ -517,6 +517,39 @@ describe('the end (placeholder for the Summary)', () => {
     expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.plan).toBeNull()
   })
 
+  it('stays on the last step, with Try again, when the hub cannot be read after refusing the plan', async () => {
+    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    hub.completeOnboarding.mockRejectedValueOnce(Object.assign(new Error('the AI coach is not available on this server'), { status: 409, code: 'plan-unavailable' }))
+    const page = mount('/onboarding/finish')
+    await flush()
+    hub.loadOnboarding.mockRejectedValueOnce(Object.assign(new Error('x'), { status: 502, code: 'http' }))
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(where(page)).toBe('/onboarding/finish')
+    expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
+    expect(button(page, 'Try again')).toBeTruthy()
+    expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
+  })
+
+  it('plans on the days the data holds now, after the hub refused a plan made for the old ones', async () => {
+    // The days came from openGym's data, and changed there mid-onboarding (3 to 2).
+    const starter = { kind: 'starter', templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym', experience: 'new' }
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: starter }, pick: 'starter' })
+    hub.completeOnboarding.mockRejectedValueOnce(Object.assign(new Error('weekdays: the plan\'s sessions must match the training days'), { status: 409, code: 'plan-unavailable' }))
+    const page = mount('/onboarding/finish')
+    await flush()
+    hub.loadOnboarding.mockResolvedValue({
+      answers: {}, completedAt: null, coachAvailable: false, starterAvailable: true, next: 'plan', remaining: ['plan'],
+      prefill: { answered: ['training'], training: { trainingDays: 2 }, sources: { opengym: 'ok', nutritrace: 'ok' } },
+    })
+    await act(async () => { button(page, 'Go to Home').click() })
+    await flush()
+    expect(where(page)).toBe('/onboarding/plan')
+    expect(page.textContent).toContain('A starter plan for 2 days a week')
+    expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.trainingDays).toBe(2)
+  })
+
   it('says so when Training has not taken its part yet, and goes Home', async () => {
     saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'retrying', nutritrace: 'done' } })
@@ -620,6 +653,25 @@ describe('who sees what', () => {
     const page = mount('/onboarding/goal')
     await flush()
     expect(where(page)).toBe('/home')
+  })
+
+  it.each([
+    ['a server error', { status: 503, code: 'http' }],
+    ['no answer at all', { status: 0, code: 'offline' }],
+    ['an answer that is not the hub\'s JSON', { status: 200, code: 'bad-response' }],
+  ])('keeps the person in the flow on %s, with a way to try again', async (_, failure) => {
+    signedIn()
+    hub.loadOnboarding.mockRejectedValueOnce(Object.assign(new Error('x'), failure))
+    const page = mount('/onboarding/goal')
+    await flush()
+    expect(where(page)).toBe('/onboarding/goal')
+    const notice = page.querySelector('.ob [role="status"]')
+    expect(notice.textContent).toContain('Check your connection and try again. Nothing you answered is lost.')
+    await act(async () => { button(page, 'Try again').click() })
+    await flush()
+    expect(hub.loadOnboarding).toHaveBeenCalledTimes(2)
+    expect(where(page)).toBe('/onboarding/goal')
+    expect(button(page, 'Try again')).toBeUndefined()
   })
 
   it('resumes at the first unanswered step', async () => {

@@ -37,6 +37,9 @@ export function initialState(units = localeUnits()) {
     starter: null,
     detour: null,
     skippedYou: false,
+    // Whether the person answered (or skipped) Training in this tab: then their days stand over
+    // the hub's at the next load.
+    daysSaid: false,
     // Hub steps whose last save failed: sent again before completing.
     unsaved: [],
     progress: [0, 0, 0],
@@ -94,9 +97,13 @@ function fromHub(s, a) {
   const known = (...values) => values.find(v => v !== null && v !== undefined) ?? null
   const body = { ...s.answers.body }
   for (const k of BODY_FIELDS) body[k] = known(body[k], stored.body?.[k], data.body?.[k])
-  const trainingDays = s.answers.trainingDays !== undefined ? s.answers.trainingDays
+  // The days the person gave in this tab stand. Days that came from the hub (its stored answer,
+  // or the person's data) are read again each time: openGym's can change mid-onboarding, and a
+  // plan for the old days is one the hub refuses.
+  const trainingDays = s.daysSaid ? s.answers.trainingDays
     : stored.trainingDays !== undefined ? stored.trainingDays
-      : data.training?.trainingDays
+      : data.training?.trainingDays !== undefined ? data.training.trainingDays
+        : s.answers.trainingDays
   const answers = {
     ...s.answers,
     goal: known(s.answers.goal, stored.goal, data.goal?.goal),
@@ -106,6 +113,8 @@ function fromHub(s, a) {
     trainingDays,
     plan: known(s.answers.plan, stored.plan),
   }
+  // A plan that no longer fits the days goes, as when the person changes them.
+  if (!planFits(answers.plan, trainingDays ?? 0)) answers.plan = null
   const server = {
     answered: Array.isArray(data.answered) ? data.answered : [],
     body: BODY_FIELDS.filter(k => data.body?.[k] != null),
@@ -115,7 +124,7 @@ function fromHub(s, a) {
   const flag = (value, current) => (typeof value === 'boolean' ? value : current)
   return {
     ...s, answers, server,
-    pick: answers.plan ? answers.plan.kind : s.pick,
+    pick: answers.plan ? answers.plan.kind : answers.plan === s.answers.plan ? s.pick : null,
     coachAvailable: flag(a.coachAvailable, s.coachAvailable),
     starterAvailable: flag(a.starterAvailable, s.starterAvailable),
     coachConsent: consentOf(a.coachConsent),
@@ -129,9 +138,9 @@ export function reduce(s, a) {
     case 'goal': return withAnswers(s, { goal: a.goal })
     case 'body': return withAnswers(s, { body: { ...s.answers.body, [a.field]: a.value } })
     case 'unit': return withAnswers(s, { units: { ...s.answers.units, [a.kind]: a.unit, source: 'user' } })
-    case 'training': return s.answers.trainingDays === a.days ? s : withDays(s, a.days)
+    case 'training': return s.answers.trainingDays === a.days ? { ...s, daysSaid: true } : { ...withDays(s, a.days), daysSaid: true }
     case 'skipYou': return { ...s, skippedYou: true, detour: null }
-    case 'skipTraining': return withDays(s, null)
+    case 'skipTraining': return { ...withDays(s, null), daysSaid: true }
     case 'pick': return { ...s, pick: a.pick }
     case 'starter': return { ...s, starter: { ...(s.starter || starterFor(s.answers.trainingDays)), ...a.patch } }
     case 'plan': return { ...withAnswers(s, { plan: a.plan }), pick: a.plan ? a.plan.kind : null }

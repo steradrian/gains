@@ -1,10 +1,13 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Navigate, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
+import { t } from '../../lib/i18n.js'
 import { OnboardingContext } from '../../lib/onboarding/contexts.js'
 import { PRE_AUTH, progressMax } from '../../lib/onboarding/flow.js'
 import { useOnboardingStore } from '../../lib/onboarding/use-onboarding-store.js'
 import { reducedMotion } from '../../lib/reduced-motion.js'
 import { useStore } from '../../store/useStore.js'
+import Icon from '../Icon.jsx'
+import { Button } from '../ui.jsx'
 import OnboardingNav from './OnboardingNav.jsx'
 import ThreadLayer from './ThreadLayer.jsx'
 import ThreadProvider from './ThreadProvider.jsx'
@@ -25,7 +28,7 @@ export default function OnboardingLayout({ children }) {
   const navType = useNavigationType()
   const user = useStore(s => s.user)
   const store = useOnboardingStore({ user, navigate, location, navType })
-  const { screen, state, hub, act } = store
+  const { screen, state, hub, act, refresh } = store
   const navRef = useRef(null)
   const host = useRef(null)
 
@@ -52,12 +55,17 @@ export default function OnboardingLayout({ children }) {
   let content = children
   if (screen && !user && !PRE_AUTH.includes(screen)) content = <Navigate to="/" replace />
   else if (screen && user && !PRE_AUTH.includes(screen) && (hub === 'unavailable' || hub === 'complete')) content = <Navigate to="/home" replace />
+  const offline = hub === 'offline' && !!user && !PRE_AUTH.includes(screen)
 
   return (
     <OnboardingContext.Provider value={store}>
       <ThreadProvider navRef={navRef}>
         <div className="ob">
           <OnboardingNav ref={navRef} />
+          {offline && <div className="ob-pk-err" role="status">
+            <Icon name="info" /><span>{t('Check your connection and try again. Nothing you answered is lost.')}</span>
+            <Button size="sm" variant="plain" onClick={() => { refresh() }}>{t('Try again')}</Button>
+          </div>}
           <ThreadLayer />
           <div className="ob-host" ref={host}>{content}</div>
         </div>

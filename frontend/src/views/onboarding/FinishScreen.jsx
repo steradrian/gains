@@ -72,7 +72,8 @@ export default function FinishScreen() {
         // the hub cleared it. With another plan to offer, the Plan step is asked again; with none,
         // it would be a screen of one card, so "no plan" is the answer and this finishes.
         act({ type: 'plan', plan: null })
-        await refresh()
+        // Without the hub's answer there is no knowing what it offers now: try again, from here.
+        if (!(await refresh())) { setStatus('error'); return }
         const now = current()
         const offered = !!now.answers.trainingDays && (now.starterAvailable === true || (now.coachAvailable === true && !!now.coachConsent))
         if (!offered && !again) {

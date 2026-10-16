@@ -4,10 +4,16 @@ import { nextAfter, pathOf, previousOf, screenOf, skipTarget } from './flow.js'
 import { forget, initialState, loadSaved, reduce, save } from './state.js'
 import { nutritionAvailable } from '../nutrition/api.js'
 
+// A failed read that says nothing about whether there is a hub: no answer, a server error, or an
+// answer that is not the hub's JSON. The person stays in the flow and can try again; only a 4xx
+// (no hub here, not signed in to it) sends them on.
+const hubDown = e => e.code === 'offline' || e.code === 'timeout' || e.code === 'bad-response' || !(e.status >= 400 && e.status < 500)
+
 /**
  * The onboarding's state and actions, for OnboardingLayout to provide. `hub` says what the server
- * side can do: 'pre-auth' (no account yet), 'loading', 'ready', 'offline' (answers are kept and sent
- * again), 'unavailable' (no hub to save to: the flow steps aside) or 'complete'.
+ * side can do: 'pre-auth' (no account yet), 'loading', 'ready', 'offline' (the hub did not answer,
+ * or not as itself: answers are kept and sent again, and the layout offers to read it again),
+ * 'unavailable' (no hub to save to: the flow steps aside) or 'complete'.
  *
  * The hub's answer at each load fills in what this tab does not know: its answers, what the
  * person's data answers (those steps are skipped, flow.js answeredByData), where to resume, and
@@ -29,20 +35,22 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
   // The latest read: an answer to an earlier one (another person's, or the layout gone) is dropped.
   const reads = useRef(0)
 
-  /** Reads the hub's state again into this tab's. Resolves once it is in (or the read failed). */
+  /** Reads the hub's state again into this tab's. Resolves true once it is in, false if the read failed. */
   const refresh = useCallback(async () => {
     const read = ++reads.current
     try {
       const res = await loadOnboarding()
-      if (read !== reads.current) return
-      if (res.completedAt != null) { forget(); setHub('complete'); return }
+      if (read !== reads.current) return false
+      if (res.completedAt != null) { forget(); setHub('complete'); return true }
       act({
         type: 'hub', answers: answersFromHub(res.answers), prefill: res.prefill, next: res.next, remaining: res.remaining,
         coachAvailable: res.coachAvailable, starterAvailable: res.starterAvailable, coachConsent: res.coachConsent,
       })
       setHub('ready')
+      return true
     } catch (e) {
-      if (read === reads.current) setHub(e.code === 'offline' || e.code === 'timeout' ? 'offline' : 'unavailable')
+      if (read === reads.current) setHub(hubDown(e) ? 'offline' : 'unavailable')
+      return false
     }
   }, [act])
 
