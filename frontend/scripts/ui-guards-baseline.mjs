@@ -431,9 +431,10 @@ export function pageChrome(src = SRC) {
 export function centredSheets(src = SRC) {
   const out = []
   for (const s of sources(src)) {
-    if (s.file === 'ui-guards.test.js') continue
+    const file = relative(src, s.path).split(sep).join('/')
+    if (file === 'ui-guards.test.js') continue
     const n = (stripJs(s.text).match(/\bkind\s*:\s*(['"`])center\1/g) || []).length
-    if (n) out.push(`${s.file}: ${n} x kind: 'center'`)
+    if (n) out.push(`${file}: ${n} x kind: 'center'`)
   }
   return out
 }

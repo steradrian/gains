@@ -12,7 +12,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import Modals, { scrollRestorePending } from './Modals.jsx'
 import { useUI } from '../store/useUI.js'
-import { confirmSheet } from '../sheets/confirm-menu.jsx'
+import { confirmSheet } from '../sheets.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
