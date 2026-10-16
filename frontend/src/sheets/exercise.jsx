@@ -15,7 +15,10 @@ import { syncMedia } from '../lib/media-sync.js'
 import LineChart from '../components/LineChart.jsx'
 import Stepper from '../components/Stepper.jsx'
 import Icon from '../components/Icon.jsx'
+import { Chip, ChipRow, EmptyState, ItemRow, SectionTitle, Tag } from '../components/blocks.jsx'
 import { Inline } from '../components/layout.jsx'
+import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
+import { cx } from '../lib/ui-kit.js'
 import { Button, Segmented, MultiSelectRow } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 import { exerciseMuscleSnapshot, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from '../lib/muscles.js'
@@ -23,7 +26,7 @@ import { estimate1RM, best1RM, REP_CAP, formulaOf, FORMULA_NAMES } from '../lib/
 import { exerciseHistory } from '../lib/exercise-history.js'
 import { isBellEx, dbLoadFor, withDbLoad, currentDbLoad } from '../lib/dumbbells.js'
 import { speedUnitOf } from '../lib/speed.js'
-import { useSheetKeyboard, tappable } from '../lib/use-sheet-keyboard.js'
+import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { isFav, toggleFav } from '../lib/favourites.js'
 import { S, update, ui, toast } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
@@ -40,19 +43,19 @@ function OneRM({ ex }) {
   const [r, setR] = useState(best ? best.r : 5)
   const est = estimate1RM(w, r, formulaOf(st))
   return <>
-    <h4 className="sec">{t('Estimated 1RM')}</h4>
-    {best && <div className="small" style={{ marginBottom: 8 }}>
+    <SectionTitle>{t('Estimated 1RM')}</SectionTitle>
+    {best && <div className="small mb-4">
       {t('From your log:')} <b className="accent">{fmtNum(best.est)} {st.unit}</b>
       <span className="dim"> · {t('{0} × {1} on {2}', fmtNum(best.w) + ' ' + st.unit, best.r, fmtDate(best.d, true))}</span>
     </div>}
-    <div className="row cfgrow" style={{ marginBottom: 10 }}>
+    <Inline className="cfgrow mb-5">
       <Stepper label={t('Weight ({0})', st.unit)} value={w} step={2.5} onChange={setW} />
       <Stepper label={t('Reps')} value={r} step={1} decimal={false} onChange={setR} />
-    </div>
-    <div className="row between" style={{ marginBottom: 4 }}>
+    </Inline>
+    <Inline justify="between" className="mb-2">
       <span className="muted small">{t('Estimate')}</span>
-      <b className="accent" style={{ fontSize: 20 }}>{est === null ? '–' : fmtNum(est) + ' ' + st.unit}</b>
-    </div>
+      <b className="accent fs-title3">{est === null ? '–' : fmtNum(est) + ' ' + st.unit}</b>
+    </Inline>
     <div className="small dim">{est === null
       ? t('Enter a weight and 1–{0} reps. Beyond that it’s basically guesswork.', REP_CAP)
       : formulaOf(st) === 'weighted'
@@ -104,36 +107,36 @@ function ExerciseDetail({ ex, close, progress }) {
     toast(on ? t('Added to favourites') : t('Removed from favourites'))
   }
   return <>
-    <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
+    <Inline justify="between" gap={4} align="start">
       <h3 className={'exdetail-name ' + exerciseNameClass(ex)}>{exerciseNameFor(ex)}</h3>
       <button className={'iconbtn fav-btn' + (fav ? ' on' : '')} aria-pressed={fav}
         aria-label={fav ? t('Remove from favourites') : t('Add to favourites')} onClick={flipFav}>
         <Icon name={fav ? 'starFill' : 'star'} />
       </button>
-    </div>
+    </Inline>
     <Media ex={ex} />
-    <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
-      {detailTags(ex).map(tg => <span key={tg.key} className={'tag' + (tg.acc ? ' acc' : '')}>{tg.icon && <Icon name={tg.icon} />}{tg.label}</span>)}
-    </div>
+    <Inline gap={3} wrap className="mt-5 mb-5">
+      {detailTags(ex).map(tg => <Tag key={tg.key} tone={tg.acc ? 'acc' : undefined} icon={tg.icon}>{tg.label}</Tag>)}
+    </Inline>
     {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
-    {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow-ink)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
-    <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
+    {best > 0 && <Inline gap={2.5} className="small mb-3"><Icon name="trophy" className="ink-warn" style={{ fontSize: 14 }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</Inline>}
+    <Button variant="primary" icon="plus" className="mt-5 mb-2" onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
     {(last || charted) && <Inline gap={4} className="exd-row">
       {last && <Button icon="history" onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
       {charted && <Button icon="chart" trailingIcon="chevronRight" onClick={() => { const replace = onSheetEntry(); close(); visit('/progress/strength?ex=' + encodeURIComponent(ex.id), { replace }) }}>{t('Progress')}</Button>}
     </Inline>}
-    {isCustomEx(ex) && <div className="row" style={{ gap: 8, marginTop: 8 }}>
+    {isCustomEx(ex) && <Inline gap={4} className="mt-4">
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
       <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
-    </div>}
+    </Inline>}
     {modeOf({ id: ex.id }) === 'reps' && <>
-      <h4 className="sec">{t('Plate loading')}</h4>
+      <SectionTitle>{t('Plate loading')}</SectionTitle>
       <BarWeightEditor ex={ex} extra={t('You still log the total weight. This only feeds the plate line under each set.')} />
     </>}
     {/* The exercise's own default meaning of its weight (S.dbLoad), stamped like the loading
         above. A routine can still pick its own on the exercise's settings. */}
     {isBellEx(ex) && <>
-      <h4 className="sec">{t('Weight means')}</h4>
+      <SectionTitle>{t('Weight means')}</SectionTitle>
       <DbLoadPicker ex={ex} value={dbLoadFor(st, ex.id)}
         onChange={v => update(s => { s.dbLoad = withDbLoad(s.dbLoad, ex.id, v) })} />
     </>}
@@ -141,7 +144,7 @@ function ExerciseDetail({ ex, close, progress }) {
         calculator would answer "your 1RM is 23 kg" about a number that gets smaller as you get
         stronger (issue #232). Cardio has none for the same kind of reason. */}
     {!isCardio(ex) && !isAssisted(ex) && <OneRM ex={ex} />}
-    {instrFor(ex).length > 0 &&<><h4 className="sec">{t('How to')}{getLang() !== 'en' && !instrTranslated(ex) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</h4><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
+    {instrFor(ex).length > 0 &&<><SectionTitle>{t('How to')}{getLang() !== 'en' && !instrTranslated(ex) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</SectionTitle><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
     {/* The catalogue is community-edited (catalogue/README.md): a wrong muscle, a clumsy step or a
         missing translation is one tap from an issue that already names the exercise. */}
     {!isCustomEx(ex) && !ex.missing && <a className="small dim exfix-link" target="_blank" rel="noopener"
@@ -167,28 +170,28 @@ function ExerciseHistory({ exId }) {
   const e1Best = useMemo(() => Math.max(0, ...h.e1rmPoints.map(p => p.y)), [h])
   if (!h.total) return <>
     <h3 className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</h3>
-    <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No sessions logged yet')}</div>
+    <EmptyState icon="history">{t('No sessions logged yet')}</EmptyState>
   </>
   const tail = s => [
     s.volume > 0 && t('Volume') + ' ' + fmtVol(s.volume, st.unit),
     s.e1rm != null && t('Est. 1RM') + ' ' + fmtNum(s.e1rm) + ' ' + st.unit,
   ].filter(Boolean).join(' · ')
   return <>
-    <h3 className={exerciseNameClass(ex)} style={{ marginBottom: 2 }}>{exerciseNameFor(ex)}</h3>
-    <div className="muted small" style={{ marginBottom: 10 }}>{t('Exercise history')} · {tn('{0} session', '{0} sessions', h.total)}</div>
+    <h3 className={cx(exerciseNameClass(ex), 'mb-1')}>{exerciseNameFor(ex)}</h3>
+    <div className="muted small mb-5">{t('Exercise history')} · {tn('{0} session', '{0} sessions', h.total)}</div>
     {/* Only reps work with a load produces an estimate, so the toggle is absent for the rest. */}
     {h.e1rmPoints.length > 0 && h.metric === 'weight' && <Segmented className="seg-range" value={curve} onChange={setCurve}
       options={[{ value: 'top', label: t('Top set') }, { value: 'e1rm', label: t('Est. 1RM') }]} />}
-    <div className="chart" style={{ marginTop: 8 }}>
+    <div className="chart mt-4">
       <LineChart points={onE1 ? h.e1rmPoints : h.points} h={140} unit={onE1 ? st.unit : unit} color="var(--blue)" label={exerciseNameFor(ex) + ' · ' + t(onE1 ? 'Est. 1RM' : 'Top set')} />
     </div>
-    <div className="small row" style={{ margin: '6px 0 4px', gap: 5 }}>
-      <Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow-ink)' }} />
+    <Inline gap={2.5} className="small mt-3 mb-2">
+      <Icon name="trophy" className="ink-warn" style={{ fontSize: 14 }} />
       {t('Best:')} <b className="accent">{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</b>
-    </div>
-    <h4 className="sec">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</h4>
+    </Inline>
+    <SectionTitle>{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</SectionTitle>
     <div className="list">
-      {h.sessions.map(s => <div key={s.id} className="item" style={{ alignItems: 'flex-start' }}>
+      {h.sessions.map(s => <div key={s.id} className="item ai-start">
         <div className="grow">
           <div className="tt">{fmtDate(s.d, true)} {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}</div>
           <div className="ss">{s.sets.map(x => setLabel(exId, x, s.target, speedUnitOf(st))).join('  ·  ')}</div>
@@ -220,15 +223,20 @@ function AddToRoutine({ ex, close }) {
   }
   return <>
     <h3 className={exerciseNameClass(ex)}>{t('Add “{0}”', exerciseNameFor(ex))}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{t('Pick a routine. Sets, reps and weight come next.')}</div>
+    <div className="muted small mb-6">{t('Pick a routine. Sets, reps and weight come next.')}</div>
     <div className="list">
-      {st.routines.map(r => <div key={r.id} className="item" {...tappable(() => pick(r.id))}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {r.ex.some(e => e.id === ex.id) && <span className="tag">{t('already in')}</span>}<Icon name="plus" className="chev" />
-      </div>)}
-      <div className="item" {...tappable(() => pick('_new'))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="plusCircle" /></span>
-        <div className="grow"><div className="tt">{t('New routine')}</div><div className="ss">{t('Create one and start with this exercise')}</div></div><Icon name="plus" className="chev" /></div>
+      {st.routines.map(r => <ItemRow key={r.id}
+        lead={<span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>}
+        title={r.name}
+        subtitle={exCount(r.ex.length)}
+        trailing={<>{r.ex.some(e => e.id === ex.id) && <Tag>{t('already in')}</Tag>}<Icon name="plus" className="chev" /></>}
+        onClick={() => pick(r.id)} />)}
+      <ItemRow
+        lead={<span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="plusCircle" /></span>}
+        title={t('New routine')}
+        subtitle={t('Create one and start with this exercise')}
+        trailing={<Icon name="plus" className="chev" />}
+        onClick={() => pick('_new')} />
     </div>
   </>
 }
@@ -328,18 +336,18 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     onDone && onDone(EXIDX[id])
   }
   return <>
-    <h3>{existing ? t('Edit custom exercise') : t('Create your own exercise')}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{t('Name it and pick a body part. It works just like any other exercise.')}</div>
+    <SheetHeader title={existing ? t('Edit custom exercise') : t('Create your own exercise')} />
+    <div className="muted small mb-6">{t('Name it and pick a body part. It works just like any other exercise.')}</div>
     <input ref={nameRef} className="input" placeholder={t('Exercise name')} maxLength={80} value={n} onFocus={onNameFocus} onChange={e => setN(e.target.value)} />
-    <div className="chips" style={{ margin: '12px 0' }}>
-      {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => setBp(b)}>{t(b)}</button>)}
-    </div>
-    <div className="chips" style={{ margin: '12px 0' }}>
-      {ALL_EQUIPMENT.map(k => (<button key={k} className={'chip' + (eq === k ? ' on' : '')} onClick={() => setEq(k)}>{t(k)}</button>))}
+    <ChipRow className="mt-6 mb-6">
+      {BODYPARTS.map(b => <Chip key={b} on={bp === b} onClick={() => setBp(b)}>{t(b)}</Chip>)}
+    </ChipRow>
+    <ChipRow className="mt-6 mb-6">
+      {ALL_EQUIPMENT.map(k => (<Chip key={k} on={eq === k} onClick={() => setEq(k)}>{t(k)}</Chip>))}
       {/* An imported exercise can carry equipment the list does not have (`custom` from a CSV or
           Hevy import). It stays a chip of its own, picked, so Save does not stop on "Pick equipment". */}
-      {storedEq && <button key={storedEq} className={'chip' + (eq === storedEq ? ' on' : '')} onClick={() => setEq(storedEq)}>{t(storedEq)}</button>}
-    </div>
+      {storedEq && <Chip key={storedEq} on={eq === storedEq} onClick={() => setEq(storedEq)}>{t(storedEq)}</Chip>}
+    </ChipRow>
     {bp && <>
       {bp !== 'cardio' && <MultiSelectRow title={t('Primary muscle groups')} sheetTitle={t('Primary muscle groups')}
         values={primaries}
@@ -351,13 +359,14 @@ function CustomExForm({ existing, prefill, onDone, close }) {
         options={MUSCLES.filter(m => !primaries.includes(m)).map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
         onToggle={toggleSecondary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
     </>}
-    {bp === 'cardio' && <div className="small dim row" style={{ marginBottom: 10, gap: 5 }}><Icon name="figureRun" style={{ fontSize: 13 }} />{t('Cardio exercises log time + speed instead of weight × reps.')}</div>}
+    {bp === 'cardio' && <Inline gap={2.5} className="small dim mb-5"><Icon name="figureRun" className="fs-footnote" />{t('Cardio exercises log time + speed instead of weight × reps.')}</Inline>}
     <textarea className="input" rows={4} maxLength={1000} placeholder={t('Description (optional): setup, cues, anything you want to remember')}
       value={desc} onChange={e => setDesc(e.target.value)} />
     <CustomMediaField media={media} url={url} onChange={onMedia} />
-    <div style={{ height: 14 }} />
-    <Button variant="primary" onClick={save}>{existing ? t('Save') : t('Create exercise')}</Button>
-    {existing && <><div style={{ height: 8 }} /><Button variant="danger" icon="trash" onClick={() => { close(); deleteCustomEx(existing) }}>{t('Delete exercise')}</Button></>}
+    <SheetActions>
+      <Button variant="primary" onClick={save}>{existing ? t('Save') : t('Create exercise')}</Button>
+      {existing ? <Button variant="danger" icon="trash" onClick={() => { close(); deleteCustomEx(existing) }}>{t('Delete exercise')}</Button> : null}
+    </SheetActions>
   </>
 }
 export const customExSheet = (existing, onDone, prefill) => ui().openSheet(close => <CustomExForm existing={existing} prefill={prefill} onDone={onDone} close={close} />)

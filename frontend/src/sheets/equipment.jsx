@@ -8,6 +8,9 @@ import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, w
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import Stepper from '../components/Stepper.jsx'
 import Icon from '../components/Icon.jsx'
+import { Chip, ChipRow } from '../components/blocks.jsx'
+import { Inline, Spacer } from '../components/layout.jsx'
+import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { Button, Switch, Segmented, Row, TextField, NumberField } from '../components/ui.jsx'
 import { isOneArm, dumbbellsOf, withDumbbells, presetWeights, cleanWeights } from '../lib/dumbbells.js'
 import { update, ui, toast } from './shared.js'
@@ -67,21 +70,21 @@ export function BarWeightEditor({ ex, cfg, extra }) {
   return <>
     <Segmented className="seg-inline" value={kind} onChange={setKind}
       options={[{ value: 'pairs', label: t('Per side') }, { value: 'single', label: t('Single stack') }, { value: 'none', label: t('Off') }]} />
-    <div className="small dim" style={{ margin: '8px 0 12px' }}>
+    <div className="small dim mt-4 mb-6">
       {kind === 'pairs' ? t('Plates split over both sides of a bar.')
         : kind === 'single' ? t('One stack: a belt, a landmine, a plate-loaded machine, a sled.')
           : t('No plate line under the sets.')}
     </div>
     {kind !== 'none' && <>
-      {bar && <div className="list menu-list" style={{ marginBottom: 6 }}>
+      {bar && <div className="list menu-list mb-3">
         <Row icon="barbell" title={t('No bar')} subtitle={t('The weight you log is all plates.')}>
           <Switch checked={noBar} onChange={setNoBar} />
         </Row>
       </div>}
-      {!noBar && <div className="row cfgrow" style={{ marginBottom: 6 }}>
+      {!noBar && <Inline className="cfgrow mb-3">
         <Stepper label={bar ? t('Bar ({0})', st.unit) : t('Base weight ({0})', st.unit)} value={base} step={2.5} onChange={setBar} />
-      </div>}
-      <div className="small dim" style={{ marginBottom: 18 }}>
+      </Inline>}
+      <div className="small dim mb-9">
         {noBar ? t('Plates are counted from 0. Turn this off for the default ({0}).', fmtNum(def) + ' ' + st.unit)
           : bar ? (explicit ? t('Set to 0 to go back to the default ({0}).', fmtNum(def) + ' ' + st.unit) : t('Default for this bar type.'))
             : t('The machine or sled itself, before any plate goes on. 0 if it is all plates.')}
@@ -100,7 +103,7 @@ export function DbLoadPicker({ ex, cfg, value, onChange }) {
   return <>
     <Segmented className="seg-inline" value={value} onChange={onChange}
       options={[{ value: 'as', label: t('As entered') }, { value: 'each', label: t('Each') }, { value: 'total', label: t('Both') }]} />
-    <div className="small dim" style={{ margin: '8px 0 18px' }}>
+    <div className="small dim mt-4 mb-9">
       {value === 'each' ? (one ? t('The weight of the one you hold. One arm, so it counts once.') : t('The weight of one, so 20 means 20 in each hand. Volume counts both.'))
         : value === 'total' ? t('Both together, so 40 means two 20s.')
           : t('Counted as you type it, the way it always was.')}
@@ -112,8 +115,8 @@ export function DbLoadPicker({ ex, cfg, value, onChange }) {
 function BarWeightSheet({ exId, cfg, close }) {
   const ex = exOr(exId)
   return <>
-    <h3>{t('Plate loading')}</h3>
-    <div className={`muted small ${exerciseNameClass(ex)}`} style={{ marginBottom: 12 }}>{exerciseNameFor(ex)}</div>
+    <SheetHeader title={t('Plate loading')} />
+    <div className={`muted small mb-6 ${exerciseNameClass(ex)}`}>{exerciseNameFor(ex)}</div>
     <BarWeightEditor ex={ex} cfg={cfg} extra={t('Applies to this exercise everywhere, not just this plan.')} />
     <Button variant="primary" onClick={close}>{t('Done')}</Button>
   </>
@@ -131,19 +134,19 @@ function PlateInventorySheet({ close }) {
   const setPairs = (w, n) => update(s => { s.plates = withPlatePairs(s, w, n) })
   const reset = () => update(s => { s.plates = withStandardPlates(s) })
   return <>
-    <h3>{t('Plates')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>
+    <SheetHeader title={t('Plates')} />
+    <div className="muted small mb-7">
       {t('Pairs of each size you own. Every set row loads from this list, so a home gym with one pair of 45s is never told to use two.')}
     </div>
     {PLATE_SIZES[unit].map(w => (
-      <div className="row cfgrow" key={w} style={{ marginBottom: 6 }}>
+      <Inline className="cfgrow mb-3" key={w}>
         <Stepper label={fmtPlate(w) + ' ' + unit} value={pairsOf(st, w)} step={1} decimal={false} unit={t('pairs')} onChange={n => setPairs(w, n)} />
-      </div>
+      </Inline>
     ))}
-    <div className="small dim" style={{ margin: '4px 0 14px' }}>
+    <div className="small dim mt-2 mb-7">
       {own ? t('Your own list for {0}.', unit) : t('The standard set, plenty of each. Change any count to make it yours.')}
     </div>
-    {own && <Button onClick={reset} style={{ marginBottom: 8 }}>{t('Back to the standard set')}</Button>}
+    {own && <Button className="mb-4" onClick={reset}>{t('Back to the standard set')}</Button>}
     <Button variant="primary" onClick={close}>{t('Done')}</Button>
   </>
 }
@@ -168,25 +171,25 @@ function DumbbellInventorySheet({ close }) {
     setDraft(null)
   }
   return <>
-    <h3>{t('Dumbbells')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>
+    <SheetHeader title={t('Dumbbells')} />
+    <div className="muted small mb-7">
       {t('The weights you own, one bell each. Progression, deloads, warm-ups and the + and − buttons of dumbbell lifts land only on these.')}
     </div>
     {list.length > 0
-      ? <div className="chips" style={{ flexWrap: 'wrap', overflow: 'visible', touchAction: 'auto', marginBottom: 12 }}>
-        {list.map(w => <button key={w} className="chip on nocap" aria-label={t('Remove {0}', fmtPlate(w) + ' ' + unit)}
-          onClick={() => save(list.filter(x => x !== w))}>{fmtPlate(w)} <Icon name="xmark" /></button>)}
-      </div>
-      : <div className="small dim" style={{ marginBottom: 12 }}>{t('No list yet, so dumbbell lifts step by their increment as usual.')}</div>}
-    <div className="row" style={{ gap: 8, marginBottom: 12 }}>
+      ? <ChipRow className="wrap mb-6" style={{ overflow: 'visible', touchAction: 'auto' }}>
+        {list.map(w => <Chip key={w} on nocap aria-label={t('Remove {0}', fmtPlate(w) + ' ' + unit)}
+          onClick={() => save(list.filter(x => x !== w))}>{fmtPlate(w)} <Icon name="xmark" /></Chip>)}
+      </ChipRow>
+      : <div className="small dim mb-6">{t('No list yet, so dumbbell lifts step by their increment as usual.')}</div>}
+    <Inline gap={4} className="mb-6">
       <NumberField className="input" decimal value={draft ?? ''} onChange={v => setDraft(v)}
         aria-label={t('Weight ({0})', unit)} placeholder={t('Weight ({0})', unit)} onKeyDown={e => { if (e.key === 'Enter') add() }} />
       <Button icon="plus" onClick={add} style={{ flex: '0 0 auto', width: 'auto' }}>{t('Add')}</Button>
-    </div>
-    <Button onClick={() => save(preset)} style={{ marginBottom: 8 }}>
+    </Inline>
+    <Button className="mb-4" onClick={() => save(preset)}>
       {t('Fill in {0} to {1} {2}, every {3}', fmtPlate(preset[0]), fmtPlate(preset.at(-1)), unit, fmtPlate(preset[1] - preset[0]))}
     </Button>
-    {list.length > 0 && <Button variant="danger" onClick={() => save([])} style={{ marginBottom: 8 }}>{t('Clear the list')}</Button>}
+    {list.length > 0 && <Button variant="danger" className="mb-4" onClick={() => save([])}>{t('Clear the list')}</Button>}
     <Button variant="primary" onClick={close}>{t('Done')}</Button>
   </>
 }
@@ -217,21 +220,21 @@ function EquipmentProfileSheet({ profile, close }) {
     close()
   }
   return <>
-    <h3>{profile ? t('Edit profile') : t('New equipment profile')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>
+    <SheetHeader title={profile ? t('Edit profile') : t('New equipment profile')} />
+    <div className="muted small mb-7">
       {t('Name it after where you train (like "Home" or "Gym"), then tick what you’ve got there.')}
     </div>
     <TextField ref={nameRef} defaultValue={profile?.name || ''} placeholder={t('Profile name')} maxLength={40} />
-    <div style={{ height: 12 }} />
-    <div className="chips">
+    <Spacer size={6} />
+    <ChipRow>
       {ALL_EQUIPMENT.map(k => (
-        <button key={k} className={'chip' + (checked.has(k) ? ' on' : '')} onClick={() => toggle(k)}>{t(k)}</button>
+        <Chip key={k} on={checked.has(k)} onClick={() => toggle(k)}>{t(k)}</Chip>
       ))}
-    </div>
-    <div className="dim small" style={{ marginTop: 10 }}>
+    </ChipRow>
+    <div className="dim small mt-5">
       {t('Body-weight exercises are always available, unless they need a pull-up bar or a bench.')}
     </div>
-    <div style={{ height: 14 }} /><Button variant="primary" onClick={save}>{t('Save')}</Button>
+    <SheetActions><Button variant="primary" onClick={save}>{t('Save')}</Button></SheetActions>
   </>
 }
 export const equipmentProfileSheet = profile => ui().openSheet(close => <EquipmentProfileSheet profile={profile} close={close} />)
