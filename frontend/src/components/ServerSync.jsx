@@ -15,7 +15,7 @@ import { askAddDeviceData, menuSheet } from '../sheets.jsx'
 import { ConnectSheet, CfAccessSheet } from '../views/MobileOnboarding.jsx'
 import { passwordOn, openPasswordSignIn } from './PasswordAuth.jsx'
 import { Section, Row, Button } from './ui.jsx'
-import { Spacer } from './layout.jsx'
+import { SheetActions, SheetHeader } from './sheet-layout.jsx'
 
 const ui = () => useUI.getState()
 const toast = m => ui().toast(m)
@@ -165,7 +165,7 @@ export async function leaveServer(kind, { exportBackup, exportBackupZip, done })
   const r = await attempt(kind)
   if (!r) return
   if (r.owed && !r.stashed) {
-    ui().openSheet(close => <OwedSheet kind={kind} count={r.count} media={r.media || 0} exportBackup={exportBackup} exportBackupZip={exportBackupZip} done={done} close={close} />, { kind: 'center', locked: true })
+    const sheet = ui().openSheet(close => <OwedSheet kind={kind} count={r.count} media={r.media || 0} exportBackup={exportBackup} exportBackupZip={exportBackupZip} done={done} close={close} lock={v => sheet.lock(v)} />)
     return
   }
   done(r)
@@ -174,12 +174,15 @@ export async function leaveServer(kind, { exportBackup, exportBackupZip, done })
 // `media`: photos or videos of custom exercises the server has not confirmed (useStore
 // unsyncedChanges). They are owed like any change, so the sheet names them; while there are any,
 // its export writes the backup with them (the plain JSON would leave exactly those out).
-export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup, exportBackupZip, done, close }) {
+export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup, exportBackupZip, done, close, lock }) {
   const sync = useStore(s => s.sync)
   const [count, setCount] = useState(count0)
   const [media, setMedia] = useState(media0)
   const [busy, setBusy] = useState(false)
   const [tried, setTried] = useState(false)
+  // A request in flight cannot be walked away from: the sheet takes no drag, backdrop, Escape or
+  // back until it answers (`lock` is the opened sheet's). Idle, any of them is Cancel.
+  useEffect(() => { lock?.(busy) }, [busy])
   const view = connectionView(sync)
   // Refused because it is paired or signed in to a server that no longer takes it: trying
   // again cannot work, and pairing or signing in again brings the changes to the server.
@@ -206,33 +209,34 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
     if (r.owed && !r.stashed) { toast(t('Couldn’t keep a copy of the changes on this device. Nothing was removed.')); return }
     finish(r)
   }
-  return <div className="ta-center" style={{ padding: '4px 0' }}>
-    {/* Not SheetHeader: that h3 has no bottom margin, this one keeps its 8px. */}
-    <h3 className="mb-4">{t('Not everything is on your server yet')}</h3>
+  return <>
+    <SheetHeader title={t('Not everything is on your server yet')} />
     {(count !== 0 || !media) && <div className="mb-3 fw-semibold">
       {count > 0 ? t('Not on your server yet: {0}', changeCount(count)) : t('Some changes on this device have not reached your server.')}
     </div>}
     {media > 0 && <div className="mb-3 fw-semibold">{tn('{0} photo or video has not reached your server yet.', '{0} photos or videos have not reached your server yet.', media)}</div>}
     {(tried || refused) && view && <div className="small ink-danger mb-3">{view.line}</div>}
     {/* It names the button below it: Try again, or Pair again / Sign in where the server refuses. */}
-    <div className="muted small mb-9" style={{ lineHeight: 1.5 }}>
+    <div className="muted small lh-150">
       {refused
         ? (MOBILE
           ? t('Pair again, or export a backup first. Going ahead anyway keeps a copy of these changes on this device until it connects to this server as this account again. Then they’re added back.')
           : t('Sign in again, or export a backup first. Going ahead anyway keeps a copy of these changes on this device until it connects to this server as this account again. Then they’re added back.'))
         : t('Try again, or export a backup first. Going ahead anyway keeps a copy of these changes on this device until it connects to this server as this account again. Then they’re added back.')}
     </div>
-    {refused && MOBILE && <><button className="btn primary" disabled={busy} onClick={() => { close(); pairAgain() }}>{t('Pair again')}</button><Spacer size={4} /></>}
-    {refused && !MOBILE && canSignIn() && <><button className="btn primary" disabled={busy} onClick={() => { close(); signInAgain() }}>{pwOn() ? t('Sign in') : t('Sign in with passkey')}</button><Spacer size={4} /></>}
-    {!refused && <><button className="btn primary" disabled={busy} onClick={retry}>{busy ? t('Syncing…') : t('Try again')}</button><Spacer size={4} /></>}
-    {media > 0 && exportBackupZip
-      ? <Button icon="share" disabled={busy} onClick={exportBackupZip}>{t('Export with photos & videos (.zip)')}</Button>
-      : <Button icon="share" disabled={busy} onClick={exportBackup}>{t('Export backup (JSON)')}</Button>}
-    <Spacer size={4} />
-    <button className="btn danger" disabled={busy} onClick={anyway}>{LEAVE[kind].anyway()}</button>
-    <Spacer size={4} />
-    <Button variant="ghost" className="dim" disabled={busy} onClick={close}>{t('Cancel')}</Button>
-  </div>
+    {/* The way on first, then the backup, then the one that goes ahead with changes unsent, and
+        the exit last. Locked only while a request is out: dismissing is Cancel, which is harmless. */}
+    <SheetActions>
+      {refused && MOBILE && <Button variant="primary" disabled={busy} onClick={() => { close(); pairAgain() }}>{t('Pair again')}</Button>}
+      {refused && !MOBILE && canSignIn() && <Button variant="primary" disabled={busy} onClick={() => { close(); signInAgain() }}>{pwOn() ? t('Sign in') : t('Sign in with passkey')}</Button>}
+      {!refused && <Button variant="primary" disabled={busy} onClick={retry}>{busy ? t('Syncing…') : t('Try again')}</Button>}
+      {media > 0 && exportBackupZip
+        ? <Button icon="share" disabled={busy} onClick={exportBackupZip}>{t('Export with photos & videos (.zip)')}</Button>
+        : <Button icon="share" disabled={busy} onClick={exportBackup}>{t('Export backup (JSON)')}</Button>}
+      <Button variant="danger" disabled={busy} onClick={anyway}>{LEAVE[kind].anyway()}</Button>
+      <Button variant="ghost" className="dim" disabled={busy} onClick={close}>{t('Cancel')}</Button>
+    </SheetActions>
+  </>
 }
 
 /* ---------------------------------------------------------------- Settings ------------------- */

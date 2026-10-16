@@ -100,7 +100,7 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
     // has moved the focus into itself by then, and is left alone. preventScroll: the page behind
     // is put back where it was by Modals, and a focus must not move it first.
     queueMicrotask(() => {
-      const open = [...document.querySelectorAll('.sheet, .center, [role="dialog"]')].filter(d => d !== el && !el.contains(d) && live(d))
+      const open = [...document.querySelectorAll('.sheet, [role="dialog"]')].filter(d => d !== el && !el.contains(d) && live(d))
       if (live(opener) && (!open.length || open.some(d => d.contains(opener)))) opener.focus?.({ preventScroll: true })
     })
   }

@@ -422,6 +422,22 @@ export function pageChrome(src = SRC) {
   return [...new Set(out)].sort()
 }
 
+/* ------------------------------------------------------------ G10 centred dialogs -- */
+
+// Every overlay is a bottom sheet (owner rule, 2026-10-16; docs/reviews/design-dialogs-to-sheets.md):
+// the `center` kind and its `.center` box are gone, and a question is a sheet with its Cancel under
+// the thumb. Any `kind: 'center'` in the sources, tests included, is a centred dialog coming back.
+// This file's own test holds the string in fixtures, so it is the one source left out.
+export function centredSheets(src = SRC) {
+  const out = []
+  for (const s of sources(src)) {
+    if (s.file === 'ui-guards.test.js') continue
+    const n = (stripJs(s.text).match(/\bkind\s*:\s*(['"`])center\1/g) || []).length
+    if (n) out.push(`${s.file}: ${n} x kind: 'center'`)
+  }
+  return out
+}
+
 // The attribute names of the JSX tag that opens at `start`, with every {…} value and string
 // blanked out, up to the `>` that ends the tag. A `{...x}` spread shows as ` ...spread`, since
 // it can carry a className or a style the guard cannot see.

@@ -214,7 +214,7 @@ function endTone(enabled, kind) {
 }
 
 export const useUI = create((set, get) => ({
-  sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
+  sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'viewer', locked, onDismiss }
   toastMsg: '',
   toastAction: null,   // { label, run, id } while the toast offers an action (Undo)
   swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)

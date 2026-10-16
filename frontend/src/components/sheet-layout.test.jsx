@@ -70,4 +70,9 @@ describe('SheetActions', () => {
   it('throws in development on a gap off the scale', () => {
     expect(() => html(<SheetActions gap={20}><Button>A</Button></SheetActions>)).toThrow(/SheetActions: gap=20/)
   })
+
+  it('sticky pins the buttons in a footer of their own, the 14px above them now its padding', () => {
+    same(<SheetActions sticky><Button variant="primary">Nice!</Button><Button>More</Button></SheetActions>,
+      <div className="sheet-foot"><Button variant="primary">Nice!</Button><div className="sp-4" /><Button>More</Button></div>)
+  })
 })

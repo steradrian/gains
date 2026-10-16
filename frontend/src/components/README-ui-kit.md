@@ -24,7 +24,7 @@ shell's job.
 | `.chips > .chip(.on)` | `<ChipRow ref><Chip on nocap onClick /></ChipRow>` (blocks); Chip is `type="button"` |
 | hand-built `.lrow` | `<Row>` in a `<Section>` (ui.jsx) |
 | sheet `<h3>`, or `row between` + xmark | `<SheetHeader title sub onClose action>` (sheet-layout) |
-| spacer + primary Button (+ spacer + more) | `<SheetActions gap={4}>buttons</SheetActions>` (sheet-layout) |
+| spacer + primary Button (+ spacer + more) | `<SheetActions gap={4} sticky>buttons</SheetActions>` (sheet-layout). `sticky` pins the buttons to the sheet's bottom edge on a hairline (`.sheet-foot`, ui-kit.css), for a sheet long enough to scroll; it must be a direct child of the sheet, last |
 | a "Loading…" line in a div, `EmptyState` or card | `<Loading size inline className>words</Loading>` (Loader): the G drawing itself and the words, one `role=status` |
 | a loading animation where an icon would go | `<Loader size="xs"\|"sm"\|"md"\|"lg" />` (Loader): decoration, drawn in the text colour around it |
 
@@ -131,6 +131,16 @@ class throws in development, as everywhere in the kit.
   the inert page and focus return; only content marked `data-own-dialog-focus` (the + sheet, which
   runs the trap itself) is left alone. A sheet that replaces another in the same tap
   (`close(); nextSheet()`) inherits the opener of the one it replaced.
+- **A question is a sheet, never a centred box** (owner rule, 2026-10-16; there is no `kind:
+  'center'`, and ui-guards G10 fails on one). `confirmSheet` and the other decisions are
+  `SheetHeader` (left-aligned, no close X) + `SheetActions`, one full-width `Button` per row: the
+  action the sheet exists for first (`primary` when it is safe, `danger` when it destroys something,
+  never a filled red), other choices `plain`, and `ghost` + `dim` Cancel last, so the safe exit is
+  under the resting thumb. The backdrop, a drag, Escape and back all run the sheet's `onDismiss`,
+  which is what Cancel does; a sheet with nothing to undo needs none. `locked` only for a decision
+  that must be answered (no grab bar, no drag), and `sheet.lock(false)` lifts it (OwedSheet is
+  locked while its request is out). The one centred part of a sheet is a celebration hero
+  (`.sheet-hero`: workout complete, the summary).
 
 ## The loader
 
@@ -152,7 +162,7 @@ content; the component reads `EmptySurface`, a context only the surfaces provide
 |---|---|---|---|
 | page (none) | its own surface: `--surface`, `--r-card`, `--shadow-card`, `--space-11` padding | 128×96 | `h2` |
 | card (`Card`) | bare, `--space-8` block padding | 96×72 | `h3` |
-| sheet (`Modals.jsx` sheet and centre dialog; `SearchOverlay`) | bare, `--space-8` block padding | 96×72 | `h4` |
+| sheet (`Modals.jsx`; `SearchOverlay`) | bare, `--space-8` block padding | 96×72 | `h4` |
 | chart (`LineChart`, around its own empty render) | fills the slot, centred | 64×48 | `p`, no actions (throws) |
 
 The nearest provider wins. `LineChart` takes `empty={{ title, body }}` for what it says with no
@@ -187,6 +197,8 @@ above 0. Below it also fails ("lower the baseline"): a migration PR runs
 - **G8** no page chooses its own header: nothing past `layout.jsx` imports `RootHeader`/`SubHeader`,
   no view builds `.hdr`/`.tab-hdr`/`.sub-hdr` (the full-screen views excepted), and `<Page>` takes
   no `className` or `style`. Width is the shell's too (`page-width.test.js`). Not a ratchet: it is 0.
+- **G10** no `kind: 'center'` anywhere in the sources, tests included: an overlay is a bottom
+  sheet. Not a ratchet: it is 0.
 - **G9** `<EmptyState>` takes `illustration title body action secondary` and nothing else (no
   `className`, `icon`, `art`, spread or children), names a registered illustration as a literal (or
   a ternary of literals), is not the first child of a bare `Card` (or `Card > Stack`), and the

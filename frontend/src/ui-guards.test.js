@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  BASELINE, EMPTY_PROPS, HEADER_FILES, LEGACY_CSS, LOWER, PAGE_EXEMPT, PRIMITIVE_FILES, cssColours, cssFiles, emptyStates, handBuilt,
+  BASELINE, EMPTY_PROPS, HEADER_FILES, centredSheets, LEGACY_CSS, LOWER, PAGE_EXEMPT, PRIMITIVE_FILES, cssColours, cssFiles, emptyStates, handBuilt,
   jsColours, measure, newCssViolations, pageChrome, ratchet, routeViewsWithoutPage, sheetsImporters, staticStyles,
 } from '../scripts/ui-guards-baseline.mjs'
 
@@ -106,6 +106,38 @@ describe('G8 finds a page choosing its own chrome', () => {
     expect(caught(`export default () => <Page title="X"><h1>x</h1></Page>`)).toEqual(['views/X.jsx: renders its own <h1>'])
     expect(caught(`export default () => <h1>x</h1>`, 'components/Card.jsx')).toEqual([])
     expect(caught(`export default () => <h1>x</h1>`, 'views/Login.jsx')).toEqual([])
+  })
+})
+
+describe('G10 finds a centred dialog', () => {
+  const caught = (source, file = 'sheets/x.jsx') => {
+    const dir = mkdtempSync(join(tmpdir(), 'ui-guards-'))
+    try {
+      for (const d of ['sheets', 'components']) mkdirSync(join(dir, d))
+      writeFileSync(join(dir, file), source)
+      return centredSheets(dir)
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  }
+
+  it('is in no source: every overlay is a bottom sheet', () => {
+    expect(centredSheets()).toEqual([])
+  })
+
+  it('has no box of its own in any stylesheet', () => {
+    expect(cssFiles().filter(f => /(^|[^\w-])\.center\b/.test(f.text)).map(f => f.file)).toEqual([])
+  })
+
+  it('catches the kind in either quote, a template, a spread and a test', () => {
+    expect(caught(`ui().openSheet(close => <A />, { kind: 'center' })`)).toEqual(["sheets/x.jsx: 1 x kind: 'center'"])
+    expect(caught(`openSheet(r, { kind:"center", locked: true })`)).toEqual(["sheets/x.jsx: 1 x kind: 'center'"])
+    expect(caught('openSheet(r, { kind: `center` })')).toEqual(["sheets/x.jsx: 1 x kind: 'center'"])
+    expect(caught(`openSheet(r, { ...(a ? { locked: true } : {}), kind: 'center' })`)).toEqual(["sheets/x.jsx: 1 x kind: 'center'"])
+    expect(caught(`expect(opts).toMatchObject({ kind: 'center' })`, 'components/x.test.jsx')).toEqual(["components/x.test.jsx: 1 x kind: 'center'"])
+  })
+
+  it('leaves the other kinds, a comment and layout words alone', () => {
+    expect(caught(`openSheet(r, { kind: 'viewer' }); openSheet(r, { kind: 'sheet' })`)).toEqual([])
+    expect(caught(`// kind: 'center' is gone\nconst s = { alignItems: 'center', textAlign: 'center' }`)).toEqual([])
   })
 })
 

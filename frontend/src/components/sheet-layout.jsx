@@ -26,14 +26,18 @@ export function SheetHeader({ title, sub, onClose, action }) {
 }
 
 // The sheet's buttons, under a 14px spacer and `gap` steps apart (default 4, 8px): the
-// spacer-and-button run every sheet ends with.
-export function SheetActions({ gap = 4, children }) {
+// spacer-and-button run every sheet ends with. `sticky` pins them to the sheet's bottom edge on a
+// hairline, so a long sheet that scrolls keeps its one way on in reach (the workout summary's
+// "Nice!"); the 14px above the buttons is the footer's own padding.
+export function SheetActions({ gap = 4, sticky = false, children }) {
   oneOf('SheetActions', 'gap', gap, STEPS)
+  const buttons = Children.toArray(children).map((child, i) => <Fragment key={i}>
+    {i > 0 && <Spacer size={gap} />}
+    {child}
+  </Fragment>)
+  if (sticky) return <div className="sheet-foot">{buttons}</div>
   return <>
     <Spacer size={7} />
-    {Children.toArray(children).map((child, i) => <Fragment key={i}>
-      {i > 0 && <Spacer size={gap} />}
-      {child}
-    </Fragment>)}
+    {buttons}
   </>
 }

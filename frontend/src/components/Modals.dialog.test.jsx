@@ -12,6 +12,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import Modals, { scrollRestorePending } from './Modals.jsx'
 import { useUI } from '../store/useUI.js'
+import { confirmSheet } from '../sheets/confirm-menu.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -132,10 +133,11 @@ describe('a sheet is a dialog', () => {
     expect(nameOf(q('.sheet'))).toBe('Loaded')
   })
 
-  it('applies to a centred dialog too', async () => {
-    open(close => <Plain title="Delete it?" close={close} />, { kind: 'center' })
-    const dialog = q('.center')
-    expect(dialog.getAttribute('role')).toBe('dialog')
+  it('applies to a confirm too: named by its title, and a sheet, never a centred box', async () => {
+    act(() => { confirmSheet({ title: 'Delete it?', message: 'This cannot be undone.', onConfirm: () => {} }) })
+    const dialog = q('[role="dialog"]')
+    expect(dialog.classList.contains('sheet')).toBe(true)
+    expect(q('.center')).toBeNull()
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     expect(nameOf(dialog)).toBe('Delete it?')
     expect(dialog.contains(document.activeElement)).toBe(true)

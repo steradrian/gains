@@ -232,11 +232,8 @@ describe('EmptyState with an illustration', () => {
     expect(empty().dataset.surface).toBe('sheet')
     expect(empty().querySelector('h4').textContent).toBe('No weigh-ins yet')
     act(() => { useUI.getState().closeAll() })
-    act(() => { useUI.getState().openSheet(() => <Card>{content}</Card>, { kind: 'center' }) })
+    act(() => { useUI.getState().openSheet(() => <Card>{content}</Card>) })
     expect(empty().dataset.surface).toBe('card')
-    act(() => { useUI.getState().closeAll() })
-    act(() => { useUI.getState().openSheet(() => content, { kind: 'center' }) })
-    expect(empty().dataset.surface).toBe('sheet')
     act(() => { useUI.getState().closeAll() })
   })
 

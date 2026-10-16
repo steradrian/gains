@@ -57,7 +57,6 @@
   --slow:340ms; --exit-fast:100ms; --exit:160ms; --exit-slow:260ms; --rm:120ms;
   --ease-exit:cubic-bezier(.55,0,1,.45);
   --shift-xs:4px; --shift-sm:8px; --shift-md:16px; --shift-x:24px;
-  --pop-from:.94; --pop-to:.97;
 
   /* media: drawn over photos and video, the same in both themes */
   --on-media:#fff; --media-bg:#000; --knob:#fff;
@@ -194,6 +193,21 @@
 .gate-title.gate-title.gate-title{letter-spacing:-.028em;margin:10px 0 4px}
 .gate-empty.gate-empty.gate-empty{margin-top:18vh}
 .gate-qr.gate-qr.gate-qr{width:fit-content;margin:0 auto 14px}
+
+/* A sheet's celebration icon (workout complete, the summary): the only centred part of a sheet. */
+.sheet > .sheet-hero{display:flex;justify-content:center;font-size:44px;color:var(--acc-ink)}
+
+/* SheetActions sticky: the buttons stay on the sheet's bottom edge while the content scrolls under
+   them. The sheet pads its foot by 20px plus the safe area, so the footer sits that far below its
+   normal place (bottom) and puts the padding back inside itself; it spans the sheet's 18px
+   gutters, takes the sheet's own surface and draws a hairline on top. With the Android keyboard up
+   the sheet drops the safe area from its foot (index.css, data-native-kb), and so does this. */
+.sheet > .sheet-foot{
+  position:sticky;bottom:calc(-1 * (20px + var(--sab)));z-index:1;
+  margin-inline:-18px;padding:var(--space-7) 18px calc(20px + var(--sab));
+  background:inherit;border-top:var(--hair) solid var(--sep-op);
+}
+:root[data-native-kb] .sheet > .sheet-foot{bottom:-20px;padding-bottom:20px}
 
 /* StatTile value sizes below the default 26px */
 .tile .v.v-sm{font-size:var(--fs-body)}

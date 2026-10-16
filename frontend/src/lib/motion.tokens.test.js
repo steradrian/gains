@@ -3,7 +3,7 @@
 // sheet's CSS and its animation disagree, so they are read side by side here.
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { EASE, MS, POP, SHIFT } from './motion.js'
+import { EASE, MS, SHIFT } from './motion.js'
 
 const css = ['../index.css', '../ui-kit.css'].map(f => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n')
 const token = name => {
@@ -29,8 +29,7 @@ describe('motion tokens', () => {
     expect(curve(token('--ease-exit'))).toBe(curve(EASE.exit))
   })
 
-  it('match lib/motion.js: shifts and the centred dialog\'s scale', () => {
+  it('match lib/motion.js: shifts', () => {
     expect({ xs: px('--shift-xs'), sm: px('--shift-sm'), md: px('--shift-md'), x: px('--shift-x') }).toEqual(SHIFT)
-    expect({ from: parseFloat(token('--pop-from')), to: parseFloat(token('--pop-to')) }).toEqual(POP)
   })
 })

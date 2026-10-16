@@ -16,6 +16,7 @@ import { SG_NAME_MAX } from '../lib/superset-meta.js'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Switch, SelectRow, Row } from '../components/ui.jsx'
+import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import BodyMap from '../components/BodyMap.jsx'
 import { exerciseMuscleSnapshot, loadOfWorkouts } from '../lib/muscles.js'
@@ -149,7 +150,7 @@ function LogPastWorkout({ initial, close }) {
     const existing = workoutsOn(st, date)
     if (!existing.length) { go(null); return }
     ui().openSheet(c => <SameDayChoice iso={date} existing={existing} close={c}
-      onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { kind: 'center' })
+      onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />)
   }
 
   return <>
@@ -168,25 +169,26 @@ function LogPastWorkout({ initial, close }) {
     <Button variant="primary" onClick={submit}>{t('Continue')}</Button>
   </>
 }
-// Three ways out when the day already has a workout. Replacing with several on that day means
+// Three ways out when the day already has a workout. The reversible one comes first, so the tap
+// that opened this sheet can never land on Replace. Replacing with several on that day means
 // picking which one; the rest of the day is left alone. A workout with photos or videos says
 // they come along.
 function SameDayChoice({ iso, existing, onReplace, onAdd, close }) {
-  return <div style={{ textAlign: 'center', padding: '4px 0' }}>
-    <h3 style={{ marginBottom: 8 }}>{fmtDate(iso, true)}</h3>
-    <div className="muted" style={{ marginBottom: 18, lineHeight: 1.5 }}>{t('There is already a workout on that day.')}</div>
-    {existing.map(w => {
-      // Replacing re-logs the sets; the photos and videos move to the new record (completeBackfill).
-      const n = workoutMediaOf(w, Infinity).length
-      return <div key={w.id} style={{ marginBottom: 8 }}>
-        <button className="btn danger" onClick={() => onReplace(w.id)}>{existing.length > 1 ? t('Replace') + ' · ' + w.name : t('Replace')}</button>
-        {n > 0 && <div className="small dim samed-media" style={{ marginTop: 4 }}>{tn('Its photo or video moves to the new workout.', 'Its {0} photos or videos move to the new workout.', n)}</div>}
-      </div>
-    })}
-    <button className="btn primary" onClick={onAdd}>{t('Add as second workout')}</button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
-  </div>
+  return <>
+    <SheetHeader title={fmtDate(iso, true)} sub={t('There is already a workout on that day.')} />
+    <SheetActions>
+      <Button variant="primary" onClick={onAdd}>{t('Add as second workout')}</Button>
+      {existing.map(w => {
+        // Replacing re-logs the sets; the photos and videos move to the new record (completeBackfill).
+        const n = workoutMediaOf(w, Infinity).length
+        return <div key={w.id}>
+          <Button variant="danger" onClick={() => onReplace(w.id)}>{existing.length > 1 ? t('Replace') + ' · ' + w.name : t('Replace')}</Button>
+          {n > 0 && <div className="small dim samed-media mt-2">{tn('Its photo or video moves to the new workout.', 'Its {0} photos or videos move to the new workout.', n)}</div>}
+        </div>
+      })}
+      <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
+    </SheetActions>
+  </>
 }
 // History's button hands this its click event; only a day from the plan counts as `initial`.
 export function logPastWorkoutSheet(initial) {
@@ -468,18 +470,21 @@ export const supersetSheet = (meta, onSave) => ui().openSheet(close => <Superset
    already computed via applyIntensifierPlan; an unplanned straight set can still grow one live
    by tapping "+ Drop"/"+ Burst", which appends with the same suggested-next-value math. */
 
-// Shown when the last exercise's last set is checked — finish, or keep going.
+// Shown when the last exercise's last set is checked — finish, or keep going. Continue is the way
+// out, so a drag, the backdrop, Escape and back say the same thing it does.
+const keepGoing = () => useUI.getState().toast(t('Keep going: tap “+ Add exercise” below'))
 function WorkoutComplete({ close }) {
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="checkCircle" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t("That's the whole workout!")}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.')}</div>
-    <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); useUI.getState().toast(t('Keep going: tap “+ Add exercise” below')) }}>{t('Continue workout')}</Button>
-  </div>
+  return <>
+    <div className="sheet-hero"><Icon name="checkCircle" /></div>
+    <h3 className="ta-center mt-4 mb-4">{t("That's the whole workout!")}</h3>
+    <div className="muted small ta-center mb-8">{t('All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.')}</div>
+    <SheetActions>
+      <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
+      <Button onClick={() => { close(); keepGoing() }}>{t('Continue workout')}</Button>
+    </SheetActions>
+  </>
 }
-export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
+export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { onDismiss: keepGoing })
 
 export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
   // A save decision left open after the editor already closed (a second prompt from a route
@@ -536,15 +541,15 @@ export function exitWorkoutEdit(onExit = () => nav('/train/history')) {
   }
   // Nothing to save: closing just closes, as it does for a workout only looked at.
   if (editChangesNothing(S())) { leave(); return }
+  // Any other way out is Keep editing: the sheet closes and the edits stay where they are.
   prompt.id = ui().openSheet(close => <>
-    <h3>{t('Save workout changes?')}</h3>
-    <p className="muted">{t('Save your edits to this workout, or keep the original record.')}</p>
-    <Button variant="primary" onClick={() => { close(); saveWorkoutEdits(done) }}>{t('Save changes')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); leave() }}>{t("Don't save")}</Button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Keep editing')}</Button>
-  </>, { kind: 'center' })?.id
+    <SheetHeader title={t('Save workout changes?')} sub={t('Save your edits to this workout, or keep the original record.')} />
+    <SheetActions>
+      <Button variant="primary" onClick={() => { close(); saveWorkoutEdits(done) }}>{t('Save changes')}</Button>
+      <Button variant="danger" onClick={() => { close(); leave() }}>{t("Don't save")}</Button>
+      <Button variant="ghost" className="dim" onClick={close}>{t('Keep editing')}</Button>
+    </SheetActions>
+  </>)?.id
   savePrompt = prompt
 }
 
@@ -588,7 +593,7 @@ function LastAndNext({ st, w }) {
 function CardioDone({ st, w }) {
   const rows = finishCardio(w)
   if (!rows.length) return null
-  return <div style={{ textAlign: 'start', marginBottom: 14 }}>
+  return <div style={{ marginBottom: 14 }}>
     <h4 className="sec">{t('Cardio')}</h4>
     <div className="list">{rows.map((row, i) => {
       const ex = EXIDX[row.id]
@@ -600,33 +605,37 @@ function CardioDone({ st, w }) {
   </div>
 }
 
+// The workout is already saved, so the sheet can be let go of: a drag, the backdrop, Escape and
+// back run the same `back()` as "Nice!" (the sheet's onDismiss). The hero is the only centred part.
 function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="trophy" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
-    <div className="tiles" style={{ textAlign: 'start' }}>
+  return <>
+    <div className="sheet-hero"><Icon name="trophy" /></div>
+    <h3 className="ta-center mt-4 mb-4">{t('Workout complete!')}</h3>
+    <div className="tiles">
       <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>
       <div className="tile"><div className="l">{t('Volume')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtVol(w.vol, st.unit)}</div></div>
       <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{setsWorkCount(setsDone(w), workSetsDone(w))}</div></div>
       <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '–'}</div></div>
     </div>
-    {(prs.length > 0 || e1prs.length > 0) && <div style={{ textAlign: 'start', marginBottom: 12 }}>
+    {(prs.length > 0 || e1prs.length > 0) && <div style={{ marginBottom: 12 }}>
       {prs.map(id => <div key={id} className="small accent row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} <span className={exerciseNameClass(EXIDX[id])}>{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span></div>)}
       {e1prs.map(p => <div key={p.id} className="small accent row" style={{ gap: 5 }}><Icon name="chartLine" style={{ fontSize: 13 }} />{t('Best estimated 1RM:')} <span className={exerciseNameClass(EXIDX[p.id])}>{EXIDX[p.id] ? exerciseNameFor(EXIDX[p.id]) : p.id}</span> · {fmtNum(p.est)} {st.unit}</div>)}
     </div>}
-    <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>
+    <h4 className="sec">{t('What you just trained')}</h4>
     <BodyMap load={loadOfWorkouts([w])} body={st.body} />
     <div style={{ height: 14 }} />
     <LastAndNext st={st} w={w} />
     <CardioDone st={st} w={w} />
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
-    <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
+    <WorkoutMediaSection w={w} hint />
     {/* Back where the workout was opened from, its page taken off the tab's stack: going on to
         Home left the Start screen under it, one back press away (lib/use-tab-nav.js back). */}
-    <Button variant="primary" onClick={() => { close(); back() }}>{t('Nice!')}</Button>
-  </div>
+    <SheetActions sticky>
+      <Button variant="primary" onClick={() => { close(); back() }}>{t('Nice!')}</Button>
+    </SheetActions>
+  </>
 }
 export function finishWorkout() {
   if (S().active?.editingWorkoutId) { saveWorkoutEdits(); return }
@@ -717,5 +726,5 @@ function doFinishWorkout() {
   // into s.active, which is gone. What it held is not logged, like any set left unchecked.
   useUI.getState().stopWork()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} close={close} />, { onDismiss: back })
 }
