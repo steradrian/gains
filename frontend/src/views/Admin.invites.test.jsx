@@ -13,7 +13,11 @@ vi.mock('../lib/api.js', () => ({
   remoteServer: () => '',
   api: (path, init) => {
     if (init?.method === 'POST') { mocks.posts.push(path); mocks.bodies.push(JSON.parse(init.body)) }
-    if (path === '/api/admin/invites/new') return Promise.resolve({ invite: { code: 'NEWCODE1' } })
+    if (path === '/api/admin/invites/new') {
+      if (mocks.newError) return Promise.reject(new Error(mocks.newError))
+      if (mocks.newPending) return new Promise(r => { mocks.release = () => r({ invite: { code: 'NEWCODE1' } }) })
+      return Promise.resolve({ invite: { code: 'NEWCODE1' } })
+    }
     const key = path.split('?')[0]
     return key in mocks.answers ? Promise.resolve(mocks.answers[key]) : Promise.reject(new Error('not found'))
   }
@@ -55,7 +59,7 @@ const flush = () => act(() => new Promise(r => setTimeout(r, 0)))
 
 beforeEach(() => {
   document.body.innerHTML = ''
-  Object.assign(mocks, { toasts: [], copied: [], copyOk: true, confirm: null, posts: [], bodies: [], sheets: [] })
+  Object.assign(mocks, { toasts: [], copied: [], copyOk: true, confirm: null, posts: [], bodies: [], sheets: [], newError: '', newPending: false, closed: false })
   mocks.answers = {
     '/api/admin/users': { users: [], invite_only: true },
     '/api/admin/audit': { rows: [] },
@@ -88,28 +92,35 @@ async function mount() {
 const rowOf = (page, code) => [...page.querySelectorAll('.adm-inv-row')].find(r => r.textContent.includes(code))
 const btn = (row, label) => row.querySelector(`button[aria-label="${label}"]`)
 
-describe('Invite codes card', () => {
-  it('copies the full join link, not the bare code', async () => {
+describe('Invites card', () => {
+  it('copies the full join link, not the bare code, where there is no share sheet', async () => {
     const page = await mount()
-    click(btn(rowOf(page, 'OPEN0001'), 'Copy link'))
+    click(btn(rowOf(page, 'OPEN0001'), 'Copy invite link'))
     await flush()
     expect(mocks.copied).toEqual([location.origin + '/join/OPEN0001'])
-    expect(mocks.toasts).toContain('Link copied')
+    expect(mocks.toasts).toContain('Invite link copied')
   })
 
   it('says so when the clipboard refuses', async () => {
     mocks.copyOk = false
     const page = await mount()
-    click(btn(rowOf(page, 'OPEN0001'), 'Copy link'))
+    click(btn(rowOf(page, 'OPEN0001'), 'Copy invite link'))
     await flush()
-    expect(mocks.toasts).toContain('Could not copy the link')
+    expect(mocks.toasts).toContain('Could not copy the invite link')
+  })
+
+  it('uses one word, "invite", for the card and its button', async () => {
+    const page = await mount()
+    expect(page.textContent).toContain('Invites')
+    expect(page.textContent).toContain('New invite')
+    expect(page.textContent).not.toContain('New code')
   })
 
   const openNewSheet = async () => {
     mocks.sheets.length = 0
     mocks.closed = false
     const page = await mount()
-    click([...page.querySelectorAll('button')].find(b => b.textContent.includes('New code')))
+    click([...page.querySelectorAll('button')].find(b => b.textContent.includes('New invite')))
     expect(mocks.sheets).toHaveLength(1)
     return render(mocks.sheets[0](() => { mocks.closed = true }))
   }
@@ -119,38 +130,56 @@ describe('Invite codes card', () => {
   })
   const create = sheet => click([...sheet.querySelectorAll('button')].find(b => b.textContent === 'Create invite'))
 
-  it('"New code" opens a form; with both fields empty it creates a plain code and copies its link', async () => {
+  const fields = sheet => [...sheet.querySelectorAll('input')]
+
+  it('"New invite" opens a form; with both fields empty it creates a plain invite and copies its link', async () => {
     const sheet = await openNewSheet()
     create(sheet)
     await flush()
     expect(mocks.bodies).toEqual([{}])
     expect(mocks.copied).toEqual([location.origin + '/join/NEWCODE1'])
-    expect(mocks.toasts).toContain('Invite created and link copied')
+    expect(mocks.toasts).toContain('Invite created and invite link copied')
     expect(mocks.closed).toBe(true)
   })
 
   it('sends the name and note trimmed, and leaves out a blank one', async () => {
     const sheet = await openNewSheet()
-    type(sheet.querySelector('#inv-name'), '  Mum  ')
-    type(sheet.querySelector('#inv-note'), '   ')
+    const [name, note] = fields(sheet)
+    type(name, '  Mum  ')
+    type(note, '   ')
     create(sheet)
     await flush()
     expect(mocks.bodies).toEqual([{ name: 'Mum' }])
 
     mocks.bodies.length = 0
     const again = await openNewSheet()
-    type(again.querySelector('#inv-note'), ' for Sunday lunch ')
+    type(fields(again)[1], ' for Sunday lunch ')
     create(again)
     await flush()
     expect(mocks.bodies).toEqual([{ note: 'for Sunday lunch' }])
   })
 
-  it('caps the fields at the lengths the server keeps, and has no field for choosing the code', async () => {
+  it('uses the kit form fields: limits set, described by their helper text, no field for choosing the code', async () => {
     const sheet = await openNewSheet()
-    expect(sheet.querySelector('#inv-note').maxLength).toBe(60)
-    expect(sheet.querySelector('#inv-name').maxLength).toBe(40)
-    expect(sheet.querySelectorAll('input')).toHaveLength(2)
+    const [name, note] = fields(sheet)
+    expect(name.maxLength).toBe(40)
+    expect(note.maxLength).toBe(60)
+    expect(fields(sheet)).toHaveLength(2)
+    expect(name.classList.contains('field')).toBe(true)
     expect(sheet.textContent).toContain('Prefilled as their profile name when they open the link.')
+    expect(sheet.querySelector('#' + name.getAttribute('aria-describedby')).textContent).toContain('Prefilled')
+    expect(sheet.querySelector('#' + note.getAttribute('aria-describedby'))).not.toBeNull()
+  })
+
+  it('shows a character count only near each limit', async () => {
+    const sheet = await openNewSheet()
+    const [name, note] = fields(sheet)
+    expect(sheet.textContent).not.toContain('/ 60')
+    type(note, 'x'.repeat(52))
+    expect(sheet.textContent).toContain('52 / 60')
+    expect(sheet.textContent).not.toContain('/ 40')
+    type(name, 'y'.repeat(31))
+    expect(sheet.textContent).toContain('31 / 40')
   })
 
   it('says an invite was created, not copied, when the clipboard refuses', async () => {
@@ -158,24 +187,52 @@ describe('Invite codes card', () => {
     const sheet = await openNewSheet()
     create(sheet)
     await flush()
-    expect(mocks.toasts).toContain('Invite created. Copy its link from the list.')
+    expect(mocks.toasts).toContain('Invite created. Copy its invite link from the list.')
   })
 
-  it('shows each open invite\'s name and note', async () => {
+  it('keeps the sheet open and shows a role=alert error when creating fails', async () => {
+    mocks.newError = 'Too many invites'
+    const sheet = await openNewSheet()
+    create(sheet)
+    await flush()
+    expect(sheet.querySelector('[role="alert"]').textContent).toBe('Too many invites')
+    expect(mocks.closed).toBe(false)
+    expect([...sheet.querySelectorAll('button')].find(b => b.textContent === 'Create invite').disabled).toBe(false)
+  })
+
+  it('shows "Creating…" and disables the button while the request is in flight', async () => {
+    mocks.newPending = true
+    const sheet = await openNewSheet()
+    create(sheet)
+    await flush()
+    const button = [...sheet.querySelectorAll('button')].find(b => b.textContent === 'Creating…')
+    expect(button.disabled).toBe(true)
+    mocks.release()
+    await flush()
+  })
+
+  it('shows the name as the row title, with the code and expiry under it and the note below', async () => {
     const page = await mount()
-    const row = rowOf(page, 'NAMED006').textContent
-    expect(row).toContain('For Mum')
-    expect(row).toContain('for Sunday lunch')
+    const main = rowOf(page, 'NAMED006').querySelector('.adm-inv-main')
+    const kids = [...main.children].map(c => c.textContent)
+    expect(kids[0]).toBe('For Mum')
+    expect(kids[1]).toContain('NAMED006')
+    expect(kids[1]).toContain('Expires in 5 days')
+    expect(kids[2]).toBe('for Sunday lunch')
+    expect(rowOf(page, 'OPEN0001').querySelector('.adm-inv-main').firstElementChild.textContent).toContain('OPEN0001')
   })
 
-  it('offers Share only where the system share sheet exists, and shares the link', async () => {
+  it('offers Share where the system share sheet exists, instead of Copy, and shares the link', async () => {
     let page = await mount()
-    expect(btn(rowOf(page, 'OPEN0001'), 'Share')).toBeNull()
+    expect(btn(rowOf(page, 'OPEN0001'), 'Share invite link')).toBeNull()
 
     navigator.share = vi.fn().mockResolvedValue(undefined)
     document.body.innerHTML = ''
     page = await mount()
-    click(btn(rowOf(page, 'OPEN0001'), 'Share'))
+    const row = rowOf(page, 'OPEN0001')
+    expect(btn(row, 'Copy invite link')).toBeNull()
+    expect(row.querySelectorAll('button')).toHaveLength(2)
+    click(btn(row, 'Share invite link'))
     await flush()
     expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ url: location.origin + '/join/OPEN0001' }))
   })
@@ -183,13 +240,13 @@ describe('Invite codes card', () => {
   it('toasts when sharing fails, but not when the sheet is dismissed', async () => {
     navigator.share = vi.fn().mockRejectedValue(Object.assign(new Error('x'), { name: 'AbortError' }))
     const page = await mount()
-    click(btn(rowOf(page, 'OPEN0001'), 'Share'))
+    click(btn(rowOf(page, 'OPEN0001'), 'Share invite link'))
     await flush()
-    expect(mocks.toasts).not.toContain('Could not share the link')
+    expect(mocks.toasts).not.toContain('Could not share the invite link')
     navigator.share = vi.fn().mockRejectedValue(new Error('boom'))
-    click(btn(rowOf(page, 'OPEN0001'), 'Share'))
+    click(btn(rowOf(page, 'OPEN0001'), 'Share invite link'))
     await flush()
-    expect(mocks.toasts).toContain('Could not share the link')
+    expect(mocks.toasts).toContain('Could not share the invite link')
   })
 
   it('shows when each open invite expires, from the server record', async () => {
@@ -203,13 +260,13 @@ describe('Invite codes card', () => {
   it('shows nothing for an invite without a time, and no link actions for an expired one', async () => {
     const page = await mount()
     expect(rowOf(page, 'NOTIME04').textContent).toBe('NOTIME04')
-    expect(btn(rowOf(page, 'OLD00003'), 'Copy link')).toBeNull()
-    expect(btn(rowOf(page, 'OLD00003'), 'Revoke')).not.toBeNull()
+    expect(btn(rowOf(page, 'OLD00003'), 'Copy invite link')).toBeNull()
+    expect(btn(rowOf(page, 'OLD00003'), 'Revoke invite')).not.toBeNull()
   })
 
   it('confirms a revoke with translated copy and revokes on confirm', async () => {
     const page = await mount()
-    click(btn(rowOf(page, 'OPEN0001'), 'Revoke'))
+    click(btn(rowOf(page, 'OPEN0001'), 'Revoke invite'))
     expect(mocks.confirm.title).toBe('Revoke invite OPEN0001?')
     expect(mocks.confirm.confirmText).toBe('Revoke')
     await act(async () => { await mocks.confirm.onConfirm() })

@@ -13,8 +13,8 @@ import { confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Page, Inline, Spacer } from '../components/layout.jsx'
 import { Card, Chip, ChipRow, SectionTitle, StatTile, Tiles } from '../components/blocks.jsx'
-import { SheetHeader } from '../components/sheet-layout.jsx'
-import { Button } from '../components/ui.jsx'
+import { SheetHeader, SheetActions } from '../components/sheet-layout.jsx'
+import { Button, TextField } from '../components/ui.jsx'
 import AdminCoach from './AdminCoach.jsx'
 import '../admin.css'
 import { Loading } from '../components/Loader.jsx'
@@ -180,29 +180,43 @@ export function inviteExpiry(i, now = Date.now()) {
 const INVITE_NAME_MAX = 40
 const INVITE_NOTE_MAX = 60
 
-// Both fields are optional; empty ones are left out of the request, which then makes a plain code.
+// A count appears once the text is within this many characters of its limit.
+const COUNT_FROM = 10
+
+// Both fields are optional; empty ones are left out of the request, which then makes a plain
+// invite. `onCreate` resolves to null on success or the error to show in the sheet.
 function NewInviteSheet({ onCreate, close }) {
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
   const submit = async () => {
     const body = {}
     if (name.trim()) body.name = name.trim()
     if (note.trim()) body.note = note.trim()
     setBusy(true)
-    if (await onCreate(body)) close()
-    else setBusy(false)
+    setError(null)
+    const err = await onCreate(body)
+    if (err) { setError(err); setBusy(false) } else close()
   }
-  return <>
+  const count = (v, max) => v.length >= max - COUNT_FROM && <span className="small muted">{t('{0} / {1}', v.length, max)}</span>
+  return <div className="quick-sheet">
     <SheetHeader title={t('New invite')} />
-    <label className="adm-field-l" htmlFor="inv-name">{t('Their name')}</label>
-    <input id="inv-name" className="input" maxLength={INVITE_NAME_MAX} value={name} onChange={e => setName(e.target.value)} />
-    <div className="adm-field-h">{t('Prefilled as their profile name when they open the link.')}</div>
-    <label className="adm-field-l" htmlFor="inv-note">{t('Note (only you see this)')}</label>
-    <input id="inv-note" className="input" maxLength={INVITE_NOTE_MAX} value={note} onChange={e => setNote(e.target.value)} />
-    <Spacer size={6} />
-    <Button variant="primary" onClick={submit} disabled={busy}>{t('Create invite')}</Button>
-  </>
+    <label className="portion-f adm-field">
+      <span className="small muted">{t('Their name')}</span>
+      <TextField value={name} maxLength={INVITE_NAME_MAX} onChange={e => setName(e.target.value)} aria-describedby="inv-name-h" autoFocus />
+      <span id="inv-name-h" className="small muted">{t('Prefilled as their profile name when they open the link.')} {count(name, INVITE_NAME_MAX)}</span>
+    </label>
+    <label className="portion-f adm-field">
+      <span className="small muted">{t('Note (only you see this)')}</span>
+      <TextField value={note} maxLength={INVITE_NOTE_MAX} onChange={e => setNote(e.target.value)} aria-describedby="inv-note-h" />
+      <span id="inv-note-h" className="small muted">{count(note, INVITE_NOTE_MAX)}</span>
+    </label>
+    {error && <div className="small ink-danger" role="alert">{error}</div>}
+    <SheetActions>
+      <Button variant="primary" onClick={submit} disabled={busy}>{busy ? t('Creating…') : t('Create invite')}</Button>
+    </SheetActions>
+  </div>
 }
 
 function InvitesCard({ invites, reload, inviteOnly }) {
@@ -210,8 +224,8 @@ function InvitesCard({ invites, reload, inviteOnly }) {
   const openSheet = useUI(s => s.openSheet)
   const canShare = canShareLink()
   const create = body => api('/api/admin/invites/new', { method: 'POST', body: JSON.stringify(body) })
-    .then(async ({ invite }) => { reload(); toast(await copyText(inviteLink(invite.code)) ? t('Invite created and link copied') : t('Invite created. Copy its link from the list.')); return true })
-    .catch(e => { toast(e.message); return false })
+    .then(async ({ invite }) => { reload(); toast(await copyText(inviteLink(invite.code)) ? t('Invite created and invite link copied') : t('Invite created. Copy its invite link from the list.')); return null })
+    .catch(e => e.message)
   const gen = () => openSheet(close => <NewInviteSheet onCreate={create} close={close} />)
   const revoke = code => confirmSheet({
     title: t('Revoke invite {0}?', code), message: t('Anyone who has it can no longer use it. People who already signed up with it are not affected.'),
@@ -219,13 +233,13 @@ function InvitesCard({ invites, reload, inviteOnly }) {
     onConfirm: () => api('/api/admin/invites/revoke', { method: 'POST', body: JSON.stringify({ code }) })
       .then(() => { toast(t('Invite revoked')); reload() }).catch(e => toast(e.message))
   })
-  const copy = async code => toast(await copyText(inviteLink(code)) ? t('Link copied') : t('Could not copy the link'))
+  const copy = async code => toast(await copyText(inviteLink(code)) ? t('Invite link copied') : t('Could not copy the invite link'))
   const share = async code => {
-    try { await shareLink(inviteLink(code), BRAND.name) } catch { toast(t('Could not share the link')) }
+    try { await shareLink(inviteLink(code), BRAND.name) } catch { toast(t('Could not share the invite link')) }
   }
   const open = (invites || []).filter(i => !i.usedBy)
   const used = (invites || []).filter(i => i.usedBy)
-  return <Card title={t('Invite codes')} action={<Button variant="primary" size="sm" onClick={gen} icon="plus">{t('New code')}</Button>}>
+  return <Card title={t('Invites')} action={<Button variant="primary" size="sm" onClick={gen} icon="plus">{t('New invite')}</Button>}>
     <div className="adm-lead">
       {inviteOnly
         ? t('Sign-up is invite-only: someone needs one of these invite links to create a profile. Each link works once.')
@@ -238,26 +252,29 @@ function InvitesCard({ invites, reload, inviteOnly }) {
         const expiry = inviteExpiry(i)
         return <div key={i.code} className="adm-inv-row">
           <div className="adm-inv-main">
-            <span className="adm-code">{i.code}</span>
-            {i.name && <span className="adm-inv-exp">{t('For {0}', i.name)}</span>}
+            {i.name && <span className="adm-inv-title">{t('For {0}', i.name)}</span>}
+            <span className="adm-inv-meta">
+              <span className="adm-code">{i.code}</span>
+              {expiry && <span className={'adm-inv-exp' + (live ? '' : ' ink-danger')}>{expiry}</span>}
+            </span>
             {i.note && <span className="adm-inv-exp">{i.note}</span>}
-            {expiry && <span className={'adm-inv-exp' + (live ? '' : ' ink-danger')}>{expiry}</span>}
           </div>
-          <Inline gap={2}>
-            {live && <button className="iconbtn adm-iconbtn" onClick={() => copy(i.code)} aria-label={t('Copy link')} title={t('Copy link')}><Icon name="copy" /></button>}
-            {live && canShare && <button className="iconbtn adm-iconbtn" onClick={() => share(i.code)} aria-label={t('Share')} title={t('Share')}><Icon name="share" /></button>}
-            <button className="iconbtn adm-iconbtn ink-danger" onClick={() => revoke(i.code)} aria-label={t('Revoke')} title={t('Revoke')}><Icon name="trash" /></button>
-          </Inline>
+          <div className="adm-inv-actions">
+            {live && (canShare
+              ? <button className="iconbtn adm-iconbtn" onClick={() => share(i.code)} aria-label={t('Share invite link')} title={t('Share invite link')}><Icon name="share" /></button>
+              : <button className="iconbtn adm-iconbtn" onClick={() => copy(i.code)} aria-label={t('Copy invite link')} title={t('Copy invite link')}><Icon name="copy" /></button>)}
+            <button className="iconbtn adm-iconbtn ink-danger adm-inv-revoke" onClick={() => revoke(i.code)} aria-label={t('Revoke invite')} title={t('Revoke invite')}><Icon name="trash" /></button>
+          </div>
         </div>
       })}
     </> : null}
     {used.length ? <>
       <div className={'adm-group-t ' + (open.length ? 'mt-6' : 'mt-0')}>{t('Already used')}</div>
-      {used.map(i => <Inline key={i.code} justify="between" className="dim adm-inv-used">
+      {used.map(i => <Inline key={i.code} justify="between" className="muted adm-inv-used">
         <span className="adm-inv-usedcode">{i.code}</span><span>{i.usedByName ? t('Used by {0}', i.usedByName) : t('Used')}</span>
       </Inline>)}
     </> : null}
-    {!open.length && !used.length && <div className="adm-empty">{t('No invites yet. "New code" makes one and copies its link to your clipboard.')}</div>}
+    {!open.length && !used.length && <div className="adm-empty">{t('No invites yet. "New invite" makes one and copies its invite link to your clipboard.')}</div>}
   </Card>
 }
 
