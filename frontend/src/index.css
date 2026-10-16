@@ -224,7 +224,8 @@ p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;
 :focus-visible{outline:2.5px solid var(--acc-ink);outline-offset:2px;border-radius:6px}
 /* A sheet takes the focus itself when it opens (lib/use-sheet-dialog.js): the dialog is where you
    are, not a control, so no ring around the whole sheet. Its controls keep theirs. */
-[role="dialog"][tabindex="-1"]:focus-visible{outline:none}
+[role="dialog"][tabindex="-1"]:focus-visible,
+[role="alertdialog"][tabindex="-1"]:focus-visible{outline:none}
 button,.chip,.tile,.item,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 

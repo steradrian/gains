@@ -216,13 +216,20 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
     setCount(r.count); setMedia(r.media || 0); setTried(true)
   }
   const anyway = async () => {
-    const r = await request('anyway', () => attempt(kind, { force: true }))
+    // `attempt` toasts its own failures; what can still reject is the toast itself. Like retry, a
+    // rejection ends in a sheet that is open and unlocked, not in an unhandled rejection.
+    const r = await request('anyway', () => attempt(kind, { force: true })).catch(() => { setTried(true); return null })
     if (!r) return
     if (r.owed && !r.stashed) { toast(t('Couldn’t keep a copy of the changes on this device. Nothing was removed.')); return }
     finish(r)
   }
   const wait = busy ? true : undefined   // aria-busy / aria-disabled are set or left off, never "false"
-  return <div aria-busy={wait}>
+  return <>
+    {/* A button that changes its label is not announced; this line is, politely. It is mounted from
+        the start so the change is, and sits outside the aria-busy subtree: inside it, assistive tech
+        may hold the update back until busy clears, which is the same render that empties it. */}
+    <div className="sr-only" role="status">{busy === 'retry' ? t('Syncing…') : ''}</div>
+    <div aria-busy={wait}>
     <SheetHeader title={t('Not everything is on your server yet')} />
     {(count !== 0 || !media) && <div className="mb-3 fw-semibold">
       {count > 0 ? t('Not on your server yet: {0}', changeCount(count)) : t('Some changes on this device have not reached your server.')}
@@ -249,9 +256,8 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
       <Button variant="danger" aria-disabled={wait} onClick={anyway}>{LEAVE[kind].anyway()}</Button>
       <Button variant="ghost" className="dim" aria-disabled={wait} onClick={idle(close)}>{t('Cancel')}</Button>
     </SheetActions>
-    {/* A button that changes its label is not announced; this line is, politely, and is there from the start so the change is. */}
-    <div className="sr-only" role="status">{busy === 'retry' ? t('Syncing…') : ''}</div>
-  </div>
+    </div>
+  </>
 }
 
 /* ---------------------------------------------------------------- Settings ------------------- */
