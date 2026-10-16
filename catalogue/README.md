@@ -76,8 +76,8 @@ lowercase like English.
 
 1. **Write it yourself.** Don't copy names, descriptions or steps from other apps, websites, books
    or datasets, and don't paste machine translation unreviewed. Short, correct, plain beats long.
-2. **The media is not open.** The pictures and animations are licensed from Gym visual for Gains
-   only (see [media/NOTICE.md](media/NOTICE.md)). Don't add, edit or replace media files, don't copy
+2. **The media is not open.** The pictures and animations are licensed from Gym visual to openGym
+   and used by this fork (see [media/NOTICE.md](media/NOTICE.md)). Don't add, edit or replace media files, don't copy
    them elsewhere, and don't feed them to any AI tool. Fixes to what an exercise *shows* go in an
    issue.
 3. **No medical advice.** Describe the movement, not treatments.
