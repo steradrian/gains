@@ -18,7 +18,7 @@ export default function HeightScreen() {
   const cm = state.answers.body.heightCm
   const unit = state.answers.units.height
   const scale = HEIGHT[unit]
-  const target = useTarget(state.answers)
+  const target = useTarget(state.answers, state.uid)
   const [live, setLive] = useState(false)
   const [settled, setSettled] = useState(cm != null)
   const value = cm == null ? null : heightTo(cm, unit)

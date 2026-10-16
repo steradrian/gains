@@ -1,7 +1,7 @@
 // The onboarding's skip map and navigation rules (ux-onboarding §3b).
 import { describe, expect, it } from 'vitest'
 import {
-  answeredByData, codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, previousOf, progressMax,
+  answeredByData, codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, planOwed, previousOf, progressMax,
   resumeScreen, screenOf, skipTarget, stepOf, stepsLeft,
 } from './flow.js'
 
@@ -144,6 +144,17 @@ describe('resuming', () => {
     expect(resumeScreen({ goal: 'keep', body: full, trainingDays: 3 }, { server: { ...server(null, ['plan']), next: null } })).toBe('finish')
     // All four answered here, not yet taken by the hub: on as this tab knows.
     expect(resumeScreen({ goal: 'keep', body: full }, { server: server('body') })).toBe('training')
+  })
+
+  it('owes the Plan step to training days with no plan chosen, unless the data makes the step moot', () => {
+    expect(planOwed({ goal: 'keep', body: full, trainingDays: 3, plan: null })).toBe(true)
+    expect(planOwed({ trainingDays: 3, plan: { kind: 'coach' } })).toBe(false)
+    expect(planOwed({ trainingDays: 3, plan: { kind: 'none' } })).toBe(false)
+    // No days (0 or skipped, or not asked): nothing to plan.
+    expect([0, null, undefined].map(trainingDays => planOwed({ trainingDays, plan: null }))).toEqual([false, false, false])
+    // The profile already has routines.
+    expect(planOwed({ trainingDays: 3, plan: null }, { answered: ['plan'], body: [], next: null, remaining: null })).toBe(false)
+    expect(planOwed({ trainingDays: 3, plan: null }, { answered: ['goal'], body: [], next: null, remaining: null })).toBe(true)
   })
 
   it('walks a cold Back to the step before', () => {

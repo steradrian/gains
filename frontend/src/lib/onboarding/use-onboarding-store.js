@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { answersFromHub, loadOnboarding, saveStep } from './api.js'
+import { answersFromHub, loadOnboarding, saveStep, waitSeconds } from './api.js'
 import { nextAfter, pathOf, previousOf, screenOf, skipTarget } from './flow.js'
 import { forget } from './session.js'
 import { initialState, loadSaved, reduce, save } from './state.js'
 import { nutritionAvailable } from '../nutrition/api.js'
 
-// A failed read that says nothing about whether there is a hub: no answer, a server error, or an
-// answer that is not the hub's JSON. The person stays in the flow and can try again; only a 4xx
-// (no hub here, not signed in to it) sends them on.
-const hubDown = e => e.code === 'offline' || e.code === 'timeout' || e.code === 'bad-response' || !(e.status >= 400 && e.status < 500)
+// The only answers that say there is no onboarding to be had here: not signed in to the hub, not
+// allowed, no hub at this address, gone. Anything else that fails to read says nothing about
+// whether there is a hub: no answer, a server error, an answer that is not the hub's JSON, a
+// rate limit (429), a refused request. The person stays in the flow with what they answered, and
+// can try again.
+const NOT_THEIRS = [401, 403, 404, 410]
+const hubDown = e => !NOT_THEIRS.includes(e.status)
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 /**
  * The onboarding's state and actions, for OnboardingLayout to provide. `hub` says what the server
  * side can do: 'pre-auth' (no account yet), 'loading', 'ready', 'offline' (the hub did not answer,
  * or not as itself: answers are kept and sent again, and the layout offers to read it again),
+ * 'busy' (it answered 429: the same, and nothing is sent before its Retry-After has passed),
  * 'unavailable' (no hub to save to: the flow steps aside) or 'complete'.
  *
  * The hub's answer at each load fills in what this tab does not know: its answers, what the
@@ -55,11 +60,27 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
   // The latest read: an answer to an earlier one (another person's, or the layout gone) is dropped.
   const reads = useRef(0)
 
+  // When the hub said it is busy, the time before which nothing more is sent to it.
+  const busyUntil = useRef(0)
+  /** Whether the hub's last answer was "busy" and its Retry-After has not passed. */
+  const busy = useCallback(() => Date.now() < busyUntil.current, [])
+  /** Runs one hub request, after any Retry-After the hub has asked for; a 429 starts the next wait. */
+  const hubCall = useCallback(async request => {
+    const wait = busyUntil.current - Date.now()
+    if (wait > 0) await sleep(wait)
+    try {
+      return await request()
+    } catch (e) {
+      if (e.status === 429) busyUntil.current = Date.now() + waitSeconds(e) * 1000
+      throw e
+    }
+  }, [])
+
   /** Reads the hub's state again into this tab's. Resolves true once it is in, false if the read failed. */
   const refresh = useCallback(async () => {
     const read = ++reads.current
     try {
-      const res = await loadOnboarding()
+      const res = await hubCall(loadOnboarding)
       if (read !== reads.current) return false
       if (res.completedAt != null) { discard(); setHub('complete'); return true }
       act({
@@ -70,12 +91,13 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
       return true
     } catch (e) {
       if (read === reads.current) {
-        if (hubDown(e)) setHub('offline')
+        if (e.status === 429) setHub('busy')
+        else if (hubDown(e)) setHub('offline')
         else { discard(); setHub('unavailable') }
       }
       return false
     }
-  }, [act, discard])
+  }, [act, discard, hubCall])
 
   useEffect(() => {
     if (!uid) { setHub('pre-auth'); return undefined }
@@ -94,7 +116,12 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
   const tail = useRef(null)
   const waiting = useRef(new Map())
 
-  /** Saves one hub step from the latest answers; a failure marks it to be sent again. */
+  /**
+   * Saves one hub step from the latest answers; a failure marks it to be sent again. The request
+   * names the person its answers belong to, read together with them: when someone else has signed
+   * in by the time it arrives the hub refuses it (`wrong-user`) and it is dropped, for it is not
+   * this person's to send again or to mark unsaved.
+   */
   const saveHubStep = useCallback(step => {
     const queued = waiting.current.get(step)
     if (queued) return queued
@@ -104,11 +131,11 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
       // Asked for one person, due after another signed in: the answers now are not the ones it was for.
       if (person !== people.current) return false
       try {
-        await saveStep(step, now.current.answers)
+        await hubCall(() => saveStep(step, now.current.answers, now.current.uid))
         act({ type: 'saved', step, ok: true })
         return true
-      } catch {
-        act({ type: 'saved', step, ok: false })
+      } catch (e) {
+        if (e.code !== 'wrong-user') act({ type: 'saved', step, ok: false })
         return false
       }
     }
@@ -118,7 +145,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     tail.current = run
     run.then(() => { if (tail.current === run) tail.current = null })
     return run
-  }, [act])
+  }, [act, hubCall])
 
   /** Resolves once every save asked for so far has had its answer. */
   const savesSettled = useCallback(() => tail.current ?? Promise.resolve(true), [])
@@ -177,7 +204,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
 
   return useMemo(() => ({
     state, hub, screen, coachAvailable, starterAvailable,
-    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard,
+    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy,
     current: () => now.current,
-  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard])
+  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard, hubCall, busy])
 }

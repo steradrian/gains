@@ -14,7 +14,7 @@ import { useUI } from '../../store/useUI.js'
 export default function SexScreen() {
   const { state, act, saveHubStep, next } = useOnboarding()
   const sex = state.answers.body.sex
-  const target = useTarget(state.answers)
+  const target = useTarget(state.answers, state.uid)
   const later = useLater()
   const pick = (v, { viaKey }) => {
     act({ type: 'body', field: 'sex', value: v })

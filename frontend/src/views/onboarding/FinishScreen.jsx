@@ -7,7 +7,7 @@ import { todayISO } from '../../lib/format.js'
 import { t } from '../../lib/i18n.js'
 import { completeOnboarding } from '../../lib/onboarding/api.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
-import { detourOf } from '../../lib/onboarding/flow.js'
+import { detourOf, planOwed } from '../../lib/onboarding/flow.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 
@@ -21,6 +21,10 @@ import { useUI } from '../../store/useUI.js'
 // What the hub says each app did with its write is said as it is: still on its way only where it
 // is being tried again (openGym down or busy), and a write refused for good, or a plan openGym
 // could not set up, stays on screen with where to put it right.
+//
+// Nothing completes without the plan the days call for: an AI coach plan (and the consent in it)
+// does not survive a reload, so with training days and no plan chosen here or stored on the hub,
+// the Plan step is asked again rather than finishing without it.
 
 // The hub's steps in their order: a step's answer can depend on the one before (a plan on the
 // training days), so failed saves go again one at a time, in this order.
@@ -40,8 +44,8 @@ function setbacksOf(done) {
 
 export default function FinishScreen() {
   const navigate = useNavigate()
-  const { state, act, saveHubStep, savesSettled, go, refresh, discard, current } = useOnboarding()
-  const [status, setStatus] = useState('idle') // idle | saving | error
+  const { state, hub, act, saveHubStep, savesSettled, go, refresh, discard, current, hubCall, busy } = useOnboarding()
+  const [status, setStatus] = useState('idle') // idle | saving | error | busy (the hub asked to wait)
   const [setbacks, setSetbacks] = useState(null)
   const floor = useRef(null)
   useThreadAnchor(floor, 'line')
@@ -55,23 +59,38 @@ export default function FinishScreen() {
   // `again`: the second go, after the hub refused a plan and nothing was left to pick instead.
   const finish = async (again = false) => {
     setStatus('saving')
+    const owner = current().uid
+    // The person who tapped is no longer the one signed in: what follows is not theirs to finish.
+    const someoneElse = () => current().uid !== owner
+    const fail = () => setStatus(busy() ? 'busy' : 'error')
     // A save still on its way (a tap just before this one) lands first.
     await savesSettled()
+    // No plan chosen for the days given, here or on the hub: asked again, never dropped.
+    if (planOwed(current().answers, current().server)) {
+      setStatus('idle')
+      go('plan')
+      return
+    }
     // Nothing completes with an answer the hub has not taken: those are sent again first.
     for (const step of HUB_STEPS.filter(s => current().unsaved.includes(s))) {
-      if (!(await saveHubStep(step))) { setStatus('error'); return }
+      if (!(await saveHubStep(step))) {
+        if (someoneElse()) setStatus('idle')
+        else fail()
+        return
+      }
     }
     let done = null
     try {
-      done = await completeOnboarding(todayISO())
+      done = await hubCall(() => completeOnboarding(todayISO(), owner))
     } catch (e) {
+      if (e.code === 'wrong-user') { setStatus('idle'); return }
       if (e.code === 'plan-unavailable') {
         // The plan chosen is one this server cannot take (any more), or no longer fits the days:
         // the hub cleared it. With another plan to offer, the Plan step is asked again; with none,
         // it would be a screen of one card, so "no plan" is the answer and this finishes.
         act({ type: 'plan', plan: null })
         // Without the hub's answer there is no knowing what it offers now: try again, from here.
-        if (!(await refresh())) { setStatus('error'); return }
+        if (!(await refresh())) { fail(); return }
         const now = current()
         const offered = !!now.answers.trainingDays && (now.starterAvailable === true || (now.coachAvailable === true && !!now.coachConsent))
         if (!offered && !again) {
@@ -84,7 +103,7 @@ export default function FinishScreen() {
         go('plan')
         return
       }
-      if (e.code !== 'complete') { setStatus('error'); return }
+      if (e.code !== 'complete') { fail(); return }
     }
     // openGym took its write: what it now holds (the plan, the weigh-in, the settings) is read
     // into the app now, so Home shows it. One still on its way comes with the app's next check.
@@ -122,17 +141,22 @@ export default function FinishScreen() {
         </>} />
     )
   }
+  const failed = status === 'error' || status === 'busy'
+  // The hub's answer on this tab is still on its way (a reload): whether a plan is stored there
+  // is not known yet, so nothing is finished before it is.
+  const reading = hub === 'loading'
   return (
     <StepScreen titleId="ob-finish-t"
-      title={status === 'error' ? t('Your answers could not be saved yet') : t('That’s everything for now')}
-      sub={status === 'error' ? t('Check your connection and try again. Nothing you answered is lost.') : t('Your answers set up your Home.')}
+      title={failed ? t('Your answers could not be saved yet') : t('That’s everything for now')}
+      sub={status === 'busy' ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+        : failed ? t('Check your connection and try again. Nothing you answered is lost.') : t('Your answers set up your Home.')}
       stage={art}
       footer={<>
-        <Button variant="primary" disabled={status === 'saving'} aria-busy={status === 'saving' || undefined} onClick={() => finish()}>
-          {status === 'error' ? t('Try again') : t('Go to Home')}
+        <Button variant="primary" disabled={status === 'saving' || reading} aria-busy={status === 'saving' || undefined} onClick={() => finish()}>
+          {failed ? t('Try again') : t('Go to Home')}
         </Button>
-        {status === 'error' && <Button variant="plain" onClick={() => navigate('/home', { replace: true })}>{t('Finish later')}</Button>}
-        {status !== 'error' && missing.length > 0 && <Button variant="tinted" onClick={details}>{t('Add my details')}</Button>}
+        {failed && <Button variant="plain" onClick={() => navigate('/home', { replace: true })}>{t('Finish later')}</Button>}
+        {!failed && missing.length > 0 && <Button variant="tinted" onClick={details}>{t('Add my details')}</Button>}
       </>} />
   )
 }

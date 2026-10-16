@@ -30,6 +30,11 @@ export default function InviteScreen() {
   const [check, setCheck] = useState(() => (state.code === code && state.invite ? { kind: 'ok', invite: state.invite } : { kind: code ? 'loading' : 'ok', invite: code ? null : { status: 'invalid' } }))
   const [tries, setTries] = useState(0)
 
+  // A landing with no code is no invite session: one kept from an earlier visit is let go.
+  useEffect(() => {
+    if (!code && !user) act({ type: 'invite', code: null, invite: null })
+  }, [code, user, act])
+
   useEffect(() => {
     if (!code || user) return undefined
     let live = true

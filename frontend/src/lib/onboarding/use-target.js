@@ -11,17 +11,19 @@ let asked = null
 let asking = null
 let answer = null
 
-const keyOf = a => JSON.stringify([a.goal, a.body, a.activity?.value, a.trainingDays ?? null])
+// The person too: another person's identical answers are not this one's answer.
+const keyOf = (a, uid) => JSON.stringify([uid, a.goal, a.body, a.activity?.value, a.trainingDays ?? null])
 
 /**
  * What the live ring on About you shows (§3b): { lo, hi, answered, exact }. `exact` is the hub's
- * calorie target once all four body answers are in (POST /hub/api/onboarding/preview), null until
- * it answers or when it cannot; until then lo–hi is the estimate's range (lib/onboarding/estimate.js).
+ * calorie target once all four body answers are in (POST /hub/api/onboarding/preview, asked for the
+ * person `uid` the answers are), null until it answers or when it cannot; until then lo–hi is the
+ * estimate's range (lib/onboarding/estimate.js).
  */
-export function useTarget(answers) {
+export function useTarget(answers, uid) {
   const range = estimateRange(answers)
   const complete = bodyComplete(answers)
-  const key = complete ? keyOf(answers) : null
+  const key = complete ? keyOf(answers, uid) : null
   const [exact, setExact] = useState(() => (key && key === asked ? answer : null))
   useEffect(() => {
     if (!key) { setExact(null); return undefined }
@@ -36,7 +38,7 @@ export function useTarget(answers) {
     const timer = setTimeout(() => {
       asked = key
       answer = null
-      const ask = previewTargets(answers).then(res => {
+      const ask = previewTargets(answers, uid).then(res => {
         const v = res?.ready && Number.isFinite(res.targets?.calories) ? res.targets.calories : null
         // An older ask landing late never stands in for the latest one's answer.
         if (asking === ask) answer = v

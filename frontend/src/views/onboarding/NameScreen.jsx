@@ -8,6 +8,7 @@ import KeyScene from '../../components/onboarding/scenes/KeyScene.jsx'
 import { passkeyError, passkeyRegister, webauthnOK } from '../../lib/api.js'
 import { t } from '../../lib/i18n.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
+import { pathOf } from '../../lib/onboarding/flow.js'
 import { cx } from '../../lib/ui-kit.js'
 import { hasData, useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -27,6 +28,9 @@ export default function NameScreen() {
   // Signed in already (a reload after the passkey): there is no second account to make here.
   const signedIn = useStore(s => !!s.user)
   if (signedIn && !busy) return <Navigate to="/onboarding" replace />
+  // The invite this account is made with is the one the landing checked in this tab. With none (the
+  // address typed in, an invite left behind) there is nothing to make an account with: the landing.
+  if (!state.code) return <Navigate to={pathOf('invite', null)} replace />
 
   const trouble = () => useUI.getState().openSheet(close => <TroubleSheet close={close} code={state.code} />)
   const create = async () => {
@@ -35,7 +39,7 @@ export default function NameScreen() {
     setProblem(null)
     setBusy(true)
     try {
-      const u = await passkeyRegister(name.trim(), state.code || '')
+      const u = await passkeyRegister(name.trim(), state.code)
       // On first, then signed in: the layout lets a signed-in person past the name step only forward.
       go('passkey', { replace: true })
       const store = useStore.getState()

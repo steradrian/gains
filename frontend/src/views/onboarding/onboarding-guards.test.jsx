@@ -57,8 +57,10 @@ afterEach(() => { unmountAll(); vi.useRealTimers() })
 describe('every onboarding route registers exactly one thread anchor', () => {
   const full = { sex: 'female', birthYear: 1990, heightCm: 168, weightKg: 64 }
   it.each(SCREENS)('%s', async screen => {
-    if (screen !== 'invite' && screen !== 'name') mocks.user = { id: 'u1', name: 'Maria' }
-    saved({ code: 'AB12', answers: { goal: 'keep', body: full, trainingDays: 3 } })
+    const preAuth = screen === 'invite' || screen === 'name'
+    if (!preAuth) mocks.user = { id: 'u1', name: 'Maria' }
+    // Before an account there is only the invite kept for this tab (the name step needs it).
+    saved({ uid: preAuth ? null : 'u1', code: 'AB12', answers: { goal: 'keep', body: full, trainingDays: 3 } })
     const page = mount(pathOf(screen, 'AB12'))
     await flush()
     expect(where(page)).toBe(pathOf(screen, 'AB12'))

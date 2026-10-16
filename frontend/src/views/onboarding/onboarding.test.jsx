@@ -55,6 +55,13 @@ const CONSENT = {
   },
   where: 'These answers go to the AI service this Gains server uses. Your food log and your friends are not sent. Tapping Build my plan sends them once.',
 }
+// A coach plan the hub holds: the tap on the sheet was in an earlier session, and the hub kept the
+// choice with the time it stamped. The app does not keep a coach plan across a reload, but the hub's
+// counts as chosen.
+const COACH_STORED = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1', consentAt: '2026-10-15T08:00:00.000Z' }
+const hubHoldsCoach = () => hub.loadOnboarding.mockResolvedValueOnce({
+  answers: { plan: COACH_STORED }, completedAt: null, step: null, coachAvailable: true, starterAvailable: true, coachConsent: CONSENT,
+})
 // Renders the sheet the screen opened (the shell's sheet host is mocked away).
 function openedSheet(close = vi.fn()) {
   const host = document.createElement('div')
@@ -195,8 +202,44 @@ describe('1 Name + passkey', () => {
   })
 
   it('cannot be sent without a name', () => {
+    saved({ uid: null, code: 'AB12', answers: {} })
     const page = mount('/onboarding/name')
     expect(button(page, 'Create passkey').disabled).toBe(true)
+  })
+
+  it('sends the person to the invite landing when no invite was checked in this tab, and makes no account', () => {
+    const page = mount('/onboarding/name')
+    expect(where(page)).toBe('/join')
+    expect(button(page, 'Create passkey')).toBeUndefined()
+    expect(passkeys.passkeyRegister).not.toHaveBeenCalled()
+  })
+
+  it('lets an invite left behind go when the landing has no code in its address', async () => {
+    saved({ uid: null, code: 'OLD1', name: 'Bob', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: null }, answers: {} })
+    const page = mount('/join')
+    await flush()
+    expect(page.querySelector('h1').textContent).toBe('This invite link doesn’t work')
+    expect(sessionStorage.getItem('gains_onboarding')).toBeNull()
+    // The name step is no longer reachable with the old code.
+    unmountAll()
+    expect(where(mount('/onboarding/name'))).toBe('/join')
+  })
+
+  it('starts the name over, and registers with the new code, when another invite is opened in the same tab', async () => {
+    saved({ uid: null, code: 'OLD1', name: 'Bob', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: null }, answers: {} })
+    hub.checkInvite.mockResolvedValue({ status: 'valid', inviterName: 'Ana', suggestedName: null })
+    passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
+    const page = mount('/join/NEW2')
+    await flush()
+    click(button(page, 'Create my account'))
+    const input = page.querySelector('input')
+    expect(input.value).toBe('')
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Maria')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => { button(page, 'Create passkey').click() })
+    expect(passkeys.passkeyRegister).toHaveBeenCalledWith('Maria', 'NEW2')
   })
 })
 
@@ -208,7 +251,7 @@ describe('2 Goal', () => {
     await flush()
     click(radio(page, 'Build muscle'))
     expect(radio(page, 'Build muscle').getAttribute('aria-checked')).toBe('true')
-    expect(hub.saveStep).toHaveBeenCalledWith('goal', expect.objectContaining({ goal: 'build' }))
+    expect(hub.saveStep).toHaveBeenCalledWith('goal', expect.objectContaining({ goal: 'build' }), 'u1')
     expect(where(page)).toBe('/onboarding/goal')
     later(650)
     expect(where(page)).toBe('/onboarding/sex')
@@ -380,7 +423,7 @@ describe('3 About you', () => {
     expect(hub.previewTargets).toHaveBeenCalled()
     expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
     click(button(page, 'Next'))
-    expect(hub.saveStep).toHaveBeenCalledWith('body', expect.anything())
+    expect(hub.saveStep).toHaveBeenCalledWith('body', expect.anything(), 'u1')
     expect(where(page)).toBe('/onboarding/training')
   })
 })
@@ -408,7 +451,7 @@ describe('4 Training', () => {
     const page = mount('/onboarding/training')
     await flush()
     click(button(page, 'Skip'))
-    expect(hub.saveStep).toHaveBeenCalledWith('training', expect.objectContaining({ trainingDays: null }))
+    expect(hub.saveStep).toHaveBeenCalledWith('training', expect.objectContaining({ trainingDays: null }), 'u1')
     expect(where(page)).toBe('/onboarding/finish')
   })
 })
@@ -443,7 +486,7 @@ describe('5 Plan', () => {
     const page = mount('/onboarding/plan')
     await flush()
     click(radio(page, 'No plan for now'))
-    expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: { kind: 'none' } }))
+    expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: { kind: 'none' } }), 'u1')
     later(620)
     expect(where(page)).toBe('/onboarding/finish')
   })
@@ -528,7 +571,7 @@ describe('5 Plan', () => {
     click(button(page, 'Use this plan'))
     expect(hub.saveStep).toHaveBeenLastCalledWith('plan', expect.objectContaining({
       plan: { kind: 'starter', templateId: 'full-body', weekdays: [2, 3, 5], equipment: 'gym', experience: 'new' },
-    }))
+    }), 'u1')
     expect(where(page)).toBe('/onboarding/finish')
   })
 })
@@ -543,7 +586,7 @@ describe('the end (placeholder for the Summary)', () => {
     await flush()
     await act(async () => { button(page, 'Go to Home').click() })
     await flush()
-    expect(hub.completeOnboarding).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/))
+    expect(hub.completeOnboarding).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), 'u1')
     expect(where(page)).toBe('/home')
   })
 
@@ -581,8 +624,8 @@ describe('the end (placeholder for the Summary)', () => {
   })
 
   it('asks the Plan step again when the hub says the plan chosen can no longer be taken here', async () => {
-    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
-    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3 } })
+    hubHoldsCoach()
     hub.completeOnboarding.mockRejectedValue(Object.assign(new Error('the AI coach is not available on this server'), { status: 409, code: 'plan-unavailable' }))
     const page = mount('/onboarding/finish')
     await flush()
@@ -597,8 +640,8 @@ describe('the end (placeholder for the Summary)', () => {
   })
 
   it('stays on the last step, with Try again, when the hub cannot be read after refusing the plan', async () => {
-    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
-    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3 } })
+    hubHoldsCoach()
     hub.completeOnboarding.mockRejectedValueOnce(Object.assign(new Error('the AI coach is not available on this server'), { status: 409, code: 'plan-unavailable' }))
     const page = mount('/onboarding/finish')
     await flush()
@@ -689,8 +732,8 @@ describe('the end (placeholder for the Summary)', () => {
   })
 
   it('finishes with no plan, and no Plan screen of one card, when the hub refuses the plan and offers no other', async () => {
-    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
-    saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
+    saved({ answers: { goal: 'keep', body: full, trainingDays: 3 } })
+    hubHoldsCoach()
     hub.completeOnboarding
       .mockRejectedValueOnce(Object.assign(new Error('the AI coach is not available on this server'), { status: 409, code: 'plan-unavailable' }))
       .mockResolvedValueOnce({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' }, plan: null })
@@ -700,7 +743,7 @@ describe('the end (placeholder for the Summary)', () => {
     await act(async () => { button(page, 'Go to Home').click() })
     await flush()
     await flush()
-    expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: { kind: 'none' } }))
+    expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: { kind: 'none' } }), 'u1')
     expect(hub.completeOnboarding).toHaveBeenCalledTimes(2)
     expect(mocks.toasts).toEqual([])
     expect(where(page)).toBe('/home')
@@ -753,6 +796,121 @@ describe('who sees what', () => {
     expect(button(page, 'Try again')).toBeUndefined()
   })
 
+  it.each([401, 403, 410])('steps aside and forgets the answers on a %i: no onboarding to be had, or not theirs', async status => {
+    signedIn()
+    saved({ answers: { goal: 'lose', body: full } })
+    hub.loadOnboarding.mockRejectedValue(Object.assign(new Error('x'), { status, code: 'http' }))
+    const page = mount('/onboarding/goal')
+    await flush()
+    expect(where(page)).toBe('/home')
+    expect(sessionStorage.getItem('gains_onboarding')).toBeNull()
+  })
+
+  it.each([400, 408, 413, 422])('keeps the answers on a %i: only not here, not theirs or gone ends the flow', async status => {
+    signedIn()
+    saved({ answers: { goal: 'lose', body: full } })
+    hub.loadOnboarding.mockRejectedValueOnce(Object.assign(new Error('x'), { status, code: 'http' }))
+    const page = mount('/onboarding/goal')
+    await flush()
+    expect(where(page)).toBe('/onboarding/goal')
+    expect(radio(page, 'Lose weight').getAttribute('aria-checked')).toBe('true')
+    expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.goal).toBe('lose')
+    expect(page.querySelector('.ob [role="status"]')).not.toBeNull()
+  })
+
+  describe('a rate limit (429) is busy, not gone', () => {
+    const tooMany = retryAfter => Object.assign(new Error('busy'), { status: 429, code: 'busy', retryAfter })
+    const waitFor = ms => act(async () => { vi.advanceTimersByTime(ms) })
+    beforeEach(signedIn)
+
+    it('keeps the unsaved answers, says the hub is busy, and asks again only once its Retry-After has passed', async () => {
+      saved({ answers: { goal: 'lose', body: full }, unsaved: ['goal'] })
+      hub.loadOnboarding.mockRejectedValueOnce(tooMany(7))
+      const page = mount('/onboarding/goal')
+      await flush()
+      expect(where(page)).toBe('/onboarding/goal')
+      expect(page.querySelector('.ob [role="status"]').textContent).toContain('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+      expect(radio(page, 'Lose weight').getAttribute('aria-checked')).toBe('true')
+      expect(JSON.parse(sessionStorage.getItem('gains_onboarding'))).toMatchObject({ answers: { goal: 'lose' }, unsaved: ['goal'] })
+
+      await act(async () => { button(page, 'Try again').click() })
+      await waitFor(6000)
+      expect(hub.loadOnboarding).toHaveBeenCalledTimes(1)
+      await waitFor(1000)
+      await flush()
+      expect(hub.loadOnboarding).toHaveBeenCalledTimes(2)
+      expect(button(page, 'Try again')).toBeUndefined()
+    })
+
+    it('waits a short while when the hub names no Retry-After', async () => {
+      saved({ answers: { goal: 'lose', body: full } })
+      hub.loadOnboarding.mockRejectedValueOnce(tooMany(null))
+      const page = mount('/onboarding/goal')
+      await flush()
+      await act(async () => { button(page, 'Try again').click() })
+      await waitFor(4000)
+      expect(hub.loadOnboarding).toHaveBeenCalledTimes(1)
+      await waitFor(1000)
+      await flush()
+      expect(hub.loadOnboarding).toHaveBeenCalledTimes(2)
+    })
+
+    it('marks a save the hub rate limited as unsaved, and sends it again at the end after the wait, then completes', async () => {
+      saved({ answers: { goal: 'keep', body: full, trainingDays: 0 }, unsaved: ['goal'] })
+      hub.saveStep.mockRejectedValueOnce(tooMany(4))
+      hub.completeOnboarding.mockResolvedValue({ completedAt: 1 })
+      const page = mount('/onboarding/finish')
+      await flush()
+      await act(async () => { button(page, 'Go to Home').click() })
+      await flush()
+      expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
+      expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+      expect(hub.completeOnboarding).not.toHaveBeenCalled()
+      expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).unsaved).toEqual(['goal'])
+
+      await act(async () => { button(page, 'Try again').click() })
+      await waitFor(3000)
+      expect(hub.saveStep).toHaveBeenCalledTimes(1)
+      await waitFor(1000)
+      await flush()
+      expect(hub.saveStep).toHaveBeenCalledTimes(2)
+      expect(hub.completeOnboarding).toHaveBeenCalled()
+      expect(where(page)).toBe('/home')
+    })
+
+    it('says busy, and keeps the answers, when completing is rate limited', async () => {
+      saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
+      hub.completeOnboarding.mockRejectedValueOnce(tooMany(2)).mockResolvedValueOnce({ completedAt: 1 })
+      const page = mount('/onboarding/finish')
+      await flush()
+      await act(async () => { button(page, 'Go to Home').click() })
+      await flush()
+      expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+      expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.goal).toBe('keep')
+      await act(async () => { button(page, 'Try again').click() })
+      expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
+      await waitFor(2000)
+      await flush()
+      expect(hub.completeOnboarding).toHaveBeenCalledTimes(2)
+      expect(where(page)).toBe('/home')
+    })
+
+    it('keeps the answers when the read after a refused plan is rate limited', async () => {
+      const starter = { kind: 'starter', templateId: 'full-body', weekdays: [1, 3, 5], equipment: 'gym', experience: 'new' }
+      saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: starter } })
+      hub.completeOnboarding.mockRejectedValueOnce(Object.assign(new Error('x'), { status: 409, code: 'plan-unavailable' }))
+      const page = mount('/onboarding/finish')
+      await flush()
+      hub.loadOnboarding.mockRejectedValueOnce(tooMany(3))
+      await act(async () => { button(page, 'Go to Home').click() })
+      await flush()
+      expect(where(page)).toBe('/onboarding/finish')
+      expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
+      expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+      expect(JSON.parse(sessionStorage.getItem('gains_onboarding'))).toMatchObject({ answers: { goal: 'keep', trainingDays: 3 } })
+    })
+  })
+
   it('resumes at the first unanswered step', async () => {
     signedIn()
     saved({ answers: { goal: 'lose', body: { ...full, heightCm: null } } })
@@ -778,7 +936,7 @@ describe('what the hub says is answered or not needed (§6)', () => {
     click(radio(page, '3'))
     later(600)
     expect(where(page)).toBe('/onboarding/finish')
-    expect(hub.saveStep).not.toHaveBeenCalledWith('plan', expect.anything())
+    expect(hub.saveStep.mock.calls.map(([step]) => step)).not.toContain('plan')
   })
 
   it('skips Training when the data holds the days, and plans on those days', async () => {

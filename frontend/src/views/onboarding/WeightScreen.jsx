@@ -18,7 +18,7 @@ export default function WeightScreen() {
   const kg = state.answers.body.weightKg
   const unit = state.answers.units.weight
   const scale = WEIGHT[unit]
-  const target = useTarget(state.answers)
+  const target = useTarget(state.answers, state.uid)
   const [live, setLive] = useState(false)
   const [settled, setSettled] = useState(kg != null)
   const value = kg == null ? null : weightTo(kg, unit)

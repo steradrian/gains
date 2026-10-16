@@ -1,6 +1,6 @@
 // The onboarding's wire format (ux-onboarding §3b) and how the client reads the server's answers.
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { answersFromHub, checkInvite, completeOnboarding, previewTargets, saveStep, stepAnswers } from './api.js'
+import { answersFromHub, checkInvite, completeOnboarding, loadOnboarding, previewTargets, saveStep, stepAnswers, waitSeconds } from './api.js'
 
 const answers = {
   goal: 'lose',
@@ -81,6 +81,45 @@ describe('the requests', () => {
     await expect(completeOnboarding('2026-10-15')).rejects.toMatchObject({ code: 'http' })
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('offline'))))
     await expect(saveStep('goal', answers)).rejects.toMatchObject({ status: 0, code: 'offline' })
+  })
+
+  it('names the person every write was composed for, and a read names no one', async () => {
+    const fetch = vi.fn(() => reply(200, { ok: true }))
+    vi.stubGlobal('fetch', fetch)
+    await saveStep('goal', answers, 'u-ada')
+    await previewTargets(answers, 'u-ada')
+    await completeOnboarding('2026-10-15', 'u-ada')
+    await loadOnboarding()
+    const [put, preview, complete, read] = fetch.mock.calls
+    for (const [, init] of [put, preview, complete]) expect(init.headers['X-Expected-User'], init.method).toBe('u-ada')
+    expect(read[1].headers).not.toHaveProperty('X-Expected-User')
+    // The body keeps the hub's strict shape: the person is in the header, never the body.
+    expect(JSON.parse(put[1].body)).toEqual({ step: 'goal', answers: { goal: 'lose' } })
+    expect(JSON.parse(complete[1].body)).toEqual({ today: '2026-10-15' })
+  })
+
+  it('knows the hub refused a write made for another account', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => reply(409, { error: 'this request was made for another account', code: 'wrong-user' })))
+    await expect(saveStep('goal', answers, 'u-ada')).rejects.toMatchObject({ status: 409, code: 'wrong-user' })
+  })
+
+  it('says a 429 is busy, with the wait the hub asked for in seconds, in an HTTP date, or none', async () => {
+    const busy = headers => vi.fn(() => Promise.resolve({ ok: false, status: 429, headers: new Headers(headers), json: async () => ({ error: 'too many requests' }) }))
+    vi.stubGlobal('fetch', busy({ 'retry-after': '7' }))
+    await expect(saveStep('goal', answers, 'u')).rejects.toMatchObject({ status: 429, code: 'busy', retryAfter: 7 })
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-15T08:00:00Z'))
+    vi.stubGlobal('fetch', busy({ 'retry-after': 'Thu, 15 Oct 2026 08:00:12 GMT' }))
+    await expect(loadOnboarding()).rejects.toMatchObject({ code: 'busy', retryAfter: 12 })
+    vi.useRealTimers()
+    vi.stubGlobal('fetch', busy({}))
+    await expect(loadOnboarding()).rejects.toMatchObject({ code: 'busy', retryAfter: null })
+    // A wait is never longer than a minute, whatever is asked, and one that names none is short.
+    vi.stubGlobal('fetch', busy({ 'retry-after': '86400' }))
+    const long = await loadOnboarding().catch(e => e)
+    expect(long.retryAfter).toBe(60)
+    expect(waitSeconds(long)).toBe(60)
+    expect(waitSeconds({ retryAfter: null })).toBe(5)
   })
 
   it('checks an invite: an unknown code is invalid, no answer is unavailable', async () => {

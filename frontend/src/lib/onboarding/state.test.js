@@ -125,6 +125,30 @@ describe('onboarding state', () => {
       expect(back.answers.body.weightKg).toBeNull()
     })
 
+    it('starts over when the invite code changes: nothing kept for the earlier invite is the new one\'s', () => {
+      const valid = { status: 'valid', inviterName: 'Andrei', suggestedName: null }
+      let s = reduce(initialState(units), { type: 'invite', code: 'OLD1', invite: valid })
+      s = reduce(reduce(s, { type: 'name', name: 'Bob' }), { type: 'body', field: 'weightKg', value: 90 })
+      const other = reduce(s, { type: 'invite', code: 'NEW2', invite: { ...valid, inviterName: 'Ana' } })
+      expect(other.code).toBe('NEW2')
+      expect(other.invite.inviterName).toBe('Ana')
+      expect(other.name).toBeNull()
+      expect(other.answers.body.weightKg).toBeNull()
+      expect(other.unsaved).toEqual([])
+      // And a landing with no code lets the earlier invite go altogether.
+      const none = reduce(s, { type: 'invite', code: null, invite: null })
+      expect(none).toMatchObject({ code: null, invite: null, name: null })
+    })
+
+    it('keeps the typed name when the same invite is checked again', () => {
+      const valid = { status: 'valid', inviterName: 'Andrei', suggestedName: null }
+      let s = reduce(reduce(initialState(units), { type: 'invite', code: 'AB12', invite: valid }), { type: 'name', name: 'Maria' })
+      s = reduce(s, { type: 'invite', code: 'AB12', invite: { ...valid, inviterName: 'Andrei A.' } })
+      expect(s).toMatchObject({ code: 'AB12', name: 'Maria', invite: { inviterName: 'Andrei A.' } })
+      // A check that answered nothing new leaves the state as it was.
+      expect(reduce(s, { type: 'invite', code: 'AB12', invite: null })).toBe(s)
+    })
+
     it('never reads a copy kept for someone else, or one from before copies named their owner', () => {
       const store = memory()
       save(marias(), store)

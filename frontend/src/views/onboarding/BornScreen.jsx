@@ -15,7 +15,7 @@ import { useUI } from '../../store/useUI.js'
 export default function BornScreen() {
   const { state, act } = useOnboarding()
   const year = state.answers.body.birthYear
-  const target = useTarget(state.answers)
+  const target = useTarget(state.answers, state.uid)
   const [settled, setSettled] = useState(year != null)
   const [moving, setMoving] = useState(false)
   const range = yearRange()

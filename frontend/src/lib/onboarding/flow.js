@@ -162,6 +162,13 @@ export const nextIsDone = (screen, detour) => !!detour && detour[detour.length -
 export const detourOf = answers => missingYou(answers)
 
 /**
+ * Whether the Plan step is still owed: training days asked for, no plan chosen (the AI coach plan
+ * is not kept across a reload, and its consent with it, state.js recordOf; one the hub stores
+ * comes back as chosen), and no routines in the person's data that make the step moot.
+ */
+export const planOwed = (answers, server = null) => !!answers?.trainingDays && !answers.plan && !answeredByData('plan', server)
+
+/**
  * The screen to resume at, for a signed-in person: where the hub says (its `next`, from the answers
  * it holds and what the person's data answers), and otherwise the first unanswered step here.
  * `skippedYou` and a training answer of null (skipped) count as answered, so a skip is not asked
@@ -183,7 +190,7 @@ export function resumeScreen(answers, { skippedYou = false, server = null } = {}
   if (!answers?.goal) return 'goal'
   if (missing.length && !skippedYou) return missing[0]
   if (answers.trainingDays === undefined) return 'training'
-  if (answers.trainingDays && !answers.plan && !answeredByData('plan', server)) return 'plan'
+  if (planOwed(answers, server)) return 'plan'
   return 'finish'
 }
 

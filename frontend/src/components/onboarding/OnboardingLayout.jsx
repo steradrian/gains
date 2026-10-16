@@ -55,7 +55,7 @@ export default function OnboardingLayout({ children }) {
   let content = children
   if (screen && !user && !PRE_AUTH.includes(screen)) content = <Navigate to="/" replace />
   else if (screen && user && !PRE_AUTH.includes(screen) && (hub === 'unavailable' || hub === 'complete')) content = <Navigate to="/home" replace />
-  const offline = hub === 'offline' && !!user && !PRE_AUTH.includes(screen)
+  const offline = (hub === 'offline' || hub === 'busy') && !!user && !PRE_AUTH.includes(screen)
 
   return (
     <OnboardingContext.Provider value={store}>
@@ -63,7 +63,9 @@ export default function OnboardingLayout({ children }) {
         <div className="ob">
           <OnboardingNav ref={navRef} />
           {offline && <div className="ob-pk-err" role="status">
-            <Icon name="info" /><span>{t('Check your connection and try again. Nothing you answered is lost.')}</span>
+            <Icon name="info" /><span>{hub === 'busy'
+              ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+              : t('Check your connection and try again. Nothing you answered is lost.')}</span>
             <Button size="sm" variant="plain" onClick={() => { refresh() }}>{t('Try again')}</Button>
           </div>}
           <ThreadLayer />

@@ -2969,6 +2969,7 @@ export default {
   '{0} day a week': '{0} day a week',
   'That plan can’t be set up on this server right now. Pick another.': 'That plan can’t be set up on this server right now. Pick another.',
   'Saved. Some of it is still on its way to Training and will show up there soon.': 'Saved. Some of it is still on its way to Training and will show up there soon.',
+  'Gains is busy right now. Try again in a moment. Nothing you answered is lost.': 'Gains is busy right now. Try again in a moment. Nothing you answered is lost.',
   // --- the global search ---
   '+{0} more': '+{0} altri',
   'Best match, {0}, opens {1}': 'Miglior risultato, {0}, apre {1}',

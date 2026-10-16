@@ -140,7 +140,11 @@ function fromHub(s, a) {
 
 export function reduce(s, a) {
   switch (a.type) {
-    case 'invite': return { ...s, code: a.code, invite: a.invite ?? s.invite }
+    // A code other than the one kept is another invite: whatever was typed or kept for the earlier
+    // one (an abandoned name, its check) is not this one's.
+    case 'invite':
+      if (a.code !== s.code) return { ...initialState(s.answers.units), uid: s.uid, code: a.code, invite: a.invite ?? null }
+      return a.invite && a.invite !== s.invite ? { ...s, invite: a.invite } : s
     case 'name': return { ...s, name: a.name }
     case 'goal': return withAnswers(s, { goal: a.goal })
     case 'body': return withAnswers(s, { body: { ...s.answers.body, [a.field]: a.value } })

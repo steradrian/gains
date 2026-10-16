@@ -15,6 +15,12 @@
 //   POST /hub/api/onboarding/complete   both apps written, once: { today }. 409 `plan-unavailable`:
 //                                       the plan chosen is one this server cannot take; ask again.
 //
+// Every PUT and POST names the person it was composed for (X-Expected-User, the uid the answers
+// belong to). A save queued under one account can reach the hub after another signed in; the hub
+// then refuses it, 409 `wrong-user`, and the caller drops it: it belongs to the person before.
+// A 429 is `busy` (the hub's per-person limit): the answers stand, and `retryAfter` is the seconds
+// the hub asked to wait.
+//
 // The hub routes are written to the contract of fitness-eval ux-onboarding.md §3b: the body's four
 // answers each optional, activity and units with their source, trainingDays 0-6 or null, the plan a
 // union of starter | coach | none (the coach as a consent to a text by its id, the time the hub's),
@@ -27,14 +33,31 @@ const HUB = '/hub/api/onboarding'
 const INVITE = '/hub/api/invite/'
 const TIMEOUT_MS = 20000
 // The refusals a screen acts on; any other is 'http'.
-const KNOWN_CODES = ['complete', 'plan-unavailable']
+const KNOWN_CODES = ['complete', 'plan-unavailable', 'wrong-user']
 const BODY_FIELDS = ['sex', 'birthYear', 'heightCm', 'weightKg']
+const EXPECTED_USER = 'X-Expected-User'
+// No wait longer than this is honoured, and a 429 that names none waits this long.
+const MAX_WAIT_S = 60
+const DEFAULT_WAIT_S = 5
 
-const failure = (message, status, code, data = null) => Object.assign(new Error(message), { status, code, data })
+const failure = (message, status, code, data = null, retryAfter = null) =>
+  Object.assign(new Error(message), { status, code, data, retryAfter })
+
+// Retry-After as whole seconds to wait (delta-seconds or an HTTP date), or null when it names none.
+function retryAfterOf(res) {
+  const raw = res.headers?.get?.('retry-after')
+  if (!raw) return null
+  const seconds = /^\d+$/.test(raw) ? Number(raw) : (Date.parse(raw) - Date.now()) / 1000
+  return Number.isFinite(seconds) ? Math.min(MAX_WAIT_S, Math.max(0, Math.ceil(seconds))) : null
+}
+
+/** The seconds to wait after a 429: what the hub asked, or a short default. */
+export const waitSeconds = e => e?.retryAfter ?? DEFAULT_WAIT_S
 
 // Same origin, the openGym session cookie: the hub checks both itself. No referrer: an invite
-// code is in the address, and this is the app's own server, which needs none.
-async function hub(method, path, body) {
+// code is in the address, and this is the app's own server, which needs none. `expectedUser`: the
+// person a write was composed for.
+async function hub(method, path, body, expectedUser = null) {
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS)
   let res
@@ -44,7 +67,11 @@ async function hub(method, path, body) {
       credentials: 'same-origin',
       cache: 'no-store',
       referrerPolicy: 'no-referrer',
-      headers: body === undefined ? { Accept: 'application/json' } : { Accept: 'application/json', 'Content-Type': 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(expectedUser ? { [EXPECTED_USER]: expectedUser } : {}),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: ctl.signal,
     })
@@ -55,6 +82,7 @@ async function hub(method, path, body) {
   }
   let data = null
   try { data = await res.json() } catch { data = null }
+  if (res.status === 429) throw failure('busy', 429, 'busy', data, retryAfterOf(res))
   if (!res.ok) throw failure(data?.error || `HTTP ${res.status}`, res.status, KNOWN_CODES.includes(data?.code) ? data.code : 'http', data)
   if (!data || typeof data !== 'object') throw failure('not JSON', res.status, 'bad-response')
   return data
@@ -135,14 +163,15 @@ export function answersFromHub(stored) {
 }
 
 export const loadOnboarding = () => hub('GET', HUB)
-export const saveStep = (step, answers) => hub('PUT', HUB, { step, answers: stepAnswers(step, answers) })
+// `uid` on each write: the signed-in person the answers belong to (state.uid).
+export const saveStep = (step, answers, uid) => hub('PUT', HUB, { step, answers: stepAnswers(step, answers) }, uid)
 
 /** { ready: true, targets: { calories, … } } | { ready: false, missing } from the answers on screen. */
-export const previewTargets = answers => hub('POST', HUB + '/preview', {
+export const previewTargets = (answers, uid) => hub('POST', HUB + '/preview', {
   ...(answers.goal ? { goal: stepAnswers('goal', answers) } : {}),
   body: bodyOf(answers),
   ...(answers.trainingDays !== undefined ? { training: stepAnswers('training', answers) } : {}),
-})
+}, uid)
 
 /** Completes the onboarding on the person's own date. */
-export const completeOnboarding = today => hub('POST', HUB + '/complete', { today })
+export const completeOnboarding = (today, uid) => hub('POST', HUB + '/complete', { today }, uid)
