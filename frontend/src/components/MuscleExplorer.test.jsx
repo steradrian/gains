@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.setConfig({ testTimeout: 15000 })
 import { createRoot } from 'react-dom/client'
 import MuscleExplorer from './MuscleExplorer.jsx'
+import { EmptySurface } from './blocks.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -25,12 +26,15 @@ vi.mock('../store/useStore.js', () => {
 })
 
 const mounted = []
-function render(props = {}) {
+// `surface` stands in for the container the explorer sits in: the exercise picker's sheet provides
+// 'sheet' (Modals.jsx); on the Muscles page nothing above it does.
+function render(props = {}, surface) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   mounted.push(root)
-  act(() => root.render(<MuscleExplorer {...props} />))
+  const explorer = <MuscleExplorer {...props} />
+  act(() => root.render(surface ? <EmptySurface value={surface}>{explorer}</EmptySurface> : explorer))
   return host
 }
 const chipByText = (host, text) =>
@@ -80,6 +84,45 @@ describe('MuscleExplorer body-part chips keep the equipment filter', () => {
 
     act(() => { chipByText(host, 'All').click() })
     expect(isOn(chipByText(host, 'Any equipment'))).toBe(true)
+  })
+})
+
+describe('MuscleExplorer empty states', () => {
+  function search(host, value) {
+    const input = host.querySelector('.search input')
+    act(() => {
+      Object.getOwnPropertyDescriptor(input.constructor.prototype, 'value').set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+
+  it('on the Muscles page, a search with no match is the page variant under the page heading', () => {
+    const host = render({ onDetail: vi.fn(), onPlan: vi.fn() })
+    act(() => { muscleChip(host, 'Biceps').click() })
+    expect(host.querySelector('.empty')).toBeNull()
+    search(host, 'qxzvwjkq')
+    const empty = host.querySelector('.empty[data-surface=page]')
+    expect(empty.querySelector('.lineart[data-scene=search]')).not.toBeNull()
+    expect(empty.querySelector('h2').textContent).toBe('No match')
+    expect(empty.querySelector('button')).toBeNull()
+  })
+
+  it('in the exercise picker, the same state is the sheet variant under the sheet\'s headings', () => {
+    const host = render({ onPick: vi.fn() }, 'sheet')
+    act(() => { muscleChip(host, 'Biceps').click() })
+    search(host, 'qxzvwjkq')
+    const empty = host.querySelector('.empty[data-surface=sheet]')
+    expect(empty.querySelector('.lineart[data-scene=search]')).not.toBeNull()
+    expect(empty.querySelector('h4').textContent).toBe('No match')
+  })
+
+  it('before a muscle is chosen the picker shows a hint, not an empty state; the page shows nothing', () => {
+    const picker = render({ onPick: vi.fn() }, 'sheet')
+    expect(picker.querySelector('.inote').textContent).toBe('Choose a muscle to see exercises that train it.')
+    expect(picker.querySelector('.empty')).toBeNull()
+    const page = render({ onDetail: vi.fn(), onPlan: vi.fn() })
+    expect(page.querySelector('.inote')).toBeNull()
+    expect(page.querySelector('.empty')).toBeNull()
   })
 })
 

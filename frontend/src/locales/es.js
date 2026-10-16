@@ -443,7 +443,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} ejercicios animados + 1 tuyo',
   '{1} animated exercises + {0} of your own': '{1} ejercicios animados + {0} tuyos',
   'Search…': 'Buscar…',
-  'No workouts yet. Your first one will land here.': 'Aún no hay entrenamientos. El primero aparecerá aquí.',
   'Enter a name': 'Introduce un nombre',
   'Profile created, and this device’s data moved into it': 'Perfil creado, y los datos de este dispositivo ya están en él',
   'Profile created, and your data moved into it': 'Perfil creado, y tus datos ya están en él',

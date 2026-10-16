@@ -175,6 +175,15 @@ describe('Library similar exercises', () => {
     expect(names(host).slice(0, 5).some(n => /dumbbell.*curl/.test(n))).toBe(true)
   })
 
+  it('says "No match" with the search illustration when not even a similar exercise comes close', () => {
+    const host = render()
+    search(host, 'qxzvwjkq')
+    expect(label(host)).toBeNull()
+    const empty = host.querySelector('.empty[data-surface=page]')
+    expect(empty.querySelector('.lineart[data-scene=search]')).not.toBeNull()
+    expect(empty.querySelector('h2').textContent).toBe('No match')
+  })
+
   it('lists similar ones under a short result list, without repeating a result', () => {
     const host = render()
     search(host, 'face pull')

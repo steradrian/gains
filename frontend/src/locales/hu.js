@@ -447,7 +447,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} animált gyakorlat + 1 saját',
   '{1} animated exercises + {0} of your own': '{1} animált gyakorlat + {0} saját',
   'Search…': 'Keresés…',
-  'No workouts yet. Your first one will land here.': 'Még nincs edzés. Az első ide fog landolni.',
   // --- login / account ---
   'Enter a name': 'Adj meg egy nevet',
   'Profile created, and this device’s data moved into it': 'Profil létrehozva, és az eszközön lévő adatok átkerültek bele',

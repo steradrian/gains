@@ -197,9 +197,8 @@ export default function ProgressPhotos() {
     </div>
 
     {!photos.length
-      ? <EmptyState icon="image" title={t('No progress photos yet')}>
-          {t('Add one to a day you trained, and line them up here by date.')}
-        </EmptyState>
+      ? <EmptyState illustration="photo" title={t('No progress photos yet')}
+          body={t('Add one to a day you trained, and line them up here by date.')} />
       : groups.map(g => (
         <div key={g.d} className="mb-9">
           <div className="small muted mb-3">{fmtDate(g.d, true, true)}</div>

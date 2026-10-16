@@ -408,7 +408,6 @@ export default {
   '{1} animated exercises + 1 of your own': '{1} вправ з анімаціями + 1 власна',
   '{1} animated exercises + {0} of your own': { one: '{1} вправ з анімаціями + {0} власна', few: '{1} вправ з анімаціями + {0} власні', many: '{1} вправ з анімаціями + {0} власних', other: '{1} вправ з анімаціями + {0} власної' },
   'Search…': 'Пошук…',
-  'No workouts yet. Your first one will land here.': 'Тренувань поки немає. Перше з’явиться саме тут.',
   '{0} loaded': '{0} завантажено',
   'Enter a name': 'Введи ім’я',
   'Profile created, and this device’s data moved into it': 'Профіль створено, дані з цього пристрою перенесено в нього',

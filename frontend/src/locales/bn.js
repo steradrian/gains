@@ -474,7 +474,6 @@ export default {
   '{1} animated exercises + 1 of your own': 'অ্যানিমেশনসহ {1}টি ব্যায়াম + আপনার নিজের 1টি',
   '{1} animated exercises + {0} of your own': 'অ্যানিমেশনসহ {1}টি ব্যায়াম + আপনার নিজের {0}টি',
   'Search…': 'খুঁজুন…',
-  'No workouts yet. Your first one will land here.': 'এখনও কোনো ওয়ার্কআউট নেই। আপনার প্রথমটি এখানে আসবে।',
   'Enter a name': 'একটি নাম লিখুন',
   'Profile created, and this device’s data moved into it': 'প্রোফাইল তৈরি হয়েছে, আর এই ডিভাইসের ডেটা এতে সরানো হয়েছে',
   'Profile created, and your data moved into it': 'প্রোফাইল তৈরি হয়েছে, আর আপনার ডেটা এতে সরানো হয়েছে',
