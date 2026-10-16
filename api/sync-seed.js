@@ -275,12 +275,32 @@ export function seedState(cur, seed, { now = Date.now(), newId = routineId, newP
   return { next, applied, skipped };
 }
 
+// A build's state is an id like the consent version's ('pending' today); anything else on record,
+// a non-string or text, reads as 'unknown', which a reader takes as not pending.
+const BUILD_STATUS = /^[a-z0-9-]{1,40}$/;
+
+// The AI coach build on record (`coach.build`), rebuilt field by field like the intake answers:
+// its state, the consent it was asked under and when openGym recorded it. Not its equipment or
+// source, nor anything else the Coach may keep beside them. null: none on record.
+function buildView(b) {
+  if (!isMap(b)) return null;
+  const at = typeof b.consentAt === 'string' && CONSENT_AT.test(b.consentAt) ? Date.parse(b.consentAt) : NaN;
+  return {
+    status: typeof b.status === 'string' && BUILD_STATUS.test(b.status) ? b.status : 'unknown',
+    consentAt: Number.isFinite(at) ? new Date(at).toISOString() : null,
+    consentVersion: typeof b.consentVersion === 'string' && CONSENT_VERSION.test(b.consentVersion) ? b.consentVersion : null,
+    requestedAt: Number.isSafeInteger(b.requestedAt) && b.requestedAt > 0 ? b.requestedAt : null
+  };
+}
+
 /**
  * What the profile has already answered, for the onboarding to skip: the unit (and whether it was
- * chosen), the latest weigh-in, whether there is a plan, and the Coach intake answers. Nothing
- * else of the profile, and no names. `coachAvailable`: this server has an AI coach a person may
- * ask for a plan (coach/config.js publicConfig), which is the server's, not the profile's, to say.
- * `seed`: what the seed route takes (SEED_CAPABILITY).
+ * chosen), the latest weigh-in, whether there is a plan, the Coach intake answers, and the AI
+ * coach build on record. Nothing else of the profile, and no names. `coachAvailable`: this server
+ * has an AI coach a person may ask for a plan (coach/config.js publicConfig), which is the
+ * server's, not the profile's, to say. `seed`: what the seed route takes (SEED_CAPABILITY).
+ * `coachBuild` is the profile's state (buildView), not `seed.coachBuild`, which says only whether
+ * the route takes the field.
  */
 export function seedView(S, { coachAvailable = false } = {}) {
   const latest = bodyweightView(S).items.at(-1) || null;
@@ -299,6 +319,7 @@ export function seedView(S, { coachAvailable = false } = {}) {
       daysPerWeek: intIn(p.daysPerWeek, 0, 7) ? p.daysPerWeek : null,
       preferredDays: Array.isArray(p.preferredDays) ? p.preferredDays.filter(d => intIn(d, 0, 6)).slice(0, 7) : []
     } : null,
+    coachBuild: buildView(S?.coach?.build),
     // Absent reads as on (useStore DEF), like every client reads it.
     checkIn: S?.checkIn !== false
   };
