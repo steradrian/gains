@@ -52,7 +52,7 @@ export default function BodyWeight() {
       <TabSection>
         <Card title={t('Trend')}>
           <Segmented className="seg-range" value={range} onChange={setRange} options={rangeOptions()} />
-          <div className="chart"><LineChart points={points} h={160} unit={S.unit} goal={goal} /></div>
+          <div className="chart"><LineChart points={points} h={160} unit={S.unit} goal={goal} label={t('Weight')} /></div>
         </Card>
       </TabSection>
     </> : <EmptyState art={<LineArt scene="scale" />} title={t('No weigh-ins yet')}

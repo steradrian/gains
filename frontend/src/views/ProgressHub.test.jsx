@@ -155,18 +155,19 @@ describe('Progress root: Body', () => {
     await mount()
     const c = card('Body')
     expect(c.textContent).toContain('78kgLatest')
-    expect(c.textContent).toContain('−2kgChange')
+    expect(c.textContent).toContain('−2kgWeight change')
     expect(pill(c, 'Log weight')).toBeUndefined()
     const chart = mocks.charts.at(-1)
     expect(chart.points.map(p => p.y)).toEqual([80, 79, 78])
-    expect(chart).toMatchObject({ unit: 'kg', axes: false })
+    // The card's own numbers say the same, so the sparkline is hidden from a screen reader.
+    expect(chart).toMatchObject({ unit: 'kg', axes: false, decorative: true })
   })
 
   it('counts every weigh-in on All', async () => {
     setS({ bodyweight: [weighIn(100, 90), weighIn(20, 80), weighIn(1, 78)] })
     search = '?range=0'
     await mount()
-    expect(card('Body').textContent).toContain('−12kgChange')
+    expect(card('Body').textContent).toContain('−12kgWeight change')
     expect(mocks.charts.at(-1).points).toHaveLength(3)
   })
 
@@ -176,7 +177,7 @@ describe('Progress root: Body', () => {
     await mount()
     const c = card('Body')
     expect(c.textContent).toContain('78kgLatest')
-    expect(c.textContent).not.toContain('Change')
+    expect(c.textContent).not.toContain('Weight change')
     expect(mocks.charts).toHaveLength(0)
   })
 
@@ -184,7 +185,7 @@ describe('Progress root: Body', () => {
     setS({ bodyweight: [weighIn(10, 80), weighIn(1, 78)], targetW: 70 })
     search = '?range=30'
     await mount()
-    const num = () => [...card('Body').querySelectorAll('.stat-sec-num')].find(n => n.textContent.includes('kg') && card('Body').textContent.includes('Change') && n.nextSibling?.textContent === 'Change')
+    const num = () => [...card('Body').querySelectorAll('.stat-sec-num')].find(n => n.textContent.includes('kg') && n.nextSibling?.textContent === 'Weight change')
     expect(num().className).toContain('ink-acc')
     setS({ bodyweight: [weighIn(10, 78), weighIn(1, 80)] })
     await settle()
@@ -196,7 +197,7 @@ describe('Progress root: Body', () => {
     setS({ bodyweight: [weighIn(10, 80), weighIn(1, 78)] })
     search = '?range=30'
     await mount()
-    const change = [...card('Body').querySelectorAll('.stat-sec-v')].find(v => v.textContent.includes('Change'))
+    const change = [...card('Body').querySelectorAll('.stat-sec-v')].find(v => v.textContent.includes('Weight change'))
     expect(change.querySelector('.stat-sec-num').className).not.toMatch(/ink-/)
   })
 

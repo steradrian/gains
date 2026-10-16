@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { todayISO } from '../lib/format.js'
+import { _setLangState } from '../lib/i18n-core.js'
 import TrainingLoad from './TrainingLoad.jsx'
 
 const press = { id: 'press', n: 'Press', primaries: ['chest'], secondaries: ['triceps'], custom: true }
@@ -139,6 +140,18 @@ describe('TrainingLoad — Effort segment', () => {
     const head = [...host.querySelectorAll('.card h2')].find(h => h.textContent.trim().startsWith('Effort'))
     expect(head).toBeTruthy()
     expect(head.textContent).not.toContain('estimated')
+  })
+
+  it('reads short in German and keeps the full word as the name', async () => {
+    const de = (await import('../locales/de.js')).default
+    _setLangState('de', de, null, null)
+    try {
+      mocks.S = state({ workouts: ratedWorkouts() })
+      mount()
+      const effort = [...seg().querySelectorAll('button')].at(-1)
+      expect(effort.textContent).toBe('Einsatz')
+      expect(effort.getAttribute('aria-label')).toBe('Anstrengung')
+    } finally { _setLangState('en', {}, null, null) }
   })
 
   it('opens directly on ?view=effort', () => {

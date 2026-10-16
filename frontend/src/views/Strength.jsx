@@ -20,10 +20,11 @@ import { Row, Section, Segmented, selectSheet } from '../components/ui.jsx'
 // (its card opens the picker), its best, the chart metric, the range, the chart, the last five
 // sessions and the way into Structural balance. ⋯ holds the exercise's details and its history.
 //
-// Deep link: /progress/strength?ex=<exercise id>[&range=<days>] opens on that exercise (Search's
-// "Progress" link for an exercise). An id with no logged sessions falls back to the exercise
-// trained heaviest. Without ?range= the chart starts on All; picking another exercise keeps the
-// address in step, so a reload comes back to it.
+// Deep link: /progress/strength?ex=<exercise id>[&range=<days>] opens on that exercise (nothing
+// links to it with ?ex= yet; Search will add its "Progress" link for an exercise). An id with no
+// logged sessions falls back to the exercise trained heaviest. Without ?range= the chart starts on
+// All; picking another exercise or range writes it to the address (replace), so a reload comes
+// back to it.
 export default function Strength() {
   const nav = useNavigate()
   const { search } = useLocation()
@@ -34,12 +35,13 @@ export default function Strength() {
   const p = useExerciseProgress(S, { exId, exRange, exMetric })
   const { curEx, hd, kind } = p
 
-  const pickEx = id => {
-    setExId(id)
+  const write = (key, value) => {
     const q = new URLSearchParams(search)
-    q.set('ex', id)
+    q.set(key, value)
     nav('/progress/strength?' + q, { replace: true })
   }
+  const pickEx = id => { setExId(id); write('ex', id) }
+  const pickRange = v => { setExRange(v); write('range', v) }
   const labelOf = id => (EXIDX[id] ? exerciseNameText(EXIDX[id]) : p.nameOf(id))
   const openPicker = () => selectSheet({
     title: t('Exercise'), value: curEx, onChange: pickEx,
@@ -87,18 +89,18 @@ export default function Strength() {
     </TabSection>
     <TabSection>
       {p.options.length > 1 && <Segmented className="seg-range" ariaLabel={t('Chart')} value={p.shown} onChange={setExMetric} options={p.options} />}
-      <Segmented className="seg-range" ariaLabel={t('Range')} value={exRange} onChange={setExRange} options={rangeOptions()} />
+      <Segmented className="seg-range" ariaLabel={t('Range')} value={exRange} onChange={pickRange} options={rangeOptions()} />
       <Card>
         <div className="chart">
           {p.rangeTooShort
             ? <EmptyState className="small">{t('Fewer than two workouts in this period. Pick a longer one.')}</EmptyState>
             : p.onSets
-            ? <LineChart points={p.perSetChart.anchors} series={p.perSetChart.series} h={150} unit={p.perSet.metric === 'reps' ? t('reps') : S.unit} />
+            ? <LineChart points={p.perSetChart.anchors} series={p.perSetChart.series} h={150} unit={p.perSet.metric === 'reps' ? t('reps') : S.unit} label={caption} />
             : p.onMax
-            ? <LineChart points={p.maxChartPts} h={150} unit={t('reps')} color="var(--blue)" />
+            ? <LineChart points={p.maxChartPts} h={150} unit={t('reps')} color="var(--blue)" label={caption} />
             : p.onEff
-            ? <LineChart points={p.effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
-            : <LineChart points={p.chartPts} h={150} unit={p.exUnit} color="var(--blue)" />}
+            ? <LineChart points={p.effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} label={caption} />
+            : <LineChart points={p.chartPts} h={150} unit={p.exUnit} color="var(--blue)" label={caption} />}
         </div>
         {p.onSets && !p.rangeTooShort && <Inline gap={6} wrap className="small mt-3">
           {p.perSetChart.ns.map(n => <Inline key={n} as="span" gap={2.5}>

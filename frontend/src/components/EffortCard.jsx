@@ -67,7 +67,7 @@ export default function EffortCard({ S }) {
       </div>}
       {pts.length > 1 && <>
         <SectionTitle className="mt-6">{t('Week by week')}</SectionTitle>
-        <div className="chart"><LineChart points={pts} h={140} unit={hd} color="var(--yellow)" invert={kind === 'rir'} /></div>
+        <div className="chart"><LineChart points={pts} h={140} unit={hd} color="var(--yellow)" invert={kind === 'rir'} label={t('Week by week')} /></div>
       </>}
       <SectionTitle className="mt-6">{t('Where the sets land')}</SectionTitle>
       {hist.map(b => <div key={b.rir} className="mrow">

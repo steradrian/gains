@@ -282,6 +282,14 @@
 .stat-sec-l,.stat-sec-n{font-size:var(--fs-subhead);color:var(--label-2)}
 .stat-sec-n{margin-block:var(--space-4)}
 .stat-sec-f{margin-top:var(--space-6)}
+/* At 320px the art and two values leave the second no room in a longer language (ru "Изменение"):
+   the gaps and type step down a token so the labels fit instead of running out of the card. */
+@media (width <= 360px){
+  .stat-sec-b{gap:var(--space-4);--art-w:80px;--art-h:60px}
+  .stat-sec-v+.stat-sec-v{padding-inline-start:var(--space-4)}
+  .stat-sec-num{font-size:var(--fs-title2)}
+  .stat-sec-l{font-size:var(--fs-footnote)}
+}
 
 /* PeriodNav: 44px chevrons either side of a centred title and its sub. */
 .pnav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--space-4);margin-bottom:var(--space-6)}
@@ -381,6 +389,10 @@
 .seg.seg-lg{border-radius:var(--r);padding:3px}
 .seg.seg-lg .seg-sel{top:3px;bottom:3px;inset-inline-start:3px;width:calc((100% - 6px)/var(--n));border-radius:9px}
 .seg.seg-lg button{min-height:36px;font-size:var(--fs-subhead)}
+/* A page's segments (up to five on Strength) share a 320px row: a label stays on one line and
+   gives back padding rather than wrapping or running into its neighbour. */
+.seg.seg-range button,.seg.seg-lg button{padding-inline:var(--space-2)}
+.seg.seg-range button span,.seg.seg-lg button span{white-space:nowrap}
 
 /* Row glyph and accessory="add". */
 .lrow-g{flex:none;display:flex;font-size:var(--glyph);color:var(--label)}

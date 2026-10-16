@@ -85,11 +85,11 @@ export default function ProgressHub() {
         status={last ? 'ready' : 'empty'}
         values={last
           ? [{ value: fmtNum(last.w), unit: S.unit, label: t('Latest') },
-            ...(change == null ? [] : [{ value: signed(change), unit: S.unit, label: t('Change'), tone: TONE[deltaTone(change, last.w, S.targetW)] }])]
+            ...(change == null ? [] : [{ value: signed(change), unit: S.unit, label: t('Weight change'), tone: TONE[deltaTone(change, last.w, S.targetW)] }])]
           : [{ label: t('Latest') }]}
         note={last ? null : t('No weigh-ins yet')}
         action={{ icon: 'plus', label: t('Log weight'), onClick: () => bwSheet() }}
-        footer={spark.length > 1 && <div className="chart"><LineChart points={spark} h={56} axes={false} unit={S.unit} goal={S.targetW} /></div>} />
+        footer={spark.length > 1 && <div className="chart"><LineChart points={spark} h={56} axes={false} unit={S.unit} goal={S.targetW} decorative /></div>} />
       <StatSection title={t('Strength')} onOpen={() => open('/progress/strength')}
         status={S.workouts.length ? 'ready' : 'empty'}
         values={[{ value: prs, label: t('Personal records') }, { value: lifted, label: t('Exercises trained') }]}

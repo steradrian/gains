@@ -127,10 +127,13 @@ export default function MuscleBalance({ S }) {
   const target = m => round1(planned[m])
   const pct = m => (target(m) > 0 ? Math.round(done(m) / target(m) * 100) : null)
   const setsText = n => t('{0} sets', fmtNum(n))
-  const comparison = m => ({
-    value: fmtNum(done(m)) + '/' + fmtNum(target(m)) + (pct(m) == null ? '' : ' · ' + pct(m) + '%'),
-    valueLabel: t('Completed') + ' ' + setsText(done(m)) + ' · ' + t('Planned') + ' ' + setsText(target(m)),
-  })
+  // A muscle the plan does not program has nothing to be read against: its sets alone, not "3/0".
+  const comparison = m => (target(m) > 0
+    ? {
+      value: fmtNum(done(m)) + '/' + fmtNum(target(m)) + (pct(m) == null ? '' : ' · ' + pct(m) + '%'),
+      valueLabel: t('Completed') + ' ' + setsText(done(m)) + ' · ' + t('Planned') + ' ' + setsText(target(m)),
+    }
+    : { value: setsText(done(m)) })
   const empty = vsPlan ? !listed.length : !inWin.length
 
   const changeWeek = step => { setWeekOffset(offset => Math.min(0, offset + step)); setSel(null); setExpanded(false) }
@@ -152,8 +155,8 @@ export default function MuscleBalance({ S }) {
       <BodyMapLegend />
       {sel
         ? <StatCard label={name(sel)}
-          meta={vsPlan ? t('Planned') + ' ' + setsText(target(sel)) : on ? t('by hard sets') : t('by sets worked')}
-          value={fmtNum(done(sel))} unit={vsPlan ? t('/ {0} sets', fmtNum(target(sel))) : t('sets')}
+          meta={vsPlan && target(sel) > 0 ? t('Planned') + ' ' + setsText(target(sel)) : on ? t('by hard sets') : t('by sets worked')}
+          value={fmtNum(done(sel))} unit={vsPlan && target(sel) > 0 ? t('/ {0} sets', fmtNum(target(sel))) : t('sets')}
           caption={vsPlan ? (pct(sel) == null ? t('Not in your plan this week') : t('{0}% of plan', pct(sel))) : done(sel) ? null : on ? t('no hard sets') : t('not trained')} />
         : !empty && <InlineNote icon="info">{t('Tap a muscle to see its numbers.')}</InlineNote>}
       {empty ? <InlineNote>{t('No workouts in this period yet.')}</InlineNote> : <>

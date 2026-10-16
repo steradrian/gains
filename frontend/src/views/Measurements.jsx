@@ -210,7 +210,7 @@ export default function Measurements() {
             options={available.map(f => ({ value: f.key, label: t(f.label) }))} />
           </div>
           <Segmented className="seg-range" value={range} onChange={setRange} options={rangeOptions()} />
-          <div className="chart"><LineChart points={points} h={170} unit={unit} color="var(--teal)" /></div>
+          <div className="chart"><LineChart points={points} h={170} unit={unit} color="var(--teal)" label={t(field.label)} /></div>
         </Card>
       </> : <EmptyState icon="ruler" title={t('Nothing to chart yet')}
         secondary={{ icon: 'gear', label: t('Choose measurements'), onClick: manageMeasurementsSheet }}>

@@ -5,6 +5,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { _setLangState } from '../lib/i18n-core.js'
 import Strength from './Strength.jsx'
 
 const mocks = vi.hoisted(() => ({
@@ -110,6 +111,40 @@ describe('Strength: date range', () => {
     expect(host.textContent).not.toContain('Fewer than two workouts')
     expect(exChart().points.map(p => p.y)).toEqual([90, 80])
   })
+})
+
+describe('Strength: the address', () => {
+  it('writes a picked range to the address with replace, keeping ex', () => {
+    mocks.search = '?ex=' + BENCH
+    mount(SPREAD())
+    press('1M')
+    expect(mocks.nav).toHaveBeenLastCalledWith('/progress/strength?ex=' + BENCH + '&range=30', { replace: true })
+    press('All')
+    expect(mocks.nav).toHaveBeenLastCalledWith('/progress/strength?ex=' + BENCH + '&range=0', { replace: true })
+  })
+})
+
+describe('Strength: chart name and short segment labels', () => {
+  afterEach(() => _setLangState('en', {}, null, null))
+
+  it('names the chart with what it plots', () => {
+    mount(SPREAD())
+    expect(exChart().label).toBe('Best set weight per workout')
+    press('1RM')
+    expect(exChart().label).toBe('Estimated 1RM per workout')
+  })
+
+  it.each([['de', 'Einsatz', 'Je Satz'], ['ru', 'Усилие', 'Подход'], ['pl', 'Wysiłek', 'Seria']])(
+    'in %s the segments read short and keep the full words as their names', async (lang, effort, perSet) => {
+      const pack = (await import(`../locales/${lang}.js`)).default
+      _setLangState(lang, pack, null, null)
+      const rated = ago => session(ago, 80, { max: true, r: 12, rir: 1 })
+      mount([rated(20), rated(10), rated(3)])
+      const buttons = [...host.querySelectorAll('.seg')[0].querySelectorAll('button')]
+      const byValue = label => buttons.find(b => b.textContent === label)
+      expect(byValue(effort).getAttribute('aria-label')).toBe(pack['Effort'])
+      expect(byValue(perSet).getAttribute('aria-label')).toBe(pack['Per set'])
+    })
 })
 
 describe('Strength: metric segment and hero', () => {

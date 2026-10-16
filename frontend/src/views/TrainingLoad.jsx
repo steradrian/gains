@@ -38,7 +38,7 @@ export default function TrainingLoad() {
     { value: 'muscles', label: t('Muscles') },
     { value: 'plan', label: t('Plan') },
   ]
-  if (hasEffort(S) || hasEstimableEffort(S)) views.push({ value: 'effort', label: t('Effort') })
+  if (hasEffort(S) || hasEstimableEffort(S)) views.push({ value: 'effort', label: t('Effort (short)'), ariaLabel: t('Effort') })
   const view = views.some(v => v.value === asked) ? asked : 'activity'
 
   const go = value => {

@@ -74,7 +74,7 @@ export default function BodyMap({ load = {}, thresholds, body = 'male', onMuscle
     <div className={'bodymap ' + className}>
       {g ? <>
         {view(g.front, t('Front'))}
-        {view(g.back, t('Back'))}
+        {view(g.back, t('Back of the body'))}
       </> : <div className="bm-ph" aria-hidden="true" />}
     </div>
   )

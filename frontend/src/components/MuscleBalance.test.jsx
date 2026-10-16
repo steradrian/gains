@@ -89,8 +89,9 @@ describe('MuscleBalance — weekly planned vs completed volume', () => {
     expect(value('chest').textContent).toBe('8/12 · 67%')
     expect(value('chest').getAttribute('aria-label')).toBe('Completed 8 sets · Planned 12 sets')
     expect(value('triceps').textContent).toBe('0/4.8 · 0%')
-    expect(value('biceps').textContent).toBe('3/0')
-    expect(value('biceps').getAttribute('aria-label')).toBe('Completed 3 sets · Planned 0 sets')
+    // No plan target: the sets alone, never "3/0".
+    expect(value('biceps').textContent).toBe('3 sets')
+    expect(value('biceps').getAttribute('aria-label')).toBeNull()
     expect(button('Next week').disabled).toBe(true)
     expect(host.querySelector('.pnav-s').textContent).toBe('This week')
   })
@@ -200,6 +201,9 @@ describe('MuscleBalance — weekly planned vs completed volume', () => {
     mount()
     click(row('biceps'))
     expect(statCard().querySelector('.stat-card-c').textContent).toBe('Not in your plan this week')
+    expect(statCard().querySelector('.stat-card-num').textContent).toBe('3')
+    expect(statCard().querySelector('.stat-card-u').textContent).toBe('sets')
+    expect(statCard().textContent).not.toContain('Planned')
   })
 
   it('navigates previous weeks as completed-only and respects a Sunday week start', () => {

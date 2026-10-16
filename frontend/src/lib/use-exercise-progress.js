@@ -226,9 +226,10 @@ export function useExerciseProgress(S, { exId, exRange, exMetric }) {
   const rangeTooShort = exRange !== 0 && chartPts.length < 2
   // Short labels (ux-redesign-tabs §4.3): five of them share a 320px row.
   const options = [{ value: 'top', label: t('Top') }]
-  if (perSet) options.push({ value: 'sets', label: t('Per set') })
+  // The full words stay the buttons' names; the label is the tighter wording that fits.
+  if (perSet) options.push({ value: 'sets', label: t('Per set (short)'), ariaLabel: t('Per set') })
   if (showE1) options.push({ value: 'e1rm', label: t('1RM') })
-  if (showEff) options.push({ value: 'effort', label: t('Effort') })
+  if (showEff) options.push({ value: 'effort', label: t('Effort (short)'), ariaLabel: t('Effort') })
   if (showMax) options.push({ value: 'max', label: t('Max') })
   const shown = onMax ? 'max' : onEff ? 'effort' : onE1 ? 'e1rm' : onSets ? 'sets' : 'top'
 

@@ -67,7 +67,7 @@ describe('BodyMap interaction semantics', () => {
     await renderMap({ captions: true })
     const figures = [...container.querySelectorAll('figure.bm-fig')]
     expect(figures).toHaveLength(2)
-    expect(figures.map(f => f.querySelector('figcaption.bm-cap').textContent)).toEqual(['Front', 'Back'])
+    expect(figures.map(f => f.querySelector('figcaption.bm-cap').textContent)).toEqual(['Front', 'Back of the body'])
     expect(figures.every(f => f.querySelector('svg'))).toBe(true)
   })
 
