@@ -82,7 +82,7 @@ export default function InviteScreen() {
       sub={t('Your training and your food in one place. Setting it up takes about a minute.')}
       lead={inviter && <div className="ob-disc" aria-hidden="true">{inviter[0].toUpperCase()}</div>}
       footer={<>
-        <Button variant="primary" onClick={() => go('name')}>{t('Create my account')}</Button>
+        <Button variant="primary" onClick={() => go('name', { replace: true })}>{t('Create my account')}</Button>
         <Button variant="plain" onClick={signIn}>{t('I already have an account')}</Button>
       </>} />
   )

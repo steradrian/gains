@@ -39,7 +39,7 @@ describe('onboarding state', () => {
 
   it('takes what the person\'s data answers from the hub, under what this tab and the hub hold, and never keeps it across a reload', () => {
     const store = memory()
-    let s = reduce(initialState(units), { type: 'body', field: 'sex', value: 'male' })
+    let s = reduce(reduce(initialState(units), { type: 'user', uid: 'u1' }), { type: 'body', field: 'sex', value: 'male' })
     s = reduce(s, {
       type: 'hub', answers: {}, next: 'body', remaining: ['body', 'plan'], starterAvailable: false,
       prefill: { answered: ['goal', 'training'], goal: { goal: 'build' }, training: { trainingDays: 3 }, body: { sex: 'female', heightCm: 181 }, sources: {} },
@@ -48,7 +48,7 @@ describe('onboarding state', () => {
     expect(s.server).toEqual({ answered: ['goal', 'training'], body: ['sex', 'heightCm'], next: 'body', remaining: ['body', 'plan'] })
     expect(s.starterAvailable).toBe(false)
     save(s, store)
-    expect(loadSaved(store).server).toBeNull()
+    expect(loadSaved('u1', store).server).toBeNull()
   })
 
   it('clears only a starter that no longer fits the days: an AI coach or no-plan choice stays, as on the hub', () => {
@@ -91,11 +91,90 @@ describe('onboarding state', () => {
 
   it('survives a reload of the tab, an unasked training step included', () => {
     const store = memory()
-    const s = reduce(initialState(units), { type: 'goal', goal: 'lose' })
+    const s = reduce(reduce(initialState(units), { type: 'user', uid: 'u1' }), { type: 'goal', goal: 'lose' })
     save(s, store)
-    const back = loadSaved(store)
+    const back = loadSaved('u1', store)
     expect(back.answers.goal).toBe('lose')
     expect(back.answers.trainingDays).toBeUndefined()
-    expect(loadSaved(memory())).toBeNull()
+    expect(loadSaved('u1', memory())).toBeNull()
+  })
+
+  describe('whose it is', () => {
+    const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1' }
+    const marias = () => {
+      let s = reduce(initialState(units), { type: 'invite', code: 'AB12', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: null } })
+      s = reduce(s, { type: 'name', name: 'Maria' })
+      s = reduce(s, { type: 'user', uid: 'u1' })
+      s = reduce(s, { type: 'goal', goal: 'lose' })
+      s = reduce(s, { type: 'body', field: 'sex', value: 'female' })
+      s = reduce(s, { type: 'body', field: 'birthYear', value: 1990 })
+      s = reduce(s, { type: 'training', days: 3 })
+      return reduce(s, { type: 'plan', plan: coach })
+    }
+
+    it('keeps only the invite and the typed name until there is a person to own the rest', () => {
+      const store = memory()
+      let s = reduce(initialState(units), { type: 'invite', code: 'AB12', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' } })
+      s = reduce(reduce(s, { type: 'name', name: 'Maria' }), { type: 'goal', goal: 'lose' })
+      s = reduce(s, { type: 'body', field: 'weightKg', value: 64 })
+      save(s, store)
+      expect(Object.keys(JSON.parse(store.getItem('gains_onboarding'))).sort()).toEqual(['code', 'invite', 'name', 'uid'])
+      const back = loadSaved(null, store)
+      expect(back).toMatchObject({ code: 'AB12', name: 'Maria', invite: { status: 'valid' } })
+      expect(back.answers.goal).toBeNull()
+      expect(back.answers.body.weightKg).toBeNull()
+    })
+
+    it('never reads a copy kept for someone else, or one from before copies named their owner', () => {
+      const store = memory()
+      save(marias(), store)
+      expect(loadSaved('u1', store).answers.goal).toBe('lose')
+      expect(loadSaved('u2', store)).toBeNull()
+      expect(loadSaved(null, store)).toBeNull()
+      store.setItem('gains_onboarding', JSON.stringify({ code: 'AB12', answers: { goal: 'lose', body: { sex: 'female' } } }))
+      expect(loadSaved('u1', store)).toBeNull()
+      expect(loadSaved(null, store)).toBeNull()
+    })
+
+    it('starts over when another person, or no one, is signed in, and keeps what was typed when someone becomes signed in', () => {
+      const s = marias()
+      for (const uid of ['u2', null]) {
+        const other = reduce(s, { type: 'user', uid })
+        expect(other.uid).toBe(uid)
+        expect(other).toMatchObject({ code: null, invite: null, name: null, unsaved: [] })
+        expect(other.answers).toMatchObject({ goal: null, plan: null, body: { sex: null, birthYear: null } })
+      }
+      expect(reduce(s, { type: 'user', uid: 'u1' })).toBe(s)
+      const typed = reduce(reduce(initialState(units), { type: 'name', name: 'Maria' }), { type: 'user', uid: 'u1' })
+      expect(typed).toMatchObject({ uid: 'u1', name: 'Maria' })
+    })
+
+    it('writes no AI coach plan down, nor the save still owed for it: its consent is this session\'s tap', () => {
+      const store = memory()
+      const s = reduce(marias(), { type: 'saved', step: 'plan', ok: false })
+      expect(s.answers.plan).toEqual(coach)
+      expect(s.unsaved).toEqual(['plan'])
+      save(s, store)
+      expect(store.getItem('gains_onboarding')).not.toMatch(/"kind":"coach"|consentVersion|consent"/)
+      const back = loadSaved('u1', store)
+      expect(back.answers.plan).toBeNull()
+      expect(back.unsaved).toEqual([])
+      expect(back.pick).toBeNull()
+      // Whatever else is in a copy, a coach plan in it is not read back.
+      store.setItem('gains_onboarding', JSON.stringify({ ...JSON.parse(store.getItem('gains_onboarding')), answers: { ...s.answers }, unsaved: ['plan', 'body'], pick: 'coach' }))
+      const forged = loadSaved('u1', store)
+      expect(forged.answers.plan).toBeNull()
+      expect(forged.unsaved).toEqual(['body'])
+    })
+
+    it('keeps no copy of a state with nothing in it, and a reset keeps whose it is', () => {
+      const store = memory()
+      save(marias(), store)
+      expect(store.getItem('gains_onboarding')).not.toBeNull()
+      const over = reduce(marias(), { type: 'reset' })
+      expect(over.uid).toBe('u1')
+      save(over, store)
+      expect(store.getItem('gains_onboarding')).toBeNull()
+    })
   })
 })

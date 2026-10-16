@@ -28,7 +28,7 @@ export default function NameScreen() {
   const signedIn = useStore(s => !!s.user)
   if (signedIn && !busy) return <Navigate to="/onboarding" replace />
 
-  const trouble = () => useUI.getState().openSheet(close => <TroubleSheet close={close} />)
+  const trouble = () => useUI.getState().openSheet(close => <TroubleSheet close={close} code={state.code} />)
   const create = async () => {
     if (!ok) return
     if (!webauthnOK()) { setProblem(t('This browser can’t make a passkey.')); return }

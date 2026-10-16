@@ -16,7 +16,10 @@ export function useOnboardingResume({ user, ready, pathname, navigate }) {
     if (asked.current || !ready || !user || !nutritionAvailable(user) || isFlowPath(pathname)) return
     asked.current = true
     if (hasData(useStore.getState().S)) return
+    const askedOf = user.id
     loadOnboarding().then(s => {
+      // Someone else signed in (or out) while it was out: the answer is about the one before.
+      if (useStore.getState().user?.id !== askedOf) return
       const started = s.step != null || Object.keys(s.answers || {}).length > 0
       if (s.completedAt == null && started) navigate('/onboarding', { replace: true })
     }).catch(() => { /* no hub, or no answer: nothing to resume */ })

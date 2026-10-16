@@ -2,6 +2,12 @@
 // (components/onboarding/OnboardingLayout.jsx) keeps it in a reducer, mirrors it into session
 // storage so a reload resumes, and saves each answered step to the hub.
 //
+// Whose it is: `uid` is the signed-in person it was made for (null before there is an account).
+// A copy kept for another uid is never read back, and before an account exists only the invite
+// (code, invite) and the typed name are kept at all: nothing about a body, a goal or a plan is
+// written down until there is a person to own it. An AI coach plan is never written down either:
+// the consent in it is the tap on the sheet in the session that holds it, not a stored value.
+//
 // answers.trainingDays: undefined until asked, null when skipped, 0-6 once answered (or known from
 //   the person's data, which the hub reads).
 // answers.plan: null, or { kind: 'starter', templateId, weekdays, equipment, experience }
@@ -12,12 +18,13 @@
 //   answers in full (`answered`), the body fields it holds (`body`), its `next` and `remaining`.
 import { localeUnits } from './units.js'
 import { suggestedDays, templateFor } from './plans.js'
+import { STORE_KEY, forget } from './session.js'
 
-const STORE_KEY = 'gains_onboarding'
 const BODY_FIELDS = ['sex', 'birthYear', 'heightCm', 'weightKg']
 
 export function initialState(units = localeUnits()) {
   return {
+    uid: null,
     code: null,
     invite: null,
     // The name typed on the name step, until the passkey makes it the profile's.
@@ -148,25 +155,48 @@ export function reduce(s, a) {
     case 'saved': return { ...s, unsaved: a.ok ? s.unsaved.filter(x => x !== a.step) : unsavedWith(s, a.step) }
     case 'progress': return { ...s, progress: a.progress }
     case 'hub': return fromHub(s, a)
-    case 'reset': return initialState(s.answers.units)
+    // Who is signed in changed. Becoming someone from no one (the passkey just made) keeps what
+    // was typed before; anyone to anyone else, or to no one, starts over: none of it is theirs.
+    case 'user': return s.uid === a.uid ? s : s.uid ? { ...initialState(s.answers.units), uid: a.uid } : { ...s, uid: a.uid }
+    case 'reset': return { ...initialState(s.answers.units), uid: s.uid }
     default: throw new Error('unknown onboarding action ' + a.type)
   }
 }
 
-/** The state kept for this browser tab, or null. What the hub said is read again, never kept. */
-export function loadSaved(storage = globalThis.sessionStorage) {
+// What is written down for `state`. The server's answers are read again, never kept; the AI coach
+// plan is not kept (see the top), nor the save still owed for it.
+function recordOf(state) {
+  if (!state.uid) return { uid: null, code: state.code, invite: state.invite, name: state.name }
+  const coach = state.answers.plan?.kind === 'coach'
+  return {
+    ...state,
+    answers: coach ? { ...state.answers, plan: null } : state.answers,
+    pick: coach && state.pick === 'coach' ? null : state.pick,
+    unsaved: coach ? state.unsaved.filter(step => step !== 'plan') : state.unsaved,
+    server: null,
+    coachConsent: null,
+  }
+}
+
+/** The state kept for this browser tab for the person `uid` (null: no one yet), or null. */
+export function loadSaved(uid = null, storage = globalThis.sessionStorage) {
   try {
     const v = JSON.parse(storage?.getItem(STORE_KEY) || 'null')
-    if (!v || typeof v !== 'object' || !v.answers || !v.answers.body) return null
+    // A copy made for someone else, or from before copies named their owner, is nobody's here.
+    if (!v || typeof v !== 'object' || v.uid !== uid) return null
+    if (!uid) return { ...initialState(), code: v.code ?? null, invite: v.invite ?? null, name: v.name ?? null }
+    if (!v.answers || !v.answers.body) return null
     // JSON has no undefined: a training step not asked yet comes back absent.
-    return { ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers }, server: null, coachConsent: null }
+    return recordOf({ ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers } })
   } catch { return null }
 }
 
-export function save(state, storage = globalThis.sessionStorage) {
-  try { storage?.setItem(STORE_KEY, JSON.stringify(state)) } catch { /* private mode: this tab only */ }
-}
+// What a person gave, as opposed to what the screens and the hub fill in around it.
+const ABOUT_THEM = ['code', 'invite', 'name', 'answers', 'pick', 'starter', 'detour', 'skippedYou', 'daysSaid', 'unsaved']
+const aboutThem = state => JSON.stringify(ABOUT_THEM.map(k => state[k]))
 
-export function forget(storage = globalThis.sessionStorage) {
-  try { storage?.removeItem(STORE_KEY) } catch { /* nothing kept */ }
+/** Writes `state` down for this tab; a state with nothing of the person's in it is not kept at all. */
+export function save(state, storage = globalThis.sessionStorage) {
+  if (aboutThem(state) === aboutThem(initialState(state.answers.units))) { forget(storage); return }
+  try { storage?.setItem(STORE_KEY, JSON.stringify(recordOf(state))) } catch { /* private mode: this tab only */ }
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { answersFromHub, loadOnboarding, saveStep } from './api.js'
 import { nextAfter, pathOf, previousOf, screenOf, skipTarget } from './flow.js'
-import { forget, initialState, loadSaved, reduce, save } from './state.js'
+import { forget } from './session.js'
+import { initialState, loadSaved, reduce, save } from './state.js'
 import { nutritionAvailable } from '../nutrition/api.js'
 
 // A failed read that says nothing about whether there is a hub: no answer, a server error, or an
@@ -19,19 +20,38 @@ const hubDown = e => e.code === 'offline' || e.code === 'timeout' || e.code === 
  * person's data answers (those steps are skipped, flow.js answeredByData), where to resume, and
  * which plans this server takes. A plan is offered only where the hub says so: never from this
  * app's own config, which cannot say whether openGym's seed takes it.
+ *
+ * The state is the signed-in person's (state.js `uid`): another person's is never read, and it
+ * goes whenever the flow is left (`discard`) or who is signed in changes.
  */
 export function useOnboardingStore({ user, navigate, location, navType }) {
-  const [state, dispatch] = useReducer(reduce, undefined, () => loadSaved() || initialState())
+  const uid = user?.id ?? null
+  const [state, dispatch] = useReducer(reduce, undefined, () => loadSaved(uid) || { ...initialState(), uid })
   // The state as of the last action, for an action that saves right after it changes something.
   const now = useRef(state)
   const act = useCallback(action => {
     now.current = reduce(now.current, action)
     dispatch(action)
   }, [])
-  useEffect(() => { save(state) }, [state])
+  // Kept only while it is the signed-in person's: for the render between a sign-out and the state
+  // starting over, the old person's is not written down again.
+  useEffect(() => { if (state.uid === uid) save(state) }, [state, uid])
+
+  // A save still waiting its turn when the person changes belongs to the one before.
+  const people = useRef(0)
+  const signedInAs = useRef(uid)
+  useEffect(() => {
+    if (signedInAs.current !== uid) { signedInAs.current = uid; people.current++ }
+    act({ type: 'user', uid })
+  }, [uid, act])
+
+  /** Leaves the flow: nothing of it stays, in this tab's storage or on screen. */
+  const discard = useCallback(() => {
+    forget()
+    act({ type: 'reset' })
+  }, [act])
 
   const [hub, setHub] = useState(user ? 'loading' : 'pre-auth')
-  const uid = user?.id
   // The latest read: an answer to an earlier one (another person's, or the layout gone) is dropped.
   const reads = useRef(0)
 
@@ -41,7 +61,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     try {
       const res = await loadOnboarding()
       if (read !== reads.current) return false
-      if (res.completedAt != null) { forget(); setHub('complete'); return true }
+      if (res.completedAt != null) { discard(); setHub('complete'); return true }
       act({
         type: 'hub', answers: answersFromHub(res.answers), prefill: res.prefill, next: res.next, remaining: res.remaining,
         coachAvailable: res.coachAvailable, starterAvailable: res.starterAvailable, coachConsent: res.coachConsent,
@@ -49,14 +69,17 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
       setHub('ready')
       return true
     } catch (e) {
-      if (read === reads.current) setHub(hubDown(e) ? 'offline' : 'unavailable')
+      if (read === reads.current) {
+        if (hubDown(e)) setHub('offline')
+        else { discard(); setHub('unavailable') }
+      }
       return false
     }
-  }, [act])
+  }, [act, discard])
 
   useEffect(() => {
     if (!uid) { setHub('pre-auth'); return undefined }
-    if (!nutritionAvailable(user)) { setHub('unavailable'); return undefined }
+    if (!nutritionAvailable(user)) { discard(); setHub('unavailable'); return undefined }
     setHub('loading')
     refresh()
     return () => { reads.current++ }
@@ -75,8 +98,11 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
   const saveHubStep = useCallback(step => {
     const queued = waiting.current.get(step)
     if (queued) return queued
+    const person = people.current
     const send = async () => {
       waiting.current.delete(step)
+      // Asked for one person, due after another signed in: the answers now are not the ones it was for.
+      if (person !== people.current) return false
       try {
         await saveStep(step, now.current.answers)
         act({ type: 'saved', step, ok: true })
@@ -151,7 +177,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
 
   return useMemo(() => ({
     state, hub, screen, coachAvailable, starterAvailable,
-    act, saveHubStep, savesSettled, go, back, next, skip, refresh,
+    act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard,
     current: () => now.current,
-  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh])
+  }), [state, hub, screen, coachAvailable, starterAvailable, act, saveHubStep, savesSettled, go, back, next, skip, refresh, discard])
 }

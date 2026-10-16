@@ -1,5 +1,6 @@
 import { copyText } from '../../lib/clipboard.js'
 import { t } from '../../lib/i18n.js'
+import { pathOf } from '../../lib/onboarding/flow.js'
 import { useUI } from '../../store/useUI.js'
 import { SheetActions, SheetHeader } from '../sheet-layout.jsx'
 import { Button } from '../ui.jsx'
@@ -14,9 +15,13 @@ function copyLabel() {
   return t('Copy link to open in your browser')
 }
 
-export default function TroubleSheet({ close }) {
+// The invite's own link, the one the inviter sent: the hub's /join/<code> page opens it in the app.
+// The address on screen is the name step, which has no code in it: opened elsewhere it would be
+// the same invite landing nowhere. Without a code (opened by hand), the address is all there is.
+export default function TroubleSheet({ close, code }) {
   const copy = async () => {
-    const ok = await copyText(window.location.href).then(() => true, () => false)
+    const link = code ? `${window.location.origin}${pathOf('invite', code)}` : window.location.href
+    const ok = await copyText(link).then(() => true, () => false)
     close()
     useUI.getState().toast(ok ? t('Link copied') : t('Could not copy the link'))
   }

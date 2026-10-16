@@ -1,7 +1,11 @@
 // The onboarding's server side, as the browser reaches it.
 //
-//   GET  /api/invites/{code}            openGym's invite check, which never uses the invite up
-//   GET  /api/me                        whether the new passkey is synced (user.synced)
+//   GET  /hub/api/invite/{code}         the invite check, which never uses the invite up: the hub's
+//                                       own route (no-referrer, the code templated out of its logs,
+//                                       limited per address) in front of openGym's. { status,
+//                                       inviterName, suggestedName }; 404 with status 'invalid' for
+//                                       a code that is not one; 429 and 503: no answer for now.
+//   GET  /api/me                       whether the new passkey is synced (user.synced)
 //   GET  /hub/api/onboarding            where the person is: { answers, completedAt, next, remaining,
 //                                       prefill, coachAvailable, starterAvailable, coachConsent,
 //                                       delivery, plan }. `plan` { status: 'refused' }: openGym
@@ -20,14 +24,16 @@ import { api } from '../api.js'
 import { appBase } from '../app-base.js'
 
 const HUB = '/hub/api/onboarding'
+const INVITE = '/hub/api/invite/'
 const TIMEOUT_MS = 20000
 // The refusals a screen acts on; any other is 'http'.
 const KNOWN_CODES = ['complete', 'plan-unavailable']
 const BODY_FIELDS = ['sex', 'birthYear', 'heightCm', 'weightKg']
 
-const failure = (message, status, code) => Object.assign(new Error(message), { status, code })
+const failure = (message, status, code, data = null) => Object.assign(new Error(message), { status, code, data })
 
-// Same origin, the openGym session cookie: the hub checks both itself.
+// Same origin, the openGym session cookie: the hub checks both itself. No referrer: an invite
+// code is in the address, and this is the app's own server, which needs none.
 async function hub(method, path, body) {
   const ctl = new AbortController()
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS)
@@ -37,6 +43,7 @@ async function hub(method, path, body) {
       method,
       credentials: 'same-origin',
       cache: 'no-store',
+      referrerPolicy: 'no-referrer',
       headers: body === undefined ? { Accept: 'application/json' } : { Accept: 'application/json', 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: ctl.signal,
@@ -48,7 +55,7 @@ async function hub(method, path, body) {
   }
   let data = null
   try { data = await res.json() } catch { data = null }
-  if (!res.ok) throw failure(data?.error || `HTTP ${res.status}`, res.status, KNOWN_CODES.includes(data?.code) ? data.code : 'http')
+  if (!res.ok) throw failure(data?.error || `HTTP ${res.status}`, res.status, KNOWN_CODES.includes(data?.code) ? data.code : 'http', data)
   if (!data || typeof data !== 'object') throw failure('not JSON', res.status, 'bad-response')
   return data
 }
@@ -60,10 +67,12 @@ async function hub(method, path, body) {
  */
 export async function checkInvite(code) {
   try {
-    const found = await api('/api/invites/' + encodeURIComponent(code))
+    const found = await hub('GET', INVITE + encodeURIComponent(code))
     return { status: found.status, inviterName: found.inviterName ?? null, suggestedName: found.suggestedName ?? null }
   } catch (e) {
-    if (e.status === 404) return { status: 'invalid', inviterName: null, suggestedName: null }
+    // Only the hub's own "not an invite" is invalid: any other 404 is no hub here, or a path
+    // something else answered.
+    if (e.status === 404 && e.data?.status === 'invalid') return { status: 'invalid', inviterName: null, suggestedName: null }
     throw failure(e.message, e.status || 0, 'unavailable')
   }
 }

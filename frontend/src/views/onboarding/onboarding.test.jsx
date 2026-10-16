@@ -4,7 +4,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { button, flush, mount, radio, saved, unmountAll, where } from './onboarding.test-util.jsx'
+import { arrivedBy, button, flush, mount, radio, saved, unmountAll, where } from './onboarding.test-util.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -38,6 +38,8 @@ vi.mock('../../lib/onboarding/api.js', async original => ({ ...(await original()
 const passkeys = vi.hoisted(() => ({ passkeyRegister: vi.fn(), passkeyLogin: vi.fn() }))
 vi.mock('../../lib/api.js', async original => ({ ...(await original()), ...passkeys, webauthnOK: () => true }))
 vi.mock('../../sheets.jsx', () => ({ askAddDeviceData: vi.fn() }))
+const clipboard = vi.hoisted(() => ({ copyText: vi.fn() }))
+vi.mock('../../lib/clipboard.js', () => clipboard)
 
 const signedIn = () => { mocks.user = { id: 'u1', name: 'Maria' } }
 const press = (el, key) => act(() => { el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })) })
@@ -123,7 +125,7 @@ describe('0 Invite', () => {
 
 describe('1 Name + passkey', () => {
   it('prefills the suggested name, and a cancelled prompt says so inline with help to hand', async () => {
-    saved({ code: 'AB12', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' }, answers: {} })
+    saved({ uid: null, code: 'AB12', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' }, answers: {} })
     passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
     const page = mount('/onboarding/name')
     expect(page.querySelector('input').value).toBe('Maria')
@@ -140,7 +142,7 @@ describe('1 Name + passkey', () => {
     ['iOS', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', 'Copy link to open in Safari'],
   ])('names the phone\'s own browser for the link on %s', async (_, ua, label) => {
     const agent = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue(ua)
-    saved({ code: 'AB12', invite: { status: 'valid', inviterName: null, suggestedName: 'Maria' }, answers: {} })
+    saved({ uid: null, code: 'AB12', invite: { status: 'valid', inviterName: null, suggestedName: 'Maria' }, answers: {} })
     passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
     const page = mount('/onboarding/name')
     await act(async () => { button(page, 'Create passkey').click() })
@@ -151,8 +153,31 @@ describe('1 Name + passkey', () => {
     agent.mockRestore()
   })
 
+  it('copies the invite link, with its code, not the address of the name step', async () => {
+    saved({ uid: null, code: 'AB12', invite: { status: 'valid', inviterName: null, suggestedName: 'Maria' }, answers: {} })
+    passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
+    clipboard.copyText.mockResolvedValue(undefined)
+    const page = mount('/onboarding/name')
+    await act(async () => { button(page, 'Create passkey').click() })
+    click(button(page, 'Having trouble?'))
+    const sheet = openedSheet()
+    await act(async () => { button(sheet.host, 'Copy link to open in your browser').click() })
+    expect(clipboard.copyText).toHaveBeenCalledWith(`${window.location.origin}/join/AB12`)
+    expect(sheet.close).toHaveBeenCalled()
+    sheet.done()
+  })
+
+  it('leaves the landing\'s address out of the history: Create my account replaces it', async () => {
+    hub.checkInvite.mockResolvedValue({ status: 'valid', inviterName: 'Andrei', suggestedName: null })
+    const page = mount('/join/AB12')
+    await flush()
+    click(button(page, 'Create my account'))
+    expect(where(page)).toBe('/onboarding/name')
+    expect(arrivedBy(page)).toBe('REPLACE')
+  })
+
   it('makes the account and moves to the passkey result, which moves on to the goal by itself', async () => {
-    saved({ code: 'AB12', answers: {} })
+    saved({ uid: null, code: 'AB12', answers: {} })
     passkeys.passkeyRegister.mockResolvedValue({ id: 'u1', name: 'Maria' })
     const page = mount('/onboarding/name')
     act(() => {
@@ -797,7 +822,7 @@ describe('what the hub says is answered or not needed (§6)', () => {
     expect(where(page)).toBe('/onboarding/finish')
   })
 
-  it('keeps an AI coach plan when the days change, so after a reload the plan is there and the steps agree with the hub', async () => {
+  it('keeps an AI coach plan when the days change, takes it back from the hub after a reload, and never writes it to the tab', async () => {
     const coach = { kind: 'coach', experience: null, equipment: 'gym', consentVersion: 'ai-coach-build-v1', consentAt: '2026-10-14T08:00:00.000Z' }
     saved({ answers: { goal: 'keep', body: full, trainingDays: 3, plan: coach }, pick: 'coach' })
     let page = mount('/onboarding/training')
@@ -811,7 +836,8 @@ describe('what the hub says is answered or not needed (§6)', () => {
     page = mount('/onboarding')
     await flush()
     expect(where(page)).toBe('/onboarding/finish')
-    expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.plan).toEqual(coach)
+    // The consent in it is the hub's to hold (it stamped it); this tab keeps none.
+    expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.plan).toBeNull()
   })
 })
 

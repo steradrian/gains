@@ -86,9 +86,25 @@ describe('the requests', () => {
   it('checks an invite: an unknown code is invalid, no answer is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn(() => reply(200, { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' })))
     await expect(checkInvite('AB12')).resolves.toEqual({ status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' })
-    vi.stubGlobal('fetch', vi.fn(() => reply(404, { error: 'no such invite' })))
+    // The hub answers a code that is not one with 404 and the same shape.
+    vi.stubGlobal('fetch', vi.fn(() => reply(404, { status: 'invalid', inviterName: null, suggestedName: null })))
     await expect(checkInvite('ZZ99')).resolves.toEqual({ status: 'invalid', inviterName: null, suggestedName: null })
-    vi.stubGlobal('fetch', vi.fn(() => reply(429, { error: 'slow down' })))
+    // Any other 404 (no hub on this server, a path something else answered) says nothing about the code.
+    vi.stubGlobal('fetch', vi.fn(() => reply(404, { error: 'not found' })))
     await expect(checkInvite('AB12')).rejects.toMatchObject({ code: 'unavailable' })
+    vi.stubGlobal('fetch', vi.fn(() => reply(429, { error: 'too many requests' })))
+    await expect(checkInvite('AB12')).rejects.toMatchObject({ code: 'unavailable' })
+    vi.stubGlobal('fetch', vi.fn(() => reply(503, { error: 'the invite cannot be checked right now' })))
+    await expect(checkInvite('AB12')).rejects.toMatchObject({ code: 'unavailable' })
+  })
+
+  it('asks the hub\'s hardened invite route, not openGym\'s, and sends no referrer', async () => {
+    const fetchMock = vi.fn(() => reply(200, { status: 'valid', inviterName: null, suggestedName: null }))
+    vi.stubGlobal('fetch', fetchMock)
+    await checkInvite('AB12')
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(new URL(url, 'http://app.test').pathname).toBe('/hub/api/invite/AB12')
+    expect(init.method).toBe('GET')
+    expect(init.referrerPolicy).toBe('no-referrer')
   })
 })

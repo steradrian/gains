@@ -8,7 +8,6 @@ import { t } from '../../lib/i18n.js'
 import { completeOnboarding } from '../../lib/onboarding/api.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { detourOf } from '../../lib/onboarding/flow.js'
-import { forget } from '../../lib/onboarding/state.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 
@@ -41,7 +40,7 @@ function setbacksOf(done) {
 
 export default function FinishScreen() {
   const navigate = useNavigate()
-  const { state, act, saveHubStep, savesSettled, go, refresh, current } = useOnboarding()
+  const { state, act, saveHubStep, savesSettled, go, refresh, discard, current } = useOnboarding()
   const [status, setStatus] = useState('idle') // idle | saving | error
   const [setbacks, setSetbacks] = useState(null)
   const floor = useRef(null)
@@ -49,8 +48,7 @@ export default function FinishScreen() {
   const missing = detourOf(state.answers)
 
   const leave = to => {
-    forget()
-    act({ type: 'reset' })
+    discard()
     navigate(to, { replace: true })
   }
 
