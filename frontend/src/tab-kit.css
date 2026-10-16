@@ -392,6 +392,23 @@
 .empty.empty-x{padding-block:var(--space-11)}
 .empty .empty-art{margin-bottom:var(--space-6)}
 .empty-acts{display:flex;justify-content:center;flex-wrap:wrap;gap:var(--space-4);margin-top:var(--space-8)}
+/* EmptyState with an illustration (blocks.jsx): one markup, four surfaces read from context. A page
+   brings its own surface; in a card, a sheet or a chart the container is already there. */
+.empty[data-surface]{display:flex;flex-direction:column;align-items:center;text-align:center;padding:var(--space-8) 0;font-size:var(--fs-subhead);line-height:1.45;color:var(--label-2)}
+.empty[data-surface=page]{padding:var(--space-11);margin-bottom:var(--space-6);background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card)}
+.empty[data-surface=chart]{justify-content:center;block-size:100%;padding:var(--space-6) 0}
+.empty[data-surface] .empty-art{display:flex;justify-content:center;margin-bottom:var(--space-6)}
+.empty[data-surface] .lineart{background:none}
+.empty[data-surface=page] .lineart{width:128px;height:96px}
+.empty[data-surface=chart] .lineart{width:64px;height:48px}
+.empty[data-surface=chart] .empty-art{margin-bottom:var(--space-3)}
+.empty[data-surface] .empty-t{margin:0;font-size:var(--fs-body);font-weight:600;letter-spacing:-.01em;color:var(--label)}
+.empty[data-surface=chart] .empty-t{font-size:var(--fs-footnote);font-weight:400;letter-spacing:0;color:var(--label-2)}
+.empty[data-surface] .empty-b{margin:var(--space-2) 0 0}
+/* LoadError (blocks.jsx): the failure's words, then the way to ask again. */
+.loaderr{display:flex;flex-direction:column;align-items:center;gap:var(--space-4);text-align:center;padding:var(--space-8) 0}
+.loaderr .nt-error{margin:0}
+.loaderr-t{display:block;margin-bottom:var(--space-2);color:var(--label)}
 .inote{display:flex;align-items:center;justify-content:center;gap:var(--space-4);padding:var(--space-6);font-size:var(--fs-subhead);color:var(--label-2);text-align:center}
 .inote .icn{font-size:16px;flex:none}
 

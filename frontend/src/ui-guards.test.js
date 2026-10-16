@@ -9,8 +9,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  BASELINE, HEADER_FILES, LEGACY_CSS, LOWER, PAGE_EXEMPT, PRIMITIVE_FILES, cssColours, cssFiles, handBuilt, jsColours, measure,
-  newCssViolations, pageChrome, ratchet, routeViewsWithoutPage, sheetsImporters, staticStyles,
+  BASELINE, EMPTY_PROPS, HEADER_FILES, LEGACY_CSS, LOWER, PAGE_EXEMPT, PRIMITIVE_FILES, cssColours, cssFiles, emptyStates, handBuilt,
+  jsColours, measure, newCssViolations, pageChrome, ratchet, routeViewsWithoutPage, sheetsImporters, staticStyles,
 } from '../scripts/ui-guards-baseline.mjs'
 
 const baseline = JSON.parse(readFileSync(BASELINE, 'utf8'))
@@ -49,6 +49,10 @@ describe('UI guards (ratchet)', () => {
 
   it('G8: no page chooses its own header: no header component past <Page>, no hand-built header, no own <header> or <h1> in a view, no class, style or spread on <Page>', () => {
     expect(pageChrome()).toEqual([])
+  })
+
+  it('G9: no call site gives EmptyState a class, children or an unregistered illustration, wraps it in a Card, builds its classes or provides its surface; the legacy calls are baselined', () => {
+    expect(ratchet(now.G9, baseline.G9)).toEqual([])
   })
 })
 
@@ -102,6 +106,93 @@ describe('G8 finds a page choosing its own chrome', () => {
     expect(caught(`export default () => <Page title="X"><h1>x</h1></Page>`)).toEqual(['views/X.jsx: renders its own <h1>'])
     expect(caught(`export default () => <h1>x</h1>`, 'components/Card.jsx')).toEqual([])
     expect(caught(`export default () => <h1>x</h1>`, 'views/Login.jsx')).toEqual([])
+  })
+})
+
+describe('G9 finds an empty state a page shapes itself', () => {
+  const LINE_ART = `export const ILLUSTRATIONS = {\n  scale: { scene: 'scale', state: { kg: null } },\n  'routine': { scene: 'routine', state: {} },\n}`
+  // One fixture per way past the guard; each must be caught on its own.
+  const caught = (source, file = 'views/X.jsx') => {
+    const dir = mkdtempSync(join(tmpdir(), 'ui-guards-'))
+    try {
+      for (const d of ['views', 'components', 'components/search']) mkdirSync(join(dir, d))
+      writeFileSync(join(dir, 'components', 'line-art.jsx'), LINE_ART)
+      writeFileSync(join(dir, file), source)
+      return emptyStates(dir)
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  }
+
+  it('takes exactly illustration, title, body, action and secondary', () => {
+    expect(EMPTY_PROPS).toEqual(['illustration', 'title', 'body', 'action', 'secondary'])
+    expect(caught(`export default () => <EmptyState illustration="scale" title={t('a')} body={t('b')} action={{ label: 'x', onClick: go }} secondary={{ label: 'y', onClick: go }} />`)).toEqual([])
+  })
+
+  it('a className, held in a variable too, and an icon or art', () => {
+    expect(caught(`export default () => <EmptyState illustration="scale" title="a" className="small" />`)).toEqual(['views/X.jsx: takes className'])
+    expect(caught(`export default () => <EmptyState illustration="scale" title="a" className={cls} />`)).toEqual(['views/X.jsx: takes className'])
+    expect(caught(`export default () => <EmptyState illustration="scale" title="a" icon="clipboard" art={<i />} />`)).toEqual(['views/X.jsx: takes art', 'views/X.jsx: takes icon'])
+  })
+
+  it('a spread', () => {
+    expect(caught(`export default props => <EmptyState illustration="scale" title="a" {...props} />`)).toEqual(['views/X.jsx: takes a spread'])
+  })
+
+  it('children, as an open and close pair', () => {
+    expect(caught(`export default () => <EmptyState illustration="scale" title="a">text</EmptyState>`)).toEqual(['views/X.jsx: has children'])
+    expect(caught(`export default () => <EmptyState illustration="scale" title={a > b ? 'x' : 'y'}>\n  <Button />\n</EmptyState>`)).toEqual(['views/X.jsx: has children'])
+  })
+
+  it('a call with no illustration, which is the legacy one', () => {
+    expect(caught(`export default () => <EmptyState title="a" action={{ label: 'x', onClick: go }} />`)).toEqual(['views/X.jsx: has no illustration'])
+    expect(caught(`export default () => <EmptyState icon="history">No workouts yet.</EmptyState>`)).toEqual(['views/X.jsx: has children', 'views/X.jsx: has no illustration', 'views/X.jsx: takes icon'])
+  })
+
+  it('an illustration that is not registered, or not a literal, or a ternary with one bad branch', () => {
+    expect(caught(`export default () => <EmptyState illustration="sofa" title="a" />`)).toEqual(['views/X.jsx: illustration "sofa" not registered'])
+    expect(caught(`export default () => <EmptyState illustration={'sofa'} title="a" />`)).toEqual(['views/X.jsx: illustration "sofa" not registered'])
+    expect(caught(`export default () => <EmptyState illustration={name} title="a" />`)).toEqual(['views/X.jsx: illustration is not a string literal'])
+    expect(caught(`export default () => <EmptyState illustration={on ? 'scale' : name} title="a" />`)).toEqual(['views/X.jsx: illustration is not a string literal'])
+    expect(caught(`export default () => <EmptyState illustration={on ? 'scale' : 'sofa'} title="a" />`)).toEqual(['views/X.jsx: illustration "sofa" not registered'])
+    expect(caught(`export default () => <EmptyState illustration={on ? 'scale' : 'routine'} title="a" />`)).toEqual([])
+  })
+
+  it('a Card, with whitespace, a comment or a Stack before the empty state, but not a titled one', () => {
+    const wrapped = ['views/X.jsx: wraps EmptyState in Card']
+    expect(caught(`export default () => <Card><EmptyState illustration="scale" title="a" /></Card>`)).toEqual(wrapped)
+    expect(caught(`export default () => <Card tone="accent">\n  {/* nothing yet */}\n  <EmptyState illustration="scale" title="a" />\n</Card>`)).toEqual(wrapped)
+    expect(caught(`export default () => <Card>\n  <Stack gap={4}>\n    <EmptyState illustration="scale" title="a" />\n    <Button />\n  </Stack>\n</Card>`)).toEqual(wrapped)
+    expect(caught(`export default () => <Card title="Range"><EmptyState illustration="scale" title="a" /></Card>`)).toEqual([])
+    expect(caught(`export default () => <Card><p>x</p><EmptyState illustration="scale" title="a" /></Card>`)).toEqual([])
+  })
+
+  it('a class the component owns, built by hand in any way, but not in blocks.jsx or as is-empty', () => {
+    expect(caught(`export default () => <div className="chat-empty">x</div>`)).toEqual(['views/X.jsx: builds .chat-empty'])
+    expect(caught(`export default () => <div className={cx('row', on && 'adm-empty')}>x</div>`)).toEqual(['views/X.jsx: builds .adm-empty'])
+    expect(caught(`const c = cx('plan-empty', 'mt-6')\nexport default () => <div className={c}>x</div>`)).toEqual(['views/X.jsx: builds .plan-empty'])
+    expect(caught(`export default () => <div className={on ? 'empty small' : 'is-empty'}>x</div>`)).toEqual(['views/X.jsx: builds .empty'])
+    expect(caught(`export default () => <div className="is-empty">x</div>`)).toEqual([])
+    expect(caught(`export default () => <div className="empty empty-x"><div className="empty-art" /></div>`, 'components/blocks.jsx')).toEqual([])
+  })
+
+  it('a rule in a stylesheet for a class the component owns', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ui-guards-'))
+    try {
+      mkdirSync(join(dir, 'components'))
+      writeFileSync(join(dir, 'components', 'line-art.jsx'), LINE_ART)
+      writeFileSync(join(dir, 'coach.css'), '.chat-empty{padding:14px 4px}\n.chat-empty-x{margin:0}')
+      writeFileSync(join(dir, 'tab-kit.css'), '.empty[data-surface]{padding:0}\n.empty-acts{gap:8px}')
+      expect(emptyStates(dir)).toEqual(['coach.css: styles .chat-empty'])
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  })
+
+  it('the surface context, imported, imported lazily or by a path without the extension, outside its four files', () => {
+    const provided = ['views/X.jsx: provides an empty-state surface']
+    expect(caught(`import { EmptySurface } from '../components/blocks.jsx'\nexport default () => <EmptySurface value="sheet" />`)).toEqual(provided)
+    expect(caught(`import { Card, EmptySurface as Surface } from '../components/blocks'\nexport default () => <Surface value="card" />`)).toEqual(provided)
+    expect(caught(`const load = () => import('../components/blocks.jsx').then(m => m.EmptySurface)`)).toEqual(provided)
+    for (const file of ['components/Modals.jsx', 'components/LineChart.jsx', 'components/search/SearchOverlay.jsx', 'components/blocks.jsx']) {
+      expect(caught(`import { EmptySurface } from './blocks.jsx'\nexport default () => <EmptySurface value="sheet" />`, file)).toEqual([])
+    }
   })
 })
 

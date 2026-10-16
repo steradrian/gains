@@ -17,7 +17,8 @@ shell's job.
 | `.item > .grow > .tt + .ss`, `.chev` | `<ItemRow lead title subtitle titleClassName subtitleClassName trailing chevron onClick>` (blocks) |
 | `.tiles > .tile > .l + .v` | `<Tiles><StatTile label icon value unit size="sm"\|"xs" tone className onClick /></Tiles>` (blocks) |
 | `.big` + `<span className="muted" style={{ fontSize: '1rem' }}>` | `<Stat value unit size="sm">` (blocks) |
-| `.empty > .ico` (+ `strong`) | `<EmptyState icon title>text</EmptyState>` (blocks) |
+| any empty state: `.empty > .ico`, `EmptyState` in a `Card`, `chat-empty`, `adm-empty`, a muted "No … yet" line | `<EmptyState illustration title body action secondary />` (blocks). Content only: it picks its own variant from where it stands, so never wrap it in a `Card` or pass a class, size or icon. See below |
+| a load error with a Try again button | `<LoadError message onRetry retryLabel title />` (blocks): a `role=alert` line (`nt-error`) and a tinted button |
 | `<h4 className="sec">` | `<SectionTitle>` (blocks) |
 | `.tag(.acc)(.nocap)` | `<Tag tone="acc"\|"dim" icon nocap>` (blocks) |
 | `.chips > .chip(.on)` | `<ChipRow ref><Chip on nocap onClick /></ChipRow>` (blocks); Chip is `type="button"` |
@@ -73,7 +74,7 @@ class throws in development, as everywhere in the kit.
 | `MediaRow` (tab-kit) | `art title subtitle link onOpen onPlay playLabel chevron variant="exercise"` | An `.item` led by 96×72 art (56px thumb in the exercise variant). With a `link` line or `onPlay`, the title block opens it and each control is its own button |
 | `StickyActionBar` (tab-kit) | `children` | The page's one main pill, sticky above the tab bar (`--tabbar-h`), resting at the end of the page |
 | `LineArt` (line-art) | `scene state` | `routine {days,next,scheduled}`, `mobility {minutes}`, `scale {kg}`, `equipment {eq}` (`equipmentOf(ex.eq)`), `plate` (Nutrition without nutrition). Two strokes, three inks (`--acc-graphic` for data), no figures, ≤8 paths; draws in once a session (`useDrawIn`), fades under reduced motion; `aria-hidden` |
-| `EmptyState` (blocks) | + `art action secondary` | `art` replaces the icon; `action`/`secondary` are `{label, onClick, icon}` pills. Without them the markup is unchanged |
+| `EmptyState` (blocks) | `illustration title body action secondary` | The one empty state. `illustration` is a name in `ILLUSTRATIONS` (line-art): `scale routine plate barbell dumbbell chart`; `action`/`secondary` are `{label, onClick, icon}` pills (`action` also `disabled`). Deprecated until the call sites have moved: with no `illustration` it renders the old `icon art className children` markup (G9 baselines each such call) |
 | `InlineNote`, `Skeleton` (blocks) | `icon children` / `w h r` | A quiet centred status line; a hidden loading block at its size (numbers are px) |
 | `Kbd` (blocks) | `children` | A key cap as a hint ("⌘ K", "esc"), never a control |
 | `Chip` (blocks) | + `size="lg" icon` | The 36px destination chip with a leading glyph (the search's shortcuts); neutral, never `.on` |
@@ -142,6 +143,24 @@ announced. A list that is loading shows `Skeleton` rows, not a loader. `loading-
 string is fine where it is not a line of its own (a button label, a row subtitle, a tile value, an
 `aria-label`); in a button or a row, put `<Loader size="xs" />` where the icon goes.
 
+## Empty states
+
+One component, every variant, no way to style it (owner rule, 2026-10-16). A call site passes
+content; the component reads `EmptySurface`, a context only the surfaces provide, and renders:
+
+| surface (provided by) | renders | art | title |
+|---|---|---|---|
+| page (none) | its own surface: `--surface`, `--r-card`, `--shadow-card`, `--space-11` padding | 128×96 | `h2` |
+| card (`Card`) | bare, `--space-8` block padding | 96×72 | `h3` |
+| sheet (`Modals.jsx` sheet and centre dialog; `SearchOverlay`) | bare, `--space-8` block padding | 96×72 | `h4` |
+| chart (`LineChart`, around its own empty render) | fills the slot, centred | 64×48 | `p`, no actions (throws) |
+
+The nearest provider wins. `LineChart` takes `empty={{ title, body }}` for what it says with no
+points. The drawing is decoration (`aria-hidden`) and the title says everything, so there is no role.
+In development an unknown prop, a missing title, an unregistered illustration and an action in a
+chart each throw. A missing variant or illustration is added here, in the component or in
+`ILLUSTRATIONS`, never composed by hand at the call site.
+
 ## Guards (`src/ui-guards.test.js`, a ratchet)
 
 Each file's count must equal `src/ui-guards.baseline.json`. Above it fails, and so does a new file
@@ -168,3 +187,9 @@ above 0. Below it also fails ("lower the baseline"): a migration PR runs
 - **G8** no page chooses its own header: nothing past `layout.jsx` imports `RootHeader`/`SubHeader`,
   no view builds `.hdr`/`.tab-hdr`/`.sub-hdr` (the full-screen views excepted), and `<Page>` takes
   no `className` or `style`. Width is the shell's too (`page-width.test.js`). Not a ratchet: it is 0.
+- **G9** `<EmptyState>` takes `illustration title body action secondary` and nothing else (no
+  `className`, `icon`, `art`, spread or children), names a registered illustration as a literal (or
+  a ternary of literals), is not the first child of a bare `Card` (or `Card > Stack`), and the
+  classes `empty empty-x empty-art empty-acts chat-empty adm-empty sp-empty sr-empty plan-empty
+  gate-empty` and `EmptySurface` are used nowhere but the component's own files. A list in the
+  baseline, one entry per finding, which each migration shrinks; the last one empties it.

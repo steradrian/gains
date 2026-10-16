@@ -1,7 +1,9 @@
-import { isValidElement } from 'react'
+import { createContext, isValidElement, useContext } from 'react'
+import { t } from '../lib/i18n.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
 import Icon from './Icon.jsx'
+import { ILLUSTRATIONS, LineArt } from './line-art.jsx'
 import { Button } from './ui.jsx'
 
 // Content blocks. Each emits the exact classes and elements the pages build by hand today
@@ -12,7 +14,8 @@ import { Button } from './ui.jsx'
 const INKS = ['danger', 'warn', 'orange', 'acc', 'ok']
 
 // A card. With `action`, the title shares a row with it, as the hand-built `row between` header
-// did; an action with no title sits at the row's end. tone: a ring in the tone's colour.
+// did; an action with no title sits at the row's end. tone: a ring in the tone's colour. It is the
+// surface of an EmptyState inside it (the 'card' variant).
 export function Card({ title, action, tone, as: El = 'div', className, children, ...rest }) {
   oneOf('Card', 'tone', tone, ['danger', 'accent', 'orange'])
   const head = title != null
@@ -20,7 +23,7 @@ export function Card({ title, action, tone, as: El = 'div', className, children,
     : action && <div className="row jc-end">{action}</div>
   return <El className={cx('card', tone && 'card-' + tone, className)} {...rest}>
     {head}
-    {children}
+    <EmptySurface value="card">{children}</EmptySurface>
   </El>
 }
 
@@ -84,20 +87,70 @@ export function Stat({ value, unit, size }) {
   return <div className={cx('big', size && 'big-' + size)}>{value}{unit != null && <> <span className="muted stat-unit">{unit}</span></>}</div>
 }
 
-// What a list says when it has nothing in it. With a title, the text sits under it in its own block.
-// `art` (a LineArt scene) leads it in place of `icon`; `action` ({ label, onClick, icon }) is its one
-// filled pill and `secondary` a plain one beside it. With none of those three, the markup is the
-// one this block always had.
-export function EmptyState({ icon, art, title, action, secondary, className, children }) {
-  return <div className={cx('empty', (art || action || secondary) && 'empty-x', className)}>
-    {art ? <div className="ico empty-art">{art}</div> : icon && <div className="ico"><Icon name={icon} /></div>}
-    {title != null
-      ? <><strong>{title}</strong>{children != null && <div>{children}</div>}</>
-      : children}
+// Which surface an EmptyState sits on, so it can size itself: 'page' (nothing above it), 'card',
+// 'sheet' or 'chart'. Only the containers that own a surface provide it (Card here, the sheets in
+// Modals.jsx, LineChart); the nearest one wins. ui-guards G9 keeps it from being provided anywhere
+// else, so a page can never pick its own.
+export const EmptySurface = createContext('page')
+
+const EMPTY_TITLES = { page: 'h2', card: 'h3', sheet: 'h4', chart: 'p' }
+
+// What a surface says when it has nothing in it: an illustration (a name in line-art.jsx's
+// ILLUSTRATIONS), a title, an optional body, and at most `action` (the filled pill) and `secondary`
+// (a plain one), both { label, onClick, icon } (`action` also `disabled`). It is the same everywhere;
+// the variant (its own surface on a page, bare inside a card or a sheet, small in a chart) comes from
+// EmptySurface, never from a prop. No children, class or icon: in development anything else throws.
+//
+// Deprecated, until the call sites have moved over (docs/reviews/plan-empty-states.md): a call with
+// no `illustration` still renders the markup this block always had, from `icon`, `art`, `className`
+// and `children`. ui-guards G9 baselines every such call; do not add one.
+export function EmptyState({ illustration, title, body, action, secondary, icon, art, className, children, ...rest }) {
+  const surface = useContext(EmptySurface)
+  if (illustration == null) {
+    if (import.meta.env.DEV && body != null) throw new Error('EmptyState: body needs an illustration')
+    return <div className={cx('empty', (art || action || secondary) && 'empty-x', className)}>
+      {art ? <div className="ico empty-art">{art}</div> : icon && <div className="ico"><Icon name={icon} /></div>}
+      {title != null
+        ? <><strong>{title}</strong>{children != null && <div>{children}</div>}</>
+        : children}
+      {(action || secondary) && <div className="empty-acts">
+        {action && <Button variant="primary" shape="pill" icon={action.icon} onClick={action.onClick}>{action.label}</Button>}
+        {secondary && <Button shape="pill" icon={secondary.icon} onClick={secondary.onClick}>{secondary.label}</Button>}
+      </div>}
+    </div>
+  }
+  if (import.meta.env.DEV) {
+    const given = { icon, art, className, children, ...rest }
+    const extra = Object.keys(given).filter(k => given[k] !== undefined)
+    if (extra.length) throw new Error(`EmptyState: ${extra.join(', ')} not allowed; it takes illustration, title, body, action and secondary`)
+    if (title == null) throw new Error('EmptyState: title is required')
+    if (surface === 'chart' && (action || secondary)) throw new Error('EmptyState: a chart has no actions; its card\'s range control is the way on')
+  }
+  oneOf('EmptyState', 'illustration', illustration, Object.keys(ILLUSTRATIONS))
+  const drawing = ILLUSTRATIONS[illustration]
+  const Title = EMPTY_TITLES[surface] ?? EMPTY_TITLES.page
+  return <div className="empty" data-surface={surface}>
+    {drawing && <div className="empty-art"><LineArt scene={drawing.scene} state={drawing.state} drawKey={'empty:' + illustration} /></div>}
+    <Title className="empty-t">{title}</Title>
+    {body != null && <p className="empty-b">{body}</p>}
     {(action || secondary) && <div className="empty-acts">
-      {action && <Button variant="primary" shape="pill" icon={action.icon} onClick={action.onClick}>{action.label}</Button>}
+      {action && <Button variant="primary" shape="pill" icon={action.icon} disabled={action.disabled} onClick={action.onClick}>{action.label}</Button>}
       {secondary && <Button shape="pill" icon={secondary.icon} onClick={secondary.onClick}>{secondary.label}</Button>}
     </div>}
+  </div>
+}
+
+// A load that failed, or a stored value that could not be read: the words in a role=alert line (the
+// red nt-error one) and, with `onRetry`, the tinted button that asks again. `title` heads it for a
+// whole screen (the crash gate). It is not an empty state: there is nothing to show because
+// something broke.
+export function LoadError({ message, onRetry, retryLabel, title }) {
+  return <div className="loaderr">
+    <div role="alert">
+      {title != null && <strong className="loaderr-t">{title}</strong>}
+      <p className="nt-error small">{message}</p>
+    </div>
+    {onRetry && <Button size="sm" variant="tinted" onClick={onRetry}>{retryLabel ?? t('Try again')}</Button>}
   </div>
 }
 

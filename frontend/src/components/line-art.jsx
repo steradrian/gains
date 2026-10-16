@@ -121,13 +121,37 @@ function plate() {
   </>
 }
 
-const SCENES = { routine, mobility, scale, equipment, plate }
+// A chart with nothing in it: two axes, a dashed flat line, the accent dot where it would start.
+function chart() {
+  return <>
+    {FLOOR}
+    <path className="il" d="M22 10V58H84" {...at(1)} />
+    <path className="il il-mute il-dash" d="M30 40H80" />
+    <circle className="il-acc" cx="30" cy="40" r="3" {...at(2)} />
+  </>
+}
+
+const SCENES = { routine, mobility, scale, equipment, plate, chart }
 export const LINE_ART_SCENES = Object.keys(SCENES)
 
-export function LineArt({ scene, state = {}, className }) {
+// The empty states' illustrations (<EmptyState illustration>): a name, the scene it draws and the
+// state it is drawn in, which is that scene's empty drawing. A new name is a new entry here, and
+// line-art.test.jsx holds its scene to the rules above. ui-guards G9 reads these keys.
+export const ILLUSTRATIONS = {
+  scale: { scene: 'scale', state: { kg: null } },
+  routine: { scene: 'routine', state: { days: 0 } },
+  plate: { scene: 'plate', state: {} },
+  barbell: { scene: 'equipment', state: { eq: 'barbell' } },
+  dumbbell: { scene: 'equipment', state: { eq: 'dumbbell' } },
+  chart: { scene: 'chart', state: {} },
+}
+
+// drawKey: what "drawn in once a session" is counted per; the scene's name by default, an
+// illustration's own name for an empty state (two names on one scene each get their first time).
+export function LineArt({ scene, state = {}, className, drawKey }) {
   oneOf('LineArt', 'scene', scene, LINE_ART_SCENES)
   const clip = useId()
-  const draw = useDrawIn('line-art:' + scene)
+  const draw = useDrawIn(drawKey ?? 'line-art:' + scene)
   return (
     <svg className={cx('lineart', draw, className)} viewBox="0 0 96 72" aria-hidden="true" focusable="false" data-scene={scene}>
       {SCENES[scene](state, clip)}
