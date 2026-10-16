@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
+import { usePresence } from '../components/presence.jsx'
 import { isSwitching } from './use-tab-nav.js'
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -33,6 +34,10 @@ function release(id) {
 
 // The opener of the dialog that closed last, for a dialog that opens in the same tick.
 let replaced = null
+// A dialog on its way out (components/presence.jsx) is still in the page while it plays, but it is
+// closed: nothing in it can be focused again, and it holds nothing open.
+const LEAVING = '[data-leaving]'
+const live = n => !!n?.isConnected && !n.closest?.(LEAVING)
 
 // The page behind something that covers all of it (the splash) is out of reach for as long as it is
 // up, through the same counted hold the dialogs use, so a sheet opening or closing meanwhile cannot
@@ -58,7 +63,7 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
   // A sheet opened by a row of the sheet it replaces (`close(); nextSheet()` in one tap) was
   // "opened" by a control that left the page with that sheet: it inherits the opener of the dialog
   // it replaced, so closing the chain ends on what started it.
-  const opener = asked?.isConnected || !replaced?.opener?.isConnected ? asked : replaced.opener
+  const opener = live(asked) || !live(replaced?.opener) ? asked : replaced.opener
   const held = BACKGROUND.filter(hold)
   const controls = () => [...el.querySelectorAll(FOCUSABLE)]
   const inside = document.activeElement && el.contains(document.activeElement)
@@ -95,16 +100,22 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
     // has moved the focus into itself by then, and is left alone. preventScroll: the page behind
     // is put back where it was by Modals, and a focus must not move it first.
     queueMicrotask(() => {
-      const open = [...document.querySelectorAll('.sheet, .center, [role="dialog"]')].filter(d => d !== el && !el.contains(d))
-      if (opener?.isConnected && (!open.length || open.some(d => d.contains(opener)))) opener.focus?.({ preventScroll: true })
+      const open = [...document.querySelectorAll('.sheet, .center, [role="dialog"]')].filter(d => d !== el && !el.contains(d) && live(d))
+      if (live(opener) && (!open.length || open.some(d => d.contains(opener)))) opener.focus?.({ preventScroll: true })
     })
   }
 }
 
+// For content that runs its own trap (`data-own-dialog-focus`, the + sheet). It follows the
+// presence of the sheet it sits in (components/presence.jsx), the way useSheetDialog does: a closed
+// sheet still playing its way out has let go of the focus and the page already, and one that
+// replaces it in the same tap inherits its opener. A layout effect, so that the release lands
+// before the replacing sheet's trap reads it.
 export function useDialogFocus(ref) {
-  useEffect(() => {
+  const { present } = usePresence()
+  useLayoutEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!present || !el) return
     return trapDialogFocus(el)
-  }, [])
+  }, [present])
 }

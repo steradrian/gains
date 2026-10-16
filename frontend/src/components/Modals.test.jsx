@@ -278,8 +278,9 @@ describe('Modals drag axis lock and dismiss', () => {
     expect(mocks.state.sheets).toHaveLength(1)
   })
 
-  it('dismisses on a short but fast flick', async () => {
-    vi.useFakeTimers()
+  // Closed on release, not after a timer: the way out carries on from where the finger let go
+  // (components/presence.jsx), and the page behind is back the moment the sheet is gone.
+  it('dismisses on a short but fast flick, at once', async () => {
     let now = 0
     vi.spyOn(performance, 'now').mockImplementation(() => now)
     await setSheets([sheet('flick')])
@@ -292,10 +293,25 @@ describe('Modals drag axis lock and dismiss', () => {
       now = 60; mouse(sheetEl, 'mousemove', 80)   // 70px in 60ms: ~1 px/ms
       window.dispatchEvent(new dom.Event('mouseup'))
     })
-    expect(sheetEl.style.transform).toBe('translateY(110%)')
-    await act(async () => { vi.advanceTimersByTime(200) })
     expect(mocks.state.sheets).toHaveLength(0)
-    vi.useRealTimers()
+  })
+
+  it('never lets a locked sheet go on a pull, and draws no grab bar on it', async () => {
+    await setSheets([sheet('locked', { locked: true })])
+    const sheetEl = container.querySelector('.sheet')
+    sheetEl.scrollTop = 0
+    expect(sheetEl.querySelector('.grab')).toBeNull()
+
+    await act(async () => {
+      mouse(sheetEl, 'mousedown', 10)
+      mouse(sheetEl, 'mousemove', 200)
+      window.dispatchEvent(new dom.Event('mouseup'))
+    })
+    expect(sheetEl.style.transform).toBe('')
+    expect(mocks.state.sheets).toHaveLength(1)
+
+    await setSheets([sheet('open')])
+    expect(container.querySelector('.sheet .grab')).not.toBeNull()
   })
 
   it('keeps a short slow pull open', async () => {

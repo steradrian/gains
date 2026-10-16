@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { t } from '../../lib/i18n.js'
+import { useSheetClosed } from '../presence.jsx'
 import { SheetHeader } from '../sheet-layout.jsx'
 import ChoiceCards from './ChoiceCards.jsx'
 
@@ -25,7 +26,7 @@ export default function SummarySheet({ which, answers, onPick, onDone, close }) 
   const picked = useRef(false)
   // The Summary's `onDone` only calls the flow's stable save, so the first one is the one to keep.
   const done = useRef(onDone)
-  useEffect(() => () => { if (picked.current) done.current() }, [])
+  useSheetClosed(() => { if (picked.current) done.current() })
   const pick = (v, { viaKey }) => {
     picked.current = true
     setValue(v)

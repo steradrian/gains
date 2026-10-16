@@ -52,6 +52,12 @@
 
   /* motion: the draw-in and the gauges' sweep */
   --ease-io:cubic-bezier(.65,0,.35,1); --hero:640ms;
+  /* motion: enter and exit (beside index.css's --ease, --fast and --med). lib/motion.js mirrors
+     these as numbers for the Web Animations API; motion.tokens.test.js keeps them in step. */
+  --slow:340ms; --exit-fast:100ms; --exit:160ms; --exit-slow:260ms; --rm:120ms;
+  --ease-exit:cubic-bezier(.55,0,1,.45);
+  --shift-xs:4px; --shift-sm:8px; --shift-md:16px; --shift-x:24px;
+  --pop-from:.94; --pop-to:.97;
 
   /* media: drawn over photos and video, the same in both themes */
   --on-media:#fff; --media-bg:#000; --knob:#fff;

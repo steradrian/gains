@@ -11,6 +11,7 @@ import WorkoutMediaSection, { workoutMediaCount } from '../components/WorkoutMed
 import { workoutMediaOf } from '../lib/media-refs.js'
 import Stepper from '../components/Stepper.jsx'
 import Icon from '../components/Icon.jsx'
+import { useSheetClosed } from '../components/presence.jsx'
 import { Button, Switch, Row } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { MOBILE, shareExportBlob } from '../lib/mobile.js'
@@ -130,13 +131,12 @@ function WorkoutDetail({ w, close }) {
     stampWorkout(rec)
   })
   // onBlur alone loses the note: Escape, the Android back gesture and swipe-to-dismiss all
-  // close the sheet without ever moving focus out of the textarea. Flush on unmount too. The
-  // ref is what makes that work — a cleanup closes over the note from its own render, which
-  // is the empty string this started with.
+  // close the sheet without ever moving focus out of the textarea. Flush on close too: the moment
+  // it is closed, not once its way out has played. The ref keeps it to the note as it stands.
   const latest = useRef(note)
   latest.current = note
   const initial = useRef(w.note || '')
-  useEffect(() => () => {
+  useSheetClosed(() => {
     const text = latest.current.trim().slice(0, NOTE_MAX)
     if (text === initial.current) return
     update(s => {
@@ -145,7 +145,7 @@ function WorkoutDetail({ w, close }) {
       if (text) rec.note = text; else delete rec.note
       stampWorkout(rec)
     })
-  }, [])
+  })
   const nameOf = e => (EXIDX[e.id] ? exerciseNameFor(EXIDX[e.id]) : (e.n || e.id))
   // Tapping an exercise opens its history (Discord 'Improvement ideas'): from one session to the
   // curve it sits on, which is the question a past workout raises most often.
