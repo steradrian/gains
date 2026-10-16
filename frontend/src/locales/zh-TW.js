@@ -2973,7 +2973,6 @@ export default {
   'Days need a connection the first time': '首次查看日期需要連線',
   'Did you mean “{0}”?': '你是想找「{0}」嗎？',
   'Edit routine': '編輯訓練課表',
-  'Exercise details': '動作詳情',
   'Favourite': '已收藏',
   'Find any page, setting, exercise, workout, food or day.': '尋找任何頁面、設定、動作、訓練、食物或日期。',
   'Food': '飲食',

@@ -2983,7 +2983,6 @@ export default {
   'Days need a connection the first time': 'A napokhoz első alkalommal kapcsolat kell',
   'Did you mean “{0}”?': 'Erre gondoltál: „{0}”?',
   'Edit routine': 'Rutin szerkesztése',
-  'Exercise details': 'Gyakorlat részletei',
   'Favourite': 'Kedvenc',
   'Find any page, setting, exercise, workout, food or day.': 'Találj meg bármilyen oldalt, beállítást, gyakorlatot, edzést, ételt vagy napot.',
   'Food details': 'Étel részletei',

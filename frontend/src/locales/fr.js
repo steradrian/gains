@@ -2980,7 +2980,6 @@ export default {
   'Days need a connection the first time': 'Les jours nécessitent une connexion la première fois',
   'Did you mean “{0}”?': 'Vouliez-vous dire « {0} » ?',
   'Edit routine': 'Modifier la routine',
-  'Exercise details': 'Détails de l’exercice',
   'Favourite': 'Favori',
   'Find any page, setting, exercise, workout, food or day.': 'Trouvez n’importe quelle page, réglage, exercice, séance, aliment ou jour.',
   'Food details': 'Détails de l’aliment',
