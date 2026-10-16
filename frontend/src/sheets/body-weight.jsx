@@ -6,6 +6,9 @@ import { t, tn } from '../lib/i18n.js'
 import { closeThenNav } from '../lib/nav.js'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
+import { Chip, ChipRow, EmptyState, SectionTitle } from '../components/blocks.jsx'
+import { Inline, Spacer } from '../components/layout.jsx'
+import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { Button, Slider, NumberField } from '../components/ui.jsx'
 import { syncNow } from '../lib/nutrition/sync.js'
 import { deltaTone, weeklyWeights } from '../lib/bodyweight.js'
@@ -48,12 +51,12 @@ function WeightInput({ value, setValue, unit }) {
       </label>
       <button className="bw-pm" onClick={() => onSlide(value + 0.1)} aria-label={t('Increase by {0}', fmtNum(0.1))}><Icon name="plus" /></button>
     </div>
-    <div className="chips" style={{ justifyContent: 'center', margin: '8px 0' }}>
-      <button className="chip" onClick={() => onSlide(value - 1)}>−1</button>
-      <button className="chip" onClick={() => onSlide(value - 0.5)}>−0.5</button>
-      <button className="chip" onClick={() => onSlide(value + 0.5)}>+0.5</button>
-      <button className="chip" onClick={() => onSlide(value + 1)}>+1</button>
-    </div>
+    <ChipRow className="mt-4 mb-4" style={{ justifyContent: 'center' }}>
+      <Chip onClick={() => onSlide(value - 1)}>−1</Chip>
+      <Chip onClick={() => onSlide(value - 0.5)}>−0.5</Chip>
+      <Chip onClick={() => onSlide(value + 0.5)}>+0.5</Chip>
+      <Chip onClick={() => onSlide(value + 1)}>+1</Chip>
+    </ChipRow>
     <Slider value={sv} min={W_LO} max={W_HI} step={0.5} onChange={onSlide} />
   </>
 }
@@ -92,28 +95,24 @@ function BwSheet({ required, onDone, close, date }) {
         deliberately; this is the same close a normal sheet gets everywhere else, just
         opted back in explicitly instead of by omission. Plain close() — no onDone, no
         nav — so it's a true no-op: the screen underneath is exactly where you left it. */}
-    {required
-      ? <div className="row between" style={{ marginBottom: 14 }}>
-          <h3 style={{ marginBottom: 0 }}>{t('Quick check-in')}</h3>
-          <button className="iconbtn" aria-label={t('Cancel')} onClick={() => close()}><Icon name="xmark" /></button>
-        </div>
-      : <h3>{t('Log body weight')}</h3>}
+    <SheetHeader title={required ? t('Quick check-in') : t('Log body weight')} onClose={required ? () => close() : undefined} />
     <div className="muted small">{required ? t('Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.') : day === todayISO() ? t('Today') + ', ' + fmtDate(day, true) : fmtDate(day, true)}</div>
     <WeightInput value={v} setValue={setV} unit={unit} />
-    <div style={{ height: 14 }} />
-    <Button variant="primary" onClick={save}>{required ? t('Save & start workout') : t('Save')}</Button>
+    <SheetActions>
+      <Button variant="primary" onClick={save}>{required ? t('Save & start workout') : t('Save')}</Button>
+      {required && <Button variant="ghost" className="dim" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</Button>}
+    </SheetActions>
     {required && <>
-      <div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</Button>
-      <div style={{ height: 2 }} /><Button variant="ghost" className="dim" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</Button>
+      <Spacer size={1} /><Button variant="ghost" className="dim" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</Button>
     </>}
     {!required && recent.length > 0 && <>
-      <h4 className="sec">{t('Recent weigh-ins')}</h4>
-      <div className="list" style={{ gap: 0 }}>
+      <SectionTitle>{t('Recent weigh-ins')}</SectionTitle>
+      <div className="list g-0">
         {recent.map(b => <WeighInRow key={b.d} b={b} unit={unit} />)}
       </div>
-      {st.bodyweight.length > recent.length && <div className="row" style={{ justifyContent: 'flex-end', marginTop: 6 }}>
+      {st.bodyweight.length > recent.length && <Inline justify="end" className="mt-3">
         <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>
-      </div>}
+      </Inline>}
     </>}
   </>
 }
@@ -132,11 +131,11 @@ function WeighInRow({ b, unit, confirm = false }) {
     title: t('Delete weigh-in?'), message: `${fmtDate(b.d, true)} · ${fmtNum(b.w)} ${unit}`,
     confirmText: t('Delete'), danger: true, onConfirm: delEntry,
   })
-  return <div className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
+  return <Inline justify="between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
     <span className="small muted">{fmtDate(b.d, true)}</span>
-    <span className="row" style={{ gap: 12 }}><b>{fmtNum(b.w)} {unit}</b>
-      <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red-ink)' }} onClick={confirm ? ask : delEntry} aria-label={t('Delete weigh-in')}><Icon name="trash" /></button></span>
-  </div>
+    <Inline as="span"><b>{fmtNum(b.w)} {unit}</b>
+      <button className="iconbtn fs-subhead ink-danger" style={{ width: 32, height: 30, borderRadius: 8 }} onClick={confirm ? ask : delEntry} aria-label={t('Delete weigh-in')}><Icon name="trash" /></button></Inline>
+  </Inline>
 }
 
 /* ============================ weigh-ins ============================ */
@@ -152,29 +151,28 @@ function WeighIns() {
     .map(w => ({ t: new Date(w.key + 'T12:00:00').getTime(), y: Math.round(w.avg * 100) / 100, d: w.key })), [weeks])
   const n = weeks.reduce((sum, w) => sum + w.n, 0)
   if (!n) return <>
-    <h3>{t('Weigh-ins')}</h3>
-    <div className="empty"><div className="ico"><Icon name="scale" /></div>{t('No weigh-ins yet. Log your weight to start the curve.')}</div>
+    <SheetHeader title={t('Weigh-ins')} />
+    <EmptyState icon="scale">{t('No weigh-ins yet. Log your weight to start the curve.')}</EmptyState>
   </>
   return <>
-    <h3 style={{ marginBottom: 2 }}>{t('Weigh-ins')}</h3>
-    <div className="muted small" style={{ marginBottom: 10 }}>{tn('{0} weigh-in', '{0} weigh-ins', n)}</div>
+    <SheetHeader title={t('Weigh-ins')} sub={tn('{0} weigh-in', '{0} weigh-ins', n)} />
     <div className="chart"><LineChart points={points} h={140} unit={st.unit} goal={st.targetW} label={t('Weight')} /></div>
-    <div className="small dim" style={{ marginTop: 6 }}>{t('Weekly average')}</div>
+    <div className="small dim mt-3">{t('Weekly average')}</div>
     {weeks.map(w => {
       // Only a change the display can show: at one decimal, 0.02 kg is "0", and an arrow over a
       // zero says something moved when, as far as the screen goes, nothing did.
       const moved = w.delta != null && fmtNum(Math.abs(w.delta)) !== fmtNum(0)
       return <div key={w.key} data-week={w.key}>
-        <div className="row between" style={{ margin: '16px 2px 4px', gap: 8 }}>
-          <span className="small" style={{ fontWeight: 600 }}>{t('Week of {0}', fmtDate(w.key))}</span>
-          <span className="small row" style={{ gap: 8 }}>
-            {moved && <span className="row" style={{ gap: 2, fontWeight: 500, color: bwDeltaColor(w.delta, w.avg) }}>
-              <Icon name={w.delta > 0 ? 'arrowUp' : 'arrowDown'} style={{ fontSize: 12 }} />{fmtNum(Math.abs(w.delta))}
-            </span>}
+        <Inline justify="between" gap={4} style={{ margin: '16px 2px 4px' }}>
+          <span className="small fw-semibold">{t('Week of {0}', fmtDate(w.key))}</span>
+          <Inline as="span" gap={4} className="small">
+            {moved && <Inline as="span" gap={1} className="fw-medium" style={{ color: bwDeltaColor(w.delta, w.avg) }}>
+              <Icon name={w.delta > 0 ? 'arrowUp' : 'arrowDown'} className="fs-caption" />{fmtNum(Math.abs(w.delta))}
+            </Inline>}
             <span className="muted" style={{ whiteSpace: 'nowrap' }}>{t('Average {0}', fmtNum(w.avg) + ' ' + st.unit)}</span>
-          </span>
-        </div>
-        <div className="list" style={{ gap: 0 }}>{w.entries.map(b => <WeighInRow key={b.d} b={b} unit={st.unit} confirm />)}</div>
+          </Inline>
+        </Inline>
+        <div className="list g-0">{w.entries.map(b => <WeighInRow key={b.d} b={b} unit={st.unit} confirm />)}</div>
       </div>
     })}
   </>
@@ -189,18 +187,19 @@ function GoalSheet({ close }) {
   const bw = lastBW(st)
   const [v, setV] = useState(st.targetW || (bw ? bw.w : 70))
   return <>
-    <h3>{t('Target weight')}</h3>
+    <SheetHeader title={t('Target weight')} />
     <div className="muted small">{t('Your goal is drawn as a line through the weight charts, and gains/losses are colored by whether they move toward it.')}</div>
     <WeightInput value={v} setValue={setV} unit={st.unit} />
-    <div style={{ height: 14 }} />
-    <Button variant="primary" onClick={() => {
-      const n = Math.round((v || 0) * 10) / 10
-      if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
-      if (bwTooHeavy(n, st.unit)) return
-      update(s => { s.targetW = n }); close()
-      const b = lastBW(S()); toast(t('Goal set: {0}', fmtNum(n) + ' ' + st.unit) + (b ? ' (' + t('{0} to go', fmtNum(Math.abs(n - b.w))) + ')' : ''))
-    }}>{t('Save goal')}</Button>
-    {st.targetW && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { update(s => { s.targetW = null }); close(); toast(t('Goal removed')) }}>{t('Remove goal')}</Button></>}
+    <SheetActions>
+      <Button variant="primary" onClick={() => {
+        const n = Math.round((v || 0) * 10) / 10
+        if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
+        if (bwTooHeavy(n, st.unit)) return
+        update(s => { s.targetW = n }); close()
+        const b = lastBW(S()); toast(t('Goal set: {0}', fmtNum(n) + ' ' + st.unit) + (b ? ' (' + t('{0} to go', fmtNum(Math.abs(n - b.w))) + ')' : ''))
+      }}>{t('Save goal')}</Button>
+      {st.targetW ? <Button variant="danger" onClick={() => { update(s => { s.targetW = null }); close(); toast(t('Goal removed')) }}>{t('Remove goal')}</Button> : null}
+    </SheetActions>
   </>
 }
 export const goalSheet = () => ui().openSheet(close => <GoalSheet close={close} />)
