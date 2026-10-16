@@ -841,6 +841,21 @@ describe('who sees what', () => {
       expect(where(page)).toBe('/home')
     })
 
+    it('keeps the screen of what did not go in when the completion gets through while the layout says busy', async () => {
+      saved({ answers: { goal: 'keep', body: full, trainingDays: 0 } })
+      // The first read was limited; any read after the completion would say it is done.
+      hub.loadOnboarding.mockRejectedValueOnce(tooMany(0)).mockResolvedValue({ answers: {}, completedAt: 1, delivery: { opengym: 'done', nutritrace: 'failed' } })
+      hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'failed' } })
+      const page = mount('/onboarding/finish')
+      await flush()
+      expect(page.querySelector('.ob [role="status"]').textContent).toContain('Gains is busy right now.')
+      await act(async () => { button(page, 'Go to Home').click() })
+      await flush()
+      await flush()
+      expect(page.querySelector('h1').textContent).toBe('Not everything could be set up')
+      expect(where(page)).toBe('/onboarding/finish')
+    })
+
     it('says busy when a save at the finish is rate limited with a Retry-After of 0', async () => {
       saved({ answers: { goal: 'keep', body: full, trainingDays: 0 }, unsaved: ['goal'] })
       hub.saveStep.mockRejectedValueOnce(tooMany(0))

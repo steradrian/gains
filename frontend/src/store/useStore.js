@@ -326,6 +326,7 @@ export const useStore = create((set, get) => {
   let offlineChanges = false   // a push failed for lack of network — the next one that lands says so
   let backupTm = null      // phone: the auto-backup after workout media changed, on its debounce
   let adoptHold = false    // a sign-in's adoption has not decided yet: no pull, no push (ADOPT_KEY)
+  let restarting = false   // the page is about to reload as whoever the session now is: no pull, no push (holdForRestart)
   let adopting = null      // the adoptProfile in flight
   let rejoined = false     // the account signing in is the one this copy already belongs to (setUser)
   let pairedBase = null    // mobile build: the address of the paired server, while there is one
@@ -1580,6 +1581,23 @@ export const useStore = create((set, get) => {
       setSync({ held: adoptHold })
     },
 
+    // The session turned out to be someone else's (the hub refused a request made for this tab's
+    // person), and the page reloads to find out who. Until it does, this tab's copy must reach no
+    // server under whoever's cookie that is: nothing is pushed or pulled from here on, a push
+    // waiting in its debounce is cancelled, and the pagehide flush finds nothing to send. The
+    // cached user goes only while it is still this tab's person's (another tab may already have
+    // written the new one), so a boot that cannot reach /api/me does not take the old one for the
+    // signed-in. The user itself, and everything listening to it, is left alone: the reload
+    // starts over, and no screen changes before it.
+    holdForRestart() {
+      restarting = true
+      clearTimeout(pushTm)
+      pushTm = null
+      try {
+        if (JSON.parse(localStorage.getItem('gym_user'))?.id === get().user?.id) localStorage.removeItem('gym_user')
+      } catch { /* no cached user to clear */ }
+    },
+
     // One PUT at a time: a push asked for while one is in flight runs after it (once, however
     // many asked), and the promise returned covers that follow-up too, so a caller that awaits
     // before signing out knows the last change is on the server.
@@ -1587,6 +1605,7 @@ export const useStore = create((set, get) => {
       if (!get().user) return
       clearTimeout(pushTm)
       pushTm = null
+      if (restarting) return   // the page is reloading as someone else (holdForRestart)
       if (adoptHold) return   // the sign-in has not decided what this copy is yet (adoptProfile)
       if (pushing) { pushAgain = true; return pushing.then(() => pushing) }
       pushing = doPush().finally(() => {
@@ -1599,6 +1618,7 @@ export const useStore = create((set, get) => {
     // in the debounce goes first — the server's answer is then the one that already includes it,
     // and the push itself is what catches a conflict.
     async pullState() {
+      if (restarting) return   // as pushState
       if (adoptHold) return   // as pushState: adoptProfile reads the server itself
       if (pulling) return pulling
       pulling = (async () => {

@@ -9,13 +9,14 @@ import { button, flush, mount, radio, rerender, saved, stubReload, unmountAll, w
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-// `setUser` is one spy, and does not change `user`: what asks for the cached user to be cleared
-// (the page starting over) is asserted on, and the screen stays up for the rest of the test.
-const mocks = vi.hoisted(() => ({ user: null, sheets: [], setUser: vi.fn() }))
+// `holdForRestart` and `setUser` are spies, and neither changes `user`: that the page starting over
+// holds the app's store (and does not sign anyone out) is asserted on, and the screen stays up for
+// the rest of the test.
+const mocks = vi.hoisted(() => ({ user: null, sheets: [], setUser: vi.fn(), holdForRestart: vi.fn() }))
 vi.mock('../../store/useStore.js', () => {
   const snap = () => ({
     user: mocks.user, config: {}, S: {},
-    setUser: mocks.setUser, pushState: vi.fn(), pullState: vi.fn(), adoptProfile: vi.fn(async () => {}),
+    setUser: mocks.setUser, holdForRestart: mocks.holdForRestart, pushState: vi.fn(), pullState: vi.fn(), adoptProfile: vi.fn(async () => {}),
   })
   const useStore = selector => (selector ? selector(snap()) : snap())
   useStore.getState = snap
@@ -64,6 +65,7 @@ beforeEach(() => {
   mocks.user = null
   mocks.sheets.length = 0
   mocks.setUser.mockReset()
+  mocks.holdForRestart.mockReset()
   Object.values(hub).forEach(f => f.mockReset())
   hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, step: null, coachAvailable: true, starterAvailable: true, coachConsent: null })
   hub.saveStep.mockResolvedValue({})
@@ -239,7 +241,7 @@ describe('a shared device', () => {
     expect(button(page, 'Go to Home').disabled).toBe(true)
   })
 
-  it('the cached user is cleared before the page reloads, so a boot that cannot reach /api/me does not take the stale person for the signed-in one', async () => {
+  it('the app\'s store is held for the restart before the page reloads, without signing anyone out or leaving the flow', async () => {
     mocks.user = MARIA
     saved({ answers: { goal: 'keep', body, trainingDays: 0 } })
     const reload = stubReload()
@@ -248,8 +250,11 @@ describe('a shared device', () => {
     await flush()
     await act(async () => { button(page, 'Go to Home').click() })
     await flush()
-    expect(mocks.setUser).toHaveBeenCalledWith(null)
-    expect(mocks.setUser.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0])
+    expect(mocks.holdForRestart).toHaveBeenCalledTimes(1)
+    expect(mocks.holdForRestart.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0])
+    // Nobody is signed out, and the flow is not navigated away from, before the reload.
+    expect(mocks.setUser).not.toHaveBeenCalled()
+    expect(where(page)).toBe('/onboarding/finish')
   })
 
   it('a save that a refused tap was waiting on starts the page over, and the finish sends nothing more', async () => {

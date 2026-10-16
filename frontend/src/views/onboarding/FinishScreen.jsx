@@ -85,7 +85,7 @@ export default function FinishScreen() {
     }
     let done = null
     try {
-      done = await hubCall(() => completeOnboarding(todayISO(), owner))
+      done = await hubCall(() => completeOnboarding(todayISO(), owner), { reread: false })
     } catch (e) {
       if (restarting()) return
       if (e.code === 'wrong-user') {

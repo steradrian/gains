@@ -68,15 +68,16 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
    * another tab, and this one has not heard). Nothing in the store can read who that is without
    * running the app's boot again, so the page starts over: the answers on screen are dropped, the
    * cached user goes too (a boot that cannot reach /api/me would otherwise take it for the
-   * signed-in one and be refused the same way), and the reload reads the signed-in person and
-   * re-keys everything to them. Once started it is not started again, and nothing more is sent:
-   * `restarting()` says so.
+   * signed-in one and be refused the same way), nothing of this tab's copy can be pushed under
+   * the new session (the app's store holds for the restart, and leaves the user and the screens
+   * as they are), and the reload reads the signed-in person and re-keys everything to them. Once
+   * started it is not started again, and nothing more is sent: `restarting()` says so.
    */
   const restarting = useRef(false)
   const signedInElsewhere = useCallback(() => {
     if (restarting.current) return
     restarting.current = true
-    useStore.getState().setUser(null)
+    useStore.getState().holdForRestart()
     discard()
     window.location.reload()
   }, [discard])
@@ -103,9 +104,11 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
    * `stillAsked`: whether the request is still wanted once the wait is over (a save for a person
    * who has since gone); when it is not, nothing is sent and the call fails `stale`.
    * A request the hub answers while the layout says "busy" or "offline" (a read that did not
-   * get through) is proof it is there: the read goes again.
+   * get through) is proof it is there: the read goes again, unless `reread` is false: the
+   * completion's answer is the end of the onboarding, and a read after it would only say so and
+   * take the screen showing what did not go in away.
    */
-  const hubCall = useCallback(async (request, { stillAsked } = {}) => {
+  const hubCall = useCallback(async (request, { stillAsked, reread = true } = {}) => {
     for (let wait = busyUntil.current - Date.now(); wait > 0; wait = busyUntil.current - Date.now()) {
       await sleep(wait + Math.random() * WAKE_JITTER_MS)
     }
@@ -113,7 +116,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
     try {
       const res = await request()
       limited.current = false
-      if (!reading.current && (hubNow.current === 'busy' || hubNow.current === 'offline')) refreshNow.current?.()
+      if (reread && !reading.current && (hubNow.current === 'busy' || hubNow.current === 'offline')) refreshNow.current?.()
       return res
     } catch (e) {
       limited.current = e.status === 429

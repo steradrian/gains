@@ -11,8 +11,8 @@ import { useOnboardingStore } from './use-onboarding-store.js'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 vi.mock('../nutrition/api.js', () => ({ nutritionAvailable: () => true }))
-const app = vi.hoisted(() => ({ setUser: vi.fn() }))
-vi.mock('../../store/useStore.js', () => ({ useStore: { getState: () => ({ setUser: app.setUser }) } }))
+const app = vi.hoisted(() => ({ setUser: vi.fn(), holdForRestart: vi.fn() }))
+vi.mock('../../store/useStore.js', () => ({ useStore: { getState: () => ({ setUser: app.setUser, holdForRestart: app.holdForRestart }) } }))
 const hub = vi.hoisted(() => ({ loadOnboarding: vi.fn(), saveStep: vi.fn() }))
 vi.mock('./api.js', async original => ({ ...(await original()), ...hub }))
 
@@ -49,6 +49,7 @@ beforeEach(async () => {
   vi.useFakeTimers()
   sessionStorage.clear()
   app.setUser.mockReset()
+  app.holdForRestart.mockReset()
   hub.loadOnboarding.mockReset()
   hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: true, starterAvailable: true })
   hub.saveStep.mockReset()
@@ -224,7 +225,8 @@ describe('refresh', () => {
     await signIn(null)
     await signIn(MARIA)
     expect(reload).toHaveBeenCalledTimes(1)
-    expect(app.setUser).toHaveBeenCalledWith(null)
+    expect(app.holdForRestart).toHaveBeenCalledTimes(1)
+    expect(app.setUser).not.toHaveBeenCalled()
     expect(store.hub).not.toBe('offline')
   })
 })
