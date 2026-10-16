@@ -123,6 +123,18 @@ describe('the page behind an open search', () => {
     expect($('#timer').hasAttribute('inert')).toBe(false)
   })
 
+  it('takes over what a sheet held when the search opened, once the sheet lets go of it, and lifts it with the close', async () => {
+    await mount()
+    $('#tabbar').setAttribute('inert', '')
+    await open()
+    $('#tabbar').removeAttribute('inert')
+    await wait(10)
+    expect($('#tabbar').hasAttribute('inert')).toBe(true)
+    await act(async () => $('.avatar-btn').click())
+    await wait(50)
+    expect($('#tabbar').hasAttribute('inert')).toBe(false)
+  })
+
   it('a sheet opened over the open search holds #app and lets it go without freeing what the search holds', async () => {
     await mount()
     await open()

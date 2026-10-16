@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -51,7 +51,10 @@ export default function SearchHost() {
   useEffect(() => { if (!isSwitching()) syncSearchWithHistory() }, [loc])
 
   // The page behind stays where it was (bearmenu: <html> is the scroller, so both are held) and
-  // out of reach: inert, the header and the overlay apart (lib/search/hold-page.js).
+  // out of reach: inert, the header and the overlay apart (lib/search/hold-page.js). The hold
+  // watches the document for as long as the overlay is up; a navigation asks it to look again
+  // too, since the router's location can land a commit after the overlay's `open`.
+  const page = useRef(null)
   useLayoutEffect(() => {
     document.body.classList.toggle('search-open', open)
     if (!open) return undefined
@@ -60,13 +63,14 @@ export default function SearchHost() {
     const prev = [html.style.overflow, document.body.style.overflow]
     html.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
-    const releasePage = holdPage()
+    page.current = holdPage()
     // The keyboard's height, so the last row scrolls clear of it.
     const vv = window.visualViewport
     const inset = () => html.style.setProperty('--search-kb', Math.max(0, window.innerHeight - (vv.height + vv.offsetTop)) + 'px')
     if (vv) { inset(); vv.addEventListener('resize', inset); vv.addEventListener('scroll', inset) }
     return () => {
-      releasePage()
+      page.current.release()
+      page.current = null
       html.style.overflow = prev[0]
       document.body.style.overflow = prev[1]
       document.body.classList.remove('search-open')
@@ -75,6 +79,7 @@ export default function SearchHost() {
       if (document.body.style.position !== 'fixed') window.scrollTo(0, y)
     }
   }, [open])
+  useLayoutEffect(() => { page.current?.refresh() }, [open, loc.key])
 
   // ⌘K / Ctrl K anywhere, `/` outside a field; never on the workout screen. Escape while a row
   // (not the pill) has the focus: clear, then close. A sheet over the overlay takes its own Escape.
