@@ -159,7 +159,7 @@
 .g-sfoot .g-btn-primary { height: 54px; font: 700 17px/22px var(--font-sans); }
 /* the plain link under it: bundle.css has no rule of its own for it; the sign-in and onboarding
    screens draw it as on-stage text on no ground */
-.g-sfoot .g-btn-ghost { color: var(--on-stage); }
+.g-sfoot .g-btn-ghost { height: 46px; font: 600 17px/22px var(--font-sans); color: var(--on-stage); }
 .g-screen .g-sfoot { padding-bottom: calc(30px + var(--sab, 0px)); }
 
 /* Accent presets. The design system selects them by data-accent on any ancestor (it expects
