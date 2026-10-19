@@ -380,4 +380,11 @@ describe('G4 and G7', () => {
     expect(newCssViolations('.a{color:tomato;background:hsl(0 0% 0%)}', 'x.css')).toBe(2)
     expect(newCssViolations(':root{--x:#fff} .a{color:var(--x)}', 'ui-kit.css')).toBe(0)
   })
+
+  it('reads the design system\'s .g-root as its tokens\' root, in its own token file only', () => {
+    const tokens = '.g-root{--x:#fff} :root[data-theme="dark"] .g-root{--x:#000}'
+    expect(newCssViolations(tokens, 'ds/tokens.css')).toBe(0)
+    expect(newCssViolations(tokens, 'ds/ds.css')).toBe(2)
+    expect(newCssViolations('.g-root .a{color:#fff} .g-root[data-accent="moss"]{--x:#123}', 'ds/tokens.css')).toBe(2)
+  })
 })

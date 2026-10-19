@@ -14,11 +14,14 @@ const PACK = /[\\/]src[\\/](?:locales|instr|exercise-names)[\\/]/
 const KEEP = /[\\/]src[\\/]instr[\\/]en\.js$/
 
 /** The built files the worker fetches at install besides what index.html names: every chunk and
- *  stylesheet but the packs, as './assets/…' the way index.html writes them. */
+ *  stylesheet but the packs, and the fonts the stylesheets name, as './assets/…' the way
+ *  index.html writes them. A face is fetched the first time a page uses it, which offline after
+ *  an update would be never; woff2 only, since every browser the app runs in reads it and the
+ *  .woff beside it is only a fallback. */
 export function lazyAssets(bundle) {
   const out = []
   for (const [file, item] of Object.entries(bundle)) {
-    if (!/\.(?:js|css)$/.test(file)) continue
+    if (!/\.(?:js|css|woff2)$/.test(file)) continue
     const ids = item.type === 'chunk' ? (item.moduleIds?.length ? item.moduleIds : Object.keys(item.modules || {})) : []
     if (ids.length && ids.every(id => PACK.test(id) && !KEEP.test(id))) continue
     out.push('./' + file)

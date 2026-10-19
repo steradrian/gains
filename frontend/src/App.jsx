@@ -46,6 +46,9 @@ import BootSplash from './components/BootSplash.jsx'
 // The first-run onboarding is reached once per person, from an invite: its screens, art and
 // styles come in their own chunk, not in the load every launch pays for.
 const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
+// The design system's catalogue (#/dev/kit), on the dev server only: a production build replaces
+// import.meta.env.DEV with false and drops it, chunk and all.
+const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -250,6 +253,7 @@ function Shell() {
   const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchPath(workoutRunning(S))
 
   const authed = user || isGuest
+  if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
   )
