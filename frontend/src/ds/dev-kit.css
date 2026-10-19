@@ -1,0 +1,9 @@
+/* The catalogue's own layout (DevKit.jsx, dev server only): it comes and goes with that chunk. */
+.g-kit { display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-4) var(--space-4) 220px; }
+.g-kit-sec { display: flex; flex-direction: column; gap: var(--space-3); }
+.g-kit-sec > h2 { margin: 0; font: 700 20px/26px var(--font-display); letter-spacing: -0.02em; }
+.g-kit-sec > p { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-kit-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.g-kit-col { display: flex; flex-direction: column; gap: var(--space-2); }
+.g-kit-light { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--canvas); color: var(--text); }
+.g-kit-white { color: var(--on-stage); }
