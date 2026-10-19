@@ -28,8 +28,7 @@ export default function TrainingScreen() {
       : t('Suggested: {0}', suggestedDays(days).map(d => weekdayName(d, locale)).join(', '))
   return (
     <StepScreen titleId="ob-days-t" title={t('How often do you train?')} sub={t('Days a week. Pick 0 if you’re only tracking food.')}
-      stage={<WeekScene days={days} lit={lit} experience={state.starter?.experience}
-        letters={WEEK.map(d => weekdayName(d, locale, 'narrow'))} />}
+      stage={<WeekScene days={days} lit={lit} experience={state.starter?.experience} />}
       caption={caption}>
       <div className="ob-daysel" role="radiogroup" aria-labelledby="ob-days-t" onKeyDown={onKeyDown}>
         {DAYS.map(n => (

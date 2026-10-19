@@ -57,25 +57,17 @@ const NAV = {
 }
 export const navOf = screen => NAV[screen] || { show: false }
 
-// Progress: Goal · You · Training. You fills in quarters, and the bar never shrinks (progressMax).
-const PROGRESS = {
-  goal: [1, 0, 0], sex: [1, 0.25, 0], born: [1, 0.5, 0], height: [1, 0.75, 0], weight: [1, 1, 0],
-  training: [1, 1, 1], plan: [1, 1, 1], starter: [1, 1, 1],
-}
-export const progressOf = screen => PROGRESS[screen] || null
-/** The bar as it shows after `screen`: never lower than it already was. */
-export const progressMax = (max, screen) => {
-  const want = PROGRESS[screen]
-  return want ? max.map((m, i) => Math.max(m, want[i])) : max
-}
-/** 1, 2 or 3: the step of the three the screen belongs to. */
-export const stepOf = screen => {
-  const want = PROGRESS[screen]
-  return !want ? null : want[2] ? 3 : want[1] ? 2 : 1
-}
+// Progress: eight steps, one a question (the entry boards' "Step n of 8"); the starter preview is
+// part of the plan's. The bar shows the furthest step reached and never shrinks (progressMax).
+export const STEP_COUNT = 8
+const STEP = { name: 1, goal: 2, sex: 3, born: 4, height: 5, weight: 6, training: 7, plan: 8, starter: 8 }
+/** 1 to 8: the step the screen is, or null where the bar is not shown. */
+export const stepOf = screen => STEP[screen] || null
+/** The furthest step reached once `screen` shows: never lower than it already was. */
+export const progressMax = (max, screen) => Math.max(max, STEP[screen] || 0)
 
-// The bar's step each of the hub's steps belongs to: the plan is part of Training.
-const BAR_STEP = { goal: 1, body: 2, training: 3, plan: 3 }
+// The bar's steps each of the hub's steps covers: the body is the four About-you steps.
+const BAR_STEPS = { goal: [2], body: [3, 4, 5, 6], training: [7], plan: [8] }
 /**
  * "N steps left" (ux-onboarding §6): the bar's steps, from the one `screen` is on, that the hub's
  * `remaining` still names. Counted as the bar counts them, so it never says more are left than the
@@ -84,7 +76,7 @@ const BAR_STEP = { goal: 1, body: 2, training: 3, plan: 3 }
 export function stepsLeft(remaining, screen) {
   const at = stepOf(screen)
   if (!at || !Array.isArray(remaining)) return null
-  return new Set(remaining.map(s => BAR_STEP[s]).filter(n => n >= at)).size
+  return new Set(remaining.flatMap(s => BAR_STEPS[s] || []).filter(n => n >= at)).size
 }
 
 const bodyValue =(answers, step) => answers?.body?.[YOU_FIELD[step]] ?? null

@@ -2,23 +2,24 @@
 import { describe, expect, it } from 'vitest'
 import {
   answeredByData, codeOf, detourOf, isFlowPath, missingYou, navOf, nextAfter, nextIsDone, pathOf, planOwed, previousOf, progressMax,
-  resumeScreen, screenOf, skipTarget, stepOf, stepsLeft,
+  resumeScreen, screenOf, skipTarget, STEP_COUNT, stepOf, stepsLeft,
 } from './flow.js'
 
 describe('steps left (§6), counted as the progress bar counts them', () => {
   it('counts the bar\'s steps the hub still names, from the one on screen', () => {
-    expect(stepsLeft(['goal', 'body', 'training', 'plan'], 'goal')).toBe(3)
-    // Training and its plan are one step of the bar.
-    expect(stepsLeft(['body', 'training', 'plan'], 'height')).toBe(2)
-    expect(stepsLeft(['training', 'plan'], 'training')).toBe(1)
+    expect(stepsLeft(['goal', 'body', 'training', 'plan'], 'goal')).toBe(7)
+    // The body is the four About-you steps of the bar; those behind the one on screen are done.
+    expect(stepsLeft(['body', 'training', 'plan'], 'height')).toBe(4)
+    expect(stepsLeft(['training', 'plan'], 'training')).toBe(2)
     // A step behind the one on screen is not left, whatever an older read said.
     expect(stepsLeft(['goal', 'body', 'training', 'plan'], 'plan')).toBe(1)
+    expect(stepsLeft(['plan'], 'starter')).toBe(1)
     expect(stepsLeft([], 'weight')).toBe(0)
   })
 
   it('says nothing where the bar is not shown or the hub has not answered', () => {
     expect(stepsLeft(['plan'], 'finish')).toBeNull()
-    expect(stepsLeft(['goal'], 'name')).toBeNull()
+    expect(stepsLeft(['goal'], 'passkey')).toBeNull()
     expect(stepsLeft(null, 'goal')).toBeNull()
   })
 })
@@ -109,14 +110,24 @@ describe('the detour from the end', () => {
 })
 
 describe('progress', () => {
-  it('fills You in quarters and never shrinks going back', () => {
-    let max = [0, 0, 0]
-    for (const s of ['goal', 'sex', 'born']) max = progressMax(max, s)
-    expect(max).toEqual([1, 0.5, 0])
-    expect(progressMax(max, 'sex')).toEqual([1, 0.5, 0])
-    expect(progressMax(max, 'training')).toEqual([1, 1, 1])
-    expect(progressMax(max, 'finish')).toBe(max)
-    expect([stepOf('goal'), stepOf('weight'), stepOf('plan'), stepOf('name')]).toEqual([1, 2, 3, null])
+  it('has eight steps, one a question: name, goal, sex, born, height, weight, training, plan', () => {
+    expect(STEP_COUNT).toBe(8)
+    const order = ['name', 'goal', 'sex', 'born', 'height', 'weight', 'training', 'plan']
+    expect(order.map(stepOf)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    // The starter preview is the plan's step; the landing, the passkey result and the end have none.
+    expect(stepOf('starter')).toBe(8)
+    expect(['invite', 'passkey', 'finish'].map(stepOf)).toEqual([null, null, null])
+  })
+
+  it('shows the furthest step reached and never shrinks going back', () => {
+    let max = 0
+    for (const s of ['name', 'goal', 'sex', 'born']) max = progressMax(max, s)
+    expect(max).toBe(4)
+    expect(progressMax(max, 'sex')).toBe(4)
+    // A skip from About you fills the steps it jumps over.
+    expect(progressMax(max, 'training')).toBe(7)
+    expect(progressMax(7, 'finish')).toBe(7)
+    expect(progressMax(0, 'passkey')).toBe(0)
   })
 })
 

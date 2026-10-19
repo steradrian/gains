@@ -1,63 +1,101 @@
-/* The first-run onboarding (views/onboarding, components/onboarding), ported from the approved
-   prototype v4 (fitness-eval: ux-onboarding.md §3b, ui-onboarding-round2.md, motion-onboarding-thread.md).
-   Tokens only: the accent is the person's own (--acc, --acc-ink, --acc-graphic). The page width
-   and its gutters are the shell's (#app); the layout (OnboardingLayout) owns the nav row, the
-   header block, the stage, the controls and the footer, and no screen sets its own. */
+/* The first-run onboarding (views/onboarding, components/onboarding) on the design system's stage
+   (StageScreen, the entry boards O1 and O2), with the motion of the approved prototype v4
+   (fitness-eval: ux-onboarding.md §3b, motion-onboarding-thread.md). The kit's pieces are ds/ds.css;
+   everything here is the layout around them, from the boards: the nav row, the header block, the
+   illustration slot, the controls and the footer, which the layout (OnboardingLayout, StepScreen)
+   owns and no screen sets its own. The steps after the passkey keep their own controls for now
+   (milestone B restyles them). */
 
-.ob{--ob-slow:420ms;position:relative;isolation:isolate}
+.ob{--ob-slow:420ms;position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:calc(100vh - var(--sat, 0px));min-height:calc(100dvh - var(--sat, 0px))}
 
-/* ---- the nav row: back, progress, skip ---- */
-.ob-nav{
-  position:sticky;top:calc(var(--sat) + var(--conn));z-index:20;background:var(--bg);
-  height:44px;display:grid;grid-template-columns:minmax(44px,auto) 1fr minmax(44px,auto);align-items:center;
-  margin:0 calc(-1 * var(--pad));padding:0 4px;
-}
-.ob-nav.gone{visibility:hidden}
-.ob-nbtn{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--acc-ink);border-radius:22px;transition:opacity var(--fast)}
-.ob-nbtn:active{opacity:.5}
-.ob-nbtn[disabled]{visibility:hidden}
-[dir="rtl"] .ob-nbtn .icn{transform:scaleX(-1)}
-.ob-nend{height:44px;padding:0 12px;font-size:17px;color:var(--acc-ink);white-space:nowrap;justify-self:end;transition:opacity var(--fast)}
-.ob-nend:active{opacity:.5}
-.ob-mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
-.ob-mid:has(.ob-left:empty){gap:0}
-.ob-prog{display:flex;gap:4px;width:min(100%,168px);transition:opacity var(--med)}
-.ob-left{font-size:var(--fs-caption);line-height:1.2;color:var(--label-2);font-variant-numeric:tabular-nums;white-space:nowrap}
-.ob-prog.off{opacity:0}
-.ob-prog>span{flex:1;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden}
-.ob-prog>span>i{display:block;height:100%;background:var(--acc-graphic);transform:scaleX(var(--fill,0));transform-origin:left center;transition:transform var(--ob-slow) var(--ease)}
-[dir="rtl"] .ob-prog>span>i{transform-origin:right center}
+/* ---- the nav row: the kit's OnboardingNav, 58px; where it is not shown, the boards' 14px ---- */
+.ob-nav{position:relative;z-index:20}
+.ob-nav.gone{height:14px}
+[dir="rtl"] .ob-nav .g-onav-back .g-icon{transform:scaleX(-1)}
+.ob-note{padding:8px 16px 0}
 
 /* ---- the thread: one overlay line, only between screens ---- */
 .ob-thread{position:fixed;inset:0;width:100%;height:100%;z-index:10;pointer-events:none;contain:strict;overflow:hidden;visibility:hidden}
 .ob-thread path{fill:none;stroke-linecap:round;stroke-linejoin:round}
 /* Claimed: the thread carries this line in, so the scene's own copy waits. */
 [data-thread-claim]{visibility:hidden}
+/* On the stage the thread is white at the scene's structure weight (the kit's grammar: 2.5), and
+   the line a scene hands it is drawn the same, so the hand-off is the same pixels either way. */
+.ob .g-ill [data-thread]{stroke:var(--on-stage);stroke-width:var(--il-w)}
+/* The kit's draw-in, started --lead early by the thread (so the art grows from the line it is
+   about to land on), and not for the line the thread carries in. */
+.ob .g-ill-draw .dr,.ob .g-ill-draw .fd{animation-delay:calc(var(--lead, 0ms) + var(--d, 0ms))}
+.ob .g-ill-draw .dr.il-occ{animation-delay:calc(var(--lead, 0ms) + var(--d, 0ms)),calc(var(--lead, 0ms) + var(--d, 0ms) + 336ms)}
+.ob .g-ill-draw [data-thread-carried]{animation:none;stroke-dasharray:none}
 
-/* ---- a screen ---- */
-.ob-host{position:relative}
-.ob-screen{display:flex;flex-direction:column;min-height:calc(100dvh - var(--sat) - var(--conn) - var(--app-top) - 44px - 24px - var(--sab))}
-.ob-body{flex:1;padding-top:8px;padding-bottom:16px}
-.ob-screen.nonav .ob-body{padding-top:0}
-.ob-ttl{font-size:var(--fs-big);font-weight:700;letter-spacing:-.028em;line-height:1.1;margin:0}
+/* ---- a screen: header, illustration slot, caption, controls; the footer pinned under them ---- */
+.ob-host{position:relative;flex:1;display:flex;flex-direction:column}
+.ob-screen{flex:1;display:flex;flex-direction:column;color:var(--on-stage)}
+.ob-body{flex:1;padding-bottom:24px}
+.ob-hd{padding:18px 20px 0}
+.ob-screen.nonav .ob-hd{padding-top:28px}
+.ob-hd.far{padding-top:60px}
+.ob-hd.lead{display:flex;flex-direction:column;gap:16px}
+.ob-ttl{margin:0;font:700 30px/34px var(--font-sans);letter-spacing:-.028em;color:var(--on-stage)}
+.ob-hd.hero .ob-ttl{font-size:32px;line-height:36px}
 .ob-ttl:focus{outline:none}
-.ob-sub{font-size:15px;color:var(--label-2);margin:6px 0 0;letter-spacing:-.006em;line-height:1.35}
+.ob-sub{margin:8px 0 0;font:500 16px/22px var(--font-sans);color:var(--on-stage-2)}
+.ob-hd.lead .ob-sub{margin:0}
 /* Rule (b): on the goal-to-weight run the header holds 2 title + 2 subtitle lines, so every floor
    lands on the same y and the thread holds still while the art above it swaps. */
-.ob-hd{display:flow-root}
-.ob-hd.fixed{min-height:calc(2 * 1.1 * var(--fs-big) + 6px + 2 * 1.35 * 15px)}
-.ob-stage{margin-top:16px}
-.ob-controls{margin-top:16px}
-/* The footer floats over what scrolls under it and never eats a tap meant for it. */
-.ob-foot{
-  position:sticky;bottom:0;z-index:5;pointer-events:none;margin:0 calc(-1 * var(--pad));
-  padding:24px var(--pad) calc(12px + var(--sab));
-  background:linear-gradient(to top,var(--bg) 72%,color-mix(in srgb,var(--bg) 0%,transparent));
-  display:flex;flex-direction:column;gap:6px;
-}
-.ob-foot > *{pointer-events:auto}
-body.kb-open .ob-foot{padding-top:8px;padding-bottom:8px}
-.ob-center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex:1;padding-bottom:40px}
+.ob-hd.fixed{min-height:calc(2 * 34px + 8px + 2 * 22px)}
+/* The illustration slot: the scene stands on its bottom edge (138, the invite's 170, 18 above). */
+.ob-stage{box-sizing:content-box;min-height:138px;padding-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.ob-stage.hero{min-height:170px}
+.ob-stage.dim{opacity:.55}
+.ob-stage > *{width:100%}
+.ob-cap{margin:0;padding:10px 24px 0;min-height:20px;text-align:center;font:500 14px/20px var(--font-sans);color:var(--on-stage-2);transition:opacity var(--fast)}
+.ob-cap.fade{opacity:0}
+.ob-controls{padding:18px 16px 0}
+/* The footer (the kit's StageFooter) floats over what scrolls under it and never eats a tap meant
+   for it. */
+.ob-foot{position:sticky;bottom:0;z-index:5;pointer-events:none}
+.ob-foot .g-sfoot > *{pointer-events:auto}
+.ob-foot .g-sfoot{padding-bottom:calc(30px + var(--sab, 0px))}
+.ob-foot .g-sfoot > p{display:flex;gap:8px;align-items:flex-start}
+.ob-foot .g-sfoot > p .g-icon{width:18px;height:18px;margin-top:1.5px}
+body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
+/* The passkey result: the check, the heading and the line under it, centred (board O2.2). */
+.ob-center{display:flex;flex-direction:column;align-items:center;text-align:center;padding:190px 32px 24px;color:var(--on-stage)}
+.ob-pass-t{margin:24px 0 8px;font:700 28px/34px var(--font-sans);letter-spacing:-.02em}
+.ob-pass-t:focus{outline:none}
+.ob-pass-s{margin:0;font:500 16px/22px var(--font-sans);color:var(--on-stage-2)}
+.ob-pass-next{margin:40px 0 0;font:500 14px/20px var(--font-sans);color:var(--on-stage-2)}
+
+/* ---- the invite: the inviter's initial, the notice where there is no scene, the placeholders ---- */
+.ob-disc{width:60px;height:60px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 24px/1 var(--font-sans);color:var(--on-stage)}
+.ob-notice{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 16px 6px;color:var(--on-stage)}
+.ob-notice-ic{width:76px;height:76px;border-radius:50%;display:grid;place-items:center}
+.ob-notice-ic .g-icon{width:34px;height:34px;stroke-width:1.9}
+.ob-notice h2{margin:16px 0 6px;font:700 22px/28px var(--font-sans);letter-spacing:-.02em}
+.ob-notice p{margin:0;font:500 16px/22px var(--font-sans);color:var(--on-stage-2)}
+.ob-hd.far + .ob-controls{padding:26px 16px 0}
+.ob-skel{display:flex;flex-direction:column;gap:16px;padding:42px 20px 0}
+.ob-skel i,.ob-skel-card i{display:block;background:var(--glass-track);animation:ob-pulse 1.4s ease-in-out infinite}
+.ob-skel i:nth-child(1){width:60px;height:60px;border-radius:50%}
+.ob-skel i:nth-child(2){width:min(290px,100%);height:34px;border-radius:12px}
+.ob-skel i:nth-child(3){width:min(220px,100%);height:34px;border-radius:12px}
+.ob-skel i:nth-child(4){width:min(330px,100%);height:18px;border-radius:9px}
+.ob-skel-card{padding:40px 16px 0}
+.ob-skel-card i{height:150px;border-radius:28px}
+.ob-skel-t{margin:0;padding:10px 24px 0;text-align:center;font:500 14px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-skel-t:focus{outline:none}
+@keyframes ob-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+/* ---- the name: the board's glass field, label inside ---- */
+.ob-name{display:block;margin-top:2px;padding:4px 16px;border-radius:22px;transition:box-shadow var(--fast)}
+.ob-name:focus-within{box-shadow:inset 0 0 0 2px var(--on-stage)}
+.ob-name span{display:block;padding-top:10px;font:600 13px/16px var(--font-sans);color:var(--on-stage-2)}
+.ob-name input{width:100%;border:0;background:none;outline:none;padding:4px 0 12px;font:600 22px/28px var(--font-sans);color:var(--on-stage)}
+
+/* ---- the drawers' text: the board's spacing inside the app's own sheet ---- */
+.ob-sheet-text{margin:0 0 16px;font:500 16px/23px var(--font-sans);color:var(--text-2)}
+.ob-sheet-close{padding-top:8px}
 
 /* ---- ChoiceCard ---- */
 .ob-ccs{display:flex;flex-direction:column;gap:8px}
@@ -89,37 +127,21 @@ body.kb-open .ob-foot{padding-top:8px;padding-bottom:8px}
 .ob-fine{font-size:13px;color:var(--label-2);line-height:1.4;margin:0 0 12px}
 .ob-sheet-p{font-size:15px;color:var(--label-2);line-height:1.4;margin:0 0 12px}
 
-/* ---- line art (round 2 §1): the stage card, the 320-unit canvas ---- */
+/* ---- the Sex step's card and its 320-unit canvas (round 2 §1), until milestone B redraws the
+   step; every other scene is the kit's Illustration ---- */
 .ob-stage-card{position:relative;border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-card);padding:12px;pointer-events:none}
 .ob-art{position:relative;width:min(100%,320px);margin:0 auto}
 .ob-art svg{display:block;width:100%;height:auto;overflow:visible}
 .ob-art,.ob-art *{pointer-events:none}
-.ob-art .il,.ob-art .il-acc,.ob-art .il-mute,.ob-art .il-floor{fill:none;stroke-width:var(--il-w);stroke-linecap:round;stroke-linejoin:round}
-.ob-art .il{stroke:var(--label-2)}
-.ob-art .il-acc{stroke:var(--acc-graphic)}
-.ob-art .il-mute{stroke:var(--label-3)}
-.ob-art .il-d{stroke-width:var(--il-w-d)}
-.ob-art .il-floor{stroke:var(--sep);stroke-width:var(--il-w-d)}
-.ob-art .il-occ{fill:var(--surface)}
-.ob-art .il-lit{fill:var(--acc-soft)}
-.ob-art .il-dot{fill:var(--acc-graphic)}
-.ob-ov{position:absolute;transform:translate(-50%,-50%);line-height:1;white-space:nowrap;font-weight:600;left:calc(var(--x) * 1%);top:calc(var(--y) * 1%)}
-.ob-cap{font-size:13px;color:var(--label-2);text-align:center;margin:8px 0 0;min-height:18px;transition:opacity var(--fast)}
-.ob-cap.fade{opacity:0}
-/* Draw-in, once a session (lib/use-draw-in.js): floor, structure back to front, accent last; 480ms
-   a path, 60ms apart, the accent over --hero, fills after 70% of their outline; parts that are
-   dashed or carry data fade at the end (--end). --lead starts it as the thread is about to land. */
-.ob-art.il-draw [pathLength="1"]:not([data-state]){stroke-dasharray:1;animation:ob-draw 480ms var(--ease-io) both;animation-delay:calc(var(--lead,0ms) + var(--i,0) * 60ms)}
-.ob-art.il-draw .il-acc[pathLength="1"]{animation-duration:var(--hero)}
-.ob-art.il-draw .il-occ[pathLength="1"],.ob-art.il-draw .il-lit[pathLength="1"]{animation-name:ob-draw,ob-fill}
-.ob-art.il-draw [data-late]{animation:ob-fade 160ms linear both;animation-delay:calc(var(--lead,0ms) + var(--end,480ms))}
+.ob-art .il-floor{fill:none;stroke:var(--sep);stroke-width:var(--il-w-d);stroke-linecap:round}
+/* Draw-in, once a session (lib/use-draw-in.js): the floor over 480ms; --lead starts it as the
+   thread is about to land, and the line the thread carries in is not drawn again. */
+.ob-art.il-draw [pathLength="1"]{stroke-dasharray:1;animation:ob-draw 480ms var(--ease-io) both;animation-delay:calc(var(--lead,0ms) + var(--i,0) * 60ms)}
 .ob-art.il-draw [data-thread-carried]{animation:none;stroke-dasharray:none}
 @keyframes ob-draw{0%{stroke-dashoffset:1;opacity:0}2%{opacity:1}100%{stroke-dashoffset:0;opacity:1}}
-@keyframes ob-fill{0%,70%{fill-opacity:0}100%{fill-opacity:1}}
 @keyframes ob-fade{from{opacity:0}}
 /* Reduced motion keeps one 120ms fade (index.css stops every other animation). */
 .ob .ob-art.rm-fade.rm-fade{animation:ob-fade 120ms linear both!important}
-.ob-still,.ob-still *{transition:none!important}
 
 /* the live target ring (3a–3d) */
 .ob-tgt{display:flex;align-items:center;gap:12px;margin-top:8px;padding-top:10px;border-top:var(--hair) solid var(--sep)}
@@ -174,76 +196,56 @@ body.kb-open .ob-foot{padding-top:8px;padding-bottom:8px}
 .ob-why{display:flex;width:max-content;align-items:center;gap:6px;min-height:44px;margin:2px 0 -12px;padding:0 2px;font-size:15px;color:var(--acc-ink)}
 .ob-why .icn{font-size:17px}
 
-/* ---- the scenes' moving parts: transform and opacity only ---- */
+/* ---- the scenes' moving parts (the kit's handles, README: screen behaviours): transform and the
+   stroke and fill opacities only. The kit's draw-in holds a drawn stroke's opacity at 1, so a
+   part that comes and goes with the answer fades its stroke-opacity or fill-opacity instead. ---- */
 .ob-off{opacity:0}
-.ob-ss-g{transform-box:view-box;transform-origin:160px 104px;transform:rotate(var(--r,0deg));transition:transform 520ms var(--ease-io)}
-.ob-ss-mound{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--m,0));transition:transform 520ms var(--ease-io)}
-.ob-ss-part{transition:opacity var(--med) var(--ease)}
-.ob-k-part{transition:opacity var(--med) var(--ease)}
-.ob-k-tooth{transform-box:fill-box;transform-origin:50% 0;transform:scaleY(var(--s,0));transition:transform 140ms var(--ease)}
-.ob-k-a{font-size:13px;color:var(--label-2)}
-.ob-k-i{font-size:22px;color:var(--acc-ink)}
-body.kb-open .ob-kst{height:56px;padding:0;overflow:hidden}
-body.kb-open .ob-kst .ob-art{transform:scale(.5) translateX(-14px);transform-origin:50% 0}
-body.kb-open .ob-kst .ob-k-andrei{opacity:0}
-.ob-hmark,.ob-hcol,.ob-stape,.ob-sl-strip{transition:transform var(--ob-slow) var(--ease-io),opacity var(--med) var(--ease)}
-.ob-hmark{transform:translateY(var(--y,0px))}
-.ob-hcol{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--s,0))}
-.ob-stape{transform:translateX(var(--x,0px))}
-.ob-live .ob-hmark,.ob-live .ob-hcol,.ob-live .ob-stape,.ob-live .ob-sl-strip{transition-duration:120ms,220ms}
 .ob-fadeable{transition:opacity var(--med) var(--ease)}
+.ob-dim{opacity:.4}
+/* 2 Goal: the seesaw tips and the mound grows with the goal; the plank and the outer plates say it. */
+.ob-goal .ss-g{transform-box:view-box;transform-origin:160px 104px;transform:rotate(var(--r,0deg));transition:transform 520ms var(--ease-io)}
+.ob-goal .ss-mound{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--m,0));transition:transform 520ms var(--ease-io)}
+.ob-goal .ss-xp,.ob-goal .ss-pm,.ob-goal .ss-pd,.ob-goal .ss-pa{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-goal:not(.plank-mute) .ss-pm,.ob-goal:not(.plank-dash) .ss-pd,.ob-goal:not(.plank-acc) .ss-pa{stroke-opacity:0}
+.ob-goal:not(.build) .ss-xp{stroke-opacity:0;fill-opacity:0}
+/* 3b Born: the band lights with a year; the year on the page, over the days, the old page tearing off. */
+.ob-born .cband{transition:fill-opacity var(--med) var(--ease)}
+.ob-born:not(.set) .cband{fill-opacity:0}
+.ob-cal-yr{position:absolute;left:37.5%;top:41.7%;width:25%;height:47.2%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0 0 7px 7px;background:var(--accent-stage)}
+.ob-cal-v,.ob-cal-pg{font:600 22px/1 var(--font-sans);letter-spacing:-.02em;color:var(--on-stage);font-variant-numeric:tabular-nums}
+.ob-cal-pg{position:absolute;inset:0 2px 2px;display:flex;align-items:center;justify-content:center;background:var(--accent-stage);transform-origin:50% 0;animation:ob-tear 220ms var(--ease) forwards}
+@keyframes ob-tear{to{transform:translateY(-6px) rotate(-4deg);opacity:0}}
+/* 3c Height: the mark moves to the height, the lit column scales with it. */
+.ob-height .hmark,.ob-height .hcol{transition:transform var(--ob-slow) var(--ease-io),stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-height .hmark{transform:translateY(var(--y,0px))}
+.ob-height .hcol{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--s,1))}
+.ob-height:not(.set) .hmark{stroke-opacity:0}
+.ob-height:not(.set) .hcol{fill-opacity:0}
+/* 3d Weight: the tape slides under the needle; the window lights and the needle shows with a weight. */
+.ob-weight .stape,.ob-sl-strip{transition:transform var(--ob-slow) var(--ease-io),opacity var(--med) var(--ease)}
+.ob-weight .stape{transform:translateX(var(--x,0px))}
+.ob-weight .swin,.ob-weight .sneedle{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-weight:not(.set) .swin{fill-opacity:0}
+.ob-weight:not(.set) .sneedle{stroke-opacity:0}
 .ob-sl-box{position:absolute;left:40%;top:49.3%;width:20%;height:10.4%;overflow:hidden}
 .ob-sl-strip{position:absolute;left:0;top:0;height:100%;width:1562.5%;transform:translateX(calc(var(--x,0) * 1%))}
-.ob-sl-strip span{position:absolute;top:0;left:calc(var(--at) * 1%);transform:translateX(-50%);font-size:12px;line-height:1.2;color:var(--label-2)}
-.ob-cal-yr{position:absolute;left:37.5%;top:41.7%;width:25%;height:47.2%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0 0 7px 7px}
-.ob-cal-v,.ob-cal-pg{font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--label);font-variant-numeric:tabular-nums}
-.ob-cal-pg{position:absolute;inset:0 2px 2px;display:flex;align-items:center;justify-content:center;background:var(--surface);transform-origin:50% 0;animation:ob-tear 220ms var(--ease) forwards}
-@keyframes ob-tear{to{transform:translateY(-6px) rotate(-4deg);opacity:0}}
-.ob-tw-l{position:absolute;inset:0;transition:opacity var(--med) var(--ease)}
-.ob-tw-l span{position:absolute;top:63%;left:calc(var(--x) * 1%);transform:translateX(-50%);font-size:12px;font-weight:500;color:var(--label-2);letter-spacing:.03em}
-.ob-tw-cap{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:15px;font-weight:500;opacity:0;transition:opacity var(--med) var(--ease)}
+.ob-sl-strip span{position:absolute;top:0;left:calc(var(--at) * 1%);transform:translateX(-50%);font:500 12px/1.2 var(--font-sans);color:var(--on-stage-2)}
+.ob-height.live .hmark,.ob-height.live .hcol,.ob-weight.live .stape,.ob-weight.live .ob-sl-strip{transition-duration:120ms,220ms}
+/* 4 Training: the suggested days light (drawn over the kit's tiles, its own three hidden); 0 days dims. */
+.ob-week .g-ill-art .il-lit,.ob-week .g-ill-art .il-acc{display:none}
+.ob-week .g-ill-art .il-mute{transition:stroke-opacity var(--med) var(--ease)}
+.ob-week.none .g-ill-art .il-mute{stroke-opacity:.4}
+.ob-tw-cap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:500 15px/20px var(--font-sans);color:var(--on-stage);white-space:nowrap;opacity:0;transition:opacity var(--med) var(--ease)}
 .ob-tw-cap.on{opacity:1}
-.ob-dim{opacity:.4}
+/* 5 Plan: the dashed card with nothing chosen or no plan, the solid one with a plan, the coach's
+   dots, the + for no plan; the rows retract when a plan goes. */
+.ob-plan .pc-d,.ob-plan .pc-s,.ob-plan .pdot,.ob-plan .pplus{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-plan.full .pc-d{stroke-opacity:0}
+.ob-plan:not(.full) .pc-s{stroke-opacity:0;fill-opacity:0}
+.ob-plan:not(.is-coach) .pdot{fill-opacity:0}
+.ob-plan:not(.is-none) .pplus{stroke-opacity:0}
 .ob-pr{transform-box:fill-box;transform-origin:0 50%;transition:transform 160ms var(--ease),opacity 160ms linear}
 .ob-pr.ob-off{transform:scaleX(0)}
-
-/* ---- 0 invite: floor, flap and sides, pocket; then the letter rises and your Home fills in ---- */
-.ob-disc{width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;flex:none;margin-bottom:14px}
-.ob-inv-letter{transform-box:view-box}
-.ob-inv-dot{transform-box:fill-box;transform-origin:center}
-.ob-art.il-draw .ob-inv-letter{animation:ob-rise 520ms var(--ease) 560ms both}
-.ob-art.il-draw .ob-inv-arc{stroke-dasharray:.72 1;animation:ob-arc var(--hero) var(--ease-io) 800ms both}
-.ob-art.il-draw .ob-inv-mac{animation-duration:320ms}
-.ob-art.il-draw .ob-inv-dot{animation:ob-dot 220ms var(--ease) both;animation-delay:calc(1100ms + var(--i,0) * 60ms)}
-@keyframes ob-rise{from{transform:translateY(64px);opacity:0}25%{opacity:1}to{transform:none;opacity:1}}
-@keyframes ob-arc{from{stroke-dashoffset:.72}to{stroke-dashoffset:0}}
-@keyframes ob-dot{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
-/* the key's teeth come in once the key has drawn */
-.ob-art.il-draw .ob-k-tooth{animation:ob-fade 140ms linear 600ms both}
-
-/* ---- 1 name ---- */
-.ob-field{display:block;margin-top:16px;background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card);transition:background var(--fast),box-shadow var(--fast)}
-.ob-field:focus-within{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--acc-graphic)}
-.ob-field input{width:100%;background:none;border:0;padding:15px 16px;font-size:17px;outline:none;color:var(--label)}
-.ob-field input::placeholder{color:var(--label-3)}
-.ob-reass{display:flex;gap:8px;align-items:flex-start;font-size:15px;color:var(--label-2);line-height:1.35;margin:0 0 8px}
-.ob-reass .icn{font-size:16px;margin-top:2px;flex:none}
-.ob-pk-err{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--label);padding:2px 0 6px}
-.ob-pk-err .icn{font-size:18px;color:var(--blue-ink);flex:none}
-.ob-pk-err .btn{margin-inline-start:auto}
-.ob-shake{animation:ob-shake 320ms ease-in-out}
-@keyframes ob-shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
-.ob-spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:ob-spin 800ms linear infinite;flex:none}
-@keyframes ob-spin{to{transform:rotate(360deg)}}
-
-/* ---- 1b passkey saved ---- */
-.ob-pass-svg{width:88px;height:88px;overflow:visible}
-.ob-pass-disc{fill:var(--acc-soft)}
-.ob-pass-arc{fill:none;stroke:var(--acc-graphic);stroke-width:3;stroke-linecap:round}
-.ob-pass-chk{fill:none;stroke:var(--acc-graphic);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
-.ob-pass-pop{transform-box:fill-box;transform-origin:center}
-.ob-pass-t{font-size:var(--fs-title2);font-weight:600;letter-spacing:-.02em;margin:20px 0 0}
-.ob-pass-s{font-size:15px;color:var(--label-2);margin:6px 0 0;width:min(100%,280px);line-height:1.35}
 
 /* ---- 4 training ---- */
 .ob-daysel{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}

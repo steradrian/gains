@@ -9,7 +9,7 @@
 import { birthPlan, checkP, dOf, evalAt, lineP, planBetween } from './thread-geometry.js'
 
 // New-screen content the line sweeps across mid-glide: held at 0 until it lands, then 160ms in.
-const HOLD = '.ob-hd > *, .ob-cap, .ob-controls > *, .ob-pk-read, .ob-ruler, .ob-wheel, .ob-field, .ob-pl-hint, .ob-pl-sess, .ob-pl-fit, .ob-pass-t, .ob-pass-s'
+const HOLD = '.ob-hd > *, .ob-cap, .ob-controls > *, .ob-pk-read, .ob-ruler, .ob-wheel, .ob-pl-hint, .ob-pl-sess, .ob-pl-fit, .ob-pass-t, .ob-pass-s'
 // The art starts this long before the thread lands, so it visibly grows from the line.
 const LEAD_MS = 120
 // When a screen has landed: OnboardingLayout brings it in over 320ms after a 60ms delay.

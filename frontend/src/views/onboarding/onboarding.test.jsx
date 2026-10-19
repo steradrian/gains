@@ -99,13 +99,48 @@ describe('0 Invite', () => {
     expect(where(page)).toBe('/onboarding/name')
   })
 
-  it('says an invite is used, with Sign in as the way on', async () => {
+  it('says an invite is used, with Sign in as the way on, and signs in with a passkey', async () => {
     hub.checkInvite.mockResolvedValue({ status: 'used', inviterName: null, suggestedName: null })
+    passkeys.passkeyLogin.mockResolvedValue({ id: 'u1', name: 'Maria' })
     const page = mount('/join/AB12')
     await flush()
-    expect(page.querySelector('h1').textContent).toBe('This invite has already been used.')
-    expect(button(page, 'Sign in')).toBeTruthy()
+    expect(page.querySelector('h1').textContent).toBe('This invite was already used')
+    expect(page.querySelector('.ob-sub').textContent).toContain('Each link works once.')
     expect(button(page, 'Create my account')).toBeUndefined()
+    await act(async () => { button(page, 'Sign in').click() })
+    expect(passkeys.passkeyLogin).toHaveBeenCalled()
+    expect(where(page)).toBe('/home')
+  })
+
+  it.each([
+    ['expired', 'This invite has expired'],
+    ['revoked', 'This invite is no longer valid'],
+    ['invalid', 'This invite link doesn’t work'],
+  ])('says an invite that is %s, the scene set back, with I already have an account as the way on', async (status, title) => {
+    hub.checkInvite.mockResolvedValue({ status, inviterName: null, suggestedName: null })
+    const page = mount('/join/AB12')
+    await flush()
+    expect(page.querySelector('h1').textContent).toBe(title)
+    expect(page.querySelector('.ob-sub').textContent).toBe('Ask whoever invited you for a new link; it opens right here.')
+    expect(page.querySelector('.ob-stage.dim .g-ill')).not.toBeNull()
+    expect(button(page, 'I already have an account')).toBeTruthy()
+    expect(button(page, 'Create my account')).toBeUndefined()
+    expect(button(page, 'Sign in')).toBeUndefined()
+  })
+
+  it('opens the invite in placeholders first, then names the inviter with the group and the passkey rows', async () => {
+    let answer
+    hub.checkInvite.mockReturnValue(new Promise(resolve => { answer = resolve }))
+    const page = mount('/join/AB12')
+    expect(page.querySelector('h1').textContent).toBe('Opening your invite')
+    expect(page.querySelector('.ob-skel')).not.toBeNull()
+    expect(page.querySelector('[data-thread]')).toBeNull()
+    await act(async () => { answer({ status: 'valid', inviterName: 'Andrei', suggestedName: null }) })
+    expect(page.querySelector('h1').textContent).toBe('Andrei invited you to Gains')
+    expect(page.querySelector('.ob-disc').textContent).toBe('A')
+    expect(page.textContent).toContain('A small group')
+    expect(page.textContent).toContain('Face ID or your fingerprint keeps you in')
+    expect(button(page, 'I already have an account')).toBeTruthy()
   })
 
   it('offers to try again when the check gets no answer', async () => {
@@ -119,13 +154,32 @@ describe('0 Invite', () => {
     expect(page.querySelector('h1').textContent).toBe('You’re invited to Gains')
   })
 
+  it('says the phone is offline when it is, and checks again on Try again', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    hub.checkInvite.mockRejectedValueOnce(Object.assign(new Error('x'), { code: 'unavailable' }))
+    hub.checkInvite.mockResolvedValueOnce({ status: 'valid', inviterName: 'Andrei', suggestedName: null })
+    const page = mount('/join/AB12')
+    await flush()
+    expect(page.querySelector('h1').textContent).toBe('You’re offline')
+    expect(page.querySelector('.ob-notice h2').textContent).toBe('No connection')
+    online.mockReturnValue(true)
+    click(button(page, 'Try again'))
+    expect(page.querySelector('h1').textContent).toBe('Opening your invite')
+    await flush()
+    expect(hub.checkInvite).toHaveBeenCalledTimes(2)
+    expect(page.querySelector('h1').textContent).toBe('Andrei invited you to Gains')
+    online.mockRestore()
+  })
+
   it('leaves the invite unused for someone already signed in here', async () => {
     signedIn()
     const page = mount('/join/AB12')
     await flush()
     expect(hub.checkInvite).not.toHaveBeenCalled()
-    expect(page.querySelector('h1').textContent).toBe('You’re already in as Maria')
-    click(button(page, 'Open Gains'))
+    expect(page.querySelector('h1').textContent).toBe('You’re already in')
+    expect(page.querySelector('.ob-sub').textContent).toContain('signed in as Maria')
+    expect(page.querySelector('.ob-notice h2').textContent).toBe('Signed in as Maria')
+    click(button(page, 'Go to Today'))
     expect(where(page)).toBe('/home')
   })
 })
@@ -201,10 +255,62 @@ describe('1 Name + passkey', () => {
     expect(where(page)).toBe('/onboarding/goal')
   })
 
-  it('cannot be sent without a name', () => {
+  it('moves on from the passkey result by itself after 1.5s, or at a tap before that, in the history\'s place', async () => {
+    signedIn()
+    let page = mount('/onboarding/passkey')
+    await flush()
+    expect(page.querySelector('.g-check [data-thread="check"]')).not.toBeNull()
+    expect(page.textContent).toContain('Your goal is next')
+    later(1499)
+    expect(where(page)).toBe('/onboarding/passkey')
+    later(1)
+    expect(where(page)).toBe('/onboarding/goal')
+    expect(arrivedBy(page)).toBe('REPLACE')
+    unmountAll()
+    page = mount('/onboarding/passkey')
+    await flush()
+    later(300)
+    click(page.querySelector('.ob-center'))
+    expect(where(page)).toBe('/onboarding/goal')
+    expect(arrivedBy(page)).toBe('REPLACE')
+    // The timer it no longer needs does not move anyone on again.
+    later(1500)
+    expect(where(page)).toBe('/onboarding/goal')
+  })
+
+  it('cannot be sent without a name: Create passkey is dimmed until there is a letter, and the name takes 30 characters', async () => {
     saved({ uid: null, code: 'AB12', answers: {} })
     const page = mount('/onboarding/name')
+    const input = page.querySelector('input')
+    const type = value => act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(input.maxLength).toBe(30)
     expect(button(page, 'Create passkey').disabled).toBe(true)
+    type('   ')
+    expect(button(page, 'Create passkey').disabled).toBe(true)
+    // Enter with no name sends nothing either.
+    press(input, 'Enter')
+    expect(passkeys.passkeyRegister).not.toHaveBeenCalled()
+    type('A')
+    expect(button(page, 'Create passkey').disabled).toBe(false)
+  })
+
+  it('shows the reassurance line until a prompt fails, then the alert in its place, again on each failure', async () => {
+    saved({ uid: null, code: 'AB12', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' }, answers: {} })
+    passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
+    const page = mount('/onboarding/name')
+    expect(page.textContent).toContain('No password to remember.')
+    expect(page.querySelector('[role="alert"]')).toBeNull()
+    await act(async () => { button(page, 'Create passkey').click() })
+    const first = page.querySelector('[role="alert"]')
+    expect(first.textContent).toContain('No passkey created. Try again.')
+    expect(document.activeElement).toBe(first)
+    expect(page.textContent).not.toContain('No password to remember.')
+    await act(async () => { button(page, 'Create passkey').click() })
+    // A new alert for the new failure, so it arrives (and shakes) again.
+    expect(page.querySelector('[role="alert"]')).not.toBe(first)
   })
 
   it('sends the person to the invite landing when no invite was checked in this tab, and makes no account', () => {
@@ -302,7 +408,9 @@ describe('2 Goal', () => {
     const page = mount('/onboarding/goal')
     await flush()
     expect(button(page, 'Skip')).toBeUndefined()
-    expect(page.querySelector('[aria-label="Back"]').disabled).toBe(true)
+    // The passkey exists: the nav holds Back's place with nothing in it.
+    expect(page.querySelector('[aria-label="Back"]')).toBeNull()
+    expect(page.querySelector('.ob-nav .g-onav-sp')).not.toBeNull()
   })
 })
 
@@ -1062,11 +1170,35 @@ describe('what the hub says is answered or not needed (§6)', () => {
     const page = mount('/onboarding/sex')
     await flush()
     const left = page.querySelector('.ob-nav [aria-live="polite"]')
-    expect(left.textContent).toBe('2 steps left')
-    expect(page.querySelector('[role="progressbar"]').getAttribute('aria-valuetext')).toBe('Step 2 of 3: You, 1 of 4')
+    // Sex is step 3 of 8: the four About-you steps, Training and the plan are still to come.
+    expect(left.textContent).toBe('6 steps left')
+    expect(page.querySelector('[role="progressbar"]').getAttribute('aria-label')).toBe('Step 3 of 8')
     click(button(page, 'Skip'))
     expect(where(page)).toBe('/onboarding/training')
-    expect(page.querySelector('.ob-nav [aria-live="polite"]').textContent).toBe('1 step left')
+    expect(page.querySelector('.ob-nav [aria-live="polite"]').textContent).toBe('2 steps left')
+  })
+
+  it('shows eight steps, lights the furthest reached, keeps it lit going back, and reads as the step on screen', async () => {
+    saved({ answers: { goal: 'keep' } })
+    const page = mount('/onboarding/sex')
+    await flush()
+    const bar = () => page.querySelector('[role="progressbar"]')
+    const lit = () => [...bar().children].filter(s => s.classList.contains('on')).length
+    expect(bar().children).toHaveLength(8)
+    expect(bar().getAttribute('aria-valuenow')).toBe('3')
+    expect(lit()).toBe(3)
+    click(radio(page, 'Female'))
+    later(600)
+    expect(where(page)).toBe('/onboarding/born')
+    expect(lit()).toBe(4)
+    click(page.querySelector('[aria-label="Back"]'))
+    expect(where(page)).toBe('/onboarding/sex')
+    expect(bar().getAttribute('aria-valuenow')).toBe('3')
+    expect(lit()).toBe(4)
+    // A skip to Training lights the steps it jumped over.
+    click(button(page, 'Skip'))
+    expect(where(page)).toBe('/onboarding/training')
+    expect(lit()).toBe(7)
   })
 
   it('resumes where the hub says, straight to the end when the data answers everything', async () => {

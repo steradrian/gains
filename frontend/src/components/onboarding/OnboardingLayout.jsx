@@ -1,22 +1,28 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Navigate, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
-import { t } from '../../lib/i18n.js'
+import InlineBanner from '../../ds/InlineBanner.jsx'
+import OnboardingNav from '../../ds/OnboardingNav.jsx'
+import StageScreen from '../../ds/StageScreen.jsx'
+import { t, tn } from '../../lib/i18n.js'
 import { OnboardingContext } from '../../lib/onboarding/contexts.js'
-import { PRE_AUTH, progressMax } from '../../lib/onboarding/flow.js'
+import { PRE_AUTH, STEP_COUNT, navOf, progressMax, stepOf, stepsLeft } from '../../lib/onboarding/flow.js'
 import { useOnboardingStore } from '../../lib/onboarding/use-onboarding-store.js'
 import { reducedMotion } from '../../lib/reduced-motion.js'
+import { cx } from '../../lib/ui-kit.js'
 import { useStore } from '../../store/useStore.js'
-import Icon from '../Icon.jsx'
-import { Button } from '../ui.jsx'
-import OnboardingNav from './OnboardingNav.jsx'
 import ThreadLayer from './ThreadLayer.jsx'
 import ThreadProvider from './ThreadProvider.jsx'
 
 // The onboarding's layout, for every screen of the flow (motion-onboarding-thread.md §4, adapted
 // from Next's route-group layout to this app's hash routes): the answers and the flow's navigation
 // (OnboardingContext), the thread (ThreadProvider, ThreadLayer: nowhere else), the nav row, and
-// the screen. It outlives every screen, so the line one rests on is where the next one's thread
-// starts. Width and gutters are the shell's (#app).
+// the screen, all on the stage (StageScreen, Cobalt). It outlives every screen, so the line one
+// rests on is where the next one's thread starts.
+//
+// The nav row is the kit's OnboardingNav: back, the eight steps (the furthest reached stays lit),
+// Skip. What it shows on each screen is the flow's (flow.js navOf), never the screen's; where it
+// is not shown the row is a 14px gap, as the boards draw the invite and the passkey result. "N
+// steps left" is said, not shown: a polite live region beside it.
 //
 // Who may see what: before there is an account only the invite landing and the name step; without
 // a hub to save to, or once complete, the flow steps aside to Home.
@@ -28,14 +34,14 @@ export default function OnboardingLayout({ children }) {
   const navType = useNavigationType()
   const user = useStore(s => s.user)
   const store = useOnboardingStore({ user, navigate, location, navType })
-  const { screen, state, hub, act, refresh } = store
+  const { screen, state, hub, act, refresh, back, skip } = store
   const navRef = useRef(null)
   const host = useRef(null)
 
   useEffect(() => {
     if (!screen) return
     const next = progressMax(state.progress, screen)
-    if (next.some((v, i) => v !== state.progress[i])) act({ type: 'progress', progress: next })
+    if (next !== state.progress) act({ type: 'progress', progress: next })
   }, [screen, state.progress, act])
 
   // The screen comes in after its anchor has been measured at rest (a child's layout effect runs
@@ -56,21 +62,31 @@ export default function OnboardingLayout({ children }) {
   if (screen && !user && !PRE_AUTH.includes(screen)) content = <Navigate to="/" replace />
   else if (screen && user && !PRE_AUTH.includes(screen) && (hub === 'unavailable' || hub === 'complete')) content = <Navigate to="/home" replace />
   const offline = (hub === 'offline' || hub === 'busy') && !!user && !PRE_AUTH.includes(screen)
+  const meta = navOf(screen)
+  const step = stepOf(screen)
+  const left = meta.show ? stepsLeft(state.server?.remaining, screen) : null
 
   return (
     <OnboardingContext.Provider value={store}>
       <ThreadProvider navRef={navRef}>
-        <div className="ob">
-          <OnboardingNav ref={navRef} />
-          {offline && <div className="ob-pk-err" role="status">
-            <Icon name="info" /><span>{hub === 'busy'
-              ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
-              : t('Check your connection and try again. Nothing you answered is lost.')}</span>
-            <Button size="sm" variant="plain" onClick={() => { refresh() }}>{t('Try again')}</Button>
-          </div>}
-          <ThreadLayer />
-          <div className="ob-host" ref={host}>{content}</div>
-        </div>
+        <StageScreen>
+          <div className="ob">
+            <nav ref={navRef} className={cx('ob-nav', !meta.show && 'gone')} aria-label={t('Onboarding')} aria-hidden={!meta.show || undefined}>
+              {meta.show && <OnboardingNav step={step} filled={step ? state.progress : 0} total={STEP_COUNT}
+                onBack={meta.back ? back : undefined} onSkip={meta.skip ? () => skip(screen) : undefined} />}
+              {/* Always in the tree, so the count is announced when it changes, politely. */}
+              <span className="sr-only" aria-live="polite">{left ? tn('{0} step left', '{0} steps left', left) : ''}</span>
+            </nav>
+            {offline && <div className="ob-note">
+              <InlineBanner stage title={hub === 'busy'
+                ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
+                : t('Check your connection and try again. Nothing you answered is lost.')}
+              actions={[{ label: t('Try again'), onClick: () => { refresh() } }]} />
+            </div>}
+            <ThreadLayer />
+            <div className="ob-host" ref={host}>{content}</div>
+          </div>
+        </StageScreen>
       </ThreadProvider>
     </OnboardingContext.Provider>
   )

@@ -10,6 +10,7 @@ import { join, relative, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ThreadLayer from '../../components/onboarding/ThreadLayer.jsx'
 import ThreadFloor from '../../components/onboarding/ThreadFloor.jsx'
+import { SCENES } from '../../ds/illustration-scenes.js'
 import { SCREENS, pathOf } from '../../lib/onboarding/flow.js'
 import { flush, mount, saved, unmountAll, where } from './onboarding.test-util.jsx'
 
@@ -66,6 +67,38 @@ describe('every onboarding route registers exactly one thread anchor', () => {
     expect(where(page)).toBe(pathOf(screen, 'AB12'))
     expect(page.querySelectorAll('[data-thread]')).toHaveLength(1)
     expect(page.querySelector('.ob-thread').getAttribute('data-anchors')).toBe('1')
+  })
+
+  // The scene each screen stands on (the kit's Illustration) and the path of it the thread lands
+  // on: the floor as a line, the key's shaft as a blade, the passkey result's tick as the check.
+  const SCENE = {
+    invite: ['invite', 'il-floor', 'line'], name: ['passkey', 'kshaft', 'blade'], goal: ['goal', 'il-floor', 'line'],
+    born: ['birthday', 'il-floor', 'line'], height: ['height', 'il-floor', 'line'], weight: ['weight', 'il-floor', 'line'],
+    training: ['week', 'il-floor', 'line'], plan: ['plan', 'il-floor', 'line'],
+  }
+  it.each(Object.keys(SCENE))('%s registers its scene\'s path', async screen => {
+    const [name, cls, form] = SCENE[screen]
+    const preAuth = screen === 'invite' || screen === 'name'
+    if (!preAuth) mocks.user = { id: 'u1', name: 'Maria' }
+    saved({ uid: preAuth ? null : 'u1', code: 'AB12', answers: { goal: 'keep', body: full, trainingDays: 3 } })
+    const page = mount(pathOf(screen, 'AB12'))
+    await flush()
+    const anchor = page.querySelector('[data-thread]')
+    expect(anchor.closest('.g-ill.g-ill-stage')).not.toBeNull()
+    expect(anchor.closest('svg').getAttribute('viewBox')).toBe(SCENES[name].viewBox)
+    expect(anchor.classList.contains(cls)).toBe(true)
+    expect(anchor.getAttribute('data-thread')).toBe(form)
+  })
+
+  it('passkey registers the result\'s tick as the check', async () => {
+    mocks.user = { id: 'u1', name: 'Maria' }
+    saved({ uid: 'u1', answers: {} })
+    const page = mount(pathOf('passkey'))
+    await flush()
+    const anchor = page.querySelector('[data-thread]')
+    expect(anchor.classList.contains('g-check-tick')).toBe(true)
+    expect(anchor.getAttribute('data-thread')).toBe('check')
+    expect(anchor.getAttribute('data-pts')).toBe('31 49.5 43 61 66 37')
   })
 })
 
