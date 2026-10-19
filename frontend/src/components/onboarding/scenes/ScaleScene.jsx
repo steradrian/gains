@@ -15,7 +15,7 @@ export default function ScaleScene({ kg, unit, live, after }) {
   const k = kg ?? AT_REST
   const strip = { '--x': ((32 - 4 * k) / 10).toFixed(2) }
   return <StageArt name="weight" width={260} className={cx('ob-weight', kg != null && 'set', live && 'live')}
-    vars={{ '--x': (4 * (AT_REST - k)).toFixed(1) + 'px' }} after={after}
+    style={{ '--x': (4 * (AT_REST - k)).toFixed(1) + 'px' }} after={after}
     overlay={<div className="ob-sl-box" aria-hidden="true">
       {[['kg', KG_LABELS], ['lb', LB_LABELS]].map(([u, labels]) => (
         <div key={u} className={cx('ob-sl-strip', unit !== u && 'ob-off')} style={strip}>

@@ -7,11 +7,11 @@ import { useThreadAnchor } from '../../lib/onboarding/use-thread-anchor.js'
 // (motion-onboarding-thread.md §4): `anchor` names the path (Illustration), `form` is what the
 // thread becomes on it, `birth` draws the invite's line out of a dot. The rest is Illustration's
 // (a scene's moving parts); `after` stands under the drawing (the live target).
-export default function StageArt({ name, anchor = 'floor', form = 'line', birth = false, width, className, vars, overlay, after, children }) {
+export default function StageArt({ name, anchor = 'floor', form = 'line', birth = false, width, className, style, overlay, after, children }) {
   const ref = useRef(null)
   useThreadAnchor(ref, form, { birth })
   return <>
-    <Illustration name={name} tone="stage" draw="once" width={width} className={className} vars={vars}
+    <Illustration name={name} tone="stage" draw="once" width={width} className={className} style={style}
       anchor={anchor} anchorRef={ref} overlay={overlay}>{children}</Illustration>
     {after}
   </>

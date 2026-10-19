@@ -31,12 +31,12 @@ const ANCHORS = { floor: '.il-floor', accent: '.il-acc', shaft: '.kshaft' }
 // the same drawing in white for the stage. Decoration: hidden from screen readers.
 //
 // What a screen adds for the parts it moves with an answer (README: screen behaviours, not part
-// of the scene): `className` and `vars` (custom properties) on the drawing, which the screen's CSS
+// of the scene): `className` and `style` (custom properties only) on the drawing, which the screen's CSS
 // reaches the scene's handles with (ss-g, stape, hmark…); `children`, SVG parts drawn over the
 // scene in its viewBox; `overlay`, HTML laid over it. `anchor` names one of its paths and
 // `anchorRef` gets that element before the screen's own layout effects run (the onboarding's
 // thread anchor).
-export default function Illustration({ name, draw, replayKey, width, tone, className, vars, anchor, anchorRef, overlay, children }) {
+export default function Illustration({ name, draw, replayKey, width, tone, className, style, anchor, anchorRef, overlay, children }) {
   oneOf('Illustration', 'name', name, SCENE_NAMES)
   oneOf('Illustration', 'tone', tone, ['light', 'stage'])
   oneOf('Illustration', 'anchor', anchor, Object.keys(ANCHORS))
@@ -53,9 +53,9 @@ export default function Illustration({ name, draw, replayKey, width, tone, class
   useLayoutEffect(() => {
     if (anchorRef) anchorRef.current = anchor ? art.current?.querySelector(ANCHORS[anchor]) ?? null : null
   }, [anchor, anchorRef, html, replayKey])
-  const style = width || vars ? { ...(width ? { '--g-ill-w': width + 'px' } : {}), ...vars } : undefined
+  const look = width ? { '--g-ill-w': width + 'px', ...style } : style
   return (
-    <div key={replayKey} className={cx('g-ill', tone === 'stage' && 'g-ill-stage', MODE_CLASS[mode], className)} style={style}>
+    <div key={replayKey} className={cx('g-ill', tone === 'stage' && 'g-ill-stage', MODE_CLASS[mode], className)} style={look}>
       <svg viewBox={scene.viewBox} aria-hidden="true" focusable="false">
         <g ref={art} className="g-ill-art" dangerouslySetInnerHTML={inner} />
         {children}
