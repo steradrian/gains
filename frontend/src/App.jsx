@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -49,6 +49,8 @@ const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 // The design system's catalogue (#/dev/kit), on the dev server only: a production build replaces
 // import.meta.env.DEV with false and drops it, chunk and all.
 const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
+// The screens gallery (#/dev/screens), the same way.
+const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -338,14 +340,31 @@ function Shell() {
   )
 }
 
+// Dev server only: the screens gallery (#/dev/screens…) sits outside the router, each of its frames
+// having one of its own, so App watches the address itself. A production build folds this to false.
+const useGalleryRoute = import.meta.env.DEV
+  ? () => {
+    const [hash, setHash] = useState(() => window.location.hash)
+    useEffect(() => {
+      const on = () => setHash(window.location.hash)
+      window.addEventListener('hashchange', on)
+      return () => window.removeEventListener('hashchange', on)
+    }, [])
+    return hash.startsWith('#/dev/screens')
+  }
+  : () => false
+
 export default function App() {
   const boot = useStore(s => s.boot)
-  useEffect(() => { boot() }, [boot])
+  const gallery = useGalleryRoute()
+  // The gallery stands on mocked data: the real boot would answer over it.
+  useEffect(() => { if (!gallery) boot() }, [boot, gallery])
   // Android system back — sheet, then page, then press-again-to-exit (see lib/back.js)
   useEffect(() => {
     let stop = null, gone = false
     initBackButton().then(fn => { if (gone) fn(); else stop = fn })
     return () => { gone = true; stop?.() }
   }, [])
+  if (gallery) return <Suspense fallback={null}><DevScreens /></Suspense>
   return <HashRouter><BootSplash /><Shell /></HashRouter>
 }

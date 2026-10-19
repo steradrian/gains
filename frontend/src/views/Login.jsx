@@ -91,7 +91,8 @@ const dismissed = e => e?.name === 'NotAllowedError' || e?.name === 'AbortError'
 // waiting on the passkey prompt (S0.1), or failed (S0.2) with `n` counting the failures so each
 // one is a new alert, which shakes and takes focus again. "Add this device" (S0.4–S0.6) is a route
 // of its own (views/AddDevice.jsx); the password drawers (S0.7–S0.9) are sheets (components/PasswordAuth.jsx).
-export default function Login() {
+// `demo` is the build's (lib/demo.js); the screens gallery passes it to show the demo's variant.
+export default function Login({ demo = DEMO }) {
   const { setUser, adoptProfile, setGuest } = useStore()
   const config = useStore(s => s.config)
   const canGuest = guestAllowed(config)
@@ -151,7 +152,7 @@ export default function Login() {
   )
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
-  if (DEMO) return screen(<>
+  if (demo) return screen(<>
     <div className="si-top">
       <Logo size={56} color="var(--on-stage)" />
       <p>{t('Live demo. Everything stays in this browser.')}</p>
