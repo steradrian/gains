@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -34,8 +34,8 @@ import Toast from './components/Toast.jsx'
 import SyncBanner from './components/SyncBanner.jsx'
 import RestTimer from './components/RestTimer.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
-import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
+import AddDevice, { ADD_DEVICE_PATH, openAddDevice } from './views/AddDevice.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
 import { isFlowPath } from './lib/onboarding/flow.js'
 import { useOnboardingResume } from './lib/onboarding/use-onboarding-resume.js'
@@ -49,6 +49,8 @@ const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 // The design system's catalogue (#/dev/kit), on the dev server only: a production build replaces
 // import.meta.env.DEV with false and drops it, chunk and all.
 const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
+// The screens gallery (#/dev/screens), the same way.
+const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -174,15 +176,15 @@ function Shell() {
     if (MOBILE || !user || !ready) return
     syncPushSubscription().catch(() => {})
   }, [user?.id, ready])
-  // Opened from a device-link QR code (#95): once boot knows who is here, the sheet that redeems
-  // it opens by itself — over the sign-in screen, or over the app for a guest or a signed-in
-  // browser. Once per visit; closed, the code stays for the sign-in screen's own button.
+  // Opened from a device-link QR code (#95): once boot knows who is here, the screen that redeems
+  // it opens by itself — in place of the sign-in screen, or of the app for a guest or a signed-in
+  // browser. Once per visit; left, the code stays for the sign-in screen's own button.
   const linkCode = useStore(s => s.linkCode)
   const linkOffered = useRef(false)
   useEffect(() => {
     if (!ready || !linkCode || linkOffered.current) return
     linkOffered.current = true
-    openDeviceLinkRedeem()
+    openAddDevice()
   }, [ready, linkCode])
   // The bar and the dock step aside while the on-screen keyboard is up (lib/keyboard-open.js).
   useEffect(() => installKeyboardClass(), [])
@@ -238,14 +240,18 @@ function Shell() {
   // The first-run onboarding (views/onboarding): the invite landing and every step after it, a
   // full-screen flow of its own on the web. The phone build has its own first launch.
   const inFlow = !MOBILE && isFlowPath(shown.pathname)
-  useOnboardingResume({ user, ready, pathname: shown.pathname, navigate })
+  // Add this device (views/AddDevice.jsx) is a stage screen of its own, shown before the sign-in
+  // check: the passkey it makes signs this browser in, and the screen is still up to say so.
+  const onAddDevice = shown.pathname === ADD_DEVICE_PATH
+  // Not while "Passkey added" is on screen: it asks again once the person has left that screen.
+  useOnboardingResume({ user, ready: ready && !onAddDevice, pathname: shown.pathname, navigate })
   useEffect(() => {
-    document.body.classList.toggle('no-tabbar', inWorkout || inFlow)
+    document.body.classList.toggle('no-tabbar', inWorkout || inFlow || onAddDevice)
     return () => document.body.classList.remove('no-tabbar')
-  }, [inWorkout, inFlow])
+  }, [inWorkout, inFlow, onAddDevice])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || inFlow || shown.pathname === '/train/coach' || needsMobileOnboarding
+  const noTabs = inWorkout || inFlow || onAddDevice || shown.pathname === '/train/coach' || needsMobileOnboarding
   // One live dock while a workout runs and you are elsewhere (it takes the rest bar's place).
   const docked = !noTabs && !onWorkout && workoutRunning(S)
   // No route of its own (a launch, a home-screen icon): straight into a running workout, else
@@ -267,7 +273,7 @@ function Shell() {
           every screen, and it brings each screen in itself. */}
       <div id="app" className={inFlow ? undefined : 'vfade'} key={inFlow ? 'onboarding' : shown.pathname} inert={switching || undefined}>
         <ErrorBoundary>
-          {inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> :!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
+          {inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> : onAddDevice ? <AddDevice /> : !authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
             <Routes location={shown}>
               <Route path="/" element={<Navigate to={fallback} replace />} />
               {/* Home */}
@@ -334,14 +340,31 @@ function Shell() {
   )
 }
 
+// Dev server only: the screens gallery (#/dev/screens…) sits outside the router, each of its frames
+// having one of its own, so App watches the address itself. A production build folds this to false.
+const useGalleryRoute = import.meta.env.DEV
+  ? () => {
+    const [hash, setHash] = useState(() => window.location.hash)
+    useEffect(() => {
+      const on = () => setHash(window.location.hash)
+      window.addEventListener('hashchange', on)
+      return () => window.removeEventListener('hashchange', on)
+    }, [])
+    return hash.startsWith('#/dev/screens')
+  }
+  : () => false
+
 export default function App() {
   const boot = useStore(s => s.boot)
-  useEffect(() => { boot() }, [boot])
+  const gallery = useGalleryRoute()
+  // The gallery stands on mocked data: the real boot would answer over it.
+  useEffect(() => { if (!gallery) boot() }, [boot, gallery])
   // Android system back — sheet, then page, then press-again-to-exit (see lib/back.js)
   useEffect(() => {
     let stop = null, gone = false
     initBackButton().then(fn => { if (gone) fn(); else stop = fn })
     return () => { gone = true; stop?.() }
   }, [])
+  if (gallery) return <Suspense fallback={null}><DevScreens /></Suspense>
   return <HashRouter><BootSplash /><Shell /></HashRouter>
 }

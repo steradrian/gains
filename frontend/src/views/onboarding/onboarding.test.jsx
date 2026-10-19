@@ -4,6 +4,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { localeUnits } from '../../lib/onboarding/units.js'
 import { arrivedBy, button, flush, mount, radio, saved, unmountAll, where } from './onboarding.test-util.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -46,6 +47,8 @@ const press = (el, key) => act(() => { el.dispatchEvent(new KeyboardEvent('keydo
 const click = el => act(() => { el.click() })
 const later = ms => act(() => { vi.advanceTimersByTime(ms) })
 const full = { sex: 'female', birthYear: 1990, heightCm: 168, weightKg: 64 }
+// What About you's live target says to a screen reader, once per settled answer.
+const said = page => page.querySelector('.ob-tgt-wrap [aria-live]').textContent
 // The AI coach consent as the hub sends it (fitness-hub src/onboarding/consent.ts), the one copy.
 const CONSENT = {
   version: 'ai-coach-build-v1',
@@ -99,13 +102,49 @@ describe('0 Invite', () => {
     expect(where(page)).toBe('/onboarding/name')
   })
 
-  it('says an invite is used, with Sign in as the way on', async () => {
+  it('says an invite is used, with Sign in as the way on, and signs in with a passkey', async () => {
     hub.checkInvite.mockResolvedValue({ status: 'used', inviterName: null, suggestedName: null })
+    passkeys.passkeyLogin.mockResolvedValue({ id: 'u1', name: 'Maria' })
     const page = mount('/join/AB12')
     await flush()
-    expect(page.querySelector('h1').textContent).toBe('This invite has already been used.')
-    expect(button(page, 'Sign in')).toBeTruthy()
+    expect(page.querySelector('h1').textContent).toBe('This invite was already used')
+    expect(page.querySelector('.ob-sub').textContent).toContain('Each link works once.')
     expect(button(page, 'Create my account')).toBeUndefined()
+    await act(async () => { button(page, 'Sign in').click() })
+    expect(passkeys.passkeyLogin).toHaveBeenCalled()
+    expect(where(page)).toBe('/home')
+  })
+
+  it.each([
+    ['expired', 'This invite has expired'],
+    ['revoked', 'This invite is no longer valid'],
+    ['invalid', 'This invite link doesn’t work'],
+  ])('says an invite that is %s, the scene set back, with I already have an account as the way on', async (status, title) => {
+    hub.checkInvite.mockResolvedValue({ status, inviterName: null, suggestedName: null })
+    const page = mount('/join/AB12')
+    await flush()
+    expect(page.querySelector('h1').textContent).toBe(title)
+    expect(page.querySelector('.ob-sub').textContent).toBe('Ask whoever invited you for a new link; it opens right here.')
+    expect(page.querySelector('.ob-stage.dim .g-ill')).not.toBeNull()
+    expect(button(page, 'I already have an account')).toBeTruthy()
+    expect(button(page, 'Create my account')).toBeUndefined()
+    expect(button(page, 'Sign in')).toBeUndefined()
+  })
+
+  it('opens the invite in placeholders first, then names the inviter with the group and the passkey rows', async () => {
+    let answer
+    hub.checkInvite.mockReturnValue(new Promise(resolve => { answer = resolve }))
+    const page = mount('/join/AB12')
+    expect(page.querySelector('h1').textContent).toBe('Opening your invite')
+    expect(page.querySelector('.ob-skel')).not.toBeNull()
+    expect(page.querySelector('[data-thread]')).toBeNull()
+    await act(async () => { answer({ status: 'valid', inviterName: 'Andrei', suggestedName: null }) })
+    expect(page.querySelector('h1').textContent).toBe('Andrei invited you to Gains')
+    expect(document.activeElement).toBe(page.querySelector('h1'))
+    expect(page.querySelector('.ob-disc').textContent).toBe('A')
+    expect(page.textContent).toContain('A small group')
+    expect(page.textContent).toContain('Face ID or your fingerprint keeps you in')
+    expect(button(page, 'I already have an account')).toBeTruthy()
   })
 
   it('offers to try again when the check gets no answer', async () => {
@@ -119,13 +158,32 @@ describe('0 Invite', () => {
     expect(page.querySelector('h1').textContent).toBe('You’re invited to Gains')
   })
 
+  it('says the phone is offline when it is, and checks again on Try again', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    hub.checkInvite.mockRejectedValueOnce(Object.assign(new Error('x'), { code: 'unavailable' }))
+    hub.checkInvite.mockResolvedValueOnce({ status: 'valid', inviterName: 'Andrei', suggestedName: null })
+    const page = mount('/join/AB12')
+    await flush()
+    expect(page.querySelector('h1').textContent).toBe('You’re offline')
+    expect(page.querySelector('.ob-notice h2').textContent).toBe('No connection')
+    online.mockReturnValue(true)
+    click(button(page, 'Try again'))
+    expect(page.querySelector('h1').textContent).toBe('Opening your invite')
+    await flush()
+    expect(hub.checkInvite).toHaveBeenCalledTimes(2)
+    expect(page.querySelector('h1').textContent).toBe('Andrei invited you to Gains')
+    online.mockRestore()
+  })
+
   it('leaves the invite unused for someone already signed in here', async () => {
     signedIn()
     const page = mount('/join/AB12')
     await flush()
     expect(hub.checkInvite).not.toHaveBeenCalled()
-    expect(page.querySelector('h1').textContent).toBe('You’re already in as Maria')
-    click(button(page, 'Open Gains'))
+    expect(page.querySelector('h1').textContent).toBe('You’re already in')
+    expect(page.querySelector('.ob-sub').textContent).toContain('signed in as Maria')
+    expect(page.querySelector('.ob-notice h2').textContent).toBe('Signed in as Maria')
+    click(button(page, 'Go to Today'))
     expect(where(page)).toBe('/home')
   })
 })
@@ -201,10 +259,62 @@ describe('1 Name + passkey', () => {
     expect(where(page)).toBe('/onboarding/goal')
   })
 
-  it('cannot be sent without a name', () => {
+  it('moves on from the passkey result by itself after 1.5s, or at a tap before that, in the history\'s place', async () => {
+    signedIn()
+    let page = mount('/onboarding/passkey')
+    await flush()
+    expect(page.querySelector('.g-check [data-thread="check"]')).not.toBeNull()
+    expect(page.textContent).toContain('Your goal is next')
+    later(1499)
+    expect(where(page)).toBe('/onboarding/passkey')
+    later(1)
+    expect(where(page)).toBe('/onboarding/goal')
+    expect(arrivedBy(page)).toBe('REPLACE')
+    unmountAll()
+    page = mount('/onboarding/passkey')
+    await flush()
+    later(300)
+    click(page.querySelector('.ob-center'))
+    expect(where(page)).toBe('/onboarding/goal')
+    expect(arrivedBy(page)).toBe('REPLACE')
+    // The timer it no longer needs does not move anyone on again.
+    later(1500)
+    expect(where(page)).toBe('/onboarding/goal')
+  })
+
+  it('cannot be sent without a name: Create passkey is dimmed until there is a letter, and the name takes 30 characters', async () => {
     saved({ uid: null, code: 'AB12', answers: {} })
     const page = mount('/onboarding/name')
+    const input = page.querySelector('input')
+    const type = value => act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(input.maxLength).toBe(30)
     expect(button(page, 'Create passkey').disabled).toBe(true)
+    type('   ')
+    expect(button(page, 'Create passkey').disabled).toBe(true)
+    // Enter with no name sends nothing either.
+    press(input, 'Enter')
+    expect(passkeys.passkeyRegister).not.toHaveBeenCalled()
+    type('A')
+    expect(button(page, 'Create passkey').disabled).toBe(false)
+  })
+
+  it('shows the reassurance line until a prompt fails, then the alert in its place, again on each failure', async () => {
+    saved({ uid: null, code: 'AB12', invite: { status: 'valid', inviterName: 'Andrei', suggestedName: 'Maria' }, answers: {} })
+    passkeys.passkeyRegister.mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }))
+    const page = mount('/onboarding/name')
+    expect(page.textContent).toContain('No password to remember.')
+    expect(page.querySelector('[role="alert"]')).toBeNull()
+    await act(async () => { button(page, 'Create passkey').click() })
+    const first = page.querySelector('[role="alert"]')
+    expect(first.textContent).toContain('No passkey created. Try again.')
+    expect(document.activeElement).toBe(first)
+    expect(page.textContent).not.toContain('No password to remember.')
+    await act(async () => { button(page, 'Create passkey').click() })
+    // A new alert for the new failure, so it arrives (and shakes) again.
+    expect(page.querySelector('[role="alert"]')).not.toBe(first)
   })
 
   it('sends the person to the invite landing when no invite was checked in this tab, and makes no account', () => {
@@ -246,11 +356,16 @@ describe('1 Name + passkey', () => {
 describe('2 Goal', () => {
   beforeEach(signedIn)
 
-  it('moves on 650ms after a tap, and saves the goal', async () => {
+  it('moves on 650ms after a tap, the picked card white and the caption its goal\'s, and saves the goal', async () => {
     const page = mount('/onboarding/goal')
     await flush()
+    expect(page.querySelector('.ob-cap').textContent).toBe('Pick a goal to balance food and training')
     click(radio(page, 'Build muscle'))
     expect(radio(page, 'Build muscle').getAttribute('aria-checked')).toBe('true')
+    expect(radio(page, 'Build muscle').classList.contains('on')).toBe(true)
+    expect(radio(page, 'Build muscle').querySelector('.g-ccard-mark [data-icon="check"]')).not.toBeNull()
+    expect(radio(page, 'Lose weight').classList.contains('g-glass')).toBe(true)
+    expect(page.querySelector('.ob-cap').textContent).toBe('Food outweighs training: a lean surplus, about +10%')
     expect(hub.saveStep).toHaveBeenCalledWith('goal', expect.objectContaining({ goal: 'build' }), 'u1')
     expect(where(page)).toBe('/onboarding/goal')
     later(650)
@@ -302,7 +417,9 @@ describe('2 Goal', () => {
     const page = mount('/onboarding/goal')
     await flush()
     expect(button(page, 'Skip')).toBeUndefined()
-    expect(page.querySelector('[aria-label="Back"]').disabled).toBe(true)
+    // The passkey exists: the nav holds Back's place with nothing in it.
+    expect(page.querySelector('[aria-label="Back"]')).toBeNull()
+    expect(page.querySelector('.ob-nav .g-onav-sp')).not.toBeNull()
   })
 })
 
@@ -321,10 +438,53 @@ describe('3 About you', () => {
     await flush()
     const before = page.querySelector('.ob-tgt-n').textContent
     click(radio(page, 'Female'))
-    expect(page.querySelector('.ob-cap').textContent).toMatch(/^Your target is now about/)
+    expect(radio(page, 'Female').classList.contains('on')).toBe(true)
+    expect(said(page)).toMatch(/^Your target is now about/)
     later(600)
     expect(page.querySelector('.ob-tgt-n').textContent).not.toBe(before)
     expect(where(page)).toBe('/onboarding/born')
+  })
+
+  it('3a: the live target stands over a floor where Goal\'s is, the thread\'s line on this step', async () => {
+    const page = mount('/onboarding/sex')
+    await flush()
+    const floor = page.querySelector('.ob-ill-sex [data-thread="line"]')
+    expect(floor.getAttribute('d')).toBe('M16 128 H304')
+    expect(floor.classList.contains('il-floor')).toBe(true)
+    expect(page.querySelector('.ob-sex .ob-tgt').getAttribute('aria-hidden')).toBe('true')
+    expect(page.querySelector('.ob-tgt-n').textContent).toMatch(/^≈ /)
+    expect(page.querySelector('.ob-tgt-u').textContent).toBe('kcal a day, a typical range')
+  })
+
+  it('Skip on any of the four lands on Training', async () => {
+    for (const step of ['sex', 'born', 'height', 'weight']) {
+      const page = mount('/onboarding/' + step)
+      await flush()
+      click(button(page, 'Skip'))
+      expect(where(page), step).toBe('/onboarding/training')
+      unmountAll()
+    }
+  })
+
+  it('narrows the live range with every answer, and gives one number at the weight', async () => {
+    const width = page => {
+      const [lo, hi = lo] = page.querySelector('.ob-tgt-n').textContent.replace(/[^\d–]/g, '').split('–').map(Number)
+      return hi - lo
+    }
+    const widths = []
+    let body = { sex: null, birthYear: null, heightCm: null, weightKg: null }
+    for (const [step, field, value] of [['sex', 'sex', 'female'], ['born', 'birthYear', 1990], ['height', 'heightCm', 168], ['weight', 'weightKg', 64]]) {
+      body = { ...body, [field]: value }
+      saved({ answers: { goal: 'keep', body } })
+      const page = mount('/onboarding/' + step)
+      await flush()
+      later(700)
+      widths.push(width(page))
+      unmountAll()
+    }
+    expect(widths[1]).toBeLessThan(widths[0])
+    expect(widths[2]).toBeLessThan(widths[1])
+    expect(widths[3]).toBe(0)
   })
 
   it('3b: the wheel is a vertical slider, untouched until moved, typed with Enter', async () => {
@@ -367,7 +527,7 @@ describe('3 About you', () => {
     saved({ answers: { goal: 'keep', body: { ...full, birthYear: 1990 } } })
     const page = mount('/onboarding/born')
     await flush()
-    const cap = () => page.querySelector('.ob-cap').textContent
+    const cap = () => said(page)
     expect(cap()).toMatch(/^Born 1990\. /)
     const wheel = page.querySelector('[role="slider"]')
     const spin = () => act(() => { wheel.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true })) })
@@ -395,7 +555,7 @@ describe('3 About you', () => {
     later(300)
     await act(async () => { reply({ ready: true, targets: { calories: 2480 } }) })
     await flush()
-    expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target:')
+    expect(said(page)).toContain('Your starting target:')
     expect(hub.previewTargets).toHaveBeenCalledTimes(1)
   })
 
@@ -412,6 +572,36 @@ describe('3 About you', () => {
     expect(page.querySelector('.ob-uchip').getAttribute('aria-label')).toBe('Units: feet and inches. Switch to centimetres')
   })
 
+  it('3c: a typed height outside 120–230 cm is kept within them, and a toast says so', async () => {
+    const page = mount('/onboarding/height')
+    await flush()
+    const ruler = page.querySelector('[role="slider"]')
+    click(page.querySelector('.ob-pk-num'))
+    const field = page.querySelector('input[aria-label="Height in centimetres"]')
+    act(() => { field.value = '300' })
+    press(field, 'Enter')
+    expect(mocks.toasts).toContain('Kept within 120 cm and 230 cm')
+    expect(ruler.getAttribute('aria-valuenow')).toBe('230')
+    expect(page.querySelector('.ob-pk-v').textContent).toBe('230')
+  })
+
+  it('starts the rulers in feet and pounds for an imperial region, and the chip switches them back', async () => {
+    // The units the region gave when the flow began (lib/onboarding/units.js localeUnits).
+    saved({ answers: { goal: 'keep', units: localeUnits('en-US') } })
+    let page = mount('/onboarding/height')
+    await flush()
+    expect(page.querySelector('[role="slider"]').getAttribute('aria-valuemax')).toBe('90')
+    expect(page.querySelector('.ob-uchip').getAttribute('aria-label')).toBe('Units: feet and inches, from your region. Switch to centimetres')
+    unmountAll()
+    page = mount('/onboarding/weight')
+    await flush()
+    const ruler = page.querySelector('[role="slider"]')
+    expect(ruler.getAttribute('aria-valuemax')).toBe('551')
+    expect(page.querySelector('.ob-pk-num small').textContent).toBe('lb')
+    click(page.querySelector('.ob-uchip'))
+    expect(ruler.getAttribute('aria-valuemax')).toBe('250')
+  })
+
   it('3d: with all four in, the ring firms up to the hub\'s target, and Next goes to Training', async () => {
     saved({ answers: { goal: 'keep', body: { ...full, weightKg: null } } })
     const page = mount('/onboarding/weight')
@@ -421,7 +611,10 @@ describe('3 About you', () => {
     await act(async () => { vi.advanceTimersByTime(300) })
     await flush()
     expect(hub.previewTargets).toHaveBeenCalled()
-    expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
+    expect(said(page)).toContain('Your starting target: 1,620 kcal a day.')
+    later(700)
+    expect(page.querySelector('.ob-tgt-n').textContent).toBe('1,620')
+    expect(page.querySelector('.ob-tgt-u').textContent).toBe('kcal a day, your starting target')
     click(button(page, 'Next'))
     expect(hub.saveStep).toHaveBeenCalledWith('body', expect.anything(), 'u1')
     expect(where(page)).toBe('/onboarding/training')
@@ -442,7 +635,10 @@ describe('4 Training', () => {
     page = mount('/onboarding/training')
     await flush()
     click(radio(page, '3'))
-    expect(page.querySelector('.ob-cap').textContent).toBe('Suggested: Monday, Wednesday, Friday')
+    expect(page.querySelector('.ob-cap').textContent).toBe('Suggested: Monday, Wednesday, Friday. Move them later in Plan.')
+    const week = [...page.querySelectorAll('.g-week-d')]
+    expect(week.map(d => d.textContent)).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+    expect(week.map(d => d.querySelector('.g-week-disc').classList.contains('on'))).toEqual([true, false, true, false, true, false, false])
     later(600)
     expect(where(page)).toBe('/onboarding/plan')
   })
@@ -504,7 +700,12 @@ describe('5 Plan', () => {
     act(() => sheetRoot.render(mocks.sheets[0](close)))
     expect(sheetHost.textContent).toContain('These answers go to the AI service')
     click([...sheetHost.querySelectorAll('[role="radio"]')].find(r => r.textContent === 'Dumbbells only'))
+    // Nothing is sent, to the hub or on to the AI service, before Build my plan.
+    const planSaves = () => hub.saveStep.mock.calls.filter(([step]) => step === 'plan')
+    expect(planSaves()).toHaveLength(0)
+    expect(hub.completeOnboarding).not.toHaveBeenCalled()
     click(button(sheetHost, 'Build my plan'))
+    expect(planSaves()).toHaveLength(1)
     // The consent is to the text shown, by its id; the time is the hub's to stamp, never the phone's.
     const sent = hub.saveStep.mock.calls.findLast(([step]) => step === 'plan')[1].plan
     expect(sent).toEqual({ kind: 'coach', experience: null, equipment: 'dumbbells', consentVersion: 'ai-coach-build-v1' })
@@ -553,9 +754,12 @@ describe('5 Plan', () => {
     const sheetHost = document.createElement('div')
     const sheetRoot = createRoot(sheetHost)
     act(() => sheetRoot.render(mocks.sheets[0](() => {})))
+    click(button(sheetHost, 'Not now'))
     act(() => sheetRoot.unmount())
     expect(radio(page, 'Have the AI coach build one').getAttribute('aria-checked')).toBe('false')
     expect(where(page)).toBe('/onboarding/plan')
+    // Not now sends nothing: no plan, no consent.
+    expect(hub.saveStep.mock.calls.filter(([step]) => step === 'plan')).toHaveLength(0)
   })
 
   it('a ready-made plan opens its preview, where a session moves to a free day and the plan is used', async () => {
@@ -574,9 +778,50 @@ describe('5 Plan', () => {
     }), 'u1')
     expect(where(page)).toBe('/onboarding/finish')
   })
+
+  const toStarter = async () => {
+    const page = mount('/onboarding/plan')
+    await flush()
+    click(radio(page, 'Use a ready-made plan'))
+    later(560)
+    return page
+  }
+  const exercises = page => [...page.querySelectorAll('.ob-exn')].map(e => e.textContent)
+
+  it('the starter preview (O2.10): no progress bar, the plan, each session\'s mark on its day, the selected session\'s exercises, Fitted to', async () => {
+    const page = await toStarter()
+    expect(page.querySelector('[role="progressbar"]')).toBeNull()
+    expect(page.querySelector('.ob-pl-name').textContent).toBe('Full body starter')
+    expect(page.querySelector('.ob-pl-meta').textContent).toBe('3 workouts a week')
+    expect([...page.querySelectorAll('.ob-pill b')].map(b => b.textContent)).toEqual(['FBA', 'FBB', 'FBC'])
+    expect(page.querySelector('.ob-pill.sel b').textContent).toBe('FBA')
+    expect(page.querySelector('.ob-pl-st').textContent).toBe('Full Body A · Monday')
+    expect(exercises(page).length).toBeGreaterThan(2)
+    expect(page.querySelector('.ob-exs').textContent).toMatch(/^\d+ × \d+$/)
+    expect(page.querySelector('.ob-pl-fit').textContent).toBe('Fitted to: Full gym, New to lifting ·Change')
+  })
+
+  it('Fitted to (O2.10f) swaps the exercises for the equipment at once, and the plan used takes it', async () => {
+    const page = await toStarter()
+    const gym = exercises(page)
+    click(button(page, 'Change'))
+    const sheet = openedSheet()
+    expect(sheet.host.querySelector('h3').textContent).toBe('Fitted to')
+    expect(sheet.host.textContent).toContain('Exercises swap for what you have')
+    click([...sheet.host.querySelectorAll('[role="radio"]')].find(r => r.textContent === 'Dumbbells only'))
+    expect(exercises(page)).not.toEqual(gym)
+    expect(page.querySelector('.ob-pl-fit').textContent).toBe('Fitted to: Dumbbells only, New to lifting ·Change')
+    click(button(sheet.host, 'Done'))
+    expect(sheet.close).toHaveBeenCalled()
+    sheet.done()
+    click(button(page, 'Use this plan'))
+    expect(hub.saveStep).toHaveBeenLastCalledWith('plan', expect.objectContaining({
+      plan: expect.objectContaining({ kind: 'starter', equipment: 'dumbbells' }),
+    }), 'u1')
+  })
 })
 
-describe('the end (placeholder for the Summary)', () => {
+describe('the end (the Summary\'s finishing)', () => {
   beforeEach(signedIn)
 
   it('completes on the hub and goes Home', async () => {
@@ -584,7 +829,7 @@ describe('the end (placeholder for the Summary)', () => {
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1 })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.completeOnboarding).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), 'u1')
     expect(where(page)).toBe('/home')
@@ -595,7 +840,7 @@ describe('the end (placeholder for the Summary)', () => {
     hub.saveStep.mockRejectedValue(Object.assign(new Error('bad'), { status: 400, code: 'http' }))
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.completeOnboarding).not.toHaveBeenCalled()
     expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
@@ -616,7 +861,7 @@ describe('the end (placeholder for the Summary)', () => {
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' } })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.saveStep.mock.calls.map(([step]) => step)).toEqual(['goal', 'training', 'plan'])
     expect(most, 'never two at once').toBe(1)
@@ -631,7 +876,7 @@ describe('the end (placeholder for the Summary)', () => {
     await flush()
     // The server's AI coach was turned off since: the hub cleared the plan and offers no coach.
     hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false, starterAvailable: true, next: 'plan', remaining: ['plan'] })
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(where(page)).toBe('/onboarding/plan')
     expect(mocks.toasts).toEqual(['That plan can’t be set up on this server right now. Pick another.'])
@@ -646,7 +891,7 @@ describe('the end (placeholder for the Summary)', () => {
     const page = mount('/onboarding/finish')
     await flush()
     hub.loadOnboarding.mockRejectedValueOnce(Object.assign(new Error('x'), { status: 502, code: 'http' }))
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(where(page)).toBe('/onboarding/finish')
     expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
@@ -665,7 +910,7 @@ describe('the end (placeholder for the Summary)', () => {
       answers: {}, completedAt: null, coachAvailable: false, starterAvailable: true, next: 'plan', remaining: ['plan'],
       prefill: { answered: ['training'], training: { trainingDays: 2 }, sources: { opengym: 'ok', nutritrace: 'ok' } },
     })
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(where(page)).toBe('/onboarding/plan')
     expect(page.textContent).toContain('A starter plan for 2 days a week')
@@ -677,7 +922,7 @@ describe('the end (placeholder for the Summary)', () => {
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'retrying', nutritrace: 'done' } })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(mocks.toasts).toEqual(['Saved. Some of it is still on its way to Training and will show up there soon.'])
     expect(where(page)).toBe('/home')
@@ -688,7 +933,7 @@ describe('the end (placeholder for the Summary)', () => {
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' }, plan: null })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(mocks.pullState).toHaveBeenCalledTimes(1)
     expect(mocks.toasts).toEqual([])
@@ -700,7 +945,7 @@ describe('the end (placeholder for the Summary)', () => {
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'failed', nutritrace: 'done' }, plan: null })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(mocks.toasts).toEqual([])
     expect(mocks.pullState).not.toHaveBeenCalled()
@@ -718,7 +963,7 @@ describe('the end (placeholder for the Summary)', () => {
     })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(page.querySelector('.ob-sub').textContent).toBe(
       'Your plan couldn’t be set up. Pick one in Training. Food didn’t take your targets. Set them in Food goals.',
@@ -727,7 +972,7 @@ describe('the end (placeholder for the Summary)', () => {
     expect(button(page, 'Open Food goals')).toBeTruthy()
     // The rest of the write went in: it is read into the app.
     expect(mocks.pullState).toHaveBeenCalledTimes(1)
-    click(button(page, 'Go to Home'))
+    click(button(page, 'Go to Today'))
     expect(where(page)).toBe('/home')
   })
 
@@ -740,7 +985,7 @@ describe('the end (placeholder for the Summary)', () => {
     const page = mount('/onboarding/finish')
     await flush()
     hub.loadOnboarding.mockResolvedValue({ answers: {}, completedAt: null, coachAvailable: false, starterAvailable: false, next: 'plan', remaining: ['plan'] })
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     await flush()
     expect(hub.saveStep).toHaveBeenCalledWith('plan', expect.objectContaining({ plan: { kind: 'none' } }), 'u1')
@@ -831,7 +1076,7 @@ describe('who sees what', () => {
       hub.completeOnboarding.mockRejectedValueOnce(tooMany(0)).mockResolvedValueOnce({ completedAt: 1 })
       const page = mount('/onboarding/finish')
       await flush()
-      await act(async () => { button(page, 'Go to Home').click() })
+      await act(async () => { button(page, 'Go to Today').click() })
       await flush()
       expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
       expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
@@ -849,7 +1094,7 @@ describe('who sees what', () => {
       const page = mount('/onboarding/finish')
       await flush()
       expect(page.querySelector('.ob [role="status"]').textContent).toContain('Gains is busy right now.')
-      await act(async () => { button(page, 'Go to Home').click() })
+      await act(async () => { button(page, 'Go to Today').click() })
       await flush()
       await flush()
       expect(page.querySelector('h1').textContent).toBe('Not everything could be set up')
@@ -861,7 +1106,7 @@ describe('who sees what', () => {
       hub.saveStep.mockRejectedValueOnce(tooMany(0))
       const page = mount('/onboarding/finish')
       await flush()
-      await act(async () => { button(page, 'Go to Home').click() })
+      await act(async () => { button(page, 'Go to Today').click() })
       await flush()
       expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
     })
@@ -895,7 +1140,7 @@ describe('who sees what', () => {
       await waitFor(100 + JITTER)
       await flush()
       expect(hub.previewTargets).toHaveBeenCalledTimes(1)
-      expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
+      expect(said(page)).toContain('Your starting target: 1,620 kcal a day.')
     })
 
     it('holds the saves back after the preview is rate limited', async () => {
@@ -957,7 +1202,7 @@ describe('who sees what', () => {
       hub.completeOnboarding.mockResolvedValue({ completedAt: 1 })
       const page = mount('/onboarding/finish')
       await flush()
-      await act(async () => { button(page, 'Go to Home').click() })
+      await act(async () => { button(page, 'Go to Today').click() })
       await flush()
       expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
       expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
@@ -979,7 +1224,7 @@ describe('who sees what', () => {
       hub.completeOnboarding.mockRejectedValueOnce(tooMany(2)).mockResolvedValueOnce({ completedAt: 1 })
       const page = mount('/onboarding/finish')
       await flush()
-      await act(async () => { button(page, 'Go to Home').click() })
+      await act(async () => { button(page, 'Go to Today').click() })
       await flush()
       expect(page.querySelector('.ob-sub').textContent).toBe('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
       expect(JSON.parse(sessionStorage.getItem('gains_onboarding')).answers.goal).toBe('keep')
@@ -998,7 +1243,7 @@ describe('who sees what', () => {
       const page = mount('/onboarding/finish')
       await flush()
       hub.loadOnboarding.mockRejectedValueOnce(tooMany(3))
-      await act(async () => { button(page, 'Go to Home').click() })
+      await act(async () => { button(page, 'Go to Today').click() })
       await flush()
       expect(where(page)).toBe('/onboarding/finish')
       expect(page.querySelector('h1').textContent).toBe('Your answers could not be saved yet')
@@ -1062,11 +1307,35 @@ describe('what the hub says is answered or not needed (§6)', () => {
     const page = mount('/onboarding/sex')
     await flush()
     const left = page.querySelector('.ob-nav [aria-live="polite"]')
-    expect(left.textContent).toBe('2 steps left')
-    expect(page.querySelector('[role="progressbar"]').getAttribute('aria-valuetext')).toBe('Step 2 of 3: You, 1 of 4')
+    // Sex is step 3 of 8: the four About-you steps, Training and the plan are still to come.
+    expect(left.textContent).toBe('6 steps left')
+    expect(page.querySelector('[role="progressbar"]').getAttribute('aria-label')).toBe('Step 3 of 8')
     click(button(page, 'Skip'))
     expect(where(page)).toBe('/onboarding/training')
-    expect(page.querySelector('.ob-nav [aria-live="polite"]').textContent).toBe('1 step left')
+    expect(page.querySelector('.ob-nav [aria-live="polite"]').textContent).toBe('2 steps left')
+  })
+
+  it('shows eight steps, lights the furthest reached, keeps it lit going back, and reads as the step on screen', async () => {
+    saved({ answers: { goal: 'keep' } })
+    const page = mount('/onboarding/sex')
+    await flush()
+    const bar = () => page.querySelector('[role="progressbar"]')
+    const lit = () => [...bar().children].filter(s => s.classList.contains('on')).length
+    expect(bar().children).toHaveLength(8)
+    expect(bar().getAttribute('aria-valuenow')).toBe('3')
+    expect(lit()).toBe(3)
+    click(radio(page, 'Female'))
+    later(600)
+    expect(where(page)).toBe('/onboarding/born')
+    expect(lit()).toBe(4)
+    click(page.querySelector('[aria-label="Back"]'))
+    expect(where(page)).toBe('/onboarding/sex')
+    expect(bar().getAttribute('aria-valuenow')).toBe('3')
+    expect(lit()).toBe(4)
+    // A skip to Training lights the steps it jumped over.
+    click(button(page, 'Skip'))
+    expect(where(page)).toBe('/onboarding/training')
+    expect(lit()).toBe(7)
   })
 
   it('resumes where the hub says, straight to the end when the data answers everything', async () => {

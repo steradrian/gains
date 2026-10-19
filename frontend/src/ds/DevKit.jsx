@@ -2,13 +2,19 @@ import { useState } from 'react'
 import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
+import GlassList from './GlassList.jsx'
 import IconButton from './IconButton.jsx'
 import Illustration from './Illustration.jsx'
+import InlineBanner from './InlineBanner.jsx'
 import Logo from './Logo.jsx'
 import OnboardingNav from './OnboardingNav.jsx'
+import StageAlert from './StageAlert.jsx'
 import StageChoiceCard from './StageChoiceCard.jsx'
+import StageDayCount from './StageDayCount.jsx'
 import StageFooter from './StageFooter.jsx'
 import StageScreen, { ACCENTS } from './StageScreen.jsx'
+import StageWeekStrip from './StageWeekStrip.jsx'
+import SuccessCheck from './SuccessCheck.jsx'
 import TextField from './TextField.jsx'
 import { SCENE_NAMES } from './illustration-scenes.js'
 import './dev-kit.css'
@@ -22,6 +28,7 @@ const GOALS = [
   { icon: 'dumbbell', title: 'Build muscle', sub: 'A small surplus and progressive training' },
   { icon: 'target', title: 'Stay where I am', sub: 'Maintenance calories' },
 ]
+const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function DevKit() {
   const [accent, setAccent] = useState('cobalt')
@@ -30,6 +37,8 @@ export default function DevKit() {
   const [code, setCode] = useState('A7K')
   const [invalid, setInvalid] = useState(false)
   const [replay, setReplay] = useState(0)
+  const [alerts, setAlerts] = useState(1)
+  const [days, setDays] = useState(4)
 
   return (
     <StageScreen accent={accent}>
@@ -71,6 +80,14 @@ export default function DevKit() {
             <StageChoiceCard slim title="Male" />
             <StageChoiceCard slim title="Rather not say" href={SELF} />
           </div>
+          <div className="g-kit-col" role="radiogroup" aria-label="Goal, as radios">
+            {GOALS.map((g, i) => <StageChoiceCard key={g.title} radio {...g} selected={goal === i} tabIndex={goal === i ? 0 : -1} onClick={() => setGoal(i)} />)}
+          </div>
+        </Section>
+
+        <Section title="StageDayCount and StageWeekStrip" note="0 to 6 keys (pick one: the week lights those days); 0 lights none.">
+          <StageDayCount values={[0, 1, 2, 3, 4, 5, 6]} value={days} onPick={n => setDays(n)} labelOf={n => (n === 0 ? '0, just tracking food' : undefined)} />
+          <StageWeekStrip days={WEEK.map((label, i) => ({ key: label, label, lit: i < days }))} />
         </Section>
 
         <Section title="TextField" note="tone stage, with a unit and a hint.">
@@ -82,6 +99,7 @@ export default function DevKit() {
           <CodeCells value={code} onChange={setCode} invalid={invalid} />
           <div className="g-kit-row"><Button variant="secondary" size="sm" aria-pressed={invalid} onClick={() => setInvalid(v => !v)}>Invalid</Button></div>
           <CodeCells length={4} numeric label="Reset code" />
+          <CodeCells length={12} label="Device code" />
         </Section>
 
         <Section title="IconButton" note="glass on the stage; none, tonal and accent on a light surface.">
@@ -118,10 +136,48 @@ export default function DevKit() {
           </div>
         </Section>
 
+        <Section title="StageAlert" note="One glass line of bad news with an action chip; key it per failure and it shakes and takes focus again.">
+          <div className="g-kit-row"><Button variant="secondary" size="sm" onClick={() => setAlerts(n => n + 1)}>Fail again</Button></div>
+          <StageAlert key={alerts} action="Having trouble?" onAction={() => {}}>Your passkey could not be confirmed.</StageAlert>
+          <StageAlert icon="warning">Without a chip, as one line.</StageAlert>
+        </Section>
+
+        <Section title="InlineBanner" note="Stage glass; on a light surface in accent, warning and muted; a title alone; with actions.">
+          <InlineBanner stage title="That code didn’t work" body="It is wrong, already used or expired. Make a new one on your other device." />
+          <div className="g-kit-light">
+            <InlineBanner tone="warning" title="Wrong name, e-mail or password." body="Check both, or use a reset code from your admin." />
+            <InlineBanner tone="warning" title="This account has been disabled." />
+            <InlineBanner tone="accent" title="Coach has a plan" body="Review it before it starts." actions={[{ label: 'Review', solid: true, onClick: () => {} }, { label: 'Later', onClick: () => {} }]} />
+            <InlineBanner tone="muted" icon="clock" title="Rest day" />
+          </div>
+        </Section>
+
+        <Section title="GlassList" note="Rows in one card: with a chevron when they go somewhere, without when they only say something; light in a drawer.">
+          <GlassList items={[
+            { icon: 'smartphone', title: 'Where is the code?', sub: 'On your other device: Settings › Account' },
+            { icon: 'lock', title: 'Sign in with password', sub: 'If you set one in Settings › Account', onClick: () => {} },
+          ]} />
+          <div className="g-kit-light">
+            <GlassList tone="light" items={[
+              { icon: 'smartphone', title: 'Use a code from your other device', sub: 'Your other device gets you in', onClick: () => {} },
+              { icon: 'lock', title: 'Sign in with password', onClick: () => {} },
+            ]} />
+          </div>
+        </Section>
+
+        <Section title="SuccessCheck" note="The ring draws itself once as the screen arrives.">
+          <div className="g-kit-row"><SuccessCheck /></div>
+        </Section>
+
         <Section title="StageFooter" note="In the flow (sticky false) with a note; the screen's own is pinned to the bottom.">
           <StageFooter sticky={false} note="Gains is invite-only. New here? Open the invite link a friend sent you.">
             <Button block icon="scanFace">Sign in with passkey</Button>
+            <Button block variant="glass" icon="smartphone">Use a code from your other device</Button>
             <Button block variant="ghost" href={SELF}>Sign in with password</Button>
+          </StageFooter>
+          <StageFooter sticky={false}>
+            <Button block busy>Waiting for your passkey</Button>
+            <Button block variant="ghost">Cancel</Button>
           </StageFooter>
         </Section>
       </div>

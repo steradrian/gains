@@ -9,8 +9,9 @@ import { useLater } from '../../lib/onboarding/use-later.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
-// 3a You · sex (§3b): the formula's constant, with "Why we ask". A tap moves on (600ms); Skip in the
-// nav goes to Training. The live target ring stands on the floor and takes its first quarter.
+// 3a You · sex (§3b; board O2.4): the formula's constant, with "Why we ask". A tap moves on
+// (600ms); Skip in the nav goes to Training. The live target stands where a scene would, and
+// takes its first quarter.
 export default function SexScreen() {
   const { state, act, saveHubStep, next } = useOnboarding()
   const sex = state.answers.body.sex
@@ -25,8 +26,7 @@ export default function SexScreen() {
   return (
     <StepScreen fixedHeader titleId="ob-sex-t" title={t('What’s your sex?')} sub={t('It picks the constant in the calorie formula. Only you see it.')}
       headerExtra={<button type="button" className="ob-why" onClick={why}><Icon name="circleHelp" /><span>{t('Why we ask')}</span></button>}
-      stage={<SexScene target={target} />}
-      caption={sex ? targetSentence(target) : ''}>
+      stage={<SexScene target={target} say={sex ? targetSentence(target) : ''} />}>
       <ChoiceCards slim labelledBy="ob-sex-t" value={sex} onPick={pick} options={[
         { value: 'female', title: t('Female') },
         { value: 'male', title: t('Male') },
