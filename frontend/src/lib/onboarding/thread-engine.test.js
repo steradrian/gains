@@ -52,7 +52,7 @@ beforeEach(() => {
   // A screen reads as the transform it slides with; an anchor as its stroke.
   vi.stubGlobal('getComputedStyle', el => (el?.slide
     ? { transform: `matrix(1, 0, 0, 1, ${el.slide[0]}, ${el.slide[1]})` }
-    : { strokeWidth: '2', stroke: 'rgb(0, 0, 0)' }))
+    : { strokeWidth: '2', stroke: 'rgb(0, 0, 0)', getPropertyValue: p => ({ '--il-w': '2.5', '--on-stage': '#FFFFFF' })[p] ?? '' }))
   vi.stubGlobal('DOMMatrixReadOnly', class {
     constructor(s) { const n = s.match(/-?[\d.]+/g).map(Number); this.m41 = n[4]; this.m42 = n[5] }
   })

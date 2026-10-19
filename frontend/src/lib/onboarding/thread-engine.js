@@ -6,7 +6,10 @@
 //
 // The old screen is gone by the time the new one mounts (the router swaps them), so the start is
 // `last`: the old anchor measured as it unregistered, still in place.
-import { birthPlan, checkP, dOf, evalAt, lineP, planBetween } from './thread-geometry.js'
+import { birthPlan, checkP, dOf, evalAt, lineP, planBetween, withFlight } from './thread-geometry.js'
+
+// The path by form, flown white and landed in the anchor's own look.
+const planTo = (from, dest) => withFlight(planBetween(from, dest), dest, dest.f)
 
 // New-screen content the line sweeps across mid-glide: held at 0 until it lands, then 160ms in.
 const HOLD = '.ob-hd > *, .ob-cap, .ob-controls > *, .ob-pk-read, .ob-ruler, .ob-wheel, .ob-pl-hint, .ob-pl-sess, .ob-pl-fit, .ob-pass-t, .ob-pass-s'
@@ -41,6 +44,11 @@ export function measureAnchor(el) {
   const cs = getComputedStyle(el)
   const form = el.getAttribute('data-thread')
   const shape = { form, w: (parseFloat(cs.strokeWidth) || 1.5) * scale, c: cs.stroke, o: 1 }
+  // How the thread flies to it: white at the scene's structure weight (the kit's --il-w, 2.5).
+  shape.f = {
+    w: (parseFloat(cs.getPropertyValue('--il-w')) || 2.5) * scale,
+    c: cs.getPropertyValue('--on-stage').trim() || shape.c,
+  }
   if (form === 'check') {
     // data-k: the scale the disc pops from, about the viewBox centre, where the check is when the thread lands.
     const n = String(el.getAttribute('data-pts')).split(' ').map(Number), k = Number(el.getAttribute('data-k') || 1)
@@ -167,7 +175,7 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
         if (at && moved(dest, at)) {
           r.cancel()
           last = at
-          start(live, planBetween(live, at), el, at, hops + 1)
+          start(live, planTo(live, at), el, at, hops + 1)
           return
         }
         // The end shape itself for one frame, then the swap: the last frame painted before the
@@ -215,12 +223,12 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
     } else if (!from) {
       if (birth && !born) {
         born = true
-        const plan = birthPlan(dest)
+        const plan = birthPlan(dest, dest.f)
         claim(el)
         start(plan.base, plan, el, dest)
       }
     } else {
-      const plan = planBetween(from, dest)
+      const plan = planTo(from, dest)
       claim(el)
       if (plan.arrive) {
         el.ownerSVGElement?.style.setProperty('--lead', Math.max(0, plan.arrive - LEAD_MS) + 'ms')
