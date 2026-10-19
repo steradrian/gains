@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // Illustration: a scene draws itself in the first time it shows in a session and is simply there
 // after that; `draw` replays it every time; under reduced motion it fades in instead of drawing.
+import { useLayoutEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resetDrawIn } from '../lib/use-draw-in.js'
 import Illustration from './Illustration.jsx'
@@ -74,5 +75,45 @@ describe('Illustration', () => {
     const ids = [...view.host.querySelectorAll('clipPath')].map(c => c.id)
     expect(ids).toHaveLength(2)
     expect(new Set(ids).size).toBe(2)
+  })
+
+  // The onboarding's thread registers its anchor in a layout effect of the screen around the
+  // drawing: the path must be in the ref by then, drawn in or not.
+  it.each([
+    ['floor', 'goal', 'il-floor', 'M16 128 H304'],
+    ['accent', 'height', 'il-acc', 'M116 54 H176'],
+    ['shaft', 'passkey', 'kshaft', 'M124 56 H248'],
+  ])('hands its %s to anchorRef before the screen\'s layout effects run', (anchor, name, cls, d) => {
+    const seen = []
+    function Screen() {
+      const ref = useRef(null)
+      useLayoutEffect(() => { seen.push(ref.current) }, [])
+      return <Illustration name={name} draw="once" anchor={anchor} anchorRef={ref} />
+    }
+    view.render(<Screen />)
+    expect(seen).toHaveLength(1)
+    expect(seen[0].classList.contains(cls)).toBe(true)
+    expect(seen[0].getAttribute('d')).toBe(d)
+  })
+
+  it('takes the screen\'s moving parts: a class and custom properties, SVG parts over it, HTML on it', () => {
+    view.render(
+      <Illustration name="goal" className="tilted" vars={{ '--r': '6deg' }} width={260} overlay={<span className="ov">1990</span>}>
+        <path className="extra" d="M0 0 H10" />
+      </Illustration>,
+    )
+    expect(art().classList.contains('tilted')).toBe(true)
+    expect(art().style.getPropertyValue('--r')).toBe('6deg')
+    expect(art().style.getPropertyValue('--g-ill-w')).toBe('260px')
+    expect(art().querySelector('svg > path.extra')).not.toBeNull()
+    expect(art().querySelector(':scope > .ov').textContent).toBe('1990')
+  })
+
+  it('runs the scale\'s tape over the whole range, the marks at rest where the bundle draws them', () => {
+    view.render(<Illustration name="weight" />)
+    const tape = art().querySelector('.stape path').getAttribute('d')
+    expect(tape.startsWith('M20 44v14M24 44v8')).toBe(true)
+    expect(tape).toContain('M120 44v14M124 44v8M128 44v8M132 44v8M136 44v8M140 44v14')
+    expect(tape.endsWith('M880 44v14')).toBe(true)
   })
 })

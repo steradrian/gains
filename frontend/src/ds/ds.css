@@ -41,7 +41,7 @@
 .g-iconbtn-glass:active > span { background: var(--glass); }
 
 /* Illustration (line art) */
-.g-ill { --il-w: 2.5; --il-w-d: 1.5; width: min(100%, var(--g-ill-w, 320px)); margin: 0 auto; }
+.g-ill { position: relative; --il-w: 2.5; --il-w-d: 1.5; width: min(100%, var(--g-ill-w, 320px)); margin: 0 auto; }
 .g-ill svg { display: block; width: 100%; height: auto; overflow: visible; }
 .g-ill .il, .g-ill .il-acc, .g-ill .il-mute, .g-ill .il-floor { fill: none; stroke-width: var(--il-w); stroke-linecap: round; stroke-linejoin: round; }
 .g-ill .il { stroke: var(--text-2); }

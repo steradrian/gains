@@ -4,8 +4,11 @@ import Act from './Act.jsx'
 
 // The top of an onboarding step: glass back, the progress segments filled up to `step`, and Skip
 // when the step is optional. Back and Skip are links with an href, buttons with a callback, and
-// hold their place when there is neither, so the segments stay centred.
-export default function OnboardingNav({ backHref, onBack, step, total = 8, skipHref, onSkip, skipLabel }) {
+// hold their place when there is neither, so the segments stay centred. `filled` lights more
+// segments than `step` (a flow whose bar never shrinks on the way back); the bar still reads as
+// the step on screen.
+export default function OnboardingNav({ backHref, onBack, step, filled, total = 8, skipHref, onSkip, skipLabel }) {
+  const lit = Math.max(step || 0, filled || 0)
   return (
     <div className="g-onav">
       {backHref || onBack
@@ -14,7 +17,7 @@ export default function OnboardingNav({ backHref, onBack, step, total = 8, skipH
       {step
         ? (
           <div className="g-onav-prog" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step} aria-label={t('Step {0} of {1}', step, total)}>
-            {Array.from({ length: total }, (_, k) => <i key={k} className={k < step ? 'on' : undefined} />)}
+            {Array.from({ length: total }, (_, k) => <i key={k} className={k < lit ? 'on' : undefined} />)}
           </div>
         )
         : <span className="g-onav-gap" />}

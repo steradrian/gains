@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useLayoutEffect, useRef } from 'react'
 import { useDrawIn } from '../lib/use-draw-in.js'
 import { reducedMotion } from '../lib/reduced-motion.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
@@ -21,24 +21,43 @@ function prepDraw(svg) {
 }
 
 const MODE_CLASS = { 'il-draw': 'g-ill-draw', 'rm-fade': 'g-ill-fade' }
+// The paths a screen can ask for by name (`anchor`): the floor, the one accent, the key's shaft.
+const ANCHORS = { floor: '.il-floor', accent: '.il-acc', shaft: '.kshaft' }
 
 // One of the onboarding's line-art scenes. `draw` plays the draw-in every time it mounts (and
 // again when `replayKey` changes); `draw="once"`, the one to use in screens, only the first time
 // that scene shows in a session (lib/use-draw-in.js), and after that it is simply there. Under
 // reduced motion (the device's or the app's) it fades in over 140ms instead. `tone="stage"` is
 // the same drawing in white for the stage. Decoration: hidden from screen readers.
-export default function Illustration({ name, draw, replayKey, width, tone, className }) {
+//
+// What a screen adds for the parts it moves with an answer (README: screen behaviours, not part
+// of the scene): `className` and `vars` (custom properties) on the drawing, which the screen's CSS
+// reaches the scene's handles with (ss-g, stape, hmark…); `children`, SVG parts drawn over the
+// scene in its viewBox; `overlay`, HTML laid over it. `anchor` names one of its paths and
+// `anchorRef` gets that element before the screen's own layout effects run (the onboarding's
+// thread anchor).
+export default function Illustration({ name, draw, replayKey, width, tone, className, vars, anchor, anchorRef, overlay, children }) {
   oneOf('Illustration', 'name', name, SCENE_NAMES)
   oneOf('Illustration', 'tone', tone, ['light', 'stage'])
+  oneOf('Illustration', 'anchor', anchor, Object.keys(ANCHORS))
   const scene = SCENES[name] || SCENES.plan
   const id = 'g' + useId().replace(/[^\w-]/g, '')
   const once = useDrawIn(draw === 'once' ? 'g-ill:' + name : 'g-ill')
   const mode = draw === 'once' ? once : draw === true ? (reducedMotion() ? 'rm-fade' : 'il-draw') : null
-  const html = scene.svg.replace(/__ID__/g, id)
+  const raw = scene.svg.replace(/__ID__/g, id)
+  const html = mode === 'il-draw' ? prepDraw(raw) : raw
+  const art = useRef(null)
+  useLayoutEffect(() => {
+    if (anchorRef) anchorRef.current = anchor ? art.current?.querySelector(ANCHORS[anchor]) ?? null : null
+  }, [anchor, anchorRef, html, replayKey])
+  const style = width || vars ? { ...(width ? { '--g-ill-w': width + 'px' } : {}), ...vars } : undefined
   return (
-    <div key={replayKey} className={cx('g-ill', tone === 'stage' && 'g-ill-stage', MODE_CLASS[mode], className)}
-      style={width ? { '--g-ill-w': width + 'px' } : undefined}>
-      <svg viewBox={scene.viewBox} aria-hidden="true" dangerouslySetInnerHTML={{ __html: mode === 'il-draw' ? prepDraw(html) : html }} />
+    <div key={replayKey} className={cx('g-ill', tone === 'stage' && 'g-ill-stage', MODE_CLASS[mode], className)} style={style}>
+      <svg viewBox={scene.viewBox} aria-hidden="true" focusable="false">
+        <g ref={art} className="g-ill-art" dangerouslySetInnerHTML={{ __html: html }} />
+        {children}
+      </svg>
+      {overlay}
     </div>
   )
 }
