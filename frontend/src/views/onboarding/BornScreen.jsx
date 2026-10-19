@@ -11,7 +11,8 @@ import { useSettledCaption } from '../../lib/onboarding/use-settled-caption.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
-// 3b You · born (§3b): just the year, on a wheel greyed until touched, or typed.
+// 3b You · born (§3b; board O2.5): just the year, on a wheel greyed until touched, or typed. The
+// live target stands under it.
 export default function BornScreen() {
   const { state, act } = useOnboarding()
   const year = state.answers.body.birthYear
@@ -19,13 +20,14 @@ export default function BornScreen() {
   const [settled, setSettled] = useState(year != null)
   const [moving, setMoving] = useState(false)
   const range = yearRange()
-  const caption = useSettledCaption(settled && !moving && year != null, `${t('Born {0}.', year)} ${targetSentence(target)}`)
+  const say = useSettledCaption(settled && !moving && year != null, `${t('Born {0}.', year)} ${targetSentence(target)}`)
   return (
-    <StepScreen fixedHeader titleId="ob-born-t" title={t('When were you born?')} sub={t('Just the year. Spin the wheel, or tap the year to type it.')}
-      stage={<CalendarScene year={year} after={<TargetRing target={target} />} />}
-      caption={caption}
+    <StepScreen fixedHeader titleId="ob-born-t" title={t('When were you born?')} sub={t('Your age changes what you burn at rest. Only you see it.')}
+      stage={<CalendarScene year={year} />} stageSize="sm"
+      below={<TargetRing target={target} say={say} />}
       footer={<NextButton screen="born" ready={year != null} />}>
-      <YearWheel range={range} value={year} onBad={msg => useUI.getState().toast(msg)}
+      <YearWheel range={range} value={year} hint={t('Just the year. Spin the wheel, or tap the year to type it.')}
+        onBad={msg => useUI.getState().toast(msg)}
         onChange={(v, final) => {
           act({ type: 'body', field: 'birthYear', value: v })
           setMoving(!final)

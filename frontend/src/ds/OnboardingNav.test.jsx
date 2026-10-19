@@ -26,6 +26,14 @@ describe('OnboardingNav', () => {
     expect([...bar().children].map(s => s.classList.contains('on'))).toEqual([true, true, true, false, false])
   })
 
+  it('lights up to `filled` when that is further, and still reads as the step on screen', () => {
+    view.render(<OnboardingNav step={2} filled={4} total={5} />)
+    expect([...bar().children].map(s => s.classList.contains('on'))).toEqual([true, true, true, true, false])
+    expect(bar().getAttribute('aria-valuenow')).toBe('2')
+    view.render(<OnboardingNav step={3} filled={1} total={5} />)
+    expect([...bar().children].filter(s => s.classList.contains('on'))).toHaveLength(3)
+  })
+
   it('has no progressbar without a step', () => {
     view.render(<OnboardingNav onBack={() => {}} />)
     expect(bar()).toBeNull()

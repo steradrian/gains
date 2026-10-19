@@ -1,13 +1,16 @@
-import SceneStage from '../SceneStage.jsx'
 import TargetRing from '../TargetRing.jsx'
 import ThreadFloor from '../ThreadFloor.jsx'
 
-// 3a Sex: no drawing (no figures); the live target's 88px ring stands 8 above a floor identical to
-// Goal's, on the same hero canvas, so the thread holds still (UI decision 1).
-export default function SexScene({ target }) {
+// 3a Sex (board O2.4): no drawing (no figures). The live target's glass row stands in the
+// illustration slot, over a floor where Goal's is (the same 300-wide canvas, the stage's floor at
+// 32% white, 1.5), so the thread holds still from Goal and has a line to land on.
+export default function SexScene({ target, say }) {
   return (
-    <SceneStage drawKey="sex" viewBox="0 0 320 144" overlay={<TargetRing target={target} big />}>
-      <ThreadFloor y={128} />
-    </SceneStage>
+    <div className="ob-sex">
+      <div className="g-ill g-ill-stage ob-ill-sex">
+        <svg viewBox="0 0 320 144" aria-hidden="true" focusable="false"><ThreadFloor y={128} /></svg>
+      </div>
+      <div className="ob-sex-tgt"><TargetRing target={target} say={say} /></div>
+    </div>
   )
 }

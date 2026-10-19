@@ -12,7 +12,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Modals, { scrollRestorePending } from './components/Modals.jsx'
 import CoachSheet from './components/onboarding/CoachSheet.jsx'
-import SummarySheet from './components/onboarding/SummarySheet.jsx'
+import DaySheet from './components/onboarding/DaySheet.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { effortPickerSheet, workoutDetailSheet } from './sheets.jsx'
@@ -88,10 +88,10 @@ describe('what a sheet does on its way out happens when it is closed', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
-  it('the Summary\'s sheet tells the flow it is done as a pick closes it', async () => {
+  it('the Summary\'s day sheet tells the flow it is done as a pick closes it', async () => {
     const onDone = vi.fn()
     open(() => useUI.getState().openSheet(close => (
-      <SummarySheet which="goal" answers={{ goal: 'keep' }} onPick={() => {}} onDone={onDone} close={close} />
+      <DaySheet value="sitting" onPick={() => {}} onDone={onDone} close={close} />
     )))
     await act(async () => { q('.sheet [role="radio"]').click() })
     leaving()

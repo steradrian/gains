@@ -1,17 +1,15 @@
 // More than one passkey on a profile, and the one-time code that adds one on another device
 // (#95). Settings → Account lists the passkeys and offers both ways to add one; the sign-in screen
-// — or the link in the code's QR, opened on the other device — redeems a code. The rules are the
-// server's (api/passkeys-store.js, api/device-link.js and the passkeys block in api/server.js):
-// what needs proof, the last way in, how long a code lives. This only words them.
-import { useEffect, useRef, useState } from 'react'
-import { useStore } from '../store/useStore.js'
+// — or the link in the code's QR, opened on the other device — redeems a code (views/AddDevice.jsx).
+// The rules are the server's (api/passkeys-store.js, api/device-link.js and the passkeys block in
+// api/server.js): what needs proof, the last way in, how long a code lives. This only words them.
+import { useEffect, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { dateLocale } from '../lib/i18n-core.js'
 import { api, webauthnOK, createPasskey } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
-import { deviceLinkUrl, deviceLabel } from '../lib/device-link.js'
-import { askAddDeviceData } from '../sheets.jsx'
+import { deviceLinkUrl } from '../lib/device-link.js'
 import { passwordError, notReached, useAgainOnceReached, ProveOwner } from './PasswordAuth.jsx'
 import QrCanvas from './QrCanvas.jsx'
 import { Row, Button } from './ui.jsx'
@@ -25,10 +23,7 @@ const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(bo
 // A passkey prompt the person closed is their answer, not an error worth a line in red.
 const dismissed = e => e?.name === 'NotAllowedError' || e?.name === 'AbortError'
 // How long a code lives (api/device-link.js DEVICE_LINK_TTL_MS), for the sentence that says so.
-const LINK_MINUTES = 10
-// The server keeps a creation challenge five minutes; one older than four is asked for again
-// rather than risked on a prompt that then fails.
-const CHALLENGE_FRESH_MS = 4 * 60000
+export const LINK_MINUTES = 10
 
 // The year only when it is not this one, so "Added … · Last used …" fits on one line.
 const when = iso => {
@@ -50,7 +45,6 @@ export function passkeyError(e) {
     case 'last-way-in': return t('It is your only way in, so it cannot be removed until there is another.')
     case 'passkey-limit': return t('This profile already has as many passkeys as it can hold.')
     case 'credential-exists': return t('This passkey already belongs to a profile.')
-    case 'link-invalid': return t('That code is wrong, already used or expired. Make a new one on your other device.')
   }
   return passwordError(e)
 }
@@ -246,99 +240,4 @@ export function DeviceLinkSheet({ close }) {
   </>
 }
 
-/* ------------------------------------------------------------------ the other device -------
-   Redeeming a code: the device being added creates a passkey of its own, and that passkey signs it
-   in. The code comes from the link's ?link= (the store holds it, see boot()) or is typed. A code
-   from a link is checked as the sheet opens, so it can say whose profile this device is joining
-   and the passkey prompt then opens straight from the tap. The passkey is named after this
-   browser (deviceLabel), which the list in Settings can change. Signed in afterwards like a
-   passkey sign-in on the sign-in screen: the same account coming back merges what this device
-   kept for it (adoptProfile), and another account's copy is kept aside for that one (setUser).
-
-   A link opens this sheet by itself, and anyone can send one: a code for their own profile would
-   sign this browser in to it with a single tap and the passkey prompt, and whatever is logged
-   here afterwards would be theirs to read (login CSRF). So unless the code is for the profile
-   this browser is already signed in as — told apart by id, since names are not unique and the
-   sender chooses theirs — the sheet says which profile this device ends up in and to go on only
-   with a code from a device of one's own, and a guest's workouts go into that profile only when
-   the guest says so, even into one that has nothing yet (adoptProfile's alwaysAsk). */
-export function DeviceLinkRedeemSheet({ close }) {
-  const user = useStore(s => s.user)
-  const pending = useStore(s => s.linkCode)
-  const [code, setCode] = useState(pending || '')
-  const [info, setInfo] = useState(null)   // { code, cid, options, id, name, at } from checking the code
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState(null)
-  const ref = useRef(null)
-  const check = async c => {
-    const r = await post('/api/device-link/options', { code: c })
-    const i = { ...r, code: c, at: Date.now() }
-    setInfo(i)
-    return i
-  }
-  useEffect(() => {
-    if (!webauthnOK()) return
-    if (pending) check(pending).catch(e => setErr(passkeyError(e)))
-    else setTimeout(() => ref.current?.focus(), 250)
-  }, [])
-  const submit = async ev => {
-    ev.preventDefault()
-    if (busy) return
-    const c = code.trim()
-    if (!c) { setErr(t('Enter the code from your other device.')); return }
-    setBusy(true); setErr(null)
-    let spent = false
-    try {
-      const i = info && info.code === c && Date.now() - info.at < CHALLENGE_FRESH_MS ? info : await check(c)
-      const credential = await createPasskey(i.options)
-      spent = true
-      const r = await post('/api/device-link/verify', { code: c, cid: i.cid, credential, name: deviceLabel() })
-      const st = useStore.getState()
-      useStore.setState({ linkCode: null })
-      const same = st.user?.id === r.user.id
-      // Another profile: its question decides what becomes of this copy, and nothing syncs
-      // before it is answered (adoptProfile).
-      st.setUser(r.user, same ? undefined : { adopt: { alwaysAsk: true } })
-      close()
-      if (same) { toast(t('Passkey added')); return }
-      // Signed in by now whatever happens next: a pull that fails is the sync banner's to say
-      // (adoptProfile records it), not a reason to hide that this device got in.
-      await st.adoptProfile(askAddDeviceData, { alwaysAsk: true }).catch(() => {})
-      // Not "Welcome back": this may be the first time this person has seen that profile.
-      toast(t('Signed in as {0}', r.user.name))
-    } catch (e) {
-      if (!dismissed(e)) setErr(passkeyError(e))
-      // Answered by the server, the challenge is gone; the next try asks for a new one.
-      if (spent || e?.status) setInfo(null)
-    } finally { setBusy(false) }
-  }
-  if (!webauthnOK()) return <>
-    <SheetHeader title={t('Add this device')} />
-    <div className="muted small">{t('This browser cannot create passkeys, so it cannot be added with a code. Open the link in a browser that can.')}</div>
-    <Spacer size={6} />
-    <Button onClick={close}>{t('Done')}</Button>
-  </>
-  const joining = info && info.code === code.trim() ? info : null
-  const elsewhere = joining && joining.id !== user?.id
-  return <>
-    <SheetHeader title={t('Add this device')} />
-    <div className="muted small mb-7">{joining
-      ? t('Create a passkey on this device for the profile “{0}”. It signs you in here from now on.', joining.name)
-      : t('Enter the code your other device shows under Settings → Account → Add another device. This device then gets a passkey of its own.')}</div>
-    {elsewhere && <Card className="small ta-start mb-7">
-      {user && <div className="mb-4">{user.name === joining.name
-        ? t('This code is for a different profile that is also called “{0}”, not the one this browser is signed in as. Adding it there signs yours out here.', joining.name)
-        : t('This browser is signed in as “{0}”. Adding it to “{1}” signs “{0}” out here.', user.name, joining.name)}</div>}
-      <div>{t('Only continue if this code comes from a device of your own. This browser is then signed in to “{0}”, and what you log here goes to that profile.', joining.name)}</div>
-    </Card>}
-    <form onSubmit={submit} noValidate>
-      <input ref={ref} className="input ls-14 fw-semibold ta-center" name="device-code" autoComplete="one-time-code" placeholder={t('Code from your other device')} maxLength={20}
-        value={code} onChange={e => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" autoCorrect="off" spellCheck={false}
-        dir="ltr" />
-      {err && <div className="small ink-danger mt-5" role="alert">{err}</div>}
-      <Spacer size={6} />
-      <Button type="submit" variant="primary" disabled={busy}>{t('Create passkey')}</Button>
-    </form>
-  </>
-}
-export const openDeviceLinkRedeem = () => ui().openSheet(close => <DeviceLinkRedeemSheet close={close} />)
+// Redeeming a code on the other device is views/AddDevice.jsx.

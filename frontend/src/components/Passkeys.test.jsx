@@ -2,7 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { passkeyError, PasskeysRow, PasskeysSheet, DeviceLinkSheet, DeviceLinkRedeemSheet } from './Passkeys.jsx'
+import { passkeyError, PasskeysRow, PasskeysSheet, DeviceLinkSheet } from './Passkeys.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -114,7 +114,6 @@ afterEach(() => { vi.useRealTimers(); act(() => { mounted.splice(0).forEach(({ r
 describe('passkeyError', () => {
   it('words this feature’s refusals, and hands the proof refusals to the password sheet’s wording', () => {
     expect(passkeyError(named('InvalidStateError'))).toBe('This device already has a passkey for this profile.')
-    expect(passkeyError(fail(400, { code: 'link-invalid' }))).toMatch(/wrong, already used or expired/)
     expect(passkeyError(fail(409, { code: 'last-way-in' }))).toMatch(/only way in/)
     expect(passkeyError(fail(409, { code: 'passkey-limit' }))).toMatch(/as many passkeys/)
     expect(passkeyError(fail(403, { code: 'current-wrong' }))).toBe('Your current password is not right.')
@@ -373,110 +372,4 @@ describe('Settings: a code for another device', () => {
   })
 })
 
-describe('the other device: redeeming a code', () => {
-  const OPTIONS = { cid: 'link-cid', options: { challenge: 'xyz' }, id: 'u1', name: 'Ana' }
-  const CAUTION = 'Only continue if this code comes from a device of your own. This browser is then signed in to “Ana”, and what you log here goes to that profile.'
-
-  it('checks a code from the link at once, then creates the passkey and signs in like a passkey sign-in', async () => {
-    mocks.store = { user: null, linkCode: 'K7WQ-2MZP-4HXA' }
-    mocks.answers['POST /api/device-link/options'] = OPTIONS
-    mocks.answers['POST /api/device-link/verify'] = { user: { id: 'u1', name: 'Ana', admin: false } }
-    const close = vi.fn()
-    const host = mount(<DeviceLinkRedeemSheet close={close} />)
-    await settle()
-    expect(mocks.calls[0]).toEqual({ path: '/api/device-link/options', method: 'POST', body: { code: 'K7WQ-2MZP-4HXA' } })
-    expect(host.textContent).toContain('for the profile “Ana”')
-    // A guest is told where this device ends up, and that the code has to be their own.
-    expect(host.textContent).toContain(CAUTION)
-    expect(host.textContent).not.toMatch(/signed in as/)
-    expect(byPlaceholder(host, 'Code from your other device').value).toBe('K7WQ-2MZP-4HXA')
-    await submit(host)
-    // The options already here are used as they are: the prompt opens straight from the tap.
-    expect(mocks.calls.filter(c => c.path === '/api/device-link/options')).toHaveLength(1)
-    expect(mocks.createPasskey).toHaveBeenCalledWith({ challenge: 'xyz' })
-    expect(mocks.calls.at(-1).path).toBe('/api/device-link/verify')
-    expect(mocks.calls.at(-1).body).toMatchObject({ code: 'K7WQ-2MZP-4HXA', cid: 'link-cid', credential: { id: 'new-key' } })
-    expect(mocks.setUser).toHaveBeenCalledWith({ id: 'u1', name: 'Ana', admin: false }, { adopt: { alwaysAsk: true } })
-    // What this device logged goes into that profile only when asked, even into an empty one.
-    expect(mocks.adoptProfile).toHaveBeenCalledWith(mocks.askAddDeviceData, { alwaysAsk: true })
-    expect(mocks.store.linkCode).toBeNull()
-    expect(close).toHaveBeenCalled()
-    expect(mocks.toast).toHaveBeenCalledWith('Signed in as Ana')
-  })
-
-  it('a typed code is checked on the tap; a wrong one stays on the sheet and says so', async () => {
-    mocks.store = { user: null, linkCode: null }
-    mocks.answers['POST /api/device-link/options'] = fail(400, { code: 'link-invalid' })
-    const host = mount(<DeviceLinkRedeemSheet close={() => {}} />)
-    await settle()
-    expect(mocks.calls).toHaveLength(0)
-    await submit(host)
-    expect(alertText(host)).toBe('Enter the code from your other device.')
-    type(byPlaceholder(host, 'Code from your other device'), 'wrng-code-0000')
-    await submit(host)
-    expect(mocks.calls[0].body).toEqual({ code: 'WRNG-CODE-0000' })
-    expect(alertText(host)).toMatch(/wrong, already used or expired/)
-    expect(mocks.createPasskey).not.toHaveBeenCalled()
-    expect(mocks.setUser).not.toHaveBeenCalled()
-  })
-
-  it('after a refused verify it asks for fresh options next time, since the server spent the challenge', async () => {
-    mocks.store = { user: null, linkCode: 'K7WQ-2MZP-4HXA' }
-    mocks.answers['POST /api/device-link/options'] = OPTIONS
-    mocks.answers['POST /api/device-link/verify'] = fail(400, { error: 'not verified' })
-    const host = mount(<DeviceLinkRedeemSheet close={() => {}} />)
-    await settle()
-    await submit(host)
-    expect(alertText(host)).toBe('not verified')
-    await submit(host)
-    expect(mocks.calls.filter(c => c.path === '/api/device-link/options')).toHaveLength(2)
-  })
-
-  it('the same account adding this browser keeps its copy as it is', async () => {
-    // Renamed since this browser signed in: the id is what makes it the same profile.
-    mocks.store = { user: { id: 'u1', name: 'Ana (old name)' }, linkCode: 'K7WQ-2MZP-4HXA' }
-    mocks.answers['POST /api/device-link/options'] = OPTIONS
-    mocks.answers['POST /api/device-link/verify'] = { user: { id: 'u1', name: 'Ana', admin: false } }
-    const host = mount(<DeviceLinkRedeemSheet close={() => {}} />)
-    await settle()
-    expect(host.textContent).not.toMatch(/signed in as/)
-    expect(host.textContent).not.toContain(CAUTION)
-    await submit(host)
-    expect(mocks.adoptProfile).not.toHaveBeenCalled()
-    expect(mocks.toast).toHaveBeenCalledWith('Passkey added')
-  })
-
-  it('says so when another profile is signed in here', async () => {
-    mocks.store = { user: { id: 'u2', name: 'Bea' }, linkCode: 'K7WQ-2MZP-4HXA' }
-    mocks.answers['POST /api/device-link/options'] = OPTIONS
-    const host = mount(<DeviceLinkRedeemSheet close={() => {}} />)
-    await settle()
-    expect(host.textContent).toContain('This browser is signed in as “Bea”. Adding it to “Ana” signs “Bea” out here.')
-    expect(host.textContent).toContain(CAUTION)
-  })
-
-  it('tells a different profile with the same name apart by its id', async () => {
-    // Someone else's profile, named like the one signed in here on purpose.
-    mocks.store = { user: { id: 'u2', name: 'Ana' }, linkCode: 'K7WQ-2MZP-4HXA' }
-    mocks.answers['POST /api/device-link/options'] = OPTIONS
-    mocks.answers['POST /api/device-link/verify'] = { user: { id: 'u1', name: 'Ana', admin: false } }
-    const host = mount(<DeviceLinkRedeemSheet close={() => {}} />)
-    await settle()
-    expect(host.textContent).toContain('This code is for a different profile that is also called “Ana”, not the one this browser is signed in as. Adding it there signs yours out here.')
-    expect(host.textContent).toContain(CAUTION)
-    await submit(host)
-    // Went on anyway: signed in to that profile, never greeted as if it were the one before.
-    expect(mocks.adoptProfile).toHaveBeenCalledWith(mocks.askAddDeviceData, { alwaysAsk: true })
-    expect(mocks.toast).toHaveBeenCalledWith('Signed in as Ana')
-    expect(mocks.toast).not.toHaveBeenCalledWith('Passkey added')
-  })
-
-  it('a browser without passkeys is told plainly, and nothing is asked of the server', async () => {
-    mocks.webauthn = false
-    mocks.store = { user: null, linkCode: 'K7WQ-2MZP-4HXA' }
-    const host = mount(<DeviceLinkRedeemSheet close={() => {}} />)
-    await settle()
-    expect(host.textContent).toMatch(/cannot create passkeys/)
-    expect(mocks.calls).toHaveLength(0)
-  })
-})
+// Redeeming a code on the other device is views/AddDevice.test.jsx.

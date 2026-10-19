@@ -15,7 +15,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => {
   // `kept` is one array for good: KeptChangesRows re-asks whenever the function changes, and a
   // fresh [] per answer would re-render it forever.
-  const state = { S: null, user: null, sync: null, config: null, webauthn: true, sheets: [], kept: [] }
+  const state = { S: null, user: null, sync: null, config: null, webauthn: true, sheets: [], kept: [], nav: vi.fn() }
   state.passkeyLogin = vi.fn(async () => ({ id: 'u1', name: 'andi' }))
   state.api = vi.fn(async path => (path === '/api/account/password' ? { set: false, setAt: null, passkeys: 1, name: 'andi', nameTaken: false } : {}))
   state.snapshot = () => ({
@@ -38,6 +38,7 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+vi.mock('../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: (...a) => mocks.nav(...a) }))
 vi.mock('../lib/api.js', () => ({
   api: (...a) => mocks.api(...a), webauthnOK: () => mocks.webauthn, passkeyLogin: (...a) => mocks.passkeyLogin(...a), passkeyRegister: vi.fn(), IS_ANDROID: false,
   passkeyAssertion: vi.fn(), passwordLogin: vi.fn(), passwordRegister: vi.fn(), passwordResetRedeem: vi.fn(),
@@ -121,9 +122,9 @@ describe('Settings with password sign-in', () => {
     const sheet = mount(mocks.sheets.at(-1).render(() => {}))
     expect(sheet.querySelector('h3').textContent).toBe('Create your profile')
     expect(sheet.querySelector('input[name="new-password"]')).toBeTruthy()
+    // The code is redeemed on a screen of its own now (views/AddDevice.jsx), not in a sheet.
     act(() => rowByTitle(account, 'Use a code from your other device').click())
-    const code = mount(mocks.sheets.at(-1).render(() => {}))
-    expect(code.querySelector('h3').textContent).toBe('Add this device')
+    expect(mocks.nav).toHaveBeenCalledWith('/add-device', undefined)
 
     mocks.config = null
     const off = mount(<Settings page="account" />)

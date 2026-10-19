@@ -28,7 +28,7 @@ export const PRIMITIVE_FILES = [
   'components/date-nav.jsx', 'components/line-art.jsx', 'components/tab-kit.jsx',
 ]
 // Routed views that draw their own chrome and never render <Page> (G4).
-export const PAGE_EXEMPT = ['FocusView', 'Login', 'MobileOnboarding', 'Workout']
+export const PAGE_EXEMPT = ['AddDevice', 'FocusView', 'Login', 'MobileOnboarding', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 

@@ -269,6 +269,12 @@ body.resting #app{padding-bottom:calc(166px + var(--sab))}
 /* The workout screen has no tab bar (App.jsx): only the docked rest bar, when it is there. */
 body.no-tabbar #app{padding-bottom:calc(24px + var(--sab))}
 body.no-tabbar.resting #app{padding-bottom:calc(96px + var(--sab))}
+/* A stage screen (ds/StageScreen: sign-in, Add this device, onboarding) is full bleed: the stage
+   reaches the window's edges and its top, under the status bar (it pads itself by --sat), and its
+   column keeps the page width. The :root lifts this over the tab-bar and desktop paddings above
+   and below; the native keyboard's room (:root[data-native-kb]) still wins. */
+:root #app:has(> .g-root.g-screen){padding:var(--conn) 0 0;max-width:none}
+#app > .g-screen > .g-stage > .g-stage-body{max-width:var(--page-w);margin-inline:auto}
 .workout-end-spacer{height:0}
 @keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
