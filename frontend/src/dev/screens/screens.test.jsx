@@ -62,6 +62,34 @@ describe('the screens gallery', () => {
     expect(await text('O2.2')).toContain('Passkey saved')
   })
 
+  it('has the onboarding questions O2.3 to O2.9, metric and imperial, with and without the coach', () => {
+    const ids = screenAreas().find(a => a.name === 'Onboarding: the questions').entries.map(e => e.id)
+    expect(ids).toEqual(['O2.3', 'O2.3p', 'O2.4', 'O2.4w', 'O2.5', 'O2.5i', 'O2.6', 'O2.6i', 'O2.7', 'O2.7i', 'O2.8', 'O2.8z', 'O2.9', 'O2.9n'])
+  })
+
+  it('shows each onboarding question state it names', async () => {
+    // One at a time, as the entry's: a frame left up would answer for the next.
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('O2.3', s => expect(s.text).toContain('Pick a goal to balance food and training'))
+    await check('O2.3p', s => expect(s.host.querySelector('[role="radio"][aria-checked="true"]').textContent).toContain('Lose weight'))
+    await check('O2.4', s => expect(s.text).toContain('kcal a day'))
+    await check('O2.4w', s => expect(s.text).toContain('Bodies at rest burn energy'))
+    await check('O2.6', s => expect(s.host.querySelector('[role="slider"]').getAttribute('aria-valuemax')).toBe('230'))
+    await check('O2.6i', s => expect(s.host.querySelector('[role="slider"]').getAttribute('aria-valuemax')).toBe('90'))
+    await check('O2.7i', s => expect(s.host.querySelector('.ob-pk-num small').textContent).toBe('lb'))
+    await check('O2.8', s => expect(s.host.querySelectorAll('.g-week-disc.on')).toHaveLength(4))
+    await check('O2.8z', s => expect(s.host.querySelectorAll('.g-week-disc.on')).toHaveLength(0))
+    await check('O2.9', s => expect(s.text).toContain('Have the AI coach build one'))
+    await check('O2.9n', s => {
+      expect(s.text).not.toContain('Have the AI coach build one')
+      expect(s.host.querySelectorAll('[role="radio"]')).toHaveLength(2)
+    })
+  })
+
   it('puts back what the onboarding kept for this tab, and whether the browser is online', async () => {
     sessionStorage.setItem('gains_onboarding', '{"uid":"someone"}')
     await show(screenById('O1.4'))
