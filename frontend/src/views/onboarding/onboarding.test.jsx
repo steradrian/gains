@@ -4,6 +4,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { localeUnits } from '../../lib/onboarding/units.js'
 import { arrivedBy, button, flush, mount, radio, saved, unmountAll, where } from './onboarding.test-util.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -46,6 +47,8 @@ const press = (el, key) => act(() => { el.dispatchEvent(new KeyboardEvent('keydo
 const click = el => act(() => { el.click() })
 const later = ms => act(() => { vi.advanceTimersByTime(ms) })
 const full = { sex: 'female', birthYear: 1990, heightCm: 168, weightKg: 64 }
+// What About you's live target says to a screen reader, once per settled answer.
+const said = page => page.querySelector('.ob-tgt-wrap [aria-live]').textContent
 // The AI coach consent as the hub sends it (fitness-hub src/onboarding/consent.ts), the one copy.
 const CONSENT = {
   version: 'ai-coach-build-v1',
@@ -353,11 +356,16 @@ describe('1 Name + passkey', () => {
 describe('2 Goal', () => {
   beforeEach(signedIn)
 
-  it('moves on 650ms after a tap, and saves the goal', async () => {
+  it('moves on 650ms after a tap, the picked card white and the caption its goal\'s, and saves the goal', async () => {
     const page = mount('/onboarding/goal')
     await flush()
+    expect(page.querySelector('.ob-cap').textContent).toBe('Pick a goal to balance food and training')
     click(radio(page, 'Build muscle'))
     expect(radio(page, 'Build muscle').getAttribute('aria-checked')).toBe('true')
+    expect(radio(page, 'Build muscle').classList.contains('on')).toBe(true)
+    expect(radio(page, 'Build muscle').querySelector('.g-ccard-mark [data-icon="check"]')).not.toBeNull()
+    expect(radio(page, 'Lose weight').classList.contains('g-glass')).toBe(true)
+    expect(page.querySelector('.ob-cap').textContent).toBe('Food outweighs training: a lean surplus, about +10%')
     expect(hub.saveStep).toHaveBeenCalledWith('goal', expect.objectContaining({ goal: 'build' }), 'u1')
     expect(where(page)).toBe('/onboarding/goal')
     later(650)
@@ -430,10 +438,53 @@ describe('3 About you', () => {
     await flush()
     const before = page.querySelector('.ob-tgt-n').textContent
     click(radio(page, 'Female'))
-    expect(page.querySelector('.ob-cap').textContent).toMatch(/^Your target is now about/)
+    expect(radio(page, 'Female').classList.contains('on')).toBe(true)
+    expect(said(page)).toMatch(/^Your target is now about/)
     later(600)
     expect(page.querySelector('.ob-tgt-n').textContent).not.toBe(before)
     expect(where(page)).toBe('/onboarding/born')
+  })
+
+  it('3a: the live target stands over a floor where Goal\'s is, the thread\'s line on this step', async () => {
+    const page = mount('/onboarding/sex')
+    await flush()
+    const floor = page.querySelector('.ob-ill-sex [data-thread="line"]')
+    expect(floor.getAttribute('d')).toBe('M16 128 H304')
+    expect(floor.classList.contains('il-floor')).toBe(true)
+    expect(page.querySelector('.ob-sex .ob-tgt').getAttribute('aria-hidden')).toBe('true')
+    expect(page.querySelector('.ob-tgt-n').textContent).toMatch(/^≈ /)
+    expect(page.querySelector('.ob-tgt-u').textContent).toBe('kcal a day, a typical range')
+  })
+
+  it('Skip on any of the four lands on Training', async () => {
+    for (const step of ['sex', 'born', 'height', 'weight']) {
+      const page = mount('/onboarding/' + step)
+      await flush()
+      click(button(page, 'Skip'))
+      expect(where(page), step).toBe('/onboarding/training')
+      unmountAll()
+    }
+  })
+
+  it('narrows the live range with every answer, and gives one number at the weight', async () => {
+    const width = page => {
+      const [lo, hi = lo] = page.querySelector('.ob-tgt-n').textContent.replace(/[^\d–]/g, '').split('–').map(Number)
+      return hi - lo
+    }
+    const widths = []
+    let body = { sex: null, birthYear: null, heightCm: null, weightKg: null }
+    for (const [step, field, value] of [['sex', 'sex', 'female'], ['born', 'birthYear', 1990], ['height', 'heightCm', 168], ['weight', 'weightKg', 64]]) {
+      body = { ...body, [field]: value }
+      saved({ answers: { goal: 'keep', body } })
+      const page = mount('/onboarding/' + step)
+      await flush()
+      later(700)
+      widths.push(width(page))
+      unmountAll()
+    }
+    expect(widths[1]).toBeLessThan(widths[0])
+    expect(widths[2]).toBeLessThan(widths[1])
+    expect(widths[3]).toBe(0)
   })
 
   it('3b: the wheel is a vertical slider, untouched until moved, typed with Enter', async () => {
@@ -476,7 +527,7 @@ describe('3 About you', () => {
     saved({ answers: { goal: 'keep', body: { ...full, birthYear: 1990 } } })
     const page = mount('/onboarding/born')
     await flush()
-    const cap = () => page.querySelector('.ob-cap').textContent
+    const cap = () => said(page)
     expect(cap()).toMatch(/^Born 1990\. /)
     const wheel = page.querySelector('[role="slider"]')
     const spin = () => act(() => { wheel.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true })) })
@@ -504,7 +555,7 @@ describe('3 About you', () => {
     later(300)
     await act(async () => { reply({ ready: true, targets: { calories: 2480 } }) })
     await flush()
-    expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target:')
+    expect(said(page)).toContain('Your starting target:')
     expect(hub.previewTargets).toHaveBeenCalledTimes(1)
   })
 
@@ -521,6 +572,36 @@ describe('3 About you', () => {
     expect(page.querySelector('.ob-uchip').getAttribute('aria-label')).toBe('Units: feet and inches. Switch to centimetres')
   })
 
+  it('3c: a typed height outside 120–230 cm is kept within them, and a toast says so', async () => {
+    const page = mount('/onboarding/height')
+    await flush()
+    const ruler = page.querySelector('[role="slider"]')
+    click(page.querySelector('.ob-pk-num'))
+    const field = page.querySelector('input[aria-label="Height in centimetres"]')
+    act(() => { field.value = '300' })
+    press(field, 'Enter')
+    expect(mocks.toasts).toContain('Kept within 120 cm and 230 cm')
+    expect(ruler.getAttribute('aria-valuenow')).toBe('230')
+    expect(page.querySelector('.ob-pk-v').textContent).toBe('230')
+  })
+
+  it('starts the rulers in feet and pounds for an imperial region, and the chip switches them back', async () => {
+    // The units the region gave when the flow began (lib/onboarding/units.js localeUnits).
+    saved({ answers: { goal: 'keep', units: localeUnits('en-US') } })
+    let page = mount('/onboarding/height')
+    await flush()
+    expect(page.querySelector('[role="slider"]').getAttribute('aria-valuemax')).toBe('90')
+    expect(page.querySelector('.ob-uchip').getAttribute('aria-label')).toBe('Units: feet and inches, from your region. Switch to centimetres')
+    unmountAll()
+    page = mount('/onboarding/weight')
+    await flush()
+    const ruler = page.querySelector('[role="slider"]')
+    expect(ruler.getAttribute('aria-valuemax')).toBe('551')
+    expect(page.querySelector('.ob-pk-num small').textContent).toBe('lb')
+    click(page.querySelector('.ob-uchip'))
+    expect(ruler.getAttribute('aria-valuemax')).toBe('250')
+  })
+
   it('3d: with all four in, the ring firms up to the hub\'s target, and Next goes to Training', async () => {
     saved({ answers: { goal: 'keep', body: { ...full, weightKg: null } } })
     const page = mount('/onboarding/weight')
@@ -530,7 +611,10 @@ describe('3 About you', () => {
     await act(async () => { vi.advanceTimersByTime(300) })
     await flush()
     expect(hub.previewTargets).toHaveBeenCalled()
-    expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
+    expect(said(page)).toContain('Your starting target: 1,620 kcal a day.')
+    later(700)
+    expect(page.querySelector('.ob-tgt-n').textContent).toBe('1,620')
+    expect(page.querySelector('.ob-tgt-u').textContent).toBe('kcal a day, your starting target')
     click(button(page, 'Next'))
     expect(hub.saveStep).toHaveBeenCalledWith('body', expect.anything(), 'u1')
     expect(where(page)).toBe('/onboarding/training')
@@ -551,7 +635,10 @@ describe('4 Training', () => {
     page = mount('/onboarding/training')
     await flush()
     click(radio(page, '3'))
-    expect(page.querySelector('.ob-cap').textContent).toBe('Suggested: Monday, Wednesday, Friday')
+    expect(page.querySelector('.ob-cap').textContent).toBe('Suggested: Monday, Wednesday, Friday. Move them later in Plan.')
+    const week = [...page.querySelectorAll('.g-week-d')]
+    expect(week.map(d => d.textContent)).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+    expect(week.map(d => d.querySelector('.g-week-disc').classList.contains('on'))).toEqual([true, false, true, false, true, false, false])
     later(600)
     expect(where(page)).toBe('/onboarding/plan')
   })
@@ -1004,7 +1091,7 @@ describe('who sees what', () => {
       await waitFor(100 + JITTER)
       await flush()
       expect(hub.previewTargets).toHaveBeenCalledTimes(1)
-      expect(page.querySelector('.ob-cap').textContent).toContain('Your starting target: 1,620 kcal a day.')
+      expect(said(page)).toContain('Your starting target: 1,620 kcal a day.')
     })
 
     it('holds the saves back after the preview is rate limited', async () => {

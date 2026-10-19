@@ -19,9 +19,8 @@
 .ob-thread path{fill:none;stroke-linecap:round;stroke-linejoin:round}
 /* Claimed: the thread carries this line in, so the scene's own copy waits. */
 [data-thread-claim]{visibility:hidden}
-/* On the stage the thread is white at the scene's structure weight (the kit's grammar: 2.5), and
-   the line a scene hands it is drawn the same, so the hand-off is the same pixels either way. */
-.ob .g-ill [data-thread]{stroke:var(--on-stage);stroke-width:var(--il-w)}
+/* A scene's anchor rests as the kit draws it (the floor 32% white at 1.5); the thread flies white
+   at 2.5 and lands in the anchor's own look (thread-geometry.js withFlight). */
 /* The kit's draw-in, started --lead early by the thread (so the art grows from the line it is
    about to land on), and not for the line the thread carries in. */
 .ob .g-ill-draw .dr,.ob .g-ill-draw .fd{animation-delay:calc(var(--lead, 0ms) + var(--d, 0ms))}
@@ -44,13 +43,17 @@
 /* Rule (b): on the goal-to-weight run the header holds 2 title + 2 subtitle lines, so every floor
    lands on the same y and the thread holds still while the art above it swaps. */
 .ob-hd.fixed{min-height:calc(18px + 2 * 34px + 8px + 2 * 22px)}
-/* The illustration slot: the scene stands on its bottom edge (138, the invite's 170, 18 above). */
+/* The illustration slot: the scene stands on its bottom edge (138, the invite's 170, Training's
+   and Plan's 128, the pickers' 119; 18 above). */
 .ob-stage{box-sizing:content-box;min-height:138px;padding-top:18px;display:flex;flex-direction:column;justify-content:flex-end}
 .ob-stage.hero{min-height:170px}
+.ob-stage.md{min-height:128px}
+.ob-stage.sm{min-height:119px}
 .ob-stage.dim{opacity:.55}
 .ob-cap{margin:0;padding:10px 24px 0;min-height:20px;text-align:center;font:500 14px/20px var(--font-sans);color:var(--on-stage-2);transition:opacity var(--fast)}
 .ob-cap.fade{opacity:0}
 .ob-controls{padding:18px 16px 0}
+.ob-below{padding:16px 16px 0}
 /* The footer (the kit's StageFooter) floats over what scrolls under it and never eats a tap meant
    for it. */
 .ob-foot{position:sticky;bottom:0;z-index:5;pointer-events:none;display:block;margin:0;padding:0;background:none}
@@ -96,26 +99,8 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-sheet-text{margin:0 0 16px;font:500 16px/23px var(--font-sans);color:var(--text-2)}
 .ob-sheet-close{padding-top:8px}
 
-/* ---- ChoiceCard ---- */
-.ob-ccs{display:flex;flex-direction:column;gap:8px}
-.ob-cc{
-  display:flex;align-items:center;gap:12px;min-height:68px;width:100%;text-align:start;
-  border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-card);padding:14px 16px;
-  transition:transform var(--fast) var(--ease),background var(--fast),box-shadow var(--fast);
-}
-.ob-cc.slim{min-height:56px;padding:10px 16px}
-.ob-cc.pressed{transform:scale(.98);background:var(--surface-2)}
-.ob-cc[aria-checked="true"]{background:var(--acc-soft);box-shadow:inset 0 0 0 2px var(--acc-graphic)}
-.ob-cc-g{width:36px;height:36px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;transition:color var(--fast),background var(--fast)}
-.ob-cc[aria-checked="true"] .ob-cc-g{color:var(--acc-ink);background:transparent}
-.ob-cc-m{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.ob-cc-t{font-size:17px;font-weight:600;letter-spacing:-.012em}
-.ob-cc-s{font-size:15px;color:var(--label-2);letter-spacing:-.006em}
-.ob-cc-ind{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--label-3);display:flex;align-items:center;justify-content:center;flex:none;color:var(--on-acc);font-size:14px}
-.ob-cc-ind .icn{--icon-stroke:3;opacity:0}
-.ob-cc[aria-checked="true"] .ob-cc-ind{background:var(--acc);box-shadow:none}
-.ob-cc[aria-checked="true"] .ob-cc-ind .icn{opacity:1;animation:ob-pop 180ms var(--ease) both}
-@keyframes ob-pop{from{transform:scale(.6)}to{transform:scale(1)}}
+/* ---- the answers (goal, sex, plan): the kit's StageChoiceCard, 10 apart ---- */
+.ob-ccs{display:flex;flex-direction:column;gap:10px}
 
 /* chips in the sheets (experience, equipment) */
 .ob-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
@@ -126,74 +111,62 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-fine{font-size:13px;color:var(--label-2);line-height:1.4;margin:0 0 12px}
 .ob-sheet-p{font-size:15px;color:var(--label-2);line-height:1.4;margin:0 0 12px}
 
-/* ---- the Sex step's card and its 320-unit canvas (round 2 §1), until milestone B redraws the
-   step; every other scene is the kit's Illustration ---- */
-.ob-stage-card{position:relative;border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-card);padding:12px;pointer-events:none}
-.ob-art{position:relative;width:min(100%,320px);margin:0 auto}
-.ob-art svg{display:block;width:100%;height:auto;overflow:visible}
-.ob-art,.ob-art *{pointer-events:none}
-.ob-art .il-floor{fill:none;stroke:var(--sep);stroke-width:var(--il-w-d);stroke-linecap:round}
-/* Draw-in, once a session (lib/use-draw-in.js): the floor over 480ms; --lead starts it as the
-   thread is about to land, and the line the thread carries in is not drawn again. */
-.ob-art.il-draw [pathLength="1"]{stroke-dasharray:1;animation:ob-draw 480ms var(--ease-io) both;animation-delay:calc(var(--lead,0ms) + var(--i,0) * 60ms)}
-.ob-art.il-draw [data-thread-carried]{animation:none;stroke-dasharray:none}
-@keyframes ob-draw{0%{stroke-dashoffset:1;opacity:0}2%{opacity:1}100%{stroke-dashoffset:0;opacity:1}}
-@keyframes ob-fade{from{opacity:0}}
-/* Reduced motion keeps one 120ms fade (index.css stops every other animation). */
-.ob .ob-art.rm-fade.rm-fade{animation:ob-fade 120ms linear both!important}
+/* ---- 3a Sex: no scene; the live target stands in the slot, 10 over a floor where Goal's is (the
+   same 300-wide canvas: the floor 15 above its foot) ---- */
+.ob-sex{position:relative}
+.ob-ill-sex{--g-ill-w:300px;pointer-events:none}
+.ob-sex-tgt{position:absolute;inset-inline:16px;bottom:25px}
 
-/* the live target ring (3a–3d) */
-.ob-tgt{display:flex;align-items:center;gap:12px;margin-top:8px;padding-top:10px;border-top:var(--hair) solid var(--sep)}
-.ob-tgt.is-big{position:absolute;inset:0;display:block;margin:0;padding:0;border:0}
-.ob-tgt.is-big .ob-tgt-ring{position:absolute;inset-inline-start:5%;top:22.222%;width:27.5%;height:auto}
-.ob-tgt.is-big .ob-tgt-t{position:absolute;inset-inline-start:37.5%;inset-inline-end:5%;top:52.778%;transform:translateY(-50%)}
-.ob-tgt-ring{flex:none;overflow:visible;display:block}
-.ob-tgt-ring circle{fill:none}
-.ob-ring-bg{stroke:var(--surface-2)}
-.ob-ring-fg{stroke:var(--acc-graphic);stroke-linecap:round;transition:stroke-dashoffset var(--ob-slow) var(--ease)}
-.ob-tgt-n{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums;contain:layout paint}
-.ob-tgt-u{font-size:13px;color:var(--label-2);line-height:1.3}
-.ob-tgt.is-big .ob-tgt-n{font-size:28px;letter-spacing:-.026em}
+/* ---- the live target (3a–3d; boards O2.4–O2.7): the glass status row and its small ring ---- */
+.ob-tgt{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:22px;color:var(--on-stage)}
+.ob-tgt-ring{flex:none;display:block}
+.ob-tgt-ring circle{fill:none;stroke-width:5}
+.ob-ring-bg{stroke:var(--glass-track)}
+.ob-ring-fg{stroke:var(--on-stage);stroke-linecap:round;transition:stroke-dashoffset var(--ob-slow) var(--ease)}
+.ob-tgt-t{display:flex;flex-direction:column;min-width:0}
+.ob-tgt-n{font:700 20px/24px var(--font-sans);font-variant-numeric:tabular-nums;contain:layout paint}
+.ob-tgt-u{font:500 14px/18px var(--font-sans);color:var(--on-stage-2)}
 
-/* ---- the pickers: ruler, wheel, tap to type ---- */
-.ob-pk{margin-top:12px}
-.ob-pk-read{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px}
-.ob-pk-num{display:inline-flex;align-items:baseline;gap:4px;min-height:48px;padding:4px 12px;border-radius:12px;font-size:34px;font-weight:600;letter-spacing:-.026em;line-height:1.1;color:var(--label);font-variant-numeric:tabular-nums;transition:color var(--fast),background var(--fast)}
-.ob-pk-num:active{background:var(--surface-2)}
-.ob-pk-v{text-decoration:underline dotted var(--label-3) 2px;text-underline-offset:7px}
-.ob-pk-num small{font-size:17px;font-weight:500;color:var(--label-2);letter-spacing:-.01em}
-.ob-pk.untouched .ob-pk-num{color:var(--label-3)}
-.ob-pk-in{width:140px;height:48px;font-size:28px;font-weight:600;text-align:center;background:var(--surface-2);border:0;border-radius:12px;outline:none;box-shadow:inset 0 0 0 2px var(--acc-graphic);color:var(--label)}
-.ob-uchip{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 14px;border-radius:22px;background:var(--surface);box-shadow:var(--shadow-card);font-size:15px;font-weight:500;color:var(--label-2)}
-.ob-uchip .icn{font-size:13px}
-.ob-uchip:active{background:var(--surface-2)}
-.ob-ruler,.ob-wheel{position:relative;border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-card);cursor:grab;user-select:none;-webkit-user-select:none;direction:ltr}
+/* ---- the pickers (the kit's RulerPicker and YearWheel; boards O2.5–O2.7): the value large over a
+   glass strip under a white needle, a glass wheel with its band; greyed until touched ---- */
+.ob-pk{display:flex;flex-direction:column;gap:12px;margin-top:4px;color:var(--on-stage)}
+.ob-pk-read{display:flex;align-items:center;justify-content:center;gap:12px;min-height:58px}
+.ob-pk-num{appearance:none;border:0;background:none;display:inline-flex;align-items:baseline;gap:6px;padding:4px 10px;border-radius:14px;color:var(--on-stage);cursor:pointer;transition:color var(--fast)}
+.ob-pk-v{font:700 46px/50px var(--font-sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;text-decoration:underline dotted var(--glass-line) 2px;text-underline-offset:8px}
+.ob-pk-num small{font:600 20px/24px var(--font-sans);color:var(--on-stage-2)}
+.ob-pk.untouched .ob-pk-num{color:var(--on-stage-2)}
+.ob-pk-in{box-sizing:border-box;width:160px;height:58px;padding:0 12px;border:0;border-radius:14px;outline:none;background:var(--glass);box-shadow:inset 0 0 0 2px var(--on-stage);font:700 34px/1 var(--font-sans);text-align:center;color:var(--on-stage);font-variant-numeric:tabular-nums}
+.ob-uchip{appearance:none;border:0;display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 14px;border-radius:999px;font:600 15px/20px var(--font-sans);color:var(--on-stage);cursor:pointer}
+.ob-uchip .icn{width:14px;height:14px;--icon-stroke:2.4}
+.ob-ruler,.ob-wheel{position:relative;border-radius:22px;cursor:grab;user-select:none;-webkit-user-select:none;direction:ltr;outline:none}
+.ob-ruler:focus-visible,.ob-wheel:focus-visible{box-shadow:inset 0 0 0 2px var(--on-stage)}
 .ob-ruler.dragging,.ob-wheel.dragging{cursor:grabbing}
-.ob-ruler{height:76px;margin-top:8px;touch-action:pan-y}
+.ob-ruler{height:76px;touch-action:pan-y}
 .ob-rul-in{position:absolute;inset:0;overflow:hidden;border-radius:inherit;-webkit-mask-image:linear-gradient(to right,transparent,var(--bg) 22%,var(--bg) 78%,transparent);mask-image:linear-gradient(to right,transparent,var(--bg) 22%,var(--bg) 78%,transparent)}
 .ob-rul-track{position:absolute;left:0;top:0;height:100%;width:calc(var(--w) * 1px);will-change:transform;transition:opacity var(--med)}
-.ob-rul-track svg{position:absolute;left:-2px;top:8px;overflow:visible}
-.ob-rul-track path{fill:none;stroke:var(--label-2);stroke-width:1.5;stroke-linecap:round}
-.ob-rul-lbl{position:absolute;top:44px;left:calc(var(--x) * 1px);transform:translateX(-50%);font-size:13px;color:var(--label-2);white-space:nowrap}
-.ob-rul-needle{position:absolute;left:50%;top:5px;width:3px;height:40px;margin-left:-1.5px;border-radius:2px;background:var(--acc-graphic);pointer-events:none;transition:background var(--fast)}
+.ob-rul-track svg{position:absolute;left:-2px;top:9px;overflow:visible}
+.ob-rul-track path{fill:none;stroke:var(--on-stage-2);stroke-width:1.5;stroke-linecap:round}
+.ob-rul-lbl{position:absolute;top:47px;left:calc(var(--x) * 1px);transform:translateX(-50%);font:500 13px/16px var(--font-sans);color:var(--on-stage-2);white-space:nowrap}
+.ob-rul-needle{position:absolute;left:50%;top:6px;width:4px;height:40px;margin-left:-2px;border-radius:2px;background:var(--on-stage);pointer-events:none;transition:opacity var(--fast)}
 .ob-pk.untouched .ob-rul-track{opacity:.5}
-.ob-pk.untouched .ob-rul-needle{background:var(--label-3)}
-.ob-wheel{height:132px;margin-top:4px;touch-action:none;overflow:hidden}
-.ob-wh-band{position:absolute;left:12px;right:12px;top:44px;height:44px;border-radius:10px;background:var(--surface-2);transition:box-shadow var(--fast)}
-.ob-pk:not(.untouched) .ob-wh-band{box-shadow:inset 0 0 0 1.5px var(--acc-line)}
-.ob-wh-in{position:absolute;inset:0;-webkit-mask-image:linear-gradient(to bottom,transparent,var(--bg) 34%,var(--bg) 66%,transparent);mask-image:linear-gradient(to bottom,transparent,var(--bg) 34%,var(--bg) 66%,transparent)}
+.ob-pk.untouched .ob-rul-needle{opacity:.5}
+.ob-pk-hint{margin:0;text-align:center;font:500 14px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-wheel-box{position:relative}
+.ob-wheel{height:176px;touch-action:none;overflow:hidden}
+.ob-wh-band{position:absolute;left:12px;right:12px;top:66px;height:44px;border-radius:14px;background:var(--glass);box-shadow:inset 0 0 0 1.5px var(--glass-line)}
+.ob-wh-in{position:absolute;inset:0}
 .ob-wh-track{position:absolute;left:0;right:0;top:0;will-change:transform}
-.ob-wh-row{height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--label-2);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.ob-wh-row.on{color:var(--label)}
-.ob-pk.untouched .ob-wh-row,.ob-pk.untouched .ob-wh-row.on{color:var(--label-3)}
+.ob-wh-row{height:44px;display:flex;align-items:center;justify-content:center;font:600 22px/28px var(--font-sans);color:var(--on-stage-2);font-variant-numeric:tabular-nums;opacity:.3;transition:opacity var(--fast)}
+.ob-wh-row.near{opacity:.62}
+.ob-wh-row.on{font-weight:700;font-size:26px;color:var(--on-stage);opacity:1}
+.ob-pk.untouched .ob-wh-row.on{color:var(--on-stage-2)}
 .ob-wheel.typing .ob-wh-in{visibility:hidden}
-/* The year's field sits beside the wheel (not in its slider), over the band: 4px margin + 44px. */
-.ob-pk:has(> .ob-wheel){position:relative}
-.ob-pk > .ob-pk-in{position:absolute;left:50%;top:48px;height:44px;margin-left:-70px;font-size:22px}
+/* The year's field sits beside the wheel (not in its slider), over the band. */
+.ob-wheel-box > .ob-pk-in{position:absolute;left:50%;top:66px;width:140px;height:44px;margin-left:-70px;font-size:26px}
 
 /* "Why we ask" sits in the fixed header: its 44px target may reach 12px into the gap above the stage. */
-.ob-why{display:flex;width:max-content;align-items:center;gap:6px;min-height:44px;margin:2px 0 -12px;padding:0 2px;font-size:15px;color:var(--acc-ink)}
-.ob-why .icn{font-size:17px}
+.ob-why{appearance:none;border:0;background:none;display:flex;width:max-content;align-items:center;gap:6px;min-height:44px;margin:2px 0 -12px;padding:0 2px;font:600 15px/20px var(--font-sans);color:var(--on-stage);cursor:pointer}
+.ob-why .icn{width:18px;height:18px}
 
 /* ---- the scenes' moving parts (the kit's handles, README: screen behaviours): transform and the
    stroke and fill opacities only. The kit's draw-in holds a drawn stroke's opacity at 1, so a
@@ -246,12 +219,11 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-pr{transform-box:fill-box;transform-origin:0 50%;transition:transform 160ms var(--ease),opacity 160ms linear}
 .ob-pr.ob-off{transform:scaleX(0)}
 
-/* ---- 4 training ---- */
-.ob-daysel{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.ob-daysel button{height:48px;border-radius:12px;background:var(--surface);box-shadow:var(--shadow-card);font-size:17px;font-weight:500;transition:transform var(--fast) var(--ease),background var(--fast),box-shadow var(--fast)}
-.ob-daysel button:active{transform:scale(.96);background:var(--surface-2)}
-.ob-daysel button[aria-checked="true"]{background:var(--acc-soft);color:var(--acc-ink);font-weight:700;box-shadow:inset 0 0 0 2px var(--acc-graphic)}
-.ob-dhint{font-size:13px;color:var(--label-2);margin:8px 4px 0}
+/* ---- 4 training (board O2.8): the kit's day keys 20 under the scene, its week 16 under them, the
+   caption 10 under that at the caption's own 24 ---- */
+.ob-controls > .g-daycount{margin-top:2px}
+.ob-controls > .g-week{margin-top:16px}
+.ob-controls > .ob-days-cap{padding-inline:8px}
 
 /* ---- 5a starter ---- */
 .ob-plan{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:16px}

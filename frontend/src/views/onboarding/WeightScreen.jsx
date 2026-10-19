@@ -11,8 +11,9 @@ import { useSettledCaption } from '../../lib/onboarding/use-settled-caption.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
-// 3d You · weight (§3b): a ruler in kg or lb, the scale's tape following it. Saved in kg, and on
-// completion as the first weigh-in. With all four answers in, the ring firms up to the hub's target.
+// 3d You · weight (§3b; board O2.7): a ruler in kg or lb, the scale's tape following it. Saved in
+// kg, and on completion as the first weigh-in. With all four answers in, the live target under it
+// firms up to the hub's number.
 export default function WeightScreen() {
   const { state, act } = useOnboarding()
   const kg = state.answers.body.weightKg
@@ -26,13 +27,14 @@ export default function WeightScreen() {
   const unitName = unit === 'kg' ? t('kilograms') : t('pounds')
   const otherName = unit === 'kg' ? t('pounds') : t('kilograms')
   const shown = value ?? scale.start
-  const caption = useSettledCaption(settled && !live && kg != null, `${t('Weight {0}.', scale.say(shown))} ${targetSentence(target)}`)
+  const say = useSettledCaption(settled && !live && kg != null, `${t('Weight {0}.', scale.say(shown))} ${targetSentence(target)}`)
   return (
     <StepScreen fixedHeader titleId="ob-weight-t" title={t('What do you weigh today?')} sub={t('Saved as your first weigh-in. Only you see it.')}
-      stage={<ScaleScene kg={kg} unit={unit} live={live} after={<TargetRing target={target} />} />}
-      caption={caption}
+      stage={<ScaleScene kg={kg} unit={unit} live={live} />} stageSize="sm"
+      below={<TargetRing target={target} say={say} />}
       footer={<NextButton screen="weight" ready={kg != null} />}>
-      <RulerPicker scale={scale} value={value} label={t('Weight')} onBad={msg => useUI.getState().toast(msg)}
+      <RulerPicker scale={scale} value={value} label={t('Weight')} hint={t('Drag the ruler, or tap the number to type it.')}
+        onBad={msg => useUI.getState().toast(msg)}
         onChange={(v, final) => {
           act({ type: 'body', field: 'weightKg', value: weightFrom(v, unit) })
           setLive(!final)

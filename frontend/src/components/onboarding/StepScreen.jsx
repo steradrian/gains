@@ -15,8 +15,11 @@ import { cx } from '../../lib/ui-kit.js'
 //   hero                  the invite's own landing: a 32/36 title and a taller illustration slot
 //   far                   a screen with no scene of its own (offline, signed in): the header lower
 //   headerExtra           a control that belongs to the question ("Why we ask")
-//   stage                 the illustration slot; `stageDim` sets it back (an invite that no longer works)
+//   stage                 the illustration slot; `stageDim` sets it back (an invite that no longer works);
+//                         `stageSize` its height as the boards draw it: 138 by default, 'md' 128
+//                         (Training, Plan), 'sm' 119 (the pickers)
 //   caption               the scene's caption, a polite live region (undefined: none)
+//   below                 what stands under the controls (the pickers' live target)
 //   footer, footerNote    the call to action in the kit's StageFooter, pinned over what scrolls
 //   center                the passkey result: everything centred, its mark as the stage
 //   noNav                 the nav row is not shown: the header starts higher
@@ -24,7 +27,7 @@ import { cx } from '../../lib/ui-kit.js'
 //                         line under them (the invite being opened)
 export default function StepScreen({
   title, sub, titleId, fixedHeader = false, lead, hero = false, far = false, headerExtra, stage, stageDim = false,
-  caption, footer, footerNote, center = false, onTap, noNav = false, skeleton = false, children,
+  stageSize, caption, below, footer, footerNote, center = false, onTap, noNav = false, skeleton = false, children,
 }) {
   const heading = useRef(null)
   useEffect(() => { heading.current?.focus({ preventScroll: true }) }, [])
@@ -51,9 +54,10 @@ export default function StepScreen({
     <section className={cx('ob-screen', noNav && 'nonav')} aria-labelledby={titleId}>
       <div className="ob-body">
         <div className={cx('ob-hd', fixedHeader && 'fixed', lead && 'lead', hero && 'hero', far && 'far')}>{lead}{head}{headerExtra}</div>
-        {stage && <div className={cx('ob-stage', hero && 'hero', stageDim && 'dim')}>{stage}</div>}
+        {stage && <div className={cx('ob-stage', hero && 'hero', stageSize, stageDim && 'dim')}>{stage}</div>}
         {caption !== undefined && <p className="ob-cap" aria-live="polite">{caption}</p>}
         {children && <div className="ob-controls">{children}</div>}
+        {below && <div className="ob-below">{below}</div>}
       </div>
       {footer && <div className="ob-foot"><StageFooter sticky={false} note={footerNote}>{footer}</StageFooter></div>}
     </section>

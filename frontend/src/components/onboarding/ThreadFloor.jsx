@@ -1,11 +1,10 @@
 import { useRef } from 'react'
-import { at } from '../../lib/onboarding/art.js'
 import { useThreadAnchor } from '../../lib/onboarding/use-thread-anchor.js'
 
-// The floor a scene stands on (`M16 {y} H304`, 1.5, --sep), registered as the screen's thread
-// anchor: the line the thread lands on and leaves from. `birth`: the invite's, drawn out of a dot.
-export default function ThreadFloor({ y, birth = false }) {
+// A bare floor (`M16 {y} H304`, the kit's il-floor, so it rests as the stage draws floors),
+// registered as the screen's thread anchor, for a step with no scene of its own (Sex).
+export default function ThreadFloor({ y }) {
   const ref = useRef(null)
-  useThreadAnchor(ref, 'line', { birth })
-  return <path ref={ref} className="il-floor" d={`M16 ${y} H304`} {...at(0)} />
+  useThreadAnchor(ref, 'line')
+  return <path ref={ref} className="il-floor" d={`M16 ${y} H304`} />
 }

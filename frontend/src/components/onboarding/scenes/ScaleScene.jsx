@@ -11,11 +11,11 @@ for (let kg = 40; kg <= 250; kg += 10) KG_LABELS.push({ v: kg, at: (0.4 * kg).to
 for (let lb = 80; lb <= 540; lb += 20) LB_LABELS.push({ v: lb, at: ((0.4 * lb) / KG_LB).toFixed(2) })
 const AT_REST = 70
 
-export default function ScaleScene({ kg, unit, live, after }) {
+export default function ScaleScene({ kg, unit, live }) {
   const k = kg ?? AT_REST
   const strip = { '--x': ((32 - 4 * k) / 10).toFixed(2) }
   return <StageArt name="weight" width={260} className={cx('ob-ill-weight', kg != null && 'set', live && 'live')}
-    style={{ '--x': (4 * (AT_REST - k)).toFixed(1) + 'px' }} after={after}
+    style={{ '--x': (4 * (AT_REST - k)).toFixed(1) + 'px' }}
     overlay={<div className="ob-sl-box" aria-hidden="true">
       {[['kg', KG_LABELS], ['lb', LB_LABELS]].map(([u, labels]) => (
         <div key={u} className={cx('ob-sl-strip', unit !== u && 'ob-off')} style={strip}>
