@@ -28,11 +28,13 @@ const PATH = '/api/sync/reminder-context';
 const tok = (sub = 'u1', claims = {}) => mint(KEY, { sub, claims });
 const WEEK = { routines: [{ id: 'push', name: 'Push A', emoji: '💪' }], week: { 1: 'push' }, workouts: [{ id: 'w0', d: '2026-09-04', routineId: 'push' }], lang: 'en', _rev: 3, _wid: 'aaaaaaaaaaaaaaaa' };
 
-async function startServer(t, { env = { HUB_JWKS: jwks(KEY), HUB_ISSUER: ISSUER }, users = USERS, states = { u1: WEEK }, coach = {} } = {}) {
+async function startServer(t, { env = { HUB_JWKS: jwks(KEY), HUB_ISSUER: ISSUER }, users = USERS, states = { u1: WEEK }, coach = {}, coachConfig = { enabled: true, provider: 'fixture' } } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-rctx-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users, creds: [], subs: [], invites: [], gone: [] }));
   for (const [uid, S] of Object.entries(states)) fs.writeFileSync(path.join(dataDir, `state-${uid}.json`), typeof S === 'string' ? S : JSON.stringify(S));
+  // Coach switched on for the instance (the fixture provider counts as connected); null leaves it off.
+  if (coachConfig) fs.writeFileSync(path.join(dataDir, 'coach.json'), JSON.stringify(coachConfig));
   fs.mkdirSync(path.join(dataDir, 'coach'));
   for (const [uid, rec] of Object.entries(coach)) fs.writeFileSync(path.join(dataDir, 'coach', `${uid}.json`), JSON.stringify(rec));
   const child = spawn(process.execPath, ['server.js'], {
@@ -77,7 +79,7 @@ test('a valid sync token reads the day: 200, no-store, and the answer is the con
     planned: { routine_id: 'push', name: 'Push A', emoji: '💪' },
     workout_logged: false, excused: false,
     nudge: { routine_id: 'push', name: 'Push A', missed_streak: 1 },
-    capabilities: { live: false }, live: null, coach: null, legacy_reminder: null
+    capabilities: { live: false }, live: null, coach: null, coach_cadence_on: false, legacy_reminder: null
   });
 });
 
@@ -97,9 +99,26 @@ test('live and coach come from the stored state and the Coach record, on the ser
   assert.equal(a.capabilities.live, true);
   assert.equal(a.live.workout_id, 'w_1');
   assert.equal(a.live.started_at, new Date(now - 3600000).toISOString().replace(/\.\d{3}Z$/, 'Z'));
-  assert.deepEqual({ ...a.coach, created_at: typeof a.coach.created_at, expires_at: typeof a.coach.expires_at }, { pending_id: 'p_1', changes: 3, created_at: 'string', expires_at: 'string', cadence_on: true });
+  assert.deepEqual({ ...a.coach, created_at: typeof a.coach.created_at, expires_at: typeof a.coach.expires_at }, { pending_id: 'p_1', changes: 3, created_at: 'string', expires_at: 'string' });
+  assert.equal(a.coach_cadence_on, true);
   const c = (await h.get('?date=2026-09-07', { token: tok('u3') })).body;
-  assert.deepEqual([c.capabilities, c.live, c.coach], [{ live: true }, null, null]);
+  assert.deepEqual([c.capabilities, c.live, c.coach, c.coach_cadence_on], [{ live: true }, null, null, false]);
+});
+
+test('coach_cadence_on does not need a proposal; with Coach switched off on the server, coach is null and the cadence off, whatever is stored', async t => {
+  const now = Date.now();
+  const states = { u1: { ...WEEK, coach: { consent: { agreedAt: 1 }, cadence: { weekly: { day: 0 } } } } };
+  const pending = { pending: { id: 'p_1', kind: 'review', createdAt: now - 1000, expiresAt: now + 86400000, changes: [{}] } };
+  const bare = await startServer(t, { states });
+  const a = (await bare.get('?date=2026-09-07', { token: tok() })).body;
+  assert.deepEqual([a.coach, a.coach_cadence_on], [null, true]);
+  const on = await startServer(t, { states, coach: { u1: pending } });
+  assert.deepEqual((await on.get('?date=2026-09-07', { token: tok() })).body.coach_cadence_on, true);
+  for (const coachConfig of [null, { enabled: false, provider: 'fixture' }, { enabled: true, provider: 'openai' }]) {
+    const off = await startServer(t, { states, coach: { u1: pending }, coachConfig });
+    const b = (await off.get('?date=2026-09-07', { token: tok() })).body;
+    assert.deepEqual([b.coach, b.coach_cadence_on], [null, false], JSON.stringify(coachConfig));
+  }
 });
 
 test('it is read-only: the state document and the Coach record are byte for byte what they were, an expired proposal included', async t => {
@@ -122,7 +141,8 @@ test('the date is the person’s and is required: a missing or malformed one is 
 test('the person must be there and have a state: user-gone, disabled and no-state, with the codes the other sync routes use', async t => {
   const h = await startServer(t);
   assert.deepEqual((await h.get('?date=2026-09-07', { token: tok('nobody') })).body.code, 'user-gone');
-  assert.deepEqual([(await h.get('?date=2026-09-07', { token: tok('u2') })).status, (await h.get('?date=2026-09-07', { token: tok('u2') })).body.code], [401, 'disabled']);
+  const off = await h.get('?date=2026-09-07', { token: tok('u2') });
+  assert.deepEqual([off.status, off.body.code], [401, 'disabled']);
   const none = await h.get('?date=2026-09-07', { token: tok('u3') });
   assert.deepEqual([none.status, none.body.code], [404, 'no-state']);
   const broken = await startServer(t, { states: { u1: '{not json' } });

@@ -39,6 +39,7 @@ import { atomicWrite as durableWrite } from './durable.js';
 import { excusedOn, nudgeFor, nudgeWindowOpen, toneOf } from './nudge.js';
 import { hubKeysFromEnv } from './hub-token.js';
 import { syncRoutes } from './sync-routes.js';
+import { coachCadenceOn } from './reminder-context.js';
 import { createAggregator } from './audit-aggregate.js';
 
 const PORT = +(process.env.PORT || 3000);
@@ -380,10 +381,28 @@ function pushEndpointError(raw) {
 // the ones held here must not change, so the three routes that write them (subscribe, unsubscribe,
 // rest-timer) answer 503 and the client tries again later. Read once at boot, like every other
 // switch here: changing it is a restart. True when it has answered.
+//
+// What the freeze keeps still is db.subs: sendPush does not prune a dead or refused endpoint while
+// it is on (pruneSub). What it deliberately leaves alone, and the cutover plan has to account for:
+//   - POST /api/admin/user/delete removes the deleted person's subscriptions as before;
+//   - POST /api/push/rest-timer/cancel still works (it holds no subscription, only timers);
+//   - rest timers live in memory and die with the restart that turns the freeze on, and none can
+//     be scheduled while it is on, so none fires; a timer already scheduled would still fire to the
+//     subscriptions held (and would not prune), which only matters if the flag ever becomes
+//     switchable without a restart.
+// The same list is in the PushReadonly response of openapi.yaml.
 const PUSH_SUBS_READONLY = /^(1|true|yes|on)$/i.test(process.env.PUSH_SUBS_READONLY || '');
 function pushFrozen(res) {
   if (!PUSH_SUBS_READONLY) return false;
   json(res, 503, { error: 'push subscriptions are read-only while the notification service is being switched over', code: 'push-readonly' }, { 'Retry-After': '30' });
+  return true;
+}
+
+// Forgets a subscription the push service says is dead, or that the send path refuses. Not while
+// the freeze is on: the frozen set must stay exactly as it was (PUSH_SUBS_READONLY above).
+function pruneSub(endpoint) {
+  if (PUSH_SUBS_READONLY) return false;
+  db.subs = db.subs.filter(s => s.endpoint !== endpoint);
   return true;
 }
 
@@ -407,7 +426,7 @@ async function sendPush(userId, payload, deviceId) {
       const bad = pushEndpointError(sub.endpoint);
       if (bad) {
         console.error('push endpoint refused', userId, bad);
-        db.subs = db.subs.filter(s => s.endpoint !== sub.endpoint); dirty = true;
+        if (pruneSub(sub.endpoint)) dirty = true;
         continue;
       }
       // urgency 'high' is the one lever we have over delivery speed — iOS/Android throttle
@@ -425,7 +444,7 @@ async function sendPush(userId, payload, deviceId) {
         // regenerated). Neither will ever deliver again; keeping them only hides the fact from the
         // Settings toggle, which reads the browser's side. The client re-subscribes on its next boot.
         if (e.statusCode === 404 || e.statusCode === 410 || e.statusCode === 403) {
-          db.subs = db.subs.filter(s => s.endpoint !== sub.endpoint); dirty = true;
+          if (pruneSub(sub.endpoint)) dirty = true;
         }
       }
     }
@@ -546,7 +565,8 @@ function stateVersion(uid) {
   if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.v;
   const S = readState(uid);
   if (!S) return { rev: 0 };
-  const v = { rev: S._rev || 0, ...(S._wid ? { wid: S._wid } : {}) };
+  // `coachCadence` rides along (reminder-context.js): the listing says whom to poll for Coach proposals.
+  const v = { rev: S._rev || 0, ...(S._wid ? { wid: S._wid } : {}), coachCadence: coachCadenceOn(S) };
   versionIndex.delete(uid);
   versionIndex.set(uid, { mtimeMs: st.mtimeMs, size: st.size, v });
   while (versionIndex.size > VERSION_MAX) versionIndex.delete(versionIndex.keys().next().value);

@@ -209,7 +209,7 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
       if (after != null && !USER_ID.test(after)) return bad(json, res, 'bad-cursor', 'after must be the next_after of a previous page');
       const { users, gone } = listProfiles();
       json(res, 200, usersPage({
-        users, gone, after, limit: limit == null ? USERS_LIMIT_DEFAULT : +limit, versionOf: stateVersion
+        users, gone, after, limit: limit == null ? USERS_LIMIT_DEFAULT : +limit, versionOf: stateVersion, coachOn: coachAvailable()
       }));
     }),
 
@@ -231,7 +231,8 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
         return json(res, 503, { error: 'state unreadable', code: 'state-unreadable' });
       }
       if (!S) return json(res, 404, { error: 'this profile has no data on this server yet', code: 'no-state' });
-      json(res, 200, reminderContext(S, date, { coachRecord: coachRecord(user.id) }));
+      const coachOn = coachAvailable();
+      json(res, 200, reminderContext(S, date, { coachOn, coachRecord: coachOn ? coachRecord(user.id) : undefined }));
     }),
 
     // The same answer GET /api/data/rev gives the profile's own devices: the hub polls it and

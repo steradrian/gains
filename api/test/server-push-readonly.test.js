@@ -19,11 +19,11 @@ const cookie = `gymsid=${payload}.${crypto.createHmac('sha256', SECRET).update(p
 const SUB = { endpoint: 'https://push.example.test/abc', keys: { p256dh: 'p', auth: 'a' } };
 const HELD = { userId: 'u_test_1', endpoint: 'https://push.example.test/held', keys: { p256dh: 'p', auth: 'a' }, deviceId: 'dev_held0001', created: '2026-01-01T00:00:00.000Z' };
 
-async function startServer(t, env = {}) {
+async function startServer(t, env = {}, subs = [HELD]) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-pushro-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({
-    users: [{ id: 'u_test_1', name: 'One', created: new Date().toISOString() }], creds: [], invites: [], subs: [HELD]
+    users: [{ id: 'u_test_1', name: 'One', created: new Date().toISOString() }], creds: [], invites: [], subs
   }));
   fs.writeFileSync(path.join(dataDir, 'state-u_test_1.json'), JSON.stringify({ _rev: 1, lang: 'en', workouts: [], routines: [] }));
   const child = spawn(process.execPath, ['server.js'], {
@@ -73,6 +73,27 @@ test('PUSH_SUBS_READONLY=1 still asks who is calling first, and leaves the reads
   const status = await fetch(`${h.api}/api/push/status?endpoint=${encodeURIComponent(HELD.endpoint)}`, { headers: { Cookie: cookie } });
   assert.deepEqual(await status.json(), { subscribed: true, deviceId: 'dev_held0001' });
   assert.equal((await h.post('/api/push/rest-timer/cancel', { deviceId: 'dev_held0001' })).status, 200);
+});
+
+// A subscription the send path refuses (a private address, never contacted) is normally pruned from
+// db.json on the spot. Frozen, the set must stay exactly as it was, so nothing is pruned either.
+const PRIVATE = { ...HELD, endpoint: 'https://10.0.0.5/gone', deviceId: 'dev_priv0001' };
+const PRIVATE2 = { ...HELD, endpoint: 'https://10.0.0.6/gone', deviceId: 'dev_priv0002' };
+
+test('while frozen a send does not prune endpoints it cannot use: db.json is byte for byte the same', async t => {
+  const h = await startServer(t, { PUSH_SUBS_READONLY: '1' }, [PRIVATE, PRIVATE2]);
+  const before = h.db();
+  assert.equal((await h.post('/api/push/test', {})).status, 200);
+  await new Promise(res => setTimeout(res, 300));
+  assert.equal(h.db(), before);
+  assert.match(h.log, /push endpoint refused/, 'the send did try and refuse it');
+});
+
+test('not frozen, the same send prunes it, as before', async t => {
+  const h = await startServer(t, {}, [PRIVATE, PRIVATE2]);
+  assert.equal((await h.post('/api/push/test', {})).status, 200);
+  await new Promise(res => setTimeout(res, 300));
+  assert.deepEqual(JSON.parse(h.db()).subs, []);
 });
 
 for (const env of [{}, { PUSH_SUBS_READONLY: '0' }, { PUSH_SUBS_READONLY: 'off' }]) {

@@ -24,9 +24,11 @@ const user = (id, name, extra = {}) => ({ id, name, created: new Date().toISOStr
 const USERS = [user('u1', 'Ana'), user('u2', 'Bea', { disabled: true }), user('adm', 'Root', { admin: true })];
 const STATES = { u1: { unit: 'kg', workouts: [], _rev: 7, _wid: '0123456789abcdef' } };
 
-async function startServer(t, { env = { HUB_JWKS: jwks(KEY), HUB_ISSUER: ISSUER }, users = USERS, states = STATES, gone = [] } = {}) {
+async function startServer(t, { env = { HUB_JWKS: jwks(KEY), HUB_ISSUER: ISSUER }, users = USERS, states = STATES, gone = [], coachConfig = null } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-sync-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
+  // Coach switched on for the instance: the fixture provider counts as connected. Off by default.
+  if (coachConfig) fs.writeFileSync(path.join(dataDir, 'coach.json'), JSON.stringify(coachConfig));
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users, creds: [], subs: [], invites: [], gone }));
   for (const [uid, S] of Object.entries(states)) fs.writeFileSync(path.join(dataDir, `state-${uid}.json`), JSON.stringify(S));
   const child = spawn(process.execPath, ['server.js'], {
@@ -105,10 +107,10 @@ test('a valid listing token lists every profile: id, state and revision, in id o
     status: 200,
     body: {
       users: [
-        { id: 'adm', state: 'active', rev: 0, sv: 0 },
-        { id: 'old1', state: 'gone', rev: 0, sv: 0, gone_at: goneAt },
-        { id: 'u1', state: 'active', rev: 7, sv: 2, wid: '0123456789abcdef' },
-        { id: 'u2', state: 'disabled', rev: 0, sv: 1 }
+        { id: 'adm', state: 'active', rev: 0, sv: 0, coach_cadence_on: false },
+        { id: 'old1', state: 'gone', rev: 0, sv: 0, coach_cadence_on: false, gone_at: goneAt },
+        { id: 'u1', state: 'active', rev: 7, sv: 2, coach_cadence_on: false, wid: '0123456789abcdef' },
+        { id: 'u2', state: 'disabled', rev: 0, sv: 1, coach_cadence_on: false }
       ],
       next_after: null
     }
@@ -148,7 +150,7 @@ test('a profile deleted by an admin is listed as gone, with when, and the delete
   assert.equal(del.status, 200);
   const r = await h.req('GET', LIST, { token: listToken() });
   const gone = r.body.users.find(u => u.id === 'u1');
-  assert.deepEqual({ ...gone, gone_at: typeof gone.gone_at }, { id: 'u1', state: 'gone', rev: 0, sv: 0, gone_at: 'number' });
+  assert.deepEqual({ ...gone, gone_at: typeof gone.gone_at }, { id: 'u1', state: 'gone', rev: 0, sv: 0, coach_cadence_on: false, gone_at: 'number' });
   assert.ok(gone.gone_at >= before && gone.gone_at <= Date.now());
   assert.deepEqual(h.db().gone.map(g => Object.keys(g).sort()), [['at', 'id']]);
   assert.deepEqual(r.body.users.filter(u => u.id !== 'u1').map(u => u.state), ['active', 'disabled']);
@@ -218,10 +220,10 @@ test('a bad listing token is a 401 and is audited through the aggregated sync fa
 test('the listing carries the write id, and a restored backup that reuses a revision shows as a different row', async t => {
   const h = await startServer(t);
   const rowOf = async () => (await h.req('GET', LIST, { token: listToken() })).body.users.find(u => u.id === 'u1');
-  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, sv: 0, wid: '0123456789abcdef' });
+  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, sv: 0, coach_cadence_on: false, wid: '0123456789abcdef' });
   // Same revision, other contents and write id, as after a restore: the rows must differ.
   fs.writeFileSync(path.join(h.dataDir, 'state-u1.json'), JSON.stringify({ unit: 'lb', workouts: [], _rev: 7, _wid: 'fedcba9876543210' }));
-  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, sv: 0, wid: 'fedcba9876543210' });
+  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, sv: 0, coach_cadence_on: false, wid: 'fedcba9876543210' });
   // And it is what /api/sync/rev says for the profile.
   assert.deepEqual((await h.req('GET', '/api/sync/rev', { token: mint(KEY, { sub: 'u1' }) })).body, { rev: 7, wid: 'fedcba9876543210' });
 });
@@ -249,7 +251,26 @@ test('the listing is rate limited per minute, counting only calls that carry a v
 
 test('a disabled profile and one with no state yet are listed, not errors', async t => {
   const h = await startServer(t, { users: [user('only', 'Solo', { disabled: true })], states: {} });
-  assert.deepEqual((await h.req('GET', LIST, { token: listToken() })).body, { users: [{ id: 'only', state: 'disabled', rev: 0, sv: 0 }], next_after: null });
+  assert.deepEqual((await h.req('GET', LIST, { token: listToken() })).body, { users: [{ id: 'only', state: 'disabled', rev: 0, sv: 0, coach_cadence_on: false }], next_after: null });
+});
+
+test('coach_cadence_on follows the stored consent and cadence, and the file changing; with Coach off on the server every row says false', async t => {
+  const coachState = coach => ({ unit: 'kg', workouts: [], coach, _rev: 1, _wid: 'aaaaaaaaaaaaaaaa' });
+  const states = {
+    u1: coachState({ consent: { agreedAt: 1 }, cadence: { everyWorkouts: 3 } }),
+    u2: coachState({ consent: { agreedAt: 1 }, cadence: { weekly: { day: 0 } } }),
+    adm: coachState({ consent: { agreedAt: 1 }, cadence: 'off' })
+  };
+  const cadenceOf = async h => Object.fromEntries((await h.req('GET', LIST, { token: listToken() })).body.users.map(u => [u.id, u.coach_cadence_on]));
+  const on = await startServer(t, { states, coachConfig: { enabled: true, provider: 'fixture' } });
+  assert.deepEqual(await cadenceOf(on), { adm: false, u1: true, u2: true });
+  // The person turns it off: the next listing shows it (the version index re-reads a changed file).
+  fs.writeFileSync(path.join(on.dataDir, 'state-u1.json'), JSON.stringify(coachState({ consent: { agreedAt: 1 }, cadence: 'off' })));
+  assert.deepEqual(await cadenceOf(on), { adm: false, u1: false, u2: true });
+  for (const coachConfig of [null, { enabled: true, provider: 'openai' }]) {
+    const off = await startServer(t, { states, coachConfig });
+    assert.deepEqual(await cadenceOf(off), { adm: false, u1: false, u2: false }, JSON.stringify(coachConfig));
+  }
 });
 
 test('sv follows POST /api/logout/all: the listing shows the bump', async t => {

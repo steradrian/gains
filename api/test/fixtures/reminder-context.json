@@ -1,5 +1,5 @@
 {
-  "_doc": "GET /api/sync/reminder-context (M3.5). Each case is one profile's stored state document (`state`), the Coach record on disk (`coach`, optional, api/coach/<uid>.json), the `date` asked for and the exact 200 body (`expected`). A case with `now` (ISO) pins the server clock for the 12 h live window and the proposal expiry; the og-api route test replays only the cases without `now`, the unit test replays all of them. The gains-be contract suite replays this file against its ConditionSource adapter: `state` is og-api's private input and only `date` and `expected` are the wire contract.",
+  "_doc": "GET /api/sync/reminder-context (M3.5). Each case is one profile's stored state document (`state`), the Coach record on disk (`coach`, optional, api/coach/<uid>.json), the `date` asked for and the exact 200 body (`expected`). A case with `now` (ISO) pins the server clock for the 12 h live window and the proposal expiry; the og-api route test replays only the cases without `now`, the unit test replays all of them. `coach_cadence_on` is true when the Coach consent is given and a cadence is set, whether or not a proposal is pending (`coach` null does not imply it false), and false when Coach is switched off on the server. The gains-be contract suite replays this file against its ConditionSource adapter: `state` is og-api's private input and only `date` and `expected` are the wire contract.",
   "cases": [
     {
       "name": "planned today, nothing logged: nudge streak 1, legacy reminder as stored, no live capability",
@@ -21,6 +21,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": { "on": true, "time": "17:30", "tz": "Europe/Lisbon", "nudge": true, "tone": "guilt" }
       }
     },
@@ -42,6 +43,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -65,6 +67,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -87,6 +90,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -109,6 +113,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -132,6 +137,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -155,6 +161,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -178,6 +185,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -200,6 +208,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -222,6 +231,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -244,6 +254,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -266,6 +277,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -290,6 +302,7 @@
         "capabilities": { "live": true },
         "live": { "workout_id": "w_123", "started_at": "2026-10-18T16:02:11Z", "last_set_at": "2026-10-18T16:40:00Z" },
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -314,6 +327,7 @@
         "capabilities": { "live": true },
         "live": { "workout_id": "w_123", "started_at": "2026-10-18T16:02:11Z", "last_set_at": null },
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -338,6 +352,7 @@
         "capabilities": { "live": true },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -362,6 +377,7 @@
         "capabilities": { "live": true },
         "live": { "workout_id": "w_long", "started_at": "2026-10-18T04:00:00Z", "last_set_at": "2026-10-18T16:40:00Z" },
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -386,6 +402,7 @@
         "capabilities": { "live": true },
         "live": null,
         "coach": null,
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -410,7 +427,8 @@
         "nudge": null,
         "capabilities": { "live": false },
         "live": null,
-        "coach": { "pending_id": "p_8f2a", "changes": 2, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z", "cadence_on": true },
+        "coach": { "pending_id": "p_8f2a", "changes": 2, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z" },
+        "coach_cadence_on": true,
         "legacy_reminder": null
       }
     },
@@ -435,7 +453,8 @@
         "nudge": null,
         "capabilities": { "live": false },
         "live": null,
-        "coach": { "pending_id": "p_8f2a", "changes": 0, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z", "cadence_on": false },
+        "coach": { "pending_id": "p_8f2a", "changes": 0, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z" },
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
@@ -460,12 +479,13 @@
         "nudge": null,
         "capabilities": { "live": false },
         "live": null,
-        "coach": { "pending_id": "p_8f2a", "changes": 1, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z", "cadence_on": false },
+        "coach": { "pending_id": "p_8f2a", "changes": 1, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z" },
+        "coach_cadence_on": false,
         "legacy_reminder": null
       }
     },
     {
-      "name": "coach: an expired proposal is null",
+      "name": "coach: an expired proposal is null, and the cadence is still on",
       "date": "2026-10-26",
       "now": "2026-10-26T09:00:00Z",
       "state": {
@@ -486,6 +506,7 @@
         "capabilities": { "live": false },
         "live": null,
         "coach": null,
+        "coach_cadence_on": true,
         "legacy_reminder": null
       }
     }

@@ -3105,14 +3105,15 @@ paths:
                         state: { type: string, enum: [active, disabled, gone] }
                         rev: { type: integer, description: 'The revision of the profile''s stored state; 0 when it has none yet, and for a profile that is gone.' }
                         sv: { type: integer, minimum: 0, description: 'The profile''s session version: 0 until it has signed out everywhere (or set a password), then a number that only goes up. The notification service drops the person''s push devices when it advances. Always 0 for a profile that is gone.' }
+                        coach_cadence_on: { type: boolean, description: 'Scheduled Coach reviews are on for the profile (consent given and a cadence set): the notification service polls `reminder-context` for proposals only for these. False for a profile that is gone and for every profile while Coach is switched off on the server.' }
                         wid: { type: string, description: 'The write id (`_wid`) of the stored state; absent before its first write and for a profile that is gone.' }
                         gone_at: { type: [integer, 'null'], description: 'Only when `state` is `gone`: when it was deleted, ms.' }
                   next_after: { type: [string, 'null'], description: 'The `after` of the next page; null on the last.' }
               example:
                 users:
-                  - { id: "Vh3kQ9w2ZbYc0aLm", state: active, rev: 412, sv: 2, wid: "9f2c41ab07d3e856" }
-                  - { id: "Wk8pD1x4NfR7sTq2", state: disabled, rev: 37, sv: 0, wid: "3be07a91c4d2f6a8" }
-                  - { id: "Zr2mC6y0LgH3vBn9", state: gone, rev: 0, sv: 0, gone_at: 1760430999000 }
+                  - { id: "Vh3kQ9w2ZbYc0aLm", state: active, rev: 412, sv: 2, coach_cadence_on: true, wid: "9f2c41ab07d3e856" }
+                  - { id: "Wk8pD1x4NfR7sTq2", state: disabled, rev: 37, sv: 0, coach_cadence_on: false, wid: "3be07a91c4d2f6a8" }
+                  - { id: "Zr2mC6y0LgH3vBn9", state: gone, rev: 0, sv: 0, coach_cadence_on: false, gone_at: 1760430999000 }
                 next_after: null
         '400':
           description: '`limit` or `after` is malformed (`code`: `bad-limit`, `bad-cursor`).'
@@ -3164,8 +3165,11 @@ paths:
         whole seconds.
 
         `coach` is the Coach record's pending proposal, or null when there is none or it has
-        expired. `cadence_on` is whether scheduled reviews are on for the person (consent given
-        and a cadence set). `legacy_reminder` is the profile's own old reminder settings, read
+        expired, or when Coach is switched off on the server. `coach_cadence_on` is whether
+        scheduled reviews are on for the person (consent given and a cadence set), independent
+        of any pending proposal and false when Coach is switched off on the server; the same
+        field is on every `GET /api/sync/users` item, which is how the notification service
+        knows whom to poll. `legacy_reminder` is the profile's own old reminder settings, read
         once by the preference import.
 
         Token: `aud` = `opengym-sync`, **`scope` = `sync`**, `sub` = the profile; a `user`
@@ -3185,13 +3189,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [lang, date, planned, workout_logged, excused, nudge, capabilities, live, coach, legacy_reminder]
+                required: [lang, date, planned, workout_logged, excused, nudge, capabilities, live, coach, coach_cadence_on, legacy_reminder]
                 properties:
                   lang: { type: string, description: 'The profile''s language; `en` when it has none.' }
                   date: { type: string, format: date, description: The date asked for. }
                   planned:
                     type: [object, 'null']
                     description: 'The routine planned for the day; null on a rest day or when there is no plan.'
+                    required: [routine_id, name, emoji]
                     properties:
                       routine_id: { type: string }
                       name: { type: string }
@@ -3201,30 +3206,36 @@ paths:
                   nudge:
                     type: [object, 'null']
                     description: 'The missed-workout nudge owed for the day; null when none or backed off.'
+                    required: [routine_id, name, missed_streak]
                     properties:
                       routine_id: { type: string }
                       name: { type: string }
                       missed_streak: { type: integer, minimum: 1, maximum: 3 }
                   capabilities:
                     type: object
+                    required: [live]
                     properties:
                       live: { type: boolean, description: The client writes `workoutLive`. }
                   live:
                     type: [object, 'null']
+                    required: [workout_id, started_at, last_set_at]
                     properties:
                       workout_id: { type: string }
                       started_at: { type: string, format: date-time }
                       last_set_at: { type: [string, 'null'], format: date-time, description: Null before the first set. }
                   coach:
                     type: [object, 'null']
+                    description: 'The Coach record''s pending proposal; null when there is none, it has expired, or Coach is switched off on the server. A debrief proposal always has `changes` 0 (it has no plan changes to count), so `changes: 0` is a proposal worth showing, not an empty one.'
+                    required: [pending_id, changes, created_at, expires_at]
                     properties:
                       pending_id: { type: string }
                       changes: { type: integer, minimum: 0 }
                       created_at: { type: [string, 'null'], format: date-time }
                       expires_at: { type: [string, 'null'], format: date-time }
-                      cadence_on: { type: boolean }
+                  coach_cadence_on: { type: boolean, description: 'Scheduled Coach reviews are on for the person: consent given and a cadence set (`everyWorkouts` or `weekly`), whether or not a proposal is pending. False when Coach is switched off on the server. The same field is on every `GET /api/sync/users` item.' }
                   legacy_reminder:
                     type: [object, 'null']
+                    required: [on, time, tz, nudge, tone]
                     properties:
                       on: { type: boolean }
                       time: { type: [string, 'null'], description: 'HH:MM, as stored.' }
@@ -3240,7 +3251,8 @@ paths:
                 nudge: { routine_id: r1, name: Push A, missed_streak: 1 }
                 capabilities: { live: true }
                 live: { workout_id: w_123, started_at: "2026-10-18T16:02:11Z", last_set_at: "2026-10-18T16:40:00Z" }
-                coach: { pending_id: p_8f2a, changes: 2, created_at: "2026-10-18T09:00:03Z", expires_at: "2026-10-25T09:00:03Z", cadence_on: true }
+                coach: { pending_id: p_8f2a, changes: 2, created_at: "2026-10-18T09:00:03Z", expires_at: "2026-10-25T09:00:03Z" }
+                coach_cadence_on: true
                 legacy_reminder: { on: true, time: "17:30", tz: Europe/Lisbon, nudge: true, tone: friendly }
         '400':
           description: '`date` is missing or not a real date in range (`code: invalid`).'
@@ -3821,6 +3833,13 @@ components:
         subscriptions (`subscribe`, `unsubscribe`, `rest-timer`) change nothing and answer this, with
         `Retry-After: 30`. Signed-in callers only; the signed-out still get 401. Try again later: the
         client re-sends its subscription on every boot anyway.
+
+        The subscription set is kept still: a send also stops pruning dead (404/410/403) or refused
+        endpoints while the freeze is on. Left unchanged on purpose: `POST /api/admin/user/delete`
+        still removes the deleted person's subscriptions, and `POST /api/push/rest-timer/cancel`
+        still works (it writes no subscription). The flag is read at boot; rest timers are in memory
+        and die with the restart, none can be scheduled while frozen, and one already scheduled would
+        still fire to the subscriptions held.
       headers:
         Retry-After: { schema: { type: integer }, description: Seconds to wait; always 30. }
       content:

@@ -49,22 +49,26 @@ function liveOf(S, now) {
 
 // The Coach record's pending proposal (coach/jobs.js), unless it has expired. Expiry is read here
 // and never archived: jobs.status() would write the record, and this route reads only.
-function coachOf(S, record, now) {
+function coachOf(record, now) {
   const p = record?.pending;
   if (!isMap(p) || typeof p.id !== 'string' || !p.id) return null;
   const expiresAt = ms(p.expiresAt);
   if (expiresAt != null && expiresAt < now) return null;
   const createdAt = ms(p.createdAt);
-  const c = S.coach;
-  // The same test the scheduled review applies (coach/cadence.js): consent given and a cadence set.
-  const cadenceOn = isMap(c) && !!c.consent?.agreedAt && isMap(c.cadence) && !!(c.cadence.everyWorkouts || c.cadence.weekly);
   return {
     pending_id: p.id,
     changes: Array.isArray(p.changes) ? p.changes.length : 0,
     created_at: createdAt == null ? null : iso(createdAt),
-    expires_at: expiresAt == null ? null : iso(expiresAt),
-    cadence_on: cadenceOn
+    expires_at: expiresAt == null ? null : iso(expiresAt)
   };
+}
+
+/** Are scheduled Coach reviews on for this person: consent given and a cadence set (`everyWorkouts`
+ *  or `weekly`), the same test coach/cadence.js applies. Whether the instance offers Coach at all is
+ *  the caller's question (`coachOn`). Also on every row of GET /api/sync/users. */
+export function coachCadenceOn(S) {
+  const c = S?.coach;
+  return isMap(c) && !!c.consent?.agreedAt && isMap(c.cadence) && !!(c.cadence.everyWorkouts || c.cadence.weekly);
 }
 
 // S.reminder as stored, for the one-time preference import: the five fields it has, nothing else.
@@ -75,8 +79,9 @@ function legacyReminderOf(S) {
 }
 
 /** `S` the stored state, `date` the person's local YYYY-MM-DD, `coachRecord` the Coach record
- *  (`readUser(uid)` in coach/jobs.js) or undefined, `now` ms. */
-export function reminderContext(state, date, { coachRecord, now = Date.now() } = {}) {
+ *  (`readUser(uid)` in coach/jobs.js) or undefined, `coachOn` whether the instance has Coach
+ *  switched on (off: no proposal and no cadence are reported, whatever is stored), `now` ms. */
+export function reminderContext(state, date, { coachRecord, coachOn = true, now = Date.now() } = {}) {
   const S = { ...state, workouts: records(state?.workouts), routines: records(state?.routines) };
   return {
     lang: text(S.lang) || 'en',
@@ -87,7 +92,8 @@ export function reminderContext(state, date, { coachRecord, now = Date.now() } =
     nudge: nudgeOn(S, date),
     capabilities: { live: S.workoutLive !== undefined },
     live: liveOf(S, now),
-    coach: coachOf(S, coachRecord, now),
+    coach: coachOn ? coachOf(coachRecord, now) : null,
+    coach_cadence_on: coachOn && coachCadenceOn(S),
     legacy_reminder: legacyReminderOf(S)
   };
 }

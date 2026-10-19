@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { reminderContext, LIVE_STALE_MS } from '../reminder-context.js';
+import { reminderContext, coachCadenceOn, LIVE_STALE_MS } from '../reminder-context.js';
 import { nudgeDetail, nudgeFor } from '../nudge.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -28,7 +28,7 @@ test('every fixture case answers exactly its expected body', () => {
 
 test('the keys are the contract’s, in snake_case, and nothing else about the profile', () => {
   const got = ctx(base({ name: 'Ana', email: 'a@example.test', bodyweight: [{ d: '2026-10-01', w: 80 }] }));
-  assert.deepEqual(Object.keys(got), ['lang', 'date', 'planned', 'workout_logged', 'excused', 'nudge', 'capabilities', 'live', 'coach', 'legacy_reminder']);
+  assert.deepEqual(Object.keys(got), ['lang', 'date', 'planned', 'workout_logged', 'excused', 'nudge', 'capabilities', 'live', 'coach', 'coach_cadence_on', 'legacy_reminder']);
   assert.ok(!JSON.stringify(got).includes('example.test'));
 });
 
@@ -61,20 +61,38 @@ test('coach: expiry is on the server clock, a record that is not a proposal is n
   assert.equal(ctx(base(), { coachRecord: rec({ expiresAt: NOW }) }).coach?.pending_id, 'p1');
   for (const none of [undefined, null, {}, { pending: null }, rec({ id: '' }), rec({ id: 5 }), { pending: 'x' }]) assert.equal(ctx(base(), { coachRecord: none }).coach, null, JSON.stringify(none));
   assert.equal(ctx(base(), { coachRecord: rec({ changes: 'x' }) }).coach.changes, 0);
-  const on = coach => ctx(base({ coach }), { coachRecord: rec() }).coach.cadence_on;
-  assert.equal(on({ consent: { agreedAt: 1 }, cadence: { weekly: { day: 0 } } }), true);
-  assert.equal(on({ consent: { agreedAt: 1 }, cadence: { everyWorkouts: 3 } }), true);
-  assert.equal(on({ consent: { agreedAt: 1 }, cadence: 'off' }), false);
-  assert.equal(on({ consent: { agreedAt: 1 } }), false);
-  assert.equal(on({ cadence: { everyWorkouts: 3 } }), false);
-  assert.equal(on(undefined), false);
+  assert.ok(!('cadence_on' in ctx(base(), { coachRecord: rec() }).coach), 'cadence moved out of `coach`');
+});
+
+test('coach_cadence_on: consent given and a cadence set, with or without a proposal pending', () => {
+  const rec = { pending: { id: 'p1', createdAt: NOW - HOUR, expiresAt: NOW + HOUR, changes: [] } };
+  for (const coachRecord of [undefined, rec]) {
+    const on = coach => ctx(base({ coach }), { coachRecord }).coach_cadence_on;
+    assert.equal(on({ consent: { agreedAt: 1 }, cadence: { weekly: { day: 0 } } }), true);
+    assert.equal(on({ consent: { agreedAt: 1 }, cadence: { everyWorkouts: 3 } }), true);
+    assert.equal(on({ consent: { agreedAt: 1 }, cadence: 'off' }), false);
+    assert.equal(on({ consent: { agreedAt: 1 } }), false);
+    assert.equal(on({ cadence: { everyWorkouts: 3 } }), false);
+    assert.equal(on(undefined), false);
+  }
+  assert.equal(coachCadenceOn({ coach: { consent: { agreedAt: 1 }, cadence: { everyWorkouts: 3 } } }), true);
+  assert.equal(coachCadenceOn(null), false);
+});
+
+test('Coach switched off on the server: coach null and coach_cadence_on false, whatever is stored', () => {
+  const S = base({ coach: { consent: { agreedAt: 1 }, cadence: { everyWorkouts: 3 } } });
+  const coachRecord = { pending: { id: 'p1', createdAt: NOW - HOUR, expiresAt: NOW + HOUR, changes: [{}] } };
+  const on = ctx(S, { coachRecord });
+  assert.deepEqual([on.coach?.pending_id, on.coach_cadence_on], ['p1', true]);
+  const off = ctx(S, { coachRecord, coachOn: false });
+  assert.deepEqual([off.coach, off.coach_cadence_on], [null, false]);
 });
 
 test('a state with the wrong shapes still answers: workouts, routines and reminder that are not what they should be', () => {
   const got = reminderContext({ workouts: 'x', routines: { a: 1 }, week: null, reminder: 'on', lang: 5 }, '2026-10-18', { now: NOW });
   assert.deepEqual(got, {
     lang: 'en', date: '2026-10-18', planned: null, workout_logged: false, excused: false, nudge: null,
-    capabilities: { live: false }, live: null, coach: null, legacy_reminder: null
+    capabilities: { live: false }, live: null, coach: null, coach_cadence_on: false, legacy_reminder: null
   });
   assert.equal(reminderContext({ workouts: [null, 3, { d: '2026-10-18' }] }, '2026-10-18', { now: NOW }).workout_logged, true);
 });
