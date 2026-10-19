@@ -1960,6 +1960,7 @@ paths:
                 malformed: { value: { error: "invalid subscription" } }
                 private: { value: { error: "endpoint must not point at a private address" } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/PushReadonly' }
 
   /api/push/status:
     get:
@@ -2024,6 +2025,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Ok' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/PushReadonly' }
 
   /api/push/test:
     post:
@@ -2088,6 +2090,7 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "seconds required" }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/PushReadonly' }
 
   /api/push/rest-timer/cancel:
     post:
@@ -3056,7 +3059,7 @@ paths:
       operationId: syncUsers
       summary: 'Sync: the profiles the hub may sync'
       description: |
-        Every profile on this instance, as an id, a state, a revision and a write id, in id order, a
+        Every profile on this instance, as an id, a state, a revision, a session version (`sv`) and a write id, in id order, a
         page at a time. It is how the hub finds a person who logged a workout on another device, or
         came back after a while, without that person opening the app here first.
 
@@ -3101,14 +3104,15 @@ paths:
                         id: { type: string }
                         state: { type: string, enum: [active, disabled, gone] }
                         rev: { type: integer, description: 'The revision of the profile''s stored state; 0 when it has none yet, and for a profile that is gone.' }
+                        sv: { type: integer, minimum: 0, description: 'The profile''s session version: 0 until it has signed out everywhere (or set a password), then a number that only goes up. The notification service drops the person''s push devices when it advances. Always 0 for a profile that is gone.' }
                         wid: { type: string, description: 'The write id (`_wid`) of the stored state; absent before its first write and for a profile that is gone.' }
                         gone_at: { type: [integer, 'null'], description: 'Only when `state` is `gone`: when it was deleted, ms.' }
                   next_after: { type: [string, 'null'], description: 'The `after` of the next page; null on the last.' }
               example:
                 users:
-                  - { id: "Vh3kQ9w2ZbYc0aLm", state: active, rev: 412, wid: "9f2c41ab07d3e856" }
-                  - { id: "Wk8pD1x4NfR7sTq2", state: disabled, rev: 37, wid: "3be07a91c4d2f6a8" }
-                  - { id: "Zr2mC6y0LgH3vBn9", state: gone, rev: 0, gone_at: 1760430999000 }
+                  - { id: "Vh3kQ9w2ZbYc0aLm", state: active, rev: 412, sv: 2, wid: "9f2c41ab07d3e856" }
+                  - { id: "Wk8pD1x4NfR7sTq2", state: disabled, rev: 37, sv: 0, wid: "3be07a91c4d2f6a8" }
+                  - { id: "Zr2mC6y0LgH3vBn9", state: gone, rev: 0, sv: 0, gone_at: 1760430999000 }
                 next_after: null
         '400':
           description: '`limit` or `after` is malformed (`code`: `bad-limit`, `bad-cursor`).'
@@ -3133,6 +3137,137 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "too many listings, try again shortly", code: "rate-limited", retryAfter: 12 }
+
+  /api/sync/reminder-context:
+    get:
+      tags: [sync]
+      operationId: syncReminderContext
+      summary: 'Sync: what a day looks like for the notification scheduler'
+      description: |
+        What the notification service needs to know about one day of one profile to decide
+        whether a reminder is still owed: is a workout planned, is it already logged, is the
+        day excused, is a missed-workout nudge due, is a workout running right now, is a Coach
+        proposal waiting. Read-only: nothing stored changes, and an expired Coach proposal is
+        reported as `null`, not archived. `Cache-Control: no-store`.
+
+        `date` is the person's **local** date, which only the caller knows (it keeps their time
+        zone); the server never substitutes its own. `planned` is the plan for that day with
+        rotation, queue and per-day overrides applied (the same rule the in-server reminder
+        uses), independent of whether the day is logged or excused. `nudge` applies the
+        3-missed-days back-off; `missed_streak` counts the missed planned days in a row,
+        this one included (1 to 3).
+
+        `capabilities.live` is true once the client has ever written `workoutLive` (it writes
+        `null` when a workout ends); until then `live` is always null and the live type should
+        not be offered. `live` is null when no workout is running or when its last activity (the
+        start or the last set) is more than 12 h old by this server's clock. Times are UTC, in
+        whole seconds.
+
+        `coach` is the Coach record's pending proposal, or null when there is none or it has
+        expired. `cadence_on` is whether scheduled reviews are on for the person (consent given
+        and a cadence set). `legacy_reminder` is the profile's own old reminder settings, read
+        once by the preference import.
+
+        Token: `aud` = `opengym-sync`, **`scope` = `sync`**, `sub` = the profile; a `user`
+        scope or any other audience is refused. At most 120 calls a minute per profile
+        (429, `code: rate-limited`, with `Retry-After`); only calls that carry a valid, unspent
+        token count. Absent (plain 404) on an instance without `HUB_JWKS`.
+      security:
+        - hubToken: []
+      parameters:
+        - { name: date, in: query, required: true, schema: { type: string, format: date, example: '2026-10-18' }, description: 'The person''s local date, YYYY-MM-DD, from 1900-01-01 to tomorrow.' }
+      responses:
+        '200':
+          description: The day.
+          headers:
+            Cache-Control: { schema: { type: string, const: no-store } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lang, date, planned, workout_logged, excused, nudge, capabilities, live, coach, legacy_reminder]
+                properties:
+                  lang: { type: string, description: 'The profile''s language; `en` when it has none.' }
+                  date: { type: string, format: date, description: The date asked for. }
+                  planned:
+                    type: [object, 'null']
+                    description: 'The routine planned for the day; null on a rest day or when there is no plan.'
+                    properties:
+                      routine_id: { type: string }
+                      name: { type: string }
+                      emoji: { type: [string, 'null'], description: The stored emoji; null when the routine has none. }
+                  workout_logged: { type: boolean, description: A finished workout is dated this day. }
+                  excused: { type: boolean, description: 'The day carries a note (sick, travel, rest, injured, or text): never missed, never nudged.' }
+                  nudge:
+                    type: [object, 'null']
+                    description: 'The missed-workout nudge owed for the day; null when none or backed off.'
+                    properties:
+                      routine_id: { type: string }
+                      name: { type: string }
+                      missed_streak: { type: integer, minimum: 1, maximum: 3 }
+                  capabilities:
+                    type: object
+                    properties:
+                      live: { type: boolean, description: The client writes `workoutLive`. }
+                  live:
+                    type: [object, 'null']
+                    properties:
+                      workout_id: { type: string }
+                      started_at: { type: string, format: date-time }
+                      last_set_at: { type: [string, 'null'], format: date-time, description: Null before the first set. }
+                  coach:
+                    type: [object, 'null']
+                    properties:
+                      pending_id: { type: string }
+                      changes: { type: integer, minimum: 0 }
+                      created_at: { type: [string, 'null'], format: date-time }
+                      expires_at: { type: [string, 'null'], format: date-time }
+                      cadence_on: { type: boolean }
+                  legacy_reminder:
+                    type: [object, 'null']
+                    properties:
+                      on: { type: boolean }
+                      time: { type: [string, 'null'], description: 'HH:MM, as stored.' }
+                      tz: { type: [string, 'null'] }
+                      nudge: { type: boolean }
+                      tone: { type: string, enum: [friendly, guilt, drill] }
+              example:
+                lang: en
+                date: "2026-10-18"
+                planned: { routine_id: r1, name: Push A, emoji: "💪" }
+                workout_logged: false
+                excused: false
+                nudge: { routine_id: r1, name: Push A, missed_streak: 1 }
+                capabilities: { live: true }
+                live: { workout_id: w_123, started_at: "2026-10-18T16:02:11Z", last_set_at: "2026-10-18T16:40:00Z" }
+                coach: { pending_id: p_8f2a, changes: 2, created_at: "2026-10-18T09:00:03Z", expires_at: "2026-10-25T09:00:03Z", cadence_on: true }
+                legacy_reminder: { on: true, time: "17:30", tz: Europe/Lisbon, nudge: true, tone: friendly }
+        '400':
+          description: '`date` is missing or not a real date in range (`code: invalid`).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "date must be a real YYYY-MM-DD date, from 1900-01-01 to tomorrow", code: "invalid" }
+        '401': { $ref: '#/components/responses/SyncUnauthorized' }
+        '404':
+          description: >-
+            `code: user-gone` (the profile was deleted) or `code: no-state` (no device has synced a
+            state document to this server yet).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                gone: { value: { error: "no such user", code: "user-gone" } }
+                noState: { value: { error: "this profile has no data on this server yet", code: "no-state" } }
+        '429':
+          description: 'More than 120 calls in a minute for this profile (`code: rate-limited`).'
+          headers:
+            Retry-After: { schema: { type: integer }, description: Seconds until the allowance is back. }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "too many reads, try again shortly", code: "rate-limited", retryAfter: 12 }
+        '503': { $ref: '#/components/responses/SyncStateUnreadable' }
 
   /api/sync/rev:
     get:
@@ -3680,6 +3815,18 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
           example: { error: "no such user", code: "user-gone" }
+    PushReadonly:
+      description: >-
+        The instance runs with `PUSH_SUBS_READONLY=1` (the cutover freeze): the routes that write push
+        subscriptions (`subscribe`, `unsubscribe`, `rest-timer`) change nothing and answer this, with
+        `Retry-After: 30`. Signed-in callers only; the signed-out still get 401. Try again later: the
+        client re-sends its subscription on every boot anyway.
+      headers:
+        Retry-After: { schema: { type: integer }, description: Seconds to wait; always 30. }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "push subscriptions are read-only while the notification service is being switched over", code: "push-readonly" }
     SyncStateUnreadable:
       description: >-
         The profile's state file exists but cannot be read. Transient for the hub: back off and

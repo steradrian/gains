@@ -97,16 +97,18 @@ const REFUSED = { status: 401, body: { error: 'invalid sync token', code: 'token
 
 test('a valid listing token lists every profile: id, state and revision, in id order, and nothing else', async t => {
   const goneAt = Date.now() - 86400000;
-  const h = await startServer(t, { gone: [{ id: 'old1', at: goneAt }] });
+  // u1 has signed out everywhere twice, u2 once: `sv` is what gains-be watches to drop a person's devices.
+  const users = [user('u1', 'Ana', { sv: 2 }), user('u2', 'Bea', { disabled: true, sv: 1 }), user('adm', 'Root', { admin: true })];
+  const h = await startServer(t, { users, gone: [{ id: 'old1', at: goneAt }] });
   const r = await h.req('GET', LIST, { token: listToken() });
   assert.deepEqual(r, {
     status: 200,
     body: {
       users: [
-        { id: 'adm', state: 'active', rev: 0 },
-        { id: 'old1', state: 'gone', rev: 0, gone_at: goneAt },
-        { id: 'u1', state: 'active', rev: 7, wid: '0123456789abcdef' },
-        { id: 'u2', state: 'disabled', rev: 0 }
+        { id: 'adm', state: 'active', rev: 0, sv: 0 },
+        { id: 'old1', state: 'gone', rev: 0, sv: 0, gone_at: goneAt },
+        { id: 'u1', state: 'active', rev: 7, sv: 2, wid: '0123456789abcdef' },
+        { id: 'u2', state: 'disabled', rev: 0, sv: 1 }
       ],
       next_after: null
     }
@@ -146,7 +148,7 @@ test('a profile deleted by an admin is listed as gone, with when, and the delete
   assert.equal(del.status, 200);
   const r = await h.req('GET', LIST, { token: listToken() });
   const gone = r.body.users.find(u => u.id === 'u1');
-  assert.deepEqual({ ...gone, gone_at: typeof gone.gone_at }, { id: 'u1', state: 'gone', rev: 0, gone_at: 'number' });
+  assert.deepEqual({ ...gone, gone_at: typeof gone.gone_at }, { id: 'u1', state: 'gone', rev: 0, sv: 0, gone_at: 'number' });
   assert.ok(gone.gone_at >= before && gone.gone_at <= Date.now());
   assert.deepEqual(h.db().gone.map(g => Object.keys(g).sort()), [['at', 'id']]);
   assert.deepEqual(r.body.users.filter(u => u.id !== 'u1').map(u => u.state), ['active', 'disabled']);
@@ -216,10 +218,10 @@ test('a bad listing token is a 401 and is audited through the aggregated sync fa
 test('the listing carries the write id, and a restored backup that reuses a revision shows as a different row', async t => {
   const h = await startServer(t);
   const rowOf = async () => (await h.req('GET', LIST, { token: listToken() })).body.users.find(u => u.id === 'u1');
-  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, wid: '0123456789abcdef' });
+  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, sv: 0, wid: '0123456789abcdef' });
   // Same revision, other contents and write id, as after a restore: the rows must differ.
   fs.writeFileSync(path.join(h.dataDir, 'state-u1.json'), JSON.stringify({ unit: 'lb', workouts: [], _rev: 7, _wid: 'fedcba9876543210' }));
-  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, wid: 'fedcba9876543210' });
+  assert.deepEqual(await rowOf(), { id: 'u1', state: 'active', rev: 7, sv: 0, wid: 'fedcba9876543210' });
   // And it is what /api/sync/rev says for the profile.
   assert.deepEqual((await h.req('GET', '/api/sync/rev', { token: mint(KEY, { sub: 'u1' }) })).body, { rev: 7, wid: 'fedcba9876543210' });
 });
@@ -247,7 +249,16 @@ test('the listing is rate limited per minute, counting only calls that carry a v
 
 test('a disabled profile and one with no state yet are listed, not errors', async t => {
   const h = await startServer(t, { users: [user('only', 'Solo', { disabled: true })], states: {} });
-  assert.deepEqual((await h.req('GET', LIST, { token: listToken() })).body, { users: [{ id: 'only', state: 'disabled', rev: 0 }], next_after: null });
+  assert.deepEqual((await h.req('GET', LIST, { token: listToken() })).body, { users: [{ id: 'only', state: 'disabled', rev: 0, sv: 0 }], next_after: null });
+});
+
+test('sv follows POST /api/logout/all: the listing shows the bump', async t => {
+  const h = await startServer(t);
+  const svOf = async () => (await h.req('GET', LIST, { token: listToken() })).body.users.find(u => u.id === 'u1').sv;
+  assert.equal(await svOf(), 0);
+  const out = await fetch(`${h.api}/api/logout/all`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: 'gymsid=' + session('u1'), Origin: ORIGIN } });
+  assert.equal(out.status, 200);
+  assert.equal(await svOf(), 1);
 });
 
 test('an instance with no hub answers the listing with the plain 404', async t => {

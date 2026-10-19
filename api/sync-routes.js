@@ -34,6 +34,7 @@ import { verifyHubToken, replayCache, HUB_AUDIENCE, HUB_USERS_AUDIENCE, HUB_USER
 import { createWindow } from './rate-limit.js';
 import { stampPut } from './sync-stamps.js';
 import { parseSeed, seedState, seedView } from './sync-seed.js';
+import { reminderContext } from './reminder-context.js';
 import {
   isSyncDate, workoutItems, trackWorkouts, changesSince, decodeCursor, bodyweightView, weighInOf, withWeighIn, withoutWeighIn, unitOf,
   usersPage, USER_ID, USERS_LIMIT_MAX, USERS_LIMIT_DEFAULT
@@ -52,6 +53,7 @@ const IF_MATCH = /^\s*"?(\d{1,15})(?::([0-9a-f]{1,64}))?"?\s*$/;
 const LIMIT_MAX = 500;
 const LIMIT_DEFAULT = 100;
 const LIST_BURST_MAX = 120;
+const CONTEXT_BURST_MAX = 120;
 // A body weight a person weighs, in kg: anything outside is a mistake (a value in grams, a unit
 // mix-up, one that would round to nothing in the stored unit and vanish without a removal on record).
 const KG_MIN = 20;
@@ -71,12 +73,15 @@ const LOGS_MAX = 1000;
 
 const bad = (json, res, code, error) => json(res, 400, { error, code });
 
-export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail, coachAvailable }) {
+export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, readStateCached, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail, coachAvailable, coachRecord }) {
   const replays = replayCache();
   // The listing is the hub's alone and a page of it costs a stat per profile, so this is generous:
   // 120 a minute against the one call a scheduler makes per page. It counts only calls that carry a
   // valid, unspent token (serviceAuthed), so junk from anywhere cannot spend the hub's allowance.
   const listBurst = createWindow({ max: LIST_BURST_MAX, windowMs: 60000, maxKeys: 1 });
+  // reminder-context is read per profile, often: 120 a minute for each person, counted after the
+  // token and the profile have passed (authed), so junk cannot spend anyone's allowance.
+  const contextBurst = createWindow({ max: CONTEXT_BURST_MAX, windowMs: 60000, maxKeys: LOGS_MAX });
   const logs = new Map();
   const logOf = (uid, S, items) => {
     const log = trackWorkouts(logs.get(uid), S, items);
@@ -210,6 +215,24 @@ export function syncRoutes({ hub, json, findUser, listProfiles, stateVersion, re
 
     // The hub's check that a profile is still there and syncable, before it starts a run.
     'GET /api/sync/ping': authed(async (req, res, user) => json(res, 200, { ok: true, user: { id: user.id, name: user.name } })),
+
+    // What the notifications scheduler asks about one day of one profile: planned, logged, excused,
+    // nudge, a workout running, a Coach proposal waiting (reminder-context.js). `date` is the
+    // person's own local date, which only the caller can know. Reads the state and the Coach
+    // record and writes neither: an expired proposal is reported as none, not archived.
+    'GET /api/sync/reminder-context': authed(async (req, res, user) => {
+      const wait = contextBurst.take(user.id);
+      if (wait) return json(res, 429, { error: 'too many reads, try again shortly', code: 'rate-limited', retryAfter: wait }, { 'Retry-After': String(wait) });
+      const date = new URL(req.url, 'http://x').searchParams.get('date');
+      if (!isSyncDate(date)) return bad(json, res, 'invalid', 'date must be a real YYYY-MM-DD date, from 1900-01-01 to tomorrow');
+      const S = readStateStrict(user.id);
+      if (S === UNREADABLE) {
+        console.error('state file unreadable for', user.id);
+        return json(res, 503, { error: 'state unreadable', code: 'state-unreadable' });
+      }
+      if (!S) return json(res, 404, { error: 'this profile has no data on this server yet', code: 'no-state' });
+      json(res, 200, reminderContext(S, date, { coachRecord: coachRecord(user.id) }));
+    }),
 
     // The same answer GET /api/data/rev gives the profile's own devices: the hub polls it and
     // reads further only when the number moved.

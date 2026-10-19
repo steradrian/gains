@@ -34,7 +34,7 @@ export function nudgeWindowOpen(reminderTime, hhmm) {
 
 // Calendar arithmetic on ISO dates at UTC noon: no zone or DST edge can move the day.
 const dayBefore = iso => new Date(Date.parse(iso + 'T12:00:00Z') - 86400000).toISOString().slice(0, 10);
-const records = v => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
+export const records = v => (Array.isArray(v) ? v.filter(x => x && typeof x === 'object') : []);
 const logged = (S, iso) => S.workouts.some(w => w.d === iso);
 // A day with a note on it (frontend lib/day-notes.js: a quick pick or a line of text) is excused:
 // never a missed day, never nudged or reminded about.
@@ -54,10 +54,11 @@ function missed(S, iso) {
 }
 
 /**
- * The routine id to nudge about on `iso`, or null: not a missed day, or 3 missed days in a row
- * already since the last workout (back-off). Workouts dated after `iso` are not looked at.
+ * The nudge owed on `iso`, `{ routineId, missedStreak }`, or null: not a missed day, or 3 missed
+ * days in a row already since the last workout (back-off). `missedStreak` counts `iso` itself, so
+ * 1 to 3. Workouts dated after `iso` are not looked at.
  */
-export function nudgeFor(state, iso) {
+export function nudgeDetail(state, iso) {
   const S = { ...state, workouts: records(state?.workouts), routines: records(state?.routines) };
   const rid = missed(S, iso);
   if (!rid) return null;
@@ -67,8 +68,11 @@ export function nudgeFor(state, iso) {
   for (let i = 0; i < NUDGE_LOOKBACK_DAYS && d > last; i++, d = dayBefore(d)) {
     if (missed(S, d) && ++misses >= NUDGE_MAX_MISSES) return null;
   }
-  return rid;
+  return { routineId: rid, missedStreak: misses + 1 };
 }
+
+/** The routine id to nudge about on `iso`, or null (see nudgeDetail). */
+export const nudgeFor = (state, iso) => nudgeDetail(state, iso)?.routineId ?? null;
 
 /** The day's line index: by date, so a day keeps its line and consecutive days rotate. */
 export const lineIndex = (iso, n) => Math.floor(Date.parse(iso + 'T00:00:00Z') / 86400000) % n;

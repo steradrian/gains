@@ -25,15 +25,24 @@ describe('usersPage', () => {
     const page = usersPage({ users: [user('d4'), user('a1'), user('c3', { disabled: true }), user('b2', { admin: true })], versionOf });
     assert.deepEqual(page, {
       users: [
-        { id: 'a1', state: 'active', rev: 4 },
-        { id: 'b2', state: 'active', rev: 9 },
-        { id: 'c3', state: 'disabled', rev: 0 },
-        { id: 'd4', state: 'active', rev: 12 }
+        { id: 'a1', state: 'active', rev: 4, sv: 0 },
+        { id: 'b2', state: 'active', rev: 9, sv: 0 },
+        { id: 'c3', state: 'disabled', rev: 0, sv: 0 },
+        { id: 'd4', state: 'active', rev: 12, sv: 0 }
       ],
       next_after: null
     });
     const text = JSON.stringify(page);
     for (const secret of ['Ana', 'example.test', 'secret', 'passkeys', '2026-01-01', 'admin', 'name', 'email']) assert.ok(!text.includes(secret), `${secret} never leaves`);
+  });
+
+  it('carries the session version as an integer sv on every row: 0 for a profile that never bumped it, and for a gone one', () => {
+    const page = usersPage({
+      users: [user('a1', { sv: 3 }), user('b2', { sv: 12, disabled: true }), user('c3'), user('d4', { sv: 'x' }), user('e5', { sv: -1 }), user('f6', { sv: 1.5 })],
+      gone: [{ id: 'z9', at: 1 }],
+      versionOf
+    });
+    assert.deepEqual(page.users.map(u => [u.id, u.sv]), [['a1', 3], ['b2', 12], ['c3', 0], ['d4', 0], ['e5', 0], ['f6', 0], ['z9', 0]]);
   });
 
   it('a deleted profile is listed as gone, with when, and a profile that exists is never hidden by an old record', () => {
@@ -43,10 +52,10 @@ describe('usersPage', () => {
       versionOf
     });
     assert.deepEqual(page.users, [
-      { id: 'a1', state: 'active', rev: 4 },
-      { id: 'b2', state: 'gone', rev: 0, gone_at: 1_760_000_000_000 },
-      { id: 'c3', state: 'active', rev: 0 },
-      { id: 'x9', state: 'gone', rev: 0, gone_at: null }
+      { id: 'a1', state: 'active', rev: 4, sv: 0 },
+      { id: 'b2', state: 'gone', rev: 0, sv: 0, gone_at: 1_760_000_000_000 },
+      { id: 'c3', state: 'active', rev: 0, sv: 0 },
+      { id: 'x9', state: 'gone', rev: 0, sv: 0, gone_at: null }
     ]);
   });
 
@@ -58,7 +67,7 @@ describe('usersPage', () => {
     const two = usersPage({ users: all, versionOf, limit: 2, after: one.next_after });
     assert.deepEqual(two.users.map(u => u.id), ['c3', 'd4']);
     const three = usersPage({ users: all, versionOf, limit: 2, after: two.next_after });
-    assert.deepEqual(three, { users: [{ id: 'e5', state: 'active', rev: 0 }], next_after: null });
+    assert.deepEqual(three, { users: [{ id: 'e5', state: 'active', rev: 0, sv: 0 }], next_after: null });
     // A page that ends exactly on the last profile has no next page.
     assert.equal(usersPage({ users: all.slice(0, 2), versionOf, limit: 2 }).next_after, null);
     assert.deepEqual(usersPage({ users: [], versionOf }), { users: [], next_after: null });
@@ -79,10 +88,10 @@ describe('usersPage', () => {
       versionOf: id => ({ rev: 5, wid: wids[id] })
     });
     assert.deepEqual(page.users, [
-      { id: 'a1', state: 'active', rev: 5, wid: 'aaaa1111' },
-      { id: 'b2', state: 'active', rev: 5 },
-      { id: 'c3', state: 'disabled', rev: 5 },
-      { id: 'z9', state: 'gone', rev: 0, gone_at: 1 }
+      { id: 'a1', state: 'active', rev: 5, sv: 0, wid: 'aaaa1111' },
+      { id: 'b2', state: 'active', rev: 5, sv: 0 },
+      { id: 'c3', state: 'disabled', rev: 5, sv: 0 },
+      { id: 'z9', state: 'gone', rev: 0, sv: 0, gone_at: 1 }
     ]);
     // Same revision, other contents: the rows differ.
     const at = wid => usersPage({ users: [user('a1')], versionOf: () => ({ rev: 5, wid }) }).users[0];

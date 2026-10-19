@@ -376,6 +376,17 @@ function pushEndpointError(raw) {
   return null;
 }
 
+// The cutover freeze (PUSH_SUBS_READONLY=1): while another service takes over push subscriptions,
+// the ones held here must not change, so the three routes that write them (subscribe, unsubscribe,
+// rest-timer) answer 503 and the client tries again later. Read once at boot, like every other
+// switch here: changing it is a restart. True when it has answered.
+const PUSH_SUBS_READONLY = /^(1|true|yes|on)$/i.test(process.env.PUSH_SUBS_READONLY || '');
+function pushFrozen(res) {
+  if (!PUSH_SUBS_READONLY) return false;
+  json(res, 503, { error: 'push subscriptions are read-only while the notification service is being switched over', code: 'push-readonly' }, { 'Retry-After': '30' });
+  return true;
+}
+
 // `deviceId` narrows the send to the subscriptions one browser registered (the rest-timer alert
 // belongs to the device that started the rest, #348); a subscription stored without one (an
 // older client) still gets everything, as before. A resting device with no subscription of its
@@ -2408,6 +2419,7 @@ const routes = {
   'POST /api/push/subscribe': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    if (pushFrozen(res)) return;
     const body = await readBody(req);
     const sub = body.subscription;
     if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) return json(res, 400, { error: 'invalid subscription' });
@@ -2456,6 +2468,7 @@ const routes = {
   'POST /api/push/unsubscribe': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    if (pushFrozen(res)) return;
     const body = await readBody(req);
     db.subs = db.subs.filter(s => !(s.userId === user.id && s.endpoint === body.endpoint));
     saveDb();
@@ -2472,6 +2485,7 @@ const routes = {
   'POST /api/push/rest-timer': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    if (pushFrozen(res)) return;
     const body = await readBody(req);
     // Validated before it is clamped: the clamp used to run first, which turned a missing or
     // unusable value into a 1-second push and made the 400 below unreachable. `Number()` only
@@ -2705,6 +2719,7 @@ const routes = {
     hub: HUB, json, findUser: id => db.users.find(u => u.id === id) || null,
     readStateCached, stateVersion, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail,
     coachAvailable: () => coachConfig.publicConfig() !== null,
+    coachRecord: uid => coachJobs.readUser(uid),
     // Last: server-state-read-cost.test.js reads this call's text up to the first `}`.
     listProfiles: () => { pruneGone(); return { users: db.users, gone: db.gone }; }
   }) : {})

@@ -1,0 +1,493 @@
+{
+  "_doc": "GET /api/sync/reminder-context (M3.5). Each case is one profile's stored state document (`state`), the Coach record on disk (`coach`, optional, api/coach/<uid>.json), the `date` asked for and the exact 200 body (`expected`). A case with `now` (ISO) pins the server clock for the 12 h live window and the proposal expiry; the og-api route test replays only the cases without `now`, the unit test replays all of them. The gains-be contract suite replays this file against its ConditionSource adapter: `state` is og-api's private input and only `date` and `expected` are the wire contract.",
+  "cases": [
+    {
+      "name": "planned today, nothing logged: nudge streak 1, legacy reminder as stored, no live capability",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "pt-BR",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }, { "id": "pull", "name": "Pull A" }],
+        "week": { "1": "push", "3": "pull" },
+        "workouts": [{ "id": "w0", "d": "2026-09-04", "routineId": "push" }],
+        "reminder": { "on": true, "time": "17:30", "tz": "Europe/Lisbon", "nudge": true, "tone": "guilt" }
+      },
+      "expected": {
+        "lang": "pt-BR",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": { "routine_id": "push", "name": "Push A", "missed_streak": 1 },
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": { "on": true, "time": "17:30", "tz": "Europe/Lisbon", "nudge": true, "tone": "guilt" }
+      }
+    },
+    {
+      "name": "rest day: nothing planned, no nudge; no reminder block and no lang stored",
+      "date": "2026-09-08",
+      "state": {
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push" },
+        "workouts": []
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-08",
+        "planned": null,
+        "workout_logged": false,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "a day set to rest by hand is a rest day",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push" },
+        "dayPlan": { "2026-09-07": "rest" },
+        "workouts": []
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": null,
+        "workout_logged": false,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "a finished workout dated that day: logged, planned stays, no nudge",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push" },
+        "workouts": [{ "id": "w1", "d": "2026-09-07", "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "a workout on another date does not count",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push" },
+        "workouts": [{ "id": "w1", "d": "2026-09-06", "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": { "routine_id": "push", "name": "Push A", "missed_streak": 1 },
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "an excused day (a sick note): planned stays, excused, no nudge",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push" },
+        "dayNotes": { "2026-09-07": { "tag": "sick" } },
+        "workouts": []
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": true,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "queue: the next open session beats the weekday plan",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }, { "id": "pull", "name": "Pull A" }, { "id": "legs", "name": "Legs", "emoji": "" }],
+        "week": { "1": "push" },
+        "queue": { "ids": ["pull", "legs"], "since": 1788000000000, "startsOn": "2026-09-07" },
+        "workouts": [{ "id": "w0", "d": "2026-09-05", "start": 1000, "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "pull", "name": "Pull A", "emoji": null },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": { "routine_id": "pull", "name": "Pull A", "missed_streak": 1 },
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "rotation: once a session is done the next one is planned, and the day after a workout is no missed day",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }, { "id": "pull", "name": "Pull A" }, { "id": "legs", "name": "Legs" }],
+        "week": {},
+        "queue": { "ids": ["pull", "legs"], "since": 1788000000000, "startsOn": "2026-09-05", "rotationId": "rot1" },
+        "workouts": [{ "id": "w1", "d": "2026-09-06", "start": 1788200000000, "routineId": "pull" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "legs", "name": "Legs", "emoji": null },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "nudge with 0 earlier misses: streak 1",
+      "date": "2026-09-07",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push", "3": "push", "5": "push" },
+        "workouts": [{ "id": "w0", "d": "2026-09-04", "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-07",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": { "routine_id": "push", "name": "Push A", "missed_streak": 1 },
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "nudge with 1 earlier miss: streak 2",
+      "date": "2026-09-09",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push", "3": "push", "5": "push" },
+        "workouts": [{ "id": "w0", "d": "2026-09-04", "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-09",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": { "routine_id": "push", "name": "Push A", "missed_streak": 2 },
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "nudge with 2 earlier misses: streak 3, the last one that is sent",
+      "date": "2026-09-11",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push", "3": "push", "5": "push" },
+        "workouts": [{ "id": "w0", "d": "2026-09-04", "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-11",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": { "routine_id": "push", "name": "Push A", "missed_streak": 3 },
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "nudge after 3 earlier misses: backed off, null; planned is unchanged",
+      "date": "2026-09-14",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "1": "push", "3": "push", "5": "push" },
+        "workouts": [{ "id": "w0", "d": "2026-09-04", "routineId": "push" }]
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-09-14",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": false,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "live workout: fresh, with a first set",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "workoutLive": { "workoutId": "w_123", "startedAt": 1792339331000, "lastSetAt": 1792341600000 }
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": true },
+        "live": { "workout_id": "w_123", "started_at": "2026-10-18T16:02:11Z", "last_set_at": "2026-10-18T16:40:00Z" },
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "live workout: started, no set yet: last_set_at null",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "workoutLive": { "workoutId": "w_123", "startedAt": 1792339331000, "lastSetAt": null }
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": true },
+        "live": { "workout_id": "w_123", "started_at": "2026-10-18T16:02:11Z", "last_set_at": null },
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "live workout: no activity for over 12 h is stale: live null, capability stays on",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "workoutLive": { "workoutId": "w_old", "startedAt": 1792296000000, "lastSetAt": null }
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": true },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "live workout: started over 12 h ago but a set 20 min ago is not stale",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "workoutLive": { "workoutId": "w_long", "startedAt": 1792296000000, "lastSetAt": 1792341600000 }
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": true },
+        "live": { "workout_id": "w_long", "started_at": "2026-10-18T04:00:00Z", "last_set_at": "2026-10-18T16:40:00Z" },
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "live workout: the client wrote null (finished or discarded): capability on, live null",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "workoutLive": null
+      },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": true },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "coach: a pending proposal with 2 changes and cadence on",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "coach": { "consent": { "agreedAt": 1790000000000 }, "cadence": { "weekly": { "day": 0, "time": "18:00" } } }
+      },
+      "coach": { "pending": { "id": "p_8f2a", "kind": "review", "createdAt": 1792314003000, "expiresAt": 1792918803000, "changes": [{ "type": "a" }, { "type": "b" }] }, "history": [] },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": { "pending_id": "p_8f2a", "changes": 2, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z", "cadence_on": true },
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "coach: a pending proposal with no changes is still reported, changes 0; cadence off",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "coach": { "consent": { "agreedAt": 1790000000000 }, "cadence": "off" }
+      },
+      "coach": { "pending": { "id": "p_8f2a", "kind": "review", "createdAt": 1792314003000, "expiresAt": 1792918803000, "changes": [] }, "history": [] },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": { "pending_id": "p_8f2a", "changes": 0, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z", "cadence_on": false },
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "coach: cadence stored but consent revoked is not on",
+      "date": "2026-10-18",
+      "now": "2026-10-18T17:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": { "0": "push" },
+        "workouts": [{ "id": "w9", "d": "2026-10-18", "routineId": "push" }],
+        "coach": { "cadence": { "everyWorkouts": 3 } }
+      },
+      "coach": { "pending": { "id": "p_8f2a", "kind": "review", "createdAt": 1792314003000, "expiresAt": 1792918803000, "changes": [{}] }, "history": [] },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-18",
+        "planned": { "routine_id": "push", "name": "Push A", "emoji": "💪" },
+        "workout_logged": true,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": { "pending_id": "p_8f2a", "changes": 1, "created_at": "2026-10-18T09:00:03Z", "expires_at": "2026-10-25T09:00:03Z", "cadence_on": false },
+        "legacy_reminder": null
+      }
+    },
+    {
+      "name": "coach: an expired proposal is null",
+      "date": "2026-10-26",
+      "now": "2026-10-26T09:00:00Z",
+      "state": {
+        "lang": "en",
+        "routines": [{ "id": "push", "name": "Push A", "emoji": "💪" }],
+        "week": {},
+        "workouts": [],
+        "coach": { "consent": { "agreedAt": 1790000000000 }, "cadence": { "everyWorkouts": 3 } }
+      },
+      "coach": { "pending": { "id": "p_8f2a", "kind": "review", "createdAt": 1792314003000, "expiresAt": 1792918803000, "changes": [{}] }, "history": [] },
+      "expected": {
+        "lang": "en",
+        "date": "2026-10-26",
+        "planned": null,
+        "workout_logged": false,
+        "excused": false,
+        "nudge": null,
+        "capabilities": { "live": false },
+        "live": null,
+        "coach": null,
+        "legacy_reminder": null
+      }
+    }
+  ]
+}
