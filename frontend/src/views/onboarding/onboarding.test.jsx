@@ -137,6 +137,7 @@ describe('0 Invite', () => {
     expect(page.querySelector('[data-thread]')).toBeNull()
     await act(async () => { answer({ status: 'valid', inviterName: 'Andrei', suggestedName: null }) })
     expect(page.querySelector('h1').textContent).toBe('Andrei invited you to Gains')
+    expect(document.activeElement).toBe(page.querySelector('h1'))
     expect(page.querySelector('.ob-disc').textContent).toBe('A')
     expect(page.textContent).toContain('A small group')
     expect(page.textContent).toContain('Face ID or your fingerprint keeps you in')

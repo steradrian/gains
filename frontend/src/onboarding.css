@@ -34,7 +34,7 @@
 .ob-body{flex:1;padding-bottom:24px}
 .ob-hd{padding:18px 20px 0}
 .ob-screen.nonav .ob-hd{padding-top:28px}
-.ob-hd.far{padding-top:60px}
+.ob-screen.nonav .ob-hd.far{padding-top:60px}
 .ob-hd.lead{display:flex;flex-direction:column;gap:16px}
 .ob-ttl{margin:0;font:700 30px/34px var(--font-sans);letter-spacing:-.028em;color:var(--on-stage)}
 .ob-hd.hero .ob-ttl{font-size:32px;line-height:36px}
@@ -43,7 +43,7 @@
 .ob-hd.lead .ob-sub{margin:0}
 /* Rule (b): on the goal-to-weight run the header holds 2 title + 2 subtitle lines, so every floor
    lands on the same y and the thread holds still while the art above it swaps. */
-.ob-hd.fixed{min-height:calc(2 * 34px + 8px + 2 * 22px)}
+.ob-hd.fixed{min-height:calc(18px + 2 * 34px + 8px + 2 * 22px)}
 /* The illustration slot: the scene stands on its bottom edge (138, the invite's 170, 18 above). */
 .ob-stage{box-sizing:content-box;min-height:138px;padding-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
 .ob-stage.hero{min-height:170px}
@@ -69,12 +69,12 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 
 /* ---- the invite: the inviter's initial, the notice where there is no scene, the placeholders ---- */
 .ob-disc{width:60px;height:60px;flex:none;border-radius:50%;display:grid;place-items:center;font:700 24px/1 var(--font-sans);color:var(--on-stage)}
-.ob-notice{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 16px 6px;color:var(--on-stage)}
+.ob-notice{display:flex;flex-direction:column;align-items:center;text-align:center;padding:34px 16px 6px;color:var(--on-stage)}
 .ob-notice-ic{width:76px;height:76px;border-radius:50%;display:grid;place-items:center}
 .ob-notice-ic .g-icon{width:34px;height:34px;stroke-width:1.9}
 .ob-notice h2{margin:16px 0 6px;font:700 22px/28px var(--font-sans);letter-spacing:-.02em}
 .ob-notice p{margin:0;font:500 16px/22px var(--font-sans);color:var(--on-stage-2)}
-.ob-hd.far + .ob-controls{padding:26px 16px 0}
+.ob-hd.far + .ob-controls{padding-top:26px}
 .ob-skel{display:flex;flex-direction:column;gap:16px;padding:42px 20px 0}
 .ob-skel i,.ob-skel-card i{display:block;background:var(--glass-track);animation:ob-pulse 1.4s ease-in-out infinite}
 .ob-skel i:nth-child(1){width:60px;height:60px;border-radius:50%}

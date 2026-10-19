@@ -72,8 +72,9 @@ export default function InviteScreen() {
     </StepScreen>
   }
   // No scene while the check is out: the answer brings the inviter's initial and a subtitle, which
-  // move the scene down, and the thread is born on the floor where it will stay.
-  if (check.kind === 'loading') return <StepScreen skeleton titleId="ob-inv-t" title={t('Opening your invite')} />
+  // move the scene down, and the thread is born on the floor where it will stay. Its own key, so
+  // the answer's screen arrives as a new one and its title takes the focus.
+  if (check.kind === 'loading') return <StepScreen key="checking" skeleton titleId="ob-inv-t" title={t('Opening your invite')} />
   if (check.kind === 'unavailable') {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false
     const retry = <Button onClick={() => { setCheck({ kind: 'loading' }); setTries(n => n + 1) }}>{t('Try again')}</Button>
