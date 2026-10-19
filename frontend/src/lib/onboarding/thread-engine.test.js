@@ -101,6 +101,35 @@ describe('a transition interrupted mid-flight', () => {
   })
 })
 
+describe('the new screen\'s content the line sweeps across', () => {
+  it('is held until the thread lands, but never what holds the anchor itself', () => {
+    const { engine } = setup()
+    engine.register(anchor(16, 304, 100))()
+    const b = anchor(16, 304, 300)
+    const box = { left: 0, right: 390, top: 150, bottom: 320, height: 170 }
+    const crossed = { getBoundingClientRect: () => box, contains: () => false, animate: vi.fn() }
+    const holder = { getBoundingClientRect: () => box, contains: el => el === b, animate: vi.fn() }
+    b.closest = () => ({ querySelectorAll: () => [crossed, holder] })
+    engine.register(b)
+    expect(crossed.animate).toHaveBeenCalledTimes(1)
+    expect(holder.animate).not.toHaveBeenCalled()
+  })
+})
+
+describe('a screen reached scrolled (the starter\'s Use this plan, then the Summary)', () => {
+  it('flies to where the anchor is on the first frame, once the app has scrolled the new screen to the top, in one glide', () => {
+    const { engine, svg, path } = setup()
+    engine.register(anchor(16, 304, 100))()
+    const b = anchor(16, 304, 230)
+    engine.register(b)
+    // App.jsx scrolls the new route to the top in its own layout effect, after b registered.
+    b.y = 304
+    runTo(340)
+    expect(svg.style.visibility).toBe('hidden')
+    expect(path.d).toBe(dOf(lineP(16, 304, 304, 304)))
+  })
+})
+
 describe('landing where the line is painted (scripts/thread-handoff-check.mjs)', () => {
   it('sets the layer at the sub-pixel offset of the anchor\'s own svg, and draws the path back by it', () => {
     const { engine, svg, path } = setup()
