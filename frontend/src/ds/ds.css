@@ -41,7 +41,7 @@
 .g-iconbtn-glass:active > span { background: var(--glass); }
 
 /* Illustration (line art) */
-.g-ill { --il-w: 2.5; --il-w-d: 1.5; width: min(100%, var(--g-ill-w, 320px)); margin: 0 auto; }
+.g-ill { position: relative; --il-w: 2.5; --il-w-d: 1.5; width: min(100%, var(--g-ill-w, 320px)); margin: 0 auto; }
 .g-ill svg { display: block; width: 100%; height: auto; overflow: visible; }
 .g-ill .il, .g-ill .il-acc, .g-ill .il-mute, .g-ill .il-floor { fill: none; stroke-width: var(--il-w); stroke-linecap: round; stroke-linejoin: round; }
 .g-ill .il { stroke: var(--text-2); }
@@ -139,6 +139,19 @@
 .g-ccard-mark { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--glass-line); }
 .g-ccard.on .g-ccard-mark { background: var(--accent-fill); color: var(--on-accent); box-shadow: none; }
 .g-ccard-mark .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+
+/* StageDayCount: number keys four to a row, the chosen one white */
+.g-daycount { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.g-daycount-k { appearance: none; border: 0; height: 56px; border-radius: 18px; display: grid; place-items: center; color: var(--on-stage); font: 700 22px/1 var(--font-sans); font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 220ms; }
+.g-daycount-k:active { transform: scale(.95); }
+.g-daycount-k.on { background: var(--on-stage); color: var(--accent-text); }
+
+/* StageWeekStrip: seven days, the lit ones a white disc with a dumbbell, 40ms apart */
+.g-week { display: flex; justify-content: space-between; padding: 14px; border-radius: 22px; }
+.g-week-d { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); }
+.g-week-disc { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px var(--glass-line); color: var(--accent-stage-end); transition: background-color 220ms cubic-bezier(.32,.72,0,1) calc(var(--k, 0) * 40ms), box-shadow 220ms; }
+.g-week-disc.on { background: var(--on-stage); box-shadow: none; }
+.g-week-disc .g-icon { width: 16px; height: 16px; stroke-width: 2.2; }
 
 /* CodeCells */
 .g-code { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: min(100%, 328px); margin-inline: auto; cursor: text; }

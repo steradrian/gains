@@ -65,9 +65,22 @@ function answer(signedIn) {
   }
 }
 
-// Every animation but the thread's (rAF) to its end: CSS transitions, the screen's WAAPI entry, the art.
+// Every animation but the thread's (rAF) to its end: CSS transitions, the screen's WAAPI entry, the
+// art. Not the anchor's own: the Summary's line exists only inside its own animation (it shows
+// from the hand-off, then retracts into the ring and is gone), so at its end there is no line and
+// the frame after the thread would compare the thread with nothing. It is held at its start, the
+// frame the thread hands it over in. WAAPI runs on real time, not on this script's clock, so
+// leaving it to run would measure wherever the screenshots' own time had taken it.
 const settle = page => page.evaluate(() => {
-  for (const a of document.getAnimations()) { try { a.finish() } catch { /* an infinite one: left running */ } }
+  const anchors = [...document.querySelectorAll('[data-thread]')].flatMap(el => [el, el.ownerSVGElement])
+  for (const a of document.getAnimations()) {
+    if (anchors.includes(a.effect?.target)) {
+      a.pause()
+      a.currentTime = 0
+      continue
+    }
+    try { a.finish() } catch { /* an infinite one: left running */ }
+  }
 })
 const threadVisible = page => page.evaluate(() => {
   const svg = document.querySelector('.ob-thread')
@@ -142,7 +155,7 @@ const SIGNED_OUT = [
 const SIGNED_IN = [
   ['passkey to goal: check to line', async () => {}],
   ['goal to sex: the floors coincide, the line holds', p => p.getByRole('radio', { name: /^Keep my weight/ }).click()],
-  ['sex to born: the floors coincide', p => p.getByRole('radio', { name: /^Female/ }).click()],
+  ['sex to born: up to the pickers\' floor',p => p.getByRole('radio', { name: /^Female/ }).click()],
   ['born to height', async p => { await p.getByRole('slider').press('ArrowDown'); await click(p, 'button', 'Next')() }],
   ['height to weight', async p => { await p.getByRole('slider').press('ArrowRight'); await click(p, 'button', 'Next')() }],
   ['weight to training', async p => { await p.getByRole('slider').press('ArrowRight'); await click(p, 'button', 'Next')() }],

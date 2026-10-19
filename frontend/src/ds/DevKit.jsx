@@ -10,8 +10,10 @@ import Logo from './Logo.jsx'
 import OnboardingNav from './OnboardingNav.jsx'
 import StageAlert from './StageAlert.jsx'
 import StageChoiceCard from './StageChoiceCard.jsx'
+import StageDayCount from './StageDayCount.jsx'
 import StageFooter from './StageFooter.jsx'
 import StageScreen, { ACCENTS } from './StageScreen.jsx'
+import StageWeekStrip from './StageWeekStrip.jsx'
 import SuccessCheck from './SuccessCheck.jsx'
 import TextField from './TextField.jsx'
 import { SCENE_NAMES } from './illustration-scenes.js'
@@ -26,6 +28,7 @@ const GOALS = [
   { icon: 'dumbbell', title: 'Build muscle', sub: 'A small surplus and progressive training' },
   { icon: 'target', title: 'Stay where I am', sub: 'Maintenance calories' },
 ]
+const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function DevKit() {
   const [accent, setAccent] = useState('cobalt')
@@ -35,6 +38,7 @@ export default function DevKit() {
   const [invalid, setInvalid] = useState(false)
   const [replay, setReplay] = useState(0)
   const [alerts, setAlerts] = useState(1)
+  const [days, setDays] = useState(4)
 
   return (
     <StageScreen accent={accent}>
@@ -76,6 +80,14 @@ export default function DevKit() {
             <StageChoiceCard slim title="Male" />
             <StageChoiceCard slim title="Rather not say" href={SELF} />
           </div>
+          <div className="g-kit-col" role="radiogroup" aria-label="Goal, as radios">
+            {GOALS.map((g, i) => <StageChoiceCard key={g.title} radio {...g} selected={goal === i} tabIndex={goal === i ? 0 : -1} onClick={() => setGoal(i)} />)}
+          </div>
+        </Section>
+
+        <Section title="StageDayCount and StageWeekStrip" note="0 to 6 keys (pick one: the week lights those days); 0 lights none.">
+          <StageDayCount values={[0, 1, 2, 3, 4, 5, 6]} value={days} onPick={n => setDays(n)} labelOf={n => (n === 0 ? '0, just tracking food' : undefined)} />
+          <StageWeekStrip days={WEEK.map((label, i) => ({ key: label, label, lit: i < days }))} />
         </Section>
 
         <Section title="TextField" note="tone stage, with a unit and a hint.">

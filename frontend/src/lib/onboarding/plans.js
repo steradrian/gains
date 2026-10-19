@@ -20,6 +20,15 @@ export function suggestedDays(days) {
 export const WEEK = [1, 2, 3, 4, 5, 6, 0]
 
 /**
+ * A session's mark on its day (board O2.10): the first letter of each word of its name, "Upper A"
+ * is UA, at most three; the session's letter in the plan (`i`, A for the first) without a name.
+ */
+export function sessionMark(name, i) {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean)
+  return words.length ? words.slice(0, 3).map(w => w[0].toLocaleUpperCase()).join('') : 'ABCDEF'[i] || ''
+}
+
+/**
  * The plan's sessions for `days` and an equipment choice: [{ name, exercises: [{ id, name, sets, reps }] }],
  * one per training day, in order. Exercise names are the catalogue's (English); the caller shows
  * them through the exercise-name packs.
@@ -33,6 +42,18 @@ export function starterSessions(days, equipment = 'gym') {
     name: r.name,
     exercises: r.ex.map(e => ({ id: e.id, ex: EXIDX[e.id] || null, sets: e.sets, reps: e.reps })),
   }))
+}
+
+/**
+ * A starter plan's next session from weekday `today` (DAYN): { day, ahead, session }, `ahead` the
+ * days until it (0 today). Null where the plan has no session.
+ */
+export function nextSession(plan, days, today) {
+  const sessions = starterSessions(days, plan.equipment)
+  const ahead = d => (d - today + 7) % 7
+  const i = plan.weekdays.reduce((best, d, k) => (ahead(d) < ahead(plan.weekdays[best]) ? k : best), 0)
+  const session = sessions[i]
+  return session ? { day: plan.weekdays[i], ahead: ahead(plan.weekdays[i]), session } : null
 }
 
 /**

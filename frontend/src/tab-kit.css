@@ -203,15 +203,6 @@
 /* The split is a real element, 1×64 (the onboarding Summary's thread lands on it by name). */
 .hero-hair{position:absolute;left:50%;top:50%;width:var(--hair);height:64px;margin:-32px 0 0 calc(var(--hair) / -2);background:var(--sep)}
 .hero-mi{display:flex;flex-direction:column;align-items:center;gap:2px;padding-inline:var(--space-4)}
-/* variant="target" (the onboarding Summary): the value inside the thread ring, the unit under it.
-   The ring's slot spans the hero, so the line the thread lands on can run out of the ring to its
-   edge; the hero starts at the top of its section and its captions sit on one centred row. */
-.hero-target{padding-top:0}
-.hero-ring{position:relative;display:grid;place-items:center;width:100%;height:168px;margin-block:var(--space-2)}
-.hero-target .hero-c{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 var(--space-2)}
-.hero-ring>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.hero-ring>.hero-v{position:relative}
-.hero-target>.hero-u{margin-top:calc(-1 * var(--space-1))}
 .hero-mi .hero-num{font-size:min(var(--fs-display),12vw)}
 .hero-ml{font-size:var(--fs-callout);color:var(--label)}
 .hero-ms{font-size:var(--fs-subhead);color:var(--label-2)}

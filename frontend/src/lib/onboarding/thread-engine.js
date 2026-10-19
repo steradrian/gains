@@ -6,10 +6,13 @@
 //
 // The old screen is gone by the time the new one mounts (the router swaps them), so the start is
 // `last`: the old anchor measured as it unregistered, still in place.
-import { birthPlan, checkP, dOf, evalAt, lineP, planBetween } from './thread-geometry.js'
+import { birthPlan, checkP, dOf, evalAt, lineP, planBetween, withFlight } from './thread-geometry.js'
+
+// The path by form, flown white and landed in the anchor's own look.
+const planTo = (from, dest) => withFlight(planBetween(from, dest), dest, dest.f)
 
 // New-screen content the line sweeps across mid-glide: held at 0 until it lands, then 160ms in.
-const HOLD = '.ob-hd > *, .ob-cap, .ob-controls > *, .ob-pk-read, .ob-ruler, .ob-wheel, .ob-field, .ob-pl-hint, .ob-pl-sess, .ob-pl-fit, .ob-pass-t, .ob-pass-s'
+const HOLD = '.ob-hd > *, .ob-cap, .ob-controls > *, .ob-pk-read, .ob-ruler, .ob-wheel, .ob-pl-sess, .ob-pl-fit, .ob-pass-t, .ob-pass-s'
 // The art starts this long before the thread lands, so it visibly grows from the line.
 const LEAD_MS = 120
 // When a screen has landed: OnboardingLayout brings it in over 320ms after a 60ms delay.
@@ -41,6 +44,11 @@ export function measureAnchor(el) {
   const cs = getComputedStyle(el)
   const form = el.getAttribute('data-thread')
   const shape = { form, w: (parseFloat(cs.strokeWidth) || 1.5) * scale, c: cs.stroke, o: 1 }
+  // How the thread flies to it: white at the scene's structure weight (the kit's --il-w, 2.5).
+  shape.f = {
+    w: (parseFloat(cs.getPropertyValue('--il-w')) || 2.5) * scale,
+    c: cs.getPropertyValue('--on-stage').trim() || shape.c,
+  }
   if (form === 'check') {
     // data-k: the scale the disc pops from, about the viewBox centre, where the check is when the thread lands.
     const n = String(el.getAttribute('data-pts')).split(' ').map(Number), k = Number(el.getAttribute('data-k') || 1)
@@ -121,6 +129,9 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
     const pad = Math.max(from.w, dest.w) / 2 + 4
     const l = Math.min(...xs) - pad, r = Math.max(...xs) + pad, t = Math.min(...ys) - pad, b = Math.max(...ys) + pad
     for (const x of screen.querySelectorAll(HOLD)) {
+      // Never what holds the anchor itself (the starter's tiles stand on it): held at 0, it would
+      // show the line only after the thread had already let go of it.
+      if (x.contains(el)) continue
       const q = x.getBoundingClientRect()
       if (!q.height || q.right < l || q.left > r || q.bottom < t || q.top > b) continue
       x.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: arrive, easing: 'linear', fill: 'backwards' })
@@ -128,7 +139,8 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
   }
   // `dest`: the anchor's shape as the plan was made for it; `hops`: how many times this landing
   // has been moved on already.
-  function start(base, plan, el, dest = null, hops = 0) {
+  // `replan(to)`: the plan again for the anchor where it is on the run's first frame (see frame).
+  function start(base, plan, el, dest = null, hops = 0, replan = null) {
     const { svg } = layer()
     if (!svg) return
     if (fade) { fade.cancel(); fade = null }
@@ -155,7 +167,20 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
     }
     const frame = now => {
       if (r.dead) return
-      if (t0 === null) t0 = now
+      if (t0 === null) {
+        t0 = now
+        // The anchor again, once every layout effect of the commit has run: the app scrolls a new
+        // route to the top in its own (App.jsx), after this screen registered, so an anchor
+        // measured on a screen reached scrolled (the starter's Use this plan) is not where it
+        // rests. Flown to as it was measured, the thread would land short and glide a second
+        // time, past the moment the Summary's line turns into the ring.
+        const at = replan && dest && el.isConnected ? measureAnchor(el) : null
+        if (at && moved(dest, at)) {
+          plan = replan(at)
+          dest = at
+          last = at
+        }
+      }
       const t = now - t0
       if (t >= plan.total) {
         // Landed: the anchor is measured again. One that moved while the thread flew (the screen's
@@ -167,7 +192,7 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
         if (at && moved(dest, at)) {
           r.cancel()
           last = at
-          start(live, planBetween(live, at), el, at, hops + 1)
+          start(live, planTo(live, at), el, at, hops + 1)
           return
         }
         // The end shape itself for one frame, then the swap: the last frame painted before the
@@ -215,22 +240,22 @@ export function createThreadEngine({ layer, blocked, clip, onCount = () => {} })
     } else if (!from) {
       if (birth && !born) {
         born = true
-        const plan = birthPlan(dest)
+        const plan = birthPlan(dest, dest.f)
         claim(el)
         start(plan.base, plan, el, dest)
       }
     } else {
-      const plan = planBetween(from, dest)
+      const plan = planTo(from, dest)
       claim(el)
       if (plan.arrive) {
         el.ownerSVGElement?.style.setProperty('--lead', Math.max(0, plan.arrive - LEAD_MS) + 'ms')
         holdCrossed(from, dest, el, plan.arrive)
-        start(from, plan, el, dest)
+        start(from, plan, el, dest, 0, to => planTo(from, to))
       } else {
         // The floors coincide (the goal-to-weight run): the thread holds the line still, painted
         // where it was, while the new screen fades and slides in under it, and hands it over once
         // the screen has landed.
-        start(from, { segs: [], total: LAND_MS, arrive: 0 }, el, dest)
+        start(from, { segs: [], total: LAND_MS, arrive: 0 }, el, dest, 0, to => planTo(from, to))
       }
     }
     if (dest) last = dest

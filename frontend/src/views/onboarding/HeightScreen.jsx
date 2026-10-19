@@ -11,8 +11,8 @@ import { useSettledCaption } from '../../lib/onboarding/use-settled-caption.js'
 import { targetSentence, useTarget } from '../../lib/onboarding/use-target.js'
 import { useUI } from '../../store/useUI.js'
 
-// 3c You · height (§3b): a ruler in cm or feet and inches (from the locale; the chip switches), the
-// door frame's mark following it. Saved in cm.
+// 3c You · height (§3b; board O2.6): a ruler in cm or feet and inches (from the locale; the chip
+// switches), the door frame's mark following it, the live target under it. Saved in cm.
 export default function HeightScreen() {
   const { state, act } = useOnboarding()
   const cm = state.answers.body.heightCm
@@ -26,13 +26,14 @@ export default function HeightScreen() {
   const unitName = unit === 'cm' ? t('centimetres') : t('feet and inches')
   const otherName = unit === 'cm' ? t('feet and inches') : t('centimetres')
   const shown = value ?? scale.start
-  const caption = useSettledCaption(settled && !live && cm != null, `${t('Height {0}.', scale.say(shown))} ${targetSentence(target)}`)
+  const say = useSettledCaption(settled && !live && cm != null, `${t('Height {0}.', scale.say(shown))} ${targetSentence(target)}`)
   return (
-    <StepScreen fixedHeader titleId="ob-height-t" title={t('How tall are you?')} sub={t('Drag the ruler, or tap the number to type it.')}
-      stage={<DoorScene cm={cm} live={live} after={<TargetRing target={target} />} />}
-      caption={caption}
+    <StepScreen fixedHeader titleId="ob-height-t" title={t('How tall are you?')} sub={t('Height and weight set your energy at rest.')}
+      stage={<DoorScene cm={cm} live={live} />} stageSize="sm"
+      below={<TargetRing target={target} say={say} />}
       footer={<NextButton screen="height" ready={cm != null} />}>
-      <RulerPicker scale={scale} value={value} label={t('Height')} onBad={msg => useUI.getState().toast(msg)}
+      <RulerPicker scale={scale} value={value} label={t('Height')} hint={t('Drag the ruler, or tap the number to type it.')}
+        onBad={msg => useUI.getState().toast(msg)}
         onChange={(v, final) => {
           act({ type: 'body', field: 'heightCm', value: heightFrom(v, unit) })
           setLive(!final)
