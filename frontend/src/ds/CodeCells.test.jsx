@@ -28,10 +28,19 @@ describe('CodeCells', () => {
   it('keeps no more than its length, a pasted longer code included', () => {
     const onChange = vi.fn()
     view.render(<Controlled length={4} onChange={onChange} />)
-    expect(input().maxLength).toBe(4)
     type(input(), 'abcdefgh')
     expect(onChange).toHaveBeenLastCalledWith('ABCD')
     expect(cells()).toEqual(['A', 'B', 'C', 'D'])
+  })
+
+  it('takes a code pasted with its dashes whole: the input never cuts it before they are dropped', () => {
+    const onChange = vi.fn()
+    view.render(<Controlled length={12} onChange={onChange} />)
+    expect(input().hasAttribute('maxlength')).toBe(false)
+    type(input(), 'k7wq-2mzp-4hxa')
+    expect(onChange).toHaveBeenLastCalledWith('K7WQ2MZP4HXA')
+    expect(cells()).toHaveLength(12)
+    expect(cells().join('')).toBe('K7WQ2MZP4HXA')
   })
 
   it('keeps its own value when nobody controls it', () => {
