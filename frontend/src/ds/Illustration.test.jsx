@@ -96,6 +96,17 @@ describe('Illustration', () => {
     expect(seen[0].getAttribute('d')).toBe(d)
   })
 
+  it('keeps its paths, and what was set on them, when the screen renders it again', () => {
+    const ref = { current: null }
+    view.render(<Illustration name="goal" draw="once" anchor="floor" anchorRef={ref} vars={{ '--r': '0deg' }} />)
+    const floor = ref.current
+    floor.setAttribute('data-thread', 'line')
+    view.render(<Illustration name="goal" draw="once" anchor="floor" anchorRef={ref} vars={{ '--r': '6deg' }} />)
+    expect(floor.isConnected).toBe(true)
+    expect(ref.current).toBe(floor)
+    expect(art().querySelector('[data-thread]')).toBe(floor)
+  })
+
   it('takes the screen\'s moving parts: a class and custom properties, SVG parts over it, HTML on it', () => {
     view.render(
       <Illustration name="goal" className="tilted" vars={{ '--r': '6deg' }} width={260} overlay={<span className="ov">1990</span>}>

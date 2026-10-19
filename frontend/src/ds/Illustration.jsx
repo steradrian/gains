@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId, useLayoutEffect, useMemo, useRef } from 'react'
 import { useDrawIn } from '../lib/use-draw-in.js'
 import { reducedMotion } from '../lib/reduced-motion.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
@@ -46,6 +46,9 @@ export default function Illustration({ name, draw, replayKey, width, tone, class
   const mode = draw === 'once' ? once : draw === true ? (reducedMotion() ? 'rm-fade' : 'il-draw') : null
   const raw = scene.svg.replace(/__ID__/g, id)
   const html = mode === 'il-draw' ? prepDraw(raw) : raw
+  // One object per drawing: React sets innerHTML again whenever this prop is a new object, which
+  // would replace the anchor (and its thread state) on every render of the screen.
+  const inner = useMemo(() => ({ __html: html }), [html])
   const art = useRef(null)
   useLayoutEffect(() => {
     if (anchorRef) anchorRef.current = anchor ? art.current?.querySelector(ANCHORS[anchor]) ?? null : null
@@ -54,7 +57,7 @@ export default function Illustration({ name, draw, replayKey, width, tone, class
   return (
     <div key={replayKey} className={cx('g-ill', tone === 'stage' && 'g-ill-stage', MODE_CLASS[mode], className)} style={style}>
       <svg viewBox={scene.viewBox} aria-hidden="true" focusable="false">
-        <g ref={art} className="g-ill-art" dangerouslySetInnerHTML={{ __html: html }} />
+        <g ref={art} className="g-ill-art" dangerouslySetInnerHTML={inner} />
         {children}
       </svg>
       {overlay}
