@@ -15,6 +15,6 @@ const SEESAW = {
 
 export default function SeesawScene({ goal }) {
   const k = SEESAW[goal || 'none']
-  return <StageArt name="goal" width={300} className={cx('ob-goal', 'plank-' + k.plank, goal === 'build' && 'build')}
+  return <StageArt name="goal" width={300} className={cx('ob-ill-goal', 'plank-' + k.plank, goal === 'build' && 'build')}
     style={{ '--r': k.r + 'deg', '--m': k.m }} />
 }

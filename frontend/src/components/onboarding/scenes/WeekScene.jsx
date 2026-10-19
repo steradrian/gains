@@ -38,7 +38,7 @@ export default function WeekScene({ days, lit, experience }) {
     }
   }, [lit])
   return (
-    <StageArt name="week" width={280} className={cx('ob-week', days === 0 && 'none')}
+    <StageArt name="week" width={280} className={cx('ob-ill-week', days === 0 && 'none')}
       overlay={<span className={cx('ob-tw-cap', days === 0 && 'on')} aria-hidden="true">{t('Just tracking food')}</span>}>
       <g ref={tiles} className={cx('ob-fadeable', days === 0 && 'ob-dim')}>
         {DAYS.map(i => (

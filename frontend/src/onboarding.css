@@ -12,7 +12,7 @@
 .ob-nav{position:relative;z-index:20}
 .ob-nav.gone{height:14px}
 [dir="rtl"] .ob-nav .g-onav-back .g-icon{transform:scaleX(-1)}
-.ob-note{padding:8px 16px 0}
+.ob-hubnote{padding:8px 16px 0}
 
 /* ---- the thread: one overlay line, only between screens ---- */
 .ob-thread{position:fixed;inset:0;width:100%;height:100%;z-index:10;pointer-events:none;contain:strict;overflow:hidden;visibility:hidden}
@@ -45,16 +45,15 @@
    lands on the same y and the thread holds still while the art above it swaps. */
 .ob-hd.fixed{min-height:calc(18px + 2 * 34px + 8px + 2 * 22px)}
 /* The illustration slot: the scene stands on its bottom edge (138, the invite's 170, 18 above). */
-.ob-stage{box-sizing:content-box;min-height:138px;padding-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.ob-stage{box-sizing:content-box;min-height:138px;padding-top:18px;display:flex;flex-direction:column;justify-content:flex-end}
 .ob-stage.hero{min-height:170px}
 .ob-stage.dim{opacity:.55}
-.ob-stage > *{width:100%}
 .ob-cap{margin:0;padding:10px 24px 0;min-height:20px;text-align:center;font:500 14px/20px var(--font-sans);color:var(--on-stage-2);transition:opacity var(--fast)}
 .ob-cap.fade{opacity:0}
 .ob-controls{padding:18px 16px 0}
 /* The footer (the kit's StageFooter) floats over what scrolls under it and never eats a tap meant
    for it. */
-.ob-foot{position:sticky;bottom:0;z-index:5;pointer-events:none}
+.ob-foot{position:sticky;bottom:0;z-index:5;pointer-events:none;display:block;margin:0;padding:0;background:none}
 .ob-foot .g-sfoot > *{pointer-events:auto}
 .ob-foot .g-sfoot{padding-bottom:calc(30px + var(--sab, 0px))}
 .ob-foot .g-sfoot > p{display:flex;gap:8px;align-items:flex-start}
@@ -203,47 +202,47 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-fadeable{transition:opacity var(--med) var(--ease)}
 .ob-dim{opacity:.4}
 /* 2 Goal: the seesaw tips and the mound grows with the goal; the plank and the outer plates say it. */
-.ob-goal .ss-g{transform-box:view-box;transform-origin:160px 104px;transform:rotate(var(--r,0deg));transition:transform 520ms var(--ease-io)}
-.ob-goal .ss-mound{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--m,0));transition:transform 520ms var(--ease-io)}
-.ob-goal .ss-xp,.ob-goal .ss-pm,.ob-goal .ss-pd,.ob-goal .ss-pa{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
-.ob-goal:not(.plank-mute) .ss-pm,.ob-goal:not(.plank-dash) .ss-pd,.ob-goal:not(.plank-acc) .ss-pa{stroke-opacity:0}
-.ob-goal:not(.build) .ss-xp{stroke-opacity:0;fill-opacity:0}
+.ob-ill-goal .ss-g{transform-box:view-box;transform-origin:160px 104px;transform:rotate(var(--r,0deg));transition:transform 520ms var(--ease-io)}
+.ob-ill-goal .ss-mound{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--m,0));transition:transform 520ms var(--ease-io)}
+.ob-ill-goal .ss-xp,.ob-ill-goal .ss-pm,.ob-ill-goal .ss-pd,.ob-ill-goal .ss-pa{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-ill-goal:not(.plank-mute) .ss-pm,.ob-ill-goal:not(.plank-dash) .ss-pd,.ob-ill-goal:not(.plank-acc) .ss-pa{stroke-opacity:0}
+.ob-ill-goal:not(.build) .ss-xp{stroke-opacity:0;fill-opacity:0}
 /* 3b Born: the band lights with a year; the year on the page, over the days, the old page tearing off. */
-.ob-born .cband{transition:fill-opacity var(--med) var(--ease)}
-.ob-born:not(.set) .cband{fill-opacity:0}
+.ob-ill-born .cband{transition:fill-opacity var(--med) var(--ease)}
+.ob-ill-born:not(.set) .cband{fill-opacity:0}
 .ob-cal-yr{position:absolute;left:37.5%;top:41.7%;width:25%;height:47.2%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:0 0 7px 7px;background:var(--accent-stage)}
 .ob-cal-v,.ob-cal-pg{font:600 22px/1 var(--font-sans);letter-spacing:-.02em;color:var(--on-stage);font-variant-numeric:tabular-nums}
 .ob-cal-pg{position:absolute;inset:0 2px 2px;display:flex;align-items:center;justify-content:center;background:var(--accent-stage);transform-origin:50% 0;animation:ob-tear 220ms var(--ease) forwards}
 @keyframes ob-tear{to{transform:translateY(-6px) rotate(-4deg);opacity:0}}
 /* 3c Height: the mark moves to the height, the lit column scales with it. */
-.ob-height .hmark,.ob-height .hcol{transition:transform var(--ob-slow) var(--ease-io),stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
-.ob-height .hmark{transform:translateY(var(--y,0px))}
-.ob-height .hcol{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--s,1))}
-.ob-height:not(.set) .hmark{stroke-opacity:0}
-.ob-height:not(.set) .hcol{fill-opacity:0}
+.ob-ill-height .hmark,.ob-ill-height .hcol{transition:transform var(--ob-slow) var(--ease-io),stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-ill-height .hmark{transform:translateY(var(--y,0px))}
+.ob-ill-height .hcol{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(var(--s,1))}
+.ob-ill-height:not(.set) .hmark{stroke-opacity:0}
+.ob-ill-height:not(.set) .hcol{fill-opacity:0}
 /* 3d Weight: the tape slides under the needle; the window lights and the needle shows with a weight. */
-.ob-weight .stape,.ob-sl-strip{transition:transform var(--ob-slow) var(--ease-io),opacity var(--med) var(--ease)}
-.ob-weight .stape{transform:translateX(var(--x,0px))}
-.ob-weight .swin,.ob-weight .sneedle{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
-.ob-weight:not(.set) .swin{fill-opacity:0}
-.ob-weight:not(.set) .sneedle{stroke-opacity:0}
+.ob-ill-weight .stape,.ob-sl-strip{transition:transform var(--ob-slow) var(--ease-io),opacity var(--med) var(--ease)}
+.ob-ill-weight .stape{transform:translateX(var(--x,0px))}
+.ob-ill-weight .swin,.ob-ill-weight .sneedle{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-ill-weight:not(.set) .swin{fill-opacity:0}
+.ob-ill-weight:not(.set) .sneedle{stroke-opacity:0}
 .ob-sl-box{position:absolute;left:40%;top:49.3%;width:20%;height:10.4%;overflow:hidden}
 .ob-sl-strip{position:absolute;left:0;top:0;height:100%;width:1562.5%;transform:translateX(calc(var(--x,0) * 1%))}
 .ob-sl-strip span{position:absolute;top:0;left:calc(var(--at) * 1%);transform:translateX(-50%);font:500 12px/1.2 var(--font-sans);color:var(--on-stage-2)}
-.ob-height.live .hmark,.ob-height.live .hcol,.ob-weight.live .stape,.ob-weight.live .ob-sl-strip{transition-duration:120ms,220ms}
+.ob-ill-height.live .hmark,.ob-ill-height.live .hcol,.ob-ill-weight.live .stape,.ob-ill-weight.live .ob-sl-strip{transition-duration:120ms,220ms}
 /* 4 Training: the suggested days light (drawn over the kit's tiles, its own three hidden); 0 days dims. */
-.ob-week .g-ill-art .il-lit,.ob-week .g-ill-art .il-acc{display:none}
-.ob-week .g-ill-art .il-mute{transition:stroke-opacity var(--med) var(--ease)}
-.ob-week.none .g-ill-art .il-mute{stroke-opacity:.4}
+.ob-ill-week .g-ill-art .il-lit,.ob-ill-week .g-ill-art .il-acc{display:none}
+.ob-ill-week .g-ill-art .il-mute{transition:stroke-opacity var(--med) var(--ease)}
+.ob-ill-week.none .g-ill-art .il-mute{stroke-opacity:.4}
 .ob-tw-cap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:500 15px/20px var(--font-sans);color:var(--on-stage);white-space:nowrap;opacity:0;transition:opacity var(--med) var(--ease)}
 .ob-tw-cap.on{opacity:1}
 /* 5 Plan: the dashed card with nothing chosen or no plan, the solid one with a plan, the coach's
    dots, the + for no plan; the rows retract when a plan goes. */
-.ob-plan .pc-d,.ob-plan .pc-s,.ob-plan .pdot,.ob-plan .pplus{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
-.ob-plan.full .pc-d{stroke-opacity:0}
-.ob-plan:not(.full) .pc-s{stroke-opacity:0;fill-opacity:0}
-.ob-plan:not(.is-coach) .pdot{fill-opacity:0}
-.ob-plan:not(.is-none) .pplus{stroke-opacity:0}
+.ob-ill-plan .pc-d,.ob-ill-plan .pc-s,.ob-ill-plan .pdot,.ob-ill-plan .pplus{transition:stroke-opacity var(--med) var(--ease),fill-opacity var(--med) var(--ease)}
+.ob-ill-plan.full .pc-d{stroke-opacity:0}
+.ob-ill-plan:not(.full) .pc-s{stroke-opacity:0;fill-opacity:0}
+.ob-ill-plan:not(.is-coach) .pdot{fill-opacity:0}
+.ob-ill-plan:not(.is-none) .pplus{stroke-opacity:0}
 .ob-pr{transform-box:fill-box;transform-origin:0 50%;transition:transform 160ms var(--ease),opacity 160ms linear}
 .ob-pr.ob-off{transform:scaleX(0)}
 

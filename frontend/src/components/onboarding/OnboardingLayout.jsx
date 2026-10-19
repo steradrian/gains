@@ -77,7 +77,7 @@ export default function OnboardingLayout({ children }) {
               {/* Always in the tree, so the count is announced when it changes, politely. */}
               <span className="sr-only" aria-live="polite">{left ? tn('{0} step left', '{0} steps left', left) : ''}</span>
             </nav>
-            {offline && <div className="ob-note">
+            {offline && <div className="ob-hubnote">
               <InlineBanner stage title={hub === 'busy'
                 ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
                 : t('Check your connection and try again. Nothing you answered is lost.')}

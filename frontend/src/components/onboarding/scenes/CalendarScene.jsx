@@ -17,7 +17,7 @@ export default function CalendarScene({ year, after }) {
     const timer = setTimeout(() => setPage(null), 220)
     return () => clearTimeout(timer)
   }, [year])
-  return <StageArt name="birthday" width={260} className={cx('ob-born', year != null && 'set')} after={after}
+  return <StageArt name="birthday" width={260} className={cx('ob-ill-born', year != null && 'set')} after={after}
     overlay={year != null && <div className="ob-cal-yr" aria-hidden="true">
       <span className="ob-cal-v">{year}</span>
       {page && <span key={page.id} className="ob-cal-pg">{page.year}</span>}

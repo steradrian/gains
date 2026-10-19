@@ -11,5 +11,5 @@ const COLUMN = 74
 export default function DoorScene({ cm, live, after }) {
   const set = cm != null
   const mark = set ? { '--y': (128 - 0.49 * cm - MARK_Y).toFixed(1) + 'px', '--s': (Math.min(108, 0.49 * cm) / COLUMN).toFixed(3) } : undefined
-  return <StageArt name="height" width={260} className={cx('ob-height', set && 'set', live && 'live')} style={mark} after={after} />
+  return <StageArt name="height" width={260} className={cx('ob-ill-height', set && 'set', live && 'live')} style={mark} after={after} />
 }

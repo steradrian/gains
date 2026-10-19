@@ -43,7 +43,7 @@ export default function PlanScene({ state, days }) {
     if (state === 'none') draw(svg.querySelector('.pplus'), 0, 320)
   }, [state])
   return (
-    <StageArt name="plan" width={280} className={cx('ob-plan', state && 'is-' + state, full(state) && 'full')}>
+    <StageArt name="plan" width={280} className={cx('ob-ill-plan', state && 'is-' + state, full(state) && 'full')}>
       <g ref={root}>
         <g className={cx('ob-pb ob-fadeable', state !== 'coach' && 'ob-off')}>
           <rect className="il-acc" x="88" y="6" width="144" height="110" rx="16" {...STROKE} />
