@@ -90,6 +90,35 @@ describe('the screens gallery', () => {
     })
   })
 
+  it('has the onboarding endings O2.10 to O2.16, with the starter\'s, the coach\'s and the Summary\'s drawers', () => {
+    const ids = screenAreas().find(a => a.name === 'Onboarding: the endings').entries.map(e => e.id)
+    expect(ids).toEqual(['O2.10', 'O2.10f', 'O2.11', 'O2.12', 'O2.12a', 'O2.12d', 'O2.13', 'O2.14', 'O2.15', 'O2.16'])
+  })
+
+  it('shows each onboarding ending it names', async () => {
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('O2.10', s => {
+      expect(s.text).toContain('Upper / lower')
+      expect(s.host.querySelectorAll('.ob-pill')).toHaveLength(4)
+    })
+    await check('O2.10f', s => expect(s.text).toContain('Exercises swap for what you have'))
+    await check('O2.11', s => expect(s.text).toContain('Tapping Build my plan sends them once.'))
+    await check('O2.12', s => {
+      expect(s.host.querySelector('.ob-sum-v').textContent).toBe('2,100')
+      expect(s.host.querySelectorAll('.g-week-disc.on')).toHaveLength(4)
+    })
+    await check('O2.12a', s => expect(s.text).toContain('Fixed keeps it where you set it.'))
+    await check('O2.12d', s => expect(s.text).toContain('Shop floor, classroom, lots of walking'))
+    await check('O2.13', s => expect(s.text).toContain('Your AI coach is on it'))
+    await check('O2.14', s => expect(s.text).toContain('Choose a plan any time in Train'))
+    await check('O2.15', s => expect(s.text).toContain('Add training any time in Settings'))
+    await check('O2.16', s => expect(s.text).toContain('Set your target'))
+  }, 15000)
+
   it('puts back what the onboarding kept for this tab, and whether the browser is online', async () => {
     sessionStorage.setItem('gains_onboarding', '{"uid":"someone"}')
     await show(screenById('O1.4'))
