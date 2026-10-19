@@ -73,6 +73,16 @@ describe('the worker keeps the on-demand code too', () => {
     expect(lazyAssets(bundle)).toEqual(['./assets/de-i.js', './assets/en-g.js', './assets/en-h.js', './assets/index-a.js', './assets/index-f.css', './assets/media-ingest-b.js'])
   })
 
+  it('the build lists the fonts the stylesheets name, as woff2 only', () => {
+    const bundle = {
+      'assets/index-a.css': { type: 'asset' },
+      'assets/figtree-latin-400-normal-b.woff2': { type: 'asset' },
+      'assets/figtree-latin-400-normal-c.woff': { type: 'asset' },
+      'assets/geist-mono-latin-500-normal-d.woff2': { type: 'asset' },
+    }
+    expect(lazyAssets(bundle)).toEqual(['./assets/figtree-latin-400-normal-b.woff2', './assets/geist-mono-latin-500-normal-d.woff2', './assets/index-a.css'])
+  })
+
   it('the build stamps the worker with both', () => {
     const vite = readFileSync(fileURLToPath(new URL('../../vite.config.js', import.meta.url)), 'utf8')
     expect(vite).toMatch(/generateBundle\(_, bundle\) \{ lazy = lazyAssets\(bundle\) \}/)
