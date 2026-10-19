@@ -3,20 +3,27 @@ import { useUI } from '../store/useUI.js'
 import { webauthnOK, passkeyLogin, passkeyRegister, passkeyError, bio } from '../lib/api.js'
 import { hasData } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
-import { BRAND } from '../brand.js'
-import BrandMark from '../components/BrandMark.jsx'
 import { DEMO, REPO } from '../lib/demo.js'
 import { guestAllowed } from '../lib/guest.js'
+import { copyText } from '../lib/clipboard.js'
 import { nav } from '../lib/nav.js'
+import { openInBrowserLabel } from '../lib/open-in-browser.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { useState, useRef, useEffect } from 'react'
-import { Button, Segmented } from '../components/ui.jsx'
+import { Button as AppButton, Segmented } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
 import { passwordOn, PasswordRegisterForm, openPasswordSignIn } from '../components/PasswordAuth.jsx'
-import { openDeviceLinkRedeem } from '../components/Passkeys.jsx'
-import { Spacer, Stack } from '../components/layout.jsx'
-import { Card } from '../components/blocks.jsx'
+import { Spacer } from '../components/layout.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
+import SigninTroubleSheet from '../components/SigninTroubleSheet.jsx'
+import Button from '../ds/Button.jsx'
+import Illustration from '../ds/Illustration.jsx'
+import Logo from '../ds/Logo.jsx'
+import StageAlert from '../ds/StageAlert.jsx'
+import StageFooter from '../ds/StageFooter.jsx'
+import StageScreen from '../ds/StageScreen.jsx'
+import { openAddDevice } from './AddDevice.jsx'
+import '../signin.css'
 
 function RegisterSheet({ close }) {
   const { setUser, pushState, pullState, loadConfig } = useStore()
@@ -73,69 +80,127 @@ function RegisterSheet({ close }) {
       <div className="dim small mt-3">{t('This app is invite-only. Enter the code you were given.')}</div>
     </>}
     <Spacer size={6} />
-    <Button variant="primary" onClick={go}>{t('Create passkey')}</Button>
+    <AppButton variant="primary" onClick={go}>{t('Create passkey')}</AppButton>
   </>
 }
 
+// A passkey prompt the person closed is their answer; the screen says the passkey was not confirmed.
+const dismissed = e => e?.name === 'NotAllowedError' || e?.name === 'AbortError'
+
+// The sign-in screen (S0.0–S0.3, S0.10) on the stage: where it stands is `at`, ready for a tap,
+// waiting on the passkey prompt (S0.1), or failed (S0.2) with `n` counting the failures so each
+// one is a new alert, which shakes and takes focus again. "Add this device" (S0.4–S0.6) is a route
+// of its own (views/AddDevice.jsx); the password drawers (S0.7–S0.9) are sheets (components/PasswordAuth.jsx).
 export default function Login() {
   const { setUser, adoptProfile, setGuest } = useStore()
   const config = useStore(s => s.config)
   const canGuest = guestAllowed(config)
   const pwOn = passwordOn(config)
+  const inviteOnly = !!config?.invite_only
+  const [at, setAt] = useState({ kind: 'ready' })
+  // Which attempt is current, so a prompt that was cancelled and answers later changes nothing.
+  const attempt = useRef(0)
+  const prompt = useRef(null)
+  const failures = useRef(0)
+  const failed = message => setAt({ kind: 'failed', n: ++failures.current, message })
   const register = () => useUI.getState().openSheet(close => <RegisterSheet close={close} />)
   const signIn = async () => {
-    try { const u = await passkeyLogin(); setUser(u, { adopt: true }); await adoptProfile(askAddDeviceData); useUI.getState().toast(t('Welcome back, {0}', u.name)) }
-    catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') useUI.getState().toast(passkeyError(e, t('Sign-in failed'))) }
+    if (at.kind === 'waiting') return
+    const id = ++attempt.current
+    const ctl = new AbortController()
+    prompt.current = ctl
+    setAt({ kind: 'waiting' })
+    let u
+    try { u = await passkeyLogin({ signal: ctl.signal }) }
+    catch (e) {
+      if (id !== attempt.current) return
+      failed(dismissed(e) ? t('Your passkey could not be confirmed.') : passkeyError(e, t('Sign-in failed')))
+      return
+    }
+    if (id !== attempt.current) return
+    setUser(u, { adopt: true })
+    try { await adoptProfile(askAddDeviceData); useUI.getState().toast(t('Welcome back, {0}', u.name)) }
+    catch (e) { useUI.getState().toast(passkeyError(e, t('Sign-in failed'))) }
   }
-  const head = <>
-    <div className="gate-logo"><BrandMark /></div>
-    <h1 className="gate-title fs-large fw-bold">{BRAND.name}</h1>
+  const cancel = () => {
+    attempt.current++
+    prompt.current?.abort()
+    failed(t('Your passkey could not be confirmed.'))
+  }
+  const trouble = () => useUI.getState().openSheet(close => (
+    <SigninTroubleSheet close={close} onCode={() => openAddDevice(close)}
+      onPassword={pwOn ? () => { close(); openPasswordSignIn(signIn) } : null} />
+  ))
+  const copyLink = async () => {
+    const ok = await copyText(window.location.origin + window.location.pathname)
+    useUI.getState().toast(ok ? t('Link copied') : t('Could not copy the link'))
+  }
+  // The ways in the boards do not draw but the instance may offer: a new profile where it is not
+  // invite-only (the invite link is how people arrive there), and the guest profile.
+  const others = <>
+    {!inviteOnly && <Button block variant="ghost" onClick={register}>{t('Create new profile')}</Button>}
+    {canGuest && <Button block variant="ghost" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>}
   </>
+  const screen = (body, footer) => (
+    <StageScreen>
+      <div className="si-col">
+        {body}
+        <div className="si-foot"><StageFooter sticky={false}>{footer}</StageFooter></div>
+      </div>
+    </StageScreen>
+  )
 
   // Demo build: no backend to sign in against — the only way in is the local guest profile.
-  if (DEMO) return (
-    <Stack className="gate-wrap ta-center">
-      {head}
-      <div className="muted" style={{ marginBottom: 30 }}>{t('Live demo. Everything stays in this browser.')}</div>
-      <Button variant="primary" icon="play" onClick={() => setGuest(true)}>{t('Start the demo')}</Button>
-      <Card className="small muted ta-start mt-8">
-        {t('This demo runs entirely in your browser on example data. Nothing is sent anywhere. Passkey sign-in and sync across your devices come with the Gains server, which you get by self-hosting it.')}
-      </Card>
-      <div className="dim small mt-10 lh-160">
-        <a href={REPO} target="_blank" rel="noopener">{t('Self-host it in a minute →')}</a>
-      </div>
-    </Stack>
-  )
+  if (DEMO) return screen(<>
+    <div className="si-top">
+      <Logo size={56} color="var(--on-stage)" />
+      <p>{t('Live demo. Everything stays in this browser.')}</p>
+    </div>
+    <p className="si-note">
+      {t('This demo runs entirely in your browser on example data. Nothing is sent anywhere. Passkey sign-in and sync across your devices come with the Gains server, which you get by self-hosting it.')}
+    </p>
+  </>, <>
+    <Button block icon="play" onClick={() => setGuest(true)}>{t('Start the demo')}</Button>
+    <Button block variant="ghost" href={REPO} target="_blank" rel="noopener">{t('Self-host it in a minute →')}</Button>
+  </>)
 
-  return (
-    <Stack className="gate-wrap ta-center">
-      {head}
-      <div className="muted" style={{ marginBottom: 34 }}>{t('Your workouts. Your weights. Your profile.')}</div>
-      {webauthnOK() ? <>
-        <Button variant="primary" icon="fingerprint" onClick={signIn}>{t('Sign in with passkey')}</Button>
-        <Spacer size={5} />
-        {pwOn && <><Button icon="key" onClick={() => openPasswordSignIn()}>{t('Sign in with password')}</Button><Spacer size={5} /></>}
-        <Button icon="plusCircle" onClick={register}>{t('Create new profile')}</Button>
-        {/* Already signed in on another device: a code from there gives this one a passkey of
-            its own (#95), instead of a new, empty profile. */}
-        <Spacer size={5} />
-        <Button variant="ghost" className="dim" icon="qr" onClick={openDeviceLinkRedeem}>{t('Use a code from your other device')}</Button>
-        {canGuest && <Spacer size={2} />}
-      </> : pwOn ? <>
-        {/* Plain http on a LAN address, or a browser without passkey support: the password is
-            the way in, and the only way to create a profile from here. */}
-        <Card className="small muted ta-start mb-7">{t("This browser doesn't support passkeys. Sign in with your name and password instead.")}</Card>
-        <Button variant="primary" icon="key" onClick={() => openPasswordSignIn()}>{t('Sign in with password')}</Button>
-        <Spacer size={5} />
-        <Button icon="plusCircle" onClick={register}>{t('Create new profile')}</Button>
-        {canGuest && <Spacer size={5} />}
-      </> : <Card className="small muted ta-start">{canGuest
-        ? t("This browser doesn't do passkeys, but you can still use Gains locally on this device.")
-        // Without passkeys and without the guest entrance there is no way in from this browser,
-        // so say that plainly instead of offering a local profile that cannot be created.
-        : t("This browser doesn't support passkeys, and this instance requires an account. Try a browser or device with passkey support.")}</Card>}
-      {canGuest && <Button variant="ghost" className="dim" onClick={() => setGuest(true)}>{t('Continue without account')}</Button>}
-      <div className="dim small lh-150" style={{ marginTop: 26 }}>{pwOn ? t('Passkeys use {0}. A password works too, where passkeys do not.', bio()) : t('Passkeys use {0}. No passwords to remember.', bio())}<br />{t('Each profile keeps its own plan, workouts & body weight.')}</div>
-    </Stack>
-  )
+  // Plain http on a LAN address, or a browser without passkey support (S0.10): the password is the
+  // way in where the instance has one, and the link opens the app where a passkey can be made.
+  if (!webauthnOK()) return screen(<>
+    <div className="si-head si-head-far">
+      <h1>{t('This browser can’t use passkeys')}</h1>
+      <p>{t('Some apps open links in their own browser, which can’t save or use a passkey. Open Gains in Safari or Chrome instead.')}</p>
+    </div>
+    <div className="si-art" aria-hidden="true"><Illustration name="passkey" tone="stage" draw="once" width={260} /></div>
+  </>, <>
+    <Button block icon="copy" onClick={copyLink}>{openInBrowserLabel()}</Button>
+    {pwOn && <Button block variant="glass" onClick={() => openPasswordSignIn()}>{t('Sign in with password')}</Button>}
+    {others}
+  </>)
+
+  const head = <>
+    <div className="si-top">
+      <Logo size={56} color="var(--on-stage)" />
+      <h1>{t('Welcome back')}</h1>
+      <p>{t('Your training and your food in one place.')}</p>
+    </div>
+    <div className="si-art" aria-hidden="true"><Illustration name="passkey" tone="stage" draw="once" width={260} /></div>
+  </>
+
+  if (at.kind === 'waiting') return screen(head, <>
+    <Button block busy>{t('Waiting for your passkey')}</Button>
+    <Button block variant="ghost" onClick={cancel}>{t('Cancel')}</Button>
+  </>)
+
+  const failedNow = at.kind === 'failed'
+  return screen(<>
+    {head}
+    {inviteOnly && !failedNow && <p className="si-note">{t('Gains is invite-only. New here? Open the invite link a friend sent you.')}</p>}
+  </>, <>
+    {failedNow && <StageAlert key={at.n} action={t('Having trouble?')} onAction={trouble}>{at.message}</StageAlert>}
+    <Button block icon="scanFace" onClick={signIn}>{failedNow ? t('Try again') : t('Sign in with passkey')}</Button>
+    <Button block variant="glass" icon="smartphone" onClick={() => openAddDevice()}>{t('Use a code from your other device')}</Button>
+    {pwOn && <Button block variant="ghost" onClick={() => openPasswordSignIn(signIn)}>{t('Sign in with password')}</Button>}
+    {others}
+  </>)
 }
