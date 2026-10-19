@@ -155,6 +155,8 @@
 .g-sfoot-sticky { position: absolute; left: 0; right: 0; bottom: 0; }
 .g-sfoot p { margin: 0 0 4px; font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); }
 .g-sfoot .g-btn-primary, .g-sfoot .g-stage-cta { background: var(--on-stage); color: var(--accent-text); }
+/* the entry screens' boards draw the stage's white button taller and heavier than the light Button */
+.g-sfoot .g-btn-primary { height: 54px; font: 700 17px/22px var(--font-sans); }
 /* the plain link under it: bundle.css has no rule of its own for it; the sign-in and onboarding
    screens draw it as on-stage text on no ground */
 .g-sfoot .g-btn-ghost { color: var(--on-stage); }
