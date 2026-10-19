@@ -1,0 +1,17 @@
+/* The screens gallery (DevScreens.jsx, dev server only). The frame is phone-sized and carries a
+   transform, which makes it the containing block of the position: fixed layers the app draws
+   (the sheets' #modal-root), so a drawer opens inside the phone and not over the whole window. The
+   stage's screens take the window's height; here they take the frame's. */
+.dsg { width: min(100%, 760px); margin: 0 auto; padding: 24px 16px 96px; }
+.dsg h1 { margin: 12px 0 8px; font-size: 22px; line-height: 28px; }
+.dsg h2 { margin: 24px 0 8px; font-size: 17px; line-height: 22px; }
+.dsg ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.dsg a { color: var(--acc-ink, var(--acc)); }
+.dsg-nav { font-size: 14px; }
+.dsg-note { margin: 0 0 16px; color: var(--label-2); font-size: 15px; line-height: 20px; }
+
+.dsg-frame { position: relative; width: 390px; height: 844px; overflow: auto; transform: translateZ(0); border-radius: 28px; box-shadow: 0 0 0 1px var(--sep); background: var(--bg); }
+.dsg-frame .g-screen,
+.dsg-frame .g-screen > .g-stage,
+.dsg-frame .g-screen > .g-stage > .g-stage-body,
+.dsg-frame .si-col { min-height: 844px; }

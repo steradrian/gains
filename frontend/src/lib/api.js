@@ -392,8 +392,9 @@ export async function passkeyAssertion({ signal } = {}) {
   const cred = await navigator.credentials.get({ publicKey: toRequestOptions(options), ...(signal ? { signal } : {}) })
   return { cid, credential: credToJSON(cred) }
 }
-export async function passkeyLogin() {
-  const res = await api('/api/login/verify', { method: 'POST', body: JSON.stringify(await passkeyAssertion()) })
+// `signal` is the sign-in screen's Cancel while the prompt is open.
+export async function passkeyLogin({ signal } = {}) {
+  const res = await api('/api/login/verify', { method: 'POST', body: JSON.stringify(await passkeyAssertion({ signal })) })
   return res.user
 }
 // A creation ceremony on options the server has already handed out: another passkey for a
