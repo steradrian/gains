@@ -1,0 +1,171 @@
+/* Gains design system: the rules from the design system's components/bundle.css that the
+   components in this folder render, in its order and with its values. Every class is g- prefixed,
+   so these reach only the design system's own markup. Left out on purpose: bundle.css's Google
+   Fonts @import (the app hosts Figtree and Geist Mono itself, main.jsx) and its `body` rule (the
+   app owns the page). The literal colours it writes inline are tokens in tokens.css (ui-guards
+   G7), and its two max-widths are written as widths (the guard reads max-width as a page width). */
+
+.g-root, .g-root * { box-sizing: border-box; }
+.g-root { font-family: var(--font-sans); color: var(--text); -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1, "ss01" 1; }
+.g-num { font-variant-numeric: tabular-nums; }
+:where(.g-root) :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Icon: the app's Icon (components/Icon.jsx) with the design system's class, so it takes this
+   size and stroke inside a component instead of the app's 1em and --icon-stroke. */
+.g-icon { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Button */
+.g-btn { appearance: none; border: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: var(--button-h); padding: 0 var(--space-6); border-radius: var(--radius-pill); font: 600 17px/24px var(--font-sans); letter-spacing: -0.01em; cursor: pointer; white-space: nowrap; text-decoration: none; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 140ms; }
+.g-btn:active { transform: scale(.97); }
+.g-btn .g-icon { width: 20px; height: 20px; }
+.g-btn-primary { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+.g-btn-secondary { background: var(--surface-sunken); color: var(--text); }
+.g-btn-secondary:active { background: var(--surface-press); }
+.g-btn-ghost { background: transparent; color: var(--accent-text); padding: 0 var(--space-3); }
+.g-btn-danger { background: transparent; color: var(--danger); padding: 0 var(--space-3); }
+.g-btn-sm { height: var(--button-h-sm); padding: 0 var(--space-4); font-size: 14px; line-height: 20px; }
+.g-btn-sm .g-icon { width: 18px; height: 18px; }
+.g-btn-block { display: flex; width: 100%; }
+.g-btn[disabled] { background: var(--surface-sunken); color: var(--text-disabled); cursor: default; transform: none; }
+
+/* IconButton: 44px hit area, 36px visual */
+.g-iconbtn { appearance: none; border: 0; background: transparent; width: var(--tap-min); height: var(--tap-min); padding: 0; display: inline-grid; place-items: center; color: var(--text); cursor: pointer; border-radius: var(--radius-pill); flex: none; }
+.g-iconbtn > span { width: 36px; height: 36px; border-radius: var(--radius-pill); display: grid; place-items: center; }
+.g-iconbtn .g-icon { width: 20px; height: 20px; }
+.g-iconbtn-tonal > span { background: var(--surface-sunken); }
+.g-iconbtn-accent > span { background: var(--accent-tint); color: var(--accent-text); }
+.g-iconbtn:active > span { background: var(--surface-press); }
+/* glass: the stage's control, its visual a .g-glass disc; pressing it keeps the glass, since the
+   light press ground would flash on the stage */
+.g-iconbtn-glass { color: var(--on-stage); }
+.g-iconbtn-glass:active > span { background: var(--glass); }
+
+/* Illustration (line art) */
+.g-ill { --il-w: 2.5; --il-w-d: 1.5; width: min(100%, var(--g-ill-w, 320px)); margin: 0 auto; }
+.g-ill svg { display: block; width: 100%; height: auto; overflow: visible; }
+.g-ill .il, .g-ill .il-acc, .g-ill .il-mute, .g-ill .il-floor { fill: none; stroke-width: var(--il-w); stroke-linecap: round; stroke-linejoin: round; }
+.g-ill .il { stroke: var(--text-2); }
+.g-ill .il-acc { stroke: var(--accent-text); }
+.g-ill .il-mute { stroke: var(--line-strong); }
+.g-ill .il-d { stroke-width: var(--il-w-d); }
+.g-ill .il-floor { stroke: var(--line-strong); stroke-width: var(--il-w-d); }
+.g-ill .il-occ { fill: var(--surface); }
+.g-ill .il-lit { fill: var(--accent-tint); }
+.g-ill .il-dot { fill: var(--accent-text); }
+.g-ill-draw .dr { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: g-draw 480ms cubic-bezier(.65,0,.35,1) var(--d, 0ms) both; }
+.g-ill-draw .dr.il-acc { animation-duration: 640ms; }
+.g-ill-draw .dr.il-occ { animation: g-draw 480ms cubic-bezier(.65,0,.35,1) var(--d, 0ms) both, g-fill 160ms linear calc(var(--d, 0ms) + 336ms) both; }
+.g-ill-draw .fd { animation: g-fade 160ms linear var(--d, 0ms) both; }
+@keyframes g-draw { 0% { stroke-dashoffset: 1; opacity: 0; } 2% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+@keyframes g-fill { from { fill-opacity: 0; } }
+@keyframes g-fade { from { opacity: 0; } }
+/* Reduced motion: the 140ms fade instead of the drawing. Illustration.jsx picks it from the
+   device's setting or the app's switch (lib/reduced-motion.js); it is !important and doubled
+   because index.css stops every animation under either with `* { animation: none !important }`. */
+.g-ill.g-ill-fade.g-ill-fade svg { animation: g-fade 140ms linear both !important; }
+
+/* Illustration on the stage: the same line art in white, the accent stroke stays the brightest */
+.g-ill-stage .il { stroke: var(--g-ill-stage-line); }
+.g-ill-stage .il-acc { stroke: var(--g-white); }
+.g-ill-stage .il-mute, .g-ill-stage .il-floor { stroke: var(--g-ill-stage-mute); }
+.g-ill-stage .il-occ { fill: var(--accent-stage); }
+.g-ill-stage .il-lit { fill: var(--g-ill-stage-lit); }
+.g-ill-stage .il-dot { fill: var(--g-white); }
+
+/* Logo */
+.g-logo { display: inline-flex; align-items: center; gap: .32em; color: var(--text); }
+.g-logo svg { display: block; fill: currentColor; }
+/* the app's mark (components/BrandMark.jsx) is cropped to the G; the design system's sits in a
+   100-unit square, so the G is 56.4% of the size it is given, centred */
+.g-logo-mark { display: grid; place-items: center; flex: none; }
+
+/* Stage: tab roots, onboarding and sign-in on the person's accent */
+.g-glass { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-stage { position: relative; overflow: hidden; min-height: 100%; color: var(--on-stage); background: var(--accent-stage-end); font-family: var(--font-sans); }
+.g-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: linear-gradient(170deg, var(--accent-stage) 0px, var(--accent-stage-end) 900px); }
+.g-stage-glow { position: absolute; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, var(--accent-glow) 0%, var(--g-white-clear) 62%); }
+.g-stage-glow-a { left: 130px; top: -180px; opacity: .5; }
+.g-stage-glow-b { left: -210px; top: 400px; opacity: .28; }
+.g-stage-rings { position: absolute; left: 40px; top: -150px; fill: none; stroke: var(--g-white); }
+.g-stage-body { position: relative; }
+.g-stage a { color: inherit; text-decoration: none; }
+.g-stage .g-icon { stroke-width: 2; }
+
+/* StageScreen: a full-screen stage (onboarding, sign-in). The app is viewport-fit=cover, so the
+   content clears the status bar and the home indicator (--sat, --sab: index.css). */
+.g-screen { min-height: 100vh; min-height: 100dvh; }
+.g-screen > .g-stage, .g-screen > .g-stage > .g-stage-body { min-height: 100vh; min-height: 100dvh; }
+.g-screen > .g-stage > .g-stage-body { padding-top: var(--sat, 0px); }
+
+/* TextField */
+.g-tfield { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-family: var(--font-sans); }
+.g-tfield-wide { grid-column: 1 / -1; }
+.g-tfield-label { font: 600 14px/18px var(--font-sans); color: var(--text-2); }
+.g-tfield-box { min-width: 0; display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 16px; border-radius: 16px; background: var(--surface-sunken); }
+.g-tfield-box:focus-within { box-shadow: inset 0 0 0 2px var(--accent-fill); }
+.g-tfield-box input { flex: 1; min-width: 0; width: 100%; border: 0; background: none; outline: none; font: 600 17px/22px var(--font-sans); color: var(--text); font-variant-numeric: tabular-nums; }
+.g-tfield-unit { font: 600 17px/22px var(--font-sans); color: var(--text-3); }
+.g-tfield-hint { font: 500 13px/16px var(--font-sans); color: var(--text-3); }
+.g-tfield-stage .g-tfield-label { color: var(--on-stage-2); }
+.g-tfield-stage .g-tfield-box { background: var(--g-field-stage); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.g-tfield-stage .g-tfield-box input { color: var(--on-stage); }
+.g-tfield-stage .g-tfield-box input::placeholder { color: var(--on-stage-2); }
+.g-tfield-stage .g-tfield-box:focus-within { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-tfield-stage .g-tfield-unit, .g-tfield-stage .g-tfield-hint { color: var(--on-stage-2); }
+
+/* OnboardingNav */
+.g-onav { display: flex; align-items: center; gap: 12px; height: 58px; box-sizing: border-box; padding: 14px 16px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-onav-back { appearance: none; border: 0; width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; text-decoration: none; }
+.g-onav-back .g-icon { width: 22px; height: 22px; stroke-width: 2.4; }
+.g-onav-sp { width: 44px; flex: none; }
+.g-onav-gap { flex: 1; }
+.g-onav-prog { flex: 0 1 190px; display: flex; gap: 4px; margin: 0 auto; }
+.g-onav-prog i { flex: 1; height: 4px; border-radius: 2px; background: var(--glass-track); transition: background-color 320ms; }
+.g-onav-prog i.on { background: var(--on-stage); }
+.g-onav-skip { appearance: none; border: 0; background: none; height: 44px; min-width: 44px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: flex-end; color: var(--on-stage); font: 600 17px/22px var(--font-sans); cursor: pointer; text-decoration: none; }
+
+/* StageChoiceCard */
+.g-ccard { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 74px; padding: 12px 16px; border-radius: 22px; color: var(--on-stage); text-align: left; text-decoration: none; font-family: var(--font-sans); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 220ms; }
+.g-ccard:active { transform: scale(.97); }
+.g-ccard-slim { min-height: 56px; }
+.g-ccard.on { background: var(--on-stage); color: var(--text); box-shadow: var(--g-ccard-on-shadow); }
+.g-ccard-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--glass); }
+.g-ccard.on .g-ccard-ic { background: var(--accent-tint); color: var(--accent-text); }
+.g-ccard-ic .g-icon { width: 21px; height: 21px; }
+.g-ccard-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.g-ccard-b b { font: 700 17px/22px var(--font-sans); }
+.g-ccard-b span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-ccard.on .g-ccard-b span { color: var(--text-3); }
+.g-ccard-mark { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--glass-line); }
+.g-ccard.on .g-ccard-mark { background: var(--accent-fill); color: var(--on-accent); box-shadow: none; }
+.g-ccard-mark .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+
+/* CodeCells */
+.g-code { position: relative; display: flex; justify-content: center; gap: 8px; cursor: text; }
+.g-code input { position: absolute; inset: 0; opacity: 0; font-size: 16px; }
+.g-code-cell { width: 48px; height: 60px; border-radius: 16px; display: grid; place-items: center; color: var(--on-stage); font: 700 26px/1 var(--font-mono); }
+.g-code-cell.cur { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-code-cell.bad { box-shadow: inset 0 0 0 2px var(--g-code-bad); }
+.g-code:focus-within .g-code-cell.cur::after { content: ""; width: 2px; height: 26px; background: var(--on-stage); animation: g-blink 1s steps(2) infinite; }
+@keyframes g-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .g-code-cell::after { transition: none; animation: none; } }
+
+/* StageFooter: the white button and a plain link on the stage */
+.g-sfoot { padding: 40px 16px 30px; display: flex; flex-direction: column; gap: 8px; background: linear-gradient(to bottom, var(--g-black-clear), var(--accent-stage-end) 34%); font-family: var(--font-sans); }
+.g-sfoot-sticky { position: absolute; left: 0; right: 0; bottom: 0; }
+.g-sfoot p { margin: 0 0 4px; font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); }
+.g-sfoot .g-btn-primary, .g-sfoot .g-stage-cta { background: var(--on-stage); color: var(--accent-text); }
+/* the plain link under it: bundle.css has no rule of its own for it; the sign-in and onboarding
+   screens draw it as on-stage text on no ground */
+.g-sfoot .g-btn-ghost { color: var(--on-stage); }
+.g-screen .g-sfoot { padding-bottom: calc(30px + var(--sab, 0px)); }
+
+/* Accent presets. The design system selects them by data-accent on any ancestor (it expects
+   <html>); the app's <html data-accent> holds its own accents (sky, lime…), so here they are read
+   from the .g-root itself (StageScreen). Cobalt is the default. */
+.g-root[data-accent="moss"] { --accent-fill: var(--moss-fill); --accent-fill-end: var(--moss-fill-end); --accent-text: var(--moss-text); --accent-tint: var(--moss-tint); --on-accent: var(--moss-on); --accent-stage: var(--moss-stage); --accent-stage-end: var(--moss-stage-end); --accent-glow: var(--moss-glow); }
+.g-root[data-accent="ember"] { --accent-fill: var(--ember-fill); --accent-fill-end: var(--ember-fill-end); --accent-text: var(--ember-text); --accent-tint: var(--ember-tint); --on-accent: var(--ember-on); --accent-stage: var(--ember-stage); --accent-stage-end: var(--ember-stage-end); --accent-glow: var(--ember-glow); }
+.g-root[data-accent="tide"] { --accent-fill: var(--tide-fill); --accent-fill-end: var(--tide-fill-end); --accent-text: var(--tide-text); --accent-tint: var(--tide-tint); --on-accent: var(--tide-on); --accent-stage: var(--tide-stage); --accent-stage-end: var(--tide-stage-end); --accent-glow: var(--tide-glow); }
+.g-root[data-accent="plum"] { --accent-fill: var(--plum-fill); --accent-fill-end: var(--plum-fill-end); --accent-text: var(--plum-text); --accent-tint: var(--plum-tint); --on-accent: var(--plum-on); --accent-stage: var(--plum-stage); --accent-stage-end: var(--plum-stage-end); --accent-glow: var(--plum-glow); }
+.g-root[data-accent="cobalt"] { --accent-fill: var(--cobalt-fill); --accent-fill-end: var(--cobalt-fill-end); --accent-text: var(--cobalt-text); --accent-tint: var(--cobalt-tint); --on-accent: var(--cobalt-on); --accent-stage: var(--cobalt-stage); --accent-stage-end: var(--cobalt-stage-end); --accent-glow: var(--cobalt-glow); }
+.g-root[data-accent="ink"] { --accent-fill: var(--ink-fill); --accent-fill-end: var(--ink-fill-end); --accent-text: var(--ink-text); --accent-tint: var(--ink-tint); --on-accent: var(--ink-on); --accent-stage: var(--ink-stage); --accent-stage-end: var(--ink-stage-end); --accent-glow: var(--ink-glow); }

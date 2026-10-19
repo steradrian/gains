@@ -18,8 +18,9 @@ export const LOWER = 'lower the baseline: run scripts/ui-guards-baseline.mjs'
 
 // The CSS that predates the kit. Every other stylesheet is new and held to G7.
 export const LEGACY_CSS = ['admin.css', 'coach.css', 'index.css', 'tab-shell.css', 'views/FocusView.css']
-// The only stylesheets whose :root rules may define colour tokens: the theme and the kit's tokens.
-export const THEME_FILES = ['index.css', 'ui-kit.css']
+// The only stylesheets whose :root rules may define colour tokens: the theme, the kit's tokens and
+// the design system's (src/ds), whose root is .g-root rather than :root.
+export const THEME_FILES = ['index.css', 'ui-kit.css', 'ds/tokens.css']
 // Where the hand-built markup G3 looks for is allowed: the primitives themselves.
 export const PRIMITIVE_FILES = [
   'components/blocks.jsx', 'components/layout.jsx', 'components/sheet-layout.jsx', 'components/ui.jsx',
@@ -276,8 +277,9 @@ const CSS_NAMED = new RegExp(`(?<![\\w-])(?:${NAMED.join('|')})(?![\\w-])`, 'gi'
 const JS_NAMED = new RegExp(`(?:(?<![=!<>])=(?!=)|:|\\?|\\|\\|)\\s*(['"\`])(?:${NAMED.join('|')})\\1`, 'g')
 
 // Colours written into a stylesheet: hex, rgb()/hsl()…, names. A theme file's :root rules
-// (`:root`, `:root[data-theme=…]`) are where colour tokens live and are not counted there.
-const THEME_RULE = /^:root(?:\[[^\]]*\])*$/
+// (`:root`, `:root[data-theme=…]`, and the design system's `.g-root`, `:root[data-theme=…] .g-root`)
+// are where colour tokens live and are not counted there.
+const THEME_RULE = /^(?::root(?:\[[^\]]*\])*|(?::root(?:\[[^\]]*\])* )?\.g-root)$/
 export function cssColours(text, themeFile = false) {
   let n = 0
   for (const [, selector, decls] of stripCss(text).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {

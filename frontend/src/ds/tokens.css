@@ -1,0 +1,208 @@
+/* Gains design system tokens, from the design system's tokens.css (generated from tokens.json).
+   The app already has tokens of the same names with other values (--surface, --scrim,
+   --shadow-card, --shadow-float, --macro-*) and type classes of the same names, so everything
+   here lives under .g-root, the design system's own root: nothing outside a .g-root sees it.
+   The app's theme is <html data-theme="light|dark">, set before first paint (index.html), so dark
+   is `:root[data-theme="dark"] .g-root`. The accent roles are mapped once, in the light block:
+   they point at the preset tokens, which the dark block redefines, so the dark block does not
+   repeat them (it would also outrank the presets in ds.css). */
+.g-root {
+  --canvas: #F5F4F1;
+  --surface: #FFFFFF;
+  --surface-sunken: #EFEEEA;
+  --surface-press: #E7E5E0;
+  --line: #E8E6E1;
+  --line-strong: #D3D0C9;
+  --text: #111111;
+  --text-2: #55524D;
+  --text-3: #6B6761;
+  --text-disabled: #A8A49D;
+  --brand-ink: #111111;
+  --brand-grey: #8E9196;
+  --scrim: rgba(17,17,17,0.36);
+  --focus: #111111;
+  --accent-fill: var(--cobalt-fill);
+  --accent-fill-end: var(--cobalt-fill-end);
+  --accent-text: var(--cobalt-text);
+  --accent-tint: var(--cobalt-tint);
+  --on-accent: var(--cobalt-on);
+  --accent-stage: var(--cobalt-stage);
+  --accent-stage-end: var(--cobalt-stage-end);
+  --accent-glow: var(--cobalt-glow);
+  --on-stage: #FFFFFF;
+  --on-stage-2: rgba(255,255,255,0.78);
+  --glass: rgba(255,255,255,0.14);
+  --glass-line: rgba(255,255,255,0.20);
+  --glass-track: rgba(255,255,255,0.18);
+  --chrome-glass: rgba(255,255,255,0.90);
+  --ink-stage: #2B2A28;
+  --ink-stage-end: #0B0B0A;
+  --ink-glow: #6B6761;
+  --ink-fill: #2B2A28;
+  --ink-fill-end: #111111;
+  --ink-text: #111111;
+  --ink-tint: #ECEBE7;
+  --ink-on: #FFFFFF;
+  --moss-stage: #2F8159;
+  --moss-stage-end: #123F2D;
+  --moss-glow: #7FD6A4;
+  --moss-fill: #2C7A55;
+  --moss-fill-end: #1E6246;
+  --moss-text: #1E6246;
+  --moss-tint: #E3EFE7;
+  --moss-on: #FFFFFF;
+  --ember-stage: #C05A33;
+  --ember-stage-end: #6E2810;
+  --ember-glow: #FFA27A;
+  --ember-fill: #B2502C;
+  --ember-fill-end: #963C1D;
+  --ember-text: #963C1D;
+  --ember-tint: #F6E6DE;
+  --ember-on: #FFFFFF;
+  --tide-stage: #2A7F9C;
+  --tide-stage-end: #0E3F52;
+  --tide-glow: #7FD3EC;
+  --tide-fill: #226E88;
+  --tide-fill-end: #17566D;
+  --tide-text: #17566D;
+  --tide-tint: #E0EDF1;
+  --tide-on: #FFFFFF;
+  --plum-stage: #9A4A80;
+  --plum-stage-end: #4A1638;
+  --plum-glow: #F0A6D2;
+  --plum-fill: #874070;
+  --plum-fill-end: #6B2C57;
+  --plum-text: #6B2C57;
+  --plum-tint: #F2E4EC;
+  --plum-on: #FFFFFF;
+  --cobalt-stage: #3A62D6;
+  --cobalt-stage-end: #1A2F86;
+  --cobalt-glow: #8AA4FF;
+  --cobalt-fill: #3157C6;
+  --cobalt-fill-end: #2342A6;
+  --cobalt-text: #2342A6;
+  --cobalt-tint: #E4E9F8;
+  --cobalt-on: #FFFFFF;
+  --positive: #1F7A4D;
+  --positive-tint: #E3F1E8;
+  --warning: #8A5600;
+  --warning-tint: #FBEFD9;
+  --danger: #B4382A;
+  --danger-tint: #F9E4E0;
+  --macro-protein: #2F5FC4;
+  --macro-carbs: #A87210;
+  --macro-fat: #B04A76;
+  --water: #3B83B8;
+  --shadow-card: 0 1px 2px rgba(17,17,17,0.04), 0 6px 20px -10px rgba(17,17,17,0.10);
+  --shadow-float: 0 2px 6px rgba(17,17,17,0.06), 0 10px 30px -10px rgba(17,17,17,0.22);
+  --shadow-sheet: 0 -12px 40px -16px rgba(17,17,17,0.28);
+  --shadow-accent: 0 8px 20px -8px rgba(17,17,17,0.35);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+  --tap-min: 44px;
+  --row-h: 56px;
+  --button-h: 52px;
+  --button-h-sm: 36px;
+  --tabbar-h: 64px;
+  --dock-h: 56px;
+  --font-display: Figtree, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: Figtree, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* The literal colours bundle.css writes into its component rules, by the same values: a
+     stylesheet other than a theme file holds no colour (ui-guards G7), so ds.css reads them here. */
+  --g-white: #FFFFFF;
+  --g-white-clear: rgba(255,255,255,0);
+  --g-black-clear: rgba(0,0,0,0);
+  --g-ill-stage-line: rgba(255,255,255,0.82);
+  --g-ill-stage-mute: rgba(255,255,255,0.32);
+  --g-ill-stage-lit: rgba(255,255,255,0.18);
+  --g-field-stage: rgba(255,255,255,0.12);
+  --g-ccard-on-shadow: 0 16px 30px -18px rgba(0,0,0,0.5);
+  --g-code-bad: #FFC56B;
+}
+:root[data-theme="dark"] .g-root {
+  --canvas: #0B0B0A;
+  --surface: #161615;
+  --surface-sunken: #1E1E1C;
+  --surface-press: #262624;
+  --line: #262624;
+  --line-strong: #3A3936;
+  --text: #F4F2EE;
+  --text-2: #B3AFA8;
+  --text-3: #8F8B84;
+  --text-disabled: #5A5752;
+  --scrim: rgba(0,0,0,0.6);
+  --focus: #F4F2EE;
+  --glass: rgba(255,255,255,0.10);
+  --glass-line: rgba(255,255,255,0.14);
+  --glass-track: rgba(255,255,255,0.14);
+  --chrome-glass: rgba(22,22,21,0.86);
+  --ink-fill: #F4F2EE;
+  --ink-fill-end: #D8D5CF;
+  --ink-text: #F4F2EE;
+  --ink-tint: #2A2926;
+  --ink-on: #111111;
+  --moss-fill: #72CB9C;
+  --moss-fill-end: #52B07F;
+  --moss-text: #7DD3A6;
+  --moss-tint: #173326;
+  --moss-on: #0B1A12;
+  --ember-fill: #F2976E;
+  --ember-fill-end: #DD7C52;
+  --ember-text: #F5A47F;
+  --ember-tint: #3A2016;
+  --ember-on: #1E0D05;
+  --tide-fill: #6EC2DC;
+  --tide-fill-end: #4CA7C4;
+  --tide-text: #7FCBE3;
+  --tide-tint: #14303A;
+  --tide-on: #06161C;
+  --plum-fill: #E59BC8;
+  --plum-fill-end: #CC7EAE;
+  --plum-text: #EAA9D0;
+  --plum-tint: #38192C;
+  --plum-on: #1F0915;
+  --cobalt-fill: #93A9FF;
+  --cobalt-fill-end: #7390F4;
+  --cobalt-text: #A3B6FF;
+  --cobalt-tint: #1C2546;
+  --cobalt-on: #0A1030;
+  --positive: #6FD39C;
+  --positive-tint: #14301F;
+  --warning: #F0B65A;
+  --warning-tint: #33260F;
+  --danger: #FF8A7A;
+  --danger-tint: #3A1A15;
+  --macro-protein: #8AA8FF;
+  --macro-carbs: #F2C46A;
+  --macro-fat: #EE8DB4;
+  --water: #7DBDE8;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-float: 0 2px 6px rgba(0,0,0,0.5), 0 10px 30px -10px rgba(0,0,0,0.7);
+  --shadow-sheet: 0 -12px 40px -16px rgba(0,0,0,0.8);
+  --shadow-accent: 0 8px 20px -8px rgba(0,0,0,0.8);
+}
+.g-root .hero { font-family: var(--font-display); font-size: 54px; line-height: 58px; font-weight: 700; letter-spacing: -0.04em; }
+.g-root .display { font-family: var(--font-display); font-size: 32px; line-height: 38px; font-weight: 700; letter-spacing: -0.025em; }
+.g-root .title { font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.g-root .headline { font-family: var(--font-sans); font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.005em; }
+.g-root .body { font-family: var(--font-sans); font-size: 17px; line-height: 24px; font-weight: 400; }
+.g-root .body-sm { font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 500; }
+.g-root .label { font-family: var(--font-sans); font-size: 14px; line-height: 18px; font-weight: 600; }
+.g-root .caption { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 500; }
+.g-root .tab { font-family: var(--font-sans); font-size: 12px; line-height: 14px; font-weight: 600; }
+.g-root .number { font-family: var(--font-sans); font-size: 20px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.g-root .timer { font-family: var(--font-mono); font-size: 20px; line-height: 24px; font-weight: 500; }
