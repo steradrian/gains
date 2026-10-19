@@ -1,7 +1,9 @@
 // What a screen in the gallery talks to, stubbed for as long as it is on show: the store's user,
 // config and sign-in actions (so nothing is signed in, synced or saved), the network (fetch, for
-// the app's own /api calls only) and the browser's passkey prompt. The screens are the real ones;
-// only what they call is replaced, and everything is put back when the state is left.
+// the app's own /api calls only), the browser's passkey prompt and whether it is online, and what
+// the onboarding kept for this tab. The screens are the real ones; only what they call is
+// replaced, and everything is put back when the state is left.
+import { STORE_KEY } from '../../lib/onboarding/session.js'
 import { useStore } from '../../store/useStore.js'
 
 const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState']
@@ -20,15 +22,21 @@ export const madePasskey = () => Promise.resolve({
 export const creationOptions = { challenge: 'AAAA', user: { id: 'AAAA', name: 'alex', displayName: 'Alex' }, excludeCredentials: [] }
 export const requestOptions = { challenge: 'AAAA', allowCredentials: [] }
 
+/** An `api` answer that never comes: a request still out. */
+export const pending = Symbol('pending')
+
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 /**
  * Installs the stubs and returns the function that takes them out.
  * `api` maps 'METHOD /api/path' to a status and body, `{ status: 400, body: { code: 'link-invalid' } }`,
- * or to just a body for a 200; a call with no entry is a 404 that says so, and a request for
- * anything that is not under /api/ goes to the real network.
+ * to just a body for a 200, or to `pending` (an answer that never comes); a call with no entry is
+ * a 404 that says so, and a request for anything that is not under /api/ goes to the real network.
+ * The hub's routes count as under it (/hub/api/onboarding is 'GET /api/onboarding').
+ * `onboarding` is what the onboarding kept for this tab (lib/onboarding/state.js), `online: false`
+ * a browser with no connection.
  */
-export function installMocks({ config = null, user = null, linkCode = null, webauthn = true, api = {}, credentials = {} } = {}) {
+export function installMocks({ config = null, user = null, linkCode = null, webauthn = true, api = {}, credentials = {}, onboarding = null, online = true } = {}) {
   const undo = []
 
   const saved = Object.fromEntries(STORE_KEYS.map(k => [k, useStore.getState()[k]]))
@@ -47,9 +55,19 @@ export function installMocks({ config = null, user = null, linkCode = null, weba
     const key = (init.method || 'GET').toUpperCase() + ' ' + path.slice(at)
     const answer = api[key]
     if (answer === undefined) return json(404, { error: 'Not mocked in the screens gallery: ' + key })
+    if (answer === pending) return never()
     return answer && typeof answer === 'object' && 'body' in answer ? json(answer.status || 200, answer.body) : json(200, answer)
   }
   undo.push(() => { globalThis.fetch = realFetch })
+
+  const kept = sessionStorage.getItem(STORE_KEY)
+  if (onboarding) sessionStorage.setItem(STORE_KEY, JSON.stringify(onboarding))
+  else sessionStorage.removeItem(STORE_KEY)
+  undo.push(() => { if (kept == null) sessionStorage.removeItem(STORE_KEY); else sessionStorage.setItem(STORE_KEY, kept) })
+
+  const ownOnline = Object.getOwnPropertyDescriptor(navigator, 'onLine')
+  Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => online })
+  undo.push(() => { if (ownOnline) Object.defineProperty(navigator, 'onLine', ownOnline); else delete navigator.onLine })
 
   const ownCredentials = Object.getOwnPropertyDescriptor(navigator, 'credentials')
   Object.defineProperty(navigator, 'credentials', {

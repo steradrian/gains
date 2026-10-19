@@ -38,6 +38,41 @@ describe('the screens gallery', () => {
     expect(allScreens().map(e => e.id)).toEqual(expect.arrayContaining(['S0.demo', 'S0.guest', 'S0.open']))
   })
 
+  it('has the onboarding entry states O1.0 to O1.5, O2.1, O2.1e, O2.1t and O2.2', () => {
+    const ids = screenAreas().find(a => a.name === 'Onboarding: the entry').entries.map(e => e.id)
+    expect(ids).toEqual(['O1.0', 'O1.1', 'O1.2', 'O1.3', 'O1.4', 'O1.5', 'O2.1', 'O2.1e', 'O2.1t', 'O2.2'])
+  })
+
+  it('shows each onboarding entry state it names', async () => {
+    // One at a time: a frame left up would see the next state's signed-in user and check again.
+    const text = async id => {
+      const shown = (await show(screenById(id))).textContent
+      unmountAll()
+      return shown
+    }
+    expect(await text('O1.0')).toContain('Andrei invited you to Gains')
+    expect(await text('O1.1')).toContain('Opening your invite')
+    expect(await text('O1.2')).toContain('This invite has expired')
+    expect(await text('O1.3')).toContain('This invite was already used')
+    expect(await text('O1.4')).toContain('You’re offline')
+    expect(await text('O1.5')).toContain('Signed in as Alex')
+    expect(await text('O2.1')).toContain('What should we call you?')
+    expect(await text('O2.1e')).toContain('No passkey created. Try again.')
+    expect(await text('O2.1t')).toContain('Passkeys need Safari or Chrome')
+    expect(await text('O2.2')).toContain('Passkey saved')
+  })
+
+  it('puts back what the onboarding kept for this tab, and whether the browser is online', async () => {
+    sessionStorage.setItem('gains_onboarding', '{"uid":"someone"}')
+    await show(screenById('O1.4'))
+    expect(navigator.onLine).toBe(false)
+    unmountAll()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(navigator.onLine).toBe(true)
+    expect(sessionStorage.getItem('gains_onboarding')).toBe('{"uid":"someone"}')
+    sessionStorage.clear()
+  })
+
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
     for (const e of states) { expect(e.title, e.id).toBeTruthy(); expect(screenById(e.id)).toBe(e) }
