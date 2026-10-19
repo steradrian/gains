@@ -1,62 +1,58 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/ui.jsx'
-import { HeroMacros, HeroStatus } from '../../components/tab-kit.jsx'
+import Button from '../../ds/Button.jsx'
+import GlassList from '../../ds/GlassList.jsx'
+import StageWeekStrip from '../../ds/StageWeekStrip.jsx'
+import Icon from '../../components/Icon.jsx'
+import AdjustSheet from '../../components/onboarding/AdjustSheet.jsx'
+import DaySheet from '../../components/onboarding/DaySheet.jsx'
 import StarterBaseline from '../../components/onboarding/StarterBaseline.jsx'
 import StepScreen from '../../components/onboarding/StepScreen.jsx'
-import SummarySheet from '../../components/onboarding/SummarySheet.jsx'
-import { dateLocale, t } from '../../lib/i18n.js'
+import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { useOnboarding } from '../../lib/onboarding/contexts.js'
 import { bodyComplete, detourOf } from '../../lib/onboarding/flow.js'
 import { handOver } from '../../lib/onboarding/handover.js'
-import { weekdayName } from '../../lib/onboarding/labels.js'
-import { starterSessions } from '../../lib/onboarding/plans.js'
+import { ACTIVITY_OPTIONS, goalLabel, modeLabel, paceLabel, weekdayName } from '../../lib/onboarding/labels.js'
+import { WEEK, nextSession } from '../../lib/onboarding/plans.js'
 import { useCount } from '../../lib/onboarding/use-count.js'
 import { useFinish } from '../../lib/onboarding/use-finish.js'
-import { COUNT, GHOST, RING_C, useSummaryMotion } from '../../lib/onboarding/use-summary-motion.js'
-import { kcalText, useTarget } from '../../lib/onboarding/use-target.js'
+import { COUNT, GHOST, RING, useSummaryMotion } from '../../lib/onboarding/use-summary-motion.js'
+import { TARGET_SETTINGS, kcalText, useTarget } from '../../lib/onboarding/use-target.js'
 import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 
-// 6 Summary (ux-onboarding §3b; fitness-eval motion-onboarding-summary-v2): "You're all set", then
-// the hero Home will show, built from Home's own kit: the training status line, the daily target
-// in the ring the thread becomes, water, protein/carbs/fat, the goal with Adjust, and the activity
-// chip. HeroStatus variant="target" is the kit's hero, never a copy (onboarding-guards.test.jsx);
-// only the ring is the Summary's own. Without the four body answers there is no target: an open
-// ghost arc, "Add my details" (only the missing steps, then back here), and the default water.
+// 6 Summary (boards O2.12–O2.16; fitness-eval motion-onboarding-summary-v2): "You're all set", then
+// on the stage the daily target in the ring the thread becomes, beside the goal, its pace and mode,
+// with protein, carbs and fat under it; water; the activity chip; this week (the plan's days and
+// the next session, or what stands for the plan: the AI coach at work, no plan, food only); and Go
+// to Today with Adjust. Without the four body answers there is no target: the dashed ring, "Set
+// your target" with Add my details (only the missing steps, then back here), and no water, chip
+// or Adjust.
 //
-// Go to Home finishes the onboarding (lib/onboarding/use-finish.js) and hands over: the ring
+// Go to Today finishes the onboarding (lib/onboarding/use-finish.js) and hands over: the ring
 // unwinds into the line that lands on Home's hero (lib/onboarding/handover.js). What could not be
 // set up stays here, with where to put it right.
-const DEFAULT_WATER_ML = 2000
-const ACTIVITY_CHIP = () => ({
-  sitting: t('Assumes a mostly seated day'),
-  on_feet: t('Assumes a day on your feet'),
-  physical: t('Assumes a day of physical work'),
-})
-const GOAL_LINE = () => ({
-  lose: t('Lose weight'), keep: t('Keep my weight'), unsure: t('Keep my weight'), build: t('Build muscle'),
-})
+const MACROS = () => [
+  { key: 'proteinG', label: t('Protein') },
+  { key: 'carbsG', label: t('Carbs') },
+  { key: 'fatG', label: t('Fat') },
+]
 
-/** The status line: the first session, food only, the AI coach at work, or no plan yet. */
-function statusOf(answers, go) {
-  const days = answers.trainingDays
+/** This week's row: the next session, the AI coach at work, food only, or no plan yet. */
+function weekRow(answers) {
   const plan = answers.plan
-  if (plan?.kind === 'coach') return { glyph: 'messagesSquare', eyebrow: t('AI coach is building your plan') }
-  if (days === 0) return { glyph: 'utensils', eyebrow: t('Just tracking food') }
-  if (days == null) return { glyph: 'dumbbell', eyebrow: t('No training yet'), link: { label: t('Add training'), onClick: () => go('training') } }
-  if (plan?.kind === 'starter') {
-    const sessions = starterSessions(days, plan.equipment)
-    const today = new Date().getDay()
-    const ahead = d => (d - today + 7) % 7
-    const i = plan.weekdays.reduce((best, d, k) => (ahead(d) < ahead(plan.weekdays[best]) ? k : best), 0)
-    const day = plan.weekdays[i]
-    const when = ahead(day) === 0 ? t('Today') : weekdayName(day, dateLocale(), 'short')
-    return { glyph: 'play', eyebrow: t('First session · {0} · {1}', sessions[i]?.name ?? '', when) }
+  if (plan?.kind === 'coach') return { icon: 'messagesSquare', title: t('Your AI coach is on it'), sub: t('A card on Today when it is ready to review') }
+  if (answers.trainingDays === 0) return { icon: 'salad', title: t('Just tracking food'), sub: t('Add training any time in Settings') }
+  const next = plan?.kind === 'starter' ? nextSession(plan, answers.trainingDays, new Date().getDay()) : null
+  if (!next) return { icon: 'listChecks', title: t('No plan yet'), sub: t('Choose a plan any time in Train') }
+  const when = next.ahead === 0 ? t('Today') : next.ahead === 1 ? t('Tomorrow') : weekdayName(next.day, dateLocale())
+  return {
+    icon: 'calendar',
+    title: t('Next · {0}', when),
+    sub: tn('{1} · {0} exercise', '{1} · {0} exercises', next.session.exercises.length, next.session.name),
   }
-  return { glyph: 'listChecks', eyebrow: t('No plan yet'), link: { label: t('Choose a plan'), onClick: () => go('plan') } }
 }
 
 export default function SummaryScreen() {
@@ -71,7 +67,8 @@ export default function SummaryScreen() {
   const target = useTarget(answers, state.uid)
   const targets = full ? target.targets : null
   const kind = full ? 'ring' : 'ghost'
-  const motion = useSummaryMotion(screen, kind, { zeroDays: answers.trainingDays === 0 })
+  const starter = answers.plan?.kind === 'starter' && answers.trainingDays > 0 ? answers.plan : null
+  const motion = useSummaryMotion(screen, kind, { zeroDays: answers.trainingDays === 0, lit: starter?.weekdays.length ?? 0 })
   // Home's hero has its 1×64 split (the thread's vertical end) only with nutrition, and the ring
   // only turns into that line where there is a target; otherwise the line is a horizontal one.
   const vertical = !!targets && nutritionAvailable(user)
@@ -85,9 +82,8 @@ export default function SummaryScreen() {
   useEffect(() => { if (arrivedOnDetour.current) act({ type: 'detour', steps: null }) }, [act])
 
   const kcal = useCount(targets?.calories ?? null, COUNT.kcal[1], { from: 0, delay: COUNT.kcal[0] })
-  const waterMl = targets?.waterMl ?? DEFAULT_WATER_ML
+  const waterMl = targets?.waterMl ?? null
   const waterCount = useCount(waterMl, COUNT.water[1], { from: 0, delay: COUNT.water[0] })
-  const water = units.waterParts(motion.playing ? waterCount : waterMl)
 
   if (setbacks) {
     const lines = [
@@ -100,9 +96,9 @@ export default function SummaryScreen() {
       <StepScreen key="setbacks" titleId="ob-finish-t" title={t('Not everything could be set up')} sub={lines.join(' ')}
         stage={<div className="ob-fin-art"><StarterBaseline className="ob-fin-line" /></div>}
         footer={<>
-          {toTraining && <Button variant="primary" onClick={() => leave('/train')}>{t('Open Training')}</Button>}
-          {setbacks.food && <Button variant={toTraining ? 'tinted' : 'primary'} onClick={() => leave('/food/goals')}>{t('Open Food goals')}</Button>}
-          <Button variant="plain" onClick={() => leave('/home')}>{t('Go to Home')}</Button>
+          {toTraining && <Button onClick={() => leave('/train')}>{t('Open Training')}</Button>}
+          {setbacks.food && <Button variant={toTraining ? 'glass' : 'primary'} onClick={() => leave('/food/goals')}>{t('Open Food goals')}</Button>}
+          <Button variant="ghost" onClick={() => leave('/home')}>{t('Go to Today')}</Button>
         </>} />
     )
   }
@@ -115,10 +111,12 @@ export default function SummaryScreen() {
     act({ type: 'detour', steps: missing })
     go(missing[0])
   }
-  const openSheet = which => useUI.getState().openSheet(close => (
-    <SummarySheet which={which} answers={answers} close={close}
-      onPick={v => act(which === 'goal' ? { type: 'goal', goal: v } : { type: 'activity', value: v })}
-      onDone={() => saveHubStep(which === 'goal' ? 'goal' : 'body')} />
+  const adjust = () => useUI.getState().openSheet(close => <AdjustSheet close={close} />)
+  const activities = ACTIVITY_OPTIONS()
+  const activity = activities.find(o => o.value === answers.activity?.value) || activities[0]
+  const day = () => useUI.getState().openSheet(close => (
+    <DaySheet value={activity.value} close={close}
+      onPick={value => act({ type: 'activity', value })} onDone={() => saveHubStep('body')} />
   ))
   // The CTA is live from the first frame: what is still moving, the thread's flight too, jumps to
   // its end, then it finishes.
@@ -127,46 +125,93 @@ export default function SummaryScreen() {
     finish()
   }
   const shown = motion.playing ? kcal : targets?.calories
-  const ring = <>
-    <StarterBaseline className="ob-sum-line" />
-    <svg className="ob-sum-ring" viewBox="0 0 168 168" aria-hidden="true" focusable="false">
-      <circle className="ob-sum-track" cx="84" cy="84" r="80" />
-      {kind === 'ring'
-        ? <circle className="ob-sum-fg" cx="84" cy="84" r="80" strokeDasharray={RING_C.toFixed(2)} transform="rotate(180 84 84)" />
-        : <circle className="ob-sum-ghost" cx="84" cy="84" r="80" strokeDasharray={`${GHOST.toFixed(2)} ${RING_C.toFixed(2)}`}
-          transform="translate(0 168) scale(1 -1) rotate(180 84 84)" />}
-    </svg>
-    <span className={vertical ? 'ob-sum-thread' : 'ob-sum-thread flat'} aria-hidden="true" />
-  </>
-  const goal = answers.goal || 'keep'
-  const activity = answers.activity?.value || 'sitting'
+  const water = waterMl != null ? units.waterParts(motion.playing ? waterCount : waterMl) : null
+  const locale = dateLocale()
+  const row = weekRow(answers)
 
   return (
     <StepScreen titleId="ob-finish-t"
       title={failed ? t('Your answers could not be saved yet') : name ? t('You’re all set, {0}', name) : t('You’re all set')}
       sub={status === 'busy' ? t('Gains is busy right now. Try again in a moment. Nothing you answered is lost.')
-        : failed ? t('Check your connection and try again. Nothing you answered is lost.') : t('Here’s your Home to start with.')}
+        : failed ? t('Check your connection and try again. Nothing you answered is lost.') : t('Here’s your Today to start with.')}
       stage={<div ref={screen} className="ob-sum">
-        <HeroStatus variant="target" {...statusOf(answers, go)} ring={ring}
-          value={targets ? kcalText(shown ?? 0) : null} unit={targets ? t('kcal a day') : undefined}
-          metrics={[{ label: t('Water'), value: water.value, unit: water.unit, sub: targets ? t('a day') : t('for now') }]}>
-          {targets && <HeroMacros targets={{ proteins: targets.proteinG, carbohydrates: targets.carbsG, fat: targets.fatG }} />}
-          {targets && <p className="hero-c ob-sum-tail">
-            {t('{0} · Adaptive, adjusts to your logs over about 3 weeks', GOAL_LINE()[goal])}
-            <Button variant="plain" size="sm" onClick={() => openSheet('goal')}>{t('Adjust')}</Button>
-          </p>}
-          {targets && <Button className="ob-sum-tail" variant="tinted" size="sm" shape="pill" onClick={() => openSheet('activity')}>
-            {ACTIVITY_CHIP()[activity]} · {t('Change')}
-          </Button>}
-          {!full && <Button className="ob-sum-tail" variant="tinted" size="sm" onClick={details}>{t('Add my details')}</Button>}
-        </HeroStatus>
+        {full
+          ? <div className="ob-sum-card g-glass">
+            <div className="ob-sum-top">
+              <span className="ob-sum-dial">
+                <svg className="ob-sum-ring" viewBox="0 0 116 116" aria-hidden="true" focusable="false">
+                  <circle className="ob-sum-track" cx="58" cy="58" r="46" />
+                  <circle className="ob-sum-fg" cx="58" cy="58" r="46" strokeDasharray={RING.toFixed(2)} transform="rotate(180 58 58)" />
+                </svg>
+                {targets && <span className="ob-sum-mid">
+                  <span className="ob-sum-v">{kcalText(shown ?? 0)}</span>
+                  <span className="ob-sum-u">{t('kcal a day')}</span>
+                </span>}
+              </span>
+              <dl className="ob-sum-facts">
+                <div><dt>{t('Goal')}</dt> <dd>{goalLabel(answers.goal || 'keep')}</dd></div>
+                <div><dt>{t('Pace')}</dt> <dd>{paceLabel(TARGET_SETTINGS.pace)}</dd></div>
+                <div><dt>{t('Mode')}</dt> <dd>{modeLabel(TARGET_SETTINGS.mode)}</dd></div>
+              </dl>
+              <StarterBaseline className="ob-sum-line" />
+              <span className={vertical ? 'ob-sum-thread' : 'ob-sum-thread flat'} aria-hidden="true" />
+            </div>
+            {targets && <div className="ob-sum-macros">
+              {MACROS().map(m => (
+                <div key={m.key} className="ob-sum-mac">
+                  <span>{m.label}<span>{t('{0} g', Math.round(targets[m.key] || 0).toLocaleString(locale))}</span></span>
+                  <i className="ob-sum-bar" aria-hidden="true" />
+                </div>
+              ))}
+            </div>}
+          </div>
+          : <div className="ob-sum-card g-glass">
+            <div className="ob-sum-top set">
+              <svg className="ob-sum-ring set" viewBox="0 0 112 112" aria-hidden="true" focusable="false">
+                {/* One Summary is on screen at a time, so its mask's id is its own. */}
+                <mask id="ob-sum-ghost-mask">
+                  <circle className="ob-sum-ghost-m" cx="56" cy="56" r="44" strokeDasharray={GHOST.toFixed(2)} transform="rotate(180 56 56)" />
+                </mask>
+                <circle className="ob-sum-ghost" cx="56" cy="56" r="44" mask="url(#ob-sum-ghost-mask)" />
+              </svg>
+              <span className="ob-sum-set ob-sum-tail">
+                <b>{t('Set your target')}</b>
+                <span>{t('Add your details and we’ll work out your daily calories.')}</span>
+                <Button size="sm" className="ob-sum-add" onClick={details}>{t('Add my details')}</Button>
+              </span>
+              <StarterBaseline className="ob-sum-line" />
+              <span className="ob-sum-thread flat" aria-hidden="true" />
+            </div>
+          </div>}
+        {water && <div className="ob-sum-water">
+          <GlassList items={[{ icon: 'droplet', title: t('Water'), sub: t('{0} {1} a day', water.value, water.unit) }]} />
+        </div>}
+        {full && <div className="ob-sum-tail">
+          <button type="button" className="ob-sum-chip g-glass" onClick={day}>
+            <Icon name={activity.icon} className="g-icon" />
+            <span>{activity.chip} ·</span>
+            <b>{t('Change')}</b>
+          </button>
+        </div>}
+        <div className="ob-sum-week">
+          <h2 className="ob-sum-h">{t('This week')}</h2>
+          {starter && <div className="ob-sum-days">
+            <StageWeekStrip days={WEEK.map(d => ({ key: d, label: weekdayName(d, locale, 'short'), lit: starter.weekdays.includes(d) }))} />
+          </div>}
+          <div className={starter ? 'ob-sum-next' : 'ob-sum-row'}><GlassList items={[row]} /></div>
+        </div>
+        <p className={full ? 'ob-sum-cap ob-sum-tail' : 'ob-sum-cap plain ob-sum-tail'}>
+          {full ? <><Icon name="info" className="g-icon" />{t('Adjusts to you over about 3 weeks')}</> : t('Add your details any time for a daily target')}
+        </p>
         <p className="sr-only" role="status">{targets && motion.said ? t('Your daily target is {0} kcal a day', kcalText(targets.calories)) : ''}</p>
       </div>}
       footer={<>
-        <Button variant="primary" disabled={status === 'saving' || reading} aria-busy={status === 'saving' || undefined} onClick={goHome}>
-          {failed ? t('Try again') : t('Go to Home')}
+        <Button disabled={status === 'saving' || reading} aria-busy={status === 'saving' || undefined} onClick={goHome}>
+          {failed ? t('Try again') : t('Go to Today')}
         </Button>
-        {failed && <Button variant="plain" onClick={() => navigate('/home', { replace: true })}>{t('Finish later')}</Button>}
+        {failed
+          ? <Button variant="ghost" onClick={() => navigate('/home', { replace: true })}>{t('Finish later')}</Button>
+          : full && <Button variant="ghost" onClick={adjust}>{t('Adjust')}</Button>}
       </>} />
   )
 }

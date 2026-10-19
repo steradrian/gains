@@ -13,7 +13,7 @@ describe('steps left (§6), counted as the progress bar counts them', () => {
     expect(stepsLeft(['training', 'plan'], 'training')).toBe(2)
     // A step behind the one on screen is not left, whatever an older read said.
     expect(stepsLeft(['goal', 'body', 'training', 'plan'], 'plan')).toBe(1)
-    expect(stepsLeft(['plan'], 'starter')).toBe(1)
+    expect(stepsLeft(['plan'], 'starter')).toBeNull()
     expect(stepsLeft([], 'weight')).toBe(0)
   })
 
@@ -114,9 +114,8 @@ describe('progress', () => {
     expect(STEP_COUNT).toBe(8)
     const order = ['name', 'goal', 'sex', 'born', 'height', 'weight', 'training', 'plan']
     expect(order.map(stepOf)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-    // The starter preview is the plan's step; the landing, the passkey result and the end have none.
-    expect(stepOf('starter')).toBe(8)
-    expect(['invite', 'passkey', 'finish'].map(stepOf)).toEqual([null, null, null])
+    // The landing, the passkey result, the starter preview and the end have none (board O2.10).
+    expect(['invite', 'passkey', 'starter', 'finish'].map(stepOf)).toEqual([null, null, null, null])
   })
 
   it('shows the furthest step reached and never shrinks going back', () => {

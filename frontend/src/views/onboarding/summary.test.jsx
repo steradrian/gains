@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// The Summary (ux-onboarding §3b screen 6, motion-onboarding-summary-v2): what it shows for each
-// set of answers, reduced motion, and the hand-over to Home with and without View Transitions.
+// The Summary (ux-onboarding §3b screen 6, boards O2.12–O2.16, motion-onboarding-summary-v2): what
+// each ending shows, its two sheets, reduced motion, and the hand-over to Home with and without
+// View Transitions.
 import { act, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
@@ -9,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ThreadContext } from '../../lib/onboarding/contexts.js'
 import { handOver, takeFirstHome, useFirstHome } from '../../lib/onboarding/handover.js'
 import { LAND_MS } from '../../lib/onboarding/thread-engine.js'
-import { useSummaryMotion } from '../../lib/onboarding/use-summary-motion.js'
+import { GHOST, useSummaryMotion } from '../../lib/onboarding/use-summary-motion.js'
 import { button, flush, mount, rerender, saved, unmountAll, where } from './onboarding.test-util.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -84,7 +85,6 @@ function recordAnimations() {
     restore() { proto.animate = saved.animate; proto.getAnimations = saved.getAnimations },
   }
 }
-const text = page => page.querySelector('.ob-sum').textContent
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -107,56 +107,80 @@ afterEach(() => {
 })
 
 describe('what the Summary shows', () => {
-  it('full data: the name, the first session, the target in the ring, water, macros, the goal and the activity chip', async () => {
+  // This week's row (board O2.12–O2.15): its title and the line under it.
+  const weekRow = page => {
+    const row = page.querySelector('.ob-sum-week .g-glist-row')
+    return [row.querySelector('b').textContent, row.querySelector('.g-glist-body span').textContent]
+  }
+  const footer = page => [...page.querySelectorAll('.ob-foot button')].map(b => b.textContent)
+
+  it('O2.12, a starter plan: the name, the target in the ring, goal, pace and mode, macros, water, the chip, the week and the next session', async () => {
     const page = await summary({ goal: 'lose', body: full, trainingDays: 3, plan: starter })
     expect(page.querySelector('h1').textContent).toBe('You’re all set, Maria')
-    expect(page.querySelector('.hero-target .hero-e').textContent).toMatch(/^First session · Full body \w+ · \w+/i)
-    expect(page.querySelector('.hero-ring .hero-num').textContent).toBe('2,150')
+    expect(page.querySelector('.ob-sub').textContent).toBe('Here’s your Today to start with.')
+    expect(page.querySelector('.ob-sum-v').textContent).toBe('2,150')
     expect(page.querySelector('.ob-sum-fg')).not.toBeNull()
-    expect(page.querySelector('.hero-m').textContent).toBe('2,600mlWatera day')
-    expect(page.querySelector('.hero-macros').textContent).toMatch(/128 g.*240 g.*72 g/)
-    expect(text(page)).toContain('Lose weight · Adaptive, adjusts to your logs over about 3 weeks')
-    expect(button(page, 'Adjust')).toBeTruthy()
-    expect(text(page)).toContain('Assumes a mostly seated day · Change')
+    expect([...page.querySelectorAll('.ob-sum-facts > div')].map(d => d.textContent)).toEqual(['Goal Lose weight', 'Pace Steady', 'Mode Adaptive'])
+    expect(page.querySelector('.ob-sum-macros').textContent).toBe('Protein128 gCarbs240 gFat72 g')
+    expect(page.querySelector('.ob-sum-water').textContent).toBe('Water2,600 ml a day')
+    expect(page.querySelector('.ob-sum-chip').textContent).toBe('Assumes a mostly-seated day ·Change')
+    // Monday, Wednesday and Friday planned; the next of them, its session and how many exercises.
+    expect(page.querySelectorAll('.g-week-disc.on')).toHaveLength(3)
+    const [title, sub] = weekRow(page)
+    expect(title).toMatch(/^Next · (Today|Tomorrow|Monday|Wednesday|Friday)$/)
+    expect(sub).toMatch(/^Full Body \w+ · \d+ exercises$/)
+    expect(page.querySelector('.ob-sum-cap').textContent).toBe('Adjusts to you over about 3 weeks')
+    expect(footer(page)).toEqual(['Go to Today', 'Adjust'])
     expect(button(page, 'Add my details')).toBeUndefined()
   })
 
-  it('no body data: the open ghost arc, Add my details, the default water, no number, macros, Adjust or chip', async () => {
-    const page = await summary({ goal: 'keep', body: none, trainingDays: 3, plan: starter })
-    expect(page.querySelector('.ob-sum-ghost')).not.toBeNull()
-    expect(page.querySelector('.ob-sum-fg')).toBeNull()
-    expect(page.querySelector('.hero-ring .hero-num')).toBeNull()
-    expect(text(page)).toMatch(/2.*for now/)
-    expect(page.querySelector('.hero-macros')).toBeNull()
-    expect(button(page, 'Adjust')).toBeUndefined()
-    expect(text(page)).not.toContain('Change')
-    expect(button(page, 'Add my details')).toBeTruthy()
-  })
-
-  it('zero days: just tracking food, with the full target', async () => {
-    const page = await summary({ goal: 'keep', body: full, trainingDays: 0 })
-    expect(page.querySelector('.hero-target .hero-e').textContent).toBe('Just tracking food')
-    expect(page.querySelector('.hero-ring .hero-num').textContent).toBe('2,150')
-  })
-
-  it('neither body data nor training days: the ghost arc and just tracking food', async () => {
-    const page = await summary({ goal: 'keep', body: none, trainingDays: 0 })
-    expect(page.querySelector('.hero-target .hero-e').textContent).toBe('Just tracking food')
-    expect(page.querySelector('.ob-sum-ghost')).not.toBeNull()
-  })
-
-  it('an AI coach plan: the coach is building it', async () => {
+  it('O2.13, the AI coach: it is on it, and no week of days', async () => {
     // The tab never keeps a coach plan; the hub's stored one counts.
     hub.loadOnboarding.mockResolvedValue({ answers: { plan: coach }, completedAt: null, coachAvailable: true, starterAvailable: true })
     const page = await summary({ goal: 'build', body: full, trainingDays: 4 })
-    expect(page.querySelector('.hero-target .hero-e').textContent).toBe('AI coach is building your plan')
+    expect(weekRow(page)).toEqual(['Your AI coach is on it', 'A card on Today when it is ready to review'])
+    expect(page.querySelector('.g-week')).toBeNull()
+    expect(page.querySelector('.ob-sum-v').textContent).toBe('2,150')
+  })
+
+  it('O2.14, no plan: one can be chosen later in Train, and no week of days', async () => {
+    const page = await summary({ goal: 'keep', body: full, trainingDays: 3, plan: { kind: 'none' } })
+    expect(weekRow(page)).toEqual(['No plan yet', 'Choose a plan any time in Train'])
+    expect(page.querySelector('.g-week')).toBeNull()
+  })
+
+  it('O2.15, zero days: just tracking food, with the full target', async () => {
+    const page = await summary({ goal: 'keep', body: full, trainingDays: 0 })
+    expect(weekRow(page)).toEqual(['Just tracking food', 'Add training any time in Settings'])
+    expect(page.querySelector('.ob-sum-v').textContent).toBe('2,150')
+    expect(page.querySelector('.g-week')).toBeNull()
+  })
+
+  it('O2.16, no body data: the dashed ring and Set your target, the week still shown; no number, macros, water, chip or Adjust', async () => {
+    const page = await summary({ goal: 'keep', body: none, trainingDays: 3, plan: starter })
+    expect(page.querySelector('.ob-sum-ghost')).not.toBeNull()
+    expect(page.querySelector('.ob-sum-fg')).toBeNull()
+    expect(page.querySelector('.ob-sum-set').textContent).toBe('Set your targetAdd your details and we’ll work out your daily calories.Add my details')
+    expect(page.querySelector('.ob-sum-v')).toBeNull()
+    expect(page.querySelector('.ob-sum-macros')).toBeNull()
+    expect(page.querySelector('.ob-sum-water')).toBeNull()
+    expect(page.querySelector('.ob-sum-chip')).toBeNull()
+    expect(page.querySelectorAll('.g-week-disc.on')).toHaveLength(3)
+    expect(page.querySelector('.ob-sum-cap').textContent).toBe('Add your details any time for a daily target')
+    expect(footer(page)).toEqual(['Go to Today'])
+  })
+
+  it('neither body data nor training days: the dashed ring and just tracking food', async () => {
+    const page = await summary({ goal: 'keep', body: none, trainingDays: 0 })
+    expect(weekRow(page)[0]).toBe('Just tracking food')
+    expect(page.querySelector('.ob-sum-ghost')).not.toBeNull()
   })
 })
 
 describe('reduced motion', () => {
   it('shows the final state at once and says the target once, in one status line', async () => {
     const page = await summary({ goal: 'lose', body: full, trainingDays: 3, plan: starter })
-    expect(page.querySelector('.hero-ring .hero-num').textContent).toBe('2,150')
+    expect(page.querySelector('.ob-sum-v').textContent).toBe('2,150')
     const status = page.querySelectorAll('.ob-sum [role="status"]')
     expect(status).toHaveLength(1)
     expect(status[0].textContent).toBe('Your daily target is 2,150 kcal a day')
@@ -212,10 +236,10 @@ describe('the hand-over', () => {
     delete document.startViewTransition
   })
 
-  it('Go to Home completes on the hub, then goes Home', async () => {
+  it('Go to Today completes on the hub, then goes Home', async () => {
     hub.completeOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' } })
     const page = await summary({ goal: 'keep', body: full, trainingDays: 0 })
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     await flush()
     expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
@@ -245,21 +269,36 @@ describe('the timeline', () => {
     expect(Math.min(...delays)).toBeGreaterThanOrEqual(LAND_MS)
   })
 
-  it('brings the caption in at 1400 after the push starts, and at 1300 with no training days', async () => {
+  it('pops one dot per planned day, 50 apart from 1240, then brings the chip and caption in 160 after the last', async () => {
     recorder = recordAnimations()
     const days = await summaryWithTarget(lose, { animated: true })
-    expect(recorder.on(days, '.ob-sum-tail').map(a => a.opts.delay)).toEqual([1400 + PUSH, 1400 + PUSH])
+    expect(recorder.on(days, '.g-week-disc.on').map(a => a.opts.delay)).toEqual([1240 + PUSH, 1290 + PUSH, 1340 + PUSH])
+    expect(recorder.on(days, '.ob-sum-tail').map(a => a.opts.delay)).toEqual([1500 + PUSH, 1500 + PUSH])
+  })
+
+  it('brings the chip and caption in at 1400 with nothing planned, and at 1300 with no training days', async () => {
+    recorder = recordAnimations()
+    const plain = await summaryWithTarget({ goal: 'lose', body: full, trainingDays: 3, plan: { kind: 'none' } }, { animated: true })
+    expect(recorder.on(plain, '.ob-sum-tail').map(a => a.opts.delay)).toEqual([1400 + PUSH, 1400 + PUSH])
     unmountAll()
     document.documentElement.dataset.motion = 'reduce'
     recorder.made.length = 0
     const none = await summaryWithTarget({ goal: 'lose', body: full, trainingDays: 0 }, { animated: true })
     expect(recorder.on(none, '.ob-sum-tail').map(a => a.opts.delay)).toEqual([1300 + PUSH, 1300 + PUSH])
   })
+
+  it('draws the dashed ring out of the line where there is no target', async () => {
+    recorder = recordAnimations()
+    const page = await summaryWithTarget({ goal: 'keep', body: none, trainingDays: 3, plan: starter }, { animated: true })
+    const [draw] = recorder.on(page, '.ob-sum-ghost-m')
+    expect(draw.frames.map(f => f.strokeDashoffset)).toEqual([GHOST, 0])
+    expect(draw.opts.delay).toBe(420 + PUSH)
+  })
 })
 
-describe('Go to Home: stage A', () => {
+describe('Go to Today: stage A', () => {
   const goHome = async page => {
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     for (let i = 0; i < 6; i++) await flush()
   }
   const threadFrames = () => recorder.made.find(a => a.target.classList.contains('ob-sum-thread'))?.frames
@@ -271,12 +310,12 @@ describe('Go to Home: stage A', () => {
     expect(threadFrames()[0].transform).toMatch(/^scale\([\d.]+, 0\)$/)
   })
 
-  it('starts the hairline as wide as the ring\'s stroke, 8px, whatever the hairline is', async () => {
+  it('starts the hairline as wide as the ring\'s stroke, 10px, whatever the hairline is', async () => {
     recorder = recordAnimations()
     const real = globalThis.getComputedStyle
     vi.spyOn(globalThis, 'getComputedStyle').mockImplementation((el, ...rest) => (el.classList?.contains('ob-sum-thread') ? { width: '0.5px' } : real(el, ...rest)))
     await goHome(await summaryWithTarget(lose, { animated: true }))
-    expect(threadFrames()[0].transform).toBe('scale(16, 0)')
+    expect(threadFrames()[0].transform).toBe('scale(20, 0)')
     vi.restoreAllMocks()
   })
 
@@ -296,7 +335,7 @@ describe('Go to Home: stage A', () => {
   })
 })
 
-describe('Go to Home: the shape the transition carries', () => {
+describe('Go to Today: the shape the transition carries', () => {
   const ghost = { goal: 'keep', body: none, trainingDays: 3, plan: starter }
   // What the Summary and the root look like at the moment the View Transition starts, and after it ends.
   async function transition(answers, { nutrition = true } = {}) {
@@ -315,7 +354,7 @@ describe('Go to Home: the shape the transition carries', () => {
       update()
       return { finished: new Promise(r => { finished = r }) }
     })
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     for (let i = 0; i < 6; i++) await flush()
     return { seen, root, end: async () => { finished(); await flush() } }
   }
@@ -434,51 +473,86 @@ describe('the call to action', () => {
   })
 })
 
-describe('the Adjust and activity sheets', () => {
-  it('tell the hub once, when the sheet goes, not on every arrow key', async () => {
+// The sheet the Summary opened last, rendered for real; `close` unmounts it.
+function openedSheet() {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  const close = vi.fn(() => act(() => root.unmount()))
+  act(() => root.render(mocks.sheet(close)))
+  return { host, close, done: () => { if (!close.mock.calls.length) act(() => root.unmount()); host.remove() } }
+}
+const bodySaves = () => hub.saveStep.mock.calls.filter(([step]) => step === 'body')
+
+describe('Your day is mostly (O2.12d)', () => {
+  const chip = page => page.querySelector('.ob-sum-chip')
+
+  it('a pick goes back to the Summary: the chip says it, and the hub is told once, when the sheet goes', async () => {
     const page = await summary({ goal: 'keep', body: full, trainingDays: 0 })
-    await act(async () => { button(page, 'Adjust').click() })
-    const host = document.createElement('div')
-    document.body.appendChild(host)
-    const root = createRoot(host)
-    act(() => root.render(mocks.sheet(() => act(() => root.unmount()))))
+    await act(async () => { chip(page).click() })
+    const sheet = openedSheet()
+    expect([...sheet.host.querySelectorAll('[role="radio"]')].map(r => r.textContent)).toEqual([
+      'Mostly sittingDesk, car, sofa', 'On my feetShop floor, classroom, lots of walking', 'Physical workBuilding site, warehouse, farm',
+    ])
     hub.saveStep.mockClear()
-    host.querySelector('[role="radio"]').focus()
+    await act(async () => { [...sheet.host.querySelectorAll('[role="radio"]')][1].click() })
+    expect(sheet.close).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+    expect(chip(page).textContent).toBe('Assumes a day on your feet ·Change')
+    expect(bodySaves()).toHaveLength(1)
+    expect(bodySaves()[0][1].activity).toEqual({ value: 'on_feet', source: 'user' })
+    sheet.done()
+  })
+
+  it('arrow keys choose without closing or telling the hub; nothing chosen, nothing saved', async () => {
+    const page = await summary({ goal: 'keep', body: full, trainingDays: 0 })
+    await act(async () => { chip(page).click() })
+    let sheet = openedSheet()
+    hub.saveStep.mockClear()
+    sheet.host.querySelector('[role="radio"]').focus()
     const arrow = () => act(() => { document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })) })
     arrow()
     arrow()
     await act(async () => { await vi.advanceTimersByTimeAsync(10) })
-    const goalSaves = () => hub.saveStep.mock.calls.filter(([step]) => step === 'goal')
-    expect(host.querySelectorAll('[role="radio"][aria-checked="true"]')).toHaveLength(1)
-    expect(goalSaves()).toHaveLength(0)
-    act(() => root.unmount())
+    expect(sheet.host.querySelectorAll('[role="radio"][aria-checked="true"]')).toHaveLength(1)
+    expect(sheet.close).not.toHaveBeenCalled()
+    expect(bodySaves()).toHaveLength(0)
+    sheet.done()
     await act(async () => { await vi.advanceTimersByTimeAsync(10) })
-    expect(goalSaves()).toHaveLength(1)
-    host.remove()
-  })
+    expect(bodySaves()).toHaveLength(1)
 
-  it('save nothing when nothing was chosen', async () => {
-    const page = await summary({ goal: 'keep', body: full, trainingDays: 0 })
-    await act(async () => { button(page, 'Adjust').click() })
-    const host = document.createElement('div')
-    document.body.appendChild(host)
-    const root = createRoot(host)
-    act(() => root.render(mocks.sheet(() => {})))
     hub.saveStep.mockClear()
-    act(() => root.unmount())
+    await act(async () => { chip(page).click() })
+    sheet = openedSheet()
+    sheet.done()
     await act(async () => { await vi.advanceTimersByTimeAsync(10) })
     expect(hub.saveStep).not.toHaveBeenCalled()
-    host.remove()
+  })
+})
+
+describe('Adjust your target (O2.12a)', () => {
+  it('shows the pace and the mode the hub sets, read-only: the other choices cannot be picked and nothing is sent', async () => {
+    const page = await summary({ goal: 'lose', body: full, trainingDays: 3, plan: starter })
+    await act(async () => { button(page, 'Adjust').click() })
+    const sheet = openedSheet()
+    expect(sheet.host.querySelector('h3').textContent).toBe('Adjust your target')
+    const group = label => [...sheet.host.querySelector(`[role="group"][aria-label="${label}"]`).querySelectorAll('button')]
+      .map(b => [b.textContent, b.getAttribute('aria-pressed'), b.disabled])
+    expect(group('Pace')).toEqual([['Gentle', 'false', true], ['Steady', 'true', false], ['Faster', 'false', true]])
+    expect(group('Mode')).toEqual([['Adaptive', 'true', false], ['Fixed', 'false', true]])
+    expect(sheet.host.textContent).toContain('Adaptive starts from this number and adjusts to your logs over about 3 weeks. Fixed keeps it where you set it.')
+    hub.saveStep.mockClear()
+    await act(async () => { button(sheet.host, 'Done').click() })
+    expect(sheet.close).toHaveBeenCalledTimes(1)
+    await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+    expect(hub.saveStep).not.toHaveBeenCalled()
+    expect(page.querySelector('.ob-sum-v').textContent).toBe('2,150')
+    sheet.done()
   })
 })
 
 describe('the stylesheets', () => {
   const css = name => readFileSync(resolve(process.cwd(), 'src', name), 'utf8')
-
-  it('the kit owns the look of its target hero, the Summary restyles none of its internals', () => {
-    expect(css('onboarding.css')).not.toMatch(/\.ob-sum \.hero(-c)?[\s{,]/)
-    expect(css('tab-kit.css')).toMatch(/\.hero-target\{padding-top:0\}/)
-  })
 
   it('the thread goes to the hairline of its own shape, and the DOM Home mounts still decides when there is no hero hairline', () => {
     const kit = css('tab-kit.css')
@@ -493,14 +567,5 @@ describe('the stylesheets', () => {
     const handover = readFileSync(resolve(process.cwd(), 'src/lib/onboarding/handover.js'), 'utf8')
     expect(handover).toMatch(/classList\.toggle\('vt-flat', flat\)/)
     expect(handover).toMatch(/classList\.remove\('vt-handover', 'vt-flat'\)/)
-  })
-})
-
-describe('the Summary reuses Home\'s hero', () => {
-  it('imports HeroStatus from the kit and defines no hero of its own', () => {
-    const src = readFileSync(resolve(process.cwd(), 'src/views/onboarding/SummaryScreen.jsx'), 'utf8')
-    expect(src).toMatch(/import \{[^}]*\bHeroStatus\b[^}]*\} from '..\/..\/components\/tab-kit.jsx'/)
-    expect(src).toMatch(/<HeroStatus variant="target"/)
-    expect(src).not.toMatch(/function\s+\w*Hero\w*\s*\(|className="hero["\s]|hero-(ring|v|num|m|mi)\b/)
   })
 })

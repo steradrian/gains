@@ -57,10 +57,11 @@ const NAV = {
 }
 export const navOf = screen => NAV[screen] || { show: false }
 
-// Progress: eight steps, one a question (the entry boards' "Step n of 8"); the starter preview is
-// part of the plan's. The bar shows the furthest step reached and never shrinks (progressMax).
+// Progress: eight steps, one a question (the entry boards' "Step n of 8"). The starter preview
+// (board O2.10) and the end show no bar: the questions are over. The bar shows the furthest step
+// reached and never shrinks (progressMax).
 export const STEP_COUNT = 8
-const STEP = { name: 1, goal: 2, sex: 3, born: 4, height: 5, weight: 6, training: 7, plan: 8, starter: 8 }
+const STEP = { name: 1, goal: 2, sex: 3, born: 4, height: 5, weight: 6, training: 7, plan: 8 }
 /** 1 to 8: the step the screen is, or null where the bar is not shown. */
 export const stepOf = screen => STEP[screen] || null
 /** The furthest step reached once `screen` shows: never lower than it already was. */

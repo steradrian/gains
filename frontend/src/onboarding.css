@@ -95,8 +95,11 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-name span{display:block;padding-top:10px;font:600 13px/16px var(--font-sans);color:var(--on-stage-2)}
 .ob-name input{width:100%;border:0;background:none;outline:none;padding:4px 0 12px;font:600 22px/28px var(--font-sans);color:var(--on-stage)}
 
-/* ---- the drawers' text: the board's spacing inside the app's own sheet ---- */
-.ob-sheet-text{margin:0 0 16px;font:500 16px/23px var(--font-sans);color:var(--text-2)}
+/* ---- the drawers' text: the board's spacing inside the app's own sheet (no .g-root around it
+   there, so the kit's tokens fall back to the app's) ---- */
+.ob-sheet-text{margin:0 0 16px;font:500 16px/23px var(--font-sans, system-ui, sans-serif);color:var(--text-2, var(--label-2))}
+.ob-sheet-fine{margin:0 0 16px;font:500 14px/20px var(--font-sans, system-ui, sans-serif);color:var(--text-3, var(--label-2))}
+.ob-sheet-gap{margin-top:16px}
 .ob-sheet-close{padding-top:8px}
 
 /* ---- the answers (goal, sex, plan): the kit's StageChoiceCard, 10 apart ---- */
@@ -107,9 +110,18 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-chip{min-height:44px;padding:0 16px;border-radius:22px;background:var(--surface-2);font-size:15px;font-weight:500;transition:background var(--fast),box-shadow var(--fast),color var(--fast)}
 .ob-chip:active{transform:scale(.97)}
 .ob-chip[aria-checked="true"]{background:var(--acc-soft);color:var(--acc-ink);box-shadow:inset 0 0 0 2px var(--acc-graphic)}
-.ob-slbl{font-size:13px;color:var(--label-2);margin:4px 4px 6px}
-.ob-fine{font-size:13px;color:var(--label-2);line-height:1.4;margin:0 0 12px}
-.ob-sheet-p{font-size:15px;color:var(--label-2);line-height:1.4;margin:0 0 12px}
+.ob-slbl{font-size:15px;color:var(--label-2);margin:4px 4px 10px}
+.ob-slbl-next{margin-top:16px}
+
+/* the Summary's day sheet (board O2.12d): three rows in one card, a radio at the end of each */
+.ob-radios{border-radius:22px;background:var(--surface);box-shadow:var(--shadow-card);overflow:hidden}
+.ob-radio{appearance:none;border:0;background:none;width:100%;box-sizing:border-box;display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 16px;text-align:start;color:var(--label);cursor:pointer}
+.ob-radio+.ob-radio{border-top:var(--hair) solid var(--sep)}
+.ob-radio-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.ob-radio-t b{font-size:17px;line-height:22px;font-weight:600}
+.ob-radio-t span{font-size:15px;line-height:20px;font-weight:500;color:var(--label-2)}
+.ob-radio-dot{width:24px;height:24px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 2px var(--label-3);transition:box-shadow var(--fast)}
+.ob-radio[aria-checked="true"] .ob-radio-dot{box-shadow:inset 0 0 0 7px var(--acc)}
 
 /* ---- 3a Sex: no scene; the live target stands in the slot, 10 over a floor where Goal's is (the
    same 300-wide canvas: the floor 15 above its foot) ---- */
@@ -225,52 +237,94 @@ body.kb-open .ob-foot .g-sfoot{padding-top:12px;padding-bottom:12px}
 .ob-controls > .g-week{margin-top:16px}
 .ob-controls > .ob-days-cap{padding-inline:8px}
 
-/* ---- 5a starter ---- */
-.ob-plan{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:16px}
-.ob-pl-name{font-size:var(--fs-title3);font-weight:600;letter-spacing:-.02em}
-.ob-pl-meta{font-size:15px;color:var(--label-2);margin-top:2px}
-.ob-pl-days{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px;padding-bottom:10px}
-/* the baseline the tiles stand on: its centre 8 below the tile bottoms (66 + 8) */
-.ob-pl-base{position:absolute;left:0;top:73px;width:100%;height:2px;overflow:visible;pointer-events:none}
-.ob-pl-base path{fill:none;stroke:var(--sep);stroke-width:var(--il-w-d);stroke-linecap:round}
-.ob-pday{height:66px;border-radius:10px;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;padding-top:8px;font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:var(--label-2);transition:background var(--fast)}
-.ob-pday:active{background:var(--surface-3)}
-.ob-pill{position:absolute;top:30px;inset-inline-start:0;width:calc((100% - 24px) / 7);height:28px;display:flex;justify-content:center;pointer-events:none;transform:translateX(calc(var(--d) * (100% + 4px)));transition:transform 320ms var(--ease)}
+/* ---- 5a starter (board O2.10): the plan's name, the week as glass tiles over the thread's line,
+   the selected session in a glass card, "Fitted to … · Change" ---- */
+.ob-pl-head{margin-top:-2px;padding:0 4px;color:var(--on-stage)}
+.ob-pl-name{font:700 22px/28px var(--font-sans);letter-spacing:-.02em}
+.ob-pl-meta{font:500 15px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-pl-days{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:18px;padding-bottom:10px}
+/* the line the tiles stand on: its centre 8 below the tile bottoms (74 + 8), as the stage draws a floor */
+.ob-pl-base{position:absolute;left:0;top:81px;width:100%;height:2px;overflow:visible;pointer-events:none}
+.ob-pl-base path{fill:none;stroke:var(--g-ill-stage-mute);stroke-width:1.5px;stroke-linecap:round}
+.ob-pday{appearance:none;border:0;margin:0;height:74px;border-radius:14px;background:var(--glass);display:flex;flex-direction:column;align-items:center;padding:10px 0 0;font:600 12px/14px var(--font-sans);color:var(--on-stage-2);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ob-pday:focus-visible{outline:2px solid var(--on-stage);outline-offset:2px}
+/* a session's mark, 10 under the day's name; it slides to the day it is moved to */
+.ob-pill{position:absolute;top:34px;inset-inline-start:0;width:calc((100% - 24px) / 7);height:26px;display:flex;justify-content:center;pointer-events:none;transform:translateX(calc(var(--d) * (100% + 4px)));transition:transform 320ms var(--ease)}
 [dir="rtl"] .ob-pill{transform:translateX(calc(var(--d) * (-100% - 4px)))}
-.ob-pill b{min-width:30px;height:28px;padding:0 6px;border-radius:14px;background:var(--acc-soft);color:var(--acc-ink);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1.5px var(--acc-line);transition:background var(--fast),color var(--fast),transform var(--fast) var(--ease)}
-.ob-pill.sel b{background:var(--acc);color:var(--on-acc);box-shadow:none;transform:scale(1.08)}
-.ob-pl-hint{font-size:13px;color:var(--label-2);margin:8px 2px 0}
-.ob-pl-sess{margin-top:14px;transition:opacity 180ms linear}
-.ob-pl-st{font-size:13px;color:var(--label-2);margin-bottom:6px}
-.ob-exr{display:flex;align-items:center;gap:12px;padding:6px 0}
-.ob-exr+.ob-exr{border-top:var(--hair) solid var(--sep)}
-.ob-exth{width:40px;height:40px;border-radius:10px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--label-2);flex:none}
-.ob-exn{font-size:17px;letter-spacing:-.012em}
-.ob-exs{font-size:13px;color:var(--label-2)}
-.ob-pl-fit{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:15px;color:var(--label-2);margin-top:12px;padding-top:4px;border-top:var(--hair) solid var(--sep)}
+.ob-pill b{min-width:26px;box-sizing:border-box;height:26px;padding:0 6px;border-radius:13px;display:grid;place-items:center;font:700 12px/1 var(--font-sans);color:var(--on-stage-2);background:var(--glass);box-shadow:inset 0 0 0 1px var(--glass-line);transition:background-color var(--fast),color var(--fast)}
+.ob-pill.sel b{background:var(--on-stage);color:var(--accent-text);box-shadow:none}
+.ob-pl-sess{margin-top:16px;border-radius:28px;overflow:hidden;color:var(--on-stage);transition:opacity 180ms linear}
+.ob-pl-st{padding:14px 16px 4px;font:700 13px/16px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--on-stage-2)}
+.ob-exr{display:flex;align-items:center;gap:14px;padding:10px 16px}
+.ob-exr+.ob-exr{border-top:1px solid var(--glass-line)}
+.ob-exr .thumb{display:block;width:52px;height:52px;border-radius:14px;background:var(--g-white)}
+.ob-exr-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.ob-exn{font:600 17px/22px var(--font-sans)}
+.ob-exs{font:500 15px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-pl-fit{display:flex;align-items:center;flex-wrap:wrap;gap:0 6px;margin:14px 0 0;padding:0 4px;font:500 15px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-link{appearance:none;border:0;margin:0;background:none;height:44px;padding:0 6px;display:inline-flex;align-items:center;font:700 15px/20px var(--font-sans);color:var(--on-stage);cursor:pointer}
+.ob-link:focus-visible{outline:2px solid var(--on-stage);outline-offset:-2px;border-radius:8px}
 
-/* ---- 6 Summary: the kit's hero (HeroStatus variant="target") around the thread's ring ---- */
+/* ---- 6 Summary (boards O2.12–O2.16): the target card around the thread's ring, water, the
+   activity chip, this week, the caption ---- */
 .ob-fin-art{position:relative;width:min(100%,320px);height:16px;margin:0 auto}
 .ob-fin-line{position:absolute;left:0;top:7px;width:100%;height:2px;overflow:visible;pointer-events:none}
-.ob-fin-line path,.ob-sum-line path{fill:none;stroke:var(--sep);stroke-width:var(--il-w-d);stroke-linecap:round}
-.ob-sum{position:relative}
-.ob-sum .hero-ring>.ob-sum-ring{left:50%;right:auto;width:168px;margin-left:-84px}
-/* The ring's stroke is centred on r=80 in the 168 box, so its 9 o'clock point is 80px left of the
-   middle (84 less the 4 of the stroke's half). The line and the thread both start exactly there.
-   The line the thread lands on runs from that point to the content's end; it shows only while it
-   turns into the ring (lib/onboarding/use-summary-motion.js). */
-.ob-sum .hero-ring>.ob-sum-line{inset:auto;inset-inline:calc(50% - 80px) 0;width:auto;top:83px;height:2px;opacity:0;transform-origin:0 50%}
+.ob-fin-line path,.ob-sum-line path{fill:none;stroke:var(--g-ill-stage-mute);stroke-width:1.5px;stroke-linecap:round}
+.ob-sum{position:relative;padding:0 16px;color:var(--on-stage)}
+.ob-sum-card{border-radius:28px;overflow:hidden;padding:18px}
+.ob-sum-top{position:relative;display:flex;align-items:center;gap:18px}
+.ob-sum-top.set{gap:16px}
+.ob-sum-dial{position:relative;width:116px;height:116px;flex:none}
+.ob-sum-ring{display:block;width:116px;height:116px;flex:none;overflow:visible}
+.ob-sum-ring.set{width:112px;height:112px}
+.ob-sum-ring circle{fill:none}
+.ob-sum-track{stroke:var(--glass-track);stroke-width:10px}
+.ob-sum-fg{stroke:var(--on-stage);stroke-width:10px;stroke-linecap:round}
+/* No target: the dashed ring, drawn out of 9 o'clock through a mask the motion sweeps */
+.ob-sum-ghost{stroke:var(--glass-line);stroke-width:5px;stroke-dasharray:5 9;stroke-linecap:round}
+.ob-sum-ghost-m{fill:none;stroke:var(--g-white);stroke-width:12px}
+.ob-sum-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ob-sum-v{font:700 26px/28px var(--font-sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.ob-sum-u{font:500 13px/16px var(--font-sans);color:var(--on-stage-2)}
+.ob-sum-facts{margin:0;min-width:0;display:flex;flex-direction:column;gap:6px;font:500 15px/20px var(--font-sans)}
+.ob-sum-facts dt{display:inline;color:var(--on-stage-2)}
+.ob-sum-facts dd{display:inline;margin:0}
+/* The ring's stroke is centred on r 46 in the 116 box (44 in the dashed one's 112), so its 9 o'clock
+   point is 12 in from the ring's start and on its middle. The line the thread lands on runs from
+   there to the card's end; it shows only while it turns into the ring (use-summary-motion.js). */
+.ob-sum-line{position:absolute;inset-inline:12px 0;top:57px;width:auto;height:2px;overflow:visible;opacity:0;transform-origin:0 50%;pointer-events:none}
+.ob-sum-top.set .ob-sum-line{top:55px}
 /* Right to left the ring is drawn from 3 o'clock, mirrored whole, and everything that starts at its
    start point starts at the other side (the thread and the line by logical inset). */
-[dir="rtl"] .ob-sum .hero-ring>.ob-sum-line{transform-origin:100% 50%}
+[dir="rtl"] .ob-sum-line{transform-origin:100% 50%}
 [dir="rtl"] .ob-sum-ring{transform-origin:center;scale:-1 1}
-.ob-sum-ring circle{fill:none}
-.ob-sum-track{stroke:var(--surface-2);stroke-width:8px}
-.ob-sum-fg{stroke:var(--acc-graphic);stroke-width:8px;stroke-linecap:round}
-.ob-sum-ghost{stroke:var(--label-3);stroke-width:2.5px;stroke-linecap:round}
-/* What the ring unwinds into on Go to Home: Home's 1×64 hero hairline, or (no target) a line
-   toward the MonthBar's. Not shown before the hand-over. */
-.ob-sum-thread{position:absolute;inset-inline-start:calc(50% - 80px - var(--hair) / 2);top:50%;width:var(--hair);height:64px;margin-top:-32px;background:var(--sep);transform:scale(0)}
-.ob-sum-thread.flat{inset-inline:calc(50% - 80px) 0;width:auto;height:var(--hair);margin-top:calc(var(--hair) / -2);transform:scaleX(0);transform-origin:0 50%}
+.ob-sum-macros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding-top:16px}
+.ob-sum-mac{min-width:0;display:flex;flex-direction:column;gap:6px}
+.ob-sum-mac>span{display:flex;justify-content:space-between;gap:4px;font:600 14px/18px var(--font-sans)}
+.ob-sum-mac>span>span{font-weight:500;color:var(--on-stage-2);white-space:nowrap}
+.ob-sum-bar{display:block;height:6px;border-radius:3px;background:var(--on-stage);transform-origin:0 50%}
+[dir="rtl"] .ob-sum-bar{transform-origin:100% 50%}
+.ob-sum-mac:nth-child(2) .ob-sum-bar{opacity:.75}
+.ob-sum-mac:nth-child(3) .ob-sum-bar{opacity:.55}
+.ob-sum-set{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.ob-sum-set b{font:700 19px/24px var(--font-sans)}
+.ob-sum-set>span{font:500 15px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-sum .ob-sum-add{height:40px;padding:0 16px;font:700 15px/20px var(--font-sans);background:var(--on-stage);color:var(--accent-text)}
+.ob-sum-water{padding-top:10px}
+.ob-sum-chip{appearance:none;border:0;margin:10px 0 0;height:44px;padding:0 16px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font:500 14px/18px var(--font-sans);color:var(--on-stage-2);cursor:pointer}
+.ob-sum-chip .g-icon{width:18px;height:18px;flex:none}
+.ob-sum-chip b{color:var(--on-stage)}
+.ob-sum-chip:focus-visible{outline:2px solid var(--on-stage);outline-offset:2px}
+.ob-sum-h{margin:0;padding:22px 4px 10px;font:700 13px/16px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--on-stage-2)}
+.ob-sum-days{padding-top:16px}
+.ob-sum-next{padding-top:10px}
+.ob-sum-cap{margin:0;padding:12px 8px 0;display:flex;justify-content:center;align-items:center;gap:6px;text-align:center;font:500 14px/20px var(--font-sans);color:var(--on-stage-2)}
+.ob-sum-cap.plain{padding-top:10px}
+.ob-sum-cap .g-icon{width:14px;height:14px;flex:none}
+/* What the ring unwinds into on Go to Today: Home's 1×64 hero hairline out of the ring's 9 o'clock,
+   or (no target) a line from there toward the MonthBar's. Not shown before the hand-over. */
+.ob-sum-thread{position:absolute;inset-inline-start:calc(12px - var(--hair) / 2);top:26px;width:var(--hair);height:64px;background:var(--sep);transform:scale(0)}
+.ob-sum-thread.flat{inset-inline:12px 0;width:auto;top:calc(58px - var(--hair) / 2);height:var(--hair);transform:scaleX(0);transform-origin:0 50%}
+.ob-sum-top.set .ob-sum-thread.flat{top:calc(56px - var(--hair) / 2)}
 [dir="rtl"] .ob-sum-thread.flat{transform-origin:100% 50%}
 html.vt-handover .ob-sum-thread{view-transition-name:thread}

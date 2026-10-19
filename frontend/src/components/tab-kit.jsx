@@ -23,14 +23,11 @@ const EMPTY = '–'
 // the end. status: loading (skeletons at the same sizes), error (the caption and a retry),
 // empty (the values as dashes). tone="over": over a target, said in orange ink, not as an alarm.
 // `ref` reaches the hero's box in every state (Nutrition puts "N left" in the header once it scrolls away).
-// variant="target": the onboarding Summary's hero. The value sits inside `ring` (the Summary's own
-// thread ring), the unit under it; everything else is the same hero, so Home and the Summary
-// never drift apart. Two metrics are split by a real 1×64 hairline element (`.hero-hair`), which
-// the Summary's hand-over names as its thread.
-export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', loadingLabel, tone, onRetry, variant, ring, children, ref }) {
+// Two metrics are split by a real 1×64 hairline element (`.hero-hair`), which the onboarding
+// Summary's hand-over names as its thread.
+export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', loadingLabel, tone, onRetry, children, ref }) {
   oneOf('HeroStatus', 'status', status, STATUSES)
   oneOf('HeroStatus', 'tone', tone, ['over'])
-  oneOf('HeroStatus', 'variant', variant, ['target'])
   if (status === 'loading') {
     return <div className="hero" role="status" ref={ref}>
       <span className="sr-only">{loadingLabel ?? t('Loading today')}</span>
@@ -41,17 +38,11 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     </div>
   }
   const shown = status === 'empty' ? EMPTY : value
-  const target = variant === 'target'
-  return <div className={cx('hero', action && 'hero-has-a', target && 'hero-target')} ref={ref}>
+  return <div className={cx('hero', action && 'hero-has-a')} ref={ref}>
     {glyph && <Icon name={glyph} className="hero-g" />}
     {eyebrow != null && <div className="hero-e">{eyebrow}</div>}
     {title != null && <h2 className="hero-t">{title}</h2>}
-    {target && <div className="hero-ring">
-      {ring}
-      {shown != null && <p className="hero-v"><span className="hero-num">{shown}</span></p>}
-    </div>}
-    {target && unit && status !== 'empty' && <div className="hero-u">{unit}</div>}
-    {!target && title == null && shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
+    {title == null && shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
     {/* After the heading in reading order; placed at the top end by CSS. */}
     {action && <div className="hero-a">{action}</div>}
     {caption != null && <div className={cx('hero-c', tone === 'over' && 'ink-orange')}>{caption}</div>}
@@ -70,19 +61,18 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
 }
 
 // The hero's compact protein, carbs and fat line, in grams: `eaten` against `targets`
-// ("82/150 g", Home), or the targets alone ("150 g", the onboarding Summary). Keys are the
-// diary's: proteins, carbohydrates, fat.
+// ("82/150 g", Home). Keys are the diary's: proteins, carbohydrates, fat.
 const HERO_MACROS = [
   { id: 'proteins', cls: 'p', label: () => t('Protein') },
   { id: 'carbohydrates', cls: 'c', label: () => t('Carbs') },
   { id: 'fat', cls: 'f', label: () => t('Fat') },
 ]
 const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
-export function HeroMacros({ eaten, targets = {} }) {
+export function HeroMacros({ eaten = {}, targets = {} }) {
   return <p className="hero-macros">
     {HERO_MACROS.map(m => <span key={m.id}>
       <i className={'mdot ' + m.cls} aria-hidden="true" /><span className="sr-only">{m.label()} </span>
-      {eaten ? <>{grams(eaten[m.id])}{targets[m.id] != null && '/' + grams(targets[m.id])}</> : grams(targets[m.id])} g
+      {grams(eaten[m.id])}{targets[m.id] != null && '/' + grams(targets[m.id])} g
     </span>)}
   </p>
 }
