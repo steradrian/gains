@@ -216,14 +216,9 @@
 .hero-l .icn{font-size:14px;--icon-stroke:2.4}
 .hero>*+.hero-m{margin-top:var(--space-8)}
 .hero>.hero-a:first-child+.hero-m{margin-top:0}
-.hero-macros{
-  display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2) var(--space-8);margin-top:var(--space-6);
-  font-size:var(--fs-subhead);color:var(--label-2);font-variant-numeric:tabular-nums;
-}
 
-/* The metrics and the P/C/F line take back the column the ⋯ reserves, so the line stays on one. */
-.hero-has-a>.hero-m,.hero-has-a>.hero-macros{margin-inline:calc(-1 * (var(--hdr-btn) + var(--space-2)))}
-.hero-has-a>.hero-m{width:auto;align-self:stretch}
+/* The metrics take back the column the ⋯ reserves, so the line stays on one. */
+.hero-has-a>.hero-m{margin-inline:calc(-1 * (var(--hdr-btn) + var(--space-2)));width:auto;align-self:stretch}
 
 /* TabSection: a tab root's sections, --gap-tab-section apart. */
 .tab-sec{margin-bottom:var(--gap-tab-section)}

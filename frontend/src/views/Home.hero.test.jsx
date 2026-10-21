@@ -5,8 +5,7 @@
 // day every tab shares (ux-redesign-tabs §1.1): planned (Start), done (Workout), rest (Workout),
 // running (Resume), an open edit (Edit), a past day (Log workout); and the hero's ⋯ with "Choose a
 // different workout" — the way to the Start screen when a plan already owns today, since Start goes
-// straight into it — and "Change this day". Last, the week card Today replaced (HomeWeek, swept
-// with the old Home parts in M6).
+// straight into it — and "Change this day". Last, the plan welcome.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -14,7 +13,7 @@ import { useStore } from '../store/useStore.js'
 import { useDiarySelection, useDiaryTarget } from '../lib/nutrition/selection.js'
 import { fmtDate, isoOf, todayISO } from '../lib/format.js'
 import { dayOverrideSheet, logPastWorkoutSheet, menuSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
-import HomeWeek from '../components/HomeWeek.jsx'
+import PlanWelcome from '../components/PlanWelcome.jsx'
 import TrainingHero from '../components/TrainingHero.jsx'
 import TrainingSlot from '../components/TrainingSlot.jsx'
 import Home from './Home.jsx'
@@ -50,7 +49,7 @@ const setS = (over = {}) => useStore.setState(s => ({
 }))
 function TrainingDay() {
   const { date } = useDiaryTarget(null)
-  return <><TrainingHero date={date} /><TrainingSlot date={date} /><HomeWeek /></>
+  return <><TrainingHero date={date} /><TrainingSlot date={date} /></>
 }
 const mount = () => act(() => root.render(<TrainingDay />))
 const mountToday = () => act(() => root.render(<Home />))
@@ -224,12 +223,11 @@ describe('Training — the hero and the first action', () => {
     expect(startFlow).not.toHaveBeenCalled()
   })
 
-  it('a rest day names every routine of the next session, as This week does', () => {
+  it('a rest day names every routine of the next session', () => {
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
     const pull = { id: 'r2', name: 'Pull', emoji: null, ex: [{ id: '0025' }] }
     setS({ routines: [...routines, pull], week: { [tomorrow.getDay()]: ['r1', 'r2'] } }); mount()
     expect(hero().caption).toMatch(/^Next session: \w+, Push \+ Pull$/)
-    expect(host.querySelector('.item-lg .ss').textContent).toMatch(/Next session: \w+, Push \+ Pull/)
   })
 
   it('the ⋯ comes after the heading in reading order', () => {
@@ -308,9 +306,9 @@ describe('Training — the hero and the first action', () => {
   })
 })
 
-describe('This week card', () => {
+describe('Plan welcome', () => {
   it('with no routines, welcomes with a starter plan or your own', () => {
-    setS({ routines: [], week: {} }); mount()
+    setS({ routines: [], week: {} }); act(() => root.render(<PlanWelcome />))
     expect(host.textContent).toContain('Welcome!')
     const empty = host.querySelector('.empty[data-surface=page]')
     expect(empty.querySelector('.lineart[data-scene=routine]')).not.toBeNull()
@@ -321,31 +319,8 @@ describe('This week card', () => {
     expect(nav).toHaveBeenCalledWith('/train/routines')
   })
 
-  it('done against planned with the streak, opening Training', () => {
-    const now = Date.now()
-    setS({ workouts: [{ id: 'w', d: TODAY, start: now - 3600000, end: now, routineIds: ['r1'], routineId: 'r1', name: 'Push', entries: [] }] }); mount()
-    expect(host.querySelector('.item-lg .tt').textContent).toBe('1 of 7 this week')
-    expect(host.querySelector('.item-lg .ss').textContent).toMatch(/^1 week streak · Next session: \w+, Push · 1 workout total$/)
-    tap(host.querySelector('.item-lg'))
-    expect(nav).toHaveBeenCalledWith('/train')
-    tap([...host.querySelectorAll('.sec-h-l')].find(b => b.textContent === 'View plan'))
-    expect(nav).toHaveBeenCalledTimes(2)
+  it('Today has no body-weight card, whatever the old preference said', () => {
+    setS({ routines: [], week: {} }); mountToday()
+    expect([...host.querySelectorAll('h2')].some(el => el.textContent === 'Body weight')).toBe(false)
   })
-
-  it('routines with nothing scheduled say so, with the way to schedule them', () => {
-    setS({ week: {} }); mount()
-    expect(host.querySelector('.item-lg .tt').textContent).toBe('1 routine')
-    expect(host.querySelector('.item-lg .ss').textContent).toBe('Not scheduled')
-    tap(host.querySelector('.media-link'))
-    expect(nav).toHaveBeenCalledWith('/train/schedule')
-  })
-
-  it('with nothing scheduled it still counts the sessions done this week and in all', () => {
-    const now = Date.now()
-    const w = (id, d) => ({ id, d, start: now - 3600000, end: now, routineIds: [], name: 'Freestyle', entries: [] })
-    const old = '2020-01-06'
-    setS({ week: {}, workouts: [w('a', old), w('b', TODAY)] }); mount()
-    expect(host.querySelector('.item-lg .ss').textContent).toBe('Not scheduled · 1 this week · 2 workouts total')
-  })
-
 })

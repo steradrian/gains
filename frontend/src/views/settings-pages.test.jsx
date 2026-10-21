@@ -603,7 +603,7 @@ describe('Features', () => {
 describe('Appearance', () => {
   it('keeps reduce motion, and drops nothing else of its own', () => {
     mount('appearance')
-    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Body weight', 'Show connection status'])
+    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Show connection status'])
     act(() => rowTitled('Reduce motion').querySelector('[role="switch"]').click())
     expect(mocks.S.reduceMotion).toBe(true)
   })

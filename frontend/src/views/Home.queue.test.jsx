@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// A coach week (S.queue) runs by order, not by weekday, so the This week card (HomeWeek, which
-// Today replaced; swept in M6) carries its progress row, beside Training's hero and first action. Covered here: one chip per session in slot order with its state word, a tap on
+// A coach week (S.queue) runs by order, not by weekday, so Training's Your plan (TrainPlan)
+// carries its progress row, beside Training's hero and first action. Covered here: one chip per session in slot order with its state word, a tap on
 // an undone chip starting that routine alone, a done chip staying inert, the status line's
 // states, the hero and the action row answering through the same helper, and a session pinned to
 // a day (S.dayPlan[iso] = queue routine id) wearing its day on the chip and yielding the light.
@@ -11,9 +11,9 @@ import { useStore } from '../store/useStore.js'
 import { startFlow } from '../sheets.jsx'
 import { todayISO, isoOf, fmtDate } from '../lib/format.js'
 import { setLang } from '../lib/i18n.js'
-import HomeWeek from '../components/HomeWeek.jsx'
 import TrainingHero from '../components/TrainingHero.jsx'
 import TrainingSlot from '../components/TrainingSlot.jsx'
+import TrainPlan from '../components/TrainPlan.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {}, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
@@ -54,15 +54,13 @@ const setS = (over = {}) => useStore.setState(s => ({
   S: { ...s.S, routines, week: {}, dayPlan: {}, workouts: [], active: null, queue: queue(), rotation: null, scheduleMode: null, ...over }, user: null,
 }))
 const TODAY = todayISO()
-const mount = () => act(() => root.render(<><TrainingHero date={TODAY} /><TrainingSlot date={TODAY} /><HomeWeek /></>))
+const mount = () => act(() => root.render(<><TrainingHero date={TODAY} /><TrainingSlot date={TODAY} /><TrainPlan /></>))
 const chips = () => [...host.querySelectorAll('.queue .chip')]
 const chipTexts = () => chips().map(c => c.textContent)
 const status = () => host.querySelector('.queue .queue-status')?.textContent
 const heroTitle = () => host.querySelector('.hero-t')?.textContent
 const heroCaption = () => host.querySelector('.hero-c')?.textContent ?? null
 const firstAction = () => host.querySelector('.act-b .act-l')?.textContent
-// The This week card's tally line.
-const week = () => host.querySelector('.item-lg .tt')?.textContent
 
 describe('Home — coach week progress row', () => {
   it('shows one chip per session, in slot order, and lights the first', () => {
@@ -134,12 +132,11 @@ describe('Home — coach week progress row', () => {
     expect(heroCaption()).toBeNull()
   })
 
-  it('Rotation chosen with nothing built yet: no progress row, and the week says nothing is scheduled', () => {
+  it('Rotation chosen with nothing built yet: no progress row, and the plan says there is no rotation yet', () => {
     setS({ queue: null, rotation: null, scheduleMode: 'rotation', week: {} })
     mount()
     expect(host.querySelector('.queue')).toBeNull()
-    expect(week()).toBe('4 routines')
-    expect(host.querySelector('.item-lg .ss').textContent).toBe('Not scheduled')
+    expect(host.textContent).toContain('No rotation yet')
     expect(heroTitle()).toBe('Rest day')
     expect(heroCaption()).toBeNull()
   })
@@ -194,29 +191,27 @@ describe('Home — coach week progress row', () => {
     setS({ queue: { ids: 'd1' }, week: { [new Date().getDay()]: ['own'] } })
     mount()
     expect(host.querySelector('.queue')).toBeNull()
-    expect(week()).toBe('0 of 1 this week')
     expect(heroTitle()).toBe('Core')
   })
 
-  it('the week counts the coach sessions done, wherever in the calendar they fell', () => {
-    // Ran long: the queue applied ten days ago and D1 logged the day after — never in this
-    // calendar week, whichever weekday today is, so a calendar-week count would show 0 of 3.
+  it('the queue tally counts the coach sessions done, wherever in the calendar they fell', () => {
+    // Ran long: the queue applied ten days ago and D1 logged the day after, never in this
+    // calendar week, whichever weekday today is.
     const since = Date.now() - 10 * 86400000, start = since + 3600000
     setS({ queue: queue({ since, startsOn: daysFromToday(-9) }), workouts: [{ ...logged('d1'), d: isoOf(new Date(start)), start, end: start + 3600000 }] })
     mount()
-    expect(week()).toBe('1 of 3 this week')
+    expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('1 / 3')
   })
 
-  it('the week counts your own day beside the coach week, planned and done', () => {
+  it('your own day beside the coach week does not count in the queue tally', () => {
     const now = Date.now()
     const core = { id: 'w-own', d: todayISO(), start: now - 3600000, end: now, routineIds: ['own'], routineId: 'own', name: 'Core', entries: [] }
     setS({ week: { [new Date().getDay()]: ['own'] }, workouts: [logged('d1'), core] })
     mount()
-    expect(week()).toBe('2 of 4 this week')
     expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('1 / 3')
   })
 
-  it('a managed pass counts your own day beside it exactly as an external one does — ownership plays no part in the tally', () => {
+  it('a managed pass keeps the same tally beside your own day — ownership plays no part in it', () => {
     const now = Date.now()
     const core = { id: 'w-own', d: todayISO(), start: now - 3600000, end: now, routineIds: ['own'], routineId: 'own', name: 'Core', entries: [] }
     setS({
@@ -225,15 +220,14 @@ describe('Home — coach week progress row', () => {
       week: { [new Date().getDay()]: ['own'] }, workouts: [logged('d1'), core],
     })
     mount()
-    expect(week()).toBe('2 of 4 this week')
     expect(host.querySelectorAll('.queue .row .small')[1].textContent).toBe('1 of 3 done this round.')
   })
 
-  it('without a queue there is no progress row, and the week names the next session', () => {
+  it('without a queue there is no progress row, and the plan lists the week', () => {
     setS({ queue: null, week: { [new Date(daysFromToday(1) + 'T12:00:00').getDay()]: ['own'] } })
     mount()
     expect(host.querySelector('.queue')).toBeNull()
-    expect(host.querySelector('.item-lg .ss').textContent).toMatch(/^Next session: \w+, Core$/)
+    expect(host.textContent).toContain('Core')
   })
 })
 

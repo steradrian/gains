@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// Scan logs to where the + sheet's Scan does: the date and the meal every tab shares, from Home's
-// action row, Nutrition's action row and the search pill's barcode button alike. A meal slot past
+// Scan logs to where the + sheet's Scan does: the date and the meal every tab shares, from
+// Nutrition's action row and the search pill's barcode button alike. A meal slot past
 // the end of the list (a meal removed in Profile after it was picked) falls back to the first.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -12,7 +12,6 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay } from '../lib/nutrition/fake-nutritrace.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { endSearch } from '../lib/search/session.js'
-import HomeActions from './HomeActions.jsx'
 import NutritionActions from './NutritionActions.jsx'
 import RootHeader from './RootHeader.jsx'
 import { scanToSelection } from './scan-to-selection.js'
@@ -26,7 +25,6 @@ const day = { on: true, dayReady: true, settings: null }
 let host, root
 
 const entries = {
-  'the Home action row': { path: '/', ui: <HomeActions date={todayISO()} day={day} />, press: () => labelled('Scan') },
   'the Nutrition action row': { path: '/food', ui: <NutritionActions date={todayISO()} day={day} />, press: () => labelled('Scan') },
   'the header\'s barcode button': { path: '/food', ui: <RootHeader title="Nutrition" />, open: true, press: () => labelled('Scan barcode') },
 }
