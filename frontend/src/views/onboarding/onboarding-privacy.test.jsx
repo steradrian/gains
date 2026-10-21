@@ -5,6 +5,9 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// These tests are about the Coach being on; the "coming soon" switch has its own tests.
+vi.mock('../../lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import { button, flush, mount, radio, rerender, saved, stubReload, unmountAll, where } from './onboarding.test-util.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true

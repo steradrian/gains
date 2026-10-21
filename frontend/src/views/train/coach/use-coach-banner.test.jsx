@@ -9,6 +9,8 @@ import InlineBanner from '../../../ds/InlineBanner.jsx'
 import { click, useView } from '../../../ds/render.test-util.js'
 import { coachBannerOf, useCoachBanner } from './use-coach-banner.js'
 
+const flag = vi.hoisted(() => ({ soon: false }))
+vi.mock('../../../lib/coach-availability.js', () => ({ get COACH_COMING_SOON() { return flag.soon } }))
 const mocks = vi.hoisted(() => ({ S: null, pending: null, job: null, config: null, nav: vi.fn(), toast: vi.fn(), active: [] }))
 vi.mock('../../../store/useStore.js', () => {
   const snap = () => ({ S: mocks.S, config: mocks.config, user: { id: 'u1' }, coachLocal: null, update: mut => mut(mocks.S) })
@@ -52,6 +54,7 @@ const button = label => [...view.host.querySelectorAll('button')].find(b => b.te
 
 beforeEach(() => {
   vi.clearAllMocks()
+  flag.soon = false
   mocks.S = S(); mocks.pending = null; mocks.job = null; mocks.config = { coach: { enabled: true } }; mocks.active = []
 })
 
@@ -80,6 +83,14 @@ describe('the Plan screen’s Coach banner', () => {
     expect(mocks.active.at(-1)).toBe(true)
     click(button('Review'))
     expect(mocks.nav).toHaveBeenCalledWith('/train/coach')
+  })
+
+  it('is hidden, and the status is not polled, while the Coach is coming soon', () => {
+    flag.soon = true
+    mocks.pending = REVIEW
+    view.render(<Banner />)
+    expect(view.host.textContent).toBe('')
+    expect(mocks.active.at(-1)).toBe(false)
   })
 
   it('is not there with nothing pending, or while a job runs', () => {

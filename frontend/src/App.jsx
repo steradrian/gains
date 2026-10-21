@@ -77,6 +77,8 @@ import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
+import CoachSoon from './views/CoachSoon.jsx'
+import { COACH_COMING_SOON } from './lib/coach-availability.js'
 import TrainHub from './views/TrainHub.jsx'
 import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
@@ -296,7 +298,7 @@ function Shell() {
   }, [inWorkout, inFlow, onAddDevice])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || inFlow || onAddDevice || shown.pathname === '/train/coach' || needsMobileOnboarding
+  const noTabs = inWorkout || inFlow || onAddDevice || (shown.pathname === '/train/coach' && !COACH_COMING_SOON) || needsMobileOnboarding
   // One live dock while a workout runs and you are elsewhere (it takes the rest bar's place).
   const docked = !noTabs && !onWorkout && workoutRunning(S)
   // No route of its own (a launch, a home-screen icon): straight into a running workout, else
@@ -381,10 +383,10 @@ function AppRoutes({ location, fallback, S, user }) {
       {/* The Coach screens gate themselves on the instance config; the routes exist
           unconditionally so a deep link from a notification lands somewhere sane
           rather than on the catch-all. */}
-      <Route path="/train/coach" element={<CoachChat />} />
-      <Route path="/train/coach/intake" element={<CoachIntake />} />
+      <Route path="/train/coach" element={COACH_COMING_SOON ? <CoachSoon /> : <CoachChat />} />
+      <Route path="/train/coach/intake" element={COACH_COMING_SOON ? <CoachSoon /> : <CoachIntake />} />
       <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
-      <Route path="/train/coach/setup" element={<CoachSetup />} />
+      <Route path="/train/coach/setup" element={COACH_COMING_SOON ? <CoachSoon /> : <CoachSetup />} />
       {/* Train slice 6 routes: Ready-made plans and a plan's preview. Gym setup is /me/equipment (SettingsRoute). */}
       <Route path="/train/plans" element={<PlansScreen />} />
       <Route path="/train/plans/:id" element={<PlanPreview />} />

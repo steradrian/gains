@@ -3643,4 +3643,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': '你的教練還在熱身',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': '它會讀取你的訓練與打卡，然後為你這週的安排提出調整建議。你核准之前，什麼都不會改變。',
+  'A peek at what it will do': '先看看它會做什麼',
+  'Preview': '預覽',
+  'Coming soon': '即將推出',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': '本週四次訓練已完成三次。你的深蹲已可挑戰 102.5 kg × 5。',
+  'Move Legs to Thursday': '把腿部訓練移到週四',
+  'You’ve missed Mondays three weeks running': '你已經連續三週沒練週一了',
 }
