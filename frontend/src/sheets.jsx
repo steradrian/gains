@@ -4,7 +4,7 @@
 export { addDeviceDataMessage, addDeviceSetupMessage, askAddDeviceData, menuSheet, confirmSheet } from './sheets/confirm-menu.jsx'
 export { starterPlanSheet } from './sheets/starter.jsx'
 export { bwSheet, weighInsSheet, bwDeltaColor, goalSheet } from './sheets/body-weight.jsx'
-export { importFromApp, importFromHevy } from './sheets/import.jsx'
+export { importFromApp, showHevyPreview } from './sheets/import.jsx'
 export { barWeightSheet, plateInventorySheet, dumbbellInventorySheet, equipmentProfileSheet } from './sheets/equipment.jsx'
 export { detailTags, exerciseDetailSheet, exerciseHistorySheet, addToRoutineSheet, customExSheet, deleteCustomEx } from './sheets/exercise.jsx'
 export { exercisePicker, swapActiveWorkoutExercise } from './sheets/exercise-picker.jsx'
