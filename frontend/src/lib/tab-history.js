@@ -76,7 +76,8 @@ export function stackFor(nav, target, path) {
 // What showing `target` takes: how far back to walk (to the first entry), then the paths to put
 // there, the first one replacing that entry and the rest pushed. `nav` is what to keep.
 // - another tab: its own stack comes back (plus `path`), this one is put aside;
-// - the tab on screen with `toRoot` (its bar button tapped again): back down to its root.
+// - the tab on screen with `toRoot` (its bar button tapped again): back down to its root, or to
+//   `path` on its root (the search shortcut on a Progress page: Progress, over Profile).
 // Null when there is nothing to do.
 // - another tab's bar button while a search visit shows its page (`toRoot`): that tab's root.
 // The stack put aside never keeps another tab's page (one a search visit put on top of it).
@@ -86,8 +87,9 @@ export function planSwitch(nav, target, { path, toRoot = false, leaving } = {}) 
   const here = compact(leaving || nav.entries.slice(0, nav.idx + 1)).filter(own)
   if (target === nav.tab) {
     if (!toRoot) return null
-    if (here.length <= 1 && here[0] === TAB_ROOT[target] && nav.entries.slice(0, nav.idx + 1).every(p => !p || own(p))) return null
-    return { back: Math.max(0, nav.idx), stack: [TAB_ROOT[target]], nav }
+    const stack = path && path !== TAB_ROOT[target] ? [TAB_ROOT[target], path] : [TAB_ROOT[target]]
+    if (here.join('\n') === stack.join('\n') && nav.entries.slice(0, nav.idx + 1).every(p => !p || own(p))) return null
+    return { back: Math.max(0, nav.idx), stack, nav }
   }
   return {
     back: Math.max(0, nav.idx),

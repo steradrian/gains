@@ -31,6 +31,9 @@ export function tabOf(pathname = '') {
 
 export const isTabRoot = (pathname = '') => TABS.some(tab => TAB_ROOT[tab] === pathname)
 
+// Progress and its pages: Me's, under Profile, with a root header (and search pill) of their own.
+export const inProgress = (pathname = '') => under(pathname, PROGRESS_ROOT)
+
 // Bar slot of a tab: slot 2 is the centre +, which a tab never occupies.
 export const slotOf = i => (i < 2 ? i : i + 1)
 

@@ -148,6 +148,14 @@ describe('the active tab tapped again', () => {
   it('is nothing to do on the root itself', () => {
     expect(planSwitch(start('/train'), 'train', { toRoot: true })).toBeNull()
   })
+
+  it('with a path, goes down to that page on the root: Progress over Profile', () => {
+    const nav = push(push(start('/me'), '/progress'), '/progress/body')
+    const plan = planSwitch(nav, 'me', { toRoot: true, path: '/progress' })
+    expect(plan.back).toBe(2)
+    expect(plan.stack).toEqual(['/me', '/progress'])
+    expect(planSwitch(push(start('/me'), '/progress'), 'me', { toRoot: true, path: '/progress' })).toBeNull()
+  })
 })
 
 describe('the forward history a switch leaves behind', () => {

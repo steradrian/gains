@@ -93,7 +93,8 @@ function onNextPop(fn) {
   return once
 }
 export const switchTab = (tab, path) => afterSheet(() => api.switchTab(tab, path))
-export const popToRoot = tab => afterSheet(() => api.popToRoot(tab))
+// `path`: down to that page on the tab's root instead (planSwitch), when the tab is on screen.
+export const popToRoot = (tab, path) => afterSheet(() => api.popToRoot(tab, path))
 // A sub-page's back: one step down this tab's stack, or with nothing under it in the tab (a deep
 // link, a reload) to the page's parent in its place — `parent` when the page knows better than
 // lib/tab-route.js (a settings sub-page's own parent page). Also how a finished workout leaves.
@@ -272,9 +273,9 @@ export function useTabNav({ navigate, location, navType }) {
     run(planSwitch(nav, target, { path }), { shownLocation: location, shownTab: nav.tab, target })
   }, [navigate, location, run])
 
-  const doPopToRoot = useCallback(target => {
+  const doPopToRoot = useCallback((target, path) => {
     if (pending.current) return
-    const plan = planSwitch(navRef.current, target, { toRoot: true })
+    const plan = planSwitch(navRef.current, target, { toRoot: true, path })
     if (!plan) { window.scrollTo(0, 0); return }
     run(plan, { shownLocation: location, shownTab: target, target })
   }, [location, run])
