@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
+import { setNav } from '../lib/nav.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { noteAnswer, resetOffBudget } from '../lib/nutrition/off-budget.js'
@@ -219,14 +220,14 @@ describe('the diary picker', () => {
     expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Nutella' })
   })
 
-  it('opens the create sheet with the typed name, and logs the new food once saved', async () => {
+  it('opens the new-food editor with the typed name, and writes nothing yet', async () => {
+    const go = vi.fn()
+    setNav(go)
     await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
     await search(host, 'Zucchini')
     await click(row(host, 'Create food'))
-    expect(lastSheet().querySelector('input').value).toBe('Zucchini')
-    await click(buttonIn(lastSheet(), 'Save'))
-    expect(foodPosts()[0].body).toMatchObject({ name: 'Zucchini' })
-    expect(lastSheet().textContent).toContain('Serving size')
+    expect(go).toHaveBeenCalledWith('/food/my-foods/foods/new', expect.objectContaining({ state: { prefill: { name: 'Zucchini' } } }))
+    expect(foodPosts()).toHaveLength(0)
   })
 })
 
@@ -500,14 +501,13 @@ describe('the ingredient picker', () => {
     expect(titles(lastSheet())).toContain('Rolled oats')
   })
 
-  it('creates a food from the typed name and uses it', async () => {
-    const onDone = vi.fn()
-    await open(onDone)
+  it('leaves for the new-food editor with the typed name, and the sheet closes', async () => {
+    const go = vi.fn()
+    setNav(go)
+    await open(vi.fn())
     await search(lastSheet(), 'Zucchini')
     await click(row(lastSheet(), 'Create food'))
-    expect(lastSheet().querySelector('input').value).toBe('Zucchini')
-    await click(buttonIn(lastSheet(), 'Save'))
-    await click(buttonIn(lastSheet(), 'Add'))
-    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ name: 'Zucchini' }))
+    expect(go).toHaveBeenCalledWith('/food/my-foods/foods/new', expect.objectContaining({ state: { prefill: { name: 'Zucchini' } } }))
+    expect(useUI.getState().sheets).toHaveLength(0)
   })
 })

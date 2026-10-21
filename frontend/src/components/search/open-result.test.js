@@ -5,14 +5,13 @@ import { todayISO } from '../../lib/format.js'
 
 const sheets = vi.hoisted(() => ({
   exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(), foodDetailSheet: vi.fn(), mealDetailSheet: vi.fn(), manageMeasurementsSheet: vi.fn(),
-  bwSheet: vi.fn(), customExSheet: vi.fn(), foodEditSheet: vi.fn(),
+  bwSheet: vi.fn(), customExSheet: vi.fn(),
 }))
 const session = vi.hoisted(() => ({ visit: vi.fn(), setGroup: vi.fn(), setQuery: vi.fn() }))
 const fasting = vi.hoisted(() => ({ setFastingEnabled: vi.fn() }))
 vi.mock('../../sheets.jsx', () => ({ exerciseDetailSheet: sheets.exerciseDetailSheet, workoutDetailSheet: sheets.workoutDetailSheet, bwSheet: sheets.bwSheet, customExSheet: sheets.customExSheet }))
 vi.mock('../FoodDetailSheet.jsx', () => ({ foodDetailSheet: sheets.foodDetailSheet }))
 vi.mock('../MealDetailSheet.jsx', () => ({ mealDetailSheet: sheets.mealDetailSheet }))
-vi.mock('../FoodEditSheet.jsx', () => ({ foodEditSheet: sheets.foodEditSheet }))
 vi.mock('../../views/Measurements.jsx', () => ({ manageMeasurementsSheet: sheets.manageMeasurementsSheet }))
 vi.mock('../../lib/search/session.js', () => ({ visit: session.visit, setGroup: session.setGroup, setQuery: session.setQuery }))
 vi.mock('../../lib/nutrition/use-fasting.js', () => ({ setFastingEnabled: fasting.setFastingEnabled }))
@@ -55,6 +54,10 @@ describe('opening a result', () => {
     expect(sheets.workoutDetailSheet).toHaveBeenCalledWith({ id: 'w1' })
     open({ type: 'food', id: 11, food: { id: 11 } })
     expect(sheets.foodDetailSheet).toHaveBeenLastCalledWith(expect.objectContaining({ food: { id: 11 }, onEdit: expect.any(Function) }))
+    // Edit opens the food's editor page, not a sheet.
+    sheets.foodDetailSheet.mock.lastCall[0].onEdit({ id: 11 })
+    expect(session.visit).toHaveBeenLastCalledWith('/food/my-foods/foods/11')
+    session.visit.mockClear()
     open({ type: 'meal', id: 21 })
     expect(sheets.mealDetailSheet).toHaveBeenLastCalledWith({ id: 21, recipe: false })
     open({ type: 'recipe', id: 22 })
@@ -129,7 +132,7 @@ describe('the search\'s other taps', () => {
     runNoneAction({ kind: 'near', name: 'protein bar' })
     expect(session.setQuery).toHaveBeenCalledWith('protein bar')
     runNoneAction({ kind: 'create-food', name: 'protien bar' })
-    expect(sheets.foodEditSheet).toHaveBeenLastCalledWith(expect.objectContaining({ food: { name: 'protien bar' } }))
+    expect(session.visit).toHaveBeenLastCalledWith('/food/my-foods/foods/new', { state: { prefill: { name: 'protien bar' } } })
     runNoneAction({ kind: 'create-exercise', name: 'cable Y raise' })
     expect(sheets.customExSheet).toHaveBeenCalledWith(null, null, 'cable Y raise')
     const askOnline = vi.fn()

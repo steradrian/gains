@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
+import { setNav } from '../lib/nav.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
@@ -152,16 +153,15 @@ describe('scanning a product', () => {
     expect(lastSheet().textContent).toContain('Log food')
   })
 
-  it('a miss opens the create-food sheet with the scanned barcode filled in', async () => {
+  it('a miss opens the new-food editor with the scanned barcode, and writes nothing', async () => {
+    const go = vi.fn()
+    setNav(go)
     await openScan()
     await scan('9999999999999')
     await click(button('New food', lastSheet()))
-    const field = [...lastSheet().querySelectorAll('input')].find(i => i.value === '9999999999999')
-    expect(field).toBeTruthy()
-    await typeInto([...lastSheet().querySelectorAll('input')][0], 'Mystery bar')
-    await click(button('Save', lastSheet()))
-    const post = nt.writes().find(w => w.method === 'POST' && w.path === '/nt/api/foods')
-    expect(post.body).toMatchObject({ name: 'Mystery bar', barcode: '9999999999999' })
+    expect(go).toHaveBeenCalledWith('/food/my-foods/foods/new', expect.objectContaining({ state: { prefill: { barcode: '9999999999999' } } }))
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(nt.writes().find(w => w.method === 'POST' && w.path === '/nt/api/foods')).toBeUndefined()
   })
 
   it('a product listed without calories cannot be logged and says why', async () => {
