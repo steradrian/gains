@@ -23,13 +23,19 @@ import { nativeKeyboardHeight, NATIVE_KEYBOARD_EVENT } from './native-keyboard.j
    the larger of the two wins. Android Chrome's default (`interactive-widget=resizes-visual`; the
    viewport meta in index.html does not set it) behaves like iOS here. */
 
+/* Nothing shorter than this is a keyboard. An installed iOS PWA can report a visual viewport a
+   status bar's height (~59px) shorter than `innerHeight` with no keyboard up; read as a keyboard
+   it lifted every drawer off the bottom edge, with the page showing in the gap. */
+export const KEYBOARD_MIN_PX = 120
+
 /* The keyboard's reach up the layout viewport, and the height left above it. */
 export function sheetKeyboardInsets(win) {
   const viewport = win.visualViewport
   const native = nativeKeyboardHeight(win.document)
   const vh = Math.max(0, viewport?.height || win.innerHeight)
   const visualBottom = (viewport?.offsetTop || 0) + vh
-  const bottomInset = Math.max(0, win.innerHeight - visualBottom, native)
+  const visualInset = Math.max(0, win.innerHeight - visualBottom)
+  const bottomInset = Math.max(visualInset >= KEYBOARD_MIN_PX ? visualInset : 0, native)
   const visualHeight = Math.max(0, Math.min(vh, win.innerHeight - native))
   return { bottomInset, visualHeight }
 }
