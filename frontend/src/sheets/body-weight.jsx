@@ -1,21 +1,26 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { fmtDate, fmtNum, todayISO, weekStartOf } from '../lib/format.js'
 import { lastBW } from '../lib/history.js'
 import { t, tn } from '../lib/i18n.js'
 import { closeThenNav } from '../lib/nav.js'
+import { convertBodyWeight } from '../lib/units.js'
+import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
-import { Chip, ChipRow, EmptyState, SectionTitle } from '../components/blocks.jsx'
-import { Inline, Spacer } from '../components/layout.jsx'
+import { Chip, ChipRow, EmptyState } from '../components/blocks.jsx'
+import { Inline } from '../components/layout.jsx'
 import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { Button, Slider, NumberField } from '../components/ui.jsx'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import DsButton from '../ds/Button.jsx'
+import { dayName } from '../lib/nutrition/log-feedback.js'
 import { syncNow } from '../lib/nutrition/sync.js'
 import { deltaTone, weeklyWeights } from '../lib/bodyweight.js'
 import { S, update, ui, toast } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 
-/* ============================ weight picker (shared: body weight + goal) ============================ */
+/* ============================ weight picker (the goal sheet) ============================ */
 // Fixed range, not a moving window — a window that resizes itself mid-drag (the previous
 // attempt) makes the thumb's position unpredictable: every time it grows, everything already
 // placed on it shifts toward one side. A static range never has that problem, at the cost of
@@ -62,7 +67,9 @@ function WeightInput({ value, setValue, unit }) {
 }
 
 /* ============================ body weight ============================ */
-// `date`: the day the weigh-in is for (Home on a past day); today when absent.
+// Board T1.7, the weigh-in drawer. `date`: the day the weigh-in is for (Home on a past day); today
+// when absent. `required`: the check-in before a workout (startFlow), which `onDone` carries on.
+const FAR_KG = 3
 function BwSheet({ required, onDone, close, date }) {
   const st = useStore(s => s.S)
   const unit = st.unit
@@ -70,62 +77,85 @@ function BwSheet({ required, onDone, close, date }) {
   // Never a day to come: a weight logged ahead would read as the current one (lastBW).
   const day = date && date < todayISO() ? date : todayISO()
   const onDay = st.bodyweight.find(b => b.d === day)
+  // The weigh-in this one is read against: the last before its day (its own, when re-weighing, is
+  // the one being replaced).
+  const prev = st.bodyweight.reduce((last, b) => (b.d < day && (!last || b.d > last.d) ? b : last), null)
   const [v, setV] = useState(onDay ? onDay.w : bw ? bw.w : 70)
+  const step = by => setV(x => Math.max(W_LO, Math.round(((x || 0) + by) * 10) / 10))
+  const n = Math.round((v || 0) * 10) / 10
+  // A slip of a digit (81.4 typed 18.4, or 8.14) reads as a real change on the curve: say so before
+  // saving. Saving still works, and Undo follows it.
+  const far = prev && n > 0 && Math.abs(n - prev.w) > convertBodyWeight(FAR_KG, 'kg', unit)
+  // The read-out raises the keyboard: the drawer is lifted over it, Save in reach (iOS; Android 15
+  // passes --native-kb). NumberField takes no ref, so the hook finds the drawer from its label.
+  const read = useRef(null)
+  const syncKeyboard = useSheetKeyboard(read)
   const save = () => {
-    const n = Math.round((v || 0) * 10) / 10
     if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
     if (bwTooHeavy(n, unit)) return
+    let before = null
     // `t` is when the weigh-in was logged, the sync's change stamp (lib/sync-merge.js stampChange
     // restamps it on every edit); charts place it by its day `d` (lib/bodyweight.js weighInTime).
     update(s => {
       const ex = s.bodyweight.find(b => b.d === day)
+      before = ex ? { ...ex } : null
       if (ex) { ex.w = n; ex.t = Date.now() } else s.bodyweight.push({ d: day, w: n, t: Date.now() })
       s.bodyweight.sort((a, b) => (a.d < b.d ? -1 : 1))
     })
     // The weight goes to NutriTrace now rather than at the hub's next poll.
     void syncNow()
     close()
-    if (onDone) onDone(n); else toast(t('Weight saved'))
+    if (onDone) onDone(n)
+    else ui().toast(t('Saved {0} to {1}', fmtNum(n) + ' ' + unit, dayName(day)), { action: t('Undo'), onAction: () => undoWeighIn(day, before) })
   }
-  const recent = [...st.bodyweight].reverse().slice(0, 3)
-  return <>
-    {/* This sheet opens `locked` — swipe/backdrop/Escape/Android-back all no-op on it (see
-        Modals.jsx) so an accidental tap on "Start" can't be walked back by reflex the way
-        every other sheet in the app can. The two buttons below already cover leaving it
-        deliberately; this is the same close a normal sheet gets everywhere else, just
-        opted back in explicitly instead of by omission. Plain close() — no onDone, no
-        nav — so it's a true no-op: the screen underneath is exactly where you left it. */}
-    <SheetHeader title={required ? t('Quick check-in') : t('Log body weight')} onClose={required ? () => close() : undefined} />
-    <div className="muted small">{required ? t('Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.') : day === todayISO() ? t('Today') + ', ' + fmtDate(day, true) : fmtDate(day, true)}</div>
-    <WeightInput value={v} setValue={setV} unit={unit} />
-    <SheetActions>
-      <Button variant="primary" onClick={save}>{required ? t('Save & start workout') : t('Save')}</Button>
-      {required && <Button variant="ghost" className="dim" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</Button>}
-    </SheetActions>
-    {required && <>
-      <Spacer size={1} /><Button variant="ghost" className="dim" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</Button>
-    </>}
-    {!required && recent.length > 0 && <>
-      <SectionTitle>{t('Recent weigh-ins')}</SectionTitle>
-      <div className="list g-0">
-        {recent.map(b => <WeighInRow key={b.d} b={b} unit={unit} />)}
-      </div>
-      {st.bodyweight.length > recent.length && <Inline justify="end" className="mt-3">
-        <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>
-      </Inline>}
-    </>}
-  </>
+  // Locked when required (the check-in before a workout): swipe, scrim, Escape and back do nothing
+  // (Modals.jsx), so a stray tap on Start is not walked back by reflex. The × still leaves it, as a
+  // plain close: no onDone, no navigation, the screen underneath as it was.
+  return <BottomSheet title={required ? t('Quick check-in') : t('Weigh-in')} chip={dayName(day)} onClose={required ? () => close() : undefined}
+    footer={<>
+      <DsButton block onClick={save}>{required ? t('Save & start workout') : t('Save weigh-in')}</DsButton>
+      {required && <>
+        <DsButton block variant="secondary" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</DsButton>
+        <DsButton block variant="ghost" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</DsButton>
+      </>}
+    </>}>
+    {required && <p className="g-wi-note">{t('We ask before your first workout each day so your curve stays honest.')}</p>}
+    <div className="g-wi">
+      <button type="button" className="g-wi-pm" onClick={() => step(-0.1)} aria-label={t('Decrease by {0}', fmtNum(0.1))}><Icon name="minus" className="g-icon" /></button>
+      <label className="g-wi-read" ref={read} onFocus={syncKeyboard}>
+        <NumberField fit className="g-wi-num" value={v} onChange={setV} aria-label={t('Weight ({0})', unit)} enterKeyHint="done"
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
+        <span className="g-wi-u">{unit}</span>
+      </label>
+      <button type="button" className="g-wi-pm" onClick={() => step(0.1)} aria-label={t('Increase by {0}', fmtNum(0.1))}><Icon name="plus" className="g-icon" /></button>
+    </div>
+    {/* Always mounted, only its text swapped: a live region that mounts with its text is often
+        not announced. */}
+    <p className="g-wi-far" role="status">{far ? t('{0} from your last weigh-in. Check it before you save.', fmtNum(Math.abs(Math.round((n - prev.w) * 10) / 10)) + ' ' + unit) : ''}</p>
+    {prev && <p className="g-wi-last">{t('Last weigh-in: {0} on {1}', fmtNum(prev.w) + ' ' + unit, fmtDate(prev.d, true))}</p>}
+  </BottomSheet>
 }
 export function bwSheet(opts = {}) {
-  const h = ui().openSheet(close => <BwSheet {...opts} close={close} />, { locked: !!opts.required })
-  return h
+  return ui().openSheet(close => <BwSheet {...opts} close={close} />, { variant: 'ds', locked: !!opts.required })
 }
 
-// One weigh-in with its delete button, in the log sheet's recent three and in the full list.
-// The full list asks first (`confirm`): it is months of history scrolled through on a phone, and a
-// stray tap on one of its trash buttons took a past weigh-in with nothing to bring it back. The log
-// sheet's three are the ones just typed, where taking back a typo in one tap is the point.
-function WeighInRow({ b, unit, confirm = false }) {
+// Undo of a saved weigh-in: the day's entry goes, or gets back the weight it had, stamped now so
+// the sync takes the change.
+function undoWeighIn(day, before) {
+  update(s => {
+    s.bodyweight = s.bodyweight.filter(b => b.d !== day)
+    if (before) {
+      s.bodyweight.push({ ...before, t: Date.now() })
+      s.bodyweight.sort((a, b) => (a.d < b.d ? -1 : 1))
+    }
+  })
+  void syncNow()
+}
+
+// One weigh-in in the full list, with a delete that asks first: it is months of history scrolled
+// through on a phone, and a stray tap on a trash button took a past weigh-in with nothing to bring
+// it back.
+function WeighInRow({ b, unit }) {
   const delEntry = () => update(s => { s.bodyweight = s.bodyweight.filter(x => x.d !== b.d) })
   const ask = () => confirmSheet({
     title: t('Delete weigh-in?'), message: `${fmtDate(b.d, true)} · ${fmtNum(b.w)} ${unit}`,
@@ -134,7 +164,7 @@ function WeighInRow({ b, unit, confirm = false }) {
   return <Inline justify="between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
     <span className="small muted">{fmtDate(b.d, true)}</span>
     <Inline as="span"><b>{fmtNum(b.w)} {unit}</b>
-      <button className="iconbtn fs-subhead ink-danger" style={{ width: 32, height: 30, borderRadius: 8 }} onClick={confirm ? ask : delEntry} aria-label={t('Delete weigh-in')}><Icon name="trash" /></button></Inline>
+      <button className="iconbtn fs-subhead ink-danger" style={{ width: 32, height: 30, borderRadius: 8 }} onClick={ask} aria-label={t('Delete weigh-in')}><Icon name="trash" /></button></Inline>
   </Inline>
 }
 
@@ -172,7 +202,7 @@ function WeighIns() {
             <span className="muted" style={{ whiteSpace: 'nowrap' }}>{t('Average {0}', fmtNum(w.avg) + ' ' + st.unit)}</span>
           </Inline>
         </Inline>
-        <div className="list g-0">{w.entries.map(b => <WeighInRow key={b.d} b={b} unit={st.unit} confirm />)}</div>
+        <div className="list g-0">{w.entries.map(b => <WeighInRow key={b.d} b={b} unit={st.unit} />)}</div>
       </div>
     })}
   </>

@@ -5,7 +5,7 @@ import { useUI } from '../../store/useUI.js'
 import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { startDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { isSwitching, onTabSwitch, popToRoot } from '../../lib/use-tab-nav.js'
-import { isTabRoot, tabOf } from '../../lib/tab-route.js'
+import { PROGRESS_ROOT, inProgress, tabOf } from '../../lib/tab-route.js'
 import { holdPage } from '../../lib/search/hold-page.js'
 import { closeSearch, endSearch, focusSearch, setQuery, syncSearchWithHistory, takeSuppressed, useSearch } from '../../lib/search/session.js'
 import { nav } from '../../lib/nav.js'
@@ -91,8 +91,10 @@ export default function SearchHost() {
       const slash = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !typing(document.activeElement)
       if ((combo || slash) && !path.startsWith('/train/workout') && !useUI.getState().sheets.length) {
         e.preventDefault()
+        // A tab's root has the pill. In Me that is Progress, which keeps Me's stack (Profile under
+        // it); Profile itself has none, so from there, as from the workout, Home's is used.
         const tab = tabOf(path)
-        focusSearch(() => (tab ? popToRoot(tab) : nav(isTabRoot(path) ? path : '/home')))
+        focusSearch(() => (inProgress(path) ? popToRoot('me', PROGRESS_ROOT) : tab && tab !== 'me' ? popToRoot(tab) : nav('/home')))
         return
       }
       if (e.key === 'Escape' && useSearch.getState().open && !useUI.getState().sheets.length && !e.defaultPrevented) {

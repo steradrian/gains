@@ -106,7 +106,7 @@ describe('the root', () => {
     expect(host.querySelector('.sp-acct .lrow-s').textContent).toBe('Your data lives on this device. Sign in to sync.')
     // a guest in a browser has no notifications (no push server), no Coach page (the server's
     // Coach), no Health Connect, no photos yet, nothing to sync and nothing to log out of
-    expect(titles()).toEqual(['Guest', 'Appearance', 'Units & language', 'Features', 'Workout', 'Fine-tuning', 'Timer alerts',
+    expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout', 'Fine-tuning', 'Timer alerts',
       'Schedule defaults', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['General', 'Training', 'Body & progress', 'Data', 'About'])
     expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
@@ -115,6 +115,12 @@ describe('the root', () => {
     expect(rowTitled('Units & language').querySelector('.lrow-v').textContent).toBe('kg · English')
     expect(rowTitled('Equipment').querySelector('.lrow-v').textContent).toBe('Everything')
     expect(rowTitled('About & updates').querySelector('.lrow-v').textContent).toMatch(/^v\d|^vtest/)
+  })
+
+  it('has a Progress row, the way into Progress now that Me is Profile', () => {
+    mount()
+    act(() => rowTitled('Progress').click())
+    expect(mocks.navs.at(-1)).toEqual(['/progress'])
   })
 
   it('signed in: the sync status with Sync now, Admin for an admin, and Sign out at the end', () => {
@@ -386,12 +392,10 @@ describe('the pages', () => {
     }
   })
 
-  it('the root carries it too, titled Profile, and its back is the tab\'s own', () => {
+  it('the root carries it too, titled Profile, with no back: it is the Me tab\'s root', () => {
     mount()
     expect(host.querySelector('.sub-hdr h1').textContent).toBe('Profile')
-    const before = mocks.backs.length
-    act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
-    expect(mocks.backs).toHaveLength(before + 1)   // the tab's back, with no parent given: the tab decides
+    expect(host.querySelector('.sub-hdr button[aria-label="Back"]')).toBeNull()
   })
 
   it('a search hit flashes its row', () => {
@@ -597,7 +601,7 @@ describe('Features', () => {
 describe('Appearance', () => {
   it('keeps reduce motion, and drops nothing else of its own', () => {
     mount('appearance')
-    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Body weight', 'Show connection status'])
+    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Show connection status'])
     act(() => rowTitled('Reduce motion').querySelector('[role="switch"]').click())
     expect(mocks.S.reduceMotion).toBe(true)
   })

@@ -64,11 +64,26 @@ describe('the first load', () => {
     expect((await backend.load()).meta).toMatchObject({ cursor: 'p2', owner: '7', complete: true, total: 2 })
   })
 
+  it('a saved copy is complete at once, and synced only once this session has caught up', async () => {
+    const store = memoryIndexStore()
+    setup(fakeApi(page([day('2026-10-01', '2026-10-01T10:00:00Z')])), { store })
+    await syncDiaryIndex()
+    __test.restore()
+    let answer
+    setup({ getDiaryIndex: () => new Promise(r => { answer = r }) }, { store })
+    const sync = syncDiaryIndex()
+    await new Promise(r => setTimeout(r, 0))
+    expect(useDiaryIndex.getState()).toMatchObject({ complete: true, synced: false })
+    answer(page([], { next: 'c2', total: 1 }))
+    await sync
+    expect(useDiaryIndex.getState()).toMatchObject({ complete: true, synced: true })
+  })
+
   it('stopped half way, resumes from the cursor it saved', async () => {
     const api = fakeApi(page([day('2026-10-01', '2026-10-01T10:00:00Z')], { next: 'p1', more: true, total: 2 }), failure(0, 'offline'))
     setup(api)
     await syncDiaryIndex()
-    expect(useDiaryIndex.getState()).toMatchObject({ complete: false, stale: true, offline: true })
+    expect(useDiaryIndex.getState()).toMatchObject({ complete: false, stale: true, offline: true, synced: true })
     api.queue.push(page([day('2026-10-02', '2026-10-02T10:00:00Z')], { next: 'p2', total: 2 }))
     await syncDiaryIndex({ force: true })
     expect(api.calls.at(-1).since).toBe('p1')

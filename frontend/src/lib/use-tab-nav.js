@@ -10,7 +10,7 @@
 // Routines): the push is turned into a switch, so a tab's stack never holds another tab's page.
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { emptyNav, deadSteps, onVisitPage, planSwitch, record, settle } from './tab-history.js'
-import { parentOf, tabOf } from './tab-route.js'
+import { TABS, parentOf, tabOf } from './tab-route.js'
 import { onSheetEntry, sheetEntriesLive } from './nav.js'
 import { useUI } from '../store/useUI.js'
 
@@ -28,7 +28,8 @@ const RETRIES = 2
 function loadNav() {
   try {
     const v = JSON.parse(sessionStorage.getItem(NAV_KEY))
-    return v && Array.isArray(v.entries) && typeof v.idx === 'number' && typeof v.top === 'number' ? v : emptyNav()
+    // A mirror from before Progress became Me's (its tab was 'progress') is dropped, not read.
+    return v && Array.isArray(v.entries) && typeof v.idx === 'number' && typeof v.top === 'number' && TABS.includes(v.tab) ? v : emptyNav()
   } catch { return emptyNav() }
 }
 
@@ -92,7 +93,8 @@ function onNextPop(fn) {
   return once
 }
 export const switchTab = (tab, path) => afterSheet(() => api.switchTab(tab, path))
-export const popToRoot = tab => afterSheet(() => api.popToRoot(tab))
+// `path`: down to that page on the tab's root instead (planSwitch), when the tab is on screen.
+export const popToRoot = (tab, path) => afterSheet(() => api.popToRoot(tab, path))
 // A sub-page's back: one step down this tab's stack, or with nothing under it in the tab (a deep
 // link, a reload) to the page's parent in its place — `parent` when the page knows better than
 // lib/tab-route.js (a settings sub-page's own parent page). Also how a finished workout leaves.
@@ -271,9 +273,9 @@ export function useTabNav({ navigate, location, navType }) {
     run(planSwitch(nav, target, { path }), { shownLocation: location, shownTab: nav.tab, target })
   }, [navigate, location, run])
 
-  const doPopToRoot = useCallback(target => {
+  const doPopToRoot = useCallback((target, path) => {
     if (pending.current) return
-    const plan = planSwitch(navRef.current, target, { toRoot: true })
+    const plan = planSwitch(navRef.current, target, { toRoot: true, path })
     if (!plan) { window.scrollTo(0, 0); return }
     run(plan, { shownLocation: location, shownTab: target, target })
   }, [location, run])

@@ -46,8 +46,9 @@ async function launch(at) {
   await act(async () => { root.render(<App />) })
   await settle()
 }
+// Today's stage pill is a button that hands over to the tab root's header and its input.
 const openOverlay = async () => {
-  await act(async () => { pill().focus() })
+  await act(async () => { if ($('.g-spill')) $('.g-spill').click(); else pill().focus() })
   await settle()
   expect(useSearch.getState().open).toBe(true)
 }
@@ -93,7 +94,8 @@ describe('the page behind an open search', () => {
     expect($('#app .tab-hdr')).not.toBeNull()
     expect(leaks()).toEqual([])
     expect(inert($('#tabbar'))).toBe(true)
-    expect(inert(document.querySelector('#app main, #app > :not(.tab-hdr)'))).toBe(true)
+    // Today's header sits inside its stage: the rings beside it are what is held.
+    expect(inert(document.querySelector('#app .g-rcb'))).toBe(true)
     // And lets go of all of it with the close.
     await go(() => $('.avatar-btn').click())
     expect(useSearch.getState().live).toBe(false)
@@ -152,9 +154,9 @@ describe('the page behind an open search', () => {
     await launch('#/home')
     await openOverlay()
     await go(() => openPlusSheet('/home'))
-    const sheet = $('.plus-sheet')
+    const sheet = $('.g-bs')
     expect(sheet).not.toBeNull()
-    const rows = [...sheet.querySelectorAll('.lrow')]
+    const rows = [...sheet.querySelectorAll('.g-atile')]
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) expect(inert(row)).toBe(false)
     // The sheet holds #app itself; the tab bar is held by the search.
@@ -163,7 +165,7 @@ describe('the page behind an open search', () => {
     expect(leaks()).toEqual([])
     useUI.getState().closeAll()
     await settle()
-    expect($('.plus-sheet')).toBeNull()
+    expect($('.g-bs')).toBeNull()
     expect($('#app').hasAttribute('inert')).toBe(false)
     expect(inert($('#tabbar'))).toBe(true)
     expect(leaks()).toEqual([])

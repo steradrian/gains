@@ -27,8 +27,9 @@ export const PRIMITIVE_FILES = [
   // the native redesign's kit
   'components/date-nav.jsx', 'components/line-art.jsx', 'components/tab-kit.jsx',
 ]
-// Routed views that draw their own chrome and never render <Page> (G4).
-export const PAGE_EXEMPT = ['AddDevice', 'FocusView', 'Login', 'MobileOnboarding', 'Workout']
+// Routed views that draw their own chrome and never render <Page> (G4). Home is Today on the
+// stage (PR-01), with the design system's StageHeader.
+export const PAGE_EXEMPT = ['AddDevice', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 

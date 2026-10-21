@@ -78,7 +78,7 @@ const maybeRestNotification = async () => {
 
 let toastTm = null
 const TOAST_MS = 2200
-const TOAST_ACTION_MS = 5000
+const TOAST_ACTION_MS = 8000
 let toastLeft = 0
 let toastT0 = 0
 let toastPaused = false
@@ -216,7 +216,8 @@ function endTone(enabled, kind) {
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
   toastMsg: '',
-  toastAction: null,   // { label, run, id } while the toast offers an action (Undo)
+  toastAction: null,   // { label, run, id, icon, ms } while the toast offers an action (Undo)
+  toastPaused: false,  // held still under a finger: its drain bar stops with it
   swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }
@@ -235,33 +236,38 @@ export const useUI = create((set, get) => ({
   // `onDismiss` runs when the sheet is sent off other than by its own buttons: the backdrop, a drag,
   // Escape, Android back (components/Modals.jsx). A sheet whose Cancel does something passes the
   // same handler, so every way out behaves like Cancel.
-  openSheet(render, { kind = 'sheet', locked = false, onDismiss } = {}) {
+  // `variant: 'ds'` draws it as the design system's drawer: `render` returns a ds/BottomSheet.
+  openSheet(render, { kind = 'sheet', locked = false, onDismiss, variant } = {}) {
     const id = uid()
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss }] }))
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, variant }] }))
     const close = () => get().closeSheet(id)
     return { id, close, lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) })) }
   },
   closeSheet(id) { set(s => ({ sheets: s.sheets.filter(x => x.id !== id) })) },
   closeAll() { set({ sheets: [] }) },
 
-  // A toast is 2.2 s of text. With an action (`{ action: 'Undo', onAction }`) it stays 5 s, shows
-  // the action as a button at its end and holds still while a finger rests on it (pauseToast). A
-  // new toast replaces the one showing, action and all: the old Undo is gone, what it would have
-  // undone stays done. The action runs once at most, and the toast goes with it.
-  // `icon` names the action button's glyph (Icon.jsx): Undo's unless given.
+  // A toast is 2.2 s of text. With an action (`{ action: 'Undo', onAction }`) it stays 8 s (the
+  // design system's UndoToast), shows the action as a button at its end with a bar draining over
+  // those `ms`, and holds still while a finger rests on it (pauseToast). A new toast replaces the
+  // one showing, action and all: the old Undo is gone, what it would have undone stays done. The
+  // action runs once at most, and the toast goes with it.
+  // `icon` names the glyph at the toast's start (Icon.jsx), with an action only: a check unless given.
   toast(msg, { action, onAction, ms, icon } = {}) {
     const withAction = !!(action && typeof onAction === 'function')
     clearTimeout(toastTm)
     toastLeft = ms || (withAction ? TOAST_ACTION_MS : TOAST_MS)
     toastSeq += 1
-    set({ toastMsg: msg, toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'undo' } : null })
+    set({
+      toastMsg: msg, toastPaused: false,
+      toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'check', ms: toastLeft } : null,
+    })
     runToast(set)
   },
   runToastAction() {
     const act = get().toastAction
     if (!act) return
     clearTimeout(toastTm)
-    set({ toastMsg: '', toastAction: null })
+    set({ toastMsg: '', toastAction: null, toastPaused: false })
     act.run()
   },
   pauseToast() {
@@ -269,10 +275,12 @@ export const useUI = create((set, get) => ({
     toastPaused = true
     clearTimeout(toastTm)
     toastLeft = Math.max(400, toastLeft - (Date.now() - toastT0))
+    set({ toastPaused: true })
   },
   resumeToast() {
     if (!toastPaused) return
     toastPaused = false
+    set({ toastPaused: false })
     if (get().toastMsg) runToast(set)
   },
 

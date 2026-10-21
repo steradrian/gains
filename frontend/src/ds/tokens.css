@@ -131,7 +131,15 @@
   --g-ill-stage-lit: rgba(255,255,255,0.18);
   --g-field-stage: rgba(255,255,255,0.12);
   --g-ccard-on-shadow: 0 16px 30px -18px rgba(0,0,0,0.5);
+  --g-tile-now-shadow: 0 16px 30px -16px rgba(0,0,0,0.45);
+  --g-tabbar-shadow: inset 0 0 0 1px rgba(17,17,17,0.06), 0 14px 34px -14px rgba(0,0,0,0.45);
   --g-code-bad: #FFC56B;
+  --g-ring-over: #FFC56B;
+  --g-notify-dot: #FF6B4A;
+  --g-toast: #161615;
+  --g-toast-fill: rgba(255,255,255,0.14);
+  --g-toast-drain: rgba(255,255,255,0.5);
+  --g-toast-shadow: 0 14px 34px -12px rgba(0,0,0,0.5);
 }
 :root[data-theme="dark"] .g-root {
   --canvas: #0B0B0A;

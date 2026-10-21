@@ -34,7 +34,8 @@ const desktopKeys = () => { try { return !!window.matchMedia?.('(hover: hover) a
 export default function RootHeader({ title, action }) {
   const { pathname } = useLocation()
   const scrolled = useScrolledBy(4)
-  const tab = tabOf(pathname) || 'home'
+  // The search's scope is the page's: Progress, the only page of Me with this header, keeps its own.
+  const tab = tabOf(pathname) === 'me' ? 'progress' : tabOf(pathname) || 'home'
   const open = useSearch(s => s.open)
   const query = useSearch(s => s.query)
   const group = useSearch(s => s.group)

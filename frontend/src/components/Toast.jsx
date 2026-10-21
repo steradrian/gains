@@ -1,24 +1,26 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useUI } from '../store/useUI.js'
 import { PRESETS, play } from '../lib/motion.js'
-import Icon from './Icon.jsx'
+import UndoToast from '../ds/UndoToast.jsx'
 import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
 
-// The one toast. Mostly text; with an action (the Undo after a set is removed) it carries a button
-// at its end, stays longer and holds still while a finger or the mouse rests on it.
+// The one toast, drawn as the design system's UndoToast. Mostly text; with an action (the Undo
+// after a set is removed) it carries a glyph, a button at its end and a draining bar, stays longer
+// and holds still, bar and all, while a finger or the mouse rests on it.
 //
-// #toast is the live region and is always in the page; the pill inside it comes and goes through
+// #toast is the live region and is always in the page; the toast inside it comes and goes through
 // the kit, and keeps the message it was showing until its way out is over. (The store clears the
-// message on the render that hides the toast, and the pill used to fade out empty and shrinking.)
+// message on the render that hides the toast, and it used to fade out empty and shrinking.)
 export default function Toast() {
   const msg = useUI(s => s.toastMsg)
   const action = useUI(s => s.toastAction)
-  return <div id="toast" role="status">
-    <Presence>{msg ? <ToastPill key="toast" msg={msg} action={action} /> : null}</Presence>
+  const paused = useUI(s => s.toastPaused)
+  return <div id="toast" className="g-root" role="status">
+    <Presence>{msg ? <ToastPill key="toast" msg={msg} action={action} paused={paused} /> : null}</Presence>
   </div>
 }
 
-function ToastPill({ msg, action }) {
+function ToastPill({ msg, action, paused }) {
   const ref = useRef(null)
   const { present } = usePresence()
   const { pauseToast, resumeToast, runToastAction } = useUI.getState()
@@ -57,13 +59,11 @@ function ToastPill({ msg, action }) {
     if (present && showing) play(ref.current, PRESETS.nudge, 'enter')
   }, [msg, present])
   const live = !!(present && action)
-  return <div ref={ref} className={'toast-pill' + (action ? ' has-action' : '')} {...leavingProps(present)}
+  return <UndoToast ref={ref} role={null} className={action ? 'has-action' : undefined} {...leavingProps(present)}
+    message={msg} icon={action?.icon ?? null}
+    onUndo={action ? run : false} actionLabel={action?.label} duration={action ? action.ms / 1000 : false}
+    paused={paused} restartKey={action?.id}
     onPointerEnter={live ? pauseToast : undefined} onPointerDown={live ? pauseToast : undefined}
     onPointerLeave={live ? resumeToast : undefined} onPointerCancel={live ? resumeToast : undefined}
-    onPointerUp={live ? (e => { if (e.pointerType !== 'mouse') resumeToast() }) : undefined}>
-    <span className="toast-msg">{msg}</span>
-    {action && <button type="button" className="toast-act" key={action.id} onClick={run}>
-      <Icon name={action.icon} />{action.label}
-    </button>}
-  </div>
+    onPointerUp={live ? (e => { if (e.pointerType !== 'mouse') resumeToast() }) : undefined} />
 }

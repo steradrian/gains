@@ -35,7 +35,7 @@
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 72,
+    "index.css": 71,
     "views/FocusView.css": 1
   },
   "G2js": {
@@ -53,7 +53,6 @@
   "G3": {
     "components/DurationWheel.jsx": 1,
     "components/MuscleExplorer.jsx": 1,
-    "components/PlusSheet.jsx": 1,
     "components/QueueRow.jsx": 3,
     "components/ServerSync.jsx": 1,
     "components/WorkoutChips.jsx": 1,

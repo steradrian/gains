@@ -72,7 +72,6 @@ class throws in development, as everywhere in the kit.
 | `StatCard` (tab-kit) | `label meta value unit caption children` | One reading picked out of a map or list, the value at `--fs-display` |
 | `MuscleRow` (tab-kit) | `level title subtitle value valueLabel onClick pressed` | A muscle in a `Section`, led by a dot in the map's level shade (`.mus-list` on the Section; a `.hm-fatigue`/`.hm-strength` ancestor recolours it) |
 | `MediaRow` (tab-kit) | `art title subtitle link onOpen onPlay playLabel chevron variant="exercise"` | An `.item` led by 96×72 art (56px thumb in the exercise variant). With a `link` line or `onPlay`, the title block opens it and each control is its own button |
-| `StickyActionBar` (tab-kit) | `children` | The page's one main pill, sticky above the tab bar (`--tabbar-h`), resting at the end of the page |
 | `LineArt` (line-art) | `scene state` | `routine {days,next,scheduled}`, `mobility {minutes}`, `scale {kg}`, `equipment {eq}` (`equipmentOf(ex.eq)`), `plate` (Nutrition without nutrition), plus one fixed drawing per empty-state illustration (`chart`, `calendar`, `week`…: render those through `EmptyState`). Two strokes, three inks (`--acc-graphic` for data), no figures, ≤8 paths; draws in once a session (`useDrawIn`), fades under reduced motion; `aria-hidden` |
 | `EmptyState` (blocks) | `illustration title body action secondary` | The one empty state. `illustration` is a name in `ILLUSTRATIONS` (line-art): `scale routine plate barbell dumbbell chart calendar week envelope key coach search rotation favourites photo tape pantry fasting recovery`; `action`/`secondary` are `{label, onClick, icon}` pills (`action` also `disabled`). Deprecated until the call sites have moved: with no `illustration` it renders the old `icon art className children` markup (G9 baselines each such call) |
 | `InlineNote`, `Skeleton` (blocks) | `icon children` / `w h r` | A quiet centred status line; a hidden loading block at its size (numbers are px) |
@@ -93,7 +92,6 @@ class throws in development, as everywhere in the kit.
   tracking `--ls-display`, `--ls-title`.
 - Sizes `--hdr-h` 56 and `--hdr-btn` 40 (the headers), `--disc` 56 and `--disc-sm` 36 (action and
   add discs), `--glyph` 24, `--art-w`×`--art-h` 96×72 (a media row's art), `--thumb-lg` 56,
-  `--tabbar-h` (what the tab bar takes from the bottom, measured: 63px, 81px from 1000px),
   `--search-panel-w`; layers `--z-search` 47, `--z-tab-hdr` 48. Line art `--il-w`, `--il-w-d`.
   Motion `--ease-io`, `--hero` (640ms).
 - Colour tokens, in `index.css`'s theme blocks: `--sel-fill`/`--on-sel` (a selected day or
@@ -128,8 +126,7 @@ class throws in development, as everywhere in the kit.
   A sheet that focuses a field itself keeps it. Stacked sheets work in any closing order: the one
   under a newer sheet is inert, and the page stays inert until the last closes. Content that is
   already a dialog (a photo viewer) keeps its own role and name and still gets focus in, the trap,
-  the inert page and focus return; only content marked `data-own-dialog-focus` (the + sheet, which
-  runs the trap itself) is left alone. A sheet that replaces another in the same tap
+  the inert page and focus return. A sheet that replaces another in the same tap
   (`close(); nextSheet()`) inherits the opener of the one it replaced.
 
 ## The loader

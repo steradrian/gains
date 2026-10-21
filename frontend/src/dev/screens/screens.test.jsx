@@ -130,6 +130,64 @@ describe('the screens gallery', () => {
     sessionStorage.clear()
   })
 
+  it('has Today T1.0 to T1.2, its two profiles and the variants T1.9 to T1.15', async () => {
+    const ids = screenAreas().find(a => a.name === 'Today').entries.map(e => e.id)
+    expect(ids).toEqual(['T1.0', 'T1.1', 'T1.1-failed', 'T1.1-row', 'T1.2', 'T1.E-food', 'T1.E-training', 'T1.9', 'T1.10', 'T1.11', 'T1.12', 'T1.13', 'T1.14', 'T1.15'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('T1.0', h => {
+      expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(4)
+      expect([...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Up next', 'Food', 'Water'])
+    })
+    await check('T1.1', h => expect(h.querySelector('.g-rcb[aria-busy="true"]')).toBeTruthy())
+    await check('T1.E-food', h => expect(h.querySelector('.g-grow')).toBeNull())
+    await check('T1.E-training', h => {
+      expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(1)
+      expect(h.querySelectorAll('.g-wk-cell')).toHaveLength(7)
+      expect(h.querySelector('.g-tiles')).toBeNull()
+    })
+    await check('T1.9', h => {
+      expect([...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['First steps', 'Food', 'Water'])
+      expect(h.querySelectorAll('.g-fstep')).toHaveLength(4)
+    })
+    await check('T1.10', h => expect(h.querySelector('.g-away').textContent).toContain('Welcome back'))
+    await check('T1.11', h => expect(h.querySelector('.g-grow').textContent).toMatch(/Workout running · \d+:\d\d.*3 of 6 exercises done.*Resume/))
+    await check('T1.12', h => expect(h.querySelector('.g-grow').textContent).toContain('52 min · 18 sets · 2 new bests'))
+    await check('T1.13', h => expect(h.querySelector('.g-grow').textContent).toContain('Next: Legs, tomorrow'))
+    await check('T1.14', h => expect(h.querySelector('.g-saved-stage').textContent).toBe('Offline · 3 changes waiting'))
+    await check('T1.15', h => expect(h.querySelector('.g-rc-slide').textContent).toContain('kcal over 2,100'))
+  })
+
+  it('has the Today drawers and toasts T1.3 to T1.8, each over the Today screen', async () => {
+    const ids = screenAreas().find(a => a.name === 'Today: drawers and toasts').entries.map(e => e.id)
+    expect(ids).toEqual(['T1.3', 'T1.3p', 'T1.3e', 'T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7', 'T1.8'])
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    for (const id of ids) await check(id, s => expect(s.host.querySelectorAll('.g-rc-slide'), id).toHaveLength(4))
+    await check('T1.4', s => {
+      expect(s.drawer.querySelector('.g-bs-chip').textContent).toContain('Lunch')
+      expect(s.drawer.textContent).toContain('Create a food')
+    })
+    await check('T1.3', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Nutrition today')
+      expect(s.drawer.querySelectorAll('.g-nd-pct').length).toBeGreaterThan(0)
+    })
+    await check('T1.3p', s => expect(s.drawer.querySelector('.g-seg [aria-pressed="true"]').textContent).toBe('Protein'))
+    await check('T1.3e', s => {
+      expect(s.drawer.querySelector('.g-nd-num').textContent).toBe('0')
+      expect(s.drawer.querySelectorAll('.g-nd-add')).toHaveLength(4)
+    })
+    await check('T1.8', s => expect([...s.drawer.querySelectorAll('.g-atile')].map(b => b.textContent))
+      .toEqual(['Log food', 'Scan', 'Water', 'Weigh-in', 'Start workout', 'Log activity']))
+    await check('T1.4e', s => expect(s.drawer.textContent).toContain('Suggested foods'))
+    await check('T1.4p', s => expect(s.drawer.querySelector('.g-bs-chip').textContent).not.toMatch(/^Today/))
+    await check('T1.5', s => expect(s.host.textContent).toContain('Added Chicken rice bowl to Today, Lunch'))
+    await check('T1.6', s => expect(s.host.textContent).toContain('Added 250 ml of water to Today'))
+    await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
+  }, 20000)
+
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
     for (const e of states) { expect(e.title, e.id).toBeTruthy(); expect(screenById(e.id)).toBe(e) }

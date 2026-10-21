@@ -257,7 +257,7 @@ html[data-motion=reduce] *{animation:none!important;transition:none!important}
 
 /* ---------------------------------------------------------------- layout -- */
 #app{
-  padding:calc(var(--sat) + var(--conn) + var(--app-top)) var(--pad) calc(88px + var(--sab));
+  padding:calc(var(--sat) + var(--conn) + var(--app-top)) var(--pad) calc(96px + var(--sab));
   max-width:var(--page-w);margin:0 auto;
 }
 /* Android 15 with the keyboard up: room to scroll the last field on a page above the keys.
@@ -265,7 +265,7 @@ html[data-motion=reduce] *{animation:none!important;transition:none!important}
 :root[data-native-kb] #app,:root[data-native-kb] body.resting #app,:root[data-native-kb] body.no-tabbar.resting #app{padding-bottom:calc(88px + var(--native-kb))}
 /* Keep the last workout controls clear of the mobile overlays without adding a second
    screenful of blank scroll space. The stacked rest timer needs the larger reserve. */
-body.resting #app{padding-bottom:calc(166px + var(--sab))}
+body.resting #app{padding-bottom:calc(168px + var(--sab))}
 /* The workout screen has no tab bar (App.jsx): only the docked rest bar, when it is there. */
 body.no-tabbar #app{padding-bottom:calc(24px + var(--sab))}
 body.no-tabbar.resting #app{padding-bottom:calc(96px + var(--sab))}
@@ -477,54 +477,15 @@ h4.sec{
 .weekly-volume-toggle .icn{transition:transform var(--fast) var(--ease)}
 .weekly-volume-toggle[aria-expanded="true"] .icn{transform:rotate(180deg)}
 
-/* ----------------------------------------------------------- tab bar ----- */
-/* Nearly opaque, and deliberately so. At the old 72% the page read straight through the bar
-   and the labels had to compete with whatever was scrolling behind them — nobody needs to read
-   the content under a navigation bar. 94% keeps a hint of movement behind the glass without
-   letting text through. The blur is also down from 24px to 10px: this is a fixed element, so
-   the WebView recomposites the blurred region on every scroll frame, and on Android that is
-   the single most expensive thing on the screen. See @supports below for the no-blur case. */
-#tabbar{
-  position:fixed;inset-inline-start:0;inset-inline-end:0;bottom:0;z-index:50;
-  display:flex;justify-content:space-around;align-items:flex-end;
-  padding:7px 6px calc(6px + var(--sab));
-  background:color-mix(in srgb,var(--bg-el) 94%,transparent);
-  -webkit-backdrop-filter:saturate(180%) blur(10px);backdrop-filter:saturate(180%) blur(10px);
-  border-top:var(--hair) solid var(--sep-op);
-}
-:root[data-theme="light"] #tabbar{background:color-mix(in srgb,var(--bg-el) 94%,transparent);box-shadow:var(--shadow-overlay)}
-#tabbar button{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  color:var(--label-2);font-size:12px;font-weight:500;letter-spacing:.005em;padding-top:3px;
-  transition:color var(--fast);
-}
-/* The inactive tint is semi-transparent, so wherever two strokes cross inside an
-   icon (the calendar's hangers over its frame, the divider's caps on its sides)
-   the alpha doubled up and the icon read as a stack of loose layers. Carrying the
-   fade on the <svg> instead of in the stroke colour flattens the icon first and
-   fades it as one shape — and it does that for every icon, not just this one. */
-#tabbar button .icn{font-size:25px;--icon-stroke:1.65;color:var(--label)}
-#tabbar button.on{color:var(--acc-ink)}
-#tabbar button.on .icn{--icon-stroke:2;color:inherit;opacity:1}
+/* ---------------------------------------------------------- tab dot ----- */
+/* The tab bar is the design system's (ds/GlassTabBar.jsx), placed on screen in tab-shell.css. */
 /* A connection problem while the banner is switched off (Settings → Show connection status):
    a dot on the avatar every tab's root carries (components/AvatarButton.jsx). */
-#tabbar .tab-ic{position:relative;display:inline-flex}
 .tab-dot{
   position:absolute;top:-1px;right:-3px;width:8px;height:8px;border-radius:50%;
   background:var(--orange);box-shadow:0 0 0 2px var(--bg-el);pointer-events:none;
 }
 .iconbtn .tab-dot{top:5px;right:5px;box-shadow:0 0 0 2px var(--bg)}
-#tabbar button.start{margin-top:-24px}
-#tabbar button.start .cir{
-  width:52px;height:52px;border-radius:50%;background:var(--acc);color:var(--on-acc);
-  display:flex;align-items:center;justify-content:center;position:relative;
-  box-shadow:0 6px 18px -4px color-mix(in srgb,var(--acc) 55%,transparent);
-  transition:transform var(--fast) var(--ease);
-}
-#tabbar button.start:active .cir{transform:scale(.93)}
-#tabbar button.start .cir .icn{font-size:26px;--icon-stroke:2;color:inherit;opacity:1}
-/* The centre + (components/TabBar.jsx): the accent disc in every state. A running workout shows
-   in the live dock and the dot on the Training tab, not on the disc. */
 
 /* NOTE on every backdrop-filter pair in this file: the -webkit- line comes first and the
    standard property last, which is the order a prefixed/standard pair wants — whichever is
@@ -533,13 +494,9 @@ h4.sec{
    Where backdrop-filter is genuinely unsupported there is no glass either — only the alpha,
    and the page shows through unblurred, which is the worst of both. Older Android WebViews
    never had it, and "reduce transparency" accessibility settings drop it. Those surfaces go
-   fully opaque instead. Keep this in sync with the rules above. Each fallback comes after the
-   rule it overrides, at the same specificity, or the cascade drops it: the rest timer's and the
-   toast's sit with their own rules further down. */
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  #tabbar{background:var(--bg-el)}
-  :root[data-theme="light"] #tabbar{background:var(--bg-el)}
-}
+   fully opaque instead. Each fallback comes after the rule it overrides, at the same
+   specificity, or the cascade drops it: the rest timer's and the toast's sit with their own
+   rules further down. */
 
 /* ----------------------------------------------------------------- list -- */
 .list{display:flex;flex-direction:column;gap:8px}
@@ -1462,7 +1419,7 @@ body.chips-dragging *{cursor:inherit}
    no tab bar (body.no-tabbar, App.jsx), the bar is docked to the bottom edge; anywhere else it
    sits just above the tab bar. */
 #timer{
-  position:fixed;inset-inline-start:12px;inset-inline-end:12px;bottom:calc(88px + var(--sab));z-index:60;
+  position:fixed;inset-inline-start:12px;inset-inline-end:12px;bottom:calc(90px + var(--sab));z-index:60;
   /* nearly opaque: the set rows underneath were reading through the old 82% and made the
      clock hard to pick out mid-set. The blur stays, so it still sits above the page. */
   background:color-mix(in srgb,var(--surface) 97%,transparent);
@@ -1768,34 +1725,15 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 .pr .icn{font-size:13px}
 
 /* --- toast --- */
-/* #toast is the live region, always in the page and drawn only through the pill inside it, which
-   comes and goes through the kit (components/Toast.jsx). Centred with `translate`, so the pill's
-   own transform is free for its motion. */
+/* #toast is the live region, always in the page and drawn only through the design system's
+   UndoToast inside it (ds/ds.css), which comes and goes through the kit (components/Toast.jsx).
+   16px from the screen's edges (the DS rule), at most 520px wide and centred on a wide screen. */
 #toast{
-  position:fixed;left:50%;translate:-50% 0;
+  position:fixed;inset-inline:16px;margin-inline:auto;max-width:520px;
   bottom:calc(96px + var(--sab));z-index:200;pointer-events:none;
-  /* As wide as its text up to 88vw. Without a width, left:50% left it half the screen to wrap
-     in, so a long message stood as a narrow column. */
-  width:max-content;max-width:88vw;
 }
-.toast-pill{
-  background:color-mix(in srgb,var(--surface-2) 88%,transparent);
-  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
-  /* 22px, not a pill radius: one line (about 41px high) still reads as a pill, and a toast that
-     wraps to four lines is a rounded box instead of a circle over the page. */
-  border-radius:var(--r-xl);padding:11px 20px;font-size:15px;font-weight:500;
-  box-shadow:0 10px 30px -6px rgba(0,0,0,.5);
-  text-align:center;
-}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .toast-pill{background:var(--surface-2)}
-}
-/* With an action (Undo): the message, then the button at the end, and the toast takes taps. */
-.toast-pill.has-action{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:4px 6px 4px 18px;text-align:start}
-.toast-pill.has-action .toast-msg{flex:1;min-width:0;padding:7px 0}
-#toast .toast-act{flex:none;display:inline-flex;align-items:center;gap:5px;color:var(--acc-ink);font-weight:700;padding:8px 12px;border-radius:14px;min-height:36px}
-#toast .toast-act:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
-#toast .toast-act .icn{font-size:16px}
+/* With an action (Undo) the toast takes taps; text alone lets them through to the page. */
+#toast .has-action{pointer-events:auto}
 body.no-tabbar #toast{bottom:calc(24px + var(--sab))}
 body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 
@@ -1957,12 +1895,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   .workout-end-spacer{height:40px}
   .tiles{grid-template-columns:repeat(4,1fr)}
   .center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
-  #tabbar{
-    left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:520px;
-    border:var(--hair) solid var(--sep-op);border-radius:var(--r-xl);
-    padding:7px 10px 9px;box-shadow:var(--shadow-float);
-  }
-  #tabbar button.start{margin-top:-26px}
   .sheet{left:50%;right:auto;margin-left:-320px;width:640px;border-radius:var(--r-xl) var(--r-xl) 0 0}
   .center{width:340px}
   #timer{left:50%;right:auto;margin-left:-260px;width:520px;bottom:112px}

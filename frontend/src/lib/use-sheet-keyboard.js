@@ -24,12 +24,14 @@ export function sheetKeyboardInsets(win) {
    adjustResize has no effect); there the app passes the keyboard as --native-kb
    (lib/native-keyboard.js) and the larger of the two wins.
 
-   `inputRef` points at the text input (or textarea) whose closest `.sheet` gets the vars.
+   `inputRef` points at the text input (or textarea) whose closest sheet (`.sheet`, or the design
+   system's drawer `.g-bs`) gets the vars.
    `enabled` lets a caller switch the sync off (e.g. a picker without a search box). */
+const SHEET = '.sheet, .g-bs'
 export function useSheetKeyboard(inputRef, enabled = true) {
   const sync = useCallback(() => {
     const input = inputRef.current
-    const sheet = input?.closest?.('.sheet')
+    const sheet = input?.closest?.(SHEET)
     const viewport = typeof window !== 'undefined' ? window.visualViewport : null
     if (!sheet || !viewport) return
     const { bottomInset, visualHeight } = sheetKeyboardInsets(window)
@@ -51,7 +53,7 @@ export function useSheetKeyboard(inputRef, enabled = true) {
       window.removeEventListener(NATIVE_KEYBOARD_EVENT, sync)
       // The sheet element outlives this input when the sheet swaps content, so leave it
       // the way we found it rather than pinning a stale keyboard inset on it.
-      const sheet = inputRef.current?.closest?.('.sheet')
+      const sheet = inputRef.current?.closest?.(SHEET)
       sheet?.style.removeProperty('--picker-keyboard-bottom')
       sheet?.style.removeProperty('--picker-visual-height')
     }

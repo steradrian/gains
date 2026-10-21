@@ -69,7 +69,9 @@ export function useConnectionTrouble() {
   return !on && show && (view.tone === 'off' || view.tone === 'bad' || view.tone === 'wait')
 }
 
-export default function SyncBanner() {
+// `onToday`: Today draws its own Offline pill (T1.14) for a signed-in device that is offline, so
+// the banner stays out of its way there. Every other condition, and every other page, keeps it.
+export default function SyncBanner({ onToday = false }) {
   const nav = useNavigate()
   const on = useStore(s => showsConnection(s.S))
   const local = useStore(s => showsLocalLine(s.S))
@@ -77,7 +79,8 @@ export default function SyncBanner() {
   const conn = useConnection()
   const { view, user, status } = conn
   const quiet = view?.tone === 'quiet'
-  const show = conn.show && on && (!quiet || local)
+  const pillCovers = onToday && !!user && view?.tone === 'off'
+  const show = conn.show && on && (!quiet || local) && !pillCovers
   const row = useRef(null)
 
   useLayoutEffect(() => {

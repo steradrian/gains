@@ -2,17 +2,25 @@ import { useState } from 'react'
 import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
+import DevKitDrawers from './DevKitDrawers.jsx'
+import DevKitToday from './DevKitToday.jsx'
+import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
+import GlassTabBar from './GlassTabBar.jsx'
 import IconButton from './IconButton.jsx'
 import Illustration from './Illustration.jsx'
 import InlineBanner from './InlineBanner.jsx'
 import Logo from './Logo.jsx'
 import OnboardingNav from './OnboardingNav.jsx'
+import RingCarousel from './RingCarousel.jsx'
 import StageAlert from './StageAlert.jsx'
 import StageChoiceCard from './StageChoiceCard.jsx'
 import StageDayCount from './StageDayCount.jsx'
 import StageFooter from './StageFooter.jsx'
+import StageHeader from './StageHeader.jsx'
+import StageRing from './StageRing.jsx'
 import StageScreen, { ACCENTS } from './StageScreen.jsx'
+import StageWeekMarks from './StageWeekMarks.jsx'
 import StageWeekStrip from './StageWeekStrip.jsx'
 import SuccessCheck from './SuccessCheck.jsx'
 import TextField from './TextField.jsx'
@@ -29,6 +37,29 @@ const GOALS = [
   { icon: 'target', title: 'Stay where I am', sub: 'Maintenance calories' },
 ]
 const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const NOOP = () => {}
+const RINGS = [
+  { name: 'Calories', top: 'Left today', big: '1,240', unit: 'kcal of 2,100', value: 860, max: 2100, pill: '860 eaten', icon: 'flame' },
+  { name: 'Protein', top: 'Protein left', big: '9', unit: 'g of 150 g', value: 141, max: 150, pill: '141 g eaten', icon: 'utensils' },
+  { name: 'Carbs', top: 'Carbs left', big: '120', unit: 'g of 230 g', value: 110, max: 230, pill: '110 g eaten', icon: 'utensils' },
+  { name: 'Fat', top: 'Fat left', big: '30', unit: 'g of 70 g', value: 40, max: 70, pill: '40 g eaten', icon: 'utensils' },
+]
+const FOOD_ACTIONS = [
+  { icon: 'utensils', label: 'Log food', onClick: NOOP },
+  { icon: 'scanBarcode', label: 'Scan', onClick: NOOP },
+  { icon: 'droplet', label: 'Water', onClick: NOOP },
+  { icon: 'scale', label: 'Weigh-in', onClick: NOOP },
+]
+const TRAINING_ACTIONS = [
+  { icon: 'play', label: 'Start', onClick: NOOP },
+  { icon: 'chartLine', label: 'Activity', onClick: NOOP },
+  { icon: 'scale', label: 'Weigh-in', onClick: NOOP },
+  { icon: 'calendar', label: 'Plan', href: SELF },
+]
+const WEEK_MARKS = [
+  ['M', 'Monday', 'done'], ['T', 'Tuesday', 'rest'], ['W', 'Wednesday', 'missed'], ['T', 'Thursday', 'today'],
+  ['F', 'Friday', 'planned'], ['S', 'Saturday', 'rest'], ['S', 'Sunday', 'planned'],
+].map(([dow, day, state]) => ({ key: day, dow, state, label: day + ', ' + state }))
 
 export default function DevKit() {
   const [accent, setAccent] = useState('cobalt')
@@ -39,6 +70,8 @@ export default function DevKit() {
   const [replay, setReplay] = useState(0)
   const [alerts, setAlerts] = useState(1)
   const [days, setDays] = useState(4)
+  const [searching, setSearching] = useState(false)
+  const [page, setPage] = useState(0)
 
   return (
     <StageScreen accent={accent}>
@@ -165,8 +198,60 @@ export default function DevKit() {
           </div>
         </Section>
 
+        <DevKitToday />
+        <DevKitDrawers />
+
+        <Section title="GlassTabBar" note="Tap it (the first lights what is tapped, and the pill glides); then a running workout on Train, no tab lit, and over a light page.">
+          <div className="g-kit-col">
+            <GlassTabBar onPlus={NOOP} />
+            <GlassTabBar current="train" running onChange={NOOP} onPlus={NOOP} />
+            <GlassTabBar current={null} onChange={NOOP} onPlus={NOOP} />
+          </div>
+          <div className="g-kit-light">
+            <GlassTabBar current="eat" hrefs={{ today: SELF, train: SELF, eat: SELF, me: SELF, plus: SELF }} />
+          </div>
+        </Section>
+
+        <Section title="StageWeekMarks" note="The training profile's week: done, missed, today, planned and rest; then every day a button.">
+          <div className="g-kit-col">
+            <StageWeekMarks days={WEEK_MARKS} />
+            <StageWeekMarks days={WEEK_MARKS.map(d => ({ ...d, onClick: NOOP }))} />
+          </div>
+        </Section>
+
         <Section title="SuccessCheck" note="The ring draws itself once as the screen arrives.">
           <div className="g-kit-row"><SuccessCheck /></div>
+        </Section>
+
+        <Section title="StageHeader" note="Avatar, search pill and bell. The first is controlled (search it: the bell turns into the close); then links, and a count of twelve.">
+          <StageHeader initial="A" unread={3} searching={searching} onSearch={setSearching} onSettings={NOOP} onBell={NOOP} />
+          <StageHeader initial="M" placeholder="Search training" settingsHref={SELF} searchHref={SELF} bellHref={SELF} />
+          <StageHeader initial="S" placeholder="Search food" unread={12} onSettings={NOOP} onBell={NOOP} />
+        </Section>
+
+        <Section title="StageRing" note="Progress, over target (amber, 180 kcal over 2,100), five digits (one step smaller), a custom size, and loading.">
+          <div className="g-kit-row">
+            <StageRing value={860} max={2100} top="Left today" big="1,240" unit="kcal of 2,100" />
+            <StageRing value={2100} max={2100} over={180 / 2100} top="Over today" big="180" unit="kcal over 2,100" />
+          </div>
+          <div className="g-kit-row">
+            <StageRing value={12000} max={30000} top="Steps left" big="18,000" unit="of 30,000" />
+            <StageRing value={3} max={5} top="This week" big="3" unit="of 5 workouts" size={160} stroke={12} />
+          </div>
+          <div className="g-kit-row"><StageRing loading /></div>
+        </Section>
+
+        <Section title="RingCarousel" note={`Swipe or use the dots. Page shown: ${page + 1}. Then one ring alone (no dots), and loading.`}>
+          <RingCarousel slides={RINGS} onChange={setPage} onOpen={NOOP} />
+          <RingCarousel slides={[{ name: 'Workouts', top: 'This week', big: '3', unit: 'of 5', value: 3, max: 5, href: SELF }]} />
+          <RingCarousel loading />
+        </Section>
+
+        <Section title="GlassActions" note="Food profile, training profile, three actions, and loading.">
+          <GlassActions items={FOOD_ACTIONS} />
+          <GlassActions items={TRAINING_ACTIONS} />
+          <GlassActions items={FOOD_ACTIONS.slice(0, 3)} />
+          <GlassActions loading />
         </Section>
 
         <Section title="StageFooter" note="In the flow (sticky false) with a note; the screen's own is pinned to the bottom.">

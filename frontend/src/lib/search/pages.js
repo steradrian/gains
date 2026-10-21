@@ -7,7 +7,7 @@
 // which the search still shows, labelled Off, and opens at that switch (the settings `find`
 // contract, views/Settings.jsx). Titles and keywords are English keys, translated when shown.
 // page-index.test.js holds every path here to a route in App.jsx.
-import { TAB_ROOT } from '../tab-route.js'
+import { PROGRESS_ROOT, TAB_ROOT } from '../tab-route.js'
 
 const nutrition = c => (c.nutrition ? 'on' : 'hidden')
 
@@ -33,7 +33,7 @@ export const PAGE_INDEX = [
   { path: '/food/fasting', tab: 'food', title: 'Fasting', glyph: 'timer', kw: 'fast intermittent 16:8 omad',
     gate: c => (!c.nutrition ? 'hidden' : c.fastingOn ? 'on' : { off: { page: 'features', find: 'Fasting' } }) },
   // Progress
-  { path: TAB_ROOT.progress, tab: 'progress', title: 'Progress', glyph: 'chart', kw: 'stats statistics charts' },
+  { path: PROGRESS_ROOT, tab: 'progress', title: 'Progress', glyph: 'chart', kw: 'stats statistics charts' },
   { path: '/progress/body', tab: 'progress', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
   { path: '/progress/body/measurements', tab: 'progress', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },
   { path: '/progress/body/photos', tab: 'progress', title: 'Progress photos', glyph: 'image', kw: 'photos pictures compare before after' },

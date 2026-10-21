@@ -1,18 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_RENAMED, isTabRoot, launchPath, legacyPath, parentOf, slotOf, tabOf, workoutRunning } from './tab-route.js'
+import { PROFILE_RENAMED, isTabRoot, launchPath, legacyPath, parentOf, tabOf, workoutRunning } from './tab-route.js'
 
 describe('the tab comes from the route', () => {
-  it('Home, Training, Nutrition and Progress own their own paths', () => {
+  it('Home, Training and Nutrition own their own paths', () => {
     expect(tabOf('/home')).toBe('home')
     expect(tabOf('/train')).toBe('train')
     expect(tabOf('/train/routines/abc')).toBe('train')
     expect(tabOf('/food')).toBe('food')
-    expect(tabOf('/progress/body/photos')).toBe('progress')
   })
 
-  it('the workout and Profile belong to no tab: they sit on the one that opened them', () => {
-    for (const p of ['/train/workout', '/me', '/me/workout', '/me/admin', '/', ''])
-      expect(tabOf(p), p).toBeNull()
+  it('Me owns Profile and every page under it, and Progress with its pages', () => {
+    for (const p of ['/me', '/me/workout', '/me/admin', '/progress', '/progress/body/photos', '/progress/load?view=plan'])
+      expect(tabOf(p.split('?')[0]), p).toBe('me')
+  })
+
+  it('the workout belongs to no tab: it sits on the one that opened it', () => {
+    for (const p of ['/train/workout', '/', '']) expect(tabOf(p), p).toBeNull()
   })
 
   it('does not take a lookalike for a tab', () => {
@@ -22,12 +25,8 @@ describe('the tab comes from the route', () => {
   })
 
   it('knows the four roots', () => {
-    for (const p of ['/home', '/train', '/food', '/progress']) expect(isTabRoot(p), p).toBe(true)
-    for (const p of ['/train/history', '/progress/body', '/me', '/train/workout']) expect(isTabRoot(p), p).toBe(false)
-  })
-
-  it('never puts a tab on the centre +', () => {
-    expect([0, 1, 2, 3].map(slotOf)).toEqual([0, 1, 3, 4])
+    for (const p of ['/home', '/train', '/food', '/me']) expect(isTabRoot(p), p).toBe(true)
+    for (const p of ['/train/history', '/progress', '/progress/body', '/me/workout', '/train/workout']) expect(isTabRoot(p), p).toBe(false)
   })
 })
 
@@ -44,6 +43,10 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/progress/body')).toBe('/progress')
     expect(parentOf('/progress/body/measurements')).toBe('/progress')
     expect(parentOf('/progress/body/photos')).toBe('/progress')
+  })
+
+  it('Progress to Profile, the page it is opened from', () => {
+    expect(parentOf('/progress')).toBe('/me')
   })
 
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {

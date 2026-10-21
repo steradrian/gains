@@ -1,5 +1,5 @@
 import { Children } from 'react'
-import { dateLocale, t } from '../lib/i18n.js'
+import { t } from '../lib/i18n.js'
 import { fmtNum } from '../lib/format.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
@@ -58,23 +58,6 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     {children}
     {status === 'error' && onRetry && <Button variant="tinted" size="sm" className="mt-4" onClick={onRetry}>{t('Try again')}</Button>}
   </div>
-}
-
-// The hero's compact protein, carbs and fat line, in grams: `eaten` against `targets`
-// ("82/150 g", Home). Keys are the diary's: proteins, carbohydrates, fat.
-const HERO_MACROS = [
-  { id: 'proteins', cls: 'p', label: () => t('Protein') },
-  { id: 'carbohydrates', cls: 'c', label: () => t('Carbs') },
-  { id: 'fat', cls: 'f', label: () => t('Fat') },
-]
-const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
-export function HeroMacros({ eaten = {}, targets = {} }) {
-  return <p className="hero-macros">
-    {HERO_MACROS.map(m => <span key={m.id}>
-      <i className={'mdot ' + m.cls} aria-hidden="true" /><span className="sr-only">{m.label()} </span>
-      {grams(eaten[m.id])}{targets[m.id] != null && '/' + grams(targets[m.id])} g
-    </span>)}
-  </p>
 }
 
 // One section of a redesigned tab root: the root's sections sit --gap-tab-section apart, which is
@@ -257,10 +240,4 @@ export function MediaRow({ art, title, subtitle, link, onOpen, onPlay, playLabel
     {onPlay && <button type="button" className="media-play" onClick={onPlay} aria-label={playLabel}><Icon name="play" /></button>}
     {chevron && <Icon name="chevronRight" className="chev" />}
   </div>
-}
-
-// A page's one main action, pinned above the tab bar while the page scrolls under it and resting
-// at the end of the page when it is reached, so it never covers the last row.
-export function StickyActionBar({ children }) {
-  return <div className="sticky-act">{children}</div>
 }

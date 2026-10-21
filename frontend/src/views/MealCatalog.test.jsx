@@ -184,7 +184,7 @@ describe('logging a saved meal', () => {
     await settle(() => expect(nt.writes().some(r => r.path === '/nt/api/meals/21/used' && r.body.date === DAY)).toBe(true))
     expect(nt.writes().filter(r => /\/api\/foods\/\d+\/used/.test(r.path)).map(r => r.path).sort()).toEqual(['/nt/api/foods/11/used', '/nt/api/foods/12/used'])
     expect(useUI.getState().sheets).toHaveLength(0)
-    expect(toastText()).toBe('Logged to Dinner')
+    expect(toastText()).toMatch(/^Added Oats and bread to .+, Dinner$/)
   })
 
   it('logs once when the answer to the first try was lost', async () => {

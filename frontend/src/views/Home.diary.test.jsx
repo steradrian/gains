@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Home as the hub (ux-redesign-tabs §1) and the + sheet's logging rows, against NutriTrace faked
+// Today (PR-01, views/today/) and the + sheet's logging rows, against NutriTrace faked
 // at the fetch boundary (lib/nutrition/fake-nutritrace.js: NutriTrace's real shapes, merge and
 // the hub's rules). The diary itself is Nutrition's (FoodHub.diary.test.jsx).
 import { act } from 'react'
@@ -11,7 +11,9 @@ import { fmtDate, todayISO, isoOf } from '../lib/format.js'
 import { dateLocale } from '../lib/i18n.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
+import { __test as diaryIndex, useDiaryIndex } from '../lib/nutrition/diary-index.js'
 import { useHubSync, resetSyncThrottle } from '../lib/nutrition/sync.js'
+import { closeSearch, useSearch } from '../lib/search/session.js'
 import { createFakeNutriTrace, emptyDay, fixtureActivity, fixtureActivitySum, fixtureDay, fixtureFoods, fixtureSettings, fixtureSyncStatus } from '../lib/nutrition/fake-nutritrace.js'
 import { workoutKcalMessage, reportWorkoutKcal } from '../lib/nutrition/workout-kcal.js'
 import Home from './Home.jsx'
@@ -55,14 +57,23 @@ const typeInto = async (input, value) => {
   })
   await settle()
 }
-// The hub's parts.
-const actions = () => [...host.querySelectorAll('.act-b')].map(b => b.querySelector('.act-l').textContent)
-const action = label => [...host.querySelectorAll('.act-b')].find(b => b.querySelector('.act-l').textContent === label)
-const metric = i => {
-  const m = host.querySelectorAll('.hero-mi')[i]
-  return { value: m.querySelector('.hero-num').textContent, unit: m.querySelector('.hero-u')?.textContent ?? null, label: m.querySelector('.hero-ml').textContent, sub: m.querySelector('.hero-ms')?.textContent ?? null }
+// Today's parts.
+const slides = () => [...host.querySelectorAll('.g-rc-slide')]
+const ring = i => {
+  const s = slides()[i]
+  return { top: [...s.querySelectorAll('.g-sring-top')].map(e => e.textContent), big: s.querySelector('.g-sring-in b').textContent, pill: s.querySelector('.g-rc-pill')?.textContent ?? null }
 }
-const pills = () => [...host.querySelectorAll('.meal-pills .chip')]
+const actions = () => [...host.querySelectorAll('.g-gact')].map(b => b.textContent)
+const action = label => [...host.querySelectorAll('.g-gact')].find(b => b.textContent === label)
+const tiles = () => [...host.querySelectorAll('.g-tile')].map(b => [b.querySelector('b').textContent, b.querySelector('.g-tile-body > span').textContent])
+const tile = name => [...host.querySelectorAll('.g-tile')].find(b => b.querySelector('b').textContent === name)
+const sections = () => [...host.querySelectorAll('.g-ssec')].map(s => s.textContent)
+// The Nutrition drawer (T1.3).
+const ndTab = () => [...lastSheet().querySelectorAll('.g-seg button')].find(b => b.getAttribute('aria-pressed') === 'true').textContent
+const ndTotal = () => ['.g-nd-num', '.g-nd-of', '.g-nd-left'].map(c => lastSheet().querySelector(c)?.textContent ?? null)
+const ndRows = () => [...lastSheet().querySelectorAll('.g-nd-row')].map(r => [r.querySelector('.g-nd-name').textContent, r.querySelector('.g-nd-sub').textContent,
+  r.querySelector('.g-nd-pct')?.textContent ?? r.querySelector('.g-nd-add')?.getAttribute('aria-label') ?? null])
+const diaryReads = iso => nt.requests.filter(r => r.path === `/nt/api/diary/${iso}`).length
 // A day on the week strip, by its name (WeekStrip's aria-label leads with the date).
 const day = iso => host.querySelector(`.wk-d[aria-label^="${new Date(iso + 'T12:00:00').toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}"]`)
 
@@ -88,6 +99,7 @@ beforeEach(() => {
   useNutrition.getState().reset()
   useDiarySelection.getState().reset()
   useHubSync.getState().reset()
+  diaryIndex.restore()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
   resetSyncThrottle()
   host = document.createElement('div')
@@ -96,119 +108,269 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals() })
 
-describe('Home is the hub', () => {
-  it('the hero says how the day is going: kcal left with what was eaten, water against its goal, protein, carbs and fat', async () => {
+describe('Today', () => {
+  it('the rings say how the day is going: energy left with what was eaten, then protein, carbs and fat left', async () => {
     await mount(<Home />)
     // 2200 target − (228 oats + 450 quick) eaten
-    expect(metric(0)).toEqual({ value: '1,522', unit: null, label: 'kcal left', sub: '678 kcal eaten' })
-    expect(metric(1)).toEqual({ value: '250', unit: 'ml', label: 'Water', sub: 'of 2,500 ml' })
-    expect(host.querySelector('.hero-macros').textContent).toBe('Protein 8/160 gCarbs 36/165 gFat 4/70 g')
-    // The diary itself is on Nutrition.
+    expect(slides().map(s => s.getAttribute('aria-label'))).toEqual([
+      'Calories: Left today 1,522 of 2,200 kcal, 190 burned · 678 eaten. Open details',
+      'Protein: Protein left 152 g of 160 g, 8 g eaten. Open details',
+      'Carbs: Carbs left 129 g of 165 g, 36 g eaten. Open details',
+      'Fat: Fat left 66 g of 70 g, 4 g eaten. Open details',
+    ])
+    expect(ring(0)).toEqual({ top: ['Left today', 'of 2,200 kcal'], big: '1,522', pill: expect.stringMatching(/678 eaten$/) })
+    expect(ring(1)).toEqual({ top: ['Protein left', 'g of 160 g'], big: '152', pill: '8 g eaten' })
+    // The day's detail is the Nutrition drawer (T1.3): a ring opens it on its own tab.
     expect(host.querySelector('.kcal-card')).toBeNull()
-    expect(host.querySelector('.water-card')).toBeNull()
-    expect(host.querySelector('.meal-row')).toBeNull()
+    await click(slides()[1])
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Nutrition today')
+    expect(ndTab()).toBe('Protein')
+    expect(ndTotal()).toEqual(['8', 'of 160 g eaten', '152 left'])
+    expect(navigate).not.toHaveBeenCalled()
   })
 
-  it('over the target the first number is what is over', async () => {
-    nt.state.days[TODAY].items.push({ uuid: 'big', meal: 2, addedAt: `${TODAY}T19:00:00.000Z`, type: 'quick_calories', name: 'Quick Calories', nutrition: { calories: 2000 }, food_server_id: null })
+  it('over the target the energy ring closes, and an amber arc and the number say how far over', async () => {
+    nt.state.days[TODAY].items.push({ uuid: 'big', meal: 2, addedAt: `${TODAY}T19:00:00.000Z`, type: 'quick_calories', name: 'Quick Calories', nutrition: { calories: 2000 } , food_server_id: null })
     await mount(<Home />)
-    expect(metric(0)).toMatchObject({ value: '478', label: 'kcal over', sub: '2,678 kcal eaten' })
+    expect(ring(0)).toMatchObject({ top: ['Over today', 'kcal over 2,200'], big: '478', pill: expect.stringMatching(/2,678 eaten$/) })
+    expect(slides()[0].querySelector('.g-sring-over')).toBeTruthy()
   })
 
-  it('a day that does not load says so on the hero and retries, never showing numbers it does not have', async () => {
+  it('a day that does not load says so and retries, never showing numbers it does not have', async () => {
     nt.failNext('GET', `/nt/api/diary/${TODAY}`, 'offline')
     await mount(<Home />)
-    expect(host.querySelector('.hero [role="alert"]').textContent).toBe('The diary did not load: no connection.')
-    expect(metric(0).value).toBe('–')
-    expect(metric(1).value).toBe('–')
+    expect(host.querySelector('[role="alert"]').textContent).toContain('The diary did not load: no connection.')
+    expect(host.querySelector('.g-rcb[aria-busy="true"]')).toBeTruthy()
+    expect(host.querySelector('.g-sring-in b')).toBeNull()
+    // Nothing below the rings reads as an empty day: no water amount, no meal tiles, no dead +.
+    expect(sections()).toEqual([])
+    expect(host.querySelector('.g-tile, .g-water')).toBeNull()
+    expect(actions()).toEqual([])
     await click(button('Try again'))
-    expect(metric(0).value).toBe('1,522')
+    expect(ring(0).big).toBe('1,522')
+    expect(sections()).toContain('Water250 of 2,500 ml')
   })
 
-  it('the action row on a day with nothing planned: Workout, Log food, +250 ml, then Scan with gym check-in off', async () => {
-    await mount(<Home />)
-    expect(actions()).toEqual(['Workout', 'Log food', '+250 ml', 'Scan'])
-    // None of them is filled: the + is the one accent disc (Owner decision 7).
-    expect(host.querySelectorAll('.act-b.primary, .act-d.primary')).toHaveLength(0)
-    await click(action('Workout'))
-    expect(navigate).toHaveBeenCalledWith('/train/workout')
-    await click(action('Scan'))
-    expect(lastSheet().querySelector('.scan-sheet h3').textContent).toBe('Scan a barcode')
-  })
-
-  it('with gym check-in on, the fourth is Check in and opens the cards', async () => {
-    useStore.setState(s => ({ S: { ...s.S, checkIn: true } }))
-    await mount(<Home />)
-    expect(actions()).toEqual(['Workout', 'Log food', '+250 ml', 'Check in'])
-    await click(action('Check in'))
-    expect(navigate).toHaveBeenCalledWith('/train/checkin')
-  })
-
-  it('+250 ml logs a glass to the selected day, with Undo', async () => {
-    await mount(<Home />)
-    await click(button('Add a glass of water, 250 ml'))
-    expect(puts()).toHaveLength(1)
-    expect(puts()[0].body.water.map(w => w.amount)).toEqual([250, 250])
-    expect(metric(1).value).toBe('500')
-    expect(useUI.getState().toastMsg).toBe('Water added')
-    await act(async () => { useUI.getState().runToastAction() })
-    await settle()
-    expect(metric(1).value).toBe('250')
-  })
-
-  it('Log food opens the picker for the selected day and the meal of the hour', async () => {
+  it('past midnight with the app still open, food and water both log to the day on screen', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(`${TODAY}T12:10:00`))
+    vi.setSystemTime(new Date(`${TODAY}T23:59:00`))
     try {
       await mount(<Home />)
+      vi.setSystemTime(new Date(`${tomorrow}T00:01:00`))
       await click(action('Log food'))
-      expect(lastSheet().querySelector('.food-picker-sheet .logging-to').textContent).toBe('Logging toToday · Lunch')
+      expect(useDiarySelection.getState().day()).toBe(TODAY)
+      await act(async () => { useUI.getState().closeAll() })
+      await settle()
+      await click(tile('Snacks'))
+      expect(useDiarySelection.getState().day()).toBe(TODAY)
+      await act(async () => { useUI.getState().closeAll() })
+      await settle()
+      await click(action('Water'))
+      expect(puts().at(-1).path).toBe(`/nt/api/diary/${TODAY}`)
     } finally { vi.useRealTimers() }
   })
 
-  it('the day\'s meals as pills: energy where there is food, a + where there is none; a pill logs to its meal', async () => {
+  it('a first day waits for the diary index before it is one: no Up next, no First steps until then', async () => {
+    useFake({ days: { [TODAY]: emptyDay(TODAY) } })
+    useStore.setState(s => ({ S: { ...s.S, bodyweight: [] } }))
+    // A saved copy says complete, but this session has not synced it yet: it may be behind.
+    useDiaryIndex.setState({ complete: true, synced: false })
     await mount(<Home />)
-    expect(host.querySelector('.sec-h-t').textContent).toBe('Today’s food')
-    expect(pills().map(p => p.textContent)).toEqual(['Breakfast228', 'Lunch450', 'Dinner', 'Snacks'])
-    expect(pills()[2].querySelector('[data-icon="plus"]')).toBeTruthy()
-    // WCAG 2.5.3: the name holds the visible words, "Breakfast 228", in that order.
-    expect(pills()[0].getAttribute('aria-label')).toBe('Breakfast 228 kcal, Log food')
-    expect(pills()[1].getAttribute('aria-label')).toMatch(/^Lunch 450\b/)
-    expect(pills()[2].getAttribute('aria-label')).toBe('Log food to Dinner')
-    await click(pills()[2])
-    expect(lastSheet().querySelector('.logging-to').textContent).toBe('Logging toToday · Dinner')
+    expect(host.querySelector('.today .today-sk-row')).toBeTruthy()
+    expect(host.querySelector('.g-grow, .g-fstep')).toBeNull()
+    expect(tiles().map(t => t[0])).toEqual(['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
+    await act(async () => { useDiaryIndex.setState({ synced: true }) })
+    expect(host.querySelector('.today-sk-row')).toBeNull()
+    expect(sections()[0]).toBe('First steps1 of 4')
   })
 
-  it('Diary opens the whole day on Nutrition', async () => {
+  it('the four actions: Log food, Scan, Water and Weigh-in, each the flow the app already runs', async () => {
+    // Gym check-in stays on Training: it is not one of Today's four.
+    useStore.setState(s => ({ S: { ...s.S, checkIn: true } }))
     await mount(<Home />)
-    await click(button('Diary'))
-    expect(navigate).toHaveBeenCalledWith('/food')
+    expect(actions()).toEqual(['Log food', 'Scan', 'Water', 'Weigh-in'])
+    await click(action('Scan'))
+    expect(lastSheet().querySelector('.scan-sheet h3').textContent).toBe('Scan a barcode')
+    await act(async () => { useUI.setState({ sheets: [] }) })
+    await click(action('Weigh-in'))
+    await click(button('Save weigh-in', lastSheet()))
+    expect(useStore.getState().S.bodyweight.find(b => b.d === TODAY)).toBeTruthy()
+    expect(useUI.getState().toastMsg).toBe('Saved 80.4 kg to Today')
+    expect(useUI.getState().toastAction).toBeTruthy()
   })
 
-  it('a day before today: eaten against its target, Log workout first and Weigh in for that day last', async () => {
-    useFake({ days: { [TODAY]: fixtureDay(TODAY), [yesterday]: { ...fixtureDay(yesterday), items: [] } } })
+  it('Water logs a glass to today with Undo, and so does the + after the glasses', async () => {
     await mount(<Home />)
-    await click(day(yesterday))
+    expect(sections()).toContain('Water250 of 2,500 ml')
+    expect(host.querySelectorAll('.g-water-g i.on')).toHaveLength(1)
+    await click(action('Water'))
+    expect(puts()).toHaveLength(1)
+    expect(puts()[0].body.water.map(w => w.amount)).toEqual([250, 250])
+    expect(sections()).toContain('Water500 of 2,500 ml')
+    expect(host.querySelectorAll('.g-water-g i.on')).toHaveLength(2)
+    expect(useUI.getState().toastMsg).toBe('Added 250 ml of water to Today')
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle()
+    expect(sections()).toContain('Water250 of 2,500 ml')
+    // Spoken in the person's water unit, as the Nutrition tab's quick-adds are.
+    expect(host.querySelector('.g-water').getAttribute('aria-label')).toBe('Water, 250 ml of 2,500 ml')
+    await click(button('Add a glass of water, 250 ml'))
+    expect(puts().at(-1).body.water.map(w => w.amount)).toEqual([250, 250])
+  })
+
+  it('Log food opens the picker for today and the meal of the hour, though Nutrition had an earlier day picked', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(`${TODAY}T12:10:00`))
+    try {
+      useDiarySelection.getState().setDate(yesterday)
+      await mount(<Home />)
+      await click(action('Log food'))
+      expect(lastSheet().querySelector('.g-bs .g-bs-chip').textContent).toBe('Today · Lunch')
+      expect(useDiarySelection.getState().day()).toBe(TODAY)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('the meals as tiles: logged with their energy, the meal of the hour to add now, the rest empty', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(`${TODAY}T19:10:00`))
+    try {
+      await mount(<Home />)
+      expect(tiles()).toEqual([['Breakfast', '228 kcal'], ['Lunch', '450 kcal'], ['Dinner', 'Add now'], ['Snacks', 'Nothing yet']])
+      expect(tile('Breakfast').querySelector('[aria-label="Logged"]')).toBeTruthy()
+      expect(tile('Dinner').classList.contains('g-tile-now')).toBe(true)
+      // A logged meal opens the day (T1.3); an empty one logs to that meal (T1.4).
+      await click(tile('Breakfast'))
+      expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Nutrition today')
+      useUI.getState().closeAll()
+      await settle()
+      await click(tile('Snacks'))
+      expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Snacks')
+    } finally { vi.useRealTimers() }
+  })
+
+  it('See day opens the day in the Nutrition drawer: the total against the target, the meals, what was burned', async () => {
+    await mount(<Home />)
+    await click(button('See day'))
+    expect(navigate).not.toHaveBeenCalled()
+    expect(ndTab()).toBe('Calories')
+    expect(ndTotal()).toEqual(['678', 'of 2,200 kcal eaten', '1,522 left'])
+    expect(ndRows()).toEqual([
+      ['Breakfast', '228 kcal', '34%'], ['Lunch', '450 kcal', '66%'],
+      ['Dinner', 'Nothing yet', 'Add Dinner'], ['Snacks', 'Nothing yet', 'Add Snacks'],
+      ['Burned 190 kcal', 'Not added to your target', null],
+    ])
+    expect(lastSheet().querySelectorAll('.g-nd-bar > span')).toHaveLength(2)
+    await click([...lastSheet().querySelectorAll('.g-seg button')].find(b => b.textContent === 'Fat'))
+    expect(ndTab()).toBe('Fat')
+    expect(ndRows().map(r => r[0])).toEqual(['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
+    // A meal with nothing yet logs to it: the drawer gives way to Log food for that meal.
+    await click(button('Add Dinner', lastSheet()))
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Log food')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Dinner')
+  })
+
+  it('the Nutrition drawer with nothing logged: every meal has a +, and the total reads 0 of the target', async () => {
+    useFake({ days: { [TODAY]: emptyDay(TODAY) } })
+    await mount(<Home />)
+    await click(button('See day'))
+    for (const tab of ['Calories', 'Protein', 'Carbs', 'Fat']) {
+      await click([...lastSheet().querySelectorAll('.g-seg button')].find(b => b.textContent === tab))
+      expect(ndTotal()[0]).toBe('0')
+      expect(ndRows().slice(0, 4).map(r => r[2])).toEqual(['Add Breakfast', 'Add Lunch', 'Add Dinner', 'Add Snacks'])
+      expect(lastSheet().querySelectorAll('.g-nd-bar > span')).toHaveLength(0)
+    }
+    expect(ndTotal()).toEqual(['0', 'of 70 g eaten', '70 left'])
+  })
+
+  it('a first day: every meal empty, the energy ring at the whole target', async () => {
+    useFake({ days: { [TODAY]: emptyDay(TODAY) } })
+    await mount(<Home />)
+    expect(tiles().every(([, sub]) => sub === 'Nothing yet' || sub === 'Add now')).toBe(true)
+    expect(ring(0).big).toBe('2,200')
+  })
+
+  it('always today: no day picker, and a day picked on another tab is neither shown nor read', async () => {
+    useDiarySelection.getState().setDate(yesterday)
+    await mount(<Home />)
+    expect(host.querySelector('.month-bar-l, .wk-d')).toBeNull()
+    expect(ring(0).big).toBe('1,522')
+    expect(diaryReads(yesterday)).toBe(0)
+    // The other tabs keep their day until Today logs something.
     expect(useDiarySelection.getState().day()).toBe(yesterday)
-    expect(nt.requests.some(r => r.path === `/nt/api/diary/${yesterday}`)).toBe(true)
-    expect(host.querySelector('.hero-e').textContent).toBe(fmtDate(yesterday, true))
-    expect(host.querySelector('.hero-t').textContent).toBe('Rest day')
-    expect(metric(0)).toEqual({ value: '0', unit: 'kcal', label: 'Eaten', sub: 'of 2,200 kcal' })
-    expect(host.querySelector('.sec-h-t').textContent).toBe('Food')
-    expect(actions()).toEqual(['Log workout', 'Log food', '+250 ml', 'Weigh in'])
-    await click(action('Weigh in'))
-    expect(lastSheet().textContent).toContain(fmtDate(yesterday, true))
-    await act(async () => { useUI.setState({ sheets: [] }) })
-    await click(action('Log workout'))
-    expect(lastSheet().querySelector('input[type="date"]').value).toBe(yesterday)
-    await act(async () => { useUI.setState({ sheets: [] }) })
-    await click(button('Today'))
-    expect(useDiarySelection.getState().day()).toBe(TODAY)
-    expect(actions()[3]).toBe('Scan')
   })
 
-  it('a day to come is never the date: tapping it opens "change this day" for that day', async () => {
+  it('rolls over to the new day the next time the app comes to the front, not while it is on screen', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(`${TODAY}T23:59:00`))
+    try {
+      await mount(<Home />)
+      vi.setSystemTime(new Date(`${tomorrow}T00:01:00`))
+      await settle(10)
+      expect(diaryReads(tomorrow)).toBe(0)
+      await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+      await settle()
+      expect(diaryReads(tomorrow)).toBeGreaterThan(0)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('the header: the avatar opens Profile, the bell Notifications, the pill the app\'s search', async () => {
     await mount(<Home />)
+    await click(button('Settings'))
+    expect(navigate).toHaveBeenCalledWith('/me')
+    await click(button('Notifications'))
+    expect(navigate).toHaveBeenCalledWith('/me/notifications')
+    await click(host.querySelector('.g-spill'))
+    expect(useSearch.getState().open).toBe(true)
+    // The tab's own header takes over, its input focused inside the tap.
+    expect(host.querySelector('.g-shdr')).toBeNull()
+    expect(document.activeElement).toBe(host.querySelector('.tab-hdr input'))
+    await act(async () => { closeSearch() })
+    await settle()
+    expect(host.querySelector('.g-shdr')).toBeTruthy()
+  })
+
+  it('the avatar carries the hub sync warning, with its reason in its name', async () => {
+    await mount(<Home />)
+    expect(host.querySelector('.g-sbtn .g-sdot')).toBeNull()
+    await act(async () => { useHubSync.setState({ status: fixtureSyncStatus('needs_confirmation') }) })
+    expect(host.querySelector('.g-sbtn .g-sdot')).toBeTruthy()
+    expect(button('Settings, Nutrition sync needs attention')).toBeTruthy()
+  })
+
+  it('without nutrition (a guest, the phone build): one ring for the week, the week\'s marks, no food', async () => {
+    useStore.setState({ user: null })
+    await mount(<Home />)
+    expect(slides().map(s => s.getAttribute('aria-label'))).toEqual(['Workouts: This week 0 of 0 workouts. Open details'])
+    expect(actions()).toEqual(['Start', 'Activity', 'Weigh-in', 'Plan'])
+    expect(sections()).toEqual(['Up next', 'This week0 of 0 done'])
+    expect(host.querySelectorAll('.g-wk-cell')).toHaveLength(7)
+    expect(host.querySelector('.g-tiles, .g-water')).toBeNull()
+    expect(nt.requests).toHaveLength(0)
+    await click(action('Start'))
+    expect(navigate).toHaveBeenCalledWith('/train/workout')
+    await click(action('Activity'))
+    expect(navigate).toHaveBeenCalledWith('/train/history')
+    await click(action('Plan'))
+    expect(navigate).toHaveBeenCalledWith('/train/schedule')
+    await click(slides()[0])
+    expect(navigate).toHaveBeenLastCalledWith('/train')
+  })
+
+  // Blocker: nothing is shown or logged for a day that has not happened.
+  it('stops at today: no future date, no future log', async () => {
+    await mount(<Home />)
+    act(() => useDiarySelection.getState().setDate(tomorrow))
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
+    const before = nt.requests.length
+    await expect(useNutrition.getState().logWater(tomorrow, useNutrition.getState().draftWater(250))).rejects.toMatchObject({ code: 'invalid' })
+    expect(nt.requests.length).toBe(before)
+  })
+})
+
+// The day picker Training and Nutrition keep (Today has none, PR-01): one date every tab shares.
+describe('the shared day picker', () => {
+  it('a day to come is never the date: tapping it opens "change this day" for that day', async () => {
+    await mount(<DayNav />)
     // Tomorrow is in this week's strip unless today ends the week; then the week after shows it.
     if (!day(tomorrow)) {
       const days = host.querySelectorAll('.wk-d')
@@ -235,7 +397,7 @@ describe('Home is the hub', () => {
   }
 
   it('a day to come in the calendar opens "change this day" for it and leaves the date, announced', async () => {
-    await mount(<Home />)
+    await mount(<DayNav />)
     await openCalendar(tomorrow)
     expect(calendarDay(tomorrow).disabled).toBe(false)
     await click(calendarDay(tomorrow))
@@ -258,76 +420,6 @@ describe('Home is the hub', () => {
     expect(host.querySelector('[role="status"]')).toBeNull()
   })
 
-  it('on first run the hero says the numbers count from the first log, and stops once there is one', async () => {
-    useFake({ days: { [TODAY]: emptyDay(TODAY) } })
-    await mount(<Home />)
-    expect(text()).toContain('Counts from your first log')
-    expect(pills().every(p => p.querySelector('[data-icon="plus"]'))).toBe(true)
-    await click(button('Add a glass of water, 250 ml'))
-    expect(text()).not.toContain('Counts from your first log')
-    // Gone for good, even on a day that is empty again.
-    await act(async () => { useUI.getState().runToastAction() })
-    await settle()
-    expect(metric(1).value).toBe('0')
-    expect(text()).not.toContain('Counts from your first log')
-  })
-
-  it('says nothing about a first log to someone whose diary has food', async () => {
-    await mount(<Home />)
-    expect(text()).not.toContain('Counts from your first log')
-  })
-
-  it('an existing user with an empty today but yesterday logged never sees the first-run line, and it stays gone', async () => {
-    useFake({ days: { [TODAY]: emptyDay(TODAY), [yesterday]: fixtureDay(yesterday) } })
-    await mount(<Home />)
-    expect(text()).not.toContain('Counts from your first log')
-    expect(localStorage.getItem('gains.diaryLogged')).toBe('1')
-  })
-
-  it('offers yesterday\'s meal again while today\'s is empty, and the row goes once it is logged', async () => {
-    useFake({ days: { [TODAY]: emptyDay(TODAY), [yesterday]: fixtureDay(yesterday) } })
-    useDiarySelection.getState().setMeal(0)
-    await mount(<Home />)
-    expect(text()).toContain('Yesterday’s Breakfast')
-    await click(button('Log yesterday’s Breakfast again'))
-    expect(nt.state.days[TODAY].items.map(i => i.name)).toEqual(['Rolled oats'])
-    expect(text()).not.toContain('Yesterday’s Breakfast')
-    expect(useUI.getState().toastMsg).toBe('Logged to Breakfast')
-    // The row has gone: focus lands on Breakfast's pill, not the body.
-    await settle(20)
-    expect(document.activeElement).toBe(host.querySelector('[data-meal-slot="0"]'))
-  })
-
-  it('does not offer yesterday\'s meal when today\'s already has food', async () => {
-    useFake({ days: { [TODAY]: fixtureDay(TODAY), [yesterday]: fixtureDay(yesterday) } })
-    useDiarySelection.getState().setMeal(0)
-    await mount(<Home />)
-    expect(text()).not.toContain('Yesterday’s Breakfast')
-  })
-
-  it('without nutrition (a guest, the phone build): the training row, Weigh in, then History or Check in; no food', async () => {
-    useStore.setState({ user: null })
-    await mount(<Home />)
-    expect(actions()).toEqual(['Workout', 'Weigh in', 'History'])
-    expect(host.querySelector('.hero-m')).toBeNull()
-    expect(host.querySelector('.meal-pills')).toBeNull()
-    expect(nt.requests).toHaveLength(0)
-    await click(action('History'))
-    expect(navigate).toHaveBeenCalledWith('/train/history')
-    act(() => useStore.setState(s => ({ S: { ...s.S, checkIn: true } })))
-    await settle()
-    expect(actions()).toEqual(['Workout', 'Weigh in', 'Check in'])
-  })
-
-  // Blocker: nothing is shown or logged for a day that has not happened.
-  it('stops at today: no future date, no future log', async () => {
-    await mount(<Home />)
-    act(() => useDiarySelection.getState().setDate(tomorrow))
-    expect(useDiarySelection.getState().day()).toBe(TODAY)
-    const before = nt.requests.length
-    await expect(useNutrition.getState().logWater(tomorrow, useNutrition.getState().draftWater(250))).rejects.toMatchObject({ code: 'invalid' })
-    expect(nt.requests.length).toBe(before)
-  })
 })
 
 describe('logging a food', () => {
@@ -342,7 +434,7 @@ describe('logging a food', () => {
     await click(button('Log'))
     const item = nt.state.days[TODAY].items.at(-1)
     expect(item).toMatchObject({ name: 'Wholemeal bread', meal: 2, portion: 2, unit: 'slice', quantity: 1 })
-    expect(useUI.getState().toastMsg).toBe('Logged to Dinner')
+    expect(useUI.getState().toastMsg).toBe('Added Wholemeal bread to Today, Dinner')
   })
 
   it('a failed write keeps the sheet and its amount, and the retry logs once', async () => {
@@ -399,7 +491,7 @@ describe('logging a food', () => {
 })
 
 describe('the + sheet', () => {
-  it('names where it logs, lists Anytime in order and offers Log food and Scan', async () => {
+  it('names where it logs, offers the six tiles in order and the rest as a list', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(`${TODAY}T12:10:00`))
     await useNutrition.getState().loadSettings()
@@ -407,26 +499,35 @@ describe('the + sheet', () => {
     await act(async () => { openPlusSheet('/home') })
     await settle()
     const sheet = lastSheet()
-    expect(sheet.querySelector('.logging-to').textContent).toBe('Logging toToday · Lunch')
-    const rows = [...sheet.querySelectorAll('.sect')].at(-1).querySelectorAll('.lrow-t')
-    expect([...rows].map(r => r.textContent)).toEqual(['Quick kcal', 'Weigh in', 'Start workout', 'Water'])
-    // A tab root has no "Here" rows of its own.
-    expect(sheet.querySelectorAll('.sect')).toHaveLength(1)
-    expect(button('Log food', sheet)).toBeTruthy()
-    expect(button('Scan', sheet)).toBeTruthy()
+    expect(sheet.querySelector('.g-bs h2').textContent).toBe('Add to Today')
+    expect(sheet.querySelector('.g-bs-chip').textContent).toBe('Today · Lunch')
+    expect([...sheet.querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Log food', 'Scan', 'Water', 'Weigh-in', 'Start workout', 'Log activity'])
+    // A tab root has no items of its own: the list is what is always there.
+    expect([...sheet.querySelectorAll('.g-menuitem b')].map(b => b.textContent)).toEqual(['Quick kcal'])
     vi.useRealTimers()
   })
 
-  it('with a day before today picked, offers to log a workout to it, from any screen', async () => {
+  it('the Water tile adds the first container to the day and closes', async () => {
+    await useNutrition.getState().loadSettings()
+    await mount(<></>)
+    await act(async () => { openPlusSheet('/home') })
+    await settle()
+    const before = (nt.state.days[TODAY].water || []).length
+    await click(lastSheet().querySelector('.g-atile[aria-label^="Add"]'))
+    await settle()
+    expect(nt.state.days[TODAY].water).toHaveLength(before + 1)
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('with a day before today picked, names that day and logs a past workout to it', async () => {
     useDiarySelection.getState().setDate(yesterday)
     await useNutrition.getState().loadSettings()
     await mount(<></>)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    const here = lastSheet().querySelector('.sect')
-    expect(here.querySelector('.sect-t').textContent).toBe('Here')
-    expect(here.querySelector('.lrow-t').textContent).toBe('Log workout for ' + fmtDate(yesterday, true))
-    await click(here.querySelector('.lrow'))
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(fmtDate(yesterday, true))
+    await click(button('Log activity', lastSheet()))
     expect(lastSheet().querySelector('input[type="date"]').value).toBe(yesterday)
   })
 
@@ -435,9 +536,9 @@ describe('the + sheet', () => {
     await mount(<></>)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    await click(lastSheet().querySelector('.logging-to'))
+    await click(lastSheet().querySelector('.g-bs-chip'))
     await click([...lastSheet().querySelectorAll('.menu-item')].find(m => m.textContent === 'Snacks'))
-    expect(lastSheet().querySelector('.logging-to').textContent).toContain('Snacks')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain('Snacks')
     await click(button('Quick kcal', lastSheet()))
     await typeInto(lastSheet().querySelector('input[aria-label="kcal"]'), '300')
     await click(button('Log', lastSheet()))
@@ -449,7 +550,8 @@ describe('the + sheet', () => {
     await mount(<></>)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    expect(lastSheet().querySelector('.logging-to')).toBeNull()
+    expect(lastSheet().querySelector('button.g-bs-chip')).toBeNull()
+    expect([...lastSheet().querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Weigh-in', 'Start workout', 'Log activity'])
     expect(lastSheet().textContent).not.toContain('Quick kcal')
     expect(nt.requests).toHaveLength(0)
   })
@@ -463,7 +565,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet() })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     await settle()
     expect(order[0]).toBe('push')
     expect(order).toContain('/hub/api/sync/now')
@@ -473,7 +575,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet({ date: yesterday }) })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     // `t` is the change stamp (now); charts place it on its own day, not on the day it was typed.
     const entry = useStore.getState().S.bodyweight.find(b => b.d === yesterday)
     expect(entry.t).toBeGreaterThan(new Date(TODAY + 'T00:00:00').getTime())
@@ -484,8 +586,8 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet({ date: tomorrow }) })
     await settle()
-    await click(button('Save', lastSheet()))
-    const bw = useStore.getState().S.bodyweight
+    await click(button('Save weigh-in', lastSheet()))
+    const bw =useStore.getState().S.bodyweight
     expect(bw.some(b => b.d === tomorrow)).toBe(false)
     expect(bw.find(b => b.d === TODAY)).toBeTruthy()
   })
@@ -571,8 +673,8 @@ describe('the calendar as the date picker', () => {
     expect(calls).toBeLessThanOrEqual(4)
   })
 
-  it('the month on Home opens it, and the day picked there is the date', async () => {
-    await mount(<Home />)
+  it('the month in the day picker opens it, and the day picked there is the date', async () => {
+    await mount(<DayNav />)
     await click(host.querySelector('.month-bar-l'))
     const cell = [...lastSheet().querySelectorAll('.cal-d')].find(b => b.textContent === String(Number(yesterday.slice(-2))))
     // Yesterday is in last month on the 1st; the calendar opened on this one.

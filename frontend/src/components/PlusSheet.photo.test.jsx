@@ -29,7 +29,7 @@ const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => {
 const go = async to => { await act(async () => { history.pushState(null, '', '#' + to); window.dispatchEvent(new PopStateEvent('popstate')) }); await settle() }
 const back = async () => { await act(async () => { history.back() }); await settle() }
 const addPhoto = async () => {
-  const row = [...document.querySelectorAll('.plus-sheet button, .plus-sheet [role="button"]')].find(b => b.textContent.includes('Add photo'))
+  const row = [...document.querySelectorAll('.g-bs .g-menuitem')].find(b => b.textContent.includes('Add photo'))
   await act(async () => { row.click() })
   await settle()
 }

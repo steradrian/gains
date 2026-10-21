@@ -203,7 +203,7 @@ function Shell() {
   }, [])
   // Arriving by a switch, not walking back later onto an entry a switch wrote.
   const tabSwitch = !!shown.state?.tabSwitch && navType !== 'POP'
-  // A page any tab can open (Profile) keeps a scroll position per tab it is opened from.
+  // A page any tab can open (the workout) keeps a scroll position per tab it is opened from.
   const scrollKey = tab + ' ' + shown.pathname
   useLayoutEffect(() => {
     if (switching) return
@@ -303,7 +303,7 @@ function Shell() {
               <Route path="/food/foods" element={<Foods />} />
               <Route path="/food/goals" element={<NutritionGoals />} />
               <Route path="/food/fasting" element={<Fasting />} />
-              {/* Progress */}
+              {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
               <Route path="/progress" element={<ProgressHub />} />
               <Route path="/progress/body" element={<Body segment="weight" />} />
               <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
@@ -313,8 +313,9 @@ function Shell() {
               <Route path="/progress/load" element={<TrainingLoad />} />
               <Route path="/progress/trends" element={<Trends />} />
               <Route path="/progress/recovery" element={<Recovery />} />
-              {/* Opened from any tab, on top of it: the workout and Profile. */}
+              {/* Opened from any tab, on top of it: the workout. */}
               <Route path="/train/workout" element={<Workout />} />
+              {/* Me: Profile */}
               <Route path="/me" element={<SettingsRoute />} />
               <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
               <Route path="/me/:page" element={<SettingsRoute />} />
@@ -326,7 +327,7 @@ function Shell() {
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
-      <SyncBanner />
+      <SyncBanner onToday={shown.pathname === '/home'} />
       {/* The dock before the bar: it sits above the bar on screen, so it comes first in the
           reading and tab order too. */}
       {docked ? <LiveDock /> : <RestTimer />}

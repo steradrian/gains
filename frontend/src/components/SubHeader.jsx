@@ -14,7 +14,8 @@ import Icon from './Icon.jsx'
 // `children` stand in for the title where the page's title is itself a control (the routine
 // editor's name field); it then fills the middle at full width, start-aligned.
 // `onBack` replaces the tab's back for a page whose back is not a trip down the stack: a settings
-// sub-page names its own parent, the Coach intake steps back through its questions.
+// sub-page names its own parent, the Coach intake steps back through its questions. `false` is a
+// tab's root that keeps this header (Profile, Me's root): nothing to go back to, so no back.
 // `sticky` pins it under the system bars.
 export default function SubHeader({ title, sub, action, onBack, sticky = false, children }) {
   if (import.meta.env.DEV && actionCount(action) > 2) throw new Error('SubHeader: at most two actions')
@@ -22,7 +23,9 @@ export default function SubHeader({ title, sub, action, onBack, sticky = false, 
   const step = useTitleFit(h1, children ? null : title)
   return (
     <div className={cx('hdr sub-hdr', children && 'sub-hdr-field', sticky && 'sticky')}>
-      <button type="button" className="iconbtn hdr-btn" onClick={onBack || back} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
+      {onBack === false
+        ? <span className="hdr-btn" aria-hidden="true" />
+        : <button type="button" className="iconbtn hdr-btn" onClick={onBack || back} aria-label={t('Back')}><Icon name="chevronLeft" /></button>}
       <div className="sub-hdr-t">{children || <><h1 ref={h1} className={step ? 'fit-' + step : undefined}>{title}</h1>{sub && <div className="sub">{sub}</div>}</>}</div>
       <div className="hdr-actions">{action}</div>
     </div>

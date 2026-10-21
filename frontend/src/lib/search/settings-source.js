@@ -29,7 +29,6 @@ const VALUES = {
   'Vibrate': S => onOff(S.vibrate !== false),
   'Keep screen awake': S => onOff(S.keepAwake !== false),
   'Gym check-in': S => onOff(S.checkIn !== false),
-  'Body weight': S => onOff(S.showWeightCard !== false),
   'Show brand names': (S, c) => (c.ntSettings ? onOff(settingOf(c.ntSettings, 'diaryShowBrands')) : null),
   'Show macro summary': (S, c) => (c.ntSettings ? onOff(settingOf(c.ntSettings, 'diaryShowMacroSummary')) : null),
   'Search Open Food Facts': (S, c) => (c.ntSettings ? onOff(settingOf(c.ntSettings, 'offEnabled')) : null),
