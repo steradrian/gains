@@ -188,6 +188,38 @@ describe('the screens gallery', () => {
     await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
   }, 20000)
 
+  it('has Train T2.0 and its states T2.3 and T2.7 to T2.14, the toasts held over the screen', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train').entries.map(e => e.id)
+    expect(ids).toEqual(['T2.0', 'T2.3', 'T2.7', 'T2.8', 'T2.9', 'T2.10', 'T2.11', 'T2.12', 'T2.13', 'T2.14'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const eyebrow = h => h.querySelector('.g-tcard-tags').textContent
+    await check('T2.0', h => {
+      expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(3)
+      expect([...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Routines', 'Your training'])
+      expect(eyebrow(h)).toBe('Today · planned')
+      expect(h.querySelectorAll('.g-rtile')).toHaveLength(4)
+    })
+    await check('T2.3', h => expect(eyebrow(h)).toBe('Mon 19 Oct · planned'))
+    await check('T2.7', h => expect(eyebrow(h)).toMatch(/^In progress · \d+:\d\d$/))
+    await check('T2.8', h => {
+      expect(h.querySelector('.train-banner').textContent).toContain('You missed Legs on Fri 16 Oct')
+      expect(h.querySelector('.g-rd-missed')).toBeTruthy()
+    })
+    await check('T2.9', h => {
+      expect(h.querySelector('.g-rail')).toBeNull()
+      expect(h.querySelector('.g-sempty').textContent).toContain('Add training')
+    })
+    await check('T2.10', h => expect(eyebrow(h)).toBe('Workout done'))
+    await check('T2.11', h => expect(eyebrow(h)).toBe('Rest day'))
+    await check('T2.12', h => expect(h.textContent).toContain('Moved Legs to today. Push A is now Tue 20 Oct'))
+    await check('T2.13', h => expect(h.textContent).toContain('Skipped Legs on Fri 16 Oct. Push A stays today'))
+    await check('T2.14', h => {
+      expect(eyebrow(h)).toBe('Sat 24 OctPlanned')
+      expect(h.querySelector('.g-rail-title').textContent).toBe('Next week')
+      expect(h.querySelectorAll('.g-tcard-rows .g-xrow')).toHaveLength(6)
+    })
+  }, 20000)
+
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
     for (const e of states) { expect(e.title, e.id).toBeTruthy(); expect(screenById(e.id)).toBe(e) }
