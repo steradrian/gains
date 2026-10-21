@@ -101,11 +101,8 @@ export const PT_BR_OVERRIDES = {
   'Cardio logged': 'Cardio registrado',
   'The sets you logged in this session will be lost.': 'As séries registradas nesta sessão serão perdidas.',
   'Superset · do these back-to-back, rest when done': 'Superset · faça estes exercícios em sequência e descanse ao terminar',
-  'Choose starter plan': 'Escolha um plano inicial',
   'Fit to my equipment': 'Adaptar ao meu equipamento',
   'As written': 'Do jeito que está',
-  'Add an equipment profile in Settings to fit a plan to what you own.': 'Adicione um perfil de equipamento em Ajustes para adaptar um plano ao que você tem.',
-  '{0} loaded, fitted to "{1}": {2} swapped, {3} dropped': '{0} carregado e adaptado a "{1}": {2} trocados, {3} removidos',
   'Push / Pull / Legs': 'Push / Pull / Legs',
   'Finish your first workout and your progress curves will show up here.': 'Termine seu primeiro treino e seus gráficos de progresso aparecem aqui.',
   'Your weekly routine': 'Sua rotina semanal',
@@ -448,8 +445,6 @@ export const PT_BR_OVERRIDES = {
   'Active profile': 'Perfil ativo',
   '{0} equipment types': '{0} tipos de equipamento',
   'Add equipment profile': 'Adicionar perfil de equipamentos',
-  'Delete profile?': 'Excluir perfil?',
-  '"{0}" and its equipment list will be removed.': '“{0}” e sua lista de equipamentos serão removidos.',
   'Filters the exercise library and picker, and flags routine exercises that need something you don’t have in the active profile.': 'Filtra a biblioteca de exercícios e o seletor, e sinaliza os exercícios das rotinas que precisam de algo que você não tem no perfil ativo.',
 
   // --- drop-sets, auto-backup and server pairing ---
