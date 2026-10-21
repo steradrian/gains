@@ -49,7 +49,7 @@ const TABS = ['all', 'fav', 'muscle']
 // chips, Type and Equipment), Favourites, By muscle (the body map). A tap picks, and the "+" on a row
 // adds with the default settings, unless the caller opts into `multi`: then a tap ticks the row, and
 // the foot reads `multi.label(n)` and hands every tick to `multi.onAdd` in the order they were ticked.
-function ExercisePicker({ onPick, title, close, like, multi, routine }) {
+function ExercisePicker({ onPick, title, close, like, multi, routine, workout }) {
   const st = useStore(s => s.S)
   const usage = usageMap(st)
   const [q, setQ] = useState('')
@@ -134,7 +134,7 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
     return <div key={e.id} className="g-pk-item">
       <ExerciseStillRow size={48} ex={e} figure={figure}
         title={<>{fav && <Icon name="starFill" className="g-icon g-pk-fav" />}<i className={exerciseNameClass(e)}>{exerciseNameFor(e)}</i></>}
-        sub={t(MUSCLE_NAME[e.tg] || e.tg || e.bp) + ' · ' + t(e.eq)}
+        sub={[t(MUSCLE_NAME[e.tg] || e.tg || e.bp) + ' · ' + t(e.eq), workout?.sub?.(e)].filter(Boolean).join(' · ')}
         trailing={mark.length ? mark : false} pressed={multi ? !!on : undefined}
         onClick={() => (multi ? tick(e) : onPick(e))} />
       {/* A "+" glyph reads as "add this now": it adds with the default settings right away, where
@@ -197,6 +197,11 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
         <span className="g-xrow-b"><b>{t('Create your own exercise')}</b><span>{t('Name it and pick a body part')}</span></span>
         <Icon name="plus" className="g-icon g-xrow-chev" />
       </button>}
+      {workout?.onAddRoutine && !q.trim() && <button type="button" className="g-xrow g-pk-new" onClick={() => { close(); workout.onAddRoutine() }}>
+        <span className="g-xrow-ph"><Icon name="clipboard" className="g-icon" /></span>
+        <span className="g-xrow-b"><b>{t('Add routine')}</b><span>{t('Bring another routine into this session')}</span></span>
+        <Icon name="plus" className="g-icon g-xrow-chev" />
+      </button>}
       {f.slice(0, shown).map(pickRow)}
       {f.length === 0 && tab === 'all' && bp === '★' && <p className="g-pk-note">{t('Nothing picked yet. Add some exercises and they’ll show up here.')}</p>}
       {f.length === 0 && tab === 'fav' && <p className="g-pk-note">{t('No favourites yet. Tap the star on an exercise to add one.')}</p>}
@@ -217,7 +222,10 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
 // train the same muscle, same equipment first (#473). `routine` is the name of the routine the pick
 // goes into, shown in the header. `multi: { label(n), onAdd(exs) }` makes the picker take several:
 // without it a pick is one exercise (a tap configures, the "+" quick-adds).
-export const exercisePicker = (onPick, { title, like, multi, routine } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} multi={multi} routine={routine} close={close} />, { variant: 'ds' })
+// `workout: { sub(ex) -> string | null, onAddRoutine }` is the running workout's Add exercise (W1.18):
+// `sub` adds to a row's muscle line when it returns text ("Last: …", "In this workout · added"),
+// and `onAddRoutine` adds an "Add routine" row above the list, after closing the picker.
+export const exercisePicker = (onPick, { title, like, multi, routine, workout } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} multi={multi} routine={routine} workout={workout} close={close} />, { variant: 'ds' })
 
 /**
  * The entry that takes the place of the active entry `current` when it is swapped for `ex` with

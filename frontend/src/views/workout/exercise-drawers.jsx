@@ -249,7 +249,7 @@ function factsFor(S, entry) {
 }
 
 // What a swap row says it did last time: "Last: 50 kg × 10", "Last: 20 reps", or "Never done".
-function lastLine(S, exId) {
+export function lastLine(S, exId) {
   const did = lastDid(S, exId)
   if (did) return t('Last: {0}', fmtNum(did.w) + ' ' + S.unit + ' × ' + fmtNum(did.r))
   const last = lastEntryFor(sessionHistory(S), exId)

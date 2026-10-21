@@ -7,20 +7,21 @@ import { exOr } from '../../lib/exercises.js'
 import { buildSets, freestyleConfig, defaultConfig, supersetUnits, modeOf, applyIntensifierPlan } from '../../lib/history.js'
 import { exerciseNameText } from '../../lib/format.js'
 import { t } from '../../lib/i18n.js'
-import { workoutSettingsSheet } from '../../components/WorkoutSettingsSheet.jsx'
-import { fmtRest } from '../../lib/duration.js'
-import { menuSheet, exercisePicker, exConfigSheet, addRoutineToSessionSheet, renameWorkoutSheet, sessionNoteSheet } from '../../sheets.jsx'
-import { discardSheet, finishSheet } from './finish-drawers.js'
+import { exercisePicker, exConfigSheet, addRoutineToSessionSheet } from '../../sheets.jsx'
+import { discardSheet } from './finish-drawers.js'
 import { insertionIndexAfterCurrentUnit } from '../../lib/supersetFlow.js'
 import { defaultIncrement, weightIncrement } from '../../lib/progression.js'
 import { buildPlannedEntry, builtOutOfProgression } from '../../lib/session-start.js'
-import { sessionNoProg, setSessionNoProg, joinSessionNoProg } from '../../lib/session-noprog.js'
-import { markAllSetsDone, sessionHistory } from '../../lib/backfill.js'
+import { joinSessionNoProg } from '../../lib/session-noprog.js'
+import { sessionHistory } from '../../lib/backfill.js'
 import { dropGrid } from '../../lib/plates.js'
 import { withMeaning, historyAs, dbLoadFor, ownedWeightsFor } from '../../lib/dumbbells.js'
 import { partsOf } from '../../lib/workout-parts.js'
 // Workout drawers-M2
-import { openSetEdit, openHowTo, openPlates, openRestWheel, openExerciseRest } from './exercise-drawers.jsx'
+import { openSetEdit, openHowTo, openPlates, openRestWheel, openExerciseRest, lastLine } from './exercise-drawers.jsx'
+// Workout drawers-M3
+import { openMap, openOptions } from './map-drawers.jsx'
+import { removeActiveExercise, UNDO_MS } from './workout-actions.js'
 
 const state = () => useStore.getState().S
 const update = (fn, local) => useStore.getState().update(fn, local)
@@ -41,19 +42,17 @@ export const restWheelSheet = () => openRestWheel()
  * everything edited on the exercise from inside it; Update routine offers to keep it. */
 export const exerciseRestSheet = idx => openExerciseRest(idx)
 
-/** The map (W1.37, W1.45). Fallback: a menu of the exercises; a tap makes one current. */
-export function workoutMapSheet() {
+/** The map (W1.37, W1.45, W1.23): every exercise by phase, reorder, Make superset, Skip, Options. */
+export const workoutMapSheet = () => openMap({ addExercise: part => addExerciseSheet(null, part) })
+
+/** Takes the exercise added at `at` back out (the toast's Undo) and puts the pointer where it was. */
+function undoAdded({ activeId, at, exId, prevCur }) {
   const A = state().active
-  if (!A) return
-  menuSheet({
-    title: t('All exercises'),
-    items: A.entries.map((e, idx) => ({
-      icon: e.sets.length && e.sets.every(s => s.done) ? 'checkCircle' : 'dumbbell',
-      label: exerciseNameText(exOr(e.id)),
-      on: idx === A.cur,
-      onClick: () => update(s => { if (s.active?.entries?.[idx]) s.active.cur = idx }),
-    })),
-  })
+  if (!A || A.id !== activeId) { useUI.getState().toast(t('Too late, that one’s gone')); return }
+  const idx = A.entries[at]?.id === exId ? at : A.entries.findIndex(e => e.id === exId)
+  if (idx < 0) return
+  removeActiveExercise(idx)
+  update(s => { if (s.active) s.active.cur = Math.max(0, Math.min(prevCur, s.active.entries.length - 1)) })
 }
 
 /**
@@ -77,6 +76,7 @@ export function addExerciseSheet(afterIdx = null, part = null, { onShift } = {})
     const into = part && part !== 'main' ? part : null
     const commit = cfg => {
       onShift?.()
+      let added = null
       update(s => {
         if (!s.active) return
         const full = { ...cfg, id: ex.id }
@@ -93,14 +93,31 @@ export function addExerciseSheet(afterIdx = null, part = null, { onShift } = {})
           const run = partsOf(s.active.entries).find(p => p.part === into)
           insertAt = run ? run.to + 1 : into === 'warmup' ? 0 : s.active.entries.length
         }
+        const after = s.active.entries[insertAt - 1]
+        const prevCur = s.active.cur
         s.active.entries.splice(insertAt, 0, joinSessionNoProg(s.active, { id: ex.id, ...built, ...(curRid ? { rid: curRid } : {}), ...(noProg ? { noProg: true } : {}), ...(into ? { part: into } : {}) }))
         s.active.cur = insertAt
         useUI.getState().shiftRestOwner(insertAt, 1)
+        added = { activeId: s.active.id, at: insertAt, exId: ex.id, prevCur, after: after ? exerciseNameText(exOr(after.id)) : null, count: s.active.entries.length }
       })
+      // W1.19: where it went, counting every exercise like the footer, and Undo for 8 s.
+      if (added) {
+        useUI.getState().toast(added.after
+          ? t('Added {0} after {1} · {2} of {3}', exerciseNameText(ex), added.after, added.at + 1, added.count)
+          : t('Added {0} · {1} of {2}', exerciseNameText(ex), added.at + 1, added.count), {
+          action: t('Undo'), ms: UNDO_MS, onAction: () => undoAdded(added),
+        })
+      }
     }
     // The picker row's "+" adds at once with the config the sheet would have opened with.
-    if (quick) { commit(seed || defaultConfig(ex.id)); useUI.getState().toast(t('“{0}” added to {1}', exerciseNameText(ex), routine ? routine.name : t('Freestyle'))) }
+    if (quick) commit(seed || defaultConfig(ex.id))
     else exConfigSheet(ex, null, commit, null, routine, seed, null, t('Add to this workout'))
+  }, {
+    routine: t('This workout'),
+    workout: {
+      sub: ex => (state().active?.entries.some(e => e.id === ex.id) ? t('In this workout · added') : lastLine(state(), ex.id)),
+      onAddRoutine: state().active?.editingWorkoutId ? undefined : () => addRoutineToSessionSheet(),
+    },
   })
 }
 
@@ -108,41 +125,9 @@ export function addExerciseSheet(afterIdx = null, part = null, { onShift } = {})
 export const discardWorkoutConfirm = () => discardSheet()
 
 /**
- * Workout options (W1.20). Fallback: the old header ⋯ menu without Layout. `markAllDone` is the
- * hook's (it re-baselines the progress marks); without it the sets are ticked here.
+ * Workout options (W1.20), with Workout settings as a step (W1.21). `markAllDone` is the hook's
+ * (it re-baselines the progress marks); without it the sets are ticked in the drawer.
  */
-export function workoutOptionsSheet({ markAllDone, addExercise } = {}) {
-  const S = state()
-  const A = S.active
-  if (!A) return
-  const editing = !!A.editingWorkoutId
-  const keepsOut = e => !!e?.rid && S.routines.some(r => r.id === e.rid && r.excludeFromProgression === true)
-  const switchable = !A.entries.length || A.entries.some(e => !keepsOut(e))
-  const markAll = markAllDone || (() => {
-    update(s => { if (s.active) s.active.entries = markAllSetsDone(s.active.entries) }, true)
-    finishSheet()
-  })
-  menuSheet({
-    sections: [
-      { items: [
-        { icon: 'gear', accent: true, chevron: true, label: t('Workout settings'),
-          sub: [S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer'), S.sound ? t('Sound') : t('Silent')].join(' · '),
-          onClick: workoutSettingsSheet },
-      ] },
-      { title: t('Add'), items: [
-        { icon: 'plusCircle', label: t('Add exercise'), onClick: () => (addExercise ? addExercise() : addExerciseSheet()) },
-        !editing && { icon: 'clipboard', label: t('Add routine'), sub: t('Bring another routine into this session'), onClick: addRoutineToSessionSheet },
-      ] },
-      { title: t('This workout'), items: [
-        A.backfill && A.entries.length > 0 && { icon: 'checkCircle', label: t('Mark all sets done'), onClick: markAll },
-        { icon: 'pencil', label: t('Rename workout'), onClick: renameWorkoutSheet },
-        { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
-        switchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A),
-          onClick: () => update(s => setSessionNoProg(s.active, !sessionNoProg(s.active), keepsOut)) },
-      ] },
-      { items: [
-        !editing && { icon: 'trash', label: t('Discard workout'), danger: true, onClick: discardWorkoutConfirm },
-      ] },
-    ],
-  })
-}
+export const workoutOptionsSheet = ({ markAllDone } = {}) => openOptions({
+  markAllDone, addExercise: part => addExerciseSheet(null, part),
+})
