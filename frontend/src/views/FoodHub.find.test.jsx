@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// A search's Day result, end to end on the routed Nutrition root (ux-search.md §4): the result
-// opens `/food?date=&find=<uuid>` as a visit of the overlay; Today's diary moves to that day, the
+// A search's Day result, end to end on the routed Nutrition root (ux-search.md §4): today's result
+// opens `/food?date=&find=<uuid>` as a visit of the overlay (a past day's opens its Day page,
+// PR07 D1, with the entry in the visit's state); the diary moves to that day, the
 // meal holding the entry opens and the entry flashes; the address is left as the tab's own with
 // the visit's state kept, and back on the overlay the day the diary had is put back. NutriTrace is
 // faked at the fetch boundary (lib/nutrition/fake-nutritrace.js).
@@ -36,6 +37,11 @@ function Wiring() {
   where = useLocation()
   return null
 }
+// The row the overlay shows for "quick", from the day as the diary index holds it.
+const indexedOn = date => ({ date, rev: '', kcal: 678, items: [
+  { uuid: 'it-oats', name: 'Rolled oats', food_id: 11, meal: 0, kcal: 228 },
+  { uuid: 'it-quick', name: 'Quick Calories', food_id: null, meal: 1, kcal: 450 },
+] })
 const settle = async (ms = 0) => { for (let i = 0; i < 6; i++) await act(async () => { await new Promise(r => setTimeout(r, ms)) }) }
 
 beforeEach(() => {
@@ -66,7 +72,7 @@ afterEach(() => {
 })
 
 describe('a Day result on Nutrition', () => {
-  it('opens that day\'s diary for the visit, the entry\'s meal open and the entry flashed, and back puts the day back', async () => {
+  it('today\'s result opens the diary for the visit, the entry\'s meal open and the entry flashed, and back puts the day back', async () => {
     // The diary was on yesterday when the search opened, from Home.
     act(() => useDiarySelection.getState().setDate(PICKED))
     await act(async () => {
@@ -79,12 +85,8 @@ describe('a Day result on Nutrition', () => {
     const { id, base } = useSearch.getState()
 
     // The row the overlay shows for "quick", from the day as the diary index holds it.
-    const indexed = { date: FOUND, rev: '', kcal: 678, items: [
-      { uuid: 'it-oats', name: 'Rolled oats', food_id: 11, meal: 0, kcal: 228 },
-      { uuid: 'it-quick', name: 'Quick Calories', food_id: null, meal: 1, kcal: 450 },
-    ] }
-    const [row] = dayResults(queryWords('quick'), [indexed], ['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
-    expect(row).toMatchObject({ type: 'day', date: FOUND, uuid: 'it-quick' })
+    const [row] = dayResults(queryWords('quick'), [indexedOn(TODAY)], ['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
+    expect(row).toMatchObject({ type: 'day', date: TODAY, uuid: 'it-quick' })
     await act(async () => openResult(row, { query: 'quick' }))
     await settle()
 
@@ -92,8 +94,8 @@ describe('a Day result on Nutrition', () => {
     expect(where.pathname).toBe('/food')
     expect(where.search).toBe('')
     expect(where.state).toMatchObject({ searchVisit: id })
-    expect(useDiarySelection.getState().day()).toBe(FOUND)
-    expect(nt.requests.some(r => r.path === `/nt/api/diary/${FOUND}`)).toBe(true)
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
+    expect(nt.requests.some(r => r.path === `/nt/api/diary/${TODAY}`)).toBe(true)
     const toggles = [...host.querySelectorAll('.meal-toggle')]
     expect(toggles.map(b => b.getAttribute('aria-expanded'))).toEqual(['false', 'true', 'false', 'false'])
     expect(host.querySelector('li.flash-find').textContent).toContain('Quick')
@@ -102,6 +104,22 @@ describe('a Day result on Nutrition', () => {
     await act(async () => syncSearchWithHistory({ idx: base, gainsSearch: id }))
     expect(useSearch.getState()).toMatchObject({ open: true, live: true })
     expect(useDiarySelection.getState().day()).toBe(PICKED)
+  })
+
+  it('a past day\'s result opens its Day page under Eat, the entry to find in the visit\'s state', async () => {
+    await act(async () => {
+      root.render(<MemoryRouter initialEntries={['/home']}>
+        <Wiring />
+        <Routes><Route path="/home" element={<p>Home</p>} /><Route path="/:tab/day/:date" element={<p>Day</p>} /></Routes>
+      </MemoryRouter>)
+    })
+    act(() => openSearch('home'))
+    const { id } = useSearch.getState()
+    const [row] = dayResults(queryWords('quick'), [indexedOn(FOUND)], ['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
+    await act(async () => openResult(row, { query: 'quick' }))
+    await settle()
+    expect(where.pathname).toBe('/food/day/' + FOUND)
+    expect(where.state).toMatchObject({ searchVisit: id, find: 'it-quick' })
   })
 
   it('a plain deep link picks the day for good, and finds nothing it was not asked to', async () => {

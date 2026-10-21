@@ -4,7 +4,9 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import History from './History.jsx'
+import { navToDay } from '../lib/day-route.js'
+import { workoutDetailSheet } from '../sheets.jsx'
+import History, { openWorkout } from './History.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -20,12 +22,14 @@ vi.mock('../sheets.jsx', () => ({
   workoutDetailSheet: vi.fn(),
   logPastWorkoutSheet: vi.fn(),
 }))
+vi.mock('../lib/day-route.js', () => ({ navToDay: vi.fn() }))
 
 let host, root
 const mount = () => act(() => root.render(<MemoryRouter><History /></MemoryRouter>))
 
 beforeEach(() => {
-  mocks.S = { unit: 'kg', lang: 'en', workouts: [], dayNotes: {} }
+  vi.clearAllMocks()
+  mocks.S ={ unit: 'kg', lang: 'en', workouts: [], dayNotes: {} }
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -46,5 +50,21 @@ describe('History', () => {
     mount()
     expect(host.querySelector('.empty')).toBeNull()
     expect(host.querySelector('.list .item').textContent).toBe('Push')
+  })
+})
+
+describe('History — a row opens its day', () => {
+  const TODAY = '2026-10-18'
+  it('a past workout opens its Day page under Train', () => {
+    openWorkout({ id: 'w1', d: '2026-10-12', entries: [] }, TODAY)
+    expect(navToDay).toHaveBeenCalledWith('2026-10-12', 'train')
+    expect(workoutDetailSheet).not.toHaveBeenCalled()
+  })
+
+  it('today’s workout opens its detail: the Day page is never today', () => {
+    const w = { id: 'w2', d: TODAY, entries: [] }
+    openWorkout(w, TODAY)
+    expect(workoutDetailSheet).toHaveBeenCalledWith(w)
+    expect(navToDay).not.toHaveBeenCalled()
   })
 })

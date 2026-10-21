@@ -26,6 +26,8 @@ vi.mock('../components/Heatmap.jsx', () => ({
   default: props => { mocks.heatmaps.push(props); return React.createElement('div', { 'data-heatmap': true }) },
 }))
 vi.mock('../components/LineChart.jsx', () => ({ default: () => React.createElement('div') }))
+const navToDay = vi.hoisted(() => vi.fn(() => 'day'))
+vi.mock('../lib/day-route.js', () => ({ navToDay }))
 vi.mock('../components/BodyMap.jsx', () => ({
   default: () => React.createElement('div', { 'data-body-map': true }),
   BodyMapLegend: () => null,
@@ -48,7 +50,7 @@ beforeEach(() => {
   mocks.S = state()
   mocks.search = ''
   mocks.heatmaps.length = 0
-  for (const fn of [mocks.nav, mocks.calendarSheet, mocks.workoutDetailSheet, mocks.dayOverrideSheet, mocks.exerciseHistorySheet]) fn.mockClear()
+  for (const fn of [mocks.nav, mocks.calendarSheet, mocks.workoutDetailSheet, mocks.dayOverrideSheet, mocks.exerciseHistorySheet, navToDay]) fn.mockClear()
 })
 afterEach(() => { act(() => root.unmount()); host.remove() })
 
@@ -62,6 +64,28 @@ const emptyTitle = () => host.querySelector('.empty .empty-t')?.textContent
 const emptyArt = () => host.querySelector('.empty .empty-art svg.lineart')
 const buttonWithText = text => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === text)
 const click = el => { expect(el, 'expected an element to click').toBeTruthy(); act(() => el.click()) }
+
+describe('TrainingLoad — a heatmap day', () => {
+  const past = '2026-01-10'
+  it('a past trained day opens its Day page under Me', () => {
+    mocks.S = state({ workouts: [workout('w', past, [set()])] })
+    mount()
+    act(() => mocks.heatmaps.at(-1).onDay(past))
+    expect(navToDay).toHaveBeenCalledWith(past, 'me')
+    expect(mocks.workoutDetailSheet).not.toHaveBeenCalled()
+  })
+
+  it('today’s workout opens its detail, and a day without one the day sheet', () => {
+    const w = workout('t', todayISO(), [set()])
+    mocks.S = state({ workouts: [w] })
+    mount()
+    act(() => mocks.heatmaps.at(-1).onDay(todayISO()))
+    expect(mocks.workoutDetailSheet).toHaveBeenCalledWith(w)
+    act(() => mocks.heatmaps.at(-1).onDay(past))
+    expect(mocks.dayOverrideSheet).toHaveBeenCalledWith(past)
+    expect(navToDay).not.toHaveBeenCalled()
+  })
+})
 
 describe('TrainingLoad — views and deep link', () => {
   it('offers Activity, Muscles and Plan, opening on Activity with the year heatmap', () => {
