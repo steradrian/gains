@@ -94,21 +94,36 @@ describe('Today — Up next', () => {
     expect(startFlow).not.toHaveBeenCalled()
   })
 
-  it('done: the session with its time and PRs, opening it', () => {
+  it('a rest day before a session tomorrow says tomorrow (T1.13)', () => {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+    setS({ week: { [tomorrow.getDay()]: ['r1'] } }); mountToday()
+    expect(upNext()[2]).toBe('Next: Push, tomorrow')
+  })
+
+  it('done: the session with its time, sets and new bests, opening it (T1.12)', () => {
     const start = Date.now() - 60 * 60000
-    const w = { id: 'w1', d: TODAY, start, end: start + 52 * 60000, routineIds: ['r1'], routineId: 'r1', name: 'Push', prs: ['a', 'b'], entries: [] }
+    const sets = [{ done: true }, { done: true }, { done: false }]
+    const w = { id: 'w1', d: TODAY, start, end: start + 52 * 60000, routineIds: ['r1'], routineId: 'r1', name: 'Push', prs: ['a', 'b'], entries: [{ sets }] }
     setS({ workouts: [w] }); mountToday()
-    expect(upNext()).toEqual(['Done today', 'Push', '52 min · 2 PRs'])
+    expect(upNext()).toEqual(['Done today', 'Push', '52 min · 2 sets · 2 new bests'])
     tap(row())
     expect(workoutDetailSheet).toHaveBeenCalledWith(w)
   })
 
-  it('running: Resume goes back to it', () => {
-    setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } }); mountToday()
-    expect(upNext()).toEqual(['Workout running', 'Push'])
+  it('running: its clock and the exercises done; Resume goes back to it (T1.11)', () => {
+    const entries = [{ sets: [{ done: true }] }, { sets: [{ done: true }, { done: false }] }]
+    setS({ active: { id: 'a', name: 'Push', start: Date.now() - 65_000, cur: 0, entries } }); mountToday()
+    const [eyebrow, ...rest] = upNext()
+    expect(eyebrow).toMatch(/^Workout running · 1:0\d$/)
+    expect(rest).toEqual(['Push', '1 of 2 exercises done'])
     expect(row().querySelector('.g-trail-pill').textContent).toBe('Resume')
     tap(row())
     expect(nav).toHaveBeenCalledWith('/train/workout')
+  })
+
+  it('a session not on the clock (a backfill) has no time in the eyebrow', () => {
+    setS({ active: { id: 'a', name: 'Push', cur: 0, entries: [] } }); mountToday()
+    expect(upNext()).toEqual(['Workout running', 'Push'])
   })
 
   it('an open editor on a saved workout reads as an edit and goes back to it', () => {
@@ -118,11 +133,42 @@ describe('Today — Up next', () => {
     expect(nav).toHaveBeenCalledWith('/train/workout')
   })
 
-  it('no plan yet: the way to one in Training', () => {
-    setS({ routines: [], week: {} }); mountToday()
+  it('no plan yet, once something was logged: the way to one in Training', () => {
+    setS({ routines: [], week: {}, bodyweight: [{ d: yesterday, w: 80 }] }); mountToday()
     expect(upNext()).toEqual(['No plan yet', 'Choose a plan any time in Train'])
     tap(row())
     expect(nav).toHaveBeenCalledWith('/train')
+  })
+
+  it('back after 7+ days without a log: a welcome back, once per return (T1.10)', () => {
+    localStorage.removeItem('gains.awaySeen')
+    const d = new Date(); d.setDate(d.getDate() - 8)
+    setS({ workouts: [{ id: 'w', d: isoOf(d), name: 'Push', entries: [] }], bodyweight: [] }); mountToday()
+    const card = () => host.querySelector('.g-away')
+    expect(card().textContent).toBe('Welcome back8 days since your last log. Your Plan kept going, so start from today. Nothing to catch up on.Weigh inNot now')
+    tap([...card().querySelectorAll('.g-away-btn')][1])
+    expect(card()).toBeNull()
+    act(() => root.unmount())
+    root = createRoot(host)
+    mountToday()
+    expect(card()).toBeNull()
+  })
+
+  it('no welcome back within a week of the last log', () => {
+    localStorage.removeItem('gains.awaySeen')
+    const d = new Date(); d.setDate(d.getDate() - 6)
+    setS({ workouts: [{ id: 'w', d: isoOf(d), name: 'Push', entries: [] }], bodyweight: [] }); mountToday()
+    expect(host.querySelector('.g-away')).toBeNull()
+  })
+
+  it('a first day, nothing logged and no plan: First steps instead of Up next (T1.9)', () => {
+    setS({ routines: [], week: {}, bodyweight: [] }); mountToday()
+    expect(host.querySelector('.g-grow')).toBeNull()
+    expect(host.textContent).toContain('First steps0 of 2')
+    const steps = [...host.querySelectorAll('.g-fstep')]
+    expect(steps.map(s => s.querySelector('b').textContent)).toEqual(['Plan your training week', 'Weigh in'])
+    tap(steps[0].querySelector('.g-fstep-row'))
+    expect(nav).toHaveBeenCalledWith('/train/schedule')
   })
 
   it('the training profile: the week\'s workouts as one ring, today\'s session on its pill, each day marked', () => {

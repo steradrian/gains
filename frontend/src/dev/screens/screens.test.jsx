@@ -130,9 +130,9 @@ describe('the screens gallery', () => {
     sessionStorage.clear()
   })
 
-  it('has Today T1.0 to T1.2 and its two profiles', async () => {
+  it('has Today T1.0 to T1.2, its two profiles and the variants T1.9 to T1.15', async () => {
     const ids = screenAreas().find(a => a.name === 'Today').entries.map(e => e.id)
-    expect(ids).toEqual(['T1.0', 'T1.1', 'T1.2', 'T1.E-food', 'T1.E-training'])
+    expect(ids).toEqual(['T1.0', 'T1.1', 'T1.2', 'T1.E-food', 'T1.E-training', 'T1.9', 'T1.10', 'T1.11', 'T1.12', 'T1.13', 'T1.14', 'T1.15'])
     const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
     await check('T1.0', h => {
       expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(4)
@@ -145,6 +145,16 @@ describe('the screens gallery', () => {
       expect(h.querySelectorAll('.g-wk-cell')).toHaveLength(7)
       expect(h.querySelector('.g-tiles')).toBeNull()
     })
+    await check('T1.9', h => {
+      expect([...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['First steps', 'Food', 'Water'])
+      expect(h.querySelectorAll('.g-fstep')).toHaveLength(4)
+    })
+    await check('T1.10', h => expect(h.querySelector('.g-away').textContent).toContain('Welcome back'))
+    await check('T1.11', h => expect(h.querySelector('.g-grow').textContent).toMatch(/Workout running · \d+:\d\d.*3 of 6 exercises done.*Resume/))
+    await check('T1.12', h => expect(h.querySelector('.g-grow').textContent).toContain('52 min · 18 sets · 2 new bests'))
+    await check('T1.13', h => expect(h.querySelector('.g-grow').textContent).toContain('Next: Legs, tomorrow'))
+    await check('T1.14', h => expect(h.querySelector('.g-saved-stage').textContent).toBe('Offline · 3 changes waiting'))
+    await check('T1.15', h => expect(h.querySelector('.g-rc-slide').textContent).toContain('kcal over 2,100'))
   })
 
   it('has the Today drawers and toasts T1.4 to T1.7, each over the Today screen', async () => {
