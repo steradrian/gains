@@ -1,11 +1,7 @@
-import { useEffect, useMemo } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { t } from '../../lib/i18n.js'
 import { CONTENT_SPRING, CONTENT_EXIT_DURATION, EXIT_EASE } from '../../lib/motion.js'
-import { clearRecents, pruneRecents, removeRecent, restoreRecents, useRecents } from '../../lib/search/recents.js'
-import { resolveRef, shortcutsFor, sourceReady, suggestionsFor } from '../../lib/search/start.js'
 import { focusPill, setActive, useSearch } from '../../lib/search/session.js'
-import { useUI } from '../../store/useUI.js'
 import Icon from '../Icon.jsx'
 import { Chip, ChipRow } from '../blocks.jsx'
 import { Button } from '../ui.jsx'
@@ -13,12 +9,12 @@ import OptionButton from './OptionButton.jsx'
 import ResultList from './ResultList.jsx'
 import ResultMedia from './ResultMedia.jsx'
 import ResultRow, { rowId } from './ResultRow.jsx'
-
-const recentKey = r => (r.kind === 'query' ? 'q:' + r.query.toLowerCase() : r.type + ':' + r.id)
+import { useBeforeTyping } from './use-before-typing.js'
 
 // Before anything is typed (ux-search.md §2, ui-search.md §4): the tab's four shortcuts, Recent
-// (each with its own ×, Clear with Undo) and up to three suggestions for right now. On a first run
-// (nothing recent) the suggestions come first, under a line saying what search does.
+// (each with its own ×, Clear with Undo) and up to three suggestions for right now. On a first use
+// (nothing ever searched) the suggestions come first, under a line saying what search does. The
+// data is use-before-typing.js's.
 //
 // The choices are the results listbox, the same model as the results (§6): Recent's entries and
 // the suggestions, each section a group named by its heading, every row and × an option. An
@@ -31,34 +27,21 @@ const recentKey = r => (r.kind === 'query' ? 'q:' + r.query.toLowerCase() : r.ty
 // the tab order after the pill (pill, chips, then the listbox the arrows walk) and not counted
 // in it.
 export default function BeforeTyping({ data, tab, onOpen, onChip, onQuery }) {
-  const list = useRecents(s => s.list)
-  const entries = useMemo(() => list.map(r => {
-    if (r.kind === 'query') return { r, key: recentKey(r) }
-    const row = resolveRef(r.type, r.id, data)
-    return row ? { r, key: recentKey(r), row } : { r, key: recentKey(r), gone: sourceReady(r.type, data) }
-  }), [list, data])
-  // A deleted target drops out of Recent once its source has answered.
-  useEffect(() => {
-    if (entries.some(e => e.gone)) pruneRecents(r => !entries.find(e => e.r === r)?.gone)
-  }, [entries])
-  const recents = entries.filter(e => e.r.kind === 'query' || e.row)
-  const all = useMemo(() => suggestionsFor(tab, data), [tab, data])
-  const suggested = all.filter(r => !recents.some(e => e.row?.key === r.key))
-  const shortcuts = shortcutsFor(tab, data.nutrition)
+  const view = useBeforeTyping(data, tab)
+  const { recents, suggested, shortcuts } = view
 
   const clear = () => {
-    const before = clearRecents()
+    view.clear()
     setActive(null)
     // Clear leaves with Recent: the focus goes back to the pill rather than to nothing.
     focusPill()
-    useUI.getState().toast(t('Recent searches cleared'), { action: t('Undo'), onAction: () => restoreRecents(before) })
   }
   // The × of the entry the arrow keys are on hands them to the entry that takes its place.
   const remove = i => {
     const e = recents[i]
     const next = recents[i + 1] || recents[i - 1]
     if (useSearch.getState().active === rowId('x:' + e.key)) setActive(next ? rowId(next.row ? next.row.key : next.key) : null)
-    removeRecent(e.r)
+    view.remove(e.r)
   }
 
   const chips = <section className="sr-sect" role="group" aria-labelledby="sr-goto">
@@ -73,11 +56,18 @@ export default function BeforeTyping({ data, tab, onOpen, onChip, onQuery }) {
     <div className="sr-card">{suggested.map(r => <ResultRow key={r.key} r={r} onOpen={onOpen} />)}</div>
   </section>
 
-  if (!recents.length) {
+  if (view.firstUse) {
     return <>
-      {suggestions && <p className="sr-help">{t('Find any page, setting, exercise, workout, food or day.')}</p>}
+      <p className="sr-help">{t('Find any page, setting, exercise, workout, food or day.')}</p>
       <ResultList>{suggestions}</ResultList>
       {chips}
+    </>
+  }
+  // Recent cleared, or every entry gone: Go to, then Suggested (board Sh0Cleared).
+  if (!recents.length) {
+    return <>
+      {chips}
+      <ResultList>{suggestions}</ResultList>
     </>
   }
 

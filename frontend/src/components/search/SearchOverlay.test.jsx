@@ -37,7 +37,7 @@ afterEach(() => {
   host.remove()
   act(() => endSearch())
   clearRecents()
-  useRecents.setState({ opened: {} })
+  useRecents.setState({ opened: {}, searched: false })
   delete document.documentElement.dataset.motion
   vi.restoreAllMocks()
   vi.unstubAllGlobals()

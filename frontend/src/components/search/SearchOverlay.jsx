@@ -1,19 +1,14 @@
-import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m } from 'motion/react'
 import { t, tn } from '../../lib/i18n.js'
 import {
   CONTENT_ENTER_DELAY, CONTENT_EXIT, CONTENT_SPRING, LIST_CONTAINER, LIST_ITEM, REDUCED, SURFACE_EXIT, SURFACE_SPRING, contentSwapVariants, skeletonSwapVariants,
 } from '../../lib/motion.js'
-import { SEARCH_OVERLAY_ID, closeSearch, rememberScroll, setActive, setGroup, setOverlayKeys, setQuery, useSearch, visit } from '../../lib/search/session.js'
-import { GROUP_LIMIT, groupCount, groupTitle, listAll, searchLocal, summaryOf } from '../../lib/search/results.js'
-import { nearest } from '../../lib/search/match.js'
-import { settingTitles } from '../../lib/search/settings-source.js'
+import { SEARCH_OVERLAY_ID, closeSearch, rememberScroll, setActive, setGroup, setOverlayKeys, setQuery, useSearch } from '../../lib/search/session.js'
+import { GROUP_LIMIT, groupCount, groupTitle } from '../../lib/search/results.js'
 import { addRecent } from '../../lib/search/recents.js'
 import { syncDiaryIndex } from '../../lib/nutrition/diary-index.js'
-import { useNutrition } from '../../lib/nutrition/store.js'
-import { customExSheet, weighInsSheet } from '../../sheets.jsx'
 import { EmptySurface, Kbd } from '../blocks.jsx'
-import { foodEditSheet } from '../FoodEditSheet.jsx'
 import BeforeTyping from './BeforeTyping.jsx'
 import BestMatch from './BestMatch.jsx'
 import NoResults from './NoResults.jsx'
@@ -23,10 +18,10 @@ import ResultRow from './ResultRow.jsx'
 import ScopeToken from './ScopeToken.jsx'
 import { SkeletonRows, SourceNote } from './SourceStatus.jsx'
 import SummaryLine from './SummaryLine.jsx'
-import { openResult } from './open-result.js'
-import { useOnlineResults } from './use-online-results.js'
+import { openResult, openShortcut, runNoneAction } from './open-result.js'
 import { useReducedMotionPref } from './use-reduced-motion.js'
 import { useSearchData } from './use-search-data.js'
+import { useSearchResults } from './use-search-results.js'
 
 // The term the lists are keyed on: 250 ms without typing (bearmenu's debounce). Between settles
 // the rows update in place, keyed by type and id; at a settle the stagger plays again.
@@ -82,10 +77,8 @@ function OverlayBody() {
   const deferred = useDeferredValue(query)
   const settled = useSettled(query, 250)
   const spoken = useSettled(query, 900)
-  const local = useMemo(() => searchLocal(deferred, data, tab), [deferred, data, tab])
+  const { local, online, rowsOf, counts: summary, total, noResults, none, scoped } = useSearchResults({ query: deferred, live: query, settled, group, tab, data })
   const hasQuery = query.trim().length > 0
-  const ownCount = local.groups.foods.length + (local.best?.group === 'foods' ? 1 : 0)
-  const online = useOnlineResults({ query: settled, words: local.words, tab, group, ownCount, nutrition: data.nutrition, open: true })
   const scroller = useRef(null)
   const [limit, setLimit] = useState(PAGE)
 
@@ -112,21 +105,11 @@ function OverlayBody() {
     : online.status === 'offline' ? <SourceNote kind="offline" place="online" />
     : online.status === 'tap' ? <ResultRow r={{ type: 'action', key: 'online-ask', title: t('Search Open Food Facts for “{0}”', settled.trim()), media: { kind: 'glyph', glyph: 'globe' } }} onOpen={online.ask} />
     : null
-  const rowsOf = g => (g === 'online' ? online.rows : local.groups[g])
   const statusOf = g => (g === 'days' ? daysStatus : g === 'online' ? onlineStatus : null)
   const shown = local.order.filter(g => rowsOf(g).length || statusOf(g))
-  const summary = summaryOf(local.groups, local.order, { online: online.rows.length, ...(local.best ? { [local.best.group]: 1 } : {}) })
-  const total = summary.reduce((n, e) => n + e.count, 0)
-  const pending = online.status === 'loading' || (!!daysStatus && !idx.complete)
-  const noResults = hasQuery && deferred === query && total === 0 && !pending && online.status !== 'paused'
 
   // Scoped: one group, whole, in pages of 60 as it scrolls (5,600 exercises).
-  const scopedRows = useMemo(() => {
-    if (!group) return []
-    if (!hasQuery) return listAll(group, data)
-    const rows = rowsOf(group)
-    return local.best?.group === group ? [local.best.result, ...rows] : rows
-  }, [group, hasQuery, data, local, online.rows]) // eslint-disable-line react-hooks/exhaustive-deps
+  const scopedRows = scoped ? scoped.rows : []
 
   // One polite live region, spoken 900 ms after typing stops (ux §6).
   const message = !hasQuery ? '' : spoken !== query ? ''
@@ -171,9 +154,11 @@ function OverlayBody() {
   // Scrolling the results hides the keyboard, and only that.
   const onTouchMove = () => { const a = document.activeElement; if (a?.classList?.contains('spill-i')) a.blur() }
 
-  const chip = c => (c.target.kind === 'sheet' ? weighInsSheet() : visit(c.target.path))
+  const chip = c => { if (c.target.kind === 'scope' && scroller.current) scroller.current.scrollTop = 0; openShortcut(c) }
 
-  const actions = noResults ? noResultActions(query, data, online) : []
+  const actions = noResults && none
+    ? none.actions.map(a => ({ key: a.key, title: a.title, subtitle: a.sub, glyph: a.glyph, run: () => runNoneAction(a, { askOnline: online.ask }) }))
+    : []
 
   let body
   if (group) {
@@ -228,22 +213,4 @@ function OverlayBody() {
       <Kbd>↵</Kbd><span>{t('to open')}</span>
     </div>
   </>
-}
-
-// The ways on from no results: the nearest name, a food or an exercise of that name, the web.
-function noResultActions(query, data, online) {
-  const q = query.trim()
-  const out = []
-  const candidates = [
-    ...settingTitles(), ...(data.S.routines || []).map(r => r.name), ...(data.foods || []).map(f => f.name),
-    ...data.exercises.slice(0, 2000).map(ex => data.nameOf(ex.id)),
-  ].filter(Boolean)
-  const near = nearest(q, candidates)
-  if (near) out.push({ key: 'near', title: t('Did you mean “{0}”?', near), glyph: 'magnifier', run: () => setQuery(near) })
-  if (data.nutrition) {
-    out.push({ key: 'create-food', title: t('Create food “{0}”', q), glyph: 'apple', run: () => foodEditSheet({ food: { name: q }, settings: useNutrition.getState().settings.data }) })
-  }
-  out.push({ key: 'create-ex', title: t('Create exercise “{0}”', q), glyph: 'dumbbell', run: () => customExSheet(null, null, q) })
-  if (online.status === 'tap') out.push({ key: 'online', title: t('Search Open Food Facts for “{0}”', q), glyph: 'globe', run: online.ask })
-  return out
 }

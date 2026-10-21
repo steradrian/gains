@@ -22,7 +22,7 @@ vi.mock('../../lib/nutrition/use-online-search.js', () => ({
 }))
 
 const { resetOffBudget } = await import('../../lib/nutrition/off-budget.js')
-const { useOnlineResults } = await import('./use-online-results.js')
+const { onlineRowState, useOnlineResults } = await import('./use-online-results.js')
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -59,5 +59,15 @@ describe('useOnlineResults and the budget', () => {
     expect(kinds).toEqual(['tap', 'auto'])
     expect(seen.status).toBe('ready')
     expect(seen.rows.map(r => r.title)).toEqual(['Nutella'])
+  })
+})
+
+describe('the stage\'s Open Food Facts row', () => {
+  it('says Searching while it asks, Couldn’t reach on an error, and is left out offline or off', () => {
+    expect(onlineRowState('loading')).toBe('searching')
+    expect(onlineRowState('error')).toBe('error')
+    expect(onlineRowState('paused')).toBe('paused')
+    expect(onlineRowState('tap')).toBe('tap')
+    for (const s of ['offline', 'off', 'idle', 'ready']) expect(onlineRowState(s)).toBeNull()
   })
 })

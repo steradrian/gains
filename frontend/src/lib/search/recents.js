@@ -1,15 +1,16 @@
 // What the global search remembers per profile (fitness-eval ux-search.md §2): Recent (up to six,
 // newest first) of two kinds, a submitted query (`{ kind: 'query', query }`, which refills the
 // field) and an opened result (`{ kind: 'result', type, id, label, query }`, reopened in one tap);
-// and how often each result was opened from search, which orders ties and Suggested's
-// "most opened". In localStorage under the profile's id, wiped when that profile signs out or another
-// profile takes its place.
+// how often each result was opened from search, which orders ties; and whether a search was ever
+// run (`searched`), which ends the first use (board Sh0SearchFirst). In localStorage under the
+// profile's id, wiped when that profile signs out or another profile takes its place.
 import { create } from 'zustand'
 import { useStore } from '../../store/useStore.js'
 
 export const RECENT_MAX = 6
 const RECENT_KEY = 'gains_search_recent:'
 const OPENED_KEY = 'gains_search_opened:'
+const SEARCHED_KEY = 'gains_search_searched:'
 
 const storage = () => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } }
 const profileOf = user => (user ? 'u' + String(user.id ?? user.name ?? '') : 'guest')
@@ -24,7 +25,10 @@ const valid = r => r && (r.kind === 'query' ? typeof r.query === 'string' && r.q
 function load(profile) {
   const list = read(RECENT_KEY + profile, [])
   const opened = read(OPENED_KEY + profile, {})
-  return { profile, list: Array.isArray(list) ? list.filter(valid).slice(0, RECENT_MAX) : [], opened: opened && typeof opened === 'object' ? opened : {} }
+  return {
+    profile, list: Array.isArray(list) ? list.filter(valid).slice(0, RECENT_MAX) : [], opened: opened && typeof opened === 'object' ? opened : {},
+    searched: read(SEARCHED_KEY + profile, false) === true,
+  }
 }
 
 export const useRecents = create(() => load(profileOf(useStore.getState?.()?.user)))
@@ -34,6 +38,12 @@ const save = patch => {
   useRecents.setState(patch)
   if (patch.list) write(RECENT_KEY + s.profile, patch.list)
   if (patch.opened) write(OPENED_KEY + s.profile, patch.opened)
+  if (patch.searched) write(SEARCHED_KEY + s.profile, true)
+}
+
+/** A search was run (a query settled): the first use is over, for good. */
+export function markSearched() {
+  if (!useRecents.getState().searched) save({ searched: true })
 }
 
 /** A query that was submitted (Enter), or a result that was opened. */
@@ -41,7 +51,7 @@ export function addRecent(entry) {
   if (!valid(entry)) return
   const clean = entry.kind === 'query' ? { kind: 'query', query: entry.query.trim() } : { kind: 'result', type: entry.type, id: entry.id, label: entry.label || '', query: entry.query || '' }
   const list = [clean, ...useRecents.getState().list.filter(r => !sameRecent(r, clean))].slice(0, RECENT_MAX)
-  save({ list })
+  save({ list, searched: true })
 }
 
 /** Counts a result opened from search (frecency): `{ key: { n, at } }`. */
@@ -81,6 +91,13 @@ export function restoreRecents(snapshot) {
   save({ list: snapshot.list.filter(valid).slice(0, RECENT_MAX) })
 }
 
+/** Clear (board Sh0Cleared): Recent goes at once, and what comes back is its Undo, for the 8 s
+ *  toast. The Undo does nothing once another profile has signed in. */
+export function clearRecentsWithUndo() {
+  const before = clearRecents()
+  return () => restoreRecents(before)
+}
+
 /** Drops the result entries whose target no longer exists (`exists(entry)` false). */
 export function pruneRecents(exists) {
   const { list } = useRecents.getState()
@@ -97,7 +114,7 @@ if (typeof useStore.subscribe === 'function') {
     if (was === now) return
     epoch += 1
     if (prev.user) {
-      try { storage()?.removeItem(RECENT_KEY + was); storage()?.removeItem(OPENED_KEY + was) } catch { /* nothing kept */ }
+      try { for (const k of [RECENT_KEY, OPENED_KEY, SEARCHED_KEY]) storage()?.removeItem(k + was) } catch { /* nothing kept */ }
     }
     useRecents.setState(load(now))
   })
