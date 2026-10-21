@@ -827,3 +827,5 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-drow-body .g-danger { color: var(--danger); }
 .g-drow-val { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text-2); text-align: end; }
 .g-drow-chev { width: 18px; height: 18px; color: var(--text-3); stroke-width: 2.2; flex: none; }
+/* A row is as wide as the drawer's scrolling body, which would clip a ring drawn outside it */
+.g-drow:focus-visible { outline-offset: -2px; }
