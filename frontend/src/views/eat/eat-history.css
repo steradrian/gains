@@ -1,0 +1,26 @@
+/* Month (MonthScreen.jsx, board Ea1Month) and Food trends (TrendsScreen.jsx, boards Ea3Trends,
+   Ea3Few), pushed pages on the stage. StageScreen's body already clears the status bar, so the
+   pages add no top inset; they keep the boards' 150px of air above the floating tab bar. */
+.eh{padding-bottom:calc(150px + var(--sab));color:var(--on-stage);font-family:var(--font-sans)}
+.eh-pad{padding:0 16px}
+.eh-gap{height:16px}
+
+/* A line of fine print under a card */
+.eh-note{margin:0;padding:10px 24px 0;font:500 14px/20px var(--font-sans);color:var(--on-stage-2);text-align:start}
+
+/* Macros, daily average: a row per macro with its bar against the target (a macro without a goal
+   has the number only) */
+.eh-macros{border-radius:28px;overflow:hidden}
+.eh-macro{display:grid;gap:8px;padding:14px 16px}
+.eh-macro + .eh-macro{border-top:1px solid var(--glass-line)}
+.eh-macro-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.eh-macro-top b{font:600 16px/22px var(--font-sans)}
+.eh-macro-top span{font:600 15px/20px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--on-stage-2)}
+.eh-track{height:8px;border-radius:4px;background:var(--glass-track);overflow:hidden}
+.eh-track i{display:block;height:100%;border-radius:inherit;background:var(--on-stage);width:calc(var(--p) * 1%)}
+
+/* Trends need 3 days: three pills, one lit per logged day */
+.eh-pills{display:flex;gap:8px;justify-content:center;padding:8px 0}
+.eh-pills i{width:40px;height:8px;border-radius:4px;background:var(--glass-track)}
+.eh-pills i.on{background:var(--on-stage)}
+.eh-few{padding-top:24px}

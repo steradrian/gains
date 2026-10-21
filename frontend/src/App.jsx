@@ -86,6 +86,9 @@ import Recovery from './views/Recovery.jsx'
 import DayPage from './views/shared/DayPage.jsx'
 import WeekPage from './views/shared/WeekPage.jsx'
 import Notifications from './views/shared/Notifications.jsx'
+// Eat root m2: Month and Food trends
+import MonthPage from './views/eat/MonthPage.jsx'
+import TrendsPage from './views/eat/TrendsPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -321,6 +324,9 @@ function Shell() {
               {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
               <Route path="/food/goals" element={<NutritionGoals />} />
               <Route path="/food/fasting" element={<Fasting />} />
+              {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
+              <Route path="/food/month" element={<MonthPage />} />
+              <Route path="/food/trends" element={<TrendsPage />} />
               {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
               <Route path="/progress" element={<ProgressHub />} />
               <Route path="/progress/body" element={<Body segment="weight" />} />
