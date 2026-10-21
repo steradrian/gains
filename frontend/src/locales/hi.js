@@ -1,6 +1,11 @@
 // Hindi UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
   // --- Today screen: English until the translation pass ---
+  'Nutrition today': 'Nutrition today',
+  'of {0} eaten': 'of {0} eaten',
+  'Burned {0}': 'Burned {0}',
+  'Added to your target': 'Added to your target',
+  'Log activity': 'Log activity',
   'Left today': 'Left today',
   'Over today': 'Over today',
   'Protein left': 'Protein left',
@@ -212,11 +217,8 @@ export default {
   // --- tab shell (PR #5): English until the translation pass ---
   'Add 30 seconds': 'Add 30 seconds',
   'Add photo': 'Add photo',
-  'Anytime': 'Anytime',
   'Body': 'Body',
-  'Here': 'Here',
   'In Progress, under Training load': 'In Progress, under Training load',
-  'Log past workout': 'Log past workout',
   'Main navigation': 'Main navigation',
   'New exercise': 'New exercise',
   'No weigh-ins yet': 'No weigh-ins yet',
@@ -3101,7 +3103,6 @@ export default {
   'In progress': 'जारी है',
   'Log food to {0}': '{0} में खाना लॉग करें',
   'Log food to {0}, {1} so far': '{0} में खाना लॉग करें, अब तक {1}',
-  'Log workout for {0}': '{0} के लिए वर्कआउट लॉग करें',
   'Not scheduled': 'शेड्यूल नहीं है',
   'Planned, not logged': 'प्लान किया, लॉग नहीं हुआ',
   'See workout': 'वर्कआउट देखें',
