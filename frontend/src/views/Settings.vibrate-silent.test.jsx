@@ -3,7 +3,9 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 // #375: "Vibrate when the phone is on silent" is an Android-app setting — only there can the

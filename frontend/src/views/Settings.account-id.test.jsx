@@ -3,8 +3,10 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Settings → Account ID (#219): the signed-in account's id, small, one tap to copy. It is what

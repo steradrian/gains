@@ -1774,3 +1774,22 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .sheet .g-bs-back { color: var(--label); }
 .sheet .g-bs-back:active { background: var(--label-4); }
 .g-bs-head h2:focus, .g-bs-pane h3:focus { outline: none; }
+
+/* Settings shell m1: ConfirmDrawer (bundle.js .g-confirm, R5) and DangerRow (.g-danger-row) */
+.g-confirm { display: flex; flex-direction: column; gap: 10px; font-family: var(--font-sans); }
+.g-confirm p { margin: 0; font: 500 16px/23px var(--font-sans); color: var(--text-2); }
+.g-confirm ul { margin: 0; padding: 0; list-style: none; }
+.g-confirm li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font: 500 16px/22px var(--font-sans); color: var(--text-2); }
+.g-confirm li .g-icon { width: 16px; height: 16px; stroke-width: 2.4; color: var(--danger); margin-top: 3px; flex: none; }
+.g-confirm .g-confirm-note { font-size: 14px; line-height: 20px; color: var(--text-3); }
+.g-confirm-danger { display: flex; width: 100%; margin-top: 8px; background: var(--danger-tint); color: var(--danger); font-weight: 700; }
+.g-danger-row { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; background: none; color: var(--on-stage); text-align: start; text-decoration: none; font-family: var(--font-sans); cursor: pointer; }
+.g-danger-row:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -2px; }
+.g-danger-line { border-top: 1px solid var(--glass-line); }
+.g-danger-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 138, 122, 0.22); color: #FFD4CC; }
+.g-danger-ic .g-icon { width: 20px; height: 20px; }
+.g-danger-b { flex: 1; display: flex; flex-direction: column; }
+.g-danger-b b { font: 700 17px/22px var(--font-sans); color: #FFD4CC; }
+.g-danger-b span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-danger-row > .g-icon { width: 18px; height: 18px; }
+[dir="rtl"] .g-danger-row > .g-icon { transform: scaleX(-1); }

@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PAGES, PAGE_IDS, ROOT_GROUPS, SEARCH, featuresFor, pageExists, pageVisible, searchSettings, pageTrail, fold } from './settings-pages.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
@@ -56,6 +57,7 @@ vi.mock('../sheets.jsx', () => ({
 }))
 
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
 globalThis.__APP_VERSION__ ??= 'test'

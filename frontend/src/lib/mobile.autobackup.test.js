@@ -150,7 +150,7 @@ describe('writeAutoBackup where today\'s name belongs to another install', () =>
 // module wholesale), so the two are pinned together here.
 it('the Settings subtitle names the same number of copies the pruning keeps', async () => {
   const fs = await import('node:fs')
-  const src = fs.readFileSync(new URL('../views/Settings.jsx', import.meta.url), 'utf8')
+  const src = fs.readFileSync(new URL('../views/settings/pages/BackupPage.jsx', import.meta.url), 'utf8')
   // autoBackupSubtitle(folder, keep) (components/BackupFolderRow.jsx) fills in every wording
   const m = src.match(/autoBackupSubtitle\([^)]*, (\d+)\)/)
   expect(m && Number(m[1])).toBe(AUTO_BACKUP_KEEP)

@@ -5,6 +5,7 @@ import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { setFastingEnabled } from '../lib/nutrition/use-fasting.js'
 import { featuresFor, pageTrail, PAGES } from '../views/settings-pages.js'
+import { settingsPath } from '../views/settings/paths.js'
 import { Button, Row, Section, Switch } from './ui.jsx'
 
 // Profile › Features (ia-proposal §5, §9 q12): every switch that starts off, whether it is on, and
@@ -43,7 +44,7 @@ export default function FeaturesList({ S, ctx }) {
       {rows.map(e => (
         <Row key={e.page + ':' + e.title} icon={PAGES[e.page].icon} iconTint={PAGES[e.page].tint} title={t(e.title)}
           subtitle={pageTrail(e.page)} value={valueOf(e)} accessory="chevron"
-          onClick={() => nav('/me/' + e.page, { state: e.via ? { find: e.title, via: e.via } : { find: e.title } })} />
+          onClick={() => nav(settingsPath(e.page), { state: e.via ? { find: e.title, via: e.via } : { find: e.title } })} />
       ))}
     </Section>
   </>

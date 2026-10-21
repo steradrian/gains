@@ -78,6 +78,12 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/progress')).toBe('/me')
   })
 
+  it('Delete account to the Account page, both on the Me tab', () => {
+    expect(parentOf('/me/account/delete')).toBe('/me/account')
+    expect(parentOf('/me/account')).toBe('/me')
+    expect(tabOf('/me/account/delete')).toBe('me')
+  })
+
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {
     expect(parentOf('/train/coach/intake')).toBe('/train')
     expect(parentOf('/me/workout')).toBe('/me')

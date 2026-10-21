@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 import { createMediaStore, memoryBackend, _setMediaStore } from '../lib/media-store.js'
 import { _resetMediaOwed } from '../lib/media-owed.js'
@@ -10,6 +11,7 @@ import { readZip, zipStore } from '../lib/zip.js'
 import { sha256Hex } from '../lib/sha256.js'
 import { jpeg } from '../lib/media-samples.test-util.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Settings → Data with photos and videos: the JSON export says it leaves them out, the zip export

@@ -5,8 +5,10 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SettingsRoute } from './Settings.jsx'
+import { SettingsRoute } from './settings/SettingsRoute.jsx'
+import { preloadPages } from './settings/pages/index.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
