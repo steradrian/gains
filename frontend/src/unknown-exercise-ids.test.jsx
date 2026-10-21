@@ -132,7 +132,7 @@ describe('exercise ids this build does not know', () => {
   it('the running workout draws it', () => {
     seed()
     const host = render(<WorkoutScreen />)
-    expect(host.textContent).toContain('Unknown exercise')
+    expect(host.textContent).toContain('Unknown Exercise')
     expectKept(useStore.getState().S)
   })
 

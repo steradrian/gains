@@ -109,7 +109,7 @@ describe('the root', () => {
     expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout', 'Fine-tuning', 'Timer alerts',
       'Schedule defaults', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['General', 'Training', 'Body & progress', 'Data', 'About'])
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
+    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest')
     expect(rowTitled('Timer alerts').querySelector('.lrow-v').textContent).toBe('Sound · Vibrate')
     expect(rowTitled('Schedule defaults').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
     expect(rowTitled('Units & language').querySelector('.lrow-v').textContent).toBe('kg · English')
@@ -168,10 +168,10 @@ describe('the root', () => {
   it('previews a rest that was never on the old list, and no timer at all', () => {
     mocks.S.restSec = 105
     mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:45 rest · Cards')
+    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:45 rest')
     mocks.S.restSec = 0
     mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
+    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer')
   })
 
   it('signed in, Reminders is there and the card names the account; on the phone app the Coach too', () => {

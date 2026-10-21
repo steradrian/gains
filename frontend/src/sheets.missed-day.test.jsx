@@ -186,6 +186,8 @@ describe('badges on a workout logged into the past', () => {
     expect(byDay['2026-09-11']).toContain(BENCH)
     // The summary (W2.0, read from the saved record) names it among the new bests.
     const logged = S().workouts.find(w => w.d === '2026-09-14')
-    expect(summaryOf(S(), logged.id).bests).toContainEqual(expect.objectContaining({ id: BENCH, kind: 'weight' }))
+    // The day is Push + Pull together, a pairing never logged before: its summary is the first
+    // time (W2.2) and lists no bests, while the record keeps the badges asserted above.
+    expect(summaryOf(S(), logged.id)).toMatchObject({ first: true, bests: [] })
   })
 })
