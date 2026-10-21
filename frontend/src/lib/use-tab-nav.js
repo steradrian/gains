@@ -10,7 +10,7 @@
 // Routines): the push is turned into a switch, so a tab's stack never holds another tab's page.
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { emptyNav, deadSteps, onVisitPage, planSwitch, record, settle } from './tab-history.js'
-import { parentOf, tabOf } from './tab-route.js'
+import { TABS, parentOf, tabOf } from './tab-route.js'
 import { onSheetEntry, sheetEntriesLive } from './nav.js'
 import { useUI } from '../store/useUI.js'
 
@@ -28,7 +28,8 @@ const RETRIES = 2
 function loadNav() {
   try {
     const v = JSON.parse(sessionStorage.getItem(NAV_KEY))
-    return v && Array.isArray(v.entries) && typeof v.idx === 'number' && typeof v.top === 'number' ? v : emptyNav()
+    // A mirror from before Progress became Me's (its tab was 'progress') is dropped, not read.
+    return v && Array.isArray(v.entries) && typeof v.idx === 'number' && typeof v.top === 'number' && TABS.includes(v.tab) ? v : emptyNav()
   } catch { return emptyNav() }
 }
 

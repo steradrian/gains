@@ -5,7 +5,7 @@ import { useUI } from '../../store/useUI.js'
 import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { startDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { isSwitching, onTabSwitch, popToRoot } from '../../lib/use-tab-nav.js'
-import { isTabRoot, tabOf } from '../../lib/tab-route.js'
+import { tabOf } from '../../lib/tab-route.js'
 import { holdPage } from '../../lib/search/hold-page.js'
 import { closeSearch, endSearch, focusSearch, setQuery, syncSearchWithHistory, takeSuppressed, useSearch } from '../../lib/search/session.js'
 import { nav } from '../../lib/nav.js'
@@ -91,8 +91,9 @@ export default function SearchHost() {
       const slash = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !typing(document.activeElement)
       if ((combo || slash) && !path.startsWith('/train/workout') && !useUI.getState().sheets.length) {
         e.preventDefault()
+        // Me's root is Profile, which has no pill: from there, and from the workout, Home has one.
         const tab = tabOf(path)
-        focusSearch(() => (tab ? popToRoot(tab) : nav(isTabRoot(path) ? path : '/home')))
+        focusSearch(() => (tab && tab !== 'me' ? popToRoot(tab) : nav('/home')))
         return
       }
       if (e.key === 'Escape' && useSearch.getState().open && !useUI.getState().sheets.length && !e.defaultPrevented) {

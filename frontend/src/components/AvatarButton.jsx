@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
+import { tabOf } from '../lib/tab-route.js'
+import { popToRoot } from '../lib/use-tab-nav.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
 import { useHubStatusRefresh, useHubTrouble } from '../lib/nutrition/sync.js'
 import Icon from './Icon.jsx'
@@ -20,6 +22,7 @@ const IconSwap = lazy(() => import('./search/header-motion.jsx').then(m => ({ de
 export default function AvatarButton({ mode = 'profile', onClose }) {
   oneOf('AvatarButton', 'mode', mode, ['profile', 'close'])
   const nav = useNavigate()
+  const { pathname } = useLocation()
   const user = useStore(s => s.user)
   const connection = useConnectionTrouble()
   const hub = useHubTrouble()
@@ -29,9 +32,12 @@ export default function AvatarButton({ mode = 'profile', onClose }) {
   const label = close ? t('Close search')
     : connection ? t('Profile') + ', ' + t('Connection problem')
     : hub ? t('Profile') + ', ' + t('Nutrition sync needs attention') : t('Profile')
+  // Profile is the Me tab's root: from another tab this switches to it; from Progress, which sits
+  // on Me's stack, it goes back down to it rather than stacking a second Profile on top.
+  const openProfile = () => { if (tabOf(pathname) === 'me') popToRoot('me'); else nav('/me') }
   const content = close ? <Icon name="xmark" /> : initial || <Icon name="person" />
   return (
-    <button type="button" className={cx('avatar-btn', close && 'close')} onClick={close ? onClose : () => nav('/me')} aria-label={label}>
+    <button type="button" className={cx('avatar-btn', close && 'close')} onClick={close ? onClose : openProfile} aria-label={label}>
       <Suspense fallback={<span className="avatar-c">{content}</span>}>
         <IconSwap swapKey={mode}>{content}</IconSwap>
       </Suspense>

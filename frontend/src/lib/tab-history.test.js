@@ -31,13 +31,18 @@ describe('mirroring the history', () => {
   })
 
   it('a page any tab opens keeps the tab under it', () => {
-    expect(push(start('/progress'), '/me').tab).toBe('progress')
     expect(push(start('/food'), '/train/workout').tab).toBe('food')
+  })
+
+  it('Progress is a page of the Me tab, opened from Profile', () => {
+    const nav = push(push(start('/me'), '/progress'), '/progress/body')
+    expect(nav.tab).toBe('me')
+    expect(behind(nav)).toEqual(['/me', '/progress', '/progress/body'])
   })
 
   it('a new document starts the live history where it is', () => {
     const nav = at(emptyNav(), 'POP', '/progress/body', 0)
-    expect(nav.tab).toBe('progress')
+    expect(nav.tab).toBe('me')
     expect(nav.top).toBe(0)
   })
 
@@ -59,18 +64,18 @@ describe('switching tabs', () => {
   })
 
   it('each of the four tabs comes back where it was left, its back stack intact', () => {
-    let nav = push(start('/home'), '/me')
+    let nav = push(start('/home'), '/home?d=1')
     nav = go(nav, 'train')
     nav = push(push(nav, '/train/history'), '/train/exercises')
-    nav = go(nav, 'progress')
-    nav = push(nav, '/progress/body')
+    nav = go(nav, 'me')
+    nav = push(push(nav, '/progress'), '/progress/body')
     nav = go(nav, 'food')
     nav = go(nav, 'train')
     expect(behind(nav)).toEqual(['/train', '/train/history', '/train/exercises'])
-    nav = go(nav, 'progress')
-    expect(behind(nav)).toEqual(['/progress', '/progress/body'])
+    nav = go(nav, 'me')
+    expect(behind(nav)).toEqual(['/me', '/progress', '/progress/body'])
     nav = go(nav, 'home')
-    expect(behind(nav)).toEqual(['/home', '/me'])
+    expect(behind(nav)).toEqual(['/home', '/home?d=1'])
   })
 
   it('takes a page to land on, on top of the tab\'s stack', () => {
@@ -81,9 +86,9 @@ describe('switching tabs', () => {
 
   it('puts the leaving tab\'s stack aside without the page that was pushed into the other one', () => {
     // A Profile row opened Routines: the push landed at 2 and is handed to Training.
-    const nav = push(start('/home'), '/me')
+    const nav = push(start('/me'), '/me/workout')
     const plan = planSwitch({ ...nav, idx: 2 }, 'train', { path: '/train/routines', leaving: nav.entries.slice(0, 2) })
-    expect(plan.nav.stacks.home).toEqual(['/home', '/me'])
+    expect(plan.nav.stacks.me).toEqual(['/me', '/me/workout'])
     expect(plan.stack).toEqual(['/train', '/train/routines'])
   })
 
@@ -94,23 +99,25 @@ describe('switching tabs', () => {
   })
 
   it('drops the workout from a stack saved by an older build, too', () => {
-    const nav = { ...start('/home'), stacks: { train: ['/train', '/train/workout'], food: ['/food', '/train/workout', '/me'] } }
+    const nav = { ...start('/home'), stacks: { train: ['/train', '/train/workout'], food: ['/food', '/train/workout', '/food/meals'] } }
     expect(planSwitch(nav, 'train').stack).toEqual(['/train'])
-    expect(planSwitch(nav, 'food').stack).toEqual(['/food', '/me'])
+    expect(planSwitch(nav, 'food').stack).toEqual(['/food', '/food/meals'])
   })
 
   it('never keeps the workout in a stack: an ended one would come back as the Start screen', () => {
-    const nav = push(push(start('/food'), '/train/workout'), '/me')
-    expect(planSwitch(nav, 'home').nav.stacks.food).toEqual(['/food', '/me'])
+    const nav = push(push(start('/food'), '/train/workout'), '/food/meals')
+    expect(planSwitch(nav, 'home').nav.stacks.food).toEqual(['/food', '/food/meals'])
   })
 
   it('opening a page the arriving stack already holds goes back to it instead of stacking it twice', () => {
-    let nav = go(start('/home'), 'progress')
-    nav = at(nav, 'REPLACE', '/progress?range=90', 0)
+    let nav = go(start('/home'), 'me')
+    nav = push(nav, '/progress?range=90')
     nav = push(nav, '/progress/body?range=90')
     nav = go(nav, 'train')
-    expect(planSwitch(nav, 'progress', { path: '/progress?range=30' }).stack).toEqual(['/progress?range=30'])
-    expect(planSwitch(nav, 'progress', { path: '/progress/load' }).stack).toEqual(['/progress?range=90', '/progress/body?range=90', '/progress/load'])
+    expect(planSwitch(nav, 'me', { path: '/progress?range=30' }).stack).toEqual(['/me', '/progress?range=30'])
+    expect(planSwitch(nav, 'me', { path: '/progress/load' }).stack).toEqual(['/me', '/progress?range=90', '/progress/body?range=90', '/progress/load'])
+    // Profile's own root, opened from the avatar of another tab: the stack goes back down to it.
+    expect(planSwitch(nav, 'me', { path: '/me' }).stack).toEqual(['/me'])
   })
 
   it('from the first entry there is nothing to walk back', () => {
@@ -119,7 +126,7 @@ describe('switching tabs', () => {
 
   it('is nothing to do for the tab on screen, or for no tab', () => {
     expect(planSwitch(start('/home'), 'home')).toBeNull()
-    expect(planSwitch(start('/home'), 'me')).toBeNull()
+    expect(planSwitch(start('/home'), 'progress')).toBeNull()
   })
 })
 
@@ -133,9 +140,9 @@ describe('the active tab tapped again', () => {
   })
 
   it('a root that was opened cold under a sub-page becomes the root again', () => {
-    const plan = planSwitch(start('/progress/body'), 'progress', { toRoot: true })
+    const plan = planSwitch(start('/progress/body'), 'me', { toRoot: true })
     expect(plan.back).toBe(0)
-    expect(plan.stack).toEqual(['/progress'])
+    expect(plan.stack).toEqual(['/me'])
   })
 
   it('is nothing to do on the root itself', () => {
@@ -181,9 +188,9 @@ describe('a search visit (lib/search/session.js)', () => {
   })
 
   it('a tab tapped then never puts that page aside with this tab', () => {
-    const nav = go(visiting(), 'progress')
+    const nav = go(visiting(), 'me')
     expect(nav.stacks.home).toEqual(['/home'])
-    expect(behind(nav)).toEqual(['/progress'])
+    expect(behind(nav)).toEqual(['/me'])
   })
 
   it('a link followed from the visited page, or its address replaced, stays on the visit', () => {
@@ -213,6 +220,6 @@ describe('a search visit (lib/search/session.js)', () => {
     nav = go(nav, 'home')
     nav = at(nav, 'POP', '/home', 1)
     nav = record(nav, { idx: 2, path: '/progress/strength', navType: 'PUSH', keepTab: true })
-    expect(planSwitch(nav, 'progress', { toRoot: true })).toMatchObject({ stack: ['/progress'] })
+    expect(planSwitch(nav, 'me', { toRoot: true })).toMatchObject({ stack: ['/me'] })
   })
 })

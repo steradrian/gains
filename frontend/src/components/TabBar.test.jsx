@@ -71,12 +71,12 @@ describe('the bar', () => {
   })
 
   it('lights the tab on screen, and none on a page every tab can open', () => {
-    const want = { home: 0, train: 1, food: 2, progress: 3 }
+    const want = { home: 0, train: 1, food: 2, me: 3 }
     for (const [tab, i] of Object.entries(want)) {
       act(() => { root.render(bar({ tab })) })
       expect(tabs().map(b => b.getAttribute('aria-current')), tab).toEqual(tabs().map((_, j) => (j === i ? 'page' : null)))
     }
-    act(() => { root.render(bar({ tab: 'progress', lit: false })) })
+    act(() => { root.render(bar({ tab: 'me', lit: false })) })
     expect(tabs().every(b => !b.getAttribute('aria-current'))).toBe(true)
   })
 
@@ -85,9 +85,16 @@ describe('the bar', () => {
     act(() => { tabs()[2].click() })
     expect(nav.switchTab).toHaveBeenCalledWith('food')
     act(() => { tabs()[3].click() })
-    expect(nav.switchTab).toHaveBeenCalledWith('progress')
+    expect(nav.switchTab).toHaveBeenCalledWith('me')
     act(() => { tabs()[1].click() })
     expect(nav.popToRoot).toHaveBeenCalledWith('train')
+  })
+
+  it('Me is the Me tab, whose root is Profile; the tab on screen goes back down to it', () => {
+    act(() => { root.render(bar({ tab: 'me' })) })
+    act(() => { tabs()[3].click() })
+    expect(nav.popToRoot).toHaveBeenCalledWith('me')
+    expect(nav.switchTab).not.toHaveBeenCalled()
   })
 
   it('takes the unlit tab on screen back to its root too (Profile opened from it)', () => {

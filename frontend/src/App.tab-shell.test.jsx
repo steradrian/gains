@@ -30,7 +30,8 @@ let host, root, originalS, scrolls
 const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => { await new Promise(r => setTimeout(r, 5)) }) }
 const hash = () => window.location.hash
 const idx = () => window.history.state?.idx
-// The bar names the tabs Today, Train, Eat and Me: Home, Training, Nutrition and Progress.
+// The bar names the tabs Today, Train, Eat and Me: Home, Training, Nutrition and Profile (Progress
+// is a page under Profile).
 const tab = label => [...document.querySelectorAll('#tabbar button')].find(b => b.textContent === label)
 const lit = () => document.querySelector('#tabbar button[aria-current="page"]')?.textContent || null
 const button = text => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === text)
@@ -110,7 +111,8 @@ describe('switching tabs', () => {
     expect(idx()).toBe(1)
 
     await click(tab('Me'))
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
+    expect(lit()).toBe('Me')
     expect(idx()).toBe(0)
     expect(await backLeavesApp()).toBe(true)
   })
@@ -129,7 +131,7 @@ describe('switching tabs', () => {
     await click(tab('Me'))
     expect(hash()).toBe('#/progress/body?range=90')
     await back()
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(await backLeavesApp()).toBe(true)
   })
 
@@ -179,12 +181,14 @@ describe('the review repros', () => {
     await click(tab('Eat'))
     await click(document.querySelector('.avatar-btn'))
     expect(hash()).toBe('#/me')
-    expect(lit()).toBe(null)   // Profile sits on Eat (Nutrition), lighting no tab
+    expect(lit()).toBe('Me')   // the avatar opens Profile, which is the Me tab
     await go(() => nav('/train/schedule'))
     expect(hash()).toBe('#/train/schedule')
     expect(lit()).toBe('Train')
     await click(tab('Eat'))
-    expect(hash()).toBe('#/me')   // Nutrition kept Profile on top of itself
+    expect(hash()).toBe('#/food')   // Nutrition is as it was left: Profile is not on top of it
+    await click(tab('Me'))
+    expect(hash()).toBe('#/me')
     await click(tab('Train'))
     expect(hash()).toBe('#/train/schedule')
     await back()
@@ -236,9 +240,9 @@ describe('a search visit', () => {
     await back()
     expect(hash()).toBe('#/home')
     expect(useSearch.getState().live).toBe(false)
-    // Progress never got the visit's pages as its own stack.
+    // Me never got the visit's pages as its own stack.
     await click(tab('Me'))
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(idx()).toBe(0)
   })
 })
@@ -265,7 +269,7 @@ describe('a history the mirror does not match', () => {
     await act(async () => { tab('Me').click() })
     await act(async () => { await new Promise(r => setTimeout(r, 450)) })
     await settle()
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
     await click(tab('Today'))
     expect(hash()).toBe('#/home')
@@ -278,7 +282,7 @@ describe('a history the mirror does not match', () => {
     await click(tab('Me'))
     await act(async () => { window.history.forward() })
     await settle()
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
   })
 
   it('a back press in the middle of a switch still ends on one tab, the screen let go', async () => {
@@ -290,7 +294,7 @@ describe('a history the mirror does not match', () => {
     await settle()
     expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
     // The extra back press is spent walking; the switch still ends on the tab asked for, on its root.
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(lit()).toBe('Me')
     await click(tab('Today'))
     expect(hash()).toBe('#/home')
@@ -319,9 +323,9 @@ describe('a walk back that lands late', () => {
     await act(async () => { tab('Me').click() })
     await wait(300)
     await settle()
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(idx()).toBe(0)
-    expect(replaces).toBe(1)   // one build: the watchdog did not fire before the walk landed
+    expect(replaces).toBe(1)  // one build: the watchdog did not fire before the walk landed
   })
 
   it('past the watchdog, the late landing is finished again, and the tab left keeps its stack', async () => {
@@ -332,7 +336,7 @@ describe('a walk back that lands late', () => {
     await act(async () => { tab('Me').click() })
     await wait(800)
     await settle()
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(idx()).toBe(0)
     expect(lit()).toBe('Me')
     window.history.go = realGo; realGo = null
@@ -448,12 +452,87 @@ describe('back on a sub-page', () => {
     expect(idx()).toBe(0)
   })
 
-  it('Profile goes back to the tab that opened it', async () => {
+  it('Profile, the Me tab\'s root, has nothing under it: back goes Home', async () => {
+    await launch('#/home')
+    await click(document.querySelector('.avatar-btn'))
+    expect(hash()).toBe('#/me')
+    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    expect(hash()).toBe('#/home')
+    expect(lit()).toBe('Today')
+  })
+
+  it('a Profile page goes back to Profile', async () => {
     await launch('#/home')
     await click(tab('Me'))
-    await click(document.querySelector('.avatar-btn'))
+    await go(() => nav('/me/units'))
+    expect(lit()).toBe('Me')
+    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    expect(hash()).toBe('#/me')
+  })
+})
+
+// Me is Profile; Progress lives under it, entered from Profile's Progress row.
+describe('Me, Profile and Progress', () => {
+  const progressRow = () => [...document.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Progress')
+
+  it('the Me tab opens Profile, not Progress', async () => {
+    await launch('#/home')
+    await click(tab('Me'))
+    expect(hash()).toBe('#/me')
+    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Profile')
+    expect(lit()).toBe('Me')
+  })
+
+  it('every page under Profile lights Me', async () => {
+    await launch('#/me')
+    expect(lit()).toBe('Me')
+    for (const path of ['/me/units', '/me/appearance']) {
+      await go(() => nav(path))
+      expect(hash(), path).toBe('#' + path)
+      expect(lit(), path).toBe('Me')
+    }
+  })
+
+  it('Progress is reached from Profile, lights Me, and back returns to Profile', async () => {
+    await launch('#/me')
+    await click(progressRow())
+    expect(hash()).toBe('#/progress')
+    expect(lit()).toBe('Me')
+    await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Body'))
+    expect(hash()).toMatch(/^#\/progress\/body\?range=\d+$/)
+    expect(lit()).toBe('Me')
     await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
     expect(hash()).toBe('#/progress')
+    await back()
+    expect(hash()).toBe('#/me')
+    expect(idx()).toBe(0)
+  })
+
+  it('Me tapped again from Progress goes back down to Profile', async () => {
+    await launch('#/me')
+    await click(progressRow())
+    expect(hash()).toBe('#/progress')
+    await click(tab('Me'))
+    expect(hash()).toBe('#/me')
+    expect(idx()).toBe(0)
+    expect(await backLeavesApp()).toBe(true)
+  })
+
+  it('the avatar on Progress goes down to Profile instead of stacking another one', async () => {
+    await launch('#/me')
+    await click(progressRow())
+    await click(document.querySelector('.avatar-btn'))
+    expect(hash()).toBe('#/me')
+    expect(idx()).toBe(0)
+  })
+
+  it('the avatar on another tab opens Profile as the Me tab', async () => {
+    await launch('#/train')
+    await click(document.querySelector('.avatar-btn'))
+    expect(hash()).toBe('#/me')
+    expect(lit()).toBe('Me')
+    await click(tab('Train'))
+    expect(hash()).toBe('#/train')
   })
 })
 
@@ -557,11 +636,11 @@ describe('a navigation in the middle of a switch', () => {
     expect(lit()).toBe('Me')
     await click(tab('Train'))
     expect(hash()).toBe('#/train/history')
-    // Progress holds its own stack: Body over the Progress hub, nothing of Training under it.
+    // Me holds its own stack: Body over Profile, nothing of Training under it.
     await click(tab('Me'))
     expect(hash()).toBe('#/progress/body')
     await back()
-    expect(hash()).toBe('#/progress')
+    expect(hash()).toBe('#/me')
     expect(await backLeavesApp()).toBe(true)
   })
 

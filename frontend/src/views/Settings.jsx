@@ -7,7 +7,7 @@ import { speedUnitOf } from '../lib/speed.js'
 import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
 import { copyText } from '../lib/clipboard.js'
 import { back as tabBack } from '../lib/use-tab-nav.js'
-import { PROFILE_RENAMED } from '../lib/tab-route.js'
+import { PROFILE_RENAMED, PROGRESS_ROOT } from '../lib/tab-route.js'
 import { useUI } from '../store/useUI.js'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
@@ -971,6 +971,7 @@ export default function Settings({ page = null, find = null, via = null }) {
 function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
   // The router's key for this history entry (what useLocation().key reads), taken once.
   const [key] = useState(() => window.history.state?.key || null)
+  const nav = useNavigate()
   const [q, setQ] = useState(() => (key && lastQuery.key === key ? lastQuery.q : ''))
   const set = v => { lastQuery = { q: v, key }; setQ(v) }
   const hits = q.trim() ? searchSettings(q, ctx) : null
@@ -1004,6 +1005,10 @@ function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
         </button>
       </Section>
       <SyncStatusCard />
+      {/* Progress is not a tab any more: Me is Profile, and this is the way into Progress. */}
+      <Section>
+        <Row icon="chart" iconTint="var(--teal)" title={t('Progress')} accessory="chevron" onClick={() => nav(PROGRESS_ROOT)} className="sp-root-row" />
+      </Section>
       {ROOT_GROUPS.map(g => ({ ...g, ids: g.ids.filter(id => pageVisible(id, ctx)) })).filter(g => g.ids.length).map(g => (
         <Section key={g.title} title={t(g.title)}>
           {g.ids.map(id => <Row key={id} icon={PAGES[id].icon} iconTint={PAGES[id].tint} title={t(PAGES[id].title)}

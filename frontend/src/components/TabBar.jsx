@@ -4,9 +4,9 @@ import { isSwitching, popToRoot, switchTab } from '../lib/use-tab-nav.js'
 import { useDsAccent } from '../lib/use-ds-accent.js'
 import GlassTabBar from '../ds/GlassTabBar.jsx'
 
-// The app's four tabs under the design system's names: Home is Today, Nutrition is Eat and
-// Progress is Me. The routes keep their own names (lib/tab-route.js).
-const DS_TAB = { home: 'today', train: 'train', food: 'eat', progress: 'me' }
+// The app's four tabs under the design system's names: Home is Today and Nutrition is Eat. The
+// routes keep their own names (lib/tab-route.js).
+const DS_TAB = { home: 'today', train: 'train', food: 'eat', me: 'me' }
 const APP_TAB = Object.fromEntries(Object.entries(DS_TAB).map(([app, ds]) => [ds, app]))
 
 // The bar on every page that has one (App.jsx), the design system's GlassTabBar in a .g-root of
@@ -15,7 +15,7 @@ const APP_TAB = Object.fromEntries(Object.entries(DS_TAB).map(([app, ds]) => [ds
 // the keyboard), and what places the bar on screen (tab-shell.css).
 //
 // `tab` is the tab on screen (lib/use-tab-nav.js) and `lit` whether the page is one of its own:
-// a page every tab can open (Profile, the workout) sits on a tab but lights none.
+// a page every tab can open (the workout) sits on a tab but lights none.
 export default function TabBar({ tab, lit, onPlus }) {
   const user = useStore(s => s.user)
   const isGuest = useStore(s => s.isGuest())
