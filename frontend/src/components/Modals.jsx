@@ -6,6 +6,7 @@ import { noteSheetEntries, onSheetEntry } from '../lib/nav.js'
 import { useSheetDialog } from '../lib/use-sheet-dialog.js'
 import { EmptySurface } from './blocks.jsx'
 import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
+import { SheetFrameContext } from './sheet-frame.js'
 
 // Putting the page back after a sheet closes takes up to three goes (see the un-pin below): now,
 // next frame, and once the keyboard's dismiss animation is over. Anything else that wants to
@@ -99,15 +100,18 @@ function Sheet({ sheet, covered }) {
   // horizontally under it (chip strips, heatmap) and the sheet stays put.
   const idle = () => ({ startX: null, startY: null, axis: null, delta: 0, vy: 0, lastY: 0, lastT: 0 })
   const drag = useRef(idle())
+  // What scrolls: the sheet itself, or a design-system drawer's body (ds/BottomSheet.jsx), whose
+  // head and foot stay put. A pull only takes the sheet down while that is at its top.
+  const body = useRef(null)
+  const scrolled = () => (body.current || ref.current).scrollTop > 0
 
   // a gesture that begins on a slider (or opted-out control) belongs to that control, not to
   // the sheet's swipe-to-dismiss — so it keeps working while you drag. Horizontal strips are
   // opted out too: a sideways scroll must never wobble or pull down the sheet.
   const NODRAG = 'input[type=range], [data-nodrag], .chips, .hm-wrap'
   const begin = (target, x, y) => {
-    const el = ref.current
     if (target.closest && target.closest(NODRAG)) { drag.current = idle(); return }
-    if (el.scrollTop > 0) { drag.current = idle(); return }
+    if (scrolled()) { drag.current = idle(); return }
     drag.current = { ...idle(), startX: x, startY: y, lastY: y, lastT: performance.now() }
   }
   const move = (e, x, y) => {
@@ -125,7 +129,7 @@ function Sheet({ sheet, covered }) {
     const now = performance.now()
     // velocity from the last move, so a fast short flick can still be told from a slow drag
     if (now > d.lastT) { d.vy = (y - d.lastY) / (now - d.lastT); d.lastY = y; d.lastT = now }
-    if (dy > 0 && el.scrollTop <= 0) {
+    if (dy > 0 && !scrolled()) {
       e.preventDefault()
       d.delta = dy
       el.style.transition = 'none'
@@ -169,6 +173,8 @@ function Sheet({ sheet, covered }) {
 
   const close = () => closeSheet(sheet.id)
   const dismiss = () => { dismissSheet(sheet.id) }
+  // One function for the life of the sheet: a new one each render would detach and reattach it.
+  const setPanel = useRef(el => { ref.current = el; dialog.current = el }).current
   // A sheet under a newer one is out of reach, to the keyboard and to a screen reader, until the
   // newer one closes: `inert` on its wrapper (a stacked sheet's background is the sheet below). So
   // is one on its way out, which taps also go through to the page.
@@ -185,12 +191,24 @@ function Sheet({ sheet, covered }) {
       </div>
     )
   }
+  const panelProps = { onTouchStart, onTouchEnd, onMouseDown, onMouseMove, onMouseUp, onMouseLeave: onMouseUp }
+  // The design system's drawer draws its own scrim and panel (ds/BottomSheet.jsx), on these refs
+  // and handlers: everything above applies to it as to any sheet.
+  if (sheet.variant === 'ds') {
+    const frame = { scrim: back, panel: setPanel, body, panelProps, dismiss, locked: sheet.locked }
+    return (
+      <div {...layer}>
+        <SheetFrameContext.Provider value={frame}>
+          <EmptySurface value="sheet">{sheet.render(close)}</EmptySurface>
+        </SheetFrameContext.Provider>
+      </div>
+    )
+  }
   // The grab bar says the sheet can be pulled away; a locked one cannot, so it has none.
   return (
     <div {...layer}>
       <div className="mback" ref={back} aria-hidden="true" onClick={dismiss} />
-      <div className="sheet" ref={el => { ref.current = el; dialog.current = el }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-        onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
+      <div className="sheet" ref={setPanel} {...panelProps}>
         {!sheet.locked && <div className="grab" />}
         <EmptySurface value="sheet">{sheet.render(close)}</EmptySurface>
       </div>

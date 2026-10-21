@@ -135,6 +135,10 @@
   --g-code-bad: #FFC56B;
   --g-ring-over: #FFC56B;
   --g-notify-dot: #FF6B4A;
+  --g-toast: #161615;
+  --g-toast-fill: rgba(255,255,255,0.14);
+  --g-toast-drain: rgba(255,255,255,0.5);
+  --g-toast-shadow: 0 14px 34px -12px rgba(0,0,0,0.5);
 }
 :root[data-theme="dark"] .g-root {
   --canvas: #0B0B0A;

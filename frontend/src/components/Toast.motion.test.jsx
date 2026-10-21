@@ -14,7 +14,7 @@ import { fakeMotionDriver } from '../lib/motion.test-util.js'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 let root, driver
-const pill = () => document.querySelector('#toast .toast-pill')
+const pill = () => document.querySelector('#toast .g-utoast')
 const set = state => act(async () => { useUI.setState(state) })
 
 beforeEach(async () => {
@@ -94,7 +94,7 @@ describe('the toast\'s way in and out', () => {
 
 describe('the toast\'s action from the keyboard', () => {
   const undoToast = run => set({ toastMsg: 'Set removed', toastAction: { label: 'Undo', run, id: 1, icon: 'undo' } })
-  const undo = () => document.querySelector('#toast .toast-act')
+  const undo = () => document.querySelector('#toast .g-utoast-undo')
 
   it('gives the focus back to where it was before the Undo, not to the page body', async () => {
     const field = document.createElement('button')

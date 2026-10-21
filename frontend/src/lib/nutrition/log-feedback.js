@@ -20,7 +20,7 @@ export function loadErrorText(e) {
  *  so and offers Try again, which runs the same `undo` (so it must send the same entries each time). */
 export function toastLogged(message, undo) {
   const run = () => {
-    undo().catch(e => useUI.getState().toast(writeErrorText(e), { action: t('Try again'), onAction: run }))
+    undo().catch(e => useUI.getState().toast(writeErrorText(e), { action: t('Try again'), onAction: run, icon: 'warning' }))
   }
   useUI.getState().toast(message, { action: t('Undo'), onAction: run })
 }
