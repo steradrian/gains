@@ -72,11 +72,11 @@ describe('opening a result', () => {
     expect(targetOf({ type: 'day', date: '2026-10-11', uuid: null })).toEqual({ kind: 'route', path: '/food/day/2026-10-11' })
   })
 
-  it('today: Nutrition’s diary with the entry to find, the date scoped (the Day page is never today)', () => {
+  it('today: Today (the Day page is never today, and Eat’s root holds no diary)', () => {
     const today = todayISO()
     open({ type: 'day', id: today, date: today, uuid: 'u-2' })
-    expect(session.visit).toHaveBeenLastCalledWith(`/food?date=${today}&find=u-2`, { date: today, state: undefined })
-    expect(targetOf({ type: 'day', date: today, uuid: null })).toMatchObject({ path: '/food?date=' + today })
+    expect(session.visit).toHaveBeenLastCalledWith('/home', { date: undefined, state: undefined })
+    expect(targetOf({ type: 'day', date: today, uuid: null })).toEqual({ kind: 'route', path: '/home' })
   })
 
   it('remembers what was opened, and how often; never an online food, a feature card or a suggestion of the moment', () => {

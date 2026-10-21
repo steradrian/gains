@@ -77,8 +77,7 @@ import TrainHub from './views/TrainHub.jsx'
 import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
-import MealCatalog from './views/MealCatalog.jsx'
-import Foods from './views/Foods.jsx'
+import FoodRedirect from './views/eat/FoodRedirect.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
@@ -315,9 +314,11 @@ function Shell() {
               <Route path="/train/plans/:id" element={<PlanPreview />} />
               {/* Nutrition */}
               <Route path="/food" element={<FoodHub />} />
-              <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
-              <Route path="/food/recipes" element={<MealCatalog recipes />} />
-              <Route path="/food/foods" element={<Foods />} />
+              {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
+              <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
+              <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
+              <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
+              {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
               <Route path="/food/goals" element={<NutritionGoals />} />
               <Route path="/food/fasting" element={<Fasting />} />
               {/* Progress: a page of the Me tab, opened from Profile's Progress row */}

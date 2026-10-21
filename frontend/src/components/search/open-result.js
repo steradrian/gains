@@ -6,6 +6,7 @@
 import { t } from '../../lib/i18n.js'
 import { dayPath } from '../../lib/day-route.js'
 import { todayISO } from '../../lib/format.js'
+import { TAB_ROOT } from '../../lib/tab-route.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
@@ -47,11 +48,11 @@ export function targetOf(r) {
         onSave: async f => { await useNutrition.getState().saveFood(f); useUI.getState().toast(t('Saved to your foods')) },
       }),
     }
-    // A past day opens its Day page under Eat (PR07 D1), the entry to find in its state; today's
-    // opens Nutrition's diary, which finds it (views/FoodHub.jsx).
+    // A past day opens its Day page under Eat (PR07 D1), the entry to find in its state; today
+    // is Today (Eat's root holds no diary any more).
     case 'day': return r.date < todayISO()
       ? { kind: 'route', path: dayPath(r.date, 'food'), ...(r.uuid ? { state: { find: r.uuid } } : {}) }
-      : { kind: 'route', path: '/food?date=' + r.date + (r.uuid ? '&find=' + encodeURIComponent(r.uuid) : ''), date: r.date }
+      : { kind: 'route', path: TAB_ROOT.home }
     // Suggestions only: today's weigh-in, and the plan where a missed day is moved.
     case 'weighin': return { kind: 'sheet', open: () => bwSheet({ date: r.date }) }
     case 'missed': return { kind: 'route', path: r.path }
