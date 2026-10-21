@@ -60,7 +60,7 @@ export function loopOf(S, { seq, seqLabel, qv }) {
     const state = q?.state ?? null
     const sub = !q ? null : q.state === 'pinned' ? fmtDate(q.on, true) : STATE_WORD[q.state]()
     const name = r?.name ?? q?.name ?? id
-    return { id, n: i + 1, name, glyph: glyphOf(r?.emoji), state, ...(q?.on ? { on: q.on } : {}), sub, label: [`${i + 1}. ${name}`, sub].filter(Boolean).join(', ') }
+    return { id, n: i + 1, name, state, ...(q?.on ? { on: q.on } : {}), sub, label: [`${i + 1}. ${name}`, sub].filter(Boolean).join(', ') }
   })
   return {
     ids: seq,
@@ -75,7 +75,7 @@ export function weekRoutinesOf(S) {
   const ids = uniq(weekOrder(weekStartOf(S)).flatMap(d => dayRoutines(S, d).map(r => r.id)))
   return ids.map((id, i) => {
     const r = routineOf(S, id)
-    return { id, n: i + 1, name: r.name, glyph: glyphOf(r.emoji), state: null, sub: null, label: r.name }
+    return { id, n: i + 1, name: r.name, state: null, sub: null, label: r.name }
   })
 }
 
