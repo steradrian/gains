@@ -18,6 +18,7 @@ import { firstWorkoutDay, missedDay, movePlan, moveToToday, plusDays, skipMissed
 import { MOBILE } from '../../lib/mobile.js'
 import { levelsOf, loadOfActive, loadOfRoutine, loadOfWorkouts, muscleBalanceWindow, MUSCLE_NAME, rankOf, REGIONS, untrainedRegions } from '../../lib/muscles.js'
 import { queueOf } from '../../lib/queue.js'
+import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
@@ -362,24 +363,39 @@ export function profileOf(S, activities = []) {
 
 const nameOfIds = (S, ids) => nameOf(routinesOf(S, ids))
 
+// The banner's body when the missed day held one routine ("it"), and when it held several, of
+// which Move carries one (movePlan's `id`), named.
+const ONE_BODY = {
+  free: coach => (coach ? t('Coach suggests doing it today. Nothing changes until you choose.') : t('You can do it today. Nothing changes until you choose.')),
+  to: (coach, other, to) => (coach ? t('Coach suggests doing it today; {0} would move to {1}. Nothing changes until you choose.', other, to)
+    : t('You can do it today; {0} would move to {1}. Nothing changes until you choose.', other, to)),
+  instead: (coach, other) => (coach ? t('Coach suggests doing it today instead of {0}. Nothing changes until you choose.', other)
+    : t('You can do it today instead of {0}. Nothing changes until you choose.', other)),
+}
+const NAMED_BODY = {
+  free: (coach, name) => (coach ? t('Coach suggests doing {0} today. Nothing changes until you choose.', name) : t('You can do {0} today. Nothing changes until you choose.', name)),
+  to: (coach, name, other, to) => (coach ? t('Coach suggests doing {0} today; {1} would move to {2}. Nothing changes until you choose.', name, other, to)
+    : t('You can do {0} today; {1} would move to {2}. Nothing changes until you choose.', name, other, to)),
+  instead: (coach, name, other) => (coach ? t('Coach suggests doing {0} today instead of {1}. Nothing changes until you choose.', name, other)
+    : t('You can do {0} today instead of {1}. Nothing changes until you choose.', name, other)),
+}
+
 /**
  * The missed-day banner (T2.8): `{ iso, ids, name, title, body, displaced }`, or null. `body` says
- * what Move to today would do; Coach is named only where it is on.
+ * what Move to today would do, naming the routine that moves when the day held several; Coach is
+ * named only where it is on.
  */
 export function missedOf(S, today, { coach }) {
   const m = missedDay(S, today)
   if (!m) return null
   const plan = movePlan(S, m.iso, today)
+  if (!plan) return null
   const name = nameOfIds(S, m.ids)
   const d = plan.displaced
-  const other = d && nameOfIds(S, d.ids)
-  const body = !d
-    ? (coach ? t('Coach suggests doing it today. Nothing changes until you choose.') : t('You can do it today. Nothing changes until you choose.'))
-    : d.to
-      ? (coach ? t('Coach suggests doing it today; {0} would move to {1}. Nothing changes until you choose.', other, fmtDate(d.to, true))
-        : t('You can do it today; {0} would move to {1}. Nothing changes until you choose.', other, fmtDate(d.to, true)))
-      : (coach ? t('Coach suggests doing it today instead of {0}. Nothing changes until you choose.', other)
-        : t('You can do it today instead of {0}. Nothing changes until you choose.', other))
+  const kind = !d ? 'free' : d.to ? 'to' : 'instead'
+  // What leaves today: the one routine that moves to `to`, or all of today's session it replaces.
+  const args = !d ? [] : d.to ? [nameOfIds(S, [d.id]), fmtDate(d.to, true)] : [nameOfIds(S, d.ids)]
+  const body = m.ids.length > 1 ? NAMED_BODY[kind](coach, nameOfIds(S, [plan.id]), ...args) : ONE_BODY[kind](coach, ...args)
   return {
     iso: m.iso, ids: m.ids, name, displaced: d,
     title: t('You missed {0} on {1}', name, fmtDate(m.iso, true)), body,
@@ -391,7 +407,7 @@ export function missedOf(S, today, { coach }) {
 export function movedText(S, moved) {
   const name = nameOfIds(S, [moved.id])
   const d = moved.displaced
-  return d?.to ? t('Moved {0} to today. {1} is now {2}', name, nameOfIds(S, d.ids), fmtDate(d.to, true)) : t('Moved {0} to today', name)
+  return d?.to ? t('Moved {0} to today. {1} is now {2}', name, nameOfIds(S, [d.id]), fmtDate(d.to, true)) : t('Moved {0} to today', name)
 }
 
 /** T2.13's toast: "Skipped Legs on Fri 16 Oct. Push A stays today". `S` is the state before. */
@@ -497,15 +513,22 @@ export function useTrain() {
     missed: missed && { ...missed, move: moveMissed, skip: skipIt, onMove: () => toast(moveMissed()), onSkip: () => toast(skipIt()) },
   }
 
+  // An Undo marks the plan days it put back (Plan's pattern, lib/sync-merge.js undoMarks), so a
+  // change another device made to one of them in the meantime still wins.
+  function withUndo(change) {
+    const before = useStore.getState().S
+    let done = null
+    update(s => { done = change(s) })
+    if (!done) return null
+    const marks = undoMarks(before, useStore.getState().S)
+    return { done, undo: () => update(s => { done.undo(s); markUndone(s, marks) }) }
+  }
   function moveMissed() {
-    const before = S
-    let moved = null
-    update(s => { moved = moveToToday(s, missed.iso, today) })
-    return moved && { text: movedText(before, moved), undo: () => update(s => moved.undo(s)) }
+    const r = withUndo(s => moveToToday(s, missed.iso, today))
+    return r && { text: movedText(S, r.done), undo: r.undo }
   }
   function skipIt() {
-    let skipped = null
-    update(s => { skipped = skipMissed(s, missed.iso) })
-    return { text: skippedText(S, missed, today), undo: () => update(s => skipped.undo(s)) }
+    const r = withUndo(s => skipMissed(s, missed.iso))
+    return { text: skippedText(S, missed, today), undo: r.undo }
   }
 }

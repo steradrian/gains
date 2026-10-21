@@ -8,6 +8,7 @@ import { EXIDX, figureOf, imgSrc } from '../lib/exercises.js'
 import { workoutsOn } from '../lib/backfill.js'
 import { canNoteDay, dayNoteOf, DAY_NOTE_LABEL } from '../lib/day-notes.js'
 import { restDay, restPlan } from '../lib/missed-day.js'
+import { markUndone, undoMarks } from '../lib/sync-merge.js'
 import { usualDuration } from '../lib/train-stats.js'
 import { nameOf, workoutLabel } from '../lib/training-day.js'
 import Icon from '../components/Icon.jsx'
@@ -129,20 +130,25 @@ function DayOptionsDrawer({ iso, close }) {
   const canNote = !!note || (canNoteDay(iso) && !logged)
   // A day already trained, gone by, or being trained right now has nothing left to rest.
   const rest = iso >= today && !logged && !(iso === today && st.active) ? restPlan(st, iso, today) : null
+  // A combined day moves one routine (restPlan's `id`): the line names that one, not the day.
+  const routineName = id => nameOf([st.routines.find(r => r.id === id)].filter(Boolean))
   const restLine = !rest ? null
-    : rest.to ? t('{0} moves to your next free day', name)
-      : rest.floats ? t('{0} moves to the next day you train', name)
+    : rest.to ? t('{0} moves to your next free day', routineName(rest.id))
+      : rest.floats ? t('{0} moves to the next day you train', routineName(rest.id))
         : t('No workout this day')
   const restIt = () => {
+    const before = S()
     let done = null
     update(s => { done = restDay(s, iso, today) })
     close()
     if (!done) return
-    const moved = nameOf([st.routines.find(r => r.id === done.ids[0])].filter(Boolean))
+    // The Undo marks the plan days it put back, so another device's later edit to one still wins.
+    const marks = undoMarks(before, S())
+    const moved = routineName(done.id)
     const text = done.to ? t('{0} moved to {1}', moved, fmtDate(done.to, true))
       : done.floats ? t('{0} moves to the next day you train', moved)
         : t('{0} set to rest', fmtDate(iso))
-    ui().toast(text, { action: t('Undo'), onAction: () => update(s => done.undo(s)) })
+    ui().toast(text, { action: t('Undo'), onAction: () => update(s => { done.undo(s); markUndone(s, marks) }) })
   }
   const items = [
     { key: 'change', icon: 'calendar', label: t('Change this day'), detail: t('Pick another routine for {0}', date), onClick: () => { close(); dayOverrideSheet(iso) } },

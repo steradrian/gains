@@ -197,6 +197,18 @@ describe('T2.2 Day options', () => {
     expect(useUI.getState().toastAction.label).toBe('Undo')
     act(() => { useUI.getState().runToastAction() })
     expect(S().dayPlan).toEqual({ [TODAY]: 'pull' })
+    // As Plan's Undo does: the days it put back are marked, so sync reads them as undone.
+    expect(Object.keys(S().undone || {})).toEqual(expect.arrayContaining(['dayPlan.' + TODAY, 'dayPlan.' + MON]))
+  })
+
+  it('on a combined day the sub-line and the toast name the one routine that moves, and it is the one written', () => {
+    install({ week: { 0: ['legs', 'pull'], 3: ['pull'], 5: ['legs'] } })
+    dayOptionsSheet(TODAY)
+    const host = mountTop()
+    expect(items(host).find(i => i[0] === 'Rest / skip this day')[1]).toBe('Legs moves to your next free day')
+    tap(host, 'Rest / skip this day')
+    expect(S().dayPlan).toEqual({ [TODAY]: 'rest', [MON]: 'legs' })
+    expect(useUI.getState().toastMsg).toBe('Legs moved to ' + fmtDate(MON, true))
   })
 
   it('Rest with no free day ahead only rests the day, says so, and Undo clears it', () => {

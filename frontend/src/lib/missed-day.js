@@ -50,25 +50,42 @@ const owedIds = (S, iso, today) => {
   return effectiveRoutineIds(S, iso, today).filter(id => !(q && q.ids.includes(id)))
 }
 const loggedOn = (S, iso) => (S.workouts || []).some(w => workoutDay(w) === iso)
+const running = S => !!S.active && !S.active.editingWorkoutId
+
+/** The routines today has already trained: logged today, or in the session running now. */
+export function trainedToday(S, today = todayISO()) {
+  const ids = (S.workouts || []).filter(w => workoutDay(w) === today).flatMap(w => w.routineIds || [])
+  return [...new Set([...ids, ...(running(S) ? S.active.routineIds || [] : [])])]
+}
+
+/**
+ * Which of a day's routines Move or Rest actually carries: a day's override holds one routine
+ * (owner default), so it is the first one `here` (the day it lands on) does not hold already, else
+ * the first. Every line that names what moves reads this, so the copy and the plan agree.
+ */
+export const movingId = (ids, here = []) => ids.find(x => !here.includes(x)) ?? ids[0]
 
 /**
  * The most recent planned day of the last MISSED_LOOKBACK that was not logged, as `{ iso, ids }`,
  * or null. Only that one: an older miss behind it is not brought up, and once it is seen (or
- * excused with a day note, or its routines are today's anyway) there is no banner. Nothing before
- * the first workout counts (the rail shows those days without marks).
+ * excused with a day note, or its routines are today's anyway, or trained today) there is no
+ * banner. `ids` leaves out what today already trained. Nothing before the first workout counts
+ * (the rail shows those days without marks), and nothing while a workout runs.
  */
 export function missedDay(S, today = todayISO()) {
   const first = firstWorkoutDay(S)
-  if (!first) return null
+  if (!first || running(S)) return null
+  const done = trainedToday(S, today)
   for (let i = 1; i <= MISSED_LOOKBACK; i++) {
     const iso = plusDays(today, -i)
     if (iso < first) return null
     if (loggedOn(S, iso)) continue
-    const ids = owedIds(S, iso, today)
-    if (!ids.length) continue
+    const owed = owedIds(S, iso, today)
+    if (!owed.length) continue
     if (seenOn(S, iso) || dayNoteOf(S, iso)) return null
+    const ids = owed.filter(id => !done.includes(id))
     const todays = effectiveRoutineIds(S, today, today)
-    return ids.every(id => todays.includes(id)) ? null : { iso, ids }
+    return !ids.length || ids.every(id => todays.includes(id)) ? null : { iso, ids }
   }
   return null
 }
@@ -87,20 +104,24 @@ export function nextFreeDay(S, today = todayISO(), from = today) {
 
 /**
  * What Move to today would do, without doing it: `{ iso, id, displaced }`. `id` is the missed
- * routine today takes (a day's override holds one routine, so a combined missed day brings its
- * first). `displaced` is today's session, `{ ids, to, floats }`, or null when today is free:
- * `to` is the day it lands on (null when no day in FREE_DAY_AHEAD is free), `floats` when it is a
- * queue session, which lands on the next day by itself and is not written anywhere.
+ * routine today takes (movingId: a combined missed day brings one, the first today does not hold
+ * already). `displaced` is today's session, `{ ids, id, to, floats }`, or null when today is free or
+ * already trained: `id` is the one of `ids` that moves (movingId), `to` the day it lands on (null when no day in FREE_DAY_AHEAD is free),
+ * `floats` when it is a queue session, which lands on the next day by itself and is not written
+ * anywhere. Routines trained today (trainedToday) neither move in nor out.
  */
 export function movePlan(S, missedIso, today = todayISO()) {
-  const ids = owedIds(S, missedIso, today)
+  const done = trainedToday(S, today)
+  const ids = owedIds(S, missedIso, today).filter(x => !done.includes(x))
   if (!ids.length) return null
-  const id = ids[0]
-  const todays = effectiveRoutineIds(S, today, today).filter(x => x !== id)
+  const planned = effectiveRoutineIds(S, today, today)
+  const id = movingId(ids, planned)
+  const todays = planned.filter(x => x !== id && !done.includes(x))
   if (!todays.length) return { iso: missedIso, id, displaced: null }
+  const out = movingId(todays)
   const q = queueOf(S)
-  const floats = !!q && q.ids.includes(todays[0])
-  return { iso: missedIso, id, displaced: { ids: todays, floats, to: floats ? plusDays(today, 1) : nextFreeDay(S, today) } }
+  const floats = !!q && q.ids.includes(out)
+  return { iso: missedIso, id, displaced: { ids: todays, id: out, floats, to: floats ? plusDays(today, 1) : nextFreeDay(S, today) } }
 }
 
 // What an Undo puts back of the plan: each day as it was (absent stays absent).
@@ -135,25 +156,26 @@ export function moveToToday(s, missedIso, today = todayISO(), now = Date.now()) 
   const undo = snapshot(s, [today, writeTo].filter(Boolean), missedIso)
   s.dayPlan = s.dayPlan || {}
   s.dayPlan[today] = plan.id
-  if (writeTo) s.dayPlan[writeTo] = plan.displaced.ids[0]
+  if (writeTo) s.dayPlan[writeTo] = plan.displaced.id
   s.missedSeen = withSeen(s.missedSeen, missedIso, true, now)
   return { ...plan, undo }
 }
 
 /**
  * What "Rest / skip this day" (PR02 T2.2, owner decision 1) would do to the day `iso`, today or
- * later: `{ iso, ids, floats, to }`, or null when the day has nothing planned. The day becomes a
- * rest day and its session moves to the next free day after it (`to`; null when none of the next
- * FREE_DAY_AHEAD is free, and the day is only rested). A day's override holds one routine, so a
- * combined day moves its first. A queue session (`floats`) is not written anywhere: the queue
- * makes it the next day you train.
+ * later: `{ iso, ids, id, floats, to }`, or null when the day has nothing planned. The day becomes
+ * a rest day and its session moves to the next free day after it (`to`; null when none of the
+ * next FREE_DAY_AHEAD is free, and the day is only rested). A day's override holds one routine, so
+ * a combined day moves one, `id` (movingId). A queue session (`floats`) is not written anywhere:
+ * the queue makes it the next day you train.
  */
 export function restPlan(S, iso, today = todayISO()) {
   const ids = effectiveRoutineIds(S, iso, today)
   if (!ids.length) return null
+  const id = movingId(ids)
   const q = queueOf(S)
-  const floats = !!q && q.ids.includes(ids[0])
-  return { iso, ids, floats, to: floats ? null : nextFreeDay(S, today, iso) }
+  const floats = !!q && q.ids.includes(id)
+  return { iso, ids, id, floats, to: floats ? null : nextFreeDay(S, today, iso) }
 }
 
 /** Rest / skip this day, on a store draft. Returns restPlan's answer plus `undo(s)`, or null. */
@@ -163,7 +185,7 @@ export function restDay(s, iso, today = todayISO()) {
   const undo = planSnapshot(s, [iso, plan.to].filter(Boolean))
   s.dayPlan = s.dayPlan || {}
   s.dayPlan[iso] = 'rest'
-  if (plan.to) s.dayPlan[plan.to] = plan.ids[0]
+  if (plan.to) s.dayPlan[plan.to] = plan.id
   return { ...plan, undo }
 }
 

@@ -60,6 +60,27 @@ describe('useTrain', () => {
     expect(train.card().title).toBe('Push A')
   })
 
+  it('Move’s Undo marks the plan days it put back, as Plan’s Undo does, so sync reads it as undone', async () => {
+    setS()
+    await mount()
+    let toast
+    await act(async () => { toast = train.missed.move() })
+    await act(async () => { toast.undo() })
+    expect(Object.keys(useStore.getState().S.undone || {})).toEqual(expect.arrayContaining(['dayPlan.' + TODAY, 'dayPlan.' + TUE]))
+  })
+
+  it('Move’s Undo leaves a plan day another change touched since alone: that change still wins', async () => {
+    setS()
+    await mount()
+    let toast
+    await act(async () => { toast = train.missed.move() })
+    await act(async () => { useStore.getState().update(s => { s.dayPlan[TUE] = 'pull' }) })
+    await act(async () => { toast.undo() })
+    const undone = Object.keys(useStore.getState().S.undone || {})
+    expect(undone).toContain('dayPlan.' + TODAY)
+    expect(undone).not.toContain('dayPlan.' + TUE)
+  })
+
   it('Skip it: the plan is untouched and the banner goes; Undo brings it back', async () => {
     setS()
     await mount()

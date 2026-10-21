@@ -2,7 +2,7 @@
 // Skip it write, and that Undo puts the plan and the seen state back exactly.
 import { describe, expect, it } from 'vitest'
 import { effectiveRoutineIds } from './history.js'
-import { missedDay, movePlan, moveToToday, nextFreeDay, restDay, restPlan, seenOn, skipMissed, withSeen } from './missed-day.js'
+import { missedDay, movePlan, moveToToday, movingId, nextFreeDay, restDay, restPlan, seenOn, skipMissed, withSeen } from './missed-day.js'
 
 // Sun 18 Oct 2026 is today. The plan: Push on Sundays, Legs on Mondays and Fridays, Pull on Wednesdays.
 const TODAY = '2026-10-18'
@@ -66,7 +66,7 @@ describe('missedDay', () => {
 describe('Move to today', () => {
   it('says first what it would do: Legs today, Push A to the next free day', () => {
     expect(nextFreeDay(S(), TODAY)).toBe(TUE)
-    expect(movePlan(S(), FRI, TODAY)).toEqual({ iso: FRI, id: 'legs', displaced: { ids: ['push'], floats: false, to: TUE } })
+    expect(movePlan(S(), FRI, TODAY)).toEqual({ iso: FRI, id: 'legs', displaced: { ids: ['push'], id: 'push', floats: false, to: TUE } })
   })
 
   it('a free day is one with nothing planned, no rest set on purpose and no note', () => {
@@ -118,7 +118,7 @@ describe('Move to today', () => {
     const every = { 0: ['push'], 1: ['legs'], 2: ['pull'], 3: ['pull'], 4: ['pull'], 5: ['legs'], 6: ['pull'] }
     const s = S({ week: every })
     const moved = moveToToday(s, FRI, TODAY, 1)
-    expect(moved.displaced).toEqual({ ids: ['push'], floats: false, to: null })
+    expect(moved.displaced).toEqual({ ids: ['push'], id: 'push', floats: false, to: null })
     expect(s.dayPlan).toEqual({ [TODAY]: 'legs' })
   })
 
@@ -127,7 +127,7 @@ describe('Move to today', () => {
     const s = S({ week: { 5: ['legs'] }, queue: { ids: ['push', 'pull'], since, startsOn: THU, rotationId: 'rot' }, rotation: { id: 'rot', sequence: ['push', 'pull'] } })
     expect(effectiveRoutineIds(s, TODAY, TODAY)).toEqual(['push'])
     const moved = moveToToday(s, FRI, TODAY, 1)
-    expect(moved.displaced).toEqual({ ids: ['push'], floats: true, to: MON })
+    expect(moved.displaced).toEqual({ ids: ['push'], id: 'push', floats: true, to: MON })
     expect(s.dayPlan).toEqual({ [TODAY]: 'legs' })
     expect(effectiveRoutineIds(s, TODAY, TODAY)).toEqual(['legs'])
     // Tomorrow the queue's next session is Push A again.
@@ -138,6 +138,66 @@ describe('Move to today', () => {
     const s = S({ workouts: [workout('w', FRI, ['legs'])] })
     expect(moveToToday(s, '2026-10-17', TODAY, 1)).toBeNull()
     expect(s.dayPlan).toEqual({})
+  })
+})
+
+describe('what today already trained', () => {
+  const run = (routineIds, extra = {}) => ({ id: 'a', d: TODAY, start: 1, routineIds, entries: [], ...extra })
+
+  it('today logged: Move brings the missed routine in and moves nothing out, so nothing is trained twice', () => {
+    const s = S({ workouts: [workout('w1', WED, ['pull']), workout('w2', TODAY, ['push'])] })
+    expect(missedDay(s, TODAY)).toEqual({ iso: FRI, ids: ['legs'] })
+    expect(movePlan(s, FRI, TODAY)).toEqual({ iso: FRI, id: 'legs', displaced: null })
+    moveToToday(s, FRI, TODAY, 1)
+    expect(s.dayPlan).toEqual({ [TODAY]: 'legs' })
+  })
+
+  it('the missed routine already trained today: nothing is missed any more', () => {
+    const s = S({ workouts: [workout('w1', WED, ['pull']), workout('w2', TODAY, ['legs'])] })
+    expect(missedDay(s, TODAY)).toBeNull()
+    expect(movePlan(s, FRI, TODAY)).toBeNull()
+  })
+
+  it('a workout running: no banner, and its routines neither move in nor out', () => {
+    const s = S({ active: run(['push']) })
+    expect(missedDay(s, TODAY)).toBeNull()
+    expect(movePlan(s, FRI, TODAY)).toEqual({ iso: FRI, id: 'legs', displaced: null })
+    expect(movePlan(S({ active: run(['legs']) }), FRI, TODAY)).toBeNull()
+  })
+
+  it('an open editor on a saved workout is not a workout running: the banner stays', () => {
+    expect(missedDay(S({ active: run(['pull'], { editingWorkoutId: 'w1' }) }), TODAY)).toEqual({ iso: FRI, ids: ['legs'] })
+  })
+})
+
+describe('a combined day moves one routine, the one every line names', () => {
+  it('movingId: the first the landing day does not hold already, else the first', () => {
+    expect(movingId(['push', 'legs'], ['push'])).toBe('legs')
+    expect(movingId(['push', 'legs'], [])).toBe('push')
+    expect(movingId(['push'], ['push'])).toBe('push')
+  })
+
+  it('missed Push A + Legs with Push A planned today: Move brings Legs, not a no-op Push A', () => {
+    const s = S({ week: { 0: ['push'], 5: ['push', 'legs'] } })
+    expect(missedDay(s, TODAY)).toEqual({ iso: FRI, ids: ['push', 'legs'] })
+    expect(movePlan(s, FRI, TODAY)).toEqual({ iso: FRI, id: 'legs', displaced: { ids: ['push'], id: 'push', floats: false, to: MON } })
+    const moved = moveToToday(s, FRI, TODAY, 1)
+    expect(moved.id).toBe('legs')
+    expect(s.dayPlan).toEqual({ [TODAY]: 'legs', [MON]: 'push' })
+  })
+
+  it('a combined missed day partly trained today: Move offers what is still owed', () => {
+    const s = S({ week: { 5: ['push', 'legs'] }, workouts: [workout('w1', WED, ['pull']), workout('w2', TODAY, ['push'])] })
+    expect(missedDay(s, TODAY)).toEqual({ iso: FRI, ids: ['legs'] })
+    expect(movePlan(s, FRI, TODAY)).toEqual({ iso: FRI, id: 'legs', displaced: null })
+  })
+
+  it('Rest on a combined day writes the routine restPlan names to the free day', () => {
+    const s = S({ week: { 0: ['legs', 'pull'] } })
+    const plan = restPlan(s, TODAY, TODAY)
+    expect(plan).toMatchObject({ ids: ['legs', 'pull'], id: 'legs', to: MON })
+    restDay(s, TODAY, TODAY)
+    expect(s.dayPlan).toEqual({ [TODAY]: 'rest', [MON]: plan.id })
   })
 })
 
@@ -171,9 +231,9 @@ describe('Skip it', () => {
 
 describe('Rest / skip this day', () => {
   it('says first what it would do: the day rests, its session goes to the next free day after it', () => {
-    expect(restPlan(S(), TODAY, TODAY)).toEqual({ iso: TODAY, ids: ['push'], floats: false, to: TUE })
+    expect(restPlan(S(), TODAY, TODAY)).toEqual({ iso: TODAY, ids: ['push'], id: 'push', floats: false, to: TUE })
     // From Monday the search starts after Monday, not after today.
-    expect(restPlan(S(), MON, TODAY)).toEqual({ iso: MON, ids: ['legs'], floats: false, to: TUE })
+    expect(restPlan(S(), MON, TODAY)).toEqual({ iso: MON, ids: ['legs'], id: 'legs', floats: false, to: TUE })
     expect(nextFreeDay(S(), TODAY, '2026-10-21')).toBe('2026-10-22')
   })
 
@@ -198,7 +258,7 @@ describe('Rest / skip this day', () => {
   it('a combined day moves its first routine; the day only rests when no day ahead is free', () => {
     const s = S({ week: { 0: ['push', 'pull'], 1: ['legs'], 2: ['legs'], 3: ['legs'], 4: ['legs'], 5: ['legs'], 6: ['legs'] } })
     const rested = restDay(s, TODAY, TODAY)
-    expect(rested).toMatchObject({ ids: ['push', 'pull'], to: null })
+    expect(rested).toMatchObject({ ids: ['push', 'pull'], id: 'push', to: null })
     expect(s.dayPlan).toEqual({ [TODAY]: 'rest' })
     rested.undo(s)
     expect(s.dayPlan).toEqual({})

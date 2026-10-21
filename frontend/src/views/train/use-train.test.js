@@ -273,4 +273,20 @@ describe('the missed day', () => {
     expect(skippedText(before, { iso: '2026-10-16', ids: ['legs'] }, TODAY)).toBe(`Skipped Legs on ${fmtDate('2026-10-16', true)}. Push A stays today`)
     expect(movedText(before, { id: 'legs', displaced: null })).toBe('Moved Legs to today')
   })
+
+  it('a combined missed day: the body and the toast name the routine Move carries, not a no-op one', () => {
+    const before = S({ week: { 0: ['push'], 5: ['push', 'legs'] } })
+    const banner = missedOf(before, TODAY, { coach: false })
+    expect(banner.title).toBe('You missed Push A + Legs on ' + fmtDate('2026-10-16', true))
+    expect(banner.body).toBe(`You can do Legs today; Push A would move to ${fmtDate('2026-10-19', true)}. Nothing changes until you choose.`)
+    expect(missedOf(before, TODAY, { coach: true }).body).toMatch(/^Coach suggests doing Legs today; Push A would move/)
+    const moved = moveToToday(clone(before), '2026-10-16', TODAY, 1)
+    expect(movedText(before, moved)).toBe('Moved Legs to today. Push A is now ' + fmtDate('2026-10-19', true))
+  })
+
+  it('no banner while a workout runs; with today already logged, Move moves nothing out', () => {
+    expect(missedOf(S({ active: { name: 'Push A', start: 1, routineIds: ['push'], entries: [] } }), TODAY, { coach: false })).toBeNull()
+    const logged = S({ workouts: [workout('w1', '2026-10-14', ['pull']), workout('w2', TODAY, ['push'], { name: 'Push A' })] })
+    expect(missedOf(logged, TODAY, { coach: false }).body).toBe('You can do it today. Nothing changes until you choose.')
+  })
 })
