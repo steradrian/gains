@@ -1674,10 +1674,10 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-route[data-slide] { display: block; position: fixed; inset: 0; overflow: clip; will-change: transform, opacity; }
 .g-route[data-slide] > div { margin-top: calc(-1 * var(--route-y, 0px)) !important; }   /* !important: #app's own margin is an id rule */
 .g-route[data-slide] > div:not(:has(.g-stage)) { background: var(--bg); }
-.g-route[data-slide="push"][data-route="in"] { z-index: 2; animation: g-route-enter var(--route-ms) var(--route-ease) both, g-route-fade-in var(--route-ms) var(--route-ease) both; }
+.g-route[data-slide="push"][data-route="in"] { z-index: 2; animation: g-route-enter var(--route-ms) var(--route-ease) both, g-route-fade-in var(--route-ms) linear both; }
 .g-route[data-slide="push"][data-route="out"] { z-index: 1; animation: g-route-under var(--route-ms) var(--route-ease) both, g-route-fade-out calc(var(--route-ms) * .6) linear both; }
 .g-route[data-slide="pop"][data-route="out"] { z-index: 2; animation: g-route-leave var(--route-ms) var(--route-ease) both, g-route-fade-out calc(var(--route-ms) * .6) linear both; }
-.g-route[data-slide="pop"][data-route="in"] { z-index: 1; animation: g-route-back var(--route-ms) var(--route-ease) both, g-route-fade-in var(--route-ms) var(--route-ease) both; }
+.g-route[data-slide="pop"][data-route="in"] { z-index: 1; animation: g-route-back var(--route-ms) var(--route-ease) both, g-route-fade-in var(--route-ms) linear both; }
 @keyframes g-route-enter { from { transform: translate3d(calc(100% * var(--route-dir)), 0, 0); } to { transform: translate3d(0, 0, 0); } }
 @keyframes g-route-under { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-30% * var(--route-dir)), 0, 0); } }
 @keyframes g-route-leave { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(100% * var(--route-dir)), 0, 0); } }

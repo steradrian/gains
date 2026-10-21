@@ -55,7 +55,7 @@
 /* The countdown bar shrinks by transform, so it is not a layout every second. */
 #timer.dock .bar i{width:100%;transform-origin:left center;transition:transform 1s linear}
 [dir="rtl"] #timer.dock .bar i{transform-origin:right center}
-body.live-docked #app{padding-bottom:calc(168px + var(--sab))}
+body.live-docked :is(#app,.app-out){padding-bottom:calc(168px + var(--sab))}
 
 /* The on-screen keyboard is up (lib/keyboard-open.js): the bar and the dock step aside. */
 body.kb-open #tabbar,body.kb-open #timer.dock{display:none}

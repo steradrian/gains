@@ -329,7 +329,7 @@ function Shell() {
         <div key={layer.key} className="g-route" data-shared={sharedStage || undefined} data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
           style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}
           onAnimationEnd={layer.role === 'in' && trans.active ? e => { if (e.target === e.currentTarget) trans.settle() } : undefined}>
-          <div id={layer.role === 'in' ? 'app' : undefined} className={layer.fade && !inFlow ? 'vfade' : undefined}
+          <div id={layer.role === 'in' ? 'app' : undefined} className={layer.role === 'out' ? 'app-out' : layer.fade && !inFlow ? 'vfade' : undefined}
             inert={layer.role === 'out' || switching || undefined} aria-hidden={layer.role === 'out' || undefined}>
             <ErrorBoundary>
               {layer.role === 'out' ? <AppRoutes location={layer.location} fallback={fallback} S={S} user={user} />

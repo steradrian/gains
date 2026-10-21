@@ -90,6 +90,9 @@ describe('page slides', () => {
     expect(apps()).toHaveLength(1)
     const leaving = layers()[0]
     expect(leaving.querySelector('#app')).toBeNull()
+    // it keeps #app's layout (index.css :is(#app, .app-out)), and both layers start from the same box
+    expect(leaving.firstElementChild.classList.contains('app-out')).toBe(true)
+    expect(layers().map(l => l.style.getPropertyValue('--route-y'))).toEqual(['0px', '0px'])
     expect(leaving.firstElementChild.hasAttribute('inert')).toBe(true)
     expect(leaving.firstElementChild.getAttribute('aria-hidden')).toBe('true')
     expect(leaving.textContent).toContain('Exercises')

@@ -36,6 +36,28 @@ describe('page slide CSS', () => {
     expect(frames('g-route-under')).toMatch(/-30%/)
   })
 
+  it('the page being left keeps every layout rule #app gave it, so its content does not move', () => {
+    const read = f => readFileSync(join(src, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+    for (const file of ['index.css', 'tab-shell.css']) {
+      for (const r of rules(read(file))) {
+        if (!/padding|max-width|margin/.test(r.body)) continue
+        for (const s of r.selectors) {
+          if (/(^|[\s>])#app(?![\w-])/.test(s.replace(/:is\(#app,\.app-out\)/g, '')) && !/\.vfade|:has\(> \.g-screen\)/.test(s)) {
+            throw new Error(file + ': ' + s + ' lays out #app but not the page being left')
+          }
+        }
+      }
+    }
+  })
+
+  it('both layers are fixed to the same box from the first frame, and the incoming one fades in linearly', () => {
+    const layer = ruleFor('.g-route[data-slide]')
+    expect(layer).toMatch(/position:\s*fixed/)
+    expect(layer).toMatch(/inset:\s*0/)
+    expect(ruleFor('.g-route[data-slide] > div')).toMatch(/margin-top:\s*calc\(-1 \* var\(--route-y, 0px\)\)/)
+    expect(ruleFor('.g-route[data-slide="push"][data-route="in"]')).toMatch(/g-route-fade-in var\(--route-ms\) linear/)
+  })
+
   it('the shared stage shows: the body\'s ground steps aside, and the stage carries the art', () => {
     expect(ds).toMatch(/body:has\(\.g-route\[data-shared\] \.g-stage\) \{ background: transparent; \}/)
     expect(ruleFor('.g-app-stage')).toMatch(/position:\s*fixed/)

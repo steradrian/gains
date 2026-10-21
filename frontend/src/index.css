@@ -256,25 +256,28 @@ html[data-motion=reduce] *{animation:none!important;transition:none!important}
 .nocap,.tag.nocap,.chip.nocap{text-transform:none}
 
 /* ---------------------------------------------------------------- layout -- */
-#app{
+/* `.app-out` is the page a slide is leaving (App.jsx): it is no longer #app (one id on the page) but
+   keeps every one of #app's layout rules, so its content does not move when it stops being #app.
+   `:is()` takes the id's specificity. */
+:is(#app,.app-out){
   padding:calc(var(--sat) + var(--conn) + var(--app-top)) var(--pad) calc(96px + var(--sab));
   max-width:var(--page-w);margin:0 auto;
 }
 /* Android 15 with the keyboard up: room to scroll the last field on a page above the keys.
    The tab bar stays where it is, under the keyboard, rather than riding up on it. */
-:root[data-native-kb] #app,:root[data-native-kb] body.resting #app,:root[data-native-kb] body.no-tabbar.resting #app{padding-bottom:calc(88px + var(--native-kb))}
+:root[data-native-kb] :is(#app,.app-out),:root[data-native-kb] body.resting :is(#app,.app-out),:root[data-native-kb] body.no-tabbar.resting :is(#app,.app-out){padding-bottom:calc(88px + var(--native-kb))}
 /* Keep the last workout controls clear of the mobile overlays without adding a second
    screenful of blank scroll space. The stacked rest timer needs the larger reserve. */
-body.resting #app{padding-bottom:calc(168px + var(--sab))}
+body.resting :is(#app,.app-out){padding-bottom:calc(168px + var(--sab))}
 /* The workout screen has no tab bar (App.jsx): only the docked rest bar, when it is there. */
-body.no-tabbar #app{padding-bottom:calc(24px + var(--sab))}
-body.no-tabbar.resting #app{padding-bottom:calc(96px + var(--sab))}
+body.no-tabbar :is(#app,.app-out){padding-bottom:calc(24px + var(--sab))}
+body.no-tabbar.resting :is(#app,.app-out){padding-bottom:calc(96px + var(--sab))}
 /* A stage screen (ds/StageScreen: sign-in, Add this device, onboarding) is full bleed: the stage
    reaches the window's edges and its top, under the status bar (it pads itself by --sat), and its
    column keeps the page width. The :root lifts this over the tab-bar and desktop paddings above
    and below; the native keyboard's room (:root[data-native-kb]) still wins. */
-:root #app:has(> .g-root.g-screen){padding:var(--conn) 0 0;max-width:none}
-#app > .g-screen > .g-stage > .g-stage-body{max-width:var(--page-w);margin-inline:auto}
+:root :is(#app,.app-out):has(> .g-root.g-screen){padding:var(--conn) 0 0;max-width:none}
+:is(#app,.app-out) > .g-screen > .g-stage > .g-stage-body{max-width:var(--page-w);margin-inline:auto}
 .workout-end-spacer{height:0}
 /* Opacity only: a transform on #app, even mid-animation, makes it the containing block of every
    fixed child, so the pinned tab-root header (ds.css .g-shdr-pin) would ride the fade on each
@@ -1776,10 +1779,10 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* --------------------------------------------------- desktop (≥1000px) --- */
 @media (min-width:1000px){
   :root{--page-w:640px;--app-top:32px}
-  #app{padding-bottom:calc(128px + var(--sab))}
-  body.resting #app{padding-bottom:calc(220px + var(--sab))}
-  body.no-tabbar #app{padding-bottom:calc(40px + var(--sab))}
-  body.no-tabbar.resting #app{padding-bottom:calc(130px + var(--sab))}
+  :is(#app,.app-out){padding-bottom:calc(128px + var(--sab))}
+  body.resting :is(#app,.app-out){padding-bottom:calc(220px + var(--sab))}
+  body.no-tabbar :is(#app,.app-out){padding-bottom:calc(40px + var(--sab))}
+  body.no-tabbar.resting :is(#app,.app-out){padding-bottom:calc(130px + var(--sab))}
   .workout-end-spacer{height:40px}
   .tiles{grid-template-columns:repeat(4,1fr)}
   .center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
