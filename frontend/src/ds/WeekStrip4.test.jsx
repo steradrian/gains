@@ -39,12 +39,24 @@ describe('WeekStrip4', () => {
     expect(view.host.querySelectorAll('a.g-w4-cell')).toHaveLength(4)
   })
 
-  it('a week with nothing planned has no bars; never more than four weeks', () => {
+  it('a week with nothing planned says how many workouts, never "0 of 0"; never more than four weeks', () => {
     view.render(<WeekStrip4 weeks={[...WEEKS, { key: 'e', label: '19 Oct', done: 0, planned: 0 }].slice(1)} />)
     expect(cells()).toHaveLength(4)
     expect(cells()[3].querySelectorAll('.g-w4-bars i')).toHaveLength(0)
-    expect(cells()[3].querySelector('.g-w4-n').textContent).toBe('0 of 0')
+    expect(cells()[3].querySelector('.g-w4-n').textContent).toBe('0 workouts')
+    expect(cells()[3].getAttribute('aria-label')).toBe('Week of 19 Oct, 0 workouts')
     view.render(<WeekStrip4 weeks={[...WEEKS, { key: 'e', label: '19 Oct', done: 0, planned: 0 }]} />)
     expect(cells()).toHaveLength(4)
+  })
+
+  it('a week with no plan to hold it to (planned null) lights a bar a workout', () => {
+    view.render(<WeekStrip4 weeks={[{ key: 'a', label: '21 Sep', done: 2, planned: null }]} />)
+    expect(cells()[0].querySelectorAll('.g-w4-bars i.on')).toHaveLength(2)
+    expect(cells()[0].querySelector('.g-w4-n').textContent).toBe('2 workouts')
+  })
+
+  it('counts through the plural forms: one planned workout reads in the singular', () => {
+    view.render(<WeekStrip4 weeks={[{ key: 'a', label: '21 Sep', done: 1, planned: 1 }]} />)
+    expect(cells()[0].getAttribute('aria-label')).toBe('Week of 21 Sep, 1 of 1 workout')
   })
 })

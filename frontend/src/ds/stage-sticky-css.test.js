@@ -14,9 +14,11 @@ const rulesOf = file => {
 }
 // The overflow a rule ends on: a later declaration wins, so `hidden; clip` is clip.
 const overflowOf = decls => [...decls.matchAll(/(?:^|;)\s*overflow(?:-[xy])?\s*:\s*([a-z-]+)/g)].map(m => m[1]).at(-1)
-const rules = ['index.css', 'ui-kit.css', 'ds/ds.css', 'onboarding.css', 'views/shared/notifications.css', 'views/today/today.css', 'views/train/train.css'].flatMap(rulesOf)
-// Every box between the stage and a sticky part: StageScreen, the notifications page, onboarding.
-const CHAIN = ['.g-root', '.g-screen', '.g-screen > .g-stage', '.g-stage', '.g-stage-body', '.g-screen > .g-stage > .g-stage-body', '.notif', '.today', '.ob', '.ob-host']
+const PAGES = ['views/shared/notifications.css', 'views/shared/day.css', 'views/shared/week.css']
+const rules = ['index.css', 'ui-kit.css', 'ds/ds.css', 'onboarding.css', ...PAGES, 'views/today/today.css', 'views/train/train.css'].flatMap(rulesOf)
+// Every box between the stage and a sticky part: StageScreen, the pushed pages (notifications,
+// Day, Week), onboarding.
+const CHAIN = ['.g-root', '.g-screen', '.g-screen > .g-stage', '.g-stage', '.g-stage-body', '.g-screen > .g-stage > .g-stage-body', '.notif', '.day', '.week', '.today', '.ob', '.ob-host']
 const SCROLLS = new Set(['hidden', 'auto', 'scroll'])
 
 describe('sticky parts on the stage', () => {
@@ -33,8 +35,18 @@ describe('sticky parts on the stage', () => {
     }
   })
 
-  it('the notifications page adds no top inset: StageScreen\'s body clears the status bar once', () => {
-    for (const r of rulesOf('views/shared/notifications.css')) expect(r.decls, r.selector).not.toMatch(/var\(--sat\b|safe-area-inset-top/)
+  it('the pushed pages (notifications, Day, Week) add no top inset: StageScreen\'s body clears the status bar once', () => {
+    for (const file of PAGES) {
+      for (const r of rulesOf(file)) expect(r.decls, `${file} ${r.selector}`).not.toMatch(/var\(--sat\b|safe-area-inset-top/)
+    }
+  })
+
+  it('BodyMap and the Week page\'s Less–More key draw the same five shades, from one set of tokens', () => {
+    const fill = rulesOf('ds/ds.css'), key = rulesOf('views/shared/week.css')
+    for (let n = 0; n <= 4; n++) {
+      expect(fill.find(r => r.selector === `.g-bmap-stage .g-bm-m.l${n}`).decls).toMatch(new RegExp(`fill:\\s*var\\(--bm-stage-l${n}\\)`))
+      expect(key.find(r => r.selector === `.week-scale .l${n}`).decls).toMatch(new RegExp(`background:\\s*var\\(--bm-stage-l${n}\\)`))
+    }
   })
 
   it('the nav bar is still sticky under the status bar', () => {

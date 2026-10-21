@@ -19,13 +19,15 @@ describe('StatTiles', () => {
     expect(tiles().map(s => s.querySelector('b').textContent)).toEqual(['6 weeks', '−0.3 kg', '–'])
     expect(tiles().map(s => s.querySelectorAll('span').length)).toEqual([2, 2, 1])
     expect(tiles()[1].querySelector('.g-pos').textContent).toBe('81.7 → 81.4 kg')
-    expect(view.host.querySelector('.g-stats').style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))')
+    expect(view.host.querySelector('.g-stats').classList.contains('g-stats-c3')).toBe(true)
     expect(view.host.querySelector('.g-stats-stage')).toBeNull()
   })
 
-  it('on the stage, in the columns asked for', () => {
+  it('on the stage, in the columns asked for, by class and with no inline style', () => {
     view.render(<StatTiles items={ITEMS} tone="stage" columns={2} />)
-    expect(view.host.querySelector('.g-stats').classList.contains('g-stats-stage')).toBe(true)
-    expect(view.host.querySelector('.g-stats').style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))')
+    const grid = view.host.querySelector('.g-stats')
+    expect(grid.classList.contains('g-stats-stage')).toBe(true)
+    expect(grid.classList.contains('g-stats-c2')).toBe(true)
+    expect(grid.getAttribute('style')).toBeNull()
   })
 })

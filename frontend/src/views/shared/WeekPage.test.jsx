@@ -43,7 +43,7 @@ const lastNav = () => navMock.mock.calls.at(-1)
 describe('WeekPage (the route)', () => {
   it('a past day opens its Day page under the tab', () => {
     view.render(<WeekPage />)
-    expect(view.host.querySelector('.week-title h1').textContent).toBe('12 to 18 Oct')
+    expect(view.host.querySelector('.week-head h1').textContent).toBe('12 to 18 Oct')
     click(dayCells()[0])
     expect(lastNav()[0]).toBe('/train/day/2026-10-12')
     expect(sheetMock).not.toHaveBeenCalled()
@@ -76,10 +76,11 @@ describe('WeekPage (the route)', () => {
     expect(view.host.querySelector('button[aria-label="Next week"]')).toBeNull()
   })
 
-  it('› on a past week replaces the address with the week after', () => {
+  it('› on a past week replaces the address with the week after; the week of the first log has no ‹', () => {
     params.week = '2026-W41'
     view.render(<WeekPage />)
-    expect(view.host.querySelector('.week-title').textContent).toContain('Week 41 · complete')
+    expect(view.host.querySelector('.week-head').textContent).toContain('Week 41 · complete')
+    expect(view.host.querySelector('button[aria-label="Previous week"]')).toBeNull()
     click(view.host.querySelector('button[aria-label="Next week"]'))
     expect(lastNav()).toEqual(['/train/week/2026-W42', { replace: true }])
   })

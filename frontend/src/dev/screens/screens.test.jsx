@@ -193,7 +193,7 @@ describe('the screens gallery', () => {
       expect(h.querySelector('.week-nav-off')).toBeTruthy()
     })
     await check('D2.1', h => {
-      expect(h.querySelector('.week-title').textContent).toContain('Week 41 · complete')
+      expect(h.querySelector('.week-head').textContent).toContain('Week 41 · complete')
       expect(h.querySelector('.g-w4-cell.on').getAttribute('aria-label')).toBe('Week of 5 Oct, 3 of 4 workouts')
     })
     await check('D2.E-empty', h => {
@@ -208,7 +208,7 @@ describe('the screens gallery', () => {
     expect(ids).toEqual(['D1.0', 'D1.1', 'D1.2', 'D1.3', 'D1.4', 'D1.5', 'D1.6', 'D1.7'])
     const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
     await check('D1.0', h => {
-      expect(h.querySelector('.day-head h2').textContent).toBe('Mon 12 Oct')
+      expect(h.querySelector('.g-sptitle h1').textContent).toBe('Mon 12 Oct')
       expect(h.querySelectorAll('.g-wcard-ex')).toHaveLength(6)
       expect(h.querySelector('.g-dfood-num').textContent).toContain('On target')
     })

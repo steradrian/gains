@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { t } from '../../lib/i18n.js'
 import { fmtDate } from '../../lib/format.js'
 import { usualDuration } from '../../lib/train-stats.js'
@@ -45,16 +45,29 @@ export function PastWorkoutSheet({ iso, close }) {
   const [minutes, setMinutes] = useState(String(init.durationMin))
   const choice = init.choices.find(c => c.key === key) || init.choices[0]
   const start = () => submitPastWorkout({ iso, time, durationMin: Number(minutes), routineIds: choice.routineIds }, { before: close })
+  // The choices are one radio group: a single tab stop (the chosen row), the arrow keys move the
+  // choice and the focus with it, Home and End go to the first and last (WAI-ARIA radio group).
+  const group = useRef(null)
+  const onKeyDown = e => {
+    const last = init.choices.length - 1
+    const at = init.choices.indexOf(choice)
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
+    const next = step ? (at + step + last + 1) % (last + 1) : e.key === 'Home' ? 0 : e.key === 'End' ? last : null
+    if (next == null) return
+    e.preventDefault()
+    setKey(init.choices[next].key)
+    group.current?.querySelectorAll('[role="radio"]')[next]?.focus()
+  }
 
   return (
     <BottomSheet type="full" title={t('Add past workout')} chip={init.date} footer={<>
       <Button block onClick={start}>{t('Log {0} for {1}', choice.name, init.date)}</Button>
       <p className="g-bs-note">{t('Opens the workout to fill in sets. It saves to {0}.', init.date)}</p>
     </>}>
-      <div className="g-pw-card" role="radiogroup" aria-label={t('Workout')}>
+      <div className="g-pw-card" role="radiogroup" aria-label={t('Workout')} ref={group} onKeyDown={onKeyDown}>
         {init.choices.map(c => (
           <RadioRow key={c.key} title={c.name} sub={c.planned ? t('Planned for this day') + ' · ' + c.sub : c.sub}
-            selected={c.key === choice.key} onClick={() => setKey(c.key)} />
+            selected={c.key === choice.key} onClick={() => setKey(c.key)} tabIndex={c.key === choice.key ? 0 : -1} />
         ))}
       </div>
       <div className="g-pw-fields">

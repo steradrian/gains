@@ -2,6 +2,7 @@
 // Add past workout (PR07 D1.6): the planned routine first and picked, the other routines, the
 // start and the length; Start opens the workout for that date through the existing past-workout
 // path (sheets submitPastWorkout), with the choice, the time and the minutes as given.
+import { act } from 'react'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
 import { click, type, useView } from '../../ds/render.test-util.js'
@@ -20,6 +21,8 @@ const S = over => ({
   ...clone(DEF),
   routines: [routine('push', 'Push A', 6), routine('pull', 'Pull A', 6), routine('legs', 'Legs', 5)],
   week: { 1: ['push'], 5: ['legs'] },
+  // Set long ago, so the day can be held to this plan (lib/notifications/feed.js planKnown).
+  edited: { 'week.1': 1, 'week.5': 1 },
   workouts: [legsDone('2026-10-02', 53), legsDone('2026-10-09', 57)],
   dayPlan: {}, missedSeen: {}, active: null,
   ...over,
@@ -75,6 +78,24 @@ describe('Add past workout', () => {
     type(minutes, '40')
     click(start())
     expect(submitPastWorkout).toHaveBeenCalledWith(expect.objectContaining({ time: '07:30', durationMin: 40, routineIds: ['push'] }), expect.anything())
+  })
+
+  it('the choices are one tab stop, and the arrow keys move the choice and the focus', () => {
+    view.render(<PastWorkoutSheet iso="2026-10-16" close={() => {}} />)
+    expect(radios().map(r => r.tabIndex)).toEqual([0, -1, -1, -1])
+    const key = k => radios()[0].parentElement.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }))
+    radios()[0].focus()
+    act(() => key('ArrowDown'))
+    expect(radios()[1].getAttribute('aria-checked')).toBe('true')
+    expect(radios().map(r => r.tabIndex)).toEqual([-1, 0, -1, -1])
+    expect(document.activeElement).toBe(radios()[1])
+    act(() => key('ArrowUp'))
+    act(() => key('ArrowUp'))
+    expect(radios()[3].getAttribute('aria-checked')).toBe('true')
+    act(() => key('Home'))
+    expect(document.activeElement).toBe(radios()[0])
+    act(() => key('End'))
+    expect(start().textContent).toBe('Log Freestyle for Fri 16 Oct')
   })
 
   it('Freestyle opens an empty workout', () => {

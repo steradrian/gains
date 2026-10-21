@@ -7,6 +7,7 @@ import Act from '../../ds/Act.jsx'
 import BodyMap from '../../ds/BodyMap.jsx'
 import StageNavBar from '../../ds/StageNavBar.jsx'
 import StageNote from '../../ds/StageNote.jsx'
+import StagePageTitle from '../../ds/StagePageTitle.jsx'
 import StageRing from '../../ds/StageRing.jsx'
 import StageScreen from '../../ds/StageScreen.jsx'
 import StageSection from '../../ds/StageSection.jsx'
@@ -18,8 +19,9 @@ import './week.css'
 // The Week page on the stage (boards Sh2Week, Sh2WeekPast), pushed under the tab it was opened
 // from. It draws what useWeek() gives it (`week`) and holds nothing: the range and its status with
 // ‹ › (no › past this week), the ring of workouts done of planned, the seven day cells, the muscle
-// map shaded by sets, the Numbers, Last 4 weeks and the read-only footer. A number the week cannot
-// back reads "–"; the food tiles show only with nutrition on. Read-only: every tap goes elsewhere.
+// map shaded by sets, the Numbers, Last 4 weeks and the footer saying where a day goes. A number
+// the week cannot back reads "–"; the food tiles show only with nutrition on. Every tap goes
+// elsewhere. The range is the page's one h1 (StagePageTitle; the nav bar above it has none).
 const DASH = '–'
 const dateOf = iso => new Date(iso + 'T12:00:00')
 const whole = n => Math.round(n).toLocaleString(dateLocale())
@@ -37,12 +39,22 @@ const MARK = {
   rest: () => t('Rest day'),
 }
 
-// A cell in words, for a screen reader: "Monday 12 October, Workout done, 1,980 of 2,100 kcal".
+// The share of the target a cell's ring fills, or null when the cell shows "–" instead.
+const ringOf = food => (food?.logged && food.target > 0 ? food.kcal / food.target : null)
+
+// A cell in words, for a screen reader, saying what the cell shows: "Monday 12 October, Workout
+// done, 1,980 of 2,100 kcal". A "–" says why: nothing logged, no target to hold it to, or a past
+// day whose food has not loaded yet; a day to come says nothing about food.
 function cellLabel(c, foodOn) {
   const words = [dateOf(c.iso).toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })]
   if (c.today) words.unshift(t('Today'))
   words.push(MARK[c.workout]())
-  if (foodOn && c.food) words.push(c.food.logged ? t('{0} of {1} kcal', whole(c.food.kcal), whole(c.food.target)) : t('No food logged'))
+  if (foodOn && !c.future) {
+    words.push(!c.food ? t('Food not loaded yet')
+      : !c.food.logged ? t('No food logged')
+        : ringOf(c.food) != null ? t('{0} of {1} kcal', whole(c.food.kcal), whole(c.food.target))
+          : t('{0} kcal, no target', whole(c.food.kcal)))
+  }
   return words.join(', ')
 }
 
@@ -58,20 +70,29 @@ function ringLine(ring) {
   return parts.join(' · ')
 }
 
+// The weight change as written: the sign only on a change that still shows once rounded, so a
+// 0.02 kg drift reads "0 kg", never "+0 kg".
+function weightChange(w) {
+  const shown = fmtNum(Math.abs(w.change))
+  return (shown === fmtNum(0) ? '' : sign(w.change)) + shown + ' ' + w.unit
+}
+
 // Numbers, in the boards' order; a tile the week cannot back is "–" with no line under it.
 function numberTiles(n, { current, foodOn }) {
   const tile = (key, label, value, sub) => ({ key, label, value: value ?? DASH, sub: value == null ? undefined : sub })
   const { streak, onTarget, kcal, protein, weight, activity, volume, water } = n
+  // This week's volume is held to last week's same days so far (volume.sameDays), a past week's
+  // to the whole week before.
   const volumeSub = !volume ? undefined
-    : current ? (volume.last > 0 ? t('{0} last week', fmtVol(volume.last, volume.unit)) : undefined)
+    : volume.sameDays ? (volume.last > 0 ? t('{0} by this point last week', fmtVol(volume.last, volume.unit)) : undefined)
       : (volume.change != null ? t('{0} on the week before', percent(volume.change)) : undefined)
   return [
     tile('streak', t('Streak'), streak && tn('{0} week', '{0} weeks', streak.weeks),
       streak && [t('in a row'), streak.best != null ? t('best {0}', streak.best) : null].filter(Boolean).join(' · ')),
     foodOn && tile('onTarget', t('Days on target'), onTarget && t('{0} of {1}', onTarget.days, onTarget.of), onTarget && t('within {0} kcal', onTarget.within)),
-    foodOn && tile('kcal', t('Average kcal'), kcal && whole(kcal.avg), kcal && t('of {0} a day', whole(kcal.target))),
+    foodOn && tile('kcal', t('Average kcal'), kcal && whole(kcal.avg), kcal?.target != null ? t('of {0} a day', whole(kcal.target)) : undefined),
     foodOn && tile('protein', t('Average protein'), protein && grams(protein.avg), protein?.target != null ? t('of {0} a day', grams(protein.target)) : undefined),
-    tile('weight', t('Weight'), weight && sign(weight.change) + fmtVol(Math.abs(weight.change), weight.unit),
+    tile('weight', t('Weight'), weight && weightChange(weight),
       weight && `${fmtNum(weight.from)} → ${fmtVol(weight.to, weight.unit)}`),
     tile('activity', t('Activity'), activity && (activity.ms ? fmtDur(activity.ms) : tn('{0} workout', '{0} workouts', activity.count)),
       activity?.ms ? tn('{0} workout', '{0} workouts', activity.count) : undefined),
@@ -84,13 +105,13 @@ export default function WeekScreen({ week, onBack, onTrends }) {
   const accent = useDsAccent()
   const heading = useRef(null)
   const { ring, foodOn } = week
+  // The heading takes focus only when the address really moved to another week.
   const go = id => {
-    week.openWeek(id)
-    heading.current?.focus()
+    if (week.openWeek(id) === 'week') heading.current?.focus()
   }
   const days = week.cells.map(c => ({
     key: c.iso, dow: c.dow, date: c.date, training: c.workout, today: c.today,
-    kcal: c.food?.logged && c.food.target > 0 ? c.food.kcal / c.food.target : null,
+    kcal: ringOf(c.food),
     over: c.food?.band === 'over',
     label: cellLabel(c, foodOn),
     onClick: c.open === 'before' ? undefined : () => week.openDay(c.iso),
@@ -102,13 +123,10 @@ export default function WeekScreen({ week, onBack, onTrends }) {
       <div className="week">
         <StageNavBar onBack={onBack} />
         <div className="week-head">
-          <span className="week-title">
-            <h1 ref={heading} tabIndex={-1}>{week.range}</h1>
-            <span>{week.status}</span>
-          </span>
-          <Act onClick={() => go(week.prev)} ariaLabel={t('Previous week')} className="week-nav g-glass">
-            <Icon name="chevronLeft" className="g-icon" />
-          </Act>
+          <StagePageTitle ref={heading} title={week.range} line={week.status} />
+          {week.prev
+            ? <Act onClick={() => go(week.prev)} ariaLabel={t('Previous week')} className="week-nav g-glass"><Icon name="chevronLeft" className="g-icon" /></Act>
+            : <span className="week-nav week-nav-off" aria-hidden="true"><Icon name="chevronLeft" className="g-icon" /></span>}
           {week.next
             ? <Act onClick={() => go(week.next)} ariaLabel={t('Next week')} className="week-nav g-glass"><Icon name="chevronRight" className="g-icon" /></Act>
             : <span className="week-nav week-nav-off" aria-hidden="true"><Icon name="chevronRight" className="g-icon" /></span>}
@@ -147,7 +165,7 @@ export default function WeekScreen({ week, onBack, onTrends }) {
           <WeekStrip4 weeks={weeks} active={week.last4.findIndex(w => w.selected)} />
         </div>
 
-        <StageNote>{t('Read-only. A day opens its Day page; today opens Today.')}</StageNote>
+        <StageNote>{t('A past day opens its Day page, today opens Today, and a day to come opens its plan.')}</StageNote>
       </div>
     </StageScreen>
   )

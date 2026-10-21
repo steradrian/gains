@@ -28,7 +28,7 @@ const NUMBERS = {
   protein: { avg: 118, target: 150 },
   weight: { from: 81.7, to: 81.4, change: -0.3, unit: 'kg' },
   activity: { ms: 9600000, count: 3 },
-  volume: { now: 14300, last: 18900, unit: 'kg', change: -0.243 },
+  volume: { now: 14300, last: 18900, unit: 'kg', sameDays: true, change: -0.243 },
   water: { avgMl: 1900, goalMl: 2500 },
 }
 const EMPTY_NUMBERS = { streak: null, onTarget: null, kcal: null, protein: null, weight: null, activity: null, volume: null, water: null }
@@ -40,7 +40,7 @@ const weekOf = (over = {}) => ({
   cells: cells(), muscles: { load: {}, levels: { chest: 3, quadriceps: 0 } },
   muscleNote: 'Legs not trained yet. Legs was missed on Fri.',
   numbers: NUMBERS, last4: LAST4, prev: '2026-W41', next: null,
-  openDay: vi.fn(), openWeek: vi.fn(), ...over,
+  openDay: vi.fn(), openWeek: vi.fn(() => 'week'), ...over,
 })
 const show = (over = {}) => {
   const week = weekOf(over)
@@ -59,12 +59,14 @@ const dayCells = () => [...view.host.querySelectorAll('.g-swc-cell')]
 describe('WeekScreen', () => {
   it('D2.0: the range and status, the ring line with today\'s workout, the muscle note and the footer', () => {
     show()
-    expect(view.host.querySelector('.week-title h1').textContent).toBe('12 to 18 Oct')
-    expect(text()).toContain('This week · Last day')
+    // The range is the page's one heading of its own (StagePageTitle), its status the line under it.
+    expect([...view.host.querySelectorAll('h1')].map(h => h.textContent)).toEqual(['12 to 18 Oct'])
+    expect(view.host.querySelector('.week-head .g-sptitle p').textContent).toBe('This week · Last day')
     expect(view.host.querySelector('.week-ring-t b').textContent).toBe('2 of 4')
     expect(view.host.querySelector('.week-ring-t > span').textContent).toBe('workouts · Push A is today')
     expect(view.host.querySelector('.week-muscles p').textContent).toBe('Legs not trained yet. Legs was missed on Fri.')
-    expect(view.host.querySelector('.g-snote').textContent).toBe('Read-only. A day opens its Day page; today opens Today.')
+    // A day to come opens its plan drawer, which edits: the footer does not call the page read-only.
+    expect(view.host.querySelector('.g-snote').textContent).toBe('A past day opens its Day page, today opens Today, and a day to come opens its plan.')
     expect([...view.host.querySelectorAll('.g-ssec-label h2')].map(h => h.textContent)).toEqual(['Muscles this week', 'Numbers', 'Last 4 weeks'])
   })
 
@@ -89,7 +91,16 @@ describe('WeekScreen', () => {
     expect(dayCells()[0].getAttribute('aria-label')).toMatch(/, Workout done, 1,980 of 2,100 kcal$/)
     expect(dayCells()[3].getAttribute('aria-label')).toMatch(/, Rest day, No food logged$/)
     expect(dayCells()[4].getAttribute('aria-label')).toMatch(/, Workout missed, /)
-    expect(dayCells()[6].getAttribute('aria-label')).toMatch(/^Today, .*, Workout planned$/)
+    expect(dayCells()[6].getAttribute('aria-label')).toMatch(/^Today, .*, Workout planned, Food not loaded yet$/)
+  })
+
+  it('says what a "–" cell means, as the cell shows it: no target, not loaded, nothing for a day to come', () => {
+    const noTarget = { ...food(1800), target: null, band: null }
+    show({ cells: cells().map((c, i) => (i === 1 ? { ...c, food: noTarget } : i === 2 ? { ...c, food: null } : i === 5 ? { ...c, future: true, food: null } : c)) })
+    expect(dayCells()[1].getAttribute('aria-label')).toMatch(/, Rest day, 1,800 kcal, no target$/)
+    expect(dayCells()[1].querySelector('.g-swc-none')).not.toBeNull()
+    expect(dayCells()[2].getAttribute('aria-label')).toMatch(/, Workout done, Food not loaded yet$/)
+    expect(dayCells()[5].getAttribute('aria-label')).toMatch(/, Rest day$/)
   })
 
   it('‹ opens the week before in place; › is faint and does nothing on this week', () => {
@@ -98,7 +109,19 @@ describe('WeekScreen', () => {
     expect(week.openWeek).toHaveBeenCalledWith('2026-W41')
     expect(view.host.querySelector('button[aria-label="Next week"]')).toBeNull()
     expect(view.host.querySelector('.week-nav-off')).toBeTruthy()
-    expect(document.activeElement).toBe(view.host.querySelector('.week-title h1'))
+    expect(document.activeElement).toBe(view.host.querySelector('.week-head h1'))
+  })
+
+  it('moves focus only when the address really moved to another week', () => {
+    show({ openWeek: vi.fn(() => 'future') })
+    click(byLabel('Previous week'))
+    expect(document.activeElement).not.toBe(view.host.querySelector('.week-head h1'))
+  })
+
+  it('has no ‹ before the week of the first log: a faint glyph that does nothing', () => {
+    show({ prev: null })
+    expect(byLabel('Previous week')).toBeNull()
+    expect(view.host.querySelectorAll('.week-nav-off')).toHaveLength(2)
   })
 
   it('› on a past week opens the week after', () => {
@@ -127,8 +150,15 @@ describe('WeekScreen', () => {
     expect(tiles()['Average protein']).toEqual(['118 g', 'of 150 g a day'])
     expect(tiles()['Weight']).toEqual(['−0.3 kg', '81.7 → 81.4 kg'])
     expect(tiles()['Activity'][1]).toBe('3 workouts')
-    expect(tiles()['Volume'][1]).toMatch(/ kg last week$/)
+    expect(tiles()['Volume'][1]).toMatch(/ kg by this point last week$/)
     expect(tiles()['Water']).toEqual(['1.9 L', 'a day · goal 2.5 L'])
+  })
+
+  it('a weight change that rounds to nothing has no sign; a missing target has no "of" line', () => {
+    show({ numbers: { ...NUMBERS, weight: { from: 81.4, to: 81.42, change: 0.02, unit: 'kg' }, kcal: { avg: 1980, target: null }, water: { avgMl: 1900, goalMl: null } } })
+    expect(tiles()['Weight'][0]).toBe('0 kg')
+    expect(tiles()['Average kcal']).toEqual(['1,980', null])
+    expect(tiles()['Water']).toEqual(['1.9 L', 'a day'])
   })
 
   it('a past week\'s volume compares with the week before', () => {
