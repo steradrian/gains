@@ -1,24 +1,26 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { ACCENTS } from './format.js'
 import {
-  cleanHex, sanitizeAccent, accentKey, accentValue, contrast, inkOn, readableIn, adjustedIn,
-  customAccentVars, accentPair, applyAccent, THEMES, isGrey, inkOnBoth, mix, GREY_TEXT, GREY_GAP, tintOver,
+  cleanHex, sanitizeAccent, accentKey, accentValue, inkOn, readableIn, adjustedIn,
+  customAccentVars, accentPair, applyAccent, THEMES, isGrey, inkOnBoth, GREY_TEXT, GREY_GAP,
 } from './accent.js'
+import { THEMES as PRESETS, contrast } from './themes.js'
 import { readFileSync } from 'node:fs'
 import { EFFORT_BANDS } from './effort.js'
 
-// The preset accents as index.css draws them (--blue, --green... per theme) and the --acc-ink it
-// sets for each. Read from the stylesheet, so a value edited there is the one measured here.
+// The page, card and nested fills the app draws (index.css --bg, --surface, --surface-2).
+const PAGE = {
+  dark: { bgs: ['#0c0b0a', '#1c1b19', '#2a2826'], surface2: '#2a2826' },
+  light: { bgs: ['#f5f4f1', '#ffffff', '#eeece8'], surface2: '#eeece8' },
+}
+const rgb = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255] }
+const mix = (hex, to, t) => '#' + rgb(hex).map((v, i) => Math.round(v + (rgb(to)[i] - v) * t).toString(16).padStart(2, '0')).join('')
+// The --acc-soft tint of `acc` over `base` (index.css: 16% accent)
+const tintOver = (acc, base) => mix(base, acc, 0.16)
+
+// Read from the stylesheet, so a value edited there is the one measured here. The preset accents'
+// own contrast (--acc-ink, the line-art accent) is measured per theme in themes.test.js.
 const CSS = readFileSync('src/index.css', 'utf8') // vitest runs from frontend/
-const PRESET_FILL = {
-  dark: { lime: '#30d158', sky: '#0a84ff', orange: '#ff9f0a', violet: '#bf5af2', pink: '#ff375f', red: '#ff453a', teal: '#40c8e0', gold: '#ffd60a' },
-  light: { lime: '#34c759', sky: '#007aff', orange: '#ff9500', violet: '#af52de', pink: '#ff2d55', red: '#ff3b30', teal: '#30b0c7', gold: '#ffcc00' },
-}
-const inkOf = (theme, key) => {
-  const m = CSS.match(new RegExp(`:root${theme === 'light' ? '\\[data-theme="light"\\]' : ''}\\[data-accent="${key}"\\]\\s*\\{[^}]*--acc-ink:(#[0-9a-f]{6})`))
-  return m ? m[1] : PRESET_FILL[theme][key]
-}
 // Light-theme gauge: the track must be visible on the card and page, and each macro arc must read on it.
 describe('light --gauge-track (index.css)', () => {
   const light = CSS.slice(CSS.indexOf(':root[data-theme="light"] {'))
@@ -36,18 +38,9 @@ describe('light --gauge-track (index.css)', () => {
   })
 })
 
-describe('--acc-ink of the preset accents (index.css)', () => {
-  for (const theme of ['dark', 'light']) for (const key of Object.keys(PRESET_FILL[theme])) {
-    it(`${key} in ${theme}: 4.5:1 on the page, the card, the nested fill and the tint over it`, () => {
-      const ink = inkOf(theme, key)
-      const th = THEMES[theme]
-      for (const bg of [...th.bgs, tintOver(PRESET_FILL[theme][key], th.surface2)]) {
-        expect(contrast(ink, bg), `${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
-      }
-    })
-  }
+describe('--live-ink (index.css)', () => {
   it('the running-workout label (--live-ink) reads in light, also with an orange or gold accent', () => {
-    for (const ink of ['#a35800', '#c42d25']) for (const bg of THEMES.light.bgs) expect(contrast(ink, bg), `${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+    for (const ink of ['#a35800', '#c42d25']) for (const bg of PAGE.light.bgs) expect(contrast(ink, bg), `${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
     expect(CSS).toContain('--live-ink:#a35800')
     expect(CSS).toContain('--live-ink:#c42d25')
     // The running workout's text now lives in the live dock (tab-shell.css), no longer on the +.
@@ -74,7 +67,7 @@ const OWN = (() => {
 describe('the redesign\'s accent-facing tokens, for every preset and own colour', () => {
   // The fills a line-art scene sits on: the page, a card, the 96×72 art slot (--surface-2), and the
   // one lit --acc-soft area per scene that every accent stroke touches.
-  const sceneFills = (theme, acc) => [...THEMES[theme].bgs, tintOver(acc, THEMES[theme].surface2)]
+  const sceneFills = (theme, acc) => [...PAGE[theme].bgs, tintOver(acc, PAGE[theme].surface2)]
 
   it('--acc-graphic is the accent in dark and its ink in light (index.css)', () => {
     expect(tokenIn('dark', 'acc-graphic')).toBe('var(--acc)')
@@ -83,11 +76,19 @@ describe('the redesign\'s accent-facing tokens, for every preset and own colour'
     expect(CSS).not.toMatch(/\[data-accent="[a-z]+"\][^{]*\{[^}]*--acc-graphic/)
   })
 
-  for (const theme of ['dark', 'light']) for (const key of Object.keys(PRESET_FILL[theme])) {
-    it(`${key} in ${theme}: the line-art accent clears 3:1 on every fill a scene sits on`, () => {
-      const graphic = theme === 'dark' ? PRESET_FILL.dark[key] : inkOf('light', key)
-      for (const bg of sceneFills(theme, PRESET_FILL[theme][key])) {
+  for (const theme of ['dark', 'light']) for (const p of PRESETS) {
+    it(`${p.id} in ${theme}: the line-art accent clears 3:1 on every fill a scene sits on`, () => {
+      const c = theme === 'dark' ? p.dark : p
+      // --acc-graphic is the accent in dark and its ink (--acc-ink) in light
+      const graphic = theme === 'dark' ? c.fill : c.text
+      for (const bg of sceneFills(theme, c.fill)) {
         expect(contrast(graphic, bg), `${graphic} on ${bg}`).toBeGreaterThanOrEqual(3)
+      }
+    })
+    it(`${p.id} in ${theme}: the accent as text (--acc-ink) clears 4.5:1 on the page, the card, the nested fill and the tint over it`, () => {
+      const c = theme === 'dark' ? p.dark : p
+      for (const bg of [...PAGE[theme].bgs, tintOver(c.fill, PAGE[theme].surface2)]) {
+        expect(contrast(c.text, bg), `${c.text} on ${bg}`).toBeGreaterThanOrEqual(4.5)
       }
     })
   }
@@ -103,7 +104,7 @@ describe('the redesign\'s accent-facing tokens, for every preset and own colour'
     const el = document.createElement('html')
     applyAccent(el, '#000033', 'dark')
     expect(el.style.getPropertyValue('--acc-graphic')).toBe(customAccentVars('#000033', 'dark')['--acc-graphic'])
-    applyAccent(el, 'sky', 'dark')
+    applyAccent(el, 'moss', 'dark')
     expect(el.style.getPropertyValue('--acc-graphic')).toBe('')
   })
 
@@ -121,7 +122,7 @@ describe('the redesign\'s accent-facing tokens, for every preset and own colour'
       const fill = tokenIn(theme, 'label'), ink = tokenIn(theme, 'bg')
       expect(fill).toMatch(/^#[0-9a-f]{6}$/)
       expect(ink).toMatch(/^#[0-9a-f]{6}$/)
-      for (const key of Object.keys(PRESET_FILL[theme])) expect(contrast(ink, fill), key).toBeGreaterThanOrEqual(7)
+      expect(contrast(ink, fill)).toBeGreaterThanOrEqual(7)
       for (const hex of OWN) {
         const v = customAccentVars(hex, theme)
         expect(v).not.toHaveProperty('--sel-fill')
@@ -148,13 +149,13 @@ describe('status colours as text (--yellow-ink, --orange-ink, --green-ink, --red
     it(`${name} in ${theme}: 4.5:1 on the page, the card and the 18% tint over the card`, () => {
       const ink = inkAt(theme, name)
       expect(ink, `--${name}-ink in ${theme}`).toBeTruthy()
-      const th = THEMES[theme]
+      const th = PAGE[theme]
       for (const bg of [...th.bgs, mix(th.bgs[1], FILL[theme][name], 0.18)]) {
         expect(contrast(ink, bg), `${name} ${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
       }
     })
     if (name !== 'blue') it(`${name} in ${theme}: 4.5:1 on the effort cell (20% tint over --surface-2)`, () => {
-      const th = THEMES[theme]
+      const th = PAGE[theme]
       expect(contrast(inkAt(theme, name), mix(th.surface2, FILL[theme][name], 0.2))).toBeGreaterThanOrEqual(4.5)
     })
   }
@@ -193,23 +194,26 @@ describe('sanitizeAccent', () => {
   })
   it('keeps an unknown preset word (a newer app’s) but not junk', () => {
     expect(sanitizeAccent({ accent: 'mint' }).accent).toBe('mint')
-    expect(sanitizeAccent({ accent: '"><script>' }).accent).toBe('lime')
-    expect(sanitizeAccent({ accent: 42 }).accent).toBe('lime')
+    // junk is "not chosen": the mode's default is drawn
+    expect(sanitizeAccent({ accent: '"><script>' }).accent).toBe(null)
+    expect(sanitizeAccent({ accent: 42 }).accent).toBe(null)
+    expect(sanitizeAccent({ accent: null }).accent).toBe(null)
     expect(sanitizeAccent({ theme: 'dark' })).toEqual({ theme: 'dark' })
   })
 })
 
 describe('accentKey / accentValue', () => {
-  it('draws a preset, the own colour, or the default', () => {
-    expect(accentKey({ accent: 'sky' })).toBe('sky')
-    expect(accentKey({})).toBe('lime')
-    expect(accentKey({ accent: 'mint' })).toBe('lime')
-    expect(accentKey({ accent: 'toString' })).toBe('lime')
-    expect(accentKey({ accent: 'custom' })).toBe('lime')
-    expect(accentKey({ accent: 'custom', accentCustom: 'nope' })).toBe('lime')
-    expect(accentValue({ accent: 'custom', accentCustom: '#123ABC' })).toBe('#123abc')
+  it('draws a preset, the own colour, or the mode default', () => {
+    expect(accentKey({ accent: 'sky' }, 'dark')).toBe('cobalt')
+    expect(accentKey({}, 'dark')).toBe('ink')
+    expect(accentKey({}, 'light')).toBe('cobalt')
+    expect(accentKey({ accent: 'mint' }, 'dark')).toBe('ink')
+    expect(accentKey({ accent: 'toString' }, 'light')).toBe('cobalt')
+    expect(accentKey({ accent: 'custom' }, 'dark')).toBe('ink')
+    expect(accentKey({ accent: 'custom', accentCustom: 'nope' }, 'dark')).toBe('ink')
+    expect(accentValue({ accent: 'custom', accentCustom: '#123ABC' }, 'dark')).toBe('#123abc')
     // the own colour is kept while a preset is the accent
-    expect(accentValue({ accent: 'red', accentCustom: '#123abc' })).toBe('red')
+    expect(accentValue({ accent: 'red', accentCustom: '#123abc' }, 'dark')).toBe('garnet')
   })
 })
 
@@ -348,21 +352,21 @@ describe('CSS for the own colour', () => {
     expect(el.dataset.accent).toBe('custom')
     expect(el.style.getPropertyValue('--acc')).toBe('#ff00aa')
     expect(el.style.getPropertyValue('--on-acc')).toBe(inkOn('#ff00aa'))
-    applyAccent(el, 'sky', 'light')
-    expect(el.dataset.accent).toBe('sky')
-    expect(el.style.getPropertyValue('--acc')).toBe('')
+    applyAccent(el, 'moss', 'light')
+    expect(el.dataset.accent).toBe('moss')
+    expect(el.style.getPropertyValue('--acc')).toBe('#2C7A55')
     expect(el.style.getPropertyValue('--knob-ring')).toBe('')
     applyAccent(el, 'url(x)', 'dark')
-    expect(el.dataset.accent).toBe('lime')
+    expect(el.dataset.accent).toBe('ink')
   })
 })
 
 describe('the native countdown colours', () => {
   it('takes a preset key or the own colour', () => {
-    expect(accentPair('sky')).toEqual({ accent: ACCENTS.sky, ink: '#ffffff' })
+    expect(accentPair('garnet')).toEqual({ accent: '#AD2C3A', ink: '#FFFFFF' })
     expect(accentPair('#ffd60a')).toEqual({ accent: '#ffd60a', ink: '#000000' })
-    expect(accentPair('nonsense')).toEqual({ accent: ACCENTS.lime, ink: '#000000' })
-    expect(accentPair(undefined)).toEqual({ accent: ACCENTS.lime, ink: '#000000' })
+    expect(accentPair('nonsense', 'light')).toEqual({ accent: '#3157C6', ink: '#FFFFFF' })
+    expect(accentPair(undefined, 'dark')).toEqual({ accent: '#2B2A28', ink: '#FFFFFF' })
   })
 })
 
@@ -375,25 +379,20 @@ describe('sync with an app from before own colours', () => {
     const out = mergeStates(mine, old)
     expect(out.accent).toBe('sky')
     expect(out.accentCustom).toBe('#ff00aa')
-    expect(accentValue(out)).toBe('sky')
+    expect(accentValue(out, 'dark')).toBe('cobalt')
   })
   it('an older copy without the field does not lose it, and a newer one draws it', () => {
     const mine = { ...base, _ts: 30, accent: 'custom', accentCustom: '#123456', edited: { accent: 30, accentCustom: 30 } }
     const old = { ...base, _ts: 20, accent: 'lime' }
     const out = mergeStates(old, mine)
-    expect(accentValue(out)).toBe('#123456')
-  })
-  it('what an old app makes of "custom": its own default, nothing broken', () => {
-    // App.jsx before own colours: ACCENTS[accent] ? accent : 'lime'
-    const S = { accent: 'custom', accentCustom: '#123456' }
-    expect(ACCENTS[S.accent] ? S.accent : 'lime').toBe('lime')
+    expect(accentValue(out, 'dark')).toBe('#123456')
   })
   it('a malformed colour from the other copy is dropped by the merge', () => {
     const mine = { ...base, _ts: 10, accent: 'red' }
     const theirs = { ...base, _ts: 20, accent: 'custom', accentCustom: '#fff;}*{color:red' }
     const out = mergeStates(mine, theirs)
     expect('accentCustom' in out).toBe(false)
-    expect(accentValue(out)).toBe('lime')
+    expect(accentValue(out, 'dark')).toBe('ink')
   })
 })
 

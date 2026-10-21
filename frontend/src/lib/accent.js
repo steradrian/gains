@@ -1,23 +1,21 @@
-// The accent colour: one of the presets (lib/format.js ACCENTS) or a colour of the user's own.
+// The accent colour: one of the presets (lib/themes.js) or a colour of the user's own.
 //
-// Stored as two synced settings: `accent` names the choice ('lime', 'sky', … or 'custom') and
+// Stored as two synced settings: `accent` names the choice (a theme id or 'custom') and
 // `accentCustom` keeps the user's own colour as '#rrggbb', also while a preset is picked, so
-// going back to it brings the same colour back. An app from before this knows no 'custom' and
-// draws its default green (App.jsx falls back on any key it does not know), and leaves
-// `accentCustom` alone like any other key it does not read.
+// going back to it brings the same colour back. Ids from before the 25 themes are mapped by
+// themes.js when read.
 //
 // Nothing here trusts the stored value: it comes from other devices, backups and the server, and
 // the colour ends up in CSS custom properties and in the Android notification. Only a plain
-// six-digit hex gets that far; anything else is the default accent.
+// six-digit hex gets that far; anything else is "not chosen", which draws the mode's default.
 //
 // A preset has a dark and a light shade of its own (index.css). The user's colour is one colour,
 // so for each theme it is checked against that theme's backgrounds and, when it would vanish into
 // them (navy on black, pale yellow on white), made lighter or darker just far enough to be read.
 // A grey goes further, so it never looks like a switched-off button (THEMES below, accent.test.js).
-import { ACCENTS, ACCENT_INK, ACCENT_NAMES } from './format.js'
+import { accentKey as themeKey, accentLabel as themeLabel, accentPair as themePair, applyAccent as applyTheme } from './themes.js'
 import { t } from './i18n-core.js'
 
-export const DEFAULT_ACCENT = 'lime'
 export const CUSTOM = 'custom'
 
 const HEX = /^#[0-9a-f]{6}$/i
@@ -40,30 +38,27 @@ export function sanitizeAccent(s) {
     const hex = cleanHex(s.accentCustom)
     if (hex) s.accentCustom = hex; else delete s.accentCustom
   }
-  if ('accent' in s && !(typeof s.accent === 'string' && KEY.test(s.accent))) s.accent = DEFAULT_ACCENT
+  if ('accent' in s && !(typeof s.accent === 'string' && KEY.test(s.accent))) s.accent = null
   return s
 }
 
-/** The choice to draw: a known preset key, 'custom' with a usable colour, or the default. */
-export function accentKey(S) {
-  const k = S?.accent
-  if (typeof k === 'string' && Object.hasOwn(ACCENTS, k)) return k
-  if (k === CUSTOM && cleanHex(S?.accentCustom)) return CUSTOM
-  return DEFAULT_ACCENT
+/** The choice to draw in `mode`: a theme id (themes.js), 'custom' with a usable colour, or the mode's default. */
+export function accentKey(S, mode) {
+  if (S?.accent === CUSTOM && cleanHex(S?.accentCustom)) return CUSTOM
+  return themeKey(S, mode)
 }
 
 /** What the chosen accent is called: a preset's colour name, or the user's own. */
-export function accentLabel(S) {
-  const k = accentKey(S)
-  return k === CUSTOM ? t('Your own color') : t(ACCENT_NAMES[k] || 'Green')
+export function accentLabel(S, mode) {
+  return accentKey(S, mode) === CUSTOM ? t('Your own color') : themeLabel(S, mode)
 }
 
 /**
  * The value the rest of the app passes around (the rest alert, the native countdown): a preset
  * key, or the user's colour itself as '#rrggbb'.
  */
-export function accentValue(S) {
-  const k = accentKey(S)
+export function accentValue(S, mode) {
+  const k = accentKey(S, mode)
   return k === CUSTOM ? cleanHex(S.accentCustom) : k
 }
 
@@ -215,18 +210,15 @@ export function customAccentVars(hex, theme) {
 }
 
 /** The colour and its text colour for a preset key or a '#rrggbb' value (native notification). */
-export function accentPair(v) {
+export function accentPair(v, mode) {
   const hex = cleanHex(v)
   if (hex) return { accent: hex, ink: inkOn(hex) }
-  const k = typeof v === 'string' && Object.hasOwn(ACCENTS, v) ? v : DEFAULT_ACCENT
-  return { accent: ACCENTS[k], ink: ACCENT_INK[k] }
+  return themePair(v, mode)
 }
 
-const CUSTOM_VARS = ['--acc', '--acc-2', '--on-acc', '--knob-ring', '--acc-ink', '--acc-graphic']
-
 /**
- * Puts the accent on the page root: a preset by `data-accent` (index.css does the rest), the
- * user's colour as inline custom properties for the resolved `theme`. `value` is accentValue's.
+ * Puts the accent on the page root: a theme by `data-accent` and its tokens inline, the user's
+ * colour as inline custom properties for the resolved `theme`. `value` is accentValue's.
  */
 export function applyAccent(el, value, theme) {
   const vars = customAccentVars(value, theme)
@@ -235,6 +227,5 @@ export function applyAccent(el, value, theme) {
     for (const [k, v] of Object.entries(vars)) el.style.setProperty(k, v)
     return
   }
-  el.dataset.accent = typeof value === 'string' && Object.hasOwn(ACCENTS, value) ? value : DEFAULT_ACCENT
-  for (const k of CUSTOM_VARS) el.style.removeProperty(k)
+  applyTheme(el, value, theme)
 }

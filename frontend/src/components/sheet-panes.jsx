@@ -1,8 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { dsAccentFor } from '../lib/ds-accent.js'
 import { t } from '../lib/i18n.js'
 import { EASE, PANEL_MS, PRESETS, play } from '../lib/motion.js'
-import { useStore } from '../store/useStore.js'
+import { useDsAccent } from '../lib/use-ds-accent.js'
 import Icon from './Icon.jsx'
 import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
 import { SheetPaneContext } from './sheet-frame.js'
@@ -35,7 +34,7 @@ const livePanes = panes => [...panes.children].filter(n => n.classList.contains(
 
 function Pane({ panel, active, closeFn, back, dismiss, hostLocked }) {
   const { present } = usePresence()
-  const accent = useStore(s => dsAccentFor(s.S))
+  const accent = useDsAccent()
   const ref = useRef(null)
   const ds = panel.variant === 'ds'
   // What had the focus when the panel was drawn: the control that opened it, which gets the focus

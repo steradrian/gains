@@ -5,6 +5,7 @@ import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
 import { accentValue, applyAccent } from './lib/accent.js'
+import { useColorMode } from './lib/color-mode.js'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
 import { setPlayOnSilent, setVibrate, setAlarmBuzzer } from './lib/sound.js'
@@ -151,7 +152,9 @@ function Shell() {
     exitWorkoutEdit(() => navigate(destination, { replace: true }))
   }, [loc.pathname, loc.search, S.active?.editingWorkoutId, navigate])
   // A preset key, or the user's own colour as '#rrggbb' (lib/accent.js), already checked.
-  const accent = accentValue(S)
+  // An accent never picked follows the resolved mode, so a system light/dark flip recolours it.
+  const mode = useColorMode()
+  const accent = accentValue(S, mode)
   useEffect(() => { applyPrefs(S.theme, accent) }, [S.theme, accent])
   // Profile › Appearance › Reduce motion: the same rule the system setting gets (index.css).
   useEffect(() => {

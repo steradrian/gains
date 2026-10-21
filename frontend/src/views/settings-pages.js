@@ -7,7 +7,7 @@
 // (views/Settings.jsx). settings-pages.test.jsx renders every page and checks that each entry
 // below really is a row there.
 import { t } from '../lib/i18n.js'
-import { ACCENT_NAMES } from '../lib/format.js'
+import { THEMES } from '../lib/themes.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { MEAL_NAMES_MAX } from '../lib/nutrition/settings-lists.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
@@ -120,7 +120,7 @@ export const SEARCH = [
   { page: null, title: 'Disconnect', icon: 'signOut', tint: 'var(--red)', kw: 'disconnect server local log out', when: c => c.mobile && !!c.user },
   // Appearance
   { page: 'appearance', title: 'Theme', icon: 'moon', tint: 'var(--indigo)', kw: 'dark mode light mode theme appearance night look', opts: ['Dark', 'Light', 'System'] },
-  { page: 'appearance', title: 'Accent color', icon: 'palette', tint: 'var(--purple)', kw: 'color colour accent tint custom own picker hex rgb', opts: [...Object.values(ACCENT_NAMES), 'Your own color'], tkw: () => t('custom color picker') },
+  { page: 'appearance', title: 'Accent color', icon: 'palette', tint: 'var(--purple)', kw: 'color colour accent tint custom own picker hex rgb', opts: [...THEMES.map(p => p.name), 'Your own color'], tkw: () => t('custom color picker') },
   { page: 'appearance', title: 'Body diagram', icon: 'figureStrength', tint: 'var(--teal)', kw: 'muscle map body male female', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Exercise drawings', icon: 'figureStrength', tint: 'var(--teal)', kw: 'figure male female woman man picture', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Reduce motion', icon: 'minimize', tint: 'var(--blue)', kw: 'animation motion transitions accessibility calm', feature: (S, c) => !!c.systemMotion || S.reduceMotion === true },

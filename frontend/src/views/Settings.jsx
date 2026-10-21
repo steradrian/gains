@@ -9,7 +9,8 @@ import { copyText } from '../lib/clipboard.js'
 import { back as tabBack } from '../lib/use-tab-nav.js'
 import { PROFILE_RENAMED, PROGRESS_ROOT } from '../lib/tab-route.js'
 import { useUI } from '../store/useUI.js'
-import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
+import { THEMES } from '../lib/themes.js'
+import { todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { figureOf } from '../lib/exercises.js'
 import { unlock, chime, playOnSilentSupported, vibrateSupported, appleTouchDevice } from '../lib/sound.js'
@@ -1314,9 +1315,9 @@ function AccentSwatches({ S, update }) {
   ].filter(Boolean) : []
   return <>
     <div className="swatches" style={{ flexBasis: '100%', paddingInlineStart: 41 }}>
-      {Object.entries(ACCENTS).map(([k, c]) => (
-        <button key={k} className={'swatch' + (key === k ? ' on' : '')}
-          style={{ background: c }} onClick={() => pickPreset(k)} aria-label={t(ACCENT_NAMES[k] || k)} />
+      {THEMES.map(p => (
+        <button key={p.id} className={'swatch' + (key === p.id ? ' on' : '')}
+          style={{ background: p.fill }} onClick={() => pickPreset(p.id)} aria-label={t(p.name)} />
       ))}
       {!hasInput
         ? <button className="swatch swatch-own" style={{ background: own }} onClick={() => pickOwn(own)} aria-label={ownLabel} />
