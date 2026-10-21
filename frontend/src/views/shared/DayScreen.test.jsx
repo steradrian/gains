@@ -18,9 +18,10 @@ describe('DayScreen', () => {
   it('D1.0: the nav bar, the rail, the date and its line, then Training, Food, and Water and body', () => {
     const d = day()
     view.render(<DayScreen day={d} onBack={() => {}} />)
-    expect(q('.g-snav-title').textContent).toBe('Day')
-    expect(q('.day-head h2').textContent).toBe('Mon 12 Oct')
-    expect(q('.day-head p').textContent).toBe('Push A done · on target · 6 days ago')
+    // The date is the page's one heading of its own (StagePageTitle); the bar has no title.
+    expect(q('.g-snav-title')).toBeNull()
+    expect(all('h1').map(h => h.textContent)).toEqual(['Mon 12 Oct'])
+    expect(q('.g-sptitle p').textContent).toBe('Push A done · on target · 6 days ago')
     expect(q('.g-rail-title').textContent).toBe('Week of 12 Oct')
     expect(labels()).toEqual(['Training', 'Food', 'Water and body'])
   })
@@ -99,6 +100,40 @@ describe('DayScreen', () => {
     expect(d.logFood).toHaveBeenCalled()
     click(buttonOf('Log weight'))
     expect(d.weighInSheet).toHaveBeenCalled()
+  })
+
+  it('a day with nothing eaten is not judged against its target: no "under target"', () => {
+    const empty = { ...DAYS.missed.food, kcal: 0, diff: -2100, band: 'under', logged: false }
+    view.render(<DayScreen day={day({ ...DAYS.rest, food: empty })} onBack={() => {}} />)
+    expect(q('.g-dfood-num').textContent).toBe('0 of 2,100 kcal')
+  })
+
+  it('with no target behind the day, the total stands alone: no "of", no status', () => {
+    const none = { ...DAYS.rest.food, target: null, diff: null, band: null }
+    view.render(<DayScreen day={day({ ...DAYS.rest, food: none })} onBack={() => {}} />)
+    expect(q('.g-dfood-num').textContent).toBe('1,810')
+  })
+
+  it('a rest day in a week the plan cannot be held to says nothing of what was planned', () => {
+    view.render(<DayScreen day={day({ ...DAYS.rest, next: null, planKnown: false })} onBack={() => {}} />)
+    expect(q('.g-dstat-b').textContent).toBe('Rest day')
+  })
+
+  it('a search’s Day result: the meal holding the entry is lit and scrolled to', () => {
+    const scroll = vi.fn()
+    const was = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = scroll
+    try {
+      const d = day()
+      const uuid = d.food.meals[2].items[0].uuid
+      view.render(<DayScreen day={d} find={uuid} onBack={() => {}} />)
+      const found = all('.g-dfood-found')
+      expect(found).toHaveLength(1)
+      expect(found[0]).toBe(all('.g-dfood-meal')[2])
+      expect(scroll).toHaveBeenCalledWith({ block: 'center' })
+    } finally {
+      Element.prototype.scrollIntoView = was
+    }
   })
 
   it('D1.3 with food tracking off: the two ways that are there', () => {

@@ -29,8 +29,9 @@ const SAVED_SHOWN = 8
 // to its day). Search stays pinned while the results scroll. With nothing typed, Recent, Saved
 // meals and My foods; typed, your foods, saved meals and Open Food Facts that match. Scan and
 // Create a food at the foot. It closes once something is logged, and the toast says where.
-export default function FoodPickerSheet({ close }) {
-  const target = useSheetTarget()
+// `date` and `meal` (a Day page's past day) log there without moving the shared selection.
+export default function FoodPickerSheet({ close, date: day = null, meal: slot = null }) {
+  const target = useSheetTarget({ date: day, meal: slot })
   const { date, meal, mealName } = target
   const log = { date, meal, mealName, onLogged: close }
   const [query, setQuery] = useState('')
@@ -137,6 +138,7 @@ export default function FoodPickerSheet({ close }) {
   </BottomSheet>
 }
 
-export function foodPickerSheet() {
-  useUI.getState().openSheet(close => <FoodPickerSheet close={close} />, { variant: 'ds' })
+/** Log food, to the shared selection's day and meal, or to `date` (and `meal`) when given. */
+export function foodPickerSheet({ date = null, meal = null } = {}) {
+  useUI.getState().openSheet(close => <FoodPickerSheet close={close} date={date} meal={meal} />, { variant: 'ds' })
 }

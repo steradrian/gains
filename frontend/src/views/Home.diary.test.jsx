@@ -544,13 +544,26 @@ describe('the + sheet', () => {
     expect(lastSheet().querySelector('input[type="date"]').value).toBe(yesterday)
   })
 
+  it('on a Day page, Log food goes to that day as a parameter: Today and Eat stay on their own day', async () => {
+    await useNutrition.getState().loadSettings()
+    await mount(<></>)
+    await act(async () => { openPlusSheet('/train/day/' + yesterday) })
+    await settle()
+    await click(button('Log food', lastSheet()))
+    await settle()
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Log food')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(fmtDate(yesterday, true))
+    expect(useDiarySelection.getState().date).toBeNull()
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
+  })
+
   it('on a Day page, logs to that day: Log weight and Add past workout, and a line saying where (PR07 D1.5)', async () => {
     await useNutrition.getState().loadSettings()
     await mount(<></>)
     await act(async () => { openPlusSheet('/train/day/' + yesterday) })
     await settle()
     const day = fmtDate(yesterday, true)
-    expect(useDiarySelection.getState().day()).toBe(yesterday)
+    expect(useDiarySelection.getState().date).toBeNull()
     expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add')
     expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(day)
     expect([...lastSheet().querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Log food', 'Scan', 'Water', 'Log weight', 'Add past workout'])

@@ -81,7 +81,7 @@ const MEASUREMENTS = { date: '2026-10-04', items: [{ key: 'waist', label: 'Waist
 export function dayFixture(over = {}, fn = () => () => {}) {
   const iso = over.iso || '2026-10-12'
   return {
-    iso, title: 'Mon 12 Oct', ago: '6 days ago', state: 'logged', summary: 'Push A done · on target · 6 days ago',
+    iso, title: 'Mon 12 Oct', ago: '6 days ago', state: 'logged', summary: 'Push A done · on target · 6 days ago', planKnown: true,
     rail: railOf(iso), workouts: [PUSH], planned: null, next: null, food: FOOD_ON_TARGET,
     water: { ml: 2250, goalMl: 2500, glasses: 9, glassMl: 250, last: '21:10' }, weighIn: null, measurements: MEASUREMENTS, activities: [],
     select: fn(), openWeek: fn(), openWorkout: fn(), openExercise: fn(), markSkipped: fn(), addPastWorkout: fn(), add: fn(),

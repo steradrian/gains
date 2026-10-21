@@ -11,7 +11,6 @@ import { measurementLogSheet } from '../views/Measurements.jsx'
 import { pastWorkoutSheet } from '../views/shared/PastWorkoutSheet.jsx'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
-import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { waterButtons } from '../lib/nutrition/water.js'
@@ -49,16 +48,17 @@ export const dayOfPath = pathname => DAY_PAGE.exec(pathname || '')?.[1] || null
 // is made of; the list under them holds what fits the screen you are on, then the rest. The chip
 // names the day and meal the logs go to (the shared selection when it opened) and changes the meal.
 // Log activity logs a past workout, to that day when it is one before today.
-// On a Day page (`day`, board Sh1Add) everything goes to that day: Start workout gives way to Add
-// past workout (D1.6) and a line under the list says where the logs go; what only happens now
-// (a fast, a gym check-in) is left out.
+// On a Day page (`day`, board Sh1Add) everything goes to that day, passed to each sheet it opens
+// and never written to the shared selection (Today and Eat stay on their day): Start workout gives
+// way to Add past workout (D1.6) and a line under the list says where the logs go; what only
+// happens now (a fast, a gym check-in) is left out.
 function PlusSheet({ close, pathname, day }) {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const live = workoutRunning(S)
   // Nutrition only where NutriTrace is reachable (the web app, signed in).
   const food = nutritionAvailable(user)
-  const target = useSheetTarget()
+  const target = useSheetTarget({ date: day })
   const [watering, setWatering] = useState(false)
   const units = useUnits()
   useEffect(() => { if (food) useNutrition.getState().loadSettings() }, [food])
@@ -69,10 +69,14 @@ function PlusSheet({ close, pathname, day }) {
   const where = { date: target.date, meal: target.meal, mealName: target.mealName }
   const past = target.date < todayISO()
 
+  // A Day page's day and the meal picked here go to the picker as parameters; elsewhere it reads
+  // the shared selection, which a meal picked here has already moved.
+  const pickFood = () => foodPickerSheet(day ? { date: day, meal: target.meal } : undefined)
+
   const tiles = [
     ...(food ? [
-      { icon: 'utensils', label: t('Log food'), onClick: () => { close(); foodPickerSheet() } },
-      { icon: 'scanBarcode', label: t('Scan'), onClick: () => { close(); scanSheet({ ...where, onSearch: foodPickerSheet }) } },
+      { icon: 'utensils', label: t('Log food'), onClick: () => { close(); pickFood() } },
+      { icon: 'scanBarcode', label: t('Scan'), onClick: () => { close(); scanSheet({ ...where, onSearch: pickFood }) } },
       { icon: 'droplet', label: t('Water'), ariaLabel: waterAria(glasses[0], units), disabled: watering, onClick: () => water(glasses[0].ml) },
     ] : []),
     { icon: 'scale', label: day ? t('Log weight') : t('Weigh-in'), onClick: () => { close(); bwSheet({ date: target.date }) } },
@@ -110,11 +114,10 @@ function PlusSheet({ close, pathname, day }) {
   )
 }
 
-/** The + sheet over `pathname`. On a Day page (or with `date`, a past day) it logs to that day:
- *  the day becomes the shared selection every log reads (lib/nutrition/selection.js), as picking it
- *  in Eat's date picker would. */
-export function openPlusSheet(pathname, { date = dayOfPath(pathname) } = {}) {
+/** The + sheet over `pathname`. On a Day page it logs to that page's past day, passed down to
+ *  every sheet it opens; the shared selection (lib/nutrition/selection.js) is left as it is. */
+export function openPlusSheet(pathname) {
+  const date = dayOfPath(pathname)
   const day = date && date < todayISO() ? date : null
-  if (day) useDiarySelection.getState().setDate(day)
   useUI.getState().openSheet(close => <PlusSheet close={close} pathname={pathname} day={day} />, { variant: 'ds' })
 }
