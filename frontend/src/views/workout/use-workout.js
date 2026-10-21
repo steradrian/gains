@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { exOr } from '../../lib/exercises.js'
-import { setsDoneActive, setUnitsTotal, supersetUnits, unitOf, modeOf, isPerSide, insertWarmupRow, barFloor, removeLastSet, pairAdjacent, unpairSuperset, bestWeightForEntry, workoutVolume } from '../../lib/history.js'
+import { setsDoneActive, setUnitsTotal, supersetUnits, unitOf, modeOf, isPerSide, removeLastSet, pairAdjacent, unpairSuperset, bestWeightForEntry, workoutVolume } from '../../lib/history.js'
 import { exerciseNameText, fmtNum } from '../../lib/format.js'
 import { inclineFrom } from '../../lib/incline.js'
 import { beep, vibrate, unlock } from '../../lib/sound.js'
@@ -17,22 +17,19 @@ import { t, tn } from '../../lib/i18n.js'
 import { api, beacon } from '../../lib/api.js'
 import { pyramidRestFor } from '../../lib/pyramid.js'
 import { nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from '../../lib/supersetFlow.js'
-import { fmtRest } from '../../lib/duration.js'
-import { exConfigSheet, workoutCompleteSheet, confirmSheet, swapActiveWorkoutExercise } from '../../sheets.jsx'
+import { workoutCompleteSheet, swapActiveWorkoutExercise } from '../../sheets.jsx'
 import { workoutControls } from '../../lib/workout-controls.js'
-import { defaultIncrement } from '../../lib/progression.js'
-import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../../lib/session-start.js'
-import { routineChangesFromEntry, updateRoutineFromEntry } from '../../lib/routines.js'
-import { sessionNoProg, setSessionNoProg, setEntryNoProg } from '../../lib/session-noprog.js'
-import { markAllSetsDone, sessionHistory } from '../../lib/backfill.js'
+import { sessionNoProg, setSessionNoProg } from '../../lib/session-noprog.js'
+import { markAllSetsDone } from '../../lib/backfill.js'
 import { isWarmupRow, isSideSet, makeSideSet, toggleSide } from '../../lib/workout-model.js'
 import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEntry, moveActiveWorkoutEntry } from '../../lib/active-workout-order.js'
 import { nextOpenSet, workoutKeyAction } from '../../lib/workout-keys.js'
-import { ownedWeightsFor } from '../../lib/dumbbells.js'
 import { partOf, partsOf } from '../../lib/workout-parts.js'
 import { beatsBest } from '../../lib/workout-finish.js'
 import { holdRow, setHoldRow, setFieldAt, deleteActiveSet, copyActiveSet, unpairAt as unpairEntryAt } from './workout-actions.js'
+import { addWarmupAt, setNoProgAt, routineKeepsOut as keepsOut, routineUpdateAt } from './workout-actions.js'
 import { addExerciseSheet, exerciseRestSheet } from './drawers.js'
+import { exerciseSettingsSheet } from './exercise-drawers.jsx'
 import { buildWorkoutView, extendWorkoutView, supersetLabels } from './workout-view.js'
 
 // A key that finishes a hold early only once the hold has run past its first moments.
@@ -158,12 +155,9 @@ export function useWorkout(legacy = null) {
     }
   })
   const removeSet = idx => mutEntry(idx, e => { e.sets = removeLastSet(e.sets) })
-  const addWarmup = idx => mutEntry(idx, e => {
-    const m = modeOf({ ...(e.target || {}), id: e.id })
-    // A warm-up of a dumbbell lift lands on a bell you own when the profile lists them (#376).
-    const ramp = (m === 'reps' && ownedWeightsFor(S, { ...(e.target || {}), id: e.id })) || defaultIncrement(e.id, S.unit)
-    e.sets = insertWarmupRow(e.sets, m, e.target || {}, ramp, barFloor(S, e.id))
-  })
+  // Workout drawers-M2: the warm-up row, progression, Update routine and Exercise settings live in
+  // workout-actions.js and exercise-drawers.jsx, where How to calls them too.
+  const addWarmup = idx => addWarmupAt(idx)
   // The set-number menu's Remove and the swipe both go through deleteActiveSet, Undo and all.
   const removeSetAt = (idx, i) => deleteActiveSet(idx, i, { editing })
   const copySetAt = (idx, i) => copyActiveSet(idx, i)
@@ -203,44 +197,14 @@ export function useWorkout(legacy = null) {
   }
 
   // "Don't count for progression" for one exercise, this session.
-  const setNoProg = (idx, on) => update(s => setEntryNoProg(s.active, idx, on))
+  const setNoProg = (idx, on) => setNoProgAt(idx, on)
   // A deload or rehab routine keeps its own exercises out: its entries get the marker but no switch.
-  const routineKeepsOut = e => !!e?.rid && S.routines.some(r => r.id === e.rid && r.excludeFromProgression === true)
+  const routineKeepsOut = e => keepsOut(S, e)
   const noProgSwitchable = !entries.length || entries.some(e => !routineKeepsOut(e))
   const toggleSessionNoProg = () => update(s => setSessionNoProg(s.active, !sessionNoProg(s.active), routineKeepsOut))
 
   // The exercise's ⋯ "Update routine": copy what the session changed back into the routine.
-  const restWord = v => (Number(v) > 0 ? fmtRest(v) : t('Default ({0})', fmtRest(S.restSec)))
-  const partWord = p => (p === 'warmup' ? t('Warm-up') : p === 'cooldown' ? t('Cool-down') : t('Workout'))
-  const routineUpdateFor = idx => {
-    const entry = entries[idx]
-    const routine = !editing && entry?.rid ? S.routines.find(r => r.id === entry.rid) : null
-    const found = routine ? routineChangesFromEntry(routine, entries, idx) : null
-    if (!found) return null
-    const activeId = A.id
-    const entryId = entry.id
-    return {
-      sub: found.changes.map(c => c.key === 'note' ? t('Note')
-        : c.key === 'warmupSets' ? t('Warm-up sets') + ' ' + c.from + ' → ' + c.to
-          : c.key === 'part' ? t('Part of the workout') + ' ' + partWord(c.from) + ' → ' + partWord(c.to)
-            : t('Rest') + ' ' + restWord(c.from) + ' → ' + restWord(c.to)).join(' · '),
-      run: () => confirmSheet({
-        title: t('Update “{0}”?', routine.name),
-        message: t('Copy this exercise’s warm-up sets, and the rest and note from its Exercise settings, into the routine. A note added for today stays with this workout. Your workout history is kept.'),
-        confirmText: t('Update routine'),
-        onConfirm: () => {
-          let applied = null
-          update(s => {
-            // The sheet can outlive the workout, or the exercise at this index: fail closed.
-            const target = s.routines.find(r => r.id === routine.id)
-            if (!target || s.active?.id !== activeId || s.active.entries?.[idx]?.id !== entryId) return
-            applied = updateRoutineFromEntry(target, s.active.entries, idx)
-          })
-          if (applied) useUI.getState().toast(t('Routine updated'))
-        },
-      }),
-    }
-  }
+  const routineUpdateFor = idx => routineUpdateAt(idx)
 
   const swapExercise = idx => {
     shift()
@@ -279,45 +243,7 @@ export function useWorkout(legacy = null) {
   const addExercise = ({ afterIdx = null, part = null } = {}) => addExerciseSheet(afterIdx, part, { onShift: () => shift() })
   // An exercise's own rest (drawers.js exerciseRestSheet).
   const openExerciseRest = idx => exerciseRestSheet(idx)
-  const openProgressionSettings = idx => {
-    const state = useStore.getState().S
-    const entry = state.active?.entries?.[idx]
-    if (!entry) return
-    const activeId = state.active.id
-    const entryId = entry.id
-    const entryCount = state.active.entries.length
-    const routine = state.routines.find(r => r.id === entry.rid)
-    // Opens at the plan's sets and reps, so saving it unchanged rebuilds the rows it has.
-    const opened = plannedConfigOf(entry)
-    exConfigSheet(exOr(entryId), opened, cfg => {
-      // Same workout, same list length and the same exercise at the captured index is what
-      // "nothing shifted" means; otherwise fail closed.
-      const current = useStore.getState().S
-      if (current.active?.id !== activeId || current.active.entries?.length !== entryCount || current.active.entries?.[idx]?.id !== entryId) return
-      update(s => {
-        const activeEntry = s.active?.id === activeId ? s.active.entries?.[idx] : null
-        if (!activeEntry || activeEntry.id !== entryId) return
-        const full = { ...cfg, id: activeEntry.id }
-        // Today's weight left as it was is not an edit of the plan's.
-        if ((cfg.weight || 0) === (opened.weight || 0) && activeEntry.planned?.weight != null) full.weight = activeEntry.planned.weight
-        const activeRoutine = s.routines.find(r => r.id === activeEntry.rid)
-        if (!(full.sets > 0)) full.sets = activeEntry.sets.filter(x => !isWarmupRow(x)).length || 1
-        // Rebuilt the way the session start builds them; only what you already logged is kept.
-        const built = buildPlannedEntry(sessionHistory(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
-        const fresh = built.sets
-        const doneWarm = activeEntry.sets.filter(x => x.done && isWarmupRow(x))
-        const doneWork = activeEntry.sets.filter(x => x.done && !isWarmupRow(x))
-        const freshWarm = fresh.filter(isWarmupRow)
-        const freshWork = fresh.filter(x => !isWarmupRow(x))
-        activeEntry.target = built.target
-        activeEntry.plan = built.plan
-        activeEntry.planned = built.planned
-        if (built.carried) activeEntry.carried = true
-        else delete activeEntry.carried
-        activeEntry.sets = [...doneWarm, ...freshWarm.slice(doneWarm.length), ...doneWork, ...freshWork.slice(doneWork.length)]
-      })
-    }, null, routine)
-  }
+  const openProgressionSettings = idx => exerciseSettingsSheet(idx)
 
   // A timed set is held, not typed: the work timer records what was held, then ticks the set
   // through the normal path.

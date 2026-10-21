@@ -90,8 +90,6 @@ export const PT_BR_OVERRIDES = {
   'Then finish the superset partner.': 'Depois, termine o outro exercício do superset.',
   'Save & next exercise': 'Salvar e ir para o próximo exercício',
   'Save weight': 'Salvar peso',
-  'All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.': 'Todos os exercícios feitos. Mandou bem! Finalize, ou adicione mais um se ainda tiver gás.',
-  'Keep going: tap “+ Add exercise” below': 'Bora continuar: toque em “+ Adicionar exercício” abaixo',
   'Nothing logged yet': 'Ainda não há nada registrado',
   'You haven’t checked off any sets. Finish the workout anyway?': 'Você não marcou nenhuma série. Deseja finalizar o treino mesmo assim?',
   'Freestyle workout (pick as you go)': 'Treino livre (escolha durante o treino)',

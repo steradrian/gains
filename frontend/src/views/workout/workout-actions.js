@@ -19,6 +19,18 @@ import { stepOwned } from '../../lib/dumbbells.js'
 import { isWarmupRow, isFailureSet, toggleFailure, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, setSideField, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../../lib/workout-model.js'
 import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit } from '../../lib/active-workout-order.js'
 import { partOf, normaliseParts } from '../../lib/workout-parts.js'
+// Workout drawers-M2
+import { modeOf, insertWarmupRow, barFloor } from '../../lib/history.js'
+import { ownedWeightsFor } from '../../lib/dumbbells.js'
+import { defaultIncrement } from '../../lib/progression.js'
+import { fmtRest } from '../../lib/duration.js'
+import { setEntryNoProg } from '../../lib/session-noprog.js'
+import { plannedConfigOf, buildPlannedEntry, builtOutOfProgression } from '../../lib/session-start.js'
+import { sessionHistory } from '../../lib/backfill.js'
+import { routineChangesFromEntry, updateRoutineFromEntry, replaceSlotExercise, routineSlotIndex } from '../../lib/routines.js'
+import { swapActiveExercise } from '../../lib/active-exercise-swap.js'
+import { confirmSheet } from '../../sheets/confirm-menu.jsx'
+import { swapReplacement } from '../../sheets/exercise-picker.jsx'
 
 const update = (fn, push = true) => useStore.getState().update(fn, push)
 const activeNow = () => useStore.getState().S.active
@@ -81,7 +93,7 @@ export function deleteActiveSet(idx, i, { editing = false } = {}) {
     else en.sets = removeRowAt(en.sets, i)
   })
   const msg = warm ? t('Warm-up gone.') : stopped ? t('Set {0} gone. Its timer stopped too.', n) : t('Set {0} gone.', n)
-  ui.toast(msg, { action: t('Undo'), onAction: () => undoDeleteSet(token) })
+  ui.toast(msg, { action: t('Undo'), ms: UNDO_MS, onAction: () => undoDeleteSet(token) })
   return true
 }
 /** Puts a removed set back exactly as it was, at its old place in the same exercise. If the
@@ -399,5 +411,169 @@ export function setEntryPart(idx, part) {
     const to = order.indexOf(rest.forIdx)
     if (to >= 0 && to !== rest.forIdx) setUI({ timer: { ...rest, forIdx: to } })
   }
+  return true
+}
+
+/* ---------- Workout drawers-M2: what the How to drawer does to the exercise ---------- */
+
+/** One more warm-up row on the exercise, ramped below its first work set (How to, "Add a warm-up set"). */
+export const addWarmupAt = idx => update(s => {
+  const e = s.active?.entries?.[idx]
+  if (!e) return
+  const cfg = { ...(e.target || {}), id: e.id }
+  const m = modeOf(cfg)
+  // A warm-up of a dumbbell lift lands on a bell you own when the profile lists them (#376).
+  const ramp = (m === 'reps' && ownedWeightsFor(s, cfg)) || defaultIncrement(e.id, s.unit)
+  e.sets = insertWarmupRow(e.sets, m, e.target || {}, ramp, barFloor(s, e.id))
+})
+
+/** "Don't count for progression" for one exercise, this session. */
+export const setNoProgAt = (idx, on) => useStore.getState().update(s => setEntryNoProg(s.active, idx, on))
+
+/** A deload or rehab routine keeps its own exercises out: its entries get the marker but no switch. */
+export const routineKeepsOut = (S, e) => !!e?.rid && (S.routines || []).some(r => r.id === e.rid && r.excludeFromProgression === true)
+
+/**
+ * "Update <routine>": what the session changed on the exercise, copied back into its routine.
+ * `{ routine, sub, run }`, or null when the exercise has no routine slot, nothing differs, or a
+ * saved workout is being edited.
+ */
+export function routineUpdateAt(idx) {
+  const S = useStore.getState().S
+  const A = S.active
+  const entry = A?.entries?.[idx]
+  const routine = A && !A.editingWorkoutId && entry?.rid ? S.routines.find(r => r.id === entry.rid) : null
+  const found = routine ? routineChangesFromEntry(routine, A.entries, idx) : null
+  if (!found) return null
+  const restWord = v => (Number(v) > 0 ? fmtRest(v) : t('Default ({0})', fmtRest(S.restSec)))
+  const partWord = p => (p === 'warmup' ? t('Warm-up') : p === 'cooldown' ? t('Cool-down') : t('Workout'))
+  const activeId = A.id
+  const entryId = entry.id
+  return {
+    routine,
+    sub: found.changes.map(c => c.key === 'note' ? t('Note')
+      : c.key === 'warmupSets' ? t('Warm-up sets') + ' ' + c.from + ' → ' + c.to
+        : c.key === 'part' ? t('Part of the workout') + ' ' + partWord(c.from) + ' → ' + partWord(c.to)
+          : t('Rest') + ' ' + restWord(c.from) + ' → ' + restWord(c.to)).join(' · '),
+    run: () => confirmSheet({
+      title: t('Update “{0}”?', routine.name),
+      message: t('Copy this exercise’s warm-up sets, and the rest and note from its Exercise settings, into the routine. A note added for today stays with this workout. Your workout history is kept.'),
+      confirmText: t('Update routine'),
+      onConfirm: () => {
+        let applied = null
+        useStore.getState().update(s => {
+          // The sheet can outlive the workout, or the exercise at this index: fail closed.
+          const target = s.routines.find(r => r.id === routine.id)
+          if (!target || s.active?.id !== activeId || s.active.entries?.[idx]?.id !== entryId) return
+          applied = updateRoutineFromEntry(target, s.active.entries, idx)
+        })
+        if (applied) useUI.getState().toast(t('Routine updated'))
+      },
+    }),
+  }
+}
+
+/**
+ * Exercise settings saved from inside the workout (the hook's openProgressionSettings, moved here):
+ * the entry rebuilt the way the session start builds it, keeping only what was already logged.
+ * `opened` is the config the sheet opened with; `at` is `{ activeId, entryId, entryCount }` as
+ * they were then. Same workout, same list length and the same exercise at the index is what
+ * "nothing shifted" means; otherwise it fails closed.
+ */
+export function applyExerciseSettingsAt(idx, cfg, opened, { activeId, entryId, entryCount }) {
+  const current = useStore.getState().S
+  if (current.active?.id !== activeId || current.active.entries?.length !== entryCount || current.active.entries?.[idx]?.id !== entryId) return false
+  update(s => {
+    const activeEntry = s.active?.id === activeId ? s.active.entries?.[idx] : null
+    if (!activeEntry || activeEntry.id !== entryId) return
+    const full = { ...cfg, id: activeEntry.id }
+    // Today's weight left as it was is not an edit of the plan's.
+    if ((cfg.weight || 0) === (opened.weight || 0) && activeEntry.planned?.weight != null) full.weight = activeEntry.planned.weight
+    const activeRoutine = s.routines.find(r => r.id === activeEntry.rid)
+    if (!(full.sets > 0)) full.sets = activeEntry.sets.filter(x => !isWarmupRow(x)).length || 1
+    // Rebuilt the way the session start builds them; only what you already logged is kept.
+    const built = buildPlannedEntry(sessionHistory(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
+    const fresh = built.sets
+    const doneWarm = activeEntry.sets.filter(x => x.done && isWarmupRow(x))
+    const doneWork = activeEntry.sets.filter(x => x.done && !isWarmupRow(x))
+    const freshWarm = fresh.filter(isWarmupRow)
+    const freshWork = fresh.filter(x => !isWarmupRow(x))
+    activeEntry.target = built.target
+    activeEntry.plan = built.plan
+    activeEntry.planned = built.planned
+    if (built.carried) activeEntry.carried = true
+    else delete activeEntry.carried
+    activeEntry.sets = [...doneWarm, ...freshWarm.slice(doneWarm.length), ...doneWork, ...freshWork.slice(doneWork.length)]
+  })
+  return true
+}
+
+/** The exercise's own rest in seconds (0: the default rest), for this session. */
+export function setEntryRestAt(idx, v, { activeId, entryId }) {
+  update(s => {
+    const e = s.active?.id === activeId ? s.active.entries?.[idx] : null
+    if (!e || e.id !== entryId) return
+    e.target = { ...(e.target || {}), restSec: v }
+  })
+}
+
+/**
+ * Swaps the exercise at `idx` for `ex` (W1.15, W1.16), keeping the slot's sets, reps and rest
+ * (lib/routines.js replaceSlotExercise). Logged sets are never relabelled: the replacement goes in
+ * after them, in the same superset. `alsoRoutine` replaces the routine's slot too, from the next
+ * time on. One Undo, for 8 s, puts both back. Returns false when there was nothing to swap.
+ */
+export function swapEntryWithUndo(idx, ex, { alsoRoutine = false } = {}) {
+  const S = useStore.getState().S
+  const A = S.active
+  const current = A?.entries?.[idx]
+  if (!current || !ex || ex.id === current.id) return false
+  const routine = alsoRoutine && !A.editingWorkoutId && current.rid ? S.routines.find(r => r.id === current.rid) : null
+  const slot = routine ? routineSlotIndex(routine, A.entries, idx) : -1
+  const cfg = replaceSlotExercise({ ...plannedConfigOf(current), id: current.id }, ex.id, S, current.rid)
+  const { id: _id, ...kept } = cfg
+  const replacement = swapReplacement(S, current, ex, kept)
+  const ui = useUI.getState()
+  // A timed callback and the rest close over indexes: both end before the list changes.
+  ui.stopWork()
+  ui.stopRest()
+  let done = null
+  update(s => {
+    done = swapActiveExercise(s.active, idx, replacement, { loggedConfirmed: true, groupDisposition: 'keep' })
+    const r = slot >= 0 ? s.routines.find(x => x.id === routine.id) : null
+    if (done && r?.ex?.[slot]?.id === current.id) r.ex[slot] = replaceSlotExercise(r.ex[slot], ex.id, s, r.id)
+  })
+  if (!done) return false
+  const token = {
+    activeId: A.id, at: done.index, inserted: done.inserted, entry: structuredClone(current), cur: A.cur, idx,
+    newId: ex.id, routineId: slot >= 0 ? routine.id : null, slot, slotWas: slot >= 0 ? structuredClone(routine.ex[slot]) : null,
+  }
+  const from = exerciseNameFor(exOr(current.id))
+  const to = exerciseNameFor(exOr(ex.id))
+  const msg = slot >= 0 ? t('Swapped {0} for {1}. Also in {2}.', from, to, routine.name) : t('Swapped {0} for {1}. This workout only.', from, to)
+  ui.toast(msg, { action: t('Undo'), ms: UNDO_MS, onAction: () => undoSwap(token) })
+  return true
+}
+/** Puts the swapped exercise back in the session and, when the swap reached it, in the routine. */
+export function undoSwap(token) {
+  const A = activeNow()
+  if (!A || A.id !== token.activeId || A.entries[token.at]?.id !== token.newId) {
+    useUI.getState().toast(t('Too late, that one’s gone'))
+    return false
+  }
+  useUI.getState().stopWork()
+  if (token.inserted) useUI.getState().shiftRestOwner?.(token.at + 1, -1)
+  update(s => {
+    const list = s.active.entries
+    if (token.inserted) {
+      list.splice(token.at, 1)
+    } else {
+      list[token.at] = structuredClone(token.entry)
+    }
+    cleanupSg(list)
+    s.active.cur = Math.min(token.cur, list.length - 1)
+    const r = token.routineId ? s.routines.find(x => x.id === token.routineId) : null
+    if (r?.ex?.[token.slot]?.id === token.newId) r.ex[token.slot] = structuredClone(token.slotWas)
+  })
   return true
 }
