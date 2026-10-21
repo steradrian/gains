@@ -3746,4 +3746,5 @@ export default {
   'The 8 or 13 digits under the bars.': 'The 8 or 13 digits under the bars.',
   'Barcodes are 8 to 14 digits, numbers only.': 'Barcodes are 8 to 14 digits, numbers only.',
   'The last digit does not match the others. Check for a typo.': 'The last digit does not match the others. Check for a typo.',
+  'More from everywhere': 'More from everywhere',
 }

@@ -131,7 +131,7 @@ const arrayOf = (check, max) => v => Array.isArray(v) && v.length <= max && v.ev
 const exactly = (required, fields) => v => isObj(v) && hasAll(v, required) && hasOnly(v, fields)
 const idList = arrayOf(nonEmptyText(60), 200)
 const SORT = oneOf('recent', 'most', 'alpha')
-const OFF_COUNTRIES = ['World', 'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Canada', 'Chile', 'China', 'Denmark', 'Finland', 'France', 'Germany', 'India', 'Ireland', 'Italy', 'Japan', 'Mexico', 'Netherlands', 'New Zealand', 'Norway', 'Poland', 'Portugal', 'Singapore', 'South Africa', 'South Korea', 'Spain', 'Sweden', 'Switzerland', 'United Kingdom', 'United States']
+const OFF_COUNTRIES = ['World', 'Argentina', 'Australia', 'Austria', 'Belgium', 'Brazil', 'Canada', 'Chile', 'China', 'Denmark', 'Finland', 'France', 'Germany', 'India', 'Ireland', 'Italy', 'Japan', 'Mexico', 'Netherlands', 'New Zealand', 'Norway', 'Poland', 'Portugal', 'Romania', 'Singapore', 'South Africa', 'South Korea', 'Spain', 'Sweden', 'Switzerland', 'United Kingdom', 'United States']
 const plainMap = max => v => isObj(v) && Object.keys(v).length <= max && Object.values(v).every(isObj)
 const WRITABLE_SETTINGS = {
   // Goals and Fasting.

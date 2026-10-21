@@ -7,6 +7,7 @@ import { foodKcal } from '../../lib/nutrition/diary.js'
 import { dayName } from '../../lib/nutrition/log-feedback.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { settingOf } from '../../lib/nutrition/use-nt-settings.js'
+import { isFromWorld } from '../../lib/nutrition/use-online-search.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import Icon from '../Icon.jsx'
 import { Loading } from '../Loader.jsx'
@@ -95,7 +96,11 @@ export default function LogSearchStep({ ctx }) {
       <LogOnlineNote online={online} query={q} />
       {online.status === 'ready' && !online.results.length && note(t('Nothing found online.'))}
       {online.status === 'idle' && note(t('Type at least two letters to search online.'))}
-      {foodRows(online.results, { online: true })}
+      {foodRows(online.results.filter(f => !isFromWorld(f)), { online: true })}
+      {online.results.some(isFromWorld) && <>
+        {heading(t('More from everywhere'))}
+        {foodRows(online.results.filter(isFromWorld), { online: true })}
+      </>}
     </>}
     {quickRow}
   </>
