@@ -1930,7 +1930,9 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-bs-scrim, #modal-root .mback { inset: -50vh 0; }
 .g-bs {
   bottom: var(--kb, 0px);
-  max-height: calc(var(--vvh, 100dvh) - var(--sat, 0px) - 8px);
+  /* 100% is the fixed #modal-root the drawer stands in, the box the scrim fills; 100dvh can
+     disagree with it in an installed iOS app. */
+  max-height: calc(var(--vvh, 100%) - var(--sat, 0px) - 8px);
   box-shadow: var(--shadow-sheet), 0 120px 0 0 var(--surface);
 }
 :root[data-kb] .g-bs { padding-bottom: 20px; }

@@ -125,7 +125,7 @@ describe('the two halves agree', () => {
   it('every sheet stands on the keyboard: --kb carries the larger of the two lifts', () => {
     // lib/sheet-keyboard.js folds --native-kb into --kb; the sheets read --kb and --vvh alone
     expect(css).toMatch(/\.sheet\{[^}]*bottom:var\(--kb,0px\);/)
-    expect(css).toMatch(/max-height:min\(90vh,calc\(var\(--vvh,100dvh\) - var\(--sat\) - 8px\)\)/)
+    expect(css).toMatch(/max-height:min\(90vh,calc\(var\(--vvh,100%\) - var\(--sat\) - 8px\)\)/)
     expect(css).not.toContain('--picker-keyboard-bottom')
   })
 
