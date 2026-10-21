@@ -64,7 +64,12 @@ export function useWorkout() {
   const entries = A?.entries || []
   // The event toasts (takeover, new best), each shown once and then taken.
   const [events, setEvents] = useState({ takeover: null, newBest: null })
-  const raise = (kind, ev) => setEvents(prev => ({ ...prev, [kind]: { ...ev, id: Date.now() + Math.random() } }))
+  // A counter, not a clock: two events raised in one tick keep the order they were raised in.
+  const eventSeq = useRef(0)
+  const raise = (kind, ev) => {
+    const id = ++eventSeq.current
+    setEvents(prev => ({ ...prev, [kind]: { ...ev, id } }))
+  }
   const take = kind => setEvents(prev => (prev[kind] ? { ...prev, [kind]: null } : prev))
   // Workout core-M3: the last exercise on screen that still had a set to do, so a finished one
   // looked back at offers "Back to Cable fly · set 2" (W1.36, the view's review.back).

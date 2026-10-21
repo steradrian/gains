@@ -11,7 +11,7 @@ import { t } from '../../lib/i18n.js'
 import { nav } from '../../lib/nav.js'
 import { back } from '../../lib/use-tab-nav.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
-import { fmtRest } from '../../lib/duration.js'
+import { fmtClock } from '../../lib/duration.js'
 import { addRoutineToSessionSheet, exitWorkoutEdit, finishWorkout, workoutDetailSheet } from '../../sheets.jsx'
 import Elapsed from '../../components/Elapsed.jsx'
 import BarToast from '../../ds/BarToast.jsx'
@@ -91,7 +91,7 @@ export default function WorkoutScreen() {
   const finish = editing ? finishWorkout : discards ? discardSheet : finishSheet
   const resting = !!rest && !rest.ready
   const restFooter = rest ? {
-    left: fmtRest(Math.max(0, rest.left)), label: rest.shown, progress: rest.progress, paused: rest.paused,
+    left: fmtClock(Math.max(0, rest.left)), label: rest.shown, progress: rest.progress, paused: rest.paused,
     onClock: restWheelSheet,
     onMinus: () => useUI.getState().addRest(-REST_STEP),
     onPlus: () => useUI.getState().addRest(REST_STEP),
@@ -167,7 +167,7 @@ export default function WorkoutScreen() {
             ready={!!rest?.ready} readyTitle={rest?.ready || undefined} readyLabel={t('Rest is over')}
             goText={rest?.go || t('Go')} goLabel={t('Start the next set')} onGo={() => useUI.getState().stopRest()}
             navLabel={t('Exercises')} prevLabel={footer.prev?.say} nextLabel={footer.next?.say} mapLabel={t('All exercises')}
-            clockLabel={rest ? t('{0}, {1} left. Change', rest.label, fmtRest(Math.max(0, rest.left))) : undefined}
+            clockLabel={rest ? t('{0}, {1} left. Change', rest.label, fmtClock(Math.max(0, rest.left))) : undefined}
             minusLabel={t('15 seconds less')} plusLabel={t('15 seconds more')} pauseLabel={t('Pause rest')} resumeLabel={t('Resume rest')}
             skipLabel={t('Skip rest')} stepText={t('15 s')} skipText={t('Skip')}
           />

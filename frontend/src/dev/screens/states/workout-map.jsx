@@ -41,5 +41,5 @@ registerScreens('Workout: drawers', [
     render: stage, mock: { S: pushA(FLY) }, play: open(() => workoutOptionsSheet()) },
   { id: 'W1.21', title: 'Workout settings', note: 'The step inside Options with the back button: Next exercise on its own, Rest timer, Sound, Plate loading, Effort per set, Keep screen on.',
     render: stage, mock: { S: pushA(FLY) },
-    play: async t => { await open(() => workoutOptionsSheet())(t); await t.click('Workout settings'); await t.wait(120) } },
+    play: async t => { await open(() => workoutOptionsSheet())(t); await t.click('Workout settingsNext exercise, rest, sound, plates'); await t.wait(120) } },
 ])

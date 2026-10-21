@@ -4,7 +4,7 @@
 import { exOr, figureOf, gifSrc, imgSrc, isCustomEx } from '../../lib/exercises.js'
 import { supersetUnits, unitOf, modeOf, setLabel, setUnitsTotal, setsDoneActive, lastEntryFor, pinnedNoteFor, exNoteFor, workoutVolume } from '../../lib/history.js'
 import { exerciseNameText, fmtDate, fmtNum, exCount } from '../../lib/format.js'
-import { fmtRest } from '../../lib/duration.js'
+import { fmtRest, fmtClock } from '../../lib/duration.js'
 import { t, tn } from '../../lib/i18n.js'
 import { sessionHistory } from '../../lib/backfill.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad } from '../../lib/plates.js'
@@ -368,7 +368,8 @@ export function setFields(S, entry, i, side = null) {
   const weight = field('w', isBw(cfg) ? t('Added ({0})', S.unit) : S.unit, step, {
     weight: true, owned, hint: owned ? null : t('{0} {1} steps', fmtNum(step), S.unit),
   })
-  const reps = field('r', t('Reps'), repStep(cfg), { hint: lastReps != null && lastReps === row.r ? t('same as last time') : null })
+  // A side's own count steps by one; the step of two belongs to the set's total over both sides.
+  const reps = field('r', t('Reps'), side ? 1 : repStep(cfg), { hint: lastReps != null && lastReps === row.r ? t('same as last time') : null })
   return { fields: bodyweight ? [reps] : [weight, reps], bodyweight }
 }
 
@@ -470,7 +471,7 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
         setLine: [sup ? t('{0} · {1}', labels[view.hero.idx], view.superset.round) : view.current.setLine, sideWord].filter(Boolean).join(' · '),
         side, fields, bodyweight,
         timed: mode === 'time',
-        startLabel: mode === 'time' ? t('Start · {0}', fmtRest(s.sec || 45)) : null,
+        startLabel: mode === 'time' ? t('Start · {0}', fmtClock(s.sec || 45)) : null,
         effort: EFFORT[kind] && mode === 'reps' && prev?.done && !isWarmupRow(prev) ? {
           i: prevI, field: EFFORT[kind].f, value: prev[EFFORT[kind].f] ?? null, options: EFFORT_OPTIONS[kind](),
           label: t('How hard was set {0}?', setNumberOf(entry.sets, prevI)),
@@ -548,8 +549,8 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       idx: work?.owner?.idx ?? null,
       sideLabel: sideWord,
       // An opted-in hold runs past its target with a negative left: "+0:03" and an empty ring.
-      leftText: view.hold.left < 0 ? '+' + fmtRest(-view.hold.left) : fmtRest(left),
-      detail: [t('of {0}', fmtRest(view.hold.of)), rounds > 1 ? t('round {0} of {1}', round, rounds) : null].filter(Boolean).join(' · '),
+      leftText: view.hold.left < 0 ? '+' + fmtClock(-view.hold.left) : fmtClock(left),
+      detail: [t('of {0}', fmtClock(view.hold.of)), rounds > 1 ? t('round {0} of {1}', round, rounds) : null].filter(Boolean).join(' · '),
       progress: view.hold.of ? Math.min(1, Math.max(0, 1 - left / view.hold.of)) : 0,
       tone: owner ? TONE[partOf(owner)] : 'main',
       ringLabel: [sideWord, tn('{0} second left', '{0} seconds left', left)].filter(Boolean).join(', '),
