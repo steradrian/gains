@@ -158,9 +158,12 @@ function missedDay(S, today) {
 }
 
 // On Eat, the food usually logged at the meal it is now: "Greek yogurt 2% · Your food · 170 g".
+// "Usual" takes two logs at that meal at least, and a meal with a name to say.
 function usualNow(data, today, now) {
   if (!data.nutrition) return null
   const slot = defaultMeal(data.ntSettings, now)
+  const mealName = String((data.mealNames || [])[slot] || '').trim()
+  if (!mealName) return null
   const since = daysAgo(today, 30)
   const counts = new Map()
   for (const d of data.days || []) {
@@ -168,10 +171,11 @@ function usualNow(data, today, now) {
     for (const i of d.items) if (i.meal === slot && i.food_id != null) counts.set(String(i.food_id), (counts.get(String(i.food_id)) || 0) + 1)
   }
   const usual = [...counts].sort((a, b) => b[1] - a[1])[0]
-  const food = usual && (data.foods || []).find(f => String(f.id) === usual[0])
+  if (!usual || usual[1] < 2) return null
+  const food = (data.foods || []).find(f => String(f.id) === usual[0])
   if (!food) return null
   const row = foodRow(food)
-  return { ...row, reason: t('Usual at {0}', (data.mealNames || [])[slot] || ''), sub: stageSub(row) }
+  return { ...row, reason: t('Usual at {0}', mealName), sub: stageSub(row) }
 }
 
 // On Eat, the saved meal used most: "Usual breakfast · Saved meal · 485 kcal".

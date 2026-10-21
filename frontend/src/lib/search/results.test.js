@@ -160,6 +160,16 @@ describe('the local search', () => {
     expect(scopedSections('exercises', [])).toEqual([])
   })
 
+  it('scoped to workouts: one with no date goes last in its own untitled section, never under this month', () => {
+    const rows = [
+      { key: 'workout:u', id: 'u', workout: { id: 'u', entries: [] } },
+      { key: 'workout:b', id: 'b', workout: { id: 'b', d: '2026-10-12', entries: [] } },
+      { key: 'workout:x', id: 'x', workout: { id: 'x', d: 'garbage', entries: [] } },
+    ]
+    const sections = scopedSections('workouts', rows, today)
+    expect(sections.map(s => [s.key, s.title, s.rows.map(r => r.id)])).toEqual([['2026-10', 'October', ['b']], ['undated', null, ['u', 'x']]])
+  })
+
   it('says what a scoped group holds', () => {
     expect(scopedSummary('workouts', 6, ' press ')).toBe('6 workouts with “press”, newest first')
     expect(scopedSummary('exercises', 4, 'press')).toBe('4 exercises with “press”')
@@ -245,6 +255,17 @@ describe('before typing', () => {
     expect(rows[0]).toMatchObject({ type: 'food', id: 12, sub: 'Lunch, 2 times this week' })
     expect(rows.at(-1)).toMatchObject({ type: 'meal', id: 21, sub: expect.stringMatching(/^Saved meal/) })
     expect(new Set(rows.map(r => r.key)).size).toBe(rows.length)
+  })
+
+  it('Eat: "Usual at" a meal takes two logs of the food at it, and a meal with a name', () => {
+    const at = (date, ...items) => ({ date, items: items.map(([food_id, meal], i) => ({ uuid: date + i, name: 'x', meal, food_id })) })
+    const usual = rows => rows.find(r => r.reason?.startsWith('Usual at'))
+    const twice = [at('2026-10-13', [12, 2], [11, 1]), at('2026-10-14', [12, 2], [12, 2], [11, 1])]
+    expect(usual(suggestionsFor('food', data({ days: twice, meals: [] }), now))).toMatchObject({ type: 'food', id: 11, reason: 'Usual at Lunch' })
+    const once = [at('2026-10-13', [12, 2]), at('2026-10-14', [12, 2], [12, 2], [11, 1])]
+    expect(usual(suggestionsFor('food', data({ days: once, meals: [] }), now))).toBeUndefined()
+    const unnamed = ['Breakfast', ' ', 'Dinner', 'Snacks']
+    expect(usual(suggestionsFor('food', data({ days: twice, meals: [], mealNames: unnamed }), now))).toBeUndefined()
   })
 
   it('first use until a search is run; a suggestion already in Recent shows once, in Recent', () => {

@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
 // Nothing matches (board Sh0None) and no such exercise (Sh0NoExercise): what is said, and only the
 // ways on that apply, in the board's order.
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CATALOGUE } from '../exercises.js'
 import { exerciseNameText } from '../format.js'
 import { exerciseMiss, noneActions, noneHeading } from './none.js'
+import { noteOpened, useRecents } from './recents.js'
 import { searchLocal } from './results.js'
 
 const byId = new Map(CATALOGUE.map(ex => [ex.id, ex]))
@@ -37,6 +38,33 @@ describe('nothing matches', () => {
     expect(kinds({ data: { nutrition: false }, online: 'off' })).toEqual(['create-exercise'])
     for (const online of ['ready', 'offline', 'off', 'error']) expect(kinds({ online })).toEqual(['create-food', 'create-exercise'])
     expect(noneActions({ query: '  ', data: data() })).toEqual([])
+  })
+})
+
+describe('Did you mean', () => {
+  const foods = [{ id: 7, name: 'Rice cake', portion: 1, unit: 'g', nutrition: { calories: 1 } }, { id: 8, name: 'Rice bake', portion: 1, unit: 'g', nutrition: { calories: 1 } }]
+  afterEach(() => useRecents.setState({ opened: {} }))
+
+  it('on a tie, takes the one opened more often from search', () => {
+    const near = () => noneActions({ query: 'rice xake', data: data({ foods, exercises: [] }) }).find(a => a.kind === 'near')
+    expect(near().name).toBe('Rice cake')
+    noteOpened('food:8')
+    expect(near()).toMatchObject({ name: 'Rice bake', row: { type: 'food', id: 8 } })
+  })
+
+  it('folds the 5,600 exercise names once per list and language, not on every search', () => {
+    const d = data()
+    const nameOf = vi.fn(d.nameOf)
+    const same = { ...d, nameOf }
+    noneActions({ query: 'qqzzxxv', data: same })
+    const once = nameOf.mock.calls.length
+    expect(once).toBeGreaterThan(1000)
+    noneActions({ query: 'qqzzxxvw', data: same })
+    noneActions({ query: 'protien bar', data: same })
+    expect(nameOf.mock.calls.length).toBe(once)
+    // Another language (a new nameOf) reads the names again.
+    noneActions({ query: 'qqzzxxv', data: { ...same, nameOf: vi.fn(d.nameOf) } })
+    expect(nameOf.mock.calls.length).toBe(once)
   })
 })
 

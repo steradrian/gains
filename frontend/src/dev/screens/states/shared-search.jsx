@@ -77,7 +77,7 @@ registerScreens('Shared: search', [
   state('H0.5', 'Only workouts', 'A kind picked from the counts: the chip in the field, every match by month.',
     { tab: 'home', query: 'press', group: 'workouts' }),
   state('H0.6', 'Nothing matches', 'Did you mean, Create food, Create exercise, Search Open Food Facts.',
-    { tab: 'me', query: 'protien bar' }),
+    { tab: 'me', query: 'proteinbar' }),
   state('H0.7', 'Recent cleared', 'Recent is gone at once; the toast offers Undo for 8 s (held here).',
     { tab: 'home', recents: [] }, {
       play: async t => {
@@ -88,8 +88,10 @@ registerScreens('Shared: search', [
     }),
   state('H0.8', 'A feature that is off', 'Fasting is off: one card with Turn on and Features, then what still matches.',
     { tab: 'home', query: 'fast' }),
+  // The exercise search forgives a lot ("cable Y raise" finds a dozen cable raises), so the miss is
+  // a name it cannot reach that is one typo from a real one.
   state('H0.9', 'No such exercise', 'From Train: Create the name first, then the nearest name.',
-    { tab: 'train', query: 'cable Y raise' }),
+    { tab: 'train', query: 'sissy squatt' }),
   state('T6.9', 'New exercise, named', 'Create from H0.9: the custom-exercise sheet with the typed name, until Train\'s New exercise page (T6.4).',
     { tab: 'train', query: 'cable Y raise' }, {
       play: async t => { customExSheet(null, null, 'cable Y raise'); await t.wait(200) },

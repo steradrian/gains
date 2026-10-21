@@ -367,21 +367,26 @@ export function summaryOf(groups, order, extra = {}) {
 
 /**
  * A scoped group's rows as they read (board Sh0Scoped): workouts newest first in a section a
- * month, titled with the month (and the year when it is not this one); every other group one
- * section with no title, in the order it came. Returns [{ key, title, rows }].
+ * month, titled with the month (and the year when it is not this one), and the ones with no date
+ * last in a section of their own with no title (never under a month they are not in); every other
+ * group one section with no title, in the order it came. Returns [{ key, title, rows }].
  */
 export function scopedSections(group, rows, today = todayISO()) {
   if (group !== 'workouts') return rows.length ? [{ key: group, title: null, rows }] : []
-  const dayOf = r => (r.workout ? workoutDay(r.workout) || r.workout.d : r.media?.iso) || ''
-  const sorted = [...rows].sort((a, b) => String(dayOf(b)).localeCompare(String(dayOf(a))))
+  const dayOf = r => {
+    const d = String((r.workout ? workoutDay(r.workout) || r.workout.d : r.media?.iso) || '')
+    return /^\d{4}-\d{2}-\d{2}/.test(d) ? d : ''
+  }
+  const sorted = [...rows].sort((a, b) => dayOf(b).localeCompare(dayOf(a)))
   const out = []
   for (const r of sorted) {
-    const month = String(dayOf(r)).slice(0, 7)
+    const month = dayOf(r).slice(0, 7)
     let sec = out.at(-1)
-    if (!sec || sec.key !== month) {
-      const d = new Date((month || today.slice(0, 7)) + '-15T12:00:00')
-      const title = d.toLocaleDateString(dateLocale(), month.slice(0, 4) === today.slice(0, 4) ? { month: 'long' } : { month: 'long', year: 'numeric' })
-      sec = { key: month, title, rows: [] }
+    if (!sec || sec.key !== (month || 'undated')) {
+      const title = month
+        ? new Date(month + '-15T12:00:00').toLocaleDateString(dateLocale(), month.slice(0, 4) === today.slice(0, 4) ? { month: 'long' } : { month: 'long', year: 'numeric' })
+        : null
+      sec = { key: month || 'undated', title, rows: [] }
       out.push(sec)
     }
     sec.rows.push(r)

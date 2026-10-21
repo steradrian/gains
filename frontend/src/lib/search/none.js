@@ -2,7 +2,8 @@
 // Pure: each action says what it is (`kind`), and components/search/open-result.js
 // `runNoneAction` carries it out.
 import { t } from '../i18n-core.js'
-import { nearest } from './match.js'
+import { fold, nearest } from './match.js'
+import { openedScore } from './recents.js'
 import { exerciseRow, foodRow, stageSub } from './results.js'
 import { searchTab } from './scopes.js'
 
@@ -24,17 +25,40 @@ export function noneHeading(query, mode) {
     : { title: t('Nothing matches “{0}”', q), body: t('Try another word, or make it yourself.') }
 }
 
-// The nearest name among your foods and the exercises (or the exercises alone), as its row.
-function didYouMean(q, data, exercisesOnly) {
-  const foods = exercisesOnly || !data.nutrition ? [] : (data.foods || []).filter(f => f?.name)
-  const names = new Map()
-  for (const f of foods) if (!names.has(f.name)) names.set(f.name, () => foodRow(f))
-  for (const ex of data.exercises || []) {
-    const name = data.nameOf(ex.id)
-    if (name && !names.has(name)) names.set(name, () => exerciseRow(ex, data.S, []))
+// The names Did you mean looks through, folded once per list (5,600 exercises): your foods by
+// their list, the exercises by theirs and the names they are shown by (nameOf changes with the
+// language). Each { text, folded, key, make }: `key` the row's (frecency), `make` builds the row.
+const foodNames = new WeakMap()
+const exerciseNames = new WeakMap()
+function namesOfFoods(foods) {
+  let list = foodNames.get(foods)
+  if (!list) {
+    list = foods.filter(f => f?.name).map(f => ({ text: f.name, folded: fold(f.name), key: 'food:' + f.id, make: () => foodRow(f) }))
+    foodNames.set(foods, list)
   }
-  const near = nearest(q, [...names.keys()])
-  return near ? { name: near, row: names.get(near)() } : null
+  return list
+}
+function namesOfExercises(exercises, nameOf, S) {
+  const hit = exerciseNames.get(exercises)
+  if (hit && hit.nameOf === nameOf) return hit.list
+  const list = []
+  for (const ex of exercises) {
+    const name = nameOf(ex.id)
+    if (name) list.push({ text: name, folded: fold(name), key: 'exercise:' + ex.id, make: () => exerciseRow(ex, S, []) })
+  }
+  exerciseNames.set(exercises, { nameOf, list })
+  return list
+}
+
+// The nearest name among your foods and the exercises (or the exercises alone), as its row; on a
+// tie the one opened more often from search.
+function didYouMean(q, data, exercisesOnly) {
+  const foods = exercisesOnly || !data.nutrition || !Array.isArray(data.foods) ? [] : namesOfFoods(data.foods)
+  const exercises = Array.isArray(data.exercises) ? namesOfExercises(data.exercises, data.nameOf, data.S) : []
+  const seen = new Set()
+  const names = [...foods, ...exercises].filter(n => !seen.has(n.text) && seen.add(n.text))
+  const near = nearest(q, names, n => openedScore(n.key))
+  return near ? { name: near.text, row: near.make() } : null
 }
 
 /**
