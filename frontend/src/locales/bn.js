@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'বেশি ভরা বিন্দু মানে কম শক্তি বাকি। কম {0}-এ একই ওজন এমন অগ্রগতি, যা শুধু রেখা দেখায় না।',
   // --- licences (Settings, About) ---
   'Licences': 'লাইসেন্স',
   'It comes with no warranty, to the extent the law allows.': 'আইন যতটা অনুমতি দেয়, ততটুকু পর্যন্ত এর সঙ্গে কোনো ওয়ারেন্টি নেই।',

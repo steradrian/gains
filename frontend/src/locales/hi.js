@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'ज़्यादा भरा बिंदु मतलब टंकी में कम बचा। वही वज़न कम {0} पर उठाना ऐसी प्रगति है जो अकेली लाइन नहीं दिखाती।',
   // --- licences (Settings, About) ---
   'Licences': 'लाइसेंस',
   'It comes with no warranty, to the extent the law allows.': 'क़ानून जितनी अनुमति देता है, उस सीमा तक इसके साथ कोई वारंटी नहीं है।',

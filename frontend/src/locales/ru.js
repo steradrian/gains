@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'Более плотная точка означает меньше запаса. Тот же вес при меньшем {0} тоже прогресс, хотя одна линия его не показывает.',
   // --- licences (Settings, About) ---
   'Licences': 'Лицензии',
   'It comes with no warranty, to the extent the law allows.': 'Гарантий нет в той мере, в какой это допускает закон.',

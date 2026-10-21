@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'จุดที่เต็มกว่าหมายถึงเหลือแรงน้อยกว่า น้ำหนักเท่าเดิมที่ {0} ต่ำกว่าคือความคืบหน้าที่กราฟเส้นอย่างเดียวไม่บอก',
   // --- licences (Settings, About) ---
   'Licences': 'ใบอนุญาต',
   'It comes with no warranty, to the extent the law allows.': 'ไม่มีการรับประกันใด ๆ ภายในขอบเขตที่กฎหมายอนุญาต',

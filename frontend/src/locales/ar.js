@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'النقطة الأكثر امتلاءً تعني أن ما تبقى في الخزان أقل. نفس الوزن عند {0} أقل تقدّم لا يُظهره الخط وحده.',
   // --- licences (Settings, About) ---
   'Licences': 'التراخيص',
   'It comes with no warranty, to the extent the law allows.': 'لا يأتي مع أي ضمان، بالقدر الذي يسمح به القانون.',

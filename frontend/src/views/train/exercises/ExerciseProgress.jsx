@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Icon from '../../../components/Icon.jsx'
-import LegacyLineChart from '../../../components/LineChart.jsx'
 import { Thumb } from '../../../components/Media.jsx'
 import OneRmCalculator from '../../../components/OneRmCalculator.jsx'
 import PastSetsList from '../../../components/PastSetsList.jsx'
@@ -188,23 +187,28 @@ export default function ExerciseProgress() {
       </p>
     )
   } else if (p.onSets) {
-    chart = (
-      <div className="g-xp-light">
-        <div className="chart">
-          <LegacyLineChart points={p.perSetChart.anchors} series={p.perSetChart.series} h={150} unit={p.perSet.metric === 'reps' ? t('reps') : S.unit} label={caption} />
-        </div>
-        <span className="g-xp-keys">
-          {p.perSetChart.ns.map(n => <span key={n}><i className={'set-key set-key-' + n} aria-hidden="true" />{t('Set {0}', n)}</span>)}
+    // One line per set number, on the anchoring sessions' dates; a set number a session did not
+    // reach leaves a gap.
+    const anchors = p.perSetChart.anchors
+    const setUnit = p.perSet.metric === 'reps' ? t('reps') : S.unit
+    chart = <>
+      <LineChart
+        tone="stage" label={caption} unit={setUnit} labels={axisOf(anchors)}
+        values={anchors.map(a => a.y)}
+        pointLabels={anchors.map(a => fmtDate(a.d, true) + (a.note ? ': ' + a.note : ''))}
+        series={p.perSetChart.series.map(s => ({ color: s.color, values: anchors.map(a => s.points.find(q => q.t === a.t)?.y ?? null) }))}
+      />
+      <span className="g-xp-keys">
+        {p.perSetChart.ns.map(n => <span key={n}><i className={'set-key set-key-' + n} aria-hidden="true" />{t('Set {0}', n)}</span>)}
+      </span>
+      {(p.perSet.drop || p.perSet.hidden > 0) && (
+        <span className="g-xp-fine">
+          {p.perSet.drop && t('Where you most often drop off: set {0} ({1} of {2} workouts)', p.perSet.drop.n, p.perSet.drop.count, p.perSet.drop.of)}
+          {p.perSet.drop && p.perSet.hidden > 0 ? ' · ' : ''}
+          {p.perSet.hidden > 0 && t('Only the first {0} sets are drawn.', p.perSet.ns.length)}
         </span>
-        {(p.perSet.drop || p.perSet.hidden > 0) && (
-          <span className="g-xp-fine">
-            {p.perSet.drop && t('Where you most often drop off: set {0} ({1} of {2} workouts)', p.perSet.drop.n, p.perSet.drop.count, p.perSet.drop.of)}
-            {p.perSet.drop && p.perSet.hidden > 0 ? ' · ' : ''}
-            {p.perSet.hidden > 0 && t('Only the first {0} sets are drawn.', p.perSet.ns.length)}
-          </span>
-        )}
-      </div>
-    )
+      )}
+    </>
   } else {
     // Effort reads the other way when it is counted in reps left: fewer is a harder set, so the
     // line is drawn flipped and the readout keeps the real number.
@@ -212,6 +216,7 @@ export default function ExerciseProgress() {
       <LineChart
         tone="stage" label={caption} unit={chartUnit} labels={axisOf(points)}
         values={points.map(x => (p.onEff && p.kind === 'rir' ? -x.y : x.y))}
+        marks={p.shown === 'top' ? points.map(x => x.m) : undefined}
         pointLabels={points.map(x => fmtDate(x.d, true) + ': ' + fmtNum(x.y) + ' ' + chartUnit + (x.note ? ' · ' + x.note : ''))}
       />
     )
@@ -238,6 +243,9 @@ export default function ExerciseProgress() {
         {p.options.length > 1 && <StageSegmented label={t('Chart')} value={p.shown} onChange={setPicked} options={p.options} />}
         {chart}
         {!chartShort && !p.onSets && <p className="g-xp-fine">{caption}</p>}
+        {!chartShort && p.shown === 'top' && p.showEff && (
+          <p className="g-xp-fine">{t('A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.', hd)}</p>
+        )}
         <StatTiles tone="stage" items={tiles} />
         {bests.length > 0 && <>
           <StageSection title={t('New bests')} />

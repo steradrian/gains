@@ -11,7 +11,7 @@ import { fmtDate, fmtMonth } from '../../../lib/format.js'
 import ExerciseProgress from './ExerciseProgress.jsx'
 
 const mocks = vi.hoisted(() => ({
-  charts: [], legacyCharts: [], S: null, search: '', nav: vi.fn(), selectSheet: vi.fn(),
+  charts: [], S: null, search: '', nav: vi.fn(), selectSheet: vi.fn(),
   exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(),
 }))
 vi.mock('../../../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
@@ -22,9 +22,8 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../../../lib/use-tab-nav.js', () => ({ back: vi.fn(), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
 vi.mock('../../../sheets.jsx', () => ({ exerciseDetailSheet: mocks.exerciseDetailSheet, workoutDetailSheet: mocks.workoutDetailSheet }))
 vi.mock('../../../components/ui.jsx', async importOriginal => ({ ...(await importOriginal()), selectSheet: mocks.selectSheet }))
-// The kit's line and the legacy multi-line chart (the per-set lines), recorded by their props.
+// The kit's line, recorded by its props: the one line, its marks, or the per-set series.
 vi.mock('../../../ds/LineChart.jsx', () => ({ default: props => { mocks.charts.push(props); return null } }))
-vi.mock('../../../components/LineChart.jsx', () => ({ default: props => { mocks.legacyCharts.push(props); return null } }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const BENCH = '0025'
@@ -49,7 +48,7 @@ const SPREAD = () => [session(400, 100), session(200, 90), session(60, 70), sess
 let root, host
 afterEach(() => {
   act(() => root.unmount()); host.remove()
-  mocks.charts = []; mocks.legacyCharts = []; mocks.search = ''
+  mocks.charts = []; mocks.search = ''
   for (const key of ['nav', 'selectSheet', 'exerciseDetailSheet', 'workoutDetailSheet']) mocks[key].mockClear()
 })
 
@@ -115,9 +114,10 @@ describe('Progress: the hero, the metric and the date range', () => {
     expect(all).toBe(5)
     expect(exChart().values).toHaveLength(2)
     press('Per set')
-    const chart = mocks.legacyCharts.at(-1)
-    expect(chart.points).toHaveLength(2)
-    expect(chart.series.every(s => s.points.length === 2)).toBe(true)
+    const chart = exChart()
+    expect(chart.values).toHaveLength(2)
+    expect(chart.series.length).toBeGreaterThan(1)
+    expect(chart.series.every(s => s.values.filter(v => v != null).length === 2)).toBe(true)
   })
 
   it('writes a picked range to the address with replace, keeping ex', () => {
@@ -247,12 +247,28 @@ describe('Progress: metric segment and hero', () => {
     expect(host.textContent).toContain('Most reps in a Max set per workout')
   })
 
-  it('keeps the per-set lines on a card of their own, with the key and the drop-off', () => {
+  it('draws the per-set lines as series of the kit chart, with the key and a readout per session', () => {
     mount(SPREAD())
     press('Per set')
     expect(on('Chart')).toEqual(['Per set'])
     expect(host.querySelectorAll('.g-xp-keys .set-key').length).toBeGreaterThan(0)
-    expect(mocks.legacyCharts.at(-1).label).toContain('one line per set number')
+    expect(exChart().label).toContain('one line per set number')
+    expect(exChart().series[0].color).toBe('var(--blue)')
+    expect(exChart().series[0].values).toHaveLength(5)
+    expect(exChart().pointLabels).toHaveLength(5)
+    expect(exChart().marks).toBeUndefined()
+  })
+
+  it('carries the effort of each top set as a mark on the line, and says what a fuller dot means', () => {
+    const rated = ago => session(ago, 80, { max: true, r: 12, rir: 1 })
+    mount([rated(20), rated(10), rated(3)])
+    press('Top')
+    expect(exChart().marks).toHaveLength(3)
+    expect(exChart().marks.some(m => m != null)).toBe(true)
+    expect(host.textContent).toContain('A fuller dot means less left in the tank.')
+    press('1RM')
+    expect(exChart().marks).toBeUndefined()
+    expect(host.textContent).not.toContain('A fuller dot')
   })
 })
 

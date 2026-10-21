@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'Щільніша крапка означає менше запасу. Та сама вага при нижчому {0} теж прогрес, якого сама лінія не показує.',
   // --- licences (Settings, About) ---
   'Licences': 'Ліцензії',
   'It comes with no warranty, to the extent the law allows.': 'Гарантій немає в тій мірі, в якій це дозволяє закон.',

@@ -999,6 +999,9 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-lc-area { fill: var(--g-lc); fill-opacity: 0.12; }
 .g-lc-cursor { stroke: var(--g-lc); stroke-opacity: 0.45; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .g-lc-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--g-lc); pointer-events: none; }
+.g-lc-series { fill: none; stroke: var(--g-s); stroke-width: var(--g-sw); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.g-lc-sdot { position: absolute; width: calc(var(--g-sw) + 2px); height: calc(var(--g-sw) + 2px); transform: translate(-50%, -50%); border-radius: 50%; background: var(--g-s); pointer-events: none; }
+.g-lc-mark { position: absolute; width: var(--g-m); height: var(--g-m); transform: translate(-50%, -50%); border-radius: 50%; background: var(--g-lc); opacity: var(--g-mo); pointer-events: none; }
 .g-lc-dot-on { width: 14px; height: 14px; margin: -7px 0 0 -7px; box-shadow: 0 0 0 3px var(--surface); }
 .g-lc.g-chart-stage .g-lc-dot-on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); }
 .g-lc-tip { position: absolute; top: 0; left: clamp(20%, var(--x), 80%); transform: translateX(-50%); max-width: 100%; box-sizing: border-box; padding: 4px 10px; border-radius: 999px; background: var(--text); color: var(--surface); font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }

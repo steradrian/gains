@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'Un punto más lleno significa menos reserva. El mismo peso con un {0} más bajo es progreso que la línea sola no muestra.',
   // --- licences (Settings, About) ---
   'Licences': 'Licencias',
   'It comes with no warranty, to the extent the law allows.': 'No ofrece ninguna garantía, en la medida que permita la ley.',

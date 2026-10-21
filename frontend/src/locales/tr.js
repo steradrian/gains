@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'Daha dolu bir nokta, depoda daha az kaldı demek. Aynı ağırlığı daha düşük {0} ile kaldırmak, çizginin tek başına göstermediği bir ilerleme.',
   // --- licences (Settings, About) ---
   'Licences': 'Lisanslar',
   'It comes with no warranty, to the extent the law allows.': 'Yasaların izin verdiği ölçüde hiçbir garanti verilmez.',

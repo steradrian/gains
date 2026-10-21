@@ -234,6 +234,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': '圓點越飽滿，代表油箱裡剩得越少。同樣的重量配上更低的 {0}，是光看線條看不出來的進步。',
   // --- licences (Settings, About) ---
   'Licences': '授權條款',
   'It comes with no warranty, to the extent the law allows.': '在法律允許的範圍內，本軟體不提供任何保證。',

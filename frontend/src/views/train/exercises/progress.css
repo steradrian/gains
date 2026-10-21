@@ -21,11 +21,9 @@
 .g-xp-fine { font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
 .g-xp > p.g-xp-fine { margin-block: -6px 0; padding-inline: 4px; }
 
-/* The per-set lines and the estimated 1RM calculator are the app's own light components, kept
-   legible on the stage on a card. */
+/* The estimated 1RM calculator is the app's own light component, kept legible on the stage on a card. */
 .g-xp-light { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: var(--surface); color: var(--text); }
-.g-xp-light .g-xp-fine { color: var(--text-3); }
-.g-xp-keys { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 500 14px/18px var(--font-sans); color: var(--text-2); }
+.g-xp-keys { display: flex; flex-wrap: wrap; gap: 6px 16px; padding-inline: 4px; font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
 .g-xp-keys > span { display: inline-flex; align-items: center; gap: 8px; }
 
 .g-xp-list { display: flex; flex-direction: column; gap: 8px; }

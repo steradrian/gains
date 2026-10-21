@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'A teltebb pont kevesebb tartalékot jelent. Ugyanaz a súly alacsonyabb {0} mellett olyan fejlődés, amit a vonal magában nem mutat.',
   // --- licences (Settings, About) ---
   'Licences': 'Licencek',
   'It comes with no warranty, to the extent the law allows.': 'Nem jár hozzá garancia, a jogszabályok által megengedett mértékben.',

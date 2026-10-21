@@ -75,6 +75,47 @@ describe('LineChart', () => {
     expect(view.host.firstElementChild).toBeNull()
   })
 
+  it('marks a point with a second reading: a dot per mark, bigger and more solid as it nears 1', () => {
+    view.render(<LineChart values={[10, 12, 14]} marks={[0, null, 1]} label="x" />)
+    const marks = [...view.host.querySelectorAll('.g-lc-mark')]
+    expect(marks).toHaveLength(2)
+    expect(marks[0].style.getPropertyValue('--g-m')).toBe('5px')
+    expect(marks[1].style.getPropertyValue('--g-m')).toBe('11px')
+    expect(Number(marks[0].style.getPropertyValue('--g-mo'))).toBeLessThan(Number(marks[1].style.getPropertyValue('--g-mo')))
+    expect(marks[1].style.left).toBe('100%')
+  })
+
+  it('draws no mark dots without marks', () => {
+    view.render(<LineChart values={[10, 12]} label="x" />)
+    expect(view.host.querySelector('.g-lc-mark')).toBeNull()
+  })
+
+  it('draws a line per series instead of the single line, nested widest first, breaking at a gap', () => {
+    view.render(<LineChart values={[30, 40, 50, 60]} label="x" series={[
+      { values: [10, 20, 30, 40], color: 'blue' },
+      { values: [5, null, 25, 35], color: 'green' },
+    ]} />)
+    expect(view.host.querySelector('.g-lc-line')).toBeNull()
+    expect(view.host.querySelector('.g-lc-area')).toBeNull()
+    expect(view.host.querySelector('.g-lc-dot')).toBeNull()
+    const lines = [...view.host.querySelectorAll('.g-lc-series')]
+    // the first series is one run; the second breaks at its null, and the 5 and the 25-35 pair remain
+    expect(lines).toHaveLength(2)
+    expect(lines[0].style.getPropertyValue('--g-s')).toBe('blue')
+    expect(parseFloat(lines[0].style.getPropertyValue('--g-sw'))).toBeGreaterThan(parseFloat(lines[1].style.getPropertyValue('--g-sw')))
+    expect(lines[0].getAttribute('points').split(' ')).toHaveLength(4)
+    expect(lines[1].getAttribute('points').split(' ')).toHaveLength(2)
+    // a dot for every point of every series, so a lone point shows
+    expect(view.host.querySelectorAll('.g-lc-sdot')).toHaveLength(7)
+  })
+
+  it('keeps the readout on the anchoring values when there are series', () => {
+    view.render(<LineChart values={[10, 20]} pointLabels={['a: 1', 'b: 2']} label="x" series={[{ values: [10, 20], color: 'blue' }, { values: [8, 15], color: 'green' }]} />)
+    move(view.host.querySelector('.g-lc-plot'), 290)
+    expect(view.host.querySelector('.g-lc-tip').textContent).toBe('b: 2')
+    expect(items()).toEqual(['a: 1', 'b: 2'])
+  })
+
   it('is white by default, glass on the stage, and refuses another tone', () => {
     view.render(<LineChart values={[1, 2]} label="x" />)
     expect(view.host.firstElementChild.classList.contains('g-chart-stage')).toBe(false)

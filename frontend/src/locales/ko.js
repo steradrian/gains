@@ -235,6 +235,7 @@ export default {
   '1 month': '1 month',
   '3 months': '3 months',
   '1 year': '1 year',
+  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': '점이 꽉 찰수록 남은 여력이 적다는 뜻이에요. 같은 무게를 더 낮은 {0}(으)로 들었다면, 선만 봐서는 안 보이는 발전이에요.',
   // --- licences (Settings, About) ---
   'Licences': '라이선스',
   'It comes with no warranty, to the extent the law allows.': '법이 허용하는 범위에서 어떠한 보증도 제공되지 않습니다.',
