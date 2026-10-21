@@ -1922,9 +1922,7 @@ export const PT_BR_OVERRIDES = {
   'Losing strength': 'Perdendo força',
   'Most reps in a Max set': 'Mais reps em uma série Máx',
   'Most reps in a set': 'Mais reps em uma série',
-  'Not in your plan this week': 'Fora do seu plano esta semana',
   'Nothing to chart yet': 'Ainda não há nada para mostrar no gráfico',
-  'Tap a muscle to see its numbers.': 'Toque em um músculo para ver os números dele.',
 
   // --- the redesigned Training tab ---
   'Pick exercises as you go': 'Escolha os exercícios na hora',
