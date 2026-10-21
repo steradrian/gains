@@ -26,8 +26,10 @@ import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPas
 import { trainingRing, useTodayDate } from '../today/use-today.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
-// T2.14: the rail reaches eight weeks past this one.
+// T2.14: the rail reaches eight weeks past this one, and back no further than eight weeks before
+// it (or the week of the first workout): its size is bounded by today, not by the history.
 export const RAIL_AHEAD = 8
+export const RAIL_BEHIND = 8
 // The rail's weeks are Thu–Wed around today (PR02 boards): today sits fourth of seven.
 const DAYS_BEFORE = 3
 
@@ -81,13 +83,13 @@ export function railDay(S, iso, today, first) {
 }
 
 /**
- * The rail: `{ from, to, weeks }`, weeks from `from` (the week of the first workout, or this week
- * without one) to `to` (RAIL_AHEAD), each `{ offset, title, start, days }`. Later weeks read the
- * plan as it repeats (the weekdays, with any day changed on its own).
+ * The rail: `{ from, to, weeks }`, weeks from `from` (the week of the first workout, at most
+ * RAIL_BEHIND back, or this week without one) to `to` (RAIL_AHEAD), each `{ offset, title, start,
+ * days }`. Later weeks read the plan as it repeats (the weekdays, with any day changed on its own).
  */
 export function railOf(S, today) {
   const first = firstWorkoutDay(S)
-  const from = first && first < today ? Math.min(0, Math.floor(daysBetween(railWeekStart(today, 0), first) / 7)) : 0
+  const from = first && first < today ? Math.max(-RAIL_BEHIND, Math.min(0, Math.floor(daysBetween(railWeekStart(today, 0), first) / 7))) : 0
   const weeks = []
   for (let offset = from; offset <= RAIL_AHEAD; offset++) {
     const start = railWeekStart(today, offset)

@@ -73,6 +73,15 @@ describe('the rail', () => {
     expect(first.days.slice(0, 3).map(d => d.state)).toEqual(['plain', 'plain', 'done'])
   })
 
+  it('reaches back 8 weeks at most, however old the first workout: the rail is bounded by today', () => {
+    const rail = railOf(S({ workouts: [workout('w0', '2023-10-05', ['pull']), workout('w1', '2026-10-14', ['pull'])] }), TODAY)
+    expect(rail.from).toBe(-8)
+    expect(rail.weeks).toHaveLength(17)
+    expect(rail.weeks[0]).toMatchObject({ offset: -8, start: '2026-08-20' })
+    // A missed day the banner can name (a week back at most) is on the rail, so "See" reaches it.
+    expect(rail.weeks.some(w => w.days.some(d => d.iso === '2026-10-11'))).toBe(true)
+  })
+
   it('stops 8 weeks ahead, the plan repeating there as Planned', () => {
     const rail = railOf(S(), TODAY)
     expect(rail.to).toBe(8)

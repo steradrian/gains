@@ -112,17 +112,48 @@ describe('StageDayRail', () => {
       expect(view.host.querySelector('.g-rail-btn[aria-label="This week"]').classList.contains('g-rail-quiet')).toBe(false)
     })
 
-    it('has no › at the last week or when the caller says the rail stops, and no ‹ at the first', () => {
+    it('keeps both arrows, › disabled at the last week or when the caller says the rail stops, ‹ at the first', () => {
+      const disabled = () => [...view.host.querySelectorAll('.g-rail-btn')].map(b => b.getAttribute('aria-disabled') === 'true')
       view.render(rail({ week: 2 }))
-      expect(view.host.querySelectorAll('.g-rail-btn')).toHaveLength(1)
+      expect(disabled()).toEqual([false, true])
       view.render(rail({ week: 1, canForward: false, canBack: false }))
-      expect(view.host.querySelectorAll('.g-rail-btn')).toHaveLength(0)
+      expect(disabled()).toEqual([true, true])
       view.render(rail({ week: 0, home: 1 }))
-      expect(view.host.querySelectorAll('.g-rail-btn')).toHaveLength(1)
+      expect(disabled()).toEqual([true, false])
+    })
+
+    it('a keyboard step onto the last week keeps focus on the arrow', () => {
+      let week = 1
+      const onWeek = i => { week = i; view.render(rail({ week, onWeek, forwardLabel: 'Later' })) }
+      view.render(rail({ week, onWeek, forwardLabel: 'Later' }))
+      const next = view.host.querySelector('[aria-label="Later"]')
+      next.focus()
+      click(next)
+      expect(week).toBe(2)
+      const after = view.host.querySelector('[aria-label="Later"]')
+      expect(after).toBe(next)
+      expect(after.getAttribute('aria-disabled')).toBe('true')
+      expect(document.activeElement).toBe(next)
+      // At the end it asks for nothing.
+      click(after)
+      expect(week).toBe(2)
     })
   })
 
   describe('swiping', () => {
+    it('right to left (dir=rtl): a drag right asks for the next week, left for the one before', () => {
+      const onWeek = vi.fn()
+      view.host.setAttribute('dir', 'rtl')
+      view.render(rail({ onWeek }))
+      const el = view.host.querySelector('.g-rail-view')
+      el.style.direction = 'rtl'
+      swipe(el, 100, 220)
+      expect(onWeek).toHaveBeenLastCalledWith(2)
+      swipe(el, 300, 200)
+      expect(onWeek).toHaveBeenLastCalledWith(0)
+      view.host.removeAttribute('dir')
+    })
+
     it('a drag left past the threshold asks for the next week; right for the one before', () => {
       const onWeek = vi.fn()
       view.render(rail({ onWeek }))

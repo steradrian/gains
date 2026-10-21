@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { t } from '../../lib/i18n.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
 import Elapsed from '../../components/Elapsed.jsx'
@@ -65,23 +65,26 @@ export default function TrainScreen({
 }
 
 // The rail on the week of the selected day: it pages there when a day is picked elsewhere ("See
-// Monday"), and otherwise stays where it was swiped to.
+// Monday"), and otherwise stays where it was swiped to. The page is kept as a week offset from
+// today's, not an index: the rail's first week moves when older workouts arrive or the oldest is
+// deleted, and the same offset is still the same week.
 function Rail({ rail, selected, select, onPlan }) {
   const home = -rail.from
-  const weekOf = iso => rail.weeks.findIndex(w => w.days.some(d => d.iso === iso))
-  const [week, setWeek] = useState(() => { const at = weekOf(selected); return at >= 0 ? at : home })
+  const offsetOf = iso => rail.weeks.find(w => w.days.some(d => d.iso === iso))?.offset
+  const [offset, setOffset] = useState(() => offsetOf(selected) ?? 0)
   // Only a new selection moves the page; a swipe keeps it.
   useEffect(() => {
-    const at = weekOf(selected)
-    if (at >= 0) setWeek(at)
+    const at = offsetOf(selected)
+    if (at !== undefined) setOffset(at)
   }, [selected])
-  const shown = Math.min(week, rail.weeks.length - 1)
+  const shown = Math.min(Math.max(offset - rail.from, 0), rail.weeks.length - 1)
+  const weeks = useMemo(() => rail.weeks.map(w => w.days), [rail])
   return (
     <StageDayRail
-      weeks={rail.weeks.map(w => w.days)}
+      weeks={weeks}
       week={shown}
       home={home}
-      onWeek={setWeek}
+      onWeek={i => setOffset(rail.weeks[i].offset)}
       title={rail.weeks[shown].title}
       action={t('Plan')}
       onAction={onPlan}
