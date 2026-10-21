@@ -4,7 +4,6 @@
     "components/Heatmap.jsx": 1,
     "components/MuscleExplorer.jsx": 3,
     "components/Passkeys.jsx": 2,
-    "components/QueueRow.jsx": 7,
     "components/ServerSync.jsx": 2,
     "sheets/body-weight.jsx": 8,
     "sheets/confirm-menu.jsx": 1,
@@ -53,7 +52,6 @@
   "G3": {
     "components/DurationWheel.jsx": 1,
     "components/MuscleExplorer.jsx": 1,
-    "components/QueueRow.jsx": 3,
     "components/ServerSync.jsx": 1,
     "components/WorkoutChips.jsx": 1,
     "components/WorkoutSettingsSheet.jsx": 1,

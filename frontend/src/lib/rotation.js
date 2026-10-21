@@ -3,7 +3,7 @@
 //   S.rotation = null | { id: string, sequence: string[], label: string }
 //
 // `S.rotation` is a DEFINITION, never a live queue: what the calendar, the reminders and the MCP
-// resolve is always `S.queue`. `scheduleModeOf` is Home/Plan's own display choice: a live queue
+// resolve is always `S.queue`. `scheduleModeOf` is Train/Plan's own display choice: a live queue
 // always wins regardless of `S.scheduleMode` (an external writer never has to know the flag
 // exists), and the flag itself exists only to hold Rotation selected — weekday grid hidden, both
 // screens showing the rotation editor — from the moment it is chosen through to the first
@@ -156,7 +156,7 @@ const lastCreditDay = s => {
 
 /**
  * Plan's "Start new pass": throw the current pass away and begin the saved sequence again, right
- * now. Today is its first day, so Home, Start and the day sheet all name its first session as
+ * now. Today is its first day, so Train, Start and the day sheet all name its first session as
  * today's, and nothing logged before this moment counts for it (`strict`, queue.js): a session
  * done earlier today was the old pass's, even under the same routine name.
  */

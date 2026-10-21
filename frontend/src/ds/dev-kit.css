@@ -12,3 +12,5 @@
 .g-kit-list { margin: 0; padding: 0; list-style: none; color: var(--text); }
 .g-kit-list li { min-height: 56px; display: flex; align-items: center; border-bottom: 1px solid var(--line); font: 600 17px/22px var(--font-sans); }
 .g-kit-p { margin: 0; font: 500 17px/24px var(--font-sans); color: var(--text-2); }
+/* Train kit: a glass box for rows that are not a card of their own */
+.g-kit-glass { border-radius: 28px; overflow: hidden; }

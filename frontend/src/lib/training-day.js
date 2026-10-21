@@ -27,7 +27,7 @@ export function workoutsByDay(workouts) {
 }
 
 /**
- * What a day holds for training, as Home's hero and the Training hub's today row tell it. One
+ * What a day holds for training, as Train's day card and Today's training ring tell it. One
  * of (by `kind`):
  *   - 'editing'  an open editor on a saved workout (S.active with editingWorkoutId): not a session
  *                in progress, the way back to it is an edit;

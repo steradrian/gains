@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Stage } from './DevScreens.jsx'
 import { allScreens, screenAreas, screenById } from './registry.js'
+import { todayISO } from '../../lib/format.js'
 import { useStore } from '../../store/useStore.js'
 
 /* The screens gallery: every registered state renders its real screen, in its frame, with its
@@ -187,6 +188,75 @@ describe('the screens gallery', () => {
     await check('T1.6', s => expect(s.host.textContent).toContain('Added 250 ml of water to Today'))
     await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
   }, 20000)
+
+  it('has Train T2.0 and its states T2.3 and T2.7 to T2.14, the toasts held over the screen', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train').entries.map(e => e.id)
+    expect(ids).toEqual(['T2.0', 'T2.3', 'T2.7', 'T2.8', 'T2.9', 'T2.10', 'T2.11', 'T2.12', 'T2.13', 'T2.14'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const eyebrow = h => h.querySelector('.g-tcard-tags').textContent
+    await check('T2.0', h => {
+      expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(3)
+      expect([...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Routines', 'Your training'])
+      expect(eyebrow(h)).toBe('Today · planned')
+      expect(h.querySelectorAll('.g-rtile')).toHaveLength(4)
+    })
+    await check('T2.3', h => expect(eyebrow(h)).toBe('Mon 19 Oct · planned'))
+    await check('T2.7', h => expect(eyebrow(h)).toMatch(/^In progress · \d+:\d\d$/))
+    await check('T2.8', h => {
+      expect(h.querySelector('.train-banner').textContent).toContain('You missed Legs on Fri 16 Oct')
+      expect(h.querySelector('.g-rd-missed')).toBeTruthy()
+    })
+    await check('T2.9', h => {
+      expect(h.querySelector('.g-rail')).toBeNull()
+      expect(h.querySelector('.g-sempty').textContent).toContain('Add training')
+    })
+    await check('T2.10', h => expect(eyebrow(h)).toBe('Workout done'))
+    await check('T2.11', h => expect(eyebrow(h)).toBe('Rest day'))
+    await check('T2.12', h => expect(h.textContent).toContain('Moved Legs to today. Push A is now Tue 20 Oct'))
+    await check('T2.13', h => expect(h.textContent).toContain('Skipped Legs on Fri 16 Oct. Push A stays today'))
+    await check('T2.14', h => {
+      expect(eyebrow(h)).toBe('Sat 24 OctPlanned')
+      expect(h.querySelector('.g-rail-title').textContent).toBe('Next week')
+      expect(h.querySelectorAll('.g-tcard-rows .g-xrow')).toHaveLength(6)
+    })
+  }, 20000)
+
+  it('has the Train drawers T2.1 and T2.2, open over Train, and gives the store its own state back', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train: drawers').entries.map(e => e.id)
+    expect(ids).toEqual(['T2.1', 'T2.1e', 'T2.2'])
+    const own = useStore.getState().S
+    const drawer = async id => {
+      const host = await show(screenById(id))
+      expect(host.querySelector('.g-tcard'), id + ' is open over T2.0').toBeTruthy()
+      return host.querySelector('.g-bs')
+    }
+    const names = d => [...d.querySelectorAll('.g-tr-b > b')].map(b => b.textContent)
+    expect(names(await drawer('T2.1'))).toEqual(['Push A, Planned today', 'Pull A', expect.stringMatching(/^Legs, Missed /), 'Freestyle', 'Repeat a past workout'])
+    unmountAll()
+    expect(names(await drawer('T2.1e'))).toEqual(['Pick a ready-made plan', 'Create a routine', 'Import a plan file', 'Freestyle'])
+    unmountAll()
+    const options = await drawer('T2.2')
+    expect(options.querySelector('h2').textContent).toMatch(/ · Push A$/)
+    expect(options.textContent).toContain('Shoulder felt tight')
+    unmountAll()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+  }, 20000)
+
+  it('a tap in a mocked state changes memory only: the real saved copy is untouched and nothing is pushed', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const realUpdate = useStore.getState().update
+    const host = await show(screenById('T2.2'))
+    const rest = [...host.querySelectorAll('.g-bs button')].find(b => b.textContent.startsWith('Rest / skip this day'))
+    rest.click()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S.dayPlan).toMatchObject({ [todayISO()]: 'rest' })
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    unmountAll()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().update).toBe(realUpdate)
+    localStorage.removeItem('gym_state_v1')
+  }, 10000)
 
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
