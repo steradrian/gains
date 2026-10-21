@@ -8,7 +8,9 @@ import { keepRecentsThroughUserSwap } from '../../lib/search/recents.js'
 import { useStore } from '../../store/useStore.js'
 
 // `sync` is saved and put back too, so a state that shows another sync status leaves none behind.
-const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync']
+// `resetEverything` (Start over, reachable from the Account states) does nothing here: the real one
+// would write a wiped copy over this browser's own.
+const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync', 'resetEverything']
 
 /** A passkey prompt the person closed. */
 export const denied = () => Promise.reject(Object.assign(new Error('The operation either timed out or was not allowed.'), { name: 'NotAllowedError' }))
@@ -67,7 +69,7 @@ export function installMocks({ config = null, user = null, linkCode = null, weba
   useStore.setState({
     config, user, linkCode,
     setUser: () => {}, adoptProfile: async () => ({}), setGuest: () => {}, loadConfig: async () => config,
-    pushState: async () => {}, pullState: async () => {},
+    pushState: async () => {}, pullState: async () => {}, resetEverything: async () => {},
   })
   undo.push(() => useStore.setState(saved))
 
