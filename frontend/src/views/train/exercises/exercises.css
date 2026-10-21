@@ -81,6 +81,8 @@
 .g-xs-card { margin-inline: 16px; }
 .g-xs .g-sempty { margin-inline: 16px; }
 .g-xr { border-radius: 28px; overflow: hidden; }
+/* The card clips, so a row's focus ring is drawn inside it. */
+.g-xr .g-xrow:focus-visible { outline-offset: -2px; }
 .g-xr-star { display: inline-grid; vertical-align: -2px; margin-inline-end: 6px; }
 .g-xr-star .g-icon { width: 14px; height: 14px; }
 .g-xs-mcard { appearance: none; border: 0; width: calc(100% - 32px); box-sizing: border-box; display: flex; align-items: center; gap: 16px; margin-top: 12px; padding: 16px 18px; border-radius: 28px; color: var(--on-stage); font: inherit; text-align: start; cursor: pointer; }
