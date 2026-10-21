@@ -253,7 +253,7 @@ describe('the action row', () => {
     await mount(<FoodHub />)
     await click(action('Log food'))
     expect(sheets()).toHaveLength(1)
-    expect(sheets()[0].querySelector('.food-picker-sheet')).not.toBeNull()
+    expect(sheets()[0].querySelector('.g-bs .g-lf-search')).not.toBeNull()
     expect(sheets()[0].textContent).toContain('Log food')
   })
 

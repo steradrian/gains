@@ -162,7 +162,7 @@ describe('Home is the hub', () => {
     try {
       await mount(<Home />)
       await click(action('Log food'))
-      expect(lastSheet().querySelector('.food-picker-sheet .logging-to').textContent).toBe('Logging toToday · Lunch')
+      expect(lastSheet().querySelector('.g-bs .g-bs-chip').textContent).toBe('Today · Lunch')
     } finally { vi.useRealTimers() }
   })
 
@@ -176,7 +176,7 @@ describe('Home is the hub', () => {
     expect(pills()[1].getAttribute('aria-label')).toMatch(/^Lunch 450\b/)
     expect(pills()[2].getAttribute('aria-label')).toBe('Log food to Dinner')
     await click(pills()[2])
-    expect(lastSheet().querySelector('.logging-to').textContent).toBe('Logging toToday · Dinner')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Dinner')
   })
 
   it('Diary opens the whole day on Nutrition', async () => {
