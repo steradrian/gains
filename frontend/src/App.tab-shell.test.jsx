@@ -457,7 +457,7 @@ describe('back on a sub-page', () => {
 
   it('Profile, the Me tab\'s root, has nothing under it: back goes Home', async () => {
     await launch('#/home')
-    await click(document.querySelector('.avatar-btn'))
+    await click(tab('Me'))
     expect(hash()).toBe('#/me')
     await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
     expect(hash()).toBe('#/home')
