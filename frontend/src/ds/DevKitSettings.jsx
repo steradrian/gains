@@ -37,7 +37,7 @@ export default function DevKitSettings() {
 
       {/* Settings train m1 */}
       <Section title="LayoutTile" note="A drawn workout layout you can choose: a radio in a group the caller names. Cards is chosen; List, Compact and Focus are not.">
-        <div role="radiogroup" aria-label="Layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, maxWidth: 360 }}>
+        <div role="radiogroup" aria-label="Layout" className="g-ltile-grid">
           <LayoutTile layout="cards" label="Cards" selected onClick={NOOP} />
           <LayoutTile layout="list" label="List" onClick={NOOP} />
           <LayoutTile layout="compact" label="Compact" onClick={NOOP} />

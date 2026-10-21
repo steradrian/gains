@@ -134,9 +134,10 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining(['StagePage', 'GlassValueRow', 'StageSegmented', 'RadioRow', 'ChipGroup']))
     expect(view.host.querySelectorAll('.g-kit-page .g-screen-pushed')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-kit-page .g-spage-title')).toHaveLength(2)
-    expect(view.host.querySelectorAll('.g-gvr')).toHaveLength(4)
-    expect(view.host.querySelectorAll('.g-gvr-static')).toHaveLength(1)
-    expect(view.host.querySelectorAll('.g-sseg[role="radiogroup"]')).toHaveLength(3)
+    // the Settings prefs m1 kit block adds three static rows
+    expect(view.host.querySelectorAll('.g-gvr')).toHaveLength(7)
+    expect(view.host.querySelectorAll('.g-gvr-static')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-sseg[role="radiogroup"]')).toHaveLength(4)
     // The Day page's RadioRows (Shared: day) come after the Shared: pages heading.
     const sections = [...view.host.querySelectorAll('.g-kit-sec')]
     const train = sections.slice(0, sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: pages'))
@@ -181,7 +182,7 @@ describe('DevKit', () => {
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
     expect(titles).toEqual(expect.arrayContaining(['StageSwitch', 'BigStepper']))
     const switches = view.host.querySelectorAll('.g-sswitch')
-    expect(switches).toHaveLength(2)
+    expect(switches).toHaveLength(4) // two more in the Settings prefs m1 block
     expect(switches[0].getAttribute('aria-checked')).toBe('true')
     act(() => { switches[0].click() })
     expect(view.host.querySelectorAll('.g-sswitch')[0].getAttribute('aria-checked')).toBe('false')

@@ -93,7 +93,8 @@ afterEach(() => {
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
 // A legacy row is `.lrow` with a `.lrow-t`; a row on the stage is `.g-glist-row` with its title in the <b>.
 const rowTitled = title => [...host.querySelectorAll('.lrow, .g-glist-row')].find(r => (r.querySelector('.lrow-t') ?? r.querySelector('b'))?.textContent === title)
-const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row b')].map(e => e.textContent)
+// The layout tiles (a radiogroup, not a row) are a search hit of their own, named by their aria-label.
+const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row b, .set-tiles')].map(e => e.getAttribute('aria-label') ?? e.textContent)
 const valueOf = row => (row.querySelector('.g-gvr-val') || row.querySelector('.lrow-v')).textContent
 
 // This test's guest in a browser, as the page itself sees it.
@@ -634,7 +635,7 @@ describe('Appearance', () => {
       expect(sw.getAttribute('aria-checked')).toBe('true')
       expect(rowTitled('Reduce motion').querySelector('.lrow-s').textContent).toBe('On in your device settings, so it is on here too.')
       mount('features')
-      expect(rowTitled('Reduce motion').querySelector('.lrow-v').textContent).toBe('On')
+      expect(valueOf(rowTitled('Reduce motion'))).toBe('On')
     } finally { window.matchMedia = real }
   })
 })

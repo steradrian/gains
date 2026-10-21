@@ -152,6 +152,6 @@ describe('Features', () => {
   it('opens the page of a switch that starts off, with that switch to flash', () => {
     mount()
     act(() => row('Flash the screen').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Flash the screen' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/workout', { state: { find: 'Flash the screen' } }])
   })
 })

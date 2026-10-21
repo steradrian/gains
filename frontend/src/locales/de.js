@@ -3717,7 +3717,7 @@ export default {
   '− and + next to every number': '− and + next to every number',
   'On every set row': 'On every set row',
   'Drop and burst shortcuts': 'Drop and burst shortcuts',
-  'Superset buttons in the header': 'Superset buttons in the header',
+  'Superset buttons in the header': 'Superset-Tasten in der Kopfzeile',
   'Pair two exercises': 'Pair two exercises',
   'Move, swap and remove buttons': 'Move, swap and remove buttons',
   'Below each exercise': 'Below each exercise',

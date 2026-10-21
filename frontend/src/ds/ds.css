@@ -1847,7 +1847,8 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 
 /* Settings train m1: LayoutTile, a drawn workout layout you can choose */
 .g-ltile { appearance: none; border: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px 10px; border-radius: 20px; color: var(--on-stage-2); font: 600 13px/16px var(--font-sans); cursor: pointer; transition: color 200ms, background-color 200ms; }
-.g-ltile svg { width: 100%; max-width: 56px; height: auto; }
+.g-ltile svg { width: min(100%, 56px); height: auto; }
+.g-ltile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: min(100%, 360px); }
 .g-ltile.on { background: var(--on-stage); color: var(--accent-text); }
 .g-ltile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .g-ltile { transition: none; } }
