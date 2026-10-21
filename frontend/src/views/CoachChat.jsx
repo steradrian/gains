@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { closeThenNav } from '../lib/nav.js'
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtDate, isoOf } from '../lib/format.js'
 import { DEMO } from '../lib/demo.js'
@@ -165,7 +165,7 @@ export default function CoachChat() {
     <Spacer size={5} />
   </div>)
 
-  const showHistory = () => openSheet(close => <HistorySheet S={S} close={close} openSheet={openSheet} />)
+  const showHistory = () => openSheet(() => <HistorySheet S={S} openSheet={openSheet} />)
   const showCohort = () => openSheet(() => <CohortSheet S={S} update={update} toast={toast} />)
 
   const doRevert = () => confirmSheet({
@@ -182,15 +182,17 @@ export default function CoachChat() {
   const idle = !job && !pending
   const menu = () => openSheet(close => {
     const then = fn => () => { close(); fn() }
+    // What opens a sheet slides in over this menu instead (back returns to it).
+    const slide = fn => () => drawerFlow(fn)
     const items = [
       idle && { key: 'review', icon: 'chat', label: t('Ask for a review'), detail: t('What would the Coach change after your last sessions?'), onClick: then(askReview) },
       idle && !!lastWorkout && { key: 'debrief', icon: 'checkCircle', label: t('Review my last workout'), detail: t('What went well, what to watch, what to do next time'), onClick: then(askDebrief) },
-      idle && !!(S.routines || []).length && { key: 'improve', icon: 'wrench', label: t('Improve a routine'), detail: t('Pick one; the Coach works on just that'), onClick: then(pickRoutine) },
-      community && { key: 'cohort', icon: 'person', label: t('Compare with others here'), detail: t('Anonymous medians from this instance'), onClick: then(showCohort) },
-      { key: 'history', icon: 'history', label: t('Everything the Coach proposed'), detail: t('Plans, suggestions and debriefs, kept'), onClick: then(showHistory) },
+      idle && !!(S.routines || []).length && { key: 'improve', icon: 'wrench', label: t('Improve a routine'), detail: t('Pick one; the Coach works on just that'), onClick: slide(pickRoutine) },
+      community && { key: 'cohort', icon: 'person', label: t('Compare with others here'), detail: t('Anonymous medians from this instance'), onClick: slide(showCohort) },
+      { key: 'history', icon: 'history', label: t('Everything the Coach proposed'), detail: t('Plans, suggestions and debriefs, kept'), onClick: slide(showHistory) },
       idle && { key: 'plan', icon: 'clipboard', label: t('Start a new plan'), detail: t('A fresh plan from your answers; your workouts stay'), onClick: then(askNewPlan) },
       { key: 'intake', icon: 'pencil', label: t('Edit my answers'), detail: t('Goal, days, equipment, limits'), onClick: () => closeThenNav(close, '/train/coach/intake?edit=1') },
-      { key: 'cadence', icon: 'clock', label: t('Automatic reviews'), detail: cadenceLabel(coach), onClick: then(() => cadenceSheet(openSheet, update)) },
+      { key: 'cadence', icon: 'clock', label: t('Automatic reviews'), detail: cadenceLabel(coach), onClick: slide(() => cadenceSheet(openSheet, update)) },
       canRevert(S) && { key: 'revert', icon: 'reset', label: t('Undo the last Coach changes'), onClick: then(doRevert) },
     ].filter(Boolean)
     return <CoachMenu items={items} />

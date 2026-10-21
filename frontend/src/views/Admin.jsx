@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import { api } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
 import { t, tn } from '../lib/i18n.js'
@@ -98,7 +98,7 @@ function UserDetail({ id, onChanged, close }) {
     confirmText: 'Create reset code',
     danger: true,
     onConfirm: () => api('/api/admin/user/password-reset', { method: 'POST', body: JSON.stringify({ id: u.id }) })
-      .then(r => { onChanged(); close(); openSheet(done => <ResetCodeSheet name={r.name} email={u.email} code={r.code} expires={r.expires} close={done} />, { locked: true }) })
+      .then(r => { onChanged(); drawerFlow(() => openSheet(done => <ResetCodeSheet name={r.name} email={u.email} code={r.code} expires={r.expires} close={done} />, { locked: true })) })
       .catch(e => toast(e.message)),
   })
   return <>

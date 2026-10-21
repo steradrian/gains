@@ -37,6 +37,9 @@ vi.mock('../store/useUI.js', async () => {
   return { useUI }
 })
 
+// The sub-panels (sheet-panes.jsx) read the accent from the store, which needs a document to load.
+vi.mock('../store/useStore.js', () => ({ useStore: selector => selector({ S: {} }) }))
+
 let dom
 let root
 let container

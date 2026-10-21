@@ -8,6 +8,7 @@ import { fmtDate, fmtNum, isoOf } from '../../../lib/format.js'
 import { emptyCoach } from '../../../lib/coach.js'
 import { cohortStats, setCohortShare } from '../../../lib/coach-api.js'
 import { useStore } from '../../../store/useStore.js'
+import { drawerFlow } from '../../../store/useUI.js'
 import { Spacer } from '../../../components/layout.jsx'
 import { EmptyState, InlineNote, LoadError } from '../../../components/blocks.jsx'
 import { SheetHeader } from '../../../components/sheet-layout.jsx'
@@ -17,7 +18,8 @@ import BottomSheet from '../../../ds/BottomSheet.jsx'
 import MenuList from '../../../ds/MenuList.jsx'
 import { ProposalDetail, Tile } from './cards.jsx'
 
-/** The ⋯ drawer: `items` are MenuList items, each already closing the drawer before it acts. */
+/** The ⋯ drawer: `items` are MenuList items, each either closing the drawer before it acts or
+ *  sliding a sheet in over it (store/useUI.js drawerFlow). */
 export function CoachMenu({ items }) {
   return (
     <BottomSheet title={t('Coach')}>
@@ -27,7 +29,7 @@ export function CoachMenu({ items }) {
 }
 
 /** Every proposal ever made, newest first. Nothing the Coach said is gone after a decision. */
-export function HistorySheet({ S, close, openSheet }) {
+export function HistorySheet({ S, openSheet }) {
   const log = [...(S.coach?.log || [])].reverse()
   const icon = { create: ['clipboard', 'var(--indigo)'], review: ['chat', 'var(--acc)'], debrief: ['checkCircle', 'var(--green)'], revert: ['reset', 'var(--blue)'] }
   return <div className="chat-menu">
@@ -46,7 +48,7 @@ export function HistorySheet({ S, close, openSheet }) {
         const sub = fmtDate(isoOf(new Date(e.at))) +' · ' + (e.kind === 'debrief' ? String(e.summary || '').slice(0, 60)
           : e.dismissed ? t('Declined') : e.kind === 'create' ? t('Imported') : e.kind === 'revert' ? '' : t('{0} accepted · {1} declined', acc, n - acc))
         return <Row key={e.id} icon={ic} iconTint={tint} title={title} subtitle={sub} accessory="chevron"
-          onClick={() => { close(); openSheet(() => <ProposalDetail entry={e} S={S} />) }} />
+          onClick={() => drawerFlow(() => openSheet(() => <ProposalDetail entry={e} S={S} />))} />
       })}
     </div>
     <Spacer size={5} />

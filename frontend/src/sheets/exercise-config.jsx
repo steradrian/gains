@@ -28,6 +28,7 @@ import { isBackoff, backoffWeights } from '../lib/backoff.js'
 import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeight, pyramidFromFlat, flatFromPyramid, pyramidLabel, PYRAMID_MAX, MAX_PYRAMID_SETS, PYRAMID_PRESETS } from '../lib/pyramid.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
+import { drawerFlow } from '../store/useUI.js'
 import { ui } from './shared.js'
 import { BarWeightEditor, DbLoadPicker } from './equipment.jsx'
 import { customExSheet, trainedBy } from './exercise.jsx'
@@ -397,8 +398,8 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
   const secondaries = cardio ? [] : (ex.secondaries?.length ? ex.secondaries : smOf(ex)).filter(trainedBy(ex)).slice(0, 3)
   const still = useExerciseStill(ex, figureOf(st))
   const menu = [
-    onReplace && { key: 'replace', icon: 'swap', label: t('Replace exercise'), detail: t('Similar exercises first'), onClick: () => { close(); onReplace() } },
-    isCustomEx(ex) && { key: 'edit', icon: 'pencil', label: t('Edit or delete this exercise'), onClick: () => { close(); customExSheet(ex) } },
+    onReplace && { key: 'replace', icon: 'swap', label: t('Replace exercise'), detail: t('Similar exercises first'), onClick: () => drawerFlow(onReplace) },
+    isCustomEx(ex) && { key: 'edit', icon: 'pencil', label: t('Edit or delete this exercise'), onClick: () => drawerFlow(() => customExSheet(ex)) },
     onDelete && { key: 'remove', icon: 'trash', tone: 'danger', label: t('Remove from routine'), detail: options?.removeUndo ? t('Undo for 8 s') : undefined, onClick: () => { close(); onDelete() } },
   ].filter(Boolean)
 

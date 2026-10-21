@@ -219,15 +219,17 @@ describe('a sheet that replaces another in the same tap', () => {
   })
 })
 
+// A drawer is never opened on top of a drawer (it becomes a sub-panel: sheet-panes.test.jsx); a
+// centred dialog still stacks over one.
 describe('stacked sheets', () => {
   const stack = () => {
     let second
-    const a = open(close => <Plain title="First" close={close}><button id="to-second" onClick={() => { second = useUI.getState().openSheet(c => <Plain title="Second" close={c} />) }}>More</button></Plain>)
+    const a = open(close => <Plain title="First" close={close}><button id="to-second" onClick={() => { second = useUI.getState().openSheet(c => <Plain title="Second" close={c} />, { kind: 'center' }) }}>More</button></Plain>)
     q('#to-second').focus()
     act(() => { q('#to-second').click() })
     return { a, get b() { return second } }
   }
-  const dialogs = () => [...document.querySelectorAll('.sheet')]
+  const dialogs = () => [...document.querySelectorAll('.sheet, .center')]
 
   it('each is a dialog with its own name, and the one under the newer is out of reach', async () => {
     stack()

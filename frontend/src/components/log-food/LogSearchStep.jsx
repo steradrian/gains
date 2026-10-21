@@ -21,7 +21,7 @@ const SUGGESTED = 5
 /** The drawer's frame for this step (ds/BottomSheet props): the search and the tabs stay pinned
  *  while the results scroll; Scan and Create a food stay at the foot. */
 export const searchFrame = ctx => {
-  const { found, query, setQuery, searchRef, syncKeyboard, tab, setTab, firstRun } = ctx
+  const { found, query, setQuery, searchRef, tab, setTab, firstRun } = ctx
   const clear = () => { setQuery(''); ctx.resetLimit(); searchRef.current?.focus() }
   return {
     type: 'full',
@@ -32,7 +32,7 @@ export const searchFrame = ctx => {
       <label className="g-lf-search">
         <Icon name="magnifier" className="g-icon" />
         <input ref={searchRef} type="search" value={query} placeholder={t('Search foods')} aria-label={t('Search foods')} autoFocus enterKeyHint="search"
-          onFocus={syncKeyboard} onChange={e => { setQuery(e.target.value); ctx.resetLimit() }}
+          onChange={e => { setQuery(e.target.value); ctx.resetLimit() }}
           onKeyDown={e => { if (e.key === 'Enter' && found.online.status === 'tap') found.online.ask() }} />
         {/* The × goes once the query does: focus goes back to the field, not out of the drawer. */}
         {query && <button type="button" className="g-lf-clear" onClick={clear} aria-label={t('Clear')}><Icon name="xmark" className="g-icon" /></button>}

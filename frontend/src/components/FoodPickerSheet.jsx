@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
-import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { useUI } from '../store/useUI.js'
 import { OWN_SHOWN, useFoodSearch } from '../lib/nutrition/use-food-search.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -43,9 +42,8 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
   const [tab, setTab] = useState('search')
   const [limit, setLimit] = useState(OWN_SHOWN)
   const searchRef = useRef(null)
-  // The search opens focused: the drawer is lifted over the keyboard so Scan and Create a food
-  // at its foot stay in reach while the person types (iOS; Android 15 passes --native-kb).
-  const syncKeyboard = useSheetKeyboard(searchRef)
+  // The search opens focused: the drawer stands on the keyboard (lib/sheet-keyboard.js) so Scan and
+  // Create a food at its foot stay in reach while the person types.
   const found = useFoodSearch(query, { limit })
   const saved = useSavedMeals({ query: found.query, ...log })
   const settings = useNutrition(s => s.settings.data)
@@ -60,7 +58,7 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
   function goAmount(food) { setStack([{ kind: 'search' }, { kind: 'amount', food }]) }
 
   const ctx = {
-    ...target, log, settings, found, saved, query, setQuery, tab, setTab, searchRef, syncKeyboard,
+    ...target, log, settings, found, saved, query, setQuery, tab, setTab, searchRef,
     push, back, pick, add, quick, showQuick,
     // No recent foods (a first log): Recent offers your most used foods as suggestions, and Scan leads.
     firstRun: found.foods.status === 'ready' && !found.recents.length,
