@@ -15,6 +15,8 @@ export function useFlashRow(body, find, via) {
     const el = body.current
     const named = label => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
       || [...el.querySelectorAll('.btn')].find(b => b.textContent.trim() === label)
+      // Settings shell m2: the stage's rows (GlassList, GlassValueRow, DangerRow) name themselves in a <b>.
+      || [...el.querySelectorAll('.g-glist-row, .g-danger-row')].find(r => r.querySelector('b')?.textContent === label)
     let tm = null
     const flash = row => {
       row.classList.add('sp-flash')

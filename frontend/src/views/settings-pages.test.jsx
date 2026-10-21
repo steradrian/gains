@@ -4,9 +4,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { PAGES, PAGE_IDS, ROOT_GROUPS, SEARCH, featuresFor, pageExists, pageVisible, searchSettings, pageTrail, fold } from './settings-pages.js'
+import { PAGES, PAGE_IDS, SEARCH, featuresFor, pageExists, pageVisible, searchSettings, pageTrail, fold } from './settings-pages.js'
 
 await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -101,148 +99,8 @@ const guestWeb = {
   pushOK: false, reminderOn: false, nudge: false, autoBackup: false, synced: false, installTip: true, androidWeb: false,
 }
 
-describe('the root', () => {
-  it('is an account card and one row per page, grouped by domain, with value previews', () => {
-    mount()
-    expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('Guest')
-    expect(host.querySelector('.sp-acct .lrow-s').textContent).toBe('Your data lives on this device. Sign in to sync.')
-    // a guest in a browser has no notifications (no push server), no Coach page (the server's
-    // Coach), no Health Connect, no photos yet, nothing to sync and nothing to log out of
-    expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout', 'Fine-tuning', 'Timer alerts',
-      'Schedule defaults', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
-    expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['General', 'Training', 'Body & progress', 'Data', 'About'])
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
-    expect(rowTitled('Timer alerts').querySelector('.lrow-v').textContent).toBe('Sound · Vibrate')
-    expect(rowTitled('Schedule defaults').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
-    expect(rowTitled('Units & language').querySelector('.lrow-v').textContent).toBe('kg · English')
-    expect(rowTitled('Equipment').querySelector('.lrow-v').textContent).toBe('Everything')
-    expect(rowTitled('About & updates').querySelector('.lrow-v').textContent).toMatch(/^v\d|^vtest/)
-  })
-
-  it('has a Progress row, the way into Progress now that Me is Profile', () => {
-    mount()
-    act(() => rowTitled('Progress').click())
-    expect(mocks.navs.at(-1)).toEqual(['/progress'])
-  })
-
-  it('signed in: the sync status with Sync now, Admin for an admin, and Sign out at the end', () => {
-    mocks.user = { id: 'u1', name: 'Dana', admin: true }
-    mocks.sync = { status: 'ok', server: 'https://gym.example', lastSynced: Date.now() }
-    mount()
-    const sects = [...host.querySelectorAll('.sect-t')].map(e => e.textContent)
-    // signed in on the web app, nutrition is reachable: its group is there too
-    expect(sects).toEqual(['Sync', 'General', 'Training', 'Nutrition', 'Body & progress', 'Data', 'Admin', 'About'])
-    expect(titles()).toEqual(expect.arrayContaining(['Goals', 'Diary & meals']))
-    expect(titles()).toContain('Sync now')
-    expect(titles().at(-1)).toBe('Sign out')
-    act(() => rowTitled('Admin dashboard').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me/admin'])
-  })
-
-  it('a phone paired with a server logs out by disconnecting', () => {
-    mocks.MOBILE = true
-    mocks.user = { id: 'u1', name: 'Dana' }
-    mocks.sync = { status: 'ok', server: 'https://gym.example' }
-    mount()
-    expect(titles().at(-1)).toBe('Disconnect')
-    expect(titles()).not.toContain('Sign out')
-  })
-
-  it('Measurement fields opens the measurement chooser', async () => {
-    const { manageMeasurementsSheet } = await import('./Measurements.jsx')
-    mount()
-    act(() => rowTitled('Measurement fields').click())
-    expect(manageMeasurementsSheet).toHaveBeenCalledTimes(1)
-  })
-
-  it('marks the page rows so a long preview wraps instead of losing its second half', () => {
-    mount()
-    const rows = ['Workout', 'Timer alerts', 'Schedule defaults', 'Units & language', 'Appearance'].map(rowTitled)
-    for (const r of rows) expect(r.classList.contains('sp-root-row')).toBe(true)
-    // index.css: the marked rows' value may wrap, and never shrinks below its longest word
-    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
-    const rule = css.match(/^\.lrow\.sp-root-row \.lrow-v\{([^}]*)\}/m)?.[1] || ''
-    expect(rule).toMatch(/white-space:normal/)
-    expect(rule).toMatch(/line-clamp:3/)
-    expect(rule).toMatch(/min-width:min-content/)
-  })
-
-  it('previews a rest that was never on the old list, and no timer at all', () => {
-    mocks.S.restSec = 105
-    mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:45 rest · Cards')
-    mocks.S.restSec = 0
-    mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
-  })
-
-  it('signed in, Reminders is there and the card names the account; on the phone app the Coach too', () => {
-    mocks.user = { id: 'u1', name: 'Dana' }
-    mount()
-    expect(titles()).toContain('Reminders')
-    expect(titles()).not.toContain('AI Coach')
-    expect(titles()).not.toContain('Admin dashboard')
-    expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('Dana')
-    expect(host.querySelector('.sp-avatar').textContent).toBe('D')
-    mocks.user = null
-    mocks.MOBILE = true
-    mount()
-    expect(titles()).toContain('Reminders')
-    expect(titles()).toContain('AI Coach')
-    expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('This phone')
-  })
-
-  it('a row opens its page; the Coach row opens the phone Coach setup; the card opens Account', () => {
-    mocks.MOBILE = true
-    mount()
-    act(() => rowTitled('Timer alerts').click())
-    act(() => rowTitled('AI Coach').click())
-    act(() => host.querySelector('.sp-acct').click())
-    expect(mocks.navs).toEqual([['/me/alerts'], ['/train/coach/setup'], ['/me/account']])
-  })
-
-  it('searches every setting and a hit goes to its page with the row to flash', () => {
-    mount()
-    const input = host.querySelector('.sp-search input')
-    const type = v => act(() => {
-      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
-      set.call(input, v)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    })
-    type('haptic')
-    expect(titles()).toEqual(['Vibrate'])
-    expect(host.querySelector('.lrow .lrow-s').textContent).toBe('Timer alerts')
-    act(() => rowTitled('Vibrate').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Vibrate' } }])
-    type('zzzz')
-    expect(host.querySelector('.empty[data-surface=page] .lineart[data-scene=search]')).not.toBeNull()
-    expect(host.querySelector('.empty h2').textContent).toBe('No setting matches “zzzz”.')
-  })
-
-  // Review of #37: a hit for a row on the root itself lands on the same page, and the results it
-  // was picked from stayed up, so the flash lit the result row instead of the real one.
-  it('a hit for a row on the root itself closes the results and flashes the real row', () => {
-    mocks.user = { id: 'u1', name: 'Dana' }
-    mocks.sync = { status: 'ok', server: 'https://gym.example', lastSynced: Date.now() }
-    mount()
-    const input = host.querySelector('.sp-search input')
-    act(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'sync now')
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-    })
-    const sectTitles = () => [...host.querySelectorAll('.sect-t')].map(e => e.textContent)
-    expect(sectTitles()).toEqual(['1 result'])
-    act(() => rowTitled('Sync now').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me', { state: { find: 'Sync now' } }])
-    // the route hands the same page the row to find (SettingsRoute)
-    mount(null, 'Sync now')
-    expect(sectTitles()).not.toContain('1 result')
-    expect(host.querySelector('.sp-search input').value).toBe('')
-    const lit = host.querySelector('.sp-flash')
-    expect(lit?.querySelector('.lrow-t').textContent).toBe('Sync now')
-    expect(lit.closest('.sect').querySelector('.sect-t').textContent).toBe('Sync')
-  })
-})
+// The root (rows, values, banner, search, sign out) is tested in settings/SettingsRoot.test.jsx,
+// SettingsRootScreen.test.jsx, row-values.test.js and search-hits.test.js.
 
 // Each search hit is a row on its page, on the device and profile it was offered for. The ctx is
 // the one Settings builds (views/Settings.jsx) for the same mocks; push-dependent web rows are
@@ -270,8 +128,14 @@ describe('the search lands on a row', () => {
       if (page === 'equipment') continue
       mount(page === 'root' ? null : page)
       await act(async () => {})   // the passkey list, asked of the server on open
-      const have = [...titles(), ...[...host.querySelectorAll('.btn')].map(b => b.textContent.trim())]
-      for (const title of want) expect(have, `${page}: ${title}`).toContain(title)
+      // The root draws on the stage: its rows name themselves in a <b>.
+      const have = [...titles(), ...[...host.querySelectorAll('.btn')].map(b => b.textContent.trim()),
+        ...[...host.querySelectorAll('.g-glist-row b, .g-danger-row b')].map(b => b.textContent)]
+      for (const title of want) {
+        // Sync now is on the Sync and backup page (data-m1's SyncPage); the old page does not have it.
+        if (title === 'Sync now') continue
+        expect(have, `${page}: ${title}`).toContain(title)
+      }
     }
   })
 
@@ -313,29 +177,6 @@ describe('the search lands on a row', () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
       expect(mocks.toast).not.toHaveBeenCalled()
     } finally { vi.useRealTimers() }
-  })
-})
-
-describe('the search query', () => {
-  const type = v => act(() => {
-    const input = host.querySelector('.sp-search input')
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, v)
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-  })
-  afterEach(() => window.history.replaceState(null, ''))
-  it('comes back with Back to the same entry, and is gone when Settings is opened afresh', () => {
-    window.history.replaceState({ key: 'root1', idx: 1 }, '')
-    mount()
-    type('vib')
-    act(() => root.render(null))
-    mount()                                                   // Back from the hit: same entry
-    expect(host.querySelector('.sp-search input').value).toBe('vib')
-    expect(titles()).toContain('Vibrate')
-    act(() => root.render(null))
-    window.history.replaceState({ key: 'root2', idx: 3 }, '')  // the gear, a tab, Android Back then the gear
-    mount()
-    expect(host.querySelector('.sp-search input').value).toBe('')
-    expect(titles()).toContain('Timer alerts')
   })
 })
 
@@ -397,12 +238,6 @@ describe('the pages', () => {
       act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
       expect(mocks.backs.at(-1), page).toBe('/me')
     }
-  })
-
-  it('the root carries it too, titled Profile, with no back: it is the Me tab\'s root', () => {
-    mount()
-    expect(host.querySelector('.sub-hdr h1').textContent).toBe('Profile')
-    expect(host.querySelector('.sub-hdr button[aria-label="Back"]')).toBeNull()
   })
 
   it('a search hit flashes its row', () => {
@@ -477,7 +312,8 @@ describe('searchSettings', () => {
     expect(pageTrail('advanced', tr)).toBe('Fine-tuning')
     expect(pageTrail(null, tr)).toBe('Profile')
     expect(searchSettings('overtime', guestWeb, tr)[0].trail).toBe('Fine-tuning')
-    expect(searchSettings('sync now', { ...guestWeb, user: { id: 'u' }, synced: true }, tr)[0]).toMatchObject({ page: null, trail: 'Profile' })
+    expect(searchSettings('sign out', { ...guestWeb, user: { id: 'u' }, synced: true }, tr)[0]).toMatchObject({ page: null, trail: 'Profile' })
+    expect(searchSettings('sync now', { ...guestWeb, user: { id: 'u' }, synced: true }, tr)[0]).toMatchObject({ page: 'backup', trail: 'Backup' })
     expect(searchSettings('admin', guestWeb, tr)).toEqual([])
     expect(searchSettings('admin', { ...guestWeb, user: { id: 'u', admin: true } }, tr)[0]).toMatchObject({ page: 'admin', isPage: true })
     expect(searchSettings('health connect', guestWeb, tr)).toEqual([])
@@ -530,14 +366,11 @@ describe('searchSettings', () => {
 describe('translations', () => {
   const packs = import.meta.glob('../locales/*.js', { eager: true, import: 'default' })
   it('every page and searchable row title has a word in each pack', () => {
-    const keys = [...new Set([...PAGE_IDS.map(id => PAGES[id].title), ...SEARCH.map(e => e.title), ...ROOT_GROUPS.map(g => g.title)])]
+    const keys = [...new Set([...PAGE_IDS.map(id => PAGES[id].title), ...SEARCH.map(e => e.title)])]
     for (const [file, pack] of Object.entries(packs)) {
       const missing = keys.filter(k => !Object.hasOwn(pack, k) || !String(pack[k]).trim())
       expect(missing, file).toEqual([])
     }
-  })
-  it('the root groups only name real pages', () => {
-    for (const g of ROOT_GROUPS) for (const id of g.ids) expect(PAGES[id], id).toBeTruthy()
   })
 })
 

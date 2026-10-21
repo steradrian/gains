@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import SyncStatusCard from '../components/SyncStatusCard.jsx'
 import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
@@ -91,7 +92,9 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { root.unmount(); host.remove() }) }) })
 
 const block = (page, title = 'Server & sync') => [...page.querySelectorAll('.sect')].find(s => s.querySelector('.sect-t')?.textContent === title)
+// A page's rows, or the root's (Sign out, Disconnect), which draw on the stage and name themselves in a <b>.
 const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
+  || [...el.querySelectorAll('.g-danger-row')].find(r => r.querySelector('b')?.textContent === title)
 const buttonByText = (el, text) => [...el.querySelectorAll('button')].find(b => b.textContent === text)
 const openSheet = (i = -1) => mount(mocks.sheets.at(i).render(() => {}))
 
@@ -106,8 +109,10 @@ describe('Server & sync', () => {
     expect(rowByTitle(b, 'Pair again')).toBeUndefined()       // nothing to fix
     expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Profile, once
 
-    const profile = mount(<Settings />)
-    const card = block(profile, 'Sync')
+    // The root says it in its pill; the card with Sync now is SyncStatusCard, which the Sync page
+    // takes over (Settings shell m2).
+    expect(mount(<Settings />).querySelector('.sroot-pill').textContent).toBe('All synced · 5 minutes ago')
+    const card = block(mount(<SyncStatusCard />), 'Sync')
     expect(rowByTitle(card, 'Training and body').textContent).toContain('All synced · Last synced: 5 minutes ago')
     expect(rowByTitle(card, 'Nutrition')).toBeUndefined()     // the phone app has no nutrition
     await act(async () => { rowByTitle(card, 'Sync now').click() })
@@ -129,7 +134,7 @@ describe('Server & sync', () => {
     expect(sheet.dataset.again).toBe('true')
 
     // Sync now reports the outcome, whatever it is.
-    const card = block(mount(<Settings />), 'Sync')
+    const card = block(mount(<SyncStatusCard />), 'Sync')
     await act(async () => { rowByTitle(card, 'Sync now').click() })
     expect(mocks.toast).toHaveBeenCalledWith('The server refuses this phone')
   })

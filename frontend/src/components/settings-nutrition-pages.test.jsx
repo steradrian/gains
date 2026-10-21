@@ -10,7 +10,8 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
-import { featuresFor, pageExists, pageVisible, ROOT_GROUPS, SEARCH, searchSettings } from '../views/settings-pages.js'
+import { featuresFor, pageExists, pageVisible, SEARCH, searchSettings } from '../views/settings-pages.js'
+import { ROOT_GROUPS } from '../views/settings/root-groups.js'
 import { _setLangState } from '../lib/i18n-core.js'
 import { bindUI } from './ui.jsx'
 import CustomUnitsSettings from './CustomUnitsSettings.jsx'
@@ -542,7 +543,7 @@ describe('the Nutrition group, the search and Features', () => {
   const NEW_PAGES = ['water', 'foods', 'sources', 'categories', 'customUnits']
 
   it('puts every page in the Nutrition group, on the web app signed in only', () => {
-    expect(ROOT_GROUPS.find(g => g.title === 'Nutrition').ids).toEqual(['goals', 'diary', ...NEW_PAGES])
+    expect(ROOT_GROUPS.find(g => g.key === 'food').rows.map(r => r.id)).toEqual(['goals', 'diary', ...NEW_PAGES])
     for (const id of NEW_PAGES) {
       expect(pageVisible(id, web), id).toBe(true)
       expect(pageVisible(id, { ...web, nutrition: false }), id).toBe(false)

@@ -1821,36 +1821,20 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 @media (hover:hover){.dw-it:hover{color:var(--label)}}
 
 /* ------------------------------------------------------- Settings (v1.3.11) -- */
-.sp-search{margin-bottom:18px}
-/* the account card on top of the root: a big round avatar, the name, one line under it */
-.lrow.sp-acct{padding-block:12px;gap:14px}
-.sp-avatar{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:30px;
-  background:linear-gradient(160deg,var(--surface-3),var(--surface-2));color:var(--label-2)}
-.sp-acct .lrow-t{font-size:19px;font-weight:600}
-.sp-avatar.on{background:var(--acc-soft);color:var(--acc-ink);font-size:24px;font-weight:700}
 .sp-version{text-align:center;margin-top:4px;line-height:1.6}
 .icn g[data-lucide] *{vector-effect:non-scaling-stroke}
 .sp-lic-title{display:block;margin-bottom:6px;font-size:17px;font-weight:600;color:var(--label)}
 .sp-lic{padding:12px 16px;font-size:13px;line-height:1.45;color:var(--label-2)}
 .sp-lic b{color:var(--label);font-weight:600}
 .sp-lic a{color:var(--acc-ink)}
-/* The root rows' previews ("2:00 de descanso · Tarjetas", "Som · Vibração") are two or three facts, and a
-   one-line ellipsis cut all but the first. They wrap instead, up to three lines, and never below
-   their longest word (min-content, since overflow:hidden would make auto mean 0). On the narrowest phones there is no room beside
-   the title at all, so the preview moves under it, like a subtitle. */
-.lrow.sp-root-row .lrow-v{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
-  min-width:min-content;max-width:62%;line-height:1.25;text-wrap:balance}
-@media (max-width:360px){
-  .lrow.sp-root-row:has(.lrow-v){display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:12px;row-gap:1px}
-  .lrow.sp-root-row:has(.lrow-v) .lrow-i{grid-column:1;grid-row:1 / span 2}
-  .lrow.sp-root-row:has(.lrow-v) .lrow-m{grid-column:2;grid-row:1}
-  .lrow.sp-root-row .lrow-v{grid-column:2;grid-row:2;min-width:0;max-width:none;text-align:start;font-size:15px;-webkit-line-clamp:2;line-clamp:2}
-  .lrow.sp-root-row:has(.lrow-v) .lrow-c{grid-column:3;grid-row:1 / span 2}
-}
 .lrow.dis .lrow-i,.lrow.dis .lrow-t,.lrow.dis .sw{opacity:.45}
 /* a row a search result jumped to: a short accent wash that fades out */
 .lrow.sp-flash,.btn.sp-flash{animation:spflash 1.8s ease}
 @keyframes spflash{0%,45%{background:var(--acc-soft)}100%{background:transparent}}
+/* Settings shell m2: the same wash on a row of the stage (GlassValueRow, DangerRow) */
+.g-glist-row.sp-flash,.g-danger-row.sp-flash{animation:spflash-glass 1.8s ease}
+@keyframes spflash-glass{0%,45%{background:var(--glass)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.g-glist-row.sp-flash,.g-danger-row.sp-flash{animation:none;background:var(--glass)}}
 
 /* ----------------------------------------------------------- RTL (Arabic) -- */
 /* Directional icons flip: back chevrons point right, trailing chevrons point left. */

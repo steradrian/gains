@@ -1,11 +1,10 @@
-// Profile (ia-proposal §5): which page each row lives on, and the index the search field reads.
+// Settings (ia-proposal §5): which pages exist, and the index the search field reads. The root's
+// own layout (its groups and rows) is settings/root-groups.js.
 //
-// The root holds the account card, the sync status, then one group per domain (General, Training,
-// Data, Admin, About) and Log out; each row opens a page at /me/<page>, or a page that lives in a
-// tab (`to`). Every page goes back to Profile (§6). Titles here are the English keys the pages
-// render with t(), so a search hit can find its row on the page by the same text and flash it
-// (views/Settings.jsx). settings-pages.test.jsx renders every page and checks that each entry
-// below really is a row there.
+// Each page opens at /me/<page>, or is a page that lives in a tab (`to`). Every page goes back to
+// the root (§6). Titles here are the English keys the pages render with t(), so a search hit can
+// find its row on the page by the same text and flash it (settings/use-flash-row.js).
+// settings-pages.test.jsx renders every page and checks that each entry below really is a row there.
 import { t } from '../lib/i18n.js'
 import { THEMES } from '../lib/themes.js'
 import { workoutControls } from '../lib/workout-controls.js'
@@ -48,17 +47,6 @@ export const PAGE_IDS = Object.keys(PAGES)
 // The pages that are NutriTrace's settings, read and written through the hub (lib/nutrition):
 // the web app, signed in. Goals is one too, but lives in the Nutrition tab.
 const NUTRITION_PAGES = ['diary', 'water', 'foods', 'sources', 'categories', 'customUnits']
-
-// The root, top to bottom. Whether a row shows is pageVisible's call.
-export const ROOT_GROUPS = [
-  { title: 'General', ids: ['appearance', 'units', 'reminders', 'coach', 'features', 'health'] },
-  { title: 'Training', ids: ['workout', 'advanced', 'alerts', 'schedule', 'equipment'] },
-  { title: 'Nutrition', ids: ['goals', 'diary', 'water', 'foods', 'sources', 'categories', 'customUnits'] },
-  { title: 'Body & progress', ids: ['fields'] },
-  { title: 'Data', ids: ['backup', 'import', 'media', 'danger'] },
-  { title: 'Admin', ids: ['admin'] },
-  { title: 'About', ids: ['about', 'licences'] },
-]
 
 /**
  * Whether a page has a route on this device and profile. Reminders need a push server
@@ -114,8 +102,8 @@ const ntOn = c => !!c.nutrition
 const ntValue = (c, key) => settingOf(c.ntSettings, key)
 const ntFeature = key => (S, c) => (c.ntSettings ? c.ntSettings[key] === true : null)
 export const SEARCH = [
-  // Root
-  { page: null, title: 'Sync now', icon: 'reset', tint: 'var(--acc)', kw: 'server sync upload refresh status connection nutrition', when: c => !!c.user && !c.demo && c.synced },
+  // Root. Sync now moved to Sync and backup (the root's pill opens it).
+  { page: 'backup', title: 'Sync now', icon: 'reset', tint: 'var(--acc)', kw: 'server sync upload refresh status connection nutrition', when: c => !!c.user && !c.demo && c.synced },
   { page: null, title: 'Sign out', icon: 'signOut', tint: 'var(--red)', kw: 'log out logout sign out', when: signedInWeb },
   { page: null, title: 'Disconnect', icon: 'signOut', tint: 'var(--red)', kw: 'disconnect server local log out', when: c => c.mobile && !!c.user },
   // Appearance
