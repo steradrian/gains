@@ -1044,6 +1044,15 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-bstep-stage .g-bstep-row button { background: var(--glass); color: var(--on-stage); box-shadow: inset 0 0 0 1px var(--glass-line); }
 .g-bstep-stage .g-bstep-row button:focus-visible { outline-color: var(--on-stage); }
 @media (prefers-reduced-motion: reduce) { .g-bstep-row button { transition: none; } }
+/* ChatBubble (board T11.0): logical sides, so RTL mirrors the thread */
+.g-bubble { max-width: min(300px, 86%); box-sizing: border-box; padding: 12px 16px; font: 500 16px/22px var(--font-sans); display: flex; flex-direction: column; gap: 4px; text-align: start; overflow-wrap: anywhere; }
+.g-bubble small { font: 500 12px/14px var(--font-sans); opacity: .7; }
+.g-bubble ul { margin: 4px 0 0; padding-inline-start: 18px; }
+.g-bubble-them { align-self: flex-start; border-radius: 22px 22px 22px 6px; color: var(--on-stage); }
+.g-bubble-me { align-self: flex-end; border-radius: 22px 22px 6px 22px; background: var(--on-stage); color: var(--accent-stage-end); }
+[dir="rtl"] .g-bubble-them { border-radius: 22px 22px 6px 22px; }
+[dir="rtl"] .g-bubble-me { border-radius: 22px 22px 22px 6px; }
+.g-bubble-error { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--danger) 70%, transparent); }
 
 /* === Train exercises kit (Tabs, DetailRow; board T6.1) === */
 /* Tabs: text tabs over a hairline; the line slides to the chosen one. It is placed from the

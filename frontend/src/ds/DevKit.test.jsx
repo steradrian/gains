@@ -127,4 +127,13 @@ describe('DevKit', () => {
     act(() => { view.host.querySelector('.g-bstep button[aria-label="More 25 kg plates"]').click() })
     expect(view.host.querySelector('.g-bstep-v b').textContent).toBe('3')
   })
+
+  it('renders the chat bubbles, the Coach’s on glass and yours in white', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('ChatBubble')
+    expect(view.host.querySelectorAll('.g-bubble-them')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-bubble-me')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-bubble-error')).toHaveLength(1)
+  })
 })
