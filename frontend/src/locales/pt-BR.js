@@ -1920,7 +1920,6 @@ export const PT_BR_OVERRIDES = {
   'In progress': 'Em andamento',
   'Log food to {0}': 'Registrar comida em {0}',
   'Log food to {0}, {1} so far': 'Registrar comida em {0}, {1} até agora',
-  'Log workout for {0}': 'Registrar treino de {0}',
   'Not scheduled': 'Fora da agenda',
   'Planned, not logged': 'Planejado, não registrado',
   'See workout': 'Ver treino',

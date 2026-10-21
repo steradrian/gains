@@ -1,6 +1,11 @@
 // Russian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
   // --- Today screen: English until the translation pass ---
+  'Nutrition today': 'Nutrition today',
+  'of {0} eaten': 'of {0} eaten',
+  'Burned {0}': 'Burned {0}',
+  'Added to your target': 'Added to your target',
+  'Log activity': 'Log activity',
   'Left today': 'Left today',
   'Over today': 'Over today',
   'Protein left': 'Protein left',
@@ -229,11 +234,8 @@ export default {
   // --- tab shell (PR #5): English until the translation pass ---
   'Add 30 seconds': 'Add 30 seconds',
   'Add photo': 'Add photo',
-  'Anytime': 'Anytime',
   'Body': 'Body',
-  'Here': 'Here',
   'In Progress, under Training load': 'In Progress, under Training load',
-  'Log past workout': 'Log past workout',
   'Main navigation': 'Main navigation',
   'New exercise': 'New exercise',
   'No weigh-ins yet': 'No weigh-ins yet',
@@ -3122,7 +3124,6 @@ export default {
   'In progress': 'В процессе',
   'Log food to {0}': 'Записать еду: {0}',
   'Log food to {0}, {1} so far': 'Записать еду: {0}, пока {1}',
-  'Log workout for {0}': 'Записать тренировку: {0}',
   'Not scheduled': 'Не запланировано',
   'Planned, not logged': 'Запланировано, не записано',
   'See workout': 'Смотреть тренировку',

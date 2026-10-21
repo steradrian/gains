@@ -520,6 +520,67 @@ button.g-bs-chip { cursor: pointer; }
 .g-wi-note, .g-wi-far, .g-wi-last { margin: 0; text-align: center; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-wi-note { padding-bottom: 8px; }
 .g-wi-far { padding-bottom: 4px; color: var(--warning); font-weight: 600; }
+
+/* Add to Today drawer (board T18Add): WhenChip, ActionGrid, MenuList */
+.g-chip { appearance: none; border: 0; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text); font: 500 13px/18px var(--font-sans); cursor: pointer; white-space: nowrap; }
+.g-chip .g-icon { width: 16px; height: 16px; }
+.g-chip-when { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.g-chip-when b { font-weight: 600; }
+.g-agrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
+.g-atile { appearance: none; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; cursor: pointer; font: 500 13px/16px var(--font-sans); color: var(--text); text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+.g-atile > span { width: 100%; aspect-ratio: 1.15; max-height: 64px; border-radius: var(--radius-md); background: var(--surface-sunken); display: grid; place-items: center; }
+.g-atile .g-icon { width: 24px; height: 24px; stroke-width: 2; }
+.g-atile-accent > span { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+.g-atile:active > span { background: var(--surface-press); }
+.g-atile:disabled { cursor: default; opacity: .6; }
+.g-atile-detail { font: 500 13px/16px var(--font-sans); color: var(--text-3); font-variant-numeric: tabular-nums; }
+.g-agrid-lg { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.g-agrid-lg .g-atile { min-height: 112px; padding: 10px 6px; justify-content: center; gap: 10px; border-radius: 22px; background: var(--surface-sunken); font: 600 15px/20px var(--font-sans); transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+.g-agrid-lg .g-atile > span { width: 48px; height: 48px; aspect-ratio: auto; border-radius: 50%; background: var(--accent-tint); color: var(--accent-text); }
+.g-agrid-lg .g-atile:active { transform: scale(.95); }
+.g-agrid-lg .g-atile:active > span { background: var(--accent-tint); }
+.g-agrid-lg .g-atile-accent > span { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+.g-agrid-lg .g-atile-detail { margin-top: -6px; }
+.g-menulist { display: flex; flex-direction: column; margin: 0 calc(-1 * var(--space-2)); }
+.g-agrid + .g-menulist { margin-top: var(--space-3); }
+.g-menuitem { appearance: none; border: 0; background: none; display: flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: 6px var(--space-2); border-radius: var(--radius-md); color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.g-menuitem:active { background: var(--surface-press); }
+.g-menuitem:disabled { cursor: default; opacity: .6; }
+.g-menuitem > .g-icon { width: 22px; height: 22px; flex: none; color: var(--text-2); }
+.g-menuitem-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-menuitem-body b { font: 500 16px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-menuitem-body span { font: 400 14px/20px var(--font-sans); color: var(--text-2); }
+.g-menuitem-value { flex: none; font: 500 14px/20px var(--font-sans); color: var(--text-3); font-variant-numeric: tabular-nums; }
+.g-menuitem-danger, .g-menuitem-danger > .g-icon { color: var(--danger); }
+@media (prefers-reduced-motion: reduce) { .g-agrid-lg .g-atile { transition: none; } }
+:root[data-motion="reduce"] .g-agrid-lg .g-atile { transition: none; }
+
+/* Nutrition drawer (board T13Nutrition): the day's total against the target, a bar a meal, the meals */
+.g-nd-total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-top: 18px; }
+.g-nd-total > span { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 6px; min-width: 0; }
+.g-nd-num { font: 700 40px/44px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-nd-of { font: 500 16px/20px var(--font-sans); color: var(--text-2); }
+.g-nd-left { flex: none; font: 600 15px/20px var(--font-sans); color: var(--accent-text); }
+.g-nd-over { color: var(--g-ring-over); }
+.g-nd-bar { display: flex; height: 12px; margin: 12px 0 6px; border-radius: 6px; overflow: hidden; background: var(--surface-sunken); }
+.g-nd-bar > span { display: block; height: 100%; background: var(--nd-c, var(--accent-fill)); }
+.g-nd-bar > span:nth-child(even) { opacity: .55; }
+.g-nd-row { display: flex; align-items: center; gap: 14px; min-height: 64px; border-bottom: 1px solid var(--line); }
+.g-nd-row:last-child { border-bottom: 0; }
+.g-nd-dot { width: 10px; height: 10px; flex: none; margin: 0 4px; border-radius: 50%; background: var(--line-strong); }
+.g-nd-dot-on { background: var(--nd-c, var(--accent-fill)); }
+.g-nd-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-nd-name { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-nd-sub { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-nd-pct { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-nd-add { appearance: none; border: 0; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); cursor: pointer; }
+.g-nd-add .g-icon { width: 20px; height: 20px; stroke-width: 2.4; }
+.g-nd-lead { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-nd-lead .g-icon { width: 20px; height: 20px; }
+.g-nd-proteins { --nd-c: var(--macro-protein); }
+.g-nd-carbohydrates { --nd-c: var(--macro-carbs); }
+.g-nd-fat { --nd-c: var(--macro-fat); }
+.g-nd-note { margin: 0; padding: 18px 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 @media (min-width: 1000px) {
   #modal-root .g-bs { left: 50%; right: auto; margin-left: -320px; width: 640px; }
 }

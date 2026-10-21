@@ -67,6 +67,11 @@ const action = label => [...host.querySelectorAll('.g-gact')].find(b => b.textCo
 const tiles = () => [...host.querySelectorAll('.g-tile')].map(b => [b.querySelector('b').textContent, b.querySelector('.g-tile-body > span').textContent])
 const tile = name => [...host.querySelectorAll('.g-tile')].find(b => b.querySelector('b').textContent === name)
 const sections = () => [...host.querySelectorAll('.g-ssec')].map(s => s.textContent)
+// The Nutrition drawer (T1.3).
+const ndTab = () => [...lastSheet().querySelectorAll('.g-seg button')].find(b => b.getAttribute('aria-pressed') === 'true').textContent
+const ndTotal = () => ['.g-nd-num', '.g-nd-of', '.g-nd-left'].map(c => lastSheet().querySelector(c)?.textContent ?? null)
+const ndRows = () => [...lastSheet().querySelectorAll('.g-nd-row')].map(r => [r.querySelector('.g-nd-name').textContent, r.querySelector('.g-nd-sub').textContent,
+  r.querySelector('.g-nd-pct')?.textContent ?? r.querySelector('.g-nd-add')?.getAttribute('aria-label') ?? null])
 const diaryReads = iso => nt.requests.filter(r => r.path === `/nt/api/diary/${iso}`).length
 // A day on the week strip, by its name (WeekStrip's aria-label leads with the date).
 const day = iso => host.querySelector(`.wk-d[aria-label^="${new Date(iso + 'T12:00:00').toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}"]`)
@@ -113,10 +118,13 @@ describe('Today', () => {
     ])
     expect(ring(0)).toEqual({ top: ['Left today', 'of 2,200 kcal'], big: '1,522', pill: expect.stringMatching(/678 eaten$/) })
     expect(ring(1)).toEqual({ top: ['Protein left', 'g of 160 g'], big: '152', pill: '8 g eaten' })
-    // The diary itself is on Nutrition (the T1.3 drawer, until M5): a ring opens it.
+    // The day's detail is the Nutrition drawer (T1.3): a ring opens it on its own tab.
     expect(host.querySelector('.kcal-card')).toBeNull()
-    await click(slides()[0])
-    expect(navigate).toHaveBeenCalledWith('/food')
+    await click(slides()[1])
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Nutrition today')
+    expect(ndTab()).toBe('Protein')
+    expect(ndTotal()).toEqual(['8', 'of 160 g eaten', '152 left'])
+    expect(navigate).not.toHaveBeenCalled()
   })
 
   it('over the target the energy ring closes, and an amber arc and the number say how far over', async () => {
@@ -190,16 +198,46 @@ describe('Today', () => {
       expect(tile('Dinner').classList.contains('g-tile-now')).toBe(true)
       // A logged meal opens the day (T1.3); an empty one logs to that meal (T1.4).
       await click(tile('Breakfast'))
-      expect(navigate).toHaveBeenCalledWith('/food')
+      expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Nutrition today')
+      useUI.getState().closeAll()
+      await settle()
       await click(tile('Snacks'))
       expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Snacks')
     } finally { vi.useRealTimers() }
   })
 
-  it('See day opens the whole day on Nutrition', async () => {
+  it('See day opens the day in the Nutrition drawer: the total against the target, the meals, what was burned', async () => {
     await mount(<Home />)
     await click(button('See day'))
-    expect(navigate).toHaveBeenCalledWith('/food')
+    expect(navigate).not.toHaveBeenCalled()
+    expect(ndTab()).toBe('Calories')
+    expect(ndTotal()).toEqual(['678', 'of 2,200 kcal eaten', '1,522 left'])
+    expect(ndRows()).toEqual([
+      ['Breakfast', '228 kcal', '34%'], ['Lunch', '450 kcal', '66%'],
+      ['Dinner', 'Nothing yet', 'Add Dinner'], ['Snacks', 'Nothing yet', 'Add Snacks'],
+      ['Burned 190 kcal', 'Not added to your target', null],
+    ])
+    expect(lastSheet().querySelectorAll('.g-nd-bar > span')).toHaveLength(2)
+    await click([...lastSheet().querySelectorAll('.g-seg button')].find(b => b.textContent === 'Fat'))
+    expect(ndTab()).toBe('Fat')
+    expect(ndRows().map(r => r[0])).toEqual(['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
+    // A meal with nothing yet logs to it: the drawer gives way to Log food for that meal.
+    await click(button('Add Dinner', lastSheet()))
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Log food')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Dinner')
+  })
+
+  it('the Nutrition drawer with nothing logged: every meal has a +, and the total reads 0 of the target', async () => {
+    useFake({ days: { [TODAY]: emptyDay(TODAY) } })
+    await mount(<Home />)
+    await click(button('See day'))
+    for (const tab of ['Calories', 'Protein', 'Carbs', 'Fat']) {
+      await click([...lastSheet().querySelectorAll('.g-seg button')].find(b => b.textContent === tab))
+      expect(ndTotal()[0]).toBe('0')
+      expect(ndRows().slice(0, 4).map(r => r[2])).toEqual(['Add Breakfast', 'Add Lunch', 'Add Dinner', 'Add Snacks'])
+      expect(lastSheet().querySelectorAll('.g-nd-bar > span')).toHaveLength(0)
+    }
+    expect(ndTotal()).toEqual(['0', 'of 70 g eaten', '70 left'])
   })
 
   it('a first day: every meal empty, the energy ring at the whole target', async () => {
@@ -411,7 +449,7 @@ describe('logging a food', () => {
 })
 
 describe('the + sheet', () => {
-  it('names where it logs, lists Anytime in order and offers Log food and Scan', async () => {
+  it('names where it logs, offers the six tiles in order and the rest as a list', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(`${TODAY}T12:10:00`))
     await useNutrition.getState().loadSettings()
@@ -419,26 +457,35 @@ describe('the + sheet', () => {
     await act(async () => { openPlusSheet('/home') })
     await settle()
     const sheet = lastSheet()
-    expect(sheet.querySelector('.logging-to').textContent).toBe('Logging toToday · Lunch')
-    const rows = [...sheet.querySelectorAll('.sect')].at(-1).querySelectorAll('.lrow-t')
-    expect([...rows].map(r => r.textContent)).toEqual(['Quick kcal', 'Weigh in', 'Start workout', 'Water'])
-    // A tab root has no "Here" rows of its own.
-    expect(sheet.querySelectorAll('.sect')).toHaveLength(1)
-    expect(button('Log food', sheet)).toBeTruthy()
-    expect(button('Scan', sheet)).toBeTruthy()
+    expect(sheet.querySelector('.g-bs h2').textContent).toBe('Add to Today')
+    expect(sheet.querySelector('.g-bs-chip').textContent).toBe('Today · Lunch')
+    expect([...sheet.querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Log food', 'Scan', 'Water', 'Weigh-in', 'Start workout', 'Log activity'])
+    // A tab root has no items of its own: the list is what is always there.
+    expect([...sheet.querySelectorAll('.g-menuitem b')].map(b => b.textContent)).toEqual(['Quick kcal'])
     vi.useRealTimers()
   })
 
-  it('with a day before today picked, offers to log a workout to it, from any screen', async () => {
+  it('the Water tile adds the first container to the day and closes', async () => {
+    await useNutrition.getState().loadSettings()
+    await mount(<></>)
+    await act(async () => { openPlusSheet('/home') })
+    await settle()
+    const before = (nt.state.days[TODAY].water || []).length
+    await click(lastSheet().querySelector('.g-atile[aria-label^="Add"]'))
+    await settle()
+    expect(nt.state.days[TODAY].water).toHaveLength(before + 1)
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('with a day before today picked, names that day and logs a past workout to it', async () => {
     useDiarySelection.getState().setDate(yesterday)
     await useNutrition.getState().loadSettings()
     await mount(<></>)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    const here = lastSheet().querySelector('.sect')
-    expect(here.querySelector('.sect-t').textContent).toBe('Here')
-    expect(here.querySelector('.lrow-t').textContent).toBe('Log workout for ' + fmtDate(yesterday, true))
-    await click(here.querySelector('.lrow'))
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(fmtDate(yesterday, true))
+    await click(button('Log activity', lastSheet()))
     expect(lastSheet().querySelector('input[type="date"]').value).toBe(yesterday)
   })
 
@@ -447,9 +494,9 @@ describe('the + sheet', () => {
     await mount(<></>)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    await click(lastSheet().querySelector('.logging-to'))
+    await click(lastSheet().querySelector('.g-bs-chip'))
     await click([...lastSheet().querySelectorAll('.menu-item')].find(m => m.textContent === 'Snacks'))
-    expect(lastSheet().querySelector('.logging-to').textContent).toContain('Snacks')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain('Snacks')
     await click(button('Quick kcal', lastSheet()))
     await typeInto(lastSheet().querySelector('input[aria-label="kcal"]'), '300')
     await click(button('Log', lastSheet()))
@@ -461,7 +508,8 @@ describe('the + sheet', () => {
     await mount(<></>)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    expect(lastSheet().querySelector('.logging-to')).toBeNull()
+    expect(lastSheet().querySelector('button.g-bs-chip')).toBeNull()
+    expect([...lastSheet().querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Weigh-in', 'Start workout', 'Log activity'])
     expect(lastSheet().textContent).not.toContain('Quick kcal')
     expect(nt.requests).toHaveLength(0)
   })

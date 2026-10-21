@@ -1,6 +1,11 @@
 // Spanish UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
   // --- Today screen: English until the translation pass ---
+  'Nutrition today': 'Nutrition today',
+  'of {0} eaten': 'of {0} eaten',
+  'Burned {0}': 'Burned {0}',
+  'Added to your target': 'Added to your target',
+  'Log activity': 'Log activity',
   'Left today': 'Left today',
   'Over today': 'Over today',
   'Protein left': 'Protein left',
@@ -229,11 +234,8 @@ export default {
   // --- tab shell (PR #5): English until the translation pass ---
   'Add 30 seconds': 'Add 30 seconds',
   'Add photo': 'Add photo',
-  'Anytime': 'Anytime',
   'Body': 'Body',
-  'Here': 'Here',
   'In Progress, under Training load': 'In Progress, under Training load',
-  'Log past workout': 'Log past workout',
   'Main navigation': 'Main navigation',
   'New exercise': 'New exercise',
   'No weigh-ins yet': 'No weigh-ins yet',
@@ -3118,7 +3120,6 @@ export default {
   'In progress': 'En curso',
   'Log food to {0}': 'Registrar comida en {0}',
   'Log food to {0}, {1} so far': 'Registrar comida en {0}, {1} hasta ahora',
-  'Log workout for {0}': 'Registrar entrenamiento: {0}',
   'Not scheduled': 'Sin programar',
   'Planned, not logged': 'Planificado, sin registrar',
   'See workout': 'Ver entrenamiento',

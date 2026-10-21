@@ -21,6 +21,7 @@ import { usePlanRefused } from '../../lib/onboarding/use-plan-refused.js'
 import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
 import { bwSheet, startFlow, workoutDetailSheet } from '../../sheets.jsx'
 import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
+import { nutritionDaySheet } from '../../components/NutritionDaySheet.jsx'
 import { scanToSelection } from '../../components/scan-to-selection.js'
 import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
 import { addWater } from '../../components/WaterCard.jsx'
@@ -265,8 +266,9 @@ function scanToday() {
  * Everything Today shows, for TodayScreen: { profile, loading, error, header, searching, saved,
  * away, firstSteps, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week }.
  * Sections a profile or the day leaves out are null: firstSteps (T1.9) stands in for Up next on a
- * first day, away (T1.10) is the welcome back, saved (T1.14) the offline pill. Taps go where the boards link; the drawers the boards draw (T1.3, T1.4, T1.7) are the
- * app's existing sheets until M5 restyles them, and Nutrition (T1.3) is the Eat tab until then.
+ * first day, away (T1.10) is the welcome back, saved (T1.14) the offline pill. Taps go where the
+ * boards link: the rings, See day and a logged meal open the Nutrition drawer (T1.3), on the
+ * ring's own tab.
  */
 export function useToday() {
   const nav = useNavigate()
@@ -348,7 +350,7 @@ export function useToday() {
   return {
     profile, loading, error, header, searching, saved, away: welcome, firstSteps,
     rings: food ? (day.status === 'ready' ? foodRings(day, units) : []) : [trainingRing(S, today)],
-    onRing: () => nav(food ? '/food' : '/train'),
+    onRing: (_, i) => (food ? nutritionDaySheet({ date: today, tab: i }) : nav('/train')),
     actions: food
       ? [
         { icon: 'utensils', label: t('Log food'), onClick: () => logFood() },
@@ -364,8 +366,8 @@ export function useToday() {
       ],
     upNext: profile === 'food' || firstSteps ? null : upNextOf(S, today, { planRefused, nav }),
     meals: food ? mealsOf(day, meal, units) : null,
-    onMeal: m => (m.state === 'done' ? nav('/food') : logFood(m.slot)),
-    onSeeDay: () => nav('/food'),
+    onMeal: m => (m.state === 'done' ? nutritionDaySheet({ date: today }) : logFood(m.slot)),
+    onSeeDay: () => nutritionDaySheet({ date: today }),
     water,
     week: food ? null : { days: weekOf(S, today), label: weekDone(S, today) },
   }

@@ -128,8 +128,7 @@ class throws in development, as everywhere in the kit.
   A sheet that focuses a field itself keeps it. Stacked sheets work in any closing order: the one
   under a newer sheet is inert, and the page stays inert until the last closes. Content that is
   already a dialog (a photo viewer) keeps its own role and name and still gets focus in, the trap,
-  the inert page and focus return; only content marked `data-own-dialog-focus` (the + sheet, which
-  runs the trap itself) is left alone. A sheet that replaces another in the same tap
+  the inert page and focus return. A sheet that replaces another in the same tap
   (`close(); nextSheet()`) inherits the opener of the one it replaced.
 
 ## The loader

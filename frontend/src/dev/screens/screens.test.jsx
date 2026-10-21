@@ -157,9 +157,9 @@ describe('the screens gallery', () => {
     await check('T1.15', h => expect(h.querySelector('.g-rc-slide').textContent).toContain('kcal over 2,100'))
   })
 
-  it('has the Today drawers and toasts T1.4 to T1.7, each over the Today screen', async () => {
+  it('has the Today drawers and toasts T1.3 to T1.8, each over the Today screen', async () => {
     const ids = screenAreas().find(a => a.name === 'Today: drawers and toasts').entries.map(e => e.id)
-    expect(ids).toEqual(['T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7'])
+    expect(ids).toEqual(['T1.3', 'T1.3p', 'T1.3e', 'T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7', 'T1.8'])
     const check = async (id, test) => {
       const host = await show(screenById(id))
       test({ host, drawer: host.querySelector('.g-bs') })
@@ -170,12 +170,23 @@ describe('the screens gallery', () => {
       expect(s.drawer.querySelector('.g-bs-chip').textContent).toContain('Lunch')
       expect(s.drawer.textContent).toContain('Create a food')
     })
+    await check('T1.3', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Nutrition today')
+      expect(s.drawer.querySelectorAll('.g-nd-pct').length).toBeGreaterThan(0)
+    })
+    await check('T1.3p', s => expect(s.drawer.querySelector('.g-seg [aria-pressed="true"]').textContent).toBe('Protein'))
+    await check('T1.3e', s => {
+      expect(s.drawer.querySelector('.g-nd-num').textContent).toBe('0')
+      expect(s.drawer.querySelectorAll('.g-nd-add')).toHaveLength(4)
+    })
+    await check('T1.8', s => expect([...s.drawer.querySelectorAll('.g-atile')].map(b => b.textContent))
+      .toEqual(['Log food', 'Scan', 'Water', 'Weigh-in', 'Start workout', 'Log activity']))
     await check('T1.4e', s => expect(s.drawer.textContent).toContain('Suggested foods'))
     await check('T1.4p', s => expect(s.drawer.querySelector('.g-bs-chip').textContent).not.toMatch(/^Today/))
     await check('T1.5', s => expect(s.host.textContent).toContain('Added Chicken rice bowl to Today, Lunch'))
     await check('T1.6', s => expect(s.host.textContent).toContain('Added 250 ml of water to Today'))
     await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
-  })
+  }, 20000)
 
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)

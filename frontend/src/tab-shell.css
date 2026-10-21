@@ -59,7 +59,3 @@ body.live-docked #app{padding-bottom:calc(168px + var(--sab))}
 
 /* The on-screen keyboard is up (lib/keyboard-open.js): the bar and the dock step aside. */
 body.kb-open #tabbar,body.kb-open #timer.dock{display:none}
-
-/* --- the + sheet --- */
-.plus-sheet .lrow-v{font-size:15px}
-.plus-sheet-live{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-variant-numeric:tabular-nums}
