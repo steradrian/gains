@@ -8,6 +8,7 @@ import { rememberDefaultLang } from '../lib/default-lang.js'
 import { guestAllowed } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
+import { setReminderLogOwner } from '../lib/notifications/reminder-log.js'
 import { refillIfComplete } from '../lib/rotation.js'
 import { liftLegacy } from '../lib/sync-legacy.js'
 import { mergeStates, localExtras, stampChange, highestStamp, stampRestore, stampReplace, inUnitOf, keepReset, resetIdsOf, mergeResetIds, entryKey } from '../lib/sync-merge.js'
@@ -2009,5 +2010,9 @@ export const useStore = create((set, get) => {
     }
   }
 })
+
+// The phone's reminder log is kept per profile (lib/notifications/reminder-log.js). It cannot
+// import the store itself: the store imports lib/mobile.js, which imports the log.
+setReminderLogOwner(() => useStore.getState().user)
 
 export { hasData }

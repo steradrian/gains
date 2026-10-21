@@ -185,13 +185,15 @@ export async function syncReminder(S, interactive = false) {
       ...Array.from({ length: REMINDER_WINDOW_DAYS }, (_, d) => ({ id: REMINDER_ID_BASE + d })),
       ...Array.from({ length: NUDGE_WINDOW_DAYS }, (_, d) => ({ id: NUDGE_ID_BASE + d })),
     ] }).catch(() => {})
-    // Whatever was scheduled and came due before this sync has gone off; the rest is cancelled.
-    recordScheduled([])
     const r = S.reminder
-    if (!r?.on) return true
     let perm = await LocalNotifications.checkPermissions()
-    if (perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
-    if (perm.display !== 'granted') return false
+    if (r?.on && perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
+    const granted = perm.display === 'granted'
+    // Whatever was scheduled and came due before this sync has gone off, if this phone may show
+    // it; with the permission off it never showed, so it is forgotten with the rest.
+    recordScheduled([], Date.now(), granted)
+    if (!r?.on) return true
+    if (!granted) return false
     const notifications = [...buildReminderNotifications(S), ...buildNudgeNotifications(S)]
     if (notifications.length) {
       await LocalNotifications.schedule({ notifications })
