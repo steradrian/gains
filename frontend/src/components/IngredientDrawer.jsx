@@ -204,7 +204,6 @@ export function IngredientDrawer({ item = null, index = null, onAdd, onChange, o
           </div>
         )
         : <p className="g-mf-sub" role="status">{t('Enter an amount above 0.')}</p>}
-      <p className="g-mf-sub">{t('To swap it, search or scan another food above.')}</p>
     </BottomSheet>
   )
 }

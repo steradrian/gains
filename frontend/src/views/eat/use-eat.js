@@ -171,25 +171,29 @@ export function useEat() {
   const protein = targets?.macro('proteins')
   const targetsSub = targets?.kcal != null
     ? [units.energy(targets.kcal), protein != null && t('{0} g protein', Math.round(protein))].filter(Boolean).join(' · ')
-    : null
+    : settings ? t('Not set') : null
   const burned = settings?.diaryShowActivity
     ? foodDaysOf(thisStart, today).reduce((sum, d) => sum + (activity[d]?.sum?.effective ?? 0), 0)
     : 0
   const plan = PLANS.find(p => p.hours === Number(settings?.fastingDefaultHours))
   const favourites = foods.list.filter(f => f.favorite).length
-  const countSub = (state, one, many, line) => (state.status === 'ready' && state.list.length ? line(tn(one, many, state.list.length)) : null)
+  const countSub = (state, one, many, line, none) => {
+    if (state.status !== 'ready') return null
+    return state.list.length ? line(tn(one, many, state.list.length)) : none
+  }
   const library = [
     {
       key: 'foods', icon: 'apple', title: t('Foods'), onClick: () => nav(PATHS.foods),
-      sub: foods.status === 'ready' && foods.list.length
-        ? [tn('{0} food', '{0} foods', foods.list.length), favourites > 0 && tn('{0} favourite', '{0} favourites', favourites)].filter(Boolean).join(' · ')
-        : null,
+      sub: foods.status !== 'ready' ? null
+        : foods.list.length
+          ? [tn('{0} food', '{0} foods', foods.list.length), favourites > 0 && tn('{0} favourite', '{0} favourites', favourites)].filter(Boolean).join(' · ')
+          : t('No foods yet'),
     },
-    { key: 'meals', icon: 'bookOpen', title: t('Saved meals'), onClick: () => nav(PATHS.meals), sub: countSub(meals, '{0} meal', '{0} meals', n => t('{0}, logged in one tap', n)) },
-    { key: 'recipes', icon: 'cookingPot', title: t('Recipes'), onClick: () => nav(PATHS.recipes), sub: countSub(recipes, '{0} recipe', '{0} recipes', n => t('{0}, per serving', n)) },
+    { key: 'meals', icon: 'bookOpen', title: t('Saved meals'), onClick: () => nav(PATHS.meals), sub: countSub(meals, '{0} meal', '{0} meals', n => t('{0}, logged in one tap', n), t('No saved meals yet')) },
+    { key: 'recipes', icon: 'cookingPot', title: t('Recipes'), onClick: () => nav(PATHS.recipes), sub: countSub(recipes, '{0} recipe', '{0} recipes', n => t('{0}, per serving', n), t('No recipes yet')) },
     {
       key: 'trends', icon: 'chartLine', title: t('Trends'), onClick: () => nav(PATHS.trends),
-      sub: hero.onTarget ? t('{0} of {1} days on target', hero.onTarget.days, hero.onTarget.of) : null,
+      sub: hero.onTarget ? t('{0} of {1} days on target', hero.onTarget.days, hero.onTarget.of) : t('Trends need 3 days'),
     },
     {
       key: 'fasting', icon: 'timer', title: t('Fasting'), onClick: () => nav(PATHS.fasting),
@@ -197,7 +201,7 @@ export function useEat() {
     },
     ...(settings?.diaryShowActivity ? [{
       key: 'burned', icon: 'flame', title: t('Burned'), onClick: () => nav(PATHS.burned),
-      sub: burned > 0 ? t('{0} this week', units.energy(burned)) : null,
+      sub: burned > 0 ? t('{0} this week', units.energy(burned)) : t('Nothing burned logged this week'),
     }] : []),
     { key: 'goals', icon: 'target', title: t('Daily targets'), onClick: () => nav(PATHS.goals), sub: targetsSub },
     { key: 'settings', icon: 'slider', title: t('Food settings'), onClick: () => nav(PATHS.settings), sub: t('Meals, water, units, sources') },

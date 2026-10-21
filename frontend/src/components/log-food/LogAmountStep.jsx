@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import Button from '../../ds/Button.jsx'
 import ChipGroup from '../../ds/ChipGroup.jsx'
+import DetailRow from '../../ds/DetailRow.jsx'
 import { t } from '../../lib/i18n.js'
 import { atPortion, nutritionOf, unitsFor } from '../../lib/nutrition/diary.js'
 import { fmtAmount } from '../../lib/nutrition/foods.js'
@@ -75,9 +76,9 @@ export default function LogAmountStep({ food, date, meal, mealName, onLogged, pe
       <b className="g-la-name">{food.name}</b>
       <span className="g-la-sub">
         {[food.brand, typeof food.id === 'number' ? t('your food') : t('Open Food Facts')].filter(Boolean).join(' · ')}
-        {onFull && <>{' · '}<button type="button" className="g-la-link" onClick={onFull}>{t('see it in full')}</button></>}
       </span>
     </div>
+    {onFull && <DetailRow icon="info" title={t('See it in full')} onClick={onFull} />}
     <LogStepper label={t('Serving size')} value={portion} onChange={setPortion} step={step} unit={unit} autoFocus={!startInServings}
       lessLabel={t('Less {0}', `${step} ${unit}`)} moreLabel={t('More {0}', `${step} ${unit}`)} />
     <div className="g-la-units">
