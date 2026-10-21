@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
+import DevKitDrawers from './DevKitDrawers.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
@@ -192,6 +193,7 @@ export default function DevKit() {
         </Section>
 
         <DevKitToday />
+        <DevKitDrawers />
 
         <Section title="SuccessCheck" note="The ring draws itself once as the screen arrives.">
           <div className="g-kit-row"><SuccessCheck /></div>

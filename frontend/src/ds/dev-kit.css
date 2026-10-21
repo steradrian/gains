@@ -7,3 +7,8 @@
 .g-kit-col { display: flex; flex-direction: column; gap: var(--space-2); }
 .g-kit-light { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--canvas); color: var(--text); }
 .g-kit-white { color: var(--on-stage); }
+/* A phone-sized screen for a drawer drawn still: its scrim and panel fill this, not the page. */
+.g-kit-frame { position: relative; height: 520px; overflow: hidden; border-radius: var(--radius-lg); background: var(--canvas); }
+.g-kit-list { margin: 0; padding: 0; list-style: none; color: var(--text); }
+.g-kit-list li { min-height: 56px; display: flex; align-items: center; border-bottom: 1px solid var(--line); font: 600 17px/22px var(--font-sans); }
+.g-kit-p { margin: 0; font: 500 17px/24px var(--font-sans); color: var(--text-2); }
