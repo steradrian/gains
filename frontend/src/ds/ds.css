@@ -1019,3 +1019,35 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-mg-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 6px 2px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
 .g-mg-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .g-mg-nav:focus-visible, .g-mg-cell:focus-visible { outline-color: var(--on-stage); }
+
+/* === Train history (boards T8.0 History, T8.1 Workout, T8.3 Share; slice 5) === */
+.g-hist-pad { padding: 8px 16px 0; }
+.g-hist-hint { margin: 8px 4px 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-hist-list { margin: 0 16px; }
+/* The glass card clips its corners: a row's focus ring is drawn inside it. */
+.g-hist-row:focus-visible { outline-offset: -3px; outline-color: var(--on-stage); }
+.g-hist-stack > span { box-shadow: 0 0 0 2px var(--accent-stage-end); }
+.g-hist-stack i { background: var(--glass); color: var(--on-stage); }
+/* T8.1: the drawer's parts under its tiles */
+.g-wd-map { display: flex; align-items: center; gap: 16px; padding: 14px 0; }
+.g-wd-map p { margin: 0; display: flex; flex-direction: column; font: 500 15px/21px var(--font-sans); color: var(--text-2); text-align: start; }
+.g-wd-map b { color: var(--text); }
+.g-wd-h { margin: 4px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+.g-wd-group-head { margin: 10px 0 0; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-wd-group-head b { display: inline-flex; align-items: center; gap: 7px; font: 600 15px/20px var(--font-sans); color: var(--text); }
+.g-wd-group-head .g-icon, .g-wd-ss-label .g-icon, .g-wd-exnote .g-icon { width: 16px; height: 16px; }
+.g-wd-ss { margin-block: 6px; padding-inline-start: 10px; border-inline-start: 3px solid var(--accent-tint); }
+.g-wd-ss-label { margin: 4px 0 0; display: inline-flex; align-items: center; gap: 6px; font: 600 13px/16px var(--font-sans); color: var(--text-3); }
+.g-wd-exnote { margin: -4px 0 6px; padding-inline-start: 62px; font: 500 14px/19px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-wd-exnote .g-icon { margin-inline-end: 4px; vertical-align: -2px; color: var(--warning); }
+.g-wd-note { display: flex; flex-direction: column; gap: 6px; padding: 14px 0 4px; font: 500 15px/21px var(--font-sans); color: var(--text-2); }
+.g-wd-note b { color: var(--text); }
+.g-wd-note textarea { box-sizing: border-box; width: 100%; min-height: 64px; padding: 10px 14px; border: 0; border-radius: 16px; background: var(--surface-sunken); color: var(--text); font: 500 16px/22px var(--font-sans); text-align: start; resize: vertical; }
+.g-wd-rows { padding-top: 8px; }
+/* The drawer's body scrolls and clips: rows draw their focus ring inside themselves. */
+.g-wd-rows .g-drow:focus-visible, .g-wd-ex .g-xrow:focus-visible { outline-offset: -3px; }
+/* T8.3: the card preview and the three equal buttons */
+.g-wd-card { border-radius: 28px; overflow: hidden; background: linear-gradient(170deg, var(--accent-stage), var(--accent-stage-end)); }
+.g-wd-card img { display: block; width: 100%; height: auto; }
+.g-wd-card-ph { display: grid; place-items: center; min-height: 260px; margin: 0; padding: 20px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-wd-share-acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
