@@ -240,7 +240,7 @@ export const TONE_TINT = { ok: 'var(--green)', wait: 'var(--orange)', off: 'var(
 
 // Profile › Account → "Server & sync", for a device signed in or paired: which server, which
 // account, how things stand, since when, and what is still waiting. "Sync now" is on Profile
-// itself (SyncStatusCard). `children` are the account's own rows (the phone's account id), which
+// the Sync and backup page (views/settings/pages/SyncPage.jsx). `children` are the account's own rows (the phone's account id), which
 // belong in the same block.
 export function ServerSyncSection({ children }) {
   const user = useStore(s => s.user)
