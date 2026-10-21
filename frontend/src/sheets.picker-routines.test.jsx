@@ -4,7 +4,7 @@
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
-import { EXDB } from './lib/exercises.js'
+import { CATALOGUE, EXDB } from './lib/exercises.js'
 import { exCount } from './lib/format.js'
 import { musclesOf } from './lib/muscles.js'
 import { DEF, useStore } from './store/useStore.js'
@@ -29,6 +29,8 @@ const items = host => [...host.querySelectorAll('.g-pk-item')]
 const nameOf = item => item.querySelector('.g-xrow-b b').textContent
 const rowButton = item => item.querySelector('button.g-xrow')
 const tab = (host, label) => [...host.querySelectorAll('.g-seg button')].find(b => b.textContent === label)
+// A muscle on the map is an SVG path, which has no .click(): the tap is a dispatched click.
+const tapMuscle = (host, name) => host.querySelector(`.bm-m[aria-label="${name}"]`).dispatchEvent(new MouseEvent('click', { bubbles: true }))
 const footer = host => host.querySelector('.g-bs-foot .g-btn')
 
 beforeEach(() => {
@@ -143,13 +145,14 @@ describe('exercise picker: By muscle', () => {
     expect(items(host)).toHaveLength(0)
     expect(host.querySelector('.g-cgroup')).toBeNull()
     await vi.waitFor(() => expect(host.querySelectorAll('.bm-v')).toHaveLength(2))
-    act(() => host.querySelector('.bm-m[aria-label="Chest"]').click())
-    const n = EXDB.filter(e => musclesOf(e).chest).length
+    act(() => tapMuscle(host, 'Chest'))
+    // The picker lists the catalogue (allExercises), whose curated helper muscles add to EXDB's.
+    const n = CATALOGUE.filter(e => musclesOf(e).chest).length
     expect(n).toBeGreaterThan(1)
     expect(host.querySelector('.g-pk-head').textContent).toBe(`Chest · ${exCount(n)}`)
     expect(items(host).length).toBeGreaterThan(0)
     // the same tap again clears it
-    act(() => host.querySelector('.bm-m[aria-label="Chest"]').click())
+    act(() => tapMuscle(host, 'Chest'))
     expect(items(host)).toHaveLength(0)
   })
 
@@ -159,7 +162,7 @@ describe('exercise picker: By muscle', () => {
     const host = renderTop()
     await act(async () => { tab(host, 'By muscle').click() })
     await vi.waitFor(() => expect(host.querySelectorAll('.bm-v')).toHaveLength(2))
-    act(() => host.querySelector('.bm-m[aria-label="Chest"]').click())
+    act(() => tapMuscle(host, 'Chest'))
     act(() => rowButton(items(host)[0]).click())
     expect(pick).toHaveBeenCalledOnce()
     expect(musclesOf(pick.mock.calls[0][0]).chest).toBeTruthy()

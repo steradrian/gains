@@ -111,7 +111,8 @@ describe('exercise ids this build does not know', () => {
     expect(render(<Home />).textContent).toContain('Push')
     render(<RoutinesScreen />)
     const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>, '/train/routines/r1')
-    expect(edit.textContent).toContain('Unknown exercise')
+    // The row writes the name as plain text, cased as the screen shows it (exerciseNameText).
+    expect(edit.textContent).toContain('Unknown Exercise')
     render(<ExercisesScreen />)
     render(<StructuralBalance />)
     expectKept(useStore.getState().S)

@@ -68,7 +68,9 @@ describe('Replace exercise', () => {
   it('Remove closes the sheet and hands over to the caller, who owns the Undo', () => {
     const onDelete = vi.fn()
     exConfigSheet(EXIDX['0025'], { sets: 3, mode: 'reps', reps: 10, weight: 60 }, vi.fn(), onDelete)
-    act(() => button(renderTop(), 'Remove from routine').click())
+    // Rendered before the act: a render nested in the click's act does not flush.
+    const remove = button(renderTop(), 'Remove from routine')
+    act(() => remove.click())
     expect(onDelete).toHaveBeenCalledOnce()
     expect(useUI.getState().sheets).toHaveLength(0)
   })

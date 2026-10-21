@@ -59,7 +59,8 @@ function itemFor(name) {
   return [...container.querySelectorAll('.g-rx')].find(item => item.textContent.includes(name))
 }
 
-// direction is 'Move up' or 'Move down'; each button is named for its exercise ("Move c1 up").
+// direction is 'Move up' or 'Move down'; each button is named for its exercise as the row writes
+// it, the custom names in title case ("Move C1 up", exerciseNameText).
 function moveButton(name, direction) {
   const [up, down] = itemFor(name).querySelectorAll('.g-rx-btn')
   return direction === 'Move up' ? up : down
@@ -127,8 +128,8 @@ describe('routine move controls', () => {
     ])
     renderRoutine()
     expect(moveButton('setup-30', 'Move down').title).toBe('Move out of the superset')
-    expect(moveButton('setup-30', 'Move down').getAttribute('aria-label')).toBe('Move c3 down')
-    expect(moveButton('setup-20', 'Move down').title).toBe('Move c2 down')
+    expect(moveButton('setup-30', 'Move down').getAttribute('aria-label')).toBe('Move C3 down')
+    expect(moveButton('setup-20', 'Move down').title).toBe('Move C2 down')
 
     act(() => moveButton('setup-30', 'Move down').click())
     expect(useStore.getState().S.routines[0].ex).toEqual([
@@ -225,9 +226,9 @@ describe('routine move controls', () => {
     renderRoutine()
     const before = useStore.getState().S
 
-    expect(moveButton('c1', 'Move up').disabled).toBe(true)
-    expect(moveButton('c2', 'Move down').disabled).toBe(true)
-    act(() => moveButton('c1', 'Move up').click())
+    expect(moveButton('C1', 'Move up').disabled).toBe(true)
+    expect(moveButton('C2', 'Move down').disabled).toBe(true)
+    act(() => moveButton('C1', 'Move up').click())
 
     expect(useStore.getState().S).toBe(before)
     expect(useStore.getState().S.routines[0].ex[0].sg).toBe('orphan')
@@ -241,8 +242,8 @@ describe('routine move controls', () => {
     ])
     renderRoutine()
     const before = useStore.getState().S
-    const firstUp = moveButton('c1', 'Move up')
-    const lastDown = moveButton('c2', 'Move down')
+    const firstUp = moveButton('C1', 'Move up')
+    const lastDown = moveButton('C2', 'Move down')
 
     expect(firstUp.disabled).toBe(true)
     expect(lastDown.disabled).toBe(true)
@@ -259,10 +260,10 @@ describe('routine move controls', () => {
     _setLangState('de', de, null, null)
     setRoutine([entry('c1', 10), entry('c2', 20)])
     renderRoutine()
-    const button = moveButton('c2', 'Move up')
+    const button = moveButton('C2', 'Move up')
 
-    expect(button.getAttribute('aria-label')).toBe(de['Move {0} up'].replace('{0}', 'c2'))
-    expect(button.title).toBe(de['Move {0} up'].replace('{0}', 'c2'))
+    expect(button.getAttribute('aria-label')).toBe(de['Move {0} up'].replace('{0}', 'C2'))
+    expect(button.title).toBe(de['Move {0} up'].replace('{0}', 'C2'))
     button.focus()
     act(() => button.click())
 

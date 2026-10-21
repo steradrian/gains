@@ -401,7 +401,8 @@ describe('a page that redirects', () => {
     await settle()
     expect(hash()).toBe('#/train/routines')
     expect(lit()).toBe('Train')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Routines')
+    // Routines is a StagePage: its large title, not the old sub-header.
+    expect(document.querySelector('.g-spage-title').textContent).toBe('Routines')
   })
 
   // With Coach off the page replaces itself with Train (T11 "Coach off"), once the config is known.

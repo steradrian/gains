@@ -120,7 +120,7 @@ describe('swiping an exercise out of a routine', () => {
     expect(open.type).toBe('button')
     click(open)                              // Enter or Space on a <button> is this click
     expect(sheets.exConfigSheet).toHaveBeenCalledOnce()
-    click(open.querySelector('.g-xrow-ph'))  // a tap on the picture opens it too
+    click(open.querySelector('img, .g-xrow-ph'))  // a tap on the picture (or its placeholder) opens it too
     expect(sheets.exConfigSheet).toHaveBeenCalledTimes(2)
     const onDelete = sheets.exConfigSheet.mock.calls[0][3]
     const [from] = ex().map(e => e.id)
