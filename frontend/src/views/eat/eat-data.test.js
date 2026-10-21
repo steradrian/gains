@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import { heroFrom, heroOf, heroSlides, railStarts, railWeekOf } from './eat-data.js'
 

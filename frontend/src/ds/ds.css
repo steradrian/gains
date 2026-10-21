@@ -834,23 +834,35 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sfeat-page { color: var(--on-stage); }
 /* Shared: search M2 (owner direction: the bearmenu header). The tab root's header pinned to the top
    of the window: its row (--shdr-h), the status bar and the connection row inside it once, on the
-   stage's own top colour so it paints under the notch; no line under it. The row keeps the page's
-   column on a wide screen. The search's panel starts at its bottom edge (search.css .search-ov). */
+   shared stage with no ground of its own: no band, no shadow, no line under it (the board's header
+   is transparent and has no scroll-under treatment). The row keeps the page's column on a wide
+   screen. The search's panel starts at its bottom edge (search.css .search-ov). */
 :root { --shdr-h: 58px; }
-.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; background: var(--accent-stage); transform: translate3d(0, var(--vv-top, 0px), 0); }
-/* Its ground is the stage's art (StageBackground StageArt), the window's width and anchored where
-   the page's stage starts (#app's --conn padding), clipped to the header: the 170° gradient's stops
-   hang off the top corner, not the height, so at rest the colours, glows and rings run on into the
-   page's own with no edge (owner: no separator). Under the row, never over it. */
-.g-shdr-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.g-shdr-bg > .g-stage-art { top: var(--conn, 0px); bottom: auto; height: 100vh; }
+.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; transform: translate3d(0, var(--vv-top, 0px), 0); }
 .g-shdr-act { flex: none; display: flex; }
+.g-shdr-act > .hdr-left { min-height: 44px; padding-inline: 14px; border-radius: 999px; white-space: nowrap; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-shdr-act > .hdr-left.over { color: var(--g-ring-over); }
 .g-ssf-scan { appearance: none; border: 0; flex: none; width: 36px; height: 36px; margin-inline-end: -8px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--on-stage); cursor: pointer; padding: 0; }
 .g-ssf-scan .g-icon { width: 20px; height: 20px; }
 /* The option the arrow keys are on (the field's aria-activedescendant), and a row that only says something */
 .g-srow-stage .g-srow-main[aria-selected="true"] { background: var(--glass); }
 .g-best[aria-selected="true"], .g-srow-xbtn[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--on-stage); }
 .g-srow-note { cursor: default; }
+
+/* StageEmpty: a line-art scene (or a glass disc with an icon), a title, a line, and a stack of buttons (T2.9 has three),
+   centred and stacked. The scene is Illustration (white on the stage, drawn in). */
+.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
+.g-sempty .g-ill { margin-bottom: 4px; }
+.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
+.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
+.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
+.g-sempty-btn .g-icon { width: 20px; height: 20px; }
+.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
