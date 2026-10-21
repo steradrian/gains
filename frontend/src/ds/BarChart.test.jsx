@@ -47,6 +47,14 @@ describe('BarChart', () => {
     expect(view.host.querySelector('.g-bars-target')).toBeNull()
   })
 
+  it('draws a tick across each bar that has its own target, and none across one without', () => {
+    view.render(<BarChart values={[5, 5, 5]} targets={[10, null, 5]} height={100} label="x" />)
+    const ticks = [...view.host.querySelectorAll('.g-bar-tick')]
+    expect(ticks.map(t => t.style.bottom)).toEqual(['100px', '50px'])
+    expect(bars()[0].style.height).toBe('50px')
+    expect(view.host.querySelector('.g-bars-target')).toBeNull()
+  })
+
   it('takes a color, is white by default, glass on the stage, and refuses another tone', () => {
     view.render(<BarChart values={[1]} color="red" label="x" />)
     expect(view.host.querySelector('.g-chart').style.getPropertyValue('--g-bar')).toBe('red')

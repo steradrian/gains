@@ -5,6 +5,10 @@
 // shown as a target, and a percent macro goal taken from the stand-in is no target either.
 import { calorieTarget, macroTarget, resolveGoalFor } from '../../lib/nutrition/diary.js'
 
+// "On target": within this many kcal of the day's target either way (Sh2Week: "within 150 kcal").
+// Here, not in day-data.js, so lib/nutrition/trends.js can read it without pulling in the pages.
+export const ON_TARGET_KCAL = 150
+
 /** The water goal the person set, in ml, or null without one. */
 export const waterGoalSet = settings => (Number(settings?.waterGoalMl) > 0 ? Number(settings.waterGoalMl) : null)
 
