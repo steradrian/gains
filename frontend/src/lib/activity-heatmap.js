@@ -1,7 +1,7 @@
 // The activity heatmap's data, apart from how it is drawn: workouts per local day, five shade
 // levels from the busiest days' quartiles, and a year of weeks laid out for ds/Heatmap (byWeek).
-// It is what components/Heatmap.jsx did inline; the page words each cell (dates, minutes,
-// volume) with t() and hands the cells to the kit.
+// Training load's Activity card (views/train/load/use-training-load.js activityOf) words each
+// cell (dates, minutes, volume) with t() and hands the cells to the kit.
 import { isoOf, weekDayOffset } from './format.js'
 import { workoutDay, workoutDuration, workoutVolume } from './history.js'
 

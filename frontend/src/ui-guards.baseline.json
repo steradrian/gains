@@ -1,7 +1,6 @@
 {
   "G1": {
     "components/DurationWheel.jsx": 1,
-    "components/Heatmap.jsx": 1,
     "components/MuscleExplorer.jsx": 3,
     "components/Passkeys.jsx": 2,
     "components/ServerSync.jsx": 2,

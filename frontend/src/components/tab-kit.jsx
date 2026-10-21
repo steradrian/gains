@@ -175,51 +175,6 @@ export function StatSection({ title, onOpen, art, values = [], footer, status = 
   </section>
 }
 
-// A period to step through: chevrons either side of a centred title and its sub ("Week of 12
-// Oct", "This week"). The next step is off at the present (`nextDisabled`).
-export function PeriodNav({ title, sub, onPrev, onNext, prevLabel, nextLabel, prevDisabled = false, nextDisabled = false }) {
-  return <div className="pnav">
-    <button type="button" className="iconbtn pnav-b" aria-label={prevLabel} disabled={prevDisabled} onClick={onPrev}><Icon name="chevronLeft" /></button>
-    <div className="pnav-t">
-      <span className="pnav-h">{title}</span>
-      {sub != null && <span className="pnav-s">{sub}</span>}
-    </div>
-    <button type="button" className="iconbtn pnav-b" aria-label={nextLabel} disabled={nextDisabled} onClick={onNext}><Icon name="chevronRight" /></button>
-  </div>
-}
-
-// One reading picked out of a map or a list: its label with a meta line at the end, the value
-// at display size with its unit ("/ 12.4 sets"), and a caption.
-export function StatCard({ label, meta, value, unit, caption, children }) {
-  return <div className="card stat-card">
-    <div className="stat-card-h">
-      <span className="stat-card-l">{label}</span>
-      {meta != null && <span className="stat-card-m">{meta}</span>}
-    </div>
-    <p className="stat-card-v"><span className="stat-card-num">{value}</span>{unit != null && <span className="stat-card-u">{unit}</span>}</p>
-    {caption != null && <p className="stat-card-c">{caption}</p>}
-    {children}
-  </div>
-}
-
-// A muscle in an inset list, keyed to the map above it: a dot in the muscle's level shade (the
-// map's own .lN ramp, so a fatigue or strength map's container recolours both), its name and
-// sub, the value, and a chevron when the row picks the muscle. `pressed` says which one is
-// picked. Rows sit in a Section.
-export function MuscleRow({ level = 0, title, subtitle, value, valueLabel, onClick, pressed, ...rest }) {
-  const Tag = onClick ? 'button' : 'div'
-  return <Tag type={onClick ? 'button' : undefined} className={cx('lrow', 'mus-row', onClick && 'tap')} onClick={onClick}
-    aria-pressed={onClick ? !!pressed : undefined} {...rest}>
-    <span className={'mus-dot l' + level} aria-hidden="true" />
-    <span className="lrow-m">
-      <span className="lrow-t">{title}</span>
-      {subtitle != null && <span className="lrow-s">{subtitle}</span>}
-    </span>
-    {value != null && <span className="lrow-v mus-v" aria-label={valueLabel}>{value}</span>}
-    {onClick && <Icon name="chevronRight" className="lrow-c" />}
-  </Tag>
-}
-
 // A list row led by art at 96×72 (a LineArt scene or a licensed picture), or a 56px thumb in the
 // exercise variant. With no control of its own `onOpen` makes the whole row the button; with a
 // `link` line ({ icon, label, onClick }) or a play disc (`onPlay`, `playLabel`) the title block

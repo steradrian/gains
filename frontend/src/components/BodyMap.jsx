@@ -4,9 +4,6 @@ import { t } from '../lib/i18n.js'
 
 // Front and back views of a body, each muscle shaded by how hard it was worked.
 //
-// The five shade steps are the same ones the activity heatmap uses (.hm-c.l0…l4), so
-// "more accent = more training" means one thing everywhere in the app rather than two.
-//
 // The geometry is ~90 KB and only some screens show a map, so it is fetched on first
 // render instead of riding along in the main bundle. Until it lands the component
 // renders nothing but keeps its height, so nothing below it jumps on arrival.
@@ -79,11 +76,4 @@ export default function BodyMap({ load = {}, thresholds, body = 'male', onMuscle
       </> : <div className="bm-ph" aria-hidden="true" />}
     </div>
   )
-}
-
-export function BodyMapLegend() {
-  return <div className="hm-legend" aria-label={`${t('Less')} ${t('More')}`}>
-    {t('Less')} <div className="hm-c l0" /><div className="hm-c l1" /><div className="hm-c l2" />
-    <div className="hm-c l3" /><div className="hm-c l4" /> {t('More')}
-  </div>
 }
