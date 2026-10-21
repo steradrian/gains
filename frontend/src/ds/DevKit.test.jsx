@@ -14,8 +14,26 @@ describe('DevKit', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
     for (const name of ['StageHeader', 'StageRing', 'RingCarousel', 'GlassActions']) expect(titles).toContain(name)
-    expect(view.host.querySelectorAll('.g-shdr')).toHaveLength(3)
+    // Three in the hero kit's entry, two more as the search field in Shared: search.
+    expect(view.host.querySelectorAll('.g-shdr')).toHaveLength(5)
     expect(view.host.querySelectorAll('.g-gacts')).toHaveLength(4)
+  })
+
+  it('renders the Shared: search kit', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining([
+      'Shared: search · StageHeader searching', 'GoToChips', 'SearchSection and SearchRow', 'ResultChips', 'BestMatch', 'SearchFeatureCard', 'Nothing matches: the ways on',
+    ]))
+    expect(view.host.querySelectorAll('.g-spill-field input')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-goto-chip')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-rchip')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-best')).toHaveLength(2)
+    expect(view.host.querySelector('.g-sfeat')).not.toBeNull()
+    // Recent's × takes its row away, in memory.
+    const before = view.host.querySelectorAll('.g-srow-xbtn').length
+    act(() => { view.host.querySelector('.g-srow-xbtn').click() })
+    expect(view.host.querySelectorAll('.g-srow-xbtn')).toHaveLength(before - 1)
   })
 
   it('renders an entry for the Today content kit', () => {
