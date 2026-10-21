@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2008,7 +2007,6 @@ export default {
   'Position {0}': 'Sıra {0}',
   'Add routine to the rotation': 'Dönüşümlü plana rutin ekle',
   'Add to the rotation': 'Dönüşümlü plana ekle',
-  'Build a rotation instead': 'Bunun yerine dönüşümlü plan oluştur',
   'Use this rotation': 'Bu dönüşümlü planı kullan',
   'Use this rotation?': 'Bu dönüşümlü plan kullanılsın mı?',
   'Your own loop gets replaced.': 'Kendi döngünün yerini bu alır.',

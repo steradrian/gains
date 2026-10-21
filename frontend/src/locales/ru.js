@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -1968,7 +1967,6 @@ export default {
   'Position {0}': 'Позиция {0}',
   'Add routine to the rotation': 'Добавить программу в ротацию',
   'Add to the rotation': 'Добавить в ротацию',
-  'Build a rotation instead': 'Создать ротацию вместо этого',
   'Use this rotation': 'Использовать эту ротацию',
   'Use this rotation?': 'Использовать эту ротацию?',
   'Your own loop gets replaced.': 'Ваш собственный круг будет заменён.',

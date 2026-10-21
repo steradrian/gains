@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2060,7 +2059,6 @@ export default {
   'Position {0}': 'الترتيب {0}',
   'Add routine to the rotation': 'إضافة روتين إلى التناوب',
   'Add to the rotation': 'إضافة إلى التناوب',
-  'Build a rotation instead': 'إنشاء تناوب بدلًا من ذلك',
   'Use this rotation': 'استخدام هذا التناوب',
   'Use this rotation?': 'استخدام هذا التناوب؟',
   'Your own loop gets replaced.': 'سيتم استبدال دورتك الخاصة.',

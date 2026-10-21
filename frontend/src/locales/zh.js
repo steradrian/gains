@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2008,7 +2007,6 @@ export default {
   'Position {0}': '第 {0} 位',
   'Add routine to the rotation': '将训练日添加到轮换',
   'Add to the rotation': '添加到轮换',
-  'Build a rotation instead': '改为创建轮换',
   'Use this rotation': '使用此轮换',
   'Use this rotation?': '使用此轮换？',
   'Your own loop gets replaced.': '你自己的循环会被替换。',

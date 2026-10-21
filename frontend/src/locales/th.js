@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2016,7 +2015,6 @@ export default {
   'Position {0}': 'ตำแหน่ง {0}',
   'Add routine to the rotation': 'เพิ่มรูทีนเข้าการหมุนเวียน',
   'Add to the rotation': 'เพิ่มเข้าการหมุนเวียน',
-  'Build a rotation instead': 'สร้างการหมุนเวียนแทน',
   'Use this rotation': 'ใช้การหมุนเวียนนี้',
   'Use this rotation?': 'ใช้การหมุนเวียนนี้?',
   'Your own loop gets replaced.': 'การวนรอบของคุณเองจะถูกแทนที่',

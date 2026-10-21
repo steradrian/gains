@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2008,7 +2007,6 @@ export default {
   'Position {0}': 'Pozíció {0}',
   'Add routine to the rotation': 'Rutin hozzáadása a rotációhoz',
   'Add to the rotation': 'Hozzáadás a rotációhoz',
-  'Build a rotation instead': 'Rotáció létrehozása helyette',
   'Use this rotation': 'Ezen rotáció használata',
   'Use this rotation?': 'Ezt a rotációt használod?',
   'Your own loop gets replaced.': 'A saját köröd lecserélődik.',

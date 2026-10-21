@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2008,7 +2007,6 @@ export default {
   'Position {0}': '순서 {0}',
   'Add routine to the rotation': '로테이션에 루틴 추가',
   'Add to the rotation': '로테이션에 추가',
-  'Build a rotation instead': '대신 로테이션 만들기',
   'Use this rotation': '이 로테이션 사용하기',
   'Use this rotation?': '이 로테이션을 사용할까요?',
   'Your own loop gets replaced.': '내가 만든 순환은 대체돼요.',

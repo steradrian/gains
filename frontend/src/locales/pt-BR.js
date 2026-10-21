@@ -1034,7 +1034,6 @@ export const PT_BR_OVERRIDES = {
   'Position {0}': 'Posição {0}',
   'Add routine to the rotation': 'Adicionar rotina à rotação',
   'Add to the rotation': 'Adicionar à rotação',
-  'Build a rotation instead': 'Criar uma rotação em vez disso',
   'Use this rotation': 'Usar esta rotação',
   'Use this rotation?': 'Usar esta rotação?',
   'Your own loop gets replaced.': 'Seu próprio ciclo é substituído.',

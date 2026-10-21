@@ -186,7 +186,6 @@ export default {
   '{0} moves to your next free day': '{0} moves to your next free day',
   // --- Train plan drawers: English until the translation pass ---
   '{0} day a week': '{0} day a week',
-  '{0} days a week': '{0} days a week',
   '{0}s: {1}': '{0}s: {1}',
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
@@ -2008,7 +2007,6 @@ export default {
   'Position {0}': 'स्थान {0}',
   'Add routine to the rotation': 'रोटेशन में रूटीन जोड़ें',
   'Add to the rotation': 'रोटेशन में जोड़ें',
-  'Build a rotation instead': 'इसके बजाय एक रोटेशन बनाएं',
   'Use this rotation': 'इस रोटेशन का उपयोग करें',
   'Use this rotation?': 'इस रोटेशन का उपयोग करें?',
   'Your own loop gets replaced.': 'आपका अपना चक्र बदल दिया जाएगा।',
