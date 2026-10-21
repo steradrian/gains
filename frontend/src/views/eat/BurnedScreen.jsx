@@ -24,9 +24,9 @@ export default function BurnedScreen({ status, error, title, sub, note, groups, 
       largeTitle={title}
       sub={sub}
     >
-      {status === 'error' && <StageEmpty illustration={SCENE} title={loadErrorText(error)} />}
+      {status === 'error' && <StageEmpty card={false} illustration={SCENE} title={loadErrorText(error)} />}
       {status === 'ready' && empty && (
-        <StageEmpty illustration={SCENE} title={t('Nothing burned logged this week')} action={t('Log activity')} onClick={onLog} />
+        <StageEmpty card={false} illustration={SCENE} title={t('Nothing burned logged this week')} action={t('Log activity')} onClick={onLog} />
       )}
       {status === 'ready' && !empty && <>
         {note && <div className="burned-gut"><GlassList items={[{ icon: 'info', title: note.title, sub: note.body }]} /></div>}

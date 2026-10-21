@@ -30,7 +30,7 @@ export default function LogSavedList({ saved, kind }) {
   </>
   if (!list.length) {
     if (saved.loading) return <Loading className="g-lf-note" />
-    return <StageEmpty card={false} illustration="plate"
+    return <StageEmpty card={false} tone="light" illustration="plate"
       title={kind === 'recipes' ? t('No recipes yet') : t('No saved meals yet')}
       body={kind === 'recipes' ? t('A recipe you save shows up here and asks how many servings you had.') : t('A meal you save shows up here and logs all its foods in one tap.')} />
   }

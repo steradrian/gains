@@ -149,7 +149,7 @@ export default function TrendsScreen({ data, status = 'ready', errorText, fastin
           />
         </div>
         {status === 'error' && (
-          <StageEmpty illustration="chart" title={errorText} action={t('Retry')} onClick={onRetry} />
+          <StageEmpty card={false} illustration="chart" title={errorText} action={t('Retry')} onClick={onRetry} />
         )}
         {status === 'ready' && !data.enough && <Few count={data.loggedCount} onLog={onLog} />}
         {ready && data.enough && (

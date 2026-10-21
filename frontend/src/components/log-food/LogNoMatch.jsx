@@ -8,7 +8,7 @@ import { t } from '../../lib/i18n.js'
 export default function LogNoMatch({ query, online, suggestion, onSuggest, onCreate, onQuick, onScan }) {
   return (
     <div className="g-lf-empty">
-      <StageEmpty card={false} illustration="search" title={t('No match for “{0}”', query)}
+      <StageEmpty card={false} tone="light" illustration="search" title={t('No match for “{0}”', query)}
         body={online ? t('Not in your foods or Open Food Facts. Try fewer words, or add it yourself.') : t('Not in your foods. Try fewer words, or add it yourself.')}
         actions={[
           ...(suggestion ? [{ label: t('Did you mean {0}', suggestion), icon: 'magnifier', onClick: () => onSuggest(suggestion) }] : []),

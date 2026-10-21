@@ -106,7 +106,7 @@ export default function LogSearchStep({ ctx }) {
   </>
   else if (tab === 'meals' || tab === 'recipes') body = <LogSavedList saved={saved} kind={tab} />
   else if (foods.status === 'ready' && !foods.list.length) body = <>
-    <StageEmpty card={false} illustration="plate" title={t('No foods yet')} body={t('Foods you log show up here. Search to find one.')} />
+    <StageEmpty card={false} tone="light" illustration="plate" title={t('No foods yet')} body={t('Foods you log show up here. Search to find one.')} />
     {quickRow}
   </>
   else body = <>

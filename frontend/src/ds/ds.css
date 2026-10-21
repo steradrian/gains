@@ -863,6 +863,11 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
 .g-sempty-btn .g-icon { width: 20px; height: 20px; }
 .g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
+.g-sempty-light { color: var(--text); }
+.g-sempty-light > span:not(.g-sempty-ic) { color: var(--text-3); }
+.g-sempty-light .g-sempty-btn { background: var(--surface-sunken); box-shadow: none; color: var(--text); }
+.g-sempty-light .g-sempty-btn.solid { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+.g-sempty-light .g-sempty-btn:focus-visible { outline-color: var(--accent-text); }
 
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,

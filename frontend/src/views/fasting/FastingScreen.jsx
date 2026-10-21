@@ -27,7 +27,7 @@ export default function FastingScreen({
   const alert = error && <StageAlert key={error}>{error}</StageAlert>
   let body
   if (view === 'unavailable') {
-    body = <StageEmpty illustration="plan" title={t('Fasting lives in the web app')} body={t('Sign in on the web app to track your fasts.')} />
+    body = <StageEmpty card={false} illustration="plan" title={t('Fasting lives in the web app')} body={t('Sign in on the web app to track your fasts.')} />
   } else if (view === 'loading') {
     body = <Loading />
   } else if (view === 'settings-error' || view === 'fasts-error') {

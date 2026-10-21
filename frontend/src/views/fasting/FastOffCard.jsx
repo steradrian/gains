@@ -9,7 +9,7 @@ import FastPlanChips from './FastPlanChips.jsx'
 // The plan chosen here is the one the first fast would use.
 export default function FastOffCard({ hours, busy, onPick, onTurnOn }) {
   return <>
-    <StageEmpty illustration="plate" title={t('Fasting is off')}
+    <StageEmpty card={false} illustration="plate" title={t('Fasting is off')}
       body={t('Turn it on to time your fasts, see streaks and get a Fast row on Today and in the + sheet.')} />
     <div className="g-fast-off">
       <FastPlanChips hours={hours} onPick={onPick} tone="stage" isCustom={planLabelOf(hours) === null} />

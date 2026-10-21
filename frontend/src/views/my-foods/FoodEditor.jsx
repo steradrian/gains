@@ -40,7 +40,7 @@ export default function FoodEditor() {
   if (!on) {
     return (
       <StagePage title={t('Edit food')} parent={FOODS_LIST}>
-        <StageEmpty illustration="plate" title={t('Foods live in the web app')} body={t('Sign in on the web app to keep your foods here.')} />
+        <StageEmpty card={false} illustration="plate" title={t('Foods live in the web app')} body={t('Sign in on the web app to keep your foods here.')} />
       </StagePage>
     )
   }
@@ -52,7 +52,7 @@ export default function FoodEditor() {
   if (!isNew && !food && fresh) {
     return (
       <StagePage title={t('Edit food')} parent={FOODS_LIST}>
-        <StageEmpty illustration="search" title={t('This food is not in My foods')} body={t('It may have been deleted on another device.')}
+        <StageEmpty card={false} illustration="search" title={t('This food is not in My foods')} body={t('It may have been deleted on another device.')}
           action={t('Back to My foods')} onClick={() => leaveTo(FOODS_LIST)} />
       </StagePage>
     )

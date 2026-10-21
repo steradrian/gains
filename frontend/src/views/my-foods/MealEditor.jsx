@@ -37,7 +37,7 @@ export default function MealEditor() {
   if (!on) {
     return (
       <StagePage title={t('Saved meal')} parent={MEALS_LIST}>
-        <StageEmpty illustration="plate" title={t('Saved meals live in the web app')} body={t('Sign in on the web app to keep your saved meals here.')} />
+        <StageEmpty card={false} illustration="plate" title={t('Saved meals live in the web app')} body={t('Sign in on the web app to keep your saved meals here.')} />
       </StagePage>
     )
   }
@@ -49,7 +49,7 @@ export default function MealEditor() {
   if (!isNew && !meal && fresh) {
     return (
       <StagePage title={t('Saved meal')} parent={MEALS_LIST}>
-        <StageEmpty illustration="search" title={t('This meal is not in My foods')} body={t('It may have been deleted on another device.')}
+        <StageEmpty card={false} illustration="search" title={t('This meal is not in My foods')} body={t('It may have been deleted on another device.')}
           action={t('Back to My foods')} onClick={() => leaveTo(MEALS_LIST)} />
       </StagePage>
     )
