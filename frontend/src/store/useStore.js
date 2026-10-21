@@ -202,6 +202,11 @@ export const DEF = {
   // card and the /checkin route; the saved gymCards stay so turning it back on restores them.
   // Defaults on; an older profile without the key reads as on (`!== false`).
   checkIn: true,
+  // What the person tracks (Settings > Features, lib/nutrition/food-tracked.js). Off hides that
+  // area and deletes nothing; a profile without the key reads as on (`!== false`).
+  trackTraining: true,
+  trackFood: true,
+  trackActivity: true,
   // Whether Start opens the quick weigh-in first (sheets.jsx startFlow, issue #137). Off starts
   // the session straight away; weight can still be logged from Home/Stats. On here, so an
   // older profile without the key reads as on (`!== false`) and keeps the step it had; a profile

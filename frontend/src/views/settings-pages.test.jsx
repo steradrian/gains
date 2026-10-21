@@ -92,7 +92,9 @@ afterEach(() => {
 
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
 const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
-const titles = () => [...host.querySelectorAll('.lrow .lrow-t')].map(e => e.textContent)
+// Pages moved onto the stage (Units, Features) draw glass rows: the title is the row's <b>.
+const glassRow = title => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === title)
+const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row b')].map(e => e.textContent)
 
 // This test's guest in a browser, as the page itself sees it.
 const guestWeb = {
@@ -391,10 +393,20 @@ describe('the pages', () => {
   })
 
   it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
-    for (const [page, title] of [['alerts', 'Timer alerts'], ['advanced', 'Fine-tuning'], ['licences', 'Licences'], ['danger', 'Danger zone'], ['features', 'Features']]) {
+    for (const [page, title] of [['alerts', 'Timer alerts'], ['advanced', 'Fine-tuning'], ['licences', 'Licences'], ['danger', 'Danger zone']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr h1').textContent).toBe(title)
       act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
+      expect(mocks.backs.at(-1), page).toBe('/me')
+    }
+  })
+
+  it('a page on the stage frame (Units, Features) has its own title and Back, and no old header over it', () => {
+    for (const [page, title] of [['units', 'Units & language'], ['features', 'Features']]) {
+      mount(page)
+      expect(host.querySelector('.sub-hdr'), page).toBeNull()
+      expect(host.querySelector('h1').textContent).toBe(title)
+      act(() => host.querySelector('.g-snav-back').click())
       expect(mocks.backs.at(-1), page).toBe('/me')
     }
   })
@@ -552,17 +564,17 @@ describe('Features', () => {
     expect(t).toContain('Filter by equipment')          // this test's profile has an equipment profile
     expect(t).not.toContain('Workout day reminder')     // no reminders for a guest in a browser
     expect(t).not.toContain('Auto-backup on changes')   // the phone app's
-    expect(rowTitled('Flash the screen').querySelector('.lrow-v').textContent).toBe('On')
-    expect(rowTitled('Flash the screen').querySelector('.lrow-s').textContent).toBe('Timer alerts')
-    expect(rowTitled('Reduce motion').querySelector('.lrow-v').textContent).toBe('Off')
-    act(() => rowTitled('Flash the screen').click())
+    expect(glassRow('Flash the screen').querySelector('.g-gvr-val').textContent).toBe('On')
+    expect(glassRow('Flash the screen').querySelector('.g-glist-body span').textContent).toBe('Timer alerts')
+    expect(glassRow('Reduce motion').querySelector('.g-gvr-val').textContent).toBe('Off')
+    act(() => glassRow('Flash the screen').click())
     expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Flash the screen' } }])
   })
 
   it('a reminder that waits on push opens Reminders with Push notifications to flash instead', () => {
     mocks.MOBILE = true
     mount('features')
-    act(() => rowTitled('Workout day reminder').click())
+    act(() => glassRow('Workout day reminder').click())
     expect(mocks.navs.at(-1)).toEqual(['/me/reminders', { state: { find: 'Workout day reminder', via: 'Push notifications' } }])
   })
 
@@ -594,6 +606,9 @@ describe('Features', () => {
         await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve() })
         for (const row of host.querySelectorAll('.lrow')) {
           if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(row.querySelector('.lrow-t').textContent)
+        }
+        for (const row of host.querySelectorAll('.g-glist-row')) {
+          if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(row.querySelector('b').textContent)
         }
         act(() => root.render(null))
       }
