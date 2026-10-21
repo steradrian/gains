@@ -689,6 +689,11 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 /* StageNote: the quiet line at the foot of a pushed page (Sh3Notifications: "Kept for 30 days…").
    .g-sbanner is the gutter a banner (InlineBanner stage) stands in on such a page (Sh3PermOff). */
 .g-snote { margin: 0; padding: 14px 24px 0; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+/* StagePageTitle: a pushed page's large title under its nav bar, and its line */
+.g-sptitle { padding: 10px 20px 6px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sptitle h1 { margin: 0; font: 700 32px/38px var(--font-sans); letter-spacing: -.025em; }
+.g-sptitle h1:focus { outline: none; }
+.g-sptitle p { margin: 4px 0 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-sbanner { padding: 4px 16px 14px; }
 
 /* Accent presets. The design system selects them by data-accent on any ancestor (it expects

@@ -33,7 +33,7 @@ describe('NotificationsScreen', () => {
   it('N1.0: the heading, its line, and New, This week and Earlier with their rows', () => {
     show()
     expect([...view.host.querySelectorAll('h1')].map(h => h.textContent)).toEqual(['Notifications'])
-    expect(view.host.querySelector('.notif-head h1').textContent).toBe('Notifications')
+    expect(view.host.querySelector('.g-sptitle h1').textContent).toBe('Notifications')
     expect(text()).toContain('Reminders you set, streaks and new bests')
     expect(groupTitles()).toEqual(['New', 'This week', 'Earlier'])
     expect(rows().map(r => (r.querySelector('b .g-sr') || r.querySelector('b')).textContent)).toEqual(['New: New best: Bench press', '6 weeks on plan', '50 workouts'])
@@ -53,7 +53,7 @@ describe('NotificationsScreen', () => {
     expect(view.host.querySelector('.g-ssec-line .g-ssec-t').textContent).toBe('1 new')
     click(button('Mark all read'))
     expect(onMarkAllRead).toHaveBeenCalledTimes(1)
-    expect(document.activeElement).toBe(view.host.querySelector('.notif-head h1'))
+    expect(document.activeElement).toBe(view.host.querySelector('.g-sptitle h1'))
   })
 
   it('N1.2: all read says so, with no pill, and keeps every row', () => {

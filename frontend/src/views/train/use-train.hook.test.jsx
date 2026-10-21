@@ -8,7 +8,7 @@ import { useStore } from '../../store/useStore.js'
 import { useTrain } from './use-train.js'
 
 const nav = vi.fn()
-vi.mock('react-router-dom', () => ({ useNavigate: () => nav }))
+vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train' }) }))
 const sheets = vi.hoisted(() => ({
   startFlow: vi.fn(), dayOverrideSheet: vi.fn(), dayNoteSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), starterPlanSheet: vi.fn(),
   menuSheet: vi.fn(), workoutDetailSheet: vi.fn(),

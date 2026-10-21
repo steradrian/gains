@@ -9,6 +9,7 @@ import NotificationRow from '../../ds/NotificationRow.jsx'
 import StageEmpty from '../../ds/StageEmpty.jsx'
 import StageNavBar from '../../ds/StageNavBar.jsx'
 import StageNote from '../../ds/StageNote.jsx'
+import StagePageTitle from '../../ds/StagePageTitle.jsx'
 import StageScreen from '../../ds/StageScreen.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import './notifications.css'
@@ -21,8 +22,8 @@ import './notifications.css'
 // the phone app's reminders land here, so off it the page never promises them, and the empty
 // scene has no "Set a reminder" that could not fill it.
 //
-// The large title is the page's h1 (the nav bar above it has none). Mark all read takes its own
-// pill away, so focus moves to that heading.
+// The large title is the page's h1 (StagePageTitle; the nav bar above it has none). Mark all read
+// takes its own pill away, so focus moves to that heading.
 export default function NotificationsScreen({
   sections, unreadCount, isUnread, now = Date.now(), permission, homeScreen, hasReminders,
   onOpen, onMarkAllRead, onTurnOn, onReminders, onBack,
@@ -45,10 +46,8 @@ export default function NotificationsScreen({
     <StageScreen accent={accent}>
       <div className="notif">
         <StageNavBar onBack={onBack} actions={[{ icon: 'gear', label: t('Reminder settings'), onClick: onReminders }]} />
-        <div className="notif-head">
-          <h1 ref={heading} tabIndex={-1}>{t('Notifications')}</h1>
-          {!empty && <p>{hasReminders ? t('Reminders you set, streaks and new bests') : t('Streaks and new bests')}</p>}
-        </div>
+        <StagePageTitle ref={heading} title={t('Notifications')}
+          line={empty ? null : hasReminders ? t('Reminders you set, streaks and new bests') : t('Streaks and new bests')} />
         {permission === 'off' && (
           <div className="g-sbanner">
             <InlineBanner stage icon="bellSlash" title={t('Notifications are off on this phone')}
