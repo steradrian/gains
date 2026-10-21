@@ -25,7 +25,8 @@ import { ownedWeightsFor } from '../../lib/dumbbells.js'
 import { defaultIncrement } from '../../lib/progression.js'
 import { fmtRest } from '../../lib/duration.js'
 import { setEntryNoProg } from '../../lib/session-noprog.js'
-import { plannedConfigOf } from '../../lib/session-start.js'
+import { plannedConfigOf, buildPlannedEntry, builtOutOfProgression } from '../../lib/session-start.js'
+import { sessionHistory } from '../../lib/backfill.js'
 import { routineChangesFromEntry, updateRoutineFromEntry, replaceSlotExercise, routineSlotIndex } from '../../lib/routines.js'
 import { swapActiveExercise } from '../../lib/active-exercise-swap.js'
 import { confirmSheet } from '../../sheets/confirm-menu.jsx'
@@ -92,7 +93,7 @@ export function deleteActiveSet(idx, i, { editing = false } = {}) {
     else en.sets = removeRowAt(en.sets, i)
   })
   const msg = warm ? t('Warm-up gone.') : stopped ? t('Set {0} gone. Its timer stopped too.', n) : t('Set {0} gone.', n)
-  ui.toast(msg, { action: t('Undo'), onAction: () => undoDeleteSet(token) })
+  ui.toast(msg, { action: t('Undo'), ms: UNDO_MS, onAction: () => undoDeleteSet(token) })
   return true
 }
 /** Puts a removed set back exactly as it was, at its old place in the same exercise. If the
@@ -470,6 +471,41 @@ export function routineUpdateAt(idx) {
       },
     }),
   }
+}
+
+/**
+ * Exercise settings saved from inside the workout (the hook's openProgressionSettings, moved here):
+ * the entry rebuilt the way the session start builds it, keeping only what was already logged.
+ * `opened` is the config the sheet opened with; `at` is `{ activeId, entryId, entryCount }` as
+ * they were then. Same workout, same list length and the same exercise at the index is what
+ * "nothing shifted" means; otherwise it fails closed.
+ */
+export function applyExerciseSettingsAt(idx, cfg, opened, { activeId, entryId, entryCount }) {
+  const current = useStore.getState().S
+  if (current.active?.id !== activeId || current.active.entries?.length !== entryCount || current.active.entries?.[idx]?.id !== entryId) return false
+  update(s => {
+    const activeEntry = s.active?.id === activeId ? s.active.entries?.[idx] : null
+    if (!activeEntry || activeEntry.id !== entryId) return
+    const full = { ...cfg, id: activeEntry.id }
+    // Today's weight left as it was is not an edit of the plan's.
+    if ((cfg.weight || 0) === (opened.weight || 0) && activeEntry.planned?.weight != null) full.weight = activeEntry.planned.weight
+    const activeRoutine = s.routines.find(r => r.id === activeEntry.rid)
+    if (!(full.sets > 0)) full.sets = activeEntry.sets.filter(x => !isWarmupRow(x)).length || 1
+    // Rebuilt the way the session start builds them; only what you already logged is kept.
+    const built = buildPlannedEntry(sessionHistory(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
+    const fresh = built.sets
+    const doneWarm = activeEntry.sets.filter(x => x.done && isWarmupRow(x))
+    const doneWork = activeEntry.sets.filter(x => x.done && !isWarmupRow(x))
+    const freshWarm = fresh.filter(isWarmupRow)
+    const freshWork = fresh.filter(x => !isWarmupRow(x))
+    activeEntry.target = built.target
+    activeEntry.plan = built.plan
+    activeEntry.planned = built.planned
+    if (built.carried) activeEntry.carried = true
+    else delete activeEntry.carried
+    activeEntry.sets = [...doneWarm, ...freshWarm.slice(doneWarm.length), ...doneWork, ...freshWork.slice(doneWork.length)]
+  })
+  return true
 }
 
 /** The exercise's own rest in seconds (0: the default rest), for this session. */

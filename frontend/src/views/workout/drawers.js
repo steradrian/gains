@@ -4,96 +4,42 @@
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { exOr } from '../../lib/exercises.js'
-import { buildSets, freestyleConfig, defaultConfig, supersetUnits, modeOf, isPerSide, canBeWarmup, setSpanAt, setLabel, applyIntensifierPlan } from '../../lib/history.js'
+import { buildSets, freestyleConfig, defaultConfig, supersetUnits, modeOf, applyIntensifierPlan } from '../../lib/history.js'
 import { exerciseNameText } from '../../lib/format.js'
 import { t } from '../../lib/i18n.js'
 import { back } from '../../lib/use-tab-nav.js'
-import { durationSheet } from '../../components/DurationWheel.jsx'
-import { adjustRestSheet } from '../../components/RestTimer.jsx'
 import { workoutSettingsSheet } from '../../components/WorkoutSettingsSheet.jsx'
-import { REST_MAX, fmtRest } from '../../lib/duration.js'
-import { menuSheet, confirmSheet, exerciseDetailSheet, barWeightSheet, exercisePicker, exConfigSheet, workoutCompleteSheet, addRoutineToSessionSheet, renameWorkoutSheet, sessionNoteSheet } from '../../sheets.jsx'
+import { fmtRest } from '../../lib/duration.js'
+import { menuSheet, confirmSheet, exercisePicker, exConfigSheet, workoutCompleteSheet, addRoutineToSessionSheet, renameWorkoutSheet, sessionNoteSheet } from '../../sheets.jsx'
 import { insertionIndexAfterCurrentUnit } from '../../lib/supersetFlow.js'
 import { defaultIncrement, weightIncrement } from '../../lib/progression.js'
 import { buildPlannedEntry, builtOutOfProgression } from '../../lib/session-start.js'
 import { sessionNoProg, setSessionNoProg, joinSessionNoProg } from '../../lib/session-noprog.js'
 import { markAllSetsDone, sessionHistory } from '../../lib/backfill.js'
-import { isWarmupRow, isFailureSet, isDropSet, isRestPauseSet } from '../../lib/workout-model.js'
 import { dropGrid } from '../../lib/plates.js'
 import { withMeaning, historyAs, dbLoadFor, ownedWeightsFor } from '../../lib/dumbbells.js'
 import { partsOf } from '../../lib/workout-parts.js'
-import { setNumberAt, toggleWarmupRowAt, toggleFailureAt, addDropAt, addBurstAt, copySetAt, removeSetAt } from './workout-actions.js'
+// Workout drawers-M2
+import { openSetEdit, openHowTo, openPlates, openRestWheel, openExerciseRest } from './exercise-drawers.jsx'
 
 const state = () => useStore.getState().S
 const update = (fn, local) => useStore.getState().update(fn, local)
-const entryAt = idx => state().active?.entries?.[idx] || null
 
-/** Set edit (W1.12). Fallback: the old set menu's actions. */
-export function setEditSheet(idx, i) {
-  const A = state().active
-  const entry = A?.entries?.[idx]
-  const s = entry?.sets?.[i]
-  if (!s) return
-  const editing = !!A.editingWorkoutId
-  const mode = modeOf({ ...(entry.target || {}), id: entry.id })
-  const perSide = isPerSide({ ...(entry.target || {}), id: entry.id })
-  const warm = isWarmupRow(s)
-  menuSheet({
-    title: warm ? t('Warm-up') : t('Set {0}', setNumberAt(entry.sets, i)),
-    subtitle: setLabel(entry.id, s, entry.target, state().speedUnit),
-    sections: [
-      { items: [
-        !warm && mode === 'reps' && canBeWarmup(s) && entry.sets.some((x, j) => j !== i && !isWarmupRow(x)) && { icon: 'sunrise', label: t('Make it a warm-up set'), onClick: () => toggleWarmupRowAt(idx, i, true) },
-        warm && mode === 'reps' && !perSide && { icon: 'dumbbell', label: t('Count it as a working set'), onClick: () => toggleWarmupRowAt(idx, i, false) },
-        !warm && mode !== 'cardio' && { icon: 'gauge', label: t('Taken to failure'), sub: t('Nothing left in the tank'), on: isFailureSet(s), onClick: () => toggleFailureAt(idx, i) },
-      ] },
-      { title: t('Add to this set'), items: [
-        !warm && mode === 'reps' && !isRestPauseSet(s) && { icon: 'arrowDown', label: t('Drop set'), sub: t('+ Drop'), onClick: () => addDropAt(idx, i) },
-        !warm && mode === 'reps' && !isDropSet(s) && { icon: 'bolt', label: t('Rest-pause burst'), sub: t('+ Burst'), onClick: () => addBurstAt(idx, i) },
-      ] },
-      { items: [
-        { icon: 'copy', label: t('Copy this set'), onClick: () => copySetAt(idx, i) },
-        { icon: 'trash', label: t('Remove this set'), danger: true, disabled: !editing && entry.sets.length <= setSpanAt(entry.sets, i)[1], onClick: () => removeSetAt(idx, i, { editing }) },
-      ] },
-    ],
-  })
-}
+/** Set edit (W1.12): the set's fields, effort, warm-up, failure, drops, bursts, copy, note, Remove. */
+export const setEditSheet = (idx, i) => openSetEdit(idx, i)
 
-/** How to (W1.14, W1.33, W1.34, W1.43). Fallback: the exercise drawer. */
-export function howToSheet(idx) {
-  const entry = entryAt(idx)
-  if (entry) exerciseDetailSheet(exOr(entry.id))
-}
+/** How to (W1.14, W1.33, W1.34, W1.43), with Swap as a step inside it (W1.15). */
+export const howToSheet = idx => openHowTo(idx)
 
-/** Plate loading (W1.25). Fallback: the bar weight sheet. */
-export function platesSheet(idx) {
-  const entry = entryAt(idx)
-  if (entry) barWeightSheet(entry.id, { ...(entry.target || {}), id: entry.id })
-}
+/** Plate loading (W1.25); an exercise that loads no plates opens Bar and loading. */
+export const platesSheet = idx => openPlates(idx)
 
-/** Time left on the rest (W1.4). Fallback: the rest bar's own sheet. */
-export const restWheelSheet = () => adjustRestSheet()
+/** Time left on the rest (W1.4). */
+export const restWheelSheet = () => openRestWheel()
 
 /** An exercise's own rest, where 0:00 means the default applies. This session's, like
  * everything edited on the exercise from inside it; Update routine offers to keep it. */
-export function exerciseRestSheet(idx) {
-  const S = state()
-  const entry = S.active?.entries?.[idx]
-  if (!entry) return
-  const activeId = S.active.id
-  const entryId = entry.id
-  durationSheet({
-    title: t('Rest for this exercise'),
-    value: entry.target?.restSec > 0 ? entry.target.restSec : 0, max: REST_MAX,
-    off: t('Default ({0})', fmtRest(S.restSec)),
-    footer: t('Rest after each set of this exercise. 0:00 means your default rest.'),
-    onDone: v => update(s => {
-      const e = s.active?.id === activeId ? s.active.entries?.[idx] : null
-      if (!e || e.id !== entryId) return
-      e.target = { ...(e.target || {}), restSec: v }
-    }),
-  })
-}
+export const exerciseRestSheet = idx => openExerciseRest(idx)
 
 /** The map (W1.37, W1.45). Fallback: a menu of the exercises; a tap makes one current. */
 export function workoutMapSheet() {
