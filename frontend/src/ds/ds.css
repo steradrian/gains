@@ -244,7 +244,8 @@ div.g-glist-row { cursor: default; }
 button.g-grow:active, a.g-grow:active, .g-tile:active, .g-water-add:active { transform: scale(.95); }
 
 /* StageSection */
-.g-ssec { display: flex; justify-content: space-between; align-items: baseline; padding: 32px 20px 12px; color: var(--on-stage); }
+:root { --g-sec-gap: 32px; }
+.g-ssec { display: flex; justify-content: space-between; align-items: baseline; padding: var(--g-sec-gap) 20px 12px; color: var(--on-stage); }
 .g-ssec h2 { margin: 0; font: 700 20px/26px var(--font-sans); letter-spacing: -0.02em; }
 .g-ssec-act { appearance: none; border: 0; background: none; padding: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); text-decoration: none; }
 button.g-ssec-act, a.g-ssec-act { cursor: pointer; }
@@ -871,7 +872,7 @@ a.g-xrow, button.g-xrow { cursor: pointer; }
 a.g-xrow-stage:focus-visible, button.g-xrow-stage:focus-visible { outline-color: var(--on-stage); }
 
 /* StageTrainCard: status tags, name and line, a bar or a stack of stills or rows, then equal buttons and the ⋯ */
-.g-tcard { margin: 10px 16px 0; padding: 18px; border-radius: 28px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-tcard { margin: var(--g-sec-gap) 16px 0; padding: 18px; border-radius: 28px; color: var(--on-stage); font-family: var(--font-sans); }
 .g-tcard-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .g-tcard-head { padding-top: 12px; display: flex; flex-direction: column; }
 .g-tcard-head b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
