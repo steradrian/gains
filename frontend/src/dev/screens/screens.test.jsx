@@ -215,6 +215,23 @@ describe('the screens gallery', () => {
     await check('H0.8', s => expect(s.panel.querySelector('.g-sfeat').textContent).toContain('Fasting'))
   }, 30000)
 
+  it('a search state leaves the real user\'s search history as it was: in storage and on screen after', async () => {
+    const realUser = useStore.getState().user
+    const KEYS = { 'gains_search_recent:u77': JSON.stringify([{ kind: 'query', query: 'deadlift' }]), 'gains_search_opened:u77': JSON.stringify({ 'page:/home': { n: 2, at: 1 } }), 'gains_search_searched:u77': 'true' }
+    useStore.setState({ user: { id: 77, name: 'Real' } })
+    for (const [k, v] of Object.entries(KEYS)) localStorage.setItem(k, v)
+    try {
+      await show(screenById('H0.0'))
+      unmountAll()
+      for (const [k, v] of Object.entries(KEYS)) expect(localStorage.getItem(k), k).toBe(v)
+      const { useRecents } = await import('../../lib/search/recents.js')
+      expect(useRecents.getState()).toMatchObject({ profile: 'u77', list: [{ kind: 'query', query: 'deadlift' }], searched: true })
+    } finally {
+      useStore.setState({ user: realUser })
+      for (const k of Object.keys(KEYS)) localStorage.removeItem(k)
+    }
+  })
+
   it('has Train T2.0 and its states T2.3 and T2.7 to T2.14, the toasts held over the screen', async () => {
     const ids = screenAreas().find(a => a.name === 'Train').entries.map(e => e.id)
     expect(ids).toEqual(['T2.0', 'T2.3', 'T2.7', 'T2.8', 'T2.9', 'T2.10', 'T2.11', 'T2.12', 'T2.13', 'T2.14'])

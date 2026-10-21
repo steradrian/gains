@@ -85,10 +85,13 @@ export function clearRecents() {
   save({ list: [] })
   return { list, profile, epoch }
 }
+/** Puts a cleared Recent back under whatever was added since the Clear: the newer entries stay
+ *  first, an entry in both shows once (where it is newer), and the list keeps its six. */
 export function restoreRecents(snapshot) {
   const now = useRecents.getState()
   if (!snapshot || snapshot.profile !== now.profile || snapshot.epoch !== epoch) return
-  save({ list: snapshot.list.filter(valid).slice(0, RECENT_MAX) })
+  const back = snapshot.list.filter(r => valid(r) && !now.list.some(n => sameRecent(n, r)))
+  save({ list: [...now.list, ...back].slice(0, RECENT_MAX) })
 }
 
 /** Clear (board Sh0Cleared): Recent goes at once, and what comes back is its Undo, for the 8 s
@@ -105,6 +108,18 @@ export function pruneRecents(exists) {
   if (kept.length !== list.length) save({ list: kept })
 }
 
+// While above 0, a change of user is not a sign-out: the screens gallery lays a mock user over the
+// real one for as long as a state is on show (dev/screens/mock-env.js), and must not wipe the real
+// profile's Recent on the way in or the mock's on the way out.
+let kept = 0
+
+/** Holds the profiles' stored Recent through user changes until the returned release is called. */
+export function keepRecentsThroughUserSwap() {
+  kept += 1
+  let done = false
+  return () => { if (!done) { done = true; kept -= 1 } }
+}
+
 // Each profile its own Recent, and none outlives its session: signing out, or switching to another
 // profile (setUser), wipes the one that left. A guest's entries stay until a profile adopts them.
 if (typeof useStore.subscribe === 'function') {
@@ -113,7 +128,7 @@ if (typeof useStore.subscribe === 'function') {
     const now = profileOf(s.user)
     if (was === now) return
     epoch += 1
-    if (prev.user) {
+    if (prev.user && !kept) {
       try { for (const k of [RECENT_KEY, OPENED_KEY, SEARCHED_KEY]) storage()?.removeItem(k + was) } catch { /* nothing kept */ }
     }
     useRecents.setState(load(now))

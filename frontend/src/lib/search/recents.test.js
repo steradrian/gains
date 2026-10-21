@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useStore } from '../../store/useStore.js'
-import { RECENT_MAX, addRecent, clearRecents, clearRecentsWithUndo, markSearched, noteOpened, openedScore, pruneRecents, removeRecent, restoreRecents, useRecents } from './recents.js'
+import {
+  RECENT_MAX, addRecent, clearRecents, clearRecentsWithUndo, keepRecentsThroughUserSwap, markSearched, noteOpened, openedScore, pruneRecents, removeRecent,
+  restoreRecents, useRecents,
+} from './recents.js'
 
 beforeEach(() => {
   localStorage.clear()
@@ -77,6 +80,32 @@ describe('Recent', () => {
     expect(useRecents.getState().list).toEqual([])
     undo()
     expect(useRecents.getState().list.map(r => r.query)).toEqual(['oats'])
+  })
+
+  it('Undo puts the cleared entries back under what was added since, once each, six at most', () => {
+    for (const q of ['a', 'b', 'c', 'd', 'e']) addRecent({ kind: 'query', query: q })
+    const undo = clearRecentsWithUndo()
+    addRecent({ kind: 'query', query: 'new' })
+    addRecent({ kind: 'query', query: 'C' })
+    undo()
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['C', 'new', 'e', 'd', 'b', 'a'])
+    expect(JSON.parse(localStorage.getItem('gains_search_recent:u1')).map(r => r.query)).toEqual(['C', 'new', 'e', 'd', 'b', 'a'])
+  })
+
+  it('a user laid over another while held (the screens gallery) wipes neither profile\'s stored Recent', () => {
+    addRecent({ kind: 'query', query: 'mine' })
+    markSearched()
+    const release = keepRecentsThroughUserSwap()
+    useStore.setState({ user: { id: 'g', name: 'Gallery' } })
+    expect(useRecents.getState().list).toEqual([])
+    useStore.setState({ user: { id: 1, name: 'A' } })
+    release()
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['mine'])
+    expect(localStorage.getItem('gains_search_searched:u1')).toBe('true')
+    // Released, a real switch wipes again.
+    useStore.setState({ user: { id: 2, name: 'B' } })
+    expect(localStorage.getItem('gains_search_recent:u1')).toBeNull()
+    useStore.setState({ user: { id: 1, name: 'A' } })
   })
 })
 

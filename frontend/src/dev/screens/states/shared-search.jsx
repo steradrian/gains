@@ -35,7 +35,12 @@ function SearchState({ tab, query = '', group = null, recents = RECENTS, searche
     useRecents.setState({ list: recents, searched, opened: {} })
     useSearch.setState({ open: true, live: true, id: 'gallery', base: 0, tab, query, group, active: null, scrollTop: 0, origin: null, date: undefined })
     setReady(true)
-    return () => { useSearch.setState(session, true); useRecents.setState(kept, true) }
+    // The frame puts the real user back before this unmounts, and Recent reloads that profile's
+    // then: the mock profile's copy is put back only while it is still the one signed in.
+    return () => {
+      useSearch.setState(session, true)
+      if (useRecents.getState().profile === kept.profile) useRecents.setState(kept, true)
+    }
   }, [tab, query, group, recents, searched])
   if (!ready) return null
   return <>
