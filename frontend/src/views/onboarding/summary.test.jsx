@@ -319,13 +319,13 @@ describe('Go to Today: stage A', () => {
     vi.restoreAllMocks()
   })
 
-  it('grows a horizontal line instead when Home has no nutrition and so no split', async () => {
+  it('grows the vertical line without nutrition too: Today\'s training ring takes it', async () => {
     recorder = recordAnimations()
     const page = await summaryWithTarget(lose, { animated: true })
     mocks.nutrition.on = false
     rerender()
     await goHome(page)
-    expect(threadFrames()[0].transform).toBe('scaleX(0)')
+    expect(threadFrames()[0].transform).toMatch(/^scale\([\d.]+, 0\)$/)
   })
 
   it('grows a horizontal line where there is no target to put in the ring', async () => {
@@ -384,9 +384,9 @@ describe('Go to Today: the shape the transition carries', () => {
     expect(root.classList.contains('vt-flat')).toBe(false)
   })
 
-  it('full data with nutrition off is flat as well: Home has no split to land on', async () => {
+  it('full data with nutrition off is vertical too: Today\'s training ring takes the line on its 9 o\'clock tangent', async () => {
     const { seen } = await transition(lose, { nutrition: false })
-    expect(seen).toEqual({ stageA: true, flat: true, named: true })
+    expect(seen).toEqual({ stageA: false, flat: false, named: true })
   })
 })
 
@@ -554,15 +554,15 @@ describe('Adjust your target (O2.12a)', () => {
 describe('the stylesheets', () => {
   const css = name => readFileSync(resolve(process.cwd(), 'src', name), 'utf8')
 
-  it('the thread goes to the hairline of its own shape, and the DOM Home mounts still decides when there is no hero hairline', () => {
-    const kit = css('tab-kit.css')
-    const rule = kit.split('\n').find(l => l.endsWith('{view-transition-name:thread}'))
+  it('the thread goes to the tangent of its own shape on the first hero ring', () => {
+    const today = css('views/today/today.css')
+    const rule = today.split('\n').find(l => l.endsWith('{view-transition-name:thread}'))
     const selectors = rule.slice(0, -'{view-transition-name:thread}'.length).split(',')
     expect(selectors).toEqual([
-      'html.vt-handover:not(.vt-flat) .hero-hair',
-      'html.vt-handover.vt-flat .month-bar-hair',
-      'html.vt-handover:not(:has(.hero-hair)) .month-bar-hair',
+      'html.vt-handover:not(.vt-flat) .today .g-rc-slide:first-child .g-sring-land-v',
+      'html.vt-handover.vt-flat .today .g-rc-slide:first-child .g-sring-land-h',
     ])
+    expect(css('tab-kit.css')).not.toMatch(/view-transition-name:thread/)
     // vt-flat is set and cleared with vt-handover, so it can't outlive the transition.
     const handover = readFileSync(resolve(process.cwd(), 'src/lib/onboarding/handover.js'), 'utf8')
     expect(handover).toMatch(/classList\.toggle\('vt-flat', flat\)/)
