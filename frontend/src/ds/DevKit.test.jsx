@@ -123,4 +123,14 @@ describe('DevKit', () => {
     expect(tables[1].querySelectorAll('[role="row"]')).toHaveLength(4)
     expect(tables[1].querySelectorAll('.g-sett-rmbtn')).toHaveLength(3)
   })
+
+  it('renders the routine editor kit: the exercise rows, one in reorder mode, and a superset', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['RoutineExerciseRow', 'SupersetGroup']))
+    expect(view.host.querySelectorAll('.g-rx')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-rx-btn')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ssg .g-rx')).toHaveLength(2)
+    expect(view.host.querySelector('button.g-ssg-h')).not.toBeNull()
+  })
 })

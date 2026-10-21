@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Section from './DevKitSection.jsx'
+import RoutineExerciseRow from './RoutineExerciseRow.jsx'
 import SetTable from './SetTable.jsx'
+import SupersetGroup from './SupersetGroup.jsx'
 
 // The routines slice's part of the catalogue (DevKit.jsx): the pieces of the exercise settings drawer
 // that have no screen of their own. Words here are sample data; the app passes its own through t().
@@ -47,6 +49,21 @@ export default function DevKitRoutines() {
       <Section title="SetTable" note="One summary row for a mode with one value for all its sets (the cells are real fields, each named for a screen reader); then a row a set for a pyramid, with Max, a remove button and Add set.">
         <SetTable label="Sets" {...summary} />
         <SetTable label="Pyramid sets" {...perSet} />
+      </Section>
+      <Section title="RoutineExerciseRow" note="The editor's exercise row on the stage (board T5.0): picture, name, the numbers and the progression line. Then the reorder mode, with the move buttons and the grip, on a row without a picture.">
+        <div className="g-re-list">
+          <RoutineExerciseRow title="Bench press" sub="4 × 6–8 · 80 kg" line="Up 2.5 kg when every set hits 8" onOpen={NOOP} />
+          <RoutineExerciseRow title="Dip" sub="3 × 10" line="Linear progression" warning="Needs dip bars, which isn’t in your active profile" onOpen={NOOP}
+            moveUp={{ label: 'Move Dip up', onClick: NOOP }} moveDown={{ label: 'Move Dip down', disabled: true, onClick: NOOP }} handle={{ title: 'Reorder exercises' }} />
+        </div>
+      </Section>
+      <Section title="SupersetGroup" note="Two exercises done back to back, under a header line that opens the superset's name and rest.">
+        <div className="g-re-list">
+          <SupersetGroup title="Superset" detail="1:30 rest after both" onClick={NOOP}>
+            <RoutineExerciseRow title="Cable fly" sub="3 × 12 · 15 kg" badge={{ text: 'A1', label: 'Superset position A1' }} onOpen={NOOP} />
+            <RoutineExerciseRow title="Push-up" sub="3 × 15" badge={{ text: 'A2', label: 'Superset position A2' }} onOpen={NOOP} />
+          </SupersetGroup>
+        </div>
       </Section>
     </>
   )
