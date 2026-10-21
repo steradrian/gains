@@ -10,6 +10,7 @@ import { api } from './api.js'
 import { DEMO } from './demo.js'
 import { MOBILE } from './mobile.js'
 import { t, getLang } from './i18n.js'
+import { pendingCheckIn } from './coach-checkin.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 
@@ -60,7 +61,14 @@ export const awaitedJob = () => awaited
 export const settleAwaited = id => { if (!id || awaited === id) awaited = null }
 
 export const coachStatus = async () => DEMO ? (await demo()).demoStatus() : LOCAL() ? (await local()).localStatus() : api('/api/coach/status')
-const _requestReview = async note => DEMO ? (await demo()).demoReview(S()) : LOCAL() ? (await local()).localReview(S(), note) : api('/api/coach/review', { method: 'POST', body: JSON.stringify({ note: note || '', lang: getLang() }) })
+// Every review carries the latest weekly check-in the Coach has not read (lib/coach-checkin.js),
+// on all three paths; saving a check-in sends nothing by itself.
+const _requestReview = async note => {
+  const checkIn = pendingCheckIn(S())
+  if (DEMO) return (await demo()).demoReview(S(), checkIn)
+  if (LOCAL()) return (await local()).localReview(S(), note, checkIn)
+  return api('/api/coach/review', { method: 'POST', body: JSON.stringify({ note: note || '', lang: getLang(), ...(checkIn && { checkIn }) }) })
+}
 export const requestReview = (...a) => _requestReview(...a).then(track)
 const _requestPlan = async intake => DEMO ? (await demo()).demoPlan(S(), intake) : LOCAL() ? (await local()).localPlan(S(), intake) : api('/api/coach/plan', { method: 'POST', body: JSON.stringify({ intake, lang: getLang() }) })
 export const requestPlan = (...a) => _requestPlan(...a).then(track)

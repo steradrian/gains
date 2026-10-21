@@ -239,7 +239,7 @@ describe('Your training', () => {
     expect(rows[1].to).toBe('/progress/load')
     expect(rows[2]).toMatchObject({ action: 'plans', sub: 'Full Body, Push / Pull / Legs, Upper / Lower, 5×5' })
     expect(rows[3]).toMatchObject({ to: '/me/equipment', sub: 'Home gym' })
-    expect(rows[4].to).toBe('/train/checkin')
+    expect(rows[4]).toMatchObject({ to: '/train/checkin', title: 'Gym card' })
   })
 
   it('Coach on: its row (with this week’s suggestions when known) and no Check in; check-in off hides it', () => {

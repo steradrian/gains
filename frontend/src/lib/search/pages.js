@@ -21,7 +21,7 @@ export const PAGE_INDEX = [
   { path: '/train/exercises/muscles', tab: 'train', title: 'Browse by muscle', glyph: 'figureStrength', kw: 'muscle map body anatomy chest back legs' },
   { path: '/train/schedule', tab: 'train', title: 'Schedule', glyph: 'calendarCheck', kw: 'plan week split rotation days program' },
   { path: '/train/routines', tab: 'train', title: 'Routines', glyph: 'clipboard', kw: 'templates plans program workouts' },
-  { path: '/train/checkin', tab: 'train', title: 'Check in', glyph: 'qr', kw: 'gym card membership qr barcode',
+  { path: '/train/checkin', tab: 'train', title: 'Gym card', glyph: 'qr', kw: 'check in membership qr barcode',
     gate: c => (c.checkIn ? 'on' : { off: { page: 'appearance', find: 'Gym check-in' } }) },
   { path: '/train/coach', tab: 'train', title: 'Coach', glyph: 'chat', kw: 'ai coach chat assistant advice', gate: c => (c.coach ? 'on' : 'hidden') },
   // Nutrition

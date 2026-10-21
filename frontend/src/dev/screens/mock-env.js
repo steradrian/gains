@@ -42,17 +42,19 @@ const json = (status, body) => new Response(JSON.stringify(body), { status, head
 export function installMocks({ config = null, user = null, linkCode = null, webauthn = true, api = {}, credentials = {}, onboarding = null, online = true, S = null } = {}) {
   const undo = []
 
+  // A mocked state is a loaded store: screens that wait for `ready` (CoachChat's redirect) act on it.
   if (S) {
-    const { S: own, update } = useStore.getState()
+    const { S: own, update, ready } = useStore.getState()
     useStore.setState({
       S: { ...own, ...S },
+      ready: true,
       update: mut => {
         const next = structuredClone(useStore.getState().S)
         mut(next)
         useStore.setState({ S: next })
       },
     })
-    undo.push(() => useStore.setState({ S: own, update }))
+    undo.push(() => useStore.setState({ S: own, update, ready }))
   }
 
   const saved = Object.fromEntries(STORE_KEYS.map(k => [k, useStore.getState()[k]]))

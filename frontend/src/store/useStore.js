@@ -95,6 +95,9 @@ export const DEF = {
   // A missed planned day answered on Train, Move to today or Skip it: { [iso]: { seen, _ts } }
   // (lib/missed-day.js), so its banner shows once; merged per day like dayNotes.
   missedSeen: {},
+  // Train coach: the weekly Coach check-in, { [weekIso]: { feel, sleep, note, _ts } }
+  // (lib/coach-checkin.js), read by the next review; merged per week like dayNotes.
+  coachCheckIns: {},
   // Body measurements (#82): one check-in per day, values in cm whatever the weight unit
   // (lib/measurements.js); merged across devices like weigh-ins (lib/sync-merge.js).
   measurements: [], measurementEnabled: null, customMeasurements: [],

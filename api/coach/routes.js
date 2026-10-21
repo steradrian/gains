@@ -9,7 +9,7 @@ import * as jobs from './jobs.js';
 import { computeCohort } from './cohort.js';
 import { adapterFor } from './adapters/index.js';
 import { canDropPrivileges } from './adapters/spawn.js';
-import { DATA_CATEGORIES } from './core/payload.js';
+import { DATA_CATEGORIES, validCheckIn } from './core/payload.js';
 import { validateBaseUrl, validateHeaders, baseUrlFor } from './core/providers.js';
 
 // Job failures the user sees, in the app's own voice. The raw provider detail never reaches
@@ -86,11 +86,15 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
     'POST /api/coach/review': async (req, res) => {
       const user = guard(req, res); if (!user) return;
       const body = await readBody(req);
+      // The weekly check-in rides with the review it is for. A malformed one is refused rather
+      // than quietly dropped, so a client bug cannot make the Coach ignore what someone wrote.
+      if (body.checkIn != null && !validCheckIn(body.checkIn)) return json(res, 400, { error: 'invalid checkIn' });
       try {
         const job = jobs.enqueue(user.id, {
           kind: 'review',
           lang: body.lang,
-          note: body.note ? String(body.note).slice(0, cfgStore.MAX_MESSAGE_LEN_CEILING) : null
+          note: body.note ? String(body.note).slice(0, cfgStore.MAX_MESSAGE_LEN_CEILING) : null,
+          checkIn: body.checkIn || null
         });
         json(res, 202, { job });
       } catch (e) { failEnqueue(res, e); }

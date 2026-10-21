@@ -2639,8 +2639,30 @@ paths:
                   description: |
                     The language the app is showing, which the Coach writes in. Absent or not a
                     language tag, the profile's stored `lang` is used.
+                checkIn:
+                  type: object
+                  description: |
+                    The latest weekly check-in the Coach has not read yet, which the review
+                    reads beside the training data. At least one of `feel`, `sleep` and `note`.
+                  required: [week]
+                  properties:
+                    week:
+                      type: string
+                      format: date
+                      description: The first day of the week it is about.
+                    feel:
+                      type: [string, 'null']
+                      enum: [easy, right, hard, much, null]
+                    sleep:
+                      type: [string, 'null']
+                      enum: [poor, ok, good, null]
+                    note:
+                      type: [string, 'null']
+                      maxLength: 500
       responses:
         '202': { $ref: '#/components/responses/CoachJobQueued' }
+        '400':
+          description: '`checkIn` is malformed: an unknown `feel` or `sleep`, a `note` over 500 characters, no `week`, or nothing answered. Nothing is queued.'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/CoachRefused' }
         '409': { $ref: '#/components/responses/CoachRefused' }

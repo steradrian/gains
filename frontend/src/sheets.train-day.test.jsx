@@ -125,12 +125,12 @@ describe('T2.1 Start a workout', () => {
     expect(S().workouts).toHaveLength(1)
   })
 
-  it('Browse ready-made plans opens the plans sheet', () => {
+  // Ready-made plans is a pushed page now (T10.0), not a sheet: the chooser closes and goes there.
+  it('Browse ready-made plans closes the chooser and opens the plans page', () => {
     startChooserSheet()
-    const chooser = topSheet().id
     tap(mountTop(), 'Browse ready-made plans')
-    expect(useUI.getState().sheets).toHaveLength(1)
-    expect(topSheet().id).not.toBe(chooser)
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(navigated).toBe('/train/plans')
   })
 
   it('with a workout running there is nothing to choose: it goes back to it', () => {
@@ -208,13 +208,12 @@ describe('T2.1 Start a workout', () => {
     })
   })
 
-  it('Pick a ready-made plan opens the plans sheet', () => {
+  it('Pick a ready-made plan closes the chooser and opens the plans page', () => {
     install({ routines: [], week: {}, workouts: [] })
     startChooserSheet()
-    const chooser = topSheet().id
     tap(mountTop(), 'Pick a ready-made plan')
-    expect(useUI.getState().sheets).toHaveLength(1)
-    expect(topSheet().id).not.toBe(chooser)
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(navigated).toBe('/train/plans')
   })
 })
 

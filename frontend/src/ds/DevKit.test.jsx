@@ -123,6 +123,30 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-fchip-caret')).toHaveLength(2)
   })
 
+  it('renders the Train coach kit, the switch turns and the stepper counts', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageSwitch', 'BigStepper']))
+    const switches = view.host.querySelectorAll('.g-sswitch')
+    expect(switches).toHaveLength(2)
+    expect(switches[0].getAttribute('aria-checked')).toBe('true')
+    act(() => { switches[0].click() })
+    expect(view.host.querySelectorAll('.g-sswitch')[0].getAttribute('aria-checked')).toBe('false')
+    expect(view.host.querySelectorAll('.g-bstep')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-bstep-stage')).toHaveLength(1)
+    act(() => { view.host.querySelector('.g-bstep button[aria-label="More 25 kg plates"]').click() })
+    expect(view.host.querySelector('.g-bstep-v b').textContent).toBe('3')
+  })
+
+  it('renders the chat bubbles, the Coach’s on glass and yours in white', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('ChatBubble')
+    expect(view.host.querySelectorAll('.g-bubble-them')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-bubble-me')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-bubble-error')).toHaveLength(1)
+  })
+
   it('renders the Train plan kit, and a tapped day says which', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)

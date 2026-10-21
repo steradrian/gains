@@ -8,6 +8,7 @@ import DevKitPushed from './DevKitPushed.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
+import DevKitTrainCoach from './DevKitTrainCoach.jsx'
 import DevKitTrainLoad from './DevKitTrainLoad.jsx'
 // Train exercises kit (slice 4)
 import DevKitTrainExercises from './DevKitTrainExercises.jsx'
@@ -208,6 +209,8 @@ export default function DevKit() {
         <DevKitToday />
         <DevKitTrain />
         <DevKitTrainLoad />
+        {/* Train coach and gym kit (slice 6) */}
+        <DevKitTrainCoach />
         {/* Train exercises kit (slice 4) */}
         <DevKitTrainExercises />
         <DevKitDrawers />
