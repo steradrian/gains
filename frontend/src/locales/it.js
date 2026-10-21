@@ -3329,4 +3329,6 @@ export default {
   'Your invite needs a connection to open.': 'Your invite needs a connection to open.',
   'You’re already in': 'You’re already in',
   'You’re offline': 'You’re offline',
+  // --- Train coach: English until the translation pass ---
+  'Your check-in is in, and these suggestions take it into account.': 'Your check-in is in, and these suggestions take it into account.',
 }

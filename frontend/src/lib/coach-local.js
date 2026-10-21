@@ -88,7 +88,8 @@ export async function localStatus() {
   return { job, pending: (await loadCoachDevice()).pending || null, cap: await capState(), lastError, last }
 }
 
-export const localReview = (S, note) => start(S, 'review', { note: note ? String(note).slice(0, 1000) : null })
+// `checkIn` is the weekly check-in (lib/coach-checkin.js pendingCheckIn), bounded by the payload.
+export const localReview = (S, note, checkIn = null) => start(S, 'review', { note: note ? String(note).slice(0, 1000) : null, checkIn })
 export const localPlan = (S, intake) => start(S, 'create', { intake: intake || null })
 export const localRefine = async (S, text) => {
   const d = await loadCoachDevice()
@@ -142,7 +143,7 @@ async function start(S, kind, opts) {
 async function run(S, kind, opts, d, adapter) {
   const key = await getApiKey()
   const payload = payloadLib.build(S, {
-    handle: await handle(), kind, intake: opts.intake, note: opts.note, refine: opts.refine, previous: opts.previous, workoutId: opts.workoutId,
+    handle: await handle(), kind, intake: opts.intake, note: opts.note, checkIn: opts.checkIn, refine: opts.refine, previous: opts.previous, workoutId: opts.workoutId,
     lang: getLang()   // what the app shows, which a profile that never picked a language does not store (#303)
   })
   const attempt = await runPipeline({

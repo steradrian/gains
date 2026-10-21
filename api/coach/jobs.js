@@ -245,6 +245,7 @@ export function enqueue(uid, opts) {
     intake: opts.intake || null,
     note: clampMessage(opts.note),
     refine: clampMessage(opts.refine),
+    checkIn: opts.kind === 'review' ? payloadLib.cleanCheckIn(opts.checkIn) : null,   // the weekly check-in
     lang: payloadLib.langTag(opts.lang),              // the language the app was showing (#303)
     state: 'queued',
     startedAt: Date.now()
@@ -336,6 +337,7 @@ async function execute(job) {
     kind: job.kind,
     intake: job.intake,
     note: job.note,
+    checkIn: job.checkIn,
     refine: job.refine,
     previous: pendingCreate?.bundle || null,
     workoutId: job.workoutId,

@@ -254,11 +254,18 @@ renders from, so the screen cannot drift from the payload — are:
 | Category | What it covers |
 | --- | --- |
 | `plan` | routines, exercises, sets/reps, schedule, progression settings |
-| `training` | logged sets, targets, effort ratings, durations, PRs and session notes in the review window |
+| `training` | logged sets, targets, effort ratings, durations, PRs and session notes in the review window; on a review, your latest weekly check-in the Coach has not read yet (`checkIn`: how the week felt, how you slept, an optional note of up to 500 characters) |
 | `bodyweight` | weigh-ins in the window and your goal weight |
 | `profile` | the intake answers you gave the Coach, including any limitations |
 | `cohort` (optional) | only with comparison on and your own opt-in: anonymous medians from the other people sharing — never their data, and never yours to them beyond the same medians |
 | `prefs` | unit, language, effort scale |
+
+The weekly check-in is filed on your device (and in your synced copy) when you save it, and
+nothing goes to the Coach at that moment. It travels only inside the next review you ask for: as
+`checkIn` in the `POST /api/coach/review` body, which the server refuses with a 400 when a word
+is not one of its own or the note is too long, or straight into the payload on the phone's own
+key and in the demo. A scheduled review does not carry one. Once that review is applied or
+dismissed, the check-in counts as read and is not sent again.
 
 A review reads a training block, not a training career: the window is capped at **12 weeks or 60
 sessions**. Your profile is identified by a stable pseudonym that is never the user id and never
