@@ -47,7 +47,7 @@ export default function NotificationsScreen({
       <div className="notif">
         <StageNavBar onBack={onBack} actions={[{ icon: 'gear', label: t('Reminder settings'), onClick: onReminders }]} />
         <StagePageTitle ref={heading} title={t('Notifications')}
-          line={empty ? null : hasReminders ? t('Reminders you set, streaks and new bests') : t('Streaks and new bests')} />
+          line={empty ? null : hasReminders ? t('Reminders you set, streaks, new bests and Coach changes') : t('Streaks, new bests and Coach changes')} />
         {permission === 'off' && (
           <div className="g-sbanner">
             <InlineBanner stage icon="bellSlash" title={t('Notifications are off on this phone')}
@@ -57,9 +57,9 @@ export default function NotificationsScreen({
         )}
         {empty
           ? hasReminders
-            ? <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Reminders you set, streaks and new bests show up here.')}
+            ? <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Reminders you set, streaks, new bests and Coach changes show up here.')}
               action={t('Set a reminder')} onClick={onReminders} />
-            : <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Streaks and new bests show up here.')} />
+            : <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Streaks, new bests and Coach changes show up here.')} />
           : <>
             {unreadCount > 0
               ? <StageSection variant="line" title={tn('{0} new', '{0} new', unreadCount)} action={t('Mark all read')} onAction={markAll} />
