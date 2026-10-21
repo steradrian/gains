@@ -19,6 +19,7 @@ import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
 import AppStage from './ds/AppStage.jsx'
+import LandscapeCover from './ds/LandscapeCover.jsx'
 import { reducedMotion } from './lib/reduced-motion.js'
 import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
@@ -358,6 +359,7 @@ function Shell() {
       <Modals />
       <Toast />
       <TimerFlash />
+      <LandscapeCover />
     </>
   )
 }

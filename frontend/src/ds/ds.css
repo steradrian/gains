@@ -1830,3 +1830,13 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-danger-b span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-danger-row > .g-icon { width: 18px; height: 18px; }
 [dir="rtl"] .g-danger-row > .g-icon { transform: scaleX(-1); }
+
+/* LandscapeCover: a phone held sideways (landscape, short, touch) gets the stage and one line over
+   the app. The z-index sits above the sheets and toasts, which are the highest layers. */
+.g-landscape-cover { display: none; }
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .g-landscape-cover { display: block; position: fixed; inset: 0; z-index: 2000; }
+  .g-landscape-cover .g-stage, .g-landscape-cover .g-stage-body { height: 100%; }
+  .g-landscape-cover .g-stage-body { display: grid; place-items: center; }
+  .g-landscape-cover .g-ill { width: 120px; height: auto; }
+}
