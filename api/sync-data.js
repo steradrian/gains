@@ -338,7 +338,11 @@ export function withoutWeighIn(cur, date, { now = Date.now() } = {}) {
  *
  * Only what the hub needs to decide whether to call a profile's own routes. No name, e-mail,
  * credential or anything else a profile holds: an id is already what the hub signs every per-profile
- * token with, and `rev` is what GET /api/sync/rev gives for that profile anyway.
+ * token with, and `rev` is what GET /api/sync/rev gives for that profile anyway. `sv` is the
+ * session version, the counter "sign out everywhere" bumps: a number that only ever goes up, and
+ * the one signal the hub has that the person ended their other sessions (it then drops that
+ * person's push devices). `coach_cadence_on` is one boolean: whether the person has scheduled Coach
+ * reviews on. Neither says anything else about the profile.
  *
  * Paged by key, not by position: ordered by id, a page starts after the last id of the one before.
  * A profile created, disabled or deleted between two pages therefore never makes another one repeat
@@ -359,15 +363,19 @@ export const USER_ID = /^[A-Za-z0-9_-]{1,64}$/;
  *  comes with the revision because a restored backup can bring the same revision back with other
  *  contents (sync-routes.js etagOf). A profile that is both listed and in `gone` is listed: the
  *  record of a deletion never hides one that exists. → { users, next_after }, where `next_after` is
- *  the id to pass as `after` for the next page, or null at the end. */
-export function usersPage({ users, gone = [], versionOf, after = null, limit = USERS_LIMIT_DEFAULT }) {
+ *  the id to pass as `after` for the next page, or null at the end. A profile's `sv` is its
+ *  `user.sv` (server.js sessionVersion): 0 until it has been bumped, and 0 for one that is gone.
+ *  `coach_cadence_on` is `versionOf(id).coachCadence` (scheduled Coach reviews are on for the
+ *  person, reminder-context.js coachCadenceOn), so the hub knows whom to poll for proposals; false
+ *  for a gone profile and for every profile while `coachOn` (Coach switched on for the instance) is false. */
+export function usersPage({ users, gone = [], versionOf, after = null, limit = USERS_LIMIT_DEFAULT, coachOn = true }) {
   const rows = new Map();
   for (const g of list(gone)) {
     if (isMap(g) && typeof g.id === 'string' && USER_ID.test(g.id)) rows.set(g.id, { id: g.id, state: 'gone', gone_at: instant(g.at) });
   }
   for (const u of list(users)) {
     if (!isMap(u) || typeof u.id !== 'string' || !USER_ID.test(u.id)) continue;
-    rows.set(u.id, { id: u.id, state: u.disabled ? 'disabled' : 'active' });
+    rows.set(u.id, { id: u.id, state: u.disabled ? 'disabled' : 'active', sv: Number.isSafeInteger(u.sv) && u.sv > 0 ? u.sv : 0 });
   }
   // By code unit, not by locale: the order must be the same on every host and every call.
   const ordered = [...rows.values()].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -376,10 +384,10 @@ export function usersPage({ users, gone = [], versionOf, after = null, limit = U
   return {
     // The version is read for the page only: it costs a stat per profile, not per call.
     users: page.map(r => {
-      if (r.state === 'gone') return { id: r.id, state: 'gone', rev: 0, gone_at: r.gone_at };
+      if (r.state === 'gone') return { id: r.id, state: 'gone', rev: 0, sv: 0, coach_cadence_on: false, gone_at: r.gone_at };
       const v = versionOf(r.id) || {};
       return {
-        id: r.id, state: r.state, rev: Math.max(0, Number(v.rev) || 0),
+        id: r.id, state: r.state, rev: Math.max(0, Number(v.rev) || 0), sv: r.sv, coach_cadence_on: coachOn && v.coachCadence === true,
         ...(typeof v.wid === 'string' && v.wid ? { wid: v.wid } : {})
       };
     }),
