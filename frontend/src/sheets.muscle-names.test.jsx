@@ -39,7 +39,13 @@ function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-const rowFor = (host, name) => [...host.querySelectorAll('.item')].find(e => e.textContent.includes(name))
+// The picker's rows are the drawer's (ExerciseThumbRow); the Muscles explorer keeps the app's own.
+const rowFor = (host, name) => [...host.querySelectorAll('.item, .g-pk-item')].find(e => e.textContent.includes(name))
+const subOf = row => (row.querySelector('.ss') || row.querySelector('.g-xrow-b > span')).textContent
+const searchBox = host => host.querySelector('input[type="search"]')
+// The settings sheet names the muscle and the equipment in its header line, the muscles it also trains as tags.
+const settingsLine = host => host.querySelector('.g-cfg-nm > span').textContent
+const settingsTags = host => [...host.querySelectorAll('.g-cfg-tags .g-tag')].map(e => e.textContent.trim())
 const custom = (over = {}) => ({
   id: 'cqa1', n: 'QA Custom Thrust', bp: 'upper legs', eq: 'barbell', custom: true, desc: '',
   tg: 'gluteal', sm: ['forearm', 'hip-flexors'], primaries: ['gluteal'], secondaries: ['forearm', 'hip-flexors'],
@@ -70,30 +76,34 @@ describe('muscle names in the rows and tags (QA C9)', () => {
     seed(custom())
     exercisePicker(vi.fn())
     const host = renderTop()
-    act(() => type(host.querySelector('input.input'), 'QA Custom'))
-    expect(rowFor(host, 'QA Custom Thrust').querySelector('.ss').textContent).toBe('Glutes · barbell')
+    act(() => type(searchBox(host), 'QA Custom'))
+    expect(subOf(rowFor(host, 'QA Custom Thrust'))).toBe('Glutes · barbell')
   })
 
-  it('config sheet tags read like the detail sheet, for a custom exercise and for power clean', () => {
+  it('config sheet reads like the detail sheet, for a custom exercise and for power clean', () => {
     seed(custom())
     exConfigSheet(EXIDX.cqa1, null, vi.fn())
-    const tags = h => [...h.querySelectorAll('.tag')].map(e => e.textContent.trim())
-    expect(tags(renderTop())).toEqual(['Glutes', 'barbell', 'Forearms', 'Hip flexors'])
+    let host = renderTop()
+    expect(settingsLine(host)).toBe('Glutes · barbell')
+    expect(settingsTags(host)).toEqual(['Forearms', 'Hip flexors'])
     // #207 Olympic lifts list their secondaries as map ids ('forearm', 'deltoids').
     exConfigSheet(EXIDX['0648'], null, vi.fn())
-    expect(tags(renderTop())).toEqual(['hamstrings', 'barbell', 'Calves', 'Forearms', 'Shoulders'])
+    host = renderTop()
+    expect(settingsLine(host)).toBe('hamstrings · barbell')
+    expect(settingsTags(host)).toEqual(['Calves', 'Forearms', 'Shoulders'])
   })
 
   it('translates them in German too — "forearm" was staying English', () => {
     _setLangState('de', de, null, null)
     seed(custom())
     exConfigSheet(EXIDX['0648'], null, vi.fn())
-    const tags = [...renderTop().querySelectorAll('.tag')].map(e => e.textContent.trim())
-    expect(tags).toEqual(['Beinbeuger', 'Langhantel', 'Waden', 'Unterarme', 'Schultern'])
+    const sheet = renderTop()
+    expect(settingsLine(sheet)).toBe('Beinbeuger · Langhantel')
+    expect(settingsTags(sheet)).toEqual(['Waden', 'Unterarme', 'Schultern'])
     exercisePicker(vi.fn())
     const host = renderTop()
-    act(() => type(host.querySelector('input.input'), 'QA Custom'))
-    expect(rowFor(host, 'QA Custom Thrust').querySelector('.ss').textContent).toBe('Gesäß · Langhantel')
+    act(() => type(searchBox(host), 'QA Custom'))
+    expect(subOf(rowFor(host, 'QA Custom Thrust'))).toBe('Gesäß · Langhantel')
   })
 
   // The dataset's cardio target "cardiovascular system" is both a map id and a translated key
@@ -103,11 +113,12 @@ describe('muscle names in the rows and tags (QA C9)', () => {
     _setLangState('de', de, null, null)
     exercisePicker(vi.fn())
     const host = renderTop()
-    act(() => type(host.querySelector('input.input'), 'burpee'))
-    expect(rowFor(host, 'burpee').querySelector('.ss').textContent).toBe('Herz-Kreislauf · Körpergewicht')
+    act(() => type(searchBox(host), 'burpee'))
+    expect(subOf(rowFor(host, 'burpee'))).toBe('Herz-Kreislauf · Körpergewicht')
     exConfigSheet(EXIDX['1160'], null, vi.fn())
-    const tags = [...renderTop().querySelectorAll('.tag')].map(e => e.textContent.trim())
-    expect(tags).toEqual(['Cardio', 'Herz-Kreislauf', 'Körpergewicht'])
+    const sheet = renderTop()
+    expect(settingsTags(sheet)).toEqual(['Cardio'])
+    expect(settingsLine(sheet)).toBe('Herz-Kreislauf · Körpergewicht')
   })
 
   it('Muscles explorer row names the target the same way', () => {

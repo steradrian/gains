@@ -6,8 +6,7 @@
     "components/ServerSync.jsx": 2,
     "sheets/body-weight.jsx": 8,
     "sheets/confirm-menu.jsx": 1,
-    "sheets/exercise-config.jsx": 51,
-    "sheets/exercise-picker.jsx": 10,
+    "sheets/exercise-config.jsx": 7,
     "sheets/exercise.jsx": 1,
     "sheets/import.jsx": 19,
     "sheets/workout-detail.jsx": 21,
@@ -19,14 +18,13 @@
     "views/CoachSetup.jsx": 9,
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
-    "views/RoutineEdit.jsx": 14,
     "views/Settings.jsx": 26,
     "views/StructuralBalance.jsx": 8,
     "views/Workout.jsx": 18
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 70,
+    "index.css": 68,
     "views/FocusView.css": 1
   },
   "G2js": {
@@ -47,8 +45,7 @@
     "components/WorkoutChips.jsx": 1,
     "components/WorkoutSettingsSheet.jsx": 1,
     "sheets/confirm-menu.jsx": 3,
-    "sheets/exercise-config.jsx": 26,
-    "sheets/exercise-picker.jsx": 4,
+    "sheets/exercise-config.jsx": 10,
     "sheets/exercise.jsx": 2,
     "sheets/import.jsx": 10,
     "sheets/workout-detail.jsx": 7,
@@ -56,7 +53,6 @@
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
     "views/FocusView.jsx": 4,
-    "views/RoutineEdit.jsx": 2,
     "views/Settings.jsx": 2,
     "views/Workout.jsx": 3,
     "views/train/load/LoadBalance.jsx": 1,
@@ -67,8 +63,6 @@
     "admin.css: styles .adm-empty",
     "components/tab-kit.jsx: builds .empty",
     "index.css: styles .empty (x2)",
-    "sheets/exercise-picker.jsx: has children (x2)",
-    "sheets/exercise-picker.jsx: has no illustration (x2)",
     "tab-shell.css: styles .empty",
     "views/Admin.jsx: builds .adm-empty (x4)",
     "views/AdminCoach.jsx: builds .adm-empty"

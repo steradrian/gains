@@ -24,10 +24,10 @@ function renderTop() {
 }
 
 const chipByText = (host, text) =>
-  [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
-const isOn = el => el.className.split(/\s+/).includes('on')
+  [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text)
+const isOn = el => el.classList.contains('on')
 // Every row's add button carries the exercise's name, so it tells which exercises are listed.
-const listed = host => [...host.querySelectorAll('.list .item button[aria-label]')]
+const listed = host => [...host.querySelectorAll('.g-pk-item .g-pk-add')]
   .map(b => b.getAttribute('aria-label'))
 
 beforeEach(() => {
@@ -45,12 +45,12 @@ describe('exercise picker type filter', () => {
   it('shows the Type row between the muscle groups and the equipment, like the Library', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
-    const strips = [...host.querySelectorAll('.chips')]
+    const strips = [...host.querySelectorAll('.g-cgroup')]
     expect(strips).toHaveLength(3)
-    expect(strips[1].querySelector('.chip').textContent.trim()).toBe('Any type')
+    expect(strips[1].querySelector('.g-cchip').textContent.trim()).toBe('Any type')
     expect(isOn(chipByText(host, 'Any type'))).toBe(true)
     expect(chipByText(host, 'stretching')).toBeTruthy()
-    expect(strips[2].querySelector('.chip').textContent.trim()).toBe('Any equipment')
+    expect(strips[2].querySelector('.g-cchip').textContent.trim()).toBe('Any equipment')
   })
 
   it('narrows the list to the picked type', () => {

@@ -82,7 +82,7 @@ describe('a custom exercise\'s mode seeds a new routine entry', () => {
     seed(plank(), { routines: [{ id: 'r1', name: 'Core', emoji: 'dumbbell', ex: [entry] }] })
     const onSave = vi.fn()
     exConfigSheet(plank(), entry, onSave)
-    click(renderTop(), 'button', 'Save')
+    click(renderTop(), 'button', 'Done')
     expect(onSave.mock.calls[0][0].mode).toBe('reps')
     expect(S().routines[0].ex[0]).toEqual(entry)
   })

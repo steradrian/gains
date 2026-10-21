@@ -36,6 +36,13 @@ describe('BottomSheet, drawn alone', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
+  it('the chip wears the calendar unless told another glyph (the routine in the exercise picker)', () => {
+    view.render(<BottomSheet title="Add exercise" chip="Push A" chipIcon="clipboard" />)
+    const clipboard = q('span.g-bs-chip svg').innerHTML
+    view.render(<BottomSheet title="Weigh-in" chip="Today" />)
+    expect(q('span.g-bs-chip svg').innerHTML).not.toBe(clipboard)
+  })
+
   it('takes a type, a tappable chip, a close link and no scrim', () => {
     const onChip = vi.fn()
     view.render(<BottomSheet title="Log food" chip="Today · Lunch" onChip={onChip} type="full" closeHref="#/today" scrim={false} />)

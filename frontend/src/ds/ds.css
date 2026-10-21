@@ -961,6 +961,114 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-cgroup-stage .g-cchip.on { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
 @media (prefers-reduced-motion: reduce) { .g-sseg-thumb, .g-radio-mark, .g-cchip { transition: none; } }
 
+/* === Train routines list (T4.0–T4.4, T5.8) === */
+/* The groups: a glass card of rows 16px in from the edges, each row a stack of three overlapping
+   exercise pictures ringed in the stage colour (board T4.0), the name and its line. */
+.g-rt-sec .g-rt-list { margin: 0 16px; }
+.g-rt-sec .g-ssec { padding-top: 24px; }
+.g-rt-row { min-height: 76px; }
+.g-rt-stack { display: flex; flex: none; }
+.g-rt-stack > span { display: flex; border-radius: 15px; box-shadow: 0 0 0 2px var(--accent-stage-end); }
+.g-rt-stack > span + span { margin-inline-start: -10px; }
+.g-rt-stack img, .g-rt-stack i { width: 40px; height: 40px; border-radius: 14px; background: var(--g-white); object-fit: cover; }
+.g-rt-stack i { display: grid; place-items: center; background: var(--glass); color: var(--on-stage); }
+.g-rt-stack i .g-icon { width: 20px; height: 20px; }
+/* The card clips its corners, so a focus ring sits inside the row, not around it. */
+.g-rt-list :focus-visible { outline: 2px solid var(--on-stage); outline-offset: -3px; }
+/* A swipe row in the card: square corners (the card rounds them), the line between rows on the
+   swipe's outer element, and no light surface behind the row's glass. */
+.g-rt-list > .swrow { border-radius: 0; }
+.g-rt-list > .swrow + .swrow { border-top: 1px solid var(--glass-line); }
+.g-rt-list .swfront { background: transparent; }
+/* Reorder: move up, move down and the drag handle at the end of each row. */
+.g-rt-orow { gap: 4px; }
+.g-rt-orow .g-glist-body { margin-inline-end: 8px; }
+.g-rt-btn { appearance: none; border: 0; background: none; flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; }
+.g-rt-btn:disabled { opacity: .35; cursor: default; }
+.g-rt-btn .g-icon { width: 20px; height: 20px; }
+.g-rt-handle { touch-action: none; cursor: grab; }
+/* The menu's drawers: a line under the title, the Plan days checks, Routine settings. */
+.g-rt-lead { margin: 0 0 12px; font: 400 15px/20px var(--font-sans); color: var(--text-2); }
+.g-rt-check .g-radio-mark { border-radius: 8px; display: grid; place-items: center; color: var(--on-accent); }
+.g-rt-check .g-radio-mark .g-icon { width: 16px; height: 16px; stroke-width: 3; }
+.g-rt-check:focus-visible, .g-glist-light .g-radio:focus-visible, .g-glist-light .g-gvr:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -3px; }
+.g-rt-label { margin: 20px 4px 8px; font: 600 13px/18px var(--font-sans); letter-spacing: .02em; text-transform: uppercase; color: var(--text-3); }
+.g-rt-note { margin: 10px 4px 0; font: 400 14px/20px var(--font-sans); color: var(--text-2); }
+
+/* === Train routines picker and settings (T5.1–T5.7, SetTable) === */
+/* The picker's search shares Log food's .g-lf-search; the result count sits before the ×. Focus rings
+   sit inside the rows and the chip rows (the body scrolls and clips what is outside it). */
+.g-pk-count { flex: none; padding-inline-end: 6px; font: 600 14px/18px var(--font-sans); color: var(--text-3); font-variant-numeric: tabular-nums; }
+.g-pk-prof { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-pk-prof .g-icon { width: 16px; height: 16px; flex: none; }
+.g-pk-prof span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.g-pk-prof button { appearance: none; border: 0; flex: none; height: 30px; padding: 0 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text); font: 600 13px/16px var(--font-sans); cursor: pointer; }
+.g-pk-chips { margin: 0 0 10px; }
+.g-pk-cicon { width: 15px; height: 15px; margin-inline-end: 6px; stroke-width: 2.2; }
+.g-pk-map { display: flex; justify-content: center; padding: 8px 0 4px; }
+.g-pk-head { margin: 12px 0 4px; font: 700 15px/20px var(--font-sans); color: var(--text); }
+.g-pk-hint { font-weight: 500; color: var(--text-3); }
+.g-pk-note { margin: 0; padding: 14px 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-pk-list { padding-bottom: 6px; }
+.g-pk-item { display: flex; align-items: center; gap: 6px; }
+.g-pk-item + .g-pk-item, .g-pk-new + .g-pk-item { border-top: 1px solid var(--line); }
+.g-pk-item .g-xrow { flex: 1; min-width: 0; }
+.g-pk-item .g-xrow-b b { display: flex; align-items: center; gap: 6px; }
+.g-pk-item .g-xrow-b b i { min-width: 0; font-style: normal; overflow-wrap: anywhere; }
+.g-pk-fav { width: 15px; height: 15px; flex: none; color: var(--warning); }
+.g-pk-add { appearance: none; border: 0; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); cursor: pointer; }
+.g-pk-add .g-icon { width: 20px; height: 20px; stroke-width: 2.4; }
+.g-pk-tick { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--line-strong); color: var(--on-accent); }
+.g-pk-tick.on { background: var(--accent-fill); box-shadow: none; }
+.g-pk-tick .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+.g-pk-new .g-xrow-ph { background: var(--accent-tint); color: var(--accent-text); }
+.g-pk-new .g-icon { stroke-width: 2.2; }
+.g-pk-more { padding: 12px 0; }
+.g-pk-list .g-xrow:focus-visible, .g-pk-add:focus-visible, .g-pk-prof button:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -3px; }
+.g-sw-sub { margin: 0; padding-bottom: 6px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+
+/* Exercise settings (T5.5). The old steppers, switches and rows keep their own controls inside it. */
+.g-cfg { padding-bottom: 8px; }
+.g-cfg-top { display: flex; align-items: center; gap: 14px; padding-bottom: 12px; }
+.g-cfg-top img, .g-cfg-ph { width: 64px; height: 64px; flex: none; border-radius: 16px; box-shadow: 0 0 0 1px var(--line); }
+.g-cfg-top img { background: var(--g-white); object-fit: cover; }
+.g-cfg-ph { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-cfg-nm { min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-cfg-nm b { font: 700 19px/24px var(--font-sans); overflow-wrap: anywhere; }
+.g-cfg-nm span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-cfg-tags { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+.g-cfg-mode { padding: 4px 0 12px; }
+.g-cfg-h { margin: 20px 0 8px; font: 700 17px/22px var(--font-sans); }
+.g-cfg .g-cgroup { margin-top: 2px; }
+.g-cfg-note { margin: 8px 0 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-cfg-alert { margin-top: 8px; color: var(--danger); }
+.g-cfg-steps { margin-top: 12px; }
+.g-cfg-opts { margin-top: 18px; }
+.g-cfg-text { width: 100%; box-sizing: border-box; margin-top: 18px; padding: 12px 14px; border: 0; border-radius: 16px; background: var(--surface-sunken); color: var(--text); font: 500 16px/22px var(--font-sans); resize: vertical; }
+.g-cfg-text:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
+.g-cfg .g-menulist { margin-top: 18px; }
+
+/* SetTable: a header and a row a set; the number columns read left to right even in an RTL page */
+.g-sett { margin-top: 4px; }
+.g-sett-row { display: grid; grid-template-columns: 52px repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; min-height: 48px; border-top: 1px solid var(--line); font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; text-align: start; }
+.g-sett-rm { grid-template-columns: 52px repeat(3, minmax(0, 1fr)) 36px; }
+.g-sett-head { min-height: 0; padding-bottom: 6px; border-top: 0; font: 600 13px/16px var(--font-sans); color: var(--text-3); }
+.g-sett-row > * { min-width: 0; }
+.g-sett-t, .g-sett-na { unicode-bidi: plaintext; }
+.g-sett-muted { color: var(--text-3); }
+.g-sett-num input { width: 100%; box-sizing: border-box; height: 40px; padding: 0 8px; border: 0; border-radius: 12px; background: var(--surface-sunken); color: var(--text); font: inherit; text-align: start; unicode-bidi: plaintext; -webkit-appearance: none; appearance: none; }
+.g-sett-btn { appearance: none; border: 0; width: 100%; height: 40px; padding: 0 8px; border-radius: 12px; background: var(--surface-sunken); color: var(--text); font: inherit; text-align: start; unicode-bidi: plaintext; cursor: pointer; }
+.g-sett-btn.g-sett-muted { color: var(--text-3); }
+.g-sett-with { display: flex; align-items: center; gap: 6px; }
+.g-sett-with .g-sett-num { flex: 1; min-width: 0; }
+.g-sett-aux { appearance: none; border: 0; flex: none; height: 32px; padding: 0 10px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text-2); font: 600 13px/16px var(--font-sans); cursor: pointer; }
+.g-sett-aux[aria-pressed="true"] { background: var(--accent-fill); color: var(--on-accent); }
+.g-sett-rmbtn { appearance: none; border: 0; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--text-3); cursor: pointer; }
+.g-sett-rmbtn .g-icon { width: 18px; height: 18px; }
+.g-sett-add { appearance: none; border: 0; border-top: 1px solid var(--line); width: 100%; height: 48px; display: flex; align-items: center; gap: 6px; background: none; color: var(--accent-text); font: 700 16px/20px var(--font-sans); text-align: start; cursor: pointer; }
+.g-sett-add:disabled { opacity: .5; cursor: default; }
+.g-sett-add .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
+.g-sett-num input:focus-visible, .g-sett-btn:focus-visible, .g-sett-aux:focus-visible, .g-sett-rmbtn:focus-visible, .g-sett-add:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
 /* === Train plan (PlanWeekGrid, LoopStrip, VolumeBars; boards T3.0–T3.3) === */
 /* PlanWeekGrid: a glass card of seven columns, the weekday letters, then per week a title and
    seven 62px cells. Nothing clips, so a cell's focus ring shows whole. The grid follows `dir`. */
@@ -1158,6 +1266,61 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-mg-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .g-mg-nav:focus-visible, .g-mg-cell:focus-visible { outline-color: var(--on-stage); }
 
+/* === Train routine editor (T5.0, RoutineExerciseRow, SupersetGroup) === */
+/* RoutineExerciseRow: the stage ExerciseThumbRow, with the progression line and, in reorder mode,
+   the move buttons and the grip at its end. Every ring is drawn inside the row (the glass card
+   and the swipe row clip what is outside). */
+.g-rx { display: flex; align-items: center; }
+.g-rx-open { flex: 1; min-width: 0; text-align: start; }
+.g-rx-open:focus-visible, .g-rx-btn:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -3px; }
+.g-rx .g-xrow-b .g-rx-prog { color: var(--on-stage); opacity: .82; }
+.g-rx .g-xrow-b .g-rx-note { font-style: italic; }
+.g-rx-pos { flex: none; min-width: 28px; height: 22px; padding: 0 6px; border-radius: 8px; display: inline-grid; place-items: center; box-sizing: border-box; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); font: 700 12px/16px var(--font-sans); color: var(--on-stage); }
+.g-rx-warn { flex: none; display: grid; place-items: center; color: var(--warning, var(--on-stage)); }
+.g-rx-warn .g-icon { width: 18px; height: 18px; }
+.g-rx-tools { flex: none; display: flex; align-items: center; gap: 2px; padding-inline-end: 8px; }
+.g-rx-btn { appearance: none; border: 0; background: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; }
+.g-rx-btn:disabled { opacity: .35; cursor: default; }
+.g-rx-btn .g-icon { width: 20px; height: 20px; }
+.g-rx-handle { width: 32px; height: 40px; display: grid; place-items: center; color: var(--on-stage-2); cursor: grab; touch-action: none; }
+.g-rx-handle .g-icon { width: 20px; height: 20px; }
+/* SupersetGroup: the header line, then its rows behind a bracket on the start side. */
+.g-ssg { position: relative; }
+.g-ssg-h { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 16px 2px; color: var(--on-stage-2); font: 700 12px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; text-align: start; }
+button.g-ssg-h { cursor: pointer; }
+button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -3px; border-radius: 10px; }
+.g-ssg-h .g-icon { width: 14px; height: 14px; flex: none; }
+.g-ssg-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.g-ssg-d { white-space: nowrap; }
+.g-ssg-edit { margin-inline-start: auto; }
+.g-ssg-rows { margin-inline-start: 16px; border-inline-start: 2px solid var(--on-stage-2); }
+/* The editor's page: the name field, where it is in the Plan, the saved state, the muscles and
+   their map, the numbers; then the list in a glass card, Add exercise and the white Start. */
+.g-re { display: flex; flex-direction: column; gap: 16px; padding: 0 16px; }
+.g-re-head { display: flex; flex-direction: column; gap: 8px; color: var(--on-stage); }
+.g-re-head p { margin: 0; text-align: start; }
+.g-re-plan, .g-re-stats { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-re-muscles { font: 600 17px/22px var(--font-sans); }
+.g-re-saved { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-re-saved .g-savedbar { padding: 0; }
+/* Room above and below the map, so nothing about it is cut off. */
+.g-re-map { display: flex; justify-content: center; padding-block: 8px; }
+.g-re-sec .g-ssec { padding: 8px 4px 12px; }
+.g-re-list { position: relative; padding-block: 4px; border-radius: 24px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-re-slot { position: relative; touch-action: pan-y; -webkit-touch-callout: none; transition: transform 200ms cubic-bezier(.32,.72,0,1); }
+.g-re-slot + .g-re-slot, .g-re-list > .g-ssg + .g-re-slot, .g-re-list > .g-re-slot + .g-ssg, .g-re-list > .g-ssg + .g-ssg { border-top: 1px solid var(--glass-line); }
+.g-re-list .swrow { border-radius: 0; }
+.g-re-list .swfront { background: transparent; }
+.g-re-list.is-reordering { user-select: none; -webkit-user-select: none; }
+.g-re-list.is-reordering, .g-re-list.is-reordering * { cursor: grabbing; }
+.g-re-list.is-reordering .g-re-slot, .g-re-list.is-reordering .g-ssg { transition: none; }
+.g-re-slot.is-dragging, .g-ssg.is-dragging { z-index: 2; pointer-events: none; }
+.g-re-list > .g-re-slot.is-dragging, .g-ssg.is-dragging { border-radius: 18px; background: var(--accent-stage-end); box-shadow: var(--g-drag-shadow); }
+.g-re-drop { position: absolute; inset-inline: 12px; height: 3px; margin-top: -1.5px; border-radius: 2px; background: var(--on-stage); pointer-events: none; }
+.g-re-add { align-self: flex-start; margin-top: 12px; }
+.g-re .g-re-start { background: var(--on-stage); color: var(--accent-text); }
+.g-re .g-re-start:disabled { opacity: .5; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .g-re-slot { transition: none; } }
 /* === Train coach kit (StageSwitch, BigStepper; boards T12.0, T12.1) === */
 .g-sswitch { appearance: none; border: 0; padding: 0; position: relative; flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--glass-track); box-shadow: inset 0 0 0 1px var(--glass-line); cursor: pointer; transition: background-color 220ms; }
 .g-sswitch i { position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--on-stage); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), background-color 220ms; }

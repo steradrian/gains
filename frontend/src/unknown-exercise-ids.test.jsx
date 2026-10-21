@@ -16,9 +16,9 @@ import { mergeStates } from './lib/sync-merge.js'
 import { todayISO } from './lib/format.js'
 import { beginWorkout, exerciseDetailSheet, exerciseHistorySheet, workoutDetailSheet, finishWorkout } from './sheets.jsx'
 import Home from './views/Home.jsx'
-import Plan from './views/Plan.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
-import RoutineEdit from './views/RoutineEdit.jsx'
+import RoutineEditor from './views/routines/RoutineEditor.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Workout from './views/Workout.jsx'
 import History from './views/History.jsx'
 import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
@@ -109,9 +109,10 @@ describe('exercise ids this build does not know', () => {
   it('Home, the plan, the routine editor and the Exercises page draw it', () => {
     seed()
     expect(render(<Home />).textContent).toContain('Push')
-    render(<Plan view="routines" />)
-    const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes>, '/train/routines/r1')
-    expect(edit.textContent).toContain('Unknown exercise')
+    render(<RoutinesScreen />)
+    const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>, '/train/routines/r1')
+    // The row writes the name as plain text, cased as the screen shows it (exerciseNameText).
+    expect(edit.textContent).toContain('Unknown Exercise')
     render(<ExercisesScreen />)
     render(<StructuralBalance />)
     expectKept(useStore.getState().S)

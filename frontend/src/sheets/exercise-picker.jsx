@@ -1,25 +1,28 @@
 import { useDeferredValue, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { EXIDX, BODYPARTS, allExercises, equipmentOf, byCategory, searchExercises, similarExercises } from '../lib/exercises.js'
+import { EXIDX, BODYPARTS, allExercises, equipmentOf, byCategory, searchExercises, similarExercises, figureOf } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { fmtNum, exCount } from '../lib/format.js'
 import { buildSets, defaultConfig, modeOf, applyIntensifierPlan } from '../lib/history.js'
 import { dropGrid } from '../lib/plates.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
-import { Thumb } from '../components/Media.jsx'
 import Icon from '../components/Icon.jsx'
-import { Chip, ChipRow, EmptyState, ItemRow, SectionTitle } from '../components/blocks.jsx'
-import { Inline, Spacer } from '../components/layout.jsx'
+import BodyMap from '../components/BodyMap.jsx'
+import { Spacer } from '../components/layout.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
-import { Button } from '../components/ui.jsx'
-import MuscleExplorer from '../components/MuscleExplorer.jsx'
-import ExerciseViewToggle from '../components/ExerciseViewToggle.jsx'
+import { Button as OldButton } from '../components/ui.jsx'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import Button from '../ds/Button.jsx'
+import ChipGroup from '../ds/ChipGroup.jsx'
+import ExerciseStillRow from '../components/ExerciseStillRow.jsx'
+import SegmentedControl from '../ds/SegmentedControl.jsx'
+import Tag from '../ds/Tag.jsx'
 import { sameMuscleFirst, swapMuscleOf } from '../lib/similar-exercises.js'
-import { MUSCLE_NAME } from '../lib/muscles.js'
+import { MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
 import { dbLoadFor, withMeaning, historyAs, ownedWeightsFor } from '../lib/dumbbells.js'
 import { defaultIncrement, weightIncrement } from '../lib/progression.js'
 import { swapActiveExercise } from '../lib/active-exercise-swap.js'
-import { useSheetKeyboard, useRevealActiveChip, tappable } from '../lib/use-sheet-keyboard.js'
+import { useSheetKeyboard, useRevealActiveGroupChip } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import { isFav, sortFavouritesFirst, sortYoursFirst } from '../lib/favourites.js'
 import { buildPlannedEntry, builtOutOfProgression } from '../lib/session-start.js'
@@ -39,7 +42,13 @@ function usageMap(st) {
 }
 // The swap pickers' own scope (#473): exercises sharing the swapped exercise's target muscle.
 const SAME = '≈'
-function ExercisePicker({ onPick, title, close, like }) {
+const TABS = ['all', 'fav', 'muscle']
+
+// T5.1–T5.3 the exercise picker, a full drawer. Tabs: All (the body part, Chosen ★ and same-muscle ≈
+// chips, Type and Equipment), Favourites, By muscle (the body map). A tap picks, and the "+" on a row
+// adds with the default settings, unless the caller opts into `multi`: then a tap ticks the row, and
+// the foot reads `multi.label(n)` and hands every tick to `multi.onAdd` in the order they were ticked.
+function ExercisePicker({ onPick, title, close, like, multi, routine }) {
   const st = useStore(s => s.S)
   const usage = usageMap(st)
   const [q, setQ] = useState('')
@@ -48,30 +57,40 @@ function ExercisePicker({ onPick, title, close, like }) {
   const likeEx = like ? (EXIDX[like] || allExercises(st).find(e => e.id === like) || null) : null
   // A muscle nothing else trains gets no chip at all rather than one that lists nothing.
   const likeTg = swapMuscleOf(likeEx) && sameMuscleFirst(allExercises(st), likeEx).length ? swapMuscleOf(likeEx) : ''
+  const [tab, setTab] = useState('all')
   const [bp, setBp] = useState(() => {
     if (!likeTg) return ''
     const prof = activeProfile(st)
     return sameMuscleFirst(allExercises(st), likeEx).some(e => !prof || exAvailable(st, e)) ? SAME : ''
-  })                                        // '' = all, '★' = chosen, '☆' = favourites, '≈' = same muscle, else a body part
+  })                                        // '' = all, '★' = chosen, '≈' = same muscle, else a body part
+  const [muscle, setMuscle] = useState(null)
   const [eq, setEq] = useState('')          // '' = any equipment
   const [cat, setCat] = useState('')        // '' = any type
   const [showAll, setShowAll] = useState(false)
   const [shown, setShown] = useState(50)
-  const [byMuscle, setByMuscle] = useState(false)
+  const [picked, setPicked] = useState([])  // multi: the exercises ticked, in order
   const searchRef = useRef(null)
   const bpStrip = useRef(null), eqStrip = useRef(null), catStrip = useRef(null)
   const onSearchFocus = useSheetKeyboard(searchRef)
   const moreRef = useAutoMore(() => setShown(s => s + 50))
   const all = allExercises(st)
   const profile = activeProfile(st)
-  const inScope = e => bp === '★' ? usage[e.id] : bp === '☆' ? isFav(st, e.id) : (!bp || e.bp === bp)
-  let inPart = searchExercises(bp === SAME ? sameMuscleFirst(all, likeEx) : all.filter(inScope), q)
-  if (bp === '★') inPart = [...inPart].sort((a, b) => (usage[b.id] - usage[a.id]) || exerciseNameFor(a).localeCompare(exerciseNameFor(b)))
+  const figure = figureOf(st)
+  const onAll = tab === 'all'
+  const special = tab === 'fav' || (onAll && bp === '★')
+  let inPart
+  if (tab === 'fav') inPart = all.filter(e => isFav(st, e.id))
+  else if (tab === 'muscle') inPart = muscle ? all.filter(e => musclesOf(e)[muscle]) : []
+  else if (bp === SAME) inPart = sameMuscleFirst(all, likeEx)
+  else if (bp === '★') inPart = all.filter(e => usage[e.id])
+  else inPart = all.filter(e => !bp || e.bp === bp)
+  inPart = searchExercises(inPart, q)
+  if (onAll && bp === '★') inPart = [...inPart].sort((a, b) => (usage[b.id] - usage[a.id]) || exerciseNameFor(a).localeCompare(exerciseNameFor(b)))
   // The Library's Type row (issue #521), with its fallback: a type the search or muscle group
-  // narrowed away is ignored for this view, not forgotten.
-  const { opts: catOpts, on: catOn, list: base } = byCategory(inPart, cat)
+  // narrowed away is ignored for this view, not forgotten. Favourites and By muscle have no filter rows.
+  const { opts: catOpts, on: catOn, list: base } = byCategory(inPart, onAll ? cat : '')
   const eqFiltered = (profile && !showAll) ? base.filter(e => exAvailable(st, e)) : base
-  const eqOpts = equipmentOf(eqFiltered)
+  const eqOpts = onAll ? equipmentOf(eqFiltered) : []
   // Drop the equipment filter if the search narrowed it away, so you never hit a dead end.
   const eqOn = eqOpts.includes(eq) ? eq : ''
   // Favourites float to the top of whatever the filters left (issue #6), the rest keeps its order.
@@ -80,98 +99,122 @@ function ExercisePicker({ onPick, title, close, like }) {
   // While searching, what you have logged or planned follows right after them.
   const narrowedList = eqOn ? eqFiltered.filter(e => e.eq === eqOn) : eqFiltered
   const ranked = q.trim() ? sortYoursFirst(narrowedList, st, usage) : sortFavouritesFirst(narrowedList, st)
-  const f = bp === SAME ? sameMuscleFirst(ranked, likeEx) : ranked
+  const f = onAll && bp === SAME ? sameMuscleFirst(ranked, likeEx) : ranked
   const chosenCount = Object.keys(usage).length
-  const favCount = (st.favEx || []).length
-  const special = bp === '★' || bp === '☆'
   // The Library's live result count (GitLab !31), for the same reason: how many are left.
-  const narrowed = !!(q.trim() || bp || eqOn || catOn)
-  useRevealActiveChip(bpStrip, bp)
-  useRevealActiveChip(eqStrip, eqOn)
-  useRevealActiveChip(catStrip, catOn)
+  const narrowed = !!(q.trim() || (onAll && bp) || tab !== 'all' || eqOn || catOn)
+  useRevealActiveGroupChip(bpStrip, bp)
+  useRevealActiveGroupChip(eqStrip, eqOn)
+  useRevealActiveGroupChip(catStrip, catOn)
   // Close but not exact (a typo too many, most of the words, a similar name), listed under the
   // results once you have scrolled to their end, so a search almost never ends on nothing.
   // Worked out a beat behind the typing (useDeferredValue): the list itself never waits for it.
   const qLate = useDeferredValue(q)
   const similar = q.trim() && qLate === q && !special && f.length <= shown
-    ? similarExercises((profile && !showAll ? all.filter(e => exAvailable(st, e)) : all).filter(e => bp === SAME || !bp || e.bp === bp), q, f, f.length ? 12 : 30)
+    ? similarExercises((profile && !showAll ? all.filter(e => exAvailable(st, e)) : all)
+      .filter(e => tab === 'muscle' ? !!(muscle && musclesOf(e)[muscle]) : (bp === SAME || !bp || e.bp === bp)), q, f, f.length ? 12 : 30)
     : []
-  const pickRow = e => <div key={e.id} className="item" {...tappable(() => onPick(e))}>
-        <Thumb ex={e} /><div className="grow"><div className={`tt ${exerciseNameClass(e)}`}>{isFav(st, e.id) && <Icon name="starFill" className="fav-star" />}{exerciseNameFor(e)}</div><div className="ss capitalize">{t(MUSCLE_NAME[e.tg] || e.tg || e.bp)} · {t(e.eq)}</div></div>
-        {/* Accent tag = already in a routine/log ("Chosen"); the yellow star by the name = favourite. */}
-        {usage[e.id] && <span className="tag acc"><Icon name="starFill" /></span>}
-        {/* A "+" glyph reads as "add this now" — it used to just open the same detail sheet as
-            tapping the row, so it added nothing until you'd scrolled past the sets/reps config
-            and found the real button. Now it does what it looks like: adds with the default
-            config right away. Tapping the row itself still opens the detail/config sheet, for
-            when you want to set sets/reps before adding. */}
-        <button className="iconbtn chev" aria-label={t('Add “{0}”', exerciseNameFor(e))} style={{ padding: 8, margin: -8 }}
-          onClick={ev => { ev.stopPropagation(); onPick(e, true) }}><Icon name="plus" /></button>
-      </div>
-  if (byMuscle) return <>
-    <Inline justify="between" className="mb-5"><h3>{title || t('Add exercise')}</h3>
-      <Button size="sm" variant="ghost" onClick={() => setByMuscle(false)}>{t('All')}</Button>
-    </Inline>
-    <MuscleExplorer onPick={onPick} />
+  const noExact = f.length === 0 && similar.length > 0
+
+  const tick = e => setPicked(p => (p.some(x => x.id === e.id) ? p.filter(x => x.id !== e.id) : [...p, e]))
+  const add = () => { const exs = picked; close(); multi.onAdd(exs) }
+  const create = () => customExSheet(null, ex => (multi ? setPicked(p => (p.some(x => x.id === ex.id) ? p : [...p, ex])) : onPick(ex)), q.trim())
+  const pickBp = v => { setBp(v); if (v === '★') setEq(''); setShown(50) }
+  const pickMuscle = m => { setMuscle(m === muscle ? null : m); setShown(50) }
+  const pickRow = e => {
+    const on = multi && picked.some(x => x.id === e.id)
+    const fav = isFav(st, e.id)
+    const mark = [
+      usage[e.id] && <Tag key="chosen" icon="starFill">{t('Chosen')}</Tag>,
+      multi && <span key="tick" className={'g-pk-tick' + (on ? ' on' : '')} aria-hidden="true">{on && <Icon name="check" className="g-icon" />}</span>,
+    ].filter(Boolean)
+    return <div key={e.id} className="g-pk-item">
+      <ExerciseStillRow size={48} ex={e} figure={figure}
+        title={<>{fav && <Icon name="starFill" className="g-icon g-pk-fav" />}<i className={exerciseNameClass(e)}>{exerciseNameFor(e)}</i></>}
+        sub={t(MUSCLE_NAME[e.tg] || e.tg || e.bp) + ' · ' + t(e.eq)}
+        trailing={mark.length ? mark : false} pressed={multi ? !!on : undefined}
+        onClick={() => (multi ? tick(e) : onPick(e))} />
+      {/* A "+" glyph reads as "add this now": it adds with the default settings right away, where
+          tapping the row opens the settings first, for when you want to set sets/reps before adding. */}
+      {!multi && <button type="button" className="g-pk-add" aria-label={t('Add “{0}”', exerciseNameFor(e))}
+        onClick={() => onPick(e, true)}><Icon name="plus" className="g-icon" /></button>}
+    </div>
+  }
+
+  const head = <>
+    <label className="g-lf-search">
+      <Icon name="magnifier" className="g-icon" />
+      <input ref={searchRef} type="search" value={q} placeholder={t('Search {0} exercises…', all.length)} aria-label={t('Search {0} exercises…', all.length)}
+        enterKeyHint="search" onFocus={onSearchFocus} onChange={e => { setQ(e.target.value); setShown(50) }} />
+      {narrowed && <span className="g-pk-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}
+      {q && <button type="button" className="g-lf-clear" onClick={() => { setQ(''); setShown(50); searchRef.current?.focus() }} aria-label={t('Clear')}><Icon name="xmark" className="g-icon" /></button>}
+    </label>
+    <div className="g-lf-tabs">
+      <SegmentedControl label={t('Exercises')} value={tab} onChange={v => { setTab(v); setShown(50) }}
+        options={TABS.map(v => ({ value: v, label: v === 'all' ? t('All') : v === 'fav' ? t('Favourites') : t('By muscle') }))} />
+    </div>
   </>
 
-  return <>
-    <Inline justify="between" className="mb-5"><h3>{title || t('Add exercise')}</h3>
-      <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => setByMuscle(true)}>{t('By muscle')}</Button>
-    </Inline>
-    {/* .picker-search is what index.css keys the keyboard-aware sheet layout on: the sheet
-        lifts above the keys and the search stays put while the list scrolls under it. */}
-    <div className="picker-search"><div className="search-row"><div className={'search' + (narrowed ? ' has-count' : '') + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-      <input ref={searchRef} className="input" placeholder={t('Search {0} exercises…', all.length)} value={q} onFocus={onSearchFocus} onChange={e => { setQ(e.target.value); setShown(50) }} />
-      {narrowed && <span className="search-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}
-      {q && <button className="clear" onClick={() => { setQ(''); setShown(50) }} aria-label={t('Clear')}><Icon name="xmark" /></button>}</div>
-      <ExerciseViewToggle /></div></div>
-    {profile && <Inline gap={3} className="small dim mt-4 mb-1">
-      <Icon name="kettlebell" className="fs-footnote" />
-      {showAll ? t('Showing all equipment') : t('Showing what you have in "{0}"', profile.name)}
-      <Chip nocap className="fs-caption" style={{ marginInlineStart: 'auto', padding: '3px 10px' }} onClick={() => setShowAll(v => !v)}>
-        {showAll ? t('Filter by "{0}"', profile.name) : t('Show all equipment')}
-      </Chip>
-    </Inline>}
+  return <BottomSheet type="full" title={title || t('Add exercise')} chip={routine} chipIcon="clipboard" head={head}
+    footer={multi && picked.length > 0 ? <Button block onClick={add}>{multi.label(picked.length)}</Button> : null}>
+    {profile && <div className="g-pk-prof">
+      <Icon name="kettlebell" className="g-icon" />
+      <span>{showAll ? t('Showing all equipment') : t('Showing what you have in "{0}"', profile.name)}</span>
+      <button type="button" onClick={() => setShowAll(v => !v)}>{showAll ? t('Filter by "{0}"', profile.name) : t('Show all equipment')}</button>
+    </div>}
     {/* Changing muscle group keeps the equipment filter: if it still has exercises under the new
         group the filter stays applied, and if not the eqOn fallback above drops it for this view
-        without forgetting the choice (issue #71). The favourites/chosen chips still clear it —
-        those are cross-body-part views where a stale equipment filter would be confusing. */}
-    <ChipRow ref={bpStrip} className={'mt-5 ' + (eqOpts.length > 1 || catOpts.length > 1 ? 'mb-3' : 'mb-5')}>
-      {likeTg && <Chip nocap on={bp === SAME} onClick={() => { setBp(SAME); setShown(50) }}><Icon name="figureStrength" className="fs-caption" style={{ display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Same muscle: {0}', t(MUSCLE_NAME[likeTg] || likeTg))}</Chip>}
-      {favCount > 0 && <Chip on={bp === '☆'} onClick={() => { setBp('☆'); setEq(''); setShown(50) }}><Icon name="starFill" className="fav-star" />{t('Favourites')} ({favCount})</Chip>}
-      {chosenCount > 0 && <Chip on={bp === '★'} onClick={() => { setBp('★'); setEq(''); setShown(50) }}><Icon name="starFill" className="fs-caption" style={{ display: 'inline-block', marginInlineEnd: 4, verticalAlign: '-1px' }} />{t('Chosen')} ({chosenCount})</Chip>}
-      <Chip nocap on={!bp} onClick={() => { setBp(''); setShown(50) }}>{t('All')}</Chip>
-      {BODYPARTS.map(b => <Chip key={b} on={bp === b} onClick={() => { setBp(b); setShown(50) }}>{t(b)}</Chip>)}
-    </ChipRow>
-    {catOpts.length > 1 && <ChipRow ref={catStrip} className={eqOpts.length > 1 ? 'mb-3' : 'mb-5'}>
-      <Chip nocap on={!catOn} onClick={() => { setCat(''); setShown(50) }}>{t('Any type')}</Chip>
-      {catOpts.map(x => <Chip key={x} on={catOn === x} onClick={() => { setCat(x); setShown(50) }}>{t(x)}</Chip>)}
-    </ChipRow>}
-    {eqOpts.length > 1 && <ChipRow ref={eqStrip} className="mb-5">
-      <Chip nocap on={!eqOn} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</Chip>
-      {eqOpts.map(x => <Chip key={x} on={eqOn === x} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</Chip>)}
-    </ChipRow>}
-    <div className={'list' + (st.exerciseView === 'cards' ? ' ex-grid' : '')}>
-      {!special && <ItemRow className="ex-new"
-        lead={<div className="thumb thumb-x"><Icon name="plusCircle" /></div>}
-        title={t('Create your own exercise')}
-        subtitle={t('name + body part, and a photo or video if you like')}
-        trailing={<Icon name="plus" className="chev" />}
-        onClick={() => customExSheet(null, ex => onPick(ex), q.trim())} />}
+        without forgetting the choice (issue #71). The Chosen chip clears it: that is a cross-body-part
+        view where a stale equipment filter would be confusing. */}
+    {onAll && <div className="g-pk-chips" ref={bpStrip}>
+      <ChipGroup scroll label={t('Body part')} value={bp} onChange={pickBp} options={[
+        ...(likeTg ? [{ value: SAME, label: <><Icon name="figureStrength" className="g-icon g-pk-cicon" />{t('Same muscle: {0}', t(MUSCLE_NAME[likeTg] || likeTg))}</> }] : []),
+        ...(chosenCount > 0 ? [{ value: '★', label: <><Icon name="starFill" className="g-icon g-pk-cicon" />{t('Chosen')} ({chosenCount})</> }] : []),
+        { value: '', label: t('All') },
+        ...BODYPARTS.map(b => ({ value: b, label: t(b) })),
+      ]} />
+    </div>}
+    {onAll && catOpts.length > 1 && <div className="g-pk-chips" ref={catStrip}>
+      <ChipGroup scroll label={t('Type')} value={catOn} onChange={v => { setCat(v); setShown(50) }}
+        options={[{ value: '', label: t('Any type') }, ...catOpts.map(x => ({ value: x, label: t(x) }))]} />
+    </div>}
+    {onAll && eqOpts.length > 1 && <div className="g-pk-chips" ref={eqStrip}>
+      <ChipGroup scroll label={t('Equipment')} value={eqOn} onChange={v => { setEq(v); setShown(50) }}
+        options={[{ value: '', label: t('Any equipment') }, ...eqOpts.map(x => ({ value: x, label: t(x) }))]} />
+    </div>}
+    {tab === 'muscle' && <>
+      <div className="g-pk-map"><BodyMap body={st.body} selected={muscle} onMuscle={pickMuscle} /></div>
+      {muscle
+        ? <p className="g-pk-head">{t(MUSCLE_NAME[muscle])} · {exCount(f.length)}</p>
+        : <p className="g-pk-head g-pk-hint">{t('Choose a muscle to see exercises that train it.')}</p>}
+    </>}
+    <div className="g-pk-list">
+      {!(onAll && bp === '★') && (tab !== 'muscle' || muscle) && !noExact && <button type="button" className="g-xrow g-pk-new" onClick={create}>
+        <span className="g-xrow-ph"><Icon name="plusCircle" className="g-icon" /></span>
+        <span className="g-xrow-b"><b>{t('Create your own exercise')}</b><span>{t('Name it and pick a body part')}</span></span>
+        <Icon name="plus" className="g-icon g-xrow-chev" />
+      </button>}
       {f.slice(0, shown).map(pickRow)}
-      {f.length === 0 && bp === '★' && <EmptyState>{t('Nothing picked yet. Add some exercises and they’ll show up here.')}</EmptyState>}
-      {f.length === 0 && bp === '☆' && <EmptyState>{t('No favourites yet. Tap the star on an exercise to add one.')}</EmptyState>}
-      {similar.length > 0 && <SectionTitle className="similar-label">{f.length ? t('Similar exercises') : t('No exact match. These come close:')}</SectionTitle>}
+      {f.length === 0 && tab === 'all' && bp === '★' && <p className="g-pk-note">{t('Nothing picked yet. Add some exercises and they’ll show up here.')}</p>}
+      {f.length === 0 && tab === 'fav' && <p className="g-pk-note">{t('No favourites yet. Tap the star on an exercise to add one.')}</p>}
+      {f.length === 0 && similar.length === 0 && q.trim() && <p className="g-pk-note">{t('No match')}</p>}
+      {similar.length > 0 && <p className="g-pk-head">{f.length ? t('Similar exercises') : t('No exact match. These come close:')}</p>}
       {similar.map(pickRow)}
+      {noExact && <button type="button" className="g-xrow g-pk-new" onClick={create}>
+        <span className="g-xrow-ph"><Icon name="plusCircle" className="g-icon" /></span>
+        <span className="g-xrow-b"><b>{t('Create your own exercise')}</b><span>{t('Name it and pick a body part')}</span></span>
+        <Icon name="plus" className="g-icon g-xrow-chev" />
+      </button>}
     </div>
-    {f.length > shown && <><Spacer size={4} /><Button ref={moreRef} onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></>}
-  </>
+    {f.length > shown && <div className="g-pk-more"><Button variant="secondary" block ref={moreRef} onClick={() => setShown(s => s + 50)}>{t('Show more')}</Button></div>}
+  </BottomSheet>
 }
 // `title` names what the pick is for when it is not an add — the routine editor's Replace (#110).
 // `like` is the exercise a swap or a replace is away from: the picker then opens on the ones that
-// train the same muscle, same equipment first (#473).
-export const exercisePicker = (onPick, { title, like } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} close={close} />)
+// train the same muscle, same equipment first (#473). `routine` is the name of the routine the pick
+// goes into, shown in the header. `multi: { label(n), onAdd(exs) }` makes the picker take several:
+// without it a pick is one exercise (a tap configures, the "+" quick-adds).
+export const exercisePicker = (onPick, { title, like, multi, routine } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} multi={multi} routine={routine} close={close} />, { variant: 'ds' })
 
 /** Start a safe swap for one exact active-workout occurrence. */
 export function swapActiveWorkoutExercise(index) {
@@ -233,13 +276,13 @@ export function swapActiveWorkoutExercise(index) {
         <div className="muted small mb-6">
           {t('Logged sets stay with the original exercise. Choose where the replacement belongs.')}
         </div>
-        <Button variant="primary" onClick={() => { close(); apply({ loggedConfirmed: true, groupDisposition: 'keep' }) }}>
+        <OldButton variant="primary" onClick={() => { close(); apply({ loggedConfirmed: true, groupDisposition: 'keep' }) }}>
           {t('Keep replacement in this group')}
-        </Button>
+        </OldButton>
         <Spacer size={4} />
-        <Button variant="ghost" onClick={() => { close(); apply({ loggedConfirmed: true, groupDisposition: 'detach' }) }}>
+        <OldButton variant="ghost" onClick={() => { close(); apply({ loggedConfirmed: true, groupDisposition: 'detach' }) }}>
           {t('Insert after this group')}
-        </Button>
+        </OldButton>
       </>)
       return
     }

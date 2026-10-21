@@ -362,7 +362,6 @@ button.conn:active{filter:brightness(1.12)}
 /* Buttons never had any: exactly the floor, no slop. */
 .btn.sm::before,.btn.xs::before{width:max(100%,var(--tap-min));height:max(100%,var(--tap-min))}
 .seg button::before{width:100%}
-.iconbtn.on-ss{background:var(--acc-soft);color:var(--acc-ink)}
 .iconbtn:disabled{opacity:.32}
 
 h4.sec{
@@ -497,29 +496,6 @@ h4.sec{
   transition:background var(--fast);text-align: start;width:100%;
 }
 .item:active{background:var(--surface-2)}
-.routine-list{position:relative}
-.routine-drag-row{touch-action:pan-y;-webkit-touch-callout:none;position:relative;transition:transform var(--fast) var(--ease)}
-.routine-list.is-reordering{user-select:none;-webkit-user-select:none}
-.routine-list.is-reordering .routine-drag-row{transition:none}
-.routine-drag-row.is-dragging{z-index:2;pointer-events:none}
-.routine-drag-row.is-dragging .item{box-shadow:0 10px 28px rgba(0,0,0,.22);background:var(--surface-2)}
-.routine-drop-indicator{
-  position:absolute;left:6px;right:6px;height:3px;border-radius:99px;
-  background:var(--acc);transform:translateY(-50%);pointer-events:none;z-index:3;
-}
-/* The drag handle (#277, #114). A long press anywhere on a row reorders it on every device,
-   but nothing on screen said so, and with a mouse nobody holds a row to find out. So a pointer
-   device gets the grip it looks for, with a grab cursor, and pressing it picks the row up at
-   once (RoutineEdit.jsx). A touch screen keeps the long press and the row's full width. */
-.routine-grip{
-  display:none;flex:none;align-self:stretch;align-items:center;margin:-10px -6px -10px -4px;padding:0 4px;
-  color:var(--label-3);font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
-}
-@media (hover:hover) and (pointer:fine){
-  .routine-grip{display:flex}
-  .routine-grip:hover{color:var(--label-2)}
-}
-.routine-list.is-reordering,.routine-list.is-reordering *{cursor:grabbing}
 .thumb{width:50px;height:50px;border-radius:9px;object-fit:cover;background:#fff;flex:none}
 /* exercise pictures are decoration inside tappable rows/cards: no save-image callout on
    a long press and no drag ghost when a scroll starts on the picture */
@@ -1150,8 +1126,6 @@ body.chips-dragging *{cursor:inherit}
    pan-y leaves vertical scroll to the browser and hands sideways moves to the row. */
 .swrow{position:relative;overflow:hidden;border-radius:10px;touch-action:pan-y;-webkit-touch-callout:none}
 .swrow.dragging{-webkit-user-select:none;user-select:none}
-/* Plan's lists (v1.3.11): the row is a whole .item card, so the swipe clips to the card's corners */
-.swrow.swrow-item{border-radius:var(--r-card)}
 .swfront{position:relative;z-index:1;background:var(--surface)}
 /* Its own layer only while it moves: on every row it was a layer per set (#431). */
 .swrow.dragging .swfront,.swrow.go-del .swfront,.swrow.go-cp .swfront{will-change:transform}
@@ -1734,6 +1708,14 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 /* A1, A2…: a member's place in the round (#293). */
 .ss-pos{flex:none;min-width:26px;height:22px;padding:0 5px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--acc-ink);background:var(--acc-soft, var(--surface-2))}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
+/* A past workout's detail: each exercise opens its history, and a superset's exercises sit under
+   one label and bar. */
+.wd-ex{margin-bottom:12px;cursor:pointer;border-radius:10px}
+.wd-ex>.grow{flex:1;min-width:0}
+.wd-ex:active{background:var(--surface-2)}
+.wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
+.wd-ss .ss-label{margin:0 0 8px}
+.wd-ss .wd-ex:last-child{margin-bottom:0}
 .ss-card{
   border-radius:var(--r-lg);padding:14px;
   background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);
@@ -1883,27 +1865,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .cam-wrap{position:relative;width:100%;aspect-ratio:3/4;max-height:58vh;border-radius:var(--r-lg);overflow:hidden;background:#000}
 .cam-wrap video{width:100%;height:100%;object-fit:cover;display:block}
 .cam-frame{position:absolute;inset:0;margin:auto;width:62%;aspect-ratio:1;border:2px dashed rgba(255,255,255,.75);border-radius:14px;pointer-events:none}
-/* ---------------------------------------------------------------- Plan -- */
-/* Routines (views/Plan.jsx). A settings-like page, one column at every width. */
-.plan-sec-h{margin:22px 0 8px;gap:8px;flex-wrap:wrap}
-.plan-sec-h h4.sec{margin:0}
-.plan-routines-bar{margin-top:0}
-.plan-textbtn{color:var(--acc-ink);font-size:16px;padding:6px 4px;position:relative}
-.plan-textbtn::before{content:'';position:absolute;inset:-6px}
-.plan .sect-f{margin:0 0 4px}
-.plan .list+.sect-f{padding-top:8px}
-/* Edit mode, as on an iPhone: a red minus at the start, a handle at the end */
-.plan-minus{
-  width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;
-  background:var(--red);color:#fff;font-size:14px;--icon-stroke:2.6;position:relative;
-}
-.plan-minus::before{content:'';position:absolute;inset:-10px}
-.plan-handle{
-  flex:none;align-self:stretch;display:flex;align-items:center;padding:0 6px;margin:-10px -6px -10px 0;
-  color:var(--label-3);font-size:18px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
-}
-.plan-handle:active{cursor:grabbing;color:var(--label-2)}
-.plan [data-reorder-row]{transition:transform var(--fast) var(--ease)}
 
 /* ------------------------------------------------- duration wheel picker -- */
 /* components/DurationWheel.jsx: two scroll-snap wheels under one highlight band. --dw-item is
@@ -1974,7 +1935,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* Numbers and dates inside Arabic text still read left-to-right. */
 [dir="rtl"] .num,[dir="rtl"] input[type="number"]{direction:ltr}
 /* Superset edge stripe points at the inline start (the right, in RTL). */
-[dir="rtl"] .item.in-ss,[dir="rtl"] .wd-ss{box-shadow:inset -3px 0 0 var(--acc)}
+[dir="rtl"] .wd-ss{box-shadow:inset -3px 0 0 var(--acc)}
 /* Slider: the thumb is offset from inline-start, which is the right edge in RTL, so the
    half-width centering shift points the other way. */
 [dir="rtl"] .sld-knob{transform:translateX(50%)}

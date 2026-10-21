@@ -6,7 +6,8 @@
 import { STORE_KEY } from '../../lib/onboarding/session.js'
 import { useStore } from '../../store/useStore.js'
 
-const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState']
+// `sync` is saved and put back too, so a state that shows another sync status leaves none behind.
+const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync']
 
 /** A passkey prompt the person closed. */
 export const denied = () => Promise.reject(Object.assign(new Error('The operation either timed out or was not allowed.'), { name: 'NotAllowedError' }))

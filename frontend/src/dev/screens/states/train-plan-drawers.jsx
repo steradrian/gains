@@ -3,14 +3,14 @@ import { DAYN, isoOf, todayISO } from '../../../lib/format.js'
 import { t } from '../../../lib/i18n.js'
 import { parsePlan } from '../../../lib/plan-share.js'
 import { dayNoteSheet, dayOverrideSheet, planShareSheet, planToolsSheet } from '../../../sheets.jsx'
-import Plan from '../../../views/Plan.jsx'
 import PlanScreen from '../../../views/plan/PlanScreen.jsx'
-import PlanImportPage, { importPlanWithUndo } from '../../../views/plan-import/PlanImportPage.jsx'
+import PlanImportPage from '../../../views/plan-import/PlanImportPage.jsx'
 import { registerScreens } from '../registry.js'
 
 // The Plan page's drawers (T3.1 Plan day, T3.4 Day note, T3.5 Plan menu, T3.6 Share), each the
 // real one opened the way the page opens it, over the route App.jsx renders for /train/schedule;
-// T3.7 Import a plan (a page of its own) and T4.4, the toast it lands on Routines with. The plan in
+// T3.7 Import a plan (a page of its own); T4.4, the Routines page it lands on with its toast, is in
+// train-routines.jsx. The plan in
 // the mocked store is the boards': Push A, Pull A and Legs on their weekdays, Pull A logged four
 // days ago, Legs missed two days ago. Every tap changes memory only (mock-env.js stubs update).
 const day = n => { const d = new Date(todayISO() + 'T12:00:00'); d.setDate(d.getDate() + n); return d }
@@ -74,6 +74,4 @@ registerScreens('Train: plan drawers', [
     render: () => <PlanImportPage bundle={FILE} />, mock: { S: plan() } },
   { id: 'T3.7e', title: 'Import a plan, unreadable file', note: 'Nothing changed; Choose another file.', path: '/train/schedule/import',
     render: () => <PlanImportPage error="" />, mock: { S: plan() } },
-  { id: 'T4.4', title: 'Plan imported', note: 'Routines with the Undo toast; the routines are added in memory only.', path: '/train/routines',
-    render: () => <Plan view="routines" />, mock: { S: plan() }, play: open(() => importPlanWithUndo(FILE)) },
 ])

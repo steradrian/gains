@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
+import { isCustomEx, stillOf } from '../lib/exercises.js'
 import { mediaOf, cleanUrl, linkKind } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
 import { fetchToStore, mayFetch } from '../lib/media-sync.js'
@@ -106,6 +107,17 @@ export function CustomThumb({ ex }) {
   // exercise without a picture.
   const icon = m?.kind === 'video' || (link && linkKind(link) === 'video') ? 'play' : link ? 'link' : null
   return icon ? <div className="thumb thumb-x"><Icon name={icon} /></div> : <EquipmentThumb ex={ex} />
+}
+
+/**
+ * The still a list row shows (ds/ExerciseThumbRow `image`): the catalogue's, or a custom
+ * exercise's own poster from the local store (fetched as CustomThumb does). null while there is
+ * none, and the row draws its own tile.
+ */
+export function useExerciseStill(ex, figure) {
+  const custom = isCustomEx(ex)
+  const poster = useMediaUrl(custom ? mediaOf(ex)?.poster || null : null)
+  return custom ? poster.url : stillOf(ex, figure)
 }
 
 /* ------------------------------------------------------------------ links ---------------- */
