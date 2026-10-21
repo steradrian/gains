@@ -61,6 +61,7 @@ describe('the routes from before the tabs', () => {
   it('go where they live now, the rest of the path kept', () => {
     expect(legacyPath('/home')).toBeNull()   // still Home
     expect(legacyPath('/plan')).toBe('/train/schedule')
+    expect(legacyPath('/stats', '?focus=weekly-volume')).toBe('/train/schedule')   // the weekly volume moved to Plan
     expect(legacyPath('/plan/r/abc')).toBe('/train/routines/abc')
     expect(legacyPath('/workout')).toBe('/train/workout')
     expect(legacyPath('/history')).toBe('/train/history')

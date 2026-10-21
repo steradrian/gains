@@ -47,6 +47,8 @@ describe('BottomSheet, drawn alone', () => {
     expect(q('a.g-bs-x').getAttribute('href')).toBe('#/today')
     expect(q('.g-bs-scrim')).toBeNull()
     expect(q('.g-bs-foot')).toBeNull()
+    view.render(<BottomSheet title="Push A" chip="Mon 12 Oct" onChip={onChip} chipLabel="Open Mon 12 Oct" />)
+    expect(q('button.g-bs-chip').getAttribute('aria-label')).toBe('Open Mon 12 Oct')
     expect(q('.g-bs-pin')).toBeNull()
   })
 

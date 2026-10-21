@@ -30,8 +30,9 @@ export const PRIMITIVE_FILES = [
 // Routed views that draw their own chrome and never render <Page> (G4). Home is Today on the
 // stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02);
 // PlanScreen (its Plan page), PlanImportPage (Import a plan), CreateExercise (Create exercise),
-// PlansScreen, PlanPreview and CoachChat are pushed pages on the stage (StagePage).
-export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'TrainHub', 'Workout']
+// PlansScreen, PlanPreview, CoachChat, History, TrainingLoad and LoadMuscleScreen (a muscle's
+// training-load page) are pushed pages on the stage (StagePage).
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'TrainHub', 'TrainingLoad', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 

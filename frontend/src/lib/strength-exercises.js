@@ -145,6 +145,15 @@ export function strengthExerciseRows(S, now) {
 }
 
 /**
+ * Training load's Strength lifts (board T9.5): every row of strengthExerciseRows, strongest first,
+ * with `lastAt`, when its last work set was done (null when none was), and `losing`, true once
+ * the exercise's own retained strength has started to fall (decay below 1).
+ */
+export function strengthLiftRows(S, now) {
+  return strengthExerciseRows(S, now).map(row => ({ ...row, lastAt: lastWorkSetAt(S, row.id), losing: row.decay < 1 }))
+}
+
+/**
  * Strength rows for exercises with positive resolved muscle credit for `slug`; catalogue
  * metadata takes precedence over saved snapshots when available. Each row keeps the exercise's
  * OWN decay and expected current 1RM - the tapped muscle filters the list, not the row's metrics.

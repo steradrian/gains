@@ -5,6 +5,7 @@ import { convertBodyWeight, convertStateUnit, convertWeight } from './units.js'
 import { retimeWorkout } from './workout-date.js'
 import { inventoryFor, loadKindFor, withLoadKind, withPlatePairs, withStandardPlates } from './plates.js'
 import { seenOn, withSeen } from './missed-day.js'
+import { putBackWorkout, takeWorkout } from './workout-delete.js'
 
 const workout = (id, d = '2026-09-01', start = 1) => ({ id, d, start, entries: [] })
 const routine = (id, name = id) => ({ id, name, ex: [] })
@@ -862,6 +863,43 @@ describe('added back means brought back by this change', () => {
     const tablet = update(b0, 30, S => { S.favEx = ['bench'] })
     expect(mergeStates(tablet, phone).favEx).toEqual(['bench'])
     expect(mergeStates(phone, tablet).favEx).toEqual(['bench'])
+  })
+})
+
+// T8.4: a workout deleted with no confirm, then put back by its Undo. The re-insert must win over
+// the removal it undid, also on a device that already merged that removal.
+describe('a deleted workout put back by its Undo', () => {
+  const T = Date.UTC(2026, 9, 12, 18)
+  const change = (prev, wall, mut) => { const n = clone(prev); mut(n); n._ts = stampChange(prev, n, wall); return n }
+  const W = { id: 'w1', d: '2026-10-12', start: T - 7200e3, end: T - 3600e3, name: 'Push A', note: 'felt strong',
+    entries: [{ id: 'bench', sets: [{ w: 82.5, r: 6, done: true }] }] }
+  const b0 = { _ts: T - 1000, unit: 'kg', restSec: 90, workouts: [W, workout('w2', '2026-10-14', T + 1)] }
+
+  it('comes back everywhere, as the exact record, even where the removal had already landed', () => {
+    let snap = null
+    const phone1 = change(b0, T + 1000, s => { snap = takeWorkout(s, W) })
+    expect(phone1.deleted.workouts.w1).toBeGreaterThan(0)
+    // the laptop syncs within the 8 s and takes the removal
+    const laptop1 = change(mergeStates(phone1, b0), T + 2000, s => { s.restSec = 120 })
+    expect(ids(laptop1.workouts)).toEqual(['w2'])
+    const phone2 = change(phone1, T + 5000, s => { putBackWorkout(s, snap) })
+    expect(phone2.deleted.workouts.w1).toBeLessThan(0)   // added back, after the removal
+    expect(phone2.workouts[0]).toMatchObject({ id: 'w1', note: 'felt strong', entries: W.entries })
+    for (const m of [mergeStates(phone2, laptop1), mergeStates(laptop1, phone2)]) {
+      expect(ids(m.workouts).sort()).toEqual(['w1', 'w2'])
+      expect(m.workouts.find(w => w.id === 'w1').entries).toEqual(W.entries)
+      expect(m.restSec).toBe(120)
+    }
+  })
+
+  it('a device that never saw the delete keeps it, and a delete made after the Undo still sticks', () => {
+    let snap = null
+    const phone1 = change(b0, T + 1000, s => { snap = takeWorkout(s, W) })
+    const phone2 = change(phone1, T + 5000, s => { putBackWorkout(s, snap) })
+    const offline = change(b0, T + 3000, s => { s.restSec = 60 })
+    expect(ids(mergeStates(offline, phone2).workouts).sort()).toEqual(['w1', 'w2'])
+    const phone3 = change(phone2, T + 9000, s => { takeWorkout(s, W) })
+    for (const m of [mergeStates(phone3, offline), mergeStates(offline, phone3)]) expect(ids(m.workouts)).toEqual(['w2'])
   })
 })
 

@@ -350,6 +350,7 @@ button.g-saved { cursor: pointer; }
 .g-bmap-stage .g-bm-m.l3 { fill: color-mix(in srgb, var(--on-stage) 78%, transparent); }
 .g-bmap-stage .g-bm-m.l4 { fill: var(--on-stage); }
 .g-bmap-stage .g-bm-m.sel { stroke: var(--on-stage); stroke-width: 2.5; }
+.g-bm-tap { cursor: pointer; }
 .g-bmap-light .g-bm-sil { fill: var(--surface-sunken); }
 .g-bmap-light .g-bm-m.l0 { fill: var(--line-strong); }
 .g-bmap-light .g-bm-m.l1 { fill: color-mix(in srgb, var(--accent-fill) 30%, var(--surface)); }
@@ -588,6 +589,7 @@ button.g-bs-chip { cursor: pointer; }
 .g-utoast-ic { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--g-toast-fill); }
 .g-utoast-ic .g-icon { width: 16px; height: 16px; stroke-width: 2.6; }
 .g-utoast-msg { flex: 1; min-width: 0; font: 500 15px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-utoast-body { display: block; margin-top: 2px; font: 500 13px/18px var(--font-sans); opacity: .72; }
 .g-utoast-undo { appearance: none; border: 0; flex: none; height: 40px; padding: 0 14px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; background: var(--g-toast-fill); color: var(--g-white); font: 700 15px/20px var(--font-sans); cursor: pointer; text-decoration: none; }
 .g-utoast-undo:focus-visible { outline-color: var(--g-white); }
 .g-utoast-drain { display: block; height: 3px; background: var(--g-toast-drain); transform-origin: left; animation: g-drain var(--dur, 8s) linear both; }
@@ -1190,3 +1192,83 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 [dir="rtl"] .g-bubble-them { border-radius: 22px 22px 6px 22px; }
 [dir="rtl"] .g-bubble-me { border-radius: 22px 22px 22px 6px; }
 .g-bubble-error { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--danger) 70%, transparent); }
+
+/* === Train history (boards T8.0 History, T8.1 Workout, T8.3 Share; slice 5) === */
+.g-hist-pad { padding: 8px 16px 0; }
+.g-hist-hint { margin: 8px 4px 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-hist-list { margin: 0 16px; }
+/* The glass card clips its corners: a row's focus ring is drawn inside it. */
+.g-hist-row:focus-visible { outline-offset: -3px; outline-color: var(--on-stage); }
+.g-hist-stack > span { box-shadow: 0 0 0 2px var(--accent-stage-end); }
+.g-hist-stack i { background: var(--glass); color: var(--on-stage); }
+/* T8.1: the drawer's parts under its tiles */
+.g-wd-map { display: flex; align-items: center; gap: 16px; padding: 14px 0; }
+.g-wd-map p { margin: 0; display: flex; flex-direction: column; font: 500 15px/21px var(--font-sans); color: var(--text-2); text-align: start; }
+.g-wd-map b { color: var(--text); }
+.g-wd-h { margin: 4px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+.g-wd-group-head { margin: 10px 0 0; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-wd-group-head b { display: inline-flex; align-items: center; gap: 7px; font: 600 15px/20px var(--font-sans); color: var(--text); }
+.g-wd-group-head .g-icon, .g-wd-ss-label .g-icon, .g-wd-exnote .g-icon { width: 16px; height: 16px; }
+.g-wd-ss { margin-block: 6px; padding-inline-start: 10px; border-inline-start: 3px solid var(--accent-tint); }
+.g-wd-ss-label { margin: 4px 0 0; display: inline-flex; align-items: center; gap: 6px; font: 600 13px/16px var(--font-sans); color: var(--text-3); }
+.g-wd-exnote { margin: -4px 0 6px; padding-inline-start: 62px; font: 500 14px/19px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-wd-exnote .g-icon { margin-inline-end: 4px; vertical-align: -2px; color: var(--warning); }
+.g-wd-note { display: flex; flex-direction: column; gap: 6px; padding: 14px 0 4px; font: 500 15px/21px var(--font-sans); color: var(--text-2); }
+.g-wd-note b { color: var(--text); }
+.g-wd-note textarea { box-sizing: border-box; width: 100%; min-height: 64px; padding: 10px 14px; border: 0; border-radius: 16px; background: var(--surface-sunken); color: var(--text); font: 500 16px/22px var(--font-sans); text-align: start; resize: vertical; }
+.g-wd-rows { padding-top: 8px; }
+/* The drawer's body scrolls and clips: rows draw their focus ring inside themselves. */
+.g-wd-rows .g-drow:focus-visible, .g-wd-ex .g-xrow:focus-visible { outline-offset: -3px; }
+/* T8.3: the card preview and the three equal buttons */
+.g-wd-card { border-radius: 28px; overflow: hidden; background: linear-gradient(170deg, var(--accent-stage), var(--accent-stage-end)); }
+.g-wd-card img { display: block; width: 100%; height: auto; }
+.g-wd-card-ph { display: grid; place-items: center; min-height: 260px; margin: 0; padding: 20px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-wd-share-acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+/* === Train load (boards T9.0–T9.6 Training load and a muscle; slice 5) === */
+.g-load { display: flex; flex-direction: column; gap: 14px; padding: 8px 16px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-load-sec { display: flex; flex-direction: column; gap: 12px; }
+.g-load-sec .g-ssec { padding-inline: 4px; }
+.g-load-cap, .g-load-note, .g-load-small { margin: 0 4px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-load-small { font-size: 14px; line-height: 19px; }
+.g-load-fit { margin: 0; padding: 12px 16px; border-radius: 20px; background: var(--glass); font: 600 15px/20px var(--font-sans); text-align: start; }
+.g-load-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
+.g-load-period { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.g-load-period b { font: 600 17px/22px var(--font-sans); }
+.g-load-period small { font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-load-nav .g-cgroup { flex: none; }
+.g-load-arrow { appearance: none; border: 0; width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; }
+.g-load-arrow:disabled { opacity: .4; cursor: default; }
+.g-load-arrow .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
+[dir="rtl"] .g-load-arrow .g-icon { transform: scaleX(-1); }
+.g-load-card { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; border-radius: 28px; }
+.g-load-legend { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-load-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.g-load-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; }
+.g-load-dot.l0 { background: color-mix(in srgb, var(--on-stage) 16%, transparent); }
+.g-load-dot.l1 { background: color-mix(in srgb, var(--on-stage) 34%, transparent); }
+.g-load-dot.l2 { background: color-mix(in srgb, var(--on-stage) 55%, transparent); }
+.g-load-dot.l3 { background: color-mix(in srgb, var(--on-stage) 78%, transparent); }
+.g-load-dot.l4 { background: var(--on-stage); }
+.g-load-row { min-height: 56px; }
+.g-load-val { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; text-align: end; }
+/* The glass list clips its corners: a row's focus ring is drawn inside it. */
+.g-load-list .g-glist-row:focus-visible, .g-load-list .g-xrow:focus-visible { outline-offset: -3px; outline-color: var(--on-stage); }
+.g-load-list .g-xrow { padding-inline: 16px; }
+.g-load-more { appearance: none; border: 0; background: none; align-self: center; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.g-load-more .g-icon { width: 18px; height: 18px; }
+.g-load-missed { display: flex; flex-direction: column; gap: 10px; }
+.g-load-missed h3, .g-load-h3 { margin: 0 4px; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-load-effort { align-items: stretch; }
+.g-load-h { margin: 0; font: 700 20px/25px var(--font-sans); text-align: start; }
+.g-load-h span { font-weight: 500; color: var(--on-stage-2); }
+.g-load-effort-stats { display: flex; justify-content: space-between; gap: 12px; }
+.g-load-effort-stats p { margin: 0; display: flex; flex-direction: column; text-align: start; }
+.g-load-effort-stats p + p { text-align: end; }
+.g-load-effort-stats b { font: 700 28px/34px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-load-effort-stats span { font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-load-bin { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 10px; font: 500 14px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-load-bin > span:first-child { text-align: start; }
+.g-load-bar { height: 8px; border-radius: 4px; background: var(--glass); overflow: hidden; }
+.g-load-bar i { display: block; height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--on-stage) 55%, transparent); }
+.g-load-bar i.hard { background: var(--on-stage); }

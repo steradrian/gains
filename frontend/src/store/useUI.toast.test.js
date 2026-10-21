@@ -54,6 +54,32 @@ describe('toast with an action', () => {
     expect(first).not.toHaveBeenCalled()
   })
 
+  it('carries a body line, and says once when its action can no longer be taken, however it went', () => {
+    const onClose = vi.fn()
+    useUI.getState().toast('Deleted Push A', { action: 'Undo', onAction: () => {}, body: 'Its photo is deleted with it.', onClose })
+    expect(useUI.getState().toastAction.body).toBe('Its photo is deleted with it.')
+    vi.advanceTimersByTime(7999)
+    expect(onClose).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(2)
+    expect(onClose).toHaveBeenCalledTimes(1)
+
+    const ran = vi.fn(), afterUndo = vi.fn()
+    useUI.getState().toast('Deleted Push A', { action: 'Undo', onAction: ran, onClose: afterUndo })
+    useUI.getState().runToastAction()
+    expect(ran).toHaveBeenCalledTimes(1)
+    expect(afterUndo).toHaveBeenCalledTimes(1)
+
+    const replaced = vi.fn()
+    useUI.getState().toast('Deleted Pull A', { action: 'Undo', onAction: () => {}, onClose: replaced })
+    useUI.getState().pauseToast()
+    vi.advanceTimersByTime(60000)
+    expect(replaced).not.toHaveBeenCalled()   // held under a finger: the Undo is still there
+    useUI.getState().toast('Copied')
+    expect(replaced).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(10000)
+    expect(replaced).toHaveBeenCalledTimes(1)
+  })
+
   it('holds still while touched, says so for its drain bar, and carries on afterwards', () => {
     useUI.getState().toast('Set 2 gone.', { action: 'Undo', onAction: () => {} })
     vi.advanceTimersByTime(6000)

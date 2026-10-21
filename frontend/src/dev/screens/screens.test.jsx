@@ -243,6 +243,46 @@ describe('the screens gallery', () => {
     expect(useStore.getState().S).toBe(own)
   }, 20000)
 
+  it('has Train slice 5\'s History states, and its delete and Undo stay in memory', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train slice 5').entries.map(e => e.id)
+    expect(ids).toEqual(['T8.0', 'T8.2', 'T8.1', 'T8.1r', 'T8.3', 'T8.4', 'T9.0', 'T9.1', 'T9.2', 'T9.3', 'T9.0a', 'T9.4', 'T9.5', 'T9.5e', 'T9.E', 'T9.6'])
+    const own = useStore.getState().S
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('T8.0', h => {
+      expect(h.querySelector('.g-mg')).toBeTruthy()
+      expect([...h.querySelectorAll('.g-hist-week .g-ssec h2')][0].textContent).toBe('This week')
+      expect(h.textContent).toContain('Away for work')
+    })
+    await check('T8.2', h => expect(h.querySelector('.g-sempty').textContent).toContain('No workouts yet'))
+    await check('T8.1', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Push A')
+      expect(h.querySelector('.g-bs textarea').value).toBe('Felt strong. Bench moved fast.')
+    })
+    await check('T8.1r', h => expect(h.querySelector('.g-bs').textContent).toContain('Finish the current workout first.'))
+    await check('T8.3', h => expect(h.querySelector('.g-bs h2').textContent).toBe('Share workout'))
+    await check('T8.4', h => {
+      expect(h.textContent).toMatch(/Deleted Push A from /)
+      expect(h.querySelectorAll('.g-hist-row')).toHaveLength(8)   // 7 workouts and the day note
+    })
+    await check('T9.0', h => {
+      expect(h.querySelector('.g-spage-title').textContent).toBe('Training load')
+      expect(h.querySelector('.g-heat')).toBeTruthy()
+      expect(h.querySelectorAll('[data-muscle-volume]')).toHaveLength(4)
+    })
+    await check('T9.2', h => expect(h.querySelector('.g-load-period').textContent).toBe('Last 30 days'))
+    await check('T9.3', h => expect(h.querySelector('.g-load-more').textContent).toBe('Show less'))
+    await check('T9.0a', h => expect(h.textContent).toContain('Every muscle group got some work in this period.'))
+    await check('T9.4', h => expect(h.textContent).toContain('Fatigue shows how recently each muscle was trained.'))
+    await check('T9.5e', h => expect(h.textContent).toContain('No exercises with an estimated 1RM yet.'))
+    await check('T9.E', h => expect(h.querySelector('.g-load-effort')).toBeTruthy())
+    await check('T9.6', h => expect(h.querySelector('.g-stats')).toBeTruthy())
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    localStorage.removeItem('gym_state_v1')
+  }, 20000)
+
   it('has Train plan T3.0 (loop, fixed week, someone else’s, editing), T3.2 and T3.3, and gives the store its own state back', async () => {
     const ids = screenAreas().find(a => a.name === 'Train: plan').entries.map(e => e.id)
     expect(ids).toEqual(['T3.0', 'T3.0w', 'T3.0x', 'T3.0e', 'T3.2', 'T3.3'])

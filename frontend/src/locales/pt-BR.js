@@ -86,7 +86,6 @@ export const PT_BR_OVERRIDES = {
   'Pick an icon': 'Escolha um ícone',
   'Tap a trained day for details · tap any other day to plan a session': 'Toque em um dia treinado para ver detalhes · toque em outro dia para planejar uma sessão',
   'Delete workout?': 'Excluir treino?',
-  'This removes it from your history for good.': 'Isso remove o treino definitivamente do seu histórico.',
   'Delete workout': 'Excluir treino',
   'Then finish the superset partner.': 'Depois, termine o outro exercício do superset.',
   'Save & next exercise': 'Salvar e ir para o próximo exercício',
@@ -118,7 +117,6 @@ export const PT_BR_OVERRIDES = {
   'Planned': 'Planejado',
   'Completed': 'Concluído',
   'Weekly muscle volume': 'Volume muscular semanal',
-  'No muscle volume planned.': 'Nenhum volume muscular planejado.',
   'Enter a name': 'Informe um nome',
   'Registration failed': 'Falha no cadastro',
   'Create your profile': 'Crie seu perfil',
@@ -1111,7 +1109,6 @@ export const PT_BR_OVERRIDES = {
   'Drag to reorder. Tap the minus to delete.': 'Arraste para reordenar. Toque no sinal de menos para excluir.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Toque em uma rotina para editar. Reordenar e excluir ficam em Editar.',
   'Pick one routine, or more to train them together.': 'Escolha uma rotina, ou várias para treinar juntas.',
-  'Planned sets per week, from your plan.': 'Séries planejadas por semana, a partir do seu plano.',
   // --- Settings (v1.3.11) ---
   'Logging': 'Registro',
   'Buttons on the workout screen': 'Botões na tela de treino',
@@ -1184,7 +1181,6 @@ export const PT_BR_OVERRIDES = {
   'Share as image': 'Compartilhar como imagem',
   'Could not create the image': 'Não foi possível criar a imagem',
   'Image saved': 'Imagem salva',
-  'New personal records': 'Novos recordes pessoais',
   'and {0} more': 'e mais {0}',
   'Collapse completed exercises': 'Recolher exercícios concluídos',
   'Keep the current exercise open': 'Manter o exercício atual aberto',
@@ -1900,9 +1896,7 @@ export const PT_BR_OVERRIDES = {
   'Losing strength': 'Perdendo força',
   'Most reps in a Max set': 'Mais reps em uma série Máx',
   'Most reps in a set': 'Mais reps em uma série',
-  'Not in your plan this week': 'Fora do seu plano esta semana',
   'Nothing to chart yet': 'Ainda não há nada para mostrar no gráfico',
-  'Tap a muscle to see its numbers.': 'Toque em um músculo para ver os números dele.',
 
   // --- the redesigned Training tab ---
   'Pick exercises as you go': 'Escolha os exercícios na hora',
