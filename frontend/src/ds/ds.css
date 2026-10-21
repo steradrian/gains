@@ -470,8 +470,18 @@ button.g-bs-chip { cursor: pointer; }
 .g-bs-chip .g-icon { width: 15px; height: 15px; stroke-width: 2.2; }
 .g-bs-x { appearance: none; border: 0; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }
 .g-bs-x .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
+.g-bs-pin { flex: none; }
 .g-bs-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .g-bs-foot { flex: none; padding-top: 14px; display: grid; gap: 10px; }
+
+/* SegmentedControl: the chosen option's thumb slides (320ms, a slight overshoot); labels only change colour */
+.g-seg { position: relative; display: flex; padding: 3px; gap: 2px; border-radius: var(--radius-pill); background: var(--surface-sunken); }
+.g-seg-thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px - (var(--n) - 1) * 2px) / var(--n)); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-card); transform: translateX(calc(var(--i) * (100% + 2px))); transition: transform 320ms cubic-bezier(.34,1.22,.64,1); }
+[dir="rtl"] .g-seg-thumb { left: auto; right: 3px; transform: translateX(calc(var(--i) * (-100% - 2px))); }
+.g-seg button { appearance: none; border: 0; position: relative; z-index: 1; flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: transparent; color: var(--text-2); font: 500 14px/20px var(--font-sans); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 200ms; }
+.g-seg button[aria-pressed="true"] { color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .g-seg-thumb, .g-seg button { transition: none; } }
+:root[data-motion="reduce"] .g-seg-thumb, :root[data-motion="reduce"] .g-seg button { transition: none; }
 @media (min-width: 1000px) {
   #modal-root .g-bs { left: 50%; right: auto; margin-left: -320px; width: 640px; }
 }
