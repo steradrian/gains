@@ -1,6 +1,6 @@
 import { metricEntriesForExercise, metricRowsForEntry, bestWeightForEntry, completedRepsOf, modeOf, workoutAt } from './history.js'
 import { completedVolumeOf } from './workout-model.js'
-import { bestSetOf } from './onerm.js'
+import { bestSetOf, formulaOf } from './onerm.js'
 import { beatsWeight } from './exercises.js'
 import { currentDbLoad, historyAs, volumeFactor, workoutAs } from './dumbbells.js'
 
@@ -13,7 +13,8 @@ import { currentDbLoad, historyAs, volumeFactor, workoutAs } from './dumbbells.j
 //            (pull-ups, push-ups) plots its best rep count instead (metric 'reps'), because
 //            that is the thing improving
 //   time   — the longest completed hold, in seconds (metric 'sec')
-//   cardio — the minutes logged that session (metric 'min')
+//   cardio — the fastest set of the session, in km/h as stored (metric 'speed'), the number the
+//            Progress hero ranks by, so a long slow run is not a record under a Top speed hero
 // The mode is the one the exercise was logged in most recently; a session logged in another
 // mode still appears in the list (its sets are labelled by their own target) but gets no point
 // and no value, so the curve never mixes seconds with kilos.
@@ -27,7 +28,8 @@ export const HISTORY_SESSIONS = 10
 // A dumbbell entry logged per bell counts both bells (lib/dumbbells.js volumeFactor).
 const entryVolume = (rows, en) => rows.reduce((v, s) => v + completedVolumeOf(s), 0) * volumeFactor(en)
 
-export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
+// The estimated 1RM of each session uses the profile's formula, the one the Progress hero uses.
+export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS, formula = formulaOf(S) } = {}) {
   // Dumbbell weights are read in the exercise's current meaning (lib/dumbbells.js), so the curve,
   // the best and the sessions compare like with like after a switch between each and total.
   const workouts = historyAs(S, exId, currentDbLoad(S, exId))?.workouts || []
@@ -54,9 +56,9 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
 
   const mode = logged[logged.length - 1].mode
   const repsOnly = mode === 'reps' && !logged.some(l => l.mode === 'reps' && bestWeightForEntry(l.en) > 0)
-  const metric = mode === 'cardio' ? 'min' : mode === 'time' ? 'sec' : repsOnly ? 'reps' : 'weight'
+  const metric = mode === 'cardio' ? 'speed' : mode === 'time' ? 'sec' : repsOnly ? 'reps' : 'weight'
   const valueOf = ({ en, rows }) => {
-    if (metric === 'min') return rows.reduce((a, s) => a + (Number(s.min) || 0), 0)
+    if (metric === 'speed') return Math.max(0, ...rows.map(s => Number(s.speed) || 0))
     if (metric === 'sec') return Math.max(0, ...rows.map(s => Number(s.sec) || 0))
     if (metric === 'reps') return Math.max(0, ...rows.map(completedRepsOf))
     return bestWeightForEntry(en)
@@ -68,12 +70,14 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
   logged.forEach(({ w, en, mode: m, rows }) => {
     const same = m === mode
     const value = same ? valueOf({ en, rows }) : null
-    const e1rm = m === 'reps' ? (bestSetOf(en)?.est ?? null) : null
+    const e1rm = m === 'reps' ? (bestSetOf(en, formula)?.est ?? null) : null
     const t = workoutAt(w)
     // A "new best" goes on a session that beat the best before it, so a record that was itself
     // beaten later keeps its marker and a match of the best does not get one. The first session has
-    // nothing to beat. `prId` is the session that holds the all-time best now.
-    if (value != null && value > best) {
+    // nothing to beat. `prId` is the session that holds the all-time best now. On an assistance
+    // machine a weight beats the best by being lower (beatsWeight), as the Progress hero reads it.
+    const beats = metric === 'weight' ? beatsWeight(exId, value, best) : value > best
+    if (value != null && beats) {
       if (best > 0) records.add(w.id)
       best = value
       prId = w.id
@@ -98,12 +102,14 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
 
 /**
  * Which of a session's sets set its number, so the "New best" mark sits on a set and not on the
- * day. `metric` is the history's (`weight`, `reps`, `sec`, `min`); the first set that matches the
- * session's value wins. Minutes are a total over the sets and the weight can come from a logged top
- * weight with no set behind it, so those, and a session with no value, fall back to the first set.
+ * day. `metric` is the history's (`weight`, `reps`, `sec`, `speed`); the first set that matches the
+ * session's value wins. A legacy record that kept its load in a top weight with no sets has no set
+ * to mark: -1, and the caller marks its top-set line instead. An unknown metric, a session with no
+ * value, or a value no set matches falls back to the first set.
  */
 export function bestSetIndex(session, metric) {
-  const key = { weight: s => Number(s.w) || 0, reps: completedRepsOf, sec: s => Number(s.sec) || 0 }[metric]
+  if (!session.sets?.length) return -1
+  const key = { weight: s => Number(s.w) || 0, reps: completedRepsOf, sec: s => Number(s.sec) || 0, speed: s => Number(s.speed) || 0 }[metric]
   if (!key || !(session.value > 0)) return 0
   const at = session.sets.findIndex(s => key(s) === session.value)
   return at < 0 ? 0 : at

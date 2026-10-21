@@ -8,17 +8,32 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { _setLangState } from '../../../lib/i18n-core.js'
 import { fmtDate, fmtMonth } from '../../../lib/format.js'
+import { estimate1RM } from '../../../lib/onerm.js'
 import ExerciseProgress from './ExerciseProgress.jsx'
 
-const mocks = vi.hoisted(() => ({
-  charts: [], S: null, search: '', nav: vi.fn(), selectSheet: vi.fn(),
-  exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(),
-}))
+// The address is a small store: nav() to /progress/strength replaces its query and re-renders the
+// page, as the router would, and `go()` changes it from outside, like a sheet's tab or Back.
+const mocks = vi.hoisted(() => {
+  const m = {
+    charts: [], S: null, search: '', selectSheet: vi.fn(),
+    exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(), listeners: new Set(),
+  }
+  m.go = search => { m.search = search; m.listeners.forEach(f => f()) }
+  m.nav = vi.fn(to => {
+    const [path, query] = String(to).split('?')
+    if (path === '/progress/strength') m.go(query ? '?' + query : '')
+  })
+  return m
+})
 vi.mock('../../../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mocks.nav,
-  useLocation: () => ({ search: mocks.search, pathname: '/progress/strength' }),
-}))
+vi.mock('react-router-dom', async () => {
+  const { useSyncExternalStore } = await import('react')
+  const subscribe = f => { mocks.listeners.add(f); return () => mocks.listeners.delete(f) }
+  return {
+    useNavigate: () => mocks.nav,
+    useLocation: () => ({ search: useSyncExternalStore(subscribe, () => mocks.search), pathname: '/progress/strength' }),
+  }
+})
 vi.mock('../../../lib/use-tab-nav.js', () => ({ back: vi.fn(), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
 vi.mock('../../../sheets.jsx', () => ({ exerciseDetailSheet: mocks.exerciseDetailSheet, workoutDetailSheet: mocks.workoutDetailSheet }))
 vi.mock('../../../components/ui.jsx', async importOriginal => ({ ...(await importOriginal()), selectSheet: mocks.selectSheet }))
@@ -150,12 +165,14 @@ describe('Progress: the hero line says what the window did', () => {
   it('says since the first month on All, from the line itself', () => {
     mount(SPREAD())
     press('Top')
-    expect(hero().line).toBe('Best set · down 20 kg since ' + fmtMonth(session(400, 100).d, true))
+    expect(hero().line).toBe('Best set · down 20 kg since ' + fmtMonth(session(400, 100).d, true, { yearIfOld: true }))
+    // more than a year back, so the month carries its year
+    expect(hero().line).toMatch(/\d{4}$/)
   })
 
   it('is left out with fewer than two points in the window, and when nothing moved', () => {
     mount([session(5, 80)])
-    expect(hero().line).toBe('Best estimated 1RM')
+    expect(hero().line).toBe('Best set')
     act(() => root.unmount()); host.remove()
     mocks.search = '?range=90'
     mount([session(80, 80), session(5, 80)])
@@ -474,5 +491,135 @@ describe('Progress: no history', () => {
     expect(group('Exercise views')).toBeNull()
     expect(host.querySelector('button[aria-label="How to"]')).toBeNull()
     expect(host.textContent).not.toContain('Structural balance')
+  })
+})
+
+// Train review fixes (group 3): records, the 1RM, the address and the hero's wording.
+const ASSISTED = '0017' // assisted pull-up, a leverage machine
+const PULLUP = '0652' // pull-up, body weight
+// A session of `id` `ago` days back with the given work sets.
+const of = (id, ago, sets, extra = {}) => {
+  const start = Date.now() - ago * DAY
+  return {
+    id: id + '-' + ago, d: new Date(start).toISOString().slice(0, 10), start, end: start + 3600000, name: 'Pull',
+    entries: [{ id, target: { id, sets: sets.length, reps: 8 }, sets: sets.map(([w, r]) => ({ w, r, done: true })), ...extra }],
+  }
+}
+
+describe('Progress: a legacy record that kept only its top weight', () => {
+  // Two sessions logged before sets were kept: 60, then 70, which is a new best with no set to name.
+  const legacy = () => [
+    { ...of(BENCH, 20, []), entries: [{ id: BENCH, target: { id: BENCH, mode: 'reps' }, sets: [], topW: 60 }] },
+    { ...of(BENCH, 5, []), entries: [{ id: BENCH, target: { id: BENCH, mode: 'reps' }, sets: [], topW: 70 }] },
+  ]
+
+  it('renders Progress, naming the record by its top set', () => {
+    mount(legacy())
+    expect(hero().big).toBe('70 kg')
+    expect(rowsOf('New bests').map(r => r.querySelector('b').textContent)).toEqual(['Top set 70 kg'])
+  })
+
+  it('marks the top-set line New best in the History view', () => {
+    mocks.search = '?view=sets'
+    mount(legacy())
+    const tail = host.querySelector('.g-ps-card .g-ps-tail')
+    expect(tail.textContent).toBe('Top set 70 kg New best')
+    expect(tail.querySelector('.g-ps-pr')).toBeTruthy()
+  })
+})
+
+describe('Progress: follows the address while mounted', () => {
+  const both = () => [...SPREAD(), { ...session(2, 120), id: 'sq', entries: [{ id: SQUAT, sets: [{ w: 120, r: 5, done: true }] }] }]
+
+  it('switches to History, back to Progress and to another exercise when the address changes', () => {
+    mocks.search = '?ex=' + BENCH
+    mount(both())
+    expect(host.querySelector('.g-xp-hero')).toBeTruthy()
+    act(() => mocks.go('?ex=' + BENCH + '&view=sets'))
+    expect(on('Exercise views')).toEqual(['History'])
+    expect(host.querySelector('.g-ps')).toBeTruthy()
+    act(() => mocks.go('?ex=' + BENCH))
+    expect(host.querySelector('.g-xp-hero')).toBeTruthy()
+    act(() => mocks.go('?ex=' + SQUAT))
+    expect(title()).toBe('Barbell Full Squat')
+    act(() => mocks.go('?ex=' + BENCH + '&range=30'))
+    expect(title()).toBe('Barbell Bench Press')
+    expect(on('Range')).toEqual(['1M'])
+  })
+
+  it('opens another exercise on its own default chart, not the one picked on the last', () => {
+    mocks.search = '?ex=' + BENCH
+    mount(both())
+    press('Top')
+    expect(on('Chart')).toEqual(['Top'])
+    act(() => mocks.go('?ex=' + SQUAT))
+    act(() => mocks.go('?ex=' + BENCH))
+    expect(on('Chart')).toEqual(['1RM'])
+  })
+})
+
+describe('Progress: the default chart needs two estimates', () => {
+  // Sets past the estimate's rep cap have no 1RM: only the last session has one.
+  const highReps = () => [of(BENCH, 30, [[50, 15]]), of(BENCH, 20, [[50, 15]]), of(BENCH, 10, [[55, 8]])]
+
+  it('opens on Top when only one session has an estimated 1RM', () => {
+    mount(highReps())
+    expect(on('Chart')).toEqual(['Top'])
+    expect(exChart().values).toEqual([50, 50, 55])
+    expect(host.textContent).not.toContain('Log it twice')
+  })
+
+  it('says why 1RM is short, and where the line is, when 1RM is picked', () => {
+    mount(highReps())
+    press('1RM')
+    expect(host.textContent).toContain('Fewer than two estimated 1RMs. Pick Top to see every workout.')
+    expect(host.textContent).not.toContain('Log it twice')
+  })
+})
+
+describe('Progress: bodyweight lifts have no 1RM', () => {
+  it('offers no 1RM for a belt-loaded pull-up, and reads the best set as the belt with its unit', () => {
+    mount([of(PULLUP, 20, [[5, 8], [5, 8]]), of(PULLUP, 5, [[10, 8], [10, 6]])])
+    expect(labels('Chart')).not.toContain('1RM')
+    expect(hero().line).toContain('Best set')
+    expect(host.textContent).not.toContain('est. 1RM')
+    expect(tiles()[0]).toEqual(['Best set', '+10 kg', '× 8 · ' + fmtDate(of(PULLUP, 5, []).d, true)])
+  })
+
+  it('reads an unloaded best set as its reps, with "reps" under it', () => {
+    mount([of(PULLUP, 20, [[0, 10]]), of(PULLUP, 5, [[0, 12]])])
+    expect(tiles()[0]).toEqual(['Best set', '12', 'reps · ' + fmtDate(of(PULLUP, 5, []).d, true)])
+  })
+})
+
+describe('Progress: assistance machines', () => {
+  it('says more help, not up, when the help went up, and less help when it went down', () => {
+    mocks.search = '?range=90'
+    mount([of(ASSISTED, 80, [[30, 8]]), of(ASSISTED, 5, [[40, 8]])])
+    expect(hero().line).toBe('Best set · 10 kg more help in 3 months')
+    act(() => root.unmount()); host.remove()
+    mount([of(ASSISTED, 80, [[40, 8]]), of(ASSISTED, 5, [[30, 8]])])
+    expect(hero().line).toBe('Best set · 10 kg less help in 3 months')
+  })
+
+  it('lists the session that needed least help as the new best', () => {
+    mount([of(ASSISTED, 30, [[30, 8]]), of(ASSISTED, 20, [[40, 8]]), of(ASSISTED, 10, [[20, 8]])])
+    expect(rowsOf('New bests').map(r => r.querySelector('b').textContent)).toEqual(['20×8'])
+  })
+})
+
+describe('Progress: the per-set chart', () => {
+  it('labels each point by set, with the unit', () => {
+    mount(SPREAD())
+    press('Per set')
+    expect(exChart().pointLabels.at(-1)).toBe(fmtDate(session(3, 80).d, true) + ' · Set 1: 80 kg × 5 · Set 2: 80 kg × 4')
+  })
+
+  it('anchors the hover on the highest drawn set, not on a set past the five drawn', () => {
+    const six = ago => of(BENCH, ago, [[80, 5], [80, 5], [80, 5], [80, 5], [80, 5], [120, 5]])
+    mount([six(10), six(3)])
+    press('Per set')
+    expect(exChart().values).toEqual([estimate1RM(80, 5), estimate1RM(80, 5)])
+    expect(exChart().pointLabels[0]).not.toContain('Set 6')
   })
 })

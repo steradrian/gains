@@ -3497,4 +3497,14 @@ export default {
   'See in Training load': 'See in Training load',
   'Tap a day below to plan it, or add routines first.': 'Tap a day below to plan it, or add routines first.',
   'Your week': 'Your week',
+  // --- Train fix group 3: exercise progress and records ---
+  'Top set {0}': 'Najlepsza seria {0}',
+  'Volume {0}': 'Objętość {0}',
+  'Est. 1RM {0}': 'Szac. 1RM {0}',
+  'Set {0}: {1}': 'Seria {0}: {1}',
+  'Fewer than two estimated 1RMs. Pick Top to see every workout.': 'Mniej niż dwa szacowane 1RM. Wybierz Top, aby zobaczyć każdy trening.',
+  '{0} more help in {1}': '{0} more help in {1}',
+  '{0} less help in {1}': '{0} less help in {1}',
+  '{0} more help since {1}': '{0} more help since {1}',
+  '{0} less help since {1}': '{0} less help since {1}',
 }

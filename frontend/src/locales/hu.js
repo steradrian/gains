@@ -3500,4 +3500,14 @@ export default {
   'See in Training load': 'See in Training load',
   'Tap a day below to plan it, or add routines first.': 'Tap a day below to plan it, or add routines first.',
   'Your week': 'Your week',
+  // --- Train fix group 3: exercise progress and records ---
+  'Top set {0}': 'Legjobb sorozat {0}',
+  'Volume {0}': 'Volumen {0}',
+  'Est. 1RM {0}': 'becs. 1RM {0}',
+  'Set {0}: {1}': '{0}. sorozat: {1}',
+  'Fewer than two estimated 1RMs. Pick Top to see every workout.': 'Fewer than two estimated 1RMs. Pick Top to see every workout.',
+  '{0} more help in {1}': '{0} more help in {1}',
+  '{0} less help in {1}': '{0} less help in {1}',
+  '{0} more help since {1}': '{0} more help since {1}',
+  '{0} less help since {1}': '{0} less help since {1}',
 }

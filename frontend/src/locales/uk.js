@@ -3495,4 +3495,14 @@ export default {
   'See in Training load': 'See in Training load',
   'Tap a day below to plan it, or add routines first.': 'Tap a day below to plan it, or add routines first.',
   'Your week': 'Your week',
+  // --- Train fix group 3: exercise progress and records ---
+  'Top set {0}': 'Найкращий підхід {0}',
+  'Volume {0}': 'Обсяг {0}',
+  'Est. 1RM {0}': 'Розр. 1ПМ {0}',
+  'Set {0}: {1}': 'Підхід {0}: {1}',
+  'Fewer than two estimated 1RMs. Pick Top to see every workout.': 'Менше двох розрахункових 1ПМ. Обери Топ, щоб побачити кожне тренування.',
+  '{0} more help in {1}': '{0} more help in {1}',
+  '{0} less help in {1}': '{0} less help in {1}',
+  '{0} more help since {1}': '{0} more help since {1}',
+  '{0} less help since {1}': '{0} less help since {1}',
 }

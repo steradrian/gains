@@ -5,11 +5,11 @@
 import { useMemo } from 'react'
 import { EXIDX, betterWeight, isAssisted } from './exercises.js'
 import {
-  modeOf, entriesForExercise, metricEntriesForExercise, metricModeForEntry, bestWeightForEntry, completedRepsOf,
+  modeOf, entriesForExercise, metricEntriesForExercise, metricModeForEntry, bestWeightForEntry, completedRepsOf, isBw,
 } from './history.js'
 import { fmtNum } from './format.js'
 import { speedUnitOf, speedLabel, toSpeed } from './speed.js'
-import { t, exerciseNameFor } from './i18n.js'
+import { t, tn, exerciseNameFor } from './i18n.js'
 import { displayScale, scaleName, toScale, avgRir } from './effort.js'
 import { e1rmSeries, best1RM, formulaOf } from './onerm.js'
 import { currentDbLoad, workoutAs } from './dumbbells.js'
@@ -37,7 +37,9 @@ const loggedIds = workouts => [...new Set(workouts.flatMap(w => w.entries.map(e 
 /** Whether Strength can chart this catalogue exercise: it is in the log at all. */
 export const hasProgress = (S, id) => !!EXIDX[id] && loggedIds(S.workouts || []).includes(id)
 
-export function useExerciseProgress(S, { exId, exRange, exMetric }) {
+// `exMetric` is the chart the user picked; null opens on the estimated 1RM when there are two of
+// them to draw a line through, and on the top set otherwise.
+export function useExerciseProgress(S, { exId, exRange, exMetric = null }) {
   const exFrom = useMemo(() => rangeStart(exRange), [exRange])
   const inExRange = p => p.t >= exFrom
   const kind = displayScale(S)
@@ -189,39 +191,50 @@ export function useExerciseProgress(S, { exId, exRange, exMetric }) {
   // Memoised like e1Pts: LineChart drops its hover whenever `points` changes identity.
   // Loaded work is drawn as each set's estimated 1RM, so straight sets at one weight still part
   // where reps were lost. Reps instead for unloaded work, an assistance machine (where a 1RM
-  // reads backwards), or a history of sets all past the estimate's rep cap.
+  // reads backwards), a bodyweight lift (whose load is only the belt), or a history of sets all
+  // past the estimate's rep cap.
   const oneRmFormula = formulaOf(S)
   const perSet = useMemo(() => {
     if (!curEx || curMode !== 'reps') return null
     const usable = list => list.length >= 2 && list.some(s => s.sets.length >= 2)
-    let metric = repsOnly || isAssisted(curEx) ? 'reps' : 'e1rm'
+    const belt = isBw({ id: curEx })
+    let metric = repsOnly || isAssisted(curEx) || belt ? 'reps' : 'e1rm'
     let sessions = perSetSessions(workouts, curEx, { metric, formula: oneRmFormula })
     if (metric === 'e1rm' && !usable(sessions)) sessions = perSetSessions(workouts, curEx, { metric: metric = 'reps' })
     if (!usable(sessions)) return null
     const { lines, hidden } = perSetLines(sessions)
     const shown = new Set(lines.map(l => l.n))
+    // "Set 1: 80 kg × 8", "Set 1: +10 kg × 8" on a belt, or "Set 1: 12 reps", for the sets the chart draws.
+    const setNote = x => t('Set {0}: {1}', x.n, repsOnly ? tn('{0} rep', '{0} reps', x.r) : (belt ? '+' : '') + fmtNum(x.w) + ' ' + S.unit + ' × ' + x.r)
     return {
       series: lines.map(l => ({ n: l.n, points: l.points, color: SET_COLORS[l.n - 1] })),
-      anchors: sessions.map(s => ({
-        t: s.t, d: s.d, y: Math.max(...s.sets.map(x => x.y)),
-        note: s.sets.filter(x => shown.has(x.n)).map(x => x.n + ': ' + (repsOnly ? x.r : fmtNum(x.w) + '×' + x.r)).join(' · '),
-      })),
+      anchors: sessions.map(s => {
+        const drawn = s.sets.filter(x => shown.has(x.n))
+        // The hover anchor sits on the highest drawn point, so a hidden sixth set can't lift it
+        // out of the plot.
+        return {
+          t: s.t, d: s.d, y: Math.max(...(drawn.length ? drawn : s.sets).map(x => x.y)),
+          note: drawn.map(setNote).join(' · '),
+        }
+      }),
       ns: lines.map(l => l.n),
       hidden,
       metric,
       drop: dropOffSet(sessions),
     }
-  }, [workouts, curEx, curMode, repsOnly, oneRmFormula])
+  }, [workouts, curEx, curMode, repsOnly, oneRmFormula, S.unit])
   // The same sessions cut to the range; a set number with nothing left in it drops out of the legend.
   const perSetChart = useMemo(() => {
     if (!perSet) return null
     const series = perSet.series.map(s => ({ ...s, points: s.points.filter(p => p.t >= exFrom) })).filter(s => s.points.length)
     return { anchors: perSet.anchors.filter(p => p.t >= exFrom), series, ns: series.map(s => s.n) }
   }, [perSet, exFrom])
-  const onSets = !!perSet && exMetric === 'sets'
-  const onE1 = showE1 && exMetric === 'e1rm'
-  const onEff = showEff && exMetric === 'effort'
-  const onMax = showMax && exMetric === 'max'
+  // One estimate is a dot, not a trend: the chart opens on the top set until there are two.
+  const metricShown = exMetric ?? (e1Pts.length >= 2 ? 'e1rm' : 'top')
+  const onSets = !!perSet && metricShown === 'sets'
+  const onE1 = showE1 && metricShown === 'e1rm'
+  const onEff = showEff && metricShown === 'effort'
+  const onMax = showMax && metricShown === 'max'
   const topPts = exPts.map((p, i) => ({
     t: p.t, y: p.y, d: p.d,
     // 0 RIR (nothing left) is a full dot, 4+ a faint one; unrated sessions keep the plain line.
@@ -244,5 +257,7 @@ export function useExerciseProgress(S, { exId, exRange, exMetric }) {
     exHist, exCurrent, curEx, nameOf, matcherOf, curCardio, curTimed, repsOnly, speedUnit, exUnit, exBest, kind, hd,
     sessions, chartPts, rangeTooShort, options, shown, onSets, onE1, onEff, onMax, showEff,
     perSet, perSetChart, maxChartPts, maxBest, effPts, e1Best,
+    // All-time counts, so the short-chart text can say whether another metric has a line to draw.
+    e1Count: e1Pts.length, topCount: exPts.length,
   }
 }
