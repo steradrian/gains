@@ -143,7 +143,7 @@ describe('set ticks for screen readers', () => {
   // Old: the ticks were checkboxes named "Set 1 done". A done set is a row named by what it says
   // and what it does now (DoneSetRows, label from buildWorkoutView): "1, 80 kg × 8. Edit".
   it('names each done set by its number and what was lifted, and says it opens the set to fix', () => {
-    renderScreen([lift(BENCH, 80, 8, 2)], { autoNext: false })
+    renderScreen([lift(BENCH, 80, 8, 2), lift('0426', 24, 8, 2)], { autoNext: false })
     expect(labelled('1, 80 kg × 8. Edit')).toBeNull()
     press(button('Done set'))
     expect(labelled('1, 80 kg × 8. Edit')).toBeTruthy()

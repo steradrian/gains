@@ -132,6 +132,7 @@ describe('Set edit (W1.12)', () => {
     expect(host.textContent).toContain('Drop 1')
     tap(button(host, 'Remove drop 1'))
     expect(dropsOf(sets()[0])).toHaveLength(0)
+    useUI.setState({ sheets: [] })
     setEditSheet(1, 0)
     host = top()
     tap([...host.querySelectorAll('.g-drow')].find(r => r.textContent.includes('Rest-pause burst')))

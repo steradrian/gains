@@ -7,7 +7,7 @@ import { click, useView } from './render.test-util.js'
 
 const view = useView()
 const pause = () => view.host.querySelector('.g-th-b.g-glass')
-const swap = () => view.host.querySelector('.g-th-main')
+const swap = () => view.host.querySelector('.g-th-b.g-th-main')
 const hold = (props = {}) => (
   <TimedHold
     side="Left side" left="0:18" detail="of 0:30 · round 1 of 2" progress={0.4} ringLabel="Left side, 18 seconds left"

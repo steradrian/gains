@@ -86,7 +86,8 @@ describe('saving an edit that leaves no set', () => {
     seedEditor()
     untickAll()
     act(() => finishSheet())
-    act(() => button(top(), 'Delete workout').click())
+    const dialog = top()
+    act(() => button(dialog, 'Delete workout').click())
 
     expect(S().active).toBeNull()
     expect(S().workouts.map(w => w.id)).toEqual(['other'])
@@ -97,7 +98,8 @@ describe('saving an edit that leaves no set', () => {
     seedEditor()
     act(() => useStore.getState().update(s => { s.active.entries = [] }))
     act(() => exitWorkoutEdit())
-    act(() => button(top(), 'Save changes').click())
+    const closing = top()
+    act(() => button(closing, 'Save changes').click())
 
     const dialog = top()
     expect(dialog.querySelector('h3').textContent).toBe('Delete workout?')

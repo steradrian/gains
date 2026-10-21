@@ -124,7 +124,7 @@ describe('the phase progress', () => {
     expect(view().progress.phases.map(p => p.name)).toEqual(expect.arrayContaining(['Workout']))
     expect(view().progress.run).toMatchObject({ done: 0, partial: 0 })
     act(() => hook.out.current.actions.toggle(0, 0))
-    expect(view().progress.run).toMatchObject({ done: 0, partial: 1 })
+    expect(view().progress.run).toMatchObject({ done: 0, partial: 0.5 })
     act(() => hook.out.current.actions.toggle(0, 1))
     expect(view().progress.run.done).toBe(1)
   })

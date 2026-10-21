@@ -147,7 +147,10 @@ describe('the summary (W2.0)', () => {
   })
 
   it('next time: each exercise and what to do, under "progression"', () => {
-    show([...before, today()])
+    // The model is set before the first render: swapping the hook for a stub on a second render
+    // changes the hooks the component calls.
+    useStore.setState({ S: { ...clone(DEF), unit: 'kg', routines: clone(routines), workouts: clone([...before, today()]) }, user: null })
+    mocks.params = { id: 'w2' }
     mocks.model = { ...summaryOf(S(), 'w2'), next: [{ id: BENCH, name: 'Bench press', kind: 'up', text: 'Step up to 82.5 kg × 8' }] }
     view.render(<SummaryScreen />)
     const sec = sectionOf('Next time')

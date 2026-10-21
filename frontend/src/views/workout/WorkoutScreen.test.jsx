@@ -110,6 +110,9 @@ describe('WorkoutScreen', () => {
     expect(useUI.getState().timer).toBeNull()
     press(button('Done · rest 1:30 after both'))
     expect(useUI.getState().timer).not.toBeNull()
+    // The older toast first: A2's new best, then the round, each for BAR_TOAST_MS.
+    expect(host.querySelector('.g-btoast').textContent).toContain('New best')
+    act(() => { vi.advanceTimersByTime(BAR_TOAST_MS) })
     expect(host.querySelector('.g-btoast').textContent).toContain('Round 1 done')
   })
 

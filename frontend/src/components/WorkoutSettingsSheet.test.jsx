@@ -88,7 +88,7 @@ describe('the in-workout settings sheet', () => {
 
   it('sets the rest timer on the wheel, 0:00 being off, and comes back to the rows', () => {
     click(rowOf('Rest timer'))
-    expect(host.querySelector('.dw-read').textContent).toBe('1:30')
+    expect(host.querySelector('.dw-col').getAttribute('aria-valuetext')).toBe('1 minute 30 seconds')
     click([...host.querySelectorAll('button')].find(b => b.textContent === 'Done'))
     expect(S().restSec).toBe(90)
     expect(host.textContent).toContain('Plate loading')
