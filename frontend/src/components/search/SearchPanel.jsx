@@ -186,12 +186,16 @@ export default function SearchPanel({ data }) {
   const noneHeading = none && <m.div variants={LIST_ITEM}>
     <StageEmpty card={false} icon={none.mode === 'exercise' ? 'dumbbell' : 'magnifier'} title={none.heading.title} body={none.heading.body} />
   </m.div>
-  const noneActions = none && none.actions.length > 0 && <m.div variants={LIST_ITEM} className="search-acts">
+  // `lead` goes first: Open Food Facts' own row when nothing local matched and it is still out,
+  // failed or paused (its ask-on-a-tap is one of the actions already).
+  const noneList = lead => none && (lead || none.actions.length > 0) && <m.div variants={LIST_ITEM} className="search-acts">
     <SearchSection groupProps={{ role: 'group', 'aria-label': none.heading.title }}>
+      {lead}
       {none.actions.map(a => <SearchRow key={a.key} title={a.title} sub={a.sub} media={{ kind: 'glyph', glyph: a.glyph }}
         onClick={() => runNoneAction(a, { askOnline: online.ask })} optionProps={optionProps('none:' + a.key, active)} />)}
     </SearchSection>
   </m.div>
+  const noneActions = noneList(null)
 
   let body
   if (group) {
@@ -219,7 +223,7 @@ export default function SearchPanel({ data }) {
   } else if (noResults) {
     body = <m.div key={'none|' + settled} variants={LIST_CONTAINER} initial="hidden" animate="show">
       {noneHeading}
-      <SearchListbox>{noneActions}</SearchListbox>
+      <SearchListbox>{noneList(onlineRow && onlineRow !== 'tap' ? onlineStatus : null)}</SearchListbox>
     </m.div>
   } else {
     const shown = local.order.filter(g => g !== 'features' && (rowsOf(g).length || statusOf(g)))

@@ -19,7 +19,8 @@ import { onlineRowState, useOnlineResults } from './use-online-results.js'
  *   counts     [{ group, count, text, emphasized }]: the count chips, the best match counted in
  *   total      every result, Online's included
  *   pending    a slow source is still out (Online, the diary index on its first sync)
- *   noResults  something typed, settled, and nothing found nor coming
+ *   noResults  something typed and settled, and nothing found locally (the diary's days in) nor
+ *              online: Open Food Facts still out, failed or paused does not hold it back
  *   none       { mode: 'exercise' | 'any', heading: { title, body }, actions } (lib/search/none.js)
  *              when nothing matches, or when an exercise search found no exercise (`exerciseMiss`,
  *              mode 'exercise'); else null
@@ -39,10 +40,12 @@ export function useSearchResults({ query, live = query, settled, group, tab, dat
   const total = counts.reduce((n, e) => n + e.count, 0)
   const idx = data.index
   const daysPending = data.nutrition && !local.groups.days.length && !idx.complete && !data.days.length
-  const pending = online.status === 'loading' || daysPending
-  // A paused or failed Open Food Facts keeps its row (the countdown, "Try again") in place of
-  // "Nothing matches": the search is not over, and a retry is the way on.
-  const noResults = hasQuery && query === live && total === 0 && !pending && online.status !== 'paused' && online.status !== 'error'
+  const pending = online.status === 'loading' || online.status === 'waiting' || daysPending
+  // Nothing matches is the local search's verdict once the field has settled: Open Food Facts
+  // never holds it back. Its state (searching, failed, paused, ask on a tap) is a row among the
+  // ways on (SearchPanel); only rows it has found turn it into results.
+  const localTotal = total - online.rows.length
+  const noResults = hasQuery && query === live && settled.trim() === live.trim() && localTotal === 0 && !daysPending && !online.rows.length
   const miss = exerciseMiss({ query, tab, group, local })
 
   const none = useMemo(() => {

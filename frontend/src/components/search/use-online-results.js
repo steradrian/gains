@@ -31,9 +31,9 @@ export const autoOnline = ({ query, tab, group, ownCount }) =>
 const online = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false)
 
 /** What the stage's one Open Food Facts row says for a status (PR07Edges, H0): 'searching'
- *  ("Searching Open Food Facts…"), 'error' ("Couldn’t reach Open Food Facts · Try again", `retry`),
- *  'paused' (the countdown), 'tap' (the one-tap ask), or null: no row, as when offline. Local
- *  results never wait for it. */
+ *  ("Searching Open Food Facts…", only while a request is out), 'error' ("Couldn’t reach Open Food
+ *  Facts · Try again", `retry`), 'paused' (the countdown), 'tap' (the one-tap ask), or null: no
+ *  row, as when offline or while it waits to ask. Local results never wait for it. */
 export const onlineRowState = status => (status === 'loading' ? 'searching' : ['error', 'paused', 'tap'].includes(status) ? status : null)
 
 /**
@@ -41,7 +41,10 @@ export const onlineRowState = status => (status === 'loading' ? 'searching' : ['
  *   'off'      nutrition or Open Food Facts is off: no group at all
  *   'idle'     nothing to ask yet
  *   'tap'      it would cost a search nobody asked for: a one-tap row asks (`ask()`)
- *   'loading' | 'ready' | 'error' (`retry()`) | 'paused' (`seconds` to go, then it retries once)
+ *   'waiting'  it will ask once the debounce is over, or is working out whether it will (a query
+ *              not yet looked at): nothing is out yet, and the answer may still be offline or tap
+ *   'loading'  a request is in flight
+ *   'ready' | 'error' (`retry()`) | 'paused' (`seconds` to go, then it retries once)
  *   'offline'  comes back when the connection does
  */
 export function useOnlineResults({ query, words, tab, group, ownCount, nutrition, open }) {
@@ -91,8 +94,11 @@ export function useOnlineResults({ query, words, tab, group, ownCount, nutrition
       return undefined
     }
     const ctl = new AbortController()
-    setState({ status: 'loading', q, results: [], error: null })
+    // "Searching…" only once the request is really out: a tap asks at once, a typed query waits
+    // out the debounce first.
+    setState({ status: tapped ? 'loading' : 'waiting', q, results: [], error: null })
     const timer = setTimeout(async () => {
+      setState({ status: 'loading', q, results: [], error: null })
       try {
         const results = await fetchOnline(q, { lang, country, signal: ctl.signal, kind })
         if (!ctl.signal.aborted) setState({ status: 'ready', q, results, error: null })
@@ -112,7 +118,8 @@ export function useOnlineResults({ query, words, tab, group, ownCount, nutrition
     ? state.results.filter(f => { const k = f.barcode || f.client_key; if (own.has(k)) return false; own.add(k); return true }).map(f => onlineRow(f, words))
     : []
   return {
-    status: !enabled ? 'off' : state.q !== q && state.status !== 'idle' ? 'loading' : state.status,
+    // A query the effect has not looked at yet may still turn out offline, tap or cached.
+    status: !enabled ? 'off' : state.q !== q ? (q.length >= 2 ? 'waiting' : 'idle') : state.status,
     rows,
     seconds: pausedFor(now),
     ask: () => setAsked(a => ({ q, n: (a?.n || 0) + 1 })),

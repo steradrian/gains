@@ -246,17 +246,37 @@ describe('the search overlay', () => {
     expect(navigate).toHaveBeenCalledWith('/me/features', expect.objectContaining({ state: expect.objectContaining({ find: 'Fasting' }) }))
   })
 
-  it('Open Food Facts says "Searching…" in its place while it asks; your own results do not wait', async () => {
+  it('Open Food Facts says "Searching…" only once it has really asked: not while it waits out the debounce', async () => {
+    const nt = signedIn()
+    nt.hold('GET', '/nt/api/proxy')
+    const asked = () => nt.requests.filter(r => r.path.startsWith('/nt/api/proxy')).length
+    await mount()
+    await open()
+    await type('press')
+    // Settled, but Open Food Facts not asked yet: no "Searching…", and your own results are there.
+    expect(options().length).toBeGreaterThan(0)
+    expect(asked()).toBe(0)
+    expect(document.body.textContent).not.toContain('Searching Open Food Facts…')
+    await wait(600)
+    expect(asked()).toBe(1)
+    expect(list().textContent).toContain('Searching Open Food Facts…')
+    expect($$('#gains-search .g-ssect h2').map(h => h.textContent)).toContain('Open Food Facts')
+  })
+
+  it('nothing of yours matches while Open Food Facts asks: Nothing matches at once, "Searching…" first among the ways on', async () => {
     const nt = signedIn()
     nt.hold('GET', '/nt/api/proxy')
     await mount()
     await open()
     await type('zzqx')
-    expect(list().textContent).toContain('Searching Open Food Facts…')
-    expect($$('#gains-search .g-ssect h2').map(h => h.textContent)).toContain('Open Food Facts')
+    expect($('#gains-search .g-sempty b').textContent).toBe('Nothing matches “zzqx”')
+    await wait(600)
+    const rows = [...list().querySelector('[role="group"]').querySelectorAll('.g-srow-title')].map(r => r.textContent)
+    expect(rows[0]).toBe('Searching Open Food Facts…')
+    expect(rows.slice(1)).toEqual(['Create food “zzqx”', 'Create exercise “zzqx”'])
   })
 
-  it('Open Food Facts that fails reads "Couldn’t reach · Try again", one option that asks again', async () => {
+  it('Open Food Facts that fails with nothing of yours matching: Nothing matches, "Couldn’t reach · Try again" first, then Create food and Create exercise', async () => {
     const nt = signedIn()
     nt.failNext('GET', '/nt/api/proxy', { status: 500 })
     const asked = () => nt.requests.filter(r => r.path.startsWith('/nt/api/proxy')).length
@@ -264,10 +284,14 @@ describe('the search overlay', () => {
     await open()
     await type('zzqy')
     await wait(700)
+    expect($('#gains-search .g-sempty b').textContent).toBe('Nothing matches “zzqy”')
+    const opts = options()
+    expect(opts.map(o => o.id)).toEqual(['sr-note_online', 'sr-none_create-food', 'sr-none_create-exercise'])
     const row = $('#sr-note_online')
     expect(row.getAttribute('role')).toBe('option')
     expect(row.textContent).toContain('Couldn’t reach Open Food Facts')
     expect(row.textContent).toContain('Try again')
+    expect(list().textContent).not.toContain('Search Open Food Facts')
     const before = asked()
     await act(async () => row.click())
     await wait(50)

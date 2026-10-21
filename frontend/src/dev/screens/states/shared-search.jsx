@@ -19,6 +19,7 @@ const ALEX = { id: 'u1', name: 'Alex' }
 const NO_PRODUCTS = { count: 0, page: 1, page_size: 20, products: [] }
 const mock = (proxy = NO_PRODUCTS, extra = {}) => ({ user: ALEX, api: { 'GET /api/proxy': proxy }, ...extra })
 const NOOP = () => {}
+const OFF_ASKED = async t => { await t.wait(900) }
 
 const RECENTS = [
   { kind: 'query', query: 'press' },
@@ -66,10 +67,11 @@ registerScreens('Shared: search', [
   state('H0.4', 'Results', 'Counts as chips, the best match, each kind with See all.',
     { tab: 'home', query: 'press' }),
   // Each its own query: a search still out for one query is joined by the next state that asks it.
-  state('H0.4-searching', 'Results, Open Food Facts searching', 'Your own results at once; the online row says Searching….',
-    { tab: 'home', query: 'yogurt' }, { mock: mock(pending) }),
+  // Open Food Facts is asked once the debounce is over, so these wait it out before they settle.
+  state('H0.4-searching', 'Results, Open Food Facts searching', 'Your own results at once; the online row says Searching… once it has asked.',
+    { tab: 'home', query: 'yogurt' }, { mock: mock(pending), play: OFF_ASKED }),
   state('H0.4-error', 'Results, Open Food Facts failed', 'Couldn’t reach Open Food Facts · Try again.',
-    { tab: 'home', query: 'greek' }, { mock: mock({ status: 500, body: { error: 'upstream_error' } }) }),
+    { tab: 'home', query: 'greek' }, { mock: mock({ status: 500, body: { error: 'upstream_error' } }), play: OFF_ASKED }),
   state('H0.4-offline', 'Results, offline', 'The Open Food Facts row is left out.',
     { tab: 'home', query: 'chicken' }, { mock: mock(NO_PRODUCTS, { online: false }) }),
   state('H0.5', 'Only workouts', 'A kind picked from the counts: the chip in the field, every match by month.',

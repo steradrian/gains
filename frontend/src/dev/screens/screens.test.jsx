@@ -209,6 +209,7 @@ describe('the screens gallery', () => {
     await check('H0.3', s => expect([...s.panel.querySelectorAll('.g-goto-chip')].map(c => c.textContent)).toEqual(['Saved meals', 'Recipes', 'Trends', 'Days']))
     await check('H0.4', s => expect(s.panel.querySelector('.g-rchips')).not.toBeNull())
     await check('H0.4-searching', s => expect(s.panel.textContent).toContain('Searching Open Food Facts…'))
+    await check('H0.4-error', s => expect(s.panel.textContent).toContain('Couldn’t reach Open Food Facts'))
     await check('H0.4-offline', s => expect(s.panel.textContent).not.toContain('Open Food Facts'))
     await check('H0.5', s => expect(s.host.querySelector('.g-ssf-scope').textContent).toBe('Workouts'))
     await check('H0.7', s => expect(s.text).toContain('Recent searches cleared'))
