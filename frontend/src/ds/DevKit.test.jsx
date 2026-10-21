@@ -31,8 +31,9 @@ describe('DevKit', () => {
   it('renders the drawer and toast kit, drawn still and opened for real', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
-    expect(titles).toEqual(expect.arrayContaining(['BottomSheet', 'SegmentedControl', 'UndoToast']))
-    expect(view.host.querySelectorAll('.g-kit-frame .g-bs')).toHaveLength(3)
+    expect(titles).toEqual(expect.arrayContaining(['BottomSheet', 'SegmentedControl', 'ActionGrid', 'MenuList', 'WhenChip', 'UndoToast']))
+    expect(view.host.querySelectorAll('.g-kit-frame .g-bs')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-kit-frame .g-bs .g-agrid-lg + .g-menulist')).toHaveLength(1)
     expect(view.host.querySelectorAll('.g-kit-frame .g-bs-pin .g-seg')).toHaveLength(1)
     expect(view.host.querySelectorAll('.g-kit-col .g-utoast')).toHaveLength(3)
     act(() => { [...view.host.querySelectorAll('button')].find(b => b.textContent === 'Open auto').click() })

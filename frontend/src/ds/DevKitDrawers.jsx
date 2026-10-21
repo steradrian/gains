@@ -1,11 +1,14 @@
 import Modals from '../components/Modals.jsx'
 import Toast from '../components/Toast.jsx'
 import { useUI } from '../store/useUI.js'
+import ActionGrid from './ActionGrid.jsx'
 import BottomSheet from './BottomSheet.jsx'
 import Button from './Button.jsx'
 import Section from './DevKitSection.jsx'
+import MenuList from './MenuList.jsx'
 import SegmentedControl from './SegmentedControl.jsx'
 import UndoToast from './UndoToast.jsx'
+import WhenChip from './WhenChip.jsx'
 
 // The drawer and toast kit's part of the catalogue (DevKit.jsx): each drawn still in a phone-sized
 // frame, and opened for real through the app's sheet frame and toast (mounted here, since the
@@ -13,6 +16,17 @@ import UndoToast from './UndoToast.jsx'
 const SELF = '#/dev/kit'
 const NOOP = () => {}
 const FOODS = ['Chicken rice bowl · 540 kcal', 'Greek yogurt 2% · 120 kcal', 'Banana · 105 kcal', 'Oat porridge · 310 kcal', 'Salmon fillet · 420 kcal', 'Rice cakes · 70 kcal', 'Almonds · 170 kcal', 'Protein shake · 160 kcal']
+
+const ADD_TILES = [
+  { icon: 'utensils', label: 'Log food', onClick: NOOP }, { icon: 'scanBarcode', label: 'Scan', onClick: NOOP },
+  { icon: 'droplet', label: 'Water', onClick: NOOP }, { icon: 'scale', label: 'Weigh-in', onClick: NOOP },
+  { icon: 'play', label: 'Resume workout', detail: '24:10', onClick: NOOP }, { icon: 'history', label: 'Log activity', onClick: NOOP },
+]
+const ADD_ITEMS = [
+  { icon: 'bolt', label: 'Quick kcal', onClick: NOOP },
+  { icon: 'timer', label: 'Fast', value: '16 h', onClick: NOOP },
+  { icon: 'qr', label: 'Gym check-in', onClick: NOOP },
+]
 
 function FoodList() {
   return <ul className="g-kit-list">{FOODS.map(f => <li key={f}>{f}</li>)}</ul>
@@ -59,6 +73,27 @@ export default function DevKitDrawers() {
         <div className="g-kit-col">
           <SegmentedControl options={['Recent', 'Saved meals', 'My foods']} label="Food source" />
           <SegmentedControl options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} value="kg" onChange={NOOP} label="Unit" />
+        </div>
+      </Section>
+
+      <Section title="ActionGrid" note="Four across (the bundle's), one accent; then lg, three across on the + drawer (T18Add), with a running workout's time under its label.">
+        <ActionGrid items={[{ icon: 'utensils', label: 'Log food', accent: true }, { icon: 'scanBarcode', label: 'Scan' }, { icon: 'droplet', label: 'Water' }, { icon: 'scale', label: 'Weigh-in' }]} />
+        <div className="g-kit-frame">
+          <BottomSheet title="Add to Today" chip="Today · Lunch" onChip={NOOP} onClose={NOOP}>
+            <ActionGrid size="lg" items={ADD_TILES} />
+            <MenuList items={ADD_ITEMS} label="More" />
+          </BottomSheet>
+        </div>
+      </Section>
+
+      <Section title="MenuList" note="Glyph, label, a detail line, a value at the end; a danger item.">
+        <MenuList label="More" items={[...ADD_ITEMS, { icon: 'trash', label: 'Delete this day', detail: 'Removes every log', tone: 'danger', onClick: NOOP }]} />
+      </Section>
+
+      <Section title="WhenChip" note="Where a log goes, tapped to change it: day and meal, then the day alone.">
+        <div className="g-kit-row">
+          <WhenChip day="Today" meal="Lunch" onClick={NOOP} />
+          <WhenChip day="Tue 13 Oct" onClick={NOOP} />
         </div>
       </Section>
 
