@@ -1,15 +1,15 @@
 import { useStore } from '../store/useStore.js'
-import { EXIDX, allExercises, figureOf, stillOf } from '../lib/exercises.js'
+import { EXIDX, allExercises, figureOf } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { fmtNum } from '../lib/format.js'
 import { metricRowsForEntry, workoutAt } from '../lib/history.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import { sameMuscleFirst } from '../lib/similar-exercises.js'
+import ExerciseStillRow from '../components/ExerciseStillRow.jsx'
 import Icon from '../components/Icon.jsx'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import Button from '../ds/Button.jsx'
-import ExerciseThumbRow from '../ds/ExerciseThumbRow.jsx'
 import { ui } from './shared.js'
 import { exercisePicker } from './exercise-picker.jsx'
 
@@ -57,7 +57,7 @@ function ReplaceDrawer({ exId, onPick, routine, title, close }) {
       footer={<Button variant="secondary" block icon="magnifier" onClick={searchAll}>{t('Search all exercises')}</Button>}>
       {list.length === 0 && <p className="g-pk-note">{t('No match')}</p>}
       {list.map((e, i) => (
-        <ExerciseThumbRow key={e.id} size={48} first={i === 0} image={stillOf(e, figure)}
+        <ExerciseStillRow key={e.id} size={48} first={i === 0} ex={e} figure={figure}
           title={<i className={exerciseNameClass(e)}>{exerciseNameFor(e)}</i>} sub={sub(e)} onClick={() => pick(e)}
           trailing={<Icon name="swap" className="g-icon g-xrow-chev" />} />
       ))}

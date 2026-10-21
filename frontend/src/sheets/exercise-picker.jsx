@@ -1,6 +1,6 @@
 import { useDeferredValue, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { EXIDX, BODYPARTS, allExercises, equipmentOf, byCategory, searchExercises, similarExercises, figureOf, stillOf } from '../lib/exercises.js'
+import { EXIDX, BODYPARTS, allExercises, equipmentOf, byCategory, searchExercises, similarExercises, figureOf } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { fmtNum, exCount } from '../lib/format.js'
 import { buildSets, defaultConfig, modeOf, applyIntensifierPlan } from '../lib/history.js'
@@ -14,7 +14,7 @@ import { Button as OldButton } from '../components/ui.jsx'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import Button from '../ds/Button.jsx'
 import ChipGroup from '../ds/ChipGroup.jsx'
-import ExerciseThumbRow from '../ds/ExerciseThumbRow.jsx'
+import ExerciseStillRow from '../components/ExerciseStillRow.jsx'
 import SegmentedControl from '../ds/SegmentedControl.jsx'
 import Tag from '../ds/Tag.jsx'
 import { sameMuscleFirst, swapMuscleOf } from '../lib/similar-exercises.js'
@@ -129,7 +129,7 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
       multi && <span key="tick" className={'g-pk-tick' + (on ? ' on' : '')} aria-hidden="true">{on && <Icon name="check" className="g-icon" />}</span>,
     ].filter(Boolean)
     return <div key={e.id} className="g-pk-item">
-      <ExerciseThumbRow size={48} image={stillOf(e, figure)}
+      <ExerciseStillRow size={48} ex={e} figure={figure}
         title={<>{fav && <Icon name="starFill" className="g-icon g-pk-fav" />}<i className={exerciseNameClass(e)}>{exerciseNameFor(e)}</i></>}
         sub={t(MUSCLE_NAME[e.tg] || e.tg || e.bp) + ' · ' + t(e.eq)}
         trailing={mark.length ? mark : false} pressed={multi ? !!on : undefined}
