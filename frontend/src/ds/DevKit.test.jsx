@@ -54,4 +54,11 @@ describe('DevKit', () => {
     expect(titles).toContain('StageWeekMarks')
     expect(view.host.querySelectorAll('.g-wk')).toHaveLength(2)
   })
+
+  it('renders the shared pages entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['Shared: pages', 'StageNavBar']))
+    expect(view.host.querySelectorAll('.g-snav')).toHaveLength(7)
+  })
 })
