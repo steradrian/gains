@@ -85,12 +85,6 @@
 .card.today-fast{display:flex;align-items:center;gap:9px;cursor:pointer}
 .today-fast .grow{min-width:0}
 .today-fast .chev{color:var(--label-3)}
-.fast-card{display:flex;flex-direction:column;gap:8px}
-.fast-clock{font-variant-numeric:tabular-nums}
-.fast-track{height:8px;border-radius:4px;margin-top:4px}
-.fast-track>i{border-radius:4px}
-.fast-card.reached .fast-track>i{background:var(--green)}
-.fast-remove{width:44px;height:44px}
 .fast-insights{display:flex;flex-direction:column;gap:12px}
 .fast-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fast-stats .big{font-size:22px}
@@ -99,7 +93,6 @@
 .fast-bar-wrap{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
 .fast-bar-wrap>i{display:block;width:70%;min-height:2px;border-radius:3px;background:var(--acc)}
 .fast-bar-day{line-height:1}
-.fast-off{display:flex;flex-direction:column;align-items:center;margin-top:12px}
 
 
 /* --- the calendar's food mark (Home's date picker) --- */
