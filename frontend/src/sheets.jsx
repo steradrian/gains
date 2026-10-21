@@ -12,7 +12,7 @@ export { exConfigSheet, glyphPicker, effortPickerSheet } from './sheets/exercise
 export { planToolsSheet, planHasRoutines, exportPlanFile, printWholePlan, importPlanFile, planImportSheet, dayOverrideSheet, dayNoteSheet, dayAssignSheet } from './sheets/plan.jsx'
 export { workoutDateSheet, workoutDurationSheet, workoutDetailSheet, calendarSheet, WorkoutRow, DayNoteRow } from './sheets/workout-detail.jsx'
 export {
-  startOrResume, startFlow, beginWorkout, repeatWorkout, logPastWorkoutSheet, addRoutineToSessionSheet,
+  startOrResume, startFlow, beginWorkout, repeatWorkout, logPastWorkoutSheet, submitPastWorkout, addRoutineToSessionSheet,
   exerciseNoteSheet, setNoteSheet, sessionNoteSheet, renameWorkoutSheet, supersetSheet, workoutCompleteSheet,
   saveWorkoutEdits, exitWorkoutEdit, setsLine, finishWorkout, finishWorkoutSheet,
 } from './sheets/workout-flow.jsx'

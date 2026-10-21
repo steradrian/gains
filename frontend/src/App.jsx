@@ -76,6 +76,8 @@ import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
 import Trends from './views/Trends.jsx'
 import Recovery from './views/Recovery.jsx'
+import DayPage from './views/shared/DayPage.jsx'
+import WeekPage from './views/shared/WeekPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -315,6 +317,9 @@ function Shell() {
               <Route path="/progress/recovery" element={<Recovery />} />
               {/* Opened from any tab, on top of it: the workout. */}
               <Route path="/train/workout" element={<Workout />} />
+              {/* A past day and a week, pushed under the tab they were opened from (lib/day-route.js). */}
+              <Route path="/:tab/day/:date" element={<DayPage />} />
+              <Route path="/:tab/week/:week" element={<WeekPage />} />
               {/* Me: Profile */}
               <Route path="/me" element={<SettingsRoute />} />
               <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // Where every type of result goes (ux-search.md §4): sheets over the overlay, routes on top of it.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { todayISO } from '../../lib/format.js'
 
 const sheets = vi.hoisted(() => ({ exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(), foodDetailSheet: vi.fn(), mealDetailSheet: vi.fn(), manageMeasurementsSheet: vi.fn() }))
 const session = vi.hoisted(() => ({ visit: vi.fn() }))
@@ -56,12 +57,19 @@ describe('opening a result', () => {
     expect(session.visit).not.toHaveBeenCalled()
   })
 
-  it('a routine: its editor; a day: Nutrition on that date with the entry to find, the date scoped', () => {
+  it('a routine: its editor; a past day: its Day page under Eat, the entry to find in its state', () => {
     open({ type: 'routine', id: 'r1' })
     expect(session.visit).toHaveBeenLastCalledWith('/train/routines/r1', { date: undefined, state: undefined })
     open({ type: 'day', id: '2026-10-11', date: '2026-10-11', uuid: 'u-1' })
-    expect(session.visit).toHaveBeenLastCalledWith('/food?date=2026-10-11&find=u-1', { date: '2026-10-11', state: undefined })
-    expect(targetOf({ type: 'day', date: '2026-10-11', uuid: null })).toMatchObject({ path: '/food?date=2026-10-11' })
+    expect(session.visit).toHaveBeenLastCalledWith('/food/day/2026-10-11', { date: undefined, state: { find: 'u-1' } })
+    expect(targetOf({ type: 'day', date: '2026-10-11', uuid: null })).toEqual({ kind: 'route', path: '/food/day/2026-10-11' })
+  })
+
+  it('today: Nutrition’s diary with the entry to find, the date scoped (the Day page is never today)', () => {
+    const today = todayISO()
+    open({ type: 'day', id: today, date: today, uuid: 'u-2' })
+    expect(session.visit).toHaveBeenLastCalledWith(`/food?date=${today}&find=u-2`, { date: today, state: undefined })
+    expect(targetOf({ type: 'day', date: today, uuid: null })).toMatchObject({ path: '/food?date=' + today })
   })
 
   it('remembers what was opened, and how often; never an online food', () => {

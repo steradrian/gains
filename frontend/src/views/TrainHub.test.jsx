@@ -21,6 +21,9 @@ const coach = vi.hoisted(() => ({ on: false }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train' }) }))
 vi.mock('../lib/coach.js', () => ({ coachAvailable: () => coach.on }))
 vi.mock('./Plan.jsx', () => ({ addRoutine: vi.fn() }))
+// A past day opens its Day page through the app's own navigate (lib/day-route.js navToDay).
+const libNav = vi.hoisted(() => vi.fn())
+vi.mock('../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: libNav }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), dayOverrideSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), dayNoteSheet: vi.fn(), menuSheet: vi.fn(), startFlow: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(),
@@ -94,12 +97,12 @@ describe('Train — the screen', () => {
     expect($('h1.sr-only').textContent).toBe('Training')
   })
 
-  it('the header: the avatar opens Me, the bell notifications', () => {
+  it('the header: the avatar opens Me, the bell Train’s notifications', () => {
     setS(); mount()
     tap($('.g-shdr .g-sbtn:not(.g-bell)'))
     expect(nav).toHaveBeenCalledWith('/me')
     tap($('.g-bell'))
-    expect(nav).toHaveBeenCalledWith('/me/notifications')
+    expect(nav).toHaveBeenCalledWith('/train/notifications')
   })
 
   it('the rail marks today and a planned day, and Plan opens the schedule', () => {
@@ -203,35 +206,37 @@ describe('Train — the card and Start', () => {
 })
 
 describe('Train — other days in the rail', () => {
-  it('a past planned day: what was planned, and Log this workout with its plan; the shared date stays', () => {
-    setS({ week: { [dow(yesterday)]: ['r1'] } }); mount()
+  // PR07 decision 6: a past day opens its Day page under Train, where its workouts are listed and
+  // Add past workout logs it (views/shared/day-data.test.js covers both). A workout three days ago
+  // starts the record.
+  const started = () => [at(shift(-3), 9)]
+
+  it('a past planned day opens its Day page; the card stays on today and the shared date stays', () => {
+    setS({ week: { [wd]: ['r1'], [dow(yesterday)]: ['r2'] }, workouts: started() }); mount()
+    const before = card()
     tap(cell(yesterday))
-    expect(card()).toEqual({ eyebrow: fmtDate(yesterday, true), title: 'Push', meta: 'Planned, not logged', buttons: ['Log this workout'] })
-    tap(cardButton('Log this workout'))
-    expect(logPastWorkoutSheet).toHaveBeenCalledWith({ iso: yesterday, routineIds: ['r1'] })
+    expect(libNav).toHaveBeenCalledWith('/train/day/' + yesterday, undefined)
+    expect(card()).toEqual(before)
+    expect(logPastWorkoutSheet).not.toHaveBeenCalled()
     expect(useDiarySelection.getState().day()).toBe(TODAY)
   })
 
-  it('a past rest day: Log workout for that day', () => {
-    setS({ week: {} }); mount()
+  it('a past rest day and a past logged day open their Day page too, not a sheet', () => {
+    setS({ week: {}, workouts: [...started(), at(yesterday, 8, { name: '' })] }); mount()
     tap(cell(yesterday))
-    expect(card().title).toBe('Rest day')
-    tap(cardButton('Log workout'))
-    expect(logPastWorkoutSheet).toHaveBeenCalledWith({ iso: yesterday })
+    expect(libNav).toHaveBeenLastCalledWith('/train/day/' + yesterday, undefined)
+    tap(cell(shift(-2)))
+    expect(libNav).toHaveBeenLastCalledWith('/train/day/' + shift(-2), undefined)
+    expect(workoutDetailSheet).not.toHaveBeenCalled()
+    expect(menuSheet).not.toHaveBeenCalled()
   })
 
-  it('a past logged day opens its workout; with two, a list where an unnamed one still has a label', () => {
-    const a = at(yesterday, 8, { name: '' })
-    const b = at(yesterday, 18, { name: 'Pull' })
-    setS({ workouts: [a], week: {} }); mount()
+  it('a day before the first workout opens nothing', () => {
+    setS({ week: { [dow(yesterday)]: ['r1'] } }); mount()
+    const before = card()
     tap(cell(yesterday))
-    tap(cardButton('See workout'))
-    expect(workoutDetailSheet).toHaveBeenCalledWith(a)
-    act(() => root.unmount()); root = createRoot(host)
-    setS({ workouts: [a, b], week: {} }); mount()
-    tap(cell(yesterday))
-    tap(cardButton('See workouts'))
-    expect(menuSheet.mock.calls.at(-1)[0].items.map(i => i.label)).toEqual(['Workout', 'Pull'])
+    expect(libNav).not.toHaveBeenCalled()
+    expect(card()).toEqual(before)
   })
 
   it('a planned day to come is read-only: Change this day and See routine, no Start; the shared date stays', () => {

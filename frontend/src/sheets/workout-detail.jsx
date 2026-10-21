@@ -5,7 +5,9 @@ import { EXIDX } from '../lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG } from '../lib/format.js'
 import { effectiveRoutineIds, workoutDay, workoutVolume, setsDone, sessionSections, setLabel, NOTE_MAX } from '../lib/history.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
-import { nav, closeThenNav } from '../lib/nav.js'
+import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
+import { dayTargetOf, firstLogDay, navToDay } from '../lib/day-route.js'
+import { diaryIndexDays } from '../lib/nutrition/diary-index.js'
 import { Thumb } from '../components/Media.jsx'
 import WorkoutMediaSection, { workoutMediaCount } from '../components/WorkoutMedia.jsx'
 import { workoutMediaOf } from '../lib/media-refs.js'
@@ -366,6 +368,11 @@ export function mediaGoesToo(rec) {
 export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
 
 /* ============================ calendar ============================ */
+// A past day from the first log on opens its Day page (PR07 D1), under the tab the calendar is
+// open on. Today, a day to come, a day before the first log and a day off with a note (its note is
+// in the day sheet) keep the sheets they had.
+const opensDayPage = (st, iso) => dayTargetOf(iso, { today: todayISO(), first: firstLogDay(st, diaryIndexDays()) }) === 'day'
+
 // `onPick(iso)`: Home's date navigator. Every day is then a date to go to, and the days with food
 // logged in NutriTrace are marked beside the trained ones (the one calendar for both). Days to
 // come are dimmed there; `onFuture(iso)` makes them tappable and hands them over instead (Home
@@ -413,6 +420,7 @@ function Calendar({ start, close, onPick, onFuture }) {
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (note ? ' noted' : '') + (ate ? ' logged' : '') + (iso === todayISO() ? ' today' : '')}
       title={note ? dayNoteLine(note, t) : undefined} disabled={!!onPick && !onFuture && iso > todayISO()} onClick={() => {
       if (onPick) { close(); if (onFuture && iso > todayISO()) onFuture(iso); else onPick(iso); return }
+      if (!note && opensDayPage(st, iso)) { const replace = onSheetEntry(); close(); navToDay(iso, undefined, { replace }); return }
       if (!ws) { close(); dayOverrideSheet(iso); return }
       if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
       close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
