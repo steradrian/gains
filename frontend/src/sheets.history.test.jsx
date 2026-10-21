@@ -72,20 +72,27 @@ describe('exercise history sheet', () => {
     expect(host.textContent).toContain('70 kg')
   })
 
-  it('is reachable from the exercise detail sheet once there is history', () => {
-    exerciseDetailSheet(EXIDX[EX])
-    const before = renderTop()
-    expect([...before.querySelectorAll('button')].some(b => b.textContent === 'History')).toBe(false)
+  // Inside a running workout the exercise drawer's History tab opens this sheet over it, so nobody
+  // leaves the workout (owner question 2); elsewhere it opens the past-sets page (sheets.search-progress).
+  it('is what the exercise drawer\'s History opens inside the workout, once there is history', () => {
+    const hash = location.hash
+    location.hash = '#/train/workout'
+    try {
+      exerciseDetailSheet(EXIDX[EX])
+      const before = renderTop()
+      const historyTab = host => [...host.querySelectorAll('[role="tab"]')].find(b => b.textContent === 'History')
+      act(() => { historyTab(before).click() })
+      expect(useUI.getState().sheets).toHaveLength(1)
+      expect(before.querySelector('[role="tabpanel"]').textContent).toBe('No sessions logged yet')
 
-    useStore.setState(s => ({ S: { ...s.S, workouts: [session(0, [{ w: 60, r: 5, done: true }])] } }))
-    useUI.setState({ sheets: [] })
-    exerciseDetailSheet(EXIDX[EX])
-    const host = renderTop()
-    const btn = [...host.querySelectorAll('button')].find(b => b.textContent === 'History')
-    expect(btn).toBeTruthy()
-    act(() => { btn.click() })
-    expect(useUI.getState().sheets).toHaveLength(2)
-    const top = renderTop()
-    expect(top.querySelectorAll('.list .item')).toHaveLength(1)
+      useStore.setState(s => ({ S: { ...s.S, workouts: [session(0, [{ w: 60, r: 5, done: true }])] } }))
+      useUI.setState({ sheets: [] })
+      exerciseDetailSheet(EXIDX[EX])
+      const host = renderTop()
+      act(() => { historyTab(host).click() })
+      expect(useUI.getState().sheets).toHaveLength(2)
+      const top = renderTop()
+      expect(top.querySelectorAll('.list .item')).toHaveLength(1)
+    } finally { location.hash = hash }
   })
 })

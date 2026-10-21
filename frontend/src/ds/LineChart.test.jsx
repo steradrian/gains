@@ -1,0 +1,85 @@
+// @vitest-environment happy-dom
+// LineChart: one line, its latest point marked, a readout under the finger, and the points as a
+// list for a screen reader. The kit formats nothing: every sentence comes from the caller.
+import { act } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import LineChart from './LineChart.jsx'
+import { useView } from './render.test-util.js'
+
+const view = useView()
+const items = () => [...view.host.querySelectorAll('.g-sr li')].map(li => li.textContent)
+
+// happy-dom lays nothing out, so the plot is given a 300px box starting at x=0
+beforeEach(() => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => ({}) })
+})
+afterEach(() => { vi.restoreAllMocks() })
+
+const move = (el, clientX) => act(() => { el.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX })) })
+
+describe('LineChart', () => {
+  it('is named by the caller and lists every point, as the caller wrote it', () => {
+    view.render(<LineChart values={[90, 92, 96]} pointLabels={['Thu 1 Oct: 90 kg', 'Thu 8 Oct: 92 kg', 'Mon 12 Oct: 96 kg']} label="Estimated 1RM: 90 kg on 1 Oct, 96 kg on 12 Oct" />)
+    const chart = view.host.querySelector('.g-chart')
+    expect(chart.getAttribute('role')).toBe('group')
+    expect(chart.getAttribute('aria-label')).toBe('Estimated 1RM: 90 kg on 1 Oct, 96 kg on 12 Oct')
+    expect(view.host.querySelector('svg').getAttribute('aria-hidden')).toBe('true')
+    expect(items()).toEqual(['Thu 1 Oct: 90 kg', 'Thu 8 Oct: 92 kg', 'Mon 12 Oct: 96 kg'])
+  })
+
+  it('without point labels a point is its number and the unit, unformatted', () => {
+    view.render(<LineChart values={[1, 2]} unit="kg" label="x" />)
+    expect(items()).toEqual(['1 kg', '2 kg'])
+  })
+
+  it('thins a long series to 62 points and keeps the last', () => {
+    const values = Array.from({ length: 365 }, (_, i) => i)
+    view.render(<LineChart values={values} label="x" />)
+    expect(items().length).toBeLessThanOrEqual(63)
+    expect(items().at(-1)).toBe('364')
+    expect(items()[0]).toBe('0')
+  })
+
+  it('marks the latest point and draws the axis labels the caller gave', () => {
+    view.render(<LineChart values={[1, 3, 2]} labels={['Jul', 'Aug', 'Sep']} label="x" />)
+    const dot = view.host.querySelector('.g-lc-dot')
+    expect(dot.style.left).toBe('100%')
+    expect([...view.host.querySelectorAll('.g-lc-x span')].map(s => s.textContent)).toEqual(['Jul', 'Aug', 'Sep'])
+    expect(view.host.querySelector('.g-lc-x').getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('shows the nearest point under the pointer and clears it on leave', () => {
+    view.render(<LineChart values={[10, 20, 30]} pointLabels={['a: 10', 'b: 20', 'c: 30']} label="x" />)
+    const plot = view.host.querySelector('.g-lc-plot')
+    expect(view.host.querySelector('.g-lc-tip')).toBeNull()
+    move(plot, 160)
+    expect(view.host.querySelector('.g-lc-tip').textContent).toBe('b: 20')
+    expect(view.host.querySelectorAll('.g-lc-dot')).toHaveLength(2)
+    move(plot, 290)
+    expect(view.host.querySelector('.g-lc-tip').textContent).toBe('c: 30')
+    // React hears "leave" from the pointer going out to nothing
+    act(() => { plot.dispatchEvent(new MouseEvent('pointerout', { bubbles: true, relatedTarget: null })) })
+    expect(view.host.querySelector('.g-lc-tip')).toBeNull()
+  })
+
+  it('draws one point and a flat series without dividing by zero', () => {
+    view.render(<LineChart values={[5]} label="x" />)
+    expect(view.host.querySelector('.g-lc-line')).toBeNull()
+    expect(view.host.querySelector('.g-lc-dot')).not.toBeNull()
+    view.render(<LineChart values={[5, 5, 5]} label="x" />)
+    expect(view.host.querySelector('.g-lc-line').getAttribute('points')).not.toMatch(/NaN|Infinity/)
+  })
+
+  it('draws nothing for no points, so the page can say why', () => {
+    view.render(<LineChart values={[]} label="x" />)
+    expect(view.host.firstElementChild).toBeNull()
+  })
+
+  it('is white by default, glass on the stage, and refuses another tone', () => {
+    view.render(<LineChart values={[1, 2]} label="x" />)
+    expect(view.host.firstElementChild.classList.contains('g-chart-stage')).toBe(false)
+    view.render(<LineChart tone="stage" values={[1, 2]} label="x" />)
+    expect(view.host.firstElementChild.classList.contains('g-chart-stage')).toBe(true)
+    expect(() => view.render(<LineChart tone="dark" values={[1]} label="x" />)).toThrow(/tone="dark"/)
+  })
+})

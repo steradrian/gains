@@ -3,8 +3,13 @@ import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
+import DevKitPushed from './DevKitPushed.jsx'
+import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
+import DevKitTrainLoad from './DevKitTrainLoad.jsx'
+// Train exercises kit (slice 4)
+import DevKitTrainExercises from './DevKitTrainExercises.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
 import GlassTabBar from './GlassTabBar.jsx'
@@ -201,6 +206,9 @@ export default function DevKit() {
 
         <DevKitToday />
         <DevKitTrain />
+        <DevKitTrainLoad />
+        {/* Train exercises kit (slice 4) */}
+        <DevKitTrainExercises />
         <DevKitDrawers />
 
         <Section title="GlassTabBar" note="Tap it (the first lights what is tapped, and the pill glides); then a running workout on Train, no tab lit, and over a light page.">
@@ -267,6 +275,9 @@ export default function DevKit() {
             <Button block variant="ghost">Cancel</Button>
           </StageFooter>
         </Section>
+
+        <DevKitShared />
+        <DevKitPushed />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

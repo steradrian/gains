@@ -35,10 +35,12 @@ describe('weight means', () => {
   })
   afterEach(() => { act(() => { mounted.splice(0).forEach(([root, host]) => { root.unmount(); host.remove() }) }) })
 
-  it('the detail sheet sets the exercise default, stamped, and shows As entered until then', () => {
+  it('the exercise drawer\'s Your setup sets the exercise default, stamped, and shows As entered until then', () => {
     exerciseDetailSheet(BENCH)
     const host = render(useUI.getState().sheets.at(-1))
-    expect(host.textContent).toContain('Weight means')
+    const setup = host.querySelector('.g-xd-setup')
+    expect(setup.querySelector('h3').textContent).toBe('Your setup')
+    expect(setup.textContent).toContain('Weight means')
     expect(segButton(host, 'As entered').classList.contains('on')).toBe(true)
     expect(host.textContent).toContain('Counted as you type it, the way it always was.')
     act(() => segButton(host, 'Each').click())
