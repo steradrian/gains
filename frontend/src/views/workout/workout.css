@@ -9,6 +9,7 @@
 .wk .g-btoast-footer, .wk .g-btoast-rest { position: fixed; z-index: 4; bottom: calc(112px + var(--sab, 0px)); }
 .wk .g-btoast-rest { bottom: calc(170px + var(--sab, 0px)); }
 .wk-gut { padding: 12px 16px 0; }
+.wk-gut-empty { display: flex; min-height: 60vh; align-items: center; justify-content: center; }
 
 .wk-phase { display: flex; align-items: center; gap: 8px; }
 .wk-phase .g-pp { flex: 1; min-width: 0; }
@@ -21,7 +22,6 @@
 
 .wk-done { appearance: none; border: 0; margin-inline: 16px; min-height: 56px; padding: 0 20px; border-radius: var(--radius-pill); background: var(--on-stage); color: var(--accent-stage-end); font: 700 17px/22px var(--font-sans); text-align: center; cursor: pointer; touch-action: manipulation; }
 .wk-max { margin: 0; text-align: center; color: var(--on-stage-2); font: 600 14px/19px var(--font-sans); }
-.wk-link { appearance: none; border: 0; background: none; align-self: center; padding: 8px 12px; color: var(--on-stage-2); font: 600 15px/20px var(--font-sans); cursor: pointer; }
 
 .wk-todo { margin: 0 16px; border-radius: 22px; }
 .wk-todo-row { appearance: none; border: 0; width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 22px; background: none; color: var(--on-stage-2); text-align: start; font: 600 16px/20px var(--font-sans); cursor: pointer; }

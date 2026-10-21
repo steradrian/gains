@@ -113,8 +113,8 @@ export default function SummaryScreen() {
   if (!m) {
     return (
       <StageScreen accent={accent}>
-        <div className="g-sum">
-          <StageEmpty illustration="calendar" title={t('This workout isn’t in your history')} action={t('Back')} onClick={() => back()} />
+        <div className="g-sum g-sum-empty">
+          <StageEmpty card={false} illustration="calendar" title={t('This workout isn’t in your history')} action={t('Back')} onClick={() => back()} />
         </div>
       </StageScreen>
     )

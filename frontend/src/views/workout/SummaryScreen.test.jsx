@@ -182,6 +182,7 @@ describe('a missing workout', () => {
   it('says it is not there and goes back', () => {
     show([...before], 'gone')
     expect(q('.g-sempty').textContent).toContain('This workout isn’t in your history')
+    expect(q('.g-sempty').classList.contains('g-glass')).toBe(false)
     expect(q('.g-stat')).toBeNull()
     click(buttonNamed('Back'))
     expect(mocks.back).toHaveBeenCalledOnce()

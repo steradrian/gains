@@ -377,7 +377,7 @@ describe('Plate loading (W1.25)', () => {
   it('Gym setup leaves through the drawer\'s history entry', () => {
     seed([lift(BENCH, [row()])])
     platesSheet(0)
-    tap(button(top(), 'Change them in Gym setup.'))
+    tap([...top().querySelectorAll('.g-drow')].find(r => r.textContent.includes('Gym setup')))
     expect(closeThenNav).toHaveBeenCalledWith(expect.any(Function), '/me/equipment')
   })
 

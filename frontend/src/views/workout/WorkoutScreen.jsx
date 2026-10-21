@@ -15,7 +15,6 @@ import { fmtClock } from '../../lib/duration.js'
 import { addRoutineToSessionSheet, exitWorkoutEdit, finishWorkout, workoutDetailSheet } from '../../sheets.jsx'
 import Elapsed from '../../components/Elapsed.jsx'
 import BarToast from '../../ds/BarToast.jsx'
-import InlineBanner from '../../ds/InlineBanner.jsx'
 import PhaseProgress from '../../ds/PhaseProgress.jsx'
 import StageEmpty from '../../ds/StageEmpty.jsx'
 import StageScreen from '../../ds/StageScreen.jsx'
@@ -120,11 +119,6 @@ export default function WorkoutScreen() {
           finishLabel={top.finishLabel} onFinish={finish}
         />
         <div className="wk-body">
-          {editing && (
-            <div className="wk-gut">
-              <InlineBanner stage icon="pencil" title={t('Editing a saved workout')} body={t('Date and duration stay as they were. No rest timers while you edit.')} />
-            </div>
-          )}
           {!empty && (
             <div className="wk-phase">
               <PhaseProgress phases={progress.phases} index={progress.run.index} done={progress.run.done} partial={progress.run.partial}
@@ -136,8 +130,8 @@ export default function WorkoutScreen() {
           )}
 
           {empty && (
-            <div className="wk-gut">
-              <StageEmpty illustration="dumbbell" title={t('Pick as you go')} body={t('Add an exercise and log it here. Each one you add joins the bar at the top.')}
+            <div className="wk-gut wk-gut-empty">
+              <StageEmpty card={false} illustration="dumbbell" title={t('Pick as you go')} body={t('Add an exercise and log it here. Each one you add joins the bar at the top.')}
                 action={t('Add exercise')} onClick={() => actions.addExercise()}
                 actions={[{ label: t('Bring a routine in'), onClick: addRoutineToSessionSheet }]} />
             </div>

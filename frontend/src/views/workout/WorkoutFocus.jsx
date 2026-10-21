@@ -13,6 +13,7 @@ import { finishWorkout } from '../../sheets.jsx'
 import Icon from '../../components/Icon.jsx'
 import CurrentSet from '../../ds/CurrentSet.jsx'
 import DoneSetRows from '../../ds/DoneSetRows.jsx'
+import DetailRow from '../../ds/DetailRow.jsx'
 import EffortChips from '../../ds/EffortChips.jsx'
 import ExerciseHero from '../../ds/ExerciseHero.jsx'
 import HapticSwitch from '../../ds/HapticSwitch.jsx'
@@ -93,7 +94,7 @@ export default function WorkoutFocus({ view, actions }) {
             loadLabel={t('Load')} bodyweightLabel={t('Body weight')} loadHint={t('Tap to add weight')} onLoad={() => setEditSheet(idx, editI)}
             fields={<Steppers idx={idx} i={editI} fields={edited.fields} />} />
           <button type="button" className="wk-done" onClick={finishWorkout}>{t('Save changes')}</button>
-          <button type="button" className="wk-link" onClick={() => setEditSheet(idx, editI)}>{t('Set options')}</button>
+          <div className="wk-gut"><DetailRow icon="slider" title={t('Set options')} onClick={() => setEditSheet(idx, editI)} /></div>
         </>
       )}
 

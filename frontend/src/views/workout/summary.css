@@ -2,6 +2,7 @@
 /* W2.0 Wk2Summary and W2.2 Wk2First: the eyebrow and × on the kit's top row (.g-wtop), the title
    and date, the tiles, then the sections (.g-ssec) over glass cards, and the white Done. */
 .g-sum { padding-block-end: calc(32px + var(--sab, 0px)); color: var(--on-stage); font-family: var(--font-sans); text-align: start; }
+.g-sum-empty { display: flex; min-height: 70vh; align-items: center; justify-content: center; }
 .g-sum-eyebrow { flex: 1; min-width: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-sum-head { padding: 18px 20px 16px; }
 .g-sum-title { margin: 0; font: 700 34px/40px var(--font-sans); letter-spacing: -0.03em; }

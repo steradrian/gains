@@ -460,11 +460,9 @@ function PlatesDrawer({ at, close }) {
         <PlateBar plates={load.plates} unit={unit} label={spoken}>{caption}</PlateBar>
         <StatTiles items={tiles} />
         {load.missing > 0 && <p className="wkd-line">{t('Your plates come {0} short of this.', kg(load.missing * (pairs ? 2 : 1)))}</p>}
-        <p className="wkd-line">
-          {profile ? t('From your plates at {0}.', profile.name) : t('From your plates.')}{' '}
-          <button type="button" className="wkd-link" onClick={() => closeThenNav(close, '/me/equipment')}>{t('Change them in Gym setup.')}</button>
-        </p>
         <div className="g-xd-rows">
+          <DetailRow icon="plate" title={t('Gym setup')} sub={profile ? t('From your plates at {0}.', profile.name) : t('From your plates.')}
+            onClick={() => closeThenNav(close, '/me/equipment')} />
           <DetailRow icon="plate" title={t('Bar and loading')} sub={t('What the bar weighs and how this exercise is loaded')}
             onClick={() => barWeightSheet(entry.id, cfgOf(entry))} />
         </div>

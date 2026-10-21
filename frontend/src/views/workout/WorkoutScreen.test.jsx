@@ -166,8 +166,11 @@ describe('WorkoutScreen', () => {
     const bench = BENCH()
     bench.sets.forEach(s => { s.done = true })
     render([bench], { over: { editingWorkoutId: 'past', d: '2026-10-01' } })
-    expect(host.textContent).toContain('Editing a saved workout')
+    // No status row that says nothing: the top bar already says Editing, with the date.
+    expect(host.textContent).not.toContain('Editing a saved workout')
     expect(host.textContent).toContain('Set 1 · editing')
+    expect(host.querySelector('.wk-link')).toBeNull()
+    expect([...host.querySelectorAll('.g-drow')].some(r => r.textContent.includes('Set options'))).toBe(true)
     expect(button('Save changes')).toBeTruthy()
     expect(host.querySelector('.g-wf-rest')).toBeNull()
     expect(labelled('Close editor')).toBeTruthy()
@@ -190,6 +193,7 @@ describe('WorkoutScreen', () => {
   it('shows Pick as you go for an empty freestyle session, whose pill discards', () => {
     render([], { over: { routineIds: [], name: 'Empty workout' } })
     expect(host.textContent).toContain('Pick as you go')
+    expect(host.querySelector('.g-sempty').classList.contains('g-glass')).toBe(false)
     press(button('Discard'))
     expect(discardSheet).toHaveBeenCalled()
   })
