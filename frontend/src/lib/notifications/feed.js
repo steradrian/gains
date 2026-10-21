@@ -18,8 +18,11 @@
 //              that can say so for all seven days), weight change (only with two weigh-ins).
 //   reminder   the reminders that went off on this phone (reminder-log.js), passed in.
 //   milestone  workout counts: 10, 25, 50, 100, then every 50 to 500 and every 250 after.
-// Not here: `coach`. A day override (`S.dayPlan`) records no author, so a day Coach moved cannot be
-// told from one you moved; it stays out until overrides say who made them.
+// Not here: `coach`. Nothing re-dates a day for the Coach: its applied changes are weekday
+// (`S.week`) and routine edits, the only `S.dayPlan` writes are the ones you make in the day sheet
+// (the Coach only sweeps future ones away when a new plan replaces the week), and a coach week's
+// missed session is never moved, it floats (queue.js). "Coach moved Legs to Mon 19 Oct" has no
+// source to read, so the kind stays out until something writes one.
 import { t, tn } from '../i18n-core.js'
 import { EXIDX } from '../exercises.js'
 import { exerciseNameText, fmtDate, fmtDateRange, fmtNum, isoOf, startOfWeek, SUNDAY, weekStartOf } from '../format.js'
@@ -216,11 +219,17 @@ export function feedOf(S, { now = Date.now(), nutrition = null, reminders = [] }
   return items.sort((a, b) => b.at - a.at || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || (a.id < b.id ? -1 : 1))
 }
 
-/** The path a target opens under `tab` (home, train, food or me); null for one that is not a page. */
+/**
+ * The path a target opens under `tab` (home, train, food or me); null for one that is not a page.
+ * The Day and Week pages (`/:tab/day/:date`, `/:tab/week/:week`, lib/day-route.js) come with the
+ * day-week slice and are not on this branch, so until they land a day opens Train's History and a
+ * week opens Train (PR07 N1 brief). When they do, these two lines go back to
+ * `/${tab}/day/${target.day}` and `/${tab}/week/${target.week}`.
+ */
 export function targetPath(target, tab = 'home') {
   if (!target) return null
   if (target.route) return target.route
-  if (target.day) return `/${tab}/day/${target.day}`
-  if (target.week) return `/${tab}/week/${target.week}`
+  if (target.day) return '/train/history'
+  if (target.week) return '/train'
   return null
 }

@@ -157,6 +157,25 @@ describe('the screens gallery', () => {
     await check('T1.15', h => expect(h.querySelector('.g-rc-slide').textContent).toContain('kcal over 2,100'))
   })
 
+  it('has the Notifications page N1.0 to N1.3', async () => {
+    const ids = screenAreas().find(a => a.name === 'Shared: notifications').entries.map(e => e.id)
+    expect(ids).toEqual(['N1.0', 'N1.1', 'N1.2', 'N1.3'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('N1.0', h => {
+      expect([...h.querySelectorAll('.g-ngroup h2')].map(e => e.textContent)).toEqual(['New', 'This week', 'Earlier'])
+      expect(h.querySelectorAll('.g-nrow-dot')).toHaveLength(2)
+    })
+    await check('N1.1', h => expect(h.querySelector('.g-sempty').textContent).toContain('Set a reminder'))
+    await check('N1.2', h => {
+      expect(h.querySelector('.g-ssec-line').textContent).toBe('All readNothing unread')
+      expect(h.querySelector('.g-nrow-dot')).toBeNull()
+    })
+    await check('N1.3', h => {
+      expect(h.querySelector('.g-sbanner').textContent).toContain('Notifications are off on this phone')
+      expect(h.querySelectorAll('.g-nrow')).toHaveLength(5)
+    })
+  })
+
   it('has the Today drawers and toasts T1.3 to T1.8, each over the Today screen', async () => {
     const ids = screenAreas().find(a => a.name === 'Today: drawers and toasts').entries.map(e => e.id)
     expect(ids).toEqual(['T1.3', 'T1.3p', 'T1.3e', 'T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7', 'T1.8'])
