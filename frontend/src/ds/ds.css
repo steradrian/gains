@@ -741,3 +741,20 @@ a.g-xrow-stage:focus-visible, button.g-xrow-stage:focus-visible { outline-color:
 .g-tcard-btn .g-icon { width: 20px; height: 20px; }
 .g-tcard-menu { appearance: none; border: 0; padding: 0; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); text-decoration: none; cursor: pointer; }
 .g-tcard-btn:focus-visible, .g-tcard-menu:focus-visible, .g-tcard .g-xrow:focus-visible { outline-color: var(--on-stage); }
+
+/* === Train drawers (boards T2.1 Start a workout, T2.2 Day options) === */
+/* Rows on the light drawer: a routine's stack of stills, or a sunken disc for Freestyle and the rest */
+.g-tr-choice { min-height: 70px; cursor: pointer; }
+.g-tr-act { min-height: 60px; padding-top: 6px; padding-bottom: 6px; }
+.g-tr-choice:active { background: var(--surface-press); }
+.g-tr-stack { display: flex; flex: none; }
+.g-tr-stack > span { display: flex; border-radius: 13px; box-shadow: 0 0 0 2px var(--surface); }
+.g-tr-stack > span + span { margin-inline-start: -10px; }
+.g-tr-stack img, .g-tr-stack i { width: 40px; height: 40px; border-radius: 12px; background: var(--g-white); object-fit: cover; }
+.g-tr-stack i { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-tr-stack i .g-icon, .g-tr-disc .g-icon { width: 20px; height: 20px; }
+.g-tr-disc { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); }
+.g-tr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-tr-b > b { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-tr-b > span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-tr-more { padding-top: 16px; }
