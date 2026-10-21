@@ -13,7 +13,7 @@ import { setNav } from './lib/nav.js'
 import { setSystemBarsLight } from './lib/system-bars.js'
 import { initBackButton } from './lib/back.js'
 import { useWakeLock } from './lib/wakelock.js'
-import { launchPath, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
+import { isTabRoot, launchPath, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
 import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
@@ -55,15 +55,21 @@ const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : nul
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import CheckIn from './views/CheckIn.jsx'
-import Plan from './views/Plan.jsx'
-import RoutineEdit from './views/RoutineEdit.jsx'
+import PlanScreen from './views/plan/PlanScreen.jsx'
+import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
+import RoutineEditor from './views/routines/RoutineEditor.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Workout from './views/Workout.jsx'
 import Body from './views/Body.jsx'
-import Strength from './views/Strength.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
-import Library from './views/Library.jsx'
-import Muscles from './views/Muscles.jsx'
+// Train slice 5
+import LoadMuscleScreen from './views/train/load/MuscleScreen.jsx'
+// Train slice 4
+import CreateExercise from './views/train/exercises/CreateExercise.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
+import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
@@ -71,6 +77,8 @@ import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
 import TrainHub from './views/TrainHub.jsx'
+import PlansScreen from './views/train/plans/PlansScreen.jsx'
+import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
 import MealCatalog from './views/MealCatalog.jsx'
 import Foods from './views/Foods.jsx'
@@ -312,7 +320,7 @@ function Shell() {
           out of the document while a slide runs (ds.css "Native motion and haptics"). The page left
           is the same element it was, no longer #app, held still and out of reach. */}
       {trans.layers.map(layer => (
-        <div key={layer.key} className="g-route" data-route={layer.role} data-slide={trans.active ? layer.style : undefined}
+        <div key={layer.key} className="g-route" data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
           style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}
           onAnimationEnd={layer.role === 'in' && trans.active ? e => { if (e.target === e.currentTarget) trans.settle() } : undefined}>
           <div id={layer.role === 'in' ? 'app' : undefined} className={layer.fade && !inFlow ? 'vfade' : undefined}
@@ -352,12 +360,15 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/home" element={<Home />} />
       {/* Training */}
       <Route path="/train" element={<TrainHub />} />
-      <Route path="/train/schedule" element={<Plan view="schedule" />} />
-      <Route path="/train/routines" element={<Plan view="routines" />} />
-      <Route path="/train/routines/:id" element={<RoutineEdit />} />
+      <Route path="/train/schedule" element={<PlanScreen />} />
+      <Route path="/train/schedule/import" element={<PlanImportPage />} />
+      <Route path="/train/routines" element={<RoutinesScreen />} />
+      <Route path="/train/routines/:id" element={<RoutineEditor />} />
       <Route path="/train/history" element={<History />} />
-      <Route path="/train/exercises" element={<Library />} />
-      <Route path="/train/exercises/muscles" element={<Muscles />} />
+      {/* Train slice 4 routes */}
+      <Route path="/train/exercises" element={<ExercisesScreen />} />
+      <Route path="/train/exercises/muscles" element={<MuscleScreen />} />
+      <Route path="/train/exercises/new" element={<CreateExercise />} />
       {/* Gym check-in — switched off in Settings, the route falls through to the
           catch-all redirect below. */}
       {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
@@ -368,6 +379,9 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/coach/intake" element={<CoachIntake />} />
       <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
       <Route path="/train/coach/setup" element={<CoachSetup />} />
+      {/* Train slice 6 routes: Ready-made plans and a plan's preview. Gym setup is /me/equipment (SettingsRoute). */}
+      <Route path="/train/plans" element={<PlansScreen />} />
+      <Route path="/train/plans/:id" element={<PlanPreview />} />
       {/* Nutrition */}
       <Route path="/food" element={<FoodHub />} />
       <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
@@ -380,9 +394,11 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/progress/body" element={<Body segment="weight" />} />
       <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
       <Route path="/progress/body/photos" element={<Body segment="photos" />} />
-      <Route path="/progress/strength" element={<Strength />} />
+      <Route path="/progress/strength" element={<ExerciseProgress />} />
       <Route path="/progress/strength/balance" element={<StructuralBalance />} />
       <Route path="/progress/load" element={<TrainingLoad />} />
+      {/* Train slice 5 routes */}
+      <Route path="/progress/load/muscle/:slug" element={<LoadMuscleScreen />} />
       <Route path="/progress/trends" element={<Trends />} />
       <Route path="/progress/recovery" element={<Recovery />} />
       {/* Opened from any tab, on top of it: the workout. */}

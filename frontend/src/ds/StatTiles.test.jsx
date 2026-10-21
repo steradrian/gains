@@ -30,4 +30,14 @@ describe('StatTiles', () => {
     expect(grid.classList.contains('g-stats-c2')).toBe(true)
     expect(grid.getAttribute('style')).toBeNull()
   })
+
+  it('has as many columns as items, up to three, and refuses another tone', () => {
+    const items = n => Array.from({ length: n }, (_, i) => ({ label: 'L' + i, value: String(i) }))
+    const cols = () => view.host.firstElementChild.classList
+    view.render(<StatTiles items={items(2)} />)
+    expect(cols().contains('g-stats-c2')).toBe(true)
+    view.render(<StatTiles items={items(5)} />)
+    expect(cols().contains('g-stats-c3')).toBe(true)
+    expect(() => view.render(<StatTiles tone="dark" items={[]} />)).toThrow(/tone="dark"/)
+  })
 })

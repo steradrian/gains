@@ -436,6 +436,26 @@ describe('the log', () => {
     recordDismissal(s, proposal([change()]))
     expect(s.coach.log.at(-1).decisions[0].status).toBe('rejected')
   })
+
+  // Review #4: the check-in a review carried is read once that review (and no other) is decided.
+  it('applying or dismissing a review reads only the check-in that review carried', () => {
+    const withSent = jobId => ({
+      ...state(),
+      coachCheckIns: { '2026-10-12': { feel: 'hard', _ts: 1000 } },
+      coach: { ...state().coach, lastReview: null, checkInSent: { jobId, week: '2026-10-12', ts: 1000 } }
+    })
+    const applied = apply(withSent('p1'), proposal([change()]), ['c1'])
+    expect(applied.coach.checkInReadTs).toBe(1000)
+    expect(applied.coach.checkInSent).toBeNull()
+
+    const scheduled = apply(withSent('job-it-carried'), proposal([change()]), ['c1'])
+    expect(scheduled.coach.checkInReadTs).toBe(0)
+    expect(scheduled.coach.checkInSent.jobId).toBe('job-it-carried')
+
+    const dismissed = JSON.parse(JSON.stringify(withSent('p1')))
+    recordDismissal(dismissed, proposal([change()]))
+    expect(dismissed.coach.checkInReadTs).toBe(1000)
+  })
 })
 
 describe('created plans', () => {

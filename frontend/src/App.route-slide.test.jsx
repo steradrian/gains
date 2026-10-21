@@ -84,6 +84,8 @@ describe('page slides', () => {
     expect(hash()).toBe('#/train/exercises')
     expect(sliding()).toEqual(['push', 'push'])
     expect(roles()).toEqual(['out', 'in'])
+    // the root is marked, so its pinned header moves with it; the pushed page is not
+    expect(layers().map(l => l.hasAttribute('data-root'))).toEqual([true, false])
     expect(apps()).toHaveLength(1)
     const leaving = layers()[0]
     expect(leaving.querySelector('#app')).toBeNull()

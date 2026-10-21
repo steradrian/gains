@@ -218,8 +218,14 @@ test('a proposal nobody has answered is not replaced by the next scheduled revie
   assert.equal(jobs.status(uid).job, null, 'not while the proposal is unread');
   assert.equal(jobs.status(uid).pending.id, first.pending.id, 'the unread proposal is still the same one');
 
+  // A late Dismiss naming an older proposal is ignored (review #5): nothing cleared, nothing logged.
+  const historyBefore = jobs.readUser(uid).history.length;
+  jobs.resolvePending(uid, { dismissed: true, proposalId: 'an-older-proposal' });
+  assert.equal(jobs.status(uid).pending.id, first.pending.id, 'a resolve for another proposal leaves this one waiting');
+  assert.equal(jobs.readUser(uid).history.length, historyBefore, 'and logs no dismissal');
+
   // Once it is answered, the workout logged since is due.
-  jobs.resolvePending(uid, { dismissed: true });
+  jobs.resolvePending(uid, { dismissed: true, proposalId: first.pending.id });
   tick();
   assert.ok(jobs.status(uid).job, 'the workout since the last review is due');
   await settle(uid);

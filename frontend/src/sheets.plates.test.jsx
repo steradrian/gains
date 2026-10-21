@@ -160,7 +160,14 @@ describe('plate loading editor', () => {
   })
 })
 
-describe('plate inventory sheet', () => {
+describe('plates drawer', () => {
+  // The drawer's steppers are the design system's BigStepper: a group named "45 lb plates" with
+  // Fewer / More buttons named for what is counted, and the count in a live region.
+  const pairStepper = (host, size) => [...host.querySelectorAll('.g-bstep')].find(el => el.querySelector('.g-bstep-l')?.textContent === size + ' plates')
+  const pairs = st => st.querySelector('.g-bstep-v b').textContent
+  const fewer = (host, size) => pairStepper(host, size).querySelector(`[aria-label="Fewer ${size} plates"]`)
+  const more = (host, size) => pairStepper(host, size).querySelector(`[aria-label="More ${size} plates"]`)
+
   beforeEach(() => {
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     useUI.setState({ sheets: [], toasts: [] })
@@ -171,41 +178,59 @@ describe('plate inventory sheet', () => {
 
   it('lists every lb size with the standard count; the first edit copies the set and changes one count', () => {
     act(() => plateInventorySheet())
+    expect(useUI.getState().sheets.at(-1).variant).toBe('ds')
     const host = mountTopSheet()
-    expect(host.querySelector('h3').textContent).toBe('Plates')
-    for (const w of ['45 lb', '35 lb', '25 lb', '15 lb', '10 lb', '5 lb', '2.5 lb', '1.25 lb']) expect(stepperOf(host, w), w).toBeTruthy()
-    expect(valueOf(stepperOf(host, '45 lb'))).toBe('6')
-    expect(valueOf(stepperOf(host, '15 lb'))).toBe('0')   // not in the standard set
-    expect(stepperOf(host, '45 lb').textContent).toContain('pairs')
+    expect(host.querySelector('.g-bs-head h2').textContent).toBe('Plates')
+    for (const w of ['45 lb', '35 lb', '25 lb', '15 lb', '10 lb', '5 lb', '2.5 lb', '1.25 lb']) expect(pairStepper(host, w), w).toBeTruthy()
+    expect(pairs(pairStepper(host, '45 lb'))).toBe('6')
+    expect(pairs(pairStepper(host, '15 lb'))).toBe('0')   // not in the standard set
+    expect(pairStepper(host, '45 lb').querySelector('.g-bstep-v span').textContent).toBe('pairs')
     expect(S().plates).toEqual({})
-    for (let i = 0; i < 5; i++) act(() => dec(stepperOf(host, '45 lb')).click())
+    for (let i = 0; i < 5; i++) act(() => fewer(host, '45 lb').click())
     expect(S().plates.lb[45]).toBe(1)
     expect(S().plates.lb[35]).toBe(6)     // the rest of the standard set came along
     expect(S().plates.lb[15]).toBeUndefined()
     expect(S().plates.lb._ts).toEqual(expect.any(Number))
-    act(() => inc(stepperOf(host, '15 lb')).click())
+    act(() => more(host, '15 lb').click())
     expect(S().plates.lb[15]).toBe(1)
-    expect(valueOf(stepperOf(host, '45 lb'))).toBe('1')
+    expect(pairs(pairStepper(host, '45 lb'))).toBe('1')
     expect(S().plates.kg).toBeUndefined()   // the other unit is untouched
     expect(host.textContent).toContain('Your own list for lb.')
+  })
+
+  it('stops at no pairs and does not write a count below it', () => {
+    useStore.setState(s => ({ S: { ...s.S, plates: { lb: { 45: 0, 35: 2, _ts: 5 } } } }))
+    act(() => plateInventorySheet())
+    const host = mountTopSheet()
+    expect(fewer(host, '45 lb').getAttribute('aria-disabled')).toBe('true')
+    act(() => fewer(host, '45 lb').click())
+    expect(S().plates.lb[45]).toBe(0)
+    expect(S().plates.lb._ts).toBe(5)
   })
 
   it('"Back to the standard set" empties the unit\'s own list, stamped', () => {
     useStore.setState(s => ({ S: { ...s.S, plates: { lb: { 45: 1, _ts: 5 }, kg: { 20: 2 } } } }))
     act(() => plateInventorySheet())
     const host = mountTopSheet()
-    expect(valueOf(stepperOf(host, '45 lb'))).toBe('1')
+    expect(pairs(pairStepper(host, '45 lb'))).toBe('1')
     act(() => button(host, 'Back to the standard set').click())
     // A list with no sizes, not a deleted unit: the reset has to win a sync against the other
     // device's older list rather than get it back.
     expect(S().plates).toEqual({ lb: { _ts: expect.any(Number) }, kg: { 20: 2 } })
     expect(S().plates.lb._ts).toBeGreaterThan(5)
     expect(button(host, 'Back to the standard set')).toBeUndefined()
-    expect(valueOf(stepperOf(host, '45 lb'))).toBe('6')
+    expect(pairs(pairStepper(host, '45 lb'))).toBe('6')
     expect(host.textContent).toContain('The standard set, plenty of each')
     // …and the next change starts from the standard set again.
-    act(() => dec(stepperOf(host, '45 lb')).click())
+    act(() => fewer(host, '45 lb').click())
     expect(S().plates.lb[45]).toBe(5)
     expect(S().plates.lb[35]).toBe(6)
+  })
+
+  it('Done closes the drawer', () => {
+    act(() => plateInventorySheet())
+    const host = mountTopSheet()
+    act(() => button(host, 'Done').click())
+    expect(useUI.getState().sheets).toHaveLength(0)
   })
 })

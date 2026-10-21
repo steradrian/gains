@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-// The "Progress" link on an exercise opened from Search (ux-search.md §4): it goes to that
-// exercise's strength chart, takes the sheet's place in history and steps the overlay aside.
-// It is only there for a search-opened sheet and only when there is a log to chart.
+// The exercise drawer's Progress and History tabs (T6.1): they open the exercise's strength page
+// (T7.0, and T7.1 with view=sets) in the drawer's place, taking its history entry, and from a
+// Search result they step the overlay aside (ux-search.md §4). Before the exercise is logged they
+// say so in the drawer and go nowhere (Strength would show another lift).
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -27,8 +28,9 @@ function renderTop() {
 const EX = Object.keys(EXIDX).find(id => (EXIDX[id].bp || '') !== 'cardio' && !EXIDX[id].custom)
 const T0 = Date.UTC(2026, 2, 2, 9)
 const logged = { id: 'w1', d: '2026-03-02', start: T0, end: T0 + 3600000, name: 'Push', vol: 0, entries: [{ id: EX, target: { mode: 'reps', bodyweight: false }, sets: [{ w: 60, r: 5, done: true }] }] }
-const progressBtn = host => [...host.querySelectorAll('button')].find(b => b.textContent === 'Progress')
+const tab = (host, text) => [...host.querySelectorAll('[role="tab"]')].find(b => b.textContent === text)
 const navigate = vi.fn()
+const STRENGTH = '/progress/strength?ex=' + encodeURIComponent(EX)
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -43,51 +45,71 @@ afterEach(() => {
   act(() => { mounted.splice(0).forEach(root => root.unmount()) })
 })
 
-describe('exercise sheet: Progress link', () => {
-  it('opens that exercise on the strength chart, closes the sheet and steps the overlay aside', () => {
+describe('exercise drawer: Progress and History', () => {
+  it('Progress opens that exercise on the strength chart, closes the drawer and steps the overlay aside', () => {
     act(() => { openSearch('home') })
     exerciseDetailSheet(EXIDX[EX], { progress: true })
-    const btn = progressBtn(renderTop())
-    expect(btn).toBeTruthy()
-    act(() => { btn.click() })
+    // Rendered outside the click's act: a render nested in it would not flush before the query.
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
     expect(navigate).toHaveBeenCalledTimes(1)
     const [to, opts] = navigate.mock.calls[0]
-    expect(to).toBe('/progress/strength?ex=' + encodeURIComponent(EX))
+    expect(to).toBe(STRENGTH)
     expect(opts.state.searchVisit).toBe(useSearch.getState().id)
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(useSearch.getState()).toMatchObject({ live: true, open: false })
   })
 
-  it('takes the sheet\'s history entry (replace) when the sheet sits on one', () => {
+  it('takes the drawer\'s history entry (replace) when the drawer sits on one', () => {
     act(() => { openSearch('home') })
     history.replaceState({ ...(history.state || {}), gainsSheet: 'x' }, '')
     exerciseDetailSheet(EXIDX[EX], { progress: true })
-    const btn = progressBtn(renderTop())
-    act(() => { btn.click() })
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
     expect(navigate.mock.calls[0][1].replace).toBe(true)
   })
 
   it('is offered for an exercise logged only in a deload, which Strength still charts', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [{ ...logged, excludeFromProgression: true }] } }))
-    exerciseDetailSheet(EXIDX[EX], { progress: true })
-    expect(progressBtn(renderTop())).toBeTruthy()
-  })
-
-  it('sits beside History, in one row', () => {
-    exerciseDetailSheet(EXIDX[EX], { progress: true })
-    const host = renderTop()
-    const row = progressBtn(host).parentElement
-    expect([...row.querySelectorAll('button')].map(b => b.textContent)).toEqual(['History', 'Progress'])
-  })
-
-  it('is not on a sheet opened anywhere else', () => {
     exerciseDetailSheet(EXIDX[EX])
-    expect(progressBtn(renderTop())).toBeUndefined()
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
+    expect(navigate.mock.calls[0][0]).toBe(STRENGTH)
   })
 
-  it('is not offered for an exercise with no log (Strength would show another lift)', () => {
+  it('sits with How to and History in one tab strip; History opens the past sets', () => {
+    exerciseDetailSheet(EXIDX[EX])
+    const host = renderTop()
+    const strip = host.querySelector('[role="tablist"]')
+    expect(strip.getAttribute('aria-label')).toBe('Exercise views')
+    expect([...strip.querySelectorAll('[role="tab"]')].map(b => b.textContent)).toEqual(['How to', 'Progress', 'History'])
+    act(() => { tab(host, 'History').click() })
+    expect(navigate.mock.calls[0][0]).toBe(STRENGTH + '&view=sets')
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('is on a drawer opened anywhere, not only from Search', () => {
+    exerciseDetailSheet(EXIDX[EX])
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
+    expect(navigate).toHaveBeenCalledTimes(1)
+    expect(navigate.mock.calls[0][0]).toBe(STRENGTH)
+  })
+
+  it('for an exercise with no log, says so and goes nowhere; How to still shows', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [] } }))
-    exerciseDetailSheet(EXIDX[EX], { progress: true })
-    expect(progressBtn(renderTop())).toBeUndefined()
+    exerciseDetailSheet(EXIDX[EX])
+    const host = renderTop()
+    expect(host.textContent).not.toContain('No sessions logged yet')
+    expect(host.textContent).toContain('Add to my plan')
+    for (const name of ['Progress', 'History']) {
+      act(() => { tab(host, name).click() })
+      expect(tab(host, name).getAttribute('aria-selected')).toBe('true')
+      expect(host.querySelector('[role="tabpanel"]').textContent).toBe('No sessions logged yet')
+    }
+    expect(navigate).not.toHaveBeenCalled()
+    expect(useUI.getState().sheets).toHaveLength(1)
+    act(() => { tab(host, 'How to').click() })
+    expect(host.textContent).toContain('Add to my plan')
   })
 })

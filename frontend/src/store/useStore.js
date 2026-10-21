@@ -96,6 +96,9 @@ export const DEF = {
   // A missed planned day answered on Train, Move to today or Skip it: { [iso]: { seen, _ts } }
   // (lib/missed-day.js), so its banner shows once; merged per day like dayNotes.
   missedSeen: {},
+  // Train coach: the weekly Coach check-in, { [weekIso]: { feel, sleep, note, _ts } }
+  // (lib/coach-checkin.js), read by the next review; merged per week like dayNotes.
+  coachCheckIns: {},
   // Body measurements (#82): one check-in per day, values in cm whatever the weight unit
   // (lib/measurements.js); merged across devices like weigh-ins (lib/sync-merge.js).
   measurements: [], measurementEnabled: null, customMeasurements: [],
@@ -121,10 +124,6 @@ export const DEF = {
   // List and Compact fold a finished exercise into one line (Settings → Workout; #241). The
   // workout's Layout menu can flip it for the running session (s.active.collapseCompleted).
   collapseCompleted: false,
-  // How the Library, the exercise picker and the muscle explorer show exercises — 'list' (rows
-  // with a small thumbnail) or 'cards' (a grid of pictures with the name underneath). Switched
-  // by the button in those headers (ExerciseViewToggle); older profiles overlay onto the list.
-  exerciseView: 'list',
   // Which controls the workout screen shows besides the sets themselves. The default is the
   // lean layout: one "more" button per exercise and a menu on each set number. Every switch
   // brings one of the old always-visible button groups back (Settings → During a workout).

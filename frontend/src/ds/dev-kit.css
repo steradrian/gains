@@ -14,3 +14,9 @@
 .g-kit-p { margin: 0; font: 500 17px/24px var(--font-sans); color: var(--text-2); }
 /* Train kit: a glass box for rows that are not a card of their own */
 .g-kit-glass { border-radius: 28px; overflow: hidden; }
+/* Train pushed-page kit: a pushed page drawn inside a phone-sized scroll area, so its nav bar sticks
+   there and its full-screen stage does not fill the catalogue's page */
+.g-kit-page { height: 420px; overflow-y: auto; border-radius: var(--radius-lg); }
+.g-kit-page .g-screen, .g-kit-page .g-screen > .g-stage, .g-kit-page .g-screen > .g-stage > .g-stage-body { min-height: 0; }
+.g-kit-pbody { padding: 16px 20px 320px; }
+.g-kit-pbody p, .g-kit-trail { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }

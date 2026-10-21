@@ -29,9 +29,12 @@ export const PRIMITIVE_FILES = [
 ]
 // Routed views that draw their own chrome and never render <Page> (G4). Home is Today on the
 // stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02);
+// PlanScreen (its Plan page), PlanImportPage (Import a plan), CreateExercise (Create exercise),
+// PlansScreen, PlanPreview, CoachChat, History, TrainingLoad, LoadMuscleScreen (a muscle's
+// training-load page), RoutinesScreen and RoutineEditor are pushed pages on the stage (StagePage).
 // Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
 // design system's StageNavBar. A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
-export const PAGE_EXEMPT = ['AddDevice', 'DayPage', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'Notifications', 'TrainHub', 'WeekPage', 'Workout']
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
@@ -369,12 +372,13 @@ function rendersPage(code, name, seen = new Set()) {
   seen.add(name)
   const body = componentBody(code, name)
   if (body == null) return false
-  if (/<Page\b/.test(body)) return true
+  if (/<(?:Stage)?Page\b/.test(body)) return true
   return [...new Set([...body.matchAll(/<([A-Z][\w$]*)/g)].map(m => m[1]))]
     .some(child => componentBody(code, child) != null && rendersPage(code, child, seen))
 }
 
-// G4: the components App.jsx routes to that do not render <Page>, by name.
+// G4: the components App.jsx routes to that do not render <Page> (or the stage's <StagePage>, which
+// is the pushed pages' frame), by name.
 export function routeViewsWithoutPage(src = SRC) {
   const app = stripJs(readFileSync(join(src, 'App.jsx'), 'utf8'))
   const imports = viewImports(app)

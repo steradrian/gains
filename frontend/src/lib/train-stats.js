@@ -43,6 +43,12 @@ export function volumePair(a, b, unit) {
   return { a: show(a), b: show(b), unit: tonnes ? 't' : unit }
 }
 
+/** One volume the same way: "9,600 kg", "12.4 t" (History's rows, a workout's tiles and card). */
+export function volumeText(v, unit) {
+  const p = volumePair(v, 0, unit)
+  return p.a + ' ' + p.unit
+}
+
 /** How long `routineId` usually takes: the median of its last five timed sessions (a minute or
  *  more), in ms; null when it has none. Untimed imports and sessions of other routines don't count. */
 export function usualDuration(S, routineId, last = 5) {

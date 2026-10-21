@@ -165,7 +165,7 @@ describe('the card', () => {
     const card = cardOf(S({ workouts: [done] }), TODAY, TODAY)
     expect(card).toMatchObject({ kind: 'done', eyebrow: 'Workout done', title: 'Push A', sub: '52 min · 3 sets · 1,440 kg · 2 new bests' })
     expect(card.primary).toMatchObject({ intent: 'see-workout', label: 'See workout', workouts: [done] })
-    expect(card.thumbs).toEqual(done.entries.map(() => expect.stringContaining('.webp')))
+    expect(card.stills).toEqual(done.entries.map(e => e.id))
     expect(finishedLine({ entries: [], prs: [] }, 'kg')).toBeNull()
   })
 
@@ -181,7 +181,7 @@ describe('the card', () => {
     expect(card).toMatchObject({ kind: 'upcoming', title: 'Legs', chip: null, primary: null, eyebrow: fmtDate('2026-10-19', true) + ' · planned' })
     expect(card.sub).not.toMatch(/read-only/)
     expect(card.sub).toMatch(/1 exercise/)
-    expect(card.exercises).toEqual([expect.objectContaining({ id: '0025', line: expect.stringContaining('3 × 8'), image: expect.stringContaining('.webp') })])
+    expect(card.exercises).toEqual([expect.objectContaining({ id: '0025', line: expect.stringContaining('3 × 8') })])
     expect(card.secondary).toEqual([{ intent: 'change-day', label: 'Change this day', iso: '2026-10-19' }, { intent: 'see-routine', label: 'See routine', id: 'legs' }])
   })
 
@@ -211,9 +211,9 @@ describe('routines', () => {
     expect(rows[0]).toMatchObject({ sub: '2 exercises · Sun', inPlan: true, today: true })
     expect(rows[2].sub).toBe('1 exercise · Mon, Fri')
     expect(rows[3]).toMatchObject({ sub: '1 exercise', inPlan: false })
-    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', thumbs: [] })
-    expect(rows[0].thumbs).toHaveLength(2)
-    expect(rows[0].thumbs[0]).toMatch(/\.webp$/)
+    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', stills: [] })
+    expect(rows[0].stills).toHaveLength(2)
+    expect(rows[0].stills.every(id => typeof id === 'string' && id)).toBe(true)
   })
 
   it('in rotation mode a routine has no weekday to show', () => {
@@ -248,7 +248,7 @@ describe('Your training', () => {
     expect(rows[1].to).toBe('/progress/load')
     expect(rows[2]).toMatchObject({ action: 'plans', sub: 'Full Body, Push / Pull / Legs, Upper / Lower, 5×5' })
     expect(rows[3]).toMatchObject({ to: '/me/equipment', sub: 'Home gym' })
-    expect(rows[4].to).toBe('/train/checkin')
+    expect(rows[4]).toMatchObject({ to: '/train/checkin', title: 'Gym card' })
   })
 
   it('Coach on: its row (with this week’s suggestions when known) and no Check in; check-in off hides it', () => {

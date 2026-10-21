@@ -81,6 +81,17 @@ describe('the Coach on a phone with its own key', () => {
     expect(S.coach.snapshots).toHaveLength(1)
   })
 
+  it('carries the weekly check-in into the review payload, and nothing without one', async () => {
+    await local.localReview(state(), '', { week: '2026-08-17', feel: 'hard', sleep: 'poor', note: 'Shoulder a bit tight' })
+    await settle()
+    expect(wire.calls[0].body.messages[1].content)
+      .toContain('"checkIn":{"week":"2026-08-17","feel":"hard","sleep":"poor","note":"Shoulder a bit tight"}')
+    wire.calls = []; local._resetLocal()
+    await local.localReview(state())
+    await settle()
+    expect(wire.calls[0].body.messages[1].content).not.toContain('"checkIn"')
+  })
+
   it('spends the single repair round when the first answer is unusable, then gives up', async () => {
     wire.answer = n => n === 1 ? chat('{"coach_contract":1,"changes":[{"id":"x","type":"teleport"}]}') : chat(JSON.stringify(review))
     await local.localReview(state())
@@ -166,6 +177,15 @@ describe('the Coach on a phone with its own key', () => {
     expect((await local.localStatus()).pending).toBeNull()
     await local.localReview(state()); await settle()
     await local.localResolve()
+    expect(device.data.pending).toBeNull()
+  })
+
+  it('a resolve naming another proposal leaves the pending one alone (review #5)', async () => {
+    await local.localReview(state()); await settle()
+    const id = device.data.pending.id
+    await local.localResolve({ proposalId: 'an-older-one', dismissed: true })
+    expect(device.data.pending?.id).toBe(id)
+    await local.localResolve({ proposalId: id, dismissed: true })
     expect(device.data.pending).toBeNull()
   })
 

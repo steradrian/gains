@@ -12,7 +12,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { finishWorkout, loadStarterPlan } from './sheets.jsx'
+import { finishWorkout } from './sheets.jsx'
+import { loadStarterPlanWithUndo } from './lib/starter-load.js'
 import { nav } from './lib/nav.js'
 import { switchTab } from './lib/use-tab-nav.js'
 import { endSearch, setQuery, useSearch, visit } from './lib/search/session.js'
@@ -101,7 +102,7 @@ afterEach(() => {
 const running = () => useStore.getState().update(s => { s.active = { id: 'a', name: 'Push A', entries: [], cur: 0, start: Date.now() - 60_000 } }, false)
 // A plan with a routine on today, so Start starts it.
 function planToday() {
-  loadStarterPlan('full-body')
+  loadStarterPlanWithUndo('full-body')
   useStore.getState().update(s => { s.week = { [new Date().getDay()]: [s.routines.find(r => r.ex.length).id] } }, false)
 }
 
@@ -400,19 +401,21 @@ describe('a page that redirects', () => {
     await settle()
     expect(hash()).toBe('#/train/routines')
     expect(lit()).toBe('Train')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Routines')
+    // Routines is a StagePage: its large title, not the old sub-header.
+    expect(document.querySelector('.g-spage-title').textContent).toBe('Routines')
   })
 
-  it('a cold #/coach as a guest goes Home with the bar, not a blank Coach page', async () => {
+  // With Coach off the page replaces itself with Train (T11 "Coach off"), once the config is known.
+  it('a cold #/coach as a guest goes to Train with the bar, not a blank Coach page', async () => {
     await launch('#/coach')
-    expect(hash()).toBe('#/home')
+    expect(hash()).toBe('#/train')
     expect(document.querySelector('#tabbar')).not.toBeNull()
-    expect(lit()).toBe('Today')
+    expect(lit()).toBe('Train')
   })
 
   it('a cold #/coach/proposal does the same', async () => {
     await launch('#/coach/proposal')
-    expect(hash()).toBe('#/home')
+    expect(hash()).toBe('#/train')
     expect(document.querySelector('#tabbar')).not.toBeNull()
   })
 })
@@ -422,7 +425,8 @@ describe('back on a sub-page', () => {
     await launch('#/progress/strength/balance')
     await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
     expect(hash()).toBe('#/progress/strength')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    // Strength is a stage page now (T7.0): its Back is the nav bar's glass button.
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/progress')
     expect(await backLeavesApp()).toBe(true)
   })
@@ -453,7 +457,7 @@ describe('back on a sub-page', () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(target('History'))
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/train')
     expect(idx()).toBe(0)
   })
@@ -595,7 +599,7 @@ describe('a sheet\'s entry nobody is closing', () => {
     host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
     await act(async () => { root.render(<App />) })
     await settle()
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/train')
   })
 
@@ -603,7 +607,7 @@ describe('a sheet\'s entry nobody is closing', () => {
     await launch('#/train')
     await go(() => nav('/train/history'))
     window.history.pushState({ ...window.history.state, idx: 2, gainsSheet: true }, '')
-    const backBtn = () => document.querySelector('.sub-hdr button[aria-label="Back"]')
+    const backBtn = () => document.querySelector('.g-snav-back')
     await click(backBtn())
     await click(backBtn())
     expect(hash()).toBe('#/train')
@@ -754,23 +758,21 @@ describe('the launch', () => {
 
   it('takes an old route to where it lives now', async () => {
     await launch('#/stats?focus=weekly-volume')
-    // Into Training load's Plan segment, where the weekly volume is; the hub is its parent, not
-    // stacked in.
-    expect(hash()).toBe('#/progress/load?view=plan')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Training load')
-    expect([...document.querySelectorAll('.seg button')].find(b => b.textContent === 'Plan').getAttribute('aria-pressed')).toBe('true')
+    // Into the Plan page, where the weekly volume moved; Train is its parent, not stacked in.
+    expect(hash()).toBe('#/train/schedule')
+    expect(document.querySelector('.g-spage-title').textContent).toBe('Plan')
     expect(idx()).toBe(0)
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
-    expect(hash()).toBe('#/progress')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/train')
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('turns Plan\'s old weekly-volume link into the Plan segment, in its place', async () => {
+  it('turns Training load\'s old Plan segment link into the Plan page, in its place', async () => {
     await launch('#/progress/load?focus=weekly-volume')
-    expect(hash()).toBe('#/progress/load?view=plan')
+    expect(hash()).toBe('#/train/schedule')
     expect(idx()).toBe(0)
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
-    expect(hash()).toBe('#/progress')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/train')
   })
 
   it('keeps the fragment of an old route', async () => {

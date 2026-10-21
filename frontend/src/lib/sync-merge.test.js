@@ -5,6 +5,7 @@ import { convertBodyWeight, convertStateUnit, convertWeight } from './units.js'
 import { retimeWorkout } from './workout-date.js'
 import { inventoryFor, loadKindFor, withLoadKind, withPlatePairs, withStandardPlates } from './plates.js'
 import { seenOn, withSeen } from './missed-day.js'
+import { putBackWorkout, takeWorkout } from './workout-delete.js'
 
 const workout = (id, d = '2026-09-01', start = 1) => ({ id, d, start, entries: [] })
 const routine = (id, name = id) => ({ id, name, ex: [] })
@@ -400,6 +401,39 @@ describe('missedSeen keeps each day as answered last', () => {
   })
 })
 
+// Train coach: the weekly Coach check-in (lib/coach-checkin.js), one stamped entry per week, so
+// weeks checked in on different devices are all kept and an Undo holds against the older answer.
+describe('coachCheckIns keeps each week as saved last', () => {
+  const W1 = '2026-10-05', W2 = '2026-10-12'
+  const entry = (feel, _ts) => ({ feel, sleep: 'ok', note: '', _ts })
+
+  it('weeks checked in on different devices are all kept, whichever copy is newer', () => {
+    const phone = base({ _ts: 100, coachCheckIns: { [W1]: entry('hard', 90) } })
+    const desk = base({ _ts: 200, workouts: [workout('w2')], coachCheckIns: { [W2]: entry('easy', 150) } })
+    for (const m of [mergeStates(phone, desk), mergeStates(desk, phone)]) {
+      expect(m.coachCheckIns[W1].feel).toBe('hard')
+      expect(m.coachCheckIns[W2].feel).toBe('easy')
+    }
+  })
+
+  it('the same week keeps the answer saved last, and a stamped clear (Undo) beats an older answer', () => {
+    const older = base({ _ts: 300, coachCheckIns: { [W2]: entry('hard', 100) } })
+    const newer = base({ _ts: 50, coachCheckIns: { [W2]: entry('right', 120) } })
+    expect(mergeStates(older, newer).coachCheckIns[W2].feel).toBe('right')
+    expect(mergeStates(newer, older).coachCheckIns[W2].feel).toBe('right')
+    const cleared = base({ _ts: 10, coachCheckIns: { [W2]: { _ts: 130 } } })
+    expect(mergeStates(newer, cleared).coachCheckIns[W2].feel).toBeUndefined()
+  })
+
+  it('a change re-stamps the entry it wrote', () => {
+    const prev = base({ _ts: 500, coachCheckIns: {} })
+    const next = clone(prev)
+    next.coachCheckIns = { [W2]: entry('much', 1) }
+    stampChange(prev, next, 900)
+    expect(next.coachCheckIns[W2]._ts).toBeGreaterThan(500)
+  })
+})
+
 // Plate loading (lib/plates.js): an exercise's loading and each unit's plate inventory are
 // stamped like a Structural Balance override, the way back to the default included, so the
 // change made last survives a conflict either way round. A plain key union let the copy that was
@@ -504,6 +538,33 @@ describe('custom exercises keep the version edited last', () => {
     again[1]._ts = 6
     stampCustomEx(next, again, 2000)
     expect(again.map(c => c._ts)).toEqual([1000, 6, 1000])
+  })
+
+  // "How you log it" (T6.4) is two new fields on the exercise; they are stamped and merged per
+  // field like the rest, so a mode set on one device and a rename on the other both survive.
+  it('the log mode set on A and a rename on B, made later, both survive the merge', () => {
+    const before = [cx({ _ts: 5 })]
+    const onA = clone(before)
+    onA[0].mode = 'reps'
+    onA[0].bodyweight = true
+    stampCustomEx(before, onA, 100)
+    const onB = clone(before)
+    onB[0].n = 'sandbag bear hug carry'
+    stampCustomEx(before, onB, 200)
+    for (const m of [mergeStates(base({ _ts: 100, customEx: onA }), base({ _ts: 200, customEx: onB })),
+      mergeStates(base({ _ts: 200, customEx: onB }), base({ _ts: 100, customEx: onA }))]) {
+      expect(m.customEx[0]).toMatchObject({ n: 'sandbag bear hug carry', mode: 'reps', bodyweight: true })
+    }
+  })
+
+  it('Weight × reps after Reps only takes the flag off on the other device too', () => {
+    const before = [cx({ mode: 'reps', bodyweight: true, _ts: 5 })]
+    const later = clone(before)
+    delete later[0].bodyweight
+    stampCustomEx(before, later, 300)
+    const m = mergeStates(base({ _ts: 50, customEx: before }), base({ _ts: 40, customEx: later }))
+    expect(m.customEx[0].bodyweight).toBeUndefined()
+    expect(m.customEx[0].mode).toBe('reps')
   })
 })
 
@@ -802,6 +863,43 @@ describe('added back means brought back by this change', () => {
     const tablet = update(b0, 30, S => { S.favEx = ['bench'] })
     expect(mergeStates(tablet, phone).favEx).toEqual(['bench'])
     expect(mergeStates(phone, tablet).favEx).toEqual(['bench'])
+  })
+})
+
+// T8.4: a workout deleted with no confirm, then put back by its Undo. The re-insert must win over
+// the removal it undid, also on a device that already merged that removal.
+describe('a deleted workout put back by its Undo', () => {
+  const T = Date.UTC(2026, 9, 12, 18)
+  const change = (prev, wall, mut) => { const n = clone(prev); mut(n); n._ts = stampChange(prev, n, wall); return n }
+  const W = { id: 'w1', d: '2026-10-12', start: T - 7200e3, end: T - 3600e3, name: 'Push A', note: 'felt strong',
+    entries: [{ id: 'bench', sets: [{ w: 82.5, r: 6, done: true }] }] }
+  const b0 = { _ts: T - 1000, unit: 'kg', restSec: 90, workouts: [W, workout('w2', '2026-10-14', T + 1)] }
+
+  it('comes back everywhere, as the exact record, even where the removal had already landed', () => {
+    let snap = null
+    const phone1 = change(b0, T + 1000, s => { snap = takeWorkout(s, W) })
+    expect(phone1.deleted.workouts.w1).toBeGreaterThan(0)
+    // the laptop syncs within the 8 s and takes the removal
+    const laptop1 = change(mergeStates(phone1, b0), T + 2000, s => { s.restSec = 120 })
+    expect(ids(laptop1.workouts)).toEqual(['w2'])
+    const phone2 = change(phone1, T + 5000, s => { putBackWorkout(s, snap) })
+    expect(phone2.deleted.workouts.w1).toBeLessThan(0)   // added back, after the removal
+    expect(phone2.workouts[0]).toMatchObject({ id: 'w1', note: 'felt strong', entries: W.entries })
+    for (const m of [mergeStates(phone2, laptop1), mergeStates(laptop1, phone2)]) {
+      expect(ids(m.workouts).sort()).toEqual(['w1', 'w2'])
+      expect(m.workouts.find(w => w.id === 'w1').entries).toEqual(W.entries)
+      expect(m.restSec).toBe(120)
+    }
+  })
+
+  it('a device that never saw the delete keeps it, and a delete made after the Undo still sticks', () => {
+    let snap = null
+    const phone1 = change(b0, T + 1000, s => { snap = takeWorkout(s, W) })
+    const phone2 = change(phone1, T + 5000, s => { putBackWorkout(s, snap) })
+    const offline = change(b0, T + 3000, s => { s.restSec = 60 })
+    expect(ids(mergeStates(offline, phone2).workouts).sort()).toEqual(['w1', 'w2'])
+    const phone3 = change(phone2, T + 9000, s => { takeWorkout(s, W) })
+    for (const m of [mergeStates(phone3, offline), mergeStates(offline, phone3)]) expect(ids(m.workouts)).toEqual(['w2'])
   })
 })
 

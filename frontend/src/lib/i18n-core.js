@@ -124,7 +124,8 @@ export function tn(one, other, n, ...rest) {
 
 /**
  * tn, with `{0}` filled by `shown` rather than the bare number: the count written for the reader
- * ("1,200", from toLocaleString), or '' for the noun alone. `n` still picks the form.
+ * ("1,200", from toLocaleString, "6.6"), or '' for the noun alone. `n` still picks the form.
+ * Passing the formatted string to t() or tn() would pick no plural form at all.
  */
 export function tnShown(one, other, n, shown, ...rest) {
   const forms = dict[other]

@@ -1,0 +1,26 @@
+/* Plan on the stage (PlanScreen.jsx, board Tr3Plan). StagePage gives the nav bar, the large title
+   and the air above the tab bar; the page's blocks sit in one 16px gutter, 12px apart. Nothing
+   here clips, so focus rings show whole. */
+.plan-page { padding: 12px 16px 0; display: flex; flex-direction: column; gap: 12px; }
+.plan-page .g-sempty-card { margin: 0; }
+.plan-page .g-ssec { padding-inline: 4px; }
+.plan-loop, .plan-also, .plan-volume { display: flex; flex-direction: column; gap: 12px; }
+.plan-line { margin: 0; padding-inline: 4px; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.plan-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* The loop's editor: GlassList's rows in a glass card that does not clip, with a minus at the
+   start and the move buttons and handle at the end */
+.plan-editor { border-radius: 28px; padding-bottom: 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.plan-editor-list > * + * { border-top: 1px solid var(--glass-line); }
+.plan-editor-list [data-reorder-row] { transition: transform 160ms ease; }
+.plan-erow { cursor: default; gap: 10px; }
+.plan-erow-minus, .plan-erow-btn { appearance: none; border: 0; flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); color: var(--on-stage); cursor: pointer; }
+.plan-erow-minus .g-icon, .plan-erow-btn .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
+.plan-erow-btn:disabled { opacity: .35; cursor: default; }
+.plan-erow-moves { display: inline-flex; gap: 4px; }
+.plan-erow-handle { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.plan-erow-handle:active { cursor: grabbing; }
+.plan-erow-n { font: 700 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
+.plan-editor-foot { padding: 12px 16px 0; }
+.plan-erow-minus:focus-visible, .plan-erow-btn:focus-visible { outline-color: var(--on-stage); }
+@media (prefers-reduced-motion: reduce) { .plan-editor-list [data-reorder-row] { transition: none; } }

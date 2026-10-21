@@ -2,6 +2,7 @@
 // BodyMap (design system): the app's geometry in the stage's or a light surface's shades.
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import BodyMap from './BodyMap.jsx'
+import { MUSCLES } from '../lib/muscles.js'
 import { useView } from './render.test-util.js'
 import { act } from 'react'
 
@@ -45,7 +46,74 @@ describe('BodyMap', () => {
     expect(view.host.firstElementChild.className).toContain('g-bmap')
   })
 
+  it('with onMuscle every muscle is a button, named, pressed when selected, and the map is a group', async () => {
+    const onMuscle = vi.fn()
+    await shown({ onMuscle, selected: 'chest', label: 'Muscle map' })
+    expect(view.host.querySelector('svg').getAttribute('role')).toBe('group')
+    expect(view.host.querySelector('svg').getAttribute('aria-hidden')).toBeNull()
+    const chest = [...view.host.querySelectorAll('[role="button"]')].filter(p => p.getAttribute('aria-label') === 'Chest')
+    expect(chest.length).toBeGreaterThan(0)
+    expect(chest[0].getAttribute('aria-pressed')).toBe('true')
+    expect(chest[0].tabIndex).toBe(0)
+    act(() => { chest[0].dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    expect(onMuscle).toHaveBeenCalledWith('chest')
+    const biceps = view.host.querySelector('[aria-label="Biceps"]')
+    expect(biceps.getAttribute('aria-pressed')).toBe('false')
+    act(() => { biceps.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+    expect(onMuscle).toHaveBeenLastCalledWith('biceps')
+  })
+
+  it('without onMuscle the muscles are plain shapes', async () => {
+    await shown({})
+    expect(view.host.querySelector('[role="button"]')).toBeNull()
+  })
+
   it('refuses a tone the design system does not have, in development', () => {
     expect(() => view.render(<BodyMap tone="dark" />)).toThrow(/tone="dark"/)
+  })
+
+  it('hands a tapped muscle to onMuscle, without adding tab stops', async () => {
+    const onMuscle = vi.fn()
+    await shown({ onMuscle })
+    const chest = view.host.querySelector('path[data-muscle="chest"]')
+    expect(chest.classList.contains('g-bm-tap')).toBe(true)
+    expect(chest.hasAttribute('tabindex')).toBe(false)
+    act(() => { chest.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    expect(onMuscle).toHaveBeenCalledWith('chest')
+  })
+
+  it('draws plain muscles without onMuscle', async () => {
+    await shown({})
+    expect(view.host.querySelector('path[data-muscle]')).toBeNull()
+    expect(view.host.querySelector('.g-bm-tap')).toBeNull()
+  })
+
+  // Every path used to be a tab stop: 116 on By muscle, a muscle's name read up to 16 times
+  // (docs/audits/gains-train-review.md #11).
+  it('with a label the map is one tab stop, one button per muscle, and the arrows walk the muscles', async () => {
+    const onMuscle = vi.fn()
+    await shown({ onMuscle, selected: 'chest', label: 'Muscle map' })
+    const stops = [...view.host.querySelectorAll('[tabindex="0"]')]
+    expect(stops.map(p => p.getAttribute('data-muscle'))).toEqual(['chest'])
+    const buttons = [...view.host.querySelectorAll('[role="button"]')].map(p => p.getAttribute('data-muscle'))
+    expect(new Set(buttons).size).toBe(buttons.length)
+    // Every other shape of a muscle is a pointer target only.
+    const extra = [...view.host.querySelectorAll('path[data-muscle="chest"]')].filter(p => !p.hasAttribute('role'))
+    expect(extra.length).toBeGreaterThan(0)
+    expect(extra.every(p => p.getAttribute('aria-hidden') === 'true' && !p.hasAttribute('tabindex'))).toBe(true)
+
+    const chest = stops[0]
+    act(() => chest.focus())
+    act(() => { chest.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })) })
+    const next = document.activeElement
+    expect(next.getAttribute('role')).toBe('button')
+    const order = MUSCLES.filter(m => buttons.includes(m))
+    expect(next.getAttribute('data-muscle')).toBe(order[(order.indexOf('chest') + 1) % order.length])
+    expect(next.tabIndex).toBe(0)
+    expect(chest.tabIndex).toBe(-1)
+    act(() => { next.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+    expect(onMuscle).toHaveBeenLastCalledWith(next.getAttribute('data-muscle'))
+    act(() => { next.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })) })
+    expect(document.activeElement).toBe(chest)
   })
 })

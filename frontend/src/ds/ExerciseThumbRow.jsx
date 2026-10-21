@@ -1,3 +1,4 @@
+import ExerciseStillImg from '../components/ExerciseStillImg.jsx'
 import Icon from '../components/Icon.jsx'
 import { cx } from '../lib/ui-kit.js'
 import Act from './Act.jsx'
@@ -8,18 +9,21 @@ import Act from './Act.jsx'
 // (the dumbbell tile without a picture is 52, or 40 when small). `first={false}` adds the rule
 // above. A row is a link or a button only with `href` or `onClick`, and then ends in a chevron
 // unless `trailing` says otherwise. WorkoutCard's exercise lines are its own (they sit in that
-// card's padding and read bigger), so they are not this.
-export default function ExerciseThumbRow({ image, size = 52, title, sub, href, onClick, trailing, first = true, tone = 'light' }) {
+// card's padding and read bigger), so they are not this. `pressed` makes a button row a toggle (a
+// picker that takes several: the row says whether it is chosen). The picture is `image` (a url) or
+// `stillId` (an exercise id, drawn by ExerciseStillImg, so a custom exercise shows its own).
+export default function ExerciseThumbRow({ image, stillId, size = 52, title, sub, href, onClick, trailing, first = true, tone = 'light', pressed }) {
   const tap = !!(href || onClick)
+  const placeholder = <span className="g-xrow-ph"><Icon name="dumbbell" className="g-icon" /></span>
   const kids = (
     <>
-      {image
-        ? <img src={image} alt="" width={size} height={size} loading="lazy" />
-        : <span className="g-xrow-ph"><Icon name="dumbbell" className="g-icon" /></span>}
+      {stillId
+        ? <ExerciseStillImg id={stillId} size={size} fallback={placeholder} />
+        : image ? <img src={image} alt="" width={size} height={size} loading="lazy" /> : placeholder}
       <span className="g-xrow-b"><b>{title}</b>{sub && <span>{sub}</span>}</span>
       {trailing ?? (tap && <Icon name="chevronRight" className="g-icon g-xrow-chev" />)}
     </>
   )
   const className = cx('g-xrow', tone === 'stage' && 'g-xrow-stage', size <= 44 && 'g-xrow-sm', !first && 'g-xrow-line')
-  return tap ? <Act href={href} onClick={onClick} className={className}>{kids}</Act> : <div className={className}>{kids}</div>
+  return tap ? <Act href={href} onClick={onClick} className={className} pressed={pressed}>{kids}</Act> : <div className={className}>{kids}</div>
 }

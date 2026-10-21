@@ -41,8 +41,7 @@ const interactive = node => {
 // it. `onClick` makes the whole row a keyboard-reachable role=button; such a row must hold no
 // button, link or field of its own (a control inside a button is unreachable for a screen reader),
 // and in development it warns when it does. A row that holds a control of its own takes `onOpen`
-// instead: the title and subtitle become one real button (.item-open, RoutineEdit.jsx's exercise
-// name), so the text block opens the row and the control beside it stays reachable. `openProps`
+// instead: the title and subtitle become one real button (.item-open), so the text block opens the row and the control beside it stays reachable. `openProps`
 // (aria-busy, aria-disabled, a label) go on that button, which keeps its role and focus.
 export function ItemRow({ lead, title, subtitle, trailing, chevron = false, onClick, onOpen, openProps, className, titleClassName, subtitleClassName, ...rest }) {
   if (import.meta.env.DEV && onClick && onOpen) throw new Error('ItemRow: onClick (the row) or onOpen (its text), not both')

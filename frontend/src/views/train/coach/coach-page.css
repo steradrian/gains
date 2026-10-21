@@ -1,0 +1,87 @@
+/* The Coach page on the stage (board T11.0): this week's suggestions as toggle rows, the Check in
+   button, the thread of ChatBubbles with the proposal cards on glass, and the composer at the foot.
+   Logical properties throughout, so RTL mirrors it. No overflow on the thread or the rows, so a
+   focus ring drawn outside a row or a bubble is never clipped. */
+.tco { display: flex; flex-direction: column; gap: 16px; padding: 4px 16px 0; }
+.tco .g-ssec { padding-inline: 4px; }
+
+/* Suggested this week */
+.tco-sugg { display: flex; flex-direction: column; gap: 10px; }
+.tco-lead { margin: 0; padding-inline: 4px; font: 500 15px/20px var(--font-sans); color: var(--on-stage); text-align: start; }
+.tco-meta { margin: 0; padding-inline: 4px; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.tco-warn { color: var(--on-stage); font-weight: 600; }
+.tco-rows { display: flex; flex-direction: column; border-radius: 22px; }
+.tco-chg { appearance: none; border: 0; background: none; font: inherit; color: var(--on-stage); width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-align: start; position: relative; cursor: pointer; transition: opacity 200ms; }
+.tco-chg + .tco-chg::before { content: ""; position: absolute; top: 0; inset-inline: 16px 0; border-top: 1px solid var(--glass-line); }
+.tco-chg:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -2px; border-radius: 22px; }
+.tco-chg.off .tco-chg-body { opacity: .55; }
+.tco-chg.off .tco-chg-body b { text-decoration: line-through; }
+.tco-chg.stale { cursor: default; opacity: .5; }
+.tco-chg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tco-chg-body b { font: 600 16px/21px var(--font-sans); overflow-wrap: anywhere; }
+.tco-chg-body > span { font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); }
+.tco-chg-dim { font-weight: 500; color: var(--on-stage-2); }
+.tco-chg-v { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.tco-chg-v .g-icon { width: 14px; height: 14px; }
+[dir="rtl"] .tco-chg-v .g-icon { transform: scaleX(-1); }
+.tco-chg-stale, .tco-chg-off { font-weight: 600; color: var(--on-stage); }
+.tco-chg-mark { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px var(--glass-line); }
+.tco-chg[aria-checked="true"] .tco-chg-mark { background: var(--on-stage); color: var(--accent-stage-end); box-shadow: none; }
+.tco-chg-mark .g-icon { width: 16px; height: 16px; stroke-width: 2.6; }
+.tco-acts { display: flex; gap: 10px; }
+.tco-acts .g-btn { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .tco-chg { transition: none; } }
+
+/* Check in, a glass button; "Checked in" once this week has one */
+.tco-checkin { appearance: none; border: 0; font: 600 16px/20px var(--font-sans); color: var(--on-stage); min-height: 48px; border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; cursor: pointer; }
+.tco-checkin .g-icon { width: 20px; height: 20px; }
+.tco-checkin:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+
+/* The thread */
+.tco-thread { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+.tco-foot { margin: -4px 8px 0; font: 500 12px/16px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.tco-eta { margin: -2px 8px 0; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.tco-typing { display: inline-flex; align-items: center; gap: 5px; padding-block: 4px; }
+.tco-typing i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: tco-typing 1.2s infinite ease-in-out; }
+.tco-typing i:nth-child(2) { animation-delay: .15s; }
+.tco-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes tco-typing { 0%, 80%, 100% { transform: translateY(0); opacity: .45; } 40% { transform: translateY(-4px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tco-typing i { animation: none; } }
+
+/* A proposal card on glass: the cards keep their own parts (coach.css .pcard, .ins, .deb, .recap)
+   and read the stage's colours through the app tokens they use. */
+.tco-card {
+  --label: var(--on-stage); --label-2: var(--on-stage-2); --label-3: var(--on-stage-2);
+  --surface: transparent; --surface-2: var(--glass-track); --surface-3: var(--glass-track);
+  --sep: var(--glass-line); --sep-op: transparent; --acc: var(--on-stage); --acc-ink: var(--on-stage);
+  --acc-soft: var(--glass-track); --bg: var(--accent-stage-end); --on-acc: var(--accent-stage-end);
+  --yellow-ink: var(--on-stage); --green-ink: var(--on-stage); --red-ink: var(--on-stage);
+  border-radius: 22px; color: var(--on-stage); text-align: start;
+}
+.tco-card .pcard { background: none; border: 0; }
+.tco-card .pcard-ft { flex-direction: row; }
+.tco-card .pcard-ft .g-btn { flex: 1; }
+.tco-card .recap { background: none; border: 0; width: 100%; color: inherit; text-align: start; }
+.tco-card .recap:focus-visible, .tco-card .pcard-tab:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -2px; }
+.tco-card > .tco-foot { margin: 0; padding: 0 18px 14px; }
+
+/* The composer, at the foot of the page */
+.tco-composer { position: sticky; bottom: 0; padding: 12px 16px calc(12px + var(--sab, 0px)); display: flex; flex-direction: column; gap: 8px; }
+.tco-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px; margin: -4px; }
+.tco-chips::-webkit-scrollbar { display: none; }
+.tco-chip { appearance: none; border: 0; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 18px; font: 600 14px/18px var(--font-sans); color: var(--on-stage); cursor: pointer; }
+.tco-chip .g-icon { width: 16px; height: 16px; }
+.tco-chip:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+.tco-composer-in { display: flex; gap: 8px; align-items: flex-end; }
+.tco-composer-in textarea { flex: 1; min-width: 0; resize: none; box-sizing: border-box; min-height: 48px; max-height: 140px; padding: 13px 16px; border: 0; border-radius: 24px; background: var(--on-stage); color: var(--accent-stage-end); font: 500 16px/22px var(--font-sans); text-align: start; }
+.tco-composer-in textarea:disabled { opacity: .6; }
+.tco-composer-in textarea:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+.tco-send { appearance: none; border: 0; flex: none; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--on-stage); color: var(--accent-stage-end); cursor: pointer; }
+.tco-send .g-icon { width: 22px; height: 22px; stroke-width: 2.4; }
+.tco-send:disabled { opacity: .4; cursor: default; }
+.tco-send:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+.tco-cap { text-align: center; font: 500 12px/16px var(--font-sans); color: var(--on-stage-2); }
+
+/* The check-in drawer's second label (the first question is the line above its chips) */
+.tco-dlabel { margin: 18px 0 8px; font: 600 15px/20px var(--font-sans); color: var(--text-2); }
+.g-bs-body .g-cgroup + .g-tfield { margin-top: 18px; }

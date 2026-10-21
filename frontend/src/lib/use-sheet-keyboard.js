@@ -87,6 +87,16 @@ export function revealChip(strip, chip, pad = 16) {
   return true
 }
 
+// The same for the design system's ChipGroup (`scroll`), which holds no ref of its own: `wrapRef` is
+// the element around it.
+export function useRevealActiveGroupChip(wrapRef, active) {
+  useEffect(() => {
+    const strip = wrapRef.current?.querySelector?.('.g-cgroup-scroll')
+    const chip = strip?.querySelector?.('.g-cchip.on')
+    if (chip) revealChip(strip, chip)
+  }, [wrapRef, active])
+}
+
 export function useRevealActiveChip(stripRef, active) {
   useEffect(() => {
     const strip = stripRef.current

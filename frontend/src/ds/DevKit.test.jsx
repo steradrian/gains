@@ -66,6 +66,22 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-gtabbar')).toHaveLength(4)
   })
 
+  it('renders the Train charts kit, and a day opens from the heatmap and the month', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StatTiles', 'LineChart', 'BarChart', 'Heatmap', 'MonthGrid']))
+    // Three here, and the Week page's two (Shared: week)
+    expect(view.host.querySelectorAll('.g-stats')).toHaveLength(5)
+    expect(view.host.querySelectorAll('.g-lc')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-bars-card')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-heat')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-mg')).toHaveLength(2)
+    act(() => { view.host.querySelector('.g-heat button.g-heat-c').click() })
+    expect(view.host.textContent).toMatch(/Opened: 2026-w\d+-d\d/)
+    act(() => { view.host.querySelector('.g-mg button.g-mg-cell').click() })
+    expect(view.host.textContent).toContain('Opened: 2026-10-01')
+  })
+
   it('renders the StageWeekMarks entry', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
@@ -110,6 +126,89 @@ describe('DevKit', () => {
     expect(all('.g-nrow-new')).toHaveLength(3)
   })
 
+  it('renders the Train pushed-page kit', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StagePage', 'GlassValueRow', 'StageSegmented', 'RadioRow', 'ChipGroup']))
+    expect(view.host.querySelectorAll('.g-kit-page .g-screen-pushed')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-kit-page .g-spage-title')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-gvr')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-gvr-static')).toHaveLength(1)
+    expect(view.host.querySelectorAll('.g-sseg[role="radiogroup"]')).toHaveLength(3)
+    // The Day page's RadioRows (Shared: day) come after the Shared: pages heading.
+    const sections = [...view.host.querySelectorAll('.g-kit-sec')]
+    const train = sections.slice(0, sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: pages'))
+    expect(train.flatMap(s => [...s.querySelectorAll('.g-radio')])).toHaveLength(6)
+    expect(view.host.querySelectorAll('.g-cgroup')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-cgroup-stage')).toHaveLength(2)
+  })
+
+  it('renders the routines kit: the sets table, as a summary row and as a row a set', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('SetTable')
+    const tables = view.host.querySelectorAll('.g-sett')
+    expect(tables).toHaveLength(2)
+    expect(tables[0].querySelectorAll('[role="row"]')).toHaveLength(2)
+    expect(tables[1].querySelectorAll('[role="row"]')).toHaveLength(4)
+    expect(tables[1].querySelectorAll('.g-sett-rmbtn')).toHaveLength(3)
+  })
+
+  it('renders the routine editor kit: the exercise rows, one in reorder mode, and a superset', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['RoutineExerciseRow', 'SupersetGroup']))
+    expect(view.host.querySelectorAll('.g-rx')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-rx-btn')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ssg .g-rx')).toHaveLength(2)
+    expect(view.host.querySelector('button.g-ssg-h')).not.toBeNull()
+  })
+
+  it('renders the Train exercises kit: the search field and the filter chips', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageSearchField', 'Chip']))
+    expect(view.host.querySelectorAll('.g-ssf')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ssf-close')).toHaveLength(1)
+    expect(view.host.querySelectorAll('.g-fchip')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-fchip-caret')).toHaveLength(2)
+  })
+
+  it('renders the Train coach kit, the switch turns and the stepper counts', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageSwitch', 'BigStepper']))
+    const switches = view.host.querySelectorAll('.g-sswitch')
+    expect(switches).toHaveLength(2)
+    expect(switches[0].getAttribute('aria-checked')).toBe('true')
+    act(() => { switches[0].click() })
+    expect(view.host.querySelectorAll('.g-sswitch')[0].getAttribute('aria-checked')).toBe('false')
+    expect(view.host.querySelectorAll('.g-bstep')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-bstep-stage')).toHaveLength(1)
+    act(() => { view.host.querySelector('.g-bstep button[aria-label="More 25 kg plates"]').click() })
+    expect(view.host.querySelector('.g-bstep-v b').textContent).toBe('3')
+  })
+
+  it('renders the chat bubbles, the Coach’s on glass and yours in white', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('ChatBubble')
+    expect(view.host.querySelectorAll('.g-bubble-them')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-bubble-me')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-bubble-error')).toHaveLength(1)
+  })
+
+  it('renders the Train plan kit, and a tapped day says which', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['PlanWeekGrid', 'LoopStrip', 'VolumeBars']))
+    expect(view.host.querySelectorAll('.g-pcell')).toHaveLength(14)
+    expect(view.host.querySelectorAll('.g-loop')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-vbar')).toHaveLength(8)
+    act(() => { view.host.querySelector('.g-pcell-missed').click() })
+    expect(view.host.textContent).toContain('Tapped: 2026-10-16')
+  })
+
   // Shared: week
   it('renders the Week page entries', () => {
     view.render(<DevKit />)
@@ -119,8 +218,11 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-swc-cell')).toHaveLength(28)
     expect(view.host.querySelectorAll('.g-w4')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-w4-cell.on')).toHaveLength(2)
-    expect(view.host.querySelectorAll('.g-stats')).toHaveLength(2)
-    expect(view.host.querySelectorAll('.g-stats-stage .g-stat')).toHaveLength(4)
+    // The Train charts kit has its own StatTiles above, so read from the Week heading down.
+    const sections = [...view.host.querySelectorAll('.g-kit-sec')]
+    const week = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: week'))
+    expect(week.flatMap(s => [...s.querySelectorAll('.g-stats')])).toHaveLength(2)
+    expect(week.flatMap(s => [...s.querySelectorAll('.g-stats-stage .g-stat')])).toHaveLength(4)
   })
 
   // Shared: day
@@ -130,7 +232,10 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining(['StageDayRail on a Day page', 'DayStatusCard', 'DayFoodCard', 'RadioRow']))
     expect(view.host.querySelectorAll('.g-dstat')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-dfood')).toHaveLength(2)
-    expect(view.host.querySelectorAll('.g-radio')).toHaveLength(3)
+    // The Day page's three, below its first entry (the Train pushed-page kit has its own).
+    const sections = [...view.host.querySelectorAll('.g-kit-sec')]
+    const day = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'StageDayRail on a Day page'))
+    expect(day.flatMap(s => [...s.querySelectorAll('.g-radio')])).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-rd[disabled]')).toHaveLength(2)
   })
 })

@@ -20,6 +20,7 @@ import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
 import { haptic as buzz } from '../lib/use-haptic.js'
+import { whenSheetGone } from '../lib/nav.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
 import HapticSwitch, { isHapticSwitchTarget } from '../ds/HapticSwitch.jsx'
 
@@ -378,6 +379,8 @@ export function SelectRow({ icon, iconTint, title, value, options, onChange, she
 
 // SelectRow's sheet on its own, for a picker opened from something other than a row (the
 // Strength page's exercise card): the options with a check on `value`, and `search` to filter.
+// `onChange` runs once the sheet's history entry is walked off (lib/nav.js whenSheetGone), so a
+// choice that rewrites the address (Strength's `?ex=`) does not overwrite that entry instead.
 export function selectSheet({ title, value, options, onChange, search }) {
   const { openSheet } = require_ui()
   return openSheet(close => <SelectSheet title={title} value={value} options={options} onChange={onChange} search={search} close={close} />)
@@ -457,7 +460,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
       </div>}
       <div className="sect-b">
         {visible.map((o, index) => (
-          <button key={o.value} ref={index === 0 ? firstVisibleRef : undefined} className="lrow tap" onClick={() => { close(); onChange(o.value) }}>
+          <button key={o.value} ref={index === 0 ? firstVisibleRef : undefined} className="lrow tap" onClick={() => { close(); whenSheetGone(() => onChange(o.value)) }}>
             <span className="lrow-m"><span className="lrow-t">{o.label}</span>
               {o.subtitle && <span className="lrow-s">{o.subtitle}</span>}</span>
             {o.value === value && <Icon name="check" className="lrow-k" />}
