@@ -262,6 +262,18 @@ describe('How to (W1.14, W1.33, W1.34, W1.43)', () => {
     expect(A().entries.map(e => e.id)).toEqual([BENCH, FLY])
   })
 
+  // old Workout.remove.test.jsx:87: removal is out of reach for the whole duration of a timed hold
+  it('offers no Remove row while a hold runs, and gives it back when the hold ends', () => {
+    seed([lift(BENCH, [row()]), lift(FLY, [row()])])
+    howToSheet(0)
+    const removeRow = () => [...top().querySelectorAll('.g-drow')].find(r => r.textContent.includes('Remove from this workout'))
+    expect(removeRow()).toBeTruthy()
+    act(() => useUI.getState().startWork(30, 'Hold', vi.fn()))
+    expect(removeRow()).toBeUndefined()
+    act(() => useUI.getState().stopWork())
+    expect(removeRow()).toBeTruthy()
+  })
+
   it('opens Exercise settings with Part of the workout, closing How to first', () => {
     seed([lift(BENCH, [row()]), lift(FLY, [row()])])
     howToSheet(1)

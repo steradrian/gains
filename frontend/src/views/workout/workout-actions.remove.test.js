@@ -89,9 +89,8 @@ describe('removing an exercise under a running timer', () => {
     expect(useUI.getState().timer).not.toBeNull()
   })
 
-  // old :87: the old Remove button was disabled for the whole hold. removeActiveExercise stops the
-  // hold instead; whether How to's "Remove from this workout" row is disabled is not decided.
-  it.todo('disables removal for the whole duration of a timed hold (old Workout.remove.test.jsx:87): How to\'s Remove row has no such rule; decide, then test in exercise-drawers.test.jsx')
+  // old :87: while a hold runs How to offers no Remove row (exercise-drawers.test.jsx 'offers no
+  // Remove row while a hold runs'); removeActiveExercise itself stops the hold, for the other callers.
 })
 
 describe('removing an exercise: edge cases', () => {
