@@ -16,6 +16,6 @@ const systemDark = () => !!window.matchMedia?.(QUERY).matches
 /** The resolved mode the page is drawn in, following the setting and, for 'system', the OS. */
 export function useColorMode() {
   const theme = useStore(s => s.S.theme)
-  const dark = useSyncExternalStore(subscribe, systemDark)
+  const dark = useSyncExternalStore(subscribe, systemDark, () => false)
   return resolveMode(theme, dark)
 }

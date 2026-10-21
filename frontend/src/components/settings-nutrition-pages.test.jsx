@@ -589,7 +589,8 @@ describe('the Nutrition group, the search and Features', () => {
     expect(searchSettings('emoji', web, tr).map(h => h.title)).toContain('Add a category')
     expect(searchSettings('scoop', web, tr).map(h => h.title)).toContain('Add a custom unit')
     expect(searchSettings('barcode', web, tr).map(h => h.title)).toContain('Beep when a barcode scans')
-    expect(searchSettings('water', { ...web, nutrition: false }, tr)).toEqual([])
+    // "water" still finds the Watermelon accent, but no nutrition page.
+    expect(searchSettings('water', { ...web, nutrition: false }, tr).filter(h => h.page !== 'appearance')).toEqual([])
   })
 
   it('hides the rows that depend on another switch, as the page does', () => {
