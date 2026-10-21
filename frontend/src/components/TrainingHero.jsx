@@ -4,20 +4,15 @@ import { t, tn } from '../lib/i18n.js'
 import { durPart, exCount, fmtDate, todayISO, DAYN } from '../lib/format.js'
 import { workoutDuration } from '../lib/history.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { nameOf, trainingDay, workoutLabel } from '../lib/training-day.js'
+import { nameOf, trainingDay } from '../lib/training-day.js'
 import { dayOverrideSheet, menuSheet, workoutDetailSheet } from '../sheets.jsx'
 import Elapsed from './Elapsed.jsx'
 import Icon from './Icon.jsx'
 import { HeroStatus } from './tab-kit.jsx'
+import { workoutsSheet } from '../views/train/workouts-sheet.js'
 
 // A workout's line: how long it took and its PRs, whichever it has.
 const workoutLine = w => [...durPart(workoutDuration(w)), ...(w.prs?.length ? [tn('{0} PR', '{0} PRs', w.prs.length)] : [])].join(' · ') || null
-
-/** A day's logged workouts: the one's detail, or a list of them to pick from. */
-export function workoutsSheet(title, workouts) {
-  if (workouts.length === 1) { workoutDetailSheet(workouts[0]); return }
-  menuSheet({ title, items: workouts.map(w => ({ icon: 'checkCircle', label: workoutLabel(w), sub: workoutLine(w), onClick: () => workoutDetailSheet(w) })) })
-}
 
 // The training status of the selected day (ux-redesign-tabs §1.1): what it says, and the link to
 // the day's workout where there is one.

@@ -132,6 +132,7 @@ describe('the card', () => {
     const card = cardOf(S({ active }), TODAY, TODAY)
     expect(card).toMatchObject({ kind: 'running', eyebrow: 'In progress', since: active.start, title: 'Push A' })
     expect(card.sub).toMatch(/^1 of 2 exercises · 2 sets · next: /)
+    expect(card.progress).toBe(0.5)
     expect(card.primary.intent).toBe('resume')
     expect(runningLine({ entries: [] })).toBeNull()
   })
@@ -146,6 +147,7 @@ describe('the card', () => {
     const card = cardOf(S({ workouts: [done] }), TODAY, TODAY)
     expect(card).toMatchObject({ kind: 'done', eyebrow: 'Workout done', title: 'Push A', sub: '52 min · 3 sets · 1,440 kg · 2 new bests' })
     expect(card.primary).toMatchObject({ intent: 'see-workout', label: 'See workout', workouts: [done] })
+    expect(card.thumbs).toEqual(done.entries.map(() => expect.stringContaining('.webp')))
     expect(finishedLine({ entries: [], prs: [] }, 'kg')).toBeNull()
   })
 
@@ -156,17 +158,19 @@ describe('the card', () => {
     expect(card.secondary).toEqual([{ intent: 'see-day', label: 'See Sunday', iso: '2026-10-18' }])
   })
 
-  it('T2.3 a planned day this week: read-only exercises, Change this day and See routine, no Start', () => {
+  it('T2.3 a planned day this week: "Mon 19 Oct · planned", its muscles, Change this day and See routine, no Start', () => {
     const card = cardOf(S(), '2026-10-19', TODAY)
-    expect(card).toMatchObject({ kind: 'upcoming', title: 'Legs', chip: 'Planned', primary: null })
-    expect(card.sub).toMatch(/read-only until the day$/)
-    expect(card.exercises).toEqual([expect.objectContaining({ id: '0025', line: expect.stringContaining('3 × 8') })])
+    expect(card).toMatchObject({ kind: 'upcoming', title: 'Legs', chip: null, primary: null, eyebrow: fmtDate('2026-10-19', true) + ' · planned' })
+    expect(card.sub).not.toMatch(/read-only/)
+    expect(card.sub).toMatch(/1 exercise/)
+    expect(card.exercises).toEqual([expect.objectContaining({ id: '0025', line: expect.stringContaining('3 × 8'), image: expect.stringContaining('.webp') })])
     expect(card.secondary).toEqual([{ intent: 'change-day', label: 'Change this day', iso: '2026-10-19' }, { intent: 'see-routine', label: 'See routine', id: 'legs' }])
   })
 
   it('T2.14 a later week: the same, with Edit routine; a day with nothing planned is free', () => {
     const card = cardOf(S(), '2026-10-25', TODAY)
-    expect(card).toMatchObject({ kind: 'future', title: 'Push A', chip: 'Planned', primary: null })
+    expect(card).toMatchObject({ kind: 'future', title: 'Push A', chip: 'Planned', primary: null, eyebrow: fmtDate('2026-10-25', true) })
+    expect(card.sub).toMatch(/read-only until the day$/)
     expect(card.secondary[1]).toEqual({ intent: 'see-routine', label: 'Edit routine', id: 'push' })
     expect(cardOf(S(), '2026-10-20', TODAY)).toMatchObject({ kind: 'free', title: 'Rest day', primary: null, secondary: [{ intent: 'change-day' }] })
   })
@@ -189,7 +193,9 @@ describe('routines', () => {
     expect(rows[0]).toMatchObject({ sub: '2 exercises · Sun', inPlan: true, today: true })
     expect(rows[2].sub).toBe('1 exercise · Mon, Fri')
     expect(rows[3]).toMatchObject({ sub: '1 exercise', inPlan: false })
-    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go' })
+    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', thumbs: [] })
+    expect(rows[0].thumbs).toHaveLength(2)
+    expect(rows[0].thumbs[0]).toMatch(/\.webp$/)
   })
 
   it('in rotation mode a routine has no weekday to show', () => {

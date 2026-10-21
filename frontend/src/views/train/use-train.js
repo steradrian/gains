@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
+import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
+import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
+import { addRoutine } from '../Plan.jsx'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
 import { canNoteDay, dayNoteOf } from '../../lib/day-notes.js'
 import { DEMO } from '../../lib/demo.js'
 import { activeProfile } from '../../lib/equipment.js'
-import { exOr } from '../../lib/exercises.js'
+import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
 import { durPart, exCount, exerciseNameText, fmtDate, fmtNum, isoOf, startOfWeek, weekKey, weekOrder, weekStartOf } from '../../lib/format.js'
 import { doneUnits, effectiveRoutineIds, exLine, setUnits, setsDone, setsDoneActive, streakWeeks, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
 import { firstWorkoutDay, missedDay, movePlan, moveToToday, plusDays, skipMissed } from '../../lib/missed-day.js'
@@ -16,9 +21,9 @@ import { queueOf } from '../../lib/queue.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
-import { dayNoteSheet, dayOverrideSheet, logPastWorkoutSheet, starterPlanSheet, startFlow } from '../../sheets.jsx'
-import { workoutsSheet } from '../../components/TrainingHero.jsx'
+import { dayNoteSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
+import { workoutsSheet } from './workouts-sheet.js'
 
 // T2.14: the rail reaches eight weeks past this one.
 export const RAIL_AHEAD = 8
@@ -142,10 +147,26 @@ const intent = {
   note: iso => ({ intent: 'add-note', label: t('Add a note'), iso }),
 }
 
-/** A planned exercise as a read-only row: "Barbell full squat", "4 × 5 · 100 kg". */
+/** A catalogue exercise's still, or null (a custom one's picture lives in the local media store). */
+export function pictureOf(S, id) {
+  const ex = exOr(id)
+  return ex?.img && !isCustomEx(ex) ? imgSrc(ex, figureOf(S)) : null
+}
+
+/** A planned exercise as a read-only row: "Barbell full squat", "4 × 5 · 100 kg", its still. */
 const exerciseRows = (S, routines) => routines.flatMap(r => (r.ex || []).map(cfg => ({
-  id: cfg.id, name: exerciseNameText(exOr(cfg.id)), line: exLine(cfg, S.unit, S.speedUnit),
+  id: cfg.id, name: exerciseNameText(exOr(cfg.id)), line: exLine(cfg, S.unit, S.speedUnit), image: pictureOf(S, cfg.id),
 })))
+
+// A logged workout's exercises as stills, for the card's stack.
+const stillsOf = (S, w) => (w.entries || []).map(e => pictureOf(S, e.id))
+
+// How far a session is: the exercises with every set ticked, of all of them (0–1), or null.
+const progressOf = active => {
+  const entries = active?.entries || []
+  if (!entries.length) return null
+  return entries.filter(e => e.sets?.length && e.sets.every(s => doneUnits(s) === setUnits(s))).length / entries.length
+}
 
 // "Chest, shoulders, triceps": the three muscles a day's routines work most.
 const musclesLine = routines => {
@@ -193,7 +214,7 @@ export function finishedLine(w, unit) {
  * intent, `secondary` and `menu` (the ⋯) lists of them.
  */
 export function cardOf(S, iso, today) {
-  const card = { iso, eyebrow: null, title: '', sub: null, since: null, chip: null, exercises: null, primary: null, secondary: [], menu: [] }
+  const card = { iso, eyebrow: null, title: '', sub: null, since: null, progress: null, chip: null, exercises: null, thumbs: null, primary: null, secondary: [], menu: [] }
   const noteable = canNoteDay(iso, today) && !dayNoteOf(S, iso) && !S.workouts.some(w => workoutDay(w) === iso)
   const dayMenu = [intent.changeDay(iso), noteable && intent.note(iso)].filter(Boolean)
 
@@ -202,9 +223,13 @@ export function cardOf(S, iso, today) {
     const date = fmtDate(iso, true)
     if (!routines.length) return { ...card, kind: 'free', eyebrow: date, title: t('Rest day'), secondary: [intent.changeDay(iso)] }
     const later = iso >= railWeekStart(today, 1)
+    // T2.3 (this rail week) reads like today's card; T2.14 (a later week) lists what is in it.
     return {
-      ...card, kind: later ? 'future' : 'upcoming', eyebrow: date, chip: t('Planned'), title: nameOf(routines),
-      sub: [exCount(exercisesIn(routines)), about(S, routines), t('read-only until the day')].filter(Boolean).join(' · '),
+      ...card, kind: later ? 'future' : 'upcoming', title: nameOf(routines),
+      eyebrow: later ? date : t('{0} · planned', date), chip: later ? t('Planned') : null,
+      sub: (later
+        ? [exCount(exercisesIn(routines)), about(S, routines), t('read-only until the day')]
+        : [musclesLine(routines), exCount(exercisesIn(routines)), about(S, routines)]).filter(Boolean).join(' · '),
       exercises: exerciseRows(S, routines),
       secondary: [intent.changeDay(iso), intent.routine(routines[0].id, later)],
     }
@@ -214,15 +239,16 @@ export function cardOf(S, iso, today) {
   const date = iso < today ? fmtDate(iso, true) : null
   switch (day.kind) {
     case 'editing': return {
-      ...card, kind: day.kind, eyebrow: t('Editing a saved workout'), title: day.active.name, sub: runningLine(day.active), primary: intent.resume(),
+      ...card, kind: day.kind, eyebrow: t('Editing a saved workout'), title: day.active.name, sub: runningLine(day.active),
+      progress: progressOf(day.active), primary: intent.resume(),
     }
     case 'running': return {
       ...card, kind: day.kind, eyebrow: t('In progress'), since: day.live ? day.active.start : null,
-      title: day.active.name, sub: runningLine(day.active), primary: intent.resume(),
+      title: day.active.name, sub: runningLine(day.active), progress: progressOf(day.active), primary: intent.resume(),
     }
     case 'done': return {
       ...card, kind: day.kind, eyebrow: t('Workout done'), title: workoutLabel(day.workout), sub: finishedLine(day.workout, S.unit),
-      primary: intent.seeWorkout([day.workout], t('Today')), menu: [intent.choose(), intent.changeDay(iso)],
+      thumbs: stillsOf(S, day.workout), primary: intent.seeWorkout([day.workout], t('Today')), menu: [intent.choose(), intent.changeDay(iso)],
     }
     case 'planned': return {
       ...card, kind: day.kind, eyebrow: t('Today · planned'), title: day.name,
@@ -240,7 +266,7 @@ export function cardOf(S, iso, today) {
       return {
         ...card, kind: day.kind, eyebrow: date,
         title: one ? workoutLabel(one) : tn('{0} workout', '{0} workouts', day.workouts.length),
-        sub: one ? finishedLine(one, S.unit) : null,
+        sub: one ? finishedLine(one, S.unit) : null, thumbs: one ? stillsOf(S, one) : null,
         primary: intent.seeWorkout(day.workouts, date), menu: [intent.changeDay(iso)],
       }
     }
@@ -273,12 +299,13 @@ export function routineRows(S, today) {
   const days = id => (week ? weekOrder(weekStartOf(S)).filter(wd => [].concat(S.week?.[wd] || []).includes(id)).map(short).join(', ') : '')
   const row = r => ({
     id: r.id, name: r.name, inPlan: scheduled.has(r.id), today: todays.has(r.id), empty: !r.ex?.length,
+    thumbs: (r.ex || []).slice(0, 3).map(cfg => pictureOf(S, cfg.id)),
     sub: [exCount(r.ex?.length || 0), days(r.id)].filter(Boolean).join(' · '),
   })
   const rows = S.routines.map(row)
   return [
     ...rows.filter(r => r.inPlan), ...rows.filter(r => !r.inPlan),
-    { id: null, name: t('Freestyle'), sub: t('Pick exercises as you go'), freestyle: true, inPlan: false, today: false, empty: false },
+    { id: null, name: t('Freestyle'), sub: t('Pick exercises as you go'), thumbs: [], freestyle: true, inPlan: false, today: false, empty: false },
   ]
 }
 
@@ -379,11 +406,13 @@ export function skippedText(S, missed, today) {
 /**
  * Everything Train's root shows (PR02 T2.0 and its states), as data:
  *
- *   { today, selected, select(iso), rail, card(iso = selected), rings, onRing(slide),
- *     actions, onIntent(intent), routines, onRoutine(row), onRoutineStart(row),
- *     musclesThisWeek, more, onMore(row), profile, missed }
+ *   { header, searching, today, selected, select(iso), rail, card(iso = selected), rings,
+ *     onRing(slide), actions, onIntent(intent), onPlan, onDayMenu(card), routines, onRoutine(row), onRoutineStart(row),
+ *     musclesThisWeek, onMuscles, more, onMore(row), profile, setup, missed }
  *
- * `missed` adds `move()` and `skip()`, each returning the toast `{ text, undo }` (UndoToast) or null.
+ * `header` is StageHeader's props. `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
+ * `missed` adds `move()` and `skip()`, each returning the toast `{ text, undo }` (UndoToast) or
+ * null, and `onMove()` / `onSkip()`, which do the same and show that toast.
  * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked.
  */
 export function useTrain() {
@@ -396,6 +425,8 @@ export function useTrain() {
   const [picked, select] = useState(null)
   const selected = picked || today
   const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
+  const connection = useConnectionTrouble()
+  const searching = useSearch(s => s.open)
   const update = mut => useStore.getState().update(mut)
 
   const rail = useMemo(() => railOf(S, today), [S, today])
@@ -406,7 +437,7 @@ export function useTrain() {
     switch (it.intent) {
       case 'start': return start(it.ids)
       case 'resume': case 'choose-workout': return toWorkout()
-      // M3 opens the Start a workout drawer (T2.1); until then the Start screen holds the chooser.
+      // M5 opens the Start a workout drawer (T2.1); until then the Start screen holds the chooser.
       case 'train-anyway': return toWorkout()
       case 'see-workout': return workoutsSheet(it.title, it.workouts)
       case 'see-day': return select(it.iso)
@@ -418,10 +449,25 @@ export function useTrain() {
     }
   }
 
+  const onPlan = () => nav('/train/schedule')
   const todayCard = cardOf(S, today, today)
   const missed = missedOf(S, today, { coach })
+  // T2.12 and T2.13: the app's toast with Undo (8 s).
+  const toast = r => { if (r) useUI.getState().toast(r.text, { action: t('Undo'), onAction: r.undo }) }
+
+  const header = {
+    initial: user?.name || '',
+    placeholder: t('Search training'),
+    alert: connection ? t('Connection problem') : null,
+    onSettings: () => nav('/me'),
+    onBell: () => nav('/me/notifications'),
+    // As on Today: the tab's own header takes over while the search is open, mounted and focused
+    // inside this tap so a phone raises its keyboard.
+    onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('train'))) },
+  }
 
   return {
+    header, searching,
     today, selected, select,
     rail,
     card: (iso = selected) => (iso === today ? todayCard : cardOf(S, iso, today)),
@@ -430,32 +476,37 @@ export function useTrain() {
     onRing: slide => nav(slide?.key === 'streak' ? '/train/schedule' : '/progress/load'),
     actions: [
       { key: 'start', icon: 'play', label: t('Start'), onClick: () => (todayCard.primary?.intent === 'start' || todayCard.primary?.intent === 'resume' ? onIntent(todayCard.primary) : toWorkout()) },
-      { key: 'plan', icon: 'calendar', label: t('Plan'), onClick: () => nav('/train/schedule') },
+      { key: 'plan', icon: 'calendar', label: t('Plan'), onClick: onPlan },
       { key: 'routines', icon: 'list', label: t('Routines'), onClick: () => nav('/train/routines') },
       { key: 'exercises', icon: 'bookOpen', label: t('Exercises'), onClick: () => nav('/train/exercises') },
     ],
     onIntent,
+    onPlan,
+    // The card's ⋯. M5 opens the Day options drawer (T2.2) with the card's `menu` instead.
+    onDayMenu: c => dayOverrideSheet(c.iso),
     routines: routineRows(S, today),
     onRoutine: row => (row.freestyle ? start([]) : nav('/train/routines/' + row.id)),
     onRoutineStart: row => (row.freestyle ? start([]) : row.empty && !S.active ? nav('/train/routines/' + row.id) : start([row.id])),
     musclesThisWeek: musclesThisWeekOf(S, today),
+    onMuscles: () => nav('/progress/load'),
     more: moreOf(S, { coach }),
     onMore: row => (row.action === 'plans' ? starterPlanSheet() : nav(row.to)),
     // No source for other activities yet (lib/health-connect.js only writes): the list is empty.
     profile: profileOf(S),
-    missed: missed && {
-      ...missed,
-      move: () => {
-        const before = S
-        let moved = null
-        update(s => { moved = moveToToday(s, missed.iso, today) })
-        return moved && { text: movedText(before, moved), undo: () => update(s => moved.undo(s)) }
-      },
-      skip: () => {
-        let skipped = null
-        update(s => { skipped = skipMissed(s, missed.iso) })
-        return { text: skippedText(S, missed, today), undo: () => update(s => skipped.undo(s)) }
-      },
-    },
+    // T2.9's three ways in: a ready-made plan, a new routine in the editor, a plan file.
+    setup: { onPlans: () => starterPlanSheet(), onRoutine: addRoutine, onImport: file => importPlanFile(file) },
+    missed: missed && { ...missed, move: moveMissed, skip: skipIt, onMove: () => toast(moveMissed()), onSkip: () => toast(skipIt()) },
+  }
+
+  function moveMissed() {
+    const before = S
+    let moved = null
+    update(s => { moved = moveToToday(s, missed.iso, today) })
+    return moved && { text: movedText(before, moved), undo: () => update(s => moved.undo(s)) }
+  }
+  function skipIt() {
+    let skipped = null
+    update(s => { skipped = skipMissed(s, missed.iso) })
+    return { text: skippedText(S, missed, today), undo: () => update(s => skipped.undo(s)) }
   }
 }
