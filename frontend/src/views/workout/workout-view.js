@@ -310,13 +310,14 @@ export function setFields(S, entry, i, side = null) {
   return { fields: bodyweight ? [reps] : [weight, reps], bodyweight }
 }
 
-const EFFORT_OPTIONS = {
+// Exported for Set edit (exercise-drawers.jsx, Workout drawers-M2).
+export const EFFORT_OPTIONS = {
   rir: () => [{ value: 0, label: t('0 · failure') }, { value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4+' }],
   rpe: () => [6, 7, 8, 9, 10].map(v => ({ value: v, label: String(v) })),
 }
 
 /** "17.5 × 12 · 12 · 11": one past session's sets, the weight said again only when it changes. */
-const sessionLine = (exId, mode, sets, target, speedUnit) => sets.map((s, k) => {
+export const sessionLine = (exId, mode, sets, target, speedUnit) => sets.map((s, k) => {
   if (mode !== 'reps' || !(s.w > 0)) return setLabel(exId, s, target, speedUnit)
   return k && s.w === sets[k - 1].w ? String(s.r || 0) : fmtNum(s.w) + ' × ' + (s.r || 0)
 }).join(' · ')
