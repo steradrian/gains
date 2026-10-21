@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Dumbbells on the running workout (guard-M2a), ported from Workout.dumbbells.test.jsx: what the weight
 // field is called, and + and − walking bell to bell when the dumbbells you own are listed (#376).
 // `setFields` (workout-view.js) is the new screen's field model; `stepFieldAt` (workout-actions.js)

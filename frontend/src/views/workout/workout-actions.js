@@ -29,7 +29,7 @@ import { sessionHistory } from '../../lib/backfill.js'
 import { routineChangesFromEntry, updateRoutineFromEntry, replaceSlotExercise, routineSlotIndex } from '../../lib/routines.js'
 import { swapActiveExercise } from '../../lib/active-exercise-swap.js'
 import { confirmSheet } from '../../sheets/confirm-menu.jsx'
-import { swapReplacement } from '../../sheets/exercise-picker.jsx'
+import { swapReplacement } from '../../lib/swap-replacement.js'
 
 const update = (fn, push = true) => useStore.getState().update(fn, push)
 const activeNow = () => useStore.getState().S.active

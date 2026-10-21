@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Rows that move under a running rest or hold, ported from views/Workout.swipe.test.jsx (guard-M2a).
 // The other swipe cases about removing and copying a set are in workout-actions.test.js
 // ('remove, undo and copy a set'); the gestures themselves are dropped by design (owner question 12:

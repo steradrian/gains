@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // The plate line under a barbell set (workout-view.js plateLineFor), ported from
 // views/Workout.plates.test.jsx (guard-M2a). The old screen drew one line per stack change under
 // every row; the new screen shows one line for the set on screen (and the one being edited) and

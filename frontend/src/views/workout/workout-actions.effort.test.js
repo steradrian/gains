@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Effort ratings and moves, ported from views/Workout.test.jsx:2728-3018 (guard-M2a).
 // The old screen ticked a set when its effort was picked. On the new screen the tick is the Done
 // button and the effort chips belong to the set just done (WorkoutScreen.flow.test.jsx 'effort chips

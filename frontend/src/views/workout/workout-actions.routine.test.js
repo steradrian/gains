@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Update routine, from How to (workout-actions.js routineUpdateAt), ported from
 // views/Workout.test.jsx:3247-3343 (guard-M2a). The first cases of the row are in
 // workout-actions.drawers.test.js ('offers Update routine only when the session differs').
@@ -9,7 +10,7 @@ import { addWarmupAt, routineUpdateAt } from './workout-actions.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn() }))
-vi.mock('../../sheets/confirm-menu.jsx', async importOriginal => ({ ...(await importOriginal()), confirmSheet: vi.fn() }))
+vi.mock('../../sheets/confirm-menu.jsx', () => ({ confirmSheet: vi.fn(), menuSheet: vi.fn() }))
 
 const clone = value => JSON.parse(JSON.stringify(value))
 const BENCH = '0025'

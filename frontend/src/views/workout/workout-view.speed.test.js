@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Cardio speed in mph on the running workout (guard-M2a), ported from Workout.speed.test.jsx: the
 // speed field reads, steps and takes typing in the profile's speed unit, and what it stores is
 // always km/h. The old column head is the field's label (`setFields`, workout-view.js); a tap or a

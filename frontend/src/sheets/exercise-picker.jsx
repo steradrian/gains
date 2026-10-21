@@ -3,8 +3,7 @@ import { useStore } from '../store/useStore.js'
 import { EXIDX, BODYPARTS, allExercises, equipmentOf, byCategory, searchExercises, similarExercises, figureOf } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { fmtNum, exCount } from '../lib/format.js'
-import { buildSets, defaultConfig, modeOf, applyIntensifierPlan } from '../lib/history.js'
-import { dropGrid } from '../lib/plates.js'
+import { defaultConfig } from '../lib/history.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import Icon from '../components/Icon.jsx'
 import BodyMap from '../components/BodyMap.jsx'
@@ -20,14 +19,11 @@ import Tag from '../ds/Tag.jsx'
 import { sameMuscleFirst, swapMuscleOf } from '../lib/similar-exercises.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import { exercisesForMuscle } from '../lib/muscle-explore.js'
-import { dbLoadFor, withMeaning, historyAs, ownedWeightsFor } from '../lib/dumbbells.js'
-import { defaultIncrement, weightIncrement } from '../lib/progression.js'
+import { swapReplacement } from '../lib/swap-replacement.js'
 import { swapActiveExercise } from '../lib/active-exercise-swap.js'
 import { useRevealActiveGroupChip } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import { isFav, sortFavouritesFirst, sortYoursFirst } from '../lib/favourites.js'
-import { buildPlannedEntry, builtOutOfProgression } from '../lib/session-start.js'
-import { sessionHistory } from '../lib/backfill.js'
 import { S, update, ui } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 import { exConfigSheet } from './exercise-config.jsx'
@@ -226,39 +222,6 @@ function ExercisePicker({ onPick, title, close, like, multi, routine, workout })
 // and `onAddRoutine` adds an "Add routine" row above the list, after closing the picker.
 export const exercisePicker = (onPick, { title, like, multi, routine, workout } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} multi={multi} routine={routine} workout={workout} close={close} />, { variant: 'ds' })
 
-/**
- * The entry that takes the place of the active entry `current` when it is swapped for `ex` with
- * `cfg`. The running workout's Swap step (views/workout/workout-actions.js) builds it the same way.
- */
-export function swapReplacement(st, current, ex, cfg) {
-  const full = { ...cfg, id: ex.id }
-  // A swap is an in-place substitution — routine identity is unchanged, so the replacement
-  // keeps the slot's own `rid` and reads its prescription from that routine (not a
-  // session-wide one). A slot with no `rid` is freestyle.
-  const slotRoutine = current.rid ? st.routines.find(r => r.id === current.rid) : null
-  const freestyle = !slotRoutine
-  // Same rows the add flow builds: last time's loads and, in a planned session, the
-  // prescription — swapping barbell for dumbbell bench must not start you at an empty bar.
-  // Built from what came before the session's day when it is logged into the past (sessionHistory).
-  const step = modeOf(full) === 'reps' ? weightIncrement(full, st.unit) : defaultIncrement(ex.id, st.unit)
-  const past = sessionHistory(st)
-  // A freestyle swap logs dumbbell weights the way the exercise means them now, and starts
-  // from last time read in that meaning (lib/dumbbells.js), as a planned one does.
-  const built = freestyle
-    ? { target: withMeaning(st, cfg, ex.id), plan: null, sets: applyIntensifierPlan(buildSets(historyAs(past, ex.id, dbLoadFor(st, full)), full, { step: (modeOf(full) === 'reps' && ownedWeightsFor(st, full)) || step, preferLast: true }), full, dropGrid(st, full)) }
-    : buildPlannedEntry(past, full, slotRoutine, { noProg: builtOutOfProgression(current, slotRoutine) })
-  return {
-    id: ex.id,
-    ...built,
-    ...(current.rid ? { rid: current.rid } : {}),
-    // A slot kept out of progression stays out once swapped. Replaced in place the entry keeps
-    // it anyway; inserted beside logged sets, the replacement would otherwise count as a
-    // regular session of the new exercise. Only a deload or rehab slot is built without a
-    // prescription (above): one kept out by hand keeps the marker and its Undo on the card,
-    // and an Undo must leave numbers that are right to count.
-    ...(current.noProg === true ? { noProg: true } : {}),
-  }
-}
 
 /** Start a safe swap for one exact active-workout occurrence. */
 export function swapActiveWorkoutExercise(index) {

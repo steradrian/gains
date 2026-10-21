@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // What the How to drawer does to the exercise (workout-actions.js, "Workout drawers-M2"): the warm-up
 // row, Don't count for progression, Update routine, the exercise's rest, and Swap with its Undo.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

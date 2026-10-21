@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // writeWorkoutNote: the saved workout's note, trimmed and capped, deleted when empty, stamped only
 // when it changed, and nothing at all for a workout that is gone.
 import { beforeEach, describe, expect, it } from 'vitest'

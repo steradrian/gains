@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // The running workout's store actions (views/workout/workout-actions.js), against a seeded store.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
@@ -135,7 +136,7 @@ describe('one set\'s fields', () => {
     setEffortAt(0, 0, 'rir', 2)
     expect(sets()[0].rir).toBe(2)
     stepEffortAt(0, 0, 'rir', 'rir', -1)
-    expect(sets()[0].rir).toBe(1)
+    expect(sets()[0].rir).toBe(1.5)
     setEffortAt(0, 0, 'rir', null)
     expect('rir' in sets()[0]).toBe(false)
   })

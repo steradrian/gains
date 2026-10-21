@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Treadmill incline on the running workout (guard-M2a), ported from Workout.incline.test.jsx: a third
 // field on the cardio rows that have a grade, stepped and typed in half percents up to 40 and stored
 // on the set. The old column heads and `.stp` cells are `setFields` (workout-view.js, the field model
