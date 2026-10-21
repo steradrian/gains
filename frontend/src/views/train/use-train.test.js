@@ -73,6 +73,15 @@ describe('the rail', () => {
     expect(first.days.slice(0, 3).map(d => d.state)).toEqual(['plain', 'plain', 'done'])
   })
 
+  it('dims the same days the Day page refuses: before the first log, which may be a weigh-in or food before any workout', () => {
+    // First log Thu 1 Oct (lib/day-route.js firstLogDay), first workout Sat 3 Oct.
+    const rail = railOf(S({ workouts: [workout('w0', '2026-10-03', ['pull'])] }), TODAY, '2026-10-01')
+    const first = rail.weeks[0]
+    expect(first.start).toBe('2026-10-01')
+    // Thu 1 opens; Fri 2 had Legs planned but comes before the first workout, so it is not missed.
+    expect(first.days.slice(0, 3).map(d => d.state)).toEqual(['rest', 'rest', 'done'])
+  })
+
   it('reaches back 8 weeks at most, however old the first workout: the rail is bounded by today', () => {
     const rail = railOf(S({ workouts: [workout('w0', '2023-10-05', ['pull']), workout('w1', '2026-10-14', ['pull'])] }), TODAY)
     expect(rail.from).toBe(-8)

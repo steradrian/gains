@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { dayTargetOf, firstLogDay, navToDay, navToWeek, weekStartOfId } from '../../lib/day-route.js'
 import { weekStartOf } from '../../lib/format.js'
 import { nutritionAvailable } from '../../lib/nutrition/api.js'
-import { diaryIndexDays } from '../../lib/nutrition/diary-index.js'
+import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { useTodayDate } from '../today/use-today.js'
 import { foodDaysOf, weekOf } from './week-data.js'
@@ -19,8 +19,9 @@ import { foodDaysOf, weekOf } from './week-data.js'
  * 'before', which opens nothing), and `foodOn` says whether nutrition is on at all.
  *
  * With nutrition on it loads the week's diary days up to today (each once; a cached day is not read
- * again), the settings and what a Dynamic or Adaptive target needs, so the cells and numbers fill
- * in as they land.
+ * again), the settings, what a Dynamic or Adaptive target needs and, when activity adjusts the
+ * target, each day's activity: the Day page's inputs (food-target.js), so a cell's target is the
+ * Day page's. A cell's food waits until its target is ready, then fills in.
  */
 export function useWeek(isoWeek, tab) {
   const S = useStore(s => s.S)
@@ -30,9 +31,16 @@ export function useWeek(isoWeek, tab) {
   const settingsState = useNutrition(s => s.settings)
   const days = useNutrition(s => s.days)
   const goalInputs = useNutrition(s => s.goalInputs)
+  const activity = useNutrition(s => s.activity)
+  useDiaryIndex(s => s.version)
   const start = weekStartOfId(isoWeek, weekStartOf(S))
   const settings = settingsState.data
   const mode = settings?.calorieGoalMode
+  const policy = settings?.manualActivityPolicy
+  const adjust = !!settings?.diaryShowActivity && !!settings?.calorieAdjustFromActivity
+  // The goal-input loads that have finished, as "date|mode": a failed one is not kept in the store,
+  // so the page needs its own word that the attempt is over (as useDiaryDay keeps).
+  const [tried, setTried] = useState({})
 
   const loadDays = useMemo(() => (start ? foodDaysOf(start, today) : []), [start, today])
   useEffect(() => {
@@ -42,16 +50,24 @@ export function useWeek(isoWeek, tab) {
     for (const d of loadDays) n.loadDay(d)
   }, [on, loadDays])
   useEffect(() => {
-    if (!on || settingsState.status !== 'ready') return
+    if (!on || settingsState.status !== 'ready') return undefined
+    let live = true
     const n = useNutrition.getState()
-    for (const d of loadDays) n.loadGoalInputs(d, mode)
-  }, [on, loadDays, settingsState.status, mode])
+    for (const d of loadDays) {
+      n.loadGoalInputs(d, mode).then(() => { if (live) setTried(was => ({ ...was, [`${d}|${mode}`]: true })) })
+      if (adjust && !n.activity[d]) n.loadActivity(d, policy)
+    }
+    return () => { live = false }
+  }, [on, loadDays, settingsState.status, mode, adjust, policy])
 
-  const entries = {}
-  for (const d of loadDays) if (days[d]?.status === 'ready') entries[d] = days[d].entry || null
-  const data = weekOf({ S, isoWeek, today, food: { on, settings, entries, goalInputs } })
-  if (!data) return null
+  const entries = {}, triedDays = {}
+  for (const d of loadDays) {
+    if (days[d]?.status === 'ready') entries[d] = days[d].entry || null
+    triedDays[d] = !!tried[`${d}|${mode}`]
+  }
   const first = firstLogDay(S, diaryIndexDays())
+  const data = weekOf({ S, isoWeek, today, first, food: { on, settings, entries, goalInputs, activity, tried: triedDays } })
+  if (!data) return null
   return {
     ...data,
     foodOn: on,

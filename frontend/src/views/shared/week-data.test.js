@@ -14,10 +14,14 @@ const at = (d, h) => new Date(`${d}T${String(h).padStart(2, '0')}:00:00`).getTim
 const routine = (id, name) => ({ id, name, ex: [{ id: '0025', sets: 3, reps: 8, weight: 60 }] })
 const bench = () => ({ id: '0025', sets: [{ w: 80, r: 6, done: true }, { w: 80, r: 6, done: true }] })
 const workout = (id, d, rid, name) => ({ id, d, name, start: at(d, 18), end: at(d, 19), routineIds: [rid], entries: [bench()], prs: [] })
+// The plan's weekdays were set long ago (an old stamp each), so past weeks can be held to it
+// (lib/notifications/feed.js planKnown).
+const OLD = { 'week.1': 1, 'week.3': 1, 'week.5': 1 }
 const S = over => ({
   ...clone(DEF),
   routines: [routine('push', 'Push A'), routine('pull', 'Pull A'), routine('legs', 'Legs')],
   week: { 1: ['push'], 3: ['pull'], 5: ['legs'] },
+  edited: { ...OLD },
   workouts: [
     workout('a', '2026-10-05', 'push', 'Push A'), workout('b', '2026-10-07', 'pull', 'Pull A'), workout('c', '2026-10-09', 'legs', 'Legs'),
     workout('d', '2026-10-12', 'push', 'Push A'), workout('e', '2026-10-14', 'pull', 'Pull A'),
@@ -36,7 +40,7 @@ const food = (entries = {}) => ({
     ...entries,
   },
 })
-const week = (isoWeek, s = S(), f = food(), today = TODAY) => weekOf({ S: s, isoWeek, today, food: f })
+const week = (isoWeek, s = S(), f = food(), today = TODAY) => weekOf({ S: s, isoWeek, today, food: f, first: '2026-10-05' })
 
 beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(TODAY + 'T09:00:00')) })
 afterAll(() => vi.useRealTimers())
@@ -102,6 +106,50 @@ describe('this week (D2.0)', () => {
     expect(w.prev).toBe('2026-W41')
     expect(w.next).toBeNull()
   })
+
+  it('has no week before the week of the first log', () => {
+    expect(week('2026-W41').prev).toBeNull()
+    expect(weekOf({ S: S(), isoWeek: '2026-W42', today: TODAY, food: food(), first: null }).prev).toBeNull()
+  })
+
+  it('leaves today out of the averages and days on target while it is still being logged', () => {
+    const f = food({ '2026-10-18': { items: [item(400, 10)], water: [{ amount: 300 }] } })
+    const n = week('2026-W42', S(), f).numbers
+    expect(n.onTarget).toEqual({ days: 1, of: 2, within: 150 })
+    expect(n.kcal.avg).toBe(1838)
+    expect(n.protein.avg).toBe(114)
+    expect(n.water.avgMl).toBe(2250)
+  })
+
+  it('on a Monday, holds this week’s volume to last Monday’s, not to the whole of last week', () => {
+    const s = S({ workouts: S().workouts.filter(x => x.d <= '2026-10-12') })
+    const n = week('2026-W42', s, food(), '2026-10-12').numbers
+    expect(n.volume).toMatchObject({ now: 960, last: 960, sameDays: true, change: 0 })
+  })
+})
+
+describe('targets the Week holds a day to', () => {
+  it('without a calorie goal: no target, no band, nothing on target; without a water goal, no goal', () => {
+    const f = { ...food(), settings: { goals: { proteins: { max: 30, isPercent: true } } } }
+    const w = week('2026-W42', S(), f)
+    expect(w.cells[0].food).toMatchObject({ kcal: 2075, target: null, band: null, proteinTarget: null })
+    expect(w.numbers.onTarget).toBeNull()
+    expect(w.numbers.kcal).toEqual({ avg: 1838, target: null })
+    expect(w.numbers.water).toEqual({ avgMl: 2250, goalMl: null })
+  })
+
+  it('in Dynamic, a day waits for its burn (or the end of the attempt) before it shows anything', () => {
+    const f = { ...food(), settings: { calorieGoalMode: 'dynamic', goals: { calories: { max: 2100 } } } }
+    expect(dayFoodOf(f, '2026-10-12')).toBeNull()
+    expect(dayFoodOf({ ...f, goalInputs: { '2026-10-12': 2600 } }, '2026-10-12').target).toBe(2600)
+    expect(dayFoodOf({ ...f, tried: { '2026-10-12': true } }, '2026-10-12').target).toBe(2100)
+  })
+
+  it('adds the day’s activity as the Day page does, once it is in', () => {
+    const f = { ...food(), settings: { ...settings, diaryShowActivity: true, calorieAdjustFromActivity: true } }
+    expect(dayFoodOf(f, '2026-10-12')).toBeNull()
+    expect(dayFoodOf({ ...f, activity: { '2026-10-12': { sum: { effective: 250 } } } }, '2026-10-12').target).toBe(2350)
+  })
 })
 
 describe('a complete past week (D2.1)', () => {
@@ -114,11 +162,34 @@ describe('a complete past week (D2.1)', () => {
     expect(w.numbers.streak).toEqual({ weeks: 1, best: null })
   })
 
-  it('lists a day marked skipped as skipped, not missed', () => {
-    const s = S({ workouts: S().workouts.filter(x => x.id !== 'c'), missedSeen: { '2026-10-09': { seen: true, _ts: 1 } } })
+  it('lists a day answered with Skip as skipped, not missed', () => {
+    const s = S({ workouts: S().workouts.filter(x => x.id !== 'c'), missedSeen: { '2026-10-09': { seen: true, skipped: true, _ts: 1 } } })
     const w = week('2026-W41', s)
     expect(w.ring.skipped.map(d => d.iso)).toEqual(['2026-10-09'])
     expect(w.muscleNote).toMatch(/Legs was missed on Fri/)
+  })
+
+  it('a day moved to another (seen, not skipped) is still missed', () => {
+    const s = S({ workouts: S().workouts.filter(x => x.id !== 'c'), missedSeen: { '2026-10-09': { seen: true, _ts: 1 } } })
+    expect(week('2026-W41', s).ring).toMatchObject({ skipped: [], missed: [expect.objectContaining({ iso: '2026-10-09' })] })
+  })
+
+  it('a week the plan cannot be held to (edited since) has no "of y" and no missed days', () => {
+    const s = S({ workouts: S().workouts.filter(x => x.id !== 'c'), edited: { ...OLD, 'week.5': at('2026-10-15', 9) } })
+    const w = week('2026-W41', s)
+    expect(w.ring).toMatchObject({ done: 2, planned: null, missed: [], skipped: [] })
+    expect(w.cells.map(c => c.workout)).not.toContain('missed')
+    expect(w.last4.find(x => x.isoWeek === '2026-W41')).toMatchObject({ done: 2, planned: null })
+  })
+})
+
+describe('the plan’s word for this week and the last four', () => {
+  it('counts every week of Last 4 weeks the same way (weekTally), a past one to its last day', () => {
+    const extra = { ...S().workouts[0], id: 'x', d: '2026-10-10', routineIds: ['pull'] }
+    const w = week('2026-W41', S({ workouts: [...S().workouts, extra] }))
+    // Four workouts against three planned days, as Today's line would count that week.
+    expect(w.last4[2]).toMatchObject({ done: 4, planned: 3 })
+    expect(w.ring).toMatchObject({ done: 4, planned: 3 })
   })
 })
 

@@ -7,29 +7,17 @@ import { fmtDate } from '../../lib/format.js'
 import { skipMissed } from '../../lib/missed-day.js'
 import { nav } from '../../lib/nav.js'
 import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
-import { useDiarySelection } from '../../lib/nutrition/selection.js'
+import { useNutrition } from '../../lib/nutrition/store.js'
 import { useDiaryDay } from '../../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
-import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { bwSheet, exerciseDetailSheet, workoutDetailSheet } from '../../sheets.jsx'
 import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
 import { openPlusSheet } from '../../components/PlusSheet.jsx'
 import { addWater } from '../../components/WaterCard.jsx'
 import { glassOf, useTodayDate } from '../today/use-today.js'
+import { withUndo } from '../train/use-train.js'
 import { dayOf } from './day-data.js'
 import { pastWorkoutSheet } from './PastWorkoutSheet.jsx'
-
-/** The Undo of a store change, marking the days it puts back (lib/sync-merge.js undoMarks, as
- *  Train's missed-day banner does), so another device's change in between still wins. */
-function changeWithUndo(change) {
-  const update = mut => useStore.getState().update(mut)
-  const before = useStore.getState().S
-  let done = null
-  update(s => { done = change(s) })
-  if (!done) return null
-  const marks = undoMarks(before, useStore.getState().S)
-  return () => update(s => { done.undo(s); markUndone(s, marks) })
-}
 
 /**
  * The Day page (PR07 D1) for the past day `iso`, opened under `tab`: dayOf's data (day-data.js)
@@ -47,21 +35,26 @@ function changeWithUndo(change) {
  *   addWater()         one glass on this day (null with nutrition off or the day not in yet)
  *   weighInSheet()     the weigh-in drawer for this day
  *   openMeasurements() the measurements page
+ *
+ * Every log goes to this day as a parameter of the sheet it opens: the shared diary selection
+ * (Today's and Eat's day) is never moved, so Back leaves them on the day they were on.
  */
 export function useDay(iso, tab) {
   const S = useStore(s => s.S)
   const today = useTodayDate()
   const diary = useDiaryDay(iso)
+  const goalInputs = useNutrition(s => s.goalInputs)
+  const activity = useNutrition(s => s.activity[iso] || null)
   const units = useUnits()
   useDiaryIndex(s => s.version)
   const first = firstLogDay(S, diaryIndexDays())
-  const data = dayOf({ S, iso, today, first, diary, energy: units.energy })
+  const data = dayOf({ S, iso, today, first, diary, goalInputs, activity, energy: units.energy })
 
   const markSkipped = () => {
     if (data.state !== 'missed') return null
-    const undo = changeWithUndo(s => skipMissed(s, iso))
-    if (!undo) return null
-    const r = { text: t('Marked {0} skipped on {1}', data.planned.name, fmtDate(iso, true)), undo }
+    const done = withUndo(s => skipMissed(s, iso))
+    if (!done) return null
+    const r = { text: t('Marked {0} skipped on {1}', data.planned.name, fmtDate(iso, true)), undo: done.undo }
     useUI.getState().toast(r.text, { action: t('Undo'), onAction: r.undo })
     return r
   }
@@ -75,12 +68,7 @@ export function useDay(iso, tab) {
     markSkipped,
     addPastWorkout: () => pastWorkoutSheet(iso),
     add: () => openPlusSheet(dayPath(iso, tab)),
-    logFood: slot => {
-      const sel = useDiarySelection.getState()
-      sel.setDate(iso)
-      if (slot != null) sel.setMeal(slot)
-      foodPickerSheet()
-    },
+    logFood: slot => foodPickerSheet({ date: iso, meal: slot ?? null }),
     addWater: diary.on && diary.dayReady ? () => addWater(iso, glassOf(diary.settings, diary.water.goal).ml) : null,
     // Not `weighIn`: that is the day's weigh-in, from dayOf.
     weighInSheet: () => bwSheet({ date: iso }),

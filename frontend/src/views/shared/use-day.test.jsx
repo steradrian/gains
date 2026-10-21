@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
+import { useDiarySelection } from '../../lib/nutrition/selection.js'
 import { useDay } from './use-day.js'
 
 const libNav = vi.hoisted(() => vi.fn())
@@ -15,6 +16,8 @@ const plus = vi.hoisted(() => vi.fn())
 vi.mock('../../components/PlusSheet.jsx', async importOriginal => ({ ...(await importOriginal()), openPlusSheet: plus }))
 const past = vi.hoisted(() => vi.fn())
 vi.mock('./PastWorkoutSheet.jsx', async importOriginal => ({ ...(await importOriginal()), pastWorkoutSheet: past }))
+const picker = vi.hoisted(() => vi.fn())
+vi.mock('../../components/FoodPickerSheet.jsx', async importOriginal => ({ ...(await importOriginal()), foodPickerSheet: picker }))
 
 // Sun 18 Oct 2026 is today. Push A on Mondays, Legs on Fridays; Legs was missed on Fri 16 Oct.
 const TODAY = '2026-10-18', FRI = '2026-10-16', TUE = '2026-10-13'
@@ -25,6 +28,8 @@ const setS = (over = {}) => useStore.setState(s => ({
     ...s.S, active: null, dayNotes: {}, missedSeen: {}, dayPlan: {}, queue: null, bodyweight: [], measurements: [],
     routines: [routine('push', 'Push A'), routine('legs', 'Legs')],
     week: { 1: ['push'], 5: ['legs'] },
+    // Set long ago, so the past weeks can be held to this plan (lib/notifications/feed.js planKnown).
+    edited: { 'week.1': 1, 'week.5': 1 },
     workouts: [{ id: 'w1', d: '2026-10-05', name: 'Push A', start: 1, end: 2, routineIds: ['push'], entries: [] },
       { id: 'w2', d: '2026-10-12', name: 'Push A', start: 3, end: 4, routineIds: ['push'], entries: [] }],
     ...over,
@@ -39,7 +44,8 @@ beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new D
 afterAll(() => vi.useRealTimers())
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  libNav.mockClear(); plus.mockClear(); past.mockClear()
+  libNav.mockClear(); plus.mockClear(); past.mockClear(); picker.mockClear()
+  useDiarySelection.getState().reset()
   useUI.setState({ toastMsg: '', toastAction: null })
   setS()
   host = document.createElement('div')
@@ -55,7 +61,7 @@ describe('useDay', () => {
     let r
     await act(async () => { r = day.markSkipped() })
     expect(r.text).toBe('Marked Legs skipped on Fri 16 Oct')
-    expect(useStore.getState().S.missedSeen[FRI].seen).toBe(true)
+    expect(useStore.getState().S.missedSeen[FRI]).toMatchObject({ seen: true, skipped: true })
     expect(day.state).toBe('skipped')
     expect(useUI.getState().toastMsg).toBe('Marked Legs skipped on Fri 16 Oct')
     expect(useUI.getState().toastAction.label).toBe('Undo')
@@ -91,6 +97,15 @@ describe('useDay', () => {
     expect(plus).toHaveBeenCalledWith('/train/day/' + FRI)
     day.addPastWorkout()
     expect(past).toHaveBeenCalledWith(FRI)
+  })
+
+  it('Log food goes to this day and meal as parameters, never moving the shared diary day', async () => {
+    await mount(FRI)
+    day.logFood(2)
+    expect(picker).toHaveBeenLastCalledWith({ date: FRI, meal: 2 })
+    day.logFood()
+    expect(picker).toHaveBeenLastCalledWith({ date: FRI, meal: null })
+    expect(useDiarySelection.getState().date).toBeNull()
   })
 
   it('keeps the day’s weigh-in as data beside the drawer that adds one', async () => {

@@ -1,19 +1,23 @@
 // The Week page's data (PR07 D2.0, D2.1), pure: a week as the boards Sh2Week and Sh2WeekPast show
-// it. useWeek (use-week.js) feeds it the store, the diary days and the clock. Workouts count against
-// the Plan as it is now, and a day moved shows on its new date (PR07Edges, D2). A week with nothing
-// still has its cells and Last 4 weeks; every number it cannot back is null ("–"), never made up.
+// it. useWeek (use-week.js) feeds it the store, the diary days and the clock. This week counts
+// against the Plan as it is now, and a day moved shows on its new date (PR07Edges, D2); a past
+// week is held to the plan only when the plan provably has not changed since (the notifications
+// feed's planKnown), else it has no "of y" and no missed days. A week with nothing still has its
+// cells and Last 4 weeks; every number it cannot back is null ("–"), never made up.
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { isoWeekOf, weekNumberOf, weekStartOfId } from '../../lib/day-route.js'
 import { fmtDate, weekKey, weekStartOf } from '../../lib/format.js'
-import { effectiveRoutineIds, workoutDay, workoutDuration } from '../../lib/history.js'
-import { plusDays, seenOn } from '../../lib/missed-day.js'
+import { effectiveRoutineIds, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
+import { plusDays, skippedOn } from '../../lib/missed-day.js'
 import { levelsOf, loadOfWorkouts, untrainedRegions } from '../../lib/muscles.js'
-import { calorieTarget, macroTarget, totalsOf, waterGoalOf, waterTotal } from '../../lib/nutrition/diary.js'
+import { planKnown } from '../../lib/notifications/feed.js'
+import { totalsOf, waterTotal } from '../../lib/nutrition/diary.js'
 import { pinState, queueOf, weekTally } from '../../lib/queue.js'
 import { bestStreakWeeks, weekVolume } from '../../lib/train-stats.js'
 import { trainingDay, workoutsByDay } from '../../lib/training-day.js'
 import { regionList } from '../train/use-train.js'
 import { missedPlanOf, ON_TARGET_KCAL } from './day-data.js'
+import { dayTargetsOf, waterGoalSet } from './food-target.js'
 
 const round = v => Math.round(Number(v) || 0)
 const dateOf = iso => new Date(iso + 'T12:00:00')
@@ -32,46 +36,57 @@ export function rangeOf(start) {
   return t('{0} to {1}', from, fmtDate(end))
 }
 
-/** Workouts done of planned in the week starting `start`: this week as Today's line counts it
- *  (weekTally); another week by the plan as it is now, a day for each day with something planned. */
+/** Workouts done of planned in the week starting `start`, one measure for every week (weekTally,
+ *  as Today's line counts this week): this week up to today, a past week to its last day. A past
+ *  week whose plan may have changed since (planKnown) has its workouts and `planned` null. */
 export function weekCountOf(S, start, today) {
   if (weekKey(today, weekStartOf(S)) === start) return weekTally(S, today)
-  return {
-    done: inWeek(S, start).length,
-    planned: daysOf(start).filter(d => effectiveRoutineIds(S, d, today).length > 0).length,
-  }
+  const end = plusDays(start, 6)
+  return planKnown(S, start, end) ? weekTally(S, end) : { done: inWeek(S, start).length, planned: null }
 }
 
-/** A day's training mark: 'done', a past day's 'missed' or 'skipped' (marked skipped), today's or
- *  a later day's 'planned', else 'rest'. Nothing before the first workout counts as missed. */
+/** A day's training mark: 'done', a past day's 'missed' or 'skipped' (answered with Skip), today's
+ *  or a later day's 'planned', else 'rest'. Nothing before the first workout counts as missed,
+ *  nor anything in a week the plan cannot be held to (day-data.js missedPlanOf). */
 export function workoutMarkOf(S, iso, today) {
   if (workoutsByDay(S.workouts || []).has(iso)) return 'done'
   if (iso >= today) return effectiveRoutineIds(S, iso, today).length ? 'planned' : 'rest'
   if (!missedPlanOf(S, iso, today)) return 'rest'
-  return seenOn(S, iso) ? 'skipped' : 'missed'
+  return skippedOn(S, iso) ? 'skipped' : 'missed'
 }
 
 /**
  * One day's food, from the diary: `{ logged, kcal, target, band, protein, proteinTarget, waterMl }`,
- * or null with nutrition off or the day not loaded yet. `food` is `{ on, settings, entries,
- * goalInputs }`, `entries[iso]` the diary entry (null when loaded and empty, absent when not
- * loaded). The target is the day's own (its weekday goal, Dynamic's burn, Adaptive's estimate).
+ * or null with nutrition off, the day not loaded yet, or its target not ready (so a cell never
+ * shows the fixed target and then jumps). `food` is `{ on, settings, entries, goalInputs,
+ * activity, tried }`: `entries[iso]` the diary entry (null when loaded and empty, absent when not
+ * loaded), `activity[iso]` the store's activity record, `tried[iso]` that the day's goal-input load
+ * has finished. The target is food-target.js dayTargetsOf's, the Day page's own: null (and the
+ * band with it) without a goal behind it.
  */
 export function dayFoodOf(food, iso) {
   if (!food?.on || !food.settings || food.entries?.[iso] === undefined) return null
+  const targets = dayTargetsOf({
+    settings: food.settings, date: iso, goalInputs: food.goalInputs || {}, activity: food.activity?.[iso] || null, tried: !!food.tried?.[iso],
+  })
+  if (!targets.ready) return null
   const entry = food.entries[iso]
   const totals = totalsOf(entry?.items)
-  const inputs = food.goalInputs || {}
-  const target = calorieTarget({ settings: food.settings, date: iso, caloriesOut: inputs[iso] ?? null, adaptiveTdee: inputs.adaptive ?? null })
   const kcal = round(totals.calories)
-  const diff = kcal - round(target.target)
+  const diff = targets.kcal == null ? null : kcal - targets.kcal
   return {
-    logged: (entry?.items || []).length > 0, kcal, target: round(target.target),
-    band: Math.abs(diff) <= ON_TARGET_KCAL ? 'on' : diff > 0 ? 'over' : 'under',
-    protein: round(totals.proteins), proteinTarget: macroTarget(food.settings, 'proteins', iso, target.base),
+    logged: (entry?.items || []).length > 0, kcal, target: targets.kcal,
+    band: diff == null ? null : Math.abs(diff) <= ON_TARGET_KCAL ? 'on' : diff > 0 ? 'over' : 'under',
+    protein: round(totals.proteins), proteinTarget: targets.macro('proteins'),
     waterMl: waterTotal(entry),
   }
 }
+
+// The volume lifted on the days `from` to `to`, both included.
+const volumeBetween = (S, from, to) => (S.workouts || []).reduce((v, w) => {
+  const d = workoutDay(w)
+  return d && d >= from && d <= to ? v + workoutVolume(w) : v
+}, 0)
 
 /** Weeks in a row with a workout, up to the week starting `start` (this week may not have one
  *  yet: the run then counts from the week before, as streakWeeks does). */
@@ -127,11 +142,13 @@ export function muscleNoteOf(S, { load, workouts, missed, current }) {
  * `{ iso, dow, date, today, future, workout, food }` (`workout` from workoutMarkOf, `food` from
  * dayFoodOf). `muscles` is `{ load, levels }` (sets per muscle, BodyMap's 0–4). `numbers` holds
  * `streak`, `onTarget`, `kcal`, `protein`, `weight`, `activity`, `volume` and `water`, each null
- * when the week cannot back it. `last4` are the four weeks up to this one (`{ isoWeek, start,
- * label, done, planned, current, selected }`), `prev` and `next` week names (`next` null past this
- * week). null for a name that is no week.
+ * when the week cannot back it. Today is still being logged, so it stays out of every average
+ * and of days on target; this week's volume is held to last week's same days so far
+ * (`volume.sameDays`). `last4` are the four weeks up to this one (`{ isoWeek, start, label, done,
+ * planned, current, selected }`), `prev` and `next` week names (`prev` null from the week of the
+ * first log `first`, `next` null past this week). null for a name that is no week.
  */
-export function weekOf({ S, isoWeek, today, food }) {
+export function weekOf({ S, isoWeek, today, food, first = null }) {
   const ws = weekStartOf(S)
   const start = weekStartOfId(isoWeek, ws)
   if (!start) return null
@@ -157,18 +174,24 @@ export function weekOf({ S, isoWeek, today, food }) {
   const load = loadOfWorkouts(workouts)
   const count = weekCountOf(S, start, today)
 
-  const eaten = cells.map(c => c.food).filter(f => f?.logged)
+  const closed = cells.filter(c => !c.today)
+  const eaten = closed.map(c => c.food).filter(f => f?.logged)
+  const judged = eaten.filter(f => f.target != null)
   const proteinTargets = eaten.map(f => f.proteinTarget)
   const weighIns = (S.bodyweight || []).filter(b => b?.d >= start && b.d <= end && Number(b.w) > 0).sort((a, b) => (a.d < b.d ? -1 : 1))
-  const drank = cells.map(c => c.food?.waterMl).filter(ml => ml > 0)
-  const volumeNow = weekVolume(S, start), volumeLast = weekVolume(S, plusDays(start, -7))
+  const drank = closed.map(c => c.food?.waterMl).filter(ml => ml > 0)
+  const volumeNow = weekVolume(S, start)
+  const volumeLast = current ? volumeBetween(S, plusDays(start, -7), plusDays(today, -7)) : weekVolume(S, plusDays(start, -7))
   const streak = streakAsOf(S, start, today)
   const ms = workouts.reduce((n, w) => n + workoutDuration(w), 0)
 
   const numbers = {
     streak: streak > 0 ? { weeks: streak, best: current ? Math.max(bestStreakWeeks(S), streak) : null } : null,
-    onTarget: eaten.length ? { days: eaten.filter(f => f.band === 'on').length, of: eaten.length, within: ON_TARGET_KCAL } : null,
-    kcal: eaten.length ? { avg: round(avg(eaten.map(f => f.kcal))), target: round(avg(eaten.map(f => f.target))) } : null,
+    onTarget: judged.length ? { days: judged.filter(f => f.band === 'on').length, of: judged.length, within: ON_TARGET_KCAL } : null,
+    kcal: eaten.length ? {
+      avg: round(avg(eaten.map(f => f.kcal))),
+      target: judged.length === eaten.length ? round(avg(judged.map(f => f.target))) : null,
+    } : null,
     protein: eaten.length ? {
       avg: round(avg(eaten.map(f => f.protein))),
       target: proteinTargets.every(g => g != null) ? round(avg(proteinTargets)) : null,
@@ -178,9 +201,9 @@ export function weekOf({ S, isoWeek, today, food }) {
     } : null,
     activity: workouts.length ? { ms: ms || null, count: workouts.length } : null,
     volume: volumeNow > 0 || volumeLast > 0 ? {
-      now: round(volumeNow), last: round(volumeLast), unit: S.unit, change: volumeLast > 0 ? (volumeNow - volumeLast) / volumeLast : null,
+      now: round(volumeNow), last: round(volumeLast), unit: S.unit, sameDays: current, change: volumeLast > 0 ? (volumeNow - volumeLast) / volumeLast : null,
     } : null,
-    water: drank.length && food?.settings ? { avgMl: round(avg(drank)), goalMl: waterGoalOf(food.settings) } : null,
+    water: drank.length && food?.settings ? { avgMl: round(avg(drank)), goalMl: waterGoalSet(food.settings) } : null,
   }
 
   const last4 = [-3, -2, -1, 0].map(k => {
@@ -201,7 +224,7 @@ export function weekOf({ S, isoWeek, today, food }) {
     muscleNote: muscleNoteOf(S, { load, workouts, missed: [...missed, ...skipped].sort((a, b) => (a.iso < b.iso ? -1 : 1)), current }),
     numbers,
     last4,
-    prev: isoWeekOf(plusDays(start, -7), ws),
+    prev: first && start > weekKey(first, ws) ? isoWeekOf(plusDays(start, -7), ws) : null,
     next: current ? null : isoWeekOf(plusDays(start, 7), ws),
   }
 }

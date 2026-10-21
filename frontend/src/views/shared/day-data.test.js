@@ -14,20 +14,24 @@ const at = (d, h, m = 0) => new Date(`${d}T${String(h).padStart(2, '0')}:${Strin
 const routine = (id, name, n = 1) => ({ id, name, ex: Array.from({ length: n }, () => ({ id: '0025', sets: 3, reps: 8, weight: 60 })) })
 const bench = () => ({ id: '0025', sets: [{ w: 40, r: 10, done: true, warmup: true, type: 'warmup' }, { w: 80, r: 6, done: true }, { w: 80, r: 6, done: true }, { w: 75, r: 8, done: false }] })
 const pushA = { id: 'w1', d: '2026-10-12', name: 'Push A', start: at('2026-10-12', 18, 30), end: at('2026-10-12', 19, 22), routineIds: ['push'], entries: [bench()], prs: ['0025'] }
+// The plan's weekdays were set long ago (an old stamp each), so past weeks can be held to it
+// (lib/notifications/feed.js planKnown).
+const OLD = { 'week.1': 1, 'week.5': 1 }
 const S = over => ({
   ...clone(DEF),
   routines: [routine('push', 'Push A', 2), routine('pull', 'Pull A'), routine('legs', 'Legs', 5)],
   week: { 1: ['push'], 5: ['legs'] },
+  edited: { ...OLD },
   workouts: [{ ...pushA, id: 'w0', d: '2026-10-05', start: at('2026-10-05', 18), end: at('2026-10-05', 19) }, pushA],
   ...over,
 })
 const item = (uuid, name, meal, calories, proteins = 0) => ({ uuid, name, meal, quantity: 1, calories, proteins, carbohydrates: 0, fat: 0 })
+const GOALS = { calories: { max: 2100 }, proteins: { max: 150 }, carbohydrates: { max: 230 }, fat: { max: 70 } }
 const diary = (items = [], water = [], over = {}) => {
   const totals = items.reduce((s, i) => ({ ...s, calories: s.calories + i.calories, proteins: s.proteins + i.proteins }), { calories: 0, proteins: 0, carbohydrates: 0, fat: 0 })
   return {
-    on: true, status: 'ready', dayReady: true, settings: { waterContainers: [] },
-    entry: { items, water }, totals, target: { target: 2100, base: 2100 },
-    macros: { proteins: 150, carbohydrates: 230, fat: 70 },
+    on: true, status: 'ready', dayReady: true, settings: { waterContainers: [], goals: GOALS, waterGoalMl: 2500 },
+    entry: { items, water }, totals,
     water: { total: water.reduce((s, l) => s + l.amount, 0), goal: 2500 }, activityRows: [], reload: () => {},
     ...over,
   }
@@ -63,10 +67,28 @@ describe('the state of a past day', () => {
     expect(d.summary).toBe('Legs missed · 1600 kcal · 2 days ago')
   })
 
-  it('skipped: a missed day marked seen reads Skipped', () => {
-    const d = day('2026-10-16', S({ missedSeen: { '2026-10-16': { seen: true, _ts: 1 } } }))
+  it('skipped: a missed day answered with Skip reads Skipped', () => {
+    const d = day('2026-10-16', S({ missedSeen: { '2026-10-16': { seen: true, skipped: true, _ts: 1 } } }))
     expect(d.state).toBe('skipped')
     expect(d.summary).toMatch(/^Legs skipped/)
+  })
+
+  it('a missed day moved to another day (seen, not skipped) is still missed, never "Skipped"', () => {
+    const d = day('2026-10-16', S({ missedSeen: { '2026-10-16': { seen: true, _ts: 1 } } }))
+    expect(d.state).toBe('missed')
+  })
+
+  it('a week whose plan may have changed since is held to no plan: nothing missed, nothing said of what was planned', () => {
+    const edited = S({ edited: { ...OLD, 'week.5': at('2026-10-17', 9) } })
+    const missed = day('2026-10-16', edited, diary([item('a', 'Oats', 0, 1600)]))
+    expect(missed.state).toBe('rest')
+    expect(missed.planned).toBeNull()
+    expect(missed.planKnown).toBe(false)
+    expect(missed.next).toBeNull()
+    expect(day('2026-10-15', edited, diary()).summary).toBe('3 days ago')
+    // A weekday with no stamp at all cannot be proven either.
+    expect(day('2026-10-16', S({ edited: {} }), diary()).state).toBe('empty')
+    expect(pastWorkoutChoicesOf(edited, '2026-10-16', TODAY).some(c => c.planned)).toBe(false)
   })
 
   it('rest: nothing planned, something else logged', () => {
@@ -119,6 +141,12 @@ describe('the rail', () => {
     expect(first.filter(x => x.disabled).map(x => x.iso)).toEqual(['2026-09-28', '2026-09-29', '2026-09-30'])
     expect(first.find(x => x.iso === '2026-10-01').disabled).toBe(false)
   })
+
+  it('opens the days from the first log but calls nothing missed before the first workout', () => {
+    const rail = dayRailOf(S(), '2026-10-12', TODAY, '2026-10-01')
+    const fri = rail.weeks[0].days.find(x => x.iso === '2026-10-02')
+    expect(fri).toMatchObject({ disabled: false, state: 'rest' })
+  })
 })
 
 describe('a workout', () => {
@@ -160,6 +188,27 @@ describe('the food', () => {
     expect(foodOf(diary([item('a', 'x', 0, 2400)])).band).toBe('over')
   })
 
+  it('with no calorie goal set, has no target, no band and no "on target": the 2000 kcal stand-in is never shown', () => {
+    const none = diary([item('a', 'x', 0, 2000, 20)], [], { settings: { waterContainers: [], goals: { proteins: { max: 40, isPercent: true } } } })
+    const f = day('2026-10-12', S(), none).food
+    expect(f).toMatchObject({ kcal: 2000, target: null, diff: null, band: null })
+    // A percent macro goal taken from the stand-in is no target either.
+    expect(f.macros[0]).toEqual({ id: 'proteins', value: 20, target: null })
+    expect(day('2026-10-12', S(), none).summary).toBe('Push A done · 2000 kcal · 6 days ago')
+  })
+
+  it('Dynamic works one out from the day’s burn with no fixed goal; it falls back to nothing without one', () => {
+    const dyn = diary([item('a', 'x', 0, 2000)], [], { settings: { waterContainers: [], calorieGoalMode: 'dynamic' } })
+    expect(dayOf({ S: S(), iso: '2026-10-12', today: TODAY, first: '2026-10-01', diary: dyn, goalInputs: { '2026-10-12': 2400 } }).food.target).toBe(2400)
+    expect(dayOf({ S: S(), iso: '2026-10-12', today: TODAY, first: '2026-10-01', diary: dyn, goalInputs: { '2026-10-12': null } }).food.target).toBeNull()
+  })
+
+  it('adds the day’s activity to a fixed target when the settings say so, as the Week page does', () => {
+    const settings = { waterContainers: [], goals: GOALS, diaryShowActivity: true, calorieAdjustFromActivity: true }
+    const d = dayOf({ S: S(), iso: '2026-10-12', today: TODAY, first: '2026-10-01', diary: diary([item('a', 'x', 0, 2000)], [], { settings }), activity: { sum: { effective: 300 } } })
+    expect(d.food.target).toBe(2400)
+  })
+
   it('waits while loading and offers a retry when the day failed', () => {
     expect(foodOf({ on: true, status: 'loading' })).toEqual({ tracking: 'on', status: 'loading' })
     expect(foodOf({ on: true, status: 'error', reload: 'r' })).toEqual({ tracking: 'on', status: 'error', retry: 'r' })
@@ -171,6 +220,11 @@ describe('water and body', () => {
     expect(waterOf(eaten())).toEqual({ ml: 2250, goalMl: 2500, glassMl: 250, glasses: 9, last: '21:10' })
     expect(waterOf(diary())).toBeNull()
     expect(waterOf({ on: false })).toBeNull()
+  })
+
+  it('water: no goal without one set (the 2000 ml stand-in is not a goal)', () => {
+    const d = diary([], [{ uuid: 'w1', amount: 500, time: '09:00' }], { settings: { waterContainers: [] } })
+    expect(waterOf(d).goalMl).toBeNull()
   })
 
   it('weigh-in: that day’s or null', () => {

@@ -7,8 +7,9 @@ import { exOr } from '../../lib/exercises.js'
 import { exerciseNameText, exCount, fmtDate, fmtDaysAgo, isoOf, startOfWeek, weekStartOf } from '../../lib/format.js'
 import { effectiveRoutines, setLabel, setsDone, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
 import { enabledMeasurementFields, measurementUnit, measurementValue, toMeasurementDisplay } from '../../lib/measurements.js'
-import { firstWorkoutDay, plusDays, seenOn } from '../../lib/missed-day.js'
+import { firstWorkoutDay, plusDays, skippedOn } from '../../lib/missed-day.js'
 import { levelsOf, loadOfWorkouts, MUSCLE_NAME, rankOf } from '../../lib/muscles.js'
+import { planKnown } from '../../lib/notifications/feed.js'
 import { mealItems, nutritionOf, totalsOf } from '../../lib/nutrition/diary.js'
 import { mealLabels } from '../../lib/nutrition/meal-name.js'
 import { speedUnitOf } from '../../lib/speed.js'
@@ -16,6 +17,7 @@ import { nameOf, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { hasCompletedWork, isWarmupRow } from '../../lib/workout-model.js'
 import { glassOf } from '../today/use-today.js'
 import { finishedLine, pictureOf, railDay } from '../train/use-train.js'
+import { dayTargetsOf, waterGoalSet } from './food-target.js'
 
 // "On target": within this many kcal of the day's target either way (Sh2Week: "within 150 kcal").
 export const ON_TARGET_KCAL = 150
@@ -78,11 +80,20 @@ export function workoutOf(S, w) {
   }
 }
 
+/** Whether the plan the day's week is read against is provably the one it had then (the
+ *  notifications feed's planKnown: no plan edit since the week began, every planned weekday
+ *  stamped, no queue reaching into it). Otherwise the day is held to no plan. */
+export function planKnownOn(S, iso) {
+  const start = isoOf(startOfWeek(iso, weekStartOf(S)))
+  return planKnown(S, start, plusDays(start, 6))
+}
+
 /** The plan a past day missed (trainingDay's 'past-missed'), or null. Nothing before the first
- *  workout counts as missed, as on Train (lib/missed-day.js). */
+ *  workout counts as missed, as on Train (lib/missed-day.js), and nothing in a week whose plan
+ *  may have changed since (planKnownOn): today's plan is no proof of that day's. */
 export function missedPlanOf(S, iso, today) {
   const first = firstWorkoutDay(S)
-  if (!first || iso < first) return null
+  if (!first || iso < first || !planKnownOn(S, iso)) return null
   const day = trainingDay(S, iso, today)
   return day.kind === 'past-missed' ? day : null
 }
@@ -114,20 +125,21 @@ const hasPlan = S => Object.values(S.week || {}).some(ids => [].concat(ids || []
  * The day's food from useDiaryDay's answer: `{ tracking: 'off' }` with nutrition off, else
  * `{ tracking: 'on', status }`: 'loading', 'error' (with `retry`), or 'ready' with `kcal`,
  * `target`, `diff` (kcal less target), `band` ('on' within ON_TARGET_KCAL, 'under', 'over'),
- * `logged` (any item), `macros` (`{ id, value, target }`, grams; target null without a goal) and
- * `meals` (`{ slot, name, kcal, items }`, each item `{ uuid, name, kcal }`).
+ * `logged` (any item), `macros` (`{ id, value, target }`, grams) and `meals` (`{ slot, name,
+ * kcal, items }`, each item `{ uuid, name, kcal }`). `targets` is food-target.js dayTargetsOf's:
+ * without a goal behind it, `target`, `diff` and `band` (or a macro's target) are null.
  */
-export function foodOf(diary) {
+export function foodOf(diary, targets = dayTargetsOf({ settings: diary?.settings, date: null, tried: true })) {
   if (!diary?.on) return { tracking: 'off' }
   if (diary.status === 'error') return { tracking: 'on', status: 'error', retry: diary.reload }
   if (diary.status !== 'ready') return { tracking: 'on', status: 'loading' }
-  const kcal = round(diary.totals.calories), target = round(diary.target.target)
-  const diff = kcal - target
+  const kcal = round(diary.totals.calories), target = targets.kcal
+  const diff = target == null ? null : kcal - target
   return {
     tracking: 'on', status: 'ready', kcal, target, diff,
-    band: Math.abs(diff) <= ON_TARGET_KCAL ? 'on' : diff > 0 ? 'over' : 'under',
+    band: diff == null ? null : Math.abs(diff) <= ON_TARGET_KCAL ? 'on' : diff > 0 ? 'over' : 'under',
     logged: (diary.entry?.items || []).length > 0,
-    macros: MACROS.map(id => ({ id, value: round(diary.totals[id]), target: diary.macros?.[id] ?? null })),
+    macros: MACROS.map(id => ({ id, value: round(diary.totals[id]), target: targets.macro(id) })),
     meals: mealLabels(diary.settings).map((name, slot) => {
       const items = mealItems(diary.entry, slot)
       return {
@@ -139,13 +151,14 @@ export function foodOf(diary) {
 }
 
 /** The day's water: `{ ml, goalMl, glasses, glassMl, last }` (`last` the time of the last glass as
- *  logged, or null), or null with nutrition off, before the day loads, or with none logged. */
+ *  logged, or null; `goalMl` null without a water goal set), or null with nutrition off, before
+ *  the day loads, or with none logged. */
 export function waterOf(diary) {
   if (!diary?.on || !diary.dayReady || !(diary.water?.total > 0)) return null
   const glass = glassOf(diary.settings, diary.water.goal)
   const logs = diary.entry?.water || []
   return {
-    ml: diary.water.total, goalMl: diary.water.goal, glassMl: glass.ml,
+    ml: diary.water.total, goalMl: waterGoalSet(diary.settings), glassMl: glass.ml,
     glasses: Math.round(diary.water.total / glass.ml), last: logs.at(-1)?.time || null,
   }
 }
@@ -179,12 +192,13 @@ export function measurementsOf(S, iso) {
 
 /**
  * The day's state: 'logged' (a workout), 'missed' (the plan had one, not logged), 'skipped' (a
- * missed day marked skipped: seen, lib/missed-day.js), 'rest' (no workout planned, something
- * else logged, or the food still loading) or 'empty' (nothing at all: D1.3).
+ * missed day answered with Skip, lib/missed-day.js skippedOn; one moved to another day is still
+ * missed), 'rest' (no workout planned, something else logged, or the food still loading) or
+ * 'empty' (nothing at all: D1.3).
  */
 export function dayStateOf(S, iso, today, { workouts, food, water, weighIn }) {
   if (workouts.length) return 'logged'
-  if (missedPlanOf(S, iso, today)) return seenOn(S, iso) ? 'skipped' : 'missed'
+  if (missedPlanOf(S, iso, today)) return skippedOn(S, iso) ? 'skipped' : 'missed'
   const foodKnown = food.tracking === 'off' || food.status !== 'loading'
   const ate = food.status === 'ready' && food.logged
   return !foodKnown || ate || water || weighIn ? 'rest' : 'empty'
@@ -209,26 +223,30 @@ export function summaryOf({ state, workouts, planned, food, ago, energy, restInP
  *   { iso, title, ago, summary, state, rail, workouts, planned, next, food, water, weighIn,
  *     measurements, activities }
  *
- * `diary` is useDiaryDay(iso)'s answer, `first` the first log (lib/day-route.js firstLogDay),
- * `energy(kcal)` the person's energy unit. `planned` is the missed or skipped day's routines, else
- * null; `next` is a rest day's next planned workout (nextPlannedOf), else null. `activities` are
- * the diary's activity rows for the day (empty when it shows none).
+ * `diary` is useDiaryDay(iso)'s answer, `goalInputs` and `activity` the nutrition store's (the
+ * day's target comes from food-target.js dayTargetsOf, as on the Week page), `first` the first
+ * log (lib/day-route.js firstLogDay), `energy(kcal)` the person's energy unit. `planned` is the
+ * missed or skipped day's routines, else null; `next` is a rest day's next planned workout
+ * (nextPlannedOf), else null. `planKnown` says whether the day's week can be held to the plan
+ * (planKnownOn); without it nothing is missed and nothing is said about what was planned.
+ * `activities` are the diary's activity rows for the day (empty when it shows none).
  */
-export function dayOf({ S, iso, today, first, diary, energy = kcal => `${round(kcal)} kcal` }) {
+export function dayOf({ S, iso, today, first, diary, goalInputs = {}, activity = null, energy = kcal => `${round(kcal)} kcal` }) {
   const workouts = (S.workouts || []).filter(w => workoutDay(w) === iso).map(w => workoutOf(S, w))
   const missed = workouts.length ? null : missedPlanOf(S, iso, today)
-  const food = foodOf(diary)
+  const food = foodOf(diary, dayTargetsOf({ settings: diary?.settings, date: iso, goalInputs, activity, tried: true }))
   const water = waterOf(diary)
   const weighIn = weighInOf(S, iso)
   const state = dayStateOf(S, iso, today, { workouts, food, water, weighIn })
   const planned = missed ? plannedOf(S, missed) : null
   const ago = fmtDaysAgo(iso, today)
-  const restInPlan = state === 'empty' && hasPlan(S) && !effectiveRoutines(S, iso).length
+  const known = planKnownOn(S, iso)
+  const restInPlan = known && state === 'empty' && hasPlan(S) && !effectiveRoutines(S, iso).length
   return {
-    iso, title: fmtDate(iso, true), ago, state,
+    iso, title: fmtDate(iso, true), ago, state, planKnown: known,
     summary: summaryOf({ state, workouts, planned, food, ago, energy, restInPlan }),
     rail: dayRailOf(S, iso, today, first),
-    workouts, planned, next: state === 'rest' ? nextPlannedOf(S, iso) : null, food, water, weighIn,
+    workouts, planned, next: state === 'rest' && known ? nextPlannedOf(S, iso) : null, food, water, weighIn,
     measurements: measurementsOf(S, iso),
     activities: diary?.on ? diary.activityRows || [] : [],
   }

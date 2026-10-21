@@ -9,7 +9,7 @@ import { addRoutine } from '../Plan.jsx'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
 import { canNoteDay, dayNoteOf } from '../../lib/day-notes.js'
-import { navToDay } from '../../lib/day-route.js'
+import { firstLogDay, navToDay } from '../../lib/day-route.js'
 import { DEMO } from '../../lib/demo.js'
 import { activeProfile } from '../../lib/equipment.js'
 import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
@@ -17,6 +17,7 @@ import { durPart, exCount, exerciseNameText, fmtDate, fmtNum, isoOf, startOfWeek
 import { doneUnits, effectiveRoutineIds, exLine, setUnits, setsDone, setsDoneActive, streakWeeks, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
 import { firstWorkoutDay, missedDay, movePlan, moveToToday, plusDays, skipMissed } from '../../lib/missed-day.js'
 import { MOBILE } from '../../lib/mobile.js'
+import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { levelsOf, loadOfActive, loadOfRoutine, loadOfWorkouts, muscleBalanceWindow, MUSCLE_NAME, rankOf, REGIONS, untrainedRegions } from '../../lib/muscles.js'
 import { queueOf } from '../../lib/queue.js'
 import { markUndone, undoMarks } from '../../lib/sync-merge.js'
@@ -65,19 +66,22 @@ export function railTitle(offset, start) {
 /**
  * One day of the rail: `{ iso, dow, date, mark, state, label, name }`. `mark` is the calendar's
  * (dayMark). `state` is 'today', a past day's 'done', 'noted', 'missed' or 'rest', a later day's
- * 'planned' or 'rest', or 'plain' for a day before the first workout (no marks). `name` is what
- * the day holds: the workout done, or the routines planned.
+ * 'planned' or 'rest', or 'plain' for a day before `first`, the first log (lib/day-route.js
+ * firstLogDay, the day the Day page opens from: no marks, and it cannot be opened). Nothing before
+ * the first workout counts as missed. `name` is what the day holds: the workout done, or the
+ * routines planned.
  */
-export function railDay(S, iso, today, first) {
+export function railDay(S, iso, today, first, workedFrom = firstWorkoutDay(S)) {
   const d = dateOf(iso)
   const base = { iso, dow: d.toLocaleDateString(dateLocale(), { weekday: 'narrow' }), date: d.getDate() }
   const long = d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })
   if (iso < today && (!first || iso < first)) return { ...base, mark: undefined, state: 'plain', label: long, name: null }
   const mark = dayMark(S, iso)
   const planned = plannedOn(S, iso, today)
+  const owed = planned.length > 0 && !!workedFrom && iso >= workedFrom
   const state = iso === today ? 'today'
     : mark === 'done' ? 'done'
-      : iso < today ? (mark === 'noted' ? 'noted' : planned.length ? 'missed' : 'rest')
+      : iso < today ? (mark === 'noted' ? 'noted' : owed ? 'missed' : 'rest')
         : planned.length ? 'planned' : 'rest'
   const words = {
     today: t('Today'), done: t('Done'), noted: t('Day note'), missed: t('Planned, not logged'), planned: t('Planned'), rest: t('Rest day'),
@@ -88,17 +92,34 @@ export function railDay(S, iso, today, first) {
 }
 
 /**
- * The rail: `{ from, to, weeks }`, weeks from `from` (the week of the first workout, at most
+ * A store change with its Undo: `change(s)` runs on a draft and returns `{ undo(s) }` (or null
+ * when there is nothing to do). Returns `{ done, undo }`, or null. The Undo marks the plan days it
+ * puts back (Plan's pattern, lib/sync-merge.js undoMarks), so a change another device made to one
+ * of them in the meantime still wins. Train's missed-day banner and the Day page's Mark skipped.
+ */
+export function withUndo(change) {
+  const update = mut => useStore.getState().update(mut)
+  const before = useStore.getState().S
+  let done = null
+  update(s => { done = change(s) })
+  if (!done) return null
+  const marks = undoMarks(before, useStore.getState().S)
+  return { done, undo: () => update(s => { done.undo(s); markUndone(s, marks) }) }
+}
+
+/**
+ * The rail: `{ from, to, weeks }`, weeks from `from` (the week of the first log `first`, at most
  * RAIL_BEHIND back, or this week without one) to `to` (RAIL_AHEAD), each `{ offset, title, start,
  * days }`. Later weeks read the plan as it repeats (the weekdays, with any day changed on its own).
+ * `first` is lib/day-route.js firstLogDay, the same first day the Day page opens from.
  */
-export function railOf(S, today) {
-  const first = firstWorkoutDay(S)
+export function railOf(S, today, first = firstWorkoutDay(S)) {
   const from = first && first < today ? Math.max(-RAIL_BEHIND, Math.min(0, Math.floor(daysBetween(railWeekStart(today, 0), first) / 7))) : 0
+  const workedFrom = firstWorkoutDay(S)
   const weeks = []
   for (let offset = from; offset <= RAIL_AHEAD; offset++) {
     const start = railWeekStart(today, offset)
-    weeks.push({ offset, title: railTitle(offset, start), start, days: Array.from({ length: 7 }, (_, k) => railDay(S, plusDays(start, k), today, first)) })
+    weeks.push({ offset, title: railTitle(offset, start), start, days: Array.from({ length: 7 }, (_, k) => railDay(S, plusDays(start, k), today, first, workedFrom)) })
   }
   return { from, to: RAIL_AHEAD, weeks }
 }
@@ -454,9 +475,10 @@ export function useTrain() {
   const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
   const connection = useConnectionTrouble()
   const searching = useSearch(s => s.open)
-  const update = mut => useStore.getState().update(mut)
+  useDiaryIndex(s => s.version)
+  const first = firstLogDay(S, diaryIndexDays())
 
-  const rail = useMemo(() => railOf(S, today), [S, today])
+  const rail = useMemo(() => railOf(S, today, first), [S, today, first])
   const toWorkout = () => nav('/train/workout')
   const start = ids => (S.active ? toWorkout() : startFlow(ids))
 
@@ -529,16 +551,6 @@ export function useTrain() {
     missed: missed && { ...missed, move: moveMissed, skip: skipIt, onMove: () => toast(moveMissed()), onSkip: () => toast(skipIt()) },
   }
 
-  // An Undo marks the plan days it put back (Plan's pattern, lib/sync-merge.js undoMarks), so a
-  // change another device made to one of them in the meantime still wins.
-  function withUndo(change) {
-    const before = useStore.getState().S
-    let done = null
-    update(s => { done = change(s) })
-    if (!done) return null
-    const marks = undoMarks(before, useStore.getState().S)
-    return { done, undo: () => update(s => { done.undo(s); markUndone(s, marks) }) }
-  }
   function moveMissed() {
     const r = withUndo(s => moveToToday(s, missed.iso, today))
     return r && { text: movedText(S, r.done), undo: r.undo }
