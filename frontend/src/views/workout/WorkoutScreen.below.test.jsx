@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUI } from '../../store/useUI.js'
 import { resetBested, useWorkout } from './use-workout.js'
 import { lift, mountHook, resetTimers, seed } from './test-fixtures.js'
+import { isolateDir } from './workout-view.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn(), endTone: vi.fn() }))
 vi.mock('../../lib/api.js', () => ({
@@ -86,11 +87,34 @@ describe('the last 3 times block', () => {
     expect(h.best).not.toContain('90')
   })
 
-  // old :3116 (#216): "Last time" read this routine's own last session. exerciseHistory reads the
-  // exercise across routines, so the block is not routine-scoped; the hero's "Last time" line is
-  // the other half of the old line.
-  it.todo('the hero\'s "Last time" reads this routine\'s own last session, not another routine\'s (old Workout.test.jsx:2316, :3121): decide whether the new screen scopes it')
-  it.todo('every past set is its own left-to-right island, and a set with right-to-left words keeps its own direction (old Workout.test.jsx:3180, :3192): check the history rows in WorkoutBelow.jsx for `bdi`')
+  // old :3116 (#216): "Last time" reads this routine's own last session. That is the hero's line
+  // (current.last, lastEntryFor with the entry's routine); the block below is the exercise's
+  // history across routines, as its title says.
+  it('the hero\'s "Last time" reads this routine\'s own last session, not another routine\'s', () => {
+    start([lift(BENCH, 60, 8, 2, { rid: 'A' })], { workouts: [session('b', '2026-08-24', 'A', 60, 10), session('c', '2026-08-26', 'B', 40, 15)] })
+    expect(view().current.last).toContain('60')
+    expect(view().current.last).not.toContain('40')
+  })
+
+  it('falls back to the exercise\'s last session anywhere when this routine has none', () => {
+    start([lift(BENCH, 60, 8, 2, { rid: 'A' })], { workouts: [session('c', '2026-08-26', 'B', 40, 15)] })
+    expect(view().current.last).toContain('40')
+  })
+
+  // old :3180, :3192: every past session's sets are one left-to-right island; words of a
+  // right-to-left script keep their own direction. WorkoutBelow wraps the row in <bdi dir>.
+  it('isolates every past session\'s sets from the text around them', () => {
+    start([lift(BENCH, 60, 8, 2, { rid: 'A' })], { workouts: HISTORY })
+    const h = view().history
+    expect(h.rows.length).toBeGreaterThan(0)
+    expect(h.rows.every(r => r.dir === 'ltr')).toBe(true)
+    expect(h.bestDir).toBe('ltr')
+  })
+
+  it('a set with right-to-left words keeps its own direction', () => {
+    expect(isolateDir('يسار 15×8 · يمين 15×7')).toBe('auto')
+    expect(isolateDir('L 15×8 · R 15×7')).toBe('ltr')
+  })
 })
 
 // old :2659: the chips followed the ticks, now the phase progress under the title

@@ -371,6 +371,12 @@ export const EFFORT_OPTIONS = {
   rpe: () => [6, 7, 8, 9, 10].map(v => ({ value: v, label: String(v) })),
 }
 
+// A past set's numbers are their own island: in Arabic a set after the label took the label's
+// direction and read 8×60 where one after a Latin "RIR" read 60×8. Text that carries words of a
+// right-to-left script (a per-side set's side words) keeps its own direction, still isolated.
+const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/
+export const isolateDir = text => (RTL_LETTER.test(text) ? 'auto' : 'ltr')
+
 /** "17.5 × 12 · 12 · 11": one past session's sets, the weight said again only when it changes. */
 export const sessionLine = (exId, mode, sets, target, speedUnit) => sets.map((s, k) => {
   if (mode !== 'reps' || !(s.w > 0)) return setLabel(exId, s, target, speedUnit)
@@ -491,8 +497,12 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       out.history = {
         title: t('{0}, last 3 times', view.hero.name),
         allLabel: t('All'),
-        rows: hist.sessions.map(x => ({ id: x.id, date: fmtDate(x.d, true), text: sessionLine(entry.id, x.mode, x.sets, x.target, S.speedUnit) })),
+        rows: hist.sessions.map(x => {
+          const text = sessionLine(entry.id, x.mode, x.sets, x.target, S.speedUnit)
+          return { id: x.id, date: fmtDate(x.d, true), text, dir: isolateDir(text) }
+        }),
         best: best ? t('Best: {0}', setText(S, { ...entry, target: best.target || entry.target }, best.set)) : null,
+        bestDir: best ? isolateDir(setText(S, { ...entry, target: best.target || entry.target }, best.set)) : null,
         bestSub: [e1 ? t('Est. 1RM {0}', fmtNum(Math.round(e1.est)) + ' ' + S.unit) : null, best ? fmtDate((e1 && e1.d) || best.d, true) : null].filter(Boolean).join(' · ') || null,
         first: null,
       }

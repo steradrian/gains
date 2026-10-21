@@ -43,10 +43,10 @@ export default function WorkoutBelow({ view }) {
           <div className="wk-card g-glass">
             {history.first && <p className="wk-card-line">{history.first}</p>}
             {history.rows.map(r => (
-              <p key={r.id} className="wk-row"><span>{r.date}</span><b>{r.text}</b></p>
+              <p key={r.id} className="wk-row"><span>{r.date}</span><b><bdi dir={r.dir}>{r.text}</bdi></b></p>
             ))}
             {history.best && (
-              <p className="wk-row wk-best"><b>{history.best}</b>{history.bestSub && <span>{history.bestSub}</span>}</p>
+              <p className="wk-row wk-best"><b><bdi dir={history.bestDir}>{history.best}</bdi></b>{history.bestSub && <span>{history.bestSub}</span>}</p>
             )}
           </div>
         </section>
