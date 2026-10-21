@@ -9,6 +9,7 @@ import { barWeightFor } from './bar.js'
 import { phaseForSet, modeForSet, modeForEntry, isWarmupRow, isFailureSet, isDropSet, isRestPauseSet, normalizeMode, completedVolumeOf, hasCompletedWork, nextDropWeight, splitBurstReps, makeSideSet, isSideSet, syncSideAggregate, WEIGHT_ORIGIN_MANUAL, dropsOf, clustersOf } from './workout-model.js'
 import { backoffAt, backoffStepOf, backoffWeights } from './backoff.js'
 import { dbLoadOf, bellsIn, volumeFactor, historyAs, ownedFloor } from './dumbbells.js'
+import { countsForVolume } from './workout-parts.js'
 const objectOf = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 // Completed-state-independent work rows whose authoritative mode matches the requested mode.
 const workRowsForMode = (entry = {}, mode = 'reps') => {
@@ -751,7 +752,9 @@ export function workoutVolume(w) {
   // Each side is its own weight × reps, with its own drops and bursts.
   // A dumbbell entry logged per bell counts both bells (volumeFactor, lib/dumbbells.js); every
   // other entry, and every one saved before the setting existed, counts its weight once.
+  // A warm-up or cool-down exercise (lib/workout-parts.js) adds no volume either.
   ;(Array.isArray(w?.entries) ? w.entries : []).forEach(e => {
+    if (!countsForVolume(e)) return
     const f = volumeFactor(e)
     ;(Array.isArray(e?.sets) ? e.sets : []).forEach(s => {
       if (!isWarmupRow(s)) v += completedVolumeOf(s) * f
