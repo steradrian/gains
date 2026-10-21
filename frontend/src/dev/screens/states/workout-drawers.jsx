@@ -5,7 +5,7 @@ import { useUI } from '../../../store/useUI.js'
 import WorkoutScreen from '../../../views/workout/WorkoutScreen.jsx'
 import { setEditSheet, howToSheet, platesSheet, restWheelSheet } from '../../../views/workout/drawers.js'
 import { removeSetAt, removeExerciseWithUndo, swapEntryWithUndo } from '../../../views/workout/workout-actions.js'
-import { replaceCandidates } from '../../../sheets/exercise-swap.jsx'
+import { replaceCandidates } from '../../../sheets.jsx'
 import { registerScreens } from '../registry.js'
 import { Live, PUSH, pushA, WARM_DONE, MAIN_DONE } from './workout.jsx'
 

@@ -49,6 +49,7 @@ describe('opaque fallbacks for glass surfaces', () => {
         }
       }
     }
-    expect(checked).toBeGreaterThan(4)
+    // A floor so the scan cannot go blind; the old workout's fallback went with its stylesheet.
+    expect(checked).toBeGreaterThan(3)
   })
 })

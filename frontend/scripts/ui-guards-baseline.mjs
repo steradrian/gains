@@ -35,7 +35,7 @@ export const PRIMITIVE_FILES = [
 // Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
 // design system's StageNavBar. WorkoutRoute and SummaryScreen are the workout's full screens
 // (StageScreen, no tab bar). A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
-export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'WorkoutRoute']
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
@@ -403,7 +403,7 @@ export function routeViewsWithoutPage(src = SRC) {
 export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx']
 const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
 const exemptView = file => PAGE_EXEMPT.some(name =>
-  file === `views/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
+  file === `views/${name}.jsx` || file === `views/workout/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
 
 // Every place a page chooses its own header: importing a header component past <Page>, building
 // a header's classes by hand, or handing <Page> a class or a style of its own. `file: what`.

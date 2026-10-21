@@ -24,7 +24,6 @@ import WorkoutTopBar from '../../ds/WorkoutTopBar.jsx'
 import { restWheelSheet, workoutMapSheet } from './drawers.js'
 import { cooldownOfferSheet, discardSheet, finishSheet } from './finish-drawers.js'
 import { useWorkout } from './use-workout.js'
-import { markOffered } from './workout-actions.js'
 import WorkoutAllDone from './WorkoutAllDone.jsx'
 import WorkoutBelow from './WorkoutBelow.jsx'
 import WorkoutFocus from './WorkoutFocus.jsx'
@@ -54,11 +53,10 @@ export default function WorkoutScreen() {
   const finished = !!view?.allDone
   useEffect(() => { if (finished) setPeek(false) }, [finished])
 
-  // The cool-down offer, once (W1.40): marked as offered as it opens.
+  // The cool-down offer, once (W1.40): the sheet marks it as offered as it opens.
   const offer = view?.offer
   useEffect(() => {
     if (offer !== 'cooldown') return
-    markOffered('cooldown')
     cooldownOfferSheet()
   }, [offer])
 

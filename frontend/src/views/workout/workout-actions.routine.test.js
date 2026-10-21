@@ -5,12 +5,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
-import { confirmSheet } from '../../sheets/confirm-menu.jsx'
+import { confirmSheet } from '../../sheets.jsx'
 import { addWarmupAt, routineUpdateAt } from './workout-actions.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn() }))
-vi.mock('../../sheets/confirm-menu.jsx', () => ({ confirmSheet: vi.fn(), menuSheet: vi.fn() }))
+vi.mock('../../sheets.jsx', () => ({ confirmSheet: vi.fn() }))
 
 const clone = value => JSON.parse(JSON.stringify(value))
 const BENCH = '0025'

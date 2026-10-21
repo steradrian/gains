@@ -158,8 +158,8 @@ describe('WorkoutScreen', () => {
   it('opens the cool-down offer once when the last working set is done', () => {
     render([lift('0025', 80, 8, 1), STRETCH()])
     press(button('Done · last set'))
+    // The sheet marks the offer as made (finish-drawers.test.jsx), so the screen asks once and it is mocked here.
     expect(cooldownOfferSheet).toHaveBeenCalledTimes(1)
-    expect(A().offered.cooldown).toBe(true)
   })
 
   it('edits a saved workout without timers, and Save saves', () => {
