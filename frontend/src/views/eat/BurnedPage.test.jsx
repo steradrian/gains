@@ -7,6 +7,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { click, useView } from '../../ds/render.test-util.js'
 import { createFakeNutriTrace, fixtureSettings } from '../../lib/nutrition/fake-nutritrace.js'
+import { useActivityWrites } from '../../lib/nutrition/activity.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -51,6 +52,7 @@ beforeEach(() => {
   saved = useStore.getState().S
   useStore.setState({ user: { id: 3, name: 'Ana' }, S: { ...saved, weekStart: 1, unit: 'kg', bodyweight: [] } })
   useNutrition.getState().reset()
+  useActivityWrites.setState({ supported: true })
   openSheet = vi.fn()
   useUI.setState({ openSheet })
 })
@@ -118,6 +120,42 @@ describe('Burned', () => {
     expect(view.host.querySelector('[data-scene="chart"]')).not.toBeNull()
     click([...view.host.querySelectorAll('button')].find(b => b.textContent === 'Log activity' && !b.getAttribute('aria-label')))
     expect(openSheet).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('when the hub takes no activity writes yet', () => {
+  const week = {
+    [MON]: [row(1, MON, 'Legs', 0, { source: 'opengym' })],
+    [TUE]: [row(2, TUE, 'Run', 410)],
+  }
+
+  it('stays readable but offers no add or edit, and says logging arrives soon', async () => {
+    await open({ activity: week })
+    expect(view.host.querySelector('button[aria-label="Log activity"]')).not.toBeNull()
+    act(() => { useActivityWrites.setState({ supported: false }) })
+    await settle()
+    expect(view.host.querySelector('button[aria-label="Log activity"]')).toBeNull()
+    expect(text()).toContain('Logging activity arrives soon')
+    expect(text()).not.toContain('Tap it to add one')
+    expect(view.host.querySelector('h2').textContent).toBe('410 kcal')
+    // the figure and the rows are still there; a row with no number does nothing
+    click(rowButton('Legs'))
+    expect(openSheet).not.toHaveBeenCalled()
+    click(rowButton('Run'))
+    expect(navToDay).toHaveBeenCalledWith(TUE, 'food')
+  })
+
+  it('an empty week has no Log activity button either', async () => {
+    useActivityWrites.setState({ supported: false })
+    await open()
+    expect(text()).toContain('Nothing burned logged this week')
+    expect(text()).toContain('Logging activity arrives soon')
+    expect([...view.host.querySelectorAll('button')].some(b => b.textContent === 'Log activity')).toBe(false)
+  })
+
+  it('opening the page sends no activity write', async () => {
+    await open({ activity: week })
+    expect(nt.writes()).toHaveLength(0)
   })
 })
 

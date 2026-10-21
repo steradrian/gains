@@ -24,10 +24,10 @@ const record = rows => ({ status: 'ready', rows, sum: { effective: rows.reduce((
 const week = byDay => Object.fromEntries(DAYS.map(d => [d, record(byDay[d] || [])]))
 
 const row = raw => rowOf(raw, '2026-10-15')
-const screen = (byDay, over = {}) => () => {
+const screen = (byDay, over = {}, canLog = true) => () => {
   const view = viewOf({
     week: burnedWeekOf({ days: DAYS, today: TODAY, activity: week(byDay) }),
-    today: TODAY, settings: settings(over), goalInputs: {}, energy,
+    today: TODAY, settings: settings(over), goalInputs: {}, energy, canLog,
     onAdd: r => burnedAmountSheet(r, TODAY), onOpen: () => {},
   })
   return <BurnedScreen status="ready" error={null} {...view} onLog={() => logActivitySheet()} />
@@ -45,6 +45,13 @@ registerScreens('Eat: burned', [
     render: screen({ ...rows, '2026-10-15': [LEGS] }), play: open(() => burnedAmountSheet(row(LEGS), TODAY)) },
   { id: 'E7.0e', title: 'Burned, nothing this week', note: 'No figure; one line and Log activity.', render: screen({}) },
   { id: 'E7.0g', title: 'Burned, no goal set', note: 'The note drops the target figure.', render: screen(rows, { goals: {} }) },
+  { id: 'E7.0s', title: 'Burned, logging not live yet', note: 'The hub has refused an activity write: no +, rows read-only, one line says logging arrives soon.',
+    render: screen({ ...rows, '2026-10-15': [LEGS] }, {}, false) },
+  { id: 'E7.0f', title: 'Burned, a day failed to read', note: 'No figure and no empty state for a partial week: one line and Retry.',
+    render: () => <BurnedScreen status="ready" error={null} {...viewOf({
+      week: burnedWeekOf({ days: DAYS, today: TODAY, activity: { ...week(rows), '2026-10-16': { status: 'error', rows: [], sum: null, error: new Error('offline') } } }),
+      today: TODAY, settings: settings(), goalInputs: {}, energy, onAdd: () => {}, onOpen: () => {},
+    })} onLog={() => {}} onRetry={() => {}} /> },
   { id: 'E7.1', title: 'Log activity', note: 'A run of 31 min prefilled: Burned worked out from 81.4 kg and editable.', render: screen(rows), mock: weighed,
     play: open(() => logActivitySheet({ type: 'run', minutes: 31 })) },
 ])

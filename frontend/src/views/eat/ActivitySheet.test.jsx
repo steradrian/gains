@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../../store/useStore.js'
 import { type, useView } from '../../ds/render.test-util.js'
 import { createFakeNutriTrace } from '../../lib/nutrition/fake-nutritrace.js'
+import { useActivityWrites } from '../../lib/nutrition/activity.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import ActivitySheet from './ActivitySheet.jsx'
 import BurnedAmountSheet from './BurnedAmountSheet.jsx'
@@ -32,6 +33,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', nt.fetch)
   useStore.setState({ user: { id: 3, name: 'Ana' }, pushState: vi.fn(async () => {}) })
   useNutrition.getState().reset()
+  useActivityWrites.setState({ supported: true })
   await useNutrition.getState().loadSettings()
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -113,6 +115,18 @@ describe('Log activity', () => {
     await settle()
     expect(view.host.textContent).toContain('Not saved. Try again.')
     expect(field('Burned').value).toBe('410')
+    expect(close).not.toHaveBeenCalled()
+  })
+
+  it('says logging arrives soon, not an error, when the hub takes no activity writes yet', async () => {
+    weigh()
+    const close = await open()
+    nt.failNext('POST', '/nt/api/activity', { status: 404 })
+    await act(async () => { button('Save activity').click() })
+    await settle()
+    expect(view.host.textContent).toContain('Logging activity arrives soon')
+    expect(view.host.textContent).not.toContain('Not saved')
+    expect(useActivityWrites.getState().supported).toBe(false)
     expect(close).not.toHaveBeenCalled()
   })
 
