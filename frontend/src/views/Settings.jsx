@@ -749,9 +749,10 @@ export default function Settings({ page = null, find = null, via = null }) {
         </Row>
       </Section>
       <Section title={t('On Home')}>
-        {/* Membership QR codes on Home (views/CheckIn.jsx); off = no Home card, no route. */}
+        {/* Membership QR codes (views/CheckIn.jsx), opened from Training's actions and the + drawer;
+            off = neither entry, no route. */}
         <Row icon="qr" iconTint="var(--blue)" title={t('Gym check-in')}
-          subtitle={t('Show a card on Home with your membership QR codes.')}>
+          subtitle={t('Adds Check in to Training and the + sheet, with your membership QR codes.')}>
           <Switch checked={S.checkIn !== false} onChange={v => update(s => { s.checkIn = v })} />
         </Row>
         {/* The bar at the top that says the app is offline, kept local, or not synced (#369, #330).

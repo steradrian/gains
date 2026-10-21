@@ -43,7 +43,7 @@ export default function TodayScreen({
           {firstSteps && <><StageSection title={t('First steps')} action={firstSteps.label} /><FirstSteps steps={firstSteps.steps} /></>}
           {upNext && <><StageSection title={t('Up next')} /><UpNext {...upNext} /></>}
           {meals && <><StageSection title={t('Food')} action={t('See day')} onAction={onSeeDay} /><MealTiles meals={meals} onPick={onMeal} /></>}
-          {water && <><StageSection title={t('Water')} action={water.label} /><WaterGlasses value={water.value} target={water.target} step={water.step} onAdd={water.onAdd} /></>}
+          {water && <><StageSection title={t('Water')} action={water.label} /><WaterGlasses value={water.value} target={water.target} step={water.step} onAdd={water.onAdd} label={water.ariaLabel} addLabel={water.addLabel} /></>}
           {week && <><StageSection title={t('This week')} action={week.label} /><StageWeekMarks days={week.days} /></>}
         </>}
       </div>

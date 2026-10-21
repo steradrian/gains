@@ -786,7 +786,6 @@ export const PT_BR_OVERRIDES = {
   'Scanning is not available on this device.': 'O escaneamento não está disponível neste dispositivo.',
   'Could not start the scanner': 'Não foi possível iniciar o scanner',
   'Gym check-in': 'Check-in na academia',
-  'Show a card on Home with your membership QR codes.': 'Mostra no Início um cartão com seus códigos QR de sócio.',
   'Point the camera at the QR code': 'Aponte a câmera para o código QR',
   'No camera available here. Import a photo or type the code instead.': 'Sem câmera disponível aqui. Importe uma foto ou digite o código.',
   'Camera access was denied. Allow it in your browser and try again.': 'O acesso à câmera foi negado. Permita no navegador e tente de novo.',

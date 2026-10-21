@@ -184,7 +184,7 @@ describe('Today — Up next', () => {
   it('the training profile: the week\'s workouts as one ring, today\'s session on its pill, each day marked', () => {
     const now = Date.now()
     setS({ workouts: [{ id: 'w', d: TODAY, start: now - 3600000, end: now, routineIds: ['r1'], routineId: 'r1', name: 'Push', entries: [] }] }); mountToday()
-    expect(host.querySelector('.g-rc-slide').getAttribute('aria-label')).toBe('Workouts: 1 of 7 workouts. Open details')
+    expect(host.querySelector('.g-rc-slide').getAttribute('aria-label')).toBe('Workouts: This week 1 of 7 workouts. Open details')
     expect([...host.querySelectorAll('.g-ssec')].map(s => s.textContent)).toContain('This week1 of 7 done')
     const cells = [...host.querySelectorAll('.g-wk-cell')]
     expect(cells).toHaveLength(7)

@@ -113,10 +113,10 @@ describe('Today', () => {
     await mount(<Home />)
     // 2200 target − (228 oats + 450 quick) eaten
     expect(slides().map(s => s.getAttribute('aria-label'))).toEqual([
-      'Calories: 1,522 of 2,200 kcal. Open details',
-      'Protein: 152 g of 160 g. Open details',
-      'Carbs: 129 g of 165 g. Open details',
-      'Fat: 66 g of 70 g. Open details',
+      'Calories: Left today 1,522 of 2,200 kcal, 190 burned · 678 eaten. Open details',
+      'Protein: Protein left 152 g of 160 g, 8 g eaten. Open details',
+      'Carbs: Carbs left 129 g of 165 g, 36 g eaten. Open details',
+      'Fat: Fat left 66 g of 70 g, 4 g eaten. Open details',
     ])
     expect(ring(0)).toEqual({ top: ['Left today', 'of 2,200 kcal'], big: '1,522', pill: expect.stringMatching(/678 eaten$/) })
     expect(ring(1)).toEqual({ top: ['Protein left', 'g of 160 g'], big: '152', pill: '8 g eaten' })
@@ -212,7 +212,9 @@ describe('Today', () => {
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
     expect(sections()).toContain('Water250 of 2,500 ml')
-    await click(button('Add 250 ml of water'))
+    // Spoken in the person's water unit, as the Nutrition tab's quick-adds are.
+    expect(host.querySelector('.g-water').getAttribute('aria-label')).toBe('Water, 250 ml of 2,500 ml')
+    await click(button('Add a glass of water, 250 ml'))
     expect(puts().at(-1).body.water.map(w => w.amount)).toEqual([250, 250])
   })
 
@@ -338,7 +340,7 @@ describe('Today', () => {
   it('without nutrition (a guest, the phone build): one ring for the week, the week\'s marks, no food', async () => {
     useStore.setState({ user: null })
     await mount(<Home />)
-    expect(slides().map(s => s.getAttribute('aria-label'))).toEqual(['Workouts: 0 of 0 workouts. Open details'])
+    expect(slides().map(s => s.getAttribute('aria-label'))).toEqual(['Workouts: This week 0 of 0 workouts. Open details'])
     expect(actions()).toEqual(['Start', 'Activity', 'Weigh-in', 'Plan'])
     expect(sections()).toEqual(['Up next', 'This week0 of 0 done'])
     expect(host.querySelectorAll('.g-wk-cell')).toHaveLength(7)

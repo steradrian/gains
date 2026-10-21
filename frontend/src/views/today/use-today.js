@@ -24,7 +24,7 @@ import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
 import { nutritionDaySheet } from '../../components/NutritionDaySheet.jsx'
 import { scanToSelection } from '../../components/scan-to-selection.js'
 import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
-import { addWater } from '../../components/WaterCard.jsx'
+import { addWater, waterAria } from '../../components/WaterCard.jsx'
 import { useOfflinePill } from './use-offline-pill.js'
 
 // The glasses row stays one line: twelve at most (ds/WaterGlasses).
@@ -232,7 +232,7 @@ export function weekOf(S, today) {
     const plans = mark === 'plan' || mark === 'ovr'
     const state = mark === 'done' ? 'done' : iso === today ? 'today' : plans ? (iso < today ? 'missed' : 'planned') : 'rest'
     const long = d.toLocaleDateString(dateLocale(), { weekday: 'long' })
-    return { key: iso, dow: d.toLocaleDateString(dateLocale(), { weekday: 'narrow' }), state, label: long + ', ' + words[state] }
+    return { key: iso, dow: d.toLocaleDateString(dateLocale(), { weekday: 'narrow' }), state, label: t('{0}, {1}', long, words[state]) }
   })
 }
 
@@ -352,6 +352,8 @@ export function useToday() {
     target: day.water.goal / 1000,
     step: glass.ml / 1000,
     label: t('{0} of {1}', units.waterParts(day.water.total).value, units.water(day.water.goal)),
+    ariaLabel: t('Water, {0} of {1}', units.water(day.water.total), units.water(day.water.goal)),
+    addLabel: waterAria(glass, units),
     onAdd: addGlass,
   } : null
 

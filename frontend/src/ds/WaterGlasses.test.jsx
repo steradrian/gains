@@ -26,6 +26,12 @@ describe('WaterGlasses', () => {
     expect(glasses()).toHaveLength(6)
   })
 
+  it('speaks the caller\'s labels, in the person\'s units, over its litre defaults', () => {
+    view.render(<WaterGlasses value={0.5} target={2} step={0.25} label="Water, 17 fl oz of 68 fl oz" addLabel="Add a glass of water, 8 fl oz" />)
+    expect(view.host.firstElementChild.getAttribute('aria-label')).toBe('Water, 17 fl oz of 68 fl oz')
+    expect(add().getAttribute('aria-label')).toBe('Add a glass of water, 8 fl oz')
+  })
+
   it('fills a glass on each tap and stops at the target when it keeps its own count', () => {
     const onAdd = vi.fn()
     view.render(<WaterGlasses target={0.5} onAdd={onAdd} />)
