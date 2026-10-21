@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { smOf, exOr, isCustomEx } from '../lib/exercises.js'
 import { fmtDate, fmtNum, exerciseNameText, fmtVol, uid, exCount } from '../lib/format.js'
-import { cleanupSg, lastEntryFor, setLabel, modeOf } from '../lib/history.js'
+import { cleanupSg, setLabel, modeOf } from '../lib/history.js'
 import { t, tn, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
 import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
 import { hasProgress } from '../lib/use-exercise-progress.js'
@@ -21,8 +21,9 @@ import { cx } from '../lib/ui-kit.js'
 import { Segmented } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 import { exerciseMuscleSnapshot, MUSCLE_NAME, muscleWeightsOf, musclesOf } from '../lib/muscles.js'
-import { exerciseHistory, bestSetFor } from '../lib/exercise-history.js'
-import { isBellEx, dbLoadFor, withDbLoad, currentDbLoad } from '../lib/dumbbells.js'
+import { exerciseHistory } from '../lib/exercise-history.js'
+import { bestSetLabel } from '../lib/best-set.js'
+import { isBellEx, dbLoadFor, withDbLoad } from '../lib/dumbbells.js'
 import { speedUnitOf } from '../lib/speed.js'
 import { isFav, toggleFav } from '../lib/favourites.js'
 import BodyMap from '../ds/BodyMap.jsx'
@@ -67,18 +68,10 @@ export function detailTags(ex) {
   return out
 }
 
-// "Best 82.5 kg × 6 · Mon 12 Oct": the best set in the mode it was last logged in, read in the
-// exercise's current dumbbell meaning, or nothing when there is none.
+// "Best 82.5 kg × 6 · Mon 12 Oct", or nothing when there is no best set.
 function bestLine(st, ex) {
-  const last = lastEntryFor(st, ex.id)
-  const mode = modeOf({ ...(last?.target || {}), id: ex.id })
-  const best = bestSetFor(st, ex.id, mode, currentDbLoad(st, ex.id))
-  if (!best) return null
-  let label = setLabel(ex.id, best.set, best.target, speedUnitOf(st))
-  // A plain loaded set reads "82.5×6"; here it carries its unit, as the board draws it.
-  const plain = fmtNum(best.set.w) + '×'
-  if (mode === 'reps' && best.set.w > 0 && label.startsWith(plain)) label = `${fmtNum(best.set.w)} ${st.unit} × ${label.slice(plain.length)}`
-  return t('Best {0} · {1}', label, fmtDate(best.d, true))
+  const best = bestSetLabel(st, ex)
+  return best && t('Best {0} · {1}', best.label, fmtDate(best.d, true))
 }
 
 // The muscle map beside "Primary · Chest" and "Additional · Triceps, Shoulders": main muscles at

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Issue #71 (the same rule Library and the exercise picker already keep): choosing a body part
+// Issue #71 (the same rule the Exercises page and the exercise picker keep): choosing a body part
 // after picking an equipment type must not reset the equipment filter back to "any equipment"
 // when the new body part still has exercises under it. MuscleExplorer used to clear it on every
 // body-part tap regardless — the only one of the three exercise browsers that did.
@@ -27,13 +27,13 @@ vi.mock('../store/useStore.js', () => {
 
 const mounted = []
 // `surface` stands in for the container the explorer sits in: the exercise picker's sheet provides
-// 'sheet' (Modals.jsx); on the Muscles page nothing above it does.
-function render(props = {}, surface) {
+// 'sheet' (Modals.jsx).
+function render(props = {}, surface = 'sheet') {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   mounted.push(root)
-  const explorer = <MuscleExplorer {...props} />
+  const explorer = <MuscleExplorer onPick={vi.fn()} {...props} />
   act(() => root.render(surface ? <EmptySurface value={surface}>{explorer}</EmptySurface> : explorer))
   return host
 }
@@ -96,37 +96,33 @@ describe('MuscleExplorer empty states', () => {
     })
   }
 
-  it('on the Muscles page, a search with no match is the page variant under the page heading', () => {
-    const host = render({ onDetail: vi.fn(), onPlan: vi.fn() })
+  it('in the exercise picker, a search with no match is the sheet variant under the sheet\'s headings', () => {
+    const host = render()
     act(() => { muscleChip(host, 'Biceps').click() })
     expect(host.querySelector('.empty')).toBeNull()
-    search(host, 'qxzvwjkq')
-    const empty = host.querySelector('.empty[data-surface=page]')
-    expect(empty.querySelector('.lineart[data-scene=search]')).not.toBeNull()
-    expect(empty.querySelector('h2').textContent).toBe('No match')
-    expect(empty.querySelector('button')).toBeNull()
-  })
-
-  it('in the exercise picker, the same state is the sheet variant under the sheet\'s headings', () => {
-    const host = render({ onPick: vi.fn() }, 'sheet')
-    act(() => { muscleChip(host, 'Biceps').click() })
     search(host, 'qxzvwjkq')
     const empty = host.querySelector('.empty[data-surface=sheet]')
     expect(empty.querySelector('.lineart[data-scene=search]')).not.toBeNull()
     expect(empty.querySelector('h4').textContent).toBe('No match')
   })
 
-  it('before a muscle is chosen the picker shows a hint, not an empty state; the page shows nothing', () => {
-    const picker = render({ onPick: vi.fn() }, 'sheet')
+  it('before a muscle is chosen the picker shows a hint, not an empty state', () => {
+    const picker = render()
     expect(picker.querySelector('.inote').textContent).toBe('Choose a muscle to see exercises that train it.')
     expect(picker.querySelector('.empty')).toBeNull()
-    const page = render({ onDetail: vi.fn(), onPlan: vi.fn() })
-    expect(page.querySelector('.inote')).toBeNull()
-    expect(page.querySelector('.empty')).toBeNull()
+  })
+
+  it('a tapped result is handed to onPick', () => {
+    const onPick = vi.fn()
+    const host = render({ onPick })
+    act(() => { muscleChip(host, 'Biceps').click() })
+    act(() => { host.querySelector('.list .item').click() })
+    expect(onPick).toHaveBeenCalledTimes(1)
+    expect(onPick.mock.calls[0][0].id).toBeTruthy()
   })
 })
 
-describe('MuscleExplorer search: the × and live count the Library has (#338)', () => {
+describe('MuscleExplorer search: the × and live count of the Exercises page (#338)', () => {
   function type(el, value) {
     Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
     el.dispatchEvent(new Event('input', { bubbles: true }))

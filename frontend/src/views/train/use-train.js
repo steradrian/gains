@@ -314,14 +314,24 @@ export function routineRows(S, today) {
 }
 
 /**
+ * Effective sets per muscle this week, `{ slug: n }`: the sets ticked in the week (a session in
+ * progress included), each weighted by how much its exercise works the muscle. The By muscle page
+ * reads one muscle's number off it.
+ */
+export function muscleLoadThisWeek(S, today, now = Date.now()) {
+  const load = loadOfWorkouts(muscleBalanceWindow(S.workouts, 7, now, today, weekStartOf(S)))
+  if (S.active && !S.active.editingWorkoutId) for (const [m, v] of Object.entries(loadOfActive(S.active))) load[m] = (load[m] || 0) + v
+  return load
+}
+
+/**
  * Muscles this week, for BodyMap: `{ title, levels, note }`. `levels` are 0–4 per muscle,
  * relative to the hardest-worked one, from the sets ticked this week (a session in progress
  * included), as Muscle balance's week shows them. `note` names the parts not trained yet.
  */
 export function musclesThisWeekOf(S, today, now = Date.now()) {
   const ws = weekStartOf(S)
-  const load = loadOfWorkouts(muscleBalanceWindow(S.workouts, 7, now, today, ws))
-  if (S.active && !S.active.editingWorkoutId) for (const [m, v] of Object.entries(loadOfActive(S.active))) load[m] = (load[m] || 0) + v
+  const load = muscleLoadThisWeek(S, today, now)
   const missing = untrainedRegions(load)
   return {
     title: t('Week of {0}', fmtDate(isoOf(startOfWeek(today, ws)))),
