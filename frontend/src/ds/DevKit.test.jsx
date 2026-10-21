@@ -48,6 +48,21 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-gtabbar')).toHaveLength(4)
   })
 
+  it('renders the Train charts kit, and a day opens from the heatmap and the month', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StatTiles', 'LineChart', 'BarChart', 'Heatmap', 'MonthGrid']))
+    expect(view.host.querySelectorAll('.g-stats')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-lc')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-bars-card')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-heat')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-mg')).toHaveLength(2)
+    act(() => { view.host.querySelector('.g-heat button.g-heat-c').click() })
+    expect(view.host.textContent).toMatch(/Opened: 2026-w\d+-d\d/)
+    act(() => { view.host.querySelector('.g-mg button.g-mg-cell').click() })
+    expect(view.host.textContent).toContain('Opened: 2026-10-01')
+  })
+
   it('renders the StageWeekMarks entry', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
