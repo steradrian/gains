@@ -228,7 +228,8 @@ describe('Food sources', () => {
 
   it('writes the language as two letters and the country by its English name', async () => {
     await mount('sources')
-    expect(valueOf('Search country')).toBe('Worldwide')
+    // Nothing saved: the device's region (en-US here) names the country (lib/nutrition/search-country.js).
+    expect(valueOf('Search country')).toBe('United States')
     await pick('Search language', 'German')
     await pick('Search country', 'Germany')
     expect(puts()).toEqual([{ key: 'offSearchLanguage', value: 'de' }, { key: 'offSearchCountry', value: 'Germany' }])

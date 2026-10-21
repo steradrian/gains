@@ -74,9 +74,11 @@ async function type(value) {
 const key = (k, opts = {}) => act(() => { pill().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...opts })) })
 const signedIn = () => {
   const nt = createFakeNutriTrace()
+  nt.state.settings.offSearchCountry = 'World'   // the device region would default the search to a country
   vi.stubGlobal('fetch', nt.fetch)
   resetOnlineSearch()
   useNutrition.getState().reset()
+  useNutrition.setState(s => ({ settings: { ...s.settings, data: { ...s.settings.data, offSearchCountry: 'World' } } }))
   useStore.setState({ user: { id: 7, name: 'A' } })
   return nt
 }

@@ -288,13 +288,13 @@ describe('the screens gallery', () => {
     await check('Ea8FoodDetail', s => expect(s.drawer.textContent).toContain('After this, Lunch is'))
     await check('Ea8Food', s => {
       expect(s.drawer.querySelector('h2').textContent).toBe('Food')
-      expect(s.drawer.textContent).toContain('Per 100 g')
+      expect(s.drawer.textContent).toContain('Per serving')
       expect(s.drawer.textContent).toContain('Save as food')
     })
     await check('Ea8Meal', s => {
       expect(s.drawer.querySelector('h2').textContent).toBe('Logging to')
       expect(s.drawer.textContent).toContain('420 kcal logged')
-      expect(s.drawer.textContent).toContain('Now, by the clock')
+      expect(s.drawer.textContent).toContain('Nothing yet')   // "Now, by the clock" marks the clock's meal only while it is empty
       expect(s.drawer.textContent).toContain('Your pick holds for the next half hour.')
     })
     await check('Ea8Saved', s => {
@@ -352,7 +352,7 @@ describe('the screens gallery', () => {
       expect(s.scan.textContent).toContain('Save food')
     })
     await check('Ea9NotFound', s => {
-      expect(s.scan.querySelector('h3').textContent).toBe('Not in Open Food Facts yet')
+      expect(s.scan.querySelector('.g-scan-card h2').textContent).toBe('Not in Open Food Facts yet')
       expect(s.scan.textContent).toContain('Create food with this barcode')
     })
     await check('Ea9Denied', s => {

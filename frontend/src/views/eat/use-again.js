@@ -17,14 +17,19 @@ import { useUI } from '../../store/useUI.js'
  *
  *   { label, items: [name], kcal, done, ready, busy, log() }
  */
-export function useAgain({ settings, meal }) {
+export function useAgain({ settings, meal, on = true }) {
   const today = todayISO()
   const yesterday = yesterdayISO()
   const entry = useNutrition(s => s.days[yesterday]?.entry)
   const target = useNutrition(s => s.days[today])
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => { useNutrition.getState().loadDay(yesterday) }, [yesterday])
+  // Today is read too: the write waits for its tombstones, so the hook does not lean on its host.
+  useEffect(() => {
+    if (!on) return
+    useNutrition.getState().loadDay(yesterday)
+    useNutrition.getState().loadDay(today)
+  }, [on, yesterday, today])
 
   const items = againItems(entry, meal)
   if (!items) return null

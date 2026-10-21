@@ -56,7 +56,9 @@ const steps = () => [...page.querySelectorAll('textarea.g-rec-text')]
 const puts = () => nt.writes().filter(w => w.method === 'PUT' && w.path.startsWith('/nt/api/meals/'))
 const posts = () => nt.writes().filter(w => w.method === 'POST' && w.path === '/nt/api/meals')
 const where = () => page.querySelector('[data-where]').textContent
-const rows = () => [...page.querySelectorAll('.g-glist-row')].map(r => r.textContent)
+// The list rows of the page, the photo's "Add a photo" row apart.
+const listRows = () => [...page.querySelectorAll('.g-glist-row')].filter(r => !r.closest('.g-rec-photo'))
+const rows = () => listRows().map(r => r.textContent)
 
 function Where() {
   const loc = useLocation()
@@ -166,7 +168,7 @@ describe('a recipe', () => {
 
   it('an ingredient changed in the drawer moves Makes and the numbers, and saves them with the ingredients', async () => {
     await openEditor('/food/my-foods/recipes/22', { meals: recipes() })
-    tap([...page.querySelectorAll('.g-glist-row')][0])
+    tap(listRows()[0])
     const { item, index, onChange } = sheet.ingredientDrawer.mock.lastCall[0]
     expect(item.name).toBe('Red lentils')
     expect(index).toBe(0)
@@ -182,7 +184,7 @@ describe('a recipe', () => {
   it('a typed Makes stays when an ingredient changes', async () => {
     await openEditor('/food/my-foods/recipes/22', { meals: recipes() })
     type(fieldNear('Makes'), '1000')
-    tap([...page.querySelectorAll('.g-glist-row')][0])
+    tap(listRows()[0])
     const { item, index, onChange } = sheet.ingredientDrawer.mock.lastCall[0]
     act(() => onChange(index, { ...item, portion: 200, nutrition: { ...item.nutrition, calories: 300 } }))
     expect(fieldNear('Makes').value).toBe('1000')
@@ -201,7 +203,7 @@ describe('a recipe', () => {
 
   it('takes an ingredient out with an Undo that puts it back where it was, at its amount', async () => {
     await openEditor('/food/my-foods/recipes/22', { meals: recipes() })
-    tap([...page.querySelectorAll('.g-glist-row')][0])
+    tap(listRows()[0])
     const { index, onRemove } = sheet.ingredientDrawer.mock.lastCall[0]
     act(() => onRemove(index))
     expect(useUI.getState().toastMsg).toBe('Removed Red lentils')
@@ -218,7 +220,7 @@ describe('a recipe', () => {
   it('does not save a recipe with no ingredients: it says so and keeps the ones it had', async () => {
     const one = { ...recipes()[0], items: [recipes()[0].items[0]] }
     await openEditor('/food/my-foods/recipes/22', { meals: [one] })
-    tap([...page.querySelectorAll('.g-glist-row')][0])
+    tap(listRows()[0])
     const { index, onRemove } = sheet.ingredientDrawer.mock.lastCall[0]
     act(() => onRemove(index))
     await settle(() => expect(page.querySelector('[role=alert]').textContent).toBe('Add at least one ingredient.'))

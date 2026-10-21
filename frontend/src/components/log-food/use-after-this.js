@@ -26,6 +26,6 @@ export function useAfterThis({ date, meal, mealName, kcal }) {
   const when = date === todayISO() ? t('today') : t('on {0}', fmtDate(date, true))
   const mealAfter = units.energy(Math.round(mealNow + kcal))
   return leftAfter >= 0
-    ? t('After this, {0} is {1} and the {2} left {3} goes to {4}.', mealName, mealAfter, units.energy(Math.round(left)), when, units.energy(Math.round(leftAfter)))
+    ? t('After this, {0} is {1} and the {2} left {3} goes to {4}.', mealName, mealAfter, units.energy(Math.round(left)), when, units.energyValue(Math.round(leftAfter)))
     : t('After this, {0} is {1} and you are {2} over {3}.', mealName, mealAfter, units.energy(Math.round(-leftAfter)), when)
 }

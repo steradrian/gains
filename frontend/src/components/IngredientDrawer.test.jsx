@@ -14,12 +14,10 @@ import { resetOffBudget } from '../lib/nutrition/off-budget.js'
 import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { createFakeNutriTrace, fixtureFoods, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
 import { ingredientOf } from '../lib/nutrition/meals.js'
+import { resetCamera, seeCode } from '../lib/use-camera-scan.fake.js'
 import { ingredientDrawer } from './IngredientDrawer.jsx'
 
-const camera = { hit: null }
-vi.mock('./CameraScan.jsx', () => ({
-  default: ({ onFound }) => <button type="button" onClick={() => onFound(camera.hit)}>camera sees a code</button>,
-}))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -60,6 +58,7 @@ const open = async props => {
 
 beforeEach(() => {
   nt = createFakeNutriTrace({ foods: fixtureFoods(), offProducts: { '3017620422003': fixtureOffProduct('3017620422003') } })
+  nt.state.settings.offSearchCountry = 'World'   // the device region would default the search to a country
   vi.stubGlobal('fetch', nt.fetch)
   useStore.setState(s => ({
     user: { id: 3, name: 'Ana' },
@@ -67,11 +66,12 @@ beforeEach(() => {
     S: { ...s.S, routines: [], workouts: [], dayPlan: {}, week: {}, active: null, checkIn: false, unit: 'kg' },
   }))
   useNutrition.getState().reset()
+  useNutrition.setState(s => ({ settings: { ...s.settings, data: { ...s.settings.data, offSearchCountry: 'World' } } }))
   useDiarySelection.getState().reset()
   resetOnlineSearch()
   resetOffBudget()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
-  camera.hit = null
+  resetCamera()
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -244,19 +244,20 @@ describe('adding an ingredient', () => {
     expect(p.onAdd).toHaveBeenCalledTimes(1)
   })
 
-  it('Scan opens over the drawer as a panel of it, and a scanned product is saved first and used', async () => {
+  it('Scan opens over the drawer as a camera viewer, and a scanned product is saved first and used', async () => {
     const p = props()
     await open(p)
     await click(buttonIn(lastSheet(), 'Scan'))
-    expect(useUI.getState().sheets).toHaveLength(1)
-    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
-    await click(buttonIn(lastSheet(), 'camera sees a code'))
+    // The camera is a viewer: it stacks over the drawer, not inside it as a sub-panel.
+    expect(useUI.getState().sheets).toHaveLength(2)
+    expect(useUI.getState().sheets[1].kind).toBe('viewer')
+    await act(async () => { seeCode('3017620422003') })
+    await settle()
     expect(buttonIn(lastSheet(), 'Quick kcal')).toBeUndefined()
     await click(buttonIn(lastSheet(), 'Use'))
     expect(foodPosts()).toHaveLength(1)
     expect(p.onAdd).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nutella' }))
-    expect(useUI.getState().sheets[0].panels).toHaveLength(0)
+    expect(useUI.getState().sheets.some(s => s.kind === 'viewer')).toBe(false)
   })
 
   it('lists 50 of your foods with Show more', async () => {

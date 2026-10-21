@@ -8,8 +8,8 @@ import { Navigate, useLocation } from 'react-router-dom'
 export default function FoodRedirect({ to }) {
   const { search } = useLocation()
   const [path, own = ''] = to.split('?')
-  const query = new URLSearchParams(search)
-  for (const [key, value] of new URLSearchParams(own)) query.set(key, value)
+  const query = new URLSearchParams(own)
+  for (const [key, value] of new URLSearchParams(search)) if (!query.has(key)) query.set(key, value)
   const qs = query.toString()
   return <Navigate to={qs ? `${path}?${qs}` : path} replace />
 }

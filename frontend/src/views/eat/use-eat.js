@@ -136,7 +136,7 @@ export function useEat() {
   }, [on])
   useEffect(() => { if (on && fastingOn) useFasting.getState().load() }, [on, fastingOn])
 
-  const again = useAgain({ settings, meal })
+  const again = useAgain({ settings, meal, on })
 
   const mode = settings?.calorieGoalMode || 'fixed'
   const goalSet = !!settings && (mode !== 'fixed' || resolveGoalFor(settings.goals?.calories, today) != null)

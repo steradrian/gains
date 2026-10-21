@@ -93,7 +93,7 @@ export default function ActivitySheet({ date, type: startType, minutes: startMin
         </div>
         {own == null && weight && estimate != null && (
           <p className="g-act-hint">
-            {basisText(type, fmtNum(weight.shown) + ' ' + weight.unit,t('{0} min', fmtNum(minutes)))} {t('Change it if your watch says otherwise.')}
+            {basisText(type, fmtNum(weight.shown) + ' ' + weight.unit,t('{0} min', fmtNum(minutes)))}. {t('Change it if your watch says otherwise.')}
           </p>
         )}
       </div>

@@ -56,6 +56,7 @@ const off = (code, name, countries) => ({
 
 beforeEach(() => {
   nt = createFakeNutriTrace({ days: { [TODAY]: fixtureDay(TODAY) }, offProducts: { '3017620422003': fixtureOffProduct('3017620422003') } })
+  nt.state.settings.offSearchCountry = 'World'   // the device region would default the search to a country
   vi.stubGlobal('fetch', nt.fetch)
   useStore.setState(s => ({
     user: { id: 3, name: 'Ana' },
@@ -63,6 +64,7 @@ beforeEach(() => {
     S: { ...s.S, routines: [], workouts: [], dayPlan: {}, week: {}, active: null, checkIn: false, unit: 'kg' },
   }))
   useNutrition.getState().reset()
+  useNutrition.setState(s => ({ settings: { ...s.settings, data: { ...s.settings.data, offSearchCountry: 'World' } } }))
   useDiarySelection.getState().reset()
   resetOnlineSearch()
   resetOffBudget()

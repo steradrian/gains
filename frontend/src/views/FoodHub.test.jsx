@@ -108,7 +108,8 @@ describe('the rail', () => {
 describe('the week hero', () => {
   it('counts the logged days against the goal, today left out, and opens Trends', async () => {
     mount()
-    await settle(() => expect(host.querySelectorAll('.g-rc-slide').length).toBeGreaterThan(0))
+    // The placeholder slides carry no label; the week's own do, once the diary is read.
+    await settle(() => expect(host.querySelector('.g-rc-slide[aria-label]')).not.toBeNull())
     const first = host.querySelector('.g-rc-slide')
     expect(first.getAttribute('aria-label')).toContain('days on target')
     expect(first.getAttribute('aria-label')).toContain('Open details')

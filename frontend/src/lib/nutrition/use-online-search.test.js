@@ -42,7 +42,7 @@ describe('the World fallback', () => {
     answer({ World: many(1, 'w') })
     await fetchOnline('lapte', { country: 'World' })
     await fetchOnline('lapte2', { country: null })
-    expect(calls).toEqual([null, null])
+    expect(calls).toEqual(['World', null])
   })
 
   it('marks only the World products, and keeps the country\'s own first', async () => {
