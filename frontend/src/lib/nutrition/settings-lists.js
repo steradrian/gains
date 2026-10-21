@@ -41,6 +41,19 @@ export function addContainer(containers, { name, amount, unit }, now = Date.now(
 
 export const removeContainer = (containers, id) => listOf(containers).filter(c => String(c.id) !== String(id)).map(containerOf)
 
+/** Rename or resize the container `id`, keeping its id and its place in the list. */
+export function updateContainer(containers, id, { name, amount, unit }) {
+  const list = listOf(containers).map(containerOf)
+  const at = list.findIndex(c => c.id === String(id))
+  const clean = String(name || '').trim()
+  const ml = waterToMl(amount, unit)
+  if (at < 0) return { error: 'gone' }
+  if (!clean || clean.length > WATER_CONTAINER_NAME_MAX) return { error: 'name' }
+  if (!Number.isFinite(ml) || ml < 1 || ml > WATER_CONTAINER_ML_MAX) return { error: 'volume' }
+  list[at] = { ...list[at], name: clean, volumeMl: ml }
+  return { list }
+}
+
 /* ------------------------------------------------------------------ categories --------------- */
 
 export const categoryName = c => (typeof c === 'string' ? c : c?.name || '')

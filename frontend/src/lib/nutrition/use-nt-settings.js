@@ -100,22 +100,25 @@ export async function applyListSetting(key, change) {
 /**
  * The save behind a sheet that edits a list setting. `submit(key, change, errorOf)` is
  * applyListSetting, then closes the sheet. A refused or failed save leaves the sheet open with
- * its fields and says why.
+ * its fields and says why. It resolves true when the list was written, for a caller that offers
+ * Undo only then.
  */
 export function useSheetSave(close) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const submit = async (key, change, errorOf) => {
-    if (busy) return
+    if (busy) return false
     setBusy(true)
     setError(null)
     try {
       const built = await applyListSetting(key, change)
-      if (built.error) { setError(errorOf(built.error)); setBusy(false); return }
+      if (built.error) { setError(errorOf(built.error)); setBusy(false); return false }
       close()
+      return true
     } catch (e) {
       setError(writeErrorText(e))
       setBusy(false)
+      return false
     }
   }
   return { busy, error, submit }
