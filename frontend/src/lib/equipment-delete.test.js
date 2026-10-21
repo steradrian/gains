@@ -48,7 +48,8 @@ describe('deleteProfileWithUndo', () => {
     const { undo } = deleteProfileWithUndo('b')
     expect(undo()).toBe(true)
     expect(ids()).toEqual(['a', 'b', 'c'])
-    expect(S().equipProfiles[1]).toEqual(b)
+    // the store stamps the restored item, so the sync merge takes the re-add over the delete
+    expect(S().equipProfiles[1]).toEqual({ ...b, _ts: expect.any(Number) })
     expect(S().activeEquipId).toBe('b')
   })
 

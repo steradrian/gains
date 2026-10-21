@@ -404,16 +404,17 @@ describe('a page that redirects', () => {
     expect(document.querySelector('.sub-hdr h1').textContent).toBe('Routines')
   })
 
-  it('a cold #/coach as a guest goes Home with the bar, not a blank Coach page', async () => {
+  // With Coach off the page replaces itself with Train (T11 "Coach off"), once the config is known.
+  it('a cold #/coach as a guest goes to Train with the bar, not a blank Coach page', async () => {
     await launch('#/coach')
-    expect(hash()).toBe('#/home')
+    expect(hash()).toBe('#/train')
     expect(document.querySelector('#tabbar')).not.toBeNull()
-    expect(lit()).toBe('Today')
+    expect(lit()).toBe('Train')
   })
 
   it('a cold #/coach/proposal does the same', async () => {
     await launch('#/coach/proposal')
-    expect(hash()).toBe('#/home')
+    expect(hash()).toBe('#/train')
     expect(document.querySelector('#tabbar')).not.toBeNull()
   })
 })

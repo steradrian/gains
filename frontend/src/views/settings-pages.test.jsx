@@ -264,6 +264,8 @@ describe('the search lands on a row', () => {
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, ctx) && (!e.when || e.when(ctx))) (byPage[e.page ?? 'root'] ||= []).push(e.title)
     for (const [page, want] of Object.entries(byPage)) {
+      // Equipment is Gym setup, outside this Settings shell: GymSetup.test.jsx checks its anchors
+      if (page === 'equipment') continue
       mount(page === 'root' ? null : page)
       await act(async () => {})   // the passkey list, asked of the server on open
       const have = [...titles(), ...[...host.querySelectorAll('.btn')].map(b => b.textContent.trim())]

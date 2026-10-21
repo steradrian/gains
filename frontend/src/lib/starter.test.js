@@ -200,7 +200,7 @@ describe('the onboarding plans (2, 5 and 6 days)', () => {
       }
     }
     const full = buildStarterPlan('ppl-6', ALL_EQUIPMENT)
-    expect(full.fit).toEqual({ swapped: 0, dropped: 0 })
+    expect(full.fit).toEqual({ swapped: 0, dropped: 0, swaps: [], drops: [] })
     expect(full.routines.map(shape)).toEqual(APPROVED['ppl-6'].map(([, , list]) => list))
   })
 
