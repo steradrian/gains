@@ -240,6 +240,33 @@ describe('Add exercise (W1.18, W1.19)', () => {
     expect(A().entries[4].id).toBe(STRETCH)
   })
 
+  it('with no part, from the last cool-down stretch, goes at the end of the workout, before the cool-down', () => {
+    seed(undefined, { cur: 4 })
+    addExerciseSheet()
+    addFirst()
+    expect(A().entries).toHaveLength(6)
+    expect(A().entries[4].part).toBeUndefined()
+    expect(A().entries[5].id).toBe(STRETCH)
+    expect(A().cur).toBe(4)
+  })
+
+  it('with no part, from the warm-up, lands in the workout run, not inside the warm-up', () => {
+    seed(undefined, { cur: 0 })
+    addExerciseSheet()
+    addFirst()
+    expect(A().entries[0].id).toBe(WARM)
+    expect(A().entries[1].part).toBeUndefined()
+    expect(A().entries[1].id).not.toBe(BENCH)
+    expect(A().entries.map(e => e.part || 'main')).toEqual(['warmup', 'main', 'main', 'main', 'main', 'cooldown'])
+  })
+
+  it('the map’s workout part stays in the workout run', () => {
+    seed(undefined, { cur: 4 })
+    addExerciseSheet(null, 'main')
+    addFirst()
+    expect(A().entries.map(e => e.part || 'main')).toEqual(['warmup', 'main', 'main', 'main', 'main', 'cooldown'])
+  })
+
   it('opens from the map’s Add exercise as a panel of the map', () => {
     seed()
     workoutMapSheet()
@@ -296,7 +323,7 @@ describe('Workout options (W1.20)', () => {
     expect(top().textContent).toContain('Drag to reorder within a phase')
   })
 
-  it('Rename workout and Session note are panels of Options too', () => {
+  it('Rename workout and Session note are panels of Options too', async () => {
     seed()
     workoutOptionsSheet()
     for (const title of ['Rename workout', 'Session note']) {
@@ -306,6 +333,8 @@ describe('Workout options (W1.20)', () => {
       expect(useUI.getState().sheets[0].panels, title).toHaveLength(1)
       act(() => useUI.getState().closeSheet(useUI.getState().sheets[0].panels[0].id))
       expect(useUI.getState().sheets[0].id).toBe(options.id)
+      // A close then an open in one tick starts a new root; the next tap is a later tick.
+      await act(async () => {})
     }
   })
 

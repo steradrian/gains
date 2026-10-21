@@ -560,8 +560,18 @@ export function swapEntryWithUndo(idx, ex, { alsoRoutine = false } = {}) {
   if (!current || !ex || ex.id === current.id) return false
   const routine = alsoRoutine && !A.editingWorkoutId && current.rid ? S.routines.find(r => r.id === current.rid) : null
   const slot = routine ? routineSlotIndex(routine, A.entries, idx) : -1
-  const cfg = replaceSlotExercise({ ...plannedConfigOf(current), id: current.id }, ex.id, S, current.rid)
-  const { id: _id, ...kept } = cfg
+  // The routine's own slot of the new exercise, when it has one, is what the swap is built from:
+  // keeping the old slot's sets and reps would differ from that slot's plan, and its next session
+  // would read as "plan changed" and restart from the slot's weight instead of carrying on.
+  const ownSlot = current.rid ? S.routines.find(r => r.id === current.rid)?.ex?.find(x => x.id === ex.id) : null
+  let kept
+  if (ownSlot) {
+    const { id: _id, sg: _sg, ...config } = ownSlot
+    kept = config
+  } else {
+    const { id: _id, ...config } = replaceSlotExercise({ ...plannedConfigOf(current), id: current.id }, ex.id, S, current.rid)
+    kept = config
+  }
   const replacement = swapReplacement(S, current, ex, kept)
   const ui = useUI.getState()
   // A timed callback and the rest close over indexes: both end before the list changes.

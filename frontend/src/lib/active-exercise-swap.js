@@ -40,6 +40,8 @@ export function swapActiveExercise(active, index, replacement, {
     // A swap does not change which routine the slot belongs to — carry its `rid` the same
     // way `sg` is carried, so a combined session's WorkoutDetail groups stay contiguous.
     ...(current.rid ? { rid: current.rid } : {}),
+    // Nor which part it is in: a swapped warm-up stays a warm-up, so the parts stay in order.
+    ...(current.part ? { part: current.part } : {}),
     ...(keepGroup ? { sg: current.sg } : {})
   })
   active.cur = insertAt

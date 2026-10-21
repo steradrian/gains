@@ -36,6 +36,14 @@ describe('safe active exercise swap', () => {
     expect(active.cur).toBe(1)
   })
 
+  it('keeps the part of a logged warm-up when the replacement goes in beside it', () => {
+    const warm = { ...entry('pull', { sets: [{ w: 20, r: 10, done: true }] }), part: 'warmup' }
+    const active = { cur: 0, entries: [warm, entry('bench'), { ...entry('stretch'), part: 'cooldown' }] }
+
+    expect(swapActiveExercise(active, 0, replacement(), { loggedConfirmed: true })).toEqual({ inserted: true, index: 1 })
+    expect(active.entries.map(e => e.part || 'main')).toEqual(['warmup', 'warmup', 'main', 'cooldown'])
+  })
+
   it('fails closed before a logged standalone occurrence is explicitly confirmed', () => {
     const logged = entry('bench', { sets: [{ w: 42.5, r: 7, done: true, rir: 1 }] })
     const active = { cur: 0, entries: [logged, entry('row')] }

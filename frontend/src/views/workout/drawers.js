@@ -87,9 +87,16 @@ export function addExerciseSheet(afterIdx = null, part = null) {
         let insertAt = afterIdx != null
           ? Math.min(afterIdx + 1, s.active.entries.length)
           : insertionIndexAfterCurrentUnit(supersetUnits(s.active.entries), s.active.cur, s.active.entries.length)
+        const runs = partsOf(s.active.entries)
         if (into) {
-          const run = partsOf(s.active.entries).find(p => p.part === into)
+          const run = runs.find(p => p.part === into)
           insertAt = run ? run.to + 1 : into === 'warmup' ? 0 : s.active.entries.length
+        } else {
+          // A workout-part add stays between the warm-up and the cool-down, whichever part the
+          // add was opened from: at the end of the workout run when the spot falls outside it.
+          const main = runs.find(p => p.part === 'main')
+          if (main) { if (insertAt < main.from || insertAt > main.to + 1) insertAt = main.to + 1 }
+          else insertAt = runs.find(p => p.part === 'warmup')?.to + 1 || 0
         }
         const after = s.active.entries[insertAt - 1]
         const prevCur = s.active.cur

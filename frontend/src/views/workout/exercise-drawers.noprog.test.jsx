@@ -181,10 +181,9 @@ describe('don’t count this session for progression', () => {
       expect(row.plan.kind).not.toBe('off')
 
       const S = undoAndFinish()
-      // The swap keeps the bench slot's 1 × 5 (W1.15), so the Row's own slot (1 × 8) starts again
-      // from its target (issue #275); a slot planned the way the swap built it carries on from 75.
-      expect(nextPrescription(S, planned[0].ex[1], planned[0])).toMatchObject({ kind: 'hold', weight: 30 })
-      expect(nextPrescription(S, { ...planned[0].ex[0], id: ROW }, planned[0]).weight).toBe(80)
+      // The routine has its own Row slot (1 × 8), so the swap is built from it: that slot reads
+      // the session as planned and carries on from 75, not from its own 30 (issue #275).
+      expect(nextPrescription(S, planned[0].ex[1], planned[0]).weight).toBe(80)
     })
   })
 
