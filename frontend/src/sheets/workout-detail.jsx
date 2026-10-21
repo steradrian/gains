@@ -31,7 +31,7 @@ import { copyText } from '../lib/clipboard.js'
 import { pinState } from '../lib/queue.js'
 import { volumeText } from '../lib/train-stats.js'
 import { workoutLabel } from '../lib/training-day.js'
-import { DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine } from '../lib/day-notes.js'
+import { dayNoteOf, dayNoteLine } from '../lib/day-notes.js'
 import BodyMap from '../ds/BodyMap.jsx'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import DetailRow from '../ds/DetailRow.jsx'
@@ -44,7 +44,7 @@ import { S, update, ui, toast } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 import { exerciseHistorySheet } from './exercise.jsx'
 import { repeatWorkout } from './workout-flow.jsx'
-import { dayOverrideSheet, dayNoteSheet } from './plan.jsx'
+import { dayOverrideSheet } from './plan.jsx'
 import { shareWorkoutSheet } from './workout-share.jsx'
 
 /* ============================ workout detail ============================ */
@@ -469,16 +469,6 @@ export function WorkoutRow({ w, onClick }) {
       <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), tn('{0} set', '{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
     {mediaN > 0 && <span className="wrow-media" title={tn('{0} photo or video', '{0} photos or videos', mediaN)} aria-label={tn('{0} photo or video', '{0} photos or videos', mediaN)}><Icon name="image" />{mediaN}</span>}
     {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
-    <Icon name="chevronRight" className="chev" />
-  </div>
-}
-
-/* a day off with a note (#261), as History lists it between the workouts */
-export function DayNoteRow({ iso, note }) {
-  return <div className="item day-note-row" {...tappable(() => dayNoteSheet(iso))}>
-    <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19, background: 'var(--surface-3)' }}><Icon name={note.tag ? DAY_NOTE_ICON[note.tag] : 'note'} /></span>
-    <div className="grow"><div className="tt">{note.tag ? t(DAY_NOTE_LABEL[note.tag]) : t('Day note')}</div>
-      <div className="ss">{[fmtDate(iso, true), note.text].filter(Boolean).join(' · ')}</div></div>
     <Icon name="chevronRight" className="chev" />
   </div>
 }

@@ -10,7 +10,8 @@ import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { dayOverrideSheet, dayNoteSheet, calendarSheet } from './sheets.jsx'
 import Heatmap from './components/Heatmap.jsx'
-import History, { historyRows } from './views/History.jsx'
+import History from './views/History.jsx'
+import { historyRows } from './views/train/history/use-history.js'
 import { withDayNote, dayNoteOf } from './lib/day-notes.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
@@ -166,7 +167,8 @@ describe('where a noted day shows', () => {
     })
     expect(historyRows(S()).map(r => r.w ? r.w.id : 'note ' + r.d)).toEqual(['c', 'b', 'note 2026-09-14', 'a'])
     const host = mount(<MemoryRouter><History /></MemoryRouter>)
-    const row = host.querySelector('.day-note-row')
+    // T8.0: a glass row in its week, between the workouts
+    const row = [...host.querySelectorAll('.g-hist-row')].find(r => r.querySelector('b').textContent === 'Sick')
     expect(row.textContent).toContain('Sick')
     expect(row.textContent).toContain('Flu')
     act(() => { row.click() })

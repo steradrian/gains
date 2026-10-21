@@ -71,9 +71,10 @@ describe('what a sheet does on its way out happens when it is closed', () => {
     const w = { id: 'w1', d: '2026-09-15', start: Date.UTC(2026, 8, 15, 17), end: Date.UTC(2026, 8, 15, 18), name: 'Push', vol: 0, prs: [], routineIds: [], entries: [] }
     useStore.setState(s => ({ S: { ...s.S, workouts: [w] } }))
     open(() => workoutDetailSheet(w))
-    type(q('.sheet textarea'), 'Good day')
+    // T8.1 is the design system's drawer, in the same frame as every sheet
+    type(q('.g-bs textarea'), 'Good day')
     await escape()
-    leaving()
+    expect(q('.g-bs').closest('[data-leaving]')).not.toBeNull()
     expect(useStore.getState().S.workouts[0].note).toBe('Good day')
   })
 

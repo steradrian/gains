@@ -225,19 +225,26 @@ describe('a workout\'s photos and videos', () => {
     } finally { document.documentElement.dir = 'ltr' }
   })
 
-  it('Delete workout in the detail sheet says its photos and videos go with it', () => {
+  // T8.4: no confirm any more; the Undo toast says the files go too, and holds them meanwhile.
+  const deleteRow = host => [...host.querySelectorAll('.g-drow')].find(r => r.querySelector('b')?.textContent === 'Delete workout')
+
+  it('Delete workout in the drawer says its photos and videos go with it, and holds them until the Undo is gone', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [workout({ media: [refOf(1)] })] } }))
     workoutDetailSheet(S().workouts[0])
-    const host = renderTop()
-    act(() => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Delete workout').click())
-    expect(renderTop().textContent).toContain('This removes it from your history for good. Its photo or video is deleted with it.')
+    act(() => deleteRow(renderTop()).click())
+    expect(S().workouts).toHaveLength(0)
+    expect(useUI.getState().toastAction.body).toBe('Its photo or video is deleted with it.')
+    expect(media.isHeld(refOf(1).hash)).toBe(true)
+    expect(media.isHeld(refOf(1).poster.hash)).toBe(true)
+    act(() => useUI.getState().runToastAction())
+    expect(S().workouts[0].media).toEqual([refOf(1)])
+    expect(media.isHeld(refOf(1).hash)).toBe(false)
   })
 
   it('Delete workout without any says nothing about them', () => {
     workoutDetailSheet(S().workouts[0])
-    const host = renderTop()
-    act(() => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Delete workout').click())
-    expect(renderTop().textContent).not.toContain('deleted with it')
+    act(() => deleteRow(renderTop()).click())
+    expect(useUI.getState().toastAction.body).toBeNull()
   })
 
   it('the history row shows how many a workout has', () => {

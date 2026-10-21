@@ -27,6 +27,7 @@ function renderTop() {
 }
 
 const button = (host, label) => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === label)
+const row = (host, title) => [...host.querySelectorAll('.g-drow')].find(r => r.querySelector('b')?.textContent === title)
 
 describe('WorkoutDetail — save as routine', () => {
   let navigated
@@ -46,16 +47,18 @@ describe('WorkoutDetail — save as routine', () => {
     const saved = workout()
     useStore.setState(s => ({ S: { ...s.S, workouts: [saved] } }))
     const host = (workoutDetailSheet(saved), renderTop())
-    expect(button(host, 'Save as routine')).toBeTruthy()
+    const save = row(host, 'Save as routine')
+    // The row names the routine it will make: the session's name and its day.
+    expect(save.textContent).toBe('Save as routineBecomes “Push, 10 Sep”')
 
-    act(() => { button(host, 'Save as routine').click() })
+    act(() => { save.click() })
     const confirm = renderTop()
     expect(confirm.textContent).toContain('Create an independent routine')
     expect(useStore.getState().S.routines).toHaveLength(0)
 
     act(() => { button(confirm, 'Save').click() })
     const routine = useStore.getState().S.routines[0]
-    expect(routine).toMatchObject({ name: 'Push' })
+    expect(routine).toMatchObject({ name: 'Push, 10 Sep' })
     expect(routine.ex.map(e => e.id)).toEqual(['bench', 'row'])
     expect(routine.ex[0].side).toBe(true)
     expect(routine.ex[0].warmupSets).toBe(1)
