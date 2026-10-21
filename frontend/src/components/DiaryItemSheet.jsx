@@ -1,23 +1,27 @@
 import { useMemo, useRef, useState } from 'react'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import Button from '../ds/Button.jsx'
+import ChipGroup from '../ds/ChipGroup.jsx'
+import TextField from '../ds/TextField.jsx'
 import { useUI } from '../store/useUI.js'
-import { fmtDate } from '../lib/format.js'
+import { fmtDate, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { amountEditable, editedItem, newUuid, nutritionOf, timeOf, unitsFor } from '../lib/nutrition/diary.js'
-import { toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { removedText, toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
-import MacroLine from './MacroLine.jsx'
-import { Stat } from './blocks.jsx'
-import { SheetActions, SheetHeader } from './sheet-layout.jsx'
-import { Button, NumberField, Row, Section, SelectRow, TextField } from './ui.jsx'
+import Icon from './Icon.jsx'
 
-// A logged item, to change or remove (NutriTrace's diary edit sheet): the amount and unit through
-// the portion logic, the servings, the time and the meal. Save sends one editedItem, built once
-// per set of inputs: Save again after a failure sends the same entry (same uuid, same stamp), so
-// a save whose answer was lost is not applied twice. A quick-kcal row, or a recipe split into its
-// ingredients, has no amount here: its time and meal only. Remove is undone from the toast, with
-// the entry back under a new uuid (the removed one stays tombstoned in NutriTrace).
+const num = text => Number(String(text).replace(',', '.')) || 0
+
+// A logged item, to change or remove (board Ea8Entry; NutriTrace's diary edit sheet): the amount
+// and unit through the portion logic, the servings, the time and the meal. Save sends one
+// editedItem, built once per set of inputs: Save again after a failure sends the same entry (same
+// uuid, same stamp), so a save whose answer was lost is not applied twice. A quick-kcal row, or a
+// recipe split into its ingredients, has no amount here: its time and meal only. Remove is undone
+// from the toast (board Ea8Removed), with the entry back at its place in the day under a new uuid
+// (the removed one stays tombstoned in NutriTrace).
 export function DiaryItemSheet({ date, item, close }) {
   const units = useUnits()
   const settings = useNutrition(s => s.settings.data)
@@ -37,9 +41,11 @@ export function DiaryItemSheet({ date, item, close }) {
   }, [item, portion, unit, servings, meal, time])
   const dirty = portion !== first.portion || unit !== first.unit || servings !== first.servings || meal !== first.meal || time !== first.time
   const shown = nutritionOf(draft || item)
+  const nameOf = slot => labels[slot] ?? t('Meal {0}', slot + 1)
+  const wasIn = nameOf(first.meal)
 
   const mealOptions = labels.map((label, slot) => ({ value: slot, label }))
-  if (!mealOptions.some(o => o.value === meal)) mealOptions.push({ value: meal, label: t('Meal {0}', meal + 1) })
+  if (!mealOptions.some(o => o.value === meal)) mealOptions.push({ value: meal, label: nameOf(meal) })
 
   async function save() {
     if (!draft || busy || !dirty) return
@@ -69,51 +75,51 @@ export function DiaryItemSheet({ date, item, close }) {
       await useNutrition.getState().removeItem(date, item.uuid)
       const back = { ...item, uuid: newUuid() }
       close()
-      toastLogged(t('Removed {0}', item.name), () => useNutrition.getState().restoreItem(date, back, at >= 0 ? at : null))
+      toastLogged(removedText(date, wasIn, item.name), () => useNutrition.getState().restoreItem(date, back, at >= 0 ? at : null))
     } catch (e) {
       setError(writeErrorText(e))
       setBusy(false)
     }
   }
 
-  return <>
-    <SheetHeader title={item.name} sub={[item.brand, fmtDate(date, true)].filter(Boolean).join(' · ')} onClose={close} />
-    {withAmount && <>
-      <div className="portion-grid">
-        <label className="portion-f">
-          <span className="small muted">{t('Serving size')}</span>
-          <NumberField value={portion} onChange={setPortion} aria-label={t('Serving size')} />
-        </label>
-        <label className="portion-f">
-          <span className="small muted">{t('Servings')}</span>
-          <NumberField value={servings} onChange={setServings} aria-label={t('Servings')} />
+  const sub = [date === todayISO() ? null : fmtDate(date, true), wasIn, t('logged {0}', first.time), units.energy(shown.calories || 0)].filter(Boolean).join(' · ')
+  return <BottomSheet type="half" title={t('Logged food')}
+    footer={<div className="g-en-foot">
+      <Button variant="danger" disabled={busy} onClick={remove} aria-label={t('Remove {0} from {1}', item.name, wasIn)}>{t('Remove')}</Button>
+      <Button variant="primary" busy={busy} disabled={!draft || !dirty} onClick={save}>{busy ? t('Saving…') : t('Save')}</Button>
+    </div>}>
+    <div className="g-en">
+      <div className="g-en-head">
+        <span className="g-en-lead" aria-hidden="true"><Icon name={withAmount ? 'apple' : 'bolt'} className="g-icon" /></span>
+        <span className="g-en-id">
+          <b className="g-en-name">{item.name}</b>
+          <span className="g-en-sub">{sub}</span>
+        </span>
+      </div>
+      <div className="g-en-grid">
+        {withAmount && <>
+          <TextField label={t('Amount')} unit={unit} value={first.portion} inputMode="decimal" onChange={v => setPortion(num(v))} />
+          <TextField label={t('Servings')} value={first.servings} inputMode="decimal" onChange={v => setServings(num(v))} />
+        </>}
+        <TextField label={t('Time')} value={first.time} inputProps={{ type: 'time' }} onChange={setTime} />
+        <label className="g-tfield">
+          <span className="g-tfield-label">{t('Meal')}</span>
+          <span className="g-tfield-box g-en-meal">
+            <select value={meal} onChange={e => setMeal(Number(e.target.value))}>
+              {mealOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <Icon name="chevronDown" className="g-icon" />
+          </span>
         </label>
       </div>
-    </>}
-    <Section>
-      {withAmount && <SelectRow title={t('Unit')} value={unit} options={unitsFor(item).map(u => ({ value: u, label: u }))} onChange={setUnit} />}
-      <SelectRow title={t('Meal')} value={meal} options={mealOptions} onChange={setMeal} />
-    </Section>
-    <label className="measure-date">
-      <span>{t('Time')}</span>
-      <TextField type="time" value={time} onChange={e => setTime(e.target.value)} aria-label={t('Time')} />
-    </label>
-    <div className="portion-sum">
-      <Stat value={units.energy(shown.calories || 0)} />
-      <MacroLine p={shown.proteins} c={shown.carbohydrates} f={shown.fat} />
+      {withAmount && <ChipGroup label={t('Unit')} scroll options={unitsFor(item, settings)} value={unit} onChange={setUnit} />}
+      {withAmount && !draft && <p className="g-lf-note" role="status">{t('Enter an amount above 0.')}</p>}
+      {error && <p className="g-lf-note g-lf-err" role="alert">{error}</p>}
     </div>
-    {withAmount && !draft && <div className="muted small" role="status">{t('Enter an amount above 0.')}</div>}
-    {error && <div className="nt-error small" role="alert">{error}</div>}
-    <SheetActions>
-      <Button variant="primary" onClick={save} disabled={!draft || busy || !dirty}>{busy ? t('Saving…') : t('Save')}</Button>
-    </SheetActions>
-    <Section>
-      <Row icon="trash" title={t('Remove {0}', item.name)} danger onClick={remove} />
-    </Section>
-  </>
+  </BottomSheet>
 }
 
 /** Opens a logged item over the page. */
 export function diaryItemSheet(props) {
-  useUI.getState().openSheet(close => <DiaryItemSheet {...props} close={close} />)
+  useUI.getState().openSheet(close => <DiaryItemSheet {...props} close={close} />, { variant: 'ds' })
 }

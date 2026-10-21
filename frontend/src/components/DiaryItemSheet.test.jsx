@@ -12,6 +12,7 @@ import { mealItems, timeOf } from '../lib/nutrition/diary.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay } from '../lib/nutrition/fake-nutritrace.js'
+import { diaryItemSheet } from './DiaryItemSheet.jsx'
 import MealRow from './MealRow.jsx'
 import { bindUI } from './ui.jsx'
 
@@ -46,6 +47,18 @@ const typeInto = async (input, value) => {
   await settle()
 }
 const lastSheet = () => [...host.querySelectorAll('[data-sheet]')].at(-1)
+// The labelled boxes of the drawer (board Ea8Entry): Amount, Servings, Time, and the Meal select.
+const field = label => [...lastSheet().querySelectorAll('.g-tfield')].find(f => f.querySelector('.g-tfield-label').textContent === label)?.querySelector('input, select') ?? null
+const pickMeal = async name => {
+  const select = field('Meal')
+  const option = [...select.options].find(o => o.textContent === name)
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(select, option.value)
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await settle()
+}
+const closeAll = async () => { await act(async () => { useUI.getState().closeAll() }); await settle() }
 const named = (scope, label) => [...scope.querySelectorAll('button, [role=button]')].find(b => (b.getAttribute('aria-label') || b.textContent).trim() === label)
 const itemButton = name => [...host.querySelectorAll('button.meal-item')].find(b => b.querySelector('.tt').textContent === name)
 const puts = () => nt.writes().filter(r => r.method === 'PUT')
@@ -80,15 +93,22 @@ describe('a logged item', () => {
 
   it('opens its sheet when tapped', async () => {
     await click(itemButton('Rolled oats'))
-    expect(lastSheet().querySelector('h3').textContent).toBe('Rolled oats')
-    expect(lastSheet().querySelector('input[aria-label="Serving size"]').value).toBe('60')
+    expect(lastSheet().querySelector('.g-bs').classList.contains('g-bs-half')).toBe(true)
+    expect(lastSheet().querySelector('h2').textContent).toBe('Logged food')
+    expect(lastSheet().querySelector('.g-en-name').textContent).toBe('Rolled oats')
+    const at = timeOf(serverItem('it-oats'))
+    expect(lastSheet().querySelector('.g-en-sub').textContent).toBe(`Breakfast · logged ${at} · 228 kcal`)
+    expect(field('Amount').value).toBe('60')
+    expect(field('Servings').value).toBe('1')
+    expect(field('Time').value).toBe(at)
+    expect(field('Meal').value).toBe('0')
   })
 })
 
 describe('editing', () => {
   it('rescales the amount through the portion logic and writes over the same uuid', async () => {
     await click(itemButton('Rolled oats'))
-    await typeInto(lastSheet().querySelector('input[aria-label="Serving size"]'), '120')
+    await typeInto(field('Amount'), '120')
     await click(named(lastSheet(), 'Save'))
     expect(puts()).toHaveLength(1)
     const saved = serverItem('it-oats')
@@ -103,11 +123,9 @@ describe('editing', () => {
   it('changes the servings, the time and the meal', async () => {
     const before = serverItem('it-oats')
     await click(itemButton('Rolled oats'))
-    const sheet = lastSheet()
-    await typeInto(sheet.querySelector('input[aria-label="Servings"]'), '2')
-    await typeInto(sheet.querySelector('input[type=time]'), '09:30')
-    await click([...sheet.querySelectorAll('button.lrow')].find(r => r.textContent.startsWith('Meal')))
-    await click([...lastSheet().querySelectorAll('button')].find(b => b.textContent.includes('Lunch') && !b.textContent.includes('Meal')))
+    await typeInto(field('Servings'), '2')
+    await typeInto(field('Time'), '09:30')
+    await pickMeal('Lunch')
     await click(named(lastSheet(), 'Save'))
     const saved = serverItem('it-oats')
     expect(saved.quantity).toBe(2)
@@ -120,23 +138,35 @@ describe('editing', () => {
   it('keeps Save off until something changes', async () => {
     await click(itemButton('Rolled oats'))
     expect(named(lastSheet(), 'Save').disabled).toBe(true)
-    await typeInto(lastSheet().querySelector('input[aria-label="Serving size"]'), '0')
+    await typeInto(field('Amount'), '0')
     expect(named(lastSheet(), 'Save').disabled).toBe(true)
     expect(lastSheet().textContent).toContain('Enter an amount above 0.')
   })
 
   it('a quick-kcal row edits its time and meal, with no amount', async () => {
     await click(itemButton('Quick Calories'))
-    expect(lastSheet().querySelector('input[aria-label="Serving size"]')).toBeNull()
-    await typeInto(lastSheet().querySelector('input[type=time]'), '13:15')
+    expect(field('Amount')).toBeNull()
+    expect(field('Servings')).toBeNull()
+    await typeInto(field('Time'), '13:15')
     await click(named(lastSheet(), 'Save'))
     expect(timeOf(serverItem('it-quick'))).toBe('13:15')
     expect(serverItem('it-quick').nutrition).toEqual({ calories: 450 })
   })
 
+  it('a recipe logged split into its ingredients changes only its time and meal: no amount, servings or unit', async () => {
+    const item = { ...useNutrition.getState().days[TODAY].entry.items.find(i => i.uuid === 'it-oats'), _splitItems: [{ name: 'Beans' }] }
+    await act(async () => { diaryItemSheet({ date: TODAY, item }) })
+    await settle()
+    expect(field('Amount')).toBeNull()
+    expect(field('Servings')).toBeNull()
+    expect(lastSheet().querySelector('[role=group][aria-label="Unit"]')).toBeNull()
+    expect(field('Time')).not.toBeNull()
+    expect(field('Meal')).not.toBeNull()
+  })
+
   it('retries the same entry after a save whose answer was lost: one write, applied once', async () => {
     await click(itemButton('Rolled oats'))
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '3')
+    await typeInto(field('Servings'), '3')
     nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
     await click(named(lastSheet(), 'Save'))
     expect(lastSheet().querySelector('[role=alert]').textContent).toBe('Not saved. Try again.')
@@ -149,8 +179,8 @@ describe('editing', () => {
 
   it('does not write an entry back that was removed elsewhere, and shows the day as it is', async () => {
     await click(itemButton('Rolled oats'))
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
-    nt.state.days[TODAY].items = nt.state.days[TODAY].items.filter(i => i.uuid !== 'it-oats')
+    await typeInto(field('Servings'), '2')
+    nt.state.days[TODAY].items =nt.state.days[TODAY].items.filter(i => i.uuid !== 'it-oats')
     nt.state.tombstones[TODAY] = [{ kind: 'item', uuid: 'it-oats', deleted_at: new Date().toISOString() }]
     await click(named(lastSheet(), 'Save'))
     expect(puts()).toHaveLength(0)
@@ -164,7 +194,7 @@ describe('editing', () => {
   // keystroke) but after the entry was logged: the case a "newer than ours" check misses.
   it('does not revert an edit another device made while the sheet was open', async () => {
     await click(itemButton('Rolled oats'))
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    await typeInto(field('Servings'), '2')
     Object.assign(serverItem('it-oats'), { quantity: 5, updatedAt: new Date(Date.now() - 5000).toISOString() })
     await click(named(lastSheet(), 'Save'))
     expect(puts()).toHaveLength(0)
@@ -175,16 +205,16 @@ describe('editing', () => {
 
   it('refuses a sheet reopened on a stale cached entry, then saves from the refreshed one', async () => {
     await click(itemButton('Rolled oats'))
-    await click(named(lastSheet(), 'Cancel'))
+    await closeAll()
     Object.assign(serverItem('it-oats'), { quantity: 4, updatedAt: new Date(Date.now() - 60000).toISOString() })
     await click(itemButton('Rolled oats'))
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    await typeInto(field('Servings'), '2')
     await click(named(lastSheet(), 'Save'))
     expect(puts()).toHaveLength(0)
     expect(serverItem('it-oats').quantity).toBe(4)
     await click(itemButton('Rolled oats'))
-    expect(lastSheet().querySelector('input[aria-label="Servings"]').value).toBe('4')
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    expect(field('Servings').value).toBe('4')
+    await typeInto(field('Servings'), '2')
     await click(named(lastSheet(), 'Save'))
     expect(serverItem('it-oats').quantity).toBe(2)
   })
@@ -194,7 +224,7 @@ describe('editing', () => {
     Object.assign(serverItem('it-quick'), { food_device: 'phone-2', x_custom: 'kept' })
     await useNutrition.getState().loadDay(TODAY, { force: true })
     await click(itemButton('Rolled oats'))
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings"]'), '2')
+    await typeInto(field('Servings'), '2')
     await click(named(lastSheet(), 'Save'))
     expect(serverItem('it-oats')).toMatchObject({ quantity: 2, food_device: 'phone-1', x_custom: { a: 1 }, food_server_id: 11 })
     expect(serverItem('it-quick')).toMatchObject({ food_device: 'phone-2', x_custom: 'kept' })
@@ -203,23 +233,27 @@ describe('editing', () => {
 
 describe('removing', () => {
   it('removes the entry with a tombstone, and Undo puts it back under a new uuid', async () => {
+    const removed = { ...serverItem('it-oats') }
     await click(itemButton('Rolled oats'))
-    await click(named(lastSheet(), 'Remove Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
     expect(nt.state.days[TODAY].items.map(i => i.uuid)).toEqual(['it-quick'])
     expect(nt.state.tombstones[TODAY]).toEqual([expect.objectContaining({ kind: 'item', uuid: 'it-oats' })])
-    expect(toast()).toBe('Removed Rolled oats')
+    expect(toast()).toBe('Removed Rolled oats from Today, Breakfast')
+    expect(useUI.getState().toastAction.label).toBe('Undo')
+    expect(useUI.getState().sheets).toHaveLength(0)
     expect(itemButton('Rolled oats')).toBeUndefined()
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
     const back = nt.state.days[TODAY].items.find(i => i.name === 'Rolled oats')
     expect(back.uuid).not.toBe('it-oats')
-    expect(back).toMatchObject({ portion: 60, unit: 'g', meal: 0 })
+    // Everything but the id: the amount, the servings, the time and the meal come back as they were.
+    expect(back).toMatchObject({ portion: 60, unit: 'g', quantity: 1, meal: 0, addedAt: removed.addedAt, nutrition: removed.nutrition })
     expect(itemButton('Rolled oats')).toBeDefined()
   })
 
   it('Undo puts the entry back where it was, not at the end of the day', async () => {
     await click(itemButton('Rolled oats'))
-    await click(named(lastSheet(), 'Remove Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
     expect(nt.state.days[TODAY].items.map(i => i.name)).toEqual(['Rolled oats', 'Quick Calories'])
@@ -227,7 +261,7 @@ describe('removing', () => {
 
   it('a failed Undo offers Try again, which sends the same entry and restores it once', async () => {
     await click(itemButton('Rolled oats'))
-    await click(named(lastSheet(), 'Remove Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
     nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
@@ -243,7 +277,7 @@ describe('removing', () => {
   it('keeps the sheet and says so when the remove fails', async () => {
     await click(itemButton('Rolled oats'))
     nt.failNext('PUT', '/nt/api/diary/', 'offline')
-    await click(named(lastSheet(), 'Remove Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
     expect(lastSheet().querySelector('[role=alert]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
     expect(serverItem('it-oats')).toBeDefined()
   })
