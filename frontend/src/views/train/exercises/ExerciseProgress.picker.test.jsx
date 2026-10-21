@@ -1,38 +1,36 @@
 // @vitest-environment happy-dom
-// Progress › Strength: the exercise card opens the shared picker sheet (with search), the chosen
-// exercise shows on the card and in the address, and duplicate / legacy records fold into one point.
+// Progress, /progress/strength: the exercise picker sheet (with search), the chosen exercise on the
+// page and in the address, and duplicate / legacy records folding into one point.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Window } from 'happy-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EXIDX } from '../lib/exercises.js'
-import Strength from './Strength.jsx'
-import Modals from '../components/Modals.jsx'
-import { bindUI } from '../components/ui.jsx'
-import { useUI } from '../store/useUI.js'
+import { EXIDX } from '../../../lib/exercises.js'
+import ExerciseProgress from './ExerciseProgress.jsx'
+import Modals from '../../../components/Modals.jsx'
+import { bindUI } from '../../../components/ui.jsx'
+import { useUI } from '../../../store/useUI.js'
 
 const BASE_NOW = Date.UTC(2026, 0, 22, 12)
 const LEGACY_SNAPSHOT_ID = 'legacy-snapshot-only'
 
 const mocks = vi.hoisted(() => ({
   charts: [], nav: vi.fn(), search: '',
-  S: { unit: 'kg', body: 'male', effort: 'rir', targetW: null, bodyweight: [], routines: [], workouts: [] },
+  S: { unit: 'kg', body: 'male', effort: 'rir', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts: [] },
 }))
 
-vi.mock('../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
+vi.mock('../../../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.nav,
   useLocation: () => ({ search: mocks.search, pathname: '/progress/strength' }),
 }))
-vi.mock('../lib/use-tab-nav.js', () => ({ back: vi.fn(), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
-vi.mock('../sheets.jsx', () => ({
-  menuSheet: vi.fn(), exerciseDetailSheet: vi.fn(), exerciseHistorySheet: vi.fn(), workoutDetailSheet: vi.fn(),
-}))
-vi.mock('../components/LineChart.jsx', () => ({ default: props => {
+vi.mock('../../../lib/use-tab-nav.js', () => ({ back: vi.fn(), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
+vi.mock('../../../sheets.jsx', () => ({ exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn() }))
+vi.mock('../../../ds/LineChart.jsx', () => ({ default: props => {
   mocks.charts.push(props)
   return React.createElement('div')
 } }))
-vi.mock('../components/Icon.jsx', () => ({ default: props => React.createElement('span', props) }))
+vi.mock('../../../components/Icon.jsx', () => ({ default: props => React.createElement('span', props) }))
 
 bindUI(useUI)
 
@@ -92,9 +90,9 @@ function installDom() {
   root = createRoot(container)
 }
 
-async function mountStrength() {
+async function mountPage() {
   installDom()
-  await act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(Strength), React.createElement(Modals))) })
+  await act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(ExerciseProgress), React.createElement(Modals))) })
 }
 
 async function click(button) {
@@ -106,13 +104,16 @@ async function tick(milliseconds) {
   await act(async () => { await vi.advanceTimersByTimeAsync(milliseconds) })
 }
 
-const hero = () => ({
-  num: container.querySelector('.hero-num')?.textContent,
-  unit: container.querySelector('.hero-u')?.textContent,
-})
-// The exercise card is one tappable row (MediaRow without a link or play button has no inner button).
-const chosenName = () => container.querySelector('.item-exercise .tt').textContent
-const chartWith = y => mocks.charts.find(chart => chart.points?.some(point => point.y === y))
+// The metric switch: the top set is the figure these records are about. An exercise with nothing but
+// the top set has no switch to press.
+const showTopSet = async () => {
+  const top = [...container.querySelectorAll('[role="radio"]')].find(b => b.textContent === 'Top')
+  if (top) await click(top)
+}
+const hero = () => container.querySelector('.g-xp-big')?.textContent
+const chosenName = () => container.querySelector('.g-snav-title').textContent
+const chartWith = y => mocks.charts.find(chart => chart.values?.includes(y))
+const tilesOf = () => Object.fromEntries([...container.querySelectorAll('.g-stat')].map(s => [s.children[0].textContent, s.children[1].textContent]))
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -130,15 +131,18 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-describe('Strength exercise progress records', () => {
+// One session is one point, so the line itself is not drawn (it says to log it twice): the figures
+// and the session count are what show that the records folded into one.
+describe('Progress exercise records', () => {
   it('keeps a legacy reps record whose load is stored only in topW', async () => {
     resetFixture([workout('legacy-topw', BASE_NOW, [
       { id: '0025', target: { mode: 'reps' }, topW: 70, sets: [] },
     ])])
-    await mountStrength()
+    await mountPage()
+    await showTopSet()
 
-    expect(hero()).toEqual({ num: '70', unit: 'kg' })
-    expect(chartWith(70)?.points).toHaveLength(1)
+    expect(hero()).toBe('70 kg')
+    expect(tilesOf().Sessions).toBe('1')
   })
 
   it('keeps the strongest topW across repeated legacy records', async () => {
@@ -146,10 +150,11 @@ describe('Strength exercise progress records', () => {
       { id: '0025', target: { mode: 'reps' }, topW: 70, sets: [] },
       { id: '0025', target: { mode: 'reps' }, topW: 60, sets: [] },
     ])])
-    await mountStrength()
+    await mountPage()
+    await showTopSet()
 
-    expect(hero()).toEqual({ num: '70', unit: 'kg' })
-    expect(chartWith(70)?.points).toHaveLength(1)
+    expect(hero()).toBe('70 kg')
+    expect(tilesOf().Sessions).toBe('1')
   })
 
   it('keeps a legacy topW when a modern occurrence shares the workout', async () => {
@@ -157,10 +162,11 @@ describe('Strength exercise progress records', () => {
       entry('0025', [set(true, { w: 50, r: 5 })]),
       { id: '0025', target: { mode: 'reps' }, topW: 70, sets: [] },
     ])])
-    await mountStrength()
+    await mountPage()
+    await showTopSet()
 
-    expect(hero()).toEqual({ num: '70', unit: 'kg' })
-    expect(chartWith(70)?.points).toHaveLength(1)
+    expect(hero()).toBe('70 kg')
+    expect(tilesOf().Sessions).toBe('1')
   })
 
   it('aggregates duplicate exercise occurrences into one progress point', async () => {
@@ -168,11 +174,23 @@ describe('Strength exercise progress records', () => {
       entry('0025', [set(true, { w: 60, r: 5 })]),
       entry('0025', [set(true, { w: 80, r: 5 })]),
     ])])
-    await mountStrength()
+    mocks.search = '?view=sets'
+    await mountPage()
 
-    expect(hero()).toEqual({ num: '80', unit: 'kg' })
-    expect(chartWith(80)?.points).toHaveLength(1)
-    expect(container.querySelector('.sect-b .lrow-s').textContent).toBe('60×5  80×5')
+    expect([...container.querySelectorAll('.g-ps-card')]).toHaveLength(1)
+    expect([...container.querySelectorAll('.g-ps-sets b')].map(b => b.textContent)).toEqual(['60×5', '80×5'])
+  })
+
+  it('shows the best of duplicate occurrences in the hero', async () => {
+    resetFixture([workout('duplicate', BASE_NOW, [
+      entry('0025', [set(true, { w: 60, r: 5 })]),
+      entry('0025', [set(true, { w: 80, r: 5 })]),
+    ])])
+    await mountPage()
+    await showTopSet()
+
+    expect(hero()).toBe('80 kg')
+    expect(tilesOf().Sessions).toBe('1')
   })
 
   it('aggregates repeated assisted occurrences by the lightest load', async () => {
@@ -180,20 +198,34 @@ describe('Strength exercise progress records', () => {
       entry('0017', [set(true, { w: 30, r: 8 })]),
       entry('0017', [set(true, { w: 20, r: 8 })]),
     ])])
-    await mountStrength()
+    await mountPage()
+    await showTopSet()
 
-    expect(hero()).toEqual({ num: '20', unit: 'kg' })
-    expect(chartWith(20)?.points).toHaveLength(1)
+    expect(hero()).toBe('20 kg')
+    expect(tilesOf().Sessions).toBe('1')
+    // an assistance machine has no one-rep max to calculate
+    expect(container.querySelector('.g-xp-light')).toBeNull()
+  })
+
+  it('draws the aggregated point with others once there are two sessions', async () => {
+    resetFixture([
+      workout('before', BASE_NOW - 86400000, [entry('0025', [set(true, { w: 60, r: 5 })])]),
+      workout('duplicate', BASE_NOW, [entry('0025', [set(true, { w: 60, r: 5 })]), entry('0025', [set(true, { w: 80, r: 5 })])]),
+    ])
+    await mountPage()
+    await showTopSet()
+
+    expect(chartWith(80)?.values).toEqual([60, 80])
   })
 })
 
-describe('Strength exercise picker', () => {
+describe('Progress exercise picker', () => {
   it('filters with the shared exercise matcher and still selects from the mounted sheet', async () => {
     resetFixture(exercisePickerWorkouts())
-    await mountStrength()
+    await mountPage()
     expect(EXIDX[LEGACY_SNAPSHOT_ID]).toBeUndefined()
 
-    await click(container.querySelector('.item-exercise'))
+    await click(container.querySelector('.g-xp-pick'))
 
     const modal = document.querySelector('#modal-root')
     const input = modal.querySelector('input')
@@ -263,11 +295,11 @@ describe('Strength exercise picker', () => {
   it('picking an exercise shows it, and puts it in the address without a history entry', async () => {
     resetFixture(exercisePickerWorkouts())
     mocks.search = '?range=30'
-    await mountStrength()
+    await mountPage()
     expect(chosenName()).toBe('Barbell Bench Press')
     expect(mocks.nav).not.toHaveBeenCalled()
 
-    await click(container.querySelector('.item-exercise'))
+    await click(container.querySelector('.g-xp-pick'))
     const modal = document.querySelector('#modal-root')
     await click([...modal.querySelectorAll('.sect-b button')].find(b => b.textContent.includes('Barbell Full Squat')))
 
@@ -278,6 +310,7 @@ describe('Strength exercise picker', () => {
     expect(path).toBe('/progress/strength')
     expect(Object.fromEntries(new URLSearchParams(query))).toEqual({ range: '30', ex: '0043' })
     expect(chosenName()).toBe('Barbell Full Squat')
-    expect(hero().num).toBe('60')
+    await showTopSet()
+    expect(hero()).toBe('60 kg')
   })
 })

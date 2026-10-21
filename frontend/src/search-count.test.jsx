@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// The live result count in the exercise search (idea: GitLab !31, sagnikpatra301): the Library
-// and the exercise picker show how many exercises are left once a search or a filter narrows
+// The live result count in the exercise search (idea: GitLab !31, sagnikpatra301): the Exercises
+// page and the exercise picker show how many exercises are left once a search or a filter narrows
 // the list, and say it in words to a screen reader.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +9,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
-import Library from './views/Library.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import { EXDB, searchExercises } from './lib/exercises.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -30,8 +30,27 @@ function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-const chip = (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
-const count = host => host.querySelector('.search .search-count')
+
+const SURFACES = [
+  {
+    where: 'Exercises page',
+    open: () => mount(<MemoryRouter><ExercisesScreen /></MemoryRouter>),
+    input: host => host.querySelector('.g-ssf input'),
+    count: host => host.querySelector('.g-ssf-count'),
+    chip: (host, text) => [...host.querySelectorAll('.g-cchip')].find(b => b.textContent.trim() === text),
+    neck: 'Neck',
+    hasCount: () => null,
+  },
+  {
+    where: 'exercise picker',
+    open: () => { exercisePicker(vi.fn()); return renderTopSheet() },
+    input: host => host.querySelector('.search input'),
+    count: host => host.querySelector('.search .search-count'),
+    chip: (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text),
+    neck: 'neck',
+    hasCount: host => host.querySelector('.search').classList.contains('has-count'),
+  },
+]
 
 beforeEach(() => {
   useUI.setState({ sheets: [], toastMsg: '' })
@@ -44,40 +63,37 @@ afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) 
 const matches = q => searchExercises(EXDB, q).length
 
 describe('exercise search result count', () => {
-  for (const [where, open] of [
-    ['Library', () => mount(<MemoryRouter><Library /></MemoryRouter>)],
-    ['exercise picker', () => { exercisePicker(vi.fn()); return renderTopSheet() }],
-  ]) {
-    it(`${where}: appears with a search, follows it, and goes when the search is cleared`, () => {
-      const host = open()
-      const input = host.querySelector('.search input')
-      expect(count(host)).toBeNull()
-      expect(host.querySelector('.search').classList.contains('has-count')).toBe(false)
+  for (const s of SURFACES) {
+    it(`${s.where}: appears with a search, follows it, and goes when the search is cleared`, () => {
+      const host = s.open()
+      const input = s.input(host)
+      expect(s.count(host)).toBeNull()
+      if (s.hasCount(host) !== null) expect(s.hasCount(host)).toBe(false)
 
       act(() => type(input, 'bench press'))
       const n = matches('bench press')
       expect(n).toBeGreaterThan(1)
-      expect(count(host).textContent).toBe(String(n))
-      expect(count(host).getAttribute('aria-label')).toBe(`${n} exercises`)
-      expect(host.querySelector('.search').classList.contains('has-count')).toBe(true)
+      expect(s.count(host).textContent).toBe(String(n))
+      expect(s.count(host).getAttribute('aria-label')).toBe(`${n} exercises`)
+      if (s.hasCount(host) !== null) expect(s.hasCount(host)).toBe(true)
 
       act(() => type(input, 'bench press dumbbell incline'))
-      expect(Number(count(host).textContent)).toBe(matches('bench press dumbbell incline'))
+      expect(Number(s.count(host).textContent)).toBe(matches('bench press dumbbell incline'))
 
       act(() => type(input, ''))
-      expect(count(host)).toBeNull()
+      expect(s.count(host)).toBeNull()
     })
 
-    it(`${where}: counts a body-part filter too, and reads "1 exercise" for one`, () => {
-      const host = open()
-      act(() => chip(host, 'neck').click())
+    it(`${s.where}: counts a body-part filter too, and reads "1 exercise" for one`, () => {
+      const host = s.open()
+      act(() => s.chip(host, s.neck).click())
       const neck = EXDB.filter(e => e.bp === 'neck').length
-      expect(Number(count(host).textContent)).toBe(neck)
+      expect(Number(s.count(host).textContent)).toBe(neck)
       const one = EXDB.find(e => searchExercises(EXDB, e.n).length === 1)
-      act(() => chip(host, 'All').click())
-      act(() => type(host.querySelector('.search input'), one.n))
-      expect(count(host).textContent).toBe('1')
-      expect(count(host).getAttribute('aria-label')).toBe('1 exercise')
+      act(() => s.chip(host, 'All').click())
+      act(() => type(s.input(host), one.n))
+      expect(s.count(host).textContent).toBe('1')
+      expect(s.count(host).getAttribute('aria-label')).toBe('1 exercise')
     })
   }
 })

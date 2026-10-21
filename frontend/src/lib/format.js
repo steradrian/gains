@@ -23,6 +23,9 @@ export function fmtDate(iso, long, withYear = false) {
   if (withYear) options.year = 'numeric'
   return d.toLocaleDateString(dateLocale(), options)
 }
+// The month of a day in the UI language: "Jul", or "July" with `long`.
+export const fmtMonth = (iso, long = false) =>
+  new Date(iso + 'T12:00:00').toLocaleDateString(dateLocale(), { month: long ? 'long' : 'short' })
 // A span of days, e.g. an import's first and last workout. The year is shown when the span
 // crosses one or lies outside the current year: "3 Feb – 21 Dec" over two years read as one.
 export function fmtDateRange(from, to, long, now = new Date()) {

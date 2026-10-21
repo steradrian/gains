@@ -43,7 +43,9 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
     const sameMode = entries.filter(item => item.mode === mode)
     const rows = sameMode.flatMap(item => item.rows)
     const en = { ...sameMode.at(-1).entry, sets: rows }
-    if (rows.length) logged.push({ w, en, mode, rows })
+    // An occurrence with no rows is a legacy reps record holding its load in topW only
+    // (metricEntriesForExercise keeps no other kind): a session, with that load as its value.
+    logged.push({ w, en, mode, rows })
   })
   logged.sort((a, b) => workoutAt(a.w) - workoutAt(b.w))
 
@@ -61,19 +63,25 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
   }
 
   let best = 0, prId = null
+  const records = new Set()
   const sessions = [], points = [], e1rmPoints = []
   logged.forEach(({ w, en, mode: m, rows }) => {
     const same = m === mode
     const value = same ? valueOf({ en, rows }) : null
     const e1rm = m === 'reps' ? (bestSetOf(en)?.est ?? null) : null
     const t = workoutAt(w)
-    // "PR" goes on the session that first reached the all-time best, not on every session
-    // that later matched it — one marker says where the record was set.
-    if (value != null && value > best) { best = value; prId = w.id }
+    // A "new best" goes on a session that beat the best before it, so a record that was itself
+    // beaten later keeps its marker and a match of the best does not get one. The first session has
+    // nothing to beat. `prId` is the session that holds the all-time best now.
+    if (value != null && value > best) {
+      if (best > 0) records.add(w.id)
+      best = value
+      prId = w.id
+    }
     if (value != null && value > 0) points.push({ t, d: w.d, y: value, e1rm })
     if (e1rm != null) e1rmPoints.push({ t, d: w.d, y: e1rm })
     sessions.push({
-      id: w.id, d: w.d, t, mode: m, target: en.target || null, sets: rows, value, e1rm,
+      id: w.id, d: w.d, t, name: w.name || null, mode: m, target: en.target || null, sets: rows, value, e1rm,
       volume: m === 'reps' ? entryVolume(rows, en) : null,
     })
   })
@@ -83,9 +91,34 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
 
   return {
     mode, metric, best, prId, total: sessions.length,
-    sessions: sessions.slice(-limit).reverse().map(s => ({ ...s, pr: s.id === prId })),
+    sessions: sessions.slice(-limit).reverse().map(s => ({ ...s, pr: records.has(s.id) })),
     points, e1rmPoints,
   }
+}
+
+/**
+ * Which of a session's sets set its number, so the "New best" mark sits on a set and not on the
+ * day. `metric` is the history's (`weight`, `reps`, `sec`, `min`); the first set that matches the
+ * session's value wins. Minutes are a total over the sets and the weight can come from a logged top
+ * weight with no set behind it, so those, and a session with no value, fall back to the first set.
+ */
+export function bestSetIndex(session, metric) {
+  const key = { weight: s => Number(s.w) || 0, reps: completedRepsOf, sec: s => Number(s.sec) || 0 }[metric]
+  if (!key || !(session.value > 0)) return 0
+  const at = session.sets.findIndex(s => key(s) === session.value)
+  return at < 0 ? 0 : at
+}
+
+/**
+ * How a series moved over a window: the last point against the first one at or after `from` (ms),
+ * oldest to newest. `{ delta, from, to }`, or null with fewer than two points in the window, so
+ * a caller leaves the line out rather than inventing one.
+ */
+export function trendDelta(points, from = 0) {
+  const inside = points.filter(p => p.t >= from).sort((a, b) => a.t - b.t)
+  if (inside.length < 2) return null
+  const first = inside[0].y, last = inside.at(-1).y
+  return { delta: Math.round((last - first) * 100) / 100, from: first, to: last }
 }
 
 /**

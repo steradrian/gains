@@ -112,7 +112,7 @@ describe('muscle names in the rows and tags (QA C9)', () => {
 
   it('Muscles explorer row names the target the same way', () => {
     seed(custom())
-    const host = render(<MuscleExplorer onDetail={vi.fn()} onPlan={vi.fn()} />)
+    const host = render(<MuscleExplorer onPick={vi.fn()} />)
     const chip = [...host.querySelectorAll('.chip[aria-pressed]')].find(e => e.textContent.startsWith('Glutes'))
     act(() => chip.click())
     act(() => type(host.querySelector('.search input'), 'QA Custom'))

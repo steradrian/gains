@@ -45,6 +45,28 @@ describe('BodyMap', () => {
     expect(view.host.firstElementChild.className).toContain('g-bmap')
   })
 
+  it('with onMuscle every muscle is a button, named, pressed when selected, and the map is a group', async () => {
+    const onMuscle = vi.fn()
+    await shown({ onMuscle, selected: 'chest', label: 'Muscle map' })
+    expect(view.host.querySelector('svg').getAttribute('role')).toBe('group')
+    expect(view.host.querySelector('svg').getAttribute('aria-hidden')).toBeNull()
+    const chest = [...view.host.querySelectorAll('[role="button"]')].filter(p => p.getAttribute('aria-label') === 'Chest')
+    expect(chest.length).toBeGreaterThan(0)
+    expect(chest[0].getAttribute('aria-pressed')).toBe('true')
+    expect(chest[0].tabIndex).toBe(0)
+    act(() => { chest[0].dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    expect(onMuscle).toHaveBeenCalledWith('chest')
+    const biceps = view.host.querySelector('[aria-label="Biceps"]')
+    expect(biceps.getAttribute('aria-pressed')).toBe('false')
+    act(() => { biceps.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+    expect(onMuscle).toHaveBeenLastCalledWith('biceps')
+  })
+
+  it('without onMuscle the muscles are plain shapes', async () => {
+    await shown({})
+    expect(view.host.querySelector('[role="button"]')).toBeNull()
+  })
+
   it('refuses a tone the design system does not have, in development', () => {
     expect(() => view.render(<BodyMap tone="dark" />)).toThrow(/tone="dark"/)
   })

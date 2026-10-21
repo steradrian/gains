@@ -783,7 +783,6 @@ export const PT_BR_OVERRIDES = {
 
 // --- muscle explorer ---
   'By muscle': 'Por músculo',
-  'Explore muscles': 'Explorar músculos',
   'Choose a muscle to see exercises that train it.': 'Escolha um músculo para ver os exercícios que o treinam.',
   'Exercises for {0}': 'Exercícios para {0}',
   'Clear selection': 'Limpar seleção',
@@ -1110,8 +1109,6 @@ export const PT_BR_OVERRIDES = {
   'Test sent! Should pop up any second': 'Teste enviado! Deve aparecer a qualquer momento',
   'That\'s not a QR code. Only QR cards can be shown here': 'Isso não é um código QR. Aqui só dá para mostrar cartões QR',
   'A clean printout, one page per plan. No exercise ever gets split across pages.': 'Uma impressão limpa, uma página por plano. Nenhum exercício fica dividido entre páginas.',
-  '{1} animated exercises + 1 of your own': '{1} exercícios animados + 1 seu',
-  '{1} animated exercises + {0} of your own': '{1} exercícios animados + {0} seus',
   'That address answers, but it isn’t a Gains server. Check the URL.': 'Esse endereço responde, mas não é um servidor Gains. Verifique a URL.',
   'That address answers, but a login page or proxy rule replied instead of Gains. Let /api/ through to Gains unchanged. See “Phone app and CORS” in docs/SELF_HOSTING.md.': 'Esse endereço responde, mas quem respondeu foi uma página de login ou uma regra do proxy, não o Gains. Deixe o /api/ chegar ao Gains sem alterações. Veja “Phone app and CORS” em docs/SELF_HOSTING.md.',
   'Switch sides': 'Troque de lado',

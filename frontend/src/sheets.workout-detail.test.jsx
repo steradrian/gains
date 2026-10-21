@@ -95,7 +95,7 @@ describe('workout detail', () => {
     act(() => { row.click() })
     expect(useUI.getState().sheets).toHaveLength(2)
     const history = mountTopSheet()
-    expect(history.textContent).toContain('Exercise history')
+    expect(history.querySelector('.g-ps-card')).toBeTruthy()
     expect(history.textContent).toContain('60×5')
   })
 

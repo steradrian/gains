@@ -369,12 +369,13 @@ function rendersPage(code, name, seen = new Set()) {
   seen.add(name)
   const body = componentBody(code, name)
   if (body == null) return false
-  if (/<Page\b/.test(body)) return true
+  if (/<(?:Stage)?Page\b/.test(body)) return true
   return [...new Set([...body.matchAll(/<([A-Z][\w$]*)/g)].map(m => m[1]))]
     .some(child => componentBody(code, child) != null && rendersPage(code, child, seen))
 }
 
-// G4: the components App.jsx routes to that do not render <Page>, by name.
+// G4: the components App.jsx routes to that do not render <Page> (or the stage's <StagePage>, which
+// is the pushed pages' frame), by name.
 export function routeViewsWithoutPage(src = SRC) {
   const app = stripJs(readFileSync(join(src, 'App.jsx'), 'utf8'))
   const imports = viewImports(app)

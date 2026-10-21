@@ -98,6 +98,13 @@ describe('StageSegmented', () => {
     expect(radios()[1].tagName).toBe('BUTTON')
   })
 
+  it('names an option by its ariaLabel when the visible label is a shortening', () => {
+    view.render(<StageSegmented label="Chart" options={[{ value: 'a', label: 'Top' }, { value: 'b', label: 'Per set', ariaLabel: 'Per set of the workout' }]} />)
+    expect(radios()[0].hasAttribute('aria-label')).toBe(false)
+    expect(radios()[1].getAttribute('aria-label')).toBe('Per set of the workout')
+    expect(radios()[1].textContent).toBe('Per set')
+  })
+
   it('works inside a parent that keeps the value', () => {
     function Host() {
       const [v, setV] = useState('b')
