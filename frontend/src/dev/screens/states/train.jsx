@@ -7,7 +7,7 @@ import { registerScreens } from '../registry.js'
 // Train (PR-02, boards Tr2Train to Tr2Future). Every state is the real screen, TrainScreen, given
 // what useTrain() would hand it on the boards' day, Sunday 18 October 2026: Push A today, Legs on
 // Monday and Friday, Pull A on Wednesday. The toasts (T2.12, T2.13) are the app's real toast,
-// held open. The drawers over it (T2.1, T2.2) are train-drawers.jsx.
+// held open. The drawers over T2.0 (T2.1, T2.2) are train-drawers.jsx, which takes `base` from here.
 
 const NOOP = () => {}
 const TODAY = '2026-10-18'
@@ -72,7 +72,7 @@ const FUTURE = {
 
 /* -------------------------------------------------------------- the screen -- */
 
-const base = {
+export const base = {
   header: { initial: 'Alex', placeholder: 'Search training', onSettings: NOOP, onBell: NOOP, onSearch: NOOP },
   searching: false,
   selected: TODAY,

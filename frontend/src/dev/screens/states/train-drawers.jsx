@@ -1,12 +1,13 @@
 import { EXDB } from '../../../lib/exercises-data.js'
 import { isoOf, todayISO } from '../../../lib/format.js'
 import { dayOptionsSheet, startChooserSheet } from '../../../sheets.jsx'
-import TrainHub from '../../../views/TrainHub.jsx'
+import TrainScreen from '../../../views/train/TrainScreen.jsx'
 import { registerScreens } from '../registry.js'
+import { base } from './train.jsx'
 
 // Train's drawers (T2.1 Start a workout, T2.2 Day options), each the real one opened the way Train
-// opens it, over the Train page on this branch. The plan is the boards': Push A today, Pull A
-// logged four days ago, Legs missed two days ago. M5 moves them over the new Train screen (T2.0).
+// opens it, over T2.0 (the Train screen, as train.jsx draws it). The plan in the mocked store is
+// the boards': Push A today, Pull A logged four days ago, Legs missed two days ago.
 const daysAgo = n => { const d = new Date(todayISO() + 'T12:00:00'); d.setDate(d.getDate() - n); return d }
 const three = (bp, eq) => EXDB.filter(e => e.bp === bp && e.eq === eq).slice(0, 3)
   .map(e => ({ id: e.id, mode: 'reps', sets: 3, reps: 8, weight: 40 }))
@@ -29,7 +30,7 @@ const plan = (over = {}) => ({
   dayPlan: {}, dayNotes: {}, missedSeen: {}, queue: null, active: null, workouts: [pulled()],
   ...over,
 })
-const train = () => <TrainHub />
+const train = () => <TrainScreen {...base} />
 const open = fn => async t => { fn(); await t.wait(200) }
 
 registerScreens('Train: drawers', [

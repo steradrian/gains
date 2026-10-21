@@ -224,7 +224,11 @@ describe('the screens gallery', () => {
     const ids = screenAreas().find(a => a.name === 'Train: drawers').entries.map(e => e.id)
     expect(ids).toEqual(['T2.1', 'T2.1e', 'T2.2'])
     const own = useStore.getState().S
-    const drawer = async id => (await show(screenById(id))).querySelector('.g-bs')
+    const drawer = async id => {
+      const host = await show(screenById(id))
+      expect(host.querySelector('.g-tcard'), id + ' is open over T2.0').toBeTruthy()
+      return host.querySelector('.g-bs')
+    }
     const names = d => [...d.querySelectorAll('.g-tr-b > b')].map(b => b.textContent)
     expect(names(await drawer('T2.1'))).toEqual(['Push APlanned today', 'Pull A', expect.stringMatching(/^LegsMissed /), 'Freestyle', 'Repeat a past workout'])
     unmountAll()
