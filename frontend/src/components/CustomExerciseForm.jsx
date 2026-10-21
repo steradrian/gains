@@ -9,7 +9,8 @@ import { MUSCLES, MUSCLE_NAME, hasExplicitMuscleMetadata, inMuscleOrder, normali
 import { LOG_CHOICES, logChoiceOf, withLogChoice } from '../lib/custom-exercise.js'
 import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { cx } from '../lib/ui-kit.js'
-import { S, toast, update } from '../sheets/shared.js'
+import { useStore } from '../store/useStore.js'
+import { useUI } from '../store/useUI.js'
 import Button from '../ds/Button.jsx'
 import ChipGroup from '../ds/ChipGroup.jsx'
 import StageFooter from '../ds/StageFooter.jsx'
@@ -18,6 +19,11 @@ import CustomMediaField from './CustomMediaField.jsx'
 import Icon from './Icon.jsx'
 import { MultiSelectRow } from './ui.jsx'
 import '../views/train/exercises/exercises.css'
+
+// Outside src/sheets/ the store and the toast are reached directly (the facade rule, G6).
+const S = () => useStore.getState().S
+const update = (...a) => useStore.getState().update(...a)
+const toast = m => useUI.getState().toast(m)
 
 // The board's seven body parts (T6.4), each the app's own `bp` value: a catalogue body part, so the
 // exercise files with the built-in ones. Lower arms, lower legs and neck have no chip; an exercise

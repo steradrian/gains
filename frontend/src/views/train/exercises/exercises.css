@@ -92,7 +92,7 @@
 [dir="rtl"] .g-xs-mchev { transform: scaleX(-1); }
 .g-xs-map { margin-top: 12px; padding: 18px; border-radius: 28px; }
 /* Two maps of 150px do not fit a 320px screen: they shrink together, keeping their shape. */
-.g-xs-map .g-bmap svg { max-width: calc(50% - 7px); height: auto; }
+.g-xs-map .g-bmap svg { width: min(150px, calc(50% - 7px)); height: auto; }
 .g-xs-mcap { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 12px; }
 .g-xs-mcap b { font: 700 19px/24px var(--font-sans); }
 .g-xs-mcap span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: end; }

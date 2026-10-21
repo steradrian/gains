@@ -893,7 +893,7 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-drow:focus-visible { outline-offset: -2px; }
 /* StageSearchField: the overlay's head (a ringed field and a glass ×) and the in-page field (T6.0) */
 .g-ssf { display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); }
-.g-ssf-box { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 0 0 2px var(--on-stage); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage-2); }
+.g-ssf-box { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 999px; background: var(--glass-track); box-shadow: inset 0 0 0 2px var(--on-stage); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage-2); }
 .g-ssf-box .g-icon { width: 20px; height: 20px; flex: none; }
 .g-ssf-box input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 600 17px/22px var(--font-sans); color: var(--on-stage); caret-color: var(--on-stage); text-align: start; }
 .g-ssf-box input::placeholder { color: var(--on-stage-2); font-weight: 500; opacity: 1; }

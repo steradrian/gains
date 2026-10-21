@@ -1,6 +1,6 @@
 import BottomSheet from '../../../ds/BottomSheet.jsx'
 import RadioRow from '../../../ds/RadioRow.jsx'
-import { ui } from '../../../sheets/shared.js'
+import { useUI } from '../../../store/useUI.js'
 
 function ChoiceDrawer({ title, label, options, value, onPick, close }) {
   return (
@@ -20,4 +20,4 @@ function ChoiceDrawer({ title, label, options, value, onPick, close }) {
  * walked off by the sheet frame, so nothing is left behind. `label` names the group.
  */
 export const choiceSheet = ({ title, label, options, value, onPick }) =>
-  ui().openSheet(close => <ChoiceDrawer title={title} label={label || title} options={options} value={value} onPick={onPick} close={close} />, { variant: 'ds' })
+  useUI.getState().openSheet(close => <ChoiceDrawer title={title} label={label || title} options={options} value={value} onPick={onPick} close={close} />, { variant: 'ds' })
