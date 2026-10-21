@@ -30,8 +30,9 @@ export function SearchMedia({ media, size }) {
 // Off tag). A Recent row has its × (`onRemove`) beside it, its own button, named "Remove … from
 // recent". The nothing-matches actions are the same row with a glyph. `optionProps` go onto the
 // main button (a listbox option's role, id, aria-selected, tabIndex); its name is the title and
-// the line, unless `label` says more.
-export default function SearchRow({ title, ranges, sub, media, href, onClick, onRemove, trailing, label, optionProps }) {
+// the line, unless `label` says more. `removeProps` go onto the × (the option right after the
+// row's, so the arrow keys reach it too).
+export default function SearchRow({ title, ranges, sub, media, href, onClick, onRemove, trailing, label, optionProps, removeProps }) {
   const body = <>
     <SearchMedia media={media} />
     <span className="g-srow-text">
@@ -46,7 +47,7 @@ export default function SearchRow({ title, ranges, sub, media, href, onClick, on
       {href
         ? <a {...optionProps} href={href} onClick={onClick} className="g-srow g-srow-main" aria-label={name}>{body}</a>
         : <button type="button" {...optionProps} onClick={onClick} className="g-srow g-srow-main" aria-label={name}>{body}</button>}
-      {onRemove && <button type="button" className="g-srow-xbtn" onClick={onRemove} aria-label={t('Remove {0} from recent', title)}>
+      {onRemove && <button type="button" {...removeProps} className="g-srow-xbtn" onClick={onRemove} aria-label={t('Remove {0} from recent', title)}>
         <Icon name="xmark" className="g-icon" />
       </button>}
     </div>

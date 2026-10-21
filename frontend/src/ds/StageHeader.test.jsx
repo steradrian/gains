@@ -138,4 +138,39 @@ describe('StageHeader as the search field', () => {
     input().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
     expect(onKeyDown).toHaveBeenCalledTimes(1)
   })
+
+  it('offers the barcode button in the field only while the search is open', () => {
+    const onScan = vi.fn()
+    view.render(<StageHeader searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} onScan={onScan} />)
+    expect(q('.g-ssf-scan')).toBeNull()
+    view.render(<StageHeader searching onSearch={vi.fn()} query="" onQuery={vi.fn()} onScan={onScan} />)
+    expect(q('.g-ssf-scan').getAttribute('aria-label')).toBe('Scan barcode')
+    click(q('.g-ssf-scan'))
+    expect(onScan).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('StageHeader pinned, on a tab root', () => {
+  it('pins itself, names the page for a screen reader only, and keeps a context readout before the bell', () => {
+    view.render(<StageHeader pinned title="Today" action={<button className="hdr-left">1,240 left</button>} />)
+    expect(q('.g-shdr').classList.contains('g-shdr-pin')).toBe(true)
+    expect(q('h1').className).toBe('sr-only')
+    expect(q('h1').textContent).toBe('Today')
+    expect(q('.g-shdr-act').nextElementSibling).toBe(bell())
+    expect(q('.g-shdr-act .hdr-left').textContent).toBe('1,240 left')
+  })
+
+  it('nothing in it moves while searching: the same parts, only the bell turned into ×', () => {
+    view.render(<StageHeader pinned searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} action={<b>x</b>} />)
+    const before = [...q('.g-shdr').children].map(c => c.className)
+    view.render(<StageHeader pinned searching onSearch={vi.fn()} query="" onQuery={vi.fn()} action={<b>x</b>} />)
+    expect([...q('.g-shdr').children].map(c => c.className.replace(' g-bell-close', ''))).toEqual(before)
+    expect(bell().classList.contains('g-bell-close')).toBe(true)
+  })
+
+  it('is not pinned unless asked (the kit page shows several)', () => {
+    view.render(<StageHeader />)
+    expect(q('.g-shdr').classList.contains('g-shdr-pin')).toBe(false)
+    expect(q('h1')).toBeNull()
+  })
 })

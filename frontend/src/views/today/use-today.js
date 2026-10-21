@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
@@ -13,17 +12,15 @@ import { dayHasLog } from '../../lib/nutrition/first-log.js'
 import { loadErrorText } from '../../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../../lib/nutrition/meal-name.js'
 import { useDiarySelection, useDiaryTarget } from '../../lib/nutrition/selection.js'
-import { useHubStatusRefresh, useHubTrouble } from '../../lib/nutrition/sync.js'
 import { useDiaryDay } from '../../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { waterButtons } from '../../lib/nutrition/water.js'
 import { usePlanRefused } from '../../lib/onboarding/use-plan-refused.js'
-import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
 import { bwSheet, startFlow, workoutDetailSheet } from '../../sheets.jsx'
 import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
 import { nutritionDaySheet } from '../../components/NutritionDaySheet.jsx'
 import { scanToSelection } from '../../components/scan-to-selection.js'
-import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
+import { useRootHeader } from '../../components/use-root-header.js'
 import { addWater, waterAria } from '../../components/WaterCard.jsx'
 import { useOfflinePill } from './use-offline-pill.js'
 
@@ -272,9 +269,9 @@ function scanToday(day) {
 }
 
 /**
- * Everything Today shows, for TodayScreen: { profile, status, error, header, searching,
- * saved, away, firstSteps, nextPending, rings, onRing, actions, upNext, meals, onMeal, onSeeDay,
- * water, week }. `status` ('known' | 'pending' | 'failed') gates everything below the rings.
+ * Everything Today shows, for TodayScreen: { profile, status, error, header (the StageHeader's
+ * props, its search field included), saved, away, firstSteps, nextPending, rings, onRing,
+ * actions, upNext, meals, onMeal, onSeeDay, water, week }. `status` ('known' | 'pending' | 'failed') gates everything below the rings.
  * Sections a profile or the day leaves out are null: firstSteps (T1.9) stands in for Up next on a
  * first day, nextPending while that is not known yet, away (T1.10) is the welcome back, saved
  * (T1.14) the offline pill. Taps go where the
@@ -290,10 +287,8 @@ export function useToday() {
   const day = useDiaryDay(today)
   const { meal } = useDiaryTarget(day.settings ?? null)
   const planRefused = usePlanRefused(user, S.routines.length > 0)
-  const connection = useConnectionTrouble()
-  const hub = useHubTrouble()
-  useHubStatusRefresh()
-  const searching = useSearch(s => s.open)
+  // The header and its search field, as on every tab root (components/use-root-header.js).
+  const header = useRootHeader('home')
   const [watering, setWatering] = useState(false)
   const indexComplete = useDiaryIndex(s => s.complete)
   const indexSynced = useDiaryIndex(s => s.synced)
@@ -336,17 +331,6 @@ export function useToday() {
     else nav('/train/workout')
   }
 
-  const header = {
-    initial: user?.name || '',
-    placeholder: t('Search'),
-    alert: connection ? t('Connection problem') : hub ? t('Nutrition sync needs attention') : null,
-    onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
-    // The app's search types into a header input: the tab's own header takes over while it is open,
-    // mounted and focused inside this tap so a phone raises its keyboard.
-    onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('home'))) },
-  }
-
   const water = food ? {
     value: day.water.total / 1000,
     target: day.water.goal / 1000,
@@ -371,7 +355,7 @@ export function useToday() {
   } : null
 
   return {
-    profile, status, error, header, searching, saved, away: welcome, firstSteps, nextPending,
+    profile, status, error, header, saved, away: welcome, firstSteps, nextPending,
     rings: food ? (day.status === 'ready' ? foodRings(day, units) : []) : [trainingRing(S, today)],
     onRing: (_, i) => (food ? nutritionDaySheet({ date: today, tab: i }) : nav('/train')),
     actions: food

@@ -67,7 +67,7 @@ describe('the search pill\'s barcode button', () => {
       useDiarySelection.getState().setMeal(2)
     })
     await act(async () => { root.render(<MemoryRouter initialEntries={['/food']}><RootHeader title="Nutrition" /><Sheets /></MemoryRouter>) })
-    await act(async () => { host.querySelector('.spill-i').focus() })
+    await act(async () => { host.querySelector('.g-spill-field input').focus() })
     await click(button('Scan barcode'))
     camera.hit = { value: '5000000000001', fmt: 'ean13' }
     await click(button('camera sees a code', lastSheet()))

@@ -1,7 +1,8 @@
-/* Today on the stage (TodayScreen.jsx). The stage is full bleed (index.css #app:has(> .g-screen));
-   the screen pads itself under the status bar and keeps the boards' 150px of air above the
-   floating tab bar. The kit's parts carry their own gutters. */
-.today{padding-top:var(--sat);padding-bottom:calc(150px + var(--sab))}
+/* Today on the stage (TodayScreen.jsx). The stage is full bleed (index.css #app:has(> .g-screen))
+   and StageScreen already clears the status bar (ds.css .g-stage-body, the one --sat), so the
+   screen only leaves the pinned header's own row free (--shdr-h) and keeps the boards' 150px of
+   air above the floating tab bar. The kit's parts carry their own gutters. */
+.today{padding-top:var(--shdr-h);padding-bottom:calc(150px + var(--sab))}
 .today-alert{padding:12px 16px 0}
 /* T11Loading: Up next and the meal tiles as glass blocks. */
 .today-sk-row{display:block;height:84px;margin:70px 16px 0;border-radius:28px}

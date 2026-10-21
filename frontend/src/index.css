@@ -477,15 +477,6 @@ h4.sec{
 .weekly-volume-toggle .icn{transition:transform var(--fast) var(--ease)}
 .weekly-volume-toggle[aria-expanded="true"] .icn{transform:rotate(180deg)}
 
-/* ---------------------------------------------------------- tab dot ----- */
-/* The tab bar is the design system's (ds/GlassTabBar.jsx), placed on screen in tab-shell.css. */
-/* A connection problem while the banner is switched off (Settings → Show connection status):
-   a dot on the avatar every tab's root carries (components/AvatarButton.jsx). */
-.tab-dot{
-  position:absolute;top:-1px;right:-3px;width:8px;height:8px;border-radius:50%;
-  background:var(--orange);box-shadow:0 0 0 2px var(--bg-el);pointer-events:none;
-}
-.iconbtn .tab-dot{top:5px;right:5px;box-shadow:0 0 0 2px var(--bg)}
 
 /* NOTE on every backdrop-filter pair in this file: the -webkit- line comes first and the
    standard property last, which is the order a prefixed/standard pair wants — whichever is

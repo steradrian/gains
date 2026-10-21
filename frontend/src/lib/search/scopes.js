@@ -9,6 +9,12 @@ export const SEARCH_TABS = ['home', 'train', 'food', 'me']
  *  name; a caller still saying so is read as Me. Anything else unknown searches from Home. */
 export const searchTab = tab => (tab === 'progress' ? 'me' : SEARCH_TABS.includes(tab) ? tab : 'home')
 
+/** A group's title: a results section's heading, and the scope chip in the header's field. */
+export const groupTitle = g => ({
+  features: t('Turned-off features'), pages: t('Pages'), settings: t('Settings'), exercises: t('Exercises'), routines: t('Routines'),
+  workouts: t('Workouts'), foods: t('Your foods'), days: t('Days'), online: t('Open Food Facts'),
+})[g]
+
 /** What the field says on each tab: Today and Me search everything, Train and Eat say their part. */
 export function placeholderFor(tab) {
   const scope = searchTab(tab)
