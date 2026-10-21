@@ -29,7 +29,7 @@ export default function NotificationRow({ kind = 'reminder', icon, image, title,
         ? <img className="g-lead g-lead-img" src={image} alt="" />
         : <span className="g-lead"><Icon name={icon || KIND_ICONS[kind] || KIND_ICONS.reminder} className="g-icon" /></span>}
       <span className="g-nrow-body">
-        <b>{isNew && <span className="g-sr">{t('New')}: </span>}{title}</b>
+        <b>{isNew ? <><span className="g-sr">{t('New: {0}', title)}</span><span aria-hidden="true">{title}</span></> : title}</b>
         {body && <span>{body}</span>}
         {when && <small>{when}</small>}
       </span>

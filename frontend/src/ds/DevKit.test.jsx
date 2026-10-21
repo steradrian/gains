@@ -80,6 +80,8 @@ describe('DevKit', () => {
     const shared = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: pages'))
     const all = selector => shared.flatMap(s => [...s.querySelectorAll(selector)])
     expect(all('.g-sempty-btn').map(b => b.textContent)).toEqual(['Set a reminder'])
+    // The app has no Coach notifications (lib/notifications/feed.js), so the kit never shows the line.
+    expect(all('.g-sempty')[0].textContent).not.toMatch(/Coach/)
     expect(all('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
     expect(all('.g-snote')[0].textContent).toContain('Kept for 30 days')
     expect(all('.g-snav')).toHaveLength(7)

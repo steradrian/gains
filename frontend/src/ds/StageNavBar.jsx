@@ -22,8 +22,8 @@ export default function StageNavBar({ title, onBack, backHref, backLabel, action
       </span>
       {title ? <h1 className="g-snav-title">{title}</h1> : <span />}
       <span className="g-snav-side g-snav-end">
-        {actions.map(a => (
-          <Act key={a.label} href={a.href} onClick={a.onClick} ariaLabel={a.label} className="g-snav-btn g-glass">
+        {actions.map((a, i) => (
+          <Act key={a.label + i} href={a.href} onClick={a.onClick} ariaLabel={a.label} className="g-snav-btn g-glass">
             <Icon name={a.icon} className="g-icon" />
           </Act>
         ))}

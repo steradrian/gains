@@ -57,7 +57,7 @@ export default function DevKitShared() {
       </Section>
 
       <Section title="StageEmpty on the notifications page" note="Nothing yet (Sh3Empty): the bell disc, the title, the line and the one white button, bare on the stage.">
-        <StageEmpty card={false} icon="bell" title="Nothing new" body="Reminders you set, streaks, new bests and Coach changes show up here." action="Set a reminder" onClick={NOOP} />
+        <StageEmpty card={false} icon="bell" title="Nothing new" body="Reminders you set, streaks and new bests show up here." action="Set a reminder" onClick={NOOP} />
       </Section>
 
       <Section title="Permission banner" note="Notifications off on this phone (Sh3PermOff): an InlineBanner on the stage with a solid Turn on and a Reminders link, in the page's gutter.">
