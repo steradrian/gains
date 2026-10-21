@@ -228,6 +228,9 @@ export function drawerFlow(open) {
   try { return open() } finally { flowNext = false }
 }
 
+// The drawer a sub-panel was just closed in, until the end of that tick (see openSheet).
+let panelClosedIn = null
+
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
   toastMsg: '',
@@ -261,7 +264,13 @@ export const useUI = create((set, get) => ({
     const id = uid()
     const flow = flowNext
     flowNext = false
-    const host = kind === 'sheet' ? get().sheets.at(-1) : null
+    let host = kind === 'sheet' ? get().sheets.at(-1) : null
+    // `close(); open()` from a sub-panel is a replacement, not a step: the sheet it opens starts a
+    // fresh root (no back chevron, nothing to go back to) and the drawer it left is gone.
+    if (host && host.id === panelClosedIn) {
+      set(s => ({ sheets: s.sheets.filter(x => x.id !== host.id) }))
+      host = null
+    }
     if (host?.kind === 'sheet') {
       set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: [...(x.panels || []), { id, render, locked, onDismiss, variant, flow }] } : x) }))
       return {
@@ -281,7 +290,10 @@ export const useUI = create((set, get) => ({
       return {
         sheets: s.sheets.map(x => {
           const at = (x.panels || []).findIndex(p => p.id === id)
-          return at < 0 ? x : { ...x, panels: x.panels.slice(0, at) }
+          if (at < 0) return x
+          panelClosedIn = x.id
+          queueMicrotask(() => { if (panelClosedIn === x.id) panelClosedIn = null })
+          return { ...x, panels: x.panels.slice(0, at) }
         }),
       }
     })

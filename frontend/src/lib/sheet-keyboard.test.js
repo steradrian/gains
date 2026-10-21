@@ -4,7 +4,7 @@
 // height, stands on the keyboard and is capped to what is left above it.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { applySheetKeyboard, sheetKeyboardInsets, startSheetKeyboard } from './sheet-keyboard.js'
+import { applySheetKeyboard, KEYBOARD_MIN_PX, sheetKeyboardInsets, startSheetKeyboard } from './sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from './native-keyboard.js'
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
@@ -33,6 +33,20 @@ describe('sheetKeyboardInsets', () => {
   it('is nothing while the keyboard is down: no lift, the whole screen above it', () => {
     const { win } = fakeWindow()
     expect(sheetKeyboardInsets(win)).toEqual({ bottomInset: 0, visualHeight: 852 })
+  })
+
+  it('does not read an installed iOS app\'s short visual viewport as a keyboard: the drawer stays on the bottom edge', () => {
+    // 59px short with nothing focused: the band of page that showed under every drawer
+    const { win } = fakeWindow({ innerHeight: 932, vv: { height: 873, offsetTop: 0 } })
+    expect(sheetKeyboardInsets(win)).toEqual({ bottomInset: 0, visualHeight: 873 })
+    applySheetKeyboard(win)
+    expect(root().style.getPropertyValue('--kb')).toBe('0px')
+    expect(root().hasAttribute('data-kb')).toBe(false)
+  })
+
+  it('still lifts by the smallest real keyboard', () => {
+    const { win } = fakeWindow({ innerHeight: 852, vv: { height: 852 - KEYBOARD_MIN_PX, offsetTop: 0 } })
+    expect(sheetKeyboardInsets(win).bottomInset).toBe(KEYBOARD_MIN_PX)
   })
 
   it('lifts a sheet by the height the keyboard covers, and caps it to what is left', () => {
@@ -136,7 +150,10 @@ describe('the stylesheets', () => {
 
   it('stand a drawer on the keyboard and cap it, instead of resizing its box', () => {
     const section = ds.slice(ds.indexOf('/* Sheet panels and keyboard */'))
-    expect(section).toMatch(/\.g-bs \{\s*bottom: var\(--kb, 0px\);\s*max-height: calc\(var\(--vvh, 100dvh\) - var\(--sat, 0px\) - 8px\);/)
+    expect(section).toMatch(/\.g-bs \{\s*bottom: var\(--kb, 0px\);\s*\/\*[^]*?\*\/\s*max-height: calc\(var\(--vvh, 100%\) - var\(--sat, 0px\) - 8px\);/)
+    // no keyboard: the cap is the box the scrim fills, never 100dvh, which an installed iOS app can read short
+    expect(section).not.toMatch(/--vvh, 100dvh/)
+    expect(css).not.toMatch(/--vvh,100dvh/)
     // a half or full drawer has a height of its own, not a top that the lifted bottom would shorten
     expect(section).toMatch(/\.g-bs-half \{ height: 60%; \}/)
     expect(section).toMatch(/\.g-bs-full \{ height: calc\(100% - max\(56px, calc\(var\(--sat, 0px\) \+ 8px\)\)\); \}/)
