@@ -2,6 +2,7 @@ import { useUI } from '../../store/useUI.js'
 import { t } from '../i18n.js'
 import { foodErrorText } from './foods.js'
 import { writeErrorText } from './log-feedback.js'
+import { dropExtras } from './recipe-extras.js'
 import { useNutrition } from './store.js'
 
 // Deleting a food, a saved meal or a recipe with an Undo that brings back exactly the record that
@@ -21,7 +22,7 @@ export function flushDeletes() {
 if (typeof globalThis.addEventListener === 'function') globalThis.addEventListener('pagehide', flushDeletes)
 
 /**
- * @param {{ kind: 'food' | 'meal', record: object, message: string }} args `record` is the saved
+ * @param {{ kind: 'food' | 'meal', record: object, message: string }} args (`meal` is also a recipe) `record` is the saved
  *   record from the list; `message` is the toast text (it names what went and what stays).
  */
 export function deleteWithUndo({ kind, record, message }) {
@@ -35,6 +36,8 @@ export function deleteWithUndo({ kind, record, message }) {
     over = true
     try {
       await (kind === 'food' ? useNutrition.getState().deleteFood(record.id) : useNutrition.getState().deleteMeal(record.id))
+      // A recipe's steps and photo (recipe-extras.js) stay with it until it is really gone.
+      if (kind === 'meal' && record.is_recipe) dropExtras(record.id)
     } catch (e) {
       useNutrition.getState().bringBack(kind, record)
       useUI.getState().toast(kind === 'food' ? foodErrorText(e, { write: true }) : writeErrorText(e))

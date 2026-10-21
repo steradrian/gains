@@ -5,7 +5,7 @@ import { dayName } from '../../lib/nutrition/log-feedback.js'
 import { amountOf } from '../../lib/nutrition/meals.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { switchTab } from '../../lib/use-tab-nav.js'
-import { ingredientSheet } from '../../components/IngredientSheet.jsx'
+import { ingredientDrawer } from '../../components/IngredientDrawer.jsx'
 import { useLibraryLog } from '../../components/use-library-log.js'
 import Button from '../../ds/Button.jsx'
 import GlassValueRow from '../../ds/GlassValueRow.jsx'
@@ -32,6 +32,9 @@ export default function MealEditorForm({ meal, prefill, settings }) {
   const rows = macroRows(total, targets)
   const share = shareLine(rows)
   const empty = form.items.length === 0
+  const drawer = (item = null, index = null) => ingredientDrawer({
+    item, index, onAdd: editor.addFood, onChange: editor.changeFood, onRemove: editor.removeFood,
+  })
 
   async function logIt() {
     await editor.flush()
@@ -51,16 +54,16 @@ export default function MealEditorForm({ meal, prefill, settings }) {
             inputProps={{ maxLength: 120, autoFocus: isNew && !prefill?.name }} />
         </div>
 
-        <StageSection title={t('Foods')} action={t('Add food')} onAction={() => ingredientSheet({ onDone: editor.addFood })} />
+        <StageSection title={t('Foods')} action={t('Add food')} onAction={() => drawer()} />
         {empty
           ? <StageEmpty illustration="plate" card={false} title={t('No foods in this meal yet')} body={t('Add the foods you eat together.')}
-            action={t('Add food')} onClick={() => ingredientSheet({ onDone: editor.addFood })} />
+            action={t('Add food')} onClick={() => drawer()} />
           : (
             <div className="g-glist g-glass g-fe-list">
               {form.items.map((item, i) => (
                 <GlassValueRow key={i} title={item.name} sub={amountOf(item)}
                   value={kcalText(nutritionOf(item).calories || 0, settings)}
-                  onClick={() => ingredientSheet({ item, onDone: x => editor.changeFood(i, x), onRemove: () => editor.removeFood(i) })} />
+                  onClick={() => drawer(item, i)} />
               ))}
             </div>
           )}

@@ -49,6 +49,5 @@ export default function RecipeServingsSheet({ recipe, mealName, chip, onChip, on
 
 /** Opens the drawer over the page. */
 export function recipeServingsSheet(props) {
-  // TODO(sheet-panels): Log food opens this from inside its own drawer
   useUI.getState().openSheet(close => <RecipeServingsSheet {...props} close={close} />, { variant: 'ds' })
 }

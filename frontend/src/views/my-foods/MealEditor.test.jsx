@@ -18,9 +18,9 @@ import { createFakeNutriTrace, fixtureDay, fixtureMeals, fixtureSettings } from 
 import { ingredientOf } from '../../lib/nutrition/meals.js'
 
 const nav = vi.hoisted(() => ({ leaveTo: vi.fn(), switchTab: vi.fn() }))
-const sheet = vi.hoisted(() => ({ ingredientSheet: vi.fn() }))
+const sheet = vi.hoisted(() => ({ ingredientDrawer: vi.fn() }))
 vi.mock('../../lib/use-tab-nav.js', async importOriginal => ({ ...(await importOriginal()), leaveTo: nav.leaveTo, switchTab: nav.switchTab }))
-vi.mock('../../components/IngredientSheet.jsx', () => ({ ingredientSheet: sheet.ingredientSheet }))
+vi.mock('../../components/IngredientDrawer.jsx', () => ({ ingredientDrawer: sheet.ingredientDrawer }))
 
 const { default: MealEditor } = await import('./MealEditor.jsx')
 
@@ -82,7 +82,7 @@ async function openEditor(url, { state, settings = {}, meals, days } = {}) {
 beforeEach(() => {
   nav.leaveTo.mockClear()
   nav.switchTab.mockClear()
-  sheet.ingredientSheet.mockClear()
+  sheet.ingredientDrawer.mockClear()
   useStore.setState({ user: { id: 3, name: 'Ana' }, pushState: vi.fn(async () => {}) })
   useNutrition.getState().reset()
   useDiarySelection.getState().reset()
@@ -138,9 +138,10 @@ describe('a saved meal', () => {
   it('changes a food\'s amount through its drawer, and the total follows', async () => {
     await openEditor('/food/my-foods/meals/21', { meals: savedMeals() })
     tap([...page.querySelectorAll('.g-glist-row')][0])
-    const { item, onDone } = sheet.ingredientSheet.mock.lastCall[0]
+    const { item, index, onChange } = sheet.ingredientDrawer.mock.lastCall[0]
     expect(item.name).toBe('Rolled oats')
-    act(() => onDone({ ...item, portion: 120, nutrition: { ...item.nutrition, calories: 456 } }))
+    expect(index).toBe(0)
+    act(() => onChange(index, { ...item, portion: 120, nutrition: { ...item.nutrition, calories: 456 } }))
     await settle(() => expect(puts()).toHaveLength(1))
     expect(puts()[0].body.items[0]).toMatchObject({ name: 'Rolled oats', portion: 120 })
     expect(puts()[0].body.nutrition.calories).toBe(582)
@@ -150,12 +151,15 @@ describe('a saved meal', () => {
   it('adds a food from Add food, and takes one out with an Undo', async () => {
     await openEditor('/food/my-foods/meals/21', { meals: savedMeals() })
     tap(buttonSaying('Add food'))
-    act(() => sheet.ingredientSheet.mock.lastCall[0].onDone(banana()))
+    let added
+    act(() => { added = sheet.ingredientDrawer.mock.lastCall[0].onAdd(banana()) })
+    expect(added).toBe(2)
     await settle(() => expect(puts()).toHaveLength(1))
     expect(puts()[0].body.items.map(i => i.name)).toEqual(['Rolled oats', 'Wholemeal bread', 'Banana'])
 
     tap([...page.querySelectorAll('.g-glist-row')][2])
-    act(() => sheet.ingredientSheet.mock.lastCall[0].onRemove())
+    const { index, onRemove } = sheet.ingredientDrawer.mock.lastCall[0]
+    act(() => onRemove(index))
     expect(useUI.getState().toastMsg).toBe('Removed Banana')
     await settle(() => expect(puts()).toHaveLength(2))
     expect(puts()[1].body.items.map(i => i.name)).toEqual(['Rolled oats', 'Wholemeal bread'])
@@ -168,7 +172,8 @@ describe('a saved meal', () => {
     const one = { ...savedMeals()[0], items: [savedMeals()[0].items[0]] }
     await openEditor('/food/my-foods/meals/21', { meals: [one] })
     tap([...page.querySelectorAll('.g-glist-row')][0])
-    act(() => sheet.ingredientSheet.mock.lastCall[0].onRemove())
+    const { index, onRemove } = sheet.ingredientDrawer.mock.lastCall[0]
+    act(() => onRemove(index))
     await settle(() => expect(page.querySelector('[role=alert]').textContent).toBe('Add at least one ingredient.'))
     await pause(600)
     expect(puts()).toHaveLength(0)
@@ -194,7 +199,7 @@ describe('a new saved meal', () => {
     expect(nt.writes()).toHaveLength(0)
 
     tap(buttonSaying('Add food'))
-    act(() => sheet.ingredientSheet.mock.lastCall[0].onDone(banana()))
+    act(() => { sheet.ingredientDrawer.mock.lastCall[0].onAdd(banana()) })
     await settle(() => expect(posts()).toHaveLength(1))
     expect(posts()[0].body).toMatchObject({ name: 'Snack', is_recipe: false, visibility: 'private', nutrition: { calories: 105 } })
     expect(typeof posts()[0].body.client_key).toBe('string')

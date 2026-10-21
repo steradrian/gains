@@ -18,7 +18,6 @@ export default function RecipeLogSheet({ id, close }) {
   if (!recipe) return null
   return (
     <RecipeServingsSheet recipe={recipe} mealName={target.mealName} chip={chip} busy={busy} close={close}
-      // TODO(sheet-panels): the meal picker is a sheet opened from inside this one
       onChip={() => pickMealSheet(target)}
       onEdit={() => closeThenNav(close, `/food/my-foods/recipes/${recipe.id}`)}
       onLog={log} />

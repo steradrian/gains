@@ -31,7 +31,6 @@ export default function SavedMealSheet({ id, close }) {
   }
 
   return (
-    // TODO(sheet-panels): the meal picker is a sheet opened from inside this one
     <BottomSheet title={meal.name} chip={chip} onChip={() => pickMealSheet(target)}
       footer={
         <div className="g-mf-acts">

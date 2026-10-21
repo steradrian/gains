@@ -22,6 +22,7 @@ import { referencedHashes, referencedFiles, MEDIA_MIMES } from './media-refs.js'
 import { sniffKind } from './media-sniff.js'
 import { sha256Hex } from './sha256.js'
 import { mediaStore as sharedStore } from './media-store.js'
+import { recipePhotoHashes } from './nutrition/recipe-extras.js'
 import { api, apiBlob, apiUpload } from './api.js'
 import { prefetchAllowed } from './media-prefetch.js'
 import { MB, BG_UPLOAD_METERED_MAX_MB, LOCAL_CACHE_MAX_MB, LOCAL_GC_GRACE_MS, limitsFrom, fmtMB } from './media-limits.js'
@@ -286,6 +287,9 @@ export function createMediaSync(deps = {}) {
     await withLock('gains-media', async () => {
       const st = store.getState()
       const live = referencedHashes(st.S)
+      // A recipe's photo is kept on this device only, by the recipe (lib/nutrition/recipe-extras.js).
+      const recipePhotos = recipePhotoHashes()
+      for (const h of recipePhotos) live.add(h)
       try {
         const raw = d.storage?.getItem(PERSISTED_KEY)
         if (raw) for (const h of referencedHashes(JSON.parse(raw))) live.add(h)
@@ -311,7 +315,7 @@ export function createMediaSync(deps = {}) {
       const posters = new Set(refs.filter(f => f.poster).map(f => f.hash))
       const inState = new Set(refs.map(f => f.hash))
       const candidates = left
-        .filter(r => !r.pending && !posters.has(r.hash) && !held(r) && (r.putAt || 0) < cutoff)
+        .filter(r => !r.pending && !posters.has(r.hash) && !recipePhotos.has(r.hash) && !held(r) && (r.putAt || 0) < cutoff)
         .sort((a, b) => (inState.has(a.hash) - inState.has(b.hash)) || ((a.shownAt || 0) - (b.shownAt || 0)))
       for (const r of candidates) {
         if (bytes <= LOCAL_CACHE_MAX_MB * MB) break

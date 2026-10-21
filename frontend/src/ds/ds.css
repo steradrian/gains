@@ -1688,6 +1688,27 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-fe-problem { margin: 0; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--on-stage); }
 .g-fe-delete { margin-top: 8px; }
 
+/* === Eat library m3: the recipe editor and the ingredient drawer (boards Ea5Recipe, Ea5Ingredient, Ea5RecipeDeleted) === */
+.g-rec-add { align-self: flex-start; }
+.g-rec-photo { display: flex; flex-direction: column; gap: 10px; }
+.g-rec-photo-frame { aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.g-rec-photo-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.g-rec-photo-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-rec-steps { padding-block: 4px; }
+.g-rec-step { display: flex; align-items: flex-start; gap: 10px; padding: 10px 6px 10px 14px; color: var(--on-stage); }
+.g-rec-num { flex: none; width: 28px; height: 28px; margin-top: 8px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); font: 700 13px/16px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-rec-text { flex: 1; min-width: 0; box-sizing: border-box; resize: none; border: 0; background: none; padding: 8px 0; text-align: start; color: inherit; font: 500 16px/22px var(--font-sans); }
+.g-rec-text:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; border-radius: 8px; }
+.g-rec-tools { flex: none; display: flex; align-items: center; }
+/* The arrows are the keyboard's way to move a step: off the screen until one has the focus. */
+.g-rec-move:not(:focus-visible) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.g-ing-swap { appearance: none; border: 0; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 12px; padding: 0 16px; border-radius: 22px; background: var(--surface-sunken); color: var(--text); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.g-ing-swap .g-icon { width: 18px; height: 18px; }
+.g-ing-swap:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 2px; }
+.g-ing-fields { display: flex; flex-direction: column; gap: 12px; }
+.g-ing-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g-ing-stats b { overflow-wrap: anywhere; }
+
 /* Native motion and haptics */
 
 /* Page slides (App.jsx, lib/use-route-transition.js). Every page sits in a route layer. At rest the

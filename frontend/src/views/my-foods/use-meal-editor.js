@@ -71,7 +71,12 @@ export function useMealEditor({ meal, prefill }) {
     autosave.schedule(next)
   }
   const setItems = update => change(withItems(formRef.current, update(formRef.current.items), { recipe: RECIPE }))
-  const addFood = ingredient => setItems(items => [...items, ingredient])
+  // Adds a food and says where it went, so the drawer goes on editing that one.
+  const addFood = ingredient => {
+    const at = formRef.current.items.length
+    setItems(items => [...items, ingredient])
+    return at
+  }
   const changeFood = (i, ingredient) => setItems(items => items.map((x, j) => (j === i ? ingredient : x)))
   const removeFood = i => {
     const gone = formRef.current.items[i]

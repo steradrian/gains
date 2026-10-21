@@ -16,6 +16,13 @@ export const NEW_MEAL_PATH = '/food/my-foods/meals/new'
 export const foodEditorPath = id => `/food/my-foods/foods/${id}`
 export const mealEditorPath = id => `/food/my-foods/meals/${id}`
 
+// Eat library m3: the recipe editor. `/food/my-foods/recipes/new` reads `state.prefill`
+// { name, items, notes, servings } like the saved meal editor; nothing is written until it has a
+// name and an ingredient.
+export const RECIPES_LIST = '/food/my-foods?tab=recipes'
+export const NEW_RECIPE_PATH = '/food/my-foods/recipes/new'
+export const recipeEditorPath = id => `/food/my-foods/recipes/${id}`
+
 /** Opens the editor for a new food from a sheet or a plain handler. `close` is the sheet's own
  *  close when there is one: its history entry is taken over by the editor (lib/nav.js). */
 export function openNewFood(prefill = {}, close) {

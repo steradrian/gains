@@ -86,6 +86,7 @@ import FoodHub from './views/FoodHub.jsx'
 import MyFoods from './views/MyFoods.jsx'
 import FoodEditor from './views/my-foods/FoodEditor.jsx'
 import MealEditor from './views/my-foods/MealEditor.jsx'
+import RecipeEditor from './views/my-foods/RecipeEditor.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
@@ -402,6 +403,8 @@ function AppRoutes({ location, fallback, S, user }) {
           keeps its form when the address takes the real id. */}
       <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
       <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
+      {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
+      <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
       <Route path="/progress/body" element={<Body segment="weight" />} />

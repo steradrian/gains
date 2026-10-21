@@ -16,7 +16,6 @@ import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { offResults } from '../lib/nutrition/off.js'
 import { createFakeNutriTrace, fixtureDay, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
 import FoodPicker from './FoodPicker.jsx'
-import { ingredientSheet } from './IngredientSheet.jsx'
 
 const camera = { hit: null }
 vi.mock('./CameraScan.jsx', () => ({
@@ -313,12 +312,6 @@ describe('saved meals in the diary picker', () => {
     expect(nt.state.days[TODAY].items.filter(i => i.name === 'Wholemeal bread')).toHaveLength(1)
   })
 
-  it('stays out of the ingredient picker', async () => {
-    await act(async () => { ingredientSheet({ onDone: vi.fn() }) })
-    await mount(<></>)
-    await settle()
-    expect(headings(lastSheet())).not.toContain('Saved meals')
-  })
 })
 
 describe('what the search says and shows', () => {
@@ -358,20 +351,6 @@ describe('what the search says and shows', () => {
     expect(host.textContent).toContain('Nothing found online.')
   })
 
-  it('matches a product with no barcode by the key it was saved under, not by its name', async () => {
-    nt.state.offSearch = { products: [{ product_name: 'Plain oats', nutriments: { 'energy-kcal_100g': 370 } }] }
-    await mount(<div />)
-    await act(async () => { ingredientSheet({ onDone: vi.fn() }) })
-    await settle()
-    await search(lastSheet(), 'plain')
-    await click(row(lastSheet(), 'Plain oats'))
-    useNutrition.setState(s => ({ foods: { ...s.foods, list: s.foods.list.map(f => (f.name === 'Plain oats' ? { ...f, name: 'Granola' } : f)) } }))
-    await click(buttonIn(lastSheet(), 'Choose another food'))
-    await search(lastSheet(), 'plain')
-    expect(titles(lastSheet())).toContain('Granola')
-    expect(titles(lastSheet())).not.toContain('Plain oats')
-  })
-
   it('carries no string the pickers retired', () => {
     const packs = import.meta.glob('../locales/*.js', { eager: true })
     const retired = ['No foods yet. Save some under Foods first.', 'Too many online searches. Wait a minute and try again.', 'Online search failed. Your own foods still work.']
@@ -380,135 +359,5 @@ describe('what the search says and shows', () => {
       const keys = Object.keys(pack.default)
       for (const key of retired) expect(keys, `${file}: ${key}`).not.toContain(key)
     }
-  })
-})
-
-describe('the ingredient picker', () => {
-  const open = async onDone => {
-    await mount(<div />)
-    await act(async () => { ingredientSheet({ onDone }) })
-    await settle()
-  }
-
-  it('is the same search: your foods and Open Food Facts, not only what you saved', async () => {
-    await open(vi.fn())
-    expect(headings(lastSheet())).toEqual(['Recent', 'Your foods'])
-    await search(lastSheet(), 'nutella')
-    expect(headings(lastSheet())).toEqual(['Your foods', 'Open Food Facts'])
-    expect(titles(lastSheet())).toContain('Nutella')
-  })
-
-  it('uses one of your foods without saving anything', async () => {
-    const onDone = vi.fn()
-    await open(onDone)
-    await click(row(lastSheet(), 'Rolled oats'))
-    await click(buttonIn(lastSheet(), 'Add'))
-    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ name: 'Rolled oats' }))
-    expect(nt.writes()).toEqual([])
-  })
-
-  it('saves an online result as a food first, then uses it', async () => {
-    const onDone = vi.fn()
-    await open(onDone)
-    await search(lastSheet(), 'nutella')
-    await click(row(lastSheet(), 'Nutella'))
-    expect(foodPosts()).toHaveLength(1)
-    expect(foodPosts()[0].body).toMatchObject({ name: 'Nutella', barcode: '3017620422003', visibility: 'private' })
-    await click(buttonIn(lastSheet(), 'Add'))
-    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nutella', id: nt.state.foods.find(f => f.name === 'Nutella').id }))
-  })
-
-  it('a save whose answer was lost, tapped again, makes one food', async () => {
-    const onDone = vi.fn()
-    nt.failNext('POST', '/nt/api/foods', { lost: true, status: 504 })
-    await open(onDone)
-    await search(lastSheet(), 'nutella')
-    await click(row(lastSheet(), 'Nutella'))
-    expect(lastSheet().querySelector('[role=alert]')).not.toBeNull()
-    expect(lastSheet().textContent).not.toContain('Amount')
-    await click(row(lastSheet(), 'Nutella'))
-    expect(foodPosts()).toHaveLength(2)
-    expect(foodPosts()[1].body.client_key).toBe(foodPosts()[0].body.client_key)
-    expect(nt.state.foods.filter(f => f.name === 'Nutella')).toHaveLength(1)
-    expect(lastSheet().textContent).toContain('Amount')
-  })
-
-  it('uses a scanned product the same way, saved first', async () => {
-    const onDone = vi.fn()
-    await open(onDone)
-    await click(buttonIn(lastSheet(), 'Scan a barcode'))
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
-    await click(buttonIn(lastSheet(), 'camera sees a code'))
-    expect(buttonIn(lastSheet(), 'Save to my foods')).toBeUndefined()
-    expect(buttonIn(lastSheet(), 'Quick kcal')).toBeUndefined()
-    await click(buttonIn(lastSheet(), 'Use'))
-    expect(foodPosts()).toHaveLength(1)
-    expect(lastSheet().textContent).toContain('Amount')
-    await click(buttonIn(lastSheet(), 'Add'))
-    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nutella' }))
-  })
-
-  it('a scanned product whose save failed is retried with the same key, from Try again', async () => {
-    const onDone = vi.fn()
-    nt.failNext('POST', '/nt/api/foods', { lost: true, status: 504 })
-    await open(onDone)
-    await click(buttonIn(lastSheet(), 'Scan a barcode'))
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
-    await click(buttonIn(lastSheet(), 'camera sees a code'))
-    await click(buttonIn(lastSheet(), 'Use'))
-    // The scan sheet is gone; the failure and the way to retry are at the top of the picker.
-    const alert = lastSheet().querySelector('[role=alert]')
-    expect(alert).not.toBeNull()
-    expect(lastSheet().querySelector('.food-picker').compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
-    await click(buttonIn(lastSheet(), 'Try again'))
-    expect(foodPosts()).toHaveLength(2)
-    expect(foodPosts()[1].body.client_key).toBe(foodPosts()[0].body.client_key)
-    expect(nt.state.foods.filter(f => f.name === 'Nutella')).toHaveLength(1)
-    expect(lastSheet().textContent).toContain('Amount')
-  })
-
-  it('shows Saving… at the top and holds the rows while a save is out', async () => {
-    await open(vi.fn())
-    await search(lastSheet(), 'nutella')
-    const slow = nt.hold('POST', '/nt/api/foods')
-    await click(row(lastSheet(), 'Nutella'))
-    const saving = [...lastSheet().querySelectorAll('[role=status]')].find(n => n.textContent === 'Saving…')
-    expect(saving.compareDocumentPosition(lastSheet().querySelector('.food-picker')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(row(lastSheet(), 'Nutella').getAttribute('aria-disabled')).toBe('true')
-    await click(row(lastSheet(), 'Nutella'))
-    expect(foodPosts()).toHaveLength(1)
-    await act(async () => { slow.release() })
-    await settle()
-    expect(lastSheet().textContent).toContain('Amount')
-  })
-
-  it('lists 50 of your foods with Show more', async () => {
-    for (let i = 0; i < 60; i++) nt.state.foods.push({ ...structuredClone(nt.state.foods[2]), id: 200 + i, name: `Food ${String(i).padStart(2, '0')}`, usage_count: 0 })
-    await open(vi.fn())
-    const shown = () => lastSheet().querySelectorAll('.list .item').length
-    const before = shown()
-    expect(lastSheet().querySelectorAll('h4')[1].nextElementSibling.querySelectorAll('.item')).toHaveLength(50)
-    await click(buttonIn(lastSheet(), 'Show more'))
-    expect(shown()).toBeGreaterThan(before)
-    expect(buttonIn(lastSheet(), 'Show more')).toBeUndefined()
-    expect(titles(lastSheet())).toContain('Food 59')
-  })
-
-  it('offers Try again when your foods did not load', async () => {
-    nt.failNext('GET', '/nt/api/foods', 'offline')
-    await open(vi.fn())
-    expect(lastSheet().textContent).toContain('Your foods did not load.')
-    await click(buttonIn(lastSheet(), 'Try again'))
-    expect(titles(lastSheet())).toContain('Rolled oats')
-  })
-
-  it('leaves for the new-food editor with the typed name, and the sheet closes', async () => {
-    const go = vi.fn()
-    setNav(go)
-    await open(vi.fn())
-    await search(lastSheet(), 'Zucchini')
-    await click(row(lastSheet(), 'Create food'))
-    expect(go).toHaveBeenCalledWith('/food/my-foods/foods/new', expect.objectContaining({ state: { prefill: { name: 'Zucchini' } } }))
-    expect(useUI.getState().sheets).toHaveLength(0)
   })
 })
