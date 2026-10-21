@@ -3209,6 +3209,11 @@ export default {
   'Go to Today': 'Go to Today',
   'Check both, or use a reset code from your admin.': 'Check both, or use a reset code from your admin.',
   'Set password and sign in': 'Set password and sign in',
+  // --- Today hero kit: English until the translation pass ---
+  'Notifications, {0} new': 'Notifications, {0} new',
+  'Today at a glance': 'Today at a glance',
+  '{0}: {1}. Open details': '{0}: {1}. Open details',
+  'Page {0} of {1}': 'Page {0} of {1}',
   // --- Onboarding entry screens (invite, name, passkey): English until the translation pass ---
   'A small group': 'A small group',
   'Ask whoever invited you for a new link; it opens right here.': 'Ask whoever invited you for a new link; it opens right here.',

@@ -132,6 +132,8 @@
   --g-field-stage: rgba(255,255,255,0.12);
   --g-ccard-on-shadow: 0 16px 30px -18px rgba(0,0,0,0.5);
   --g-code-bad: #FFC56B;
+  --g-ring-over: #FFC56B;
+  --g-notify-dot: #FF6B4A;
 }
 :root[data-theme="dark"] .g-root {
   --canvas: #0B0B0A;
