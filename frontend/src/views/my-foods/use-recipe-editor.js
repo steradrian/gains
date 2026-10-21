@@ -13,8 +13,8 @@ import { useNutrition } from '../../lib/nutrition/store.js'
 import { leaveTo } from '../../lib/use-tab-nav.js'
 import { useAutosave } from './use-autosave.js'
 
-// What the hub keeps of a recipe. A change to anything else (the steps, the photo) is kept on this
-// device at once (recipe-extras.js) and does not start a save.
+// What the hub keeps of a recipe. A change to anything else (the steps, the photo) goes into
+// Gains' own synced state (recipe-extras.js) and does not start a save.
 const HUB_FIELDS = ['name', 'notes', 'items', 'amount', 'servings', 'serving']
 // The numbers that follow from the others: when one changes without being typed in, its field is
 // shown again from the form (the kit's field is uncontrolled), which `rev` keys.
@@ -29,7 +29,7 @@ const DERIVED = ['amount', 'servings', 'serving']
  * useAutosave, a new recipe is created the first time it has a name and an ingredient (the hub
  * refuses a recipe without ingredients), a saved recipe whose last ingredient is taken out says so
  * and keeps the ones it had. Makes, Servings and One serving are kept in step by recipe-form.js.
- * The steps and the photo are the device's own (recipe-extras.js).
+ * The steps and the photo are Gains' own, synced with the account (recipe-extras.js).
  */
 export function useRecipeEditor({ recipe, prefill }) {
   const nav = useNavigate()

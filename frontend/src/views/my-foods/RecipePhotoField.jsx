@@ -11,9 +11,9 @@ import GlassValueRow from '../../ds/GlassValueRow.jsx'
 // The recipe's photo (board Ea5Recipe): "Add a photo, Take one or pick from your library". One file
 // input for both: a phone offers its camera and its library for an image input. The photo is made
 // the way every other photo in the app is (lib/media-ingest.js: checked on its bytes, re-encoded,
-// scrubbed) and kept in the local media store, as not waiting for an upload: nothing is sent
-// anywhere. The recipe keeps its reference (recipe-extras.js), which also keeps the file from the
-// local clean-up.
+// scrubbed) and kept in the local media store as pending, so media sync uploads it. The recipe
+// keeps its reference in the synced state (recipe-extras.js), which also keeps the file from the
+// clean-up, here and on the server.
 
 // The ingest is split off and loaded on first use.
 const loadIngest = () => import('../../lib/media-ingest.js')
@@ -60,7 +60,7 @@ export default function RecipePhotoField({ photo, onChange }) {
       const { ingestMediaFile } = await loadIngest()
       const out = await ingestMediaFile(file, limitsFrom(config))
       if (out.media.kind !== 'image') { useUI.getState().toast(t('That is not a photo.')); return }
-      for (const b of out.blobs) await mediaStore.put(b.hash, b.blob, { mime: b.mime, pending: false })
+      for (const b of out.blobs) await mediaStore.put(b.hash, b.blob, { mime: b.mime, pending: true })
       onChange(out.media)
     } catch (e) {
       useUI.getState().toast(mediaErrorText(e))

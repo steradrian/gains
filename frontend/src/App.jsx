@@ -25,6 +25,7 @@ import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
 import { editorRouteKey } from './lib/nutrition/editor-routes.js'
+import { migrateLocalExtras } from './lib/nutrition/recipe-extras.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
 import { BRAND } from './brand.js'
@@ -197,6 +198,11 @@ function Shell() {
   // The day picked on the week strip goes back to today after half an hour away
   // (lib/nutrition/selection.js).
   useEffect(() => installDayReset(), [])
+  // The steps and photos recipes kept on this device only move into the synced state, once
+  // (lib/nutrition/recipe-extras.js), after boot has settled which copy of the state this is.
+  useEffect(() => {
+    if (ready) migrateLocalExtras().catch(() => {})
+  }, [ready])
   // Once per signed-in boot, hand the server this browser's push subscription again (see
   // lib/push.js): a subscription the instance lost is back before the next reminder is due,
   // with nobody having to visit Settings. Web only — the APK has no service worker.

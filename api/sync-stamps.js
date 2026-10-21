@@ -65,6 +65,8 @@ const OWN_MERGE = new Set([
   '_ts', '_rev', '_wid', '_wids', '_unstamped', '_prior', 'active', 'unit', 'unitSet', 'resetAt', 'resetIds', 'deleted', 'edited', 'undone', 'routineOrder',
   'workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards', 'bodyweight', 'measurements', 'favEx',
   'exWeights', 'balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes', 'missedSeen', 'coachCheckIns',
+  // A recipe's steps and photo (Eat): one entry per recipe, merged by the app on its own `updatedAt`.
+  'recipeExtras',
 ]);
 const PER_KEY = new Set(['week', 'dayPlan', 'exNotes', 'barWeights']);
 // The maps whose every entry carries its own edit time (sync-merge.js STAMPED_MAPS): merged per
