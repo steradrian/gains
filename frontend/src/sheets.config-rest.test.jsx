@@ -20,8 +20,10 @@ function render(sheet) {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-const restRow = host => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Rest for this exercise')
-const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Save').click()
+// The exercise's rest is the last cell of the sets table: a button that opens the wheel, showing the
+// time (muted while it is the default) and naming, for a screen reader, which default it is.
+const restCell = host => host.querySelector('.g-sett button[aria-label^="Rest for this exercise"]')
+const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done').click()
 
 describe('exercise settings: rest on the wheel', () => {
   beforeEach(() => {
@@ -36,8 +38,10 @@ describe('exercise settings: rest on the wheel', () => {
     const onSave = vi.fn()
     exConfigSheet(ex, { sets: 3, reps: 10, weight: 40, mode: 'reps', restSec: 0 }, onSave)
     const host = render(useUI.getState().sheets.at(-1))
-    expect(restRow(host).querySelector('.lrow-v').textContent).toBe('Default (2:00)')
-    act(() => restRow(host).click())
+    expect(restCell(host).textContent).toBe('2:00')
+    expect(restCell(host).classList.contains('g-sett-muted')).toBe(true)
+    expect(restCell(host).getAttribute('aria-label')).toBe('Rest for this exercise: Default (2:00)')
+    act(() => restCell(host).click())
     const wheel = render(useUI.getState().sheets.at(-1))
     expect(wheel.querySelector('h3').textContent).toBe('Rest for this exercise')
     expect(wheel.querySelector('.dw-read').textContent).toBe('Default (2:00)')
@@ -54,8 +58,9 @@ describe('exercise settings: rest on the wheel', () => {
     const onSave = vi.fn()
     exConfigSheet(ex, { sets: 3, reps: 10, weight: 40, mode: 'reps', restSec: 75 }, onSave)
     const host = render(useUI.getState().sheets.at(-1))
-    expect(restRow(host).querySelector('.lrow-v').textContent).toBe('1:15')
-    act(() => restRow(host).click())
+    expect(restCell(host).textContent).toBe('1:15')
+    expect(restCell(host).classList.contains('g-sett-muted')).toBe(false)
+    act(() => restCell(host).click())
     const wheel = render(useUI.getState().sheets.at(-1))
     expect(wheel.querySelector('.dw-read').textContent).toBe('1:15')
     act(() => [...wheel.querySelectorAll('button')].find(b => b.textContent === 'Done').click())

@@ -14,9 +14,9 @@ vi.mock('../components/BodyMap.jsx', () => ({ default: () => null }))
 
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { deleteRoutineWithUndo } from './Plan.jsx'
 import { takeOutOfLoop } from './plan/plan-actions.js'
-import { removeRoutineExercise } from './RoutineEdit.jsx'
+import { deleteRoutineWithUndo } from './routines/routine-actions.js'
+import { removeRoutineExercise } from './routines/routine-reorder.js'
 import { mergeStates, stampChange } from '../lib/sync-merge.js'
 import { saveRotation } from '../lib/rotation.js'
 import { stampPut } from '../../../api/sync-stamps.js'

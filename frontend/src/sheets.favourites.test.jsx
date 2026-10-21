@@ -24,7 +24,7 @@ function renderTop() {
   return host
 }
 
-const names = host => [...host.querySelectorAll('.item .tt')].map(el => el.textContent)
+const names = host => [...host.querySelectorAll('.g-pk-item .g-xrow-b b')].map(el => el.textContent)
 const starOf = host => host.querySelector('.g-xd-star')
 const toast = () => useUI.getState()
 
@@ -95,33 +95,40 @@ describe('exercise detail star (T6.3)', () => {
 
 describe('exercise picker', () => {
   it('lists favourites first and marks them, keeping the rest in catalogue order', () => {
-    const plain = names((exercisePicker(vi.fn()), renderTop())).slice(1)   // drop "Create your own"
+    const plain = names((exercisePicker(vi.fn()), renderTop()))
     useUI.setState({ sheets: [] })
     const fav = [plain[7], plain[3]]
     const favIds = fav.map(n => EXDB.find(e => e.n === n).id)
     useStore.setState(s => ({ S: { ...s.S, favEx: favIds } }))
     exercisePicker(vi.fn())
     const host = renderTop()
-    const shown = names(host).slice(1)
+    const shown = names(host)
     // Favourites keep the list's own order among themselves — not the order they were starred in.
     expect(shown.slice(0, 2)).toEqual(plain.filter(n => fav.includes(n)))
     expect(shown.slice(2)).toEqual(plain.filter(n => !fav.includes(n)))
-    const rows = [...host.querySelectorAll('.item')].slice(1)
-    expect(rows.slice(0, 2).every(r => r.querySelector('.tt .fav-star'))).toBe(true)
-    expect(rows[2].querySelector('.tt .fav-star')).toBeNull()
+    const rows = [...host.querySelectorAll('.g-pk-item')]
+    expect(rows.slice(0, 2).every(r => r.querySelector('.g-xrow-b b .g-pk-fav'))).toBe(true)
+    expect(rows[2].querySelector('.g-xrow-b b .g-pk-fav')).toBeNull()
   })
 
-  it('offers a Favourites chip only when there are favourites, and it filters to them', () => {
+  // Favourites is a tab of its own; with none, it says how to get one.
+  const favTab = h => [...h.querySelectorAll('.g-seg button')].find(b => b.textContent === 'Favourites')
+
+  it('the Favourites tab lists only the starred exercises, and says so when there are none', () => {
     exercisePicker(vi.fn())
     let host = renderTop()
-    const chip = h => [...h.querySelectorAll('.chips .chip')].find(b => b.textContent.startsWith('Favourites'))
-    expect(chip(host)).toBeUndefined()
+    act(() => favTab(host).click())
+    expect(names(host)).toEqual([])
+    expect(host.textContent).toContain('No favourites yet. Tap the star on an exercise to add one.')
     useUI.setState({ sheets: [] })
     useStore.setState(s => ({ S: { ...s.S, favEx: [EXDB[5].id, EXDB[9].id] } }))
     exercisePicker(vi.fn())
     host = renderTop()
-    expect(chip(host).textContent).toBe('Favourites (2)')
-    act(() => chip(host).click())
+    act(() => favTab(host).click())
     expect(names(host)).toEqual([EXDB[5].n, EXDB[9].n])
+    expect(host.textContent).not.toContain('No favourites yet')
+    // back on All, the whole catalogue again
+    act(() => [...host.querySelectorAll('.g-seg button')].find(b => b.textContent === 'All').click())
+    expect(names(host).length).toBeGreaterThan(2)
   })
 })

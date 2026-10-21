@@ -8,18 +8,20 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sheets = vi.hoisted(() => ({
-  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), glyphPicker: vi.fn(), confirmSheet: vi.fn(),
+  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), replaceExerciseSheet: vi.fn(), routineMenuSheet: vi.fn(), startFlow: vi.fn(), supersetSheet: vi.fn(),
+  // What the Train helpers the editor reads (use-train.js) import.
+  starterPlanSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), dayOverrideSheet: vi.fn(), importPlanFile: vi.fn(), logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
-vi.mock('../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
-vi.mock('../sheets.jsx', () => sheets)
-vi.mock('../components/Media.jsx', () => ({ Thumb: ({ ex }) => <span data-thumb={ex.id} /> }))
-vi.mock('../components/BodyMap.jsx', () => ({ default: () => null }))
+vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
+vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
+vi.mock('../../sheets.jsx', () => sheets)
+vi.mock('../../components/BodyMap.jsx', () => ({ default: () => null, useBodyPaths: () => null }))
 
-import RoutineEdit, { ROUTINE_LONG_PRESS_MS, removeRoutineExercise } from './RoutineEdit.jsx'
-import { DEF, useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
-import { closeOpenRow } from '../lib/use-swipe-row.js'
+import RoutineEdit from './RoutineEditor.jsx'
+import { ROUTINE_LONG_PRESS_MS, removeRoutineExercise } from './routine-reorder.js'
+import { DEF, useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
+import { closeOpenRow } from '../../lib/use-swipe-row.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const clone = value => JSON.parse(JSON.stringify(value))
@@ -77,7 +79,7 @@ describe('swiping an exercise out of a routine', () => {
     expect(pane.textContent).toBe('Remove')
     expect(pane.getAttribute('aria-hidden')).toBe('true')
     expect(pane.querySelector('button').tabIndex).toBe(-1)
-    swipe(swrows()[0].querySelector('.item'), 60, 330)
+    swipe(swrows()[0].querySelector('.g-rx-open'), 60, 330)
     expect(ex().map(e => e.id)).toEqual(['1001', '1002'])
     expect(swrows()[0].querySelector('.swfront').style.transform).toBe('')
   })
@@ -85,7 +87,7 @@ describe('swiping an exercise out of a routine', () => {
   it('a long swipe toward the start removes, and Undo brings back the superset link too', () => {
     const entries = [configured('1001', { sg: 'g1' }), configured('1002', { sg: 'g1' }), configured('1003')]
     mount(clone(entries))
-    swipe(swrows()[1].querySelector('.item'), 330, 60)
+    swipe(swrows()[1].querySelector('.g-rx-open'), 330, 60)
     expect(ex().map(e => e.id)).toEqual(['1001', '1003'])
     expect(ex()[0].sg).toBeUndefined()          // a lone partner loses its link
     expect(useUI.getState().toastMsg).toMatch(/” left the routine\.$/)
@@ -102,34 +104,36 @@ describe('swiping an exercise out of a routine', () => {
     expect(ex().map(e => e.id)).toEqual(['1001', '1002', '1003', '1004'])
   })
 
-  it('the name is the keyboard’s button (no button inside a button), and the sheet’s Remove has the same Undo', () => {
+  it('the row is the keyboard’s button (no button inside a button), and the sheet’s Remove has the same Undo', () => {
     mount([configured('1001', { sg: 'g1' }), configured('1002', { sg: 'g1' })])
-    // The row holds the superset link and the Move buttons, so it is no button itself: a screen
-    // reader reads a button's insides as plain text (axe nested-interactive).
-    for (const el of host.querySelectorAll('.routine-list [role="button"], .routine-list button')) {
+    // In Reorder mode the row holds the Move buttons beside its own: none sits inside another, as
+    // a screen reader reads a button's insides as plain text (axe nested-interactive).
+    act(() => [...host.querySelectorAll('.g-ssec-act')].find(b => b.textContent === 'Reorder').click())
+    for (const el of host.querySelectorAll('.g-re-list [role="button"], .g-re-list button')) {
       expect(el.parentElement.closest('[role="button"], button')).toBeNull()
     }
-    const item = swrows()[1].querySelector('.item')
-    expect(item.hasAttribute('role')).toBe(false)
-    expect(item.querySelector('button[aria-label="Move up"]')).toBeTruthy()
-    const open = item.querySelector('button.item-open')
+    expect(swrows()[1].querySelectorAll('.g-rx-btn')).toHaveLength(2)
+    click(swrows()[1].querySelector('.g-rx-btn'))   // Move up: its own job, no sheet
+    expect(sheets.exConfigSheet).not.toHaveBeenCalled()
+    act(() => [...host.querySelectorAll('.g-ssec-act')].find(b => b.textContent === 'Done').click())
+    const open = swrows()[1].querySelector('button.g-rx-open')
     expect(open.type).toBe('button')
     click(open)                              // Enter or Space on a <button> is this click
     expect(sheets.exConfigSheet).toHaveBeenCalledOnce()
-    click(item.querySelector('[data-thumb]')) // a tap elsewhere on the row opens it too
+    click(open.querySelector('img, .g-xrow-ph'))  // a tap on the picture (or its placeholder) opens it too
     expect(sheets.exConfigSheet).toHaveBeenCalledTimes(2)
     const onDelete = sheets.exConfigSheet.mock.calls[0][3]
+    const [from] = ex().map(e => e.id)
     act(() => onDelete())
-    expect(ex().map(e => e.id)).toEqual(['1001'])
+    expect(ex()).toHaveLength(1)
     undo()
-    expect(ex().map(e => e.id)).toEqual(['1001', '1002'])
-    click(swrows()[1].querySelector('button[aria-label="Move up"]'))   // its own job, no sheet
-    expect(sheets.exConfigSheet).toHaveBeenCalledTimes(2)
+    expect(ex()).toHaveLength(2)
+    expect(ex()[0].id).toBe(from)
   })
 
   it('a long press on the name picks the row up, and a row it has picked up does not swipe', () => {
     mount([configured('1001'), configured('1002')])
-    const item = swrows()[0].querySelector('.item-open')
+    const item = swrows()[0].querySelector('.g-rx-open')
     pointer(item, 'pointerdown', 200)
     act(() => vi.advanceTimersByTime(ROUTINE_LONG_PRESS_MS))
     expect(host.querySelector('.is-dragging')).toBeTruthy()
@@ -143,6 +147,6 @@ describe('swiping an exercise out of a routine', () => {
   it('is the plain row with the setting off', () => {
     mount([configured('1001')], { swipeSets: false })
     expect(swrows()).toHaveLength(0)
-    expect(host.querySelectorAll('[data-routine-row] .item')).toHaveLength(1)
+    expect(host.querySelectorAll('[data-routine-row] .g-rx-open')).toHaveLength(1)
   })
 })

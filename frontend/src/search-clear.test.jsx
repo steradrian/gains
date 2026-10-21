@@ -31,7 +31,8 @@ function type(el, value) {
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
-// The page is on the stage (StageSearchField, ChipGroup); the picker is the old sheet.
+// The page is on the stage (StageSearchField, ChipGroup); the picker is the drawer's field (the Log
+// food one), which has no has-clear class to check.
 const SURFACES = [
   {
     where: 'Exercises page',
@@ -46,12 +47,12 @@ const SURFACES = [
   {
     where: 'exercise picker',
     open: () => { exercisePicker(vi.fn()); return renderTopSheet() },
-    input: host => host.querySelector('.search input'),
-    clear: host => host.querySelector('.search .clear'),
-    count: host => host.querySelector('.search .search-count'),
-    chip: (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text),
+    input: host => host.querySelector('.g-lf-search input'),
+    clear: host => host.querySelector('.g-lf-search .g-lf-clear'),
+    count: host => host.querySelector('.g-lf-search .g-pk-count'),
+    chip: (host, text) => [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text),
     neck: 'neck',
-    hasClear: host => host.querySelector('.search').classList.contains('has-clear'),
+    hasClear: () => true,
   },
 ]
 

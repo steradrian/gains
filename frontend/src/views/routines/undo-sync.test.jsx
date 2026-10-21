@@ -1,17 +1,18 @@
 // @vitest-environment happy-dom
-// Plan's Undo (v1.3.11 swipe) meets the field-stamp sync (v1.3.11 sync). A routine deleted and put
-// back with Undo must come back as a stamped change: the removal another device already pulled
-// must not take it away again, whichever copy the merge counts as newer, and it keeps its place
-// in the list and on its weekdays. An edit another device made meanwhile still wins its field.
+// The routines' Undo (v1.3.11 swipe, T4.3, T5.8) meets the field-stamp sync (v1.3.11 sync). A
+// routine deleted and put back with Undo must come back as a stamped change: the removal another
+// device already pulled must not take it away again, whichever copy the merge counts as newer,
+// and it keeps its place in the list and on its weekdays. An edit another device made meanwhile
+// still wins its field. The same for Plan days put back with Undo.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEF, useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
-import { deleteRoutineWithUndo } from './Plan.jsx'
-import { mergeStates, stampChange } from '../lib/sync-merge.js'
+import { DEF, useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
+import { deleteRoutineWithUndo, saveRoutineDays } from './routine-actions.js'
+import { mergeStates, stampChange } from '../../lib/sync-merge.js'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
-vi.mock('../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
+vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
+vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
 
 const clone = value => JSON.parse(JSON.stringify(value))
 const routine = (id, name, ts) => ({ id, name, emoji: null, _ts: ts, ex: [{ id: '0025', sets: 3, reps: 5 }] })
@@ -66,6 +67,20 @@ describe('Undo after a removal the other device has already pulled', () => {
     undo()
     const m = mergeStates(S(), renamed)
     expect(m.routines.find(r => r.id === 'b').name).toBe('Pull heavy')
+  })
+})
+
+describe('Undo after Plan days changed (T5.8)', () => {
+  it('a weekday another device changed before it saw the change survives the Undo', () => {
+    const other = change(S(), s => { s.week[1] = ['a', 'b', 'c'] }, Date.now() - 1000)
+    expect(saveRoutineDays('b', [3, 5])).toBe(true)
+    expect(S().week).toEqual({ 1: ['a'], 3: ['b'], 5: ['c', 'b'] })
+    undo()
+    expect(S().week).toEqual({ 1: ['a', 'b'], 3: ['b'], 5: ['c'] })
+    for (const m of [mergeStates(S(), other), mergeStates(other, S())]) {
+      expect(m.week[1]).toEqual(['a', 'b', 'c'])
+      expect(m.week[5]).toEqual(['c'])
+    }
   })
 })
 

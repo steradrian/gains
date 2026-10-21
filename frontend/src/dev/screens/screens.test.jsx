@@ -284,6 +284,57 @@ describe('the screens gallery', () => {
     localStorage.removeItem('gym_state_v1')
   }, 20000)
 
+  it('has Train › Routines T4.0, T4.1, T4.3 (toast held) and T4.4, and the menu’s drawers over the routine’s page', async () => {
+    expect(screenAreas().find(a => a.name === 'Train: routines').entries.map(e => e.id))
+      .toEqual(['T4.0', 'T4.1', 'T4.3', 'T4.4', 'T5.0', 'T5.0-pull', 'T5.0-legs', 'T5.0-reorder', 'T5.0-offline', 'T5.4', 'T5.6'])
+    expect(screenAreas().find(a => a.name === 'Train: routines drawers').entries.map(e => e.id)).toEqual(['T5.8', 'T5.8-days', 'T5.8-share', 'T5.8-settings'])
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const titles = h => [...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)
+    await check('T4.0', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('5 routines · 3 in your Plan')
+      expect(titles(h)).toEqual(['In your Plan', 'Not in your Plan', 'No routine'])
+      expect(h.textContent).toContain('7 exercises · imported from Upper Lower')
+      expect(h.textContent).toContain('5 exercises · not done yet')
+    })
+    await check('T4.1', h => expect(h.querySelector('.g-sempty').textContent).toContain('No routines yet'))
+    await check('T4.3', h => expect(h.textContent).toContain('Deleted Push A. Sun and Thu are now rest days'))
+    await check('T4.4', h => {
+      expect(titles(h)[0]).toBe('Added from Upper Lower')
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('9 routines · 3 in your Plan')
+      expect(h.textContent).toContain('Added 4 routines from Upper Lower')
+    })
+    await check('T5.8', h => expect(h.querySelector('.g-bs h2').textContent).toBe('Push A'))
+    await check('T5.8-days', h => expect(h.querySelectorAll('.g-bs [role="checkbox"]')).toHaveLength(7))
+    await check('T5.8-share', h => expect(h.querySelector('.g-bs').textContent).toContain('As a plan file'))
+    await check('T5.8-settings', h => expect(h.querySelector('.g-bs [role="switch"]')).toBeTruthy())
+    const sync = useStore.getState().sync
+    await check('T5.0', h => {
+      expect(h.querySelector('.g-snav').textContent).toContain('Push A')
+      expect(h.querySelector('.g-re-plan').textContent).toBe('In your Plan · Sun, Thu')
+      expect(h.querySelector('.g-re-stats').textContent).toMatch(/^6 exercises · 19 sets · about /)
+      expect(h.querySelectorAll('.g-re-list [data-routine-row]')).toHaveLength(6)
+      expect(h.querySelector('.g-ssg-h').textContent).toMatch(/rest after both/)
+      expect(h.querySelector('.g-rx-prog').textContent).toBe('Up 2.5 kg when every set hits 8')
+      expect(h.querySelector('.g-re-start').textContent).toBe('Start Push A')
+    })
+    await check('T5.0-pull', h => expect(h.querySelector('.g-re-plan').textContent).toBe('In your Plan · Wed'))
+    await check('T5.0-legs', h => expect(h.querySelector('.g-re-plan').textContent).toBe('In your Plan · Mon, Sat'))
+    await check('T5.0-reorder', h => expect(h.querySelectorAll('.g-rx-btn')).toHaveLength(12))
+    await check('T5.0-offline', h => expect(h.querySelector('.g-saved').textContent).toBe('Offline'))
+    expect(useStore.getState().sync).toBe(sync)
+    await check('T5.4', h => {
+      expect(h.querySelectorAll('.g-re-list [data-routine-row]')).toHaveLength(7)
+      expect(useUI.getState().toastMsg).toMatch(/^Added .+ to Push A$/)
+    })
+    await check('T5.6', h => {
+      expect(h.querySelector('.g-sempty').textContent).toContain('Nothing in it yet')
+      expect(document.activeElement).toBe(h.querySelector('.g-tfield input'))
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+  }, 20000)
+
   it('has Train plan T3.0 (loop, fixed week, someone else’s, editing), T3.2 and T3.3, and gives the store its own state back', async () => {
     const ids = screenAreas().find(a => a.name === 'Train: plan').entries.map(e => e.id)
     expect(ids).toEqual(['T3.0', 'T3.0w', 'T3.0x', 'T3.0e', 'T3.2', 'T3.3'])
@@ -315,9 +366,42 @@ describe('the screens gallery', () => {
     expect(useStore.getState().S).toBe(own)
   }, 20000)
 
-  it('has the Plan drawers T3.1 to T3.6 open over the Plan route, the import page T3.7 and the T4.4 toast, all in memory', async () => {
+  it('has Train › Routines picker: the picker (a row ticked, no exact match, Favourites, By muscle), the settings (flat and pyramid) and Replace', async () => {
+    expect(screenAreas().find(a => a.name === 'Train: routines picker').entries.map(e => e.id))
+      .toEqual(['T5.1', 'T5.1-nomatch', 'T5.2', 'T5.3', 'T5.5', 'T5.5-pyramid', 'T5.7'])
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('T5.1', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Add exercise')
+      expect(h.querySelector('.g-bs-chip').textContent).toBe('Push A')
+      expect(h.querySelector('.g-bs-foot').textContent).toBe('Add 1 exercise to Push A')
+      expect(h.querySelectorAll('.g-pk-item button[aria-pressed="true"]')).toHaveLength(1)
+    })
+    await check('T5.1-nomatch', h => {
+      expect(h.querySelector('.g-bs .g-pk-head').textContent).toBe('No exact match. These come close:')
+      expect(h.querySelector('.g-bs .g-pk-list').lastElementChild.classList.contains('g-pk-new')).toBe(true)
+    })
+    await check('T5.2', h => expect(h.querySelectorAll('.g-bs .g-pk-item')).toHaveLength(4))
+    await check('T5.3', h => expect(h.querySelector('.g-bs .g-pk-head').textContent).toMatch(/^Chest · \d/))
+    await check('T5.5', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('barbell bench press')
+      expect(h.querySelectorAll('.g-bs .g-sett [role="row"]')).toHaveLength(2)
+      expect(h.querySelector('.g-bs').textContent).toContain('Undo for 8 s')
+      expect(h.querySelector('.g-bs').textContent).toContain('Superset with the exercise above')
+    })
+    await check('T5.5-pyramid', h => expect(h.querySelectorAll('.g-bs .g-sett [role="row"]')).toHaveLength(4))
+    await check('T5.7', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toMatch(/^Replace /)
+      expect(h.querySelector('.g-bs').textContent).toContain('you did 30 kg × 10')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+  }, 20000)
+
+  // T4.4, where the import lands, is the Routines page's and is checked with it above.
+  it('has the Plan drawers T3.1 to T3.6 open over the Plan route and the import page T3.7, all in memory', async () => {
     const ids = screenAreas().find(a => a.name === 'Train: plan drawers').entries.map(e => e.id)
-    expect(ids).toEqual(['T3.1', 'T3.1e', 'T3.1p', 'T3.4', 'T3.5', 'T3.6', 'T3.7', 'T3.7e', 'T4.4'])
+    expect(ids).toEqual(['T3.1', 'T3.1e', 'T3.1p', 'T3.4', 'T3.5', 'T3.6', 'T3.7', 'T3.7e'])
     localStorage.setItem('gym_state_v1', '{"real":true}')
     const own = useStore.getState().S
     const check = async (id, test) => {
@@ -342,7 +426,6 @@ describe('the screens gallery', () => {
     await check('T3.6', s => expect(s.drawer.querySelector('.g-tr3-card span').textContent).toBe('Push A · Pull A · Legs · 9 exercises'))
     await check('T3.7', s => expect(s.host.textContent).toContain('4 routines · 16 exercises · 4 days a week'))
     await check('T3.7e', s => expect(s.host.textContent).toContain('Couldn’t read that file.'))
-    await check('T4.4', s => expect(s.host.textContent).toContain('Added 4 routines from Upper Lower'))
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useStore.getState().S).toBe(own)
     expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')

@@ -52,11 +52,11 @@ const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : nul
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import CheckIn from './views/CheckIn.jsx'
-import Plan from './views/Plan.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
-import RoutineEdit from './views/RoutineEdit.jsx'
 import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
 import WorkoutRoute from './views/workout/WorkoutRoute.jsx'
+import RoutineEditor from './views/routines/RoutineEditor.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Body from './views/Body.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
@@ -290,8 +290,8 @@ function Shell() {
               <Route path="/train" element={<TrainHub />} />
               <Route path="/train/schedule" element={<PlanScreen />} />
               <Route path="/train/schedule/import" element={<PlanImportPage />} />
-              <Route path="/train/routines" element={<Plan view="routines" />} />
-              <Route path="/train/routines/:id" element={<RoutineEdit />} />
+              <Route path="/train/routines" element={<RoutinesScreen />} />
+              <Route path="/train/routines/:id" element={<RoutineEditor />} />
               <Route path="/train/history" element={<History />} />
               {/* Train slice 4 routes */}
               <Route path="/train/exercises" element={<ExercisesScreen />} />

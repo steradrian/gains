@@ -1,24 +1,23 @@
 // @vitest-environment happy-dom
-// Swipe actions on Plan (v1.3.11). The routines list: toward the start deletes with an Undo (no
-// confirm), toward the end duplicates. The rows stay keyboard buttons. The loop's swipe moved with
-// the Plan page to views/plan/PlanScreen.loop.test.jsx.
+// Swipe actions on the Routines page (v1.3.11, kept on T4.0): toward the start deletes with an
+// Undo (no confirm, T4.3's toast), toward the end duplicates. The rows stay keyboard buttons.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEF, useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
-import { closeOpenRow } from '../lib/use-swipe-row.js'
-import { restoreRoutine, routineSnapshot, deleteRoutine } from '../lib/routines.js'
-import Plan, { deleteRoutineWithUndo } from './Plan.jsx'
+import { DEF, useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
+import { closeOpenRow } from '../../lib/use-swipe-row.js'
+import { restoreRoutine, routineSnapshot, deleteRoutine } from '../../lib/routines.js'
+import { deleteRoutineWithUndo } from './routine-actions.js'
+import RoutinesScreen from './RoutinesScreen.jsx'
 
 const nav = vi.fn()
-vi.mock('react-router-dom', () => ({ useNavigate: () => nav }))
-vi.mock('../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
-const confirmSheet = vi.hoisted(() => vi.fn())
-vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), menuSheet: vi.fn(), confirmSheet,
-  planHasRoutines: () => true, exportPlanFile: vi.fn(), printWholePlan: vi.fn(), importPlanFile: vi.fn(),
+vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train/routines', state: null }) }))
+vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
+vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
+vi.mock('../../sheets.jsx', () => ({
+  starterPlanSheet: vi.fn(), startFlow: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), dayOverrideSheet: vi.fn(),
+  importPlanFile: vi.fn(), logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -26,7 +25,7 @@ const clone = value => JSON.parse(JSON.stringify(value))
 const routine = (id, name) => ({ id, name, emoji: null, ex: [{ id: '0025' }] })
 let host, root, widthSpy
 
-function mount(view, extra = {}) {
+function mount(extra = {}) {
   const S = clone(DEF)
   Object.assign(S, {
     routines: [routine('a', 'Push A'), routine('b', 'Pull A'), routine('c', 'Legs')],
@@ -34,11 +33,11 @@ function mount(view, extra = {}) {
   }, extra)
   useStore.setState({ S, user: null })
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
-  act(() => root.render(<Plan view={view} />))
+  act(() => root.render(<RoutinesScreen />))
 }
 const S = () => useStore.getState().S
 const swrows = () => [...host.querySelectorAll('.swrow')]
-const rowOf = name => swrows().find(r => r.querySelector('.tt')?.textContent === name)
+const rowOf = name => swrows().find(r => r.querySelector('.g-glist-body b')?.textContent === name)
 function pointer(target, type, x, y = 300) {
   const event = new Event(type, { bubbles: true, cancelable: true })
   Object.assign(event, { pointerId: 7, pointerType: 'touch', clientX: x, clientY: y })
@@ -57,7 +56,7 @@ const undo = () => act(() => useUI.getState().runToastAction())
 
 beforeEach(() => {
   vi.useFakeTimers()
-  nav.mockClear(); confirmSheet.mockClear()
+  nav.mockClear()
   document.documentElement.dir = 'ltr'
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
   // happy-dom lays nothing out: a phone's width, so the thresholds mean what they do there.
@@ -72,14 +71,14 @@ afterEach(() => {
 
 describe('the routines list', () => {
   it('rows stay keyboard buttons that open the routine, with both panes out of reach while shut', () => {
-    mount('routines')
+    mount()
     expect(swrows()).toHaveLength(3)
-    const r = rowOf('Pull A').querySelector('.item')
-    expect(r.getAttribute('role')).toBe('button')
+    const r = rowOf('Pull A').querySelector('.g-rt-row')
+    expect(r.tagName).toBe('BUTTON')
     expect(r.tabIndex).toBe(0)
-    act(() => { r.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
+    click(r)
     expect(nav).toHaveBeenLastCalledWith('/train/routines/b')
-    click(rowOf('Push A').querySelector('.item'))
+    click(rowOf('Push A').querySelector('.g-rt-row'))
     expect(nav).toHaveBeenLastCalledWith('/train/routines/a')
     const panes = rowOf('Push A').querySelectorAll('.swpane')
     expect(panes).toHaveLength(2)
@@ -91,15 +90,15 @@ describe('the routines list', () => {
     expect(rowOf('Push A').querySelector('.swpane.cp').textContent).toBe('Duplicate')
   })
 
-  it('a long swipe toward the start deletes without a confirm, and Undo puts everything back', () => {
-    mount('routines')
+  it('a long swipe toward the start deletes without a confirm, says which days are now rest, and Undo puts everything back', () => {
+    mount()
     const before = clone(S())
     swipe(rowOf('Pull A'), 330, 60)
-    expect(confirmSheet).not.toHaveBeenCalled()
     expect(S().routines.map(r => r.id)).toEqual(['a', 'c'])
     expect(S().week).toEqual({ 1: ['a'], 5: ['c'] })
     expect(S().dayPlan).toEqual({})
-    expect(useUI.getState().toastMsg).toBe('“Pull A” gone.')
+    // Monday keeps Push A, so only Wednesday became a rest day; the dated reschedule is counted.
+    expect(useUI.getState().toastMsg).toBe('Deleted Pull A. Wed is now a rest day and 1 planned date is cleared')
     expect(nav).not.toHaveBeenCalled()
 
     undo()
@@ -112,7 +111,7 @@ describe('the routines list', () => {
   })
 
   it('a long swipe toward the end duplicates right below, and stays on the list', () => {
-    mount('routines')
+    mount()
     swipe(rowOf('Push A'), 100, 330)
     expect(S().routines.map(r => r.name)).toEqual(['Push A', 'Push A (Copy)', 'Pull A', 'Legs'])
     const copy = S().routines[1]
@@ -121,10 +120,12 @@ describe('the routines list', () => {
     expect(S().week).toEqual({ 1: ['a', 'b'], 3: ['b'], 5: ['c'] })   // a copy is not planned anywhere
     expect(useUI.getState().toastMsg).toBe('Copied as “Push A (Copy)”.')
     expect(nav).not.toHaveBeenCalled()
+    // planned nowhere, so it lands in "Not in your Plan"
+    expect(rowOf('Push A (Copy)')).toBeTruthy()
   })
 
   it('the duplicate’s toast has its own Undo, which takes the copy away again', () => {
-    mount('routines')
+    mount()
     swipe(rowOf('Push A'), 100, 330)
     expect(S().routines).toHaveLength(4)
     expect(useUI.getState().toastAction).toBeTruthy()
@@ -133,7 +134,7 @@ describe('the routines list', () => {
   })
 
   it('an Undo that finds the routine already back says so instead of nothing', () => {
-    mount('routines')
+    mount()
     act(() => { deleteRoutineWithUndo('b') })
     const pending = useUI.getState().toastAction
     act(() => useStore.getState().update(s => { s.routines.splice(1, 0, routine('b', 'Pull A')) }))   // a sync brought it back
@@ -142,21 +143,10 @@ describe('the routines list', () => {
     expect(useUI.getState().toastMsg).toBe('It’s already back.')
   })
 
-  it('Edit’s minus deletes the same way, with the Undo in place of the confirm', () => {
-    mount('routines')
-    click(host.querySelector('.plan-textbtn'))
-    click(host.querySelector('button[aria-label="Delete Legs"]'))
-    expect(confirmSheet).not.toHaveBeenCalled()
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'b'])
-    undo()
-    expect(S().routines.map(r => r.id)).toEqual(['a', 'b', 'c'])
-    expect(S().week[5]).toEqual(['c'])
-  })
-
   it('is a plain list with the setting off', () => {
-    mount('routines', { wc: { ...DEF.wc, swipeSets: false } })
+    mount({ wc: { ...DEF.wc, swipeSets: false } })
     expect(swrows()).toHaveLength(0)
-    expect(host.querySelectorAll('.item.plan-routine')).toHaveLength(3)
+    expect(host.querySelectorAll('.g-rt-row')).toHaveLength(4)   // three routines and Freestyle
   })
 })
 

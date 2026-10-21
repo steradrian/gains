@@ -154,7 +154,7 @@ describe('T2.1 Start a workout', () => {
     setNav((to, opts) => { navigated = to; how = opts })
     tap(host, 'Create a routine')
     expect(S().routines).toHaveLength(1)
-    expect(navigated).toBe('/train/routines/' + S().routines[0].id)
+    expect(navigated).toBe('/train/routines/' + S().routines[0].id + '?new=1')
     expect(how).toEqual({ replace: true })
     history.replaceState(null, '')
   })

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The long exercise lists — the Exercises page, the add-exercise picker and the muscle explorer —
+// The long exercise lists — the Exercises page and the add-exercise picker —
 // load their next page by themselves once the "Show more" button at their foot comes near the
 // screen (lib/use-auto-more.js). The button stays, and without IntersectionObserver it is the way on.
 // happy-dom has no IntersectionObserver, so a fake one stands in and is fired by hand.
@@ -11,7 +11,6 @@ import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
 import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
-import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { BODYPARTS, EXDB } from './lib/exercises.js'
 
 const observers = []
@@ -37,7 +36,7 @@ function renderTop() {
   const sheet = useUI.getState().sheets.at(-1)
   return render(sheet.render(() => useUI.getState().closeSheet(sheet.id)))
 }
-const rows = host => host.querySelectorAll('.list > .item').length - 1   // drop "Create your own"
+const pickerRows = host => host.querySelectorAll('.g-pk-item').length
 const page = () => render(<MemoryRouter><ExercisesScreen /></MemoryRouter>)
 const pageRows = host => host.querySelectorAll('.g-xr .g-xrow').length
 const showMore = host => [...host.querySelectorAll('button')].find(b => b.textContent === 'Show more')
@@ -68,21 +67,9 @@ describe('lists load their next page as you scroll', () => {
   it('picker: the next 50, the same way', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
-    expect(rows(host)).toBe(50)
+    expect(pickerRows(host)).toBe(50)
     comeIntoView()
-    expect(rows(host)).toBe(100)
-  })
-
-  it('muscle explorer: the results of a muscle load on too', () => {
-    const host = render(<MuscleExplorer onPick={vi.fn()} />)
-    // the muscle with the most exercises, so there is a second page to load
-    const chips = [...host.querySelectorAll('.chip[aria-pressed]')]
-    const biggest = chips.reduce((a, b) => (+b.querySelector('.dim').textContent > +a.querySelector('.dim').textContent ? b : a))
-    act(() => biggest.click())
-    const before = host.querySelectorAll('.list > .item').length
-    expect(before).toBe(40)
-    comeIntoView()
-    expect(host.querySelectorAll('.list > .item').length).toBeGreaterThan(before)
+    expect(pickerRows(host)).toBe(100)
   })
 
   it('stops watching once everything is shown', () => {

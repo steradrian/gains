@@ -67,6 +67,28 @@ describe('ChipGroup', () => {
     expect(() => view.render(<ChipGroup label="Muscle" options={['a']} tone="dark" />)).toThrow(/tone="dark"/)
   })
 
+  it('multi takes several: each tap toggles its chip and hands over the list it leaves', () => {
+    const onChange = vi.fn()
+    view.render(<ChipGroup multi label="Intensifier" options={['a', 'b', 'c']} onChange={onChange} />)
+    expect(pressed()).toEqual([])
+    click(chips()[0])
+    click(chips()[2])
+    expect(pressed()).toEqual(['a', 'c'])
+    expect(onChange).toHaveBeenLastCalledWith(['a', 'c'], 'c')
+    click(chips()[0])
+    expect(pressed()).toEqual(['c'])
+    expect(onChange).toHaveBeenLastCalledWith(['c'], 'a')
+  })
+
+  it('multi and controlled: the array value lights its chips, and only the parent moves them', () => {
+    const onChange = vi.fn()
+    view.render(<ChipGroup multi label="Intensifier" options={['a', 'b', 'c']} value={['a', 'b']} onChange={onChange} />)
+    expect(pressed()).toEqual(['a', 'b'])
+    click(chips()[1])
+    expect(onChange).toHaveBeenCalledWith(['a'], 'b')
+    expect(pressed()).toEqual(['a', 'b'])
+  })
+
   it('has no options and renders an empty group', () => {
     view.render(<ChipGroup label="Muscle" />)
     expect(chips()).toHaveLength(0)

@@ -113,6 +113,27 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-cgroup-stage')).toHaveLength(2)
   })
 
+  it('renders the routines kit: the sets table, as a summary row and as a row a set', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('SetTable')
+    const tables = view.host.querySelectorAll('.g-sett')
+    expect(tables).toHaveLength(2)
+    expect(tables[0].querySelectorAll('[role="row"]')).toHaveLength(2)
+    expect(tables[1].querySelectorAll('[role="row"]')).toHaveLength(4)
+    expect(tables[1].querySelectorAll('.g-sett-rmbtn')).toHaveLength(3)
+  })
+
+  it('renders the routine editor kit: the exercise rows, one in reorder mode, and a superset', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['RoutineExerciseRow', 'SupersetGroup']))
+    expect(view.host.querySelectorAll('.g-rx')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-rx-btn')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ssg .g-rx')).toHaveLength(2)
+    expect(view.host.querySelector('button.g-ssg-h')).not.toBeNull()
+  })
+
   it('renders the Train exercises kit: the search field and the filter chips', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)

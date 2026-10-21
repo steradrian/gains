@@ -31,6 +31,8 @@ function type(el, value) {
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
+// The page is on the stage (StageSearchField, ChipGroup); the picker is the drawer's field (the Log
+// food one). Neither has a has-count class to check.
 const SURFACES = [
   {
     where: 'Exercises page',
@@ -39,16 +41,14 @@ const SURFACES = [
     count: host => host.querySelector('.g-ssf-count'),
     chip: (host, text) => [...host.querySelectorAll('.g-cchip')].find(b => b.textContent.trim() === text),
     neck: 'Neck',
-    hasCount: () => null,
   },
   {
     where: 'exercise picker',
     open: () => { exercisePicker(vi.fn()); return renderTopSheet() },
-    input: host => host.querySelector('.search input'),
-    count: host => host.querySelector('.search .search-count'),
-    chip: (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text),
+    input: host => host.querySelector('.g-lf-search input'),
+    count: host => host.querySelector('.g-lf-search .g-pk-count'),
+    chip: (host, text) => [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text),
     neck: 'neck',
-    hasCount: host => host.querySelector('.search').classList.contains('has-count'),
   },
 ]
 
@@ -68,14 +68,12 @@ describe('exercise search result count', () => {
       const host = s.open()
       const input = s.input(host)
       expect(s.count(host)).toBeNull()
-      if (s.hasCount(host) !== null) expect(s.hasCount(host)).toBe(false)
 
       act(() => type(input, 'bench press'))
       const n = matches('bench press')
       expect(n).toBeGreaterThan(1)
       expect(s.count(host).textContent).toBe(String(n))
       expect(s.count(host).getAttribute('aria-label')).toBe(`${n} exercises`)
-      if (s.hasCount(host) !== null) expect(s.hasCount(host)).toBe(true)
 
       act(() => type(input, 'bench press dumbbell incline'))
       expect(Number(s.count(host).textContent)).toBe(matches('bench press dumbbell incline'))
