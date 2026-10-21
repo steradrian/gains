@@ -609,6 +609,7 @@ function nudgeTick(user, S, now) {
 if (!PUSH_SCHEDULER_EXTERNAL) setInterval(() => {
   for (const user of db.users) {
     if (!db.subs.some(s => s.userId === user.id)) continue;
+    if (deletionScheduled(user)) continue;   // an account on its way out gets no reminders
     // One user's state file is one user's problem: a shape this tick cannot read is logged and
     // skipped, not allowed to take the process — and everyone else's reminders — down with it.
     // PUT /api/data refuses the obvious shapes, but a file already on disk answers to nobody.
@@ -941,7 +942,8 @@ let auditCount = 0;
 // pass a client-supplied one through. In 'net' mode only the network survives — enough to tell
 // one source from another, not enough to point at a person.
 function clientIp(req) {
-  if (AUDIT_IP === 'off') return null;
+  // No request at all: an event the server raises itself (the account purge sweep).
+  if (AUDIT_IP === 'off' || !req) return null;
   const raw = String(req.headers['cf-connecting-ip'] || '').trim()
     || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
     || String(req.headers['x-real-ip'] || '').trim()
@@ -1075,7 +1077,11 @@ const THROTTLED = {
   // budget: the password that may prove them counts its own failures (passwordAttempt).
   'POST /api/device-link/options': 'link', 'POST /api/device-link/verify': 'link',
   'POST /api/account/passkeys/options': null, 'POST /api/account/device-link': null,
-  'DELETE /api/account/passkeys': null
+  'DELETE /api/account/passkeys': null,
+  // Self-service deletion: like the passkey routes, only the budget (a password proof counts its
+  // own failures through passwordAttempt).
+  'POST /api/account/delete/options': null, 'POST /api/account/delete': null,
+  'POST /api/account/delete/cancel': null
 };
 
 // Which address the throttle counts against. Unlike clientIp() above, which only labels a log
@@ -1258,10 +1264,13 @@ function setPassword(user, h) {
 // password yet proves it is them before setting one. A session alone is not enough for that:
 // it may be a cookie someone walked off with, and a password would turn it into a way in that
 // outlives "sign out everywhere". Same ceremony as /api/login/verify, and the credential has
-// to belong to this account.
+// to belong to this account. The challenge is either an anonymous one from /api/login/options or a
+// `step-up` one (POST /api/account/delete/options), which is bound to this profile and this session
+// version, so "sign out everywhere" in between ends it like any other ceremony.
 async function passkeyStepUp(user, body) {
   const c = takeChallenge(body.cid);
-  const cred = c?.kind === 'login' && db.creds.find(x => x.id === body.credential?.id && x.userId === user.id);
+  const fresh = c?.kind === 'login' || (c?.kind === 'step-up' && c.uid === user.id && c.sv === sessionVersion(user));
+  const cred = fresh && db.creds.find(x => x.id === body.credential?.id && x.userId === user.id);
   if (!cred) return false;
   try {
     const v = await verifyAuthenticationResponse({
@@ -1974,6 +1983,7 @@ const mediaRoutes = {
   'PUT /api/media/{hash}': async (req, res) => {
     const user = readSession(req);
     if (!user) { MEDIA.discard(req); return json(res, 401, { error: 'not signed in' }); }
+    if (deletionScheduled(user)) { MEDIA.discard(req); return deletionPaused(res, user); }
     try { mediaThrottle(req, user, MEDIA_BURST); } catch (e) { MEDIA.discard(req); throw e; }
     req.allowSlowBody?.();   // a signed-in upload within its budget may take the half hour
     const r = await MEDIA.receive(user.id, req.mediaHash, req);
@@ -2012,6 +2022,142 @@ const mediaRoutes = {
     json(res, 200, { removed: r.removed, freedBytes: r.freedBytes, usage: MEDIA.usage(user.id) });
   }
 };
+
+/* ---------- deleting your own account, after a grace (PR-06) ---------- */
+// Settings → Delete account schedules the deletion seven days out (`u.deletion = { requestedAt,
+// at }`, epoch ms) once the owner has proved it is them, the same proof adding a passkey asks
+// (proveOwner). Until `at` nothing is removed: signing in works, every session stays valid, the
+// document and the uploads can be read and downloaded, and the owner can cancel. What stops is
+// everything that would change them — PUT /api/data and uploads answer 423 — and the scheduled
+// pushes (the reminder tick, the Coach). After `at` the sweep below removes the profile through
+// deleteUserData, the same function the admin's delete uses.
+const ACCOUNT_DELETE_GRACE_MS = 7 * 86400000;
+// How often the sweep looks. A deletion lands at most this long after its deadline; the tests
+// shorten it, as they do REMINDER_TICK_MS.
+const ACCOUNT_SWEEP_MS = Math.max(50, +(process.env.ACCOUNT_SWEEP_MS || 600000) || 600000);
+
+// Only a finite, representable `at` is a schedule. Anything else in the field (a hand-edited
+// db.json) is ignored everywhere alike — never purged, never pausing sync — and cancel clears it.
+const deletionScheduled = u => !!u?.deletion && Number.isFinite(u.deletion.at)
+  && !Number.isNaN(new Date(u.deletion.at).getTime());
+const deletionOf = u => {
+  const { at, requestedAt } = u.deletion;
+  const asked = Number.isFinite(requestedAt) && !Number.isNaN(new Date(requestedAt).getTime()) ? requestedAt : at - ACCOUNT_DELETE_GRACE_MS;
+  return { at: new Date(at).toISOString(), requestedAt: new Date(asked).toISOString() };
+};
+// The 423 every write of a profile awaiting deletion gets. True when it has answered.
+function deletionPaused(res, user) {
+  if (!deletionScheduled(user)) return false;
+  json(res, 423, { error: 'deletion scheduled', code: 'deletion-scheduled', at: deletionOf(user).at });
+  return true;
+}
+// The admin's delete refuses the last admin; so does this, or the instance would be left with
+// nobody who can reach the dashboard.
+const lastAdmin = u => isAdmin(u) && db.users.filter(isAdmin).length <= 1;
+const LAST_ADMIN = { error: 'cannot delete the last admin', code: 'last-admin' };
+// No passkey, and no password that counts (PASSWORD_LOGIN off): nothing can prove it is the owner.
+const NO_PROOF = { error: 'no passkey', code: 'no-passkey' };
+
+// Removes a profile and everything of it this server holds: the user record, its passkeys, push
+// subscriptions, device links, presence, the state file, the Coach credential and the uploads.
+// The one place that does, for the admin's delete and the purge of a scheduled self-deletion
+// alike, so a purge hook added here later (Friends: groups, invites, challenges) covers both.
+// db.json is written last: until then the record — and its `deletion`, which the sweep acts on —
+// is still on disk, so a crash halfway leaves a profile the next sweep finishes, every step below
+// being a no-op the second time. Nutrition data lives in the hub, outside this repo; untouched.
+// `actor` is who did it (the admin), absent for the purge, which is logged under the profile's id.
+function deleteUserData(u, { req = null, actor = null, auditKind }) {
+  const name = u.name;
+  db.users = db.users.filter(x => x.id !== u.id);
+  noteGone(u.id);
+  db.creds = (db.creds || []).filter(c => c.userId !== u.id);
+  db.subs = (db.subs || []).filter(x => x.userId !== u.id);
+  dropDeviceLinks(db, u.id);
+  presence.delete(u.id);
+  // The training history and any Coach credential of theirs, both outside db.json.
+  try { fs.unlinkSync(stateFile(u.id)); } catch { /* already gone */ }
+  try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
+  // Their photos and videos — the one place a profile's folder under uploads/ is removed.
+  try { MEDIA.removeUser(u.id); } catch (e) { console.error('media: could not remove uploads of', u.id, e.message); }
+  saveDb();
+  // Logged with the name, because the id is about to mean nothing to anyone reading this back.
+  audit(req, auditKind, actor ? { user: actor, msg: name } : { uid: u.id, msg: name });
+}
+
+const accountDeleteRoutes = {
+  // Step one: what the owner can prove it with. With a passkey, assertion options listing this
+  // profile's passkeys, under a challenge bound to this profile and session version for five
+  // minutes (`cid`). `password` says whether the current password is accepted instead.
+  'POST /api/account/delete/options': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return notSignedIn(res);
+    if (deletionScheduled(user)) return json(res, 409, { error: 'deletion scheduled', code: 'deletion-scheduled', at: deletionOf(user).at });
+    if (lastAdmin(user)) return json(res, 409, LAST_ADMIN);
+    const mine = db.creds.filter(c => c.userId === user.id);
+    if (!mine.length && !passwordWayIn(user)) return json(res, 409, NO_PROOF);
+    if (!mine.length) return json(res, 200, { password: true });
+    const options = await generateAuthenticationOptions({
+      rpID: RP_ID, userVerification: 'preferred',
+      allowCredentials: mine.map(c => ({ id: c.id, transports: c.transports || [] }))
+    });
+    if (readSession(req) !== user) return notSignedIn(res);
+    const cid = putChallenge({ kind: 'step-up', challenge: options.challenge, uid: user.id, sv: sessionVersion(user) });
+    json(res, 200, { cid, options, password: passwordWayIn(user) });
+  },
+
+  // Step two: the proof (`cid` + `credential`, or `current`), then the schedule. A refused proof
+  // changes nothing. Asked again while one is pending, it answers the schedule that stands — the
+  // clock is never restarted.
+  'POST /api/account/delete': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return notSignedIn(res);
+    const body = await readBody(req);
+    if (deletionScheduled(user)) return json(res, 200, { ok: true, ...deletionOf(user) });
+    if (lastAdmin(user)) return json(res, 409, LAST_ADMIN);
+    if (!passkeyCount(user) && !passwordWayIn(user)) return json(res, 409, NO_PROOF);
+    const proof = await proveOwner(req, res, user, body, 'account-delete');
+    if (!proof) return;
+    // Awaited: the session may have ended meanwhile, and a request alongside may have scheduled
+    // it already or deleted another admin.
+    if (readSession(req) !== user) return notSignedIn(res);
+    if (proof === 'passkey') saveDb();   // the confirming passkey's counter and last use
+    if (deletionScheduled(user)) return json(res, 200, { ok: true, ...deletionOf(user) });
+    if (lastAdmin(user)) return json(res, 409, LAST_ADMIN);
+    const now = Date.now();
+    user.deletion = { requestedAt: now, at: now + ACCOUNT_DELETE_GRACE_MS };
+    saveDb();
+    audit(req, 'account.delete.schedule', { user, msg: proof });
+    json(res, 200, { ok: true, ...deletionOf(user) });
+  },
+
+  // A session is enough: keeping the account is never the destructive direction. Answers 200
+  // with nothing pending too.
+  'POST /api/account/delete/cancel': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return notSignedIn(res);
+    if (user.deletion !== undefined) {
+      delete user.deletion;
+      saveDb();
+      audit(req, 'account.delete.cancel', { user });
+    }
+    json(res, 200, { ok: true });
+  }
+};
+
+// Every profile whose deadline has passed, removed. Never one without a schedule, never one
+// before its `at`. The last admin is skipped (and stays scheduled, so the owner can still cancel)
+// — the admin who made it so could not have deleted them directly either. One failure is logged
+// and the rest go on; a profile left half-done is still on disk with its `deletion` and is
+// finished on the next pass. Run at boot too, for a server that was down at the deadline.
+function purgeDueAccounts(now = Date.now()) {
+  for (const u of db.users.filter(x => deletionScheduled(x) && x.deletion.at <= now)) {
+    if (lastAdmin(u)) { console.error('account purge: skipped', u.id, 'as the last admin'); continue; }
+    try { deleteUserData(u, { auditKind: 'account.delete.purge' }); }
+    catch (e) { console.error('account purge failed for', u.id, e); }
+  }
+}
+purgeDueAccounts();
+setInterval(() => purgeDueAccounts(), ACCOUNT_SWEEP_MS).unref();
 
 /* ---------- routes ---------- */
 // A health check that only proves the port answers is the one that lies on the day it matters:
@@ -2099,9 +2245,13 @@ const routes = {
     const { user } = s;
     const renew = s.bearer && s.exp - Date.now() < SESSION_DAYS * 86400000 / 2;
     // `synced`: whether any passkey of the profile is backed up (passkeys-store.js passkeysSynced),
-    // null while unknown. What the app's second-passkey reminder is decided on.
+    // null while unknown. What the app's second-passkey reminder is decided on. `deletion`: only
+    // while a deletion is scheduled (POST /api/account/delete), when and since when, ISO.
     json(res, 200, {
-      user: { id: user.id, name: user.name, admin: isAdmin(user), synced: passkeysSynced(db, user.id) },
+      user: {
+        id: user.id, name: user.name, admin: isAdmin(user), synced: passkeysSynced(db, user.id),
+        ...(deletionScheduled(user) ? { deletion: deletionOf(user) } : {})
+      },
       ...(renew ? { token: makeSession(user) } : {})
     });
   },
@@ -2326,6 +2476,9 @@ const routes = {
   // Always there: more passkeys and device links need nothing an instance has to switch on.
   ...passkeyRoutes,
 
+  // Deleting your own account, after a grace. Always there, like the passkey routes.
+  ...accountDeleteRoutes,
+
   // `rev` is the server's own count of writes to this profile (also stored inside the document as
   // `_rev`, so every other reader of the file — reminder tick, admin, Coach, MCP — is unaffected).
   // A client pushes it back as `baseRev`, and a write over a document it never saw is refused.
@@ -2356,6 +2509,8 @@ const routes = {
   'PUT /api/data': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    // Read-only while a deletion is scheduled: GET still serves everything, nothing changes it.
+    if (deletionPaused(res, user)) return;
     const body = await readBody(req);
     if (!body.state || typeof body.state !== 'object') return json(res, 400, { error: 'state required' });
     // An object with nothing of the profile in it empties the document with the counter left
@@ -2643,21 +2798,7 @@ const routes = {
     if (!u) return json(res, 404, { error: 'no such user' });
     if (u.id === admin.id) return json(res, 400, { error: 'you cannot delete your own account' });
     if (isAdmin(u) && db.users.filter(isAdmin).length <= 1) return json(res, 400, { error: 'cannot delete the last admin' });
-    const name = u.name;
-    db.users = db.users.filter(x => x.id !== u.id);
-    noteGone(u.id);
-    db.creds = (db.creds || []).filter(c => c.userId !== u.id);
-    db.subs = (db.subs || []).filter(x => x.userId !== u.id);
-    dropDeviceLinks(db, u.id);
-    presence.delete(u.id);
-    // The training history and any Coach credential of theirs, both outside db.json.
-    try { fs.unlinkSync(stateFile(u.id)); } catch { /* already gone */ }
-    try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
-    // Their photos and videos — the one place a profile's folder under uploads/ is removed.
-    try { MEDIA.removeUser(u.id); } catch (e) { console.error('media: could not remove uploads of', u.id, e.message); }
-    saveDb();
-    // Logged with the name, because the id is about to mean nothing to anyone reading this back.
-    audit(req, 'admin.user.delete', { user: admin, msg: name });
+    deleteUserData(u, { req, actor: admin, auditKind: 'admin.user.delete' });
     json(res, 200, { ok: true, id: u.id });
   },
 
@@ -2793,13 +2934,15 @@ coachJobs.recoverOnBoot();
 if (!PUSH_SCHEDULER_EXTERNAL) coachJobs.setProposalHook((uid, pending) => {
   const n = (pending?.changes || []).length;
   if (!n) return;
+  if (deletionScheduled(db.users.find(u => u.id === uid))) return;
   sendPush(uid, {
     title: 'Your Coach has been reading',
     body: n === 1 ? '1 suggestion after this week' : `${n} suggestions after this week`,
     tag: 'coach-proposal', url: '#/coach'
   });
 });
-startCadence({ users: () => db.users, userNow });
+// No scheduled Coach reviews for an account awaiting deletion: nothing new is made for it.
+startCadence({ users: () => db.users.filter(u => !deletionScheduled(u)), userNow });
 startWarmup();
 
 // node's requestTimeout is one number for every route, and it is half an hour (below) for the
