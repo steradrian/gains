@@ -112,4 +112,14 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-cgroup')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-cgroup-stage')).toHaveLength(2)
   })
+
+  it('renders the Train exercises kit: the search field and the filter chips', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageSearchField', 'Chip']))
+    expect(view.host.querySelectorAll('.g-ssf')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ssf-close')).toHaveLength(1)
+    expect(view.host.querySelectorAll('.g-fchip')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-fchip-caret')).toHaveLength(2)
+  })
 })
