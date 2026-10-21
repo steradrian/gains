@@ -2147,8 +2147,9 @@ const accountDeleteRoutes = {
 // Every profile whose deadline has passed, removed. Never one without a schedule, never one
 // before its `at`. The last admin is skipped (and stays scheduled, so the owner can still cancel)
 // — the admin who made it so could not have deleted them directly either. One failure is logged
-// and the rest go on; a profile left half-done is still on disk with its `deletion` and is
-// finished on the next pass. Run at boot too, for a server that was down at the deadline.
+// and the rest go on; a profile left half-done is still in db.json with its `deletion` (written
+// last, see deleteUserData) and is finished at the latest by the boot run. Run at boot for that,
+// and for a server that was down at the deadline.
 function purgeDueAccounts(now = Date.now()) {
   for (const u of db.users.filter(x => deletionScheduled(x) && x.deletion.at <= now)) {
     if (lastAdmin(u)) { console.error('account purge: skipped', u.id, 'as the last admin'); continue; }
