@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { EXIDX, exOr, betterWeight, beatsWeight, isCustomEx } from '../lib/exercises.js'
+import { EXIDX, exOr, beatsWeight, isCustomEx } from '../lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, todayISO, isoOf, uid, exCount, setsWorkCount } from '../lib/format.js'
-import { effectiveRoutineIds, bestWeightFor, bestWeightForEntry, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, setLabel, workSetsDone, NOTE_MAX } from '../lib/history.js'
+import { effectiveRoutineIds, bestWeightForEntry, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, setLabel, workSetsDone, NOTE_MAX } from '../lib/history.js'
 import { beep } from '../lib/sound.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from '../lib/nav.js'
@@ -19,12 +19,9 @@ import { Button, Switch, SelectRow, Row } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import BodyMap from '../components/BodyMap.jsx'
 import { exerciseMuscleSnapshot, loadOfWorkouts } from '../lib/muscles.js'
-import { is1RMRecord } from '../lib/onerm.js'
-import { entryDbLoad } from '../lib/dumbbells.js'
 import { speedUnitOf } from '../lib/speed.js'
 import { buildCompletedWorkout, sessionEnd } from '../lib/finish-workout.js'
 import { refillAfter } from '../lib/rotation.js'
-import { isWarmupRow } from '../lib/workout-model.js'
 import { repeatSessionEntries } from '../lib/session-repeat.js'
 import { useSheetKeyboard, tappable }from '../lib/use-sheet-keyboard.js'
 import { buildSessionEntries } from '../lib/session-start.js'
@@ -41,6 +38,11 @@ import { S, update, ui, toast, snd } from './shared.js'
 import { confirmSheet, menuSheet } from './confirm-menu.jsx'
 import { bwSheet } from './body-weight.jsx'
 import { mediaGoesToo } from './workout-detail.jsx'
+// Workout finish M1
+import { onSheetEntry } from '../lib/nav.js'
+import { sessionBests } from '../lib/workout-finish.js'
+import { countsForRecords, normaliseParts, partOf } from '../lib/workout-parts.js'
+import { warmupOfferSheet } from '../views/workout/finish-drawers.js'
 
 /* ============================ workout lifecycle ============================ */
 // Start / Resume from anywhere (the + sheet, the Training hub): back to the session that is on,
@@ -66,9 +68,15 @@ export function startFlow(routineIds) {
   if (weighed) { beginWorkout(routineIds, weighed.w); return }
   bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
 }
-export function beginWorkout(routineIds, bw) {
+// `skipWarmup`: Skip warm-up on the warm-up offer (W1.31). The session starts at its first
+// working exercise and the offer is not made again.
+export function beginWorkout(routineIds, bw, { skipWarmup = false } = {}) {
   const st = S()
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  const { entries: built, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  // Warm-ups first and cool-downs last across combined routines too (lib/workout-parts.js); a
+  // session without parts keeps its order.
+  const entries = normaliseParts(built)
+  const firstWork = skipWarmup ? entries.findIndex(e => partOf(e) !== 'warmup') : 0
   update(s => {
     s.active = {
       id: uid(), d: todayISO(), start: Date.now(),
@@ -76,14 +84,43 @@ export function beginWorkout(routineIds, bw) {
       // exercise came from. No top-level `excludeFromProgression` — per-entry `noProg` does it.
       routineIds: rids,
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
-      bw: bw || null, cur: 0, entries,
+      bw: bw || null, cur: firstWork > 0 ? firstWork : 0, entries,
       // Snapshot the layout at start so the header ⋮ can change it for this session only —
       // changing the saved default (Settings → Workout view) mid-session leaves it alone.
       workoutView: st.workoutView || 'cards',
+      ...(skipWarmup ? { skipped: { warmup: true }, offered: { warmup: true } } : {}),
     }
   })
   useUI.getState().stopRest()
   navToWorkout()
+}
+
+/* ============================ Workout finish M1: Ready ============================ */
+// Ready (W1.1) for `ids`: the workout route with `?start=`, which shows the session before it
+// runs. Already on the workout route (or leaving a sheet), Ready takes that entry, as
+// navToWorkout does, so one back leaves it.
+export function openReady(ids) {
+  const list = [].concat(ids ?? []).filter(Boolean)
+  const here = String(globalThis.location?.hash || '').startsWith('#/train/workout')
+  nav('/train/workout?start=' + list.map(encodeURIComponent).join(','), here || onSheetEntry() ? { replace: true } : undefined)
+}
+
+// The weigh-in exactly as startFlow asks it: off in Settings, or already logged today, it is not asked.
+function weighInThen(go) {
+  if (S().weighIn === false) { go(null); return }
+  const weighed = weighedToday()
+  if (weighed) { go(weighed.w); return }
+  bwSheet({ required: true, onDone: go })
+}
+
+// Ready's Start workout: the weigh-in, then the warm-up offer (W1.31) when the session has
+// warm-ups, else the session starts.
+export function startFromReady(ids) {
+  weighInThen(bw => {
+    const { entries } = buildCombinedEntries(S(), ids)
+    if (entries.some(e => partOf(e) === 'warmup')) warmupOfferSheet(ids, bw)
+    else beginWorkout(ids, bw)
+  })
 }
 
 // "Repeat today" (#58): a saved workout's exercises as a new freestyle session dated today, each
@@ -235,7 +272,11 @@ function AddRoutineToSession({ close }) {
       if (!s.active) return
       // A session kept out of progression as a whole (the header ⋮) keeps the routine's
       // exercises out too, the same as an exercise added on its own.
-      s.active.entries.push(...entries.map(e => joinSessionNoProg(s.active, e)))
+      // Warm-ups stay first and cool-downs last (lib/workout-parts.js); the exercise you are on
+      // stays the one you are on.
+      const current = s.active.entries[s.active.cur]
+      s.active.entries = normaliseParts([...s.active.entries, ...entries.map(e => joinSessionNoProg(s.active, e))])
+      if (current) s.active.cur = Math.max(0, s.active.entries.indexOf(current))
       s.active.routineIds = [...[].concat(s.active.routineIds || []), r.id]
       if (!s.active.customName) {
         s.active.name = deriveSessionName(s.active.routineIds.map(id => s.routines.find(x => x.id === id)?.name).filter(Boolean))
@@ -659,33 +700,41 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
   })
 }
 function doFinishWorkout() {
+  const saved = finishAndSave()
+  if (!saved) return
+  const { w, prs, e1prs } = saved
+  ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+}
+
+/* ============================ Workout finish M1: the save ============================ */
+// Clones what Reopen (lib/workout-reopen.js) needs back: plain data, so JSON is enough.
+const cloneData = v => (v == null ? v : JSON.parse(JSON.stringify(v)))
+
+// The save of the running session: the workout into history, the confirmed weights, the
+// rotation's refill, the backup, the sync and kcal report, the timers off and the chime.
+// Returns `{ w, prs, e1prs, snapshot }` (null with nothing running): `w` the saved record,
+// `snapshot` what Reopen (W2.1) puts back for 10 s, kept in memory only, never in S; null for a
+// workout logged into the past, which has no Reopen. `end` overrides when the session ended (the
+// left-open save, lib/stale-workout.js).
+export function finishAndSave({ end } = {}) {
   const st = S()
   const A = st.active
-  if (!A) return
+  if (!A) return null
   const past = !!A.backfill
-  const prs = []
-  const e1prs = []
   // A workout logged into the past is held against the history before it, the way an edit of a
   // saved one is (rebuildPrHistory, below): it gains a badge it leads with, and a later session
   // it outdoes loses its own. It used to report none at all while the editor's Save awarded them
-  // (QA 1.3.9). The confirmed weights are left alone either way.
-  if (!past) A.entries.forEach(e => {
-    const loads = e.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w).filter(w => w > 0)
-    const mx = loads.length ? loads.reduce((a, b) => betterWeight(e.id, a, b)) : 0
-    // Held against history read the way this session logged a dumbbell weight (lib/dumbbells.js).
-    if (beatsWeight(e.id, mx, bestWeightFor(st, e.id, entryDbLoad(e)))) prs.push(e.id)
-    // A heavier estimate without a heavier top set is its own kind of progress —
-    // same weight for more reps. Reported separately so it can't be read as a load PR.
-    const rec = is1RMRecord(st, e.id, e)
-    if (rec && !prs.includes(e.id)) e1prs.push({ id: e.id, ...rec })
-  })
+  // (QA 1.3.9). The confirmed weights are left alone either way. The rule is lib/workout-finish.js
+  // sessionBests, which the Finish drawer and the live NEW BEST read too.
+  const { prs, e1prs } = past ? { prs: [], e1prs: [] } : sessionBests(st, A)
   const w = buildCompletedWorkout(A, {
-    end: past ? backfillEnd(A) : sessionEnd(A),
+    end: end ?? (past ? backfillEnd(A) : sessionEnd(A)),
     prs,
     snapshotFor: e => isCustomEx(EXIDX[e.id]) ? exerciseMuscleSnapshot(EXIDX[e.id]) : null,
   })
   w.vol = workoutVolume(w)
   let shown = w
+  const snapshot = past ? null : { at: Date.now(), workoutId: w.id, active: cloneData(A), exWeights: {}, rotation: null }
   update(s => {
     if (past) {
       // Its start and end are in the past; the stamp says when it was logged, which is what a
@@ -698,15 +747,25 @@ function doFinishWorkout() {
       prs.push(...[...(shown.prs || [])])
     } else {
       w.entries.forEach(e => {
+        // A warm-up or cool-down exercise never sets the weight the next session opens at.
+        if (!countsForRecords(e)) return
         const mx = bestWeightForEntry(e)
-        if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
+        if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) {
+          if (!Object.hasOwn(snapshot.exWeights, e.id)) snapshot.exWeights[e.id] = Object.hasOwn(s.exWeights, e.id) ? cloneData(s.exWeights[e.id]) : null
+          s.exWeights[e.id] = { w: mx, d: w.d }
+        }
       })
       s.workouts.push(w)
     }
     s.active = null
+    const queue = snapshot ? cloneData(s.queue ?? null) : null
+    const dayPlan = snapshot ? { ...(s.dayPlan || {}) } : null
     // A rotation pass this app manages starts its next pass the moment the last session lands
     // (lib/rotation.js). A planner's queue is left alone: it completes and waits for its writer.
-    refillAfter(s, w)
+    if (refillAfter(s, w) && snapshot) {
+      const pins = Object.fromEntries(Object.entries(dayPlan).filter(([iso]) => !Object.hasOwn(s.dayPlan || {}, iso)))
+      snapshot.rotation = { queue, pins }
+    }
   })
   useStore.getState().autoBackupNow()
   // Its kcal entry reaches the day's diary now rather than at the hub's next poll.
@@ -717,5 +776,5 @@ function doFinishWorkout() {
   // into s.active, which is gone. What it held is not logged, like any set left unchecked.
   useUI.getState().stopWork()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+  return { w: shown, prs, e1prs, snapshot }
 }

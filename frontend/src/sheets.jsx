@@ -15,5 +15,7 @@ export {
   startOrResume, startFlow, beginWorkout, repeatWorkout, logPastWorkoutSheet, addRoutineToSessionSheet,
   exerciseNoteSheet, setNoteSheet, sessionNoteSheet, renameWorkoutSheet, supersetSheet, workoutCompleteSheet,
   saveWorkoutEdits, exitWorkoutEdit, setsLine, finishWorkout, finishWorkoutSheet,
+  // Workout finish M1
+  openReady, startFromReady, finishAndSave,
 } from './sheets/workout-flow.jsx'
 export { startChooserSheet, dayOptionsSheet } from './sheets/train-day.jsx'
