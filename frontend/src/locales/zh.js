@@ -3647,4 +3647,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': '你的教练还在热身',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': '它会读取你的训练和打卡，然后为你这周的安排提出调整建议。你批准之前，什么都不会改变。',
+  'A peek at what it will do': '先看看它会做什么',
+  'Preview': '预览',
+  'Coming soon': '即将上线',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': '本周四次训练已完成三次。你的深蹲已可以挑战 102.5 kg × 5。',
+  'Move Legs to Thursday': '把腿部训练移到周四',
+  'You’ve missed Mondays three weeks running': '你已经连续三周没练周一了',
 }

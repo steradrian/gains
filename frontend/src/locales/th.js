@@ -3658,4 +3658,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'โค้ชของคุณยังวอร์มอัพอยู่',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'โค้ชจะอ่านการฝึกและเช็กอินของคุณ แล้วเสนอการปรับตารางสัปดาห์นี้ จะไม่มีอะไรเปลี่ยนจนกว่าคุณจะอนุมัติ',
+  'A peek at what it will do': 'ดูตัวอย่างสิ่งที่โค้ชจะทำ',
+  'Preview': 'ตัวอย่าง',
+  'Coming soon': 'เร็วๆ นี้',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'สัปดาห์นี้ฝึกไปแล้วสามจากสี่ครั้ง สควอตของคุณพร้อมสำหรับ 102.5 กก. × 5',
+  'Move Legs to Thursday': 'ย้ายวันขาไปวันพฤหัสบดี',
+  'You’ve missed Mondays three weeks running': 'คุณพลาดวันจันทร์มาสามสัปดาห์ติดต่อกันแล้ว',
 }

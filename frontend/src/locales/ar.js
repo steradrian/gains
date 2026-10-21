@@ -3702,4 +3702,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'مدربك ما زال يسخّن',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'سيقرأ تمارينك وتسجيلات الحالة ثم يقترح تعديلات على أسبوعك. لا يتغير شيء حتى توافق.',
+  'A peek at what it will do': 'لمحة عمّا سيفعله',
+  'Preview': 'معاينة',
+  'Coming soon': 'قريبًا',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'أنجزت ثلاث حصص من أربع هذا الأسبوع. السكوات جاهز لـ 102.5 كجم × 5.',
+  'Move Legs to Thursday': 'انقل الأرجل إلى الخميس',
+  'You’ve missed Mondays three weeks running': 'فاتتك أيام الاثنين ثلاثة أسابيع متتالية',
 }

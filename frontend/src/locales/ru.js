@@ -3651,4 +3651,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Ваш тренер ещё разминается',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Он изучит ваши тренировки и отметки самочувствия и предложит изменения в неделе. Ничего не изменится без вашего согласия.',
+  'A peek at what it will do': 'Что он будет делать',
+  'Preview': 'Предпросмотр',
+  'Coming soon': 'Скоро',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Три из четырёх тренировок на этой неделе сделаны. Ваш присед готов к 102,5 кг × 5.',
+  'Move Legs to Thursday': 'Перенести Ноги на четверг',
+  'You’ve missed Mondays three weeks running': 'Вы пропускаете понедельники уже три недели подряд',
 }

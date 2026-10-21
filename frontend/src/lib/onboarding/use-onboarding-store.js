@@ -3,6 +3,7 @@ import { answersFromHub, loadOnboarding, saveStep, waitSeconds } from './api.js'
 import { nextAfter, pathOf, previousOf, screenOf, skipTarget } from './flow.js'
 import { forget } from './session.js'
 import { initialState, loadSaved, reduce, save } from './state.js'
+import { COACH_COMING_SOON } from '../coach-availability.js'
 import { nutritionAvailable } from '../nutrition/api.js'
 import { useStore } from '../../store/useStore.js'
 
@@ -270,7 +271,7 @@ export function useOnboardingStore({ user, navigate, location, navType }) {
   }, [act, go, saveHubStep])
 
   // The AI coach only with the consent text the hub sent: nobody agrees to a text not shown.
-  const coachAvailable = state.coachAvailable === true && state.coachConsent != null
+  const coachAvailable = !COACH_COMING_SOON && state.coachAvailable === true && state.coachConsent != null
   const starterAvailable = state.starterAvailable === true
 
   return useMemo(() => ({

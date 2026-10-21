@@ -3647,4 +3647,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Il tuo coach si sta ancora scaldando',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Leggerà i tuoi allenamenti e i check-in e ti suggerirà modifiche alla settimana. Niente cambia finché non approvi.',
+  'A peek at what it will do': 'Un’anteprima di cosa farà',
+  'Preview': 'Anteprima',
+  'Coming soon': 'In arrivo',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Tre sessioni su quattro fatte questa settimana. Il tuo squat è pronto per 102,5 kg × 5.',
+  'Move Legs to Thursday': 'Sposta Gambe a giovedì',
+  'You’ve missed Mondays three weeks running': 'Hai saltato i lunedì per tre settimane di fila',
 }
