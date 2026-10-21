@@ -27,6 +27,7 @@ import { popToRoot } from '../../lib/use-tab-nav.js'
 import { beginWorkout, finishToSummary } from '../../sheets.jsx'
 import { pictureOf } from '../train/use-train.js'
 import { planLine, readyOf } from './use-ready.js'
+import './finish.css'
 import { setPartSkipped } from './workout-actions.js'
 import { holdReopen, markLeaving } from './finish-drawers.js'
 
