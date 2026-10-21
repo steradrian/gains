@@ -139,7 +139,7 @@ export default function WorkoutScreen() {
 
           {empty && (
             <div className="wk-gut">
-              <StageEmpty icon="plusCircle" title={t('Pick as you go')} body={t('Add an exercise and log it here. Each one you add joins the bar at the top.')}
+              <StageEmpty illustration="dumbbell" title={t('Pick as you go')} body={t('Add an exercise and log it here. Each one you add joins the bar at the top.')}
                 action={t('Add exercise')} onClick={() => actions.addExercise()}
                 actions={[{ label: t('Bring a routine in'), onClick: addRoutineToSessionSheet }]} />
             </div>

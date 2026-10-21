@@ -114,7 +114,7 @@ export default function SummaryScreen() {
     return (
       <StageScreen accent={accent}>
         <div className="g-sum">
-          <StageEmpty icon="info" title={t('This workout isn’t in your history')} action={t('Back')} onClick={() => back()} />
+          <StageEmpty illustration="calendar" title={t('This workout isn’t in your history')} action={t('Back')} onClick={() => back()} />
         </div>
       </StageScreen>
     )
