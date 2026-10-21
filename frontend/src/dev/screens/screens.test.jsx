@@ -519,3 +519,35 @@ describe('the screens gallery: the running workout', () => {
     expect(useStore.getState().S.active).toBe(own)
   }, 20000)
 })
+
+// Workout drawers-M2
+describe('the screens gallery: the workout\'s exercise drawers', () => {
+  const IDS = ['W1.4', 'W1.12', 'W1.13', 'W1.14', 'W1.15', 'W1.16', 'W1.17', 'W1.25', 'W1.33', 'W1.34', 'W1.43']
+
+  it('has every exercise drawer under its board id', () => {
+    expect(screenAreas().find(a => a.name === 'Workout: drawers').entries.map(e => e.id)).toEqual(IDS)
+  })
+
+  it('opens each drawer over the workout and leaves no rest, toast or session behind', async () => {
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('W1.4', s => { expect(s.drawer).toBeTruthy(); expect(s.text).toContain('Scroll to 0:00 to end the rest now.') })
+    await check('W1.12', s => { expect(s.text).toContain('Set 1 ·'); expect(s.text).toContain('How hard was that set?'); expect(s.text).toContain('Save set 1') })
+    await check('W1.13', s => expect(s.text).toContain('Set 3 gone.'))
+    await check('W1.14', s => { expect(s.text).toContain('Exercise settings'); expect(s.text).toContain('Back to set') })
+    await check('W1.15', s => { expect(s.text).toContain('Same muscle'); expect(s.text).toContain('Also in Push A') })
+    await check('W1.16', s => expect(s.text).toMatch(/Swapped Cable middle fly for /i))
+    await check('W1.17', s => expect(s.text).toMatch(/Removed Cable middle fly/i))
+    await check('W1.25', s => { expect(s.text).toContain('Load 80 kg'); expect(s.text).toContain('Each side') })
+    await check('W1.33', s => expect(s.text).toContain('First time with this one.'))
+    await check('W1.34', s => expect(s.text).toContain('Best: '))
+    await check('W1.43', s => expect(s.text).toContain('Held 2 × 30 s each side'))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useUI.getState().timer).toBeNull()
+    expect(useStore.getState().S).toBe(own)
+  }, 30000)
+})

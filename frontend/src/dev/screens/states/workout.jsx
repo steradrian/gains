@@ -25,7 +25,7 @@ const hold = (id, sec, rounds, sides, extra = {}) => ({
 })
 const warm = (id, r) => lift(id, 0, r, 2, { bodyweight: true }, { part: 'warmup' })
 
-const PUSH = () => [
+export const PUSH = () => [
   warm('3013', 15), warm('0276', 10), warm('1503', 15),
   lift('0025', 80, 8, 3, { restSec: 120 }),
   lift('0426', 24, 8, 3),
@@ -46,7 +46,7 @@ const past = (id, ago, scale) => {
 const HISTORY = [past('p-1', 13, 0.95), past('p-2', 9, 0.95), past('p-3', 6, 1)]
 
 /** Push A with `done` sets ticked per entry index ({ 3: 1 } ticks bench set 1), on `cur`. */
-const pushA = ({ cur = 3, done = {}, id = 'gal-push', over = {}, list = PUSH() } = {}) => {
+export const pushA = ({ cur = 3, done = {}, id = 'gal-push', over = {}, list = PUSH() } = {}) => {
   const entries = list.map((e, k) => ({
     ...e, sets: e.sets.map((s, i) => (i < (done[k] ?? 0) ? { ...s, done: true, at: NOW - (40 - k) * 60000 } : s)),
   }))
@@ -55,8 +55,8 @@ const pushA = ({ cur = 3, done = {}, id = 'gal-push', over = {}, list = PUSH() }
     active: { id, d: todayISO(), start: NOW - 24 * 60000, routineIds: ['push'], name: 'Push A', bw: null, cur, entries, ...over },
   }
 }
-const WARM_DONE = { 0: 2, 1: 2, 2: 2 }
-const MAIN_DONE = { ...WARM_DONE, 3: 3, 4: 3, 5: 3 }
+export const WARM_DONE = { 0: 2, 1: 2, 2: 2 }
+export const MAIN_DONE = { ...WARM_DONE, 3: 3, 4: 3, 5: 3 }
 const ALL_DONE = Object.fromEntries(PUSH().map((e, k) => [k, e.sets.length]))
 
 // 20 exercises (W1.44): three warm-ups, fourteen lifts, three stretches.
@@ -69,7 +69,7 @@ const LONG = () => [
 ]
 
 // A rest, a stopped sync or a hold for as long as the state shows; put back when it is left.
-function Live({ timer = null, offline = null, children }) {
+export function Live({ timer = null, offline = null, children }) {
   useLayoutEffect(() => {
     const own = { sync: useStore.getState().sync, unsyncedChanges: useStore.getState().unsyncedChanges }
     if (offline) useStore.setState({ sync: { ...own.sync, offline: true }, unsyncedChanges: () => ({ count: offline.waiting }) })
