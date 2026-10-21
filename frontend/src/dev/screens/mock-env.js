@@ -4,6 +4,7 @@
 // the onboarding kept for this tab. The screens are the real ones; only what they call is
 // replaced, and everything is put back when the state is left.
 import { STORE_KEY } from '../../lib/onboarding/session.js'
+import { keepRecentsThroughUserSwap } from '../../lib/search/recents.js'
 import { useStore } from '../../store/useStore.js'
 
 const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState']
@@ -55,6 +56,10 @@ export function installMocks({ config = null, user = null, linkCode = null, weba
     undo.push(() => useStore.setState({ S: own, update }))
   }
 
+  // The mock user is laid over the real one, not signed in in its place: the search's Recent
+  // (lib/search/recents.js) keeps both profiles' stored entries through the swap and back. Pushed
+  // first, so it is released after the real user is back.
+  undo.push(keepRecentsThroughUserSwap())
   const saved = Object.fromEntries(STORE_KEYS.map(k => [k, useStore.getState()[k]]))
   useStore.setState({
     config, user, linkCode,

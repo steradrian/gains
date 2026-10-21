@@ -31,8 +31,8 @@ describe('Page', () => {
   })
 
   // A design change (Owner decision 11, 2026-10-15): the tab root's header lost its large title
-  // and its sub line. It is the search pill, an optional context button and the avatar; the title
-  // stays only as the page's name for a screen reader.
+  // and its sub line. Since PR-07 it is the stage's header (avatar, search field, an optional
+  // context readout, bell); the title stays only as the page's name for a screen reader.
   it('is RootHeader on a tab root, with the one context button it may carry', () => {
     // The avatar navigates and the pill reads the route, so both sides render inside a router.
     same(<MemoryRouter><Page root title="Nutrition"><div className="card">x</div></Page></MemoryRouter>,
@@ -48,7 +48,8 @@ describe('Page', () => {
     // The pill is the global search's input now: a combobox that opens the overlay, closed.
     expect(out).toContain('role="combobox"')
     expect(out).toContain('aria-expanded="false"')
-    expect(out).toContain('class="avatar-btn"')
+    expect(out).toContain('aria-label="Settings"')
+    expect(out).toContain('aria-label="Notifications"')
   })
 
   it('throws in development when a root page is given what its header cannot show', () => {

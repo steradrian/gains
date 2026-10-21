@@ -20,7 +20,7 @@ import Home from './Home.jsx'
 import DayNav from '../components/DayNav.jsx'
 import PortionSheet from '../components/PortionSheet.jsx'
 import QuickKcalSheet from '../components/QuickKcalSheet.jsx'
-import AvatarButton from '../components/AvatarButton.jsx'
+import RootHeader from '../components/RootHeader.jsx'
 import { openPlusSheet } from '../components/PlusSheet.jsx'
 import { bwSheet, calendarSheet } from '../sheets.jsx'
 import { weighInTime } from '../lib/bodyweight.js'
@@ -332,14 +332,16 @@ describe('Today', () => {
     expect(navigate).toHaveBeenCalledWith('/me')
     await click(button('Notifications'))
     expect(navigate).toHaveBeenCalledWith('/home/notifications')
-    await click(host.querySelector('.g-spill'))
-    expect(useSearch.getState().open).toBe(true)
-    // The tab's own header takes over, its input focused inside the tap.
-    expect(host.querySelector('.g-shdr')).toBeNull()
-    expect(document.activeElement).toBe(host.querySelector('.tab-hdr input'))
+    const field = host.querySelector('.g-spill-field input')
+    await act(async () => { field.focus() })
+    expect(useSearch.getState()).toMatchObject({ open: true, tab: 'home' })
+    // The header stays where it is: its pill is the field, focused, and the bell is the ×.
+    expect(host.querySelector('.g-shdr.g-shdr-pin')).toBeTruthy()
+    expect(document.activeElement).toBe(field)
+    expect(button('Close search')).toBeTruthy()
     await act(async () => { closeSearch() })
     await settle()
-    expect(host.querySelector('.g-shdr')).toBeTruthy()
+    expect(button('Notifications')).toBeTruthy()
   })
 
   it('the avatar carries the hub sync warning, with its reason in its name', async () => {
@@ -665,17 +667,20 @@ describe('sync after a weigh-in and a workout', () => {
   })
 })
 
+// The avatar of every other tab root's header (RootHeader: the same stage header as Today's).
 describe('the avatar dot', () => {
+  const dot = () => host.querySelector('.g-sbtn:not(.g-bell) .g-sdot')
+
   it('shows when the hub sync needs the person', async () => {
-    await mount(<AvatarButton />)
-    expect(host.querySelector('.tab-dot')).toBeNull()
+    await mount(<RootHeader title="Nutrition" />)
+    expect(dot()).toBeNull()
     await act(async () => { useHubSync.setState({ status: fixtureSyncStatus('needs_confirmation') }) })
-    expect(host.querySelector('.tab-dot')).toBeTruthy()
-    expect(host.querySelector('.avatar-btn').getAttribute('aria-label')).toBe('Profile, Nutrition sync needs attention')
+    expect(dot()).toBeTruthy()
+    expect(host.querySelector('.g-sbtn:not(.g-bell)').getAttribute('aria-label')).toBe('Settings, Nutrition sync needs attention')
   })
 
   it('reads the hub status again when the app comes back to the front', async () => {
-    await mount(<AvatarButton />)
+    await mount(<RootHeader title="Nutrition" />)
     const reads = () => nt.requests.filter(r => r.path === '/hub/api/sync/status').length
     expect(reads()).toBe(1)
     nt.state.syncStatus = fixtureSyncStatus('error')
@@ -683,7 +688,7 @@ describe('the avatar dot', () => {
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
     await settle()
     expect(reads()).toBe(2)
-    expect(host.querySelector('.tab-dot')).toBeTruthy()
+    expect(dot()).toBeTruthy()
     // Within the refresh interval, focus does not ask again.
     await act(async () => { window.dispatchEvent(new Event('focus')) })
     await settle()

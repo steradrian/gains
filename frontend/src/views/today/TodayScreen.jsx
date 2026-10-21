@@ -2,7 +2,6 @@ import { t } from '../../lib/i18n.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
 import Collapse from '../../components/Collapse.jsx'
 import Elapsed from '../../components/Elapsed.jsx'
-import { Page } from '../../components/layout.jsx'
 import { Presence } from '../../components/presence.jsx'
 import AwayCard from '../../ds/AwayCard.jsx'
 import FirstSteps from '../../ds/FirstSteps.jsx'
@@ -23,18 +22,18 @@ import './today.css'
 // pill, the welcome back, the rings, the four actions, Up next (or First steps on a first day),
 // Food and Water, or the week for the training profile. It draws what useToday() gives it and
 // holds nothing; the floating tab bar is the app's (#tabbar). `ring` is the page the rings open on
-// (T12Protein opens on Protein). While the search is open the tab root's own header (<Page root>)
-// stands in, since the app's search types into its input. `status` other than 'known' (the day
-// loading, or failed with the retry banner) draws the skeleton, never what looks like an empty day.
+// (T12Protein opens on Protein). The header is pinned to the top and is the search's field while
+// it is open (components/use-root-header.js). `status` other than 'known' (the day loading, or
+// failed with the retry banner) draws the skeleton, never what looks like an empty day.
 export default function TodayScreen({
-  status = 'known', error, header, searching, saved, away, firstSteps, nextPending, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
+  status = 'known', error, header, saved, away, firstSteps, nextPending, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
 }) {
   const accent = useDsAccent()
   const known = status === 'known'
   return (
     <StageScreen accent={accent}>
       <div className="today">
-        {searching ? <Page root title={t('Today')} /> : <StageHeader {...header} />}
+        <StageHeader pinned title={t('Today')} {...header} />
         <SavedIndicator tone="stage" state={saved?.state} waiting={saved?.waiting} />
         <Presence>{away && <Collapse key="away"><AwayCard {...away} /></Collapse>}</Presence>
         {error && <div className="today-alert"><InlineBanner stage role="alert" icon="warning" title={error.text} actions={[{ label: t('Try again'), onClick: error.retry, solid: true }]} /></div>}

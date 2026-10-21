@@ -18,10 +18,6 @@ import TodayFastRow from '../components/TodayFastRow.jsx'
 import WaterCard from '../components/WaterCard.jsx'
 import NutritionLibrary from '../components/NutritionLibrary.jsx'
 
-// The pinned tab-root header (--hdr-h): the hero counts as gone once it passes under it (the hook
-// adds the safe-area inset the header sits below).
-const HEADER_PX = 56
-
 // "2026-10-13" and a real day.
 const isDay = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && isoOf(new Date(s + 'T12:00:00')) === s
 
@@ -38,7 +34,8 @@ export default function FoodHub() {
   const { date } = useDiaryTarget(null)
   const day = useDiaryDay(date)
   const { meal } = useDiaryTarget(day.settings)
-  const [heroRef, heroGone] = useScrolledPast(HEADER_PX)
+  // The hero counts as gone once it has passed under the pinned header's bottom edge.
+  const [heroRef, heroGone] = useScrolledPast()
   const isToday = date === todayISO()
 
   // The deep link picks the day once, then leaves the address as the tab's own. `find` (a search's

@@ -265,6 +265,52 @@ describe('the screens gallery', () => {
     await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
   }, 20000)
 
+  it('has the search H0.0 to H0.9, its Open Food Facts rows and T6.9, each the real header over the real panel', async () => {
+    const ids = screenAreas().find(a => a.name === 'Shared: search').entries.map(e => e.id)
+    expect(ids).toEqual(['H0.0', 'H0.1', 'H0.2', 'H0.3', 'H0.4', 'H0.4-searching', 'H0.4-error', 'H0.4-offline', 'H0.5', 'H0.6', 'H0.7', 'H0.8', 'H0.9', 'T6.9'])
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, text: host.textContent, panel: host.querySelector('#gains-search') })
+      unmountAll()
+    }
+    for (const id of ids) {
+      await check(id, s => {
+        expect(s.host.querySelector('.g-shdr-pin .g-bell').getAttribute('aria-label'), id).toBe('Close search')
+        expect(s.panel, id).not.toBeNull()
+      })
+    }
+    await check('H0.0', s => expect([...s.panel.querySelectorAll('.g-ssect h2')].map(h => h.textContent)).toEqual(expect.arrayContaining(['Go to', 'Recent', 'Suggested'])))
+    await check('H0.1', s => expect(s.panel.querySelector('.g-sempty b').textContent).toBe('Search everything'))
+    await check('H0.2', s => expect([...s.panel.querySelectorAll('.g-goto-chip')].map(c => c.textContent)).toEqual(['Routines', 'Plan', 'Strength', 'Workout settings']))
+    await check('H0.3', s => expect([...s.panel.querySelectorAll('.g-goto-chip')].map(c => c.textContent)).toEqual(['Saved meals', 'Recipes', 'Trends', 'Days']))
+    await check('H0.4', s => expect(s.panel.querySelector('.g-rchips')).not.toBeNull())
+    await check('H0.4-searching', s => expect(s.panel.textContent).toContain('Searching Open Food Facts…'))
+    await check('H0.4-error', s => expect(s.panel.textContent).toContain('Couldn’t reach Open Food Facts'))
+    await check('H0.6', s => expect(s.panel.textContent).toContain('Did you mean'))
+    await check('H0.9', s => expect(s.panel.textContent).toContain('Did you mean'))
+    await check('H0.4-offline', s => expect(s.panel.textContent).not.toContain('Open Food Facts'))
+    await check('H0.5', s => expect(s.host.querySelector('.g-ssf-scope').textContent).toBe('Workouts'))
+    await check('H0.7', s => expect(s.text).toContain('Recent searches cleared'))
+    await check('H0.8', s => expect(s.panel.querySelector('.g-sfeat').textContent).toContain('Fasting'))
+  }, 30000)
+
+  it('a search state leaves the real user\'s search history as it was: in storage and on screen after', async () => {
+    const realUser = useStore.getState().user
+    const KEYS = { 'gains_search_recent:u77': JSON.stringify([{ kind: 'query', query: 'deadlift' }]), 'gains_search_opened:u77': JSON.stringify({ 'page:/home': { n: 2, at: 1 } }), 'gains_search_searched:u77': 'true' }
+    useStore.setState({ user: { id: 77, name: 'Real' } })
+    for (const [k, v] of Object.entries(KEYS)) localStorage.setItem(k, v)
+    try {
+      await show(screenById('H0.0'))
+      unmountAll()
+      for (const [k, v] of Object.entries(KEYS)) expect(localStorage.getItem(k), k).toBe(v)
+      const { useRecents } = await import('../../lib/search/recents.js')
+      expect(useRecents.getState()).toMatchObject({ profile: 'u77', list: [{ kind: 'query', query: 'deadlift' }], searched: true })
+    } finally {
+      useStore.setState({ user: realUser })
+      for (const k of Object.keys(KEYS)) localStorage.removeItem(k)
+    }
+  })
+
   it('has Train T2.0 and its states T2.3 and T2.7 to T2.14, the toasts held over the screen', async () => {
     const ids = screenAreas().find(a => a.name === 'Train').entries.map(e => e.id)
     expect(ids).toEqual(['T2.0', 'T2.3', 'T2.7', 'T2.8', 'T2.9', 'T2.10', 'T2.11', 'T2.12', 'T2.13', 'T2.14'])

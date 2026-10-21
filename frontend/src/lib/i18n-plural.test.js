@@ -8,13 +8,13 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// Every plural key the app actually asks tn() for, read off the source.
+// Every plural key the app actually asks tn() (or tnShown()) for, read off the source.
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
 const walk = d => readdirSync(d, { withFileTypes: true }).flatMap(e =>
   e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)])
 const tnKeys = () => {
   const keys = new Set()
-  const re = /\btn\(\s*(['"`])((?:\\.|(?!\1).)*)\1\s*,\s*(['"`])((?:\\.|(?!\3).)*)\3/gs
+  const re = /\btn(?:Shown)?\(\s*(['"`])((?:\\.|(?!\1).)*)\1\s*,\s*(['"`])((?:\\.|(?!\3).)*)\3/gs
   for (const f of walk(SRC)) {
     if (!/\.(jsx?|mjs)$/.test(f) || /\.test\./.test(f) || /[\\/]locales[\\/]/.test(f)) continue
     const s = readFileSync(f, 'utf8')

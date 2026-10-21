@@ -32,7 +32,7 @@ const labelled = name => [...host.querySelectorAll('button')].find(b => (b.getAt
 
 async function press({ path, ui, open, press: find }) {
   await act(async () => { root.render(<MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>) })
-  if (open) await act(async () => { host.querySelector('.spill-i').focus() })
+  if (open) await act(async () => { host.querySelector('.g-spill-field input').focus() })
   await act(async () => { find().click() })
 }
 

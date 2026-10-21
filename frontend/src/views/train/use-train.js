@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
-import { flushSync } from 'react-dom'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
-import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
-import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
+import { useRootHeader } from '../../components/use-root-header.js'
 import { addRoutine } from '../Plan.jsx'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
@@ -26,8 +24,6 @@ import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../li
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
-import { useUnreadCount } from '../../lib/notifications/use-notifications.js'
-import { notificationsPath } from '../../lib/tab-route.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
 // T2.14: the rail reaches eight weeks past this one, and back no further than eight weeks before
@@ -451,11 +447,12 @@ export function skippedText(S, missed, today) {
 /**
  * Everything Train's root shows (PR02 T2.0 and its states), as data:
  *
- *   { header, searching, today, selected, select(iso), rail, card(iso = selected), rings,
+ *   { header, today, selected, select(iso), rail, card(iso = selected), rings,
  *     onRing(slide), actions, onIntent(intent), onPlan, onDayMenu(card), routines, onRoutine(row), onRoutineStart(row),
  *     musclesThisWeek, onMuscles, more, onMore(row), profile, setup, missed }
  *
- * `header` is StageHeader's props. `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
+ * `header` is StageHeader's props, the tab root's own (components/use-root-header.js, as on Today).
+ * `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
  * `missed` adds `move()` and `skip()`, each returning the toast `{ text, undo }` (UndoToast) or
  * null, and `onMove()` / `onSkip()`, which do the same and show that toast.
  * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked;
@@ -463,8 +460,6 @@ export function skippedText(S, missed, today) {
  */
 export function useTrain() {
   const nav = useNavigate()
-  const { pathname } = useLocation()
-  const unread = useUnreadCount()
   const S = useStore(s => s.S)
   const config = useStore(s => s.config)
   const user = useStore(s => s.user)
@@ -473,8 +468,8 @@ export function useTrain() {
   const [picked, select] = useState(null)
   const selected = picked || today
   const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
-  const connection = useConnectionTrouble()
-  const searching = useSearch(s => s.open)
+  // The header and its search field, as on every tab root (components/use-root-header.js).
+  const header = useRootHeader('train')
   useDiaryIndex(s => s.version)
   const first = firstLogDay(S, diaryIndexDays())
 
@@ -505,20 +500,8 @@ export function useTrain() {
   // T2.12 and T2.13: the app's toast with Undo (8 s).
   const toast = r => { if (r) useUI.getState().toast(r.text, { action: t('Undo'), onAction: r.undo }) }
 
-  const header = {
-    initial: user?.name || '',
-    placeholder: t('Search training'),
-    alert: connection ? t('Connection problem') : null,
-    onSettings: () => nav('/me'),
-    unread,
-    onBell: () => nav(notificationsPath(pathname)),
-    // As on Today: the tab's own header takes over while the search is open, mounted and focused
-    // inside this tap so a phone raises its keyboard.
-    onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('train'))) },
-  }
-
   return {
-    header, searching,
+    header,
     // A past day of the rail opens its Day page (PR07 decision 6; a day before the first log opens
     // nothing); today and a day to come select in place.
     today, selected, select: iso => (iso < today ? navToDay(iso, 'train') : select(iso)),

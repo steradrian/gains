@@ -1,14 +1,14 @@
 // @vitest-environment happy-dom
-// The tab-root header (Owner decision 11: search pill · optional context button · avatar, no
-// title), its search pill and avatar, and the sub-page header (back · centred title · ≤2 actions).
-import { act, useState } from 'react'
+// The tab-root header (owner direction, PR-07: the bearmenu header, the stage's avatar · search
+// field · bell, fixed to the top, nothing moving while searching but the bell turning into ×), and
+// the sub-page header (back · centred title · ≤2 actions).
+import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { longFits, titleStep } from '../lib/text-fit.js'
-import AvatarButton from './AvatarButton.jsx'
+import { endSearch, useSearch } from '../lib/search/session.js'
 import RootHeader from './RootHeader.jsx'
-import SearchPill from './SearchPill.jsx'
 import SubHeader from './SubHeader.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -18,10 +18,12 @@ beforeEach(() => {
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
+  vi.spyOn(history, 'back').mockImplementation(() => {})
 })
 afterEach(() => {
   act(() => root.unmount())
   host.remove()
+  act(() => endSearch())
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -32,168 +34,116 @@ const typeInto = (input, value) => act(() => {
   Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, value)
   input.dispatchEvent(new Event('input', { bubbles: true }))
 })
+const key = (el, k) => act(() => { el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })) })
 
-// A field `width` px wide, and a canvas whose text is `perChar` px a character.
-function measuredAt(width, perChar = 8) {
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width)
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ font: '', measureText: s => ({ width: s.length * perChar }) })
-}
+let where = null
+function Where() { where = useLocation().pathname; return null }
+// A router of its own per path, so each call starts at its address.
+const at = (path, el) => render(<MemoryRouter key={path} initialEntries={[path]}>{el}<Where /></MemoryRouter>)
+const input = () => $('[role="search"] input')
+const avatar = () => $('.g-sbtn:not(.g-bell)')
+const bell = () => $('.g-bell')
 
-function Pill(props) {
-  const [value, setValue] = useState(props.initial || '')
-  return <SearchPill value={value} onChange={setValue} {...props} />
-}
+describe('RootHeader (the tab-root header)', () => {
+  it('is the stage header pinned to the top: avatar, field, context readout, bell, with a hidden h1', () => {
+    at('/food', <RootHeader title="Nutrition" action={<button className="hdr-left">1,240 left</button>} />)
+    const hdr = $('.g-root > header.g-shdr')
+    expect(hdr.classList.contains('g-shdr-pin')).toBe(true)
+    expect($('.g-root').getAttribute('data-accent')).toBeTruthy()
+    const part = c => (c.tagName === 'H1' ? 'h1' : c.classList.contains('g-bell') ? 'bell' : c.classList.contains('g-spill') ? 'field'
+      : c.classList.contains('g-shdr-act') ? 'action' : c.classList.contains('g-sbtn') ? 'avatar' : c.classList.contains('g-shdr-bg') ? 'ground' : c.className)
+    // Its ground first: the stage's art, under the row.
+    expect([...hdr.children].map(part)).toEqual(['ground', 'h1', 'avatar', 'field', 'action', 'bell'])
+    expect($('h1').className).toBe('sr-only')
+    expect($('h1').textContent).toBe('Nutrition')
+    // A spacer keeps the page's first block clear of it; there is no line under it.
+    expect($('.root-hdr-space')).not.toBeNull()
+    expect($('.tab-hdr')).toBeNull()
+  })
 
-describe('SearchPill', () => {
-  it('is the real input, with bearmenu\'s attributes, inside a search landmark', () => {
-    render(<Pill scope="train" />)
-    const input = $('[role="search"] input')
-    expect(input.getAttribute('type')).toBe('text')
-    expect(input.getAttribute('inputmode')).toBe('search')
+  it('the field is the real input, with bearmenu\'s attributes, inside a search landmark around its glyph', () => {
+    at('/train', <RootHeader title="Training" />)
+    expect(input().getAttribute('type')).toBe('text')
+    expect(input().getAttribute('inputmode')).toBe('search')
     for (const [k, v] of [['autocomplete', 'off'], ['autocorrect', 'off'], ['autocapitalize', 'off'], ['spellcheck', 'false'], ['enterkeyhint', 'search']]) {
-      expect(input.getAttribute(k), k).toBe(v)
+      expect(input().getAttribute(k), k).toBe(v)
     }
-    // the long placeholder names the scope for a screen reader, whatever fits on screen
-    expect(input.getAttribute('aria-label')).toBe('Exercises, routines, workouts')
+    // The placeholder names the scope for a screen reader too.
+    expect(input().getAttribute('aria-label')).toBe('Search training')
+    const pill = $('[role="search"]')
+    expect(pill.tagName).toBe('LABEL')
+    expect(pill.querySelector('svg')).not.toBeNull()
   })
 
-  it('takes the long placeholder where it fits and the short one where it does not', () => {
-    measuredAt(300)
-    render(<Pill scope="train" />)
-    expect($('input').placeholder).toBe('Exercises, routines, workouts')
-    act(() => root.unmount())
-    root = createRoot(host)
-    vi.restoreAllMocks()
-    measuredAt(140)
-    render(<Pill scope="train" />)
-    expect($('input').placeholder).toBe('Search training')
+  it('reads the tab from the address, not from the page: Progress is Me\'s', () => {
+    for (const [path, text] of [['/train', 'Search training'], ['/food', 'Search food'], ['/progress', 'Search Gains']]) {
+      at(path, <RootHeader title="x" />)
+      expect(input().placeholder, path).toBe(text)
+    }
   })
 
-  it('falls back to the short placeholder where nothing can measure', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
-    render(<Pill scope="food" />)
-    expect($('input').placeholder).toBe('Search food')
+  it('focus opens the search on the tab it is on; the header stays and its bell turns into ×', () => {
+    at('/food', <RootHeader title="Nutrition" />)
+    expect(input().getAttribute('role')).toBe('combobox')
+    expect(input().getAttribute('aria-haspopup')).toBe('listbox')
+    expect(input().getAttribute('aria-expanded')).toBe('false')
+    expect(input().hasAttribute('aria-controls')).toBe(false)
+    act(() => input().focus())
+    expect(useSearch.getState()).toMatchObject({ open: true, tab: 'food' })
+    expect(input().getAttribute('aria-expanded')).toBe('true')
+    expect(input().getAttribute('aria-controls')).toBe('gains-search-list')
+    expect(bell().getAttribute('aria-label')).toBe('Close search')
+    expect(avatar()).not.toBeNull()
+  })
+
+  it('keeps what was typed while search is open, and × closes it, the field empty again', () => {
+    at('/home', <RootHeader title="Home" />)
+    act(() => input().focus())
+    typeInto(input(), 'chicken')
+    expect(useSearch.getState().query).toBe('chicken')
+    expect(input().value).toBe('chicken')
+    act(() => bell().click())
+    expect(useSearch.getState().open).toBe(false)
+    expect(input().value).toBe('')
+    expect(bell().getAttribute('aria-label')).toBe('Notifications')
+  })
+
+  it('Escape empties the field and keeps it open, then closes', () => {
+    at('/train', <RootHeader title="Training" />)
+    act(() => input().focus())
+    typeInto(input(), 'bench')
+    key(input(), 'Escape')
+    expect(useSearch.getState()).toMatchObject({ open: true, query: '' })
+    key(input(), 'Escape')
+    expect(useSearch.getState().open).toBe(false)
+  })
+
+  it('a scope sits in the field as a chip; its × shows everything again', () => {
+    at('/train', <RootHeader title="Training" />)
+    act(() => input().focus())
+    act(() => useSearch.setState({ group: 'workouts' }))
+    expect($('.g-ssf-scope').textContent).toBe('Workouts')
+    act(() => $('.g-ssf-scope-x').click())
+    expect(useSearch.getState().group).toBe(null)
+    expect($('.g-ssf-scope')).toBeNull()
+  })
+
+  it('the avatar opens Profile from another tab; the bell the notifications under its own tab', () => {
+    at('/food', <RootHeader title="Nutrition" />)
+    expect(avatar().getAttribute('aria-label')).toBe('Settings')
+    act(() => avatar().click())
+    expect(where).toBe('/me')
+    at('/food', <RootHeader title="Nutrition" />)
+    act(() => bell().click())
+    expect(where).toBe('/food/notifications')
+    at('/progress', <RootHeader title="Progress" />)
+    act(() => bell().click())
+    expect(where).toBe('/me/notifications')
   })
 
   it('measures with the letter spacing', () => {
     expect(longFits('abcd', 32, s => s.length * 8)).toBe(true)
     expect(longFits('abcd', 31, s => s.length * 8)).toBe(false)
-  })
-
-  it('says each tab\'s scope', () => {
-    for (const [scope, short] of [['home', 'Search Gains'], ['progress', 'Search progress']]) {
-      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
-      render(<Pill key={scope} scope={scope} />)
-      expect($('input').placeholder).toBe(short)
-    }
-    expect(() => render(<Pill scope="me" />)).toThrow(/SearchPill: scope="me"/)
-  })
-
-  it('clears with its button and with Escape, keeping the focus', () => {
-    render(<Pill />)
-    expect($('.spill-clear')).toBeNull()
-    typeInto($('input'), 'bench')
-    const clear = $('button[aria-label="Clear search"]')
-    expect(clear).not.toBeNull()
-    act(() => clear.click())
-    expect($('input').value).toBe('')
-    expect(document.activeElement).toBe($('input'))
-    typeInto($('input'), 'squat')
-    act(() => $('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
-    expect($('input').value).toBe('')
-  })
-
-  it('asks the overlay to open on focus and points at its listbox while it is open', () => {
-    const onOpen = vi.fn()
-    render(<Pill onOpen={onOpen} expanded controls="search-list" />)
-    act(() => $('input').focus())
-    expect(onOpen).toHaveBeenCalledTimes(1)
-    expect($('input').getAttribute('role')).toBe('combobox')
-    expect($('input').getAttribute('aria-haspopup')).toBe('listbox')
-    expect($('input').getAttribute('aria-expanded')).toBe('true')
-    expect($('input').getAttribute('aria-controls')).toBe('search-list')
-  })
-
-  it('claims a combobox only with an overlay to open (onOpen)', () => {
-    render(<Pill />)
-    for (const a of ['role', 'aria-haspopup', 'aria-expanded', 'aria-controls']) expect($('input').hasAttribute(a), a).toBe(false)
-    render(<Pill onOpen={() => {}} />)
-    expect($('input').getAttribute('role')).toBe('combobox')
-    expect($('input').getAttribute('aria-expanded')).toBe('false')
-    expect($('input').hasAttribute('aria-controls')).toBe(false)
-  })
-
-  it('is one label around the glyph and the input, so a tap anywhere on the pill reaches the input', () => {
-    render(<Pill />)
-    const pill = $('[role="search"]')
-    expect(pill.tagName).toBe('LABEL')
-    expect(pill.contains($('.spill-g'))).toBe(true)
-    expect(pill.contains($('input'))).toBe(true)
-    // the browser focuses a label's control on a click; happy-dom forwards the click itself
-    const onClick = vi.fn()
-    $('input').addEventListener('click', onClick)
-    act(() => { pill.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })) })
-    expect(onClick).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('AvatarButton', () => {
-  it('opens Profile by default and closes the search in close mode, in the same spot', () => {
-    const onClose = vi.fn()
-    render(<MemoryRouter><AvatarButton /></MemoryRouter>)
-    expect($('.avatar-btn').getAttribute('aria-label')).toBe('Profile')
-    render(<MemoryRouter><AvatarButton mode="close" onClose={onClose} /></MemoryRouter>)
-    const btn = $('.avatar-btn.close')
-    expect(btn.getAttribute('aria-label')).toBe('Close search')
-    expect(btn.querySelector('[data-icon="xmark"]')).not.toBeNull()
-    act(() => btn.click())
-    expect(onClose).toHaveBeenCalledTimes(1)
-    expect(() => render(<MemoryRouter><AvatarButton mode="open" /></MemoryRouter>)).toThrow(/AvatarButton: mode="open"/)
-  })
-})
-
-describe('RootHeader (the tab-root header)', () => {
-  const at = (path, el) => render(<MemoryRouter initialEntries={[path]}>{el}</MemoryRouter>)
-
-  it('is the pill, the context button and the avatar, in that order, with a hidden h1 and no title', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
-    at('/train', <RootHeader title="Training" action={<button className="iconbtn" aria-label="Filter">f</button>} />)
-    const row = $('.tab-hdr-row')
-    // The context button sits in its slot, which steps aside while search is open.
-    expect([...row.children].map(c => c.className)).toEqual(['spill', 'hdr-slot', 'avatar-btn'])
-    expect($('.hdr-slot .iconbtn').getAttribute('aria-label')).toBe('Filter')
-    expect($('h1').className).toBe('sr-only')
-    expect($('h1').textContent).toBe('Training')
-    expect($('input').placeholder).toBe('Search training')
-  })
-
-  it('reads the tab from the address, not from the page', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
-    at('/progress', <RootHeader title="Progress" />)
-    expect($('input').placeholder).toBe('Search progress')
-  })
-
-  it('keeps what was typed in the pill while search is open', () => {
-    vi.spyOn(history, 'back').mockImplementation(() => {})
-    at('/home', <RootHeader title="Home" />)
-    act(() => $('input').focus())
-    typeInto($('input'), 'chicken')
-    expect($('input').value).toBe('chicken')
-    act(() => $('.avatar-btn').click())
-    expect($('input').value).toBe('')
-  })
-
-  it('fades its hairline in once the page has scrolled more than 4px', () => {
-    // a frame that runs at once (and so is never pending when the next scroll comes)
-    vi.stubGlobal('requestAnimationFrame', cb => { cb(); return 0 })
-    at('/home', <RootHeader title="Home" />)
-    expect($('.tab-hdr').classList.contains('scrolled')).toBe(false)
-    Object.defineProperty(window, 'scrollY', { configurable: true, value: 5 })
-    act(() => window.dispatchEvent(new Event('scroll')))
-    expect($('.tab-hdr').classList.contains('scrolled')).toBe(true)
-    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
-    act(() => window.dispatchEvent(new Event('scroll')))
-    expect($('.tab-hdr').classList.contains('scrolled')).toBe(false)
   })
 })
 
