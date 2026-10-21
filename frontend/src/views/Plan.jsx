@@ -27,10 +27,12 @@ import {
 } from '../lib/rotation.js'
 
 // A new, empty routine, opened in the editor: the Routines page's "New routine" and the + sheet's.
-export function addRoutine() {
+// `go` opens the editor; from a sheet it is `to => closeThenNav(close, to)`, so the sheet's history
+// entry is not left behind under the editor.
+export function addRoutine(go = navigateTo) {
   const r = { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] }
   useStore.getState().update(s => { s.routines.push(r) })
-  navigateTo('/train/routines/' + r.id)
+  go('/train/routines/' + r.id)
 }
 
 /* Undo for Plan's two removals (v1.3.11). Both go through the store's normal update, so sync
@@ -399,7 +401,7 @@ function Routines({ S, update, nav }) {
       {routines.length > 0
         ? <button className="plan-textbtn" aria-pressed={edit} onClick={() => setEdit(e => !e)}>{edit ? t('Done') : t('Edit')}</button>
         : <span />}
-      <Button size="sm" variant="tinted" icon="plus" onClick={addRoutine}>{t('New routine')}</Button>
+      <Button size="sm" variant="tinted" icon="plus" onClick={() => addRoutine()}>{t('New routine')}</Button>
     </Inline>
     {routines.length ? <>
       {edit

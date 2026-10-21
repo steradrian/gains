@@ -509,7 +509,7 @@ export function useTrain() {
     // No source for other activities yet (lib/health-connect.js only writes): the list is empty.
     profile: profileOf(S),
     // T2.9's three ways in: a ready-made plan, a new routine in the editor, a plan file.
-    setup: { onPlans: () => starterPlanSheet(), onRoutine: addRoutine, onImport: file => importPlanFile(file) },
+    setup: { onPlans: () => starterPlanSheet(), onRoutine: () => addRoutine(), onImport: file => importPlanFile(file) },
     missed: missed && { ...missed, move: moveMissed, skip: skipIt, onMove: () => toast(moveMissed()), onSkip: () => toast(skipIt()) },
   }
 

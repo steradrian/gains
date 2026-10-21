@@ -46,7 +46,7 @@ function mountTop() {
   return host
 }
 const title = host => host.querySelector('.g-bs-head h2').textContent
-const rows = host => [...host.querySelectorAll('.g-tr-b')].map(b => [b.querySelector('b').textContent, b.querySelector('span:not(.g-tag)')?.textContent ?? null])
+const rows = host => [...host.querySelectorAll('.g-tr-b')].map(b => [b.querySelector('b').textContent, b.querySelector(':scope > span')?.textContent ?? null])
 const items = host => [...host.querySelectorAll('.g-menuitem-body')].map(b => [b.querySelector('b').textContent, b.querySelector('span')?.textContent ?? null])
 const tap = (host, text) => {
   const target = [...host.querySelectorAll('button')].find(b => b.querySelector('b')?.textContent.startsWith(text) || b.textContent.trim() === text)
@@ -78,7 +78,9 @@ describe('T2.1 Start a workout', () => {
     const host = mountTop()
     expect(title(host)).toBe('Start a workout')
     expect(host.querySelector('.g-bs-chip').textContent).toBe('Today')
-    expect(rows(host).map(r => r[0])).toEqual(['Push APlanned today', 'Pull A', 'LegsMissed Fri', 'Freestyle', 'Repeat a past workout'])
+    // A hidden comma between the name and its tag, so a screen reader does not run them together.
+    expect(rows(host).map(r => r[0])).toEqual(['Push A, Planned today', 'Pull A', 'Legs, Missed Fri', 'Freestyle', 'Repeat a past workout'])
+    expect(host.querySelector('.g-tr-b > b > .g-sr').textContent).toBe(', ')
     expect(rows(host)[3][1]).toBe('Pick exercises as you go')
     expect(rows(host)[4][1]).toBe(fmtDate(WED, true) + ' · Pull A')
     expect(host.querySelector('.g-tag-warning').textContent).toBe('Missed Fri')
@@ -145,9 +147,65 @@ describe('T2.1 Start a workout', () => {
     expect(rows(host).map(r => r[0])).toEqual(['Pick a ready-made plan', 'Create a routine', 'Import a plan file', 'Freestyle'])
     expect(host.textContent).not.toContain('Browse ready-made plans')
     expect(host.querySelector('input[type="file"]')).toBeTruthy()
+    // The drawer sits on a history entry of its own: the editor takes it (replace), so Back does
+    // not land on Train with no sheet.
+    history.replaceState({ gainsSheet: 1 }, '')
+    let how
+    setNav((to, opts) => { navigated = to; how = opts })
     tap(host, 'Create a routine')
     expect(S().routines).toHaveLength(1)
     expect(navigated).toBe('/train/routines/' + S().routines[0].id)
+    expect(how).toEqual({ replace: true })
+    history.replaceState(null, '')
+  })
+
+  it('a routine with no exercises opens its editor, as the tile’s ▶ does, and starts nothing', () => {
+    install({ routines: [routine('push', 'Push A'), routine('pull', 'Pull A'), { id: 'empty', name: 'Arms', emoji: 'dumbbell', ex: [] }] })
+    startChooserSheet()
+    tap(mountTop(), 'Arms')
+    expect(S().active).toBeNull()
+    expect(navigated).toBe('/train/routines/empty')
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  describe('a coach week or rotation', () => {
+    const since = new Date('2026-10-15T00:00:00').getTime()
+    const pushed = { id: 'w2', d: SAT, start: new Date(SAT + 'T10:00:00').getTime(), end: new Date(SAT + 'T11:00:00').getTime(), name: 'Push A', routineIds: ['push'], prs: [], entries: [] }
+    const week = (over = {}, workouts = [pulled, pushed]) => install({ week: {}, workouts, queue: { ids: ['push', 'pull', 'legs'], since, startsOn: '2026-10-15', label: 'Coach week 3', ...over } })
+    const head = host => host.querySelector('.g-tr-week')?.textContent ?? null
+
+    it('a done session is tagged Done and cannot be started again; the week’s name and progress sit under the title', () => {
+      week()
+      startChooserSheet()
+      const host = mountTop()
+      expect(rows(host).map(r => r[0]).slice(0, 3)).toEqual(['Pull A, Planned today', 'Push A, Done', 'Legs'])
+      const done = [...host.querySelectorAll('button')].find(b => b.textContent.startsWith('Push A'))
+      expect(done.disabled).toBe(true)
+      expect(head(host)).toBe('Coach week 31 / 3')
+    })
+
+    it('a waiting week tags its first session Up next and says when it starts', () => {
+      week({ startsOn: TUE }, [pulled])
+      startChooserSheet()
+      const host = mountTop()
+      expect(rows(host)[0][0]).toBe('Push A, Up next')
+      expect(head(host)).toBe('Coach week 3Next week starts ' + fmtDate(TUE, true))
+    })
+
+    it('a complete week asks the coach; a rotation this app runs says the round is complete', () => {
+      const all = ['push', 'pull', 'legs'].map((id, i) => ({ ...pushed, id: 'q' + i, routineIds: [id] }))
+      week({}, all)
+      startChooserSheet()
+      expect(head(mountTop())).toBe('Coach week 3Week complete, ask the coach')
+      install({ week: {}, workouts: all, rotation: { id: 'rot', sequence: ['push', 'pull', 'legs'] }, queue: { ids: ['push', 'pull', 'legs'], since, startsOn: '2026-10-15', rotationId: 'rot' } })
+      startChooserSheet()
+      expect(head(mountTop())).toBe('RotationRound complete')
+    })
+
+    it('no queue, no line', () => {
+      startChooserSheet()
+      expect(head(mountTop())).toBeNull()
+    })
   })
 
   it('Pick a ready-made plan opens the plans sheet', () => {

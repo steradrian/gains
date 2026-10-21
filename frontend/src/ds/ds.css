@@ -791,3 +791,9 @@ div.g-mcard { cursor: default; }
 .g-tr-b > b { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
 .g-tr-b > span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-tr-more { padding-top: 16px; }
+/* A done coach-week session: shown for orientation, not startable */
+.g-tr-choice:disabled { cursor: default; background: none; }
+.g-tr-choice:disabled .g-tr-stack, .g-tr-choice:disabled .g-tr-b > b { opacity: 0.55; }
+/* The coach week's or rotation's name and where it stands, under the drawer's title */
+.g-tr-week { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-tr-week b { font-weight: 600; color: var(--text); }

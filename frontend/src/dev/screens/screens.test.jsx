@@ -231,7 +231,7 @@ describe('the screens gallery', () => {
       return host.querySelector('.g-bs')
     }
     const names = d => [...d.querySelectorAll('.g-tr-b > b')].map(b => b.textContent)
-    expect(names(await drawer('T2.1'))).toEqual(['Push APlanned today', 'Pull A', expect.stringMatching(/^LegsMissed /), 'Freestyle', 'Repeat a past workout'])
+    expect(names(await drawer('T2.1'))).toEqual(['Push A, Planned today', 'Pull A', expect.stringMatching(/^Legs, Missed /), 'Freestyle', 'Repeat a past workout'])
     unmountAll()
     expect(names(await drawer('T2.1e'))).toEqual(['Pick a ready-made plan', 'Create a routine', 'Import a plan file', 'Freestyle'])
     unmountAll()
