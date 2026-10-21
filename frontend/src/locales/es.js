@@ -3893,4 +3893,7 @@ export default {
   'Coach renamed {0} to {1}': 'Coach renamed {0} to {1}',
   'Coach set up a new plan': 'Coach set up a new plan',
   'See your plan': 'See your plan',
+  'Could not load this week': 'Could not load this week',
+  'Logging activity arrives soon': 'Logging activity arrives soon',
+  "This country can't be saved yet": "This country can't be saved yet",
 }
