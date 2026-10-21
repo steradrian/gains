@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ActionButton, ActionRow, HeroStatus, MacroGauge, MacroGauges, MediaRow, MuscleRow, PeriodNav, SectionHeader, StatCard, StatSection,
-  StickyActionBar, TabSection,
+  TabSection,
 } from './tab-kit.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -400,12 +400,5 @@ describe('MediaRow', () => {
     render(<MediaRow variant="exercise" title="Bench press" />)
     expect($('.item').classList.contains('item-exercise')).toBe(true)
     expect(() => render(<MediaRow variant="photo" title="x" />)).toThrow(/MediaRow: variant="photo"/)
-  })
-})
-
-describe('StickyActionBar', () => {
-  it('holds the page\'s one main action', () => {
-    render(<StickyActionBar><button className="btn primary btn-pill">Log weight</button></StickyActionBar>)
-    expect($('.sticky-act > .btn-pill').textContent).toBe('Log weight')
   })
 })

@@ -521,11 +521,7 @@ button.g-bs-chip { cursor: pointer; }
 .g-wi-note { padding-bottom: 8px; }
 .g-wi-far { padding-bottom: 4px; color: var(--warning); font-weight: 600; }
 
-/* Add to Today drawer (board T18Add): WhenChip, ActionGrid, MenuList */
-.g-chip { appearance: none; border: 0; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text); font: 500 13px/18px var(--font-sans); cursor: pointer; white-space: nowrap; }
-.g-chip .g-icon { width: 16px; height: 16px; }
-.g-chip-when { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-.g-chip-when b { font-weight: 600; }
+/* Add to Today drawer (board T18Add): ActionGrid, MenuList */
 .g-agrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
 .g-atile { appearance: none; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; cursor: pointer; font: 500 13px/16px var(--font-sans); color: var(--text); text-align: center; text-decoration: none; overflow-wrap: anywhere; }
 .g-atile > span { width: 100%; aspect-ratio: 1.15; max-height: 64px; border-radius: var(--radius-md); background: var(--surface-sunken); display: grid; place-items: center; }

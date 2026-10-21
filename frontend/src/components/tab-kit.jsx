@@ -241,9 +241,3 @@ export function MediaRow({ art, title, subtitle, link, onOpen, onPlay, playLabel
     {chevron && <Icon name="chevronRight" className="chev" />}
   </div>
 }
-
-// A page's one main action, pinned above the tab bar while the page scrolls under it and resting
-// at the end of the page when it is reached, so it never covers the last row.
-export function StickyActionBar({ children }) {
-  return <div className="sticky-act">{children}</div>
-}
