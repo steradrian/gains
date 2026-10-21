@@ -544,6 +544,24 @@ describe('the + sheet', () => {
     expect(lastSheet().querySelector('input[type="date"]').value).toBe(yesterday)
   })
 
+  it('on a Day page, logs to that day: Log weight and Add past workout, and a line saying where (PR07 D1.5)', async () => {
+    await useNutrition.getState().loadSettings()
+    await mount(<></>)
+    await act(async () => { openPlusSheet('/train/day/' + yesterday) })
+    await settle()
+    const day = fmtDate(yesterday, true)
+    expect(useDiarySelection.getState().day()).toBe(yesterday)
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(day)
+    expect([...lastSheet().querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Log food', 'Scan', 'Water', 'Log weight', 'Add past workout'])
+    expect(lastSheet().textContent).not.toContain('Gym check-in')
+    expect(lastSheet().querySelector('.g-bs-note').textContent).toBe(`Everything here goes to ${day}. Tap the chip to pick another meal.`)
+    await click(button('Add past workout', lastSheet()))
+    await settle()
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add past workout')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe(day)
+  })
+
   it('a meal picked in the header is where Quick kcal logs', async () => {
     await useNutrition.getState().loadSettings()
     await mount(<></>)
