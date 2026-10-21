@@ -309,6 +309,13 @@ const isNewMeal = b => isObject(b) && hasAll(b, ['name', 'items', 'is_recipe', '
 const isMealEdit = b => isObject(b) && hasOnly(b, MEAL_EDIT_FIELDS)
 const isMealUsedBump = b => isObject(b) && hasOnly(b, { date: v => typeof v === 'string' && DATE.test(v) })
 
+// Eat root m3: the activity writes the app asks of the hub (NutriTrace's POST /api/activity and
+// PUT /api/activity/:id, server/routes/activity.js), with the fields the app sends. A proposed hub
+// rule: the hub lists only GET /api/activity/:date and /sum/:date today.
+const ACTIVITY_EDIT_FIELDS = { name: nonEmptyText(200), kcal: numberIn(0, 100_000), duration_min: nullable(numberIn(0, 100_000)), distance: nullable(numberIn(0, 100_000)) }
+const isNewActivity = b => isObject(b) && hasAll(b, ['date', 'name', 'kcal']) && hasOnly(b, { ...ACTIVITY_EDIT_FIELDS, date: v => typeof v === 'string' && DATE.test(v) })
+const isActivityEdit = b => isObject(b) && Object.keys(b).length > 0 && hasOnly(b, ACTIVITY_EDIT_FIELDS)
+
 // fitness-hub isFoodEdit (gains-hub nt-body-checks.ts FOOD_EDIT_FIELDS): only these keys, anything
 // else is a 400 before NutriTrace sees it. Kept apart from api.js on purpose: it is the hub's list.
 const HUB_FOOD_EDIT_FIELDS = ['name', 'brand', 'barcode', 'portion', 'unit', 'category', 'notes', 'favorite', 'nutrition']
@@ -382,7 +389,7 @@ export function createFakeNutriTrace({
 } = {}) {
   const state = {
     days: structuredClone(days), settings: structuredClone(settings), foods: structuredClone(foods), meals: structuredClone(meals),
-    activity, activitySum, caloriesOut, adaptiveTdee, offSearch, syncStatus, workouts,
+    activity: structuredClone(activity), activitySum: structuredClone(activitySum), caloriesOut, adaptiveTdee, offSearch, syncStatus, workouts,
     fasts: structuredClone(fasts), offProducts,
     // { fitbit: { date: { metric_type: value } }, garmin: { ... } }, as the two /data routes answer.
     wellness: structuredClone(wellness),
@@ -395,6 +402,7 @@ export function createFakeNutriTrace({
   let nextFoodId = Math.max(100, ...state.foods.map(f => f.id + 1))
   let nextFastId = Math.max(1, ...state.fasts.map(f => f.id + 1))
   let nextMealId = Math.max(100, ...state.meals.map(m => m.id + 1))
+  let nextActivityId = Math.max(100, ...Object.values(state.activity).flat().map(r => r.id + 1))
 
   const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } })
   const notFound = () => json({ error: 'not found' }, 404)
@@ -599,6 +607,33 @@ export function createFakeNutriTrace({
         meal.usage_count = (meal.usage_count || 0) + 1
         meal.last_used_at = body?.date || meal.last_used_at
         return json({ ok: true })
+      }
+      return notFound()
+    }
+    if (res === 'activity' && (method === 'POST' || method === 'PUT')) {
+      // No wearable in the fake: the day's sum is what the manual and workout rows add up to.
+      const resum = date => {
+        const manual = (state.activity[date] || []).reduce((sum, r) => sum + (Number(r.kcal) || 0), 0)
+        state.activitySum[date] = { date, manual, wearable: 0, effective: manual, covered_by: null, policy: 'wearable_wins' }
+      }
+      if (method === 'POST' && n === 3) {
+        if (!isNewActivity(body)) return json({ error: 'request body refused' }, 400)
+        const row = {
+          user_id: 3, distance: null, duration_min: null, met: null, is_template: 0, external_id: null, user_edited_at: null,
+          deleted_at: null, covered_by: null, ...body, source: 'manual', id: nextActivityId++,
+        }
+        state.activity[body.date] = [...(state.activity[body.date] || []), row]
+        resum(body.date)
+        return json(row, 201)
+      }
+      if (method === 'PUT' && n === 4 && ID.test(a)) {
+        if (!isActivityEdit(body)) return json({ error: 'request body refused' }, 400)
+        const date = Object.keys(state.activity).find(d => state.activity[d].some(r => String(r.id) === a))
+        if (!date) return json({ error: 'Not found' }, 404)
+        const row = state.activity[date].find(r => String(r.id) === a)
+        Object.assign(row, body, { user_edited_at: new Date().toISOString() })
+        resum(date)
+        return json(row)
       }
       return notFound()
     }

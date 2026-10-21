@@ -86,6 +86,8 @@ import Recovery from './views/Recovery.jsx'
 import DayPage from './views/shared/DayPage.jsx'
 import WeekPage from './views/shared/WeekPage.jsx'
 import Notifications from './views/shared/Notifications.jsx'
+// Eat root m3
+import BurnedPage from './views/eat/BurnedPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -321,6 +323,8 @@ function Shell() {
               {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
               <Route path="/food/goals" element={<NutritionGoals />} />
               <Route path="/food/fasting" element={<Fasting />} />
+              {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
+              <Route path="/food/burned" element={<BurnedPage />} />
               {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
               <Route path="/progress" element={<ProgressHub />} />
               <Route path="/progress/body" element={<Body segment="weight" />} />
