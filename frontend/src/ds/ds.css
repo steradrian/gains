@@ -1862,3 +1862,14 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-sp-seg .g-sseg button { height: 34px; padding: 0 12px; }
 .g-sswitch:disabled { opacity: 0.45; cursor: default; }
 .g-glist-row.sp-flash, .g-drow.sp-flash { animation: spflash 1.8s ease; }
+
+/* Settings data m1: Import. The Hevy key drawer's column, the progress screen (ring, line, note,
+   Cancel) and the done screen (headline, range, tiles, two cards). */
+.g-imp-sheet { display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.g-imp-progress { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 24px 0; text-align: center; }
+.g-imp-progress .g-snote { padding: 0; }
+.g-imp-label { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage); font-variant-numeric: tabular-nums; }
+.g-imp-done { display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; }
+.g-imp-head { margin: 0; padding: 4px 24px 0; font: 700 28px/32px var(--font-sans); letter-spacing: -0.02em; color: var(--on-stage); text-align: start; }
+.g-imp-line { margin: -8px 0 0; padding: 0 24px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-imp-done .g-stats { margin: 0 16px; }

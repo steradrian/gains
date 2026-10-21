@@ -122,7 +122,7 @@ export default function SyncPage() {
 
   return (
     <SettingsPage title={t('Sync and backup')} line={t('Saved on this device first, then the server')}>
-      <div className="set-body">
+      <>
         {view && <>
           <Card>
             <SettingRow icon={view.icon} title={waiting ? t('{0} waiting', changeCount(waiting)) : view.line} sub={heroSub || undefined} />
@@ -166,7 +166,7 @@ export default function SyncPage() {
           {MOBILE && android && S.autoBackup && <BackupFolderRows />}
           <SettingRow icon="download" title={t('Import backup')} sub={t('From a Gains .json or .zip')} onClick={() => fileRef.current.click()} />
         </Card>
-      </div>
+      </>
       <input ref={fileRef} type="file" hidden accept=".json,.zip,application/json,application/zip" onChange={doImport} />
     </SettingsPage>
   )
