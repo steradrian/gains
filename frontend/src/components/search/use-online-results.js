@@ -30,6 +30,12 @@ export const autoOnline = ({ query, tab, group, ownCount }) =>
 
 const online = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false)
 
+/** What the stage's one Open Food Facts row says for a status (PR07Edges, H0): 'searching'
+ *  ("Searching Open Food Facts…"), 'error' ("Couldn’t reach Open Food Facts · Try again", `retry`),
+ *  'paused' (the countdown), 'tap' (the one-tap ask), or null: no row, as when offline. Local
+ *  results never wait for it. */
+export const onlineRowState = status => (status === 'loading' ? 'searching' : ['error', 'paused', 'tap'].includes(status) ? status : null)
+
 /**
  * The Open Food Facts group for a settled query. status:
  *   'off'      nutrition or Open Food Facts is off: no group at all

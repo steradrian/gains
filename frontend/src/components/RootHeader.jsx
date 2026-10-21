@@ -6,6 +6,7 @@ import { tabOf } from '../lib/tab-route.js'
 import { useScrolledBy } from '../lib/use-scrolled-by.js'
 import { useStore } from '../store/useStore.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { searchTab } from '../lib/search/scopes.js'
 import { SEARCH_LIST_ID, closeSearch, openSearch, overlayKey, registerPill, setQuery, takeFocusOnMount, useSearch } from '../lib/search/session.js'
 import AvatarButton from './AvatarButton.jsx'
 import SearchPill from './SearchPill.jsx'
@@ -34,8 +35,8 @@ const desktopKeys = () => { try { return !!window.matchMedia?.('(hover: hover) a
 export default function RootHeader({ title, action }) {
   const { pathname } = useLocation()
   const scrolled = useScrolledBy(4)
-  // The search's scope is the page's: Progress, the only page of Me with this header, keeps its own.
-  const tab = tabOf(pathname) === 'me' ? 'progress' : tabOf(pathname) || 'home'
+  // The search's scope is the tab the page is on (Progress is Me's).
+  const tab = searchTab(tabOf(pathname))
   const open = useSearch(s => s.open)
   const query = useSearch(s => s.query)
   const group = useSearch(s => s.group)

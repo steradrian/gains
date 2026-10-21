@@ -91,8 +91,9 @@ export default function SearchHost() {
       const slash = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !typing(document.activeElement)
       if ((combo || slash) && !path.startsWith('/train/workout') && !useUI.getState().sheets.length) {
         e.preventDefault()
-        // A tab's root has the pill. In Me that is Progress, which keeps Me's stack (Profile under
-        // it); Profile itself has none, so from there, as from the workout, Home's is used.
+        // A tab's root has the pill. In Me the page with one is Progress, which keeps Me's stack
+        // (Profile under it); Profile itself has none, so from there, as from the workout, Home's
+        // is used. Either way the search is keyed by the real tab (lib/search/scopes.js).
         const tab = tabOf(path)
         focusSearch(() => (inProgress(path) ? popToRoot('me', PROGRESS_ROOT) : tab && tab !== 'me' ? popToRoot(tab) : nav('/home')))
         return

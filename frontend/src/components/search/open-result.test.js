@@ -2,17 +2,24 @@
 // Where every type of result goes (ux-search.md §4): sheets over the overlay, routes on top of it.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const sheets = vi.hoisted(() => ({ exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(), foodDetailSheet: vi.fn(), mealDetailSheet: vi.fn(), manageMeasurementsSheet: vi.fn() }))
-const session = vi.hoisted(() => ({ visit: vi.fn() }))
-vi.mock('../../sheets.jsx', () => ({ exerciseDetailSheet: sheets.exerciseDetailSheet, workoutDetailSheet: sheets.workoutDetailSheet }))
+const sheets = vi.hoisted(() => ({
+  exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn(), foodDetailSheet: vi.fn(), mealDetailSheet: vi.fn(), manageMeasurementsSheet: vi.fn(),
+  bwSheet: vi.fn(), customExSheet: vi.fn(), foodEditSheet: vi.fn(),
+}))
+const session = vi.hoisted(() => ({ visit: vi.fn(), setGroup: vi.fn(), setQuery: vi.fn() }))
+const fasting = vi.hoisted(() => ({ setFastingEnabled: vi.fn() }))
+vi.mock('../../sheets.jsx', () => ({ exerciseDetailSheet: sheets.exerciseDetailSheet, workoutDetailSheet: sheets.workoutDetailSheet, bwSheet: sheets.bwSheet, customExSheet: sheets.customExSheet }))
 vi.mock('../FoodDetailSheet.jsx', () => ({ foodDetailSheet: sheets.foodDetailSheet }))
 vi.mock('../MealDetailSheet.jsx', () => ({ mealDetailSheet: sheets.mealDetailSheet }))
-vi.mock('../FoodEditSheet.jsx', () => ({ foodEditSheet: vi.fn() }))
+vi.mock('../FoodEditSheet.jsx', () => ({ foodEditSheet: sheets.foodEditSheet }))
 vi.mock('../../views/Measurements.jsx', () => ({ manageMeasurementsSheet: sheets.manageMeasurementsSheet }))
-vi.mock('../../lib/search/session.js', () => ({ visit: session.visit }))
+vi.mock('../../lib/search/session.js', () => ({ visit: session.visit, setGroup: session.setGroup, setQuery: session.setQuery }))
+vi.mock('../../lib/nutrition/use-fasting.js', () => ({ setFastingEnabled: fasting.setFastingEnabled }))
 
-const { openResult, targetOf } = await import('./open-result.js')
+const { openFeaturePage, openResult, openShortcut, runNoneAction, targetOf, turnOnFeature } = await import('./open-result.js')
 const { useRecents } = await import('../../lib/search/recents.js')
+const { useStore } = await import('../../store/useStore.js')
+const { useUI } = await import('../../store/useUI.js')
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -64,10 +71,61 @@ describe('opening a result', () => {
     expect(targetOf({ type: 'day', date: '2026-10-11', uuid: null })).toMatchObject({ path: '/food?date=2026-10-11' })
   })
 
-  it('remembers what was opened, and how often; never an online food', () => {
+  it('remembers what was opened, and how often; never an online food, a feature card or a suggestion of the moment', () => {
     open({ type: 'routine', id: 'r1' })
     open({ type: 'online', id: '1', food: {} })
+    open({ type: 'feature', id: 'fasting', off: { page: 'features', find: 'Fasting' } })
+    open({ type: 'weighin', id: '2026-10-15', date: '2026-10-15' })
+    open({ type: 'missed', id: '2026-10-14', path: '/train/schedule' })
     expect(useRecents.getState().list).toEqual([{ kind: 'result', type: 'routine', id: 'r1', label: 'T', query: 'q' }])
     expect(useRecents.getState().opened['routine:r1'].n).toBe(1)
+  })
+
+  it('a suggestion: today\'s weigh-in opens its drawer, a missed day the plan', () => {
+    open({ type: 'weighin', id: '2026-10-15', date: '2026-10-15' })
+    expect(sheets.bwSheet).toHaveBeenCalledWith({ date: '2026-10-15' })
+    open({ type: 'missed', id: '2026-10-14', path: '/train/schedule' })
+    expect(session.visit).toHaveBeenLastCalledWith('/train/schedule', { date: undefined, state: undefined })
+  })
+})
+
+describe('the search\'s other taps', () => {
+  it('a Go to chip opens its page, or scopes the search to its group', () => {
+    openShortcut({ id: 'plan', target: { kind: 'route', path: '/train/schedule' } })
+    expect(session.visit).toHaveBeenLastCalledWith('/train/schedule')
+    openShortcut({ id: 'days', target: { kind: 'scope', group: 'days' } })
+    expect(session.setGroup).toHaveBeenCalledWith('days')
+  })
+
+  it('a feature card: the whole card and Features open the switch; Turn on flips the feature', async () => {
+    const card = { type: 'feature', id: 'fasting', off: { page: 'features', find: 'Fasting' } }
+    expect(targetOf(card)).toEqual({ kind: 'route', path: '/me/features', state: { find: 'Fasting' } })
+    openFeaturePage(card)
+    expect(session.visit).toHaveBeenLastCalledWith('/me/features', { state: { find: 'Fasting' } })
+    fasting.setFastingEnabled.mockResolvedValueOnce()
+    await expect(turnOnFeature(card)).resolves.toBe(true)
+    expect(fasting.setFastingEnabled).toHaveBeenCalledWith(true)
+    useStore.setState(s => ({ S: { ...s.S, checkIn: false } }))
+    await expect(turnOnFeature({ type: 'feature', id: 'checkIn', off: { page: 'appearance', find: 'Gym check-in' } })).resolves.toBe(true)
+    expect(useStore.getState().S.checkIn).toBe(true)
+  })
+
+  it('a Turn on that fails says so and leaves the card', async () => {
+    const toast = vi.spyOn(useUI.getState(), 'toast').mockImplementation(() => {})
+    fasting.setFastingEnabled.mockRejectedValueOnce(new Error('nope'))
+    await expect(turnOnFeature({ type: 'feature', id: 'fasting', off: { page: 'features', find: 'Fasting' } })).resolves.toBe(false)
+    expect(toast).toHaveBeenCalledTimes(1)
+  })
+
+  it('the ways on when nothing matches', () => {
+    runNoneAction({ kind: 'near', name: 'protein bar' })
+    expect(session.setQuery).toHaveBeenCalledWith('protein bar')
+    runNoneAction({ kind: 'create-food', name: 'protien bar' })
+    expect(sheets.foodEditSheet).toHaveBeenLastCalledWith(expect.objectContaining({ food: { name: 'protien bar' } }))
+    runNoneAction({ kind: 'create-exercise', name: 'cable Y raise' })
+    expect(sheets.customExSheet).toHaveBeenCalledWith(null, null, 'cable Y raise')
+    const askOnline = vi.fn()
+    runNoneAction({ kind: 'online', name: 'protien bar' }, { askOnline })
+    expect(askOnline).toHaveBeenCalledTimes(1)
   })
 })

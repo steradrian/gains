@@ -1,23 +1,12 @@
 import { lazy, Suspense, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
-import { BRAND } from '../brand.js'
 import { oneOf } from '../lib/ui-kit.js'
-import { usePlaceholderFit } from '../lib/text-fit.js'
+import { SEARCH_TABS, placeholderFor } from '../lib/search/scopes.js'
 import Icon from './Icon.jsx'
 import { Kbd } from './blocks.jsx'
 
 // The magnifier's animation loads with the search chunk; until then the glyph stands still.
 const MotionMagnifier = lazy(() => import('./search/header-motion.jsx').then(m => ({ default: m.MotionMagnifier })))
-
-// What the pill says on each tab: a long placeholder naming what it finds there, and a short one
-// for a field too narrow for it (ui-search §1). Home searches everything.
-const PLACEHOLDERS = {
-  home: () => [t('Search {0}', BRAND.name), t('Search {0}', BRAND.name)],
-  train: () => [t('Exercises, routines, workouts'), t('Search training')],
-  food: () => [t('Foods, meals, days'), t('Search food')],
-  progress: () => [t('Charts, exercises, workouts'), t('Search progress')],
-}
-export const SCOPES = Object.keys(PLACEHOLDERS)
 
 // The shortcut a desktop keyboard opens search with (bearmenu use-search-shortcut).
 const isMac = () => {
@@ -35,11 +24,10 @@ const isMac = () => {
 // key `onKeys`'s (the overlay's arrows, Enter, Home and End). `placeholder` replaces the tab's
 // (a scoped search says what it is scoped to). `onScan` adds the barcode button while expanded.
 export default function SearchPill({ scope = 'home', value, onChange, onOpen, expanded = false, controls, activeDescendant, placeholder: scoped, onEscape, onKeys, onScan, inputRef, shortcut = false }) {
-  oneOf('SearchPill', 'scope', scope, SCOPES)
+  oneOf('SearchPill', 'scope', scope, SEARCH_TABS)
   const own = useRef(null)
   const input = inputRef || own
-  const [long, short] = scoped ? [scoped, scoped] : PLACEHOLDERS[scope]()
-  const placeholder = usePlaceholderFit(input, long, short)
+  const placeholder = scoped || placeholderFor(scope)
   // Bumped on the press, not on the open, so the magnifier answers the finger (§10.4).
   const [replay, setReplay] = useState(0)
   const clear = () => { onChange?.(''); input.current?.focus() }
@@ -56,7 +44,7 @@ export default function SearchPill({ scope = 'home', value, onChange, onOpen, ex
     <label className="spill" role="search" onPointerDown={onOpen ? () => setReplay(n => n + 1) : undefined}>
       {onOpen ? <Suspense fallback={glyph}><MotionMagnifier active={expanded} replayToken={replay} className="spill-g" /></Suspense> : glyph}
       <input ref={input} className="spill-i" type="text" inputMode="search"
-        role={onOpen ? 'combobox' : undefined} aria-label={scoped || long}
+        role={onOpen ? 'combobox' : undefined} aria-label={placeholder}
         aria-haspopup={onOpen ? 'listbox' : undefined} aria-expanded={onOpen ? expanded : undefined}
         aria-controls={onOpen && expanded ? controls : undefined}
         aria-activedescendant={onOpen && expanded && activeDescendant ? activeDescendant : undefined}

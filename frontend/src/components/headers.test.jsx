@@ -33,11 +33,6 @@ const typeInto = (input, value) => act(() => {
   input.dispatchEvent(new Event('input', { bubbles: true }))
 })
 
-// A field `width` px wide, and a canvas whose text is `perChar` px a character.
-function measuredAt(width, perChar = 8) {
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(width)
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ font: '', measureText: s => ({ width: s.length * perChar }) })
-}
 
 function Pill(props) {
   const [value, setValue] = useState(props.initial || '')
@@ -53,26 +48,8 @@ describe('SearchPill', () => {
     for (const [k, v] of [['autocomplete', 'off'], ['autocorrect', 'off'], ['autocapitalize', 'off'], ['spellcheck', 'false'], ['enterkeyhint', 'search']]) {
       expect(input.getAttribute(k), k).toBe(v)
     }
-    // the long placeholder names the scope for a screen reader, whatever fits on screen
-    expect(input.getAttribute('aria-label')).toBe('Exercises, routines, workouts')
-  })
-
-  it('takes the long placeholder where it fits and the short one where it does not', () => {
-    measuredAt(300)
-    render(<Pill scope="train" />)
-    expect($('input').placeholder).toBe('Exercises, routines, workouts')
-    act(() => root.unmount())
-    root = createRoot(host)
-    vi.restoreAllMocks()
-    measuredAt(140)
-    render(<Pill scope="train" />)
-    expect($('input').placeholder).toBe('Search training')
-  })
-
-  it('falls back to the short placeholder where nothing can measure', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
-    render(<Pill scope="food" />)
-    expect($('input').placeholder).toBe('Search food')
+    // the placeholder names the scope for a screen reader too
+    expect(input.getAttribute('aria-label')).toBe('Search training')
   })
 
   it('measures with the letter spacing', () => {
@@ -80,13 +57,12 @@ describe('SearchPill', () => {
     expect(longFits('abcd', 31, s => s.length * 8)).toBe(false)
   })
 
-  it('says each tab\'s scope', () => {
-    for (const [scope, short] of [['home', 'Search Gains'], ['progress', 'Search progress']]) {
-      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+  it('says each real tab\'s placeholder, and knows no other scope', () => {
+    for (const [scope, text] of [['home', 'Search Gains'], ['train', 'Search training'], ['food', 'Search food'], ['me', 'Search Gains']]) {
       render(<Pill key={scope} scope={scope} />)
-      expect($('input').placeholder).toBe(short)
+      expect($('input').placeholder).toBe(text)
     }
-    expect(() => render(<Pill scope="me" />)).toThrow(/SearchPill: scope="me"/)
+    expect(() => render(<Pill scope="progress" />)).toThrow(/SearchPill: scope="progress"/)
   })
 
   it('clears with its button and with Escape, keeping the focus', () => {
@@ -167,10 +143,13 @@ describe('RootHeader (the tab-root header)', () => {
     expect($('input').placeholder).toBe('Search training')
   })
 
-  it('reads the tab from the address, not from the page', () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+  it('reads the tab from the address, not from the page: Progress is Me\'s', () => {
+    at('/food', <RootHeader title="Progress" />)
+    expect($('input').placeholder).toBe('Search food')
+    act(() => root.unmount())
+    root = createRoot(host)
     at('/progress', <RootHeader title="Progress" />)
-    expect($('input').placeholder).toBe('Search progress')
+    expect($('input').placeholder).toBe('Search Gains')
   })
 
   it('keeps what was typed in the pill while search is open', () => {
