@@ -3311,7 +3311,6 @@ export default {
   'Check both, or use a reset code from your admin.': 'Check both, or use a reset code from your admin.',
   'Set password and sign in': 'Set password and sign in',
   // --- Today hero kit: English until the translation pass ---
-  'Notifications, {0} new': 'Notifications, {0} new',
   'Today at a glance': 'Today at a glance',
   '{0}: {1}. Open details': '{0}: {1}. Open details',
   'Page {0} of {1}': 'Page {0} of {1}',
@@ -3332,4 +3331,6 @@ export default {
   'Your invite needs a connection to open.': 'Your invite needs a connection to open.',
   'You’re already in': 'You’re already in',
   'You’re offline': 'You’re offline',
+  // --- Shared pages: English until the translation pass ---
+  'Notifications, {0} unread': 'Notifications, {0} unread',
 }
