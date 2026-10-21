@@ -263,7 +263,9 @@ export function usePlan() {
     discardBroken: () => update(s => { s.queue = null; s.scheduleMode = 'week' }),
     openDay,
     openMenu: () => planToolsSheet(),
-    openVolume: () => nav('/progress/load?view=plan'),
+    // Training load's Balance: the done sets per muscle beside these planned ones. Its old Plan
+    // segment (?view=plan) now redirects back here.
+    openVolume: () => nav('/progress/load?view=muscles'),
     // T3.3's first way in: with routines and a loop to fill, add them to it; otherwise make some.
     addRoutines: () => (mode === 'rotation' && addable.length ? addToLoop() : nav('/train/routines')),
     pickPlan: () => starterPlanSheet(),

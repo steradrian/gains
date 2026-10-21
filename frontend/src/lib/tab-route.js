@@ -78,9 +78,9 @@ const LEGACY = [
 ]
 
 // The whole new address for an old one, query and fragment kept. Plan's old "Weekly muscle
-// volume" link (/stats?focus=weekly-volume) opens Training load on its Plan segment.
+// volume" link (/stats?focus=weekly-volume) opens the Plan page, where the weekly volume moved.
 export function legacyPath(pathname = '', search = '', hash = '') {
-  if (pathname === '/stats' && /[?&]focus=weekly-volume\b/.test(search)) return '/progress/load?view=plan' + hash
+  if (pathname === '/stats' && /[?&]focus=weekly-volume\b/.test(search)) return '/train/schedule' + hash
   for (const [from, to] of LEGACY) if (under(pathname, from)) return to + pathname.slice(from.length) + search + hash
   return null
 }

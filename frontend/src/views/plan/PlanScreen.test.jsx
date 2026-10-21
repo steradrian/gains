@@ -444,7 +444,7 @@ describe('Plan — weekly muscle volume', () => {
     expect($$('.g-vbar').length).toBeGreaterThan(0)
     expect($('.g-vbars-note').textContent).toBe('Planned sets per week, from your plan. The line is a common target of 10 to 12.')
     click(byLabel('See in Training load'))
-    expect(nav).toHaveBeenCalledWith('/progress/load?view=plan')
+    expect(nav).toHaveBeenCalledWith('/progress/load?view=muscles')
   })
 })
 
