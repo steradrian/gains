@@ -7,13 +7,14 @@ import Act from './Act.jsx'
 // and meal it wrote to, Undo, and a bar draining over `duration` seconds. `actionLabel` (with
 // `actionHref`/`onAction`) names another action than Undo; `onUndo={false}` hides the button,
 // `icon={null}` the glyph, `duration={false}` the bar. `paused` holds the bar where it is, and a new
-// `restartKey` starts it over (and gives the button a fresh element).
+// `restartKey` starts it over (and gives the button a fresh element). `body` is a second, quieter
+// line under the message (what else went with a deleted workout).
 //
 // This only draws. The app's one toast (components/Toast.jsx, useUI.toast) draws through it and
 // owns the timing, the presence motion and the focus; `role` is null there, its #toast is the live
 // region. Under reduced motion the bar stands still (ds.css).
 export default function UndoToast({
-  message, children, onUndo, undoHref, undoLabel, actionLabel, actionHref, onAction,
+  message, children, body, onUndo, undoHref, undoLabel, actionLabel, actionHref, onAction,
   icon = 'check', duration = 8, paused = false, restartKey, role = 'status', className, ref, ...rest
 }) {
   const action = onUndo !== false
@@ -21,7 +22,7 @@ export default function UndoToast({
     <div ref={ref} {...rest} role={role} className={cx('g-utoast', className)}>
       <div className="g-utoast-row">
         {icon && <span className="g-utoast-ic" aria-hidden="true"><Icon name={icon} className="g-icon" /></span>}
-        <span className="g-utoast-msg">{message ?? children}</span>
+        <span className="g-utoast-msg">{message ?? children}{body && <span className="g-utoast-body">{body}</span>}</span>
         {action && <Act key={restartKey} href={undoHref || actionHref} onClick={onUndo || onAction} className="g-utoast-undo">
           {actionLabel || undoLabel || t('Undo')}
         </Act>}

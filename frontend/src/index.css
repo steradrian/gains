@@ -225,7 +225,7 @@ p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;
 /* A sheet takes the focus itself when it opens (lib/use-sheet-dialog.js): the dialog is where you
    are, not a control, so no ring around the whole sheet. Its controls keep theirs. */
 [role="dialog"][tabindex="-1"]:focus-visible{outline:none}
-button,.chip,.tile,.item,.cal-d,.swatch,.hm-c,.lrow,.seg button,.stp button,.sld
+button,.chip,.tile,.item,.cal-d,.swatch,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
 /* icons inherit colour and optical size from their context */
@@ -467,9 +467,6 @@ h4.sec{
 .btn.sm .icn{font-size:16px}
 .btn.xs{padding:5px 10px;width:auto;font-size:13px;border-radius:7px;gap:4px}
 .btn:disabled{opacity:.32;pointer-events:none}
-.weekly-volume-toggle{padding-block:0}
-.weekly-volume-toggle .icn{transition:transform var(--fast) var(--ease)}
-.weekly-volume-toggle[aria-expanded="true"] .icn{transform:rotate(180deg)}
 
 /* ---------------------------------------------------------- tab dot ----- */
 /* The tab bar is the design system's (ds/GlassTabBar.jsx), placed on screen in tab-shell.css. */
@@ -595,7 +592,7 @@ h4.sec{
    vertical scroll that happens to start on it costs nothing; the ~130px heatmap wrap keeps
    both axes, there the trade-off goes the other way. The chips contain both axes: once a
    strip is at its end, a diagonal drag must not chain into the page either. */
-.chips,.hm-wrap{overscroll-behavior-x:contain;scroll-padding-inline:16px}
+.chips{overscroll-behavior-x:contain;scroll-padding-inline:16px}
 .chips{touch-action:pan-x;overscroll-behavior:contain}
 /* The chip hit-area (.chip::before) must not poke out of the strip vertically: overflow-x:auto
    makes overflow-y auto as well, and 6px of positioned overflow once gave the row a scroll
@@ -1619,37 +1616,7 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   pointer-events:none;box-shadow:0 6px 18px -4px rgba(0,0,0,.4);
 }
 
-/* --- activity heatmap --- */
-.hm-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
-.hm-wrap::-webkit-scrollbar{display:none}
-.hm-months{display:flex;margin-inline-start:28px;margin-bottom:5px}
-.hm-months span{flex:none;width:14px;font-size:11px;color:var(--label-3);white-space:nowrap;overflow:visible}
-.hm-body{display:flex}
-.hm-days{display:flex;flex-direction:column;gap:3px;flex:none;width:28px}
-.hm-days span{height:11px;font-size:10px;color:var(--label-2);line-height:11px}
-.hm-grid{display:flex;gap:3px}
-.hm-col{display:flex;flex-direction:column;gap:3px}
-.hm-c{width:11px;height:11px;border-radius:3px;background:var(--surface-2);flex:none}
-.hm-c.l1{background:color-mix(in srgb,var(--acc) 30%,var(--surface-2))}
-.hm-c.l2{background:color-mix(in srgb,var(--acc) 55%,var(--surface-2))}
-.hm-c.l3{background:color-mix(in srgb,var(--acc) 78%,var(--surface-2))}
-.hm-c.l4{background:var(--acc)}
-.hm-c.today{box-shadow:0 0 0 1.5px var(--acc)}
-.hm-c.future{opacity:.3}
-.hm-c.noted{box-shadow:inset 0 0 0 1.5px var(--indigo)}
-.hm-legend{
-  display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:9px;
-  font-size:11px;color:var(--label-3);
-}
-.hm-legend .hm-c{width:10px;height:10px}
-
-/* "Share as image" (#453): the card as it will be sent, at the sheet's width. The placeholder
-   holds a portrait card's shape so nothing below it jumps when the picture lands. */
-.share-card{margin:0 auto 14px;max-width:420px}
-.share-card img{display:block;width:100%;max-height:56vh;object-fit:contain;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.28)}
-.share-card-ph{aspect-ratio:4/5;max-height:56vh;margin:0 auto;border-radius:16px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;text-align:center;padding:16px}
 /* --- muscle map --- */
-/* Reuses the .hm-c level ramp above, so one accent scale means one thing app-wide. */
 /* An untrained muscle is derived from the text colour rather than a fixed surface, so
    the body keeps the same contrast in both themes — pinned to --surface-2 it was all
    but invisible on a white card. */
@@ -1665,17 +1632,6 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 .bm-m.l2{fill:color-mix(in srgb,var(--acc) 56%,var(--bm-base))}
 .bm-m.l3{fill:color-mix(in srgb,var(--acc) 78%,var(--bm-base))}
 .bm-m.l4{fill:var(--acc)}
-/* Fatigue view: attention ramp - fatigued muscles highlighted (owner tweak 2026-08-06) */
-.hm-fatigue .bm-m.l4{fill:var(--red)}
-.hm-fatigue .bm-m.l3{fill:var(--orange)}
-.hm-fatigue .bm-m.l2{fill:var(--yellow)}
-.hm-fatigue .bm-m.l1{fill:color-mix(in srgb,var(--yellow) 32%,var(--bm-base))}
-.hm-fatigue .hm-c.l4{background:var(--red)}
-.hm-fatigue .hm-c.l3{background:var(--orange)}
-.hm-fatigue .hm-c.l2{background:var(--yellow)}
-/* Strength view: top band pops gold (owner tweak 2026-08-06) */
-.hm-strength .bm-m.l4{fill:var(--yellow);filter:drop-shadow(0 0 1.5px var(--yellow))}
-.hm-strength .hm-c.l4{background:var(--yellow)}
 
 .bm-m.sel{stroke:var(--label);stroke-width:7}
 .bodymap.tappable .bm-m{cursor:pointer}
@@ -1781,14 +1737,6 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 /* A1, A2…: a member's place in the round (#293). */
 .ss-pos{flex:none;min-width:26px;height:22px;padding:0 5px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--acc-ink);background:var(--acc-soft, var(--surface-2))}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
-/* A past workout's detail: each exercise opens its history, and a superset's exercises share the
-   routine editor's label and bar. */
-.wd-ex{margin-bottom:12px;cursor:pointer;border-radius:10px}
-.wd-ex>.grow{flex:1;min-width:0}
-.wd-ex:active{background:var(--surface-2)}
-.wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
-.wd-ss .ss-label{margin:0 0 8px}
-.wd-ss .wd-ex:last-child{margin-bottom:0}
 .ss-card{
   border-radius:var(--r-lg);padding:14px;
   background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);
@@ -1885,7 +1833,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   #timer{left:50%;right:auto;margin-left:-260px;width:520px;bottom:112px}
   body.no-tabbar #timer{left:50%;right:auto;bottom:16px;border-radius:var(--r-xl);padding-bottom:10px;box-shadow:var(--shadow-float)}
   .exmedia img,.exmedia video{height:380px}
-  .hm-wrap{display:flex;flex-direction:column;align-items:center}
 }
 
 /* ------------------------------------------------------- gym check-in -- */
@@ -2041,7 +1988,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 [dir="rtl"] .sw.on:active .knob{transform:translateX(-16px)}
 /* Chronological grids keep their left-to-right order: heatmap weeks and calendar
    weekdays would otherwise mirror. */
-[dir="rtl"] .hm-wrap,[dir="rtl"] .cal-grid{direction:ltr}
+[dir="rtl"] .cal-grid{direction:ltr}
 /* Tight tracking is tuned for Latin; Arabic is a connected script and gets none. */
 [dir="rtl"] *{letter-spacing:0}
 .list .similar-label{margin:16px 2px 6px;grid-column:1/-1}

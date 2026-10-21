@@ -1,7 +1,7 @@
 // Train's ring numbers (PR02 T2.0): the best streak, a week's volume and how the pair reads,
 // and how long a routine usually takes.
 import { describe, expect, it } from 'vitest'
-import { bestStreakWeeks, TONNE_FROM, usualDuration, volumePair, weekVolume } from './train-stats.js'
+import { bestStreakWeeks, TONNE_FROM, usualDuration, volumePair, volumeText, weekVolume } from './train-stats.js'
 
 const at = (d, h = 10) => new Date(`${d}T${String(h).padStart(2, '0')}:00:00`).getTime()
 const w = (d, extra = {}) => ({ id: d + (extra.id || ''), d, start: at(d), end: at(d, 11), entries: [], ...extra })
@@ -44,6 +44,14 @@ describe('volumePair', () => {
 
   it('a pound profile stays in pounds', () => {
     expect(volumePair(31000, 20000, 'lb')).toEqual({ a: '31,000', b: '20,000', unit: 'lb' })
+  })
+})
+
+describe('volumeText', () => {
+  it('one volume by the same rule: kilograms, tonnes from 10 000 kg, pounds stay pounds', () => {
+    expect(volumeText(9600, 'kg')).toBe('9,600 kg')
+    expect(volumeText(12400, 'kg')).toBe('12.4 t')
+    expect(volumeText(31000, 'lb')).toBe('31,000 lb')
   })
 })
 

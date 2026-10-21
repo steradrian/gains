@@ -456,7 +456,7 @@ describe('back on a sub-page', () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(target('History'))
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/train')
     expect(idx()).toBe(0)
   })
@@ -598,7 +598,7 @@ describe('a sheet\'s entry nobody is closing', () => {
     host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
     await act(async () => { root.render(<App />) })
     await settle()
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/train')
   })
 
@@ -606,7 +606,7 @@ describe('a sheet\'s entry nobody is closing', () => {
     await launch('#/train')
     await go(() => nav('/train/history'))
     window.history.pushState({ ...window.history.state, idx: 2, gainsSheet: true }, '')
-    const backBtn = () => document.querySelector('.sub-hdr button[aria-label="Back"]')
+    const backBtn = () => document.querySelector('.g-snav-back')
     await click(backBtn())
     await click(backBtn())
     expect(hash()).toBe('#/train')
@@ -757,23 +757,21 @@ describe('the launch', () => {
 
   it('takes an old route to where it lives now', async () => {
     await launch('#/stats?focus=weekly-volume')
-    // Into Training load's Plan segment, where the weekly volume is; the hub is its parent, not
-    // stacked in.
-    expect(hash()).toBe('#/progress/load?view=plan')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Training load')
-    expect([...document.querySelectorAll('.seg button')].find(b => b.textContent === 'Plan').getAttribute('aria-pressed')).toBe('true')
+    // Into the Plan page, where the weekly volume moved; Train is its parent, not stacked in.
+    expect(hash()).toBe('#/train/schedule')
+    expect(document.querySelector('.g-spage-title').textContent).toBe('Plan')
     expect(idx()).toBe(0)
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
-    expect(hash()).toBe('#/progress')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/train')
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('turns Plan\'s old weekly-volume link into the Plan segment, in its place', async () => {
+  it('turns Training load\'s old Plan segment link into the Plan page, in its place', async () => {
     await launch('#/progress/load?focus=weekly-volume')
-    expect(hash()).toBe('#/progress/load?view=plan')
+    expect(hash()).toBe('#/train/schedule')
     expect(idx()).toBe(0)
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
-    expect(hash()).toBe('#/progress')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/train')
   })
 
   it('keeps the fragment of an old route', async () => {

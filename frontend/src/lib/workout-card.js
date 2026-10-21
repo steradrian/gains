@@ -1,8 +1,10 @@
-// A finished workout as a picture, for "Share as image" in its detail sheet (#453): plain text
-// loses its layout in most chat apps, a card keeps it. Three steps, so the part that decides what
-// the card says and where it goes is testable without a canvas:
-//   workoutCardModel  — what the card says: name, date, duration, sets, volume, new bests and
-//                       how hard each muscle was worked
+// A finished workout as a picture, for "Share as image" (#453, board T8.3): plain text loses its
+// layout in most chat apps, a card keeps it. The card is the board's: the stage's gradient in the
+// person's accent, the name and the date, "52 min · 18 sets · 9,600 kg", the new bests, the muscle
+// map beside them and the wordmark. Three steps, so the part that decides what the card says and
+// where it goes is testable without a canvas:
+//   workoutCardModel  — what the card says: name, date, the line, new bests and how hard each
+//                       muscle was worked
 //   layoutWorkoutCard — where everything goes, given a way to measure text
 //   drawWorkoutCard   — paints a layout onto a 2D canvas context
 // Nothing here stores anything; the workout is read, never written.
@@ -10,27 +12,36 @@ import { sessionSections, workoutVolume, workoutDuration, workoutDay, doneUnits 
 import { EXIDX } from './exercises.js'
 import { isWarmupRow } from './workout-model.js'
 import { MUSCLES, INERT, levelsOf, loadOfWorkouts } from './muscles.js'
-import { fmtDate, fmtDur, fmtNum, fmtVol, capWords } from './format.js'
-import { t, exerciseNameClass } from './i18n-core.js'
-import { BRAND } from '../brand.js'
+import { bestSetOf } from './onerm.js'
+import { volumeText } from './train-stats.js'
+import { fmtDate, durPart, fmtNum, capWords } from './format.js'
+import { t, tn, exerciseNameClass } from './i18n-core.js'
+import { WORDMARK } from '../ds/wordmark.js'
 
 export const CARD_WIDTH = 1080
-const PAD = 88
-const MIN_HEIGHT = 720
+const PAD = 72
+const MIN_HEIGHT = 640
 // More than this many new bests and the rest are counted instead of listed: a card that grows
 // past a phone screen is not glanceable any more.
 export const MAX_RECORDS = 6
 const TITLE_LINES = 2
-const STAT_SIZE = 56
-const MAP_MAX_HEIGHT = 560
+const LINE_LINES = 3
+const VIEW_W = 200
+const VIEW_GAP = 28
+const COL_GAP = 48
+const MAP_MAX_HEIGHT = 420
+const MARK_H = 44
+const [, , MARK_VW, MARK_VH] = WORDMARK.viewBox.split(/\s+/).map(Number)
 
 /**
  * What the card says. `unit` is the profile's, `nameOf(entry)` the exercise's display name — the
  * same pair "Copy as text" takes (workoutText). Sets are work sets, as the volume is: warm-ups are
  * left out of both, the way they are left out of records and progression everywhere else. A
- * per-side set counts once per side, as the workout screen counts it. `levels` is the finish
- * summary's muscle map for this one session (levelsOf over loadOfWorkouts), null when no set
- * reached a muscle the map can show — a card of only cardio has nothing to shade.
+ * per-side set counts once per side, as the workout screen counts it. `line` is the board's
+ * "52 min · 18 sets · 9,600 kg", the volume by Train's rule (tonnes from 10 000 kg). `records`
+ * are the new bests, each with its best set where it has one ("Bench press 82.5 × 6"). `levels`
+ * is the finish summary's muscle map for this one session (levelsOf over loadOfWorkouts), null
+ * when no set reached a muscle the map can show — a card of only cardio has nothing to shade.
  */
 export function workoutCardModel(w, { unit, nameOf }) {
   const entries = w.entries || []
@@ -43,21 +54,23 @@ export function workoutCardModel(w, { unit, nameOf }) {
     const entry = entries[i]
     if (!entry || !prs.has(entry.id) || records.some(r => r.id === entry.id)) continue
     const name = nameOf(entry)
-    records.push({ id: entry.id, name: exerciseNameClass(EXIDX[entry.id]) ? capWords(name) : name })
+    const best = bestSetOf(entry)
+    const shown = exerciseNameClass(EXIDX[entry.id]) ? capWords(name) : name
+    records.push({ id: entry.id, text: best ? shown + ' ' + fmtNum(best.w) + ' × ' + best.r : shown })
   }
   const day = workoutDay(w)
-  const ms = workoutDuration(w)
   const levels = levelsOf(loadOfWorkouts([w]))
+  // Imported history has no clock: an unknown duration is left out rather than shown as 0.
+  const line = [
+    ...durPart(workoutDuration(w)),
+    tn('{0} set', '{0} sets', sets),
+    volumeText(w.vol ?? workoutVolume(w), unit),
+  ].join(' · ')
   return {
     title: w.name || '',
-    date: day ? fmtDate(day, true, true) : '',
-    // Imported history has no clock: an unknown duration is left out rather than shown as 0.
-    stats: [
-      ...(ms >= 60000 ? [{ label: t('Duration'), value: fmtDur(ms) }] : []),
-      { label: t('Sets'), value: fmtNum(sets) },
-      { label: t('Volume'), value: fmtVol(w.vol ?? workoutVolume(w), unit) },
-    ],
-    records: records.map(r => r.name),
+    date: day ? fmtDate(day, true) : '',
+    line,
+    records: records.map(r => r.text),
     levels: MUSCLES.some(m => levels[m] > 0) ? levels : null,
   }
 }
@@ -85,111 +98,71 @@ function ellipsize(text, width, measure) {
   return s.trimEnd() + '…'
 }
 
-// The largest size up to `max` at which `text` fits `width`: a 12,345.5 kg volume shrinks to fit
-// its tile rather than running into the next one.
-function fitSize(text, width, measure, weight, max, min = 28) {
-  let size = max
-  while (size > min && measure(text, weight, size) > width) size -= 2
-  return size
-}
-
 /**
  * Where everything goes. `measure(text, weight, size)` returns a width in pixels — the canvas's
  * measureText in the app, a fake in the tests. `rtl` mirrors the card for Arabic: text anchors
- * at the right edge, the tiles run right to left and the trophy sits to the right of its line.
- * `map` is `{ aspect }`, one body view's height over its width, to include the muscle map, or
- * null to leave it out; a model without levels has none either way. Returns the canvas size and
- * a flat list of items for drawWorkoutCard; a text item carries its size and weight, the font
- * family is the drawer's.
+ * at the right edge, the date goes to the left and the map to the right. `map` is `{ aspect }`,
+ * one body view's height over its width, to include the muscle map, or null to leave it out; a
+ * model without levels has none either way. Returns the canvas size and a flat list of items for
+ * drawWorkoutCard; a text item carries its size and weight (and `align: 'end'` for the date), the
+ * font family is the drawer's.
  */
 export function layoutWorkoutCard(model, { measure, rtl = false, width = CARD_WIDTH, map = null }) {
   const items = []
   const inner = width - PAD * 2
   const start = rtl ? width - PAD : PAD
+  const end = rtl ? PAD : width - PAD
   const dir = rtl ? -1 : 1
   let y = PAD
-  const text = (str, size, weight, color, x = start, extra) => {
-    items.push({ kind: 'text', text: str, x, y: y + size, size, weight, color, ...extra })
-    y += Math.round(size * 1.3)
-  }
 
-  items.push({ kind: 'bar', x: start, y, w: 96 * dir, h: 10 })
-  y += 10 + 52
-  for (const line of wrapText(model.title, inner, s => measure(s, 700, 76), TITLE_LINES)) text(line, 76, 700, 'label')
-  if (model.date) { y += 4; text(model.date, 38, 400, 'label2') }
-
-  // The numbers as tiles, the way the finish summary shows them.
-  y += 36
-  const gap = 20
-  const n = model.stats.length
-  const tileW = (inner - gap * (n - 1)) / n
-  const tileH = 150
-  model.stats.forEach((stat, i) => {
-    const x = rtl ? width - PAD - (i + 1) * tileW - i * gap : PAD + i * (tileW + gap)
-    const textX = rtl ? x + tileW - 28 : x + 28
-    const room = tileW - 56
-    items.push({ kind: 'tile', x, y, w: tileW, h: tileH })
-    const [label] = wrapText(stat.label, room, s => measure(s, 500, 28), 1)
-    items.push({ kind: 'text', text: label, x: textX, y: y + 28 + 28, size: 28, weight: 500, color: 'label2' })
-    const size = fitSize(stat.value, room, measure, 700, STAT_SIZE)
-    items.push({ kind: 'text', text: stat.value, x: textX, y: y + tileH - 32, size, weight: 700, color: 'label' })
+  // The head: the name, and the date at the other end of its first line.
+  const dateW = model.date ? measure(model.date, 600, 40) : 0
+  const titleLines = wrapText(model.title, inner - (dateW ? dateW + 40 : 0), s => measure(s, 700, 72), TITLE_LINES)
+  const head = titleLines.length ? titleLines : ['']
+  head.forEach((line, i) => {
+    if (line) items.push({ kind: 'text', text: line, x: start, y: y + 72, size: 72, weight: 700, color: 'label' })
+    if (i === 0 && model.date) items.push({ kind: 'text', text: model.date, x: end, y: y + 72, size: 40, weight: 600, color: 'label2', align: 'end' })
+    y += 94
   })
-  y += tileH
 
-  // Front and back side by side, as large as the width allows without running past a phone
-  // screen, with the finish summary's five-step legend under them.
-  if (map && model.levels) {
-    y += 48
-    const viewGap = 40
-    let viewW = (inner - viewGap) / 2
-    let viewH = viewW * map.aspect
+  // The body: the map on the reading side, the line and the new bests beside it, both centred
+  // on the taller of the two.
+  y += 36
+  const withMap = !!(map && model.levels)
+  let viewW = 0, viewH = 0
+  if (withMap) {
+    viewW = VIEW_W
+    viewH = viewW * map.aspect
     if (viewH > MAP_MAX_HEIGHT) { viewH = MAP_MAX_HEIGHT; viewW = viewH / map.aspect }
-    const left = (width - (viewW * 2 + viewGap)) / 2
-    items.push({ kind: 'map', view: 'front', x: left, y, w: viewW, h: viewH })
-    items.push({ kind: 'map', view: 'back', x: left + viewW + viewGap, y, w: viewW, h: viewH })
-    y += viewH + 32
-    const sw = 26
-    const swGap = 8
-    const less = t('Less')
-    const more = t('More')
-    const labelGap = 16
-    const total = measure(less, 400, 28) + labelGap + 5 * sw + 4 * swGap + labelGap + measure(more, 400, 28)
-    let x = (width - total) / 2
-    // Read the way the language reads: "Less" first on the reading side, the ramp toward "More".
-    const parts = rtl ? [more, 4, 3, 2, 1, 0, less] : [less, 0, 1, 2, 3, 4, more]
-    for (const part of parts) {
-      if (typeof part === 'number') {
-        items.push({ kind: 'swatch', x, y, size: sw, level: part })
-        x += sw + (parts.indexOf(part) === parts.length - 2 ? labelGap : swGap)
-      } else {
-        const w = measure(part, 400, 28)
-        // Drawn left-anchored whatever the direction, so the row lands where it was measured.
-        items.push({ kind: 'text', text: part, x, y: y + sw - 3, size: 28, weight: 400, color: 'label2', anchor: 'left' })
-        x += w + labelGap
-      }
-    }
-    y += sw
   }
-
+  const mapW = withMap ? viewW * 2 + VIEW_GAP : 0
+  const colX = withMap ? start + (mapW + COL_GAP) * dir : start
+  const colW = withMap ? inner - mapW - COL_GAP : inner
+  const col = []
+  let cy = 0
+  const add = (text, size, weight, color) => { col.push({ text, size, weight, color, y: cy + size }); cy += Math.round(size * 1.35) }
+  for (const l of wrapText(model.line, colW, s => measure(s, 600, 46), LINE_LINES)) add(l, 46, 600, 'label')
   if (model.records.length) {
-    y += 52
-    text(t('New personal records'), 34, 600, 'acc')
-    y += 10
-    const icon = 44
-    const indent = icon + 22
+    cy += 18
+    add(t('New bests'), 40, 600, 'label2')
     const shown = model.records.length > MAX_RECORDS ? model.records.slice(0, MAX_RECORDS - 1) : model.records
-    for (const name of shown) {
-      items.push({ kind: 'trophy', x: rtl ? start - icon : start, y: y + 4, size: icon })
-      const [line] = wrapText(name, inner - indent, s => measure(s, 500, 42), 1)
-      text(line, 42, 500, 'label', start + indent * dir)
-      y += 14
-    }
-    if (shown.length < model.records.length) text(t('and {0} more', model.records.length - shown.length), 38, 400, 'label2', start + indent * dir)
+    for (const r of shown) add(wrapText(r, colW, s => measure(s, 600, 44), 1)[0], 44, 600, 'label')
+    if (shown.length < model.records.length) add(t('and {0} more', model.records.length - shown.length), 40, 500, 'label2')
   }
+  const blockH = Math.max(viewH, cy)
+  if (withMap) {
+    const top = y + (blockH - viewH) / 2
+    items.push({ kind: 'map', view: 'front', x: rtl ? start - viewW : start, y: top, w: viewW, h: viewH })
+    items.push({ kind: 'map', view: 'back', x: rtl ? start - mapW : start + viewW + VIEW_GAP, y: top, w: viewW, h: viewH })
+  }
+  const colTop = y + (blockH - cy) / 2
+  for (const c of col) items.push({ kind: 'text', text: c.text, x: colX, y: colTop + c.y, size: c.size, weight: c.weight, color: c.color })
+  y += blockH + 56
 
-  y += 64
-  const height = Math.max(MIN_HEIGHT, Math.round(y + 34 + PAD))
-  items.push({ kind: 'text', text: BRAND.name, x: start, y: height - PAD, size: 34, weight: 700, color: 'acc' })
+  // The wordmark at the foot, on the reading side.
+  const height = Math.max(MIN_HEIGHT, Math.round(y + MARK_H + PAD))
+  const markW = MARK_H * MARK_VW / MARK_VH
+  items.push({ kind: 'wordmark', x: rtl ? start - markW : start, y: height - PAD - MARK_H, w: markW, h: MARK_H })
   return { width, height, rtl, items }
 }
 
@@ -222,10 +195,10 @@ export function mixColor(a, b, p) {
   return `rgb(${ch(0)}, ${ch(1)}, ${ch(2)})`
 }
 /**
- * The muscle map's fills for the card, worked out the way index.css works them out for .bodymap:
- * the silhouette and an untouched muscle as a little label over the surface, levels 1–4 as more
- * and more accent over that. A semi-transparent label (the light theme's) is flattened onto the
- * surface first.
+ * The muscle map's fills: the silhouette and an untouched muscle as a little label over the
+ * surface, levels 1–4 as more and more accent over that. A semi-transparent label is flattened
+ * onto the surface first. On the card the surface is the stage and the accent is white, as the
+ * design system's BodyMap shades on the stage.
  */
 export function mapColors({ label, surface, acc }) {
   const lab = parseColor(label)
@@ -237,13 +210,21 @@ export function mapColors({ label, surface, acc }) {
   }
 }
 
+/**
+ * The two ends of a CSS `linear-gradient(<deg>, …)` over a `width` × `height` box, as canvas
+ * coordinates: 0deg runs bottom to top, 90deg left to right, 170deg (the stage's) down and a
+ * little to the right.
+ */
+export function gradientLine(width, height, deg) {
+  const a = deg * Math.PI / 180
+  const vx = Math.sin(a), vy = -Math.cos(a)
+  const half = (Math.abs(width * vx) + Math.abs(height * vy)) / 2
+  const cx = width / 2, cy = height / 2
+  return [cx - vx * half, cy - vy * half, cx + vx * half, cy + vy * half]
+}
+
 /* ---------- drawing ---------- */
 
-// The trophy from components/Icon.jsx, on its 24×24 grid, so the card and the app agree.
-const TROPHY = [
-  'M7.6 4h8.8v4.6a4.4 4.4 0 0 1-8.8 0Z',
-  'M7.6 5.6H4.9v1.5a3 3 0 0 0 2.9 3M16.4 5.6h2.7v1.5a3 3 0 0 1-2.9 3M12 13v3.4M8.6 20.4h6.8l-.7-4H9.3Z',
-]
 export const CARD_FONT = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,system-ui,sans-serif"
 
 /** One body view's height over its width, from its `vb` ("minX minY width height"). */
@@ -253,50 +234,29 @@ export const viewAspect = view => {
 }
 
 /**
- * Paint a layout. `colors` holds bg, surface, tile, label, label2 and acc as CSS colours — the
- * app's current theme and accent, read off the root element by the caller. `map`, when the
+ * Paint a layout. `colors` holds stage and stageEnd (the accent's stage gradient), label and
+ * label2 (the text on it) as CSS colours, read off the drawer by the caller. `map`, when the
  * layout has a map in it, is `{ body, levels }`: body-paths.js geometry for the profile's body
  * ({ front, back }) and the model's levels.
  */
 export function drawWorkoutCard(ctx, layout, colors, map = null, family = CARD_FONT) {
   const { width, height, rtl, items } = layout
-  const shades = mapColors(colors)
-  ctx.fillStyle = colors.bg
+  const shades = mapColors({ label: colors.label, surface: colors.stage, acc: colors.label })
+  const fill = ctx.createLinearGradient(...gradientLine(width, height, 170))
+  fill.addColorStop(0, colors.stage)
+  fill.addColorStop(1, colors.stageEnd)
+  ctx.fillStyle = fill
   ctx.fillRect(0, 0, width, height)
-  const inset = 36
-  ctx.fillStyle = colors.surface
-  roundRect(ctx, inset, inset, width - inset * 2, height - inset * 2, 48)
-  ctx.fill()
   ctx.textBaseline = 'alphabetic'
   for (const item of items) {
-    if (item.kind === 'bar') {
-      ctx.fillStyle = colors.acc
-      roundRect(ctx, Math.min(item.x, item.x + item.w), item.y, Math.abs(item.w), item.h, item.h / 2)
-      ctx.fill()
-    } else if (item.kind === 'tile') {
-      ctx.fillStyle = colors.tile || colors.bg
-      roundRect(ctx, item.x, item.y, item.w, item.h, 28)
-      ctx.fill()
-    } else if (item.kind === 'swatch') {
-      ctx.fillStyle = shades.levels[item.level]
-      roundRect(ctx, item.x, item.y, item.size, item.size, 7)
-      ctx.fill()
-    } else if (item.kind === 'map') {
+    if (item.kind === 'map') {
       const view = map?.body?.[item.view]
       if (view) drawView(ctx, view, item, map.levels, shades)
-    } else if (item.kind === 'trophy') {
-      ctx.save()
-      ctx.translate(item.x, item.y)
-      ctx.scale(item.size / 24, item.size / 24)
-      ctx.strokeStyle = colors.acc
-      ctx.lineWidth = 1.7
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      for (const d of TROPHY) ctx.stroke(new Path2D(d))
-      ctx.restore()
+    } else if (item.kind === 'wordmark') {
+      drawWordmark(ctx, item, colors.label2)
     } else {
-      ctx.direction = item.anchor === 'left' ? 'ltr' : rtl ? 'rtl' : 'ltr'
-      ctx.textAlign = item.anchor === 'left' ? 'left' : 'start'
+      ctx.direction = rtl ? 'rtl' : 'ltr'
+      ctx.textAlign = item.align === 'end' ? 'end' : 'start'
       ctx.fillStyle = colors[item.color] || colors.label
       ctx.font = `${item.weight} ${item.size}px ${family}`
       ctx.fillText(item.text, item.x, item.y)
@@ -317,12 +277,19 @@ function drawView(ctx, view, box, levels, shades) {
   }
   ctx.restore()
 }
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.arcTo(x + w, y, x + w, y + h, r)
-  ctx.arcTo(x + w, y + h, x, y + h, r)
-  ctx.arcTo(x, y + h, x, y, r)
-  ctx.arcTo(x, y, x + w, y, r)
-  ctx.closePath()
+// ds/wordmark.js, letter by letter: each path carries its own "translate(x,y) scale(1,-1)".
+function drawWordmark(ctx, box, color) {
+  ctx.save()
+  ctx.translate(box.x, box.y)
+  ctx.scale(box.w / MARK_VW, box.h / MARK_VH)
+  ctx.fillStyle = color
+  for (const p of WORDMARK.paths) {
+    const [tx, ty] = (p.t.match(/translate\(([-\d.]+),([-\d.]+)\)/) || [0, 0, 0]).slice(1).map(Number)
+    ctx.save()
+    ctx.translate(tx, ty)
+    ctx.scale(1, -1)
+    ctx.fill(new Path2D(p.d))
+    ctx.restore()
+  }
+  ctx.restore()
 }

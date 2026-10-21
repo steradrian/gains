@@ -83,11 +83,15 @@ let toastLeft = 0
 let toastT0 = 0
 let toastPaused = false
 let toastSeq = 0
-const runToast = set => {
+const runToast = (set, get) => {
   toastPaused = false
   toastT0 = Date.now()
   clearTimeout(toastTm)
-  toastTm = setTimeout(() => set({ toastMsg: '', toastAction: null }), toastLeft)
+  toastTm = setTimeout(() => {
+    const act = get().toastAction
+    set({ toastMsg: '', toastAction: null })
+    act?.onClose?.()
+  }, toastLeft)
 }
 let timerInt = null
 let timerTick = null
@@ -216,7 +220,7 @@ function endTone(enabled, kind) {
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
   toastMsg: '',
-  toastAction: null,   // { label, run, id, icon, ms } while the toast offers an action (Undo)
+  toastAction: null,   // { label, run, id, icon, ms, body, onClose } while the toast offers an action (Undo)
   toastPaused: false,  // held still under a finger: its drain bar stops with it
   swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
@@ -252,16 +256,21 @@ export const useUI = create((set, get) => ({
   // one showing, action and all: the old Undo is gone, what it would have undone stays done. The
   // action runs once at most, and the toast goes with it.
   // `icon` names the glyph at the toast's start (Icon.jsx), with an action only: a check unless given.
-  toast(msg, { action, onAction, ms, icon } = {}) {
+  // `body` is a second line under the message, and `onClose` runs once the action can no longer be
+  // taken, however the toast went: timed out, replaced, or its action run. What an Undo would need
+  // (a deleted workout's files) is held until then.
+  toast(msg, { action, onAction, ms, icon, body, onClose } = {}) {
     const withAction = !!(action && typeof onAction === 'function')
+    const before = get().toastAction
     clearTimeout(toastTm)
     toastLeft = ms || (withAction ? TOAST_ACTION_MS : TOAST_MS)
     toastSeq += 1
     set({
       toastMsg: msg, toastPaused: false,
-      toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'check', ms: toastLeft } : null,
+      toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'check', ms: toastLeft, body: body || null, onClose } : null,
     })
-    runToast(set)
+    before?.onClose?.()
+    runToast(set, get)
   },
   runToastAction() {
     const act = get().toastAction
@@ -269,6 +278,7 @@ export const useUI = create((set, get) => ({
     clearTimeout(toastTm)
     set({ toastMsg: '', toastAction: null, toastPaused: false })
     act.run()
+    act.onClose?.()
   },
   pauseToast() {
     if (!get().toastAction || toastPaused) return
@@ -281,7 +291,7 @@ export const useUI = create((set, get) => ({
     if (!toastPaused) return
     toastPaused = false
     set({ toastPaused: false })
-    if (get().toastMsg) runToast(set)
+    if (get().toastMsg) runToast(set, get)
   },
 
   startRest(sec, forIdx, { kind, forSet } = {}) {

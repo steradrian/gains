@@ -10,7 +10,9 @@
 // Deep links into Progress (ux-redesign-tabs §5 item 3), each taking ?range=30|90|365|0 too:
 //   /progress/body, /progress/body/measurements, /progress/body/photos   the Body page's segments
 //   /progress/strength?ex=<exercise id>                                   Strength on that exercise
-//   /progress/load?view=activity|muscles|plan|effort                      a Training load segment
+//   /progress/load?view=activity|muscles|fatigue|strength|effort          a Training load segment
+//     (view=plan, like the old focus=weekly-volume, is replaced by /train/schedule)
+//   /progress/load/muscle/<slug>                                          one muscle (lib/muscles.js MUSCLES)
 // The Body segments are one page, so a cold one's back goes to Progress, not to Weight.
 
 export const TABS = ['home', 'train', 'food', 'me']
@@ -76,9 +78,9 @@ const LEGACY = [
 ]
 
 // The whole new address for an old one, query and fragment kept. Plan's old "Weekly muscle
-// volume" link (/stats?focus=weekly-volume) opens Training load on its Plan segment.
+// volume" link (/stats?focus=weekly-volume) opens the Plan page, where the weekly volume moved.
 export function legacyPath(pathname = '', search = '', hash = '') {
-  if (pathname === '/stats' && /[?&]focus=weekly-volume\b/.test(search)) return '/progress/load?view=plan' + hash
+  if (pathname === '/stats' && /[?&]focus=weekly-volume\b/.test(search)) return '/train/schedule' + hash
   for (const [from, to] of LEGACY) if (under(pathname, from)) return to + pathname.slice(from.length) + search + hash
   return null
 }

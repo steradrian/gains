@@ -15,6 +15,9 @@ const MAX_ROWS = 62     // the hidden list of points is thinned past this, the l
 // The time axis runs left to right in every language (dir="ltr" on the chart), so a trend never
 // reads backwards; the numbers and labels inside are the caller's own strings.
 //
+// `invert` puts the smallest value at the top, for a scale that counts down as it gets harder (reps
+// in reserve: 0 is the hardest set), so up still reads as "harder". It applies to `series` too.
+//
 // Two optional extras, for the exercise pages:
 // - `marks`: one entry per point, 0 to 1 or null. A mark is a second reading carried by the point's
 //   own dot, bigger and more solid the nearer 1 (effort on a top-set line). Say it in `pointLabels`.
@@ -22,7 +25,7 @@ const MAX_ROWS = 62     // the hidden list of points is thinned past this, the l
 //   point (one line per set number). `values` then only anchors the readout and the scale spans
 //   every series; the first line is drawn widest and underneath, so lines that share their values
 //   show as nested stripes. The latest-point dot and the area are not drawn for it.
-export default function LineChart({ values, series, marks, labels, pointLabels, unit, tone = 'light', color, height = 150, width = 326, label }) {
+export default function LineChart({ values, series, marks, labels, pointLabels, unit, tone = 'light', color, height = 150, width = 326, label, invert = false }) {
   oneOf('LineChart', 'tone', tone, ['light', 'stage'])
   const [hover, setHover] = useState(null)
   const n = values.length
@@ -32,7 +35,10 @@ export default function LineChart({ values, series, marks, labels, pointLabels, 
   const scale = multi ? series.flatMap(s => s.values).filter(v => v != null) : values
   const mn = Math.min(...scale), mx = Math.max(...scale), range = (mx - mn) || 1
   const xs = values.map((_, i) => (n > 1 ? i / (n - 1) : 1))
-  const yOf = v => height - PAD - ((v - mn) / range) * (height - PAD * 2)
+  const yOf = v => {
+    const f = (v - mn) / range
+    return invert ? PAD + f * (height - PAD * 2) : height - PAD - f * (height - PAD * 2)
+  }
   const ys = values.map(yOf)
   const pts = values.map((_, i) => (xs[i] * width).toFixed(1) + ',' + ys[i].toFixed(1))
   const line = pts.join(' ')

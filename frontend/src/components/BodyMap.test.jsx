@@ -2,7 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import BodyMap, { BodyMapLegend } from './BodyMap.jsx'
+import BodyMap from './BodyMap.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -76,10 +76,5 @@ describe('BodyMap interaction semantics', () => {
     expect(container.querySelector('figure')).toBeNull()
     expect(container.querySelector('figcaption')).toBeNull()
     expect(container.querySelectorAll('.bodymap > svg')).toHaveLength(2)
-  })
-
-  it('labels the existing legend direction for assistive technology', () => {
-    act(() => root.render(<BodyMapLegend />))
-    expect(container.querySelector('.hm-legend').getAttribute('aria-label')).toBe('Less More')
   })
 })

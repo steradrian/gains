@@ -31,7 +31,8 @@ function renderTop() {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-const button = (host, label) => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === label)
+// A row of the workout drawer (T8.1, DetailRow) by its title.
+const row = (host, title) => [...host.querySelectorAll('.g-drow')].find(r => r.querySelector('b')?.textContent === title)
 
 describe('WorkoutDetail — repeat today', () => {
   let navigated
@@ -50,7 +51,7 @@ describe('WorkoutDetail — repeat today', () => {
     const saved = workout()
     useStore.setState(s => ({ S: { ...s.S, workouts: [saved] } }))
     const host = (workoutDetailSheet(saved), renderTop())
-    act(() => { button(host, 'Repeat today').click() })
+    act(() => { row(host, 'Repeat today').click() })
     const active = useStore.getState().S.active
     expect(active).toMatchObject({ d: todayISO(), routineIds: [], name: 'Push', cur: 0, bw: null })
     expect(active.entries.map(e => e.id)).toEqual([A, B])
@@ -65,7 +66,7 @@ describe('WorkoutDetail — repeat today', () => {
     const saved = workout()
     useStore.setState(s => ({ S: { ...s.S, workouts: [saved], weighIn: true } }))
     const host = (workoutDetailSheet(saved), renderTop())
-    act(() => { button(host, 'Repeat today').click() })
+    act(() => { row(host, 'Repeat today').click() })
     expect(useStore.getState().S.active).toBeNull()
     expect(useUI.getState().sheets.length).toBe(1)
     expect(navigated).toBeNull()
@@ -75,7 +76,7 @@ describe('WorkoutDetail — repeat today', () => {
     const saved = workout()
     useStore.setState(s => ({ S: { ...s.S, workouts: [saved], weighIn: true, bodyweight: [{ d: todayISO(), w: 79.6, t: 1 }] } }))
     const host = (workoutDetailSheet(saved), renderTop())
-    act(() => { button(host, 'Repeat today').click() })
+    act(() => { row(host, 'Repeat today').click() })
     expect(useStore.getState().S.active).toMatchObject({ d: todayISO(), bw: 79.6 })
     expect(navigated).toBe('/train/workout')
   })
@@ -84,15 +85,26 @@ describe('WorkoutDetail — repeat today', () => {
     const saved = workout()
     useStore.setState(s => ({ S: { ...s.S, workouts: [saved], weighIn: true, bodyweight: [{ d: '2020-01-01', w: 80, t: 1 }] } }))
     const host = (workoutDetailSheet(saved), renderTop())
-    act(() => { button(host, 'Repeat today').click() })
+    act(() => { row(host, 'Repeat today').click() })
     expect(useStore.getState().S.active).toBeNull()
     expect(navigated).toBeNull()
   })
 
-  it('is disabled while a workout is running', () => {
+  it('is not a button while a workout is running, and says to finish that one first', () => {
     const saved = workout()
     useStore.setState(s => ({ S: { ...s.S, workouts: [saved], active: { id: 'x', d: todayISO(), start: 1, entries: [] } } }))
     const host = (workoutDetailSheet(saved), renderTop())
-    expect(button(host, 'Repeat today').disabled).toBe(true)
+    const repeat = row(host, 'Repeat today')
+    expect(repeat.tagName).toBe('DIV')
+    expect(repeat.textContent).toContain('Finish the current workout first.')
+  })
+
+  it('closes the drawer on its way to the workout', () => {
+    const saved = workout()
+    useStore.setState(s => ({ S: { ...s.S, workouts: [saved] } }))
+    const host = (workoutDetailSheet(saved), renderTop())
+    act(() => { row(host, 'Repeat today').click() })
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(navigated).toBe('/train/workout')
   })
 })

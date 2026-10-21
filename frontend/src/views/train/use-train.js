@@ -24,6 +24,7 @@ import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../li
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
+import { andList, REGION_NAME } from './region-names.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
 // T2.14: the rail reaches eight weeks past this one, and back no further than eight weeks before
@@ -39,12 +40,6 @@ const routinesOf = (S, ids) => ids.map(id => S.routines.find(r => r.id === id)).
 const plannedOn = (S, iso, today) => routinesOf(S, effectiveRoutineIds(S, iso, today))
 const exercisesIn = routines => routines.reduce((n, r) => n + (r.ex?.length || 0), 0)
 const longDay = iso => dateOf(iso).toLocaleDateString(dateLocale(), { weekday: 'long' })
-const andList = names => {
-  try { return new Intl.ListFormat(dateLocale(), { type: 'conjunction' }).format(names) } catch { return names.join(', ') }
-}
-// Literal calls, so check-source-strings sees each key (lib/muscles.js REGIONS holds the English).
-// 'Back' alone is already the packs' back button, so the body part has a key of its own.
-const REGION_NAME = { Chest: () => t('Chest'), Back: () => t('Back muscles'), Shoulders: () => t('Shoulders'), Arms: () => t('Arms'), Core: () => t('Core'), Legs: () => t('Legs') }
 
 /* ---------------------------------------------------------------- the rail -- */
 

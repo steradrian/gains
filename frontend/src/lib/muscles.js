@@ -30,6 +30,10 @@ export const inMuscleOrder = list => {
   return [...(list || [])].sort((a, b) => at(a) - at(b))
 }
 
+// The weekly working sets a muscle is commonly aimed at (board T3.0 names it): the muscle page
+// reads "8 sets of 10 to 12" against it.
+export const MUSCLE_WEEKLY_TARGET = Object.freeze({ min: 10, max: 12 })
+
 // Drawn as the silhouette, never shaded: they carry no training load.
 export const INERT = ['head', 'hair', 'neck', 'hands', 'feet', 'knees', 'ankles']
 

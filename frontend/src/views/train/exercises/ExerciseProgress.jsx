@@ -211,11 +211,11 @@ export default function ExerciseProgress() {
     </>
   } else {
     // Effort reads the other way when it is counted in reps left: fewer is a harder set, so the
-    // line is drawn flipped and the readout keeps the real number.
+    // line is drawn inverted.
     chart = (
       <LineChart
         tone="stage" label={caption} unit={chartUnit} labels={axisOf(points)}
-        values={points.map(x => (p.onEff && p.kind === 'rir' ? -x.y : x.y))}
+        values={points.map(x => x.y)} invert={p.onEff && p.kind === 'rir'}
         marks={p.shown === 'top' ? points.map(x => x.m) : undefined}
         pointLabels={points.map(x => fmtDate(x.d, true) + ': ' + fmtNum(x.y) + ' ' + chartUnit + (x.note ? ' · ' + x.note : ''))}
       />

@@ -1,7 +1,6 @@
 {
   "G1": {
     "components/DurationWheel.jsx": 1,
-    "components/Heatmap.jsx": 1,
     "components/MuscleExplorer.jsx": 3,
     "components/Passkeys.jsx": 2,
     "components/ServerSync.jsx": 2,
@@ -11,14 +10,13 @@
     "sheets/exercise-picker.jsx": 10,
     "sheets/exercise.jsx": 1,
     "sheets/import.jsx": 19,
-    "sheets/workout-detail.jsx": 51,
+    "sheets/workout-detail.jsx": 21,
     "sheets/workout-flow.jsx": 67,
     "views/Admin.jsx": 29,
     "views/AdminCoach.jsx": 6,
     "views/CheckIn.jsx": 2,
     "views/CoachIntake.jsx": 2,
     "views/CoachSetup.jsx": 9,
-    "views/History.jsx": 1,
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
     "views/RoutineEdit.jsx": 14,
@@ -28,7 +26,7 @@
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 71,
+    "index.css": 70,
     "views/FocusView.css": 1
   },
   "G2js": {
@@ -39,7 +37,6 @@
     "lib/plan-share.js": 22,
     "lib/qr.js": 2,
     "lib/workout-card.js": 2,
-    "sheets/workout-detail.jsx": 6,
     "store/useStore.js": 1,
     "views/Settings.jsx": 2
   },
@@ -54,14 +51,16 @@
     "sheets/exercise-picker.jsx": 4,
     "sheets/exercise.jsx": 2,
     "sheets/import.jsx": 10,
-    "sheets/workout-detail.jsx": 12,
+    "sheets/workout-detail.jsx": 7,
     "sheets/workout-flow.jsx": 28,
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
     "views/FocusView.jsx": 4,
     "views/RoutineEdit.jsx": 2,
     "views/Settings.jsx": 2,
-    "views/Workout.jsx": 3
+    "views/Workout.jsx": 3,
+    "views/train/load/LoadBalance.jsx": 1,
+    "views/train/load/LoadEffort.jsx": 2
   },
   "G4": [],
   "G9": [
