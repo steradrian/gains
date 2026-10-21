@@ -161,10 +161,15 @@ async function attempt(kind, opts) {
     return null
   }
 }
-export async function leaveServer(kind, { exportBackup, exportBackupZip, done }) {
-  const r = await attempt(kind)
+// `onOwed(result)` takes the question over from the sheet below, when the caller has its own
+// (Settings' sign-out drawer, views/settings/sheets/sign-out-sheets.js). `force` is that drawer's
+// "Sign out anyway": the changes are kept aside on this device, as the sheet's own button does.
+export async function leaveServer(kind, { exportBackup, exportBackupZip, done, onOwed, force = false }) {
+  const r = await attempt(kind, force ? { force: true } : undefined)
   if (!r) return
   if (r.owed && !r.stashed) {
+    if (force) { toast(t('Couldn’t keep a copy of the changes on this device. Nothing was removed.')); return }
+    if (onOwed) { onOwed(r); return }
     ui().openSheet(close => <OwedSheet kind={kind} count={r.count} media={r.media || 0} exportBackup={exportBackup} exportBackupZip={exportBackupZip} done={done} close={close} />, { kind: 'center', locked: true })
     return
   }

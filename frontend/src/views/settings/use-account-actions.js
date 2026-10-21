@@ -8,6 +8,7 @@ import { mediaStore } from '../../lib/media-store.js'
 import { confirmSheet } from '../../sheets.jsx'
 import { leaveServer } from '../../components/ServerSync.jsx'
 import { useDataActions } from './use-data-actions.js'
+import { confirmSignOutEverywhere, keptNote, signOutWaiting } from './sheets/sign-out-sheets.js'
 
 /* After "Reset training data": the photos and videos go too. Signed in, the empty state is pushed
    first and, once the server holds it, the server is asked to drop every file that state no
@@ -30,12 +31,13 @@ async function clearMediaAfterReset(signedIn) {
  * what they do, as Settings always had them.
  *
  * None of the sign-outs wipes this device while the server is missing a change: the confirm no
- * longer promises a sync it never checked, and when something is owed, a second sheet says how
- * much and offers to try again, to export a backup, or to go ahead anyway with the changes kept
- * on this device (components/ServerSync.jsx). "Sign out everywhere" also ends every paired
- * phone's token — the phones have no passkey to sign in with, so they have to be paired again,
- * and the confirm says so. Failing, it touches nothing local: still signed in here, and the
- * toast says so.
+ * longer promises a sync it never checked. When something is owed, a browser's Sign out and Sign
+ * out everywhere ask with a drawer that says how much (sheets/sign-out-sheets.js, A2.6) and offer
+ * Sign out anyway, with the changes kept on this device; the phone's Disconnect keeps the sheet
+ * that also offers a retry and a backup (components/ServerSync.jsx). "Sign out everywhere" also
+ * ends every paired phone's token — the phones have no passkey to sign in with, so they have to
+ * be paired again, and the confirm (A2.5) says so. Failing, it touches nothing local: still
+ * signed in here, and the toast says so.
  */
 export function useAccountActions() {
   const nav = useNavigate()
@@ -46,10 +48,16 @@ export function useAccountActions() {
   const toast = useUI(s => s.toast)
   const { doExport, doExportZip } = useDataActions()
 
-  const kept = t('The changes your server has not seen are kept on this device, and added back when it connects as this account again.')
   // A workout running here is kept aside by the sign-out (useStore stashActive): the confirm says so.
   const running = () => S.active ? ' ' + t('You have a workout running. It waits on this device until you’re back on this account.') : ''
-  const leave = (kind, after) => leaveServer(kind, { exportBackup: doExport, exportBackupZip: doExportZip, done: r => { nav('/home'); if (r.stashed) toast(kept); else if (after) toast(after) } })
+  const finish = after => r => { nav('/home'); if (r.stashed) toast(keptNote()); else if (after) toast(after) }
+  const leave = (kind, after) => leaveServer(kind, { exportBackup: doExport, exportBackupZip: doExportZip, done: finish(after) })
+  // A browser's sign-outs ask with the drawer (A2.6) when the server is missing changes; the
+  // phone's Disconnect keeps the sheet that offers a retry and a backup.
+  const leaveAsking = (kind, after) => leaveServer(kind, {
+    done: finish(after),
+    onOwed: r => signOutWaiting({ kind, count: r.count, media: r.media || 0, done: finish(after) }),
+  })
   const disconnect = () => confirmSheet({
     title: t('Disconnect from your server?'),
     message: t('This phone switches back to local-only and its copy of your account is removed. First it checks that your server has every change. If not, you choose what happens to them.') + running(),
@@ -60,13 +68,11 @@ export function useAccountActions() {
     title: t('Sign out?'),
     message: t('Your data is removed from this browser; your profile on the server keeps it. First it checks that the server has every change. If not, you choose what happens to them.') + running(),
     confirmText: t('Sign out'), danger: true,
-    onConfirm: () => leave('signout'),
+    onConfirm: () => leaveAsking('signout'),
   })
-  const signOutEverywhere = () => confirmSheet({
-    title: t('Sign out everywhere?'),
-    message: t('Signs this profile out on every device, including this one. Phones paired with it are disconnected and have to be paired again. Your passkeys keep working, so you can sign in with them again anytime.') + running(),
-    confirmText: t('Sign out everywhere'), danger: true,
-    onConfirm: () => leave('everywhere', t('Signed out on all devices')),
+  const signOutEverywhere = () => confirmSignOutEverywhere({
+    running: running(),
+    onConfirm: () => leaveAsking('everywhere', t('Signed out on all devices')),
   })
   // Signed in, the empty state is pushed to the profile like any other change, so the wipe
   // reaches the server and every device that syncs with it — the dialog has to say so. The Coach
