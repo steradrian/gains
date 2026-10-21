@@ -10,8 +10,7 @@ const LOADERS = {
   features: () => import('./FeaturesPage.jsx'),
   health: () => import('./HealthPage.jsx'),
   workout: () => import('./WorkoutPage.jsx'),
-  advanced: () => import('./AdvancedPage.jsx'),
-  alerts: () => import('./AlertsPage.jsx'),
+  advanced: () => import('./FineTunePage.jsx'),
   schedule: () => import('./SchedulePage.jsx'),
   diary: () => import('./DiaryPage.jsx'),
   water: () => import('./WaterPage.jsx'),
@@ -28,7 +27,13 @@ const LOADERS = {
   account: () => import('./AccountPage.jsx'),
 }
 
-export const PAGE_COMPONENTS = Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))
+// Pages that draw their own frame (SettingsPage: nav bar, large title) instead of sitting under the
+// host's old page header. Each page milestone adds its ids and, in the same pass, nothing else.
+// Settings train m1:
+export const OWN_FRAME = new Set(['workout', 'advanced', 'schedule'])
+export const drawsOwnFrame = id => OWN_FRAME.has(id)
+
+export const PAGE_COMPONENTS =Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))
 
 // Pages whose module is already loaded (preloadPages): drawn at once instead of suspending.
 const loaded = {}

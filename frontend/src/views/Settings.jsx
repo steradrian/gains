@@ -59,7 +59,7 @@ function SettingsRootHost({ find, via }) {
   const ctx = useSettingsCtx()
   const { disconnect, signOutHere } = useAccountActions()
   const lang = effectiveLang(S, config)
-  const { ntSettings, canVibrate } = ctx
+  const { ntSettings } = ctx
 
   const mode = scheduleModeOf(S)
   const layout = ['list', 'compact', 'focus'].includes(S.workoutView) ? S.workoutView : 'cards'
@@ -69,7 +69,6 @@ function SettingsRootHost({ find, via }) {
   // The value a root row shows, so most questions are answered without opening the page.
   const preview = {
     workout: () => (S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')) + ' · ' + layoutLabel,
-    alerts: () => [S.sound ? t('Sound') : null, canVibrate && S.vibrate !== false ? t('Vibrate') : null, S.timerFlash ? t('Flash') : null].filter(Boolean).join(' · ') || t('Silent'),
     reminders: () => (S.reminder?.on ? (S.reminder.time || DEF.reminder?.time || '') : t('Off')),
     schedule: () => (mode === 'rotation' ? t('Rotation') : t('Fixed Week')) + ' · ' + shortWeekday(weekStartOf(S) === SUNDAY ? 0 : 1),
     units: () => (S.unit || 'kg') + ' · ' + (LANGS[lang] || lang),

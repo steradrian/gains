@@ -13,8 +13,8 @@ import { Section, Row, Switch, Segmented, Button } from './ui.jsx'
 import { Inline } from './layout.jsx'
 
 // The settings people touch at the gym, without leaving the workout (v1.3.11, opened from the
-// workout's ⋯ → Workout settings). Every row writes the same S.* field as Settings → Workout and
-// Settings → Timer alerts, so a change here sticks for the next session too; nothing in it is
+// workout's ⋯ → Workout settings). Every row writes the same S.* field as Settings → Workout screen,
+// so a change here sticks for the next session too; nothing in it is
 // for this session only. The one exception to "same as Settings" is Layout: the running session
 // may carry its own layout from the ⋯ menu (S.active.workoutView), and choosing one here clears
 // that, or the saved choice would not show until the next workout.
