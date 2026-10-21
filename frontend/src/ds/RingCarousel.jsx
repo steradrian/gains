@@ -68,16 +68,20 @@ export default function RingCarousel({ slides = [], start = 0, onOpen, onChange,
     heading.current = i
     el.scrollTo({ left: i * el.clientWidth * direction(el), behavior: reducedMotion() ? 'auto' : 'smooth' })
   }
+  // The person took over (a touch, a wheel or trackpad) or the glide ended short of the dot's
+  // page: report where it is now instead of waiting for a page it may never reach.
+  const release = () => { heading.current = null }
+  const onScrollEnd = () => { release(); onScroll() }
 
   return (
     <div className="g-rcb" role="group" aria-label={groupLabel}>
-      <div className="g-rc" ref={scroller} onScroll={onScroll} onPointerDown={() => { heading.current = null }}>
+      <div className="g-rc" ref={scroller} onScroll={onScroll} onScrollEnd={onScrollEnd} onPointerDown={release} onTouchStart={release} onWheel={release}>
         {slides.map((s, i) => (
           <Act
             key={i}
             href={s.href || href}
             onClick={() => onOpen?.(s, i)}
-            ariaLabel={s.name ? t('{0}: {1}. Open details', s.name, [s.big, s.unit].filter(Boolean).join(' ')) : undefined}
+            ariaLabel={s.name ? t('{0}: {1}. Open details', s.name, spoken(s)) : undefined}
             className="g-rc-slide"
           >
             <StageRing value={s.value} max={s.max} over={s.over} top={s.top} big={s.big} unit={s.unit} />
@@ -94,6 +98,14 @@ export default function RingCarousel({ slides = [], start = 0, onOpen, onChange,
       <Dots count={n} active={active} onPick={goTo} />
     </div>
   )
+}
+
+// What a slide says, as its face reads: the line over the number, the number, the line under it,
+// then the pill ("Left today 1,240 of 2,100 kcal, 860 eaten"). The label replaces the content
+// for a screen reader, so nothing on the face is left out.
+function spoken(s) {
+  const ring = [s.top, s.big, s.unit].filter(Boolean).join(' ')
+  return s.pill ? t('{0}, {1}', ring, s.pill) : ring
 }
 
 // scrollLeft runs negative in a right-to-left page
