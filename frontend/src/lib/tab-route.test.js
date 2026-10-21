@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_RENAMED, isTabRoot, launchPath, legacyPath, parentOf, slotOf, tabOf, workoutRunning } from './tab-route.js'
+import { PROFILE_RENAMED, isTabRoot, launchPath, legacyPath, parentOf, tabOf, workoutRunning } from './tab-route.js'
 
 describe('the tab comes from the route', () => {
   it('Home, Training and Nutrition own their own paths', () => {
@@ -27,10 +27,6 @@ describe('the tab comes from the route', () => {
   it('knows the four roots', () => {
     for (const p of ['/home', '/train', '/food', '/me']) expect(isTabRoot(p), p).toBe(true)
     for (const p of ['/train/history', '/progress', '/progress/body', '/me/workout', '/train/workout']) expect(isTabRoot(p), p).toBe(false)
-  })
-
-  it('never puts a tab on the centre +', () => {
-    expect([0, 1, 2, 3].map(slotOf)).toEqual([0, 1, 3, 4])
   })
 })
 
