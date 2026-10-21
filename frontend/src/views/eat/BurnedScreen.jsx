@@ -15,20 +15,23 @@ const SCENE = 'chart'
 // what Burned does to the target, then the rows by day. A row with no number reads "0 kcal" and
 // opens the drawer that adds one; the line under the list says so. It draws what useBurned()
 // gives it (use-burned.js) and keeps nothing.
-export default function BurnedScreen({ status, error, title, sub, note, groups, missing, empty, onLog }) {
+export default function BurnedScreen({ status, error, title, sub, note, groups, missing, empty, failed, canLog = true, onLog, onRetry }) {
   return (
     <StagePage
       title={t('Burned')}
       parent="/food"
-      actions={[{ icon: 'plus', label: t('Log activity'), onClick: onLog }]}
+      actions={canLog ? [{ icon: 'plus', label: t('Log activity'), onClick: onLog }] : []}
       largeTitle={title}
       sub={sub}
     >
       {status === 'error' && <StageEmpty illustration={SCENE} title={loadErrorText(error)} />}
-      {status === 'ready' && empty && (
-        <StageEmpty illustration={SCENE} title={t('Nothing burned logged this week')} action={t('Log activity')} onClick={onLog} />
+      {status === 'ready' && failed && (
+        <StageEmpty illustration={SCENE} title={t('Could not load this week')} action={t('Retry')} onClick={onRetry} />
       )}
-      {status === 'ready' && !empty && <>
+      {status === 'ready' && !failed && empty && (
+        <StageEmpty illustration={SCENE} title={t('Nothing burned logged this week')} action={canLog ? t('Log activity') : undefined} onClick={canLog ? onLog : undefined} />
+      )}
+      {status === 'ready' && !failed && !empty && <>
         {note && <div className="burned-gut"><GlassList items={[{ icon: 'info', title: note.title, sub: note.body }]} /></div>}
         {groups.map(g => (
           <section key={g.id}>
@@ -42,6 +45,7 @@ export default function BurnedScreen({ status, error, title, sub, note, groups, 
         ))}
         {missing.map(m => <StageNote key={m.key}>{m.text}</StageNote>)}
       </>}
+      {status === 'ready' && !canLog && <StageNote>{t('Logging activity arrives soon')}</StageNote>}
     </StagePage>
   )
 }

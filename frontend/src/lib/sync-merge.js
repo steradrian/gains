@@ -40,6 +40,8 @@
  *     have, the entry set last by its own `_ts`, a clear included (mergeStampedMap), the newer
  *     copy's on a tie. For plates and dumbbells the key is the unit, so the inventory of one unit
  *     is kept whole, as last edited; for dayNotes the key is the date, so each day's note is its own
+ *   - recipeExtras: union by recipe id; of a recipe both have, the entry with the later `updatedAt`
+ *     (a deleted recipe's tombstone included, which wins a tie); with `prefer`, the preferred side's
  *   - `_ts`: the later of the two; `_rev` dropped (the server sets it); `active` left to the caller
  *
  * Two rules come before all of these:
@@ -79,6 +81,7 @@ import { convertStateUnit, convertBodyWeight } from './units.js'
 import { sanitizeAccent } from './accent.js'
 import { readDayNote as readNote } from './day-notes.js'
 import { mergePlanChanges } from './coach-plan-changes.js'
+import { mergeRecipeExtras } from './nutrition/recipe-extras-merge.js'
 
 const clone = o => JSON.parse(JSON.stringify(o))
 const list = v => (Array.isArray(v) ? v : [])
@@ -615,7 +618,7 @@ function applyDeletions(S, deleted) {
 const OWN_MERGE = new Set([
   '_ts', '_rev', '_wid', '_wids', '_unstamped', '_prior', 'active', 'unit', 'unitSet', 'resetAt', 'resetIds', 'deleted', 'edited', 'undone', 'routineOrder',
   'workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards', 'bodyweight', 'measurements', 'favEx',
-  'exWeights', 'balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes', 'missedSeen', 'coachCheckIns',
+  'exWeights', 'balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes', 'missedSeen', 'coachCheckIns', 'recipeExtras',
 ])
 // Stamped per key instead of whole: one day of the plan, one exercise's note or bar.
 const PER_KEY = new Set(['week', 'dayPlan', 'exNotes', 'barWeights'])
@@ -855,6 +858,10 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   for (const f of STAMPED_MAPS) {
     if (n[f] || o[f]) out[f] = clone(mergeStampedMap(n[f], o[f], prefer))
   }
+  // Eat library m3: a recipe's steps and photo, one entry per recipe by its own `updatedAt`, a
+  // removal as a tombstone (lib/nutrition/recipe-extras-merge.js). With `prefer` the preferred
+  // side's entry stands and the other side only adds the recipes it alone has.
+  if (n.recipeExtras || o.recipeExtras) out.recipeExtras = clone(mergeRecipeExtras(n.recipeExtras, o.recipeExtras, prefer))
   // Each stamped setting and plan day from the copy that changed it last (the `edited` section
   // above). `prefer` (sign-in) keeps the preferred side's, stamps and all.
   if (!prefer) {

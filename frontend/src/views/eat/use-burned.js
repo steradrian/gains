@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore.js'
 import { weekKey, weekStartOf } from '../../lib/format.js'
 import { navToDay } from '../../lib/day-route.js'
 import { nutritionAvailable } from '../../lib/nutrition/api.js'
+import { useActivityWrites } from '../../lib/nutrition/activity.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { useTodayDate } from '../today/use-today.js'
@@ -20,6 +21,8 @@ import { logActivitySheet } from './ActivitySheet.jsx'
  *   groups   [{ id, title, items }], items for GlassValueRow
  *   missing  one line per row that has no number, shown under the list
  *   empty    the week has no activity row at all
+ *   canLog   false once the hub has refused an activity write (it is not deployed with them yet):
+ *            the page is read-only and BurnedScreen says logging arrives soon
  *   onLog    opens Log activity for today
  * Burned exists only with NutriTrace's activity section on (diaryShowActivity), as the Eat root's row does.
  */
@@ -33,6 +36,7 @@ export function useBurned() {
   const settingsState = useNutrition(s => s.settings)
   const activity = useNutrition(s => s.activity)
   const goalInputs = useNutrition(s => s.goalInputs)
+  const canLog = useActivityWrites(s => s.supported)
   const settings = settingsState.data
   const shown = !!settings?.diaryShowActivity
   const policy = settings?.manualActivityPolicy
@@ -60,11 +64,16 @@ export function useBurned() {
     status,
     error: settingsState.error,
     ...viewOf({
-      week, today, settings, goalInputs, energy: units.energy,
+      week, today, settings, goalInputs, energy: units.energy, canLog,
       // A row with no number opens the drawer that adds one; the others open their day.
       onAdd: row => burnedAmountSheet(row, today),
       onOpen: row => navToDay(row.date, 'food'),
     }),
     onLog: () => logActivitySheet({ date: today }),
+    // Reads again only the days that failed.
+    onRetry: () => {
+      const n = useNutrition.getState()
+      for (const d of days) if (n.activity[d]?.status === 'error') n.loadActivity(d, policy)
+    },
   }
 }

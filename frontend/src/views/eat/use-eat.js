@@ -172,8 +172,11 @@ export function useEat() {
   const targetsSub = targets?.kcal != null
     ? [units.energy(targets.kcal), protein != null && t('{0} g protein', Math.round(protein))].filter(Boolean).join(' · ')
     : null
-  const burned = settings?.diaryShowActivity
-    ? foodDaysOf(thisStart, today).reduce((sum, d) => sum + (activity[d]?.sum?.effective ?? 0), 0)
+  // A week with a day that failed to read has no honest total: the row says so instead of quoting a part.
+  const burnedDays = foodDaysOf(thisStart, today)
+  const burnedFailed = !!settings?.diaryShowActivity && burnedDays.some(d => activity[d]?.status === 'error')
+  const burned = settings?.diaryShowActivity && !burnedFailed
+    ? burnedDays.reduce((sum, d) => sum + (activity[d]?.sum?.effective ?? 0), 0)
     : 0
   const plan = PLANS.find(p => p.hours === Number(settings?.fastingDefaultHours))
   const favourites = foods.list.filter(f => f.favorite).length
@@ -197,7 +200,7 @@ export function useEat() {
     },
     ...(settings?.diaryShowActivity ? [{
       key: 'burned', icon: 'flame', title: t('Burned'), onClick: () => nav(PATHS.burned),
-      sub: burned > 0 ? t('{0} this week', units.energy(burned)) : null,
+      sub: burnedFailed ? t('Could not load this week') : burned > 0 ? t('{0} this week', units.energy(burned)) : null,
     }] : []),
     { key: 'goals', icon: 'target', title: t('Daily targets'), onClick: () => nav(PATHS.goals), sub: targetsSub },
     { key: 'settings', icon: 'slider', title: t('Food settings'), onClick: () => nav(PATHS.settings), sub: t('Meals, water, units, sources') },

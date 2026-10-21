@@ -1,8 +1,10 @@
-// What a recipe keeps on this device (steps, photo, whether Makes was typed): kept under the
-// recipe's id, blank steps left out, a photo that is not a MediaRef refused, and the photo's files
-// named so the local clean-up keeps them.
+// @vitest-environment happy-dom
+// What a recipe keeps (steps, photo, whether Makes was typed), through the in-memory backend the
+// screens gallery uses: kept under the recipe's id, blank steps left out, a photo that is not a
+// MediaRef refused. The synced state behind it is recipe-extras.sync.test.js.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { dropExtras, extrasOf, holdExtrasInMemory, recipePhotoHashes, saveExtras } from './recipe-extras.js'
+import { useStore } from '../../store/useStore.js'
+import { dropExtras, extrasOf, holdExtrasInMemory, saveExtras } from './recipe-extras.js'
 
 const HASH = 'a'.repeat(64)
 const POSTER = 'b'.repeat(64)
@@ -51,14 +53,8 @@ describe('recipe extras', () => {
     expect(() => dropExtras(31)).not.toThrow()
   })
 
-  it('names the files of every recipe photo, poster included', () => {
-    saveExtras(31, { photo })
-    saveExtras(32, { steps: [{ id: 'a', text: 'Stir' }] })
-    expect([...recipePhotoHashes()].sort()).toEqual([HASH, POSTER])
-  })
-
-  it('keeps the memory copy off the real storage', () => {
+  it('keeps the memory copy out of the synced state', () => {
     saveExtras(31, { steps: [{ id: 'a', text: 'Stir' }] })
-    expect(globalThis.localStorage?.getItem('gains_recipe_extras_v1') ?? null).toBeNull()
+    expect(useStore.getState().S.recipeExtras).toBeUndefined()
   })
 })

@@ -96,6 +96,24 @@ describe('useAutosave', () => {
     expect(write).toHaveBeenCalledWith('typed')
   })
 
+  it('flush waits for a write that is already out, and for what queued behind it', async () => {
+    let release
+    const write = vi.fn(value => (value === 'a' ? new Promise(r => { release = () => r(true) }) : Promise.resolve(true)))
+    mount(write)
+    act(() => api.schedule('a'))
+    await advance(AUTOSAVE_MS)
+    expect(write).toHaveBeenCalledTimes(1)
+    act(() => api.schedule('ab'))
+    let done = false
+    act(() => { api.flush().then(() => { done = true }) })
+    await advance(0)
+    expect(done).toBe(false)
+    await act(async () => { release(); await vi.advanceTimersByTimeAsync(0) })
+    expect(done).toBe(true)
+    expect(write).toHaveBeenCalledTimes(2)
+    expect(write).toHaveBeenLastCalledWith('ab')
+  })
+
   it('cancel drops what is waiting', async () => {
     const write = vi.fn(async () => true)
     mount(write)

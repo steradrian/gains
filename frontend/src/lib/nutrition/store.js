@@ -60,6 +60,12 @@ const inflightGoal = new Map()
 // Foods and meals taken off the lists while their delete waits out its Undo (delete-undo.js): a
 // reload of the list must not bring them back before the delete is sent.
 const held = { food: new Set(), meal: new Set() }
+// Settings the hub refused only because it is older than the value (the search country, before
+// Romania was on its allow-list): the pick stays for this session, in memory, and is laid over
+// every read of the settings. Not for anything else: a refused switch stays as it was.
+const sessionSettings = {}
+const keptForSession = (key, e) => key === 'offSearchCountry' && (e?.status === 400 || e?.status === 422)
+const withSession = data => (data && Object.keys(sessionSettings).length ? { ...data, ...sessionSettings } : data)
 
 export const useNutrition = create((set, get) => {
   const patchDay = (date, patch) => set(s => ({ days: { ...s.days, [date]: { ...s.days[date], ...patch } } }))
@@ -153,6 +159,7 @@ export const useNutrition = create((set, get) => {
       inflightGoal.clear()
       held.food.clear()
       held.meal.clear()
+      for (const k of Object.keys(sessionSettings)) delete sessionSettings[k]
       set(initial())
     },
 
@@ -163,7 +170,7 @@ export const useNutrition = create((set, get) => {
       const g = gen
       set({ settings: { ...cur, status: 'loading' } })
       try {
-        const data = await NtApi.getSettings()
+        const data = withSession(await NtApi.getSettings())
         if (g === gen) set({ settings: { status: 'ready', data, error: null } })
         return data
       } catch (e) {
@@ -176,7 +183,21 @@ export const useNutrition = create((set, get) => {
      *  Throws an NtError and leaves the cache as it was. */
     async saveSetting(key, value) {
       const g = gen
-      await NtApi.putSetting(key, value)
+      try {
+        await NtApi.putSetting(key, value)
+      } catch (e) {
+        // A hub from before its allow-list took this value answers 400 or 422. The person's pick
+        // still rules this session's searches (sessionSettings above); it is not on the server,
+        // and the caller says so.
+        if (g === gen && keptForSession(key, e)) {
+          sessionSettings[key] = value
+          const cur = get().settings
+          if (cur.data) set({ settings: { ...cur, data: { ...cur.data, [key]: value } } })
+          throw Object.assign(new Error(`${key} cannot be saved yet`), { code: 'setting-unsaved', key, cause: e })
+        }
+        throw e
+      }
+      delete sessionSettings[key]
       const cur = get().settings
       if (g === gen && cur.data) set({ settings: { ...cur, data: { ...cur.data, [key]: value } } })
     },
@@ -239,7 +260,8 @@ export const useNutrition = create((set, get) => {
     async saveFood(food) {
       const g = gen
       const saved = withImg(typeof food.id === 'number' ? await NtApi.updateFood(food.id, food) : await NtApi.createFood(food))
-      if (g === gen) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
+      // A food taken off the lists for its delete's Undo window stays off when a late save lands.
+      if (g === gen && !held.food.has(saved.id)) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
       return saved
     },
 
@@ -346,7 +368,7 @@ export const useNutrition = create((set, get) => {
     async saveMeal(meal) {
       const g = gen
       const saved = withImg(typeof meal.id === 'number' ? await NtApi.updateMeal(meal.id, meal) : await NtApi.createMeal(meal))
-      if (g === gen) {
+      if (g === gen && !held.meal.has(saved.id)) {
         const key = saved.is_recipe ? 'recipes' : 'meals'
         set(s => ({ [key]: { ...s[key], list: sortedByName([...s[key].list.filter(m => m.id !== saved.id), saved]) } }))
       }

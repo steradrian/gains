@@ -1,6 +1,25 @@
+import { create } from 'zustand'
 import { lastBW } from '../history.js'
 import { NtApi } from './api.js'
 import { useNutrition } from './store.js'
+
+// Whether the hub in front of NutriTrace takes activity writes. A hub that has not been deployed
+// with POST and PUT /api/activity answers them 404 or 405. There is no safe probe (a POST would
+// create data), so the first refused write is the answer: it is remembered for the session, in
+// memory, and Burned stops offering to add or edit. Reading activity is not affected.
+export const useActivityWrites = create(() => ({ supported: true }))
+
+const refusedByHub = e => e?.status === 404 || e?.status === 405
+
+async function write(send) {
+  try {
+    return await send()
+  } catch (e) {
+    if (!refusedByHub(e)) throw e
+    useActivityWrites.setState({ supported: false })
+    throw Object.assign(new Error('Logging activity is not available on this hub yet'), { code: 'activity-unsupported', cause: e })
+  }
+}
 
 // Eat root m3: the Burned page and the Log activity drawer's side of the activity record. The rows
 // themselves come from the store (loadActivity); this writes one and reads the store back.
@@ -50,12 +69,12 @@ async function refresh(date) {
 /** Writes a manual activity (`kcal` always kcal, `distance` km) and reloads that day's record, so
  *  Burned, Today and the Day page read it. Throws the write's error; nothing is kept then. */
 export async function saveActivity({ date, name, kcal, minutes, distance = null }) {
-  await NtApi.createActivity(date, { name, kcal, duration_min: minutes, distance })
+  await write(() => NtApi.createActivity(date, { name, kcal, duration_min: minutes, distance }))
   await refresh(date)
 }
 
 /** Adds the Burned number to a row that has none (a workout from before Burned was turned on). */
 export async function setActivityKcal(row, kcal) {
-  await NtApi.updateActivity(row.id, { kcal })
+  await write(() => NtApi.updateActivity(row.id, { kcal }))
   await refresh(row.date)
 }

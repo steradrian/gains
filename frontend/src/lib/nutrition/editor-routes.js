@@ -23,6 +23,13 @@ export const RECIPES_LIST = '/food/my-foods?tab=recipes'
 export const NEW_RECIPE_PATH = '/food/my-foods/recipes/new'
 export const recipeEditorPath = id => `/food/my-foods/recipes/${id}`
 
+const EDITOR_PATH = /^(\/food\/my-foods\/(?:foods|meals|recipes))\/[^/]+\/?$/
+
+/** The page identity App's route layer keys on (lib/use-route-transition.js). An editor keeps one
+ *  key whatever its id, so `/new` becoming `/12` once the first autosave has created the record
+ *  does not remount the form and take the keyboard away. Any other path is its own key. */
+export const editorRouteKey = pathname => pathname.replace(EDITOR_PATH, '$1/:id')
+
 /** Opens the editor for a new food from a sheet or a plain handler. `close` is the sheet's own
  *  close when there is one: its history entry is taken over by the editor (lib/nav.js). */
 export function openNewFood(prefill = {}, close) {

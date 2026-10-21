@@ -7,6 +7,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { click, useView } from '../../ds/render.test-util.js'
 import { createFakeNutriTrace, fixtureSettings } from '../../lib/nutrition/fake-nutritrace.js'
+import { useActivityWrites } from '../../lib/nutrition/activity.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -51,6 +52,7 @@ beforeEach(() => {
   saved = useStore.getState().S
   useStore.setState({ user: { id: 3, name: 'Ana' }, S: { ...saved, weekStart: 1, unit: 'kg', bodyweight: [] } })
   useNutrition.getState().reset()
+  useActivityWrites.setState({ supported: true })
   openSheet = vi.fn()
   useUI.setState({ openSheet })
 })
@@ -118,6 +120,73 @@ describe('Burned', () => {
     expect(view.host.querySelector('[data-scene="chart"]')).not.toBeNull()
     click([...view.host.querySelectorAll('button')].find(b => b.textContent === 'Log activity' && !b.getAttribute('aria-label')))
     expect(openSheet).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('when the hub takes no activity writes yet', () => {
+  const week = {
+    [MON]: [row(1, MON, 'Legs', 0, { source: 'opengym' })],
+    [TUE]: [row(2, TUE, 'Run', 410)],
+  }
+
+  it('stays readable but offers no add or edit, and says logging arrives soon', async () => {
+    await open({ activity: week })
+    expect(view.host.querySelector('button[aria-label="Log activity"]')).not.toBeNull()
+    act(() => { useActivityWrites.setState({ supported: false }) })
+    await settle()
+    expect(view.host.querySelector('button[aria-label="Log activity"]')).toBeNull()
+    expect(text()).toContain('Logging activity arrives soon')
+    expect(text()).not.toContain('Tap it to add one')
+    expect(view.host.querySelector('h2').textContent).toBe('410 kcal')
+    // the figure and the rows are still there; a row with no number does nothing
+    click(rowButton('Legs'))
+    expect(openSheet).not.toHaveBeenCalled()
+    click(rowButton('Run'))
+    expect(navToDay).toHaveBeenCalledWith(TUE, 'food')
+  })
+
+  it('an empty week has no Log activity button either', async () => {
+    useActivityWrites.setState({ supported: false })
+    await open()
+    expect(text()).toContain('Nothing burned logged this week')
+    expect(text()).toContain('Logging activity arrives soon')
+    expect([...view.host.querySelectorAll('button')].some(b => b.textContent === 'Log activity')).toBe(false)
+  })
+
+  it('opening the page sends no activity write', async () => {
+    await open({ activity: week })
+    expect(nt.writes()).toHaveLength(0)
+  })
+})
+
+describe('when a day of the week failed to read', () => {
+  const rows = { [MON]: [row(1, MON, 'Run', 300)], [WED]: [row(3, WED, 'Push A', 320, { source: 'opengym' })] }
+
+  it('asks for a retry instead of quoting a partial total, then shows the week', async () => {
+    nt = createFakeNutriTrace({ settings: fixtureSettings(), activity: rows, activitySum: sumsOf(rows) })
+    nt.failNext('GET', `/nt/api/activity/${TUE}`, 'offline')
+    vi.stubGlobal('fetch', nt.fetch)
+    view.render(<BurnedPage />)
+    await settle()
+    expect(text()).toContain('Could not load this week')
+    expect(view.host.querySelector('h2')).toBeNull()
+    expect(text()).not.toContain('Nothing burned logged this week')
+    expect(rowButton('Run')).toBeUndefined()
+    click([...view.host.querySelectorAll('button')].find(b => b.textContent === 'Retry'))
+    await settle()
+    expect(text()).not.toContain('Could not load this week')
+    expect(view.host.querySelector('h2').textContent).toBe('620 kcal')
+    expect(rowButton('Run')).toBeTruthy()
+  })
+
+  it('does not say nothing was burned when the only day that read failed', async () => {
+    nt = createFakeNutriTrace({ settings: fixtureSettings() })
+    nt.failNext('GET', '/nt/api/activity/', 'offline')
+    vi.stubGlobal('fetch', nt.fetch)
+    view.render(<BurnedPage />)
+    await settle()
+    expect(text()).toContain('Could not load this week')
+    expect(text()).not.toContain('Nothing burned logged this week')
   })
 })
 

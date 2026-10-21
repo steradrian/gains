@@ -90,6 +90,34 @@ describe('logging it again', () => {
     expect(nt.state.days[TODAY].items.filter(i => i.name === 'Lentil soup')).toHaveLength(1)
   })
 
+  it('still reads Logged after one entry is removed and Undo brings it back under a new uuid', async () => {
+    view.render(<Probe />)
+    await settle(() => expect(button()?.disabled).toBe(false))
+    click(button())
+    await settle(() => expect(button().textContent).toBe('Logged'))
+    const logged = nt.state.days[TODAY].items.find(i => i.name === 'Lentil soup')
+
+    // What DiaryItemSheet does: remove the entry, then Undo restores it under a fresh uuid.
+    await act(async () => { await useNutrition.getState().removeItem(TODAY, logged.uuid) })
+    await settle(() => expect(button().textContent).toBe('Log again'))
+    await act(async () => { await useNutrition.getState().restoreItem(TODAY, { ...logged, uuid: 'restored-uuid' }, null) })
+    await settle(() => expect(button().textContent).toBe('Logged'))
+    expect(nt.state.days[TODAY].items.filter(i => i.name === 'Lentil soup')).toHaveLength(1)
+  })
+
+  it('offers it again once the logged entry is removed for good', async () => {
+    view.render(<Probe />)
+    await settle(() => expect(button()?.disabled).toBe(false))
+    click(button())
+    await settle(() => expect(button().textContent).toBe('Logged'))
+    const logged = nt.state.days[TODAY].items.find(i => i.name === 'Lentil soup')
+    await act(async () => { await useNutrition.getState().removeItem(TODAY, logged.uuid) })
+    await settle(() => expect(button().textContent).toBe('Log again'))
+    click(button())
+    await settle(() => expect(button().textContent).toBe('Logged'))
+    expect(nt.state.days[TODAY].items.filter(i => i.name === 'Lentil soup')).toHaveLength(1)
+  })
+
   it('logs every entry of the meal in one write', async () => {
     nt.state.days[YESTERDAY].items.push({ uuid: 'y-tea', meal: DINNER, addedAt: `${YESTERDAY}T19:05:00.000Z`, type: 'quick_calories', name: 'Tea', nutrition: { calories: 40 }, food_server_id: null })
     view.render(<Probe />)
