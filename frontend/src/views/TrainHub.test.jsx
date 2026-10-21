@@ -12,7 +12,7 @@ import { useUI } from '../store/useUI.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { dateLocale } from '../lib/i18n.js'
 import { fmtDate, isoOf, todayISO } from '../lib/format.js'
-import { dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
+import { dayOptionsSheet, dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startChooserSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
 import { addRoutine } from './Plan.jsx'
 import TrainHub from './TrainHub.jsx'
 
@@ -22,7 +22,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => 
 vi.mock('../lib/coach.js', () => ({ coachAvailable: () => coach.on }))
 vi.mock('./Plan.jsx', () => ({ addRoutine: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), dayOverrideSheet: vi.fn(), dayNoteSheet: vi.fn(), menuSheet: vi.fn(), startFlow: vi.fn(),
+  starterPlanSheet: vi.fn(), dayOverrideSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), dayNoteSheet: vi.fn(), menuSheet: vi.fn(), startFlow: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(),
 }))
 
@@ -136,7 +136,8 @@ describe('Train — the card and Start', () => {
   it('the ⋯ opens the day\'s options for today, and starts nothing', () => {
     setS(); mount()
     tap($('.g-tcard-menu'))
-    expect(dayOverrideSheet).toHaveBeenCalledWith(TODAY)
+    expect(dayOptionsSheet).toHaveBeenCalledWith(TODAY)
+    expect(dayOverrideSheet).not.toHaveBeenCalled()
     expect(startFlow).not.toHaveBeenCalled()
   })
 
@@ -145,7 +146,7 @@ describe('Train — the card and Start', () => {
     expect($('.g-tcard-head b').compareDocumentPosition($('.g-tcard-menu')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('done: the session; See workout opens it, and Start opens the Start screen for another', () => {
+  it('done: the session; See workout opens it, and Start opens the Start a workout drawer for another', () => {
     const w = at(TODAY, 0, { prs: ['0025'] })
     setS({ workouts: [w] }); mount()
     expect(card()).toMatchObject({ eyebrow: 'Workout done', title: 'Push', buttons: ['See workout'] })
@@ -153,16 +154,17 @@ describe('Train — the card and Start', () => {
     tap(cardButton('See workout'))
     expect(workoutDetailSheet).toHaveBeenCalledWith(w)
     tap(action('Start'))
-    expect(nav).toHaveBeenCalledWith('/train/workout')
+    expect(startChooserSheet).toHaveBeenCalledTimes(1)
+    expect(nav).not.toHaveBeenCalled()
   })
 
-  it('rest: Recover; Train anyway and Start open the Start screen', () => {
+  it('rest: Recover; Train anyway and Start open the Start a workout drawer', () => {
     setS({ week: {} }); mount()
     expect(card()).toMatchObject({ eyebrow: 'Rest day', title: 'Recover' })
     tap(cardButton('Train anyway'))
-    expect(nav).toHaveBeenCalledWith('/train/workout')
     tap(action('Start'))
-    expect(nav).toHaveBeenCalledTimes(2)
+    expect(startChooserSheet).toHaveBeenCalledTimes(2)
+    expect(nav).not.toHaveBeenCalled()
     expect(startFlow).not.toHaveBeenCalled()
   })
 

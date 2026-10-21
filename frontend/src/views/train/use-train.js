@@ -21,7 +21,7 @@ import { queueOf } from '../../lib/queue.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
-import { dayNoteSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startFlow } from '../../sheets.jsx'
+import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
@@ -436,9 +436,8 @@ export function useTrain() {
   const onIntent = it => {
     switch (it.intent) {
       case 'start': return start(it.ids)
-      case 'resume': case 'choose-workout': return toWorkout()
-      // M5 opens the Start a workout drawer (T2.1); until then the Start screen holds the chooser.
-      case 'train-anyway': return toWorkout()
+      case 'resume': return toWorkout()
+      case 'choose-workout': case 'train-anyway': return startChooserSheet()
       case 'see-workout': return workoutsSheet(it.title, it.workouts)
       case 'see-day': return select(it.iso)
       case 'change-day': return dayOverrideSheet(it.iso)
@@ -475,15 +474,15 @@ export function useTrain() {
     // PR02Graph: a ring opens Training load, the streak the Plan (conflict 11).
     onRing: slide => nav(slide?.key === 'streak' ? '/train/schedule' : '/progress/load'),
     actions: [
-      { key: 'start', icon: 'play', label: t('Start'), onClick: () => (todayCard.primary?.intent === 'start' || todayCard.primary?.intent === 'resume' ? onIntent(todayCard.primary) : toWorkout()) },
+      { key: 'start', icon: 'play', label: t('Start'), onClick: () => (todayCard.primary?.intent === 'start' || todayCard.primary?.intent === 'resume' ? onIntent(todayCard.primary) : startChooserSheet()) },
       { key: 'plan', icon: 'calendar', label: t('Plan'), onClick: onPlan },
       { key: 'routines', icon: 'list', label: t('Routines'), onClick: () => nav('/train/routines') },
       { key: 'exercises', icon: 'bookOpen', label: t('Exercises'), onClick: () => nav('/train/exercises') },
     ],
     onIntent,
     onPlan,
-    // The card's ⋯. M5 opens the Day options drawer (T2.2) with the card's `menu` instead.
-    onDayMenu: c => dayOverrideSheet(c.iso),
+    // The card's ⋯ opens the Day options drawer (T2.2).
+    onDayMenu: c => dayOptionsSheet(c.iso),
     routines: routineRows(S, today),
     onRoutine: row => (row.freestyle ? start([]) : nav('/train/routines/' + row.id)),
     onRoutineStart: row => (row.freestyle ? start([]) : row.empty && !S.active ? nav('/train/routines/' + row.id) : start([row.id])),
