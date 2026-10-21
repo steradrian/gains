@@ -108,12 +108,15 @@ export function viewOf({ week, today, settings, goalInputs, energy, onAdd, onOpe
     onClick: isNumberless(row) ? () => onAdd(row) : () => onOpen(row),
   })
   return {
-    title: week.total > 0 ? energy(week.total) : null,
-    sub: week.total > 0 ? sourcesLine(week) || t('Burned this week') : null,
+    title: !week.failed && week.total > 0 ? energy(week.total) : null,
+    sub: !week.failed && week.total > 0 ? sourcesLine(week) || t('Burned this week') : null,
     note: settings ? noteOf({ settings, today, goalInputs, energy }) : null,
     groups: week.groups.map(g => ({ id: g.id, title: GROUP_TITLE[g.id](), items: g.rows.map(item) })),
     missing: week.missing.map(r => ({ key: r.id, text: t('{0} has no Burned number: it was logged before Burned was turned on. Tap it to add one.', r.name) })),
-    empty: week.loaded && !week.groups.length,
+    // A day that failed to read counts as 0 in the total and is missing from the rows: neither the
+    // figure nor "nothing burned" is true of a partial week, so the screen asks for a retry.
+    failed: week.failed,
+    empty: week.loaded && !week.failed && !week.groups.length,
   }
 }
 

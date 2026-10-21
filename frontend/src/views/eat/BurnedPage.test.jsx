@@ -121,6 +121,37 @@ describe('Burned', () => {
   })
 })
 
+describe('when a day of the week failed to read', () => {
+  const rows = { [MON]: [row(1, MON, 'Run', 300)], [WED]: [row(3, WED, 'Push A', 320, { source: 'opengym' })] }
+
+  it('asks for a retry instead of quoting a partial total, then shows the week', async () => {
+    nt = createFakeNutriTrace({ settings: fixtureSettings(), activity: rows, activitySum: sumsOf(rows) })
+    nt.failNext('GET', `/nt/api/activity/${TUE}`, 'offline')
+    vi.stubGlobal('fetch', nt.fetch)
+    view.render(<BurnedPage />)
+    await settle()
+    expect(text()).toContain('Could not load this week')
+    expect(view.host.querySelector('h2')).toBeNull()
+    expect(text()).not.toContain('Nothing burned logged this week')
+    expect(rowButton('Run')).toBeUndefined()
+    click([...view.host.querySelectorAll('button')].find(b => b.textContent === 'Retry'))
+    await settle()
+    expect(text()).not.toContain('Could not load this week')
+    expect(view.host.querySelector('h2').textContent).toBe('620 kcal')
+    expect(rowButton('Run')).toBeTruthy()
+  })
+
+  it('does not say nothing was burned when the only day that read failed', async () => {
+    nt = createFakeNutriTrace({ settings: fixtureSettings() })
+    nt.failNext('GET', '/nt/api/activity/', 'offline')
+    vi.stubGlobal('fetch', nt.fetch)
+    view.render(<BurnedPage />)
+    await settle()
+    expect(text()).toContain('Could not load this week')
+    expect(text()).not.toContain('Nothing burned logged this week')
+  })
+})
+
 describe('with Burned off', () => {
   it('redirects to Eat', async () => {
     await open({ settings: { ...fixtureSettings(), diaryShowActivity: false }, activity: { [WED]: [row(3, WED, 'Push A', 320)] } })

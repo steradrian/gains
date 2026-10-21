@@ -66,5 +66,10 @@ export function useBurned() {
       onOpen: row => navToDay(row.date, 'food'),
     }),
     onLog: () => logActivitySheet({ date: today }),
+    // Reads again only the days that failed.
+    onRetry: () => {
+      const n = useNutrition.getState()
+      for (const d of days) if (n.activity[d]?.status === 'error') n.loadActivity(d, policy)
+    },
   }
 }
