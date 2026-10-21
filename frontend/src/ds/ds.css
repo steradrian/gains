@@ -349,6 +349,7 @@ button.g-saved { cursor: pointer; }
 .g-bmap-stage .g-bm-m.l3 { fill: color-mix(in srgb, var(--on-stage) 78%, transparent); }
 .g-bmap-stage .g-bm-m.l4 { fill: var(--on-stage); }
 .g-bmap-stage .g-bm-m.sel { stroke: var(--on-stage); stroke-width: 2.5; }
+.g-bm-tap { cursor: pointer; }
 .g-bmap-light .g-bm-sil { fill: var(--surface-sunken); }
 .g-bmap-light .g-bm-m.l0 { fill: var(--line-strong); }
 .g-bmap-light .g-bm-m.l1 { fill: color-mix(in srgb, var(--accent-fill) 30%, var(--surface)); }

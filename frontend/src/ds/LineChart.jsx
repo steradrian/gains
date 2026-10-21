@@ -14,7 +14,10 @@ const MAX_ROWS = 62     // the hidden list of points is thinned past this, the l
 //
 // The time axis runs left to right in every language (dir="ltr" on the chart), so a trend never
 // reads backwards; the numbers and labels inside are the caller's own strings.
-export default function LineChart({ values, labels, pointLabels, unit, tone = 'light', color, height = 150, width = 326, label }) {
+//
+// `invert` puts the smallest value at the top, for a scale that counts down as it gets harder (reps
+// in reserve: 0 is the hardest set), so up still reads as "harder".
+export default function LineChart({ values, labels, pointLabels, unit, tone = 'light', color, height = 150, width = 326, label, invert = false }) {
   oneOf('LineChart', 'tone', tone, ['light', 'stage'])
   const [hover, setHover] = useState(null)
   const n = values.length
@@ -22,7 +25,10 @@ export default function LineChart({ values, labels, pointLabels, unit, tone = 'l
 
   const mn = Math.min(...values), mx = Math.max(...values), range = (mx - mn) || 1
   const xs = values.map((_, i) => (n > 1 ? i / (n - 1) : 1))
-  const ys = values.map(v => height - PAD - ((v - mn) / range) * (height - PAD * 2))
+  const ys = values.map(v => {
+    const f = (v - mn) / range
+    return invert ? PAD + f * (height - PAD * 2) : height - PAD - f * (height - PAD * 2)
+  })
   const pts = values.map((_, i) => (xs[i] * width).toFixed(1) + ',' + ys[i].toFixed(1))
   const line = pts.join(' ')
   const area = n > 1 ? `M${pts[0]} L${pts.slice(1).join(' L')} L${width},${height} L0,${height} Z` : ''

@@ -8,7 +8,9 @@ import { cx, oneOf } from '../lib/ui-kit.js'
 // the stage and in the accent on a light surface. Small and quiet: it is the picture beside a
 // sentence, so without a `label` it is hidden from a screen reader. Until the geometry lands it is
 // an empty box that holds the space.
-export default function BodyMap({ levels = {}, body = 'male', tone = 'stage', views = ['front', 'back'], width = 160, selected, label }) {
+// `onMuscle(slug)` makes each muscle tappable with a pointer. It adds no tab stops: a page that
+// offers it lists the same muscles as rows, and the rows are the keyboard and screen-reader way in.
+export default function BodyMap({ levels = {}, body = 'male', tone = 'stage', views = ['front', 'back'], width = 160, selected, label, onMuscle }) {
   oneOf('BodyMap', 'tone', tone, ['stage', 'light'])
   const paths = useBodyPaths()
   const g = paths && (paths[body] || paths.male)
@@ -30,7 +32,8 @@ export default function BodyMap({ levels = {}, body = 'male', tone = 'stage', vi
           >
             {INERT.map(slug => (view.p[slug] || []).map((d, i) => <path key={slug + i} className="g-bm-sil" d={d} />))}
             {MUSCLES.map(slug => (view.p[slug] || []).map((d, i) => (
-              <path key={slug + i} className={cx('g-bm-m', 'l' + (levels[slug] || 0), selected === slug && 'sel')} d={d} />
+              <path key={slug + i} className={cx('g-bm-m', 'l' + (levels[slug] || 0), selected === slug && 'sel', onMuscle && 'g-bm-tap')} d={d}
+                data-muscle={onMuscle ? slug : undefined} onClick={onMuscle ? () => onMuscle(slug) : undefined} />
             )))}
           </svg>
         )

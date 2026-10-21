@@ -75,6 +75,15 @@ describe('LineChart', () => {
     expect(view.host.firstElementChild).toBeNull()
   })
 
+  it('puts the smallest value at the top when inverted, at the bottom otherwise', () => {
+    const latestTop = () => parseFloat(view.host.querySelector('.g-lc-dot').style.top)
+    view.render(<LineChart values={[3, 0]} height={100} label="x" />)
+    expect(latestTop()).toBe(90)
+    view.render(<LineChart values={[3, 0]} height={100} invert label="x" />)
+    expect(latestTop()).toBe(10)
+    expect(view.host.querySelector('polyline').getAttribute('points')).toBe('0.0,90.0 326.0,10.0')
+  })
+
   it('is white by default, glass on the stage, and refuses another tone', () => {
     view.render(<LineChart values={[1, 2]} label="x" />)
     expect(view.host.firstElementChild.classList.contains('g-chart-stage')).toBe(false)

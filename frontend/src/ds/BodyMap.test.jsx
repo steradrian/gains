@@ -48,4 +48,20 @@ describe('BodyMap', () => {
   it('refuses a tone the design system does not have, in development', () => {
     expect(() => view.render(<BodyMap tone="dark" />)).toThrow(/tone="dark"/)
   })
+
+  it('hands a tapped muscle to onMuscle, without adding tab stops', async () => {
+    const onMuscle = vi.fn()
+    await shown({ onMuscle })
+    const chest = view.host.querySelector('path[data-muscle="chest"]')
+    expect(chest.classList.contains('g-bm-tap')).toBe(true)
+    expect(chest.hasAttribute('tabindex')).toBe(false)
+    act(() => { chest.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    expect(onMuscle).toHaveBeenCalledWith('chest')
+  })
+
+  it('draws plain muscles without onMuscle', async () => {
+    await shown({})
+    expect(view.host.querySelector('path[data-muscle]')).toBeNull()
+    expect(view.host.querySelector('.g-bm-tap')).toBeNull()
+  })
 })
