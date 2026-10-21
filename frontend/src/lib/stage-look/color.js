@@ -42,7 +42,7 @@ function oklchToLinear(L, C, H) {
 const inGamut = lin => lin.every(v => v >= -0.0005 && v <= 1.0005)
 
 // Reduce chroma until the colour fits sRGB (keeps lightness and hue).
-export function oklch(L, C, H) {
+export function gamutOklch(L, C, H) {
   H = ((H % 360) + 360) % 360
   let c = Math.max(0, C)
   if (!inGamut(oklchToLinear(L, c, H))) {
@@ -69,7 +69,7 @@ const contrastRgb = (a, b) => {
 
 const fromHex = hex => {
   const k = hexToOklch(hex)
-  return oklch(k.L, k.C, k.H)
+  return gamutOklch(k.L, k.C, k.H)
 }
 
 // Where the ramp's four stops sit along the lightness axis (must match `ramp` in the shader).
@@ -80,7 +80,7 @@ export const sstep = (a, b, x) => {
   return t * t * (3 - 2 * t)
 }
 
-/** The sRGB colour of the art ramp at lightness `x` (0 to 1). `stops` are four oklch() colours. */
+/** The sRGB colour of the art ramp at lightness `x` (0 to 1). `stops` are four gamutOklch() colours. */
 export function rampAt(stops, x) {
   let c = stops[0].lin.slice()
   for (let i = 1; i < 4; i++) {
@@ -98,12 +98,12 @@ export function rampAt(stops, x) {
 export function deriveTheme(preset, intensity = 0.45) {
   const sc = preset.stage
   const top = fromHex(sc.stage), end = fromHex(sc.end), glow = fromHex(sc.glow)
-  const art = [oklch(Math.max(end.L - 0.08, 0.05), end.C * 0.9, end.H), end, top, oklch(Math.min(glow.L + 0.1, 0.97), glow.C * 0.7, glow.H)]
+  const art = [gamutOklch(Math.max(end.L - 0.08, 0.05), end.C * 0.9, end.H), end, top, gamutOklch(Math.min(glow.L + 0.1, 0.97), glow.C * 0.7, glow.H)]
   if (preset.ink && preset.ink.art) {
     art[0] = fromHex(preset.ink.art[0])
     art[1] = fromHex(preset.ink.art[1])
   }
-  const W = oklch(1, 0, 0)
+  const W = gamutOklch(1, 0, 0)
   const light = !!preset.ink || contrastRgb(W.rgb, top.rgb) < 3
   const decor = light && preset.ink && preset.ink.decor ? { c: fromHex(preset.ink.decor[0]), k: preset.ink.decor[1] } : { c: W, k: 1 }
   return {
