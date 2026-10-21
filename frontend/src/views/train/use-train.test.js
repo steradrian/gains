@@ -184,9 +184,9 @@ describe('the card', () => {
     expect(cardOf(S(), '2026-10-20', TODAY)).toMatchObject({ kind: 'free', title: 'Rest day', primary: null, secondary: [{ intent: 'change-day' }] })
   })
 
-  it('a past day selects in place (conflict 2): logged gives See workout, missed Log this workout with its routines', () => {
+  it('a past day’s card: logged gives See workout for that day, missed Log this workout with its routines', () => {
     const logged = cardOf(S(), '2026-10-14', TODAY)
-    expect(logged).toMatchObject({ kind: 'past-logged', eyebrow: fmtDate('2026-10-14', true), title: 'Pull A', primary: { intent: 'see-workout' } })
+    expect(logged).toMatchObject({ kind: 'past-logged', eyebrow: fmtDate('2026-10-14', true), title: 'Pull A', primary: { intent: 'see-workout', iso: '2026-10-14' } })
     const missed = cardOf(S(), '2026-10-16', TODAY)
     expect(missed).toMatchObject({ kind: 'past-missed', title: 'Legs', sub: 'Planned, not logged' })
     expect(missed.primary).toEqual({ intent: 'log-workout', label: 'Log this workout', iso: '2026-10-16', routineIds: ['legs'] })

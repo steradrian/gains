@@ -9,6 +9,7 @@ import { addRoutine } from '../Plan.jsx'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
 import { canNoteDay, dayNoteOf } from '../../lib/day-notes.js'
+import { navToDay } from '../../lib/day-route.js'
 import { DEMO } from '../../lib/demo.js'
 import { activeProfile } from '../../lib/equipment.js'
 import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
@@ -22,7 +23,7 @@ import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
-import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
+import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
@@ -143,7 +144,7 @@ export function ringsOf(S, today) {
 const intent = {
   start: (name, ids) => ({ intent: 'start', label: name ? t('Start {0}', name) : t('Start'), ids }),
   resume: () => ({ intent: 'resume', label: t('Resume') }),
-  seeWorkout: (workouts, title) => ({ intent: 'see-workout', label: workouts.length > 1 ? t('See workouts') : t('See workout'), workouts, title }),
+  seeWorkout: (workouts, title, iso) => ({ intent: 'see-workout', label: workouts.length > 1 ? t('See workouts') : t('See workout'), workouts, title, ...(iso ? { iso } : {}) }),
   trainAnyway: () => ({ intent: 'train-anyway', label: t('Train anyway') }),
   seeDay: iso => ({ intent: 'see-day', label: t('See {0}', longDay(iso)), iso }),
   changeDay: iso => ({ intent: 'change-day', label: t('Change this day'), iso }),
@@ -273,10 +274,10 @@ export function cardOf(S, iso, today) {
         ...card, kind: day.kind, eyebrow: date,
         title: one ? workoutLabel(one) : tn('{0} workout', '{0} workouts', day.workouts.length),
         sub: one ? finishedLine(one, S.unit) : null, thumbs: one ? stillsOf(S, one) : null,
-        primary: intent.seeWorkout(day.workouts, date), menu: [intent.changeDay(iso)],
+        primary: intent.seeWorkout(day.workouts, date, iso), menu: [intent.changeDay(iso)],
       }
     }
-    // Owner decision 2: a past day selects in place and keeps the backfill path (conflict 2).
+    // A past day's intents open its Day page (PR07 decision 6), where Add past workout logs it.
     case 'past-missed': return {
       ...card, kind: day.kind, eyebrow: date, title: day.name, sub: t('Planned, not logged'),
       primary: intent.log(iso, day.ids), menu: dayMenu,
@@ -434,7 +435,8 @@ export function skippedText(S, missed, today) {
  * `header` is StageHeader's props. `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
  * `missed` adds `move()` and `skip()`, each returning the toast `{ text, undo }` (UndoToast) or
  * null, and `onMove()` / `onSkip()`, which do the same and show that toast.
- * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked.
+ * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked;
+ * a past day opens its Day page instead (`/train/day/:date`, lib/day-route.js navToDay).
  */
 export function useTrain() {
   const nav = useNavigate()
@@ -459,11 +461,13 @@ export function useTrain() {
       case 'start': return start(it.ids)
       case 'resume': return toWorkout()
       case 'choose-workout': case 'train-anyway': return startChooserSheet()
-      case 'see-workout': return workoutsSheet(it.title, it.workouts)
+      // A past day's workouts and its backfill are on its Day page (PR07 decision 6); today's
+      // workout opens its detail.
+      case 'see-workout': return it.iso && it.iso < today ? navToDay(it.iso, 'train') : workoutsSheet(it.title, it.workouts)
       case 'see-day': return select(it.iso)
       case 'change-day': return dayOverrideSheet(it.iso)
       case 'see-routine': return nav('/train/routines/' + it.id)
-      case 'log-workout': return logPastWorkoutSheet(it.routineIds ? { iso: it.iso, routineIds: it.routineIds } : { iso: it.iso })
+      case 'log-workout': return navToDay(it.iso, 'train')
       case 'add-note': return dayNoteSheet(it.iso)
       default: return undefined
     }
@@ -480,7 +484,7 @@ export function useTrain() {
     placeholder: t('Search training'),
     alert: connection ? t('Connection problem') : null,
     onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
+    onBell: () => nav('/train/notifications'),
     // As on Today: the tab's own header takes over while the search is open, mounted and focused
     // inside this tap so a phone raises its keyboard.
     onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('train'))) },
@@ -488,7 +492,9 @@ export function useTrain() {
 
   return {
     header, searching,
-    today, selected, select,
+    // A past day of the rail opens its Day page (PR07 decision 6; a day before the first log opens
+    // nothing); today and a day to come select in place.
+    today, selected, select: iso => (iso < today ? navToDay(iso, 'train') : select(iso)),
     rail,
     card: (iso = selected) => (iso === today ? todayCard : cardOf(S, iso, today)),
     rings: ringsOf(S, today),

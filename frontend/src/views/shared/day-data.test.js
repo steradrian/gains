@@ -47,6 +47,13 @@ describe('the state of a past day', () => {
     expect(d.planned).toBeNull()
   })
 
+  it('lists every workout of a day with two, an unnamed one still labelled (was Train’s See workouts list)', () => {
+    const second = { ...pushA, id: 'w2', name: '', start: at('2026-10-12', 7), end: at('2026-10-12', 8) }
+    const d = day('2026-10-12', S({ workouts: [...S().workouts, second] }))
+    expect(d.workouts.map(w => w.name)).toEqual(['Push A', 'Workout'])
+    expect(d.summary).toMatch(/^Push A \+ Workout done/)
+  })
+
   it('missed: the plan had Legs and nothing was logged; the summary gives the kcal when off target', () => {
     const d = day('2026-10-16', S(), diary([item('a', 'Oats', 0, 1600)]))
     expect(d.state).toBe('missed')
