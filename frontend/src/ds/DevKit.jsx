@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
+import DevKitDay from './DevKitDay.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
@@ -270,6 +271,8 @@ export default function DevKit() {
         </Section>
 
         <DevKitShared />
+        {/* Shared: day */}
+        <DevKitDay />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

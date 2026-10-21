@@ -59,7 +59,8 @@ describe('DevKit', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
     expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty', 'RoutineTiles', 'MusclesCard']))
-    expect(view.host.querySelectorAll('.g-rail')).toHaveLength(2)
+    // Train's two, and the Day page's (Shared: day)
+    expect(view.host.querySelectorAll('.g-rail')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-tcard')).toHaveLength(6)
     expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(4)
     const title = () => view.host.querySelector('.g-rail-title').textContent
@@ -82,5 +83,16 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-ngroup')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-nrow')).toHaveLength(9)
     expect(view.host.querySelectorAll('.g-nrow-new')).toHaveLength(3)
+  })
+
+  // Shared: day
+  it('renders the Day page entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageDayRail on a Day page', 'DayStatusCard', 'DayFoodCard', 'RadioRow']))
+    expect(view.host.querySelectorAll('.g-dstat')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-dfood')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-radio')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-rd[disabled]')).toHaveLength(2)
   })
 })
