@@ -38,7 +38,7 @@ export default function BurnedAmountSheet({ row, today, close }) {
       type="half"
       footer={<>
         {save.state === 'error' && <p className="g-bs-note" role="alert">{writeErrorText(save.error)}</p>}
-        <Button variant="primary" block disabled={amount == null} busy={save.state === 'saving'} onClick={submit}>{t('Save Burned')}</Button>
+        <Button variant="primary" block haptic disabled={amount == null} busy={save.state === 'saving'} onClick={submit}>{t('Save Burned')}</Button>
       </>}
     >
       <div className="g-act">
