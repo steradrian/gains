@@ -243,6 +243,13 @@ export function foodOf(form, { food = null, clientKey = null, energyUnit = 'kcal
   return { food: { ...out, client_key: clientKey } }
 }
 
+/** The editor's refusal of a form (foodOf's `error`), as the sentence under it. */
+export function foodProblemText(error) {
+  if (error === 'name') return t('Give the food a name.')
+  if (error === 'portion') return t('The serving needs an amount above 0.')
+  return t('{0} must be a number, 0 or more.', nutrientLabel(error.slice('nutrient:'.length)))
+}
+
 /** What a failed online search tells the person; 429 is the hub's limit of 30 a minute. */
 export function searchErrorText(e) {
   if (e?.code === 'offline' || e?.code === 'timeout') return t('The search did not finish: no connection.')

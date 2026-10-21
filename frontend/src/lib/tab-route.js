@@ -48,6 +48,9 @@ export function parentOf(pathname = '') {
   const tab = tabOf(pathname)
   // A Day or Week page (lib/day-route.js) has no page above it but its tab's root.
   if (tab && /^\/[a-z]+\/(day|week)\/[^/]+$/.test(pathname)) return TAB_ROOT[tab]
+  // An editor in My foods (/food/my-foods/foods/12, also /new) goes back to its tab of the list.
+  const editor = pathname.match(/^\/food\/my-foods\/(foods|meals|recipes)\/[^/]+$/)
+  if (editor) return '/food/my-foods?tab=' + editor[1]
   if (!tab || pathname === TAB_ROOT[tab]) return TAB_ROOT.home
   return pathname.slice(0, pathname.lastIndexOf('/'))
 }
