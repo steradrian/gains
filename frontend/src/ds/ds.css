@@ -802,3 +802,14 @@ div.g-mcard { cursor: default; }
 /* The coach week's or rotation's name and where it stands, under the drawer's title */
 .g-tr-week { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-tr-week b { font-weight: 600; color: var(--text); }
+
+/* === Train exercises kit (Tabs, DetailRow; board T6.1) === */
+/* Tabs: text tabs over a hairline; the line slides to the chosen one. It is placed from the
+   physical left because Tabs.jsx measures the tab with offsetLeft, which is physical in both
+   directions. */
+.g-tabs { position: relative; display: flex; gap: var(--space-6); border-bottom: 1px solid var(--line); }
+.g-tabs button { appearance: none; border: 0; background: none; padding: 0; min-height: var(--tap-min); color: var(--text-3); font: 500 15px/20px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color 200ms; }
+.g-tabs button[aria-selected="true"] { color: var(--text); }
+.g-tabs-ink { position: absolute; left: 0; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--text); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), width 320ms cubic-bezier(.34,1.22,.64,1), opacity 140ms; }
+@media (prefers-reduced-motion: reduce) { .g-tabs-ink { transition: none; } }
+:root[data-motion="reduce"] .g-tabs-ink { transition: none; }
