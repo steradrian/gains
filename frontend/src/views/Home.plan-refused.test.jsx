@@ -6,6 +6,7 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
+import { todayISO } from '../lib/format.js'
 import { _forgetPlanRefused } from '../lib/onboarding/use-plan-refused.js'
 import Home from './Home.jsx'
 
@@ -37,8 +38,9 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals() })
 
+// A weigh-in today: something is logged, so Up next shows rather than a first day's First steps.
 const setS = (over = {}) => useStore.setState(s => ({
-  S: { ...s.S, routines: [], dayPlan: {}, workouts: [], active: null, weighIn: false, week: {}, ...over },
+  S: { ...s.S, routines: [], dayPlan: {}, workouts: [], active: null, weighIn: false, week: {}, bodyweight: [{ d: todayISO(), w: 80 }], ...over },
   user: { id: 'u1', name: 'Maria' },
 }))
 const mount = async () => { await act(async () => { root.render(<Home />) }); await act(async () => { await Promise.resolve() }) }
@@ -55,6 +57,14 @@ describe('Today — a plan the onboarding could not set up', () => {
     expect(hub.loadOnboarding).toHaveBeenCalledWith('u1')
     act(() => { host.querySelector('.g-grow').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     expect(nav).toHaveBeenCalledWith('/train')
+  })
+
+  it('on a first day, First steps\' plan step says so instead (T1.9)', async () => {
+    hub.loadOnboarding.mockResolvedValue(REFUSED)
+    setS({ bodyweight: [] })
+    await mount()
+    expect(host.querySelector('.g-grow')).toBeNull()
+    expect(host.querySelector('.g-fstep').textContent).toBe('Plan your training weekYour plan couldn’t be set up')
   })
 
   it('goes away once a plan exists, and asks the hub nothing then', async () => {

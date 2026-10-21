@@ -11,7 +11,7 @@ import Icon from './Icon.jsx'
 import { HeroStatus } from './tab-kit.jsx'
 
 // A workout's line: how long it took and its PRs, whichever it has.
-export const workoutLine = w => [...durPart(workoutDuration(w)), ...(w.prs?.length ? [tn('{0} PR', '{0} PRs', w.prs.length)] : [])].join(' · ') || null
+const workoutLine = w => [...durPart(workoutDuration(w)), ...(w.prs?.length ? [tn('{0} PR', '{0} PRs', w.prs.length)] : [])].join(' · ') || null
 
 /** A day's logged workouts: the one's detail, or a list of them to pick from. */
 export function workoutsSheet(title, workouts) {
