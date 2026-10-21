@@ -191,15 +191,15 @@ function PlanDayDrawer({ iso, close }) {
   return (
     <BottomSheet title={date} type="half" head={<>
       {head}
-      <SegmentedControl value={scope} onChange={setScope} label={t('Change for')}
+      <SegmentedControl value={scope} onChange={setScope} label={t('Which days')}
         options={[{ value: 'only', label: t('Only {0}', date) }, { value: 'every', label: t('Every {0}', weekday) }]} />
       <p className="g-tr3-hint" id={titleId}>{scope === 'only' ? t('Pick one routine.') : t('Pick one routine, or more to train them together.')}</p>
     </>} footer={<Button block onClick={save} disabled={scope === 'only' && one == null}>{t('Save')}</Button>}>
       {scope === 'only' ? (
         <div className="g-tr3-list" role="radiogroup" aria-labelledby={titleId}>
-          {coach.length > 0 && <h3 className="g-tr3-sec">{ownLoop ? t('Your loop') : t('Coach week')}</h3>}
+          {coach.length > 0 && <p className="g-tr3-sec" role="heading" aria-level="3">{ownLoop ? t('Your loop') : t('Coach week')}</p>}
           {coach.map(radio)}
-          {coach.length > 0 && others.length > 0 && <h3 className="g-tr3-sec">{t('Routines')}</h3>}
+          {coach.length > 0 && others.length > 0 && <p className="g-tr3-sec" role="heading" aria-level="3">{t('Routines')}</p>}
           {others.map(radio)}
           <RadioRow title={t('Rest / skip this day')} sub={restLine} selected={one === 'rest'} onClick={() => setOne('rest')} />
           {hasOvr && <RadioRow title={t('Back to weekly plan')} sub={weekly} selected={one === 'weekly'} onClick={() => setOne('weekly')} />}
@@ -282,7 +282,7 @@ function DayNoteDrawer({ iso, close }) {
       {had && <Button block variant="ghost" icon="trash" onClick={remove}>{t('Remove note')}</Button>}
     </>}>
       <div className="g-tr3-tags">
-        <ChipGroup label={t('Why')} value={tag} onChange={v => setTag(v === tag ? null : v)}
+        <ChipGroup label={t('Reason')} value={tag} onChange={v => setTag(v === tag ? null : v)}
           options={DAY_NOTE_TAGS.map(k => ({ value: k, label: t(DAY_NOTE_LABEL[k]) }))} />
       </div>
       <TextField label={t('Day note')} value={had?.text || ''} placeholder={t('Anything else? (optional)')} multiline rows={3}
