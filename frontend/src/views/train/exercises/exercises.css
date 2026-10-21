@@ -3,6 +3,8 @@
    light drawer. Both sit inside a .g-root, so the design system's tokens apply. */
 
 /* ---- T6.1 the exercise drawer ---- */
+/* One long word (a German custom name) wraps instead of pushing the close button off the screen. */
+.g-xd-name { overflow-wrap: anywhere; }
 .g-xd-head { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; }
 .g-xd-pic { flex: none; width: 96px; height: 96px; border-radius: 20px; overflow: hidden; display: grid; place-items: center; background: var(--g-white); box-shadow: 0 0 0 1px var(--line); }
 .g-xd-pic .thumb, .g-xd-pic > * { width: 100%; height: 100%; border-radius: 0; object-fit: cover; }

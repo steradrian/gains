@@ -65,6 +65,7 @@ describe('editing a custom exercise named like a catalogue one', () => {
     seed(trap())
     customExSheet(trap())
     const form = renderTop()
+    click(form, 'button', 'More details')
     type(form.querySelector('textarea'), 'Hex bar')
     click(form, 'button', 'Save')
     expect(useUI.getState().toastMsg).toBe('Saved')
@@ -76,7 +77,7 @@ describe('editing a custom exercise named like a catalogue one', () => {
     seed(own)
     customExSheet(own)
     const form = renderTop()
-    type(form.querySelector('input.input'), 'Trap Bar Deadlift')
+    type(form.querySelector('.g-tfield input'), 'Trap Bar Deadlift')
     click(form, 'button', 'Save')
     expect(useUI.getState().toastMsg).toMatch(/already exists/)
     expect(S().customEx[0].n).toBe('My row')
@@ -84,22 +85,27 @@ describe('editing a custom exercise named like a catalogue one', () => {
 
   it('caps the name at 80 characters', () => {
     customExSheet(null)
-    expect(renderTop().querySelector('input.input').maxLength).toBe(80)
+    expect(renderTop().querySelector('.g-tfield input').maxLength).toBe(80)
   })
 })
 
-describe('the exercise detail sheet', () => {
-  it('does not tag a muscle the exercise gets no credit for', () => {
+describe('the exercise drawer', () => {
+  it('does not tag a muscle the exercise gets no credit for, nor list it as Additional', () => {
     const bench = EXIDX['0025']
     expect(bench.muscleWeights.biceps).toBe(0)
     exerciseDetailSheet(bench)
-    const tags = [...renderTop().querySelectorAll('.tag')].map(t => t.textContent.trim())
+    const host = renderTop()
+    const tags = [...host.querySelectorAll('.g-xd-tags .g-tag')].map(t => t.textContent.trim())
     expect(tags).toEqual(expect.arrayContaining(['Triceps']))
     expect(tags).not.toContain('Biceps')
+    expect(host.querySelector('.g-xd-mlines').textContent).not.toContain('Biceps')
   })
 
-  it('lets a long name wrap instead of pushing the star out', () => {
+  it('lets a long name wrap, and keeps the star out of the title row', () => {
     exerciseDetailSheet(EXIDX['0025'])
-    expect(renderTop().querySelector('h3').classList.contains('exdetail-name')).toBe(true)
+    const host = renderTop()
+    expect(host.querySelector('.g-bs-head h2 .g-xd-name')).not.toBeNull()
+    expect(host.querySelector('.g-bs-head .g-xd-star')).toBeNull()
+    expect(host.querySelector('.g-xd-head .g-xd-star')).not.toBeNull()
   })
 })

@@ -197,7 +197,7 @@ function ExerciseDrawer({ ex, close }) {
   </>
 
   return (
-    <BottomSheet type="full" title={<span className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</span>} head={head}>
+    <BottomSheet type="full" title={<span className={cx('g-xd-name', exerciseNameClass(ex))}>{exerciseNameFor(ex)}</span>} head={head}>
       <div id={panelId} role="tabpanel" className="g-xd-panel">
         {tab !== 'how' ? <p className="g-xd-empty">{t('No sessions logged yet')}</p> : <>
           <Media ex={ex} compact />
