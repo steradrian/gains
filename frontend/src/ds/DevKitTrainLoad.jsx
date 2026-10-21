@@ -3,9 +3,11 @@ import BarChart from './BarChart.jsx'
 import Section from './DevKitSection.jsx'
 import Heatmap from './Heatmap.jsx'
 import LineChart from './LineChart.jsx'
+import MonthGrid from './MonthGrid.jsx'
 import StatTiles from './StatTiles.jsx'
 
 // The Train charts kit's part of the catalogue (DevKit.jsx), with static sample data.
+const NOOP = () => {}
 const ONE_RM = [80, 82, 81, 85, 84, 88, 90, 90, 93, 94, 96, 96]
 const ONE_RM_POINTS = ONE_RM.map((v, i) => `Week ${i + 1}: ${v} kg`)
 const WEEKS = [9, 12, 11, 14, 0, 13, 15, 12, 16, 14, 17, 11]
@@ -20,8 +22,17 @@ const YEAR = Array.from({ length: 26 * 7 }, (_, i) => {
 const YEAR_DAYS = YEAR.map((v, i) => ({ iso: v ? `2026-w${Math.floor(i / 7)}-d${i % 7}` : undefined, label: `Day ${i + 1}: level ${v}`, future: i >= 26 * 7 - 3, today: i === 26 * 7 - 4 }))
 const YEAR_MONTHS = [{ week: 0, label: 'May' }, { week: 4, label: 'Jun' }, { week: 9, label: 'Jul' }, { week: 13, label: 'Aug' }, { week: 17, label: 'Sep' }, { week: 22, label: 'Oct' }]
 
+// October 2026 starts on a Thursday: three blanks in a Monday-first week
+const OCTOBER = Array.from({ length: 31 }, (_, i) => {
+  const n = i + 1
+  const trained = [1, 4, 6, 8, 11, 13, 15, 18, 20].includes(n)
+  return { day: n, iso: `2026-10-${String(n).padStart(2, '0')}`, value: n <= 21 ? (trained ? 1 : null) : null, label: `${n} Oct${trained ? ', 1 workout' : ''}` }
+})
+const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
 export default function DevKitTrainLoad() {
   const [opened, setOpened] = useState(null)
+  const [month, setMonth] = useState(0)
 
   return (
     <>
@@ -68,6 +79,22 @@ export default function DevKitTrainLoad() {
         <Heatmap tone="stage" values={[0, 1, 2, 0, 2, 1, 0, 1, 2, 2, 0, 1, 0, 0]} label="Training, last 2 weeks: 8 days of 14" />
         <div className="g-kit-light">
           <Heatmap byWeek values={YEAR} months={YEAR_MONTHS} legend={{ less: 'Less', more: 'More' }} label="Activity, last 26 weeks" />
+        </div>
+      </Section>
+
+      <Section title="MonthGrid" note="A month on the stage: a ring on a trained day, a dimmed number on the rest, today lit. The days open (Tab to them), the arrows turn the month and stop at the ends. Below, the same month on a right-to-left page: the columns and the arrows mirror.">
+        <MonthGrid
+          title={month === 0 ? 'October 2026' : month < 0 ? 'September 2026' : 'November 2026'}
+          weekdays={WEEKDAYS} offset={3} days={OCTOBER} today={21}
+          onDay={setOpened}
+          onPrev={month > -1 ? () => setMonth(month - 1) : undefined} prevLabel="Previous month"
+          onNext={month < 1 ? () => setMonth(month + 1) : undefined} nextLabel="Next month"
+          legend={[{ label: 'Trained', value: 1 }, { label: 'Planned', value: 0.4 }]}
+        />
+        <p>Opened: {opened || 'nothing'}</p>
+        <div dir="rtl">
+          <MonthGrid title="October 2026" weekdays={WEEKDAYS} offset={3} days={OCTOBER} today={21} onDay={setOpened}
+            onPrev={NOOP} prevLabel="Previous month" onNext={NOOP} nextLabel="Next month" />
         </div>
       </Section>
     </>
