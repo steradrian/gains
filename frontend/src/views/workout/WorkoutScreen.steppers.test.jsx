@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../../store/useStore.js'
+import { stepWeight } from '../../lib/progression.js'
 import { resetBested } from './use-workout.js'
 import { openSetEdit } from './exercise-drawers.jsx'
 import WorkoutScreen from './WorkoutScreen.jsx'
@@ -84,11 +85,13 @@ describe('weight controls on the running workout', () => {
     expect(host.querySelector('.g-cs-bw')).toBeTruthy()
   })
 
-  // Old Workout.test.jsx:684 pinned a +1.25 tap to nextPrescription's rounding (61.3). The new
-  // stepper adds the step itself (SetStepper rounds to 2 places) and set-field-change.js writes
-  // 61.25 unless the profile lists owned bells; stepWeight/addStep (lib/progression.js) is not on
-  // that path. Gap for the orchestrator: route the weight step through stepLoad for every load.
-  it.todo('matches automatic progression rounding for a fractional configured step (gap: set-field-change.js bypasses stepWeight)')
+  // Old Workout.test.jsx:684: a +1.25 tap lands on the number automatic progression prescribes.
+  it('matches automatic progression rounding for a fractional configured step', () => {
+    render([exercise(BENCH, [false], { target: { mode: 'reps', sets: 1, reps: 5, weight: 60, bodyweight: false, inc: 1.25 } })])
+    tap('More kg')
+    expect(setOf().w).toBe(stepWeight(60, 1.25, 1))
+    expect(setOf().w).toBe(61.3)
+  })
 
   it('keeps timed seconds and optional timed weight on their existing steps ("More Seconds", "More kg")', () => {
     render([{

@@ -187,10 +187,13 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
   })() : null
 
   // The rest bar; none in the editor or a past workout.
+  const restLabel = timer?.kind === 'switch' ? t('Switch sides') : superset ? t('Round rest') : t('Rest')
   const rest = timer && !editing && !backfill ? {
     left: timer.left, total: timer.total,
     progress: timer.total ? Math.max(0, Math.min(1, 1 - timer.left / timer.total)) : 0,
-    label: superset ? t('Round rest') : t('Rest'),
+    label: restLabel,
+    // What the footer says under the clock: the label, or Paused while the rest is held.
+    shown: timer?.paused ? t('Paused') : restLabel,
     paused: !!timer.paused,
     ready: timer.ready ? t('Ready') : null,
     go: current ? t('Go · set {0}', current.i + 1) : null,
@@ -473,7 +476,8 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       ...view.hold,
       idx: work?.owner?.idx ?? null,
       sideLabel: sideWord,
-      leftText: fmtRest(left),
+      // An opted-in hold runs past its target with a negative left: "+0:03" and an empty ring.
+      leftText: view.hold.left < 0 ? '+' + fmtRest(-view.hold.left) : fmtRest(left),
       detail: [t('of {0}', fmtRest(view.hold.of)), rounds > 1 ? t('round {0} of {1}', round, rounds) : null].filter(Boolean).join(' · '),
       progress: view.hold.of ? Math.min(1, Math.max(0, 1 - left / view.hold.of)) : 0,
       tone: owner ? TONE[partOf(owner)] : 'main',

@@ -91,7 +91,7 @@ export default function WorkoutScreen() {
   const finish = editing ? finishWorkout : discards ? discardSheet : finishSheet
   const resting = !!rest && !rest.ready
   const restFooter = rest ? {
-    left: fmtRest(Math.max(0, rest.left)), label: rest.label, progress: rest.progress, paused: rest.paused,
+    left: fmtRest(Math.max(0, rest.left)), label: rest.shown, progress: rest.progress, paused: rest.paused,
     onClock: restWheelSheet,
     onMinus: () => useUI.getState().addRest(-REST_STEP),
     onPlus: () => useUI.getState().addRest(REST_STEP),
