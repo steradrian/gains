@@ -1108,7 +1108,6 @@ export const PT_BR_OVERRIDES = {
   'Couldn’t check for updates. Are you online?': 'Não foi possível verificar atualizações. Você está online?',
   'Offline. Showing the last copy synced with the server.': 'Offline. Mostrando a última cópia sincronizada com o servidor.',
   'Most working sets belong close to failure, not at it. Half at the floor and half at the top still average out to a healthy-looking middle.': 'A maioria das séries de trabalho deve ficar perto da falha, não nela. Metade no fundo e metade no topo ainda dão uma média com cara de saudável.',
-  'A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.': 'Um ponto mais cheio significa menos sobrando no tanque. O mesmo peso com um {0} mais baixo é um progresso que a linha sozinha não mostra.',
   '{0} sets of {1}. Time to add weight or try a harder variation.': '{0} séries de {1}. Hora de colocar mais peso ou partir para uma variação mais difícil.',
   'Test sent! Should pop up any second': 'Teste enviado! Deve aparecer a qualquer momento',
   'That\'s not a QR code. Only QR cards can be shown here': 'Isso não é um código QR. Aqui só dá para mostrar cartões QR',
