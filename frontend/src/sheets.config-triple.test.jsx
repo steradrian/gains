@@ -25,15 +25,16 @@ const open = (cfg, onSave = vi.fn()) => {
   exConfigSheet(ex, { sets: 3, reps: 12, weight: 40, mode: 'reps', ...cfg }, onSave)
   return render(useUI.getState().sheets.at(-1))
 }
-const rowNamed = (host, title) => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
-const labels = host => [...host.querySelectorAll('.stp-l')].map(l => l.textContent)
+// Every number the sheet asks for: the sets table's fields (named by aria-label) and the steppers.
+const labels = host => [...host.querySelectorAll('.stp-l, .g-sett input[aria-label]')]
+  .map(l => (l.matches('input') ? l.getAttribute('aria-label') : l.textContent))
 const stepperValue = (host, label) => [...host.querySelectorAll('.stp-w')].find(w => w.querySelector('.stp-l')?.textContent === label)?.querySelector('input')?.value
-const save = host => act(() => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Save').click())
+const save = host => act(() => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done').click())
+// The rule is a row of chips; picking one is a tap, and the row lists what is offered.
 const pickRule = (host, name) => {
-  act(() => rowNamed(host, 'Rule').click())
-  const picker = render(useUI.getState().sheets.at(-1))
-  const options = [...picker.querySelectorAll('button.lrow')].map(el => el.querySelector('.lrow-t')?.textContent)
-  const el = [...picker.querySelectorAll('button.lrow')].find(b => b.querySelector('.lrow-t')?.textContent === name)
+  const chips = [...host.querySelectorAll('[role="group"][aria-label="Progression"] .g-cchip')]
+  const options = chips.map(c => c.textContent)
+  const el = chips.find(c => c.textContent === name)
   if (el) act(() => el.click())
   return options
 }
