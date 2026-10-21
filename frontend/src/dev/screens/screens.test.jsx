@@ -243,6 +243,34 @@ describe('the screens gallery', () => {
     expect(useStore.getState().S).toBe(own)
   }, 20000)
 
+  it('has Train slice 5\'s History states, and its delete and Undo stay in memory', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train slice 5').entries.map(e => e.id)
+    expect(ids).toEqual(['T8.0', 'T8.2', 'T8.1', 'T8.1r', 'T8.3', 'T8.4'])
+    const own = useStore.getState().S
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('T8.0', h => {
+      expect(h.querySelector('.g-mg')).toBeTruthy()
+      expect([...h.querySelectorAll('.g-hist-week .g-ssec h2')][0].textContent).toBe('This week')
+      expect(h.textContent).toContain('Away for work')
+    })
+    await check('T8.2', h => expect(h.querySelector('.g-sempty').textContent).toContain('No workouts yet'))
+    await check('T8.1', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Push A')
+      expect(h.querySelector('.g-bs textarea').value).toBe('Felt strong. Bench moved fast.')
+    })
+    await check('T8.1r', h => expect(h.querySelector('.g-bs').textContent).toContain('Finish the current workout first.'))
+    await check('T8.3', h => expect(h.querySelector('.g-bs h2').textContent).toBe('Share workout'))
+    await check('T8.4', h => {
+      expect(h.textContent).toMatch(/Deleted Push A from /)
+      expect(h.querySelectorAll('.g-hist-row')).toHaveLength(8)   // 7 workouts and the day note
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    localStorage.removeItem('gym_state_v1')
+  }, 20000)
+
   it('a tap in a mocked state changes memory only: the real saved copy is untouched and nothing is pushed', async () => {
     localStorage.setItem('gym_state_v1', '{"real":true}')
     const realUpdate = useStore.getState().update
