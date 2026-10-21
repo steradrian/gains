@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import BodyMap from './BodyMap.jsx'
+import { MUSCLES } from '../lib/muscles.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -76,5 +77,22 @@ describe('BodyMap interaction semantics', () => {
     expect(container.querySelector('figure')).toBeNull()
     expect(container.querySelector('figcaption')).toBeNull()
     expect(container.querySelectorAll('.bodymap > svg')).toHaveLength(2)
+  })
+
+  // The exercise picker's By muscle map: every path was a tab stop (docs/audits/gains-train-review.md #11).
+  it('is one tab stop with a button per muscle, named by its label, and the arrows walk the muscles', async () => {
+    const onMuscle = vi.fn()
+    const chest = await renderMap({ selected: 'chest', onMuscle, label: 'Muscle map' })
+    expect([...container.querySelectorAll('[tabindex="0"]')]).toEqual([chest])
+    const buttons = [...container.querySelectorAll('[role="button"]')].map(p => p.getAttribute('data-muscle'))
+    expect(new Set(buttons).size).toBe(buttons.length)
+    expect([...container.querySelectorAll('svg')].map(s => s.getAttribute('aria-label'))).toEqual(['Muscle map, Front', 'Muscle map, Back of the body'])
+    act(() => chest.focus())
+    act(() => { chest.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })) })
+    const next = document.activeElement
+    const order = MUSCLES.filter(m => buttons.includes(m))
+    expect(next.getAttribute('data-muscle')).toBe(order[(order.indexOf('chest') + 1) % order.length])
+    act(() => { next.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })) })
+    expect(onMuscle).toHaveBeenCalledWith(next.getAttribute('data-muscle'))
   })
 })

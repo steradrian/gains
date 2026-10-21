@@ -109,23 +109,23 @@ describe('T5.8 the routine menu', () => {
     expect(useUI.getState().toastMsg).toBe('Copied as “Push A (Copy)”.')
   })
 
-  it('Delete routine deletes at once, leaves the editor for the list, and Undo puts it back', () => {
+  it('Delete routine leaves the editor for the list first, then deletes, and Undo puts it back', () => {
     const before = clone(S())
+    // What the store holds as the editor is left: the routine is still there (root cause A,
+    // docs/audits/gains-train-review.md #2). Deleted first, the editor's own redirect wrote the
+    // address in the same commit as the menu's close.
+    let routinesAtNav = null
+    setNav((to, opts) => { navigated = to; how = opts; routinesAtNav = S().routines.map(r => r.id) })
     tap(openMenu(), 'Delete routine')
+    expect(navigated).toBe('/train/routines')
+    expect(how).toEqual({ replace: true })
+    expect(routinesAtNav).toEqual(['push', 'pull', 'empty'])
     expect(S().routines.map(r => r.id)).toEqual(['pull', 'empty'])
     expect(S().week).toEqual({ 1: ['pull'] })
     expect(useUI.getState().toastMsg).toBe('Deleted Push A. Sun and Thu are now rest days')
-    expect(navigated).toBe('/train/routines')
-    expect(how).toEqual({ replace: true })
     undo()
     expect(S().routines).toEqual(before.routines)
     expect(S().week).toEqual(before.week)
-  })
-
-  it('Delete from a caller already on the list stays put', () => {
-    tap(openMenu('pull', { leave: false }), 'Delete routine')
-    expect(S().routines.map(r => r.id)).toEqual(['push', 'empty'])
-    expect(navigated).toBe(null)
   })
 })
 

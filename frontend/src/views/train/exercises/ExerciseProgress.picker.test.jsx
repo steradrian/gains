@@ -287,6 +287,8 @@ describe('Progress exercise picker', () => {
 
     const matching = [...modal.querySelectorAll('button')].find(button => button.textContent.includes('Barbell Full Squat'))
     await click(matching)
+    // The choice lands once the sheet's history entry is walked off (lib/nav.js whenSheetGone).
+    await tick(500)
 
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(chosenName()).toContain('Barbell Full Squat')
@@ -302,6 +304,7 @@ describe('Progress exercise picker', () => {
     await click(container.querySelector('.g-xp-pick'))
     const modal = document.querySelector('#modal-root')
     await click([...modal.querySelectorAll('.sect-b button')].find(b => b.textContent.includes('Barbell Full Squat')))
+    await tick(500)
 
     expect(mocks.nav).toHaveBeenCalledTimes(1)
     const [url, opts] = mocks.nav.mock.calls[0]

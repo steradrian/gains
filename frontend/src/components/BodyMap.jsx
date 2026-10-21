@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MUSCLES, INERT, MUSCLE_NAME, levelsOf } from '../lib/muscles.js'
 import { t } from '../lib/i18n.js'
+import { useMuscleKeys } from '../lib/use-muscle-keys.js'
 
 // Front and back views of a body, each muscle shaded by how hard it was worked.
 //
@@ -24,30 +25,31 @@ export function useBodyPaths() {
   return paths
 }
 
-function View({ view, levels, onMuscle, selected }) {
-  const activate = (event, slug) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return
-    if (event.key === ' ') event.preventDefault()
-    onMuscle(slug)
-  }
+const VIEWS = ['front', 'back']
+
+function View({ g, v, levels, onMuscle, selected, label, keys }) {
+  const view = g[v]
   return (
-    <svg className="bm-v" viewBox={view.vb} role={onMuscle ? 'group' : 'img'}>
+    <svg className="bm-v" viewBox={view.vb} role={onMuscle ? 'group' : 'img'}
+      aria-label={label ? `${label}, ${v === 'front' ? t('Front') : t('Back of the body')}` : undefined}>
       {INERT.map(slug => (view.p[slug] || []).map((d, i) =>
         <path key={slug + i} className="bm-sil" d={d} />))}
-      {MUSCLES.map(slug => (view.p[slug] || []).map((d, i) =>
-        <path
-          key={slug + i}
-          className={'bm-m l' + (levels[slug] || 0) + (selected === slug ? ' sel' : '')}
-          d={d}
-          onClick={onMuscle ? () => onMuscle(slug) : undefined}
-          onKeyDown={onMuscle ? event => activate(event, slug) : undefined}
-          role={onMuscle ? 'button' : undefined}
-          tabIndex={onMuscle ? 0 : undefined}
-          aria-label={onMuscle ? t(MUSCLE_NAME[slug]) : undefined}
-          aria-pressed={onMuscle ? selected === slug : undefined}
-        >
-          <title>{t(MUSCLE_NAME[slug])}</title>
-        </path>))}
+      {MUSCLES.map(slug => (view.p[slug] || []).map((d, i) => {
+        const own = onMuscle ? keys.keysFor(slug, v, i) : null
+        return (
+          <path
+            key={slug + i}
+            className={'bm-m l' + (levels[slug] || 0) + (selected === slug ? ' sel' : '') + (onMuscle && keys.ring === slug ? ' bm-ring' : '')}
+            d={d}
+            data-muscle={onMuscle ? slug : undefined}
+            onClick={onMuscle ? () => onMuscle(slug) : undefined}
+            aria-hidden={onMuscle && !own ? 'true' : undefined}
+            {...own}
+          >
+            <title>{t(MUSCLE_NAME[slug])}</title>
+          </path>
+        )
+      }))}
     </svg>
   )
 }
@@ -59,20 +61,23 @@ function View({ view, levels, onMuscle, selected }) {
  * `{ at, level, exclusive? }` `thresholds` for a fixed absolute scale (recovery views use this
  * to keep their semantic bands stable); omitting it preserves the balance behavior.
  * `captions` names each view under it, Front and Back (the Training load page's MuscleMap).
+ * `onMuscle(slug)` makes the muscles buttons, one tab stop for the map (useMuscleKeys); `label`
+ * names the map's views for a screen reader.
  */
-export default function BodyMap({ load = {}, thresholds, body = 'male', onMuscle, selected, captions = false, className = '' }) {
+export default function BodyMap({ load = {}, thresholds, body = 'male', onMuscle, selected, label, captions = false, className = '' }) {
   const paths = useBodyPaths()
   const levels = levelsOf(load, thresholds)
   const g = paths && (paths[body] || paths.male)
+  const keys = useMuscleKeys({ g, views: VIEWS, selected, onMuscle })
   const view = (v, caption) => {
-    const map = <View view={v} levels={levels} onMuscle={onMuscle} selected={selected} />
+    const map = <View g={g} v={v} levels={levels} onMuscle={onMuscle} selected={selected} label={label} keys={keys} />
     return captions ? <figure className="bm-fig">{map}<figcaption className="bm-cap">{caption}</figcaption></figure> : map
   }
   return (
-    <div className={'bodymap ' + className}>
+    <div className={'bodymap ' + className} ref={keys.box}>
       {g ? <>
-        {view(g.front, t('Front'))}
-        {view(g.back, t('Back of the body'))}
+        {view('front', t('Front'))}
+        {view('back', t('Back of the body'))}
       </> : <div className="bm-ph" aria-hidden="true" />}
     </div>
   )

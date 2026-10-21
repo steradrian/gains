@@ -141,9 +141,11 @@ const intensifierToSave = x => (x.type === 'dropset'
 // caller's `onDelete` offers an Undo, so Remove names it.
 function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, initial, saveLabel, options }) {
   const st = useStore(s => s.S)
-  const cardio = isCardio(ex.id)
   const speedUnit = speedUnitOf(st)
   const seed = existing || initial || defaultConfig(ex.id)
+  // Cardio as the slot is logged, not by the body part alone: a custom exercise on Legs logged as
+  // cardio carries `mode: 'cardio'` (defaultConfig), and read as reps it was saved as 1 × 10.
+  const cardio = modeOf({ ...seed, id: ex.id }) === 'cardio'
   const [c, setC] = useState(() => {
     const cfg = { ...seed }
     // A session's target carries the meaning of its dumbbell weight as a stamp (lib/dumbbells.js);
@@ -221,7 +223,8 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     const withMeant = dbLoad ? { dbLoad } : {}
     // "Last set to failure": written only when on, so a plan that never asked keeps its shape.
     const withFailure = c.lastToFailure === true ? { lastToFailure: true } : {}
-    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: Math.max(0, c.speed || 8), ...withNote, ...withRest })
+    // Off the Cardio body part only the mode says cardio, so it is written there (defaultConfig).
+    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: Math.max(0, c.speed || 8), ...(isCardio(ex.id) ? {} : { mode: 'cardio' }), ...withNote, ...withRest })
     else if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...(perSide ? { side: true } : {}), ...prog, ...withNote, ...withWarmups, ...withRest, ...withMeant, ...withFailure })
     else {
       // A unilateral target is stored even: the split has to divide, and a typed 15 would

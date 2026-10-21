@@ -88,6 +88,32 @@ describe('a custom exercise\'s mode seeds a new routine entry', () => {
   })
 })
 
+// A custom exercise on Legs logged as cardio (docs/audits/gains-train-review.md #3): isCardio reads
+// the body part only, so its settings sheet saved it as 1 × 10 reps and lost the minutes and speed.
+describe('a cardio-logged custom exercise off the Cardio body part', () => {
+  const sled = (over = {}) => ({ id: 'csled', n: 'Sled push', bp: 'upper legs', eq: 'sled machine', custom: true, mode: 'cardio', ...over })
+
+  it('its settings keep the cardio form, and Done saves minutes and speed with the mode', () => {
+    seed(sled())
+    const entry = { id: 'csled', sets: 1, min: 25, speed: 6, mode: 'cardio' }
+    const onSave = vi.fn()
+    exConfigSheet(sled(), entry, onSave)
+    const host = renderTop()
+    expect(host.textContent).toContain('Cardio')
+    click(host, 'button', 'Done')
+    expect(onSave).toHaveBeenCalledWith({ sets: 1, min: 25, speed: 6, mode: 'cardio' })
+  })
+
+  it('added fresh, the entry is cardio from the exercise\'s own mode', () => {
+    seed(sled())
+    const onSave = vi.fn()
+    exConfigSheet(sled(), null, onSave)
+    click(renderTop(), 'button', 'Add to routine')
+    expect(onSave.mock.calls[0][0]).toMatchObject({ mode: 'cardio', min: 20, speed: 8 })
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('reps')
+  })
+})
+
 describe('the form saves How you log it on the exercise', () => {
   it('a new exercise: Weight × reps is picked first, and Time is saved as mode time', () => {
     customExSheet(null)

@@ -238,6 +238,7 @@ export default {
   'Just added': 'Just added',
   'Makes “{0}”': 'Makes “{0}”',
   'Move {0} down': 'Move {0} down',
+  '{0} moved to {1} of {2}': 'ย้าย {0} ไปที่ {1} จาก {2}',
   'Move {0} up': 'Move {0} up',
   'No routine': 'No routine',
   'Not in your Plan': 'Not in your Plan',

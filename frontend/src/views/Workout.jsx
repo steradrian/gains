@@ -1225,7 +1225,7 @@ function ActiveWorkout() {
   // so switching it off again leaves the numbers this session should count at. Counting one
   // exercise again also ends "the whole workout" from the header ⋮ (lib/session-noprog.js).
   const setNoProg = (idx, on) => update(s => setEntryNoProg(s.active, idx, on))
-  // A deload or rehab routine keeps its own exercises out (RoutineEdit). That is the routine's
+  // A deload or rehab routine keeps its own exercises out (Routine settings). That is the routine's
   // setting, so its entries get the marker but no switch.
   const routineKeepsOut = e => !!e?.rid && S.routines.some(r => r.id === e.rid && r.excludeFromProgression === true)
   // The same for the whole session from the header ⋮ (Discord, asierlama: "exclude the current

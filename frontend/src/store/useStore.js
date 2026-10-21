@@ -123,10 +123,6 @@ export const DEF = {
   // List and Compact fold a finished exercise into one line (Settings → Workout; #241). The
   // workout's Layout menu can flip it for the running session (s.active.collapseCompleted).
   collapseCompleted: false,
-  // How the Library, the exercise picker and the muscle explorer show exercises — 'list' (rows
-  // with a small thumbnail) or 'cards' (a grid of pictures with the name underneath). Switched
-  // by the button in those headers (ExerciseViewToggle); older profiles overlay onto the list.
-  exerciseView: 'list',
   // Which controls the workout screen shows besides the sets themselves. The default is the
   // lean layout: one "more" button per exercise and a menu on each set number. Every switch
   // brings one of the old always-visible button groups back (Settings → During a workout).
