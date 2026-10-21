@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { createMediaStore, memoryBackend, _setMediaStore } from './lib/media-store.js'
 import { deleteWorkoutWithUndo, openDay, workoutDetailSheet } from './sheets.jsx'
 import { EXDB } from './lib/exercises-data.js'
@@ -20,7 +21,7 @@ const clone = v => JSON.parse(JSON.stringify(v))
 const mounted = []
 
 function mountTopSheet() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -149,7 +150,8 @@ describe('workout drawer', () => {
     const ex = mountTopSheet().querySelector('.g-wd-ex .g-xrow')
     expect(ex.tagName).toBe('BUTTON')
     act(() => { ex.click() })
-    expect(useUI.getState().sheets).toHaveLength(2)
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
     const history = mountTopSheet()
     expect(history.querySelector('.g-ps-card')).toBeTruthy()
     expect(history.textContent).toContain('60×5')
@@ -306,10 +308,11 @@ describe('openDay', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [w] } }))
     const close = vi.fn()
     openDay(todayISO(), close)
-    expect(close).toHaveBeenCalledTimes(1)
+    // a list of drawers, not a page: it slides in over the drawer it was opened from, which stays
+    expect(close).not.toHaveBeenCalled()
     const day = mountTopSheet()
     act(() => { day.querySelector('.item').click() })
-    expect(useUI.getState().sheets.at(-1)).toBeTruthy()
+    expect(topSurface(useUI.getState().sheets)).toBeTruthy()
     expect(mountTopSheet().querySelector('.g-bs-head h2').textContent).toBe('Push')
   })
 

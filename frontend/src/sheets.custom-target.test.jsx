@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client'
 import { EXIDX, registerCustom } from './lib/exercises.js'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { _setLangState } from './lib/i18n-core.js'
 import { bindUI } from './components/ui.jsx'
 import { customExSheet } from './sheets.jsx'
@@ -22,7 +23,7 @@ const S = () => useStore.getState().S
 
 // Renders whatever sheet is on top and returns its host element.
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

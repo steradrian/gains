@@ -12,6 +12,7 @@
 import { MOBILE } from './mobile.js'
 import { useUI } from '../store/useUI.js'
 import { t } from './i18n.js'
+import { backSheet } from './sheet-nav.js'
 import { back, isSwitching } from './use-tab-nav.js'
 import { isTabRoot } from './tab-route.js'
 
@@ -30,14 +31,16 @@ export function makeBackHandler({ getSheets, closeSheet, toast, goBack, goUp = (
   let armedAt = -Infinity
   return (ev = {}) => {
     const sheets = getSheets()
+    // A drawer's top sub-panel is what back acts on first (and what can be locked).
+    const host = sheets[sheets.length - 1]
     const action = decideBack({
-      top: sheets[sheets.length - 1],
+      top: host?.panels?.at(-1) || host,
       canGoBack: !!ev.canGoBack,
       canGoUp: canGoUp(),
       exitArmed: now() - armedAt < EXIT_WINDOW,
     })
     if (action !== 'arm-exit') armedAt = -Infinity
-    if (action === 'sheet') closeSheet(sheets[sheets.length - 1].id)
+    if (action === 'sheet') closeSheet(host.id)
     else if (action === 'history') goBack()
     else if (action === 'up') goUp()
     else if (action === 'arm-exit') { armedAt = now(); toast(t('Press back again to exit')) }
@@ -54,7 +57,7 @@ export async function initBackButton() {
     const { App } = await import('@capacitor/app')
     const handler = makeBackHandler({
       getSheets: () => useUI.getState().sheets,
-      closeSheet: id => useUI.getState().closeSheet(id),
+      closeSheet: id => backSheet(useUI.getState(), id),
       toast: msg => useUI.getState().toast(msg),
       // Not while a tab switch is rebuilding the history (lib/use-tab-nav.js): a back step in
       // the middle of it would land the switch on the wrong entry.

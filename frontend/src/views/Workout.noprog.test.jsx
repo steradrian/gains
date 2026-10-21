@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Workout from './Workout.jsx'
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { topSurface } from '../lib/sheet-nav.js'
 import { buildCompletedWorkout } from '../lib/finish-workout.js'
 import { nextPrescription } from '../lib/progression.js'
 import { lastEntryFor } from '../lib/history.js'
@@ -53,7 +54,7 @@ function renderWorkout(entries, { withRoutines = routines, withHistory = history
 function renderTopSheet() {
   if (sheetRoot) act(() => sheetRoot.unmount())
   if (sheetContainer) sheetContainer.remove()
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   expect(sheet).toBeTruthy()
   sheetContainer = document.createElement('div')
   document.body.appendChild(sheetContainer)
@@ -196,9 +197,9 @@ describe('don’t count this session for progression', () => {
     it('a swap, then Undo: the replacement counts at its own prescription, not the routine’s numbers', () => {
       start()
       swapActiveWorkoutExercise(0)
-      const picker = useUI.getState().sheets.at(-1)
+      const picker = topSurface(useUI.getState().sheets)
       act(() => picker.render(picker.close).props.onPick(EXDB.find(e => e.id === ROW)))
-      const config = useUI.getState().sheets.at(-1)
+      const config = topSurface(useUI.getState().sheets)
       act(() => config.render(config.close).props.onSave({ ...planned[0].ex[1] }))
 
       const [row] = active().entries

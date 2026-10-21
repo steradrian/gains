@@ -25,7 +25,8 @@ let nt, host, root
 
 function Sheets() {
   const sheets = useUI(s => s.sheets)
-  return sheets.map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
+  // a drawer's sub-panels are drawn as sheets of their own here
+  return sheets.flatMap(s => [s, ...(s.panels || [])]).map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
 }
 function Day() {
   const entry = useNutrition(s => s.days[TODAY]?.entry)

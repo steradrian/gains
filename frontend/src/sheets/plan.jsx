@@ -10,7 +10,7 @@ import { buildPlanBundle, parsePlan, printPlan, planPrintHTML } from '../lib/pla
 import { MOBILE, shareExport, printHtml } from '../lib/mobile.js'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import MenuList from '../ds/MenuList.jsx'
-import { starterPlanSheet } from './starter.jsx'
+import { drawerFlow } from '../store/useUI.js'
 import { S, ui, toast } from './shared.js'
 
 export { dayOverrideSheet, dayNoteSheet, usePlanDayParam } from './plan-day.jsx'
@@ -76,10 +76,10 @@ function PlanMenuDrawer({ close }) {
   const coach = !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
   const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; importPlanFile(f, close) }
   const items = [
-    { key: 'share', icon: 'share', label: t('Share your plan'), disabled: !has, onClick: () => { close(); planShareSheet() },
+    { key: 'share', icon: 'share', label: t('Share your plan'), disabled: !has, onClick: () => drawerFlow(planShareSheet),
       detail: has ? t('Send your routines to a friend, or put your week on paper.') : t('Add an exercise to a routine first. An empty plan has nothing to share.') },
     { key: 'import', icon: 'download', label: t('Import a plan file'), detail: t('Got a plan from a friend?'), onClick: () => fileRef.current?.click() },
-    { key: 'plans', icon: 'clipboard', label: t('Ready-made plans'), detail: t('Add a starter plan to your week'), onClick: () => { close(); starterPlanSheet() } },
+    { key: 'plans', icon: 'clipboard', label: t('Ready-made plans'), detail: t('Add a starter plan to your week'), onClick: () => closeThenNav(close, '/train/plans') },
     coach && { key: 'coach', icon: 'chat', label: t('Coach'), detail: t('Plan design and reviews, from your own training'), onClick: () => closeThenNav(close, '/train/coach') },
   ].filter(Boolean)
   return (

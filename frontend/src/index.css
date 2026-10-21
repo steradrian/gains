@@ -1446,30 +1446,24 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   touch-action:none;overscroll-behavior:none;
 }
 .sheet{
-  position:absolute;inset-inline-start:0;inset-inline-end:0;bottom:0;background:var(--bg-el);
+  position:absolute;inset-inline-start:0;inset-inline-end:0;background:var(--bg-el);
+  /* Stands on the soft keyboard, whatever the platform: --kb is its reach up the screen, folded
+     from the visual viewport (iOS, Android Chrome) and --native-kb (Android 15) in
+     lib/sheet-keyboard.js. The sheet keeps its height; the cap is what the keyboard leaves. */
+  bottom:var(--kb,0px);
   border-radius:var(--r-xl) var(--r-xl) 0 0;
   padding:8px 18px calc(20px + var(--sab));
   /* A tall sheet stops short of the status bar / Dynamic Island: every cap carries the top
      safe-area inset, which the layout viewport does not (viewport-fit=cover). */
-  max-height:90vh;max-height:min(90vh,calc(100dvh - var(--sat) - 8px - var(--native-kb,0px)));
-  overflow-y:auto;scroll-padding-bottom:calc(20px + var(--sab));
+  max-height:90vh;max-height:min(90vh,calc(var(--vvh,100dvh) - var(--sat) - 8px));
+  /* the panes inside scroll (components/sheet-panes.jsx), the grab bar and the foot stay put */
+  display:flex;flex-direction:column;overflow:hidden;
   /* no CSS entrance: it rises and leaves with its scrim through the kit (Modals.jsx, lib/motion.js) */
   overscroll-behavior:contain;touch-action:pan-y;will-change:transform;
 }
-.sheet:has(.picker-search){
-  bottom:max(var(--picker-keyboard-bottom,0px),var(--native-kb,0px));
-  /* with the keyboard up the sheet is capped by the visual viewport — which still starts
-     under the notch, hence the inset here too */
-  max-height:min(90vh,calc(100dvh - var(--sat) - 8px - var(--native-kb,0px)),calc(var(--picker-visual-height,100vh) - var(--sat) - 8px));
-}
-/* Android 15: the window is not resized for the soft keyboard, the app passes the height it
-   covers as --native-kb instead (MainActivity.keyboardScript, lib/native-keyboard.js). Every
-   sheet stands on the keyboard, and its foot drops the navigation-bar inset, which the keyboard
-   already covers. Older Android versions resize the window and never set the variable. */
-:root[data-native-kb] .sheet{
-  bottom:max(var(--picker-keyboard-bottom,0px),var(--native-kb,0px));
-  padding-bottom:20px;scroll-padding-bottom:20px;
-}
+/* The keyboard on screen (data-kb, lib/sheet-keyboard.js): it covers the home indicator, so the
+   sheet's foot drops the safe-area inset. */
+:root[data-kb] .sheet{padding-bottom:20px}
 :root[data-theme="light"] .sheet{background:var(--bg)}
 .sheet .grab{width:36px;height:5px;border-radius:99px;background:var(--label-4);margin:6px auto 14px}
 .sheet h3{font-size:20px;font-weight:600;letter-spacing:-.021em;margin-bottom:14px}

@@ -1,5 +1,5 @@
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import { webauthnOK, passkeyLogin, passkeyRegister, passkeyError, bio } from '../lib/api.js'
 import { hasData } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
@@ -130,7 +130,7 @@ export default function Login({ demo = DEMO }) {
   }
   const trouble = () => useUI.getState().openSheet(close => (
     <SigninTroubleSheet close={close} onCode={() => openAddDevice(close)}
-      onPassword={pwOn ? () => { close(); openPasswordSignIn(signIn) } : null} />
+      onPassword={pwOn ? () => drawerFlow(() => openPasswordSignIn(signIn)) : null} />
   ))
   const copyLink = async () => {
     const ok = await copyText(window.location.origin + window.location.pathname)

@@ -458,20 +458,14 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
    components/Modals.jsx; components/Toast.jsx). Outside it (the catalogue) they are drawn still. */
 .g-bs-wrap { position: absolute; inset: 0; }
 .g-bs-scrim { position: absolute; inset: 0; display: block; background: var(--scrim); touch-action: none; overscroll-behavior: none; }
-/* Stands on the keyboard and stops short of the status bar, as the app's sheet does (index.css
-   .sheet): --native-kb on Android 15, --picker-keyboard-bottom/-visual-height from
-   lib/use-sheet-keyboard.js elsewhere. */
+/* Where it stands (on the keyboard, under the status bar) and how tall it is: Sheet panels and keyboard, below. */
 .g-bs {
-  position: absolute; left: 0; right: 0; bottom: max(var(--picker-keyboard-bottom, 0px), var(--native-kb, 0px));
-  max-height: min(calc(100dvh - var(--sat, 0px) - 8px - var(--native-kb, 0px)), calc(var(--picker-visual-height, 100dvh) - var(--sat, 0px) - 8px));
+  position: absolute; left: 0; right: 0;
   display: flex; flex-direction: column; background: var(--surface); color: var(--text);
-  border-radius: 28px 28px 0 0; box-shadow: var(--shadow-sheet);
+  border-radius: 28px 28px 0 0;
   padding: 8px 20px max(30px, calc(20px + var(--sab, 0px)));
   overflow: hidden; overscroll-behavior: contain; touch-action: pan-y; will-change: transform; font-family: var(--font-sans);
 }
-:root[data-native-kb] .g-bs { padding-bottom: 20px; }
-.g-bs-half { top: 40%; }
-.g-bs-full { top: max(56px, calc(var(--sat, 0px) + 8px)); }
 .g-bs-grab { flex: none; align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line-strong); }
 .g-bs-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 0 16px; }
 .g-bs-head h2 { margin: 0; flex: 1; min-width: 0; font: 700 22px/28px var(--font-sans); letter-spacing: -0.02em; }
@@ -1725,3 +1719,58 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .tcs-card { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 22px; color: var(--on-stage); text-align: start; }
 .tcs-card > b { font: 600 16px/21px var(--font-sans); }
 .tcs-label { margin: 6px 0 0; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+
+/* Sheet panels and keyboard */
+/* Keyboard. A drawer is positioned, never resized, by the keyboard: it keeps its height, stands on
+   the keyboard (--kb, how far the keyboard reaches up the screen) and is capped to what is left
+   above it (--vvh); its body scrolls if that is tight. Both are set on <html> by
+   lib/sheet-keyboard.js (iOS and Android Chrome from the visual viewport, Android 15 from
+   --native-kb); without a keyboard they are 0px and unset, and the cap is the whole screen.
+   iOS scrolls the layout viewport under the keyboard, so the page can show below where the layout
+   viewport ends: the scrim reaches past it both ways, and the drawer carries its own colour
+   120px below its foot (a shadow, which its overflow does not clip), so no strip of the page shows,
+   un-dimmed, between the drawer and the keyboard's accessory bar. The keyboard covers the home
+   indicator, so the foot drops the safe-area inset while it is up (data-kb). */
+.g-bs-scrim, #modal-root .mback { inset: -50vh 0; }
+.g-bs {
+  bottom: var(--kb, 0px);
+  max-height: calc(var(--vvh, 100dvh) - var(--sat, 0px) - 8px);
+  box-shadow: var(--shadow-sheet), 0 120px 0 0 var(--surface);
+}
+:root[data-kb] .g-bs { padding-bottom: 20px; }
+.g-bs-half { height: 60%; }
+.g-bs-full { height: calc(100% - max(56px, calc(var(--sat, 0px) + 8px))); }
+.sheet { box-shadow: 0 120px 0 0 var(--bg-el); }
+:root[data-theme="light"] .sheet { box-shadow: 0 120px 0 0 var(--bg); }
+
+/* Sub-panels (components/sheet-panes.jsx). An action in a drawer that would open another drawer
+   slides its content in from the right inside the same drawer; the panel under it moves back 30%.
+   The panes sit edge to edge in the drawer (the negative margin undoes its side padding) so the
+   slide is clipped by the drawer, and each pane puts the padding back. Only the active pane is
+   live: the others are inert and, once the move has played, hidden. The root pane stays in the
+   flow while it is the active one, so a drawer with no panel lays out as it always did; the height
+   of the panes is then set by script and animated between panels (260 ms). */
+.g-bs-panes { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-inline: -20px; background: inherit; }
+.sheet .g-bs-panes { margin-inline: -18px; }
+.g-bs-pane { flex: 1 1 auto; min-height: 0; padding-inline: 20px; background: inherit; }
+.sheet .g-bs-pane { padding-inline: 18px; }
+.g-bs-pane-ds { display: flex; flex-direction: column; overflow: hidden; }
+.g-bs-pane-legacy { overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(20px + var(--sab, 0px)); }
+:root[data-kb] .g-bs-pane-legacy { scroll-padding-bottom: 20px; }
+.g-bs-pane-sub, .g-bs-panes[data-deep] > .g-bs-pane-root { position: absolute; inset: 0; }
+.g-bs-pane-sub { z-index: 1; }
+.g-bs-pane[data-pos="under"] { transform: translateX(-30%); visibility: hidden; pointer-events: none; transition: visibility 0s linear 260ms; }
+@media (prefers-reduced-motion: reduce) {
+  .g-bs-pane[data-pos="under"] { transform: none; transition-duration: 150ms; }
+}
+:root[data-motion="reduce"] .g-bs-pane[data-pos="under"] { transform: none; transition-duration: 150ms; }
+/* The back chevron: in a ds panel's header ahead of the title, and for a panel that draws no header of
+   its own (an older sheet's content) on a bar of its own. */
+.g-bs-back { appearance: none; border: 0; width: 40px; height: 40px; flex: none; margin-inline-start: -8px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--text); cursor: pointer; }
+.g-bs-back .g-icon { width: 24px; height: 24px; stroke-width: 2.2; }
+.g-bs-back:active { background: var(--surface-press); }
+[dir="rtl"] .g-bs-back .g-icon { transform: scaleX(-1); }
+.g-bs-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; padding: 6px 0 2px; background: inherit; }
+.sheet .g-bs-back { color: var(--label); }
+.sheet .g-bs-back:active { background: var(--label-4); }
+.g-bs-head h2:focus, .g-bs-pane h3:focus { outline: none; }

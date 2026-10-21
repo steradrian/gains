@@ -3,10 +3,12 @@ import { useUI } from '../store/useUI.js'
 import { keyboardOpen } from '../lib/viewport-guard.js'
 import { PRESETS } from '../lib/motion.js'
 import { noteSheetEntries, onSheetEntry } from '../lib/nav.js'
+import { backSheet, dismissSheet as dismissDrawer, sheetEntryCount } from '../lib/sheet-nav.js'
 import { useSheetDialog } from '../lib/use-sheet-dialog.js'
 import { EmptySurface } from './blocks.jsx'
 import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
 import { SheetFrameContext } from './sheet-frame.js'
+import SheetPanes from './sheet-panes.jsx'
 
 // Putting the page back after a sheet closes takes up to three goes (see the un-pin below): now,
 // next frame, and once the keyboard's dismiss animation is over. Anything else that wants to
@@ -51,18 +53,14 @@ const drainScrollRestore = close => {
 }
 
 // Every way out of a sheet that is not one of its own buttons (the backdrop, a drag, Escape,
-// Android back) is the same one, and it behaves like the sheet's Cancel: a sheet that has something
-// to undo when it is not gone through (confirmSheet's onCancel) says so as `onDismiss`, and it runs
-// whichever way the sheet was sent off. A locked sheet stays. Looked up by id, so a handler bound
-// on the first render still sees a sheet locked since. Returns whether it closed.
-function dismissSheet(id) {
-  const ui = useUI.getState()
-  const sheet = ui.sheets.find(s => s.id === id)
-  if (!sheet || sheet.locked) return false
-  ui.closeSheet(id)
-  sheet.onDismiss?.()
-  return true
-}
+// Android back) behaves like the sheet's Cancel: a sheet that has something to undo when it is not
+// gone through (confirmSheet's onCancel) says so as `onDismiss`, and it runs whichever way the
+// sheet was sent off. A locked sheet stays. Looked up by id, so a handler bound on the first render
+// still sees a sheet locked since. lib/sheet-nav.js has the two sizes of it: the backdrop and a
+// drag send the whole drawer off, back (Escape, the browser's, Android's, the chevron) takes one
+// sub-panel off, or the drawer when it has none.
+const dismissSheet = id => dismissDrawer(useUI.getState(), id)
+const backStep = id => backSheet(useUI.getState(), id)
 
 // Which sheets are swapping in this commit: a tap that closes one sheet and opens the next
 // (`close(); nextSheet()`) reaches the store as one batch with both a removal and an addition.
@@ -75,7 +73,7 @@ const SwapContext = createContext(NO_SWAP)
 function Sheet({ sheet, covered }) {
   const { closeSheet } = useUI()
   const ref = useRef(null)
-  const back = useRef(null)
+  const backdrop = useRef(null)
   const swap = useContext(SwapContext)
   const { present } = usePresence()
   // The element that is the dialog, whichever kind of sheet this is: named by its header, focus
@@ -88,22 +86,27 @@ function Sheet({ sheet, covered }) {
   // CSS entrance for now and, like the viewer, goes at once.
   useEnterExit(phase => {
     if (sheet.kind !== 'sheet') return []
-    if (phase === 'enter') return swap.in.has(sheet.id) ? [[ref.current, PRESETS.sheet]] : [[back.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
+    if (phase === 'enter') return swap.in.has(sheet.id) ? [[ref.current, PRESETS.sheet]] : [[backdrop.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
     if (swap.out.has(sheet.id)) {
-      if (back.current) back.current.hidden = true
+      if (backdrop.current) backdrop.current.hidden = true
       return [[ref.current, PRESETS.sheetSwap]]
     }
-    return [[back.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
+    return [[backdrop.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
   })
   // startY null = no gesture. axis stays null until the finger has travelled far enough to
   // tell a vertical pull from a sideways scroll; 'x' hands the gesture to whatever scrolls
   // horizontally under it (chip strips, heatmap) and the sheet stays put.
   const idle = () => ({ startX: null, startY: null, axis: null, delta: 0, vy: 0, lastY: 0, lastT: 0 })
   const drag = useRef(idle())
-  // What scrolls: the sheet itself, or a design-system drawer's body (ds/BottomSheet.jsx), whose
-  // head and foot stay put. A pull only takes the sheet down while that is at its top.
+  // What scrolls: the active pane of the sheet (an older sheet's content scrolls as a whole) or a
+  // design-system drawer's body (ds/BottomSheet.jsx), whose head and foot stay put. A pull only
+  // takes the sheet down while that is at its top.
   const body = useRef(null)
-  const scrolled = () => (body.current || ref.current).scrollTop > 0
+  const scrolled = () => {
+    const pane = ref.current?.querySelector?.('.g-bs-pane[data-pos="active"]')
+    const scroller = pane?.querySelector?.('.g-bs-body') || pane || body.current || ref.current
+    return scroller.scrollTop > 0
+  }
 
   // a gesture that begins on a slider (or opted-out control) belongs to that control, not to
   // the sheet's swipe-to-dismiss — so it keeps working while you drag. Horizontal strips are
@@ -171,8 +174,18 @@ function Sheet({ sheet, covered }) {
     }
   }, [])
 
+  // `close` is what the sheet's render is handed. A drawer's sub-panel is handed its own, which takes
+  // that panel out alone; `.drawer` on either takes the whole drawer (lib/nav.js closeThenNav).
   const close = () => closeSheet(sheet.id)
+  close.drawer = close
   const dismiss = () => { dismissSheet(sheet.id) }
+  const back = () => { backStep(sheet.id) }
+  const panes = {
+    panels: sheet.panels || [],
+    // A step of a flow the drawer launched (store/useUI.js drawerFlow) ends the flow when it closes.
+    closeOf: panel => { if (panel.flow) return close; const own = () => closeSheet(panel.id); own.drawer = close; return own },
+    back, dismiss, hostLocked: !!sheet.locked,
+  }
   // One function for the life of the sheet: a new one each render would detach and reattach it.
   const setPanel = useRef(el => { ref.current = el; dialog.current = el }).current
   // A sheet under a newer one is out of reach, to the keyboard and to a screen reader, until the
@@ -195,7 +208,7 @@ function Sheet({ sheet, covered }) {
   // The design system's drawer draws its own scrim and panel (ds/BottomSheet.jsx), on these refs
   // and handlers: everything above applies to it as to any sheet.
   if (sheet.variant === 'ds') {
-    const frame = { scrim: back, panel: setPanel, body, panelProps, dismiss, locked: sheet.locked }
+    const frame = { scrim: backdrop, panel: setPanel, body, panelProps, dismiss, locked: sheet.locked, panes }
     return (
       <div {...layer}>
         <SheetFrameContext.Provider value={frame}>
@@ -207,10 +220,12 @@ function Sheet({ sheet, covered }) {
   // The grab bar says the sheet can be pulled away; a locked one cannot, so it has none.
   return (
     <div {...layer}>
-      <div className="mback" ref={back} aria-hidden="true" onClick={dismiss} />
+      <div className="mback" ref={backdrop} aria-hidden="true" onClick={dismiss} />
       <div className="sheet" ref={setPanel} {...panelProps}>
         {!sheet.locked && <div className="grab" />}
-        <EmptySurface value="sheet">{sheet.render(close)}</EmptySurface>
+        <EmptySurface value="sheet">
+          <SheetPanes kind="legacy" {...panes}>{sheet.render(close)}</SheetPanes>
+        </EmptySurface>
       </div>
     </div>
   )
@@ -218,6 +233,9 @@ function Sheet({ sheet, covered }) {
 
 export default function Modals() {
   const sheets = useUI(s => s.sheets)
+  // History entries the open sheets hold: one for a drawer and one for each of its sub-panels, so
+  // the hardware Back takes a panel off before it takes the drawer.
+  const entries = sheetEntryCount(sheets)
   const prevLen = useRef(0)
   const suppressPop = useRef(false)
   const pushedEntries = useRef(0)
@@ -229,9 +247,9 @@ export default function Modals() {
   // an entry (especially for a locked sheet) or whether several sheets opened at once.
   useEffect(() => {
     const prev = prevLen.current
-    prevLen.current = sheets.length
-    if (sheets.length > prev) {
-      for (let i = prev; i < sheets.length; i++) {
+    prevLen.current = entries
+    if (entries > prev) {
+      for (let i = prev; i < entries; i++) {
         sheetEntries.current.push({ openedAt: location.href, live: true })
         // The page's own router state rides along (its key: the entry is the same page with a
         // sheet over it), with the position this entry really has, one past the page's. A page
@@ -242,8 +260,8 @@ export default function Modals() {
         history.pushState({ ...state, idx: at, gainsSheet: true }, '')
         pushedEntries.current++
       }
-    } else if (sheets.length < prev) {
-      const closedEntries = sheetEntries.current.splice(sheets.length, prev - sheets.length)
+    } else if (entries < prev) {
+      const closedEntries = sheetEntries.current.splice(entries, prev - entries)
       const rewind = closedEntries.filter(entry =>
         entry.live && !(typeof entry.openedAt === 'string' && location.href !== entry.openedAt)).length
       if (rewind > 0) {
@@ -255,7 +273,7 @@ export default function Modals() {
       // leaks until a later popstate consumes them with no corresponding active sheet.
     }
     noteSheetEntries(sheetEntries.current.filter(e => e.live).length)
-  }, [sheets.length])
+  }, [entries])
 
   // A page loaded on a sheet's entry with no sheet open (a reload, a restored tab): nothing will
   // ever walk that entry off, and back from it would land on the same page. Step off it once.
@@ -282,7 +300,7 @@ export default function Modals() {
       }
       noteSheetEntries(sheetEntries.current.filter(e => e.live).length)
       const top = sheets[sheets.length - 1]
-      if (top) dismissSheet(top.id)
+      if (top) backStep(top.id)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -291,7 +309,7 @@ export default function Modals() {
   // lock the page behind any open sheet (iOS-safe)
   useEffect(() => {
     if (!sheets.length) return
-    const onKey = e => { if (e.key === 'Escape') { const top = useUI.getState().sheets.at(-1); if (top) dismissSheet(top.id) } }
+    const onKey = e => { if (e.key === 'Escape') { const top = useUI.getState().sheets.at(-1); if (top) backStep(top.id) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [sheets.length])

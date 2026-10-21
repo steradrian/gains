@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { dayOverrideSheet, dayNoteSheet, calendarSheet } from './sheets.jsx'
 import { fmtDate } from './lib/format.js'
 import ActivityCard from './views/train/load/ActivityCard.jsx'
@@ -29,7 +30,7 @@ function mount(el) {
   return host
 }
 const mountTopSheet = () => {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   return mount(sheet.render(() => useUI.getState().closeSheet(sheet.id)))
 }
 const button = (host, text) => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === text)
