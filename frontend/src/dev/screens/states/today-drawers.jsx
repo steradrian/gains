@@ -6,19 +6,21 @@ import { useDiarySelection } from '../../../lib/nutrition/selection.js'
 import { useNutrition } from '../../../lib/nutrition/store.js'
 import { bwSheet } from '../../../sheets.jsx'
 import { useUI } from '../../../store/useUI.js'
-import Home from '../../../views/Home.jsx'
+import TodayScreen from '../../../views/today/TodayScreen.jsx'
 import { registerScreens } from '../registry.js'
+import { both } from './today-fixture.js'
 
 // Today's Log food and Weigh-in drawers (T1.4, T1.7) and the toasts after a log (T1.5, T1.6),
-// over Today. Each drawer is the real one, opened the way Today opens it; the foods come from the
-// mocked NutriTrace. The toasts are the real toast with the real copy, held still so they stay.
+// over the Today screen of T1.0 (same fixture). Each drawer is the real one, opened the way Today
+// opens it; the foods come from the mocked NutriTrace. The toasts are the real toast with the real
+// copy, held still so they stay.
 const ALEX = { id: 'u1', name: 'Alex' }
 const YESTERDAY = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10) })()
 const nt = (foods = fixtureFoods()) => ({
   user: ALEX,
   api: { 'GET /api/foods': foods, 'GET /api/settings': { ...fixtureSettings(), diaryPromptQuantity: false }, 'GET /api/meals': [] },
 })
-const today = () => <Home />
+const today = () => <TodayScreen {...both} />
 const logFood = ({ date = null, meal = 1 } = {}) => async t => {
   useNutrition.getState().reset()
   useDiarySelection.getState().setDate(date)

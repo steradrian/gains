@@ -147,6 +147,26 @@ describe('the screens gallery', () => {
     })
   })
 
+  it('has the Today drawers and toasts T1.4 to T1.7, each over the Today screen', async () => {
+    const ids = screenAreas().find(a => a.name === 'Today: drawers and toasts').entries.map(e => e.id)
+    expect(ids).toEqual(['T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7'])
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    for (const id of ids) await check(id, s => expect(s.host.querySelectorAll('.g-rc-slide'), id).toHaveLength(4))
+    await check('T1.4', s => {
+      expect(s.drawer.querySelector('.g-bs-chip').textContent).toContain('Lunch')
+      expect(s.drawer.textContent).toContain('Create a food')
+    })
+    await check('T1.4e', s => expect(s.drawer.textContent).toContain('Suggested foods'))
+    await check('T1.4p', s => expect(s.drawer.querySelector('.g-bs-chip').textContent).not.toMatch(/^Today/))
+    await check('T1.5', s => expect(s.host.textContent).toContain('Added Chicken rice bowl to Today, Lunch'))
+    await check('T1.6', s => expect(s.host.textContent).toContain('Added 250 ml of water to Today'))
+    await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
+  })
+
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
     for (const e of states) { expect(e.title, e.id).toBeTruthy(); expect(screenById(e.id)).toBe(e) }
