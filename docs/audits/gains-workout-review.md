@@ -44,3 +44,24 @@ Paths are relative to `frontend/src/`. One reviewer, read-only. Every finding wa
 12. 🟡 [display/clock] views/workout/workout-view.js:251-252 → The all-done line builds `clock` as `floor(secs / 60) + ':' + ss`. `clockText` in lib/workout-finish.js (the one the drawers and the discard confirm use) switches to `h:mm:ss` at an hour.
     Trigger: finish the last set of an hour-and-a-half session. The all-done screen reads "93:12" while the Finish drawer reads "1:33:12". A left-open session reads like "180:00".
     Fix: use `clockText(now - A.start)`.
+
+## Fix round
+
+Every finding fixed. Commits on `feat/workout`:
+
+| # | Finding | Status | Commit |
+|---|---|---|---|
+| 1 | Cool-down offer while editing a saved workout | fixed: no offer in the editor, `finishToSummary` saves the edit in place, `finishAndSave` refuses an editing session; test added | 87bf1d6bf |
+| 2 | Bests and history count warm-up and cool-down | fixed: `rebuildPrHistory`, `bestWeightFor`, `lastEntryFor` (now like-for-like by part) | d3209361a |
+| 3 | Swap loses `part` | fixed (inserted branch carries it). Carry 8 fixed: a swap is built from the routine's own slot of the new exercise when it has one | f6d346224 |
+| 4 | Add exercise with no part | fixed: a workout-part add stays between warm-up and cool-down | f6d346224 |
+| 5 | Timed per-side stretch | fixed: one set, Left / Right, one dot per pair | 7736e4116 |
+| 6 | Pyramid Max set | fixed: "Max" on the set line, record line under it, "Max" on the done row | 7736e4116 |
+| 7 | Inline text links | fixed: Gym setup and Set options are `DetailRow`s; `.wkd-link` and `.wk-link` deleted | 2de60257b |
+| 8 | Close-then-open in How to | fixed: Exercise settings and Update open over How to without closing it | 0702c69da |
+| 9 | Summary `first` hides bests (carry 9) | fixed: bests always listed; volume delta and Next time stay gated | d3209361a |
+| 10 | NEW BEST for per-side sets | fixed | d3209361a |
+| 11 | "+" Start skips Ready | fixed (`readyOrStart`), plus a handoff fix so Ready's entry is left by the session (weigh-in drawer walked off first) | 0702c69da, 7533cf6a5 |
+| 12 | All-done clock | fixed: `clockText` | 7736e4116 |
+
+Carry 3 (empty incline stays empty, `SetStepper` gets `blank`) and carry 4 (cardio best in the speed unit; the screens had read `S.speedUnit` raw instead of `speedUnitOf(S)`) are fixed in 7736e4116. Carry 7 (both `StageEmpty`s bare and centred) and the no-action "Editing a saved workout" banner removal are in 2de60257b. The pt-BR fingerprint is recomputed in fc918f010. 7533cf6a5 also moves three `rgba()` colours in `ds/ds.css` (`.g-prog`, `.g-nc`) to tokens, which the UI guard G7 had been failing on.
