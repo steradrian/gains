@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { exerciseHistory, HISTORY_SESSIONS, bestSetFor } from './exercise-history.js'
+import { exerciseHistory, HISTORY_SESSIONS, bestSetFor, bestSetIndex, trendDelta } from './exercise-history.js'
 import { EXDB } from './exercises-data.js'
 import { estimate1RM, e1rmSeries } from './onerm.js'
 import { lastEntryFor } from './history.js'
@@ -57,6 +57,24 @@ describe('exerciseHistory', () => {
     expect(h.sessions.filter(s => s.pr).map(s => s.id)).toEqual(['w1'])
   })
 
+  it('marks every session that beat the best before it, never the first one or a match of the best', () => {
+    const S = { workouts: [
+      session(0, [work(60, 5)]), session(1, [work(70, 5)]), session(2, [work(70, 6)]), session(3, [work(75, 5)]), session(4, [work(72, 5)]),
+    ] }
+    const h = exerciseHistory(S, 'bench')
+    expect(h.prId).toBe('w3')
+    expect(h.sessions.filter(s => s.pr).map(s => s.id)).toEqual(['w3', 'w1'])
+    expect(exerciseHistory({ workouts: [session(0, [work(60, 5)])] }, 'bench').sessions.some(s => s.pr)).toBe(false)
+  })
+
+  it('carries the workout name, and every session when the limit is lifted', () => {
+    const S = { workouts: Array.from({ length: 14 }, (_, i) => ({ ...session(i, [work(50 + i, 5)]), name: i === 13 ? 'Push A' : undefined })) }
+    const all = exerciseHistory(S, 'bench', { limit: Infinity })
+    expect(all.sessions).toHaveLength(14)
+    expect(all.sessions[0].name).toBe('Push A')
+    expect(all.sessions[1].name).toBeNull()
+  })
+
   it('keeps the last ten sessions in the list but every session on the chart', () => {
     const S = { workouts: Array.from({ length: 14 }, (_, i) => session(i, [work(50 + i, 5)])) }
     const h = exerciseHistory(S, 'bench')
@@ -66,7 +84,7 @@ describe('exerciseHistory', () => {
     expect(h.sessions.at(-1).d).toBe(iso(4))
     expect(h.points).toHaveLength(14)
     expect(h.e1rmPoints).toHaveLength(14)
-    // the record lives outside the listed window, so no listed session carries the marker
+    // the session holding the best now is the last one, and it is listed
     expect(h.prId).toBe('w13')
     expect(exerciseHistory(S, 'bench', { limit: 3 }).sessions).toHaveLength(3)
   })
@@ -226,5 +244,45 @@ describe('bestSetFor', () => {
     expect(bestSetFor(S, id, 'reps').set).toMatchObject({ w: 20, r: 8 })
     expect(bestSetFor({ workouts: [] }, 'bench', 'reps')).toBeNull()
     expect(bestSetFor({}, 'bench')).toBeNull()
+  })
+})
+
+// The "New best" mark sits on a set, not on the day.
+describe('bestSetIndex', () => {
+  it('is the first set that matches the session\'s number, in each metric', () => {
+    expect(bestSetIndex({ value: 80, sets: [work(75, 8), work(80, 6), work(80, 6)] }, 'weight')).toBe(1)
+    expect(bestSetIndex({ value: 12, sets: [work(0, 8), work(0, 12)] }, 'reps')).toBe(1)
+    expect(bestSetIndex({ value: 90, sets: [{ sec: 60 }, { sec: 90 }] }, 'sec')).toBe(1)
+  })
+
+  it('falls back to the first set when no set matches, for minutes and for a session with no value', () => {
+    expect(bestSetIndex({ value: 30, sets: [{ min: 10 }, { min: 20 }] }, 'min')).toBe(0)
+    expect(bestSetIndex({ value: 80, sets: [work(75, 8)] }, 'weight')).toBe(0)
+    expect(bestSetIndex({ value: null, sets: [work(75, 8), work(80, 8)] }, 'weight')).toBe(0)
+  })
+})
+
+// The hero line: "up 6 kg in 3 months" is only said when the window holds two points.
+describe('trendDelta', () => {
+  const pts = [{ t: 1000, y: 90 }, { t: 2000, y: 93 }, { t: 3000, y: 96 }]
+
+  it('is the last point against the first one inside the window', () => {
+    expect(trendDelta(pts)).toEqual({ delta: 6, from: 90, to: 96 })
+    expect(trendDelta(pts, 1500)).toEqual({ delta: 3, from: 93, to: 96 })
+  })
+
+  it('goes negative for a drop and rounds away float noise', () => {
+    expect(trendDelta([{ t: 1, y: 96 }, { t: 2, y: 92.5 }]).delta).toBe(-3.5)
+    expect(trendDelta([{ t: 1, y: 0.1 }, { t: 2, y: 0.3 }]).delta).toBe(0.2)
+  })
+
+  it('reads an unsorted series oldest to newest', () => {
+    expect(trendDelta([pts[2], pts[0], pts[1]])).toEqual({ delta: 6, from: 90, to: 96 })
+  })
+
+  it('is null with fewer than two points in the window, so the line is left out', () => {
+    expect(trendDelta([])).toBeNull()
+    expect(trendDelta([pts[0]])).toBeNull()
+    expect(trendDelta(pts, 2500)).toBeNull()
   })
 })

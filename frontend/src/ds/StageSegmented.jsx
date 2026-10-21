@@ -6,7 +6,8 @@ import { useRef, useState } from 'react'
 // `onChange(value)` make it controlled, otherwise it keeps its own. `label` names the group for a
 // screen reader (`ariaLabel` is the same, `label` first). It is a radio group: the lit option is the
 // only tab stop, and the arrow keys (Home, End) move the choice and the focus, mirrored in RTL.
-const normal = o => (typeof o === 'object' ? { value: o.value ?? o.label, label: o.label ?? o.value, href: o.href } : { value: o, label: o })
+// An option's `ariaLabel` is its spoken name when the visible one is a shortening ("1RM").
+const normal = o => (typeof o === 'object' ? { value: o.value ?? o.label, label: o.label ?? o.value, href: o.href, ariaLabel: o.ariaLabel } : { value: o, label: o })
 
 export default function StageSegmented({ options = [], value, onChange, label, ariaLabel }) {
   const opts = options.map(normal)
@@ -41,6 +42,7 @@ export default function StageSegmented({ options = [], value, onChange, label, a
           ref: el => { refs.current[i] = el },
           role: 'radio',
           'aria-checked': i === at,
+          'aria-label': o.ariaLabel,
           tabIndex: i === at ? 0 : -1,
           onClick: () => choose(i),
         }
