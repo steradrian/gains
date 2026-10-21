@@ -35,7 +35,7 @@ registerScreens('Shared: notifications', [
     render: () => <NotificationsScreen {...base} sections={NONE} unreadCount={0} isUnread={() => false} /> },
   { id: 'N1.1w', title: 'Nothing yet (web)', note: 'Web app, no item in 30 days: the bell scene with no button, and no word of reminders.',
     render: () => <NotificationsScreen {...base} hasReminders={false} sections={NONE} unreadCount={0} isUnread={() => false} /> },
-  { id: 'N1.2', title: 'All read', note: 'After Mark all read: the dots cleared, nothing deleted.',
+  { id: 'N1.2', title: 'All read', note: 'After Mark all read: the dots cleared, nothing deleted, no status row.',
     render: () => <NotificationsScreen {...base} sections={READ} unreadCount={0} isUnread={() => false} /> },
   { id: 'N1.3', title: 'Off on this phone', note: 'An iPhone browser tab: the banner with Turn on and Reminders; the list still fills, with no reminder rows.',
     render: () => <NotificationsScreen {...base} hasReminders={false} permission="off" homeScreen sections={READ_WEB} unreadCount={0} isUnread={() => false} /> },
