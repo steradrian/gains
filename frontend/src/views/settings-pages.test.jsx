@@ -202,7 +202,8 @@ describe('the pages', () => {
   it('every old row has a home: Workout screen holds layout, the rest, the end-of-rest rows and the during rows', () => {
     mount('workout')
     expect([...host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Layout', 'On each exercise', 'Rest', 'When a rest ends', 'During a workout'])
-    expect(titles()).toEqual(['Layout', 'Effort per set', 'Shown under each exercise', 'Exercise animations', 'Rest timer', 'Rest-pause rest',
+    // The rows and the layout tiles, not the section headings above them.
+    expect([...host.querySelectorAll('.g-glist-row b, .set-tiles')].map(e => e.getAttribute('aria-label') ?? e.textContent)).toEqual(['Layout', 'Effort per set', 'Shown under each exercise', 'Exercise animations', 'Rest timer', 'Rest-pause rest',
       'Play a sound', 'Sound', 'Vibrate', 'Flash the screen', 'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Fine-tuning'])
     expect(host.querySelector('h1').textContent).toBe('Workout screen')
     mount('advanced')

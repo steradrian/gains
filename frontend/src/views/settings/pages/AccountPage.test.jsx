@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import React, { act } from 'react'
+import React, { act, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubHubOffline } from '../../../lib/nutrition/hub-offline.test-util.js'
+import { useFlashRow } from '../use-flash-row.js'
 import AccountPage from './AccountPage.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -18,11 +19,16 @@ const mocks = vi.hoisted(() => {
   state.resetDemo = vi.fn()
   state.list = { passkeys: [{ id: 'k1', name: 'iPhone 15', created: null, lastUsed: null, transports: [] }], password: false, lastWayIn: true }
   state.api = vi.fn(async path => (path === '/api/account/passkeys' ? state.list : {}))
+  // Stable functions: a selector that returned a new one every render would loop an effect that depends on it.
+  const fns = {
+    update: vi.fn(), setUser: vi.fn(), pullState: vi.fn(), pushState: vi.fn(), syncNow: vi.fn(),
+    unsyncedChanges: () => ({ owed: false, count: 0 }), keptChanges: async () => [],
+    disconnectServer: vi.fn(), signOut: vi.fn(), signOutAll: vi.fn(), adoptProfile: vi.fn(),
+  }
   state.snapshot = () => ({
+    ...fns,
     S: state.S, user: state.user, sync: state.sync, config: state.config, coachLocal: null,
-    update: vi.fn(), setUser: vi.fn(), pullState: vi.fn(), pushState: vi.fn(), resetDemo: state.resetDemo,
-    syncNow: vi.fn(), unsyncedChanges: () => ({ owed: false, count: 0 }), keptChanges: async () => [],
-    disconnectServer: vi.fn(), signOut: vi.fn(), signOutAll: vi.fn(), adoptProfile: vi.fn(), resetEverything: state.resetEverything,
+    resetDemo: state.resetDemo, resetEverything: state.resetEverything,
   })
   return state
 })
@@ -133,6 +139,18 @@ describe('A2.0 the signed-in browser', () => {
     act(() => row(page, 'Import').click())
     act(() => row(page, 'Sync and backup').click())
     expect(mocks.navs).toEqual(['/me/import', '/me/backup'])
+  })
+
+  it('a search hit flashes its row on the page (the host\'s flash finds the stage rows by their title)', async () => {
+    function Hosted() {
+      const body = useRef(null)
+      useFlashRow(body, 'Delete account', null)
+      return <div ref={body}><AccountPage /></div>
+    }
+    const page = mount(<Hosted />)
+    await settle()
+    expect(row(page, 'Delete account').classList.contains('sp-flash')).toBe(true)
+    expect(row(page, 'Download my data').classList.contains('sp-flash')).toBe(false)
   })
 
   it('Download my data names the .zip only when there are photos or videos to put in it', async () => {

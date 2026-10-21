@@ -2,6 +2,7 @@
 // The browser chrome colour: the stage's top on a tab root, the page surface elsewhere, kept in the
 // <meta name="theme-color"> and in step with index.html's pre-paint values.
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { BRAND } from '../brand.js'
 import { chromeColor, isLightColor, syncThemeColor } from './theme-color.js'
@@ -35,7 +36,8 @@ describe('chromeColor', () => {
   })
 
   it('has pre-paint values in index.html that match the default accent of each mode', () => {
-    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8')
+    // happy-dom's import.meta.url is not a file URL, so read from the app folder vitest runs in.
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
     expect(html).toContain(`<meta name="theme-color" content="${themeOf(DEFAULT_ACCENT_BY_MODE.dark).stage.stage}">`)
     expect(html).toContain(`.content = '${themeOf(DEFAULT_ACCENT_BY_MODE.light).stage.stage}'`)
   })

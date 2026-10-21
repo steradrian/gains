@@ -25,7 +25,7 @@ const errorOf = code => ({
   gone: t('That container is not there any more.'),
 })[code]
 
-const idsOf = data => settingOf(data, 'waterContainers').map(c => c.id)
+const containersOf = data => settingOf(data, 'waterContainers')
 
 // Water → a container (boards St1Container, A1.21): a name and a volume in the unit you pick,
 // stored as whole ml. `container` is the one being edited; without it the sheet adds one. An edit
@@ -52,7 +52,7 @@ export function ContainerSheet({ container = null, close }) {
     if (done && outcome) {
       useUI.getState().toast(t('Removed {0}', container.name), {
         action: t('Undo'),
-        onAction: () => restoreList('waterContainers', outcome.before, outcome.after, idsOf),
+        onAction: () => restoreList('waterContainers', outcome.before, outcome.after, containersOf),
       })
     }
   }

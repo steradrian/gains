@@ -28,8 +28,9 @@ const toast = vi.fn()
 const settle = () => act(async () => { for (let i = 0; i < 8; i++) await new Promise(r => setTimeout(r, 0)) })
 const puts = () => nt.requests.filter(r => r.method === 'PUT' && r.path === '/nt/api/settings').map(r => r.body)
 const rows = () => [...host.querySelectorAll('.set-row')]
-const rowTitled = title => rows().find(r => r.dataset.find === title)
-const titles = () => rows().map(r => r.dataset.find)
+const titleOf = row => row.querySelector('b')?.textContent
+const rowTitled = title => rows().find(r => titleOf(r) === title)
+const titles = () => rows().map(titleOf)
 const valueOf = title => rowTitled(title).querySelector('.g-gvr-val').textContent
 const switchOf = title => rowTitled(title).querySelector('[role="switch"]')
 const optionOf = (title, label) => [...rowTitled(title).querySelectorAll('[role="radio"]')].find(b => b.textContent === label)
@@ -520,7 +521,7 @@ describe('search and Features', () => {
     for (const page of Object.keys(PAGES)) {
       await mount(page, {})
       for (const row of rows()) {
-        if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(page + ':' + row.dataset.find)
+        if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(page + ':' + titleOf(row))
       }
     }
     const listed = featuresFor({ ...web, ntSettings: {} }).map(e => e.page + ':' + e.title).filter(k => k.split(':')[0] in PAGES)

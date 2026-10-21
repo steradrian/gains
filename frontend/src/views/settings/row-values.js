@@ -29,7 +29,7 @@ const remindersOn = (S, ctx) => SEARCH.filter(e => e.page === 'reminders' && e.f
 function featuresValue(S, ctx) {
   if (ctx.nutrition) return ctx.ntSettings ? (ctx.fastingOn ? t('Fasting on') : t('Fasting off')) : null
   const on = featuresFor(ctx).filter(e => e.feature(S, ctx) === true).length
-  return on ? tn('{0} on', '{0} on', on) : null
+  return on ? t('{0} on', on) : null
 }
 
 function equipmentValue(S) {
@@ -73,7 +73,7 @@ export function rowValues({ S, ctx, lang, coachLocal = null, host = null, synced
   return {
     appearance: { value: accentLabel(S) },
     units: { value: (S.unit || 'kg') + ' · ' + (LANGS[lang] || lang) },
-    reminders: { value: reminders ? tn('{0} on', '{0} on', reminders) : t('Off') },
+    reminders: { value: reminders ? t('{0} on', reminders) : t('Off') },
     features: { value: featuresValue(S, ctx) },
     workout: { value: effort ? layoutLabel + ' · ' + effort : layoutLabel },
     schedule: { value: scheduleModeOf(S) === 'rotation' ? t('Rotation') : t('Fixed Week') },

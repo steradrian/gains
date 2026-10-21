@@ -12,6 +12,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { preloadPages } from './views/settings/pages/index.js'
 import { finishWorkout } from './sheets.jsx'
 import { loadStarterPlanWithUndo } from './lib/starter-load.js'
 import { nav } from './lib/nav.js'
@@ -477,9 +478,11 @@ describe('back on a sub-page', () => {
   it('a Profile page goes back to Profile', async () => {
     await launch('#/home')
     await click(tab('Me'))
+    // The page loads on first open; the stage frame (and its Back) is the page's own.
+    await preloadPages(['units'])
     await go(() => nav('/me/units'))
     expect(lit()).toBe('Me')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/me')
   })
 })

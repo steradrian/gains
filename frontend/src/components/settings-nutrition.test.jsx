@@ -69,8 +69,8 @@ describe('Features › Fasting', () => {
 
   it('settings that did not load say so with Try again, instead of a switch that never wakes', async () => {
     setUp({ fastingEnabled: false })
+    // The page asks for the settings itself when it opens (useNtSettings), so that is the request that fails.
     nt.failNext('GET', '/nt/api/settings', { status: 500 })
-    await act(async () => { await useNutrition.getState().loadSettings().catch(() => {}) })
     act(() => root.render(<Harness />))
     await settle()
     expect(glassRow('Fasting').textContent).toContain('Your settings did not load.')

@@ -45,6 +45,7 @@ describe('AccentPicker', () => {
     press(radios()[0], 'ArrowRight')
     expect(onChange).toHaveBeenLastCalledWith(THEMES[1].id)
     expect(document.activeElement).toBe(radios()[1])
+    radios()[0].focus()
     press(radios()[0], 'ArrowLeft')
     expect(onChange).toHaveBeenLastCalledWith(THEMES.at(-1).id)
   })

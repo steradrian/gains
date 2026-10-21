@@ -20,9 +20,11 @@ export function createRenderer(canvas) {
     if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s))
     return s
   }
+  const vert = compile(gl.VERTEX_SHADER, VERT)
+  const frag = compile(gl.FRAGMENT_SHADER, FRAG)
   const prog = gl.createProgram()
-  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT))
-  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG))
+  gl.attachShader(prog, vert)
+  gl.attachShader(prog, frag)
   gl.linkProgram(prog)
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog))
   gl.useProgram(prog)
