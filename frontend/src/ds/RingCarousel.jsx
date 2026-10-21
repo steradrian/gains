@@ -14,8 +14,9 @@ const SKELETON_PAGES = 4
 // nothing can focus them). `onChange(index)` is called when the page shown changes, by swipe, by
 // a dot, or by focusing a slide with the keyboard. A slide is a link with its `href` (or the
 // carousel's), a button otherwise, and `onOpen(slide, index)` fires either way. Each slide:
-// { name, top, big, unit, value, max, over, pill, icon, href }; `name` ("Protein") is what a
-// screen reader hears before the numbers. `start` is the first page shown. `loading` draws the
+// { name, top, big, unit, value, max, over, pill, icon, href, hint }; `name` ("Protein") is what a
+// screen reader hears before the numbers, `hint` what it hears after them, where the tap goes
+// ("Open Plan"; "Open details" without one). `start` is the first page shown. `loading` draws the
 // skeleton the boards show (T11Loading): a ring, a pill and the dots, `slides` only sets how many.
 export default function RingCarousel({ slides = [], start = 0, onOpen, onChange, href, label, loading }) {
   const n = slides.length
@@ -81,7 +82,7 @@ export default function RingCarousel({ slides = [], start = 0, onOpen, onChange,
             key={i}
             href={s.href || href}
             onClick={() => onOpen?.(s, i)}
-            ariaLabel={s.name ? t('{0}: {1}. Open details', s.name, spoken(s)) : undefined}
+            ariaLabel={!s.name ? undefined : s.hint ? t('{0}: {1}. {2}', s.name, spoken(s), s.hint) : t('{0}: {1}. Open details', s.name, spoken(s))}
             className="g-rc-slide"
           >
             <StageRing value={s.value} max={s.max} over={s.over} top={s.top} big={s.big} unit={s.unit} />

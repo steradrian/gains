@@ -101,7 +101,6 @@ export const PT_BR_OVERRIDES = {
   'Cardio logged': 'Cardio registrado',
   'The sets you logged in this session will be lost.': 'As séries registradas nesta sessão serão perdidas.',
   'Superset · do these back-to-back, rest when done': 'Superset · faça estes exercícios em sequência e descanse ao terminar',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Configure sua rotina semanal para começar, ou pegue um plano inicial já pronto.',
   'Choose starter plan': 'Escolha um plano inicial',
   'Fit to my equipment': 'Adaptar ao meu equipamento',
   'As written': 'Do jeito que está',
@@ -109,7 +108,6 @@ export const PT_BR_OVERRIDES = {
   '{0} loaded, fitted to "{1}": {2} swapped, {3} dropped': '{0} carregado e adaptado a "{1}": {2} trocados, {3} removidos',
   'The new plan goes on {0}. Your existing routines stay; only those days of the weekly plan change.': 'O novo plano fica em {0}. Suas rotinas continuam; só esses dias do plano semanal mudam.',
   'Push / Pull / Legs': 'Push / Pull / Legs',
-  'Build my own plan': 'Criar meu próprio plano',
   'Finish your first workout and your progress curves will show up here.': 'Termine seu primeiro treino e seus gráficos de progresso aparecem aqui.',
   'Your weekly routine': 'Sua rotina semanal',
   'Make one, or grab the starter plan to get going.': 'Crie uma, ou pegue o plano inicial para começar.',
@@ -1030,8 +1028,7 @@ export const PT_BR_OVERRIDES = {
   'The Coach isn’t set up on this phone. Check Settings → AI Coach.': 'O Treinador não está configurado neste celular. Verifique Configurações → Treinador IA.',
   'Your AI provider couldn’t answer.': 'Seu provedor de IA não conseguiu responder.',
   'Something went wrong on this phone.': 'Algo deu errado neste celular.',
-  // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'Próximo: {0}, hoje',
+  // --- coach week (Train's Start a workout drawer, sheets/train-day.jsx; day sheet, sheets.jsx) ---
   'Next: {0}': 'Próximo: {0}',
   'Next week starts {0}': 'A próxima semana começa em {0}',
   'Week complete, ask the coach': 'Semana concluída, pergunte ao Coach',
@@ -1138,7 +1135,6 @@ export const PT_BR_OVERRIDES = {
   'How you train': 'Como você treina',
   'Want two routines on one day? Tap the day and pick both.': 'Duas rotinas em um dia? Toque no dia e escolha as duas.',
   'Drag to reorder. Tap the minus to take one out.': 'Arraste para reordenar. Toque no sinal de menos para tirar uma.',
-  'Trained out of order? Just pick another routine on Home.': 'Treinou fora de ordem? É só escolher outra rotina no Início.',
   'These count on top of the loop. Tap a day to change or clear it.': 'Contam além do ciclo. Toque em um dia para mudar ou limpar.',
   'Tap to plan something': 'Toque para planejar algo',
   'Drag to reorder': 'Arraste para reordenar',
@@ -1939,7 +1935,6 @@ export const PT_BR_OVERRIDES = {
   'Tap a muscle to see its numbers.': 'Toque em um músculo para ver os números dele.',
 
   // --- the redesigned Training tab ---
-  'Nothing planned this week': 'Nada planejado esta semana',
   'Pick exercises as you go': 'Escolha os exercícios na hora',
 }
 

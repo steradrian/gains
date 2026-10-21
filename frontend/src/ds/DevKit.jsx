@@ -5,6 +5,7 @@ import Section from './DevKitSection.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
 import DevKitSearch from './DevKitSearch.jsx'
 import DevKitToday from './DevKitToday.jsx'
+import DevKitTrain from './DevKitTrain.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
 import GlassTabBar from './GlassTabBar.jsx'
@@ -200,6 +201,7 @@ export default function DevKit() {
         </Section>
 
         <DevKitToday />
+        <DevKitTrain />
         <DevKitDrawers />
         {/* Shared: search */}
         <DevKitSearch />

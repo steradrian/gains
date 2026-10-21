@@ -154,7 +154,20 @@ export const PRESETS = {
     enter: { keyframes: [{ transform: 'scale(.96)' }, { transform: 'none' }], ms: MS.fast, easing: EASE.ease },
     rm: null,
   },
+  // A card put away in place (components/Collapse.jsx) fades and settles back while its row closes.
+  // Under reduced motion it goes at once: nothing slides up for a fade to cover.
+  foldAway: {
+    exit: { keyframes: [{ opacity: 0, transform: `scale(${POP.from})` }], ms: MS.exit, easing: EASE.exit },
+    rm: null,
+  },
 }
+
+/** The row a card is put away from, `h` px tall when it starts closing: what is under it moves up
+ *  over --slow as the space goes, rather than jumping. Instant under reduced motion. */
+export const collapse = h => ({
+  exit: { keyframes: [{ height: `${h}px` }, { height: '0px' }], ms: MS.slow, easing: EASE.io },
+  rm: null,
+})
 
 // The driver is the seam tests use: the default is the element's own animate(), and a test hands
 // in one that records the calls and resolves when it says so. Without either (happy-dom, an old

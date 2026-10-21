@@ -1,4 +1,6 @@
+import Collapse from '../components/Collapse.jsx'
 import Icon from '../components/Icon.jsx'
+import { Presence } from '../components/presence.jsx'
 import { t, tn } from '../lib/i18n.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
 
@@ -35,5 +37,8 @@ export default function SavedIndicator({ state = 'idle', waiting = 0, tone = 'li
       ? <button type="button" className={className} onClick={onClick}>{kids}</button>
       : <span className={className}>{kids}</span>
   }
-  return <span className={stage ? 'g-savedbar' : 'g-saved-live'} aria-live="polite">{pill}</span>
+  // The stage pill sits in Today's column: once Saved has had its say, it is put away in place and
+  // what is under it moves up rather than jumping.
+  if (stage) return <div className="g-savedbar" aria-live="polite"><Presence>{pill && <Collapse key="pill">{pill}</Collapse>}</Presence></div>
+  return <span className="g-saved-live" aria-live="polite">{pill}</span>
 }
