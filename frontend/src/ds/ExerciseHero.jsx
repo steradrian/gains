@@ -12,7 +12,7 @@ const SWALLOW_MS = 300
 const LONG_NAME = 22
 
 // The exercise being worked, on the stage (boards W1.2, W1.32, W1.36, W1.41): the picture (opens
-// How to), the name, its meta line, a dot per set, and ⋯ for the options. Above it the `part`
+// How to), the name, its meta line, the quiet `plan` line under it when the exercise has one, a dot per set, and ⋯ for the options. Above it the `part`
 // eyebrow ("Workout · 1 of 6"), below it the pinned setup `note`. `newToYou` adds the white tag
 // `newText` ("New to you · how to"), which opens How to as well.
 //
@@ -21,7 +21,7 @@ const LONG_NAME = 22
 // towards the start is 'next'). Every string, the spoken names `howLabel` ("Bench press, how to")
 // and `moreLabel` ("Bench press, options") and `dotsLabel` ("Set 1 of 3") included, is the caller's.
 export default function ExerciseHero({
-  image, name, meta, dots = [], dotsLabel, newToYou = false, newText,
+  image, name, meta, plan, dots = [], dotsLabel, newToYou = false, newText,
   howLabel, howHref, onHow, moreLabel, moreHref, onMore, note, part, onSwipe,
 }) {
   const view = useRef(null)
@@ -72,6 +72,7 @@ export default function ExerciseHero({
         <span className="g-xh-b">
           <b className={cx('g-xh-name', (name || '').length > LONG_NAME && 'g-xh-long')}>{name}</b>
           {meta && <span className="g-xh-meta">{meta}</span>}
+          {plan && <span className="g-xh-plan">{plan}</span>}
           {dots.length > 0 && (
             <span className="g-xh-dots" role={dotsLabel ? 'img' : undefined} aria-label={dotsLabel} aria-hidden={dotsLabel ? undefined : true}>
               {dots.map((s, i) => <span key={i} className={'g-xh-dot g-xh-' + oneOf('ExerciseHero', 'dots', s, DOTS)} />)}

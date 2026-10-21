@@ -108,14 +108,45 @@ describe('the phase progress', () => {
   // old :2715, :2720 (nothing to show; the dumbbell and "Freestyle workout"): WorkoutScreen.test.jsx 'shows Pick as you go for an empty freestyle session'
 })
 
-// old :2282-2333: "Plan: 2 × 10 · today 3 × 10". The new hero meta reads the entry's target only
-// ("Barbell · 3 × 8 · 2:00 rest", heroMeta in workout-view.js), never `entry.planned`, so nothing on
-// the new screen says that progression moved the sets or reps, or that the reps are carried over.
+// old :2282-2333: "Plan: 2 × 10 · today 3 × 10", on a quiet line under the hero's meta
+// (hero.plan, planLineOf in workout-view.js).
 describe('the plan line', () => {
-  it.todo('shows the plan when the rows are the plan: "Plan: 2 × 10" (old Workout.test.jsx:2290)')
-  it.todo('says when progression moved the sets or reps: "Plan: 2 × 10 · today 3 × 10" (old :2295)')
-  it.todo('says when the reps were carried over from the last session (old :2300)')
-  it.todo('reads a double-progression aim inside the range as the plan: "Plan: 3 × 8–12" (old :2305)')
-  it.todo('reads a pyramid as its targets, "12 · 8 · 6 · Max · 12" (old :2323)')
-  it.todo('is not there for an entry with no plan (old :2328)')
+  const planned = (extra = {}) => lift(BENCH, 62.5, 10, 2, { planned: { sets: 2, reps: 10, weight: 60 }, ...extra })
+  const plan = () => view().hero.plan
+
+  // old :2290
+  it('shows the plan when the rows are the plan', () => {
+    start([planned()])
+    expect(plan()).toBe('Plan: 2 × 10')
+  })
+
+  // old :2295
+  it('says when progression moved the sets or reps', () => {
+    start([planned({ target: { mode: 'reps', sets: 3, reps: 10, weight: 0, bodyweight: true } })])
+    expect(plan()).toBe('Plan: 2 × 10 · today 3 × 10')
+  })
+
+  // old :2300
+  it('says when the reps were carried over from the last session', () => {
+    start([planned({ carried: true })])
+    expect(plan()).toBe('Plan: 2 × 10 · reps from your last session')
+  })
+
+  // old :2305
+  it('reads a double-progression aim inside the range as the plan', () => {
+    start([planned({ planned: { sets: 3, reps: 12, repsMin: 8, weight: 40 }, target: { mode: 'reps', sets: 3, reps: 11, repsMin: 8, weight: 40 } })])
+    expect(plan()).toBe('Plan: 3 × 8–12')
+  })
+
+  // old :2323 (#367)
+  it('reads a pyramid as its targets', () => {
+    start([planned({ planned: { sets: 5, reps: 12 }, target: { mode: 'reps', sets: 5, reps: 12, pyramid: [12, 8, 6, 'max', 12] } })])
+    expect(plan()).toBe('Plan: 12 · 8 · 6 · Max · 12')
+  })
+
+  // old :2328
+  it('is not there for an entry with no plan', () => {
+    start([lift(BENCH, 60, 8, 2)])
+    expect(plan()).toBeNull()
+  })
 })

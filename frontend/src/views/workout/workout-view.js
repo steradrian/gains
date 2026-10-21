@@ -13,6 +13,7 @@ import { partOf, partsOf } from '../../lib/workout-parts.js'
 // Workout core-M3
 import { isBw, isPerSide, repStep, effortOf, EFFORT, setsRepsOf } from '../../lib/history.js'
 import { weightIncrement } from '../../lib/progression.js'
+import { isPyramid, pyramidLabel } from '../../lib/pyramid.js'
 import { ownedWeightsFor } from '../../lib/dumbbells.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, INCLINE_STEP } from '../../lib/incline.js'
@@ -255,6 +256,29 @@ function setNumberOf(sets, i) {
   return s.side === 'L' || s.side === 'R' ? Math.floor(k / 2) + 1 : k + 1
 }
 
+/**
+ * The plan the exercise was built from (issue #275), on one quiet line under the hero's meta:
+ * "Plan: 2 × 10", with "· today 3 × 10" when progression moved the sets or reps and "· reps from
+ * your last session" when they were carried. A pyramid reads as its targets. Null for an entry
+ * with no plan (freestyle, or started before plans were kept) and for cardio.
+ */
+export function planLineOf(entry) {
+  const planned = entry.planned
+  const today = entry.target || {}
+  const mode = modeOf(cfgOf(entry))
+  if (!planned || mode === 'cardio') return null
+  if (isPyramid(today)) return t('Plan: {0}', pyramidLabel(today.pyramid))
+  const timed = mode === 'time'
+  const todaySets = today.sets || planned.sets || 1
+  const inPlan = timed
+    ? today.sec == null || today.sec === planned.sec
+    : today.reps == null || (planned.repsMin > 0 ? today.reps >= planned.repsMin && today.reps <= planned.reps : today.reps === planned.reps)
+  const note = todaySets !== (planned.sets || 1) || !inPlan
+    ? t('today {0}', setsRepsOf({ mode, sets: todaySets, reps: today.reps, sec: today.sec }))
+    : entry.carried ? t('reps from your last session') : null
+  return t('Plan: {0}', setsRepsOf({ ...planned, mode })) + (note ? ' · ' + note : '')
+}
+
 /** The hero's meta line: "Barbell · 3 × 8 · 2:00 rest", "Timed · 2 × 0:30 a side", "… · done". */
 export function heroMeta(S, entry, { editing = false } = {}) {
   const cfg = cfgOf(entry)
@@ -365,6 +389,7 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       ...view.hero,
       image: pictureOf(S, entry.id),
       meta: heroMeta(S, entry, { editing }),
+      plan: planLineOf(entry),
       dots: entry.sets.map((s, k) => (s.done ? 'done' : k === open ? 'now' : 'todo')),
       dotsLabel: view.current ? view.current.setLine : null,
       howLabel: t('{0}, how to', view.hero.name),

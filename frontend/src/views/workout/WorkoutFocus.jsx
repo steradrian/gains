@@ -66,7 +66,7 @@ export default function WorkoutFocus({ view, actions }) {
         />
       )}
       <ExerciseHero
-        image={hero.image} name={hero.name} meta={hero.meta} dots={hero.dots} dotsLabel={hero.dotsLabel} part={hero.partLine} note={hero.note}
+        image={hero.image} name={hero.name} meta={hero.meta} plan={hero.plan} dots={hero.dots} dotsLabel={hero.dotsLabel} part={hero.partLine} note={hero.note}
         newToYou={!!hero.newToYou && !editing} newText={hero.newToYou} howLabel={hero.howLabel} onHow={how} moreLabel={hero.moreLabel} onMore={how} onSwipe={swipe}
       />
       <DoneSetRows rows={rows} bestLabel={view.bestLabel} />

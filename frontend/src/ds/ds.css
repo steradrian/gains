@@ -2026,3 +2026,6 @@ a.g-dock-main, button.g-dock-main { cursor: pointer; }
 .sheet .g-bs-back { color: var(--label); }
 .sheet .g-bs-back:active { background: var(--label-4); }
 .g-bs-head h2:focus, .g-bs-pane h3:focus { outline: none; }
+
+/* === Workout guard-M2d === */
+.g-xh-plan { font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); opacity: .8; }
