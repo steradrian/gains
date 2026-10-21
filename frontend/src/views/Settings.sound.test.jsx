@@ -3,7 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
-import { RestSoundSheet } from './settings/pages/AlertsPage.jsx'
+import { RestSoundSheet } from './settings/pages/rest-sound-sheet.jsx'
 import { preloadPages } from './settings/pages/index.js'
 import { chime, unlock } from '../lib/sound.js'
 
@@ -78,17 +78,19 @@ afterEach(() => {
   setAudioSession(undefined)
 })
 
-const mount = (page = 'alerts') => act(() => root.render(<Settings page={page} />))
-const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
-const switchIn = row => row.querySelector('[role="switch"]') || row.querySelector('input[type="checkbox"]') || row.querySelector('button')
+const mount = (page = 'workout') => act(() => root.render(<Settings page={page} />))
+const allRows = () => [...host.querySelectorAll('[data-find]')]
+const rowTitled = title => allRows().find(r => r.dataset.find === title)
+const switchIn = row => row.querySelector('[role="switch"]')
+const sub = row => row.querySelector('.g-glist-body span')?.textContent
 
 describe('Settings — play sounds when the phone is on silent', () => {
   it('is offered on a browser with an audio session (iOS), under the sound rows, with the music trade-off spelled out', () => {
     mount()
     const row = rowTitled('Play even on silent')
     expect(row).toBeTruthy()
-    expect(row.querySelector('.lrow-s').textContent).toBe('Music playing on this phone stops during a workout and does not resume by itself.iPhone only')
-    const rows = [...host.querySelectorAll('.lrow')]
+    expect(sub(row)).toBe('Music playing on this phone stops during a workout and does not resume by itself.iPhone only')
+    const rows = allRows()
     expect(rows.indexOf(row)).toBe(rows.indexOf(rowTitled('Sound')) + 1)
   })
 
@@ -140,7 +142,7 @@ describe('Settings — optional timed-set overtime', () => {
     mount('advanced')
     const row = rowTitled('Keep timing after target')
     expect(row).toBeTruthy()
-    expect(row.querySelector('.lrow-s').textContent).toBe('Timed sets continue up to 15 extra minutes. Tap Done to log the actual duration.')
+    expect(sub(row)).toBe('A timed set keeps counting past its goal')
     const sw = switchIn(row)
     expect(sw.getAttribute('aria-label')).toBe('Keep timing after target')
     act(() => { sw.click() })
@@ -159,7 +161,7 @@ describe('Settings — vibrate', () => {
     const row = rowTitled('Vibrate')
     expect(row).toBeTruthy()
     expect(switchIn(row).getAttribute('aria-checked')).toBe('true')
-    const rows = [...host.querySelectorAll('.lrow')]
+    const rows = allRows()
     expect(rows.indexOf(row)).toBeGreaterThan(rows.indexOf(rowTitled('Play a sound')))
     expect(rows.indexOf(row)).toBeLessThan(rows.indexOf(rowTitled('Flash the screen')))
   })
@@ -183,15 +185,14 @@ describe('Settings — vibrate', () => {
   })
 
   // v1.3.11: an iPhone user looking for Vibrate finds it, greyed out, with the reason.
-  it('on an iPhone (no navigator.vibrate) the row stays, disabled, says "Not on iPhone" and explains below', () => {
+  it('on an iPhone (no navigator.vibrate) the row stays, out of reach, says "Not on iPhone" and explains below', () => {
     setVibrateApi(undefined)
     mount()
     const row = rowTitled('Vibrate')
     expect(row).toBeTruthy()
-    expect(row.classList.contains('dis')).toBe(true)
-    expect(row.querySelector('.lrow-s').textContent).toBe('Not on iPhone')
-    expect(switchIn(row).disabled).toBe(true)
-    expect(switchIn(row).getAttribute('aria-checked')).toBe('false')
+    expect(row.classList.contains('set-row-dim')).toBe(true)
+    expect(sub(row)).toBe('Not on iPhone')
+    expect(switchIn(row)).toBeNull()
     expect(host.textContent).toContain('iPhone doesn’t let Gains vibrate. A sound or a flash does the job.')
   })
 
@@ -199,7 +200,7 @@ describe('Settings — vibrate', () => {
     setVibrateApi(undefined)
     Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/130.0', configurable: true })
     mount()
-    expect(rowTitled('Vibrate').querySelector('.lrow-s').textContent).toBe('Not supported in this browser.')
+    expect(sub(rowTitled('Vibrate'))).toBe('Not supported in this browser.')
     expect(host.textContent).not.toContain('iPhone doesn’t let Gains vibrate')
   })
 })
@@ -207,10 +208,10 @@ describe('Settings — vibrate', () => {
 describe('Settings — which sound', () => {
   it('shows the chime by default and Classic beeps for classicChime, only while sound is on', () => {
     mount()
-    expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Chime (louder)')
+    expect(rowTitled('Sound').querySelector('.g-gvr-val').textContent).toBe('Chime (louder)')
     mocks.S.classicChime = true
     mount()
-    expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Classic beeps')
+    expect(rowTitled('Sound').querySelector('.g-gvr-val').textContent).toBe('Classic beeps')
     mocks.S.sound = false
     mount()
     expect(rowTitled('Sound')).toBeUndefined()
@@ -220,37 +221,33 @@ describe('Settings — which sound', () => {
   it('names the picked sound on the row; an older app\'s classic switch still reads as Classic', () => {
     mocks.S.restSound = 'whistle'
     mount()
-    expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Whistle')
+    expect(rowTitled('Sound').querySelector('.g-gvr-val').textContent).toBe('Whistle')
     mocks.S.classicChime = true
     mount()
-    expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Classic beeps')
+    expect(rowTitled('Sound').querySelector('.g-gvr-val').textContent).toBe('Classic beeps')
   })
 
   it('the sheet lists every sound, ticks the current one, and plays and stores each one tapped', () => {
-    const close = vi.fn()
     // the mocked store does not re-render on its own: render again to read the new tick
-    const render = () => act(() => root.render(<RestSoundSheet close={close} />))
+    const render = () => act(() => root.render(<RestSoundSheet />))
+    const option = title => [...host.querySelectorAll('[role="radio"]')].find(r => r.querySelector('b').textContent === title)
     render()
-    expect([...host.querySelectorAll('.lrow-t')].map(e => e.textContent)).toEqual(['Chime (louder)', 'Classic beeps', 'Bell', 'Beep-beep', 'Whistle', 'Soft'])
-    expect(rowTitled('Chime (louder)').querySelector('.lrow-k')).toBeTruthy()
+    expect([...host.querySelectorAll('[role="radio"] b')].map(e => e.textContent)).toEqual(['Chime (louder)', 'Classic beeps', 'Bell', 'Beep-beep', 'Whistle', 'Soft'])
+    expect(option('Chime (louder)').getAttribute('aria-checked')).toBe('true')
 
-    act(() => { rowTitled('Bell').click() })
+    act(() => { option('Bell').click() })
     expect(mocks.S).toMatchObject({ restSound: 'bell', classicChime: false })
     expect(chime).toHaveBeenLastCalledWith(true, 'bell')
     expect(unlock).toHaveBeenCalled()
     render()
-    expect(rowTitled('Bell').querySelector('.lrow-k')).toBeTruthy()
-    expect(rowTitled('Chime (louder)').querySelector('.lrow-k')).toBeNull()
-    expect(close).not.toHaveBeenCalled()
+    expect(option('Bell').getAttribute('aria-checked')).toBe('true')
+    expect(option('Chime (louder)').getAttribute('aria-checked')).toBe('false')
 
     // Classic keeps the old switch in step, so an app from before #306 plays it too
-    act(() => { rowTitled('Classic beeps').click() })
+    act(() => { option('Classic beeps').click() })
     expect(mocks.S).toMatchObject({ restSound: 'classic', classicChime: true })
     expect(chime).toHaveBeenLastCalledWith(true, 'classic')
-    act(() => { rowTitled('Soft').click() })
+    act(() => { option('Soft').click() })
     expect(mocks.S).toMatchObject({ restSound: 'soft', classicChime: false })
-
-    act(() => { [...host.querySelectorAll('button')].find(b => b.textContent === 'Done').click() })
-    expect(close).toHaveBeenCalled()
   })
 })

@@ -120,7 +120,8 @@ describe('the routes from before the tabs', () => {
     expect(legacyPath('/settings/plan')).toBe('/me/schedule')
     expect(legacyPath('/settings/data', '?x=1')).toBe('/me/backup?x=1')
     expect(legacyPath('/settings/advanced')).toBe('/me/advanced')
-    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup' })
+    expect(legacyPath('/settings/alerts')).toBe('/me/workout')
+    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup', alerts: 'workout' })
   })
 
   it('leave new and unknown routes alone', () => {

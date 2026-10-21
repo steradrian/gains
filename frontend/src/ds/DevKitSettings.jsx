@@ -2,6 +2,7 @@ import SettingsPage from '../views/settings/SettingsPage.jsx'
 import ConfirmDrawer from './ConfirmDrawer.jsx'
 import DangerRow from './DangerRow.jsx'
 import Section from './DevKitSection.jsx'
+import LayoutTile from './LayoutTile.jsx'
 import StageNote from './StageNote.jsx'
 
 // Settings' part of the catalogue (DevKit.jsx): what the Settings pages stand on. Later milestones
@@ -30,6 +31,16 @@ export default function DevKitSettings() {
         <div className="g-glass">
           <DangerRow title="Start over" sub="Wipes your training data" onClick={NOOP} />
           <DangerRow first={false} icon="warning" title="Delete account" sub="Gone after 7 days" onClick={NOOP} />
+        </div>
+      </Section>
+
+      {/* Settings train m1 */}
+      <Section title="LayoutTile" note="A drawn workout layout you can choose: a radio in a group the caller names. Cards is chosen; List, Compact and Focus are not.">
+        <div role="radiogroup" aria-label="Layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, maxWidth: 360 }}>
+          <LayoutTile layout="cards" label="Cards" selected onClick={NOOP} />
+          <LayoutTile layout="list" label="List" onClick={NOOP} />
+          <LayoutTile layout="compact" label="Compact" onClick={NOOP} />
+          <LayoutTile layout="focus" label="Focus" onClick={NOOP} />
         </div>
       </Section>
     </>

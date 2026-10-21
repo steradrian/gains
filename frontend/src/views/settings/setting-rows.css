@@ -1,0 +1,43 @@
+/* The rows of a Settings page on the stage (SettingRow.jsx): glass cards of rows with a switch, a
+   value or a segmented control, in a column with the boards' 16px gutters. Only tokens here. */
+.set-body { display: flex; flex-direction: column; gap: 4px; padding: 4px 16px 0; }
+.set-body > .g-ssec { padding-inline: 4px; }
+.set-body > .g-snote { padding-inline: 4px; }
+.set-body > .g-glist { margin-bottom: 4px; }
+
+/* A search hit flashes its row once (useFlashRow): the row is a button or a div, so it takes the
+   same keyframes as the legacy rows. */
+.set-row.sp-flash { animation: spflash 1.8s ease; }
+
+/* A row that holds a control under its text (a segmented control, the layout tiles): the text on
+   top, the control the full width below it. */
+.set-row-stack { flex-wrap: wrap; row-gap: 12px; padding-bottom: 14px; }
+.set-row-below { flex: 1 0 100%; min-width: 0; }
+
+/* A setting this device can not do: shown, with the reason, and out of reach. */
+.set-row-dim { opacity: .55; }
+.set-row-dim .g-glist-body span { color: var(--on-stage-2); }
+
+/* The (i) beside a title: a plain icon button, 44px to hit */
+.set-help { appearance: none; border: 0; background: none; flex: none; width: 44px; height: 44px; margin: -8px -8px -8px 0; display: grid; place-items: center; color: var(--on-stage-2); cursor: pointer; border-radius: 50%; }
+[dir="rtl"] .set-help { margin: -8px 0 -8px -8px; }
+.set-help .g-icon { width: 20px; height: 20px; }
+.set-help:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -4px; }
+
+/* The Layout tiles: four to a row, radio group */
+.set-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0 4px; }
+
+/* The rest timer drawer: the time in the middle, a step each side, the presets under it */
+.set-rest { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.set-rest-dial { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.set-rest-dial .g-btn { width: 100%; padding: 0 8px; }
+.set-rest-time { min-width: 6ch; text-align: center; font: 700 44px/48px var(--font-sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.set-rest-note { margin: 0; font: 500 14px/19px var(--font-sans); color: var(--text-3); }
+
+/* The effort scales drawer */
+.set-eff { display: flex; flex-direction: column; gap: 12px; }
+.set-eff p { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-2); }
+.set-eff table { width: 100%; border-collapse: collapse; font: 500 15px/20px var(--font-sans); color: var(--text); }
+.set-eff th { text-align: start; font: 700 12px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); padding: 0 8px 6px 0; }
+.set-eff td { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.set-eff tr.on td { font-weight: 700; }

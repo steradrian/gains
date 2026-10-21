@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
 import { preloadPages } from './settings/pages/index.js'
-import { bindUI } from '../components/ui.jsx'
 
 await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -51,13 +50,8 @@ vi.mock('../sheets.jsx', () => ({
 // The Settings view reads the build-time version constant at render time.
 globalThis.__APP_VERSION__ ??= 'test'
 
-// SelectRow opens its choices through the bound UI store; capture the sheet to render it here.
-let sheet = null
-bindUI({ getState: () => ({ openSheet: render => { sheet = render; return { close: () => {} } } }) })
-
 let host, root
 beforeEach(() => {
-  sheet = null
   mocks.S = {
     unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',
     gifSize: 'full', workouts: [], routines: [], exWeights: {},
@@ -72,35 +66,23 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="advanced" />))
-const row = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Planned sessions start from'))
-const choose = label => {
-  act(() => { row().click() })
-  expect(sheet).toBeTypeOf('function')
-  const box = document.createElement('div')
-  document.body.appendChild(box)
-  const sheetRoot = createRoot(box)
-  act(() => sheetRoot.render(sheet(() => {})))
-  const option = [...box.querySelectorAll('button.lrow')].find(b => b.querySelector('.lrow-t')?.textContent === label)
-  expect(option).toBeTruthy()
-  act(() => { option.click() })
-  act(() => sheetRoot.unmount())
-  box.remove()
-}
+const group = () => host.querySelector('[role="radiogroup"][aria-label="Planned sessions start from"]')
+const option = label => [...group().querySelectorAll('[role="radio"]')].find(b => b.textContent === label)
 
 describe('Settings — planned sessions start from', () => {
   it('reads an older profile without the setting as the plan', () => {
     mount()
-    expect(row()).toBeTruthy()
-    expect(row().textContent).toContain('Your plan')
+    expect(group()).toBeTruthy()
+    expect(option('Your plan').getAttribute('aria-checked')).toBe('true')
   })
 
   it('switches to the last session and back, writing startFrom to the store', () => {
     mount()
-    choose('Your last session')
+    act(() => { option('Your last session').click() })
     expect(mocks.S.startFrom).toBe('last')
     mount()
-    expect(row().textContent).toContain('Your last session')
-    choose('Your plan')
+    expect(option('Your last session').getAttribute('aria-checked')).toBe('true')
+    act(() => { option('Your plan').click() })
     expect(mocks.S.startFrom).toBe('plan')
   })
 })

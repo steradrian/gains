@@ -66,7 +66,7 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="workout" />))
-const segButton = label => [...host.querySelectorAll('.seg button')].find(b => b.textContent === label)
+const segButton = label => [...host.querySelectorAll('[role="radiogroup"][aria-label="Exercise animations"] [role="radio"]')].find(b => b.textContent === label)
 
 describe('Settings — exercise animations', () => {
   it('offers Full / Small / Hidden and writes gifSize to the store', () => {
@@ -74,11 +74,11 @@ describe('Settings — exercise animations', () => {
     expect(segButton('Full')).toBeTruthy()
     expect(segButton('Small')).toBeTruthy()
     expect(segButton('Hidden')).toBeTruthy()
-    expect(segButton('Full').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('Full').getAttribute('aria-checked')).toBe('true')
     act(() => { segButton('Hidden').click() })
     expect(mocks.S.gifSize).toBe('off')
     mount()
-    expect(segButton('Hidden').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('Hidden').getAttribute('aria-checked')).toBe('true')
     act(() => { segButton('Small').click() })
     expect(mocks.S.gifSize).toBe('mini')
   })
@@ -86,7 +86,7 @@ describe('Settings — exercise animations', () => {
   it('shows a legacy/absent value as Full', () => {
     delete mocks.S.gifSize
     mount()
-    expect(segButton('Full').getAttribute('aria-pressed')).toBe('true')
-    expect(segButton('Hidden').getAttribute('aria-pressed')).toBe('false')
+    expect(segButton('Full').getAttribute('aria-checked')).toBe('true')
+    expect(segButton('Hidden').getAttribute('aria-checked')).toBe('false')
   })
 })

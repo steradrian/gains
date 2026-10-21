@@ -4,7 +4,7 @@ import { back as tabBack } from '../../lib/use-tab-nav.js'
 import { Page } from '../../components/layout.jsx'
 import { PAGES } from '../settings-pages.js'
 import { SETTINGS_ROOT } from './paths.js'
-import { pageComponent } from './pages/index.js'
+import { pageComponent, drawsOwnFrame } from './pages/index.js'
 import { useFlashRow } from './use-flash-row.js'
 
 /**
@@ -17,7 +17,7 @@ export default function SettingsPageHost({ page, find = null, via = null }) {
   useFlashRow(body, find, via)
   const PageBody = pageComponent(page)
   return <div ref={body}>
-    <Page title={t(PAGES[page].title)} onBack={() => tabBack(SETTINGS_ROOT)} />
+    {!drawsOwnFrame(page) && <Page title={t(PAGES[page].title)} onBack={() => tabBack(SETTINGS_ROOT)} />}
     <Suspense fallback={null}><PageBody /></Suspense>
   </div>
 }
