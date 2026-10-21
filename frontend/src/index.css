@@ -43,12 +43,12 @@
   --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8e8e93;
 
   /* accent (per-account, synced) */
-  --acc:  var(--green);
-  --acc-2:#248a3d;
-  --on-acc:#000000;
-  /* The accent as text or an icon on --bg / --surface, at least 4.5:1. The dark accents already
-     clear it (lowest: blue 4.72:1), so dark reads the accent itself; light sets a darker shade
-     per accent below. A user's own colour gets its own in lib/accent.js customAccentVars. */
+  /* Before the first paint's JS: the dark default theme (ink). lib/themes.js applyAccent sets all
+     four inline from the chosen theme; light mode defaults below. A user's own colour gets its own
+     in lib/accent.js customAccentVars. */
+  --acc:  #f4f2ee;
+  --acc-2:#d8d5cf;
+  --on-acc:#111111;
   --acc-ink: var(--acc);
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
@@ -150,53 +150,18 @@
   --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
   --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
   --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
-  --acc-2:#248a3d;
+  --acc:#3157c6;        /* the light default theme (cobalt) until applyAccent runs */
+  --acc-2:#2342a6;
   --on-acc:#ffffff;
-  --acc-ink:#1c6f2f;
+  --acc-ink:#2342a6;
   --live-ink:#a35800;   /* the running-workout label as text: --live is 3.8:1 as a dot only */
 }
 
-/* accents — Apple's system colours, so a recolour never looks off-system */
-:root[data-accent="lime"]  { --acc:var(--green);  --acc-2:#248a3d; --on-acc:#000 }
-:root[data-accent="sky"]   { --acc:var(--blue);   --acc-2:#0060df; --on-acc:#fff }
-:root[data-accent="orange"]{ --acc:var(--orange); --acc-2:#c76b00; --on-acc:#000 }
-:root[data-accent="violet"]{ --acc:var(--purple); --acc-2:#8944ab; --on-acc:#fff }
-:root[data-accent="pink"]  { --acc:var(--pink);   --acc-2:#d70036; --on-acc:#fff }
-:root[data-accent="red"]   { --acc:var(--red);    --acc-2:#d70015; --on-acc:#fff }
-:root[data-accent="teal"]  { --acc:var(--teal);   --acc-2:#0071a4; --on-acc:#000 }
-:root[data-accent="gold"]  { --acc:var(--yellow); --acc-2:#b25000; --on-acc:#000; --knob-ring:rgba(0,0,0,.28) }
-/* Label colour on a filled accent button is picked per accent by measured contrast,
-   not by taste. Button text is 17px/600, so the AA bar is 3:1 (large text). White on
-   the light-theme green is 2.22:1 and on teal 2.57:1 — both fail, and green is the
-   DEFAULT accent, so every primary button in light mode was failing. Black scores
-   9.46 / 8.16 there. Blue, purple, pink and red keep white (3.5–4.1:1), which both
-   passes and matches the platform convention. */
-:root[data-theme="light"][data-accent="lime"],
-:root[data-theme="light"][data-accent="teal"]  { --on-acc:#000 }
-:root[data-theme="light"][data-accent="sky"],
-:root[data-theme="light"][data-accent="violet"],
-:root[data-theme="light"][data-accent="pink"],
-:root[data-theme="light"][data-accent="red"]   { --on-acc:#fff }
-
-/* --acc-ink: the accent as text or an icon, >= 4.5:1 on --bg, --surface and on the --acc-soft tint
-   over --surface-2 (a tinted button or tag on a pressed or nested fill); accent.test.js measures
-   every value. Dark accents already clear --bg and --surface; the four that fell short on the tint
-   are lifted. Light darkens each accent just far enough. */
-:root[data-accent="sky"]    { --acc-ink:#47a3ff }
-:root[data-accent="violet"] { --acc-ink:#ce80f5 }
-:root[data-accent="pink"]   { --acc-ink:#ff6a88 }
-:root[data-accent="red"]    { --acc-ink:#ff7068 }
-:root[data-theme="light"][data-accent="lime"]   { --acc-ink:#1c6f2f }
-:root[data-theme="light"][data-accent="sky"]    { --acc-ink:#005bc0 }
-:root[data-theme="light"][data-accent="orange"] { --acc-ink:#8f5300 }
-:root[data-theme="light"][data-accent="violet"] { --acc-ink:#843ea7 }
-:root[data-theme="light"][data-accent="pink"]   { --acc-ink:#b3203c }
-:root[data-theme="light"][data-accent="red"]    { --acc-ink:#af2821 }
-:root[data-theme="light"][data-accent="teal"]   { --acc-ink:#1d6b79 }
-:root[data-theme="light"][data-accent="gold"]   { --acc-ink:#7a6200 }
-/* An orange or gold accent would make the running-workout dot look like the accent. */
-:root[data-accent="orange"], :root[data-accent="gold"] { --live:var(--red) }
-:root[data-theme="light"][data-accent="orange"], :root[data-theme="light"][data-accent="gold"] { --live-ink:#c42d25 }
+/* The accent tokens (--acc, --acc-2, --on-acc, --acc-ink) are set inline on <html> from the chosen
+   theme (lib/themes.js applyAccent), which measures its own contrast (themes.test.js). What stays
+   keyed on data-accent: an orange-hued accent would make the running-workout dot look like it. */
+:root[data-accent="amber"], :root[data-accent="ember"] { --live:var(--red) }
+:root[data-theme="light"][data-accent="amber"], :root[data-theme="light"][data-accent="ember"] { --live-ink:#c42d25 }
 
 /* ---------------------------------------------------------------- reset -- */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1654,18 +1619,7 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .swatches{display:flex;gap:12px;flex-wrap:wrap}
 .swatch{width:32px;height:32px;border-radius:50%;flex:none;position:relative;transition:transform var(--fast)}
 .swatch:active{transform:scale(.9)}
-/* The ring takes no taps: over the own colour it lay on the colour input, so the picker never opened. */
 .swatch.on::after{content:'';position:absolute;inset:-4px;border-radius:50%;box-shadow:0 0 0 2px var(--label);pointer-events:none}
-/* The user's own colour (Settings → Accent color): a rainbow ring until there is one, then filled
-   with it. The native colour input lies over it, invisible, so the tap lands on the input itself. */
-.swatch-own{display:inline-flex;align-items:center;justify-content:center;font-size:15px;--icon-stroke:2.4}
-.swatch-own.unset{
-  background:radial-gradient(circle,var(--surface) 0 52%,transparent 54%),
-    conic-gradient(#ff453a,#ff9f0a,#ffd60a,#30d158,#40c8e0,#0a84ff,#bf5af2,#ff375f,#ff453a);
-  color:var(--label-2);
-}
-.swatch-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;border-radius:50%;cursor:pointer;-webkit-appearance:none;appearance:none}
-.swatch-note{margin-top:-4px}
 
 /* --- supersets --- */
 .ss-label{

@@ -49,9 +49,6 @@
 #timer.dock .dock-main{overflow:hidden}
 /* Sweaty hands: every target in the dock is at least 44px. */
 #timer.dock .acts .btn,#timer.dock .dock-main{min-height:44px}
-/* Skip's white label is under 4.5:1 on these accents' own colour; on their darker partner it reads. */
-:root[data-accent="sky"] #timer.dock .acts .btn.skip,:root[data-accent="violet"] #timer.dock .acts .btn.skip,
-:root[data-accent="pink"] #timer.dock .acts .btn.skip,:root[data-accent="red"] #timer.dock .acts .btn.skip{background:var(--acc-2)}
 /* The countdown bar shrinks by transform, so it is not a layout every second. */
 #timer.dock .bar i{width:100%;transform-origin:left center;transition:transform 1s linear}
 [dir="rtl"] #timer.dock .bar i{transform-origin:right center}
