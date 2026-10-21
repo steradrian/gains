@@ -9,7 +9,7 @@
     "sheets/exercise.jsx": 1,
     "sheets/import.jsx": 19,
     "sheets/workout-detail.jsx": 21,
-    "sheets/workout-flow.jsx": 67,
+    "sheets/workout-flow.jsx": 26,
     "views/Admin.jsx": 29,
     "views/AdminCoach.jsx": 6,
     "views/CheckIn.jsx": 2,
@@ -22,7 +22,7 @@
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 67
+    "index.css": 65
   },
   "G2js": {
     "brand.js": 2,
@@ -38,13 +38,12 @@
   "G3": {
     "components/DurationWheel.jsx": 1,
     "components/ServerSync.jsx": 1,
-    "components/WorkoutSettingsSheet.jsx": 1,
     "sheets/confirm-menu.jsx": 3,
     "sheets/exercise-config.jsx": 10,
     "sheets/exercise.jsx": 2,
     "sheets/import.jsx": 10,
     "sheets/workout-detail.jsx": 7,
-    "sheets/workout-flow.jsx": 28,
+    "sheets/workout-flow.jsx": 11,
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
     "views/Settings.jsx": 2,

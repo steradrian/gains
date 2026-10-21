@@ -33,8 +33,9 @@ export const PRIMITIVE_FILES = [
 // PlansScreen, PlanPreview, CoachChat, History, TrainingLoad, LoadMuscleScreen (a muscle's
 // training-load page), RoutinesScreen and RoutineEditor are pushed pages on the stage (StagePage).
 // Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
-// design system's StageNavBar. A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
-export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'WorkoutRoute']
+// design system's StageNavBar. WorkoutRoute and SummaryScreen are the workout's full screens
+// (StageScreen, no tab bar). A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
