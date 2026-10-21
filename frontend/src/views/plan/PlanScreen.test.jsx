@@ -16,6 +16,10 @@ import { confirmSheet, dayOverrideSheet, menuSheet, planToolsSheet, starterPlanS
 import PlanScreen from './PlanScreen.jsx'
 
 const nav = vi.fn()
+// The banner's own source (the Coach status poll) is tested in train/coach/use-coach-banner.test.jsx;
+// here it is a value, so no test reaches the network.
+const { banner } = vi.hoisted(() => ({ banner: { current: null } }))
+vi.mock('../train/coach/use-coach-banner.js', () => ({ useCoachBanner: () => banner.current }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train/schedule' }) }))
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
@@ -40,6 +44,7 @@ const shift = n => { const d = new Date(todayISO() + 'T12:00:00'); d.setDate(d.g
 let host, root
 beforeEach(() => {
   vi.clearAllMocks()
+  banner.current = null
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
 })
@@ -459,5 +464,14 @@ describe('Plan — the Coach banner (T3.2)', () => {
     click($$('.g-ibanner-btn').find(b => b.textContent === 'Dismiss'))
     expect(onReview).toHaveBeenCalledTimes(1)
     expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it('draws the banner usePlan() gets from the Coach hook when a proposal is pending', () => {
+    const onReview = vi.fn()
+    banner.current = { title: 'Coach suggests 1 change', body: 'Nothing moves until you apply.', onReview, onDismiss: vi.fn() }
+    mount()
+    expect($('.g-ibanner').textContent).toContain('Coach suggests 1 change')
+    click($$('.g-ibanner-btn').find(b => b.textContent === 'Review'))
+    expect(onReview).toHaveBeenCalledTimes(1)
   })
 })

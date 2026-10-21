@@ -18,6 +18,7 @@ const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train/schedule' }) }))
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
+vi.mock('../train/coach/use-coach-banner.js', () => ({ useCoachBanner: () => null }))
 vi.mock('../../sheets.jsx', () => ({
   confirmSheet: vi.fn(), menuSheet: vi.fn(), dayOverrideSheet: vi.fn(), planToolsSheet: vi.fn(), starterPlanSheet: vi.fn(),
   workoutDetailSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), startFlow: vi.fn(),
