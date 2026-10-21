@@ -40,7 +40,8 @@ let nt, host, root
 // The sheets useUI opens, rendered where the test can reach them.
 function Sheets() {
   const sheets = useUI(s => s.sheets)
-  return sheets.map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
+  // a drawer's sub-panels are drawn as sheets of their own here
+  return sheets.flatMap(s => [s, ...(s.panels || [])]).map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
 }
 const mount = async el => { await act(async () => { root.render(<>{el}<Sheets /></>) }); await settle() }
 const settle = async (ms = 0) => { for (let i = 0; i < 5; i++) await act(async () => { await new Promise(r => setTimeout(r, ms)) }) }

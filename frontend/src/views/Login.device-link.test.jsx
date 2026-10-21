@@ -26,14 +26,17 @@ vi.mock('../store/useUI.js', () => {
   const snap = () => ({ toast: vi.fn(), openSheet: render => { mocks.sheets.push(render); return {} } })
   const useUI = selector => selector ? selector(snap()) : snap()
   useUI.getState = snap
-  return { useUI }
+  return { useUI, drawerFlow: open => open() }
 })
 vi.mock('../lib/api.js', () => ({
   webauthnOK: () => mocks.webauthn, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), BIO: 'your fingerprint', bio: () => 'your fingerprint',
   api: vi.fn(), passkeyAssertion: vi.fn(), passwordLogin: vi.fn(), passwordRegister: vi.fn(), passwordResetRedeem: vi.fn(),
   createPasskey: vi.fn(), passkeyError: (e, fallback) => e?.message || fallback,
 }))
-vi.mock('../lib/nav.js', () => ({ nav: (...a) => mocks.nav(...a), onSheetEntry: () => false }))
+vi.mock('../lib/nav.js', () => ({
+  nav: (...a) => mocks.nav(...a), onSheetEntry: () => false,
+  closeThen: (close, go) => { close?.(); go(false) },
+}))
 vi.mock('../lib/demo.js', () => ({ DEMO: false, REPO: 'https://example.invalid' }))
 vi.mock('../sheets.jsx', () => ({ askAddDeviceData: vi.fn(), confirmSheet: vi.fn() }))
 

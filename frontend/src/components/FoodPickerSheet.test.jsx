@@ -13,6 +13,7 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { resetOffBudget } from '../lib/nutrition/off-budget.js'
 import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { createFakeNutriTrace, fixtureDay, fixtureFoods } from '../lib/nutrition/fake-nutritrace.js'
+import { applySheetKeyboard } from '../lib/sheet-keyboard.js'
 import { foodPickerSheet } from './FoodPickerSheet.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
@@ -23,7 +24,8 @@ let nt, host, root
 
 function Sheets() {
   const sheets = useUI(s => s.sheets)
-  return sheets.map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
+  // a drawer's sub-panels are drawn as sheets of their own here
+  return sheets.flatMap(s => [s, ...(s.panels || [])]).map(s => <div key={s.id} data-sheet="">{s.render(() => useUI.getState().closeSheet(s.id))}</div>)
 }
 const settle = async (ms = 0) => { for (let i = 0; i < 4; i++) await act(async () => { await new Promise(r => setTimeout(r, ms)) }) }
 const open = async () => {
@@ -126,18 +128,24 @@ describe('the Log food drawer', () => {
     expect(document.activeElement).toBe(drawer.querySelector('.g-lf-search input'))
   })
 
-  it('lifts the drawer over the keyboard the search raises, so Scan and Create a food stay in reach', async () => {
+  it('stands on the keyboard the search raises without being resized by it, so Scan and Create a food stay in reach', async () => {
     const before = Object.getOwnPropertyDescriptor(window, 'visualViewport')
     const height = Object.getOwnPropertyDescriptor(window, 'innerHeight')
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: 560, offsetTop: 0, addEventListener() {}, removeEventListener() {} } })
     try {
       const drawer = await open()
-      expect(drawer.style.getPropertyValue('--picker-keyboard-bottom')).toBe('340px')
-      expect(drawer.style.getPropertyValue('--picker-visual-height')).toBe('560px')
+      // The lift is the page's (lib/sheet-keyboard.js, on <html>); the drawer carries nothing of its
+      // own and keeps its full-height type, which the CSS gives a height rather than a top.
+      applySheetKeyboard(window)
+      expect(document.documentElement.style.getPropertyValue('--kb')).toBe('340px')
+      expect(document.documentElement.style.getPropertyValue('--vvh')).toBe('560px')
+      expect(drawer.getAttribute('style')).toBeNull()
+      expect(drawer.classList.contains('g-bs-full')).toBe(true)
     } finally {
       if (before) Object.defineProperty(window, 'visualViewport', before); else delete window.visualViewport
       if (height) Object.defineProperty(window, 'innerHeight', height); else delete window.innerHeight
+      applySheetKeyboard(window)
     }
   })
 

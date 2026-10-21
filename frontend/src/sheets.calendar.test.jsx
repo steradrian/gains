@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { isoOf, todayISO } from './lib/format.js'
 import { setNav } from './lib/nav.js'
 import { calendarSheet } from './sheets.jsx'
@@ -11,7 +12,7 @@ import { calendarSheet } from './sheets.jsx'
 const mounted = []
 
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { setNav } from './lib/nav.js'
 import { fmtDate } from './lib/format.js'
 import { dayOptionsSheet, startChooserSheet } from './sheets.jsx'
@@ -37,7 +38,7 @@ function install(extra = {}) {
 }
 
 function mountTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -53,7 +54,7 @@ const tap = (host, text) => {
   expect(target, text).toBeTruthy()
   act(() => { target.click() })
 }
-const topSheet = () => useUI.getState().sheets.at(-1)
+const topSheet = () => topSurface(useUI.getState().sheets)
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })

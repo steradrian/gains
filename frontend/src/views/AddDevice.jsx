@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { api, webauthnOK, createPasskey } from '../lib/api.js'
 import { deviceLabel } from '../lib/device-link.js'
-import { nav, onSheetEntry } from '../lib/nav.js'
+import { closeThen, nav } from '../lib/nav.js'
 import { askAddDeviceData } from '../sheets.jsx'
 import { passkeyError, LINK_MINUTES } from '../components/Passkeys.jsx'
 import Button from '../ds/Button.jsx'
@@ -54,9 +54,7 @@ const codeFrom = text => cleanCode(/[?&]link=([^&#\s]+)/.exec(text)?.[1] ?? text
 
 /** Opens the screen. From a sheet, pass its `close`: the screen takes the sheet's history entry. */
 export function openAddDevice(close) {
-  const replace = onSheetEntry()
-  close?.()
-  nav(ADD_DEVICE_PATH, replace ? { replace } : undefined)
+  closeThen(close, replace => nav(ADD_DEVICE_PATH, replace ? { replace } : undefined))
 }
 
 export default function AddDevice() {

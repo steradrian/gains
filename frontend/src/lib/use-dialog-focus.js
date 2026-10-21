@@ -63,7 +63,8 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
   // it replaced, so closing the chain ends on what started it.
   const opener = live(asked) || !live(replaced?.opener) ? asked : replaced.opener
   const held = BACKGROUND.filter(hold)
-  const controls = () => [...el.querySelectorAll(FOCUSABLE)]
+  // A drawer's panels under the active one are inert (components/sheet-panes.jsx): not a stop.
+  const controls = () => [...el.querySelectorAll(FOCUSABLE)].filter(n => !n.closest('[inert]'))
   const inside = document.activeElement && el.contains(document.activeElement)
   if (!inside) {
     if (enter === 'dialog') {
