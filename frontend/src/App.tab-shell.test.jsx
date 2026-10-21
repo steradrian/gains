@@ -422,7 +422,8 @@ describe('back on a sub-page', () => {
     await launch('#/progress/strength/balance')
     await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
     expect(hash()).toBe('#/progress/strength')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    // Strength is a stage page now (T7.0): its Back is the nav bar's glass button.
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/progress')
     expect(await backLeavesApp()).toBe(true)
   })

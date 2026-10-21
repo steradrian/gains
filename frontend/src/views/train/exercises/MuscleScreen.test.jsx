@@ -50,6 +50,8 @@ const nameOf = row => row.querySelector('.g-xrow-b b').textContent
 const chip = (host, text) => [...host.querySelectorAll('.g-fchip')].find(b => b.textContent.startsWith(text))
 const bodyPart = (host, text) => [...host.querySelectorAll('.g-cchip')].find(b => b.textContent === text)
 const onMap = (host, name) => host.querySelector(`[role="button"][aria-label="${name}"]`)
+// A muscle is an SVG path, which has no click() of its own: dispatch the click.
+const tapMap = (host, name) => onMap(host, name).dispatchEvent(new MouseEvent('click', { bubbles: true }))
 const where = host => host.querySelector('#where').textContent
 function type(el, value) {
   Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, value)
@@ -116,10 +118,10 @@ describe('By muscle: the page and the map', () => {
 
   it('tapping another muscle on the map switches to it in place; tapping the chosen one clears', async () => {
     const host = await muscle('chest')
-    act(() => onMap(host, 'Biceps').click())
+    act(() => { tapMap(host, 'Biceps') })
     expect(where(host)).toBe('/train/exercises/muscles?muscle=biceps')
     expect(host.querySelector('.g-spage-title').textContent).toBe('Biceps')
-    act(() => onMap(host, 'Biceps').click())
+    act(() => { tapMap(host, 'Biceps') })
     expect(where(host)).toBe('/train/exercises/muscles')
     expect(host.querySelector('.g-spage-title').textContent).toBe('Browse by muscle')
   })
@@ -197,7 +199,8 @@ describe('By muscle: the equipment filter', () => {
     const host = await muscle('biceps')
     act(() => bodyPart(host, 'Lower arms').click())
     act(() => chip(host, 'Any equipment').click())
-    act(() => radio(drawer(), 'Dumbbell').click())
+    const sheet = drawer()
+    act(() => radio(sheet, 'Dumbbell').click())
     expect(chip(host, 'Dumbbell').classList.contains('on')).toBe(true)
     act(() => bodyPart(host, 'All').click())
     expect(chip(host, 'Any equipment').classList.contains('on')).toBe(false)
@@ -206,9 +209,10 @@ describe('By muscle: the equipment filter', () => {
   it('a new muscle starts without the equipment filter', async () => {
     const host = await muscle('biceps')
     act(() => chip(host, 'Any equipment').click())
-    act(() => radio(drawer(), 'Dumbbell').click())
+    const sheet = drawer()
+    act(() => radio(sheet, 'Dumbbell').click())
     expect(chip(host, 'Dumbbell')).toBeTruthy()
-    act(() => onMap(host, 'Triceps').click())
+    act(() => { tapMap(host, 'Triceps') })
     expect(chip(host, 'Any equipment')).toBeTruthy()
   })
 })
