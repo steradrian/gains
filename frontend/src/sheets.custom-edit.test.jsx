@@ -84,7 +84,9 @@ describe('a custom exercise stored without the flag', () => {
     const ex = legacy()
     seed(ex)
     exerciseDetailSheet(ex)
-    act(() => menuOf(renderTop()).click())
+    // Rendered outside the click's act: a render nested in it would not flush before the query.
+    const menu = menuOf(renderTop())
+    act(() => menu.click())
     click(renderTop(), 'button', 'Edit')
     expect(navigate).toHaveBeenCalledWith('/train/exercises/new?edit=cx1')
     expect(useUI.getState().sheets).toHaveLength(0)
@@ -97,7 +99,8 @@ describe('a custom exercise stored without the flag', () => {
     location.hash = '#/train/workout'
     try {
       exerciseDetailSheet(ex)
-      act(() => menuOf(renderTop()).click())
+      const menu = menuOf(renderTop())
+      act(() => menu.click())
       click(renderTop(), 'button', 'Edit')
       expect(navigate).not.toHaveBeenCalled()
       const form = renderTop()
@@ -114,7 +117,8 @@ describe('a custom exercise stored without the flag', () => {
       workouts: [{ d: '2026-09-01', entries: [{ id: 'cx1', sets: [{ r: 8, w: 40, done: true }] }] }],
     })
     exerciseDetailSheet(ex)
-    act(() => menuOf(renderTop()).click())
+    const menu = menuOf(renderTop())
+    act(() => menu.click())
     click(renderTop(), 'button', 'Delete')
     click(renderTop(), 'button', 'Delete')   // the confirmation
     expect(S().customEx).toEqual([])
