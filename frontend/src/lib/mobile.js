@@ -14,6 +14,7 @@ import { isoOf, todayISO } from './format.js'
 import { effectiveRoutineIds } from './history.js'
 import { NUDGE_COPY, lineIndex, nudgeFor, nudgeMinute, toneOf } from './nudge.js'
 import { excusedOn } from './day-notes.js'
+import { recordScheduled } from './notifications/reminder-log.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
 
@@ -125,6 +126,8 @@ export function buildReminderNotifications(S, now = new Date()) {
       title: t('Workout day'),
       body: t('{0} is on the plan today. Let’s go!', label),
       schedule: { at, allowWhileIdle: true },
+      // What the notifications inbox shows once it has gone off (lib/notifications/reminder-log.js).
+      extra: { kind: 'workout', iso, time: r.time || '08:00', routines: dayRoutines.map(x => ({ id: x.id, name: x.name })) },
     })
   }
   return notifications
@@ -164,6 +167,7 @@ export function buildNudgeNotifications(S, now = new Date()) {
       title: t(copy.title),
       body: t(copy.lines[lineIndex(iso, copy.lines.length)], label),
       schedule: { at: when, allowWhileIdle: true },
+      extra: { kind: 'nudge', iso, tone: toneOf(r), routines: ids.map(id => ({ id, name: routines.find(x => x.id === id)?.name || '' })) },
     })
   }
   return notifications
@@ -181,13 +185,18 @@ export async function syncReminder(S, interactive = false) {
       ...Array.from({ length: REMINDER_WINDOW_DAYS }, (_, d) => ({ id: REMINDER_ID_BASE + d })),
       ...Array.from({ length: NUDGE_WINDOW_DAYS }, (_, d) => ({ id: NUDGE_ID_BASE + d })),
     ] }).catch(() => {})
+    // Whatever was scheduled and came due before this sync has gone off; the rest is cancelled.
+    recordScheduled([])
     const r = S.reminder
     if (!r?.on) return true
     let perm = await LocalNotifications.checkPermissions()
     if (perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
     if (perm.display !== 'granted') return false
     const notifications = [...buildReminderNotifications(S), ...buildNudgeNotifications(S)]
-    if (notifications.length) await LocalNotifications.schedule({ notifications })
+    if (notifications.length) {
+      await LocalNotifications.schedule({ notifications })
+      recordScheduled(notifications.map(n => ({ ...n.extra, at: n.schedule.at.getTime() })))
+    }
     return true
   } catch (e) { return false }
 }

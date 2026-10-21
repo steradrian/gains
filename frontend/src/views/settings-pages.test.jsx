@@ -174,10 +174,10 @@ describe('the root', () => {
     expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
   })
 
-  it('signed in, Notifications is there and the card names the account; on the phone app the Coach too', () => {
+  it('signed in, Reminders is there and the card names the account; on the phone app the Coach too', () => {
     mocks.user = { id: 'u1', name: 'Dana' }
     mount()
-    expect(titles()).toContain('Notifications')
+    expect(titles()).toContain('Reminders')
     expect(titles()).not.toContain('AI Coach')
     expect(titles()).not.toContain('Admin dashboard')
     expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('Dana')
@@ -185,7 +185,7 @@ describe('the root', () => {
     mocks.user = null
     mocks.MOBILE = true
     mount()
-    expect(titles()).toContain('Notifications')
+    expect(titles()).toContain('Reminders')
     expect(titles()).toContain('AI Coach')
     expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('This phone')
   })
@@ -294,7 +294,7 @@ describe('the search lands on a row', () => {
       mocks.user = { id: 'u1', name: 'Dana' }
       mocks.push = true
       mocks.S.reminder = { on: true, time: '17:30' }
-      mount('notifications', 'Nudge me when I skip a planned workout', 'Push notifications')
+      mount('reminders', 'Nudge me when I skip a planned workout', 'Push notifications')
       await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
       expect(rowTitled('Push notifications').classList.contains('sp-flash')).toBe(true)
       expect(mocks.toast).toHaveBeenCalledWith('Turn on push notifications first.')
@@ -303,7 +303,7 @@ describe('the search lands on a row', () => {
       mocks.pushOn = true
       mocks.toast.mockClear()
       act(() => root.render(null))
-      mount('notifications', 'Nudge me when I skip a planned workout', 'Push notifications')
+      mount('reminders', 'Nudge me when I skip a planned workout', 'Push notifications')
       await act(async () => { await vi.advanceTimersByTimeAsync(50) })
       expect(rowTitled('Nudge me when I skip a planned workout').classList.contains('sp-flash')).toBe(true)
       await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
@@ -552,11 +552,11 @@ describe('Features', () => {
     expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Flash the screen' } }])
   })
 
-  it('a reminder that waits on push opens Notifications with Push notifications to flash instead', () => {
+  it('a reminder that waits on push opens Reminders with Push notifications to flash instead', () => {
     mocks.MOBILE = true
     mount('features')
     act(() => rowTitled('Workout day reminder').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me/notifications', { state: { find: 'Workout day reminder', via: 'Push notifications' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/reminders', { state: { find: 'Workout day reminder', via: 'Push notifications' } }])
   })
 
   it('every row it lists starts off in a new profile', async () => {

@@ -128,6 +128,10 @@ export const DEF = {
   // One-time hints already shown to this profile, synced so each shows once per person rather
   // than once per device: { swipeSets: true } after the first swipe-on-sets nudge (Workout.jsx).
   hints: {},
+  // Which notifications are read (lib/notifications/read-state.js): { at, ids }. Mark all read
+  // sets `at`, reading one adds its id. A plain setting, so the newer copy wins whole on sync: two
+  // phones reading different items at once keep one phone's reads, which only shows a dot again.
+  notifRead: { at: 0, ids: [] },
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and

@@ -318,7 +318,7 @@ describe('Today', () => {
     await click(button('Settings'))
     expect(navigate).toHaveBeenCalledWith('/me')
     await click(button('Notifications'))
-    expect(navigate).toHaveBeenCalledWith('/me/notifications')
+    expect(navigate).toHaveBeenCalledWith('/home/notifications')
     await click(host.querySelector('.g-spill'))
     expect(useSearch.getState().open).toBe(true)
     // The tab's own header takes over, its input focused inside the tap.
