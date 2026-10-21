@@ -30,8 +30,8 @@ describe('opening a result', () => {
   })
 
   it('a setting: its page with { find, via }; a Profile page: the page; a sheet page: the sheet', () => {
-    open({ type: 'setting', id: 'x', entry: { page: 'notifications', title: 'Reminder time', via: 'Push notifications', isPage: false } })
-    expect(session.visit).toHaveBeenLastCalledWith('/me/notifications', { date: undefined, state: { find: 'Reminder time', via: 'Push notifications' } })
+    open({ type: 'setting', id: 'x', entry: { page: 'reminders', title: 'Reminder time', via: 'Push notifications', isPage: false } })
+    expect(session.visit).toHaveBeenLastCalledWith('/me/reminders', { date: undefined, state: { find: 'Reminder time', via: 'Push notifications' } })
     open({ type: 'setting', id: 'y', entry: { page: null, title: 'Sync now', isPage: false } })
     expect(session.visit).toHaveBeenLastCalledWith('/me', { date: undefined, state: { find: 'Sync now' } })
     open({ type: 'setting', id: 'z', entry: { page: 'goals', title: 'Goals', isPage: true, to: '/food/goals' } })

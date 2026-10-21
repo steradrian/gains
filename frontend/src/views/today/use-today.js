@@ -341,7 +341,7 @@ export function useToday() {
     placeholder: t('Search'),
     alert: connection ? t('Connection problem') : hub ? t('Nutrition sync needs attention') : null,
     onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
+    onBell: () => nav('/home/notifications'),
     // The app's search types into a header input: the tab's own header takes over while it is open,
     // mounted and focused inside this tap so a phone raises its keyboard.
     onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('home'))) },

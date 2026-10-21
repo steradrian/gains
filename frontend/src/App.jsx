@@ -76,6 +76,7 @@ import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
 import Trends from './views/Trends.jsx'
 import Recovery from './views/Recovery.jsx'
+import Notifications from './views/shared/Notifications.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -315,6 +316,12 @@ function Shell() {
               <Route path="/progress/recovery" element={<Recovery />} />
               {/* Opened from any tab, on top of it: the workout. */}
               <Route path="/train/workout" element={<Workout />} />
+              {/* Shared: the notifications inbox, under the tab whose bell opened it
+                  (lib/tab-route.js notificationsPath). /me/notifications is Me's. */}
+              <Route path="/home/notifications" element={<Notifications />} />
+              <Route path="/train/notifications" element={<Notifications />} />
+              <Route path="/food/notifications" element={<Notifications />} />
+              <Route path="/me/notifications" element={<Notifications />} />
               {/* Me: Profile */}
               <Route path="/me" element={<SettingsRoute />} />
               <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
