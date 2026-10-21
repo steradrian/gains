@@ -238,6 +238,7 @@ export default {
   'Just added': 'Just added',
   'Makes “{0}”': 'Makes “{0}”',
   'Move {0} down': 'Move {0} down',
+  '{0} moved to {1} of {2}': '{0} an Position {1} von {2} verschoben',
   'Move {0} up': 'Move {0} up',
   'No routine': 'No routine',
   'Not in your Plan': 'Not in your Plan',

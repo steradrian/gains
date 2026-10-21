@@ -908,6 +908,9 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-bmap-stage .g-bm-btn:focus-visible { stroke: var(--on-stage); stroke-width: 3; }
 .g-bmap-light .g-bm-btn:focus-visible { stroke: var(--accent-text); stroke-width: 3; }
 @media (prefers-reduced-motion: reduce) { .g-bm-btn { transition: none; } }
+/* Group 2: the muscle the keyboard is on rings every shape of it, not only its one focusable path */
+.g-bmap-stage .g-bm-m.g-bm-ring { stroke: var(--on-stage); stroke-width: 3; }
+.g-bmap-light .g-bm-m.g-bm-ring { stroke: var(--accent-text); stroke-width: 3; }
 /* Chip: the stage filter chip. The look is 26px high; the tap area is padded out to 44px. */
 .g-fchip { appearance: none; border: 0; position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 10px; border-radius: 999px; font: 700 13px/16px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
 .g-fchip::after { content: ""; position: absolute; inset: -9px -4px; }

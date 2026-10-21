@@ -18,7 +18,8 @@ import ExerciseStillRow from '../components/ExerciseStillRow.jsx'
 import SegmentedControl from '../ds/SegmentedControl.jsx'
 import Tag from '../ds/Tag.jsx'
 import { sameMuscleFirst, swapMuscleOf } from '../lib/similar-exercises.js'
-import { MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
+import { MUSCLE_NAME } from '../lib/muscles.js'
+import { exercisesForMuscle } from '../lib/muscle-explore.js'
 import { dbLoadFor, withMeaning, historyAs, ownedWeightsFor } from '../lib/dumbbells.js'
 import { defaultIncrement, weightIncrement } from '../lib/progression.js'
 import { swapActiveExercise } from '../lib/active-exercise-swap.js'
@@ -80,7 +81,7 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
   const special = tab === 'fav' || (onAll && bp === '★')
   let inPart
   if (tab === 'fav') inPart = all.filter(e => isFav(st, e.id))
-  else if (tab === 'muscle') inPart = muscle ? all.filter(e => musclesOf(e)[muscle]) : []
+  else if (tab === 'muscle') inPart = muscle ? exercisesForMuscle(all, muscle) : []
   else if (bp === SAME) inPart = sameMuscleFirst(all, likeEx)
   else if (bp === '★') inPart = all.filter(e => usage[e.id])
   else inPart = all.filter(e => !bp || e.bp === bp)
@@ -110,9 +111,11 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
   // results once you have scrolled to their end, so a search almost never ends on nothing.
   // Worked out a beat behind the typing (useDeferredValue): the list itself never waits for it.
   const qLate = useDeferredValue(q)
+  const pool = profile && !showAll ? all.filter(e => exAvailable(st, e)) : all
   const similar = q.trim() && qLate === q && !special && f.length <= shown
-    ? similarExercises((profile && !showAll ? all.filter(e => exAvailable(st, e)) : all)
-      .filter(e => tab === 'muscle' ? !!(muscle && musclesOf(e)[muscle]) : (bp === SAME || !bp || e.bp === bp)), q, f, f.length ? 12 : 30)
+    ? similarExercises(tab === 'muscle'
+      ? (muscle ? exercisesForMuscle(pool, muscle) : [])
+      : pool.filter(e => bp === SAME || !bp || e.bp === bp), q, f, f.length ? 12 : 30)
     : []
   const noExact = f.length === 0 && similar.length > 0
 
@@ -183,7 +186,7 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
         options={[{ value: '', label: t('Any equipment') }, ...eqOpts.map(x => ({ value: x, label: t(x) }))]} />
     </div>}
     {tab === 'muscle' && <>
-      <div className="g-pk-map"><BodyMap body={st.body} selected={muscle} onMuscle={pickMuscle} /></div>
+      <div className="g-pk-map"><BodyMap body={st.body} selected={muscle} onMuscle={pickMuscle} label={t('Muscle map')} /></div>
       {muscle
         ? <p className="g-pk-head">{t(MUSCLE_NAME[muscle])} · {exCount(f.length)}</p>
         : <p className="g-pk-head g-pk-hint">{t('Choose a muscle to see exercises that train it.')}</p>}

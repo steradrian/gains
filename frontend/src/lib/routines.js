@@ -1,6 +1,7 @@
 import { uid } from './format.js'
 import { defaultConfig, isBw, modeOf, MAX_PLANNED_WARMUPS, NOTE_MAX } from './history.js'
 import { isAssisted, isBodyweightEq, isCardio } from './exercises.js'
+import { loggedModeOf } from './custom-exercise.js'
 import { sessionsFor } from './progression.js'
 import { isWarmupRow } from './workout-model.js'
 
@@ -132,13 +133,16 @@ export function restoreRoutine(s, snap) {
 export function replaceSlotExercise(slot, id, S, rid) {
   const old = slot || {}
   if (old.id === id) return { ...old }
-  if ((modeOf(old) === 'cardio') !== isCardio(id)) {
+  // Cardio by how the new exercise is logged, not its body part: a custom exercise can be either.
+  const cardio = loggedModeOf(id) === 'cardio'
+  if ((modeOf(old) === 'cardio') !== cardio) {
     const kept = ['sg', 'note', 'restSec'].filter(key => old[key] != null)
     return { id, ...defaultConfig(id), ...Object.fromEntries(kept.map(key => [key, old[key]])) }
   }
   const { id: _replaced, bodyweight: _flag, assisted: _assisted, side: _side, ...carried } = old
   const out = { id, ...carried }
-  if (isCardio(id)) return out
+  // Off the Cardio body part, only the slot's own mode says it is cardio (history.js modeOf).
+  if (cardio) return isCardio(id) ? out : { ...out, mode: 'cardio' }
   if (isBw(old) !== isBodyweightEq(id)) {
     out.weight = 0
     // A rep ceiling belongs to bodyweight work: it adds sets where there is no load to add.
@@ -186,7 +190,7 @@ function setupOf(entry) {
     restSec: Math.max(0, Math.round(Number(target.restSec)) || 0),
     note: String(target.note || '').trim().slice(0, NOTE_MAX),
   }
-  if (!isCardio(entry.id) && target.intensifier?.type !== 'restpause') {
+  if (modeOf({ ...target, id: entry.id }) !== 'cardio' && target.intensifier?.type !== 'restpause') {
     out.warmupSets = Math.min(MAX_PLANNED_WARMUPS, (entry.sets || []).filter(isWarmupRow).length)
   }
   return out

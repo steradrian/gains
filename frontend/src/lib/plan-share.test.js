@@ -1,6 +1,32 @@
 import { describe, expect, it } from 'vitest'
 import { buildPlanBundle, mergePlan, parsePlan } from './plan-share.js'
 
+// How a custom exercise is logged (T6.4) travels with it and with its entries: a cardio exercise on
+// Legs arrived as a rep exercise (docs/audits/gains-train-review.md #3).
+describe('a custom exercise\'s way of logging in a shared plan', () => {
+  const share = (customEx, ex) => {
+    const sender = { unit: 'kg', week: {}, routines: [{ id: 'r1', name: 'Legs', ex }], customEx }
+    const recipient = { unit: 'kg', week: {}, routines: [], customEx: [], dayPlan: {} }
+    mergePlan(recipient, parsePlan(JSON.stringify(buildPlanBundle(sender, 'Plan'))))
+    return recipient
+  }
+
+  it('a cardio-logged exercise off the Cardio body part arrives as cardio, the exercise and its entry', () => {
+    const got = share([{ id: 'cs', n: 'Sled push', bp: 'upper legs', custom: true, mode: 'cardio' }],
+      [{ id: 'cs', sets: 1, min: 25, speed: 6, mode: 'cardio' }])
+    expect(got.customEx[0]).toMatchObject({ n: 'Sled push', mode: 'cardio' })
+    expect(got.routines[0].ex[0]).toMatchObject({ id: got.customEx[0].id, mode: 'cardio', min: 25, speed: 6 })
+  })
+
+  it('Reps only keeps its bodyweight flag; a mode the form does not have is not carried', () => {
+    const reps = share([{ id: 'cn', n: 'Nordic curl', bp: 'upper legs', custom: true, mode: 'reps', bodyweight: true }], [{ id: 'cn', sets: 3, reps: 6 }])
+    expect(reps.customEx[0]).toMatchObject({ mode: 'reps', bodyweight: true })
+    const odd = share([{ id: 'co', n: 'Odd', bp: 'back', custom: true, mode: 'sprint', bodyweight: true }], [{ id: 'co', sets: 3, reps: 6 }])
+    expect(odd.customEx[0]).not.toHaveProperty('mode')
+    expect(odd.customEx[0]).not.toHaveProperty('bodyweight')
+  })
+})
+
 // There was no test file for plan sharing at all, which is how a whole prescription field
 // went missing without anyone noticing.
 const stateWith = ex => ({

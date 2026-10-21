@@ -4,7 +4,7 @@ import { smOf, exOr, isCustomEx } from '../lib/exercises.js'
 import { fmtDate, fmtNum, exerciseNameText, uid, exCount } from '../lib/format.js'
 import { cleanupSg, modeOf } from '../lib/history.js'
 import { t, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
-import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
+import { nav, closeThenNav, onSheetEntry, whenSheetGone } from '../lib/nav.js'
 import { hasProgress } from '../lib/use-exercise-progress.js'
 import { visit } from '../lib/search/session.js'
 import { isWorkoutPath } from '../lib/tab-route.js'
@@ -93,25 +93,6 @@ function loadSummary(st, ex) {
         : base > 0 ? t('Bar {0}', fmtNum(base) + ' ' + st.unit) : t('No bar')
 }
 
-// The ⋯ menu sits on the drawer's history entry with one of its own. An action that leaves the
-// drawer as well waits for the menu's entry to be walked off first, so the drawer's own close can
-// hand its entry on (closeThenNav) and no entry is left behind.
-const WALK_OFF_MS = 400
-function afterMenu(closeMenu, then) {
-  if (!onSheetEntry()) { closeMenu(); then(); return }
-  let done = false
-  const go = () => {
-    if (done) return
-    done = true
-    clearTimeout(timer)
-    globalThis.removeEventListener('popstate', go)
-    then()
-  }
-  const timer = setTimeout(go, WALK_OFF_MS)
-  globalThis.addEventListener('popstate', go)
-  closeMenu()
-}
-
 const inWorkout = () => isWorkoutPath(String(globalThis.location?.hash || '').slice(1))
 
 // Edit opens the Create exercise page (T6.4) in place of the drawer; inside a running workout it
@@ -121,7 +102,11 @@ function editCustomEx(ex, closeDrawer) {
   closeThenNav(closeDrawer, '/train/exercises/new?edit=' + encodeURIComponent(ex.id))
 }
 
+// The ⋯ menu sits on the drawer's history entry with one of its own. An action that leaves the
+// drawer as well waits for the menu's entry to be walked off first (whenSheetGone), so the
+// drawer's own close can hand its entry on (closeThenNav) and no entry is left behind.
 function exerciseMenuSheet(ex, closeDrawer) {
+  const afterMenu = (closeMenu, then) => { closeMenu(); whenSheetGone(then) }
   ui().openSheet(closeMenu => (
     <BottomSheet title={<span className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</span>}>
       <MenuList label={t('Exercise options')} items={[
@@ -183,7 +168,7 @@ function ExerciseDrawer({ ex, close }) {
         {custom && <IconButton tone="tonal" icon="more" label={t('Exercise options')} onClick={() => exerciseMenuSheet(ex, close)} />}
       </span>
     </div>
-    <Tabs ariaLabel={t('Exercise views')} value={tab} onChange={onTab} controls={panelId}
+    <Tabs manual ariaLabel={t('Exercise views')} value={tab} onChange={onTab} controls={panelId}
       options={[{ value: 'how', label: t('How to') }, { value: 'progress', label: t('Progress') }, { value: 'history', label: t('History') }]} />
   </>
 

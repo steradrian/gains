@@ -59,4 +59,23 @@ describe('Tabs', () => {
     key(tabs()[0], 'ArrowLeft')
     expect(onChange).toHaveBeenLastCalledWith('B')
   })
+
+  // The exercise drawer's Progress leaves the drawer: walking past it with the arrows must not
+  // (docs/audits/gains-train-review.md #19).
+  it('manual: the keys move the focus only, from the focused tab; a click chooses', () => {
+    const onChange = vi.fn()
+    view.render(<Tabs manual options={['A', 'B', 'C']} value="A" onChange={onChange} />)
+    key(tabs()[0], 'ArrowRight')
+    expect(document.activeElement).toBe(tabs()[1])
+    key(tabs()[1], 'ArrowRight')
+    expect(document.activeElement).toBe(tabs()[2])
+    key(tabs()[2], 'Home')
+    expect(document.activeElement).toBe(tabs()[0])
+    key(tabs()[0], 'End')
+    expect(document.activeElement).toBe(tabs()[2])
+    expect(onChange).not.toHaveBeenCalled()
+    expect(selected()).toEqual(['A'])
+    click(tabs()[2])
+    expect(onChange).toHaveBeenCalledWith('C')
+  })
 })

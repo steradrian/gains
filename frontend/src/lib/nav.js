@@ -25,28 +25,37 @@ export function closeThenNav(close, to) {
   nav(to, replace ? { replace: true } : undefined)
 }
 
-// A sheet that swaps the page under it for a sibling (Progress › Body's Add photo from Weight):
-// the page must not stay in history, or back from the sibling lands on the page it replaced.
-// The sheet's entry is walked off first (Modals.jsx does it once the sheet closes), then the page
-// itself is replaced. Without a live sheet entry to walk off, the page is replaced at once.
+// Runs `fn` once the sheet closing in this same handler has had its history entry walked off
+// (Modals.jsx does it after the sheet closes, while the address is still the one it opened on).
+// Anything that writes the address or removes the page's subject goes through it: written in the
+// same commit as the close, it made Modals skip the walk-off and left the entry behind, and a
+// replace even overwrote the sheet's entry with the new address. With no live sheet entry to walk
+// off, `fn` runs at once; a walk-off that never comes is waited for WALK_OFF_MS at most.
 const WALK_OFF_MS = 400
-export function closeThenReplace(close, to) {
-  if (!onSheetEntry() || liveSheetEntries < 1) {
-    close()
-    nav(to, { replace: true })
-    return
-  }
+export function whenSheetGone(fn) {
+  if (!onSheetEntry() || liveSheetEntries < 1) { fn(); return }
   let done = false
   const go = () => {
     if (done) return
     done = true
     clearTimeout(timer)
     globalThis.removeEventListener('popstate', go)
-    nav(to, { replace: true })
+    fn()
   }
   const timer = setTimeout(go, WALK_OFF_MS)
   globalThis.addEventListener('popstate', go)
+}
+
+// A sheet that swaps the page under it (Progress › Body's Add photo from Weight, a routine's
+// Delete from its editor): the page must not stay in history, or back lands on the page it
+// replaced. The sheet's entry is walked off first, then the page itself is replaced, then `then`
+// runs: an action that removes the page's subject runs there, after the page has left it.
+export function closeThenReplace(close, to, then) {
   close()
+  whenSheetGone(() => {
+    nav(to, { replace: true })
+    then?.()
+  })
 }
 
 // Into the workout screen: from the routine chooser (already #/train/workout) or from a sheet's

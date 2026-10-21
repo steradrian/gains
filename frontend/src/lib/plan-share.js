@@ -8,7 +8,7 @@
 //  2. A clean, printable page (Save as PDF) where a single exercise never splits across
 //     a page break — each exercise, and each routine that fits, stays in one place.
 
-import { EXIDX, canonicalExId, isBodyweightEq } from './exercises.js'
+import { EXIDX, canonicalExId, isBodyweightEq, isCardio } from './exercises.js'
 import { cleanUrl } from './media-refs.js'
 import { modeOf, exLine, MAX_PLANNED_WARMUPS } from './history.js'
 import { deriveSessionName } from './session-merge.js'
@@ -72,6 +72,8 @@ function cleanEx(e) {
   const o = { id: e.id, sets: e.sets }
   const mode = modeOf(e)
   if (mode === 'cardio') {
+    // Off the Cardio body part (a custom exercise logged as cardio) only the mode says so.
+    if (!isCardio(e.id)) o.mode = 'cardio'
     if (e.min != null) o.min = e.min
     if (e.speed != null) o.speed = e.speed
   } else if (mode === 'time') {
@@ -163,7 +165,7 @@ function cleanIntensifier(x) {
 const CUSTOM_MUSCLES = new Set([...MUSCLES, 'cardiovascular system'])
 const muscleList = v => inMuscleOrder([...new Set((Array.isArray(v) ? v : []).filter(m => CUSTOM_MUSCLES.has(m)))])
 
-/** A custom exercise with its own metadata — equipment, muscles, description — in the shape
+/** A custom exercise with its own metadata — equipment, muscles, description, how it is logged — in the shape
  *  CustomExForm writes, minus the recipient-side `custom`/`sm` fields mergePlan adds. The bundle
  *  used to carry only {id, n, bp}, so the exercise arrived with an empty equipment tag, no muscle
  *  credit, and (stored without `custom: true`) no way to edit or delete it (QA C7). The same gate
@@ -187,6 +189,10 @@ function cleanCustom(c) {
   if (prim.length) o.primaries = prim
   if (sm.length) o.secondaries = sm
   if (prim.length || sm.length) o.muscleGroups = [...prim, ...sm]
+  // How it is logged (T6.4), in the form's own shape (lib/custom-exercise.js): without it a
+  // cardio exercise on Legs arrives as a rep one, and Reps only as Weight × reps.
+  if (c.mode === 'reps' || c.mode === 'time' || c.mode === 'cardio') o.mode = c.mode
+  if (o.mode === 'reps' && c.bodyweight === true) o.bodyweight = true
   return o
 }
 

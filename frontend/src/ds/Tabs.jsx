@@ -6,7 +6,10 @@ import { useLayoutEffect, useRef, useState } from 'react'
 // (`label`, or `ariaLabel` as slices 4–6 spell it). Controlled with `value` and `onChange`, else it
 // keeps its own choice. A tablist: one tab stop, the arrow keys (mirrored right to left), Home and
 // End move between the tabs and choose as they go. `controls` is the id of the panel they show.
-export default function Tabs({ options, value, onChange, label, ariaLabel, controls }) {
+// `manual`: the keys only move the focus, and Enter, Space or a click choose. For tabs whose
+// choice does more than switch the panel (the exercise drawer's Progress leaves the drawer), so
+// walking past one with the arrows does not set it off.
+export default function Tabs({ options, value, onChange, label, ariaLabel, controls, manual = false }) {
   const opts = options.map(o => (typeof o === 'string' ? { v: o, l: o } : { v: o.value, l: o.label }))
   const [own, setOwn] = useState(value ?? opts[0].v)
   const val = onChange && value != null ? value : own
@@ -26,13 +29,15 @@ export default function Tabs({ options, value, onChange, label, ariaLabel, contr
 
   const choose = v => { setOwn(v); onChange?.(v) }
   const onKeyDown = e => {
-    const i = opts.findIndex(o => o.v === val)
+    // Manual tabs step from the focused tab, which need not be the chosen one.
+    const focused = opts.findIndex(o => refs.current[o.v] === e.target)
+    const i = manual && focused >= 0 ? focused : opts.findIndex(o => o.v === val)
     const rtl = e.currentTarget.closest('[dir]')?.getAttribute('dir') === 'rtl'
     const step = { ArrowRight: rtl ? -1 : 1, ArrowLeft: rtl ? 1 : -1 }[e.key]
     const to = step ? (i + step + opts.length) % opts.length : e.key === 'Home' ? 0 : e.key === 'End' ? opts.length - 1 : -1
     if (to < 0) return
     e.preventDefault()
-    choose(opts[to].v)
+    if (!manual) choose(opts[to].v)
     refs.current[opts[to].v]?.focus()
   }
 

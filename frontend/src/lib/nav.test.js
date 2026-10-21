@@ -4,7 +4,7 @@
 // seemed to do nothing.
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { closeThenNav, closeThenReplace, nav, navToWorkout, noteSheetEntries, setNav } from './nav.js'
+import { closeThenNav, closeThenReplace, nav, navToWorkout, noteSheetEntries, setNav, whenSheetGone } from './nav.js'
 
 let calls
 beforeEach(() => {
@@ -55,6 +55,18 @@ describe('nav', () => {
       noteSheetEntries(0)
     })
 
+    it('runs `then` after the page is replaced: the subject goes once the page has left it', () => {
+      history.pushState({ gainsSheet: true }, '')
+      noteSheetEntries(1)
+      const order = []
+      closeThenReplace(() => order.push('close'), '/train/routines', () => order.push('delete'))
+      setNav(to => order.push('nav ' + to))
+      expect(order).toEqual(['close'])
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      expect(order).toEqual(['close', 'nav /train/routines', 'delete'])
+      noteSheetEntries(0)
+    })
+
     it('replaces anyway when the walk-off never comes', () => {
       vi.useFakeTimers()
       history.pushState({ gainsSheet: true }, '')
@@ -64,6 +76,46 @@ describe('nav', () => {
       expect(calls).toEqual([['/progress/body/photos', { replace: true }]])
       window.dispatchEvent(new PopStateEvent('popstate'))
       expect(calls).toHaveLength(1)
+      noteSheetEntries(0)
+      vi.useRealTimers()
+    })
+  })
+
+  describe('whenSheetGone', () => {
+    it('runs at once with no live sheet entry to walk off', () => {
+      const fn = vi.fn()
+      whenSheetGone(fn)
+      expect(fn).toHaveBeenCalledOnce()
+      // A sheet's entry nobody holds as live (a reload with it on top) is not waited for either.
+      history.pushState({ gainsSheet: true }, '')
+      whenSheetGone(fn)
+      expect(fn).toHaveBeenCalledTimes(2)
+    })
+
+    it('waits for the closing sheet\'s walk-off, then runs once', () => {
+      history.pushState({ gainsSheet: true }, '')
+      noteSheetEntries(1)
+      const fn = vi.fn()
+      whenSheetGone(fn)
+      expect(fn).not.toHaveBeenCalled()
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      expect(fn).toHaveBeenCalledOnce()
+      noteSheetEntries(0)
+    })
+
+    it('runs after WALK_OFF_MS when the walk-off never comes', () => {
+      vi.useFakeTimers()
+      history.pushState({ gainsSheet: true }, '')
+      noteSheetEntries(1)
+      const fn = vi.fn()
+      whenSheetGone(fn)
+      vi.advanceTimersByTime(399)
+      expect(fn).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(fn).toHaveBeenCalledOnce()
+      window.dispatchEvent(new PopStateEvent('popstate'))
+      expect(fn).toHaveBeenCalledOnce()
       noteSheetEntries(0)
       vi.useRealTimers()
     })

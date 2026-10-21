@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { fmtRest } from '../../lib/duration.js'
 import { activeProfile, exAvailable } from '../../lib/equipment.js'
@@ -187,34 +187,41 @@ export function editorOf(S, r) {
  *   drop(from, slot)    a dragged unit, supersets whole
  *   toggleSuperset(i, on), editSuperset(first), rename(name), menu(), start()
  *
- * Every write lands at once (no Save), and the first one ends T5.6: the `new` param goes, by
- * replace, so Back or a reload does not open the new state again.
+ * Every write lands at once (no Save). T5.6 is read from `new` once, as the editor opens, and the
+ * param is dropped from the address right then, by replace, so Back or a reload does not open the
+ * new state again; the first edit ends it. (Dropped on the first edit instead, the replace could
+ * land while a sheet's history entry was on top and leave the `?new=1` entry behind under it.)
  */
 export function useRoutineEditor() {
   const nav = useNavigate()
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
-  const fresh = params.get('new') === '1'
+  const [fresh, setFresh] = useState(() => params.get('new') === '1')
   const S = useStore(s => s.S)
   const sync = useStore(s => s.sync)
   const update = useStore(s => s.update)
   const toast = useUI(s => s.toast)
   const r = S.routines.find(x => x.id === id)
-  useEffect(() => { if (!r) nav('/train/routines') }, [!!r])
-  // Editing here has no explicit "save": every change persists at once. A single auto-backup on
-  // the way out (not per keystroke) covers the whole editing session, deletion included: this
-  // still unmounts after the menu's Delete leaves for the list.
-  useEffect(() => () => useStore.getState().autoBackupNow(), [])
-
-  const settle = () => {
-    if (!fresh) return
+  // A routine that is not there (deleted on another device, an old link): its page is replaced
+  // by the list, never stacked on it.
+  useEffect(() => { if (!r) nav('/train/routines', { replace: true }) }, [!!r])
+  // No sheet is open as the editor mounts, so this replace takes the editor's own entry.
+  useEffect(() => {
+    if (params.get('new') !== '1') return
     const next = new URLSearchParams(params)
     next.delete('new')
     setParams(next, { replace: true })
-  }
+  }, [])
+  // Editing here has no explicit "save": every change persists at once. A single auto-backup on
+  // the way out (not per keystroke) covers the whole editing session, deletion included: the
+  // menu's Delete removes the routine as the editor leaves, before it unmounts.
+  useEffect(() => () => useStore.getState().autoBackupNow(), [])
+
+  // The live routine's exercises, for an intent that runs after a sheet: a sync can land meanwhile.
+  const liveEx = () => useStore.getState().S.routines.find(x => x.id === id)?.ex || []
   const edit = fn => {
     update(s => { const ex = s.routines.find(x => x.id === id)?.ex; if (ex) fn(ex) })
-    settle()
+    setFresh(false)
   }
   const reorder = useRoutineReorder(r, r?.ex || [], (sourceIndex, targetSlot) => {
     edit(exercises => { reorderRoutineUnit(exercises, sourceIndex, targetSlot) })
@@ -235,7 +242,7 @@ export function useRoutineEditor() {
     routine: name,
     multi: { label: n => tn('Add {0} exercise to {1}', 'Add {0} exercises to {1}', n, name), onAdd: add },
   })
-  const remove = i => { removeRoutineExercise(id, i); settle() }
+  const remove = i => { if (removeRoutineExercise(id, i)) setFresh(false) }
   // Replace (#110): the drawer chooses what goes into slot `i`, and the slot keeps its sets, reps,
   // weight and the rest (lib/routines.js replaceSlotExercise). A row of the drawer replaces at
   // once; a pick from Search all that was not "+" opens the new exercise's settings at those
@@ -262,30 +269,41 @@ export function useRoutineEditor() {
     }, { routine: name })
   }
   const toggleSuperset = (i, on) => edit(ex => { linkToAbove(ex, i, on) })
+  // T5.5 is opened on slot `i`, and everything it does (Done, Remove, Replace, the superset row)
+  // acts on that slot only while it still holds the exercise the sheet was opened on, as Replace
+  // does: a sync that reorders the routine meanwhile would otherwise get A's settings written
+  // under B, or B removed.
   const configure = i => {
     const e = r.ex[i]
     if (!e) return
+    const openedOn = e.id
+    const holds = () => liveEx()[i]?.id === openedOn
     const linkedPrev = i > 0 && !!e.sg && r.ex[i - 1].sg === e.sg
     exConfigSheet(exOr(e.id), e,
       cfg => edit(x => {
-        if (!x[i]) return
+        if (x[i]?.id !== openedOn) return
         x[i] = { id: x[i].id, sg: x[i].sg, ...(x[i].sg ? { sgName: x[i].sgName, sgRest: x[i].sgRest } : {}), ...cfg }
         cleanupSg(x)
       }),
-      () => remove(i), r, null, () => replace(i), undefined,
-      { removeUndo: true, superset: linkedPrev, onSupersetChange: i > 0 ? on => toggleSuperset(i, on) : undefined })
+      () => { if (holds()) remove(i) }, r, null, () => { if (holds()) replace(i) }, undefined,
+      { removeUndo: true, superset: linkedPrev, onSupersetChange: i > 0 ? on => { if (holds()) toggleSuperset(i, on) } : undefined })
   }
   // The arrows move one exercise (#377): inside its superset, out of it at the edge, and past a
   // whole neighbouring unit otherwise (lib/history.js moveRoutineEntry). Drag moves supersets whole.
+  // Returns where the exercise is now (unchanged when it only left its superset), or null when it
+  // could not move, so the editor can keep the keyboard on it.
   const move = (i, dir) => {
     // Guard before update so a stale/boundary activation cannot trigger persistence or cleanup.
-    if (!moveRoutineEntry(r.ex, i, dir)) return
+    const preview = moveRoutineEntry(r.ex, i, dir)
+    if (!preview) return null
     edit(ex => {
       const reordered = moveRoutineEntry(ex, i, dir)
       if (!reordered) return
       ex.splice(0, ex.length, ...reordered)
       cleanupSg(ex)
     })
+    const at = preview.indexOf(r.ex[i])
+    return at < 0 ? i : at
   }
   const editSuperset = first => {
     const sg = r.ex[first]?.sg
@@ -295,7 +313,7 @@ export function useRoutineEditor() {
   }
   const rename = value => {
     update(s => { const routine = s.routines.find(x => x.id === id); if (routine) routine.name = String(value).trim() || t('Routine') })
-    settle()
+    setFresh(false)
   }
 
   return {
