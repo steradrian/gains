@@ -22,7 +22,9 @@ const TYPES = ['auto', 'half', 'full']
 // workout's date, which opens that day). `chipIcon` is the glyph in the chip: the calendar for the
 // day a drawer writes to, another for what it belongs to (the routine in the exercise picker and
 // settings).
-export default function BottomSheet({ title, chip, onChip, chipLabel, chipIcon = 'calendar', type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
+// `onBack` puts a ‹ before the title, for a drawer that is a stack of steps (Log food): it goes back
+// one step, and `backLabel` says where ("Back to results").
+export default function BottomSheet({ title, chip, onChip, chipLabel, chipIcon = 'calendar', type = 'auto', onClose, closeHref, onBack, backLabel, scrim = true, head, footer, children }) {
   oneOf('BottomSheet', 'type', type, TYPES)
   const frame = useContext(SheetFrameContext)
   const accent = useStore(s => dsAccentFor(s.S))
@@ -36,6 +38,7 @@ export default function BottomSheet({ title, chip, onChip, chipLabel, chipIcon =
       {...(frame ? null : { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId })}>
       {grab && <span className="g-bs-grab" aria-hidden="true" />}
       <div className="g-bs-head">
+        {onBack && <button type="button" onClick={onBack} className="g-bs-back" aria-label={backLabel || t('Back')}><Icon name="chevronLeft" className="g-icon" /></button>}
         <h2 id={titleId}>{title}</h2>
         {chip && (onChip
           ? <button type="button" className="g-bs-chip" onClick={onChip} aria-label={chipLabel || t('Logging to {0}', chip)}><Icon name={chipIcon} className="g-icon" />{chip}</button>
