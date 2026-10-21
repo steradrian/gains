@@ -444,7 +444,7 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
 }
 
 /* === GlassTabBar: Today · Train · + · Eat · Me on chrome glass (board PartTabBar) === */
-.g-gtabbar { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; height: 70px; padding: 0 7px; border-radius: 35px; background: var(--chrome-glass); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); box-shadow: inset 0 0 0 1px rgba(17,17,17,.06), 0 14px 34px -14px rgba(0,0,0,.45); font-family: var(--font-sans); }
+.g-gtabbar { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; height: 70px; padding: 0 7px; border-radius: 35px; background: var(--chrome-glass); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); box-shadow: var(--g-tabbar-shadow); font-family: var(--font-sans); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .g-gtabbar { background: var(--surface); } }
 /* The lit pill: one slot of the content box, moved by transform only; it glides (README motion)
    once the bar has painted twice, and fades where it is when no tab is lit. */
