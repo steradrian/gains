@@ -203,7 +203,7 @@ function Empty({ day }) {
     { label: t('Log weight'), onClick: day.weighInSheet },
   ].filter(Boolean)
   return (
-    <StageEmpty card={false} icon="calendar" title={t('Nothing logged')} body={t('Anything you add from here goes to {0}, not today.', day.title)}
+    <StageEmpty card={false} illustration="calendar" title={t('Nothing logged')} body={t('Anything you add from here goes to {0}, not today.', day.title)}
       action={ways[0].label} onClick={ways[0].onClick} actions={ways.slice(1)} />
   )
 }

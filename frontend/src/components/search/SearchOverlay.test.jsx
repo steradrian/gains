@@ -448,7 +448,7 @@ describe('the search overlay', () => {
     expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
     await open()
     expect(ctx()).toBeUndefined()
-    expect([...$('.g-shdr-pin').children].filter(c => !c.matches('.g-shdr-bg, h1')).map(c => c.className.split(' ')[0])).toEqual(['g-sbtn', 'g-spill', 'g-sbtn'])
+    expect([...$('.g-shdr-pin').children].filter(c => !c.matches('h1')).map(c => c.className.split(' ')[0])).toEqual(['g-sbtn', 'g-spill', 'g-sbtn'])
     await act(async () => closeX().click())
     expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
   })

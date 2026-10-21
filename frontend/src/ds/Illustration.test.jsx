@@ -18,8 +18,8 @@ const fading = () => art().classList.contains('g-ill-fade')
 const still = () => !drawing() && !fading() && art().querySelectorAll('.dr, .fd').length === 0
 
 describe('Illustration', () => {
-  it('has the eight onboarding scenes, each hidden from a screen reader', () => {
-    expect(SCENE_NAMES).toEqual(['invite', 'passkey', 'goal', 'birthday', 'height', 'weight', 'week', 'plan'])
+  it('has the eight onboarding scenes and the Coach page\'s, each hidden from a screen reader', () => {
+    expect(SCENE_NAMES).toEqual(['invite', 'passkey', 'goal', 'birthday', 'height', 'weight', 'week', 'plan', 'coach'])
     for (const name of SCENE_NAMES) {
       view.render(<Illustration name={name} />)
       expect(art().querySelector('svg').getAttribute('aria-hidden')).toBe('true')

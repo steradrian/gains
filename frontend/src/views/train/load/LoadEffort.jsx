@@ -43,7 +43,7 @@ export default function LoadEffort({ S }) {
       <h2 className="g-load-h">{t('Effort')} <span>· {t('how close to failure')}{estimated ? ' · ' + t('estimated') : ''}</span></h2>
       <StageSegmented label={t('Period')} value={win} onChange={setWin}
         options={[{ value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
-      {sum.rated === 0 && sum.est === 0 ? <StageEmpty icon="gauge" title={t('No rated sets in this period.')} card={false} /> : (
+      {sum.rated === 0 && sum.est === 0 ? <StageEmpty illustration="chart" title={t('No rated sets in this period.')} card={false} /> : (
         <>
           <div className="g-load-effort-stats">
             <p><b>{sum.avg == null ? '–' : fmtNum(toScale(kind, sum.avg)) + ' ' + hd}</b><span>{t('average effort')}</span></p>

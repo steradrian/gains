@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { coachAvailable } from '../../../lib/coach.js'
+import { COACH_COMING_SOON } from '../../../lib/coach-availability.js'
 import { DEMO } from '../../../lib/demo.js'
 import { MOBILE } from '../../../lib/mobile.js'
 import { starterPlanOptions } from '../../../lib/starter.js'
@@ -22,7 +23,7 @@ export function usePlans() {
   })
   return {
     plans,
-    coach: coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }),
+    coach: !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }),
     openPlan: id => nav('/train/plans/' + id),
     askCoach: () => nav('/train/coach')
   }

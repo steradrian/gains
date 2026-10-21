@@ -2209,6 +2209,8 @@ export default {
   'Play even on silent': 'Играть и в беззвучном режиме',
   'Vibrate on silent too': 'Вибрировать и в беззвучном режиме',
   'Flash the screen': 'Мигать экраном',
+  'Haptics': 'Тактильный отклик',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Лёгкий отклик, когда нажатие что-то сохраняет, например подход или взвешивание.',
   'Version': 'Версия',
   'Source code': 'Исходный код',
   '{0} rest': 'отдых {0}',
@@ -3651,4 +3653,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Ваш тренер ещё разминается',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Он изучит ваши тренировки и отметки самочувствия и предложит изменения в неделе. Ничего не изменится без вашего согласия.',
+  'A peek at what it will do': 'Что он будет делать',
+  'Preview': 'Предпросмотр',
+  'Coming soon': 'Скоро',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Три из четырёх тренировок на этой неделе сделаны. Ваш присед готов к 102,5 кг × 5.',
+  'Move Legs to Thursday': 'Перенести Ноги на четверг',
+  'You’ve missed Mondays three weeks running': 'Вы пропускаете понедельники уже три недели подряд',
 }

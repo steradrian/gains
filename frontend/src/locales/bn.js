@@ -2248,6 +2248,8 @@ export default {
   'Play even on silent': 'সাইলেন্টেও বাজান',
   'Vibrate on silent too': 'সাইলেন্টেও ভাইব্রেট করুন',
   'Flash the screen': 'স্ক্রিন ঝলকান',
+  'Haptics': 'হ্যাপটিক',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'কোনো ট্যাপ সেট বা ওজন মাপার মতো কিছু সংরক্ষণ করলে হালকা কম্পন।',
   'Version': 'সংস্করণ',
   'Source code': 'সোর্স কোড',
   '{0} rest': '{0} বিশ্রাম',
@@ -3726,4 +3728,13 @@ export default {
   'Search everything': 'Search everything',
   'See all {0}': 'See all {0}',
   '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'আপনার কোচ এখনও ওয়ার্ম-আপ করছে',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'এটি আপনার ট্রেনিং ও চেক-ইন পড়ে সপ্তাহে পরিবর্তনের পরামর্শ দেবে। আপনি অনুমোদন না দিলে কিছুই বদলাবে না।',
+  'A peek at what it will do': 'এটি কী করবে তার এক ঝলক',
+  'Preview': 'প্রিভিউ',
+  'Coming soon': 'শীঘ্রই আসছে',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'এ সপ্তাহে চারটির মধ্যে তিনটি সেশন হয়েছে। আপনার স্কোয়াট 102.5 kg × 5-এর জন্য প্রস্তুত।',
+  'Move Legs to Thursday': 'লেগস বৃহস্পতিবারে সরান',
+  'You’ve missed Mondays three weeks running': 'টানা তিন সপ্তাহ আপনি সোমবার মিস করেছেন',
 }

@@ -7,7 +7,7 @@ import { popToRoot } from '../lib/use-tab-nav.js'
 import { useHubStatusRefresh, useHubTrouble } from '../lib/nutrition/sync.js'
 import { groupTitle, placeholderFor, searchTab } from '../lib/search/scopes.js'
 import {
-  SEARCH_LIST_ID, closeSearch, openSearch, overlayKey, registerPill, setGroup, setQuery, takeFocusOnMount, useSearch,
+  SEARCH_LIST_ID, closeSearch, openSearch, overlayKey, registerPill, releasePill, setGroup, setQuery, takeFocusOnMount, useSearch,
 } from '../lib/search/session.js'
 import { useStore } from '../store/useStore.js'
 import { useConnectionTrouble } from './SyncBanner.jsx'
@@ -41,9 +41,10 @@ export function useRootHeader(tab) {
   const input = useRef(null)
 
   useEffect(() => {
-    registerPill(input.current)
-    if (takeFocusOnMount()) input.current?.focus()
-    return () => registerPill(null)
+    const pill = input.current
+    registerPill(pill)
+    if (takeFocusOnMount()) pill?.focus()
+    return () => releasePill(pill)
   }, [])
 
   // Closing hands the focus to the bell, which the × turns back into in the same place: the field

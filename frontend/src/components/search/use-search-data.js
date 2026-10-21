@@ -5,6 +5,7 @@ import { exerciseNameText, todayISO, weekStartOf } from '../../lib/format.js'
 import { baseLang, EXERCISE_NAME_LANGS, useLang } from '../../lib/i18n.js'
 import { effectiveLang } from '../../lib/default-lang.js'
 import { coachAvailable } from '../../lib/coach.js'
+import { COACH_COMING_SOON } from '../../lib/coach-availability.js'
 import { DEMO } from '../../lib/demo.js'
 import { MOBILE } from '../../lib/mobile.js'
 import { IS_ANDROID, webauthnOK } from '../../lib/api.js'
@@ -72,7 +73,7 @@ export function useSearchData(open) {
       foodsReady: foods.status === 'ready', mealsReady: meals.status === 'ready' && recipes.status === 'ready',
       days: nutrition ? diaryIndexDays() : [], daysReady: index.complete, index,
       mealNames: mealLabels(ntSettings),
-      pagesCtx: { nutrition, checkIn: S.checkIn !== false, coach: coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }), fastingOn },
+      pagesCtx: { nutrition, checkIn: S.checkIn !== false, coach: !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }), fastingOn },
       settingsCtx,
     }
   }, [S, user, config, coachMode, sync, nutrition, ntSettings, foods, meals, recipes, index, exercises, nameOf, langV])

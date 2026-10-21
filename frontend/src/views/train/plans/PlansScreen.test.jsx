@@ -4,6 +4,10 @@
 // chosen file to the existing import, and Ask Coach shows only when Coach is available.
 import { act } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Off unless a test turns the "coming soon" switch on.
+const soon = vi.hoisted(() => ({ on: false }))
+vi.mock('../../../lib/coach-availability.js', () => ({ get COACH_COMING_SOON() { return soon.on } }))
 import { click, useView } from '../../../ds/render.test-util.js'
 import { importPlanFile } from '../../../sheets.jsx'
 import PlansScreen from './PlansScreen.jsx'
@@ -18,6 +22,7 @@ const view = useView()
 beforeEach(() => {
   vi.clearAllMocks()
   coach.on = false
+  soon.on = false
 })
 
 const rows = () => [...view.host.querySelectorAll('.g-glist-row')]
@@ -69,5 +74,12 @@ describe('Ready-made plans', () => {
     view.render(<PlansScreen />)
     click(row('Ask Coach to design one'))
     expect(nav).toHaveBeenCalledWith('/train/coach')
+  })
+
+  it('hides Ask Coach while the Coach is coming soon, even with Coach on', () => {
+    soon.on = true
+    coach.on = true
+    view.render(<PlansScreen />)
+    expect(row('Ask Coach to design one')).toBeUndefined()
   })
 })

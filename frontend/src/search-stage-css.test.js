@@ -48,9 +48,10 @@ describe('the pinned header\'s ancestors', () => {
 })
 
 describe('the header and the panel on the stage', () => {
-  it('paint the stage\'s art anchored where the page\'s stage starts, not a flat fill that ends in an edge', () => {
-    expect(ruleFor(ds, '.g-shdr-bg')).toMatch(/overflow:\s*hidden/)
-    expect(ruleFor(ds, '.g-shdr-bg > .g-stage-art')).toMatch(/top:\s*var\(--conn/)
+  it('the header paints no ground (no band, no shadow); the panel paints the art anchored to meet the shared stage', () => {
+    const hdr = ruleFor(ds, '.g-shdr-pin')
+    expect(hdr).not.toMatch(/background|box-shadow|backdrop-filter/)
+    expect(ruleFor(ds, '.g-shdr')).not.toMatch(/background|box-shadow|backdrop-filter/)
     expect(ruleFor(search, '.search-ov-bg>.g-stage-art')).toMatch(/top:calc\(-1 \* \(var\(--sat\) \+ var\(--shdr-h\)\)\)/)
     expect(ruleFor(search, '.search-ov')).not.toMatch(/linear-gradient/)
   })
