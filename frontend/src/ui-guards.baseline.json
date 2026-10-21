@@ -17,9 +17,15 @@
     "views/CoachSetup.jsx": 9,
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
-    "views/Settings.jsx": 26,
     "views/StructuralBalance.jsx": 8,
-    "views/Workout.jsx": 18
+    "views/Workout.jsx": 18,
+    "views/settings/pages/AboutPage.jsx": 10,
+    "views/settings/pages/AccountPage.jsx": 4,
+    "views/settings/pages/AppearancePage.jsx": 6,
+    "views/settings/pages/BackupPage.jsx": 1,
+    "views/settings/pages/ImportPage.jsx": 1,
+    "views/settings/pages/RemindersPage.jsx": 1,
+    "views/settings/pages/WorkoutPage.jsx": 3
   },
   "G2css": {
     "admin.css": 1,
@@ -35,7 +41,7 @@
     "lib/qr.js": 2,
     "lib/workout-card.js": 2,
     "store/useStore.js": 1,
-    "views/Settings.jsx": 2
+    "views/settings/pages/AppearancePage.jsx": 2
   },
   "G3": {
     "components/DurationWheel.jsx": 1,
@@ -51,8 +57,9 @@
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
     "views/FocusView.jsx": 4,
-    "views/Settings.jsx": 2,
+    "views/Settings.jsx": 1,
     "views/Workout.jsx": 3,
+    "views/settings/pages/AppearancePage.jsx": 1,
     "views/train/load/LoadBalance.jsx": 1,
     "views/train/load/LoadEffort.jsx": 2
   },

@@ -8,6 +8,7 @@ import DevKitPlan from './DevKitPlan.jsx'
 import DevKitPushed from './DevKitPushed.jsx'
 import DevKitRoutines from './DevKitRoutines.jsx'
 import DevKitSearch from './DevKitSearch.jsx'
+import DevKitSettings from './DevKitSettings.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
@@ -289,6 +290,7 @@ export default function DevKit() {
         <DevKitPlan />
         <DevKitRoutines />
         <DevKitShared />
+        <DevKitSettings />
         {/* Shared: week */}
         <DevKitWeek />
         {/* Shared: day */}
