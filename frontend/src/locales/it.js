@@ -423,6 +423,7 @@ export default {
   'reached!': 'raggiunto!',
   '{0} to gain': '{0} da prendere',
   '{0} to lose': '{0} da perdere',
+  'Best:': 'Record:',
   'Add to my plan': 'Aggiungi al mio piano',
   'How to': 'Esecuzione',
   'instructions in English': 'istruzioni in inglese',

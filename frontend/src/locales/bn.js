@@ -454,6 +454,7 @@ export default {
   'reached!': 'পৌঁছে গেছেন!',
   '{0} to gain': '{0} বাড়াতে হবে',
   '{0} to lose': '{0} কমাতে হবে',
+  'Best:': 'সেরা:',
   'Add to my plan': 'আমার প্ল্যানে যোগ করুন',
   'How to': 'কীভাবে করবেন',
   'instructions in English': 'ইংরেজিতে নির্দেশনা',

@@ -423,6 +423,7 @@ export default {
   'reached!': 'पूरा हुआ!',
   '{0} to gain': '{0} बढ़ाना बाकी',
   '{0} to lose': '{0} घटाना बाकी',
+  'Best:': 'सर्वश्रेष्ठ:',
   'Add to my plan': 'मेरी योजना में जोड़ें',
   'How to': 'कैसे करें',
   'instructions in English': 'निर्देश अंग्रेज़ी में',

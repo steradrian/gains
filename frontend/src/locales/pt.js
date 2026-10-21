@@ -423,6 +423,7 @@ export default {
   'reached!': 'alcançado!',
   '{0} to gain': '{0} por ganhar',
   '{0} to lose': '{0} por perder',
+  'Best:': 'Melhor:',
   'Add to my plan': 'Adicionar ao meu plano',
   'How to': 'Como fazer',
   'instructions in English': 'instruções em inglês',

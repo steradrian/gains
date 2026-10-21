@@ -423,6 +423,7 @@ export default {
   'reached!': 'ulaşıldı!',
   '{0} to gain': 'alınacak {0}',
   '{0} to lose': 'verilecek {0}',
+  'Best:': 'Rekor:',
   'Add to my plan': 'Planıma ekle',
   'How to': 'Nasıl yapılır',
   'instructions in English': 'talimatlar İngilizce',

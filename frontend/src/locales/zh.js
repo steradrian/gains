@@ -423,6 +423,7 @@ export default {
   'reached!': '已达成！',
   '{0} to gain': '还需增重 {0}',
   '{0} to lose': '还需减重 {0}',
+  'Best:': '最佳：',
   'Add to my plan': '加入我的计划',
   'How to': '动作要领',
   'instructions in English': '说明为英文',

@@ -423,6 +423,7 @@ export default {
   'reached!': '달성!',
   '{0} to gain': '{0} 증량 남음',
   '{0} to lose': '{0} 감량 남음',
+  'Best:': '최고 기록:',
   'Add to my plan': '내 계획에 추가',
   'How to': '운동 방법',
   'instructions in English': '설명은 영어로 제공',

@@ -425,6 +425,7 @@ export default {
   '{0} to gain': 'ต้องเพิ่มอีก {0}',
   '{0} to lose': 'ต้องลดอีก {0}',
   // --- exercise detail / picker / config ---
+  'Best:': 'ดีที่สุด:',
   'Add to my plan': 'เพิ่มเข้าแผนของฉัน',
   'How to': 'วิธีทำ',
   'instructions in English': 'คำแนะนำเป็นภาษาอังกฤษ',

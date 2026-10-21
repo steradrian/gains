@@ -428,6 +428,7 @@ export default {
   '{0} to gain': 'noch {0} zunehmen',
   '{0} to lose': 'noch {0} abnehmen',
   // --- exercise detail / picker / config ---
+  'Best:': 'Bestwert:',
   'Add to my plan': 'Zu meinem Plan',
   'How to': 'Ausführung',
   'instructions in English': 'Anleitung auf Englisch',

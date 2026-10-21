@@ -425,6 +425,7 @@ export default {
   '{0} to gain': 'még {0} felszedendő',
   '{0} to lose': 'még {0} leadandó',
   // --- exercise detail / picker / config ---
+  'Best:': 'Legjobb:',
   'Add to my plan': 'Hozzáadás a tervemhez',
   'How to': 'Végrehajtás',
   'instructions in English': 'az utasítások angolul',

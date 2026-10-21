@@ -444,6 +444,7 @@ export default {
   'reached!': 'تم بلوغه!',
   '{0} to gain': 'متبقٍ {0} للزيادة',
   '{0} to lose': 'متبقٍ {0} للإنقاص',
+  'Best:': 'الأفضل:',
   'Add to my plan': 'أضِف إلى خطتي',
   'How to': 'طريقة الأداء',
   'instructions in English': 'التعليمات بالإنجليزية',

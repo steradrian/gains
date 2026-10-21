@@ -421,6 +421,7 @@ export default {
   'reached!': '已達成！',
   '{0} to gain': '還需增重 {0}',
   '{0} to lose': '還需減重 {0}',
+  'Best:': '最佳紀錄：',
   'Add to my plan': '加入我的計畫',
   'How to': '動作要領',
   'instructions in English': '說明為英文',
