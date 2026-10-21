@@ -169,7 +169,7 @@ const progressOf = active => {
 }
 
 // "Chest, shoulders, triceps": the three muscles a day's routines work most.
-const musclesLine = routines => {
+export const musclesLine = routines => {
   const load = {}
   for (const r of routines) for (const [m, v] of Object.entries(loadOfRoutine(r))) load[m] = (load[m] || 0) + v
   const top = rankOf(load).worked.slice(0, 3)

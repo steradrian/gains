@@ -220,6 +220,24 @@ describe('the screens gallery', () => {
     })
   }, 20000)
 
+  it('has the Train drawers T2.1 and T2.2, open over Train, and gives the store its own state back', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train: drawers').entries.map(e => e.id)
+    expect(ids).toEqual(['T2.1', 'T2.1e', 'T2.2'])
+    const own = useStore.getState().S
+    const drawer = async id => (await show(screenById(id))).querySelector('.g-bs')
+    const names = d => [...d.querySelectorAll('.g-tr-b > b')].map(b => b.textContent)
+    expect(names(await drawer('T2.1'))).toEqual(['Push APlanned today', 'Pull A', expect.stringMatching(/^LegsMissed /), 'Freestyle', 'Repeat a past workout'])
+    unmountAll()
+    expect(names(await drawer('T2.1e'))).toEqual(['Pick a ready-made plan', 'Create a routine', 'Import a plan file', 'Freestyle'])
+    unmountAll()
+    const options = await drawer('T2.2')
+    expect(options.querySelector('h2').textContent).toMatch(/ · Push A$/)
+    expect(options.textContent).toContain('Shoulder felt tight')
+    unmountAll()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+  }, 20000)
+
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
     for (const e of states) { expect(e.title, e.id).toBeTruthy(); expect(screenById(e.id)).toBe(e) }
