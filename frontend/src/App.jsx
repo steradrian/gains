@@ -57,6 +57,9 @@ import PlanScreen from './views/plan/PlanScreen.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
 import WorkoutRoute from './views/workout/WorkoutRoute.jsx'
+// Workout finish M2: the summary after a save (W2.0) and the check for a session left open (W1.27).
+import SummaryScreen from './views/workout/SummaryScreen.jsx'
+import StaleWorkoutCheck from './components/StaleWorkoutCheck.jsx'
 import Body from './views/Body.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
@@ -244,7 +247,11 @@ function Shell() {
   // bottom edge in its place. Its header's ⌄ goes back to where it was opened from, where the
   // live dock brings it back.
   const onWorkout = shown.pathname === '/train/workout'
-  const inWorkout = onWorkout && !!S.active
+  // Workout finish M2: the whole screen on /train/workout whether or not a session runs (Ready,
+  // W1.1, draws no tab bar; nor does the moment a finish or discard leaves it), and on the summary
+  // after a save (W2.0, /train/workout/summary/:id), which has nothing running and no dock.
+  const onSummary = shown.pathname.startsWith('/train/workout/summary/')
+  const inWorkout = onWorkout || onSummary
   // The first-run onboarding (views/onboarding): the invite landing and every step after it, a
   // full-screen flow of its own on the web. The phone build has its own first launch.
   const inFlow = !MOBILE && isFlowPath(shown.pathname)
@@ -331,6 +338,8 @@ function Shell() {
               <Route path="/progress/recovery" element={<Recovery />} />
               {/* Opened from any tab, on top of it: the workout. */}
               <Route path="/train/workout" element={<WorkoutRoute />} />
+              {/* Workout finish M2: the summary, in the finished workout's place (replace). */}
+              <Route path="/train/workout/summary/:id" element={<SummaryScreen />} />
               {/* Me: Profile */}
               <Route path="/me" element={<SettingsRoute />} />
               <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
@@ -352,6 +361,8 @@ function Shell() {
       {authed && !needsMobileOnboarding && <SearchHost />}
       <Modals />
       <Toast />
+      {/* Workout finish M2: asks about a session left open for hours (W1.27). */}
+      <StaleWorkoutCheck />
       <TimerFlash />
     </>
   )
