@@ -36,7 +36,7 @@ export const WEEK = [
 
 const HEADER = { initial: 'Ana', placeholder: 'Search', unread: 2, onSettings: NOOP, onBell: NOOP, onSearch: NOOP }
 export const both = {
-  profile: 'both', loading: false, error: null, header: HEADER, searching: false, saved: null, away: null, firstSteps: null,
+  profile: 'both', status: 'known', error: null, header: HEADER, searching: false, saved: null, away: null, firstSteps: null, nextPending: false,
   rings: RINGS, onRing: NOOP, actions: FOOD_ACTIONS, upNext: UP_NEXT,
   meals: MEALS, onMeal: NOOP, onSeeDay: NOOP, water: WATER, week: null,
 }

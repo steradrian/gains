@@ -153,6 +153,17 @@ describe('Today — Up next', () => {
     expect(card()).toBeNull()
   })
 
+  it('an unanswered welcome back comes back after a remount, until Weigh in or Not now (T1.10)', () => {
+    localStorage.removeItem('gains.awaySeen')
+    const d = new Date(); d.setDate(d.getDate() - 8)
+    setS({ workouts: [{ id: 'w', d: isoOf(d), name: 'Push', entries: [] }], bodyweight: [] }); mountToday()
+    expect(host.querySelector('.g-away')).toBeTruthy()
+    act(() => root.unmount())
+    root = createRoot(host)
+    mountToday()
+    expect(host.querySelector('.g-away')).toBeTruthy()
+  })
+
   it('no welcome back within a week of the last log', () => {
     localStorage.removeItem('gains.awaySeen')
     const d = new Date(); d.setDate(d.getDate() - 6)

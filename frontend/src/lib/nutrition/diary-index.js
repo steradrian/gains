@@ -30,8 +30,9 @@ const OWED_KEY = 'gains_diary_index_wipe_owed'
 
 /** status: 'idle' | 'loading' | 'ready' | 'error'. `complete`: every day has landed. `stale`: the
  *  last sync failed and the cache is served as it was. `offline`: it failed for lack of a
- *  connection. `version` changes whenever the days do. */
-const initialState = () => ({ status: 'idle', complete: false, stale: false, offline: false, error: null, version: 0 })
+ *  connection. `synced`: a sync has ended this session, so `complete` no longer rests only on
+ *  what a past visit saved. `version` changes whenever the days do. */
+const initialState = () => ({ status: 'idle', complete: false, stale: false, offline: false, synced: false, error: null, version: 0 })
 export const useDiaryIndex = create(() => initialState())
 
 const defaults = () => ({ api: NtApi, openBackend: () => idbIndexStore(), now: () => Date.now(), idle: null })
@@ -285,7 +286,7 @@ function fail(e) {
     return
   }
   const network = code === 'offline' || code === 'timeout'
-  publish({ status: network && kept ? 'ready' : 'error', stale: true, offline: code === 'offline', error: e })
+  publish({ status: network && kept ? 'ready' : 'error', stale: true, offline: code === 'offline', synced: true, error: e })
 }
 
 const badResponse = () => Object.assign(new Error('bad response'), { status: 200, code: 'bad-response' })
@@ -376,7 +377,7 @@ async function work(g, refresh) {
       continue
     }
     cursorRebuilt = false
-    publish({ status: 'ready', stale: false, offline: false, error: null, complete: true })
+    publish({ status: 'ready', stale: false, offline: false, synced: true, error: null, complete: true })
     return
   }
 }
