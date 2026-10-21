@@ -171,7 +171,7 @@ function Schedule({ S, update, nav, mode }) {
      `startsOn` carry over, so progress already logged survives a reorder. */
   const liveQ = queueOf(S)
   const seq = liveQ?.ids ?? rotationIds(S)
-  // A loop the app makes has no name of its own: Home shows it as 'Rotation' in the language on
+  // A loop the app makes has no name of its own: Train shows it as 'Rotation' in the language on
   // screen. Stored as text, it stayed in the language it was made in (QA 2026-10-06).
   const seqLabel = liveQ?.label || S.rotation?.label || ''
   // Ownership, not presence: a planner's queue has no rotationId, or one that does not match the
@@ -249,7 +249,7 @@ function Schedule({ S, update, nav, mode }) {
       chevron />
   }
   // Beside a loop, a weekday shows only what it adds to it: a routine that is in the loop already
-  // is the loop's session, the same rule Home follows (effectiveRoutineIds, history.js).
+  // is the loop's session, the same rule Train's day card follows (effectiveRoutineIds, history.js).
   const extraRoutines = d => dayRoutines(d).filter(r => !seq.includes(r.id))
   const plannedDays = weekOrder(ws).filter(d => extraRoutines(d).length)
   const doneCount = qv ? qv.items.filter(i => i.state === 'done').length : 0
@@ -323,7 +323,7 @@ function Schedule({ S, update, nav, mode }) {
         body={t('Add routines in the order you want to train them. The first one you haven’t logged stays up next.')} />}
       {seq.length > 0 && <p className="sect-f">
         {qv ? (qv.waiting ? t('Next round starts {0}.', fmtDate(qv.startsOn, true)) : t('{0} of {1} done this round.', doneCount, qv.items.length)) + ' ' : ''}
-        {external ? '' : editing ? t('Drag to reorder. Tap the minus to take one out.') : t('Trained out of order? Just pick another routine on Home.')}
+        {external ? '' : editing ? t('Drag to reorder. Tap the minus to take one out.') : t('Trained out of order? Just pick another routine in Start a workout on Train.')}
       </p>}
       <Inline gap={4} wrap className="mt-2">
         {external && <Button size="sm" variant="tinted" aria-label={t('Use this rotation')} onClick={adopt}>{t('Use this rotation')}</Button>}

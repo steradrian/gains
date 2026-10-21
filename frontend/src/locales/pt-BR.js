@@ -1028,8 +1028,10 @@ export const PT_BR_OVERRIDES = {
   'The Coach isn’t set up on this phone. Check Settings → AI Coach.': 'O Treinador não está configurado neste celular. Verifique Configurações → Treinador IA.',
   'Your AI provider couldn’t answer.': 'Seu provedor de IA não conseguiu responder.',
   'Something went wrong on this phone.': 'Algo deu errado neste celular.',
-  // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
+  // --- coach week (Train's Start a workout drawer, sheets/train-day.jsx; day sheet, sheets.jsx) ---
   'Next: {0}': 'Próximo: {0}',
+  'Next week starts {0}': 'A próxima semana começa em {0}',
+  'Week complete, ask the coach': 'Semana concluída, pergunte ao Coach',
   'Up next': 'Próximo',
   'Later': 'Depois',
   'Coach week': 'Semana do Coach',
@@ -1133,7 +1135,6 @@ export const PT_BR_OVERRIDES = {
   'How you train': 'Como você treina',
   'Want two routines on one day? Tap the day and pick both.': 'Duas rotinas em um dia? Toque no dia e escolha as duas.',
   'Drag to reorder. Tap the minus to take one out.': 'Arraste para reordenar. Toque no sinal de menos para tirar uma.',
-  'Trained out of order? Just pick another routine on Home.': 'Treinou fora de ordem? É só escolher outra rotina no Início.',
   'These count on top of the loop. Tap a day to change or clear it.': 'Contam além do ciclo. Toque em um dia para mudar ou limpar.',
   'Tap to plan something': 'Toque para planejar algo',
   'Drag to reorder': 'Arraste para reordenar',

@@ -60,7 +60,7 @@ function RoutineRow({ name, tag, sub, thumbs, first, disabled, onClick }) {
   )
 }
 
-// A coach week's or rotation's progress, over the routines (the progress row Home had): its name,
+// A coach week's or rotation's progress, over the routines: its name,
 // and where it stands — done so far, complete, or the day the next one starts.
 function queueLine(S, v) {
   const q = queueOf(S)
