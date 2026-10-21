@@ -73,10 +73,13 @@ export function missedDay(S, today = todayISO()) {
   return null
 }
 
-/** The first day after `today` with nothing planned, no rest set on purpose and no note, or null. */
-export function nextFreeDay(S, today = todayISO()) {
+/**
+ * The first day after `from` (today by default) with nothing planned, no rest set on purpose and
+ * no note, or null. `today` stays the real today, which the coach queue reads its days from.
+ */
+export function nextFreeDay(S, today = todayISO(), from = today) {
   for (let i = 1; i <= FREE_DAY_AHEAD; i++) {
-    const iso = plusDays(today, i)
+    const iso = plusDays(from, i)
     if (S.dayPlan?.[iso] === undefined && !dayNoteOf(S, iso) && !effectiveRoutineIds(S, iso, today).length) return iso
   }
   return null
@@ -100,13 +103,21 @@ export function movePlan(S, missedIso, today = todayISO()) {
   return { iso: missedIso, id, displaced: { ids: todays, floats, to: floats ? plusDays(today, 1) : nextFreeDay(S, today) } }
 }
 
-// What an Undo puts back: each plan day as it was (absent stays absent) and the day's seen entry.
-function snapshot(s, keys, iso) {
+// What an Undo puts back of the plan: each day as it was (absent stays absent).
+function planSnapshot(s, keys) {
   const plan = Object.fromEntries(keys.map(k => [k, s.dayPlan && Object.hasOwn(s.dayPlan, k) ? { v: s.dayPlan[k] } : null]))
-  const seen = isMap(s.missedSeen) && isMap(s.missedSeen[iso]) ? { ...s.missedSeen[iso] } : null
-  return (t, now = Date.now()) => {
+  return t => {
     t.dayPlan = t.dayPlan || {}
     for (const [k, was] of Object.entries(plan)) { if (was) t.dayPlan[k] = was.v; else delete t.dayPlan[k] }
+  }
+}
+
+// ...and the missed day's seen entry.
+function snapshot(s, keys, iso) {
+  const restorePlan = planSnapshot(s, keys)
+  const seen = isMap(s.missedSeen) && isMap(s.missedSeen[iso]) ? { ...s.missedSeen[iso] } : null
+  return (t, now = Date.now()) => {
+    restorePlan(t)
     t.missedSeen = seen ? { ...(isMap(t.missedSeen) ? t.missedSeen : {}), [iso]: { ...seen } } : withSeen(t.missedSeen, iso, false, now)
   }
 }
@@ -126,6 +137,33 @@ export function moveToToday(s, missedIso, today = todayISO(), now = Date.now()) 
   s.dayPlan[today] = plan.id
   if (writeTo) s.dayPlan[writeTo] = plan.displaced.ids[0]
   s.missedSeen = withSeen(s.missedSeen, missedIso, true, now)
+  return { ...plan, undo }
+}
+
+/**
+ * What "Rest / skip this day" (PR02 T2.2, owner decision 1) would do to the day `iso`, today or
+ * later: `{ iso, ids, floats, to }`, or null when the day has nothing planned. The day becomes a
+ * rest day and its session moves to the next free day after it (`to`; null when none of the next
+ * FREE_DAY_AHEAD is free, and the day is only rested). A day's override holds one routine, so a
+ * combined day moves its first. A queue session (`floats`) is not written anywhere: the queue
+ * makes it the next day you train.
+ */
+export function restPlan(S, iso, today = todayISO()) {
+  const ids = effectiveRoutineIds(S, iso, today)
+  if (!ids.length) return null
+  const q = queueOf(S)
+  const floats = !!q && q.ids.includes(ids[0])
+  return { iso, ids, floats, to: floats ? null : nextFreeDay(S, today, iso) }
+}
+
+/** Rest / skip this day, on a store draft. Returns restPlan's answer plus `undo(s)`, or null. */
+export function restDay(s, iso, today = todayISO()) {
+  const plan = restPlan(s, iso, today)
+  if (!plan) return null
+  const undo = planSnapshot(s, [iso, plan.to].filter(Boolean))
+  s.dayPlan = s.dayPlan || {}
+  s.dayPlan[iso] = 'rest'
+  if (plan.to) s.dayPlan[plan.to] = plan.ids[0]
   return { ...plan, undo }
 }
 
