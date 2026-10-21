@@ -15,7 +15,7 @@ export default function MealTiles({ meals, onPick }) {
         oneOf('MealTiles', 'state', m.state, ['done', 'now', 'empty'])
         const now = m.state === 'now'
         return (
-          <Act key={m.name} href={m.href} onClick={() => onPick?.(m, i)} className={cx('g-tile', now ? 'g-tile-now' : 'g-glass')}>
+          <Act key={m.slot ?? i} href={m.href} onClick={() => onPick?.(m, i)} className={cx('g-tile', now ? 'g-tile-now' : 'g-glass')}>
             <span className="g-tile-top">
               <span className="g-tile-ic"><Icon name={m.icon || 'utensils'} className="g-icon" /></span>
               {m.state === 'done' && <span className="g-tile-done" role="img" aria-label={t('Logged')}><Icon name="check" className="g-icon" /></span>}

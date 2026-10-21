@@ -26,6 +26,17 @@ describe('MealTiles', () => {
     expect(tiles().map(t => !!t.querySelector('.g-tile-body .g-icon'))).toEqual([false, true, false, false])
   })
 
+  it('keeps two meals of the same name apart, by their slot', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const snacks = [{ slot: 0, name: 'Snack', sub: '100 kcal', state: 'done' }, { slot: 1, name: 'Snack', sub: '200 kcal', state: 'done' }]
+      view.render(<MealTiles meals={snacks} />)
+      view.render(<MealTiles meals={snacks.slice(1)} />)
+      expect(tiles().map(t => t.textContent)).toEqual(['Snack200 kcal'])
+      expect(errors).not.toHaveBeenCalled()
+    } finally { errors.mockRestore() }
+  })
+
   it('tells onPick the meal and its place', () => {
     const onPick = vi.fn()
     view.render(<MealTiles meals={MEALS} onPick={onPick} />)
