@@ -40,7 +40,8 @@ describe('NotificationsScreen', () => {
     expect(rows()[0].classList.contains('g-nrow-new')).toBe(true)
     expect(rows()[1].classList.contains('g-nrow-new')).toBe(false)
     expect(rows()[1].querySelector('small').textContent).toMatch(/^Streak · /)
-    expect(text()).toContain('Kept for 30 days. The reminders you set live in Me › Reminders.')
+    expect(view.host.querySelector('.g-snote').textContent).toBe('Kept for 30 days.')
+    expect(text()).not.toContain('Me ›')
   })
 
   it('leaves out a section with nothing in it', () => {
@@ -56,9 +57,10 @@ describe('NotificationsScreen', () => {
     expect(document.activeElement).toBe(view.host.querySelector('.g-sptitle h1'))
   })
 
-  it('N1.2: all read says so, with no pill, and keeps every row', () => {
+  it('N1.2: with nothing unread there is no status row at all, and every row stays', () => {
     show({ sections: { new: [], thisWeek: [BEST, STREAK], earlier: [MILESTONE] }, unreadCount: 0, isUnread: () => false })
-    expect(view.host.querySelector('.g-ssec-line').textContent).toBe('All readNothing unread')
+    expect(view.host.querySelector('.g-ssec-line')).toBeNull()
+    expect(text()).not.toContain('Nothing unread')
     expect(button('Mark all read')).toBeUndefined()
     expect(rows()).toHaveLength(3)
     expect(view.host.querySelector('.g-nrow-dot')).toBeNull()
@@ -70,13 +72,21 @@ describe('NotificationsScreen', () => {
     expect(onOpen).toHaveBeenCalledWith(STREAK)
   })
 
-  it('Back, the gear and the footer link go where they say', () => {
+  it('Back, the gear and the Reminders row at the end of the list go where they say', () => {
     const { onBack, onReminders } = show()
     click(button('Back'))
     expect(onBack).toHaveBeenCalledTimes(1)
     click(button('Reminder settings'))
-    click(button('Me › Reminders'))
+    click(button('Reminders'))
     expect(onReminders).toHaveBeenCalledTimes(2)
+    expect(view.host.querySelector('.notif-rem .g-glist-chev')).toBeTruthy()
+  })
+
+  it('the Reminders row gives way to the banner button while notifications are off, and is absent off the phone app', () => {
+    show({ permission: 'off' })
+    expect(view.host.querySelector('.notif-rem')).toBeNull()
+    show({ hasReminders: false })
+    expect(view.host.querySelector('.notif-rem')).toBeNull()
   })
 
   it('N1.1: nothing yet is the bell scene with Set a reminder, and no status line or footer', () => {
@@ -85,6 +95,8 @@ describe('NotificationsScreen', () => {
     expect(text()).toContain('Reminders you set, streaks, new bests and Coach changes show up here.')
     expect(view.host.querySelector('.g-ssec-line')).toBeNull()
     expect(view.host.querySelector('.g-snote')).toBeNull()
+    expect(view.host.querySelector('.g-sempty')).toBeTruthy()
+    expect(view.host.querySelector('.g-sempty-card')).toBeNull()
     click(button('Set a reminder'))
     expect(onReminders).toHaveBeenCalledTimes(1)
   })

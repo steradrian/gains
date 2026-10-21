@@ -120,7 +120,7 @@ describe('DevKit', () => {
     expect(all('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
     expect(all('.g-snote')[0].textContent).toContain('Kept for 30 days')
     expect(all('.g-snav')).toHaveLength(7)
-    expect(all('.g-ssec-line')).toHaveLength(2)
+    expect(all('.g-ssec-line')).toHaveLength(1)
     expect(all('.g-ngroup')).toHaveLength(3)
     expect(all('.g-nrow')).toHaveLength(9)
     expect(all('.g-nrow-new')).toHaveLength(3)

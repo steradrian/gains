@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { t, tn } from '../../lib/i18n.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
 import { whenOf } from '../../lib/notifications/when.js'
-import Act from '../../ds/Act.jsx'
+import GlassList from '../../ds/GlassList.jsx'
 import InlineBanner from '../../ds/InlineBanner.jsx'
 import NotificationGroup from '../../ds/NotificationGroup.jsx'
 import NotificationRow from '../../ds/NotificationRow.jsx'
@@ -16,8 +16,9 @@ import './notifications.css'
 
 // The Notifications page on the stage (boards Sh3Notifications, Sh3Empty, Sh3Read, Sh3PermOff),
 // pushed under the tab whose bell opened it. It draws what useNotifications() gives it and holds
-// nothing: the sections New / This week / Earlier, the "2 new · Mark all read" line (or "All read ·
-// Nothing unread"), the permission banner when this phone won't buzz (the list still fills), and
+// nothing: the sections New / This week / Earlier, the "2 new · Mark all read" line (only while something
+// is unread), a Reminders row at the end when the permission banner is not there to link to them,
+// the permission banner when this phone won't buzz (the list still fills), and
 // the empty scene when there is nothing at all. `now` dates the meta lines. `hasReminders`: only
 // the phone app's reminders land here, so off it the page never promises them, and the empty
 // scene has no "Set a reminder" that could not fill it.
@@ -40,7 +41,6 @@ export default function NotificationsScreen({
     onMarkAllRead()
     heading.current?.focus()
   }
-  const [keptBefore, keptAfter = ''] = t('Kept for 30 days. The reminders you set live in {0}.').split('{0}')
 
   return (
     <StageScreen accent={accent}>
@@ -61,9 +61,7 @@ export default function NotificationsScreen({
               action={t('Set a reminder')} onClick={onReminders} />
             : <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Streaks, new bests and Coach changes show up here.')} />
           : <>
-            {unreadCount > 0
-              ? <StageSection variant="line" title={tn('{0} new', '{0} new', unreadCount)} action={t('Mark all read')} onAction={markAll} />
-              : <StageSection variant="line" title={t('All read')} action={t('Nothing unread')} />}
+            {unreadCount > 0 && <StageSection variant="line" title={tn('{0} new', '{0} new', unreadCount)} action={t('Mark all read')} onAction={markAll} />}
             {groups.map(g => (
               <NotificationGroup key={g.key} title={g.title}>
                 {g.list.map(item => (
@@ -72,9 +70,12 @@ export default function NotificationsScreen({
                 ))}
               </NotificationGroup>
             ))}
-            <StageNote>
-              {keptBefore}<Act onClick={onReminders} className="notif-link">{t('Me › Reminders')}</Act>{keptAfter}
-            </StageNote>
+            {permission !== 'off' && hasReminders && (
+              <div className="notif-rem">
+                <GlassList items={[{ icon: 'bell', title: t('Reminders'), onClick: onReminders }]} />
+              </div>
+            )}
+            <StageNote>{t('Kept for 30 days.')}</StageNote>
           </>}
       </div>
     </StageScreen>
