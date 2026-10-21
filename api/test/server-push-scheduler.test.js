@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -24,13 +25,18 @@ const cookie = (() => {
 })();
 const SUB = { userId: UID, endpoint: 'https://localhost/x', keys: { p256dh: 'p', auth: 'a' }, deviceId: 'dev_psch0001', created: '2026-01-01T00:00:00.000Z' };
 
-async function startServer(t, env = {}, { coach = false } = {}) {
+// `coach` is the base URL of the Coach's provider, when the test wants the Coach on.
+async function startServer(t, env = {}, { coach = '' } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-psch-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({
     users: [{ id: UID, name: 'One', created: new Date().toISOString() }], creds: [], invites: [], subs: [SUB]
   }));
-  if (coach) fs.writeFileSync(path.join(dataDir, 'coach.json'), JSON.stringify({ enabled: true, provider: 'fixture' }));
+  if (coach) {
+    fs.writeFileSync(path.join(dataDir, 'coach.json'), JSON.stringify({
+      enabled: true, provider: 'compatible', models: { compatible: 'model-a' }, providerOptions: { compatible: { baseUrl: coach } }
+    }));
+  }
   const child = spawn(process.execPath, ['server.js'], {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', AUDIT_LOG: '0', REMINDER_TICK_MS: '200', PUSH_SCHEDULER: '', PUSH_SUBS_READONLY: '', ...env }
@@ -148,10 +154,36 @@ test('PUSH_SCHEDULER=wat: refuses to start rather than guess which side sends', 
   assert.match(log, /PUSH_SCHEDULER/);
 });
 
-/* The Coach proposal push. A fixture-provider review over a state with history finishes `ready`
-   (a proposal is pending); local, the hook sends the "your Coach has been reading" push. */
+/* The Coach proposal push. A review over a state with history finishes `ready` (a proposal is
+   pending); local, the hook sends the "your Coach has been reading" push.
+
+   The provider is an OpenAI-compatible endpoint on localhost, answering with one change, not the
+   fixture CLI: a provider that spawns a process is refused on Linux unless the server is root with a
+   `coach` user (spawn.js canDropPrivileges), which a CI runner is not, so the fixture passes on a
+   laptop and answers 503 `unprivileged` there. An HTTP provider spawns nothing and is not asked. */
+async function coachProvider(t) {
+  const day = sampleState().workouts[0].d;
+  const answer = {
+    coach_contract: 1,
+    summary: 'Top sets at RPE 10 on the dumbbell press; one set less.',
+    evidence: { from: day, to: day, sessions: 1 },
+    changes: [{ id: 'c1', type: 'sets', target: { routineId: 'r1', exId: '0001' }, before: 3, after: 2, why: 'stalls ≥ 2 and every top set at RPE 10' }],
+    notes: []
+  };
+  const server = http.createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(answer) }, finish_reason: 'stop' }] }));
+    });
+  });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  return `http://127.0.0.1:${server.address().port}`;
+}
+
 async function coachReview(t, env) {
-  const h = await startServer(t, env, { coach: true });
+  const h = await startServer(t, env, { coach: await coachProvider(t) });
   h.write({ ...sampleState(), reminder: { on: false } });
   const r = await h.call('POST', '/api/coach/review', {});
   assert.equal(r.status, 202, await r.text());
