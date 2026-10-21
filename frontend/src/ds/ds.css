@@ -1163,6 +1163,10 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-effort-stage .g-effort-row button { background: var(--glass); color: var(--on-stage); }
 .g-effort-stage .g-effort-row button[aria-checked="true"] { background: var(--on-stage); color: var(--accent-text); }
 .g-effort-stage .g-effort-row button:focus-visible { outline-color: var(--on-stage); }
+/* The pills sit at the edge of the drawer's scrolling body, which would clip a ring drawn outside them */
+.g-effort-row button:focus-visible { outline-offset: -2px; }
+/* So do the full-width buttons of the offer, the confirm and the map's foot */
+.g-offer-foot .g-btn:focus-visible, .g-confirm .g-btn:focus-visible, .g-md-foot .g-btn:focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) { .g-effort-row button { transition: none; } }
 
 /* PlateBar: the loaded bar on a sunken panel */
