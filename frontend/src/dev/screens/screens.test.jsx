@@ -243,6 +243,40 @@ describe('the screens gallery', () => {
     expect(useStore.getState().S).toBe(own)
   }, 20000)
 
+  it('has the Plan drawers T3.1 to T3.6 open over the Plan route, the import page T3.7 and the T4.4 toast, all in memory', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train: plan drawers').entries.map(e => e.id)
+    expect(ids).toEqual(['T3.1', 'T3.1e', 'T3.1p', 'T3.4', 'T3.5', 'T3.6', 'T3.7', 'T3.7e', 'T4.4'])
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('T3.1', s => {
+      expect(s.drawer.querySelectorAll('.g-seg button')).toHaveLength(2)
+      expect(s.drawer.querySelector('[role=radiogroup]')).toBeTruthy()
+    })
+    await check('T3.1e', s => expect(s.drawer.querySelectorAll('[role=checkbox]').length).toBeGreaterThan(1))
+    await check('T3.1p', s => {
+      expect(s.drawer.querySelector('.g-seg')).toBeNull()
+      expect(s.drawer.textContent).toContain('Log this workout')
+    })
+    await check('T3.4', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Day note')
+      expect(s.drawer.querySelector('textarea').value).toContain('Shoulder felt tight')
+    })
+    await check('T3.5', s => expect(s.drawer.querySelector('h2').textContent).toBe('Plan'))
+    await check('T3.6', s => expect(s.drawer.querySelector('.g-tr3-card span').textContent).toBe('Push A · Pull A · Legs · 9 exercises'))
+    await check('T3.7', s => expect(s.host.textContent).toContain('4 routines · 16 exercises · 4 days a week'))
+    await check('T3.7e', s => expect(s.host.textContent).toContain('Couldn’t read that file.'))
+    await check('T4.4', s => expect(s.host.textContent).toContain('Added 4 routines from Upper Lower'))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    localStorage.removeItem('gym_state_v1')
+  }, 30000)
+
   it('a tap in a mocked state changes memory only: the real saved copy is untouched and nothing is pushed', async () => {
     localStorage.setItem('gym_state_v1', '{"real":true}')
     const realUpdate = useStore.getState().update
