@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { t } from '../lib/i18n.js'
-import { backupFolder, chooseBackupFolder, resetBackupFolder, onBackupFolderChange } from '../lib/mobile.js'
-import { useUI } from '../store/useUI.js'
-import { Row } from './ui.jsx'
+import { t } from '../../../lib/i18n.js'
+import { backupFolder, chooseBackupFolder, resetBackupFolder, onBackupFolderChange } from '../../../lib/mobile.js'
+import { useUI } from '../../../store/useUI.js'
+import SettingRow from '../SettingRow.jsx'
 
 const DEFAULT_FOLDER = 'Documents/Gains'
 
@@ -34,7 +34,9 @@ export function autoBackupSubtitle(folder, keep) {
   return t('Saves a dated copy to Documents/Gains after finishing a workout or editing a routine, and keeps the newest {0}. Point a sync app at that folder, or copy it out by hand.', keep)
 }
 
-export default function BackupFolderRow() {
+// The rows under Auto-backup on Android: the folder in use, a warning when the chosen one stopped
+// taking copies, and the way back to the default. Rows of the Backup card, so no wrapper.
+export default function BackupFolderRows() {
   const [folder, setFolder] = useBackupFolder()
   if (!folder) return null
 
@@ -47,13 +49,13 @@ export default function BackupFolderRow() {
   const useDefault = async () => { setFolder(await resetBackupFolder()) }
 
   return <>
-    <Row icon="folder" iconTint="var(--blue)" title={t('Backup folder')}
-      subtitle={folder.uri ? (folder.label || t('Chosen folder')) : DEFAULT_FOLDER} accessory="chevron" onClick={choose} />
-    {folder.lost && <Row icon="warning" iconTint="var(--orange)" className="backup-lost"
-      title={folder.lostLabel
+    <SettingRow icon="folder" title={t('Backup folder')}
+      sub={folder.uri ? (folder.label || t('Chosen folder')) : DEFAULT_FOLDER} onClick={choose} />
+    {folder.lost && <SettingRow icon="warning" title={t('Backup folder unavailable')}
+      sub={folder.lostLabel
         ? t('Gains can no longer write to “{0}”, so copies go to Documents/Gains again. Choose the folder again to switch back.', folder.lostLabel)
         : t('Gains can no longer write to the chosen folder, so copies go to Documents/Gains again. Choose the folder again to switch back.')} />}
-    {(folder.uri || folder.lost) && <Row icon="reset" iconTint="var(--label-3)" title={t('Use default folder')}
-      subtitle={DEFAULT_FOLDER} onClick={useDefault} />}
+    {(folder.uri || folder.lost) && <SettingRow icon="reset" title={t('Use default folder')}
+      sub={DEFAULT_FOLDER} onClick={useDefault} />}
   </>
 }

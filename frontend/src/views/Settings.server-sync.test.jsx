@@ -104,15 +104,7 @@ describe('Server & sync', () => {
     expect(rowByTitle(b, 'All synced').textContent).toContain('Last synced: 5 minutes ago')
     expect(rowByTitle(b, 'Account ID')).toBeTruthy()          // the phone's own rows sit in the block
     expect(rowByTitle(b, 'Pair again')).toBeUndefined()       // nothing to fix
-    expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Profile, once
-
-    const profile = mount(<Settings />)
-    const card = block(profile, 'Sync')
-    expect(rowByTitle(card, 'Training and body').textContent).toContain('All synced · Last synced: 5 minutes ago')
-    expect(rowByTitle(card, 'Nutrition')).toBeUndefined()     // the phone app has no nutrition
-    await act(async () => { rowByTitle(card, 'Sync now').click() })
-    expect(mocks.syncNow).toHaveBeenCalledTimes(1)
-    expect(mocks.toast).toHaveBeenCalledWith('All synced')
+    expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Sync and backup, once (SyncPage.test.jsx)
   })
 
   it('refused by the server: says so, how much is waiting, and offers "Pair again" with the address filled in', async () => {
@@ -127,11 +119,6 @@ describe('Server & sync', () => {
     const sheet = openSheet().querySelector('.connect')
     expect(sheet.dataset.url).toBe(BASE)
     expect(sheet.dataset.again).toBe('true')
-
-    // Sync now reports the outcome, whatever it is.
-    const card = block(mount(<Settings />), 'Sync')
-    await act(async () => { rowByTitle(card, 'Sync now').click() })
-    expect(mocks.toast).toHaveBeenCalledWith('The server refuses this phone')
   })
 
   // A v1.3.8 phone that lost its pairing, upgraded: both rows said "This phone is not connected to a

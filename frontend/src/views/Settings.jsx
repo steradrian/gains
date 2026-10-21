@@ -13,7 +13,6 @@ import { fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
 import { Page } from '../components/layout.jsx'
 import { EmptyState } from '../components/blocks.jsx'
-import SyncStatusCard from '../components/SyncStatusCard.jsx'
 import { Section, Row, SearchField } from '../components/ui.jsx'
 import { manageMeasurementsSheet } from './Measurements.jsx'
 import { PAGES, ROOT_GROUPS, pageVisible, searchSettings } from './settings-pages.js'
@@ -133,7 +132,6 @@ function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
           <Icon name="chevronRight" className="lrow-c" />
         </button>
       </Section>
-      <SyncStatusCard />
       {/* Progress is not a tab any more: Me is Profile, and this is the way into Progress. */}
       <Section>
         <Row icon="chart" iconTint="var(--teal)" title={t('Progress')} accessory="chevron" onClick={() => nav(PROGRESS_ROOT)} className="sp-root-row" />

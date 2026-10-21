@@ -112,7 +112,7 @@ describe('the root', () => {
     // a guest in a browser has no notifications (no push server), no Coach page (the server's
     // Coach), no Health Connect, no photos yet, nothing to sync and nothing to log out of
     expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout screen', 'Fine-tuning',
-      'Schedule', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
+      'Schedule', 'Equipment', 'Measurement fields', 'Sync and backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['General', 'Training', 'Body & progress', 'Data', 'About'])
     expect(rowTitled('Workout screen').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
     expect(rowTitled('Schedule').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
@@ -532,7 +532,7 @@ describe('searchSettings', () => {
       expect(titles).not.toContain('Superset buttons in the header')
     } finally { await setLang('en') }
     expect(searchSettings('tone', { ...guestWeb, user: { id: 'u' }, pushOK: true, reminderOn: true, nudge: true }, s => s).map(h => h.title)).toContain('Nudge tone')
-    expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup (JSON)')
+    expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup')
   })
 })
 
