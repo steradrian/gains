@@ -2,9 +2,12 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import Settings, { RestSoundSheet } from './Settings.jsx'
+import Settings from './Settings.jsx'
+import { RestSoundSheet } from './settings/pages/AlertsPage.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { chime, unlock } from '../lib/sound.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
