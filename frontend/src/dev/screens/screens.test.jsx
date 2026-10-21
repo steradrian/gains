@@ -266,6 +266,53 @@ describe('the screens gallery', () => {
     await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
   }, 20000)
 
+  // Eat logging m1: the Log food steps (boards Ea8Search to Ea8Offline), over the Today screen.
+  it('has the Log food steps, each over the Today screen and each at the step it names', async () => {
+    const ids = screenAreas().find(a => a.name === 'Eat: Log food').entries.map(e => e.id)
+    expect(ids).toEqual(['Ea8Search', 'Ea8FoodDetail', 'Ea8Food', 'Ea8Meal', 'Ea8Saved', 'Ea8SavedRecipes', 'Ea8NoMatch', 'Ea8Quick', 'Ea8Offline'])
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    for (const id of ids) await check(id, s => expect(s.host.querySelectorAll('.g-rc-slide'), id).toHaveLength(4))
+    await check('Ea8Search', s => {
+      expect(s.drawer.textContent).toContain('Greek yogurt 10%')
+      expect(s.drawer.querySelector('.g-tag').textContent).toBe('OFF')
+      expect(s.drawer.querySelector('button[aria-label="Add Greek yogurt 2% to Lunch"]')).not.toBeNull()
+    })
+    await check('Ea8FoodDetail', s => expect(s.drawer.textContent).toContain('After this, Lunch is'))
+    await check('Ea8Food', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Food')
+      expect(s.drawer.textContent).toContain('Per 100 g')
+      expect(s.drawer.textContent).toContain('Save as food')
+    })
+    await check('Ea8Meal', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Logging to')
+      expect(s.drawer.textContent).toContain('420 kcal logged')
+      expect(s.drawer.textContent).toContain('Now, by the clock')
+      expect(s.drawer.textContent).toContain('Your pick holds for the next half hour.')
+    })
+    await check('Ea8Saved', s => {
+      expect(s.drawer.textContent).toContain('Saved meals · one tap logs all')
+      expect(s.drawer.textContent).toContain('Office lunch')
+    })
+    await check('Ea8SavedRecipes', s => expect(s.drawer.textContent).toContain('Chili con carne'))
+    await check('Ea8NoMatch', s => {
+      expect(s.drawer.textContent).toContain('No match for “sarmalle cu mamaliga”')
+      expect(s.drawer.textContent).toContain('Did you mean sarmale cu mamaliga')
+      expect(s.drawer.textContent).toContain('Add calories only')
+    })
+    await check('Ea8Quick', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Quick calories')
+      expect(s.drawer.textContent).toContain('stays out of My foods')
+    })
+    await check('Ea8Offline', s => {
+      expect(s.drawer.textContent).toContain('Online results need a connection')
+      expect(s.drawer.textContent).toContain('Greek yogurt 2%')
+    })
+  }, 30000)
+
   it('has the search H0.0 to H0.9, its Open Food Facts rows and T6.9, each the real header over the real panel', async () => {
     const ids = screenAreas().find(a => a.name === 'Shared: search').entries.map(e => e.id)
     expect(ids).toEqual(['H0.0', 'H0.1', 'H0.2', 'H0.3', 'H0.4', 'H0.4-searching', 'H0.4-error', 'H0.4-offline', 'H0.5', 'H0.6', 'H0.7', 'H0.8', 'H0.9', 'T6.9'])
