@@ -30,7 +30,7 @@ import { rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from '../lib/workout
 import { editLeftEmpty, editedRecord, editChangesNothing } from '../lib/session-edit.js'
 import { stampWorkout } from '../lib/sync-merge.js'
 import { S, update, ui, toast, snd } from './shared.js'
-import { confirmSheet, menuSheet } from './confirm-menu.jsx'
+import { confirmSheet } from './confirm-menu.jsx'
 import { bwSheet } from './body-weight.jsx'
 import { mediaGoesToo } from './workout-detail.jsx'
 // Workout finish M1
@@ -394,38 +394,6 @@ function ExerciseNote({ entryIdx, close }) {
 }
 export const exerciseNoteSheet = entryIdx => ui().openSheet(close => <ExerciseNote entryIdx={entryIdx} close={close} />)
 
-function SetNote({ entryIdx, setIdx, close }) {
-  const row = useStore(s => s.S.active?.entries?.[entryIdx]?.sets?.[setIdx])
-  const update = useStore(s => s.update)
-  const [note, setNote] = useState(row?.note || '')
-
-  useEffect(() => { if (!row) close() }, [!row])
-  if (!row) return null
-
-  const save = () => {
-    const text = note.trim().slice(0, NOTE_MAX)
-    update(s => {
-      const set = s.active?.entries?.[entryIdx]?.sets?.[setIdx]
-      if (!set) return
-      if (text) set.note = text
-      else delete set.note
-    }, true)
-    close()
-  }
-
-  return <>
-    <h3>{t('Set note')}</h3>
-    <textarea className="input" rows={4} maxLength={NOTE_MAX} value={note}
-      placeholder={t('Anything specific to remember about this set.')}
-      onChange={event => setNote(event.target.value)} />
-    <div style={{ height: 18 }} />
-    <Button variant="primary" onClick={save}>{t('Save')}</Button>
-  </>
-}
-
-export const setNoteSheet = (entryIdx, setIdx) =>
-  ui().openSheet(close => <SetNote entryIdx={entryIdx} setIdx={setIdx} close={close} />)
-
 /* The session note: how the whole workout went, as opposed to how one exercise went. It lives
    on the active session, so buildCompletedWorkout carries it onto the finished workout and it
    shows up again in history — where it stays editable. Written here rather than only after the
@@ -593,26 +561,6 @@ export function finishWorkout() {
   if (!done) { confirmSheet({ title: t('Nothing logged yet'), message: t('You haven’t checked off any sets. Finish the workout anyway?'), confirmText: t('Finish anyway'), haptic: true, onConfirm: doFinishWorkout }); return }
   if (done < total) { confirmSheet({ title: t('Finish early?'), message: tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done), confirmText: t('Finish workout'), haptic: true, onConfirm: doFinishWorkout }); return }
   doFinishWorkout()
-}
-// The workout screen's Finish pill (v1.3.11): one sheet with both ways out, Finish and save or
-// Discard. It says what finishWorkout's confirm would have said about sets still unchecked, so
-// the save needs no second question. `onDiscard` is the screen's own discard, with its confirm.
-// The editor of a saved workout still saves at once.
-export function finishWorkoutSheet({ onDiscard } = {}) {
-  if (S().active?.editingWorkoutId) { saveWorkoutEdits(); return }
-  const A = S().active
-  if (!A) return
-  const done = setsDoneActive(A)
-  const total = setUnitsTotal(A.entries)
-  menuSheet({
-    title: !done ? t('Nothing logged yet') : done < total ? t('Finish early?') : t('Finish workout?'),
-    subtitle: !done ? t('You haven’t checked off any sets. Finish the workout anyway?')
-      : done < total ? tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done) : null,
-    sections: [
-      { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), haptic: true, onClick: doFinishWorkout }] },
-      { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
-    ],
-  })
 }
 function doFinishWorkout() { finishToSummary() }
 
