@@ -101,7 +101,6 @@ describe('tn() — plural forms from the pack', () => {
     expect(tn('{0} workout', '{0} workouts', 3)).toBe('3 treningi')
     expect(tn('{0} workout', '{0} workouts', 5)).toBe('5 treningów')
     expect(tn('{0} workout', '{0} workouts', 22)).toBe('22 treningi')
-    expect(tn('{0} workout total', '{0} workouts total', 3)).toBe('łącznie 3 treningi')
     _setLangState('uk', uk, null, null)
     expect(tn('{0} day a week', '{0} days a week', 3)).toBe('3 дні на тиждень')
     expect(tn('{0} day a week', '{0} days a week', 5)).toBe('5 днів на тиждень')

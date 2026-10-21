@@ -35,11 +35,13 @@ const idx = () => window.history.state?.idx
 const tab = label => [...document.querySelectorAll('#tabbar button')].find(b => b.textContent === label)
 const lit = () => document.querySelector('#tabbar button[aria-current="page"]')?.textContent || null
 const button = text => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === text)
-// The Training root's ways into its pages: History and Exercises on the action row, Routines'
-// See all; and the centre +.
+// The Training root's ways into its pages: Exercises on the action row, History under Your
+// training, Routines' See all; and the centre +.
 const target = title => (title === 'Routines'
-  ? [...document.querySelectorAll('.sec-h')].find(h => h.querySelector('.sec-h-t')?.textContent === 'Routines').querySelector('.sec-h-l')
-  : [...document.querySelectorAll('.act-b')].find(b => b.textContent === title))
+  ? [...document.querySelectorAll('.g-ssec')].find(h => h.querySelector('h2')?.textContent === 'Routines').querySelector('.g-ssec-act')
+  : title === 'History'
+    ? [...document.querySelectorAll('.g-glist-row')].find(b => b.querySelector('b')?.textContent === title)
+    : [...document.querySelectorAll('.g-gact')].find(b => b.textContent === title))
 const plus = () => document.querySelector('#tabbar button.g-plus')
 const click = async el => { await act(async () => { el.click() }); await settle() }
 // Today's Up next while a session runs: the row with its Resume.
@@ -83,7 +85,8 @@ beforeEach(() => {
   originalS = useStore.getState().S
   localStorage.setItem('gym_guest', '1')
   sessionStorage.clear()
-  useStore.setState({ S: JSON.parse(JSON.stringify(DEF)) })
+  // One routine, so Train is set up and its root shows its ways into its pages (not T2.9's invitation).
+  useStore.setState({ S: { ...JSON.parse(JSON.stringify(DEF)), routines: [{ id: 'rt', name: 'Push', emoji: null, ex: [] }] } })
   scrolls = []
   window.scrollTo = vi.fn((x, y) => scrolls.push(y))
 })
@@ -99,7 +102,7 @@ const running = () => useStore.getState().update(s => { s.active = { id: 'a', na
 // A plan with a routine on today, so Start starts it.
 function planToday() {
   loadStarterPlan('full-body')
-  useStore.getState().update(s => { s.week = { [new Date().getDay()]: [s.routines[0].id] } }, false)
+  useStore.getState().update(s => { s.week = { [new Date().getDay()]: [s.routines.find(r => r.ex.length).id] } }, false)
 }
 
 describe('switching tabs', () => {
@@ -542,7 +545,7 @@ describe('Me, Profile and Progress', () => {
 
   it('the avatar on another tab opens Profile as the Me tab', async () => {
     await launch('#/train')
-    await click(document.querySelector('.avatar-btn'))
+    await click(avatar())
     expect(hash()).toBe('#/me')
     expect(lit()).toBe('Me')
     await click(tab('Train'))

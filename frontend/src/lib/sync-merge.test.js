@@ -4,6 +4,7 @@ import { mergeImport } from './import-csv.js'
 import { convertBodyWeight, convertStateUnit, convertWeight } from './units.js'
 import { retimeWorkout } from './workout-date.js'
 import { inventoryFor, loadKindFor, withLoadKind, withPlatePairs, withStandardPlates } from './plates.js'
+import { seenOn, withSeen } from './missed-day.js'
 
 const workout = (id, d = '2026-09-01', start = 1) => ({ id, d, start, entries: [] })
 const routine = (id, name = id) => ({ id, name, ex: [] })
@@ -365,6 +366,37 @@ describe('balanceOverrides keep the choice made last', () => {
     const m = mergeStates(a, base({ _ts: 50 }))
     m.balanceOverrides.k.id = 'changed'
     expect(a.balanceOverrides.k.id).toBe('x')
+  })
+})
+
+// A missed planned day answered on Train (lib/missed-day.js): one stamped entry per day, so a day
+// answered on each device is kept, and an Undo (a stamped clear) holds against the older answer.
+describe('missedSeen keeps each day as answered last', () => {
+  const FRI = '2026-10-16', WED = '2026-10-14'
+  it('days answered on different devices are all kept, whichever copy is newer', () => {
+    const phone = base({ _ts: 100, missedSeen: withSeen({}, FRI, true, 90) })
+    const desk = base({ _ts: 200, workouts: [workout('w2')], missedSeen: withSeen({}, WED, true, 150) })
+    for (const m of [mergeStates(phone, desk), mergeStates(desk, phone)]) {
+      expect(ids(m.workouts)).toEqual(['w2'])
+      expect(seenOn(m, FRI) && seenOn(m, WED)).toBe(true)
+    }
+  })
+
+  it('an Undo made after the answer wins over it, and an answer made after an Undo wins too', () => {
+    const answered = base({ _ts: 300, missedSeen: withSeen({}, FRI, true, 100) })
+    const undone = base({ _ts: 50, missedSeen: withSeen({}, FRI, false, 120) })
+    expect(seenOn(mergeStates(answered, undone), FRI)).toBe(false)
+    expect(seenOn(mergeStates(undone, answered), FRI)).toBe(false)
+    const again = base({ _ts: 10, missedSeen: withSeen({}, FRI, true, 130) })
+    expect(seenOn(mergeStates(undone, again), FRI)).toBe(true)
+  })
+
+  it('a change re-stamps the entry it wrote, so the merge sees it as the latest', () => {
+    const prev = base({ _ts: 500, missedSeen: {} })
+    const next = clone(prev)
+    next.missedSeen = withSeen(next.missedSeen, FRI, true, 1)
+    stampChange(prev, next, 900)
+    expect(next.missedSeen[FRI]._ts).toBeGreaterThan(500)
   })
 })
 

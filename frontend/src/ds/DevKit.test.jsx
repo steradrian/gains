@@ -55,6 +55,19 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-wk')).toHaveLength(2)
   })
 
+  it('renders an entry for the Train kit and the rail turns its week', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty', 'RoutineTiles', 'MusclesCard']))
+    expect(view.host.querySelectorAll('.g-rail')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-tcard')).toHaveLength(6)
+    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(4)
+    const title = () => view.host.querySelector('.g-rail-title').textContent
+    expect(title()).toBe('This week')
+    act(() => { view.host.querySelector('.g-rail-btn[aria-label="Next week"]').click() })
+    expect(title()).toBe('Next week')
+  })
+
   it('renders the shared pages entries', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)

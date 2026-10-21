@@ -1,7 +1,9 @@
-/* Today on the stage (TodayScreen.jsx). The stage is full bleed (index.css #app:has(> .g-screen));
-   the screen pads itself under the status bar and keeps the boards' 150px of air above the
-   floating tab bar. The kit's parts carry their own gutters. */
-.today{padding-top:var(--sat);padding-bottom:calc(150px + var(--sab))}
+/* Today on the stage (TodayScreen.jsx). The stage is full bleed (index.css #app:has(> .g-screen))
+   and StageScreen already clears the status bar (ds.css .g-stage-body pads by --sat), so the screen
+   adds no top inset of its own: a second one put the header a whole status bar too low in the
+   installed iOS app. It keeps the boards' 150px of air above the floating tab bar. The kit's parts
+   carry their own gutters. */
+.today{padding-bottom:calc(150px + var(--sab))}
 .today-alert{padding:12px 16px 0}
 /* T11Loading: Up next and the meal tiles as glass blocks. */
 .today-sk-row{display:block;height:84px;margin:70px 16px 0;border-radius:28px}

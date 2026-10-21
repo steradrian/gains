@@ -748,7 +748,7 @@ export default function Settings({ page = null, find = null, via = null }) {
             onChange={v => update(s => { s.reduceMotion = v })} />
         </Row>
       </Section>
-      <Section title={t('On Home')}>
+      <Section title={t('On Today')}>
         {/* Membership QR codes (views/CheckIn.jsx), opened from Training's actions and the + drawer;
             off = neither entry, no route. */}
         <Row icon="qr" iconTint="var(--blue)" title={t('Gym check-in')}

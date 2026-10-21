@@ -1,7 +1,9 @@
 import { t } from '../../lib/i18n.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
+import Collapse from '../../components/Collapse.jsx'
 import Elapsed from '../../components/Elapsed.jsx'
 import { Page } from '../../components/layout.jsx'
+import { Presence } from '../../components/presence.jsx'
 import AwayCard from '../../ds/AwayCard.jsx'
 import FirstSteps from '../../ds/FirstSteps.jsx'
 import GlassActions from '../../ds/GlassActions.jsx'
@@ -34,7 +36,7 @@ export default function TodayScreen({
       <div className="today">
         {searching ? <Page root title={t('Today')} /> : <StageHeader {...header} />}
         <SavedIndicator tone="stage" state={saved?.state} waiting={saved?.waiting} />
-        {away && <AwayCard {...away} />}
+        <Presence>{away && <Collapse key="away"><AwayCard {...away} /></Collapse>}</Presence>
         {error && <div className="today-alert"><InlineBanner stage role="alert" icon="warning" title={error.text} actions={[{ label: t('Try again'), onClick: error.retry, solid: true }]} /></div>}
         <RingCarousel slides={rings} start={ring} loading={!known} onOpen={onRing} />
         <GlassActions items={actions} loading={!known} />

@@ -365,3 +365,18 @@ export function rankOf(load) {
   const missed = MUSCLES.filter(m => !(load[m] > 0))
   return { worked, missed }
 }
+
+// The body in the six parts a person names when asked what they have not trained (Train's
+// "Legs not trained yet"), each by the muscles that make it. English names, i18n keys. Serratus,
+// hip flexors and shins are left out: work on them alone does not make a part trained.
+export const REGIONS = [
+  { name: 'Chest', muscles: ['chest'] },
+  { name: 'Back', muscles: ['upper-back', 'lower-back', 'trapezius'] },
+  { name: 'Shoulders', muscles: ['deltoids'] },
+  { name: 'Arms', muscles: ['biceps', 'triceps', 'forearm'] },
+  { name: 'Core', muscles: ['abs', 'obliques'] },
+  { name: 'Legs', muscles: ['gluteal', 'quadriceps', 'hamstring', 'adductors', 'calves'] },
+]
+
+/** The parts of REGIONS with no load on any of their muscles, in body order (their names). */
+export const untrainedRegions = load => REGIONS.filter(r => r.muscles.every(m => !(load[m] > 0))).map(r => r.name)

@@ -29,7 +29,7 @@ const under = (pathname, base) => pathname === base || pathname.startsWith(base 
 
 // The items for what is on screen (at most two), as MenuList items taking the sheet's close.
 function hereItems(pathname) {
-  if (pathname === '/train/routines') return [{ icon: 'clipboard', label: t('New routine'), act: close => { close(); addRoutine() } }]
+  if (pathname === '/train/routines') return [{ icon: 'clipboard', label: t('New routine'), act: close => addRoutine(to => closeThenNav(close, to)) }]
   if (under(pathname, '/train/exercises')) return [{ icon: 'dumbbell', label: t('New exercise'), act: close => { close(); customExSheet(null, ex => exerciseDetailSheet(ex)) } }]
   if (under(pathname, '/progress/body')) return [
     { icon: 'ruler', label: t('Log measurements'), act: close => { close(); measurementLogSheet() } },
