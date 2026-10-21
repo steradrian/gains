@@ -21,7 +21,7 @@ import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
 import History from './views/History.jsx'
 import Strength from './views/Strength.jsx'
-import Library from './views/Library.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 
 vi.mock('./lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn(), restOver: vi.fn() }))
@@ -105,13 +105,13 @@ describe('exercise ids this build does not know', () => {
     expect(exOr(UNK)).toMatchObject({ id: UNK, missing: true })
   })
 
-  it('Home, the plan, the routine editor and the Library draw it', () => {
+  it('Home, the plan, the routine editor and the Exercises page draw it', () => {
     seed()
     expect(render(<Home />).textContent).toContain('Push')
     render(<Plan view="routines" />)
     const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes>, '/train/routines/r1')
     expect(edit.textContent).toContain('Unknown exercise')
-    render(<Library />)
+    render(<ExercisesScreen />)
     render(<StructuralBalance />)
     expectKept(useStore.getState().S)
   })

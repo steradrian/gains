@@ -59,10 +59,10 @@ import Body from './views/Body.jsx'
 import Strength from './views/Strength.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
-import Library from './views/Library.jsx'
-import Muscles from './views/Muscles.jsx'
 // Train slice 4
 import CreateExercise from './views/train/exercises/CreateExercise.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
+import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
@@ -286,9 +286,9 @@ function Shell() {
               <Route path="/train/routines" element={<Plan view="routines" />} />
               <Route path="/train/routines/:id" element={<RoutineEdit />} />
               <Route path="/train/history" element={<History />} />
-              <Route path="/train/exercises" element={<Library />} />
-              <Route path="/train/exercises/muscles" element={<Muscles />} />
               {/* Train slice 4 routes */}
+              <Route path="/train/exercises" element={<ExercisesScreen />} />
+              <Route path="/train/exercises/muscles" element={<MuscleScreen />} />
               <Route path="/train/exercises/new" element={<CreateExercise />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
