@@ -2,8 +2,9 @@
 // swaps the running line for the new screen, finish-M2 the other for Ready.
 import { useStore } from '../../store/useStore.js'
 import { ActiveWorkout, StartChooser } from '../Workout.jsx'
+import WorkoutScreen from './WorkoutScreen.jsx'
 
 export default function WorkoutRoute() {
   const active = useStore(s => s.S.active)
-  return active ? <ActiveWorkout /> : <StartChooser />
+  return active ? <WorkoutScreen /> : <StartChooser />
 }

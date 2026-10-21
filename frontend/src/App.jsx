@@ -346,7 +346,8 @@ function Shell() {
       <SyncBanner onToday={shown.pathname === '/home'} />
       {/* The dock before the bar: it sits above the bar on screen, so it comes first in the
           reading and tab order too. */}
-      {docked ? <LiveDock /> : <RestTimer />}
+      {/* Workout core-M3: on the running workout its footer owns the rest (WorkoutScreen). */}
+      {docked ? <LiveDock /> : inWorkout ? null : <RestTimer />}
       {!noTabs && <TabBar tab={tab} lit={tabOf(shown.pathname) === tab} onPlus={() => openPlusSheet(shown.pathname)} />}
       {/* The global search's overlay and the history it lives in (lib/search/session.js). */}
       {authed && !needsMobileOnboarding && <SearchHost />}
