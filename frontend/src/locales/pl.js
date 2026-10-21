@@ -1,5 +1,14 @@
 // Polish UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // --- Today content kit: English until the translation pass ---
+  'Syncing': 'Syncing',
+  'Offline': 'Offline',
+  'Offline · {0} change waiting': 'Offline · {0} zmiana czeka',
+  'Offline · {0} changes waiting': { one: 'Offline · {0} zmiana czeka', few: 'Offline · {0} zmiany czekają', many: 'Offline · {0} zmian czeka', other: 'Offline · {0} zmiany czekają' },
+  'Not saved · Retry': 'Not saved · Retry',
+  'Water, {0} of {1} L': 'Water, {0} of {1} L',
+  'Add {0} ml of water': 'Add {0} ml of water',
+  'New best': 'New best',
   // --- fasting and barcode scanning: English until the translation pass ---
   '{0} days': { one: '{0} dzień', few: '{0} dni', many: '{0} dni' },
   '{0} fasts logged': { one: '{0} post zapisany', few: '{0} posty zapisane', many: '{0} postów zapisanych' },

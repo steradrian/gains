@@ -13,7 +13,7 @@
 //   · geometry snapped to .5 so it lands on pixel edges at 24px
 //
 // The nutrition glyphs (droplet, utensils, apple, cookingPot, scanBarcode, bookOpen, calendarCheck) and the
-// onboarding's (scanFace … hammer) are copied from Lucide (https://lucide.dev), ISC License, Copyright (c) 2022 Lucide Contributors, with
+// onboarding's (scanFace … hammer) and the welcome-back card's (hand) are copied from Lucide (https://lucide.dev), ISC License, Copyright (c) 2022 Lucide Contributors, with
 // portions (c) 2013-2022 Cole Bemis (Feather, MIT). Full text: NOTICE.md.
 
 // Lucide draws to the edge of a 24 box (2…22); this set lives in 3…21. Scaling by .9 around the
@@ -79,6 +79,7 @@ const P = {
   armchair: lucide(<><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3" /><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z" /><path d="M5 18v2" /><path d="M19 18v2" /></>),
   footprints: lucide(<><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z" /><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z" /><path d="M16 17h4" /><path d="M4 13h4" /></>),
   hammer: lucide(<><path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9" /><path d="m18 15 4-4" /><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" /></>),
+  hand: lucide(<path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 1 1 3 0m-3 6a1.5 1.5 0 0 0-3 0v2a7.5 7.5 0 0 0 15 0v-5a1.5 1.5 0 0 0-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 0 1 3 0v1m0 0V11m0-5.5a1.5 1.5 0 0 1 3 0v3m0 0V11" />),
   lightbulb: <><path d="M9.2 16.4a5.6 5.6 0 1 1 5.6 0v1.8H9.2Z" /><path d="M10 20.6h4" /></>,
 
   /* ---- routine glyphs: what a training day actually is ---- */

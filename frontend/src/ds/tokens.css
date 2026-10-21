@@ -131,6 +131,7 @@
   --g-ill-stage-lit: rgba(255,255,255,0.18);
   --g-field-stage: rgba(255,255,255,0.12);
   --g-ccard-on-shadow: 0 16px 30px -18px rgba(0,0,0,0.5);
+  --g-tile-now-shadow: 0 16px 30px -16px rgba(0,0,0,0.45);
   --g-code-bad: #FFC56B;
 }
 :root[data-theme="dark"] .g-root {

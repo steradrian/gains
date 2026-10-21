@@ -1,5 +1,14 @@
 // Russian UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // --- Today content kit: English until the translation pass ---
+  'Syncing': 'Syncing',
+  'Offline': 'Offline',
+  'Offline · {0} change waiting': 'Offline · {0} изменение ждёт',
+  'Offline · {0} changes waiting': { one: 'Offline · {0} изменение ждёт', few: 'Offline · {0} изменения ждут', many: 'Offline · {0} изменений ждут', other: 'Offline · {0} изменения ждут' },
+  'Not saved · Retry': 'Not saved · Retry',
+  'Water, {0} of {1} L': 'Water, {0} of {1} L',
+  'Add {0} ml of water': 'Add {0} ml of water',
+  'New best': 'New best',
   // --- fasting and barcode scanning: English until the translation pass ---
   '{0} days': { one: '{0} день', few: '{0} дня', many: '{0} дней' },
   '{0} fasts logged': { one: '{0} голодание записано', few: '{0} голодания записаны', many: '{0} голоданий записано' },
