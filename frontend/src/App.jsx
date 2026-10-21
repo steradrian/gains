@@ -24,6 +24,7 @@ import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
+import { editorRouteKey } from './lib/nutrition/editor-routes.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
 import { BRAND } from './brand.js'
@@ -246,7 +247,7 @@ function Shell() {
   const trans = useRouteTransition({
     location: shown,
     navType,
-    routeKey: inFlow ? 'onboarding' : shown.pathname,
+    routeKey: inFlow ? 'onboarding' : editorRouteKey(shown.pathname),
     enabled: !inFlow && !onAddDevice && !needsMobileOnboarding && !!(user || isGuest),
     reduced: reducedMotion(),
     // Read once, as the slide starts: the page left (the route layout effect below has not moved

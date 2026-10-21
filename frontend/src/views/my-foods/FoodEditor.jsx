@@ -13,7 +13,8 @@ import FoodEditorForm from './FoodEditorForm.jsx'
 
 // /food/my-foods/foods/:id, and /food/my-foods/foods/new (the same route: `new` is the id, so
 // replacing the address with the real id once the food exists does not remount the form and take
-// the keyboard away). Finds the food in the store, loads what the editor needs, and shows the
+// the keyboard away; App's route layer keys the three editor routes alike, see editorRouteKey in
+// lib/nutrition/editor-routes.js). Finds the food in the store, loads what the editor needs, and shows the
 // form; the form itself is FoodEditorForm.
 export default function FoodEditor() {
   const { id } = useParams()
