@@ -1,12 +1,17 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { needsHomeScreen, webPermission } from './permission.js'
+import { needsHomeScreen, pushSubscribed, webPermission } from './permission.js'
 
 describe('webPermission', () => {
-  it('on once allowed, off while not yet or no longer', () => {
-    expect(webPermission({ notification: { permission: 'granted' } })).toBe('on')
+  it('on once allowed with a push subscription, off while not yet or no longer', () => {
+    expect(webPermission({ notification: { permission: 'granted' }, subscribed: true })).toBe('on')
     expect(webPermission({ notification: { permission: 'default' } })).toBe('off')
     expect(webPermission({ notification: { permission: 'denied' } })).toBe('off')
+  })
+
+  it('off once Push is turned off in Settings: still allowed, but no subscription', () => {
+    expect(webPermission({ notification: { permission: 'granted' }, subscribed: false })).toBe('off')
+    expect(webPermission({ notification: { permission: 'granted' } })).toBe('off')
   })
 
   it('an iPhone browser tab is off until Gains is on the Home Screen', () => {
@@ -16,6 +21,17 @@ describe('webPermission', () => {
 
   it('a browser with no notifications at all is unsupported', () => {
     expect(webPermission({ notification: null, ios: false, installed: false })).toBe('unsupported')
+  })
+})
+
+describe('pushSubscribed', () => {
+  const nav = sub => ({ serviceWorker: { getRegistration: async () => ({ pushManager: { getSubscription: async () => sub } }) } })
+
+  it('reads the service worker\'s push subscription; none, no worker or a throw is not subscribed', async () => {
+    expect(await pushSubscribed(nav({ endpoint: 'https://push.example/1' }))).toBe(true)
+    expect(await pushSubscribed(nav(null))).toBe(false)
+    expect(await pushSubscribed({})).toBe(false)
+    expect(await pushSubscribed({ serviceWorker: { getRegistration: async () => { throw new Error('no') } } })).toBe(false)
   })
 })
 

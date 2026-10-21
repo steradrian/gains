@@ -13,9 +13,12 @@ const installed = (win = globalThis) => {
   try { return !!win?.matchMedia?.('(display-mode: standalone)')?.matches } catch { return false }
 }
 
-/** Pure, for the web: `notification` is the Notification API where push works here, else null. */
-export function webPermission({ notification, ios, installed: home }) {
-  if (notification) return notification.permission === 'granted' ? 'on' : 'off'
+/** Pure, for the web: `notification` is the Notification API where push works here, else null;
+ *  `subscribed`, whether this browser holds a push subscription. A page cannot hand a permission
+ *  back, so Settings' Push switch turns pushes off by dropping the subscription: allowed without
+ *  one is off, as the rest alert reads it (store/useUI.js restAlertsOn). */
+export function webPermission({ notification, subscribed = false, ios, installed: home }) {
+  if (notification) return notification.permission === 'granted' && subscribed ? 'on' : 'off'
   // iOS Safari has notifications only for a web app on the Home Screen.
   return ios && !home ? 'off' : 'unsupported'
 }
@@ -33,12 +36,22 @@ export async function readPermission() {
       return perm.display === 'granted' ? 'on' : 'off'
     } catch { return 'unsupported' }
   }
-  return webPermission({ notification: pushSupported() ? globalThis.Notification : null, ios: isIOS(), installed: installed() })
+  const notification = pushSupported() ? globalThis.Notification : null
+  return webPermission({ notification, subscribed: notification?.permission === 'granted' && await pushSubscribed(), ios: isIOS(), installed: installed() })
 }
 
-/** Asks the system where it still can: the phone app's prompt, or a browser that has not been
- *  asked yet (which also subscribes it to the server's pushes). Resolves whether it is on now;
- *  false when it could not ask (denied before, iOS not installed), and Reminders has to help. */
+/** Whether this browser holds a push subscription (Settings' Push switch is on). */
+export async function pushSubscribed(nav = globalThis.navigator) {
+  try {
+    const reg = await nav?.serviceWorker?.getRegistration?.()
+    return !!(await reg?.pushManager?.getSubscription?.())
+  } catch { return false }
+}
+
+/** Asks the system where it still can: the phone app's prompt, or a browser that was not asked
+ *  yet or was allowed and had Push turned off since (enablePush subscribes it to the server's
+ *  pushes, with no prompt when already allowed). Resolves whether it is on now; false when it
+ *  could not ask (denied before, iOS not installed), and Reminders has to help. */
 export async function requestPermission() {
   if (MOBILE) {
     try {
@@ -47,6 +60,6 @@ export async function requestPermission() {
       return perm.display === 'granted'
     } catch { return false }
   }
-  if (!pushSupported() || globalThis.Notification.permission !== 'default') return false
+  if (!pushSupported() || globalThis.Notification.permission === 'denied') return false
   try { await enablePush(); return true } catch { return false }
 }
