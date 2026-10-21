@@ -16,10 +16,10 @@ const toast = (m, opts) => useUI.getState().toast(m, opts)
 // "Yesterday's lunch [Log again]": the same meal logged to today, in one tap, when yesterday's
 // meal is there and every entry in it can be logged again (lib/nutrition/again.js). The entries
 // go in one write with uuids that come from the copy itself, so a second tap or a retry is the
-// same entries, and "Logged" is read off today's diary, not remembered here. `whileEmpty` (Home's
-// live row, Nutrition's diary): only while today's meal is still empty; once it has anything the
-// row goes, the toast's Undo still there, and focus moves to the meal's own control
-// (`data-meal-slot`: the diary's meal row, Home's meal pill). `inline`: a line inside that empty meal of the diary
+// same entries, and "Logged" is read off today's diary, not remembered here. `whileEmpty`
+// (Nutrition's diary): only while today's meal is still empty; once it has anything the row goes,
+// the toast's Undo still there, and focus moves to the meal's own control (`data-meal-slot`, the
+// diary's meal row). `inline`: a line inside that empty meal of the diary
 // (ux-redesign-tabs §4.2), not a row of its own.
 export default function YesterdayMealRow({ settings, meal, whileEmpty = false, inline = false }) {
   const today = todayISO()
