@@ -1641,3 +1641,32 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-pw-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; padding: 18px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
 .g-bs-note { margin: 10px 0 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
 .g-bs-foot .g-bs-note { margin: 0; }
+
+/* === Eat library m1: My foods (boards Ea4MyFoods to Ea4Empty) and its two drawers === */
+.g-mf-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.g-mf-list { margin-top: 10px; border-radius: 22px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
+.g-mf-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 16px; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.g-mf-row + .g-mf-row { border-top: 1px solid var(--glass-line); }
+.g-mf-row:focus-visible { outline-offset: -3px; }
+.g-mf-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-mf-body b { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-mf-body span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); overflow-wrap: anywhere; }
+.g-mf-star { width: 14px; height: 14px; margin-inline-end: 6px; vertical-align: -1px; }
+.g-mf-chev { width: 18px; height: 18px; stroke-width: 2.2; flex: none; }
+.g-mf-acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+.g-mf-acts .g-btn:last-child:not(:only-child) { grid-column: span 2; }
+.g-mf-lines { list-style: none; margin: 0; padding: 4px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
+.g-mf-lines li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.g-mf-lines li + li { border-top: 1px solid var(--line); }
+.g-mf-line-name { display: flex; flex-direction: column; min-width: 0; text-align: start; }
+.g-mf-line-name b { font: 600 16px/20px var(--font-sans); color: var(--text); overflow-wrap: anywhere; }
+.g-mf-line-name span { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-mf-line-kcal { flex: none; font: 600 15px/20px var(--font-sans); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.g-mf-total { margin-top: 16px; text-align: start; font-variant-numeric: tabular-nums; }
+.g-mf-total b { font: 700 28px/34px var(--font-sans); color: var(--text); }
+.g-mf-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.g-mf-macros div { display: flex; flex-direction: column; padding: 12px; border-radius: 16px; background: var(--surface-sunken); text-align: start; }
+.g-mf-macros b { font: 700 18px/22px var(--font-sans); color: var(--text); font-variant-numeric: tabular-nums; }
+.g-mf-macros span { font: 500 13px/16px var(--font-sans); color: var(--text-3); }
+.g-mf-sub { margin: 0 0 8px; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-mf-amount { margin: 12px 0 0; text-align: center; font: 600 17px/22px var(--font-sans); color: var(--text); font-variant-numeric: tabular-nums; }

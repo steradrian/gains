@@ -77,8 +77,7 @@ import TrainHub from './views/TrainHub.jsx'
 import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
-import MealCatalog from './views/MealCatalog.jsx'
-import Foods from './views/Foods.jsx'
+import MyFoods from './views/MyFoods.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
@@ -315,11 +314,11 @@ function Shell() {
               <Route path="/train/plans/:id" element={<PlanPreview />} />
               {/* Nutrition */}
               <Route path="/food" element={<FoodHub />} />
-              <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
-              <Route path="/food/recipes" element={<MealCatalog recipes />} />
-              <Route path="/food/foods" element={<Foods />} />
               <Route path="/food/goals" element={<NutritionGoals />} />
               <Route path="/food/fasting" element={<Fasting />} />
+              {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
+                  /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
+              <Route path="/food/my-foods" element={<MyFoods />} />
               {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
               <Route path="/progress" element={<ProgressHub />} />
               <Route path="/progress/body" element={<Body segment="weight" />} />

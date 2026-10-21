@@ -260,8 +260,10 @@ describe('saved meals in the diary picker', () => {
     await mount(<FoodPicker date={TODAY} meal={2} mealName="Dinner" />)
     await click(open('Lentil soup'))
     expect(putItems()).toHaveLength(0)
-    expect(lastSheet().querySelector('h3').textContent).toBe('Lentil soup')
-    await typeInto(lastSheet().querySelector('input[aria-label="Servings eaten"]'), '2')
+    expect(lastSheet().querySelector('h2').textContent).toBe('Lentil soup')
+    // The stepper moves in half servings: 1 to 2 is two taps.
+    await click(buttonIn(lastSheet(), 'More servings'))
+    await click(buttonIn(lastSheet(), 'More servings'))
     await click(buttonIn(lastSheet(), 'Log to Dinner'))
     expect(nt.state.days[TODAY].items.find(i => i.name === 'Lentil soup')).toMatchObject({ meal: 2, quantity: 2, is_recipe: true })
   })

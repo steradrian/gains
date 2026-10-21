@@ -114,8 +114,6 @@ export function per100Of(food) {
 
 /* ------------------------------------------------------------------ list --------------------- */
 
-export const SORTS = ['alpha', 'recent', 'most']
-
 const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''))
 
 /** A new array, in NutriTrace's three orders: A to Z; last used first (never used at the end, by
