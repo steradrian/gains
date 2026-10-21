@@ -8,8 +8,10 @@ import { closeThenNav, closeThenReplace } from '../lib/nav.js'
 import { bwSheet, customExSheet, exerciseDetailSheet, logPastWorkoutSheet, startOrResume } from '../sheets.jsx'
 import { addRoutine } from '../views/Plan.jsx'
 import { measurementLogSheet } from '../views/Measurements.jsx'
+import { pastWorkoutSheet } from '../views/shared/PastWorkoutSheet.jsx'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
+import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { waterButtons } from '../lib/nutrition/water.js'
@@ -39,11 +41,18 @@ function hereItems(pathname) {
   return []
 }
 
+// The past day a Day page shows (/:tab/day/:date, PR07 D1), or null on any other page.
+const DAY_PAGE = /^\/(?:home|train|food|me)\/day\/(\d{4}-\d{2}-\d{2})$/
+export const dayOfPath = pathname => DAY_PAGE.exec(pathname || '')?.[1] || null
+
 // Add to Today, the centre + (board T18Add): the same drawer on every tab. The tiles log what a day
 // is made of; the list under them holds what fits the screen you are on, then the rest. The chip
 // names the day and meal the logs go to (the shared selection when it opened) and changes the meal.
 // Log activity logs a past workout, to that day when it is one before today.
-function PlusSheet({ close, pathname }) {
+// On a Day page (`day`, board Sh1Add) everything goes to that day: Start workout gives way to Add
+// past workout (D1.6) and a line under the list says where the logs go; what only happens now
+// (a fast, a gym check-in) is left out.
+function PlusSheet({ close, pathname, day }) {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const live = workoutRunning(S)
@@ -66,20 +75,24 @@ function PlusSheet({ close, pathname }) {
       { icon: 'scanBarcode', label: t('Scan'), onClick: () => { close(); scanSheet({ ...where, onSearch: foodPickerSheet }) } },
       { icon: 'droplet', label: t('Water'), ariaLabel: waterAria(glasses[0], units), disabled: watering, onClick: () => water(glasses[0].ml) },
     ] : []),
-    { icon: 'scale', label: t('Weigh-in'), onClick: () => { close(); bwSheet({ date: target.date }) } },
-    {
-      icon: 'play', label: S.active ? t('Resume workout') : t('Start workout'), onClick: () => { close(); startOrResume() },
-      detail: live ? <Elapsed start={S.active.start} /> : null,
-    },
-    { icon: 'history', label: t('Log activity'), onClick: () => { close(); logPastWorkoutSheet(past ? { iso: target.date } : undefined) } },
+    { icon: 'scale', label: day ? t('Log weight') : t('Weigh-in'), onClick: () => { close(); bwSheet({ date: target.date }) } },
+    ...(day ? [
+      { icon: 'history', label: t('Add past workout'), onClick: () => { close(); pastWorkoutSheet(target.date) } },
+    ] : [
+      {
+        icon: 'play', label: S.active ? t('Resume workout') : t('Start workout'), onClick: () => { close(); startOrResume() },
+        detail: live ? <Elapsed start={S.active.start} /> : null,
+      },
+      { icon: 'history', label: t('Log activity'), onClick: () => { close(); logPastWorkoutSheet(past ? { iso: target.date } : undefined) } },
+    ]),
   ]
   const items = [
     ...hereItems(pathname).map(x => ({ icon: x.icon, label: x.label, onClick: () => x.act(close) })),
     food && settingOf(settings, 'showQuickCalories') && { icon: 'bolt', label: t('Quick kcal'), onClick: () => { close(); quickKcalSheet(where) } },
     // The first container is the Water tile; the others are a tap each here.
     ...glasses.slice(1).map(b => ({ key: 'water-' + b.id, icon: 'droplet', label: t('Water'), value: units.water(b.ml), ariaLabel: waterAria(b, units), disabled: watering, onClick: () => water(b.ml) })),
-    fast,
-    S.checkIn !== false && { icon: 'qr', label: t('Gym check-in'), onClick: () => closeThenNav(close, '/train/checkin') },
+    !day && fast,
+    !day && S.checkIn !== false && { icon: 'qr', label: t('Gym check-in'), onClick: () => closeThenNav(close, '/train/checkin') },
   ].filter(Boolean)
 
   return (
@@ -88,10 +101,20 @@ function PlusSheet({ close, pathname }) {
       onChip={food ? () => pickMealSheet(target) : undefined}>
       <ActionGrid size="lg" items={tiles} />
       {items.length > 0 && <MenuList items={items} label={t('More')} />}
+      {day && (
+        <p className="g-bs-note">
+          {t('Everything here goes to {0}.', dayName(target.date))}{food ? ' ' + t('Tap the chip to pick another meal.') : ''}
+        </p>
+      )}
     </BottomSheet>
   )
 }
 
-export function openPlusSheet(pathname) {
-  useUI.getState().openSheet(close => <PlusSheet close={close} pathname={pathname} />, { variant: 'ds' })
+/** The + sheet over `pathname`. On a Day page (or with `date`, a past day) it logs to that day:
+ *  the day becomes the shared selection every log reads (lib/nutrition/selection.js), as picking it
+ *  in Eat's date picker would. */
+export function openPlusSheet(pathname, { date = dayOfPath(pathname) } = {}) {
+  const day = date && date < todayISO() ? date : null
+  if (day) useDiarySelection.getState().setDate(day)
+  useUI.getState().openSheet(close => <PlusSheet close={close} pathname={pathname} day={day} />, { variant: 'ds' })
 }

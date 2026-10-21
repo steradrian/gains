@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { dayTargetOf, firstLogDay } from '../../lib/day-route.js'
 import { diaryIndexDays } from '../../lib/nutrition/diary-index.js'
 import { TABS, TAB_ROOT } from '../../lib/tab-route.js'
-import { Page } from '../../components/layout.jsx'
+import { back } from '../../lib/use-tab-nav.js'
 import { dayOverrideSheet } from '../../sheets.jsx'
 import { useTodayDate } from '../today/use-today.js'
+import DayScreen from './DayScreen.jsx'
 import { useDay } from './use-day.js'
 
 // /:tab/day/:date (PR07 D1). The address decides first (lib/day-route.js dayTargetOf): today goes
@@ -33,16 +34,13 @@ export default function DayPage() {
   return <DayView iso={date} tab={tab} />
 }
 
-// A stand-in that proves useDay until the Day screen (PR07 M2) replaces it.
+// The page itself: useDay's day drawn by DayScreen. Back goes down the tab's stack (where the day
+// was opened from), or on a cold entry to the tab's root. A notification whose target is gone
+// opens its day with what changed (`location.state.changed`); moving along the rail replaces the
+// address without it, so the line stays with the day it was about.
 function DayView({ iso, tab }) {
   const day = useDay(iso, tab)
-  return (
-    <Page title={day.title} sub={day.summary}>
-      <ul>
-        {day.workouts.map(w => (
-          <li key={w.id}><button type="button" onClick={() => day.openWorkout(w)}>{[w.name, w.line].filter(Boolean).join(' · ')}</button></li>
-        ))}
-      </ul>
-    </Page>
-  )
+  const location = useLocation()
+  const changed = typeof location.state?.changed === 'string' ? location.state.changed : null
+  return <DayScreen day={day} changed={changed} onBack={() => back()} />
 }

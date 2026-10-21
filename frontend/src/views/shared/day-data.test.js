@@ -58,7 +58,8 @@ describe('the state of a past day', () => {
     const d = day('2026-10-16', S(), diary([item('a', 'Oats', 0, 1600)]))
     expect(d.state).toBe('missed')
     expect(d.planned).toMatchObject({ ids: ['legs'], name: 'Legs' })
-    expect(d.planned.routines).toEqual([{ id: 'legs', name: 'Legs', sub: '5 exercises' }])
+    expect(d.planned.routines).toEqual([expect.objectContaining({ id: 'legs', name: 'Legs', sub: '5 exercises' })])
+    expect(d.planned.routines[0].images).toHaveLength(5)
     expect(d.summary).toBe('Legs missed · 1600 kcal · 2 days ago')
   })
 
@@ -74,8 +75,21 @@ describe('the state of a past day', () => {
     expect(d.weighIn).toEqual({ w: 81.4, unit: 'kg' })
   })
 
+  it('rest: names what the plan had next, within the week after', () => {
+    const d = day('2026-10-13', S({ bodyweight: [{ d: '2026-10-13', w: 81.4, t: 1 }] }), diary())
+    expect(d.next).toEqual({ name: 'Legs', iso: '2026-10-16', date: 'Fri 16 Oct' })
+    expect(day('2026-10-13', S({ week: {}, bodyweight: [{ d: '2026-10-13', w: 81.4, t: 1 }] }), diary()).next).toBeNull()
+    expect(day('2026-10-12').next).toBeNull()
+  })
+
   it('empty: nothing planned and nothing at all logged', () => {
     expect(day('2026-10-15', S(), diary()).state).toBe('empty')
+  })
+
+  it('empty: a rest day in the Plan says so, only when the plan has training days', () => {
+    expect(day('2026-10-15', S(), diary()).summary).toBe('Rest day in your Plan · 3 days ago')
+    expect(day('2026-10-15', S({ week: {} }), diary()).summary).toBe('3 days ago')
+    expect(day('2026-10-02', S(), diary()).summary).not.toContain('Rest day')
   })
 
   it('never empty while the food is still loading', () => {

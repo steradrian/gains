@@ -5,7 +5,7 @@ import { dateLocale, t } from '../../lib/i18n.js'
 import { isoWeekOf } from '../../lib/day-route.js'
 import { exOr } from '../../lib/exercises.js'
 import { exerciseNameText, exCount, fmtDate, fmtDaysAgo, isoOf, startOfWeek, weekStartOf } from '../../lib/format.js'
-import { setLabel, setsDone, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
+import { effectiveRoutines, setLabel, setsDone, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
 import { enabledMeasurementFields, measurementUnit, measurementValue, toMeasurementDisplay } from '../../lib/measurements.js'
 import { firstWorkoutDay, plusDays, seenOn } from '../../lib/missed-day.js'
 import { levelsOf, loadOfWorkouts, MUSCLE_NAME, rankOf } from '../../lib/muscles.js'
@@ -87,11 +87,26 @@ export function missedPlanOf(S, iso, today) {
   return day.kind === 'past-missed' ? day : null
 }
 
-/** What a missed day had planned: `{ ids, name, routines }`, each routine `{ id, name, sub }`. */
-const plannedOf = day => ({
+/** What a missed day had planned: `{ ids, name, routines }`, each routine `{ id, name, sub,
+ *  images }`, `images` the catalogue stills of its exercises (null where there is none). */
+const plannedOf = (S, day) => ({
   ids: day.ids, name: day.name,
-  routines: day.routines.map(r => ({ id: r.id, name: r.name, sub: exCount(r.ex?.length || 0) })),
+  routines: day.routines.map(r => ({ id: r.id, name: r.name, sub: exCount(r.ex?.length || 0), images: (r.ex || []).map(cfg => pictureOf(S, cfg.id)) })),
 })
+
+/** On a rest day, what the plan had next: `{ name, iso, date }` for the first of the seven days
+ *  after `iso` with routines planned (Sh1DayRest: "Pull A was next, Wed 14 Oct"), or null. */
+export function nextPlannedOf(S, iso) {
+  for (let k = 1; k <= 7; k++) {
+    const d = plusDays(iso, k)
+    const routines = effectiveRoutines(S, d)
+    if (routines.length) return { name: nameOf(routines), iso: d, date: fmtDate(d, true) }
+  }
+  return null
+}
+
+// Whether the weekly plan has any day to train, so a day without one is a rest day "in your Plan".
+const hasPlan = S => Object.values(S.week || {}).some(ids => [].concat(ids || []).length > 0)
 
 /* ----------------------------------------------------------------- the food -- */
 
@@ -176,12 +191,14 @@ export function dayStateOf(S, iso, today, { workouts, food, water, weighIn }) {
 }
 
 /** The line under the title: "Push A done · on target · 6 days ago", whichever parts the day has.
- *  `energy(kcal)` writes kcal in the person's unit. */
-export function summaryOf({ state, workouts, planned, food, ago, energy }) {
+ *  `energy(kcal)` writes kcal in the person's unit. A day with nothing logged says it was a "Rest
+ *  day in your Plan" only when the plan has training days and none on this one (`restInPlan`). */
+export function summaryOf({ state, workouts, planned, food, ago, energy, restInPlan = false }) {
   const training = state === 'logged' ? t('{0} done', workouts.map(w => w.name).join(' + '))
     : state === 'missed' ? t('{0} missed', planned.name)
       : state === 'skipped' ? t('{0} skipped', planned.name)
-        : state === 'rest' ? t('Rest day') : null
+        : state === 'rest' ? t('Rest day')
+          : restInPlan ? t('Rest day in your Plan') : null
   const eaten = food.status === 'ready' && food.logged ? (food.band === 'on' ? t('on target') : energy(food.kcal)) : null
   return [training, eaten, ago].filter(Boolean).join(' · ')
 }
@@ -189,12 +206,13 @@ export function summaryOf({ state, workouts, planned, food, ago, energy }) {
 /**
  * Everything the Day page shows for a past day `iso`, as data (no actions; useDay adds those):
  *
- *   { iso, title, ago, summary, state, rail, workouts, planned, food, water, weighIn,
+ *   { iso, title, ago, summary, state, rail, workouts, planned, next, food, water, weighIn,
  *     measurements, activities }
  *
  * `diary` is useDiaryDay(iso)'s answer, `first` the first log (lib/day-route.js firstLogDay),
  * `energy(kcal)` the person's energy unit. `planned` is the missed or skipped day's routines, else
- * null. `activities` are the diary's activity rows for the day (empty when it shows none).
+ * null; `next` is a rest day's next planned workout (nextPlannedOf), else null. `activities` are
+ * the diary's activity rows for the day (empty when it shows none).
  */
 export function dayOf({ S, iso, today, first, diary, energy = kcal => `${round(kcal)} kcal` }) {
   const workouts = (S.workouts || []).filter(w => workoutDay(w) === iso).map(w => workoutOf(S, w))
@@ -203,13 +221,14 @@ export function dayOf({ S, iso, today, first, diary, energy = kcal => `${round(k
   const water = waterOf(diary)
   const weighIn = weighInOf(S, iso)
   const state = dayStateOf(S, iso, today, { workouts, food, water, weighIn })
-  const planned = missed ? plannedOf(missed) : null
+  const planned = missed ? plannedOf(S, missed) : null
   const ago = fmtDaysAgo(iso, today)
+  const restInPlan = state === 'empty' && hasPlan(S) && !effectiveRoutines(S, iso).length
   return {
     iso, title: fmtDate(iso, true), ago, state,
-    summary: summaryOf({ state, workouts, planned, food, ago, energy }),
+    summary: summaryOf({ state, workouts, planned, food, ago, energy, restInPlan }),
     rail: dayRailOf(S, iso, today, first),
-    workouts, planned, food, water, weighIn,
+    workouts, planned, next: state === 'rest' ? nextPlannedOf(S, iso) : null, food, water, weighIn,
     measurements: measurementsOf(S, iso),
     activities: diary?.on ? diary.activityRows || [] : [],
   }

@@ -194,10 +194,10 @@ describe('isoWeekOf and targetPath', () => {
     expect(isoWeekOf('2027-01-04', 1)).toBe('2027-W01')
   })
 
-  it('opens a route as it is; a day in History and a week in Train until the Day and Week pages land', () => {
+  it('opens a route as it is, a day on the Day page and a week on the Week page, under the tab', () => {
     expect(targetPath({ route: '/progress/strength?ex=0025' }, 'train')).toBe('/progress/strength?ex=0025')
-    expect(targetPath({ day: '2026-10-12', changed: 'x' }, 'home')).toBe('/train/history')
-    expect(targetPath({ week: '2026-W42' }, 'food')).toBe('/train')
+    expect(targetPath({ day: '2026-10-12', changed: 'x' }, 'home')).toBe('/home/day/2026-10-12')
+    expect(targetPath({ week: '2026-W42' }, 'food')).toBe('/food/week/2026-W42')
     expect(targetPath(null)).toBeNull()
   })
 })
