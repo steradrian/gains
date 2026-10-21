@@ -436,11 +436,28 @@ export const useUI = create((set, get) => ({
     const wk = get().work
     if (!wk) return
     const startedAt = wk.endsAt - wk.total * 1000
-    const elapsed = Math.max(1, Math.min(wk.total + (wk.overtime ? MAX_WORK_OVERTIME_SEC : 0), Math.round((Date.now() - startedAt) / 1000)))
+    // A paused hold has held what its countdown says; its endsAt is the one from before the pause.
+    const elapsed = wk.paused ? Math.max(1, wk.total - wk.left)
+      : Math.max(1, Math.min(wk.total + (wk.overtime ? MAX_WORK_OVERTIME_SEC : 0), Math.round((Date.now() - startedAt) / 1000)))
     const done = workDone || ownerDone(wk)
     vibrate(30)
     get().stopWork()
     if (done) done(elapsed)
+  },
+  // Workout core-M3: the timed hold's Pause (W1.41). The countdown stops where it is; Resume
+  // runs it on from there with a fresh end time, the way a paused rest resumes.
+  pauseWork() {
+    const wk = get().work
+    if (!wk || wk.paused) return
+    stopWorkTicking()
+    set({ work: { ...wk, left: Math.max(0, Math.round((wk.endsAt - Date.now()) / 1000)), paused: true } })
+  },
+  resumeWork() {
+    const wk = get().work
+    if (!wk?.paused) return
+    const { paused, ...rest } = wk
+    set({ work: { ...rest, endsAt: Date.now() + Math.max(0, wk.left) * 1000 } })
+    runWork(set, get)
   },
   // A rest is starting while a hold runs that is not the one being ticked — a set finished on
   // another row, or on another exercise, which the List layout puts one tap away. The hold cannot

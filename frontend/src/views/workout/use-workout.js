@@ -33,7 +33,7 @@ import { partOf, partsOf } from '../../lib/workout-parts.js'
 import { beatsBest } from '../../lib/workout-finish.js'
 import { holdRow, setHoldRow, setFieldAt, deleteActiveSet, copyActiveSet, unpairAt as unpairEntryAt } from './workout-actions.js'
 import { addExerciseSheet, exerciseRestSheet } from './drawers.js'
-import { buildWorkoutView, supersetLabels } from './workout-view.js'
+import { buildWorkoutView, extendWorkoutView, supersetLabels } from './workout-view.js'
 
 // A key that finishes a hold early only once the hold has run past its first moments.
 export const HOLD_KEY_GRACE_MS = 1500
@@ -77,6 +77,15 @@ export function useWorkout(legacy = null) {
   const [events, setEvents] = useState({ takeover: null, newBest: null })
   const raise = (kind, ev) => setEvents(prev => ({ ...prev, [kind]: { ...ev, id: Date.now() + Math.random() } }))
   const take = kind => setEvents(prev => (prev[kind] ? { ...prev, [kind]: null } : prev))
+  // Workout core-M3: the last exercise on screen that still had a set to do, so a finished one
+  // looked back at offers "Back to Cable fly · set 2" (W1.36, the view's review.back).
+  const [origin, setOrigin] = useState(null)
+  const heroIdx = entries.length ? Math.min(Math.max(Number.isInteger(A?.cur) ? A.cur : 0, 0), entries.length - 1) : -1
+  const heroOpen = heroIdx >= 0 && entries[heroIdx].sets.some(s => !s.done)
+  const heroId = heroIdx >= 0 ? entries[heroIdx].id : null
+  useEffect(() => {
+    if (!legacy && heroOpen) setOrigin(o => (o?.idx === heroIdx && o?.id === heroId ? o : { idx: heroIdx, id: heroId }))
+  }, [heroIdx, heroId, heroOpen])
 
   const progressHighWater = useRef(entries.map(e => e.sets.filter(s => s.done).length))
   // The marks are index-keyed: re-baseline whenever the list length changes.
@@ -414,7 +423,8 @@ export function useWorkout(legacy = null) {
       }
     }, true)
     if (editing) return
-    if (workoutDone) workoutCompleteSheet()
+    // The new screen shows every set done on itself (W1.9); only the old one asks in a sheet.
+    if (workoutDone && legacy) workoutCompleteSheet()
     else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
     else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))
 
@@ -605,9 +615,9 @@ export function useWorkout(legacy = null) {
   // The old screen renders its own DOM from the store; only the new screen needs the model.
   // Offline: how many changes wait for the server (null when the device cannot say).
   const offline = sync?.offline ? { offline: true, waiting: useStore.getState().unsyncedChanges?.()?.count ?? null } : null
-  const view = A && !legacy ? buildWorkoutView({
+  const view = A && !legacy ? extendWorkoutView(buildWorkoutView({
     S, A, timer: ui.timer, work: ui.work, sync: offline,
     events: { ...events, bests: bestedIn(A.id).size }, now: Date.now(),
-  }) : null
+  }), { S, A, work: ui.work, origin }) : null
   return { actions, view }
 }
