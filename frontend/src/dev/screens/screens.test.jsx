@@ -176,7 +176,7 @@ describe('the screens gallery', () => {
       expect(h.querySelector('.g-sempty-btn')).toBeNull()
     })
     await check('N1.2', h => {
-      expect(h.querySelector('.g-ssec-line').textContent).toBe('All readNothing unread')
+      expect(h.querySelector('.g-ssec-line')).toBeNull()
       expect(h.querySelector('.g-nrow-dot')).toBeNull()
     })
     await check('N1.3', h => {

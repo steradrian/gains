@@ -61,7 +61,7 @@ describe('Notifications (the route)', () => {
     expect(useStore.getState().S.notifRead.at).toBeGreaterThan(0)
     expect(rows()).toHaveLength(before)
     expect(view.host.querySelector('.g-nrow-dot')).toBeNull()
-    expect(view.host.querySelector('.g-ssec-line').textContent).toBe('All readNothing unread')
+    expect(view.host.querySelector('.g-ssec-line')).toBeNull()
   })
 
   it('nothing logged on the web: the empty scene, with no reminder it could never show', () => {

@@ -3524,12 +3524,9 @@ export default {
   'Your {0} reminder.': 'Your {0} reminder.',
   // --- Shared: the notifications page, English until the translation pass ---
   '{0} new': '{0} new',
-  'All read': 'All read',
-  'Kept for 30 days. The reminders you set live in {0}.': 'Kept for 30 days. The reminders you set live in {0}.',
-  'Me › Reminders': 'Me › Reminders',
+  'Kept for 30 days.': 'Kept for 30 days.',
   'Milestone': 'Milestone',
   'Notifications are off on this phone': 'Notifications are off on this phone',
-  'Nothing unread': 'Nothing unread',
   'On iPhone, add Gains to the Home Screen first.': 'On iPhone, add Gains to the Home Screen first.',
   'Reminder settings': 'Reminder settings',
   'Reminder you set': 'Reminder you set',
