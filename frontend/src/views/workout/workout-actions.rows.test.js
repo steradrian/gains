@@ -91,9 +91,7 @@ describe('a hold running while rows move', () => {
     expect(sets()).toEqual([{ sec: 30, w: 0, done: false }])
   })
 
-  // old :173 needs the hook's startTimed and finishWorkEarly: the row it writes to after a
-  // copy and a removal above it
-  it.todo('writes what it held to its own row after a set above it was copied or removed (old Workout.swipe.test.jsx:173): the real hold, in use-workout.test.jsx')
+  // old :173 runs the real hold: use-workout.test.jsx 'a hold writes what it held to its own row...'
 })
 
 describe('a timed per-side hold (an L row and an R row)', () => {

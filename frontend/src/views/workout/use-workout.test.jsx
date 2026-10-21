@@ -13,6 +13,7 @@ import { workoutCompleteSheet } from '../../sheets.jsx'
 import { addExerciseSheet, exerciseRestSheet } from './drawers.js'
 import { exerciseSettingsSheet } from './exercise-drawers.jsx'
 import { resetBested, useWorkout } from './use-workout.js'
+import { copyActiveSet, deleteActiveSet, moveEntryWithinPart } from './workout-actions.js'
 import { PAST_BENCH, active, exercise, lift, mountHook, resetTimers, seed, stretch, timed } from './test-fixtures.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), chime: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn(), endTone: vi.fn() }))
@@ -637,5 +638,53 @@ describe('the cool-down offer', () => {
     start([lift('0025', 80, 8, 1), stretch()], { active: { skipped: { cooldown: true } } })
     tick(0, 0)
     expect(view().offer).toBeNull()
+  })
+})
+
+// guard-M2d: what the hook keeps by index follows a reorder from the map.
+describe('the hook after a reorder (ported from views/Workout.test.jsx:2834 and Workout.swipe.test.jsx:173)', () => {
+  const sets = (id, dones, extra = {}) => ({ ...exercise(id, dones), ...extra })
+
+  it('a member swap keeps each exercise\'s counted sets with it, so its next tick still counts', () => {
+    // pull-up has two sets counted, leg-raise none. After the swap the leg raise's first tick is
+    // new work and moves on through the superset; read against the pull-up's two it would be a
+    // re-check and go nowhere.
+    start([
+      sets('bench', [true]),
+      sets('pull-up', [true, true, false], { sg: 'm' }),
+      sets('leg-raise', [false, false, false], { sg: 'm' }),
+      sets('plank', [false, false, false], { sg: 'm' }),
+    ], { cur: 1 })
+    act(() => { moveEntryWithinPart(1, 2) })
+    expect(active().entries.map(e => e.id)).toEqual(['bench', 'leg-raise', 'pull-up', 'plank'])
+    expect(active().cur).toBe(1)
+    tick(1, 0)
+    expect(active().entries[1].sets.filter(s => s.done)).toHaveLength(1)
+    expect(active().cur).toBe(2)
+  })
+
+  it('a hold writes what it held to its own row after a set above it was copied or removed', () => {
+    start([timed('timed-plank', 50, 3)], { legacy: LEGACY })
+    act(() => actions().startTimed(0, 2))
+    expect(useUI.getState().work).not.toBeNull()
+    act(() => { copyActiveSet(0, 0) })
+    act(() => { deleteActiveSet(0, 1) })
+    act(() => useUI.getState().finishWorkEarly())
+    const rows = active().entries[0].sets
+    expect(rows).toHaveLength(3)
+    expect(rows[2].done).toBe(true)
+    expect(rows[2].sec).toBeLessThanOrEqual(50)
+    expect(rows[0].done).toBe(false)
+    expect(rows[1].done).toBe(false)
+  })
+
+  it('a hold writes to its own exercise after the exercises were reordered', () => {
+    start([timed('timed-plank', 30, 1), lift('0025', 80, 8, 1)], { legacy: LEGACY })
+    act(() => actions().startTimed(0, 0))
+    act(() => { moveEntryWithinPart(0, 1) })
+    expect(active().entries[1].id).toBe('timed-plank')
+    act(() => useUI.getState().finishWorkEarly())
+    expect(active().entries[1].sets[0].done).toBe(true)
+    expect(active().entries[0].sets[0].done).toBe(false)
   })
 })

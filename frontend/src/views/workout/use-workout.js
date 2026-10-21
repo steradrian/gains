@@ -27,7 +27,7 @@ import { nextOpenSet, workoutKeyAction } from '../../lib/workout-keys.js'
 import { partOf, partsOf } from '../../lib/workout-parts.js'
 import { beatsBest } from '../../lib/workout-finish.js'
 import { holdRow, setHoldRow, setFieldAt, deleteActiveSet, copyActiveSet, unpairAt as unpairEntryAt } from './workout-actions.js'
-import { addWarmupAt, setNoProgAt, routineKeepsOut as keepsOut, routineUpdateAt } from './workout-actions.js'
+import { onEntriesReordered, addWarmupAt, setNoProgAt, routineKeepsOut as keepsOut, routineUpdateAt } from './workout-actions.js'
 import { addExerciseSheet, exerciseRestSheet } from './drawers.js'
 import { finishSheet } from './finish-drawers.js'
 import { exerciseSettingsSheet } from './exercise-drawers.jsx'
@@ -89,6 +89,10 @@ export function useWorkout(legacy = null) {
   useEffect(() => {
     progressHighWater.current = (useStore.getState().S.active?.entries || []).map(e => e.sets.filter(s => s.done).length)
   }, [entries.length])
+  // A reorder from the map brings the marks along with their exercises.
+  useEffect(() => onEntriesReordered(indices => {
+    progressHighWater.current = indices.map(index => progressHighWater.current[index])
+  }), [])
   // A removed set takes its tick with it: the mark comes down to what is ticked now.
   const setCounts = entries.map(e => e.sets.length)
   const lastCounts = useRef(setCounts)
@@ -261,10 +265,11 @@ export function useWorkout(legacy = null) {
   }
   // What a hold hands back to its row: on its end, its Done, or a rest displacing it.
   const holdDone = (owner, plan, onFocusProgress) => (elapsed, { abandoned = false, chimed = false } = {}) => {
-    const { idx } = owner
-    // The row may have moved while the hold ran: holdRow() is where it is now.
+    // The row may have moved while the hold ran (a set copied or removed above it, its exercise
+    // reordered): holdRow() is where it is now.
     const held = holdRow()
     const mine = held?.owner === owner
+    const idx = mine ? held.idx : owner.idx
     const i = mine ? held.i : owner.i
     if (mine) setHoldRow(null)
     // A hold a rest displaced keeps its seconds and nothing else, and its plan is put aside.

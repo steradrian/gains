@@ -17,7 +17,7 @@ import { t, exerciseNameFor } from '../../lib/i18n.js'
 import { stepWeight } from '../../lib/progression.js'
 import { stepOwned } from '../../lib/dumbbells.js'
 import { isWarmupRow, isFailureSet, toggleFailure, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, setSideField, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../../lib/workout-model.js'
-import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit } from '../../lib/active-workout-order.js'
+import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, moveActiveWorkoutEntry } from '../../lib/active-workout-order.js'
 import { partOf, normaliseParts } from '../../lib/workout-parts.js'
 // Workout drawers-M2
 import { modeOf, insertWarmupRow, barFloor } from '../../lib/history.js'
@@ -319,34 +319,65 @@ export function undoRemoveExercise(token) {
   return true
 }
 
+/* Whoever keeps something by entry index (the hook's counted sets) hears each reorder as the
+   permutation `indices` (new position -> old index) and moves it along. */
+const reorderListeners = new Set()
+export const onEntriesReordered = fn => { reorderListeners.add(fn); return () => { reorderListeners.delete(fn) } }
+
 /**
- * Moves the exercise (its superset with it) at `from` to where `to` is, one unit at a time, never
- * across a part: a warm-up stays among the warm-ups (lib/workout-parts.js). `cur` stays on the
- * exercise it was on. Returns the index the exercise landed on, or null when it could not move.
+ * Moves the exercise at `from` to where `to` is, never across a part: a warm-up stays among the
+ * warm-ups (lib/workout-parts.js). Inside a superset a member swaps with its neighbour member
+ * (#377) and the round marker keeps its position, as it must not be carried across; at the
+ * superset's edge, and for a lone exercise, the whole unit moves a step. `cur` stays on the
+ * exercise it was on after a unit move. A running rest follows its exercise (timer.forIdx), and
+ * so does the hook's count of ticked sets. Returns the index the exercise landed on, or null.
  */
 export function moveEntryWithinPart(from, to) {
   let landed = null
+  let indices = null
   update(s => {
     const A = s.active
     const entry = A?.entries?.[from]
     if (!entry || to === from || to < 0 || to >= A.entries.length) return
     const part = partOf(entry)
     const dir = to > from ? 1 : -1
-    const curEntry = A.entries[A.cur]
+    const before = [...A.entries]
     let at = from
     for (let guard = 0; guard < A.entries.length; guard++) {
-      const units = supersetUnits(A.entries)
-      const unit = units.find(u => u.includes(at))
+      const unit = supersetUnits(A.entries).find(u => u.includes(at))
+      if (unit.length > 1 && unit.includes(at + dir)) {
+        if (dir > 0 ? at >= to : at <= to) break
+        if (!moveActiveWorkoutEntry(A, at, dir)) break
+        at += dir
+        continue
+      }
       const edge = dir > 0 ? unit[unit.length - 1] : unit[0]
       if (dir > 0 ? edge >= to : edge <= to) break
       const neighbour = A.entries[edge + dir]
       if (!neighbour || partOf(neighbour) !== part || !canMoveActiveWorkoutUnit(A, at, dir)) break
+      const curEntry = A.entries[A.cur]
       moveActiveWorkoutUnit(A, at, dir)
+      A.cur = Math.max(0, A.entries.indexOf(curEntry))
       at = A.entries.indexOf(entry)
     }
-    A.cur = Math.max(0, A.entries.indexOf(curEntry))
-    if (at !== from) landed = at
+    if (at === from) return
+    landed = at
+    indices = A.entries.map(e => before.indexOf(e))
   })
+  if (indices) {
+    const rest = useUI.getState().timer
+    if (rest && rest.forIdx != null) {
+      const forIdx = indices.indexOf(rest.forIdx)
+      if (forIdx >= 0 && forIdx !== rest.forIdx) setUI({ timer: { ...rest, forIdx } })
+    }
+    // The running hold writes to a row by its exercise's index too.
+    const ex = indices.indexOf(holdAt?.idx)
+    if (holdAt && ex >= 0) holdAt = { ...holdAt, idx: ex }
+    const wk = useUI.getState().work
+    const wkIdx = indices.indexOf(wk?.owner?.idx)
+    if (wk?.owner && wkIdx >= 0) setUI({ work: { ...wk, owner: { ...wk.owner, idx: wkIdx } } })
+    reorderListeners.forEach(fn => fn(indices))
+  }
   return landed
 }
 
