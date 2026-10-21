@@ -9,6 +9,7 @@ import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { nav } from './lib/nav.js'
+import { dsAccentFor } from './lib/ds-accent.js'
 import { SLIDE_MS } from './lib/route-transition.js'
 
 vi.mock('./lib/sound.js', async importOriginal => ({ ...(await importOriginal()), setPlayOnSilent: vi.fn(), setVibrate: vi.fn(), setAlarmBuzzer: vi.fn() }))
@@ -139,6 +140,19 @@ describe('page slides', () => {
     await finish()
     expect(document.querySelector('.g-app-stage')).toBe(stage)
     expect(stage.hasAttribute('data-pushed')).toBe(false)
+  })
+
+  it('every root tab sits on the stage art in the person\'s accent', async () => {
+    await launch('#/train')
+    {
+      const stage = document.querySelector('.g-app-stage')
+      expect(stage.querySelector('.g-stage-art')).not.toBeNull()
+      expect(stage.querySelectorAll('.g-stage-glow')).toHaveLength(2)
+      expect(stage.querySelector('.g-stage-rings')).not.toBeNull()
+      expect(stage.getAttribute('data-accent')).toBe(dsAccentFor(useStore.getState().S))
+      expect(document.querySelector('.g-route .g-stage')).not.toBeNull()
+      expect(stage.hasAttribute('data-pushed')).toBe(false)
+    }
   })
 
   it('does not slide between root tabs', async () => {

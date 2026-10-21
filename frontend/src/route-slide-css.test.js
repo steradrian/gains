@@ -36,6 +36,12 @@ describe('page slide CSS', () => {
     expect(frames('g-route-under')).toMatch(/-30%/)
   })
 
+  it('the shared stage shows: the body\'s ground steps aside, and the stage carries the art', () => {
+    expect(ds).toMatch(/body:has\(\.g-route\[data-shared\] \.g-stage\) \{ background: transparent; \}/)
+    expect(ruleFor('.g-app-stage')).toMatch(/position:\s*fixed/)
+    expect(ruleFor('.g-app-stage')).toMatch(/z-index:\s*-1/)
+  })
+
   it('reduced motion is an opacity cross-fade and nothing else', () => {
     const a = ruleFor(':root .g-route[data-slide="fade"][data-route="in"]')
     const b = ruleFor(':root .g-route[data-slide="fade"][data-route="out"]')

@@ -745,7 +745,7 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
 .g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
 .g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
 .g-sempty-btn .g-icon { width: 20px; height: 20px; }
 .g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 
@@ -1689,6 +1689,9 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
    content's slide. */
 .g-app-stage { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; display: none; color: var(--on-stage); background: var(--accent-stage-end); }
 body:has(.g-route[data-shared] .g-stage) .g-app-stage { display: block; }
+/* The body's own ground (index.css) paints over a z-index -1 layer, so it steps aside while the
+   stage is up; the canvas (html) stays under the stage. */
+body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-app-stage .g-stage-glow, .g-app-stage .g-stage-rings { transition: opacity 400ms var(--ease, cubic-bezier(.32, .72, 0, 1)); }
 .g-app-stage[data-pushed] .g-stage-glow-a { opacity: .25; }
 .g-app-stage[data-pushed] .g-stage-glow-b { opacity: .14; }
