@@ -528,12 +528,6 @@ export const supersetSheet = (meta, onSave) => ui().openSheet(close => <Superset
    already computed via applyIntensifierPlan; an unplanned straight set can still grow one live
    by tapping "+ Drop"/"+ Burst", which appends with the same suggested-next-value math. */
 
-// The centre sheet that popped after the last set is gone (Workout finish M2): the screen's
-// "Every set done" state (W1.9) says it, and its Finish opens the Finish drawer (W1.10). The name
-// stays, doing nothing, only while views/workout/use-workout.js and drawers.js still call it;
-// core-M3 and drawers-M3 take those calls out.
-export const workoutCompleteSheet = () => {}
-
 export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
   // A save decision left open after the editor already closed (a second prompt from a route
   // exit that raced the first save) has nothing to save or delete: it only finishes leaving.

@@ -17,7 +17,7 @@ import { t, tn } from '../../lib/i18n.js'
 import { api, beacon } from '../../lib/api.js'
 import { pyramidRestFor } from '../../lib/pyramid.js'
 import { nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from '../../lib/supersetFlow.js'
-import { workoutCompleteSheet, swapActiveWorkoutExercise } from '../../sheets.jsx'
+import { swapActiveWorkoutExercise } from '../../sheets.jsx'
 import { workoutControls } from '../../lib/workout-controls.js'
 import { sessionNoProg, setSessionNoProg } from '../../lib/session-noprog.js'
 import { markAllSetsDone } from '../../lib/backfill.js'
@@ -29,6 +29,7 @@ import { beatsBest } from '../../lib/workout-finish.js'
 import { holdRow, setHoldRow, setFieldAt, deleteActiveSet, copyActiveSet, unpairAt as unpairEntryAt } from './workout-actions.js'
 import { addWarmupAt, setNoProgAt, routineKeepsOut as keepsOut, routineUpdateAt } from './workout-actions.js'
 import { addExerciseSheet, exerciseRestSheet } from './drawers.js'
+import { finishSheet } from './finish-drawers.js'
 import { exerciseSettingsSheet } from './exercise-drawers.jsx'
 import { buildWorkoutView, extendWorkoutView, supersetLabels } from './workout-view.js'
 
@@ -66,7 +67,6 @@ export function useWorkout(legacy = null) {
   // A past workout has no rest to time; the work timer for timed sets stays.
   const startRest = (A?.backfill || editing) ? () => {} : liveRest
   const entries = A?.entries || []
-  const units = supersetUnits(entries)
   const listMode = !!legacy?.listMode
   const focusMode = !!legacy?.focusMode
   const shift = force => legacy?.onShift?.(force)
@@ -236,7 +236,7 @@ export function useWorkout(legacy = null) {
     const fresh = useStore.getState().S.active
     // Ticked here rather than row by row, so a re-tick is not read as new progress.
     if (fresh) progressHighWater.current = fresh.entries.map(e => e.sets.filter(s => s.done).length)
-    workoutCompleteSheet()
+    finishSheet()
   }
   // Adds an exercise after the current unit (or `afterIdx`), into `part` when given
   // (drawers.js addExerciseSheet).
@@ -325,7 +325,7 @@ export function useWorkout(legacy = null) {
     if (typeof document !== 'undefined') { const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) a.blur?.() }
     const m = modeAt(idx)
     const cardioEntry = m === 'cardio'
-    let exJustDone = false, workoutDone = false, checked = false
+    let exJustDone = false, checked = false
     update(s => {
       const e = s.active.entries[idx]
       // A per-side tick flips just that side; toggleSide recomputes the row's own `done`.
@@ -337,10 +337,6 @@ export function useWorkout(legacy = null) {
       if (checked && e.sets[i].planSec != null) delete e.sets[i].planSec
       if (e.sets[i].done && !editing) {
         if (!quiet) { beep(S.sound, 1040, 0.12); vibrate(30) }
-        // The unit that owns the ticked set, not the marked one.
-        const ownUnit = unitOf(units, idx)
-        const unitDone = ownUnit.every(ui2 => (ui2 === idx ? e : entries[ui2]).sets.every(x => x.done))
-        if (unitDone) workoutDone = !nextUnfinishedUnit(entries, supersetUnits(entries), idx)
         if (e.sets.every(x => x.done)) {
           exJustDone = true
           // topW now; exWeights only at the finish, so a typo never becomes the remembered best.
@@ -349,9 +345,8 @@ export function useWorkout(legacy = null) {
       }
     }, true)
     if (editing) return
-    // The new screen shows every set done on itself (W1.9); only the old one asks in a sheet.
-    if (workoutDone && legacy) workoutCompleteSheet()
-    else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
+    // Every set done shows on the screen itself (W1.9), so there is no sheet for it.
+    if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
     else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))
 
     // Only progress beyond this exercise's high-water mark may navigate or change rest.

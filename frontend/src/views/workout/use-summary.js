@@ -37,15 +37,17 @@ const repsText = r => tn('{0} rep', '{0} reps', r)
 export function trainedLine(sets, unit, firstTime = false) {
   const n = sets.length
   if (!n) return ''
+  // A set taken to failure keeps its "F" after the reps ("8 F"), so a failure set never merges with plain ones.
+  const rep = s => s.r + (s.f ? ' ' + t('F') : '')
   const ws = new Set(sets.map(s => s.w))
-  if (ws.size > 1) return sets.map(s => (s.w > 0 ? fmtNum(s.w) + ' × ' : '') + s.r).join(' · ')
+  if (ws.size > 1) return sets.map(s => (s.w > 0 ? fmtNum(s.w) + ' × ' : '') + rep(s)).join(' · ')
   const w0 = sets[0].w
   const load = w0 > 0 ? kg(w0, unit) : null
   if (firstTime) return load ? tn('{0} set at {1}', '{0} sets at {1}', n, load) : tn('{0} set', '{0} sets', n)
-  if (n === 1) return load ? load + ' × ' + sets[0].r : repsText(sets[0].r)
-  const rs = new Set(sets.map(s => s.r))
-  if (rs.size === 1) return (load ? load + ' × ' + sets[0].r : repsText(sets[0].r)) + ', ' + tn('{0} set', '{0} sets', n)
-  return (load ? load + ', ' : '') + sets.map(s => s.r).join(' · ')
+  if (n === 1) return load ? load + ' × ' + rep(sets[0]) : sets[0].f ? rep(sets[0]) : repsText(sets[0].r)
+  const rs = new Set(sets.map(rep))
+  if (rs.size === 1) return (load ? load + ' × ' + rep(sets[0]) : sets[0].f ? rep(sets[0]) : repsText(sets[0].r)) + ', ' + tn('{0} set', '{0} sets', n)
+  return (load ? load + ', ' : '') + sets.map(rep).join(' · ')
 }
 
 const TREND = { up: () => t('up on last time'), same: () => t('same'), down: () => t('down'), first: () => t('first time') }

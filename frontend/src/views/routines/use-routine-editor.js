@@ -15,7 +15,7 @@ import { usualDuration } from '../../lib/train-stats.js'
 import { leaveTo } from '../../lib/use-tab-nav.js'
 import { workoutControls } from '../../lib/workout-controls.js'
 import { normaliseParts, partOf } from '../../lib/workout-parts.js'
-import { exConfigSheet, exercisePicker, replaceExerciseSheet, routineMenuSheet, startFlow, supersetSheet } from '../../sheets.jsx'
+import { exConfigSheet, exercisePicker, replaceExerciseSheet, routineMenuSheet, readyOrStart, supersetSheet } from '../../sheets.jsx'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { musclesLine } from '../train/use-train.js'
@@ -338,6 +338,6 @@ export function useRoutineEditor() {
     drop: (from, slot) => edit(ex => { reorderRoutineUnit(ex, from, slot) }),
     toggleSuperset, editSuperset, rename,
     menu: () => routineMenuSheet(id),
-    start: () => (S.active ? nav('/train/workout') : startFlow([id])),
+    start: () => (S.active ? nav('/train/workout') : readyOrStart([id])),
   }
 }

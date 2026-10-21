@@ -111,6 +111,14 @@ describe('trainedLine', () => {
     expect(trainedLine([{ w: 24, r: 8 }, { w: 24, r: 8 }, { w: 24, r: 6 }], 'kg', true)).toBe('3 sets at 24 kg')
     expect(trainedLine([], 'kg')).toBe('')
   })
+
+  it('marks a set taken to failure with F', () => {
+    expect(trainedLine([{ w: 80, r: 8 }, { w: 80, r: 8 }, { w: 80, r: 6, f: true }], 'kg')).toBe('80 kg, 8 · 8 · 6 F')
+    expect(trainedLine([{ w: 80, r: 6, f: true }], 'kg')).toBe('80 kg × 6 F')
+    expect(trainedLine([{ w: 80, r: 8 }, { w: 75, r: 6, f: true }], 'kg')).toBe('80 × 8 · 75 × 6 F')
+    expect(trainedLine([{ w: 30, r: 12, f: true }, { w: 30, r: 12, f: true }], 'kg')).toBe('30 kg × 12 F, 2 sets')
+    expect(trainedLine([{ w: 0, r: 12, f: true }], 'kg')).toBe('12 F')
+  })
 })
 
 describe('nextText', () => {

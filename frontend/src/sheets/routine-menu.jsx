@@ -15,7 +15,7 @@ import { buildRoutineBundle } from '../lib/routine-share.js'
 import { copyNameOf, deleteRoutineWithUndo, duplicateRoutine, routineDaysOf, saveRoutineDays, weekdayShort } from '../views/routines/routine-actions.js'
 import RoutineSettings from '../views/routines/routine-settings.jsx'
 import { S, toast, ui } from './shared.js'
-import { startFlow } from './workout-flow.jsx'
+import { readyOrStart } from './workout-flow.jsx'
 
 const routineOf = (st, id) => st.routines.find(r => r.id === id)
 const inLoop = (st, id) => scheduleModeOf(st) === 'rotation' && [...(queueOf(st)?.ids ?? []), ...rotationIds(st)].includes(id)
@@ -57,7 +57,7 @@ function RoutineMenu({ id, close }) {
     if (st.active) { closeThenNav(close, '/train/workout'); return }
     if (empty) { toEditor(); return }
     close()
-    startFlow([id])
+    readyOrStart([id])
   }
   const items = [
     { key: 'start', icon: 'play', label: t('Start {0}', r.name), onClick: start },

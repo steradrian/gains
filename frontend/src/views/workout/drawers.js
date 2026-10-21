@@ -7,10 +7,10 @@ import { exOr } from '../../lib/exercises.js'
 import { buildSets, freestyleConfig, defaultConfig, supersetUnits, modeOf, applyIntensifierPlan } from '../../lib/history.js'
 import { exerciseNameText } from '../../lib/format.js'
 import { t } from '../../lib/i18n.js'
-import { back } from '../../lib/use-tab-nav.js'
 import { workoutSettingsSheet } from '../../components/WorkoutSettingsSheet.jsx'
 import { fmtRest } from '../../lib/duration.js'
-import { menuSheet, confirmSheet, exercisePicker, exConfigSheet, workoutCompleteSheet, addRoutineToSessionSheet, renameWorkoutSheet, sessionNoteSheet } from '../../sheets.jsx'
+import { menuSheet, exercisePicker, exConfigSheet, addRoutineToSessionSheet, renameWorkoutSheet, sessionNoteSheet } from '../../sheets.jsx'
+import { discardSheet, finishSheet } from './finish-drawers.js'
 import { insertionIndexAfterCurrentUnit } from '../../lib/supersetFlow.js'
 import { defaultIncrement, weightIncrement } from '../../lib/progression.js'
 import { buildPlannedEntry, builtOutOfProgression } from '../../lib/session-start.js'
@@ -104,11 +104,8 @@ export function addExerciseSheet(afterIdx = null, part = null, { onShift } = {})
   })
 }
 
-/** Ending the session without saving it. */
-export const discardWorkoutConfirm = () => confirmSheet({
-  title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true,
-  onConfirm: () => { update(s => { s.active = null }); useUI.getState().stopRest(); useUI.getState().stopWork(); back() },
-})
+/** Ending the session without saving it: Discard asks first, then Undo on Today (W1.46, W1.26). */
+export const discardWorkoutConfirm = () => discardSheet()
 
 /**
  * Workout options (W1.20). Fallback: the old header ⋯ menu without Layout. `markAllDone` is the
@@ -123,7 +120,7 @@ export function workoutOptionsSheet({ markAllDone, addExercise } = {}) {
   const switchable = !A.entries.length || A.entries.some(e => !keepsOut(e))
   const markAll = markAllDone || (() => {
     update(s => { if (s.active) s.active.entries = markAllSetsDone(s.active.entries) }, true)
-    workoutCompleteSheet()
+    finishSheet()
   })
   menuSheet({
     sections: [
