@@ -35,8 +35,8 @@ export function afterScrollRestore(fn) {
   return () => { waiting = waiting.filter(x => x !== fn) }
 }
 // Whether that sequence is still running, for a scroll that would rather not happen at all than
-// come after it: the superset card's scroll when the marker did not move (views/Workout.jsx) used
-// to be undone by the restore on the spot, and skipping it keeps that exactly.
+// come after it: a page that scrolls on purpose when the sheet closes skips the scroll the restore
+// would undo on the spot.
 export const scrollRestorePending = () => restoreUntil - Date.now() > 0
 // Called by the last re-assert of close number `close`, once it has had its say. Two reasons to
 // leave the queue alone and let a later re-assert take it: a second sheet closed inside this window
@@ -357,16 +357,9 @@ export default function Modals() {
       // (issue #224). At this point the sheet's field is already out of the DOM but the keyboard
       // has not started to go, so the visual viewport still tells the truth. The timer is armed
       // either way, because the hand-over is the only thing that drains the queue.
-      //
-      // A workout list that collapsed a finished exercise while the sheet was up has already put
-      // its own anchor back (WorkoutScrollAnchor); it says so, and the re-assert stands down.
       const hadKeyboard = keyboardOpen()
-      let anchored = false
-      const onAnchor = () => { anchored = true }
-      window.addEventListener('workout-scroll-anchor', onAnchor, { once: true })
       window.setTimeout(() => {
-        window.removeEventListener('workout-scroll-anchor', onAnchor)
-        if (hadKeyboard && !anchored && document.body.style.position !== 'fixed') window.scrollTo(0, restoreY)
+        if (hadKeyboard && document.body.style.position !== 'fixed') window.scrollTo(0, restoreY)
         drainScrollRestore(close)
       }, RESTORE_MS)
     }

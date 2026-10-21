@@ -22,8 +22,7 @@
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 67,
-    "views/FocusView.css": 1
+    "index.css": 67
   },
   "G2js": {
     "brand.js": 2,
@@ -39,7 +38,6 @@
   "G3": {
     "components/DurationWheel.jsx": 1,
     "components/ServerSync.jsx": 1,
-    "components/WorkoutChips.jsx": 1,
     "components/WorkoutSettingsSheet.jsx": 1,
     "sheets/confirm-menu.jsx": 3,
     "sheets/exercise-config.jsx": 10,
@@ -49,7 +47,6 @@
     "sheets/workout-flow.jsx": 28,
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
-    "views/FocusView.jsx": 4,
     "views/Settings.jsx": 2,
     "views/train/load/LoadBalance.jsx": 1,
     "views/train/load/LoadEffort.jsx": 2
