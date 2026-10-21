@@ -10,6 +10,7 @@ import { useUI } from './store/useUI.js'
 import { dayOverrideSheet, logPastWorkoutSheet, finishWorkout } from './sheets.jsx'
 import { markAllSetsDone } from './lib/backfill.js'
 import { EXDB } from './lib/exercises-data.js'
+import { summaryOf } from './views/workout/use-summary.js'
 
 const BENCH = '0025'
 const ROW = EXDB.find(e => e.id !== BENCH && e.bp === 'back' && e.eq === 'barbell').id
@@ -180,7 +181,8 @@ describe('badges on a workout logged into the past', () => {
     expect(byDay['2026-09-14']).toContain(BENCH)
     expect(byDay['2026-09-15']).not.toContain(BENCH)   // 52.5 no longer leads what came before it
     expect(byDay['2026-09-11']).toContain(BENCH)
-    // The summary names it.
-    expect(mountTopSheet().textContent).toContain('New PR:')
+    // The summary (W2.0, read from the saved record) names it among the new bests.
+    const logged = S().workouts.find(w => w.d === '2026-09-14')
+    expect(summaryOf(S(), logged.id).bests).toContainEqual(expect.objectContaining({ id: BENCH, kind: 'weight' }))
   })
 })

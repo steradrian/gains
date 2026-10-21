@@ -618,19 +618,36 @@ describe('a sheet\'s entry nobody is closing', () => {
   })
 })
 
-describe('Nice! after a finished workout', () => {
-  it('goes back where the session was opened, leaving no Start screen under it', async () => {
+// Workout finish M2: the summary (W2.0) in the workout's place, full screen; its Done (W2.1).
+describe('the summary after a finished workout', () => {
+  it('replaces the workout, has no bar and no dock, and Done goes back where the session was opened', async () => {
     running()
     await launch('#/home')
     await click(homeResume())
     expect(hash()).toBe('#/train/workout')
     await go(() => finishWorkout())
     await click(button('Finish anyway'))
-    await click(button('Nice!'))
     expect(useStore.getState().S.active).toBeNull()
+    expect(hash()).toBe('#/train/workout/summary/a')
+    expect(document.querySelector('#tabbar')).toBeNull()
+    expect(document.querySelector('#timer.dock')).toBeNull()
+    await click(document.querySelector('.g-sum-done button'))
     expect(hash()).toBe('#/home')
     expect(idx()).toBe(0)
+    expect(useUI.getState().toastMsg).toBe('Saved Push A')
+    expect(useUI.getState().toastAction?.label).toBe('Reopen')
     expect(await backLeavesApp()).toBe(true)
+  })
+
+  it('Back from the summary never lands on the finished session', async () => {
+    running()
+    await launch('#/home')
+    await click(homeResume())
+    await go(() => finishWorkout())
+    await click(button('Finish anyway'))
+    expect(hash()).toBe('#/train/workout/summary/a')
+    await back()
+    expect(hash()).toBe('#/home')
   })
 })
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { EXIDX, exOr, beatsWeight, isCustomEx } from '../lib/exercises.js'
-import { fmtDate, fmtNum, todayISO, isoOf, uid, exCount } from '../lib/format.js'
+import { fmtDate, todayISO, isoOf, uid, exCount } from '../lib/format.js'
 import { effectiveRoutineIds, bestWeightForEntry, workoutVolume, setsDoneActive, setUnitsTotal, NOTE_MAX } from '../lib/history.js'
 import { beep } from '../lib/sound.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
@@ -588,17 +588,6 @@ export function exitWorkoutEdit(onExit = () => nav('/train/history')) {
   savePrompt = prompt
 }
 
-// "60 kg × 5, 5, 4", or "60×5 · 62.5×5" when the weight changed between sets; a bodyweight lift
-// without load is just its reps. A set taken to failure keeps its "F", as it does in the history.
-export function setsLine(sets, unit) {
-  const ws = new Set(sets.map(s => s.w))
-  const reps = s => s.r + (s.f ? ' ' + t('F') : '')
-  if (ws.size === 1) {
-    const w0 = sets[0].w
-    return (w0 > 0 ? fmtNum(w0) + ' ' + unit + ' × ' : '') + sets.map(reps).join(', ')
-  }
-  return sets.map(s => (s.w > 0 ? fmtNum(s.w) + '×' : '') + reps(s)).join(' · ')
-}
 export function finishWorkout() {
   if (S().active?.editingWorkoutId) { saveWorkoutEdits(); return }
   const A = S().active
