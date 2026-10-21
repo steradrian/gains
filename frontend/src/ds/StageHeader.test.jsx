@@ -161,16 +161,37 @@ describe('StageHeader pinned, on a tab root', () => {
   })
 
   it('nothing in it moves while searching: the same parts, only the bell turned into ×', () => {
-    view.render(<StageHeader pinned searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} action={<b>x</b>} />)
+    view.render(<StageHeader pinned searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} />)
     const before = [...q('.g-shdr').children].map(c => c.className)
-    view.render(<StageHeader pinned searching onSearch={vi.fn()} query="" onQuery={vi.fn()} action={<b>x</b>} />)
+    view.render(<StageHeader pinned searching onSearch={vi.fn()} query="" onQuery={vi.fn()} />)
     expect([...q('.g-shdr').children].map(c => c.className.replace(' g-bell-close', ''))).toEqual(before)
     expect(bell().classList.contains('g-bell-close')).toBe(true)
+  })
+
+  it('a context readout steps out while searching, so the field keeps its width, and comes back after', () => {
+    const readout = <button className="hdr-left">1,240 left</button>
+    view.render(<StageHeader pinned searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} action={readout} />)
+    expect(q('.g-shdr-act')).not.toBeNull()
+    view.render(<StageHeader pinned searching onSearch={vi.fn()} query="" onQuery={vi.fn()} action={readout} />)
+    expect(q('.g-shdr-act')).toBeNull()
+    expect(q('.g-spill-field').nextElementSibling).toBe(bell())
+    view.render(<StageHeader pinned searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} action={readout} />)
+    expect(q('.g-shdr-act').nextElementSibling).toBe(bell())
+  })
+
+  it('paints the stage\'s own art under its row, hidden from a screen reader, so it meets the stage with no edge', () => {
+    view.render(<StageHeader pinned title="Today" />)
+    const bg = q('.g-shdr > .g-shdr-bg')
+    expect(bg).not.toBeNull()
+    expect(bg.querySelector('.g-stage-art').getAttribute('aria-hidden')).toBe('true')
+    expect(bg.querySelectorAll('.g-stage-glow')).toHaveLength(2)
+    expect(bg.querySelector('.g-stage-rings')).not.toBeNull()
   })
 
   it('is not pinned unless asked (the kit page shows several)', () => {
     view.render(<StageHeader />)
     expect(q('.g-shdr').classList.contains('g-shdr-pin')).toBe(false)
+    expect(q('.g-shdr-bg')).toBeNull()
     expect(q('h1')).toBeNull()
   })
 })

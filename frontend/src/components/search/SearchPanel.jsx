@@ -1,7 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { m } from 'motion/react'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
-import { LIST_CONTAINER, LIST_ITEM } from '../../lib/motion.js'
+import { LIST_CONTAINER, LIST_ITEM, SURFACE_EXIT, SURFACE_SPRING } from '../../lib/motion.js'
 import { syncDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { GROUP_LIMIT, groupCount, kindLabel, stageSub } from '../../lib/search/results.js'
 import { addRecent } from '../../lib/search/recents.js'
@@ -17,6 +17,7 @@ import BeforeTyping from './BeforeTyping.jsx'
 import SearchListbox from './SearchListbox.jsx'
 import { openFeaturePage, openResult, openShortcut, runNoneAction, turnOnFeature } from './open-result.js'
 import { optionProps } from './options.js'
+import { useReducedMotionPref } from './use-reduced-motion.js'
 import { useSearchResults } from './use-search-results.js'
 
 // The term the lists are keyed on: 250 ms without typing (bearmenu's debounce). Between settles
@@ -33,6 +34,15 @@ function useSettled(value, ms) {
 
 // A scoped kind lists all of its matches, in pages of 60 as it scrolls (5,600 exercises).
 const PAGE = 60
+
+// The scroller's 8px rise inside the overlay as it comes and goes, on the overlay's own variants
+// (SearchOverlay): the panel itself only fades, so its top edge never parts from the header. None
+// under reduced motion, and none standing still (the gallery's SearchSurface sets no variant).
+const SCROLL_RISE = {
+  hidden: { y: 8 },
+  visible: { y: 0, transition: SURFACE_SPRING },
+  exit: { y: 8, transition: SURFACE_EXIT },
+}
 
 // A source's place while it says something rather than rows ("Searching Open Food Facts…"): the
 // row's shape, nothing to press.
@@ -91,6 +101,7 @@ export default function SearchPanel({ data }) {
   const { local, online, onlineRow, rowsOf, counts, total, noResults, none, scoped } = useSearchResults({ query: deferred, live: query, settled, group, tab, data })
   const hasQuery = query.trim().length > 0
   const scroller = useRef(null)
+  const reduced = useReducedMotionPref()
   const [limit, setLimit] = useState(PAGE)
 
   // Back on the overlay: the scroll where it was left.
@@ -240,8 +251,8 @@ export default function SearchPanel({ data }) {
 
   return <>
     <div className="sr-only" role="status" aria-live="polite">{message}</div>
-    <div className="search-scroll" ref={scroller} onScroll={onScroll} onTouchMove={onTouchMove}>
+    <m.div className="search-scroll" ref={scroller} onScroll={onScroll} onTouchMove={onTouchMove} variants={reduced ? undefined : SCROLL_RISE}>
       <div className="search-body">{body}</div>
-    </div>
+    </m.div>
   </>
 }

@@ -276,7 +276,10 @@ body.no-tabbar.resting #app{padding-bottom:calc(96px + var(--sab))}
 :root #app:has(> .g-root.g-screen){padding:var(--conn) 0 0;max-width:none}
 #app > .g-screen > .g-stage > .g-stage-body{max-width:var(--page-w);margin-inline:auto}
 .workout-end-spacer{height:0}
-@keyframes viewfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* Opacity only: a transform on #app, even mid-animation, makes it the containing block of every
+   fixed child, so the pinned tab-root header (ds.css .g-shdr-pin) would ride the fade on each
+   navigation. */
+@keyframes viewfade{from{opacity:0}to{opacity:1}}
 #app.vfade{animation:viewfade var(--med) var(--ease)}
 
 /* Connection indicator (components/SyncBanner.jsx): pinned under the status bar for as long as

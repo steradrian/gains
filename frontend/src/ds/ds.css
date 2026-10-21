@@ -442,7 +442,11 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
   .g-sring-val, .g-sring-over, .g-skel { animation: none; }
   .g-rc-dot i, .g-sbtn, .g-spill, .g-gact { transition: none; }
   .g-sbtn.g-bell > span { transition: opacity 140ms; }
+  .g-sbtn.g-bell .g-bell-b, .g-sbtn.g-bell-close .g-bell-a { transform: none; }
 }
+/* The app's own reduced motion (Settings): the bell and its × swap without the turn. */
+:root[data-motion="reduce"] .g-sbtn.g-bell > span { transition: none; }
+:root[data-motion="reduce"] .g-sbtn.g-bell .g-bell-b, :root[data-motion="reduce"] .g-sbtn.g-bell-close .g-bell-a { transform: none; }
 
 /* === Drawer and toast kit (BottomSheet, UndoToast) ===
    No keyframes of their own: they come and go through the kit's presence (the app's sheet frame,
@@ -704,15 +708,21 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sfeat-line { font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); }
 .g-sfeat-acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .g-sfeat-on, .g-sfeat-page { appearance: none; border: 0; height: 40px; padding-inline: 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font: 700 15px/20px var(--font-sans); cursor: pointer; }
-.g-sfeat-on { background: var(--on-stage); color: var(--accent-text); }
-.g-sfeat-on:disabled { opacity: .6; cursor: default; }
+.g-sfeat-on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-sfeat-on[aria-disabled="true"] { opacity: .6; cursor: default; }
 .g-sfeat-page { color: var(--on-stage); }
 /* Shared: search M2 (owner direction: the bearmenu header). The tab root's header pinned to the top
    of the window: its row (--shdr-h), the status bar and the connection row inside it once, on the
    stage's own top colour so it paints under the notch; no line under it. The row keeps the page's
    column on a wide screen. The search's panel starts at its bottom edge (search.css .search-ov). */
 :root { --shdr-h: 58px; }
-.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; background: var(--accent-stage); }
+.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; background: var(--accent-stage); transform: translate3d(0, var(--vv-top, 0px), 0); }
+/* Its ground is the stage's art (StageBackground StageArt), the window's width and anchored where
+   the page's stage starts (#app's --conn padding), clipped to the header: the 170° gradient's stops
+   hang off the top corner, not the height, so at rest the colours, glows and rings run on into the
+   page's own with no edge (owner: no separator). Under the row, never over it. */
+.g-shdr-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.g-shdr-bg > .g-stage-art { top: var(--conn, 0px); bottom: auto; height: 100vh; }
 .g-shdr-act { flex: none; display: flex; }
 .g-shdr-act > .hdr-left { min-height: 44px; padding-inline: 14px; border-radius: 999px; white-space: nowrap; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
 .g-shdr-act > .hdr-left.over { color: var(--g-ring-over); }

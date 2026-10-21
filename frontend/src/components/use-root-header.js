@@ -44,7 +44,14 @@ export function useRootHeader(tab) {
     return () => registerPill(null)
   }, [])
 
-  const close = () => { closeSearch(); input.current?.blur() }
+  // Closing hands the focus to the bell, which the × turns back into in the same place: the field
+  // lets go (the keyboard goes down) and the focus is not dropped onto the page.
+  const close = () => {
+    closeSearch()
+    const bell = input.current?.closest('.g-shdr')?.querySelector('.g-bell')
+    if (bell) bell.focus()
+    else input.current?.blur()
+  }
   const onKeyDown = e => {
     if (e.key === 'Escape') {
       e.preventDefault()

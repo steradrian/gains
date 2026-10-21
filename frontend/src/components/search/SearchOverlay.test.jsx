@@ -97,6 +97,10 @@ describe('the search overlay', () => {
     expect(panel.classList.contains('g-root')).toBe(true)
     expect(panel.querySelector('input')).toBeNull()
     expect(panel.querySelector('header')).toBeNull()
+    // It only fades: its top edge never moves off the header's (the rise is its scroller's), and
+    // its ground is the stage's art, as the header's is.
+    expect(panel.style.transform).toBe('')
+    expect(panel.querySelector('.search-ov-bg > .g-stage-art')).not.toBeNull()
     expect(list().getAttribute('role')).toBe('listbox')
     expect(list().closest('#gains-search')).not.toBeNull()
     expect(closeX().getAttribute('aria-label')).toBe('Close search')
@@ -156,7 +160,7 @@ describe('the search overlay', () => {
     expect(useSearch.getState()).toMatchObject({ open: false, live: true })
   })
 
-  it('Escape clears first, then closes; the bell\'s × closes too and lets go of the field', async () => {
+  it('Escape clears first, then closes; the bell\'s × closes too; either way the focus lands on the bell', async () => {
     await mount()
     await open()
     await type('squat')
@@ -165,11 +169,13 @@ describe('the search overlay', () => {
     expect(useSearch.getState().open).toBe(true)
     await key('Escape')
     expect(useSearch.getState().live).toBe(false)
+    expect(document.activeElement).toBe(closeX())
+    expect(closeX().getAttribute('aria-label')).toBe('Notifications')
     await open()
     expect(useSearch.getState().open).toBe(true)
     await act(async () => closeX().click())
     expect(useSearch.getState().live).toBe(false)
-    expect(document.activeElement).not.toBe(pill())
+    expect(document.activeElement).toBe(closeX())
     expect(closeX().getAttribute('aria-label')).toBe('Notifications')
   })
 
@@ -400,14 +406,15 @@ describe('the search overlay', () => {
     expect(useSearch.getState().open).toBe(true)
   })
 
-  it('nothing in the header moves while searching: a context readout stays in its place before the bell', async () => {
+  it('while searching the header is avatar, field and ×: a context readout steps out and comes back on close', async () => {
     const ctx = () => $$('button').find(b => b.getAttribute('aria-label') === 'Context')
     await mount('/home', <button type="button" className="hdr-left" aria-label="Context">c</button>)
     expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
     await open()
-    expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
+    expect(ctx()).toBeUndefined()
+    expect([...$('.g-shdr-pin').children].filter(c => !c.matches('.g-shdr-bg, h1')).map(c => c.className.split(' ')[0])).toEqual(['g-sbtn', 'g-spill', 'g-sbtn'])
     await act(async () => closeX().click())
-    expect(ctx()).toBeDefined()
+    expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
   })
 
   it('speaks the results once typing has stopped, in one polite region', async () => {

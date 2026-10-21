@@ -23,12 +23,21 @@ body.search-open #tabbar,body.search-open #timer.dock{
 /* Fixed from the header's bottom edge (its row, the status bar and the connection row: ds.css
    .g-shdr-pin) to the window's, on the stage, so it covers everything below the header. Its own
    scroller keeps the page behind still (SearchHost locks <html> and <body>); the bottom padding
-   clears the home indicator and the keyboard. The column keeps the page's width on a wide screen. */
+   clears the home indicator and the keyboard. The column keeps the page's width on a wide screen.
+   Its ground is the stage's art anchored where the page's stage starts, as the header's is (ds.css
+   .g-shdr-bg), so the two meet with no edge. It is on the stage, so its focus rings are white.
+   With the iOS keyboard up the visual viewport scrolls; the header and the panel follow it down
+   (--vv-top, SearchHost) so they stay where the eye is. Only the panel's opacity is animated here,
+   the transform is this rule's. */
 .search-ov{
   position:fixed;inset-inline:0;top:calc(var(--sat) + var(--conn) + var(--shdr-h));bottom:0;z-index:var(--z-search);
   display:flex;flex-direction:column;color:var(--on-stage);font-family:var(--font-sans);
-  background:linear-gradient(170deg,var(--accent-stage) 0px,var(--accent-stage-end) 900px);
+  background:var(--accent-stage-end);--focus:var(--on-stage);
+  transform:translate3d(0,var(--vv-top,0px),0);
 }
+.search-ov-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.search-ov-bg>.g-stage-art{top:calc(-1 * (var(--sat) + var(--shdr-h)));bottom:auto;height:100vh}
+.search-ov>.search-scroll{position:relative}
 .search-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .search-body{
   padding-inline:max(0px,calc((100% - var(--page-w)) / 2));

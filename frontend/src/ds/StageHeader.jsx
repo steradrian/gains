@@ -3,6 +3,7 @@ import Icon from '../components/Icon.jsx'
 import { t } from '../lib/i18n.js'
 import { cx } from '../lib/ui-kit.js'
 import Act from './Act.jsx'
+import { StageArt } from './StageBackground.jsx'
 
 // The magnifier's sweep loads with the search chunk; until then the glyph stands still.
 const MotionMagnifier = lazy(() => import('../components/search/header-motion.jsx').then(m => ({ default: m.MotionMagnifier })))
@@ -28,9 +29,11 @@ const MotionMagnifier = lazy(() => import('../components/search/header-motion.js
 //
 // `pinned`: the app's header, fixed to the top of the window on the stage. Its height and top
 // padding take the status bar (--sat) and the connection row (--conn) once, so its own ground
-// paints under the notch in the installed app and what scrolls goes under it. `action` is a tab's
-// one context readout, between the pill and the bell; it stays put while searching. `title` is the
-// page's name for a screen reader only (its h1): the tab bar already names the tab.
+// paints under the notch in the installed app and what scrolls goes under it. That ground is the
+// stage's own art, anchored where the page's stage starts, so at rest the header and the stage under
+// it are one surface with no edge. `action` is a tab's one context readout, between the pill and
+// the bell; it steps out while searching so the field keeps its width on a 375px phone. `title` is
+// the page's name for a screen reader only (its h1): the tab bar already names the tab.
 export default function StageHeader({
   initial, placeholder, unread = 0, alert, searching, onSearch, settingsHref, searchHref, bellHref, onSettings, onBell,
   query, onQuery, scope, onClearScope, onScan, inputRef, inputProps, pinned = false, action, title,
@@ -46,6 +49,7 @@ export default function StageHeader({
   const glyph = <Icon name="magnifier" className="g-icon" />
   return (
     <header className={cx('g-shdr', open && 'g-shdr-open', pinned && 'g-shdr-pin')}>
+      {pinned && <span className="g-shdr-bg"><StageArt /></span>}
       {title && <h1 className="sr-only">{title}</h1>}
       <Act href={settingsHref} onClick={onSettings} ariaLabel={alert ? t('Settings') + ', ' + alert : t('Settings')} className="g-sbtn g-glass">
         {letter}
@@ -71,7 +75,7 @@ export default function StageHeader({
           {glyph}
           <span>{text}</span>
         </Act>}
-      {action && <span className="g-shdr-act">{action}</span>}
+      {action && !open && <span className="g-shdr-act">{action}</span>}
       <Act href={open ? undefined : bellHref} onClick={() => (open ? set(false) : onBell?.())} ariaLabel={bellName} className={cx('g-sbtn g-glass g-bell', open && 'g-bell-close')}>
         <span className="g-bell-a" aria-hidden="true"><Icon name="bell" className="g-icon" /></span>
         <span className="g-bell-b" aria-hidden="true"><Icon name="xmark" className="g-icon" /></span>

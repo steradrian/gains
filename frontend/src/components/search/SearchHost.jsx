@@ -66,9 +66,15 @@ export default function SearchHost() {
     html.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     page.current = holdPage()
-    // The keyboard's height, so the last row scrolls clear of it.
+    // The keyboard's height, so the last row scrolls clear of it; and how far iOS has scrolled the
+    // visual viewport down under it (offsetTop, with <html> locked), which the pinned header and the
+    // panel follow (--vv-top: ds.css .g-shdr-pin, search.css .search-ov) so they stay in sight.
     const vv = window.visualViewport
-    const inset = () => html.style.setProperty('--search-kb', Math.max(0, window.innerHeight - (vv.height + vv.offsetTop)) + 'px')
+    const inset = () => {
+      const top = Math.max(0, Number(vv.offsetTop) || 0)
+      html.style.setProperty('--search-kb', Math.max(0, window.innerHeight - (vv.height + top)) + 'px')
+      html.style.setProperty('--vv-top', top + 'px')
+    }
     if (vv) { inset(); vv.addEventListener('resize', inset); vv.addEventListener('scroll', inset) }
     return () => {
       page.current.release()
@@ -77,6 +83,7 @@ export default function SearchHost() {
       document.body.style.overflow = prev[1]
       document.body.classList.remove('search-open')
       html.style.removeProperty('--search-kb')
+      html.style.removeProperty('--vv-top')
       if (vv) { vv.removeEventListener('resize', inset); vv.removeEventListener('scroll', inset) }
       if (document.body.style.position !== 'fixed') window.scrollTo(0, y)
     }

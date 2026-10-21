@@ -95,6 +95,25 @@ describe('the page behind an open search', () => {
     expect(document.querySelectorAll('[inert]')).toHaveLength(0)
   })
 
+  it('follows the iOS keyboard: the visual viewport\'s offset is the header\'s and the panel\'s --vv-top while open', async () => {
+    const vv = Object.assign(new EventTarget(), { height: 400, offsetTop: 0 })
+    vi.stubGlobal('visualViewport', vv)
+    const html = document.documentElement
+    try {
+      await mount()
+      await open()
+      expect(html.style.getPropertyValue('--vv-top')).toBe('0px')
+      vv.offsetTop = 120
+      await act(async () => vv.dispatchEvent(new Event('scroll')))
+      expect(html.style.getPropertyValue('--vv-top')).toBe('120px')
+      await act(async () => $('.g-bell').click())
+      await wait(50)
+      expect(html.style.getPropertyValue('--vv-top')).toBe('')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('holds a block the page renders under the header while the search is open', async () => {
     await mount()
     await open()
