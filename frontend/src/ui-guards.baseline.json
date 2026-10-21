@@ -17,24 +17,22 @@
     "views/CoachSetup.jsx": 9,
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
-    "views/Settings.jsx": 26,
+    "views/Settings.jsx": 24,
     "views/StructuralBalance.jsx": 8,
     "views/Workout.jsx": 18
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 67,
+    "index.css": 58,
     "views/FocusView.css": 1
   },
   "G2js": {
     "brand.js": 2,
-    "lib/accent.js": 29,
     "lib/media-ingest.js": 1,
     "lib/plan-share.js": 22,
     "lib/qr.js": 2,
     "lib/themes.js": 356,
-    "lib/workout-card.js": 2,
-    "views/Settings.jsx": 2
+    "lib/workout-card.js": 2
   },
   "G3": {
     "components/DurationWheel.jsx": 1,
