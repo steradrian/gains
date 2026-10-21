@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
-import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
-import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
+import { useRootHeader } from '../../components/use-root-header.js'
 import { addRoutine } from '../Plan.jsx'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
@@ -425,11 +423,12 @@ export function skippedText(S, missed, today) {
 /**
  * Everything Train's root shows (PR02 T2.0 and its states), as data:
  *
- *   { header, searching, today, selected, select(iso), rail, card(iso = selected), rings,
+ *   { header, today, selected, select(iso), rail, card(iso = selected), rings,
  *     onRing(slide), actions, onIntent(intent), onPlan, onDayMenu(card), routines, onRoutine(row), onRoutineStart(row),
  *     musclesThisWeek, onMuscles, more, onMore(row), profile, setup, missed }
  *
- * `header` is StageHeader's props. `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
+ * `header` is StageHeader's props, the tab root's own (components/use-root-header.js, as on Today).
+ * `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
  * `missed` adds `move()` and `skip()`, each returning the toast `{ text, undo }` (UndoToast) or
  * null, and `onMove()` / `onSkip()`, which do the same and show that toast.
  * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked.
@@ -444,8 +443,7 @@ export function useTrain() {
   const [picked, select] = useState(null)
   const selected = picked || today
   const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
-  const connection = useConnectionTrouble()
-  const searching = useSearch(s => s.open)
+  const header = useRootHeader('train')
   const update = mut => useStore.getState().update(mut)
 
   const rail = useMemo(() => railOf(S, today), [S, today])
@@ -473,19 +471,8 @@ export function useTrain() {
   // T2.12 and T2.13: the app's toast with Undo (8 s).
   const toast = r => { if (r) useUI.getState().toast(r.text, { action: t('Undo'), onAction: r.undo }) }
 
-  const header = {
-    initial: user?.name || '',
-    placeholder: t('Search training'),
-    alert: connection ? t('Connection problem') : null,
-    onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
-    // As on Today: the tab's own header takes over while the search is open, mounted and focused
-    // inside this tap so a phone raises its keyboard.
-    onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('train'))) },
-  }
-
   return {
-    header, searching,
+    header,
     today, selected, select,
     rail,
     card: (iso = selected) => (iso === today ? todayCard : cardOf(S, iso, today)),
