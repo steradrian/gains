@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { isCardio, isBodyweightEq, isAssisted, smOf, isCustomEx, figureOf, stillOf } from '../lib/exercises.js'
+import { isCardio, isBodyweightEq, isAssisted, smOf, isCustomEx, figureOf } from '../lib/exercises.js'
 import { fmtNum } from '../lib/format.js'
 import { defaultConfig, modeOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, MAX_PLANNED_WARMUPS } from '../lib/history.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor, effortInk } from '../lib/effort.js'
 import { t, tn, descFor, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
+import { useExerciseStill } from '../components/CustomMedia.jsx'
 import Stepper from '../components/Stepper.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
@@ -45,6 +46,14 @@ const progressionStepIsValid = (step, policy, backoff = false) =>
 // assistance machine (less load is harder there).
 const backoffOffered = (c, mode, ex, bw) => mode === 'reps' && !bw && !isAssisted({ ...c, id: ex.id })
   && !(Array.isArray(c.pyramid) && c.pyramid.length) && c.intensifier?.type !== 'restpause'
+// The intensifier chips that choosing one turns off (the sheet's intensifier row).
+const INTENSIFIER_CLASHES = {
+  pyramid: ['failure', 'dropset', 'restpause', 'backoff'],
+  failure: ['pyramid'],
+  dropset: ['pyramid', 'restpause'],
+  restpause: ['pyramid', 'dropset', 'backoff'],
+  backoff: ['pyramid', 'restpause'],
+}
 
 // Double and triple progression both climb a rep range (`repsMin`..`reps`), so the sheet keeps it
 // normalised for either.
@@ -338,22 +347,36 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     }
   }
 
-  // ---- the intensifier chips: one at a time, as the board draws them. Choosing one clears the others
-  // (a pyramid goes back to the flat sets, its list kept as a draft). ----
+  // ---- the intensifier chips. They combine the way the data does: the last set to failure goes with
+  // a drop-set, rest-pause or back-off sets, and back-off with a drop-set. A pyramid shapes every
+  // set itself, so it goes alone (and goes back to the flat sets, its list kept as a draft, when
+  // another chip is chosen); a drop-set and rest-pause are one field, and rest-pause has one work
+  // set, which leaves nothing to back off from. "None" clears them all. ----
   const restPauseOn = c.intensifier?.type === 'restpause'
-  const intensifier = pyramid ? 'pyramid' : c.intensifier?.type || (backoff ? 'backoff' : !cardio && c.lastToFailure === true ? 'failure' : '')
-  const setIntensifier = v => setC(x => {
-    const flat = isPyramid({ ...x, mode }) ? { ...x, ...flatFromPyramid(x.pyramid), pyramidDraft: x.pyramid, pyramid: undefined } : { ...x }
-    const next = { ...flat, intensifier: undefined, lastToFailure: undefined, backoff: undefined }
-    if (v === 'pyramid') return { ...next, pyramid: x.pyramidDraft || pyramidFromFlat(next) }
-    if (v === 'failure') return { ...next, lastToFailure: true }
-    if (v === 'backoff') return { ...next, backoff: true }
-    if (v === 'dropset') return { ...next, intensifier: { type: 'dropset', count: x.intensifier?.count || 1, pct: x.intensifier?.pct || 20 } }
+  const intensifiers = [
+    pyramid && 'pyramid',
+    c.intensifier?.type,
+    backoff && 'backoff',
+    !cardio && !pyramid && c.lastToFailure === true && 'failure',
+  ].filter(Boolean)
+  const setIntensifiers = (next, tapped) => setC(x => {
+    let chosen = tapped === '' ? [] : next.filter(Boolean)
+    if (tapped && chosen.includes(tapped)) {
+      const without = INTENSIFIER_CLASHES[tapped] || []
+      chosen = chosen.filter(v => v === tapped || !without.includes(v))
+    }
+    const flat = isPyramid({ ...x, mode }) && !chosen.includes('pyramid')
+      ? { ...x, ...flatFromPyramid(x.pyramid), pyramidDraft: x.pyramid, pyramid: undefined } : { ...x }
+    const out = { ...flat, intensifier: undefined, lastToFailure: undefined, backoff: undefined }
+    if (chosen.includes('pyramid')) return isPyramid({ ...x, mode }) ? out : { ...out, pyramid: x.pyramidDraft || pyramidFromFlat(out) }
+    if (chosen.includes('failure')) out.lastToFailure = true
+    if (chosen.includes('backoff')) out.backoff = true
+    if (chosen.includes('dropset')) out.intensifier = { type: 'dropset', count: x.intensifier?.count || 1, pct: x.intensifier?.pct || 20 }
     // The activation set's own reps are whatever "Reps" above already says — a
     // rest-pause plan only adds two new numbers: the total extra reps wanted past
     // it, and the rest between the bursts that total gets split into.
-    if (v === 'restpause') return { ...next, intensifier: { type: 'restpause', totalReps: x.intensifier?.totalReps || x.reps || 8, restSec: x.intensifier?.restSec || st.restPauseSec || 15 } }
-    return next
+    if (chosen.includes('restpause')) out.intensifier = { type: 'restpause', totalReps: x.intensifier?.totalReps || x.reps || 8, restSec: x.intensifier?.restSec || st.restPauseSec || 15 }
+    return out
   })
   const intensifierOptions = [
     { value: '', label: t('None') },
@@ -369,7 +392,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     : ''
 
   const secondaries = cardio ? [] : (ex.secondaries?.length ? ex.secondaries : smOf(ex)).filter(trainedBy(ex)).slice(0, 3)
-  const still = stillOf(ex, figureOf(st))
+  const still = useExerciseStill(ex, figureOf(st))
   const menu = [
     onReplace && { key: 'replace', icon: 'swap', label: t('Replace exercise'), detail: t('Similar exercises first'), onClick: () => { close(); onReplace() } },
     isCustomEx(ex) && { key: 'edit', icon: 'pencil', label: t('Edit or delete this exercise'), onClick: () => { close(); customExSheet(ex) } },
@@ -445,7 +468,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         : <ProgressionFields ex={ex} mode={mode} c={c} setC={setC} routine={routine} unit={st.unit} perSide={perSide} bw={bw} backoff={backoff} />}
 
       <h4 className="g-cfg-h">{t('Intensifier')}</h4>
-      <ChipGroup label={t('Intensifier')} value={intensifier} onChange={setIntensifier} options={intensifierOptions} />
+      <ChipGroup multi label={t('Intensifier')} value={intensifiers.length ? intensifiers : ['']} onChange={setIntensifiers} options={intensifierOptions} />
       {c.intensifier?.type === 'dropset' && <div className="row cfgrow g-cfg-steps">
         <Stepper label={t('Drops')} value={c.intensifier.count} step={1} min={1} decimal={false}
           onChange={v => setC(x => ({ ...x, intensifier: { ...x.intensifier, count: v } }))} />
@@ -463,8 +486,8 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
           ? t('Every set becomes a drop-set: after the main set, {0} drop(s) with no rest, each about {1}% lighter.', c.intensifier.count, c.intensifier.pct)
           : t('Every set becomes rest-pause: {0} reps to start, then {1} more split into short bursts, {2}s rest before each, roughly halving each time.', c.reps || 0, c.intensifier.totalReps, c.intensifier.restSec)}
       </p>}
-      {intensifier === 'failure' && <p className="g-cfg-note">{t('The last set goes until nothing is left, and counts as all-out effort unless you rate it.')}</p>}
-      {intensifier === 'backoff' && <p className="g-cfg-note">
+      {intensifiers.includes('failure') && <p className="g-cfg-note">{t('The last set goes until nothing is left, and counts as all-out effort unless you rate it.')}</p>}
+      {intensifiers.includes('backoff') && <p className="g-cfg-note">
         {backoffPreview
           ? t('Sets open at {0}. The first set goes up when every set reaches its reps, and the rest follow it.', backoffPreview)
           : t('The first set goes up when every set reaches its reps, and the rest follow it.')}

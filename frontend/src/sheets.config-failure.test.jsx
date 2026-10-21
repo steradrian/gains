@@ -88,6 +88,35 @@ describe('exercise settings: last set to failure', () => {
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('pyramid')
   })
 
+  it('combines with a drop-set, as the data stores them, and None clears both', () => {
+    const onSave = vi.fn()
+    const host = open({}, onSave)
+    act(() => chip(host, 'Last set to failure').click())
+    act(() => chip(host, 'Drop-set').click())
+    expect(lit(host, 'Last set to failure')).toBe(true)
+    expect(lit(host, 'Drop-set')).toBe(true)
+    expect(lit(host, 'None')).toBe(false)
+    save(host)
+    expect(onSave.mock.calls[0][0]).toMatchObject({ lastToFailure: true, intensifier: { type: 'dropset' } })
+    act(() => chip(host, 'None').click())
+    expect(lit(host, 'Last set to failure')).toBe(false)
+    expect(lit(host, 'Drop-set')).toBe(false)
+    expect(lit(host, 'None')).toBe(true)
+  })
+
+  it('a saved failure plus drop-set opens with both lit; rest-pause takes the drop-set\'s place and keeps failure', () => {
+    const host = open({ lastToFailure: true, intensifier: { type: 'dropset', count: 1, pct: 20 } }, vi.fn())
+    expect(lit(host, 'Last set to failure')).toBe(true)
+    expect(lit(host, 'Drop-set')).toBe(true)
+    act(() => chip(host, 'Rest-pause').click())
+    expect(lit(host, 'Drop-set')).toBe(false)
+    expect(lit(host, 'Rest-pause')).toBe(true)
+    expect(lit(host, 'Last set to failure')).toBe(true)
+    act(() => chip(host, 'Last set to failure').click())
+    expect(lit(host, 'Last set to failure')).toBe(false)
+    expect(lit(host, 'Rest-pause')).toBe(true)
+  })
+
   it('the finish summary line marks a failure set', () => {
     expect(setsLine([{ w: 60, r: 5 }, { w: 60, r: 9, f: true }], 'kg')).toBe('60 kg × 5, 9 F')
     expect(setsLine([{ w: 60, r: 5 }, { w: 65, r: 4, f: true }], 'kg')).toBe('60×5 · 65×4 F')
