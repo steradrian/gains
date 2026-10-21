@@ -80,8 +80,11 @@ jobs:
           cat > remote.sh <<'REMOTE'
           set -euo pipefail
           cd /srv/fit/deploy
-          docker compose config --services | grep -qx web
-          docker compose config --services | grep -qx og-api
+          # Read the list once: `config | grep -q` exits as soon as grep matches, compose then
+          # writes into a closed pipe and pipefail fails the script with 255, at random.
+          services=$(docker compose config --services)
+          grep -qx web <<<"$services"
+          grep -qx og-api <<<"$services"
           # Pull before touching .env, so a SHA without an image changes nothing.
           OPENGYM_TAG="$TAG" docker compose pull -q web og-api
           if ! grep -qx "OPENGYM_TAG=$TAG" .env; then
