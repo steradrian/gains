@@ -23,10 +23,17 @@ let titles = 0
 
 // How tall a pane wants to be, with room for all of it: the sum of its parts, the body counted by
 // its content rather than by the room it was given. A legacy pane scrolls itself.
+// The body flexes to fill its pane, so its scrollHeight never drops below the room it already has:
+// measured that way a panel could only grow, and one sized while its list was still loading kept
+// the drawer short with the rows clipped. Taken out of the flex for the read, it is its content.
 const naturalHeight = pane => {
   if (pane.classList.contains('g-bs-pane-legacy')) return pane.scrollHeight
+  const body = [...pane.children].find(part => part.classList.contains('g-bs-body'))
+  const flex = body?.style.flex
+  if (body) body.style.flex = 'none'
   let height = 0
-  for (const part of pane.children) height += part.classList.contains('g-bs-body') ? part.scrollHeight : part.offsetHeight
+  for (const part of pane.children) height += part.offsetHeight
+  if (body) body.style.flex = flex
   return height
 }
 // Only a drawer as tall as its content changes height with the panel; half and full ones are not.
@@ -144,17 +151,25 @@ export default function SheetPanes({ kind, panels, closeOf, back, dismiss, hostL
   const topId = panels[depth - 1]?.id
   useLayoutEffect(() => {
     const panes = panesRef.current
-    if (!depth || !panes || typeof ResizeObserver !== 'function' || !hugsContent(panes)) return
+    if (!depth || !panes || !hugsContent(panes)) return
     const active = livePanes(panes)[depth]
     if (!active) return
-    const watch = new ResizeObserver(() => {
+    const fit = () => {
       if (running.current) return
       const to = naturalHeight(active)
       if (to && Math.abs(to - panes.offsetHeight) > 1) panes.style.height = `${to}px`
-    })
-    for (const part of active.children) watch.observe(part)
-    for (const part of active.querySelector('.g-bs-body')?.children || []) watch.observe(part)
-    return () => watch.disconnect()
+    }
+    // What is in the body changes without any box the observer holds resizing (a skeleton swapped
+    // for the loaded list, a tab showing another list), so the DOM is watched as well as the sizes.
+    const sizes = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null
+    for (const part of active.children) sizes?.observe(part)
+    const edits = typeof MutationObserver === 'function' ? new MutationObserver(() => {
+      sizes?.disconnect()
+      for (const part of active.children) sizes?.observe(part)
+      fit()
+    }) : null
+    edits?.observe(active, { childList: true, subtree: true, characterData: true })
+    return () => { sizes?.disconnect(); edits?.disconnect() }
   }, [topId])
 
   return (
