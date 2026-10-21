@@ -1536,7 +1536,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'Néhány válaszból megtervezi a programodat, és ahhoz igazítja, amit valóban rögzítesz. A beleegyezésed nélkül semmit sem változtat, és minden módosítást visszavonhatsz.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'Rutinok, gyakorlatok, sorozatok és ismétlések, a heti beosztásod és a progresszió beállításai.',
   'Your logged training': 'A rögzített edzéseid',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'Az áttekintési időszakban rögzített sorozataid: súlyok, ismétlések, idők, erőfeszítés-értékelések, az edzések hossza és az edzésjegyzeteid.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'Az áttekintési időszakban rögzített sorozataid: súlyok, ismétlések, idők, erőfeszítés-értékelések, az edzések hossza és az edzésjegyzeteid. Továbbá a heti visszajelzésed: milyennek érezted az edzést, hogyan aludtál, és a jegyzeted.',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'Az ugyanebből az időszakból származó mérések és a célsúlyod, ha megadtál ilyet.',
   'What you tell the Coach': 'Amit elmondasz az Edzőnek',
   'Your intake answers, including any limitations or injuries you describe.': 'A kérdőívre adott válaszaid, az általad leírt korlátokkal vagy sérülésekkel együtt.',

@@ -1459,7 +1459,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': '它根据几个回答设计你的计划，并根据你的实际记录进行调整。未经你同意它不会更改任何内容，每项更改都可以撤销。',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': '训练计划、动作、组数和次数、你的每周日程以及进阶设置。',
   'Your logged training': '你记录的训练',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': '你在复盘周期内记录的各组数据：重量、次数、时间、强度评分、每次训练的时长，以及你的训练备注。',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': '你在复盘周期内记录的各组数据：重量、次数、时间、强度评分、每次训练的时长，以及你的训练备注。还有你的每周回顾：训练感觉如何、睡得怎样，以及你的备注。',
   'Weigh-ins from the same window, and your goal weight if you set one.': '同一时段的称重记录，以及你设定的目标体重（如有）。',
   'What you tell the Coach': '你告诉教练的内容',
   'Your intake answers, including any limitations or injuries you describe.': '你在初始问卷中的回答，包括你描述的任何限制或伤病。',

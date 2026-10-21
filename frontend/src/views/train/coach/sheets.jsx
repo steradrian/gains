@@ -4,7 +4,7 @@
 // sheet pass.
 import { useEffect, useState } from 'react'
 import { t, tn } from '../../../lib/i18n.js'
-import { fmtDate, fmtNum } from '../../../lib/format.js'
+import { fmtDate, fmtNum, isoOf } from '../../../lib/format.js'
 import { emptyCoach } from '../../../lib/coach.js'
 import { cohortStats, setCohortShare } from '../../../lib/coach-api.js'
 import { useStore } from '../../../store/useStore.js'
@@ -43,7 +43,7 @@ export function HistorySheet({ S, close, openSheet }) {
           : e.kind === 'debrief' ? t('Debrief: {0}', e.workout?.name || t('Workout')) + (e.score != null ? ` · ${e.score}/10` : '')
             : e.kind === 'revert' ? t('Reverted the last Coach changes.')
               : tn('{0} suggestion', '{0} suggestions', n)
-        const sub = fmtDate(new Date(e.at).toISOString().slice(0, 10)) + ' · ' + (e.kind === 'debrief' ? String(e.summary || '').slice(0, 60)
+        const sub = fmtDate(isoOf(new Date(e.at))) +' · ' + (e.kind === 'debrief' ? String(e.summary || '').slice(0, 60)
           : e.dismissed ? t('Declined') : e.kind === 'create' ? t('Imported') : e.kind === 'revert' ? '' : t('{0} accepted · {1} declined', acc, n - acc))
         return <Row key={e.id} icon={ic} iconTint={tint} title={title} subtitle={sub} accessory="chevron"
           onClick={() => { close(); openSheet(() => <ProposalDetail entry={e} S={S} />) }} />

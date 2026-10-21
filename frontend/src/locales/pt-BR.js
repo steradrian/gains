@@ -573,7 +573,7 @@ export const PT_BR_OVERRIDES = {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'Ele cria seu plano a partir de algumas respostas e o ajusta com base no que você registra. Nunca muda nada sem a sua autorização, e você pode desfazer cada alteração.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'Rotinas, exercícios, séries e repetições, seu horário semanal e as configurações de progressão.',
   'Your logged training': 'Seu treino registrado',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'As séries que você registrou no período de revisão: pesos, repetições, tempos, avaliações de esforço, quanto tempo duraram as sessões e suas notas das sessões.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'As séries que você registrou no período de revisão: pesos, repetições, tempos, avaliações de esforço, quanto tempo duraram as sessões e suas notas das sessões. Também seu check-in semanal: como você sentiu o treino, como dormiu e sua nota.',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'As pesagens do mesmo período e seu peso alvo, se você definiu um.',
   'What you tell the Coach': 'O que você diz ao Treinador',
   'Your intake answers, including any limitations or injuries you describe.': 'Suas respostas ao questionário inicial, incluindo as limitações ou lesões que você descreve.',

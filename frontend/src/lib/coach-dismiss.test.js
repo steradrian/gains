@@ -46,7 +46,7 @@ describe('dismissWithUndo', () => {
     expect(coach().log[0]).toMatchObject({ proposalId: 'p1', dismissed: true })
     expect(coach().lastReview?.at).toBeGreaterThan(0)
     expect(coach().chat.at(-1)).toMatchObject({ role: 'coach', kind: 'dismissed', ref: coach().log[0].id })
-    expect(sent).toEqual([{ dismissed: true }])
+    expect(sent).toEqual([{ proposalId: 'p1', dismissed: true }])
     expect(onCommit).toHaveBeenCalledTimes(1)
   })
 
@@ -74,7 +74,8 @@ describe('dismissWithUndo', () => {
     expect(isDismissPending('p2')).toBe(true)
     vi.advanceTimersByTime(TOAST_ACTION_MS)
     expect(coach().log.map(e => e.proposalId)).toEqual(['p1', 'p2'])
-    expect(sent).toHaveLength(2)
+    // Each resolve names its own proposal, so the server ignores the one no longer pending.
+    expect(sent.map(b => b.proposalId)).toEqual(['p1', 'p2'])
   })
 
   it('a reload inside the window drops the dismissal: nothing recorded, nothing sent, the suggestions back', async () => {

@@ -98,6 +98,14 @@ describe('coach-demo — the job machine', () => {
     expect(demoStatus()).toEqual({ job: null, pending: null, cap: { used: 0, limit: 0 }, lastError: null })
   })
 
+  it('a resolve naming another proposal leaves the pending one alone (review #5)', () => {
+    const p = think(() => demoReview(state()))
+    expect(demoResolve({ proposalId: 'an-older-one', dismissed: true })).toEqual({ ok: true })
+    expect(demoStatus().pending).toBe(p)
+    demoResolve({ proposalId: p.id, dismissed: true })
+    expect(demoStatus().pending).toBeNull()
+  })
+
   it('a builder that throws ends the job, records the failure, and does not refuse the next request', () => {
     // Before this a throw inside the timer left `job` at 'running' for ever and every later
     // request answered 409 until the page was reloaded. Any throw will do; a getter is the one

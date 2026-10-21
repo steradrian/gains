@@ -1459,7 +1459,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'Planını birkaç cevaptan tasarlar ve gerçekten kaydettiklerine göre ayarlar. Onayın olmadan hiçbir şeyi değiştirmez ve her değişikliği geri alabilirsin.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'Rutinler, egzersizler, setler ve tekrarlar, haftalık programın ve ilerleme ayarların.',
   'Your logged training': 'Kaydettiğin antrenmanlar',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'Değerlendirme döneminde kaydettiğin setler: ağırlıklar, tekrarlar, süreler, zorluk puanları, antrenmanların ne kadar sürdüğü ve antrenman notların.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'Değerlendirme döneminde kaydettiğin setler: ağırlıklar, tekrarlar, süreler, zorluk puanları, antrenmanların ne kadar sürdüğü ve antrenman notların. Ayrıca haftalık değerlendirmen: antrenmanın nasıl geçtiği, nasıl uyuduğun ve notun.',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'Aynı dönemdeki tartımlar ve belirlediysen hedef kilon.',
   'What you tell the Coach': 'Koç’a anlattıkların',
   'Your intake answers, including any limitations or injuries you describe.': 'Başlangıç sorularına verdiğin yanıtlar; anlattığın kısıtlar ve sakatlıklar da dâhil.',

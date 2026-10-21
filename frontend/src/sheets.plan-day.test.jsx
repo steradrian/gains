@@ -12,6 +12,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { dayOverrideSheet, usePlanDayParam } from './sheets.jsx'
+import { isCalendarDay } from './sheets/plan-day.jsx'
 import { todayISO, isoOf, fmtDate } from './lib/format.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
@@ -345,5 +346,24 @@ describe('usePlanDayParam', () => {
     const host = page('/train/schedule?day=soon')
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(host.querySelector('.where').textContent).toBe('')
+  })
+
+  it('a day that matches the pattern but is not on the calendar opens nothing and is taken away (review #24)', () => {
+    const host = page('/train/schedule?tab=x&day=2026-02-31')
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(host.querySelector('.where').textContent).toBe('?tab=x')
+    expect(useStore.getState().S.dayPlan).toEqual({})
+  })
+})
+
+describe('isCalendarDay', () => {
+  it('takes a real date and refuses an impossible one', () => {
+    expect(isCalendarDay('2026-10-22')).toBe(true)
+    expect(isCalendarDay('2028-02-29')).toBe(true)
+    expect(isCalendarDay('2026-02-29')).toBe(false)
+    expect(isCalendarDay('2026-02-31')).toBe(false)
+    expect(isCalendarDay('2026-13-01')).toBe(false)
+    expect(isCalendarDay('2026-1-01')).toBe(false)
+    expect(isCalendarDay(null)).toBe(false)
   })
 })

@@ -1544,7 +1544,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'มันออกแบบแผนของคุณจากคำตอบไม่กี่ข้อและปรับตามสิ่งที่คุณบันทึกจริง ไม่เปลี่ยนแปลงอะไรโดยไม่ได้รับความยินยอม และคุณเลิกทำทุกการเปลี่ยนแปลงได้',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'รูทีน ท่าออกกำลังกาย เซ็ตและจำนวนครั้ง ตารางรายสัปดาห์ของคุณ และการตั้งค่าการเพิ่มระดับ',
   'Your logged training': 'การฝึกที่คุณบันทึก',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'เซ็ตที่คุณบันทึกในช่วงรีวิว: น้ำหนัก จำนวนครั้ง เวลา คะแนนความหนัก ระยะเวลาของแต่ละเซสชัน และบันทึกประจำรอบของคุณ',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'เซ็ตที่คุณบันทึกในช่วงรีวิว: น้ำหนัก จำนวนครั้ง เวลา คะแนนความหนัก ระยะเวลาของแต่ละเซสชัน และบันทึกประจำรอบของคุณ รวมถึงการเช็คอินประจำสัปดาห์: รู้สึกกับการฝึกอย่างไร นอนหลับเป็นอย่างไร และบันทึกของคุณ',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'บันทึกน้ำหนักจากช่วงเดียวกัน และน้ำหนักเป้าหมายของคุณ หากตั้งไว้',
   'What you tell the Coach': 'สิ่งที่คุณบอกโค้ช',
   'Your intake answers, including any limitations or injuries you describe.': 'คำตอบของคุณในแบบสอบถามเริ่มต้น รวมถึงข้อจำกัดหรืออาการบาดเจ็บที่คุณอธิบาย',

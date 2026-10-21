@@ -1459,7 +1459,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'Diseña tu plan a partir de unas pocas respuestas y lo ajusta según lo que realmente registras. Nunca cambia nada sin tu permiso, y puedes deshacer cada cambio.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'Rutinas, ejercicios, series y repeticiones, tu horario semanal y los ajustes de progresión.',
   'Your logged training': 'Tu entrenamiento registrado',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'Las series que registraste en el periodo de revisión: pesos, repeticiones, tiempos, valoraciones de esfuerzo, cuánto duraron las sesiones y tus notas de las sesiones.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'Las series que registraste en el periodo de revisión: pesos, repeticiones, tiempos, valoraciones de esfuerzo, cuánto duraron las sesiones y tus notas de las sesiones. También tu check-in semanal: cómo sentiste el entrenamiento, cómo dormiste y tu nota.',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'Los pesajes del mismo periodo y tu peso objetivo, si has fijado uno.',
   'What you tell the Coach': 'Lo que le cuentas al Entrenador',
   'Your intake answers, including any limitations or injuries you describe.': 'Tus respuestas del cuestionario inicial, incluidas las limitaciones o lesiones que describas.',

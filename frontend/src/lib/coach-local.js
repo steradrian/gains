@@ -97,7 +97,17 @@ export const localRefine = async (S, text) => {
   return start(S, 'create', { refine: String(text || '').slice(0, 1000), previous: pendingCreate?.bundle || null, iteration: (pendingCreate?.iteration || 1) + 1 })
 }
 export const localDebrief = (S, workoutId) => start(S, 'debrief', { workoutId: workoutId || null })
-export async function localResolve() { await saveCoachDevice({ pending: null }); return { ok: true } }
+// A resolve that names another proposal than the pending one is a no-op (a late Dismiss must not
+// clear the proposal that arrived after it); one that names none clears whatever is pending.
+export async function localResolve(body) {
+  const id = body?.proposalId
+  if (id != null) {
+    const { pending } = await loadCoachDevice()
+    if (!pending || pending.id !== id) return { ok: true }
+  }
+  await saveCoachDevice({ pending: null })
+  return { ok: true }
+}
 export async function localForget() { job = null; lastError = null; await saveCoachDevice({ pending: null, daily: null }); return { ok: true } }
 
 export async function localDisclosure() {

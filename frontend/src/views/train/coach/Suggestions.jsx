@@ -28,7 +28,7 @@ export default function Suggestions({ p, S, update, toast, refresh }) {
         const res = applyChangeSet(s, marked, ids)
         appendChat(s, { role: 'coach', kind: 'applied', ref: res.logId, text: tn('Applied {0} change to your plan.', 'Applied {0} changes to your plan.', ids.length) })
       })
-      resolvePending({ accepted: ids, rejected: marked.changes.filter(c => !ids.includes(c.id)).map(c => c.id) }).catch(() => {})
+      resolvePending({ proposalId: marked.id, accepted: ids, rejected: marked.changes.filter(c => !ids.includes(c.id)).map(c => c.id) }).catch(() => {})
       toast(tn('{0} change applied', '{0} changes applied', ids.length))
       refresh()
     } catch (e) { toast(e.message || t('Could not apply those changes')) }
