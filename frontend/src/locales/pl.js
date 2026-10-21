@@ -3145,7 +3145,7 @@ export default {
   '{0} {1} × {2}': '{0} {1} × {2}',
   '{0}, show only these': '{0}, pokaż tylko te',
   '{0}: {1}': '{0}: {1}',
-  '{0} online': '{0} online',
+  '{0} online': { one: '{0} online', few: '{0} online', many: '{0} online', other: '{0} online' },
   '{0} page': '{0} strona',
   '{0} pages': { one: '{0} strona', few: '{0} strony', many: '{0} stron', other: '{0} strony' },
   '{0} setting': '{0} ustawienie',

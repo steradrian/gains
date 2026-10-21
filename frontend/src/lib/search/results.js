@@ -9,7 +9,7 @@
 // `media` is { kind: 'glyph', glyph } | { kind: 'thumb', ex } | { kind: 'photo', src } |
 // { kind: 'date', iso }. `value` and `unit` are the trailing pair ("420" over "kcal"); `value`
 // alone is a setting's current value. On the stage a row says its kind first (`stageSub`).
-import { dateLocale, t, tn } from '../i18n-core.js'
+import { dateLocale, t, tn, tnShown } from '../i18n-core.js'
 import { capWords, exCount, exerciseNameText, fmtDate, fmtDaysAgo, fmtDur, fmtNum, isoOf, todayISO } from '../format.js'
 import { effectiveRoutineIds, setsDone, workoutDay, workoutDuration } from '../history.js'
 import { isFav } from '../favourites.js'
@@ -37,13 +37,16 @@ export const GROUP_ORDER = {
 
 export const GROUP_LIMIT = 3
 
-/** A group's noun for the counts ("4 exercises"); its title is lib/search/scopes.js groupTitle. */
-export const groupCount = (g, n) => ({
-  features: tn('{0} turned-off feature', '{0} turned-off features', n),
-  pages: tn('{0} page', '{0} pages', n), settings: tn('{0} setting', '{0} settings', n), exercises: tn('{0} exercise', '{0} exercises', n),
-  routines: tn('{0} routine', '{0} routines', n), workouts: tn('{0} workout', '{0} workouts', n), foods: tn('{0} food', '{0} foods', n),
-  days: tn('{0} day', '{0} days', n), online: t('{0} online', n),
-})[g]
+/** A group's count with its noun ("1,200 workouts"), the number written for the locale; `shown`
+ *  '' gives the noun alone, in the form the count takes ("workouts"). Its title is
+ *  lib/search/scopes.js groupTitle. */
+export const groupCount = (g, n, shown = n.toLocaleString(dateLocale())) => ({
+  features: tnShown('{0} turned-off feature', '{0} turned-off features', n, shown),
+  pages: tnShown('{0} page', '{0} pages', n, shown), settings: tnShown('{0} setting', '{0} settings', n, shown),
+  exercises: tnShown('{0} exercise', '{0} exercises', n, shown), routines: tnShown('{0} routine', '{0} routines', n, shown),
+  workouts: tnShown('{0} workout', '{0} workouts', n, shown), foods: tnShown('{0} food', '{0} foods', n, shown),
+  days: tnShown('{0} day', '{0} days', n, shown), online: tnShown('{0} online', '{0} online', n, shown),
+})[g]?.trim()
 
 /** What a row is, said first on its line on the stage ("Exercise · best set 80 kg × 6"). */
 export const kindLabel = type => ({
@@ -354,12 +357,12 @@ export function listAll(group, data) {
 }
 
 /** The counts per kind (the count chips, the summary line), in group order, largest marked; `text`
- *  is the count with its noun ("4 exercises"). `extra` adds to a group (Online's rows, the best
- *  match taken out of its group). */
+ *  is the count with its noun ("1,200 workouts"), `noun` the noun alone in the count's form
+ *  ("workouts"). `extra` adds to a group (Online's rows, the best match taken out of its group). */
 export function summaryOf(groups, order, extra = {}) {
   const entries = order.map(g => ({ group: g, count: (groups[g] || []).length + (extra[g] || 0) })).filter(e => e.count > 0)
   const max = Math.max(0, ...entries.map(e => e.count))
-  return entries.map(e => ({ ...e, text: groupCount(e.group, e.count), emphasized: e.count === max }))
+  return entries.map(e => ({ ...e, text: groupCount(e.group, e.count), noun: groupCount(e.group, e.count, ''), emphasized: e.count === max }))
 }
 
 /**

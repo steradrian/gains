@@ -1,9 +1,9 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { m } from 'motion/react'
-import { dateLocale, t, tn } from '../../lib/i18n.js'
+import { dateLocale, t, tnShown } from '../../lib/i18n.js'
 import { LIST_CONTAINER, LIST_ITEM, SURFACE_EXIT, SURFACE_SPRING } from '../../lib/motion.js'
 import { syncDiaryIndex } from '../../lib/nutrition/diary-index.js'
-import { GROUP_LIMIT, groupCount, kindLabel, stageSub } from '../../lib/search/results.js'
+import { GROUP_LIMIT, kindLabel, stageSub } from '../../lib/search/results.js'
 import { addRecent } from '../../lib/search/recents.js'
 import { groupTitle } from '../../lib/search/scopes.js'
 import { rememberScroll, setActive, setGroup, setOverlayKeys, setQuery, useSearch } from '../../lib/search/session.js'
@@ -141,7 +141,7 @@ export default function SearchPanel({ data }) {
   // One polite live region, spoken 900 ms after typing stops.
   const message = !hasQuery ? '' : spoken !== query ? ''
     : noResults ? t('Nothing matches “{0}”', query.trim())
-    : t('{0}: {1}', tn('{0} result', '{0} results', total), counts.map(e => groupCount(e.group, e.count)).join(', '))
+    : t('{0}: {1}', tnShown('{0} result', '{0} results', total, total.toLocaleString(dateLocale())), counts.map(e => e.text).join(', '))
     + (online.status === 'paused' ? '. ' + t('Open Food Facts paused') : online.status === 'error' ? '. ' + t('Couldn’t reach {0}', src) : '')
 
   // The field's keys: ↑ ↓ across every option of the listbox, from group to group, Home and End,

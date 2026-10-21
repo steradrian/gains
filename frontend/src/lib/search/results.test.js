@@ -131,10 +131,16 @@ describe('the local search', () => {
   it('counts per kind for the chips, the largest marked, each with its noun', () => {
     const s = summaryOf({ features: [1], pages: [1], exercises: [1, 2, 3] }, ['features', 'pages', 'exercises', 'online'], { exercises: 1 })
     expect(s).toEqual([
-      { group: 'features', count: 1, text: '1 turned-off feature', emphasized: false },
-      { group: 'pages', count: 1, text: '1 page', emphasized: false },
-      { group: 'exercises', count: 4, text: '4 exercises', emphasized: true },
+      { group: 'features', count: 1, text: '1 turned-off feature', noun: 'turned-off feature', emphasized: false },
+      { group: 'pages', count: 1, text: '1 page', noun: 'page', emphasized: false },
+      { group: 'exercises', count: 4, text: '4 exercises', noun: 'exercises', emphasized: true },
     ])
+  })
+
+  it('writes a count the locale\'s way, Open Food Facts\' too, and the noun in the form the count takes', () => {
+    const s = summaryOf({ workouts: Array(1200).fill(0) }, ['workouts', 'online'], { online: 1500 })
+    expect(s.map(e => [e.text, e.noun])).toEqual([['1,200 workouts', 'workouts'], ['1,500 online', 'online']])
+    expect(scopedSummary('workouts', 1200, 'press')).toBe('1,200 workouts with “press”, newest first')
   })
 
   it('lists a whole group when scoped with nothing typed', () => {
