@@ -410,6 +410,17 @@
   --g-heat-stage-48: rgba(255,255,255,0.48);
   --g-heat-stage-72: rgba(255,255,255,0.72);
   --g-mg-on-stage: rgba(255,255,255,0.16);
+  /* Settings food m2: the eight category dots. Fixed hues, the same on every stage and in both modes:
+     a category's colour is its identity, not a theme role. The ring keeps the black one visible on dark. */
+  --cat-red: #E5484D;
+  --cat-orange: #F76B15;
+  --cat-yellow: #F5C400;
+  --cat-green: #30A46C;
+  --cat-blue: #3E63DD;
+  --cat-purple: #8E4EC6;
+  --cat-brown: #A2775C;
+  --cat-black: #3A3A3A;
+  --cat-ring: rgba(255,255,255,0.4);
 }
 :root[data-theme="dark"] .g-root {
   --canvas: #0B0B0A;

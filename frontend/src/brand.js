@@ -33,4 +33,5 @@ export const LINKS = {
   muscleMap: { name: 'MuscleMap', url: 'https://github.com/melihcolpan/MuscleMap' },
   exerciseDb: { name: 'ExerciseDB v1', url: 'https://exercisedb.dev/' },
   lucide: { name: 'Lucide', url: 'https://lucide.dev/license' },
+  openFoodFacts: { name: 'Open Food Facts', url: 'https://world.openfoodfacts.org/' },
 }
