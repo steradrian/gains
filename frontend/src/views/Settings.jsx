@@ -980,8 +980,8 @@ function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
     : { title: t('Guest'), sub: t('Your data lives on this device. Sign in to sync.') }
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
   return <div ref={bodyRef}>
-    {/* Profile opens from the avatar on every tab, so back is back, not a fixed Home. */}
-    <Page title={t('Profile')} />
+    {/* Profile is the Me tab's root: like every tab root it has no back (the bar is the way out). */}
+    <Page title={t('Profile')} onBack={false} />
     <div className="sp-search">
       <SearchField value={q} onChange={e => set(e.target.value)} onClear={() => set('')}
         placeholder={t('Search…')} aria-label={t('Search settings')} inputMode="search" enterKeyHint="search" autoComplete="off" />

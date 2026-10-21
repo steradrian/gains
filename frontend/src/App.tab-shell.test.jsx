@@ -455,13 +455,13 @@ describe('back on a sub-page', () => {
     expect(idx()).toBe(0)
   })
 
-  it('Profile, the Me tab\'s root, has nothing under it: back goes Home', async () => {
+  it('Profile, the Me tab\'s root, has no back, like every tab root', async () => {
     await launch('#/home')
-    await click(tab('Me'))
+    await click(tab('Train'))
+    await click(avatar())
     expect(hash()).toBe('#/me')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
-    expect(hash()).toBe('#/home')
-    expect(lit()).toBe('Today')
+    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Profile')
+    expect(document.querySelector('.sub-hdr button[aria-label="Back"]')).toBeNull()
   })
 
   it('a Profile page goes back to Profile', async () => {
@@ -527,6 +527,17 @@ describe('Me, Profile and Progress', () => {
     await click(document.querySelector('.avatar-btn'))
     expect(hash()).toBe('#/me')
     expect(idx()).toBe(0)
+  })
+
+  it('the search shortcut on a Progress page opens on Progress, Profile still under it, not on Today', async () => {
+    await launch('#/me')
+    await click(progressRow())
+    await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Body'))
+    expect(hash()).toMatch(/^#\/progress\/body/)
+    await go(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })))
+    expect(hash()).toBe('#/progress')
+    expect(lit()).toBe('Me')
+    expect(useSearch.getState().open).toBe(true)
   })
 
   it('the avatar on another tab opens Profile as the Me tab', async () => {
