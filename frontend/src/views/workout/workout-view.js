@@ -8,7 +8,8 @@ import { fmtRest } from '../../lib/duration.js'
 import { t, tn } from '../../lib/i18n.js'
 import { sessionHistory } from '../../lib/backfill.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad } from '../../lib/plates.js'
-import { isWarmupRow, dropsOf } from '../../lib/workout-model.js'
+import { isWarmupRow, isSideSet, dropsOf } from '../../lib/workout-model.js'
+import { usesBar } from '../../lib/bar.js'
 import { partOf, partsOf } from '../../lib/workout-parts.js'
 // Workout core-M3
 import { isBw, isPerSide, repStep, effortOf, EFFORT, setsRepsOf } from '../../lib/history.js'
@@ -62,14 +63,41 @@ export function setText(S, entry, s) {
   return fmtNum(s.w) + ' ' + S.unit + ' × ' + (s.r || 0)
 }
 
-/** The plate line under a barbell set: "Bar 20 kg + 25 + 5 each side". Null when it does not apply. */
+/**
+ * The plate line under a set that loads plates, for the weight `w`. A bar reads "Bar 20 kg + 25 + 5
+ * each side"; a plate-loaded machine set to per side has no bar to name, "25 + 5 per side"; a
+ * single stack (a belt, a sled) reads "Load 25". Null when it does not apply: reps mode only.
+ */
 export function plateLineFor(S, entry, w) {
   if (S.showPlates === false) return null
-  const load = rowLoad(loadKindFor(S, { ...(entry.target || {}), id: entry.id }), w, baseWeightFor(S, entry.id), inventoryFor(S))
-  if (!load || load.kind !== 'pairs') return null
+  const cfg = { ...(entry.target || {}), id: entry.id }
+  if (modeOf(cfg) !== 'reps') return null
+  const load = rowLoad(loadKindFor(S, cfg), w, baseWeightFor(S, entry.id), inventoryFor(S))
+  if (!load) return null
+  const stack = load.plates.map(fmtNum).join(' + ')
+  if (load.kind === 'single') return load.barOnly ? null : t('Load {0}', stack || '–')
+  if (!usesBar(entry.id)) return load.barOnly || !stack ? null : t('{0} per side', stack)
   const bar = t('Bar {0}', fmtNum(baseWeightFor(S, entry.id)) + ' ' + S.unit)
   if (load.barOnly || !load.plates.length) return bar
-  return t('{0} + {1} each side', bar, load.plates.map(fmtNum).join(' + '))
+  return t('{0} + {1} each side', bar, stack)
+}
+
+/**
+ * The plate line for one logged row. A unilateral row logs each side's own weight and the bar is
+ * the same for both legs, so the line uses the sides' weight while they agree (or only one side
+ * has a number yet) and stays away once they differ. A saved workout being corrected (#203) has
+ * nothing left to load, so its rows stay bare.
+ */
+export function plateLineForSet(S, entry, s, { editing = false } = {}) {
+  if (editing || !s) return null
+  let w = s.w
+  if (isSideSet(s)) {
+    const L = s.sides.L?.w || 0
+    const R = s.sides.R?.w || 0
+    if (L && R && L !== R) return null
+    w = L || R
+  }
+  return w > 0 ? plateLineFor(S, entry, w) : null
 }
 
 export function buildWorkoutView({ S, A, timer = null, work = null, sync = null, events = {}, now = Date.now() }) {
@@ -159,7 +187,7 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
         setLine: isWarmupRow(s) ? t('Warm-up') : t('Set {0} of {1}', workN, work.length),
         last: lastRow ? t('Last time {0}', setText(S, last, lastRow)) : null,
         first: !last ? t('First time') : null,
-        plateLine: s.w > 0 ? plateLineFor(S, entry, s.w) : null,
+        plateLine: plateLineForSet(S, entry, s, { editing }),
         doneLabel: unit.length > 1 && !roundEnds ? t('Done · go to {0}', labels[partnerIdx])
           : unit.length > 1 ? t('Done · rest {0} after both', fmtRest(restSec))
             : lastSet ? t('Done · last set') : t('Done set'),

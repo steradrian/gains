@@ -20,7 +20,7 @@ import SupersetSwitch from '../../ds/SupersetSwitch.jsx'
 import TimedHold from '../../ds/TimedHold.jsx'
 import { exerciseRestSheet, howToSheet, platesSheet, setEditSheet } from './drawers.js'
 import { setEffortAt } from './workout-actions.js'
-import { plateLineFor, setFields, setText } from './workout-view.js'
+import { setFields, setText } from './workout-view.js'
 import { changeSetField } from './set-field-change.js'
 
 function Steppers({ idx, i, fields }) {
@@ -49,7 +49,7 @@ export default function WorkoutFocus({ view, actions }) {
       onEdit: () => setEditAt({ idx, i }),
     }))
     : view.doneRows.map(r => ({ ...r, n: r.i, onEdit: () => setEditSheet(idx, r.i) }))
-  const edited = editI != null ? { ...setFields(S, entry, editI), plateLine: entry.sets[editI].w > 0 ? plateLineFor(S, entry, entry.sets[editI].w) : null } : null
+  const edited = editI != null ? setFields(S, entry, editI) : null
   const holdHere = hold && hold.idx === idx
 
   const done = () => {
@@ -75,9 +75,7 @@ export default function WorkoutFocus({ view, actions }) {
         <>
           <CurrentSet setLine={t('Set {0} · editing', editI + 1)} last={null} bodyweight={edited.bodyweight}
             loadLabel={t('Load')} bodyweightLabel={t('Body weight')} loadHint={t('Tap to add weight')} onLoad={() => setEditSheet(idx, editI)}
-            fields={<Steppers idx={idx} i={editI} fields={edited.fields} />}>
-            <PlateLine text={edited.plateLine} label={t('Plate loading')} onClick={() => platesSheet(idx)} />
-          </CurrentSet>
+            fields={<Steppers idx={idx} i={editI} fields={edited.fields} />} />
           <button type="button" className="wk-done" onClick={finishWorkout}>{t('Save changes')}</button>
           <button type="button" className="wk-link" onClick={() => setEditSheet(idx, editI)}>{t('Set options')}</button>
         </>
