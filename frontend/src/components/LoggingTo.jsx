@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../lib/i18n.js'
-import { fmtDate, todayISO } from '../lib/format.js'
+import { dayName } from '../lib/nutrition/log-feedback.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
@@ -21,16 +21,18 @@ export function useSheetTarget() {
   return { date: snap.date, meal, mealName: names[meal], names, setMeal }
 }
 
+/** Picking another meal for a sheet's target (useSheetTarget). */
+export const pickMealSheet = ({ meal, names, setMeal }) => menuSheet({
+  title: t('Log to which meal?'),
+  items: names.map((n, i) => ({ label: n, on: i === meal, onClick: () => setMeal(i) })),
+})
+
 // "Logging to Tue 13 Oct · Lunch ▾" (ia-proposal §4): where this sheet's logs go. Tapping it
 // picks another meal.
 export default function LoggingTo({ target }) {
-  const { date, meal, mealName, names, setMeal } = target
-  const dateText = date === todayISO() ? t('Today') : fmtDate(date, true)
-  const pickMeal = () => menuSheet({
-    title: t('Log to which meal?'),
-    items: names.map((n, i) => ({ label: n, on: i === meal, onClick: () => setMeal(i) })),
-  })
-  return <button type="button" className="logging-to" onClick={pickMeal}
+  const { date, mealName } = target
+  const dateText = dayName(date)
+  return <button type="button" className="logging-to" onClick={() => pickMealSheet(target)}
     aria-label={t('Logging to {0}, {1}. Change meal', dateText, mealName)}>
     <span className="muted">{t('Logging to')}</span>
     <span className="logging-to-v">{dateText} · {mealName}</span>

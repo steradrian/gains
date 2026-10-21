@@ -1,6 +1,5 @@
-import { t } from '../i18n.js'
 import { useUI } from '../../store/useUI.js'
-import { toastLogged, writeErrorText } from './log-feedback.js'
+import { addedText, toastLogged, writeErrorText } from './log-feedback.js'
 import { useNutrition } from './store.js'
 import { settingOf } from './use-nt-settings.js'
 
@@ -22,7 +21,7 @@ export async function logServing(food, { date, meal, mealName, onLogged }) {
     const item = await n.logFood(date, drafts.get(key))
     drafts.delete(key)
     if (onLogged) onLogged()
-    toastLogged(t('Logged to {0}', mealName), () => useNutrition.getState().removeItem(date, item.uuid))
+    toastLogged(addedText(date, mealName, food.name),() => useNutrition.getState().removeItem(date, item.uuid))
     return true
   } catch (e) {
     useUI.getState().toast(writeErrorText(e))

@@ -300,7 +300,7 @@ describe('yesterday\'s meal, inside the empty meal it matches', () => {
     expect(again.textContent).toContain('Lentil soup · 228 kcal')
     expect(buttonSaying('Log again').getAttribute('aria-label')).toBe('Log yesterday’s Dinner again')
     tap(buttonSaying('Log again'))
-    await settle(() => expect(toastText()).toBe('Logged to Dinner'))
+    await settle(() => expect(toastText()).toBe('Added to Today, Dinner'))
     const fresh = nt.state.days[TODAY].items.find(i => i.name === 'Lentil soup')
     expect(fresh).toMatchObject({ meal: 2, food_server_id: 11, portion: 60, unit: 'g', quantity: 1 })
     // Dinner has something now: the offer goes, the toast's Undo stays, and focus lands on Dinner
@@ -321,7 +321,7 @@ describe('yesterday\'s meal, inside the empty meal it matches', () => {
     await settle(() => expect(toastText()).toContain('Not saved: no connection.'))
     await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     tap(buttonSaying('Log again'))
-    await settle(() => expect(toastText()).toBe('Logged to Dinner'))
+    await settle(() => expect(toastText()).toBe('Added to Today, Dinner'))
     expect(nt.state.days[TODAY].items.filter(i => i.name === 'Lentil soup')).toHaveLength(1)
   })
 
@@ -332,7 +332,7 @@ describe('yesterday\'s meal, inside the empty meal it matches', () => {
     await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     const before = nt.state.days[TODAY].items.length
     tap(buttonSaying('Log again'))
-    await settle(() => expect(toastText()).toBe('Logged to Dinner'))
+    await settle(() => expect(toastText()).toBe('Added to Today, Dinner'))
     expect(nt.writes().filter(w => w.path === `/nt/api/diary/${TODAY}`)).toHaveLength(1)
     expect(nt.state.days[TODAY].items.length).toBe(before + 2)
 
@@ -352,7 +352,7 @@ describe('yesterday\'s meal, inside the empty meal it matches', () => {
     await openHub()
     await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     tap(buttonSaying('Log again'))
-    await settle(() => expect(toastText()).toBe('Logged to Dinner'))
+    await settle(() => expect(toastText()).toBe('Added to Today, Dinner'))
     const first = nt.state.days[TODAY].items.at(-1).uuid
     await act(async () => { useUI.getState().runToastAction() })
     await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
@@ -368,7 +368,7 @@ describe('yesterday\'s meal, inside the empty meal it matches', () => {
     await settle(() => expect(buttonSaying('Log again')?.disabled).toBe(false))
     expect(mealRow('Snacks').querySelector('.meal-again')).not.toBeNull()
     tap(buttonSaying('Log again'))
-    await settle(() => expect(toastText()).toBe('Logged to Snacks'))
+    await settle(() => expect(toastText()).toBe('Added to Today, Snacks'))
     const quick = nt.state.days[TODAY].items.filter(i => i.type === 'quick_calories' && i.meal === 3)
     expect(quick).toHaveLength(1)
     expect(quick[0]).toMatchObject({ meal: 3, nutrition: { calories: 300 } })

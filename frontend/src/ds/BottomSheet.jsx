@@ -10,14 +10,15 @@ const TYPES = ['auto', 'half', 'full']
 
 // The design system's light drawer (bundle.js `BottomSheet`): grab bar, title, the day and meal it
 // writes to (`chip`, tappable through `onChip`), close ×, a body that scrolls inside, `footer`.
-// `type`: auto (as tall as its content), half, full (56px from the top).
+// `type`: auto (as tall as its content), half, full (56px from the top). `head` is pinned under the
+// title, outside the scroll (a search field that stays while the results move, board T1.4).
 //
 // Opened through the app's sheet frame (`openSheet(render, { variant: 'ds' })`, Modals.jsx), the
 // frame owns everything a sheet does: presence motion, focus in and back, Escape, back button,
 // scrim and drag to dismiss, the page lock and the keyboard. The drawer only draws, on the refs
 // the frame gives it. The × runs `onClose`, else the frame's dismiss (the scrim's, so a sheet's
 // onDismiss runs either way). Outside the frame it draws itself open and still.
-export default function BottomSheet({ title, chip, onChip, type = 'auto', onClose, closeHref, scrim = true, footer, children }) {
+export default function BottomSheet({ title, chip, onChip, type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
   oneOf('BottomSheet', 'type', type, TYPES)
   const frame = useContext(SheetFrameContext)
   const accent = useStore(s => dsAccentFor(s.S))
@@ -39,6 +40,7 @@ export default function BottomSheet({ title, chip, onChip, type = 'auto', onClos
           ? <a href={closeHref} onClick={onClose} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></a>
           : <button type="button" onClick={close} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></button>)}
       </div>
+      {head && <div className="g-bs-pin">{head}</div>}
       <div className="g-bs-body" ref={frame?.body}>{children}</div>
       {footer && <div className="g-bs-foot">{footer}</div>}
     </div>

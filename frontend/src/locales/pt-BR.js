@@ -62,10 +62,8 @@ export const PT_BR_OVERRIDES = {
   'Save & start workout': 'Salvar e iniciar treino',
   'Start without weighing in': 'Iniciar sem se pesar',
   'Choose a different workout': 'Escolher outro treino',
-  'Recent weigh-ins': 'Pesagens recentes',
   'Delete weigh-in?': 'Excluir pesagem?',
   'Enter a valid weight': 'Informe um peso válido',
-  'Weight saved': 'Peso salvo',
   'Your goal is drawn as a line through the weight charts, and gains/losses are colored by whether they move toward it.': 'Sua meta aparece como uma linha nos gráficos de peso, e os ganhos ou perdas mudam de cor conforme você se aproxima dela.',
   'Save goal': 'Salvar meta',
   'Add to my plan': 'Adicionar ao meu plano',
@@ -1659,7 +1657,6 @@ export const PT_BR_OVERRIDES = {
   'Meal {0}': 'Meal {0}',
   'Not saved: this entry changed elsewhere. The diary now shows its latest state.': 'Not saved: this entry changed elsewhere. The diary now shows its latest state.',
   'Recipe · 1 serving': 'Recipe · 1 serving',
-  'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.': 'Slide or tap to set your weight. We ask before your first workout each day so your curve stays honest.',
   'Updated': 'Updated',
   // --- the tab-root header's search pill ---
   'Search {0}': 'Buscar no {0}',

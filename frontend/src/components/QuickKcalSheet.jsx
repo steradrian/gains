@@ -4,7 +4,7 @@ import { useUI } from '../store/useUI.js'
 import { fmtDate } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
-import { writeErrorText, toastLogged } from '../lib/nutrition/log-feedback.js'
+import { addedText, writeErrorText, toastLogged } from '../lib/nutrition/log-feedback.js'
 import { Button, NumberField, TextField } from './ui.jsx'
 import { SheetHeader } from './sheet-layout.jsx'
 
@@ -45,7 +45,7 @@ export default function QuickKcalSheet({ date, meal, mealName, onLogged, pending
       pending.uuid = null
       close()
       if (onLogged) onLogged()
-      toastLogged(t('Logged to {0}', mealName), () => useNutrition.getState().removeItem(date, item.uuid))
+      toastLogged(addedText(date, mealName),() => useNutrition.getState().removeItem(date, item.uuid))
     } catch (e) {
       pending.uuid = draft.uuid
       setError(writeErrorText(e))

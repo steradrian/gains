@@ -145,7 +145,10 @@ describe('Today', () => {
     expect(lastSheet().querySelector('.scan-sheet h3').textContent).toBe('Scan a barcode')
     await act(async () => { useUI.setState({ sheets: [] }) })
     await click(action('Weigh-in'))
-    expect(button('Save', lastSheet())).toBeTruthy()
+    await click(button('Save weigh-in', lastSheet()))
+    expect(useStore.getState().S.bodyweight.find(b => b.d === TODAY)).toBeTruthy()
+    expect(useUI.getState().toastMsg).toBe('Saved 80.4 kg to Today')
+    expect(useUI.getState().toastAction).toBeTruthy()
   })
 
   it('Water logs a glass to today with Undo, and so does the + after the glasses', async () => {
@@ -157,7 +160,7 @@ describe('Today', () => {
     expect(puts()[0].body.water.map(w => w.amount)).toEqual([250, 250])
     expect(sections()).toContain('Water500 of 2,500 ml')
     expect(host.querySelectorAll('.g-water-g i.on')).toHaveLength(2)
-    expect(useUI.getState().toastMsg).toBe('Water added')
+    expect(useUI.getState().toastMsg).toBe('Added 250 ml of water to Today')
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
     expect(sections()).toContain('Water250 of 2,500 ml')
@@ -172,7 +175,7 @@ describe('Today', () => {
       useDiarySelection.getState().setDate(yesterday)
       await mount(<Home />)
       await click(action('Log food'))
-      expect(lastSheet().querySelector('.food-picker-sheet .logging-to').textContent).toBe('Logging toToday · Lunch')
+      expect(lastSheet().querySelector('.g-bs .g-bs-chip').textContent).toBe('Today · Lunch')
       expect(useDiarySelection.getState().day()).toBe(TODAY)
     } finally { vi.useRealTimers() }
   })
@@ -189,7 +192,7 @@ describe('Today', () => {
       await click(tile('Breakfast'))
       expect(navigate).toHaveBeenCalledWith('/food')
       await click(tile('Snacks'))
-      expect(lastSheet().querySelector('.logging-to').textContent).toBe('Logging toToday · Snacks')
+      expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Snacks')
     } finally { vi.useRealTimers() }
   })
 
@@ -351,7 +354,7 @@ describe('logging a food', () => {
     await click(button('Log'))
     const item = nt.state.days[TODAY].items.at(-1)
     expect(item).toMatchObject({ name: 'Wholemeal bread', meal: 2, portion: 2, unit: 'slice', quantity: 1 })
-    expect(useUI.getState().toastMsg).toBe('Logged to Dinner')
+    expect(useUI.getState().toastMsg).toBe('Added Wholemeal bread to Today, Dinner')
   })
 
   it('a failed write keeps the sheet and its amount, and the retry logs once', async () => {
@@ -472,7 +475,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet() })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     await settle()
     expect(order[0]).toBe('push')
     expect(order).toContain('/hub/api/sync/now')
@@ -482,7 +485,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet({ date: yesterday }) })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     // `t` is the change stamp (now); charts place it on its own day, not on the day it was typed.
     const entry = useStore.getState().S.bodyweight.find(b => b.d === yesterday)
     expect(entry.t).toBeGreaterThan(new Date(TODAY + 'T00:00:00').getTime())
@@ -493,8 +496,8 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet({ date: tomorrow }) })
     await settle()
-    await click(button('Save', lastSheet()))
-    const bw = useStore.getState().S.bodyweight
+    await click(button('Save weigh-in', lastSheet()))
+    const bw =useStore.getState().S.bodyweight
     expect(bw.some(b => b.d === tomorrow)).toBe(false)
     expect(bw.find(b => b.d === TODAY)).toBeTruthy()
   })

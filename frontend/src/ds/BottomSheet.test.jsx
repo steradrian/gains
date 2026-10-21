@@ -47,6 +47,16 @@ describe('BottomSheet, drawn alone', () => {
     expect(q('a.g-bs-x').getAttribute('href')).toBe('#/today')
     expect(q('.g-bs-scrim')).toBeNull()
     expect(q('.g-bs-foot')).toBeNull()
+    expect(q('.g-bs-pin')).toBeNull()
+  })
+
+  it('pins `head` between the title and the body, outside the scroll', () => {
+    view.render(<BottomSheet title="Log food" head={<input aria-label="Search food" />}><p>Banana</p></BottomSheet>)
+    const pin = q('.g-bs-pin')
+    expect(pin.querySelector('input')).not.toBeNull()
+    expect(pin.previousElementSibling.classList.contains('g-bs-head')).toBe(true)
+    expect(pin.nextElementSibling.classList.contains('g-bs-body')).toBe(true)
+    expect(q('.g-bs-body').contains(pin)).toBe(false)
   })
 
   it('throws in development on a type it does not have', () => {

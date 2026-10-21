@@ -4,6 +4,7 @@ import { useUI } from '../store/useUI.js'
 import BottomSheet from './BottomSheet.jsx'
 import Button from './Button.jsx'
 import Section from './DevKitSection.jsx'
+import SegmentedControl from './SegmentedControl.jsx'
 import UndoToast from './UndoToast.jsx'
 
 // The drawer and toast kit's part of the catalogue (DevKit.jsx): each drawn still in a phone-sized
@@ -49,7 +50,15 @@ export default function DevKitDrawers() {
           <BottomSheet title="Nutrition today" type="half" onClose={NOOP}><FoodList /></BottomSheet>
         </div>
         <div className="g-kit-frame">
-          <BottomSheet title="Log food" chip="Today · Lunch" onChip={NOOP} type="full" closeHref={SELF}><FoodList /></BottomSheet>
+          <BottomSheet title="Log food" chip="Today · Lunch" onChip={NOOP} type="full" closeHref={SELF}
+            head={<SegmentedControl options={['Recent', 'Saved meals', 'My foods']} label="Food source" />}><FoodList /></BottomSheet>
+        </div>
+      </Section>
+
+      <Section title="SegmentedControl" note="Three options keeping their own choice (also pinned in the full drawer's head above), and two controlled.">
+        <div className="g-kit-col">
+          <SegmentedControl options={['Recent', 'Saved meals', 'My foods']} label="Food source" />
+          <SegmentedControl options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} value="kg" onChange={NOOP} label="Unit" />
         </div>
       </Section>
 

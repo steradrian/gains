@@ -4,6 +4,7 @@ import { fmtDate, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { energyOf, unitsFor } from '../lib/nutrition/diary.js'
 import { NUTRIENTS, fmtAmount, foodErrorText, nutrientLabel, per100Of, per100Unit } from '../lib/nutrition/foods.js'
+import { addedText } from '../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -57,7 +58,7 @@ export function FoodDetailSheet({ food, settings, close, onEdit, onSave }) {
       if (draft.current.sig !== sig) draft.current = { sig, value: n.draftFood({ food, meal, portion, unit, servings: 1 }) }
       const item = await n.logFood(date, draft.current.value)
       close()
-      toast(t('Logged to {0}', mealName), {
+      toast(addedText(date, mealName, food.name), {
         action: t('Undo'),
         onAction: () => { useNutrition.getState().removeItem(date, item.uuid).catch(e => toast(foodErrorText(e, { write: true }))) },
       })

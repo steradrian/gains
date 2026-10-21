@@ -3,7 +3,7 @@ import { useUI } from '../store/useUI.js'
 import { fmtDate } from '../lib/format.js'
 import { t, tn } from '../lib/i18n.js'
 import { energyOf, nutritionOf } from '../lib/nutrition/diary.js'
-import { toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { addedText, toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { amountOf, mealDraft, servingsOf, totalOf } from '../lib/nutrition/meals.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
@@ -60,7 +60,7 @@ export function MealDetailSheet({ id, recipe, close }) {
     try {
       const items = await useNutrition.getState().logMeal(target.date, draft)
       close()
-      toastLogged(t('Logged to {0}', where), () => useNutrition.getState().removeItems(target.date, items.map(i => i.uuid)))
+      toastLogged(addedText(target.date, where, meal.name),() => useNutrition.getState().removeItems(target.date, items.map(i => i.uuid)))
     } catch (e) {
       setError(writeErrorText(e))
       setBusy(false)
