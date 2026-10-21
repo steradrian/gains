@@ -145,14 +145,21 @@ describe('StageHeader as the search field', () => {
     expect(onKeyDown).toHaveBeenCalledTimes(1)
   })
 
-  it('offers the barcode button in the field only while the search is open', () => {
+  it('offers the barcode button in the field at rest and open, and scanning does not open the search', () => {
     const onScan = vi.fn()
-    view.render(<StageHeader searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} onScan={onScan} />)
-    expect(q('.g-ssf-scan')).toBeNull()
-    view.render(<StageHeader searching onSearch={vi.fn()} query="" onQuery={vi.fn()} onScan={onScan} />)
+    const onSearch = vi.fn()
+    view.render(<StageHeader searching={false} onSearch={onSearch} query="" onQuery={vi.fn()} onScan={onScan} />)
     expect(q('.g-ssf-scan').getAttribute('aria-label')).toBe('Scan barcode')
     click(q('.g-ssf-scan'))
     expect(onScan).toHaveBeenCalledTimes(1)
+    expect(onSearch).not.toHaveBeenCalled()
+    view.render(<StageHeader searching onSearch={onSearch} query="" onQuery={vi.fn()} onScan={onScan} />)
+    expect(q('.g-ssf-scan')).not.toBeNull()
+  })
+
+  it('has no barcode button when no onScan is passed', () => {
+    view.render(<StageHeader searching={false} onSearch={vi.fn()} query="" onQuery={vi.fn()} />)
+    expect(q('.g-ssf-scan')).toBeNull()
   })
 })
 
