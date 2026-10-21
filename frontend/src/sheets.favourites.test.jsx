@@ -5,6 +5,7 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { EXDB } from './lib/exercises.js'
+import { exerciseNameText } from './lib/format.js'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exerciseDetailSheet, exercisePicker } from './sheets.jsx'
@@ -24,7 +25,8 @@ function renderTop() {
 }
 
 const names = host => [...host.querySelectorAll('.g-pk-item .g-xrow-b b')].map(el => el.textContent)
-const starOf = host => host.querySelector('.fav-btn')
+const starOf = host => host.querySelector('.g-xd-star')
+const toast = () => useUI.getState()
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -37,20 +39,49 @@ afterEach(() => {
   act(() => { mounted.splice(0).forEach(root => root.unmount()) })
 })
 
-describe('exercise detail star', () => {
-  it('adds and removes the exercise from favourites with a toast', () => {
+describe('exercise detail star (T6.3)', () => {
+  it('adds and removes the exercise from favourites, the toast naming it with Undo', () => {
     const ex = EXDB[0]
     exerciseDetailSheet(ex)
     const host = renderTop()
     expect(starOf(host).getAttribute('aria-label')).toBe('Add to favourites')
+    expect(starOf(host).getAttribute('aria-pressed')).toBe('false')
     act(() => starOf(host).click())
     expect(S().favEx).toEqual([ex.id])
-    expect(useUI.getState().toastMsg).toBe('Added to favourites')
+    expect(toast().toastMsg).toBe(`Added ${exerciseNameText(ex)} to favourites`)
+    expect(toast().toastAction).toMatchObject({ label: 'Undo', ms: 8000 })
     expect(starOf(host).getAttribute('aria-label')).toBe('Remove from favourites')
     expect(starOf(host).getAttribute('aria-pressed')).toBe('true')
     act(() => starOf(host).click())
     expect(S().favEx).toEqual([])
-    expect(useUI.getState().toastMsg).toBe('Removed from favourites')
+    expect(toast().toastMsg).toBe(`Removed ${exerciseNameText(ex)} from favourites`)
+    expect(toast().toastAction.label).toBe('Undo')
+  })
+
+  it('Undo takes the change back, either way', () => {
+    const ex = EXDB[0]
+    exerciseDetailSheet(ex)
+    const host = renderTop()
+    act(() => starOf(host).click())
+    act(() => toast().toastAction.run())
+    expect(S().favEx).toEqual([])
+    expect(starOf(host).getAttribute('aria-pressed')).toBe('false')
+    useStore.setState(s => ({ S: { ...s.S, favEx: [ex.id] } }))
+    act(() => starOf(host).click())
+    expect(S().favEx).toEqual([])
+    act(() => toast().toastAction.run())
+    expect(S().favEx).toEqual([ex.id])
+  })
+
+  it('an Undo after the star was tapped again changes nothing', () => {
+    const ex = EXDB[0]
+    exerciseDetailSheet(ex)
+    const host = renderTop()
+    act(() => starOf(host).click())
+    const first = toast().toastAction.run
+    act(() => starOf(host).click())
+    act(() => first())
+    expect(S().favEx).toEqual([])
   })
 
   it('tolerates a profile written before the field existed', () => {
