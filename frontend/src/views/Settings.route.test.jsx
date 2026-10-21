@@ -4,9 +4,10 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsRoute } from './Settings.jsx'
 import { useStore } from '../store/useStore.js'
+import { createFakeNutriTrace } from '../lib/nutrition/fake-nutritrace.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 globalThis.__APP_VERSION__ ??= 'test'
@@ -48,11 +49,19 @@ describe('renamed Profile pages', () => {
 // PR07 decision 2: the reminder settings live at /me/reminders; /me/notifications is the inbox.
 describe('the reminder settings', () => {
   const user = useStore.getState().user
-  beforeEach(() => useStore.setState({ user: { id: 'u1', name: 'Dana' } }))
-  afterEach(() => useStore.setState({ user }))
+  // A signed-in Settings loads NutriTrace's settings on mount; the fake answers at the fetch boundary.
+  beforeEach(() => {
+    useStore.setState({ user: { id: 'u1', name: 'Dana' } })
+    vi.stubGlobal('fetch', createFakeNutriTrace().fetch)
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    useStore.setState({ user })
+  })
 
-  it('open at /me/reminders for a signed-in profile', () => {
+  it('open at /me/reminders for a signed-in profile', async () => {
     open('/me/reminders')
+    await act(async () => {})
     expect(seen).toBe('/me/reminders')
     expect(host.textContent).toContain('Reminders')
   })

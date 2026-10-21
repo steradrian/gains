@@ -3332,7 +3332,7 @@ export default {
   'You’re already in': 'You’re already in',
   'You’re offline': 'You’re offline',
   // --- Shared pages: English until the translation pass ---
-  'Notifications, {0} unread': 'Notifications, {0} unread',
+  'Notifications, {0} unread': { one: 'Notifications, {0} unread', few: 'Notifications, {0} unread', many: 'Notifications, {0} unread', other: 'Notifications, {0} unread' },
   // --- Shared: the notifications inbox and Reminders, English until the translation pass ---
   '{0} of 7 days on target': '{0} of 7 days on target',
   '{0} of {1} workouts': '{0} of {1} workouts',
@@ -3355,7 +3355,7 @@ export default {
   'Your week, {0}': 'Your week, {0}',
   'Your {0} reminder.': 'Your {0} reminder.',
   // --- Shared: the notifications page, English until the translation pass ---
-  '{0} new': '{0} new',
+  '{0} new': { one: '{0} new', few: '{0} new', many: '{0} new', other: '{0} new' },
   'All read': 'All read',
   'Kept for 30 days. The reminders you set live in {0}.': 'Kept for 30 days. The reminders you set live in {0}.',
   'Me › Reminders': 'Me › Reminders',
@@ -3368,7 +3368,6 @@ export default {
   'Reminders you set, streaks and new bests': 'Reminders you set, streaks and new bests',
   'Reminders you set, streaks and new bests show up here.': 'Reminders you set, streaks and new bests show up here.',
   'Set a reminder': 'Set a reminder',
-  'Streak': 'Streak',
   'They still land here, but your phone won’t buzz.': 'They still land here, but your phone won’t buzz.',
   'Weekly recap': 'Weekly recap',
 }

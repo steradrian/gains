@@ -74,13 +74,18 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining([
       'Shared: pages', 'StageNavBar', 'StageSection variants', 'NotificationRow', 'StageEmpty on the notifications page', 'Permission banner', 'StageNote',
     ]))
-    expect(view.host.querySelector('.g-sempty-btn').textContent).toBe('Set a reminder')
-    expect(view.host.querySelectorAll('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
-    expect(view.host.querySelector('.g-snote').textContent).toContain('Kept for 30 days')
-    expect(view.host.querySelectorAll('.g-snav')).toHaveLength(7)
-    expect(view.host.querySelectorAll('.g-ssec-line')).toHaveLength(2)
-    expect(view.host.querySelectorAll('.g-ngroup')).toHaveLength(3)
-    expect(view.host.querySelectorAll('.g-nrow')).toHaveLength(9)
-    expect(view.host.querySelectorAll('.g-nrow-new')).toHaveLength(3)
+    // The other pages' entries sit above the Shared ones (the last in the kit), so the counts read
+    // from the "Shared: pages" heading down.
+    const sections = [...view.host.querySelectorAll('.g-kit-sec')]
+    const shared = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: pages'))
+    const all = selector => shared.flatMap(s => [...s.querySelectorAll(selector)])
+    expect(all('.g-sempty-btn').map(b => b.textContent)).toEqual(['Set a reminder'])
+    expect(all('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
+    expect(all('.g-snote')[0].textContent).toContain('Kept for 30 days')
+    expect(all('.g-snav')).toHaveLength(7)
+    expect(all('.g-ssec-line')).toHaveLength(2)
+    expect(all('.g-ngroup')).toHaveLength(3)
+    expect(all('.g-nrow')).toHaveLength(9)
+    expect(all('.g-nrow-new')).toHaveLength(3)
   })
 })
