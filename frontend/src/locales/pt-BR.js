@@ -1933,6 +1933,25 @@ export const PT_BR_OVERRIDES = {
 
   // --- the redesigned Training tab ---
   'Pick exercises as you go': 'Escolha os exercícios na hora',
+  // --- Train routines picker and settings: English until the translation pass ---
+  'Body part': 'Body part',
+  'Type': 'Type',
+  'Name it and pick a body part': 'Name it and pick a body part',
+  'When every set hits {0} reps, the next workout adds {1} and starts again at {2}.': 'When every set hits {0} reps, the next workout adds {1} and starts again at {2}.',
+  'Set {0} max': 'Set {0} max',
+  'Set {0} reps': 'Set {0} reps',
+  'Set {0} weight': 'Set {0} weight',
+  'Set {0} rest (s)': 'Set {0} rest (s)',
+  'Remove set {0}': 'Remove set {0}',
+  'Similar exercises first': 'Similar exercises first',
+  'Undo for 8 s': 'Undo for 8 s',
+  'Reps or time': 'Reps or time',
+  'Superset with the exercise above': 'Superset with the exercise above',
+  'Exercise options': 'Exercise options',
+  'you did {0} × {1}': 'you did {0} × {1}',
+  'Replace {0}': 'Replace {0}',
+  'Similar exercises · same muscles, your equipment first': 'Similar exercises · same muscles, your equipment first',
+  'Search all exercises': 'Search all exercises',
   // --- Train routines: English until the translation pass ---
   '{0} are now rest days': '{0} are now rest days',
   '{0} in your Plan': '{0} in your Plan',

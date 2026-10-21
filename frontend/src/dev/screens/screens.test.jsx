@@ -269,6 +269,38 @@ describe('the screens gallery', () => {
     expect(useStore.getState().S).toBe(own)
   }, 20000)
 
+  it('has Train › Routines picker: the picker (a row ticked, no exact match, Favourites, By muscle), the settings (flat and pyramid) and Replace', async () => {
+    expect(screenAreas().find(a => a.name === 'Train: routines picker').entries.map(e => e.id))
+      .toEqual(['T5.1', 'T5.1-nomatch', 'T5.2', 'T5.3', 'T5.5', 'T5.5-pyramid', 'T5.7'])
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('T5.1', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Add exercise')
+      expect(h.querySelector('.g-bs-chip').textContent).toBe('Push A')
+      expect(h.querySelector('.g-bs-foot').textContent).toBe('Add 1 exercise to Push A')
+      expect(h.querySelectorAll('.g-pk-item button[aria-pressed="true"]')).toHaveLength(1)
+    })
+    await check('T5.1-nomatch', h => {
+      expect(h.querySelector('.g-bs .g-pk-head').textContent).toBe('No exact match. These come close:')
+      expect(h.querySelector('.g-bs .g-pk-list').lastElementChild.classList.contains('g-pk-new')).toBe(true)
+    })
+    await check('T5.2', h => expect(h.querySelectorAll('.g-bs .g-pk-item')).toHaveLength(4))
+    await check('T5.3', h => expect(h.querySelector('.g-bs .g-pk-head').textContent).toMatch(/^Chest · \d/))
+    await check('T5.5', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('barbell bench press')
+      expect(h.querySelectorAll('.g-bs .g-sett [role="row"]')).toHaveLength(2)
+      expect(h.querySelector('.g-bs').textContent).toContain('Undo for 8 s')
+      expect(h.querySelector('.g-bs').textContent).toContain('Superset with the exercise above')
+    })
+    await check('T5.5-pyramid', h => expect(h.querySelectorAll('.g-bs .g-sett [role="row"]')).toHaveLength(4))
+    await check('T5.7', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toMatch(/^Replace /)
+      expect(h.querySelector('.g-bs').textContent).toContain('you did 30 kg × 10')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+  }, 20000)
+
   it('a tap in a mocked state changes memory only: the real saved copy is untouched and nothing is pushed', async () => {
     localStorage.setItem('gym_state_v1', '{"real":true}')
     const realUpdate = useStore.getState().update
