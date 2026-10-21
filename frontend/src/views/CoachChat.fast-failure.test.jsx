@@ -67,7 +67,7 @@ function installDom() {
 }
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve() }
 const settle = async () => { await act(async () => { await flush() }) }
-const chip = re => [...container.querySelectorAll('.qchip')].find(b => re.test(b.textContent || ''))
+const chip = re => [...container.querySelectorAll('.tco-chip')].find(b => re.test(b.textContent || ''))
 async function click(el) {
   expect(el).toBeTruthy()
   await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); await flush() })
@@ -111,25 +111,25 @@ describe('a Coach run that fails before the first poll', () => {
     await click(chip(/Review my training/))
     expect(mocks.S.coach.chat.at(-1)).toMatchObject({ role: 'coach', kind: 'error', text: FAILED })
     expect(mocks.S.coach.chat.at(-2)).toMatchObject({ role: 'user', kind: 'text' })
-    expect(container.querySelector('.composer-cap').textContent).toBe('5 of 10 Coach runs used today')
+    expect(container.querySelector('.tco-cap').textContent).toBe('5 of 10 Coach runs used today')
 
     await settle()
     expect(replies()).toHaveLength(1)                         // written once, not on every render
 
     await click(chip(/Review my training/))
     expect(replies()).toHaveLength(2)
-    expect(container.querySelector('.composer-cap').textContent).toBe('6 of 10 Coach runs used today')
+    expect(container.querySelector('.tco-cap').textContent).toBe('6 of 10 Coach runs used today')
   })
 
   it('a message asking for a plan gets the error reply', async () => {
     mocks.S = state([])                                       // no routines: a message asks for a plan
     await mount()
-    const ta = container.querySelector('.composer textarea')
+    const ta = container.querySelector('.tco-composer textarea')
     await act(async () => {
       Object.getOwnPropertyDescriptor(ta.constructor.prototype, 'value').set.call(ta, 'Add more legs please')
       ta.dispatchEvent(new Event('input', { bubbles: true }))
     })
-    await click(container.querySelector('.composer .send'))
+    await click(container.querySelector('.tco-send'))
     expect(mocks.S.coach.chat.at(-2)).toMatchObject({ role: 'user', kind: 'text', text: 'Add more legs please' })
     expect(mocks.S.coach.chat.at(-1)).toMatchObject({ role: 'coach', kind: 'error', text: FAILED })
     expect(mocks.server.last.kind).toBe('create')
@@ -151,9 +151,9 @@ describe('a Coach run that fails before the first poll', () => {
     mocks.statusGate = new Promise(r => { release = r })
     await mount()
     await click(chip(/Review my training/))
-    expect(container.querySelector('.composer-cap').textContent).toBe('5 of 10 Coach runs used today')
+    expect(container.querySelector('.tco-cap').textContent).toBe('5 of 10 Coach runs used today')
     await act(async () => { release(); await flush() })
-    expect(container.querySelector('.composer-cap').textContent).toBe('5 of 10 Coach runs used today')
+    expect(container.querySelector('.tco-cap').textContent).toBe('5 of 10 Coach runs used today')
     expect(replies()).toHaveLength(1)
     expect(replies()[0]).toMatchObject({ kind: 'error', text: FAILED })
   })
