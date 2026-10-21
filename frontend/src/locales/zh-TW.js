@@ -3443,7 +3443,6 @@ export default {
   '{0} with “{1}”': '{0} with “{1}”',
   'A timer for your fasts with a goal and history. It is off in {0}, so Eat doesn’t show it.': 'A timer for your fasts with a goal and history. It is off in {0}, so Eat doesn’t show it.',
   'Your gym card’s code, ready at the door. It is off in {0}, so Train doesn’t show it.': 'Your gym card’s code, ready at the door. It is off in {0}, so Train doesn’t show it.',
-  'Trends': 'Trends',
   'planned today': 'planned today',
   '{1}, {0} time this week': '{1}, {0} time this week',
   '{1}, {0} times this week': '{1}, {0} times this week',
