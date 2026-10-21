@@ -849,3 +849,40 @@ div.g-mcard { cursor: default; }
 .g-bars-card.g-chart-stage .g-bar-col i { background: var(--g-bar, var(--on-stage)); }
 .g-bars-card.g-chart-stage .g-bar small { color: var(--on-stage-2); }
 .g-bars-card.g-chart-stage .g-bars-target { border-top-color: rgba(255, 255, 255, 0.6); }
+
+/* Heatmap: days shaded by how much happened. 3 shades (n3) or 5 (n5); a card, or glass on the stage. A year
+   (weeks) is a column a week, scrolls sideways, and follows the page's direction. */
+.g-heat { --heat-cell: 11px; --heat-gap: 3px; --g-heat-ring: var(--text-3); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 16px; }
+.g-heat-stage { --g-heat-ring: var(--on-stage); background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+/* The padding is the focus ring's room: a scroll box clips whatever sticks out of it */
+.g-heat-scroll { overflow-x: auto; padding-block: 4px; padding-inline: 2px; margin-inline: -2px; }
+.g-heat-grid { display: grid; gap: var(--heat-gap); }
+.g-heat-weeks .g-heat-grid { grid-auto-flow: column; grid-template-rows: repeat(7, var(--heat-cell)); grid-auto-columns: var(--heat-cell); width: max-content; }
+.g-heat-months { display: grid; grid-auto-flow: column; grid-auto-columns: var(--heat-cell); column-gap: var(--heat-gap); width: max-content; padding-bottom: 8px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
+.g-heat-months span { grid-row: 1; width: max-content; white-space: nowrap; }
+.g-heat-stage .g-heat-months, .g-heat-stage .g-heat-legend { color: var(--on-stage-2); }
+.g-heat-c { appearance: none; border: 0; padding: 0; display: block; aspect-ratio: 1; border-radius: 3px; }
+.g-heat-weeks .g-heat-c { aspect-ratio: auto; }
+button.g-heat-c { cursor: pointer; }
+button.g-heat-c:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 1px; }
+.g-heat-stage button.g-heat-c:focus-visible { outline-color: var(--on-stage); }
+.g-heat-future { opacity: 0.35; }
+.g-heat-today { box-shadow: 0 0 0 1.5px var(--g-heat-ring); }
+.g-heat-noted { box-shadow: inset 0 0 0 1.5px var(--g-heat-ring); }
+.g-heat-legend { display: flex; justify-content: flex-end; align-items: center; gap: 4px; padding-top: 10px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
+.g-heat-legend i { display: block; width: 10px; height: 10px; border-radius: 3px; }
+.g-heat-n3 .g-heat-0 { background: var(--surface-sunken); }
+.g-heat-n3 .g-heat-1 { background: var(--accent-tint); }
+.g-heat-n3 .g-heat-2 { background: var(--accent-fill); }
+.g-heat-n5 .g-heat-0 { background: var(--surface-sunken); }
+.g-heat-n5 .g-heat-1 { background: var(--accent-tint); }
+.g-heat-n5 .g-heat-2 { background: color-mix(in srgb, var(--accent-fill) 40%, var(--accent-tint)); }
+.g-heat-n5 .g-heat-3 { background: color-mix(in srgb, var(--accent-fill) 70%, var(--accent-tint)); }
+.g-heat-n5 .g-heat-4 { background: var(--accent-fill); }
+.g-heat-stage.g-heat-n3 .g-heat-0, .g-heat-stage.g-heat-n5 .g-heat-0 { background: rgba(255, 255, 255, 0.1); }
+.g-heat-stage.g-heat-n3 .g-heat-1 { background: rgba(255, 255, 255, 0.48); }
+.g-heat-stage.g-heat-n3 .g-heat-2 { background: rgba(255, 255, 255, 1); }
+.g-heat-stage.g-heat-n5 .g-heat-1 { background: rgba(255, 255, 255, 0.28); }
+.g-heat-stage.g-heat-n5 .g-heat-2 { background: rgba(255, 255, 255, 0.48); }
+.g-heat-stage.g-heat-n5 .g-heat-3 { background: rgba(255, 255, 255, 0.72); }
+.g-heat-stage.g-heat-n5 .g-heat-4 { background: rgba(255, 255, 255, 1); }
