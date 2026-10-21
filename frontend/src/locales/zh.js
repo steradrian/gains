@@ -233,7 +233,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -416,7 +415,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': '生病、错过一天或想换个训练？选择改练什么。',
   'Rest / skip this day': '休息 / 跳过这天',
   'Rest day': '休息日',
-  'Next session: {0}, {1}': '下次训练：{0}，{1}',
   '{0} workout': '{0} 次训练',
   '{0} workouts': '{0} 次训练',
   'No workouts this month': '本月没有训练',
@@ -504,8 +502,6 @@ export default {
   'Hi {0}': '你好，{0}',
   'This week': '本周',
   'Resume ▶': '继续 ▶',
-  'Welcome!': '欢迎！',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': '设置每周计划就能开始，或者直接拿一份现成的入门计划。',
   'Load starter plan': '加载入门计划',
   'Choose starter plan': '选择入门计划',
   'Fit to my equipment': '按我的器械调整',
@@ -525,10 +521,7 @@ export default {
   'Three sessions, the whole body each time.': '三次训练，每次练全身。',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': '主要杠铃动作五组五次。',
-  'Build my own plan': '创建自己的计划',
   '{0} week streak': '连续 {0} 周',
-  '{0} workout total': '共 {0} 次训练',
-  '{0} workouts total': '共 {0} 次训练',
   'Progress & history': '进度与历史',
   'Workouts': '训练次数',
   'This month': '本月',
@@ -1658,10 +1651,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': '校验和不可用，所以不安装',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': '下一个：{0}，今天',
   'Next: {0}': '下一个：{0}',
-  'Next week starts {0}': '下周于 {0} 开始',
-  'Week complete, ask the coach': '本周已完成，请咨询教练',
   'Up next': '下一个',
   'Later': '稍后',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1993,7 +1983,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': '无法读取此轮换。可能是另一台设备写入的。',
   'Discard it': '丢弃它',
   'Use Fixed Week': '使用固定周',
-  'Round complete': '本轮已完成',
   'Next round starts {0}.': '下一轮从 {0} 开始。',
   'Pyramid sets': '金字塔组',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': '每组设定不同的目标次数，例如 12 · 8 · 6 · 力竭 · 12。',
@@ -3174,7 +3163,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': '更改这一天',
-  'Counts from your first log': '从你的第一条记录开始计算',
   'Day options': '当天选项',
   'Editing a saved workout': '正在编辑已保存的训练',
   'In progress': '进行中',
@@ -3186,10 +3174,7 @@ export default {
   'See workouts': '查看所有训练',
   'Today’s diary': '今日日记',
   'Today’s food': '今日饮食',
-  'View plan': '查看计划',
   '{0} eaten': '已摄入 {0}',
-  '{0} of {1} this week': '本周 {0}/{1}',
-  '{0} this week': '本周 {0}',
   '{0} PR': '{0} 个 PR',
   '{0} PRs': '{0} 个 PR',
   '/ {0} sets': '/ {0} 组',
@@ -3249,7 +3234,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': '查看全部',
   'Pick exercises as you go': '边练边选动作',
-  'Start a freestyle workout': '开始自由训练',
 
   // --- the redesigned Nutrition tab ---
   'Library': '资料库',

@@ -233,7 +233,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -416,7 +415,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'बीमार हैं, दिन छूट गया या कुछ और करना है? चुनें कि इसके बदले क्या ट्रेन करें।',
   'Rest / skip this day': 'आराम / यह दिन छोड़ें',
   'Rest day': 'आराम का दिन',
-  'Next session: {0}, {1}': 'अगला सत्र: {0}, {1}',
   '{0} workout': '{0} वर्कआउट',
   '{0} workouts': '{0} वर्कआउट',
   'No workouts this month': 'इस महीने कोई वर्कआउट नहीं',
@@ -504,8 +502,6 @@ export default {
   'Hi {0}': 'नमस्ते {0}',
   'This week': 'इस हफ़्ते',
   'Resume ▶': 'जारी रखें ▶',
-  'Welcome!': 'स्वागत है!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'शुरू करने के लिए अपना साप्ताहिक रूटीन बनाएँ, या बना-बनाया स्टार्टर प्लान ले लें।',
   'Load starter plan': 'स्टार्टर प्लान लोड करें',
   'Choose starter plan': 'स्टार्टर प्लान चुनें',
   'Fit to my equipment': 'मेरे उपकरणों के अनुसार ढालें',
@@ -525,10 +521,7 @@ export default {
   'Three sessions, the whole body each time.': 'तीन सेशन, हर बार पूरा शरीर।',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'मुख्य बारबेल लिफ़्ट पर पाँच सेट, पाँच रेप।',
-  'Build my own plan': 'अपनी योजना बनाएँ',
   '{0} week streak': '{0} हफ़्तों की स्ट्रीक',
-  '{0} workout total': 'कुल {0} वर्कआउट',
-  '{0} workouts total': 'कुल {0} वर्कआउट',
   'Progress & history': 'प्रगति और इतिहास',
   'Workouts': 'वर्कआउट',
   'This month': 'इस महीने',
@@ -1658,10 +1651,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': 'चेकसम उपलब्ध नहीं, इसलिए इंस्टॉल नहीं किया गया',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'अगला: {0}, आज',
   'Next: {0}': 'अगला: {0}',
-  'Next week starts {0}': 'अगला सप्ताह {0} से शुरू होगा',
-  'Week complete, ask the coach': 'सप्ताह पूरा हुआ, कोच से पूछें',
   'Up next': 'अगला',
   'Later': 'बाद में',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1993,7 +1983,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'यह रोटेशन पढ़ा नहीं जा सका। हो सकता है इसे किसी दूसरे डिवाइस ने लिखा हो।',
   'Discard it': 'इसे हटा दें',
   'Use Fixed Week': 'नियत सप्ताह का उपयोग करें',
-  'Round complete': 'चक्कर पूरा हुआ',
   'Next round starts {0}.': 'अगला चक्कर {0} से शुरू होगा।',
   'Pyramid sets': 'पिरामिड सेट',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': 'हर सेट के लिए अलग रेप लक्ष्य, जैसे 12 · 8 · 6 · मैक्स · 12।',
@@ -3173,7 +3162,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'इस दिन को बदलें',
-  'Counts from your first log': 'गिनती आपके पहले लॉग से शुरू होती है',
   'Day options': 'दिन के विकल्प',
   'Editing a saved workout': 'सहेजे गए वर्कआउट में बदलाव',
   'Food': 'खाना',
@@ -3186,10 +3174,7 @@ export default {
   'See workouts': 'सभी वर्कआउट देखें',
   'Today’s diary': 'आज की डायरी',
   'Today’s food': 'आज का खाना',
-  'View plan': 'प्लान देखें',
   '{0} eaten': '{0} खाया',
-  '{0} of {1} this week': 'इस हफ़्ते {1} में से {0}',
-  '{0} this week': 'इस हफ़्ते {0}',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
   '/ {0} sets': '/ {0} सेट',
@@ -3249,7 +3234,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'सभी देखें',
   'Pick exercises as you go': 'व्यायाम चलते-चलते चुनें',
-  'Start a freestyle workout': 'फ्रीस्टाइल वर्कआउट शुरू करें',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'लाइब्रेरी',

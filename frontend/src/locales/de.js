@@ -234,7 +234,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -422,7 +421,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'Krank, Tag verpasst oder Lust auf was anderes? Wähle, was du stattdessen trainierst.',
   'Rest / skip this day': 'Pause / Tag überspringen',
   'Rest day': 'Pausentag',
-  'Next session: {0}, {1}': 'Nächste Einheit: {0}, {1}',
   '{0} workout': '{0} Training',
   '{0} workouts': '{0} Trainings',
   'No workouts this month': 'Keine Trainings in diesem Monat',
@@ -513,8 +511,6 @@ export default {
   'Hi {0}': 'Hi {0}',
   'This week': 'Diese Woche',
   'Resume ▶': 'Weiter ▶',
-  'Welcome!': 'Willkommen!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Richte deinen Wochenplan ein, um loszulegen, oder schnapp dir einen fertigen Starterplan.',
   'Load starter plan': 'Starterplan laden',
   'Choose starter plan': 'Starterplan wählen',
   'Fit to my equipment': 'An meine Ausrüstung anpassen',
@@ -534,10 +530,7 @@ export default {
   'Three sessions, the whole body each time.': 'Drei Einheiten, jedes Mal der ganze Körper.',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'Fünf Sätze à fünf bei den großen Langhantelübungen.',
-  'Build my own plan': 'Eigenen Plan erstellen',
   '{0} week streak': '{0} Wochen in Folge',
-  '{0} workout total': 'insgesamt {0} Training',
-  '{0} workouts total': 'insgesamt {0} Trainings',
   // --- stats ---
   'Progress & history': 'Fortschritt & Verlauf',
   'Workouts': 'Trainings',
@@ -1678,10 +1671,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': 'Prüfsumme nicht verfügbar, daher keine Installation',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'Als Nächstes: {0}, heute',
   'Next: {0}': 'Als Nächstes: {0}',
-  'Next week starts {0}': 'Nächste Woche beginnt am {0}',
-  'Week complete, ask the coach': 'Woche abgeschlossen, frag den Coach',
   'Up next': 'Als Nächstes',
   'Later': 'Später',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -2013,7 +2003,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'Diese Rotation konnte nicht gelesen werden. Möglicherweise hat ein anderes Gerät sie geschrieben.',
   'Discard it': 'Verwerfen',
   'Use Fixed Week': 'Feste Woche verwenden',
-  'Round complete': 'Runde geschafft',
   'Next round starts {0}.': 'Nächste Runde beginnt {0}.',
   'Pyramid sets': 'Pyramidensätze',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': 'Ein eigenes Wiederholungsziel für jeden Satz, z. B. 12 · 8 · 6 · Max · 12.',
@@ -3193,7 +3182,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'Diesen Tag ändern',
-  'Counts from your first log': 'Zählt ab deinem ersten Eintrag',
   'Day options': 'Tagesoptionen',
   'Editing a saved workout': 'Gespeichertes Training bearbeiten',
   'Food': 'Essen',
@@ -3206,10 +3194,7 @@ export default {
   'See workouts': 'Trainings ansehen',
   'Today’s diary': 'Heutiges Tagebuch',
   'Today’s food': 'Heutiges Essen',
-  'View plan': 'Plan ansehen',
   '{0} eaten': '{0} gegessen',
-  '{0} of {1} this week': '{0} von {1} diese Woche',
-  '{0} this week': '{0} diese Woche',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PRs',
   '/ {0} sets': '/ {0} Sätze',
@@ -3269,7 +3254,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'Alle anzeigen',
   'Pick exercises as you go': 'Übungen unterwegs auswählen',
-  'Start a freestyle workout': 'Freies Training starten',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'Bibliothek',

@@ -233,7 +233,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -416,7 +415,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'Hasta mısın, gün mü kaçırdın ya da farklı bir seans mı istiyorsun? Yerine ne çalışacağını seç.',
   'Rest / skip this day': 'Dinlen / bu günü atla',
   'Rest day': 'Dinlenme günü',
-  'Next session: {0}, {1}': 'Sonraki antrenman: {0}, {1}',
   '{0} workout': '{0} antrenman',
   '{0} workouts': '{0} antrenman',
   'No workouts this month': 'Bu ay antrenman yok',
@@ -504,8 +502,6 @@ export default {
   'Hi {0}': 'Selam {0}',
   'This week': 'Bu hafta',
   'Resume ▶': 'Devam et ▶',
-  'Welcome!': 'Hoş geldin!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Başlamak için haftalık rutinini kur ya da hazır bir başlangıç planı kap.',
   'Load starter plan': 'Başlangıç planı yükle',
   'Choose starter plan': 'Başlangıç planı seç',
   'Fit to my equipment': 'Ekipmanıma uyarla',
@@ -525,10 +521,7 @@ export default {
   'Three sessions, the whole body each time.': 'Üç antrenman, her seferinde tüm vücut.',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'Ana halter hareketlerinde beşer tekrarlı beş set.',
-  'Build my own plan': 'Kendi planımı oluştur',
   '{0} week streak': '{0} haftalık seri',
-  '{0} workout total': 'toplam {0} antrenman',
-  '{0} workouts total': 'toplam {0} antrenman',
   'Progress & history': 'İlerleme ve geçmiş',
   'Workouts': 'Antrenman',
   'This month': 'Bu ay',
@@ -1658,10 +1651,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': 'Sağlama toplamı yok, bu yüzden yüklenmiyor',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'Sıradaki: {0}, bugün',
   'Next: {0}': 'Sıradaki: {0}',
-  'Next week starts {0}': 'Gelecek hafta {0} başlıyor',
-  'Week complete, ask the coach': 'Hafta tamamlandı, koça sor',
   'Up next': 'Sıradaki',
   'Later': 'Daha sonra',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1993,7 +1983,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'Bu dönüşümlü plan okunamadı. Başka bir cihaz yazmış olabilir.',
   'Discard it': 'Sil',
   'Use Fixed Week': 'Sabit günleri kullan',
-  'Round complete': 'Tur tamamlandı',
   'Next round starts {0}.': 'Sıradaki tur {0} tarihinde başlıyor.',
   'Pyramid sets': 'Piramit setler',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': 'Her set için ayrı bir tekrar hedefi, ör. 12 · 8 · 6 · Maks · 12.',
@@ -3173,7 +3162,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'Bu günü değiştir',
-  'Counts from your first log': 'İlk kayıttan itibaren sayılır',
   'Day options': 'Gün seçenekleri',
   'Editing a saved workout': 'Kayıtlı antrenman düzenleniyor',
   'Food': 'Yemek',
@@ -3186,10 +3174,7 @@ export default {
   'See workouts': 'Antrenmanları gör',
   'Today’s diary': 'Bugünün günlüğü',
   'Today’s food': 'Bugünün yemekleri',
-  'View plan': 'Planı gör',
   '{0} eaten': '{0} yenildi',
-  '{0} of {1} this week': 'Bu hafta {1} içinde {0}',
-  '{0} this week': 'Bu hafta {0}',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
   '/ {0} sets': '/ {0} set',
@@ -3249,7 +3234,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'Tümünü gör',
   'Pick exercises as you go': 'Egzersizleri giderek seç',
-  'Start a freestyle workout': 'Serbest antrenman başlat',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'Kitaplık',

@@ -233,7 +233,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -416,7 +415,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'Choroba, opuszczony dzień albo ochota na coś innego? Wybierz, co trenować zamiast tego.',
   'Rest / skip this day': 'Odpoczynek / pomiń ten dzień',
   'Rest day': 'Dzień odpoczynku',
-  'Next session: {0}, {1}': 'Następny trening: {0}, {1}',
   '{0} workout': '{0} trening',
   '{0} workouts': { one: '{0} trening', few: '{0} treningi', many: '{0} treningów' },
   'No workouts this month': 'Brak treningów w tym miesiącu',
@@ -504,8 +502,6 @@ export default {
   'Hi {0}': 'Cześć, {0}',
   'This week': 'Ten tydzień',
   'Resume ▶': 'Wznów ▶',
-  'Welcome!': 'Witaj!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Ustaw swój tygodniowy plan, żeby zacząć, albo wczytaj gotowy plan startowy.',
   'Load starter plan': 'Wczytaj plan startowy',
   'Choose starter plan': 'Wybierz plan startowy',
   'Fit to my equipment': 'Dopasuj do mojego sprzętu',
@@ -525,10 +521,7 @@ export default {
   'Three sessions, the whole body each time.': 'Trzy treningi, za każdym razem całe ciało.',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'Pięć serii po pięć na głównych bojach ze sztangą.',
-  'Build my own plan': 'Utwórz własny plan',
   '{0} week streak': 'seria {0} tyg.',
-  '{0} workout total': 'łącznie {0} trening',
-  '{0} workouts total': { one: 'łącznie {0} trening', few: 'łącznie {0} treningi', many: 'łącznie {0} treningów' },
   'Progress & history': 'Postępy i historia',
   'Workouts': 'Treningi',
   'This month': 'Ten miesiąc',
@@ -1658,10 +1651,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': 'Suma kontrolna niedostępna, więc instalacja wstrzymana',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'Następny: {0}, dziś',
   'Next: {0}': 'Następny: {0}',
-  'Next week starts {0}': 'Następny tydzień zaczyna się {0}',
-  'Week complete, ask the coach': 'Tydzień ukończony, zapytaj Trenera',
   'Up next': 'Następny',
   'Later': 'Później',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1993,7 +1983,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'Nie udało się odczytać tej rotacji. Mogło ją zapisać inne urządzenie.',
   'Discard it': 'Odrzuć ją',
   'Use Fixed Week': 'Użyj Stałego tygodnia',
-  'Round complete': 'Runda ukończona',
   'Next round starts {0}.': 'Następna runda zaczyna się {0}.',
   'Pyramid sets': 'Serie piramidalne',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': 'Inny cel powtórzeń dla każdej serii, np. 12 · 8 · 6 · Maks · 12.',
@@ -3173,7 +3162,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'Zmień ten dzień',
-  'Counts from your first log': 'Liczone od pierwszego wpisu',
   'Day options': 'Opcje dnia',
   'Editing a saved workout': 'Edycja zapisanego treningu',
   'Food': 'Jedzenie',
@@ -3186,10 +3174,7 @@ export default {
   'See workouts': 'Zobacz treningi',
   'Today’s diary': 'Dzisiejszy dziennik',
   'Today’s food': 'Dzisiejsze jedzenie',
-  'View plan': 'Zobacz plan',
   '{0} eaten': 'Zjedzono {0}',
-  '{0} of {1} this week': '{0} z {1} w tym tygodniu',
-  '{0} this week': '{0} w tym tygodniu',
   '{0} PR': '{0} rekord',
   '{0} PRs': { one: '{0} rekord', few: '{0} rekordy', many: '{0} rekordów' },
   '/ {0} sets': { one: '/ {0} seria', few: '/ {0} serie', many: '/ {0} serii' },
@@ -3249,7 +3234,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'Zobacz wszystko',
   'Pick exercises as you go': 'Ćwiczenia wybierasz na bieżąco',
-  'Start a freestyle workout': 'Zacznij trening dowolny',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'Biblioteka',

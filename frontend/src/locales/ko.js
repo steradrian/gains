@@ -233,7 +233,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -416,7 +415,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': '아프거나, 하루를 놓쳤거나, 다른 운동이 하고 싶나요? 대신 할 운동을 선택하세요.',
   'Rest / skip this day': '휴식 / 이 날 건너뛰기',
   'Rest day': '휴식일',
-  'Next session: {0}, {1}': '다음 세션: {0}, {1}',
   '{0} workout': '운동 {0}회',
   '{0} workouts': '운동 {0}회',
   'No workouts this month': '이번 달 운동 없음',
@@ -504,8 +502,6 @@ export default {
   'Hi {0}': '안녕하세요 {0}',
   'This week': '이번 주',
   'Resume ▶': '이어하기 ▶',
-  'Welcome!': '환영합니다!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': '주간 루틴을 설정해 시작하거나, 미리 만들어진 스타터 계획을 가져오세요.',
   'Load starter plan': '스타터 계획 불러오기',
   'Choose starter plan': '스타터 계획 선택',
   'Fit to my equipment': '내 장비에 맞추기',
@@ -525,10 +521,7 @@ export default {
   'Three sessions, the whole body each time.': '세 번의 세션, 매번 전신.',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': '주요 바벨 종목을 5세트 5회로.',
-  'Build my own plan': '내 계획 만들기',
   '{0} week streak': '{0}주 연속',
-  '{0} workout total': '총 운동 {0}회',
-  '{0} workouts total': '총 운동 {0}회',
   'Progress & history': '진행 상황과 기록',
   'Workouts': '운동 수',
   'This month': '이번 달',
@@ -1658,10 +1651,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': '체크섬을 확인할 수 없어 설치하지 않습니다',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': '다음: {0}, 오늘',
   'Next: {0}': '다음: {0}',
-  'Next week starts {0}': '다음 주는 {0}에 시작됩니다',
-  'Week complete, ask the coach': '주 완료, 코치에게 문의하세요',
   'Up next': '다음',
   'Later': '나중에',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1993,7 +1983,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': '이 로테이션을 읽을 수 없어요. 다른 기기에서 작성했을 수 있어요.',
   'Discard it': '삭제하기',
   'Use Fixed Week': '고정 주간 사용',
-  'Round complete': '이번 바퀴 완료',
   'Next round starts {0}.': '다음 바퀴는 {0}에 시작해요.',
   'Pyramid sets': '피라미드 세트',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': '세트마다 다른 목표 반복 수, 예: 12 · 8 · 6 · 최대 · 12.',
@@ -3173,7 +3162,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': '이 날 변경',
-  'Counts from your first log': '첫 기록부터 집계돼요',
   'Day options': '날짜 옵션',
   'Editing a saved workout': '저장된 운동 편집 중',
   'Food': '음식',
@@ -3186,10 +3174,7 @@ export default {
   'See workouts': '운동 모두 보기',
   'Today’s diary': '오늘의 일지',
   'Today’s food': '오늘의 음식',
-  'View plan': '플랜 보기',
   '{0} eaten': '{0} 섭취',
-  '{0} of {1} this week': '이번 주 {0}/{1}',
-  '{0} this week': '이번 주 {0}',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
   '/ {0} sets': '/ {0}세트',
@@ -3249,7 +3234,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': '모두 보기',
   'Pick exercises as you go': '운동은 하면서 고르세요',
-  'Start a freestyle workout': '자유 운동 시작',
 
   // --- the redesigned Nutrition tab ---
   'Library': '라이브러리',

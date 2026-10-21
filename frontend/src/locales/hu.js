@@ -235,7 +235,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -413,7 +412,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'Beteg vagy, kihagytál egy napot, vagy másra van kedved? Válaszd ki, mit edzel helyette.',
   'Rest / skip this day': 'Pihenő / nap kihagyása',
   'Rest day': 'Pihenőnap',
-  'Next session: {0}, {1}': 'Következő edzés: {0}, {1}',
   '{0} workout': '{0} edzés',
   '{0} workouts': '{0} edzés',
   'No workouts this month': 'Nincs edzés ebben a hónapban',
@@ -503,8 +501,6 @@ export default {
   'Hi {0}': 'Szia {0}',
   'This week': 'Ezen a héten',
   'Resume ▶': 'Folytatás ▶',
-  'Welcome!': 'Üdvözlünk!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Állítsd be a heti rutinodat az induláshoz, vagy kapj elő egy kész kezdő tervet.',
   'Load starter plan': 'Kezdő terv betöltése',
   'Choose starter plan': 'Válassz kezdő tervet',
   'Fit to my equipment': 'Igazítás a felszerelésemhez',
@@ -524,10 +520,7 @@ export default {
   'Three sessions, the whole body each time.': 'Három edzés, mindegyiken az egész test.',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'Öt ötös sorozat a fő rúdgyakorlatokon.',
-  'Build my own plan': 'Saját terv készítése',
   '{0} week streak': '{0} hetes sorozat',
-  '{0} workout total': 'összesen {0} edzés',
-  '{0} workouts total': 'összesen {0} edzés',
   // --- stats ---
   'Progress & history': 'Fejlődés & előzmények',
   'Workouts': 'Edzések',
@@ -1658,10 +1651,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': 'Ellenőrző összeg nem érhető el, így nincs telepítés',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'Következő: {0}, ma',
   'Next: {0}': 'Következő: {0}',
-  'Next week starts {0}': 'A következő hét kezdete: {0}',
-  'Week complete, ask the coach': 'A hét kész, kérdezd az edzőt',
   'Up next': 'Következő',
   'Later': 'Később',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1993,7 +1983,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'Ezt a rotációt nem sikerült beolvasni. Lehet, hogy egy másik eszköz írta.',
   'Discard it': 'Elvetése',
   'Use Fixed Week': 'Fix hét használata',
-  'Round complete': 'Kör kész',
   'Next round starts {0}.': 'A következő kör kezdete: {0}.',
   'Pyramid sets': 'Piramis sorozatok',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': 'Minden sorozatnak saját ismétlésszám-célja van, pl. 12 · 8 · 6 · Max · 12.',
@@ -3176,7 +3165,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'Nap módosítása',
-  'Counts from your first log': 'Az első naplózástól számol',
   'Day options': 'Nap beállításai',
   'Editing a saved workout': 'Mentett edzés szerkesztése',
   'Food': 'Étel',
@@ -3189,10 +3177,7 @@ export default {
   'See workouts': 'Edzések megtekintése',
   'Today’s diary': 'A mai napló',
   'Today’s food': 'A mai étkezések',
-  'View plan': 'Terv megtekintése',
   '{0} eaten': '{0} elfogyasztva',
-  '{0} of {1} this week': '{0} / {1} ezen a héten',
-  '{0} this week': '{0} ezen a héten',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
   '/ {0} sets': '/ {0} sorozat',
@@ -3252,7 +3237,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'Összes megtekintése',
   'Pick exercises as you go': 'A gyakorlatokat edzés közben választod',
-  'Start a freestyle workout': 'Szabad edzés indítása',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'Könyvtár',

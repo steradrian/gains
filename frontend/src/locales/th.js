@@ -235,7 +235,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -413,7 +412,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'ป่วย, ขาดวัน หรืออยากเปลี่ยนโปรแกรม? เลือกสิ่งที่จะฝึกแทนได้เลย',
   'Rest / skip this day': 'พัก / ข้ามวันนี้',
   'Rest day': 'วันพัก',
-  'Next session: {0}, {1}': 'เซสชันถัดไป: {0}, {1}',
   '{0} workout': '{0} ครั้ง',
   '{0} workouts': '{0} ครั้ง',
   'No workouts this month': 'ไม่มีการออกกำลังกายในเดือนนี้',
@@ -503,8 +501,6 @@ export default {
   'Hi {0}': 'สวัสดี {0}',
   'This week': 'สัปดาห์นี้',
   'Resume ▶': 'เล่นต่อ ▶',
-  'Welcome!': 'ยินดีต้อนรับ!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'ตั้งค่ารูทีนรายสัปดาห์เพื่อเริ่มต้น หรือหยิบแผนเริ่มต้นสำเร็จรูปไปใช้ก็ได้',
   'Load starter plan': 'โหลดแผนเริ่มต้น',
   'Choose starter plan': 'เลือกแผนเริ่มต้น',
   'Fit to my equipment': 'ปรับให้เข้ากับอุปกรณ์ของฉัน',
@@ -524,10 +520,7 @@ export default {
   'Three sessions, the whole body each time.': 'สามครั้ง ครบทั้งตัวทุกครั้ง',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'ห้าเซ็ต เซ็ตละห้าครั้ง ในท่าบาร์เบลหลัก',
-  'Build my own plan': 'สร้างแผนของตัวเอง',
   '{0} week streak': 'ต่อเนื่อง {0} สัปดาห์',
-  '{0} workout total': 'รวมทั้งหมด {0} ครั้ง',
-  '{0} workouts total': 'รวมทั้งหมด {0} ครั้ง',
   // --- stats ---
   'Progress & history': 'ความคืบหน้าและประวัติ',
   'Workouts': 'การออกกำลังกาย',
@@ -1666,10 +1659,7 @@ export default {
   '{0} MB': '{0} MB',
   'Checksum not available, so not installing': 'ไม่มีค่าตรวจสอบ (checksum) จึงไม่ติดตั้ง',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'ถัดไป: {0}, วันนี้',
   'Next: {0}': 'ถัดไป: {0}',
-  'Next week starts {0}': 'สัปดาห์หน้าเริ่ม {0}',
-  'Week complete, ask the coach': 'จบสัปดาห์แล้ว ถามโค้ช',
   'Up next': 'ถัดไป',
   'Later': 'ภายหลัง',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -2001,7 +1991,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'อ่านการหมุนเวียนนี้ไม่ได้ อาจถูกเขียนมาจากอุปกรณ์อื่น',
   'Discard it': 'ทิ้งไป',
   'Use Fixed Week': 'ใช้สัปดาห์คงที่',
-  'Round complete': 'รอบนี้ครบแล้ว',
   'Next round starts {0}.': 'รอบถัดไปเริ่ม {0}',
   'Pyramid sets': 'เซ็ตพีระมิด',
   'A different rep target for each set, e.g. 12 · 8 · 6 · Max · 12.': 'เป้าหมายจำนวนครั้งแยกสำหรับแต่ละเซ็ต เช่น 12 · 8 · 6 · สูงสุด · 12',
@@ -3184,7 +3173,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'เปลี่ยนแปลงวันนี้',
-  'Counts from your first log': 'เริ่มนับตั้งแต่บันทึกแรกของคุณ',
   'Day options': 'ตัวเลือกของวัน',
   'Editing a saved workout': 'กำลังแก้ไขเวิร์กเอาต์ที่บันทึกไว้',
   'Food': 'อาหาร',
@@ -3197,10 +3185,7 @@ export default {
   'See workouts': 'ดูเวิร์กเอาต์ทั้งหมด',
   'Today’s diary': 'ไดอารีวันนี้',
   'Today’s food': 'อาหารวันนี้',
-  'View plan': 'ดูแผน',
   '{0} eaten': 'กินแล้ว {0}',
-  '{0} of {1} this week': '{0} จาก {1} สัปดาห์นี้',
-  '{0} this week': '{0} สัปดาห์นี้',
   '{0} PR': '{0} PR',
   '{0} PRs': '{0} PR',
   '/ {0} sets': '/ {0} เซ็ต',
@@ -3260,7 +3245,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'ดูทั้งหมด',
   'Pick exercises as you go': 'เลือกท่าระหว่างออกกำลังกายได้เลย',
-  'Start a freestyle workout': 'เริ่มออกกำลังกายแบบฟรีสไตล์',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'คลัง',

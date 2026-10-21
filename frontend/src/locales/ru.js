@@ -233,7 +233,6 @@ export default {
   'Choose a day, {0}': 'Choose a day, {0}',
   'Covered by {0}': 'Covered by {0}',
   'Dinner': 'Dinner',
-  'Eaten': 'Eaten',
   'Enter an amount above 0.': 'Enter an amount above 0.',
   'Fat': 'Fat',
   'Food logged': 'Food logged',
@@ -414,7 +413,6 @@ export default {
   'Sick, missed a day or want a different session? Pick what to train instead.': 'Заболели, пропустили день или хотите другую тренировку? Выберите, что делать вместо этого.',
   'Rest / skip this day': 'Отдых / пропустить день',
   'Rest day': 'День отдыха',
-  'Next session: {0}, {1}': 'Следующая тренировка: {0}, {1}',
   'No workouts this month': 'В этом месяце тренировок нет',
   'Trained': 'Тренировка',
   'Planned': 'Запланировано',
@@ -498,8 +496,6 @@ export default {
   'Hi {0}': 'Привет, {0}',
   'This week': 'Эта неделя',
   'Resume ▶': 'Продолжить ▶',
-  'Welcome!': 'Добро пожаловать!',
-  'Set up your weekly routine to get going, or grab a ready-made starter plan.': 'Настройте свой недельный план, чтобы начать, или возьмите готовый стартовый план.',
   'Load starter plan': 'Загрузить стартовый план',
   'Choose starter plan': 'Выберите стартовый план',
   'Fit to my equipment': 'Подогнать под моё оборудование',
@@ -519,7 +515,6 @@ export default {
   'Three sessions, the whole body each time.': 'Три тренировки, каждый раз всё тело.',
   '5×5': '5×5',
   'Five sets of five on the main barbell lifts.': 'Пять подходов по пять в основных движениях со штангой.',
-  'Build my own plan': 'Создать свой план',
   '{0} week streak': 'серия: {0} нед.',
   'Progress & history': 'Прогресс и история',
   'Workouts': 'Тренировки',
@@ -1629,10 +1624,7 @@ export default {
   '{0} MB': '{0} МБ',
   'Checksum not available, so not installing': 'Контрольная сумма недоступна, поэтому установка отменена',
   // --- coach week (Home progress row, components/QueueRow.jsx; day sheet, sheets.jsx) ---
-  'Next: {0}, today': 'Далее: {0}, сегодня',
   'Next: {0}': 'Далее: {0}',
-  'Next week starts {0}': 'Следующая неделя начнётся {0}',
-  'Week complete, ask the coach': 'Неделя завершена, спросите тренера',
   'Up next': 'Далее',
   'Later': 'Позже',
   // --- combine routines / layout / deload (v1.3.6) ---
@@ -1949,7 +1941,6 @@ export default {
   'This rotation couldn’t be read. Another device may have written it.': 'Не удалось прочитать эту ротацию. Возможно, она была записана с другого устройства.',
   'Discard it': 'Отменить её',
   'Use Fixed Week': 'Использовать фиксированную неделю',
-  'Round complete': 'Круг пройден',
   'Next round starts {0}.': 'Следующий круг начнётся {0}.',
   // --- plural forms, read by tn(). Russian needs three where English has two, so these
   // --- keys answer with the forms instead of one string. The key stays the English plural.
@@ -1959,7 +1950,6 @@ export default {
   '{0} changes applied': { one: 'Применено {0} изменение', few: 'Применено {0} изменения', many: 'Применено {0} изменений' },
   '{0} sets · {1} work': { one: '{0} подход · {1} рабочих', few: '{0} подхода · {1} рабочих', many: '{0} подходов · {1} рабочих' },
   '{0} workouts': { one: '{0} тренировка', few: '{0} тренировки', many: '{0} тренировок' },
-  '{0} workouts total': { one: 'всего {0} тренировка', few: 'всего {0} тренировки', many: 'всего {0} тренировок' },
   '{0} sessions': { one: '{0} сессия', few: '{0} сессии', many: '{0} сессий' },
   '{0} weigh-ins': { one: '{0} взвешивание', few: '{0} взвешивания', many: '{0} взвешиваний' },
   '{0} suggestions': { one: '{0} предложение', few: '{0} предложения', many: '{0} предложений' },
@@ -1980,7 +1970,6 @@ export default {
   '{0} exercise': 'Упражнение: {0}',
   '{0} workout': 'Тренировок: {0}',
   '{0} set still unchecked. Finish the workout now?': 'Не отмечен {0} подход. Завершить сейчас?',
-  '{0} workout total': 'всего тренировок: {0}',
   '1 passkey': '1 ключ доступа',
   '{0} routine': 'Программа: {0}',
   'scheduled on {0} day': 'запланировано на {0} день',
@@ -3177,7 +3166,6 @@ export default {
 
   // --- the redesigned Home hub and Nutrition's diary ---
   'Change this day': 'Изменить этот день',
-  'Counts from your first log': 'Считается с первой записи',
   'Day options': 'Параметры дня',
   'Editing a saved workout': 'Редактирование сохранённой тренировки',
   'Food': 'Питание',
@@ -3190,10 +3178,7 @@ export default {
   'See workouts': 'Смотреть тренировки',
   'Today’s diary': 'Дневник на сегодня',
   'Today’s food': 'Еда на сегодня',
-  'View plan': 'Смотреть план',
   '{0} eaten': 'Съедено: {0}',
-  '{0} of {1} this week': '{0} из {1} на этой неделе',
-  '{0} this week': '{0} на этой неделе',
   '{0} PR': '{0} рекорд',
   '{0} PRs': { one: '{0} рекорд', few: '{0} рекорда', many: '{0} рекордов' },
   '/ {0} sets': { one: '/ {0} подход', few: '/ {0} подхода', many: '/ {0} подходов' },
@@ -3253,7 +3238,6 @@ export default {
   // --- the redesigned Training tab ---
   'See all': 'Показать все',
   'Pick exercises as you go': 'Выбирайте упражнения по ходу тренировки',
-  'Start a freestyle workout': 'Начать свободную тренировку',
 
   // --- the redesigned Nutrition tab ---
   'Library': 'Библиотека',
