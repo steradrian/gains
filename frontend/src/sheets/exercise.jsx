@@ -1,9 +1,9 @@
 import { useId, useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { smOf, exOr, isCustomEx } from '../lib/exercises.js'
-import { fmtDate, fmtNum, exerciseNameText, fmtVol, uid, exCount } from '../lib/format.js'
-import { cleanupSg, setLabel, modeOf } from '../lib/history.js'
-import { t, tn, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
+import { fmtDate, fmtNum, exerciseNameText, uid, exCount } from '../lib/format.js'
+import { cleanupSg, modeOf } from '../lib/history.js'
+import { t, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
 import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
 import { hasProgress } from '../lib/use-exercise-progress.js'
 import { visit } from '../lib/search/session.js'
@@ -13,23 +13,21 @@ import { loadKindFor, baseWeightFor } from '../lib/plates.js'
 import Media, { Thumb } from '../components/Media.jsx'
 import { openExternal } from '../components/CustomMedia.jsx'
 import CustomExerciseForm from '../components/CustomExerciseForm.jsx'
-import LineChart from '../components/LineChart.jsx'
+import PastSetsList from '../components/PastSetsList.jsx'
 import Icon from '../components/Icon.jsx'
-import { EmptyState, ItemRow, SectionTitle, Tag } from '../components/blocks.jsx'
-import { Inline } from '../components/layout.jsx'
+import { ItemRow, Tag } from '../components/blocks.jsx'
 import { cx } from '../lib/ui-kit.js'
-import { Segmented } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
 import { exerciseMuscleSnapshot, MUSCLE_NAME, muscleWeightsOf, musclesOf } from '../lib/muscles.js'
 import { exerciseHistory } from '../lib/exercise-history.js'
 import { bestSetLabel } from '../lib/best-set.js'
 import { isBellEx, dbLoadFor, withDbLoad } from '../lib/dumbbells.js'
-import { speedUnitOf } from '../lib/speed.js'
 import { isFav, toggleFav } from '../lib/favourites.js'
 import BodyMap from '../ds/BodyMap.jsx'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import DetailRow from '../ds/DetailRow.jsx'
 import IconButton from '../ds/IconButton.jsx'
+import LineChart from '../ds/LineChart.jsx'
 import MenuList from '../ds/MenuList.jsx'
 import Tabs from '../ds/Tabs.jsx'
 import DsTag from '../ds/Tag.jsx'
@@ -139,7 +137,7 @@ function exerciseMenuSheet(ex, closeDrawer) {
 // steps, Add to my plan, the catalogue fix link and the exercise's own setup. Progress and History
 // open the exercise's strength page (T7.0, T7.1) in the drawer's place, through a running Search
 // as well (search/session.js visit); before the exercise is logged they say so instead. Inside a
-// running workout, History stays the light history drawer.
+// running workout both stay in a drawer, the history drawer over it, so nobody leaves the workout.
 function ExerciseDrawer({ ex, close }) {
   useLang() // the description and steps arrive in their own chunk the first time a drawer asks
   const st = useStore(s => s.S)
@@ -154,7 +152,7 @@ function ExerciseDrawer({ ex, close }) {
 
   const onTab = v => {
     if (v === 'how' || !logged) { setTab(v); return }
-    if (v === 'history' && inWorkout()) { exerciseHistorySheet(ex.id); return }
+    if (inWorkout()) { exerciseHistorySheet(ex.id); return }
     const path = '/progress/strength?ex=' + encodeURIComponent(ex.id) + (v === 'history' ? '&view=sets' : '')
     const replace = onSheetEntry()
     close()
@@ -248,54 +246,28 @@ function ExerciseSetup({ ex, st }) {
 export const exerciseDetailSheet = ex => ui().openSheet(close => <ExerciseDrawer ex={ex} close={close} />, { variant: 'ds' })
 
 /* ============================ exercise history ============================ */
-// What you did on this exercise before, reachable mid-workout (issue #43): the curve first,
-// then the last sessions set by set, so the question "what did I do last month" is answered
-// without leaving the workout for Stats. Derived once per log change — the sheet re-renders on
-// every store tick while a session runs, and LineChart drops its hover whenever `points`
-// changes identity, so a series rebuilt per render would lose the tooltip under your finger.
-function ExerciseHistory({ exId }) {
+// What you did on this exercise before, reachable mid-workout (issue #43): the top-set curve,
+// then every session set by set (the page's Past sets list, T7.1), so the question "what did I do
+// last month" is answered without leaving the workout. The rest of the trend (the estimated 1RM,
+// the range, the bests) lives on the Progress page, which a running workout does not navigate to.
+// Derived once per log change: the sheet re-renders on every store tick while a session runs.
+function ExerciseHistorySheet({ exId }) {
   const st = useStore(s => s.S)
   const ex = exOr(exId)
-  const h = useMemo(() => exerciseHistory(st, exId), [st.workouts, exId])
-  const [curve, setCurve] = useState('top')
-  const onE1 = curve === 'e1rm' && h.e1rmPoints.length > 0
+  const h = useMemo(() => exerciseHistory(st, exId, { limit: Infinity }), [st, exId])
   const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : t('min')
-  const e1Best = useMemo(() => Math.max(0, ...h.e1rmPoints.map(p => p.y)), [h])
-  if (!h.total) return <>
-    <h3 className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</h3>
-    <EmptyState icon="history">{t('No sessions logged yet')}</EmptyState>
-  </>
-  const tail = s => [
-    s.volume > 0 && t('Volume') + ' ' + fmtVol(s.volume, st.unit),
-    s.e1rm != null && t('Est. 1RM') + ' ' + fmtNum(s.e1rm) + ' ' + st.unit,
-  ].filter(Boolean).join(' · ')
-  return <>
-    <h3 className={cx(exerciseNameClass(ex), 'mb-1')}>{exerciseNameFor(ex)}</h3>
-    <div className="muted small mb-5">{t('Exercise history')} · {tn('{0} session', '{0} sessions', h.total)}</div>
-    {/* Only reps work with a load produces an estimate, so the toggle is absent for the rest. */}
-    {h.e1rmPoints.length > 0 && h.metric === 'weight' && <Segmented className="seg-range" value={curve} onChange={setCurve}
-      options={[{ value: 'top', label: t('Top set') }, { value: 'e1rm', label: t('Est. 1RM') }]} />}
-    <div className="chart mt-4">
-      <LineChart points={onE1 ? h.e1rmPoints : h.points} h={140} unit={onE1 ? st.unit : unit} color="var(--blue)" label={exerciseNameFor(ex) + ' · ' + t(onE1 ? 'Est. 1RM' : 'Top set')} />
-    </div>
-    <Inline gap={2.5} className="small mt-3 mb-2">
-      <Icon name="trophy" className="ink-warn" style={{ fontSize: 14 }} />
-      {t('Best:')} <b className="accent">{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</b>
-    </Inline>
-    <SectionTitle>{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</SectionTitle>
-    <div className="list">
-      {h.sessions.map(s => <div key={s.id} className="item ai-start">
-        <div className="grow">
-          <div className="tt">{fmtDate(s.d, true)} {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}</div>
-          <div className="ss">{s.sets.map(x => setLabel(exId, x, s.target, speedUnitOf(st))).join('  ·  ')}</div>
-          {tail(s) && <div className="small dim" style={{ marginTop: 3 }}>{tail(s)}</div>}
-        </div>
-        {s.value != null && s.value > 0 && <b className="accent nocap" style={{ whiteSpace: 'nowrap' }}>{fmtNum(s.value)} {unit}</b>}
-      </div>)}
-    </div>
-  </>
+  const name = exerciseNameFor(ex)
+  return (
+    <BottomSheet type="full" title={<span className={exerciseNameClass(ex)}>{name}</span>}>
+      <div className="g-xd-hist">
+        {h.points.length >= 2 && <LineChart label={name + ' · ' + t('Top set')} unit={unit}
+          values={h.points.map(p => p.y)} pointLabels={h.points.map(p => fmtDate(p.d, true) + ': ' + fmtNum(p.y) + ' ' + unit)} />}
+        <PastSetsList exId={exId} history={h} tone="light" />
+      </div>
+    </BottomSheet>
+  )
 }
-export const exerciseHistorySheet = exId => ui().openSheet(close => <ExerciseHistory exId={exId} close={close} />)
+export const exerciseHistorySheet = exId => ui().openSheet(() => <ExerciseHistorySheet exId={exId} />, { variant: 'ds' })
 
 /* ============================ add to routine ============================ */
 // The new entry's config starts from defaultConfig (lib/history.js), which a custom exercise's own

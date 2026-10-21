@@ -1,0 +1,31 @@
+/* Train exercises (slice 4): T7.0 Progress and T7.1 Past sets, /progress/strength on the stage.
+   Everything sits inside the pushed page's .g-root, so the design system's tokens apply. */
+.g-xp { display: flex; flex-direction: column; gap: 16px; padding-top: 4px; color: var(--on-stage); font-family: var(--font-sans); }
+/* Blocks carry the page's 16px inset; a section title (.g-ssec) has its own. */
+.g-xp > :not(.g-ssec) { margin-inline: 16px; }
+.g-xp > .g-xp-list { margin-top: -4px; }
+
+.g-xp-pick { appearance: none; border: 0; align-self: flex-start; min-height: var(--tap-min); box-sizing: border-box; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px 8px 18px; border-radius: 999px; color: inherit; font: 700 15px/20px var(--font-sans); cursor: pointer; }
+.g-xp-pick .g-icon { width: 18px; height: 18px; }
+.g-xp-pick:focus-visible { outline-color: var(--on-stage); }
+
+.g-xp-hero { display: flex; align-items: center; gap: 16px; padding-block: 4px; }
+.g-xp-pic { flex: none; width: 72px; height: 72px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: var(--g-white); box-shadow: 0 0 0 1px var(--glass-line); }
+.g-xp-pic .thumb, .g-xp-pic > * { width: 100%; height: 100%; border-radius: 0; object-fit: cover; }
+.g-xp-hb { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.g-xp-big { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.g-xp-big small { font: 600 22px/28px var(--font-sans); letter-spacing: 0; color: var(--on-stage-2); }
+.g-xp-line { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+
+.g-xp-short { padding: 32px 20px; border-radius: 22px; text-align: center; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-xp-fine { font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-xp > p.g-xp-fine { margin-block: -6px 0; padding-inline: 4px; }
+
+/* The per-set lines and the estimated 1RM calculator are the app's own light components, kept
+   legible on the stage on a card. */
+.g-xp-light { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: var(--surface); color: var(--text); }
+.g-xp-light .g-xp-fine { color: var(--text-3); }
+.g-xp-keys { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 500 14px/18px var(--font-sans); color: var(--text-2); }
+.g-xp-keys > span { display: inline-flex; align-items: center; gap: 8px; }
+
+.g-xp-list { display: flex; flex-direction: column; gap: 8px; }

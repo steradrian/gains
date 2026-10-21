@@ -56,11 +56,11 @@ import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
 import Body from './views/Body.jsx'
-import Strength from './views/Strength.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
 // Train slice 4
 import CreateExercise from './views/train/exercises/CreateExercise.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
 import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
@@ -312,7 +312,7 @@ function Shell() {
               <Route path="/progress/body" element={<Body segment="weight" />} />
               <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
               <Route path="/progress/body/photos" element={<Body segment="photos" />} />
-              <Route path="/progress/strength" element={<Strength />} />
+              <Route path="/progress/strength" element={<ExerciseProgress />} />
               <Route path="/progress/strength/balance" element={<StructuralBalance />} />
               <Route path="/progress/load" element={<TrainingLoad />} />
               <Route path="/progress/trends" element={<Trends />} />

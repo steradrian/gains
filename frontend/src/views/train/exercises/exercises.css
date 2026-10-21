@@ -28,6 +28,8 @@
 .g-xd-rows .g-drow + .g-drow::before, .g-xd-setup .g-drow + .g-drow::before { inset-inline-start: 0; }
 .g-xd-setup h3 { margin: 20px 0 4px; font: 700 17px/22px var(--font-sans); }
 .g-xd-empty { margin: 0; padding: 32px 0; text-align: center; font: 500 16px/22px var(--font-sans); color: var(--text-3); }
+/* The mid-workout history drawer: the top-set curve, then the past sets list (components/PastSetsList.jsx). */
+.g-xd-hist { display: flex; flex-direction: column; gap: 16px; padding-block: 8px 24px; color: var(--text); }
 
 /* ---- T6.4 the Create exercise form ---- */
 .g-cxf { font-family: var(--font-sans); }
