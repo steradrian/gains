@@ -144,14 +144,41 @@ describe('the rest in the footer', () => {
     expect(host.querySelector('.g-wf-rest')).toBeNull()
   })
 
-  // Old RestTimer.ready:55 showed a plus clock ("+0:03") and an empty bar once an opted-in hold
-  // ran past its end; RestTimer.dock:102 said "Paused" under the clock; RestTimer.ready:104 named
-  // the pause "Switch sides". The new view does none of the three: the hold's left is clamped at
-  // 0:00 (workout-view.js leftText), the footer's label stays "Rest" with only the button flipping,
-  // and rest.label ignores timer.kind. Gaps for the orchestrator to route.
-  it.todo('shows a plus clock and an empty ring during opted-in overtime (gap: hold.leftText is clamped at 0:00)')
-  it.todo('says Paused under the clock while the rest is held (gap: the footer label stays "Rest")')
-  it.todo('names the switch-sides pause (gap: view.rest.label ignores timer.kind "switch")')
+  // Old RestTimer.ready:55: an opted-in hold that runs past its end shows a plus clock ("+0:03")
+  // and an empty ring, and keeps going until Done.
+  it('shows a plus clock and an empty ring during opted-in overtime', () => {
+    seed([timed('1053', 10, 2)], { timedSetOvertime: true })
+    mount()
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Start · 0:10').click())
+    advance(10_000)
+    expect(host.querySelector('.g-th-c b').textContent).toBe('0:00')
+    advance(3_000)
+    expect(useUI.getState().work).toMatchObject({ left: -3, overtime: true })
+    expect(host.querySelector('.g-th-c b').textContent).toBe('+0:03')
+    const arc = host.querySelector('.g-th-arc')
+    expect(Number(arc.style.getPropertyValue('--o'))).toBeCloseTo(Number(arc.style.getPropertyValue('--c')))
+  })
+
+  // Old RestTimer.dock:102: the label under the clock says Paused while the rest is held; the
+  // spoken name of the clock keeps saying Rest.
+  it('says Paused under the clock while the rest is held', () => {
+    renderResting(90)
+    act(() => labelled('Pause rest').click())
+    expect(timer().paused).toBe(true)
+    expect(host.querySelector('.g-wf-rt span').textContent).toBe('Paused')
+    expect(labelled('Rest, 1:30 left. Change')).toBeTruthy()
+    act(() => labelled('Resume rest').click())
+    expect(host.querySelector('.g-wf-rt span').textContent).toBe('Rest')
+  })
+
+  // Old RestTimer.ready:104: the pause between the two sides of a hold is not a "Rest".
+  it('names the switch-sides pause', () => {
+    seed([timed('1053', 30, 2)])
+    act(() => useUI.getState().startRest(10, 0, { kind: 'switch' }))
+    mount()
+    expect(host.querySelector('.g-wf-rt span').textContent).toBe('Switch sides')
+    expect(labelled('Switch sides, 0:10 left. Change')).toBeTruthy()
+  })
 })
 
 describe('what the wheel\'s Done does to the rest (applyRestLeft)', () => {
