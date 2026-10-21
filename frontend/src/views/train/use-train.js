@@ -286,8 +286,10 @@ const scheduledIds = S => (scheduleModeOf(S) === 'rotation'
   : Object.values(S.week || {}).flat())
 
 /**
- * Routines: those in the Plan first, then the rest, each `{ id, name, sub, inPlan, today, empty }`
- * ("6 exercises · Sun", the weekdays it holds in a week plan), then Freestyle (`freestyle: true`).
+ * Routines: those in the Plan first, then the rest, each `{ id, name, sub, stills, inPlan, today,
+ * empty }` ("6 exercises · Sun", the weekdays it holds in a week plan; `stills` the ids of its first
+ * three exercises, which RoutineTiles draws, a custom one with its own picture), then Freestyle
+ * (`freestyle: true`).
  */
 export function routineRows(S, today) {
   const scheduled = new Set(scheduledIds(S))
@@ -298,13 +300,13 @@ export function routineRows(S, today) {
   const days = id => (week ? weekOrder(weekStartOf(S)).filter(wd => [].concat(S.week?.[wd] || []).includes(id)).map(short).join(', ') : '')
   const row = r => ({
     id: r.id, name: r.name, inPlan: scheduled.has(r.id), today: todays.has(r.id), empty: !r.ex?.length,
-    thumbs: (r.ex || []).slice(0, 3).map(cfg => pictureOf(S, cfg.id)),
+    stills: (r.ex || []).slice(0, 3).map(cfg => cfg.id),
     sub: [exCount(r.ex?.length || 0), days(r.id)].filter(Boolean).join(' · '),
   })
   const rows = S.routines.map(row)
   return [
     ...rows.filter(r => r.inPlan), ...rows.filter(r => !r.inPlan),
-    { id: null, name: t('Freestyle'), sub: t('Pick exercises as you go'), thumbs: [], freestyle: true, inPlan: false, today: false, empty: false },
+    { id: null, name: t('Freestyle'), sub: t('Pick exercises as you go'), stills: [], freestyle: true, inPlan: false, today: false, empty: false },
   ]
 }
 

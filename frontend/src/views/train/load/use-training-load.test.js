@@ -4,9 +4,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF } from '../../../store/useStore.js'
 import { fmtDate } from '../../../lib/format.js'
+import { _setLangState } from '../../../lib/i18n-core.js'
 import { MUSCLES } from '../../../lib/muscles.js'
+import ru from '../../../locales/ru.js'
 import {
-  activityOf, balanceOf, fatigueRows, loadSub, muscleOf, readyLine, readyWhen, rowValue, strengthMuscles, tabOf, toSchedule,
+  activityOf, balanceOf, fatigueRows, loadSub, muscleOf, readyLine, readyWhen, rowValue, setsText, strengthMuscles, tabOf, toSchedule,
   trainedBy, tryNextFor, viewOf,
 } from './use-training-load.js'
 
@@ -94,6 +96,25 @@ describe('Activity', () => {
     expect(day.label).toContain('2 workouts')
     expect(day.label).toContain('kg')
     expect(day.label).not.toContain('min')
+  })
+
+  it('says "1 workout" for a lone workout with no time to give, so the day does not read as empty', () => {
+    const S = state({ workouts: [{ id: 'a', d: '2026-09-28', start: new Date('2026-09-28T10:00:00').getTime() }] })
+    const day = activityOf(S, 'time', new Date(NOW)).days.find(d => d.iso === '2026-09-28')
+    expect(day.label).toBe(fmtDate('2026-09-28', true) + ', 1 workout')
+  })
+})
+
+describe('setsText', () => {
+  afterEach(() => _setLangState('en', {}, null, null))
+
+  it('reads a decimal count in English', () => {
+    expect([1, 2, 6.6, 0].map(setsText)).toEqual(['1 set', '2 sets', '6.6 sets', '0 sets'])
+  })
+
+  it('picks the plural form from the count, not from the formatted text (Russian: 2 подхода)', () => {
+    _setLangState('ru', ru, null, null)
+    expect([1, 2, 5, 21].map(setsText)).toEqual(['1 подход', '2 подхода', '5 подходов', '21 подход'])
   })
 })
 

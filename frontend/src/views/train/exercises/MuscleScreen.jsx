@@ -8,10 +8,11 @@ import StageSearchField from '../../../ds/StageSearchField.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
 import { BODYPARTS } from '../../../lib/exercises.js'
 import { exCount, fmtNum, todayISO } from '../../../lib/format.js'
-import { t, tn } from '../../../lib/i18n.js'
+import { t, tnf } from '../../../lib/i18n.js'
 import { MUSCLES, MUSCLE_NAME } from '../../../lib/muscles.js'
 import { useStore } from '../../../store/useStore.js'
 import { exerciseDetailSheet } from '../../../sheets.jsx'
+import { round1 } from '../load/use-training-load.js'
 import { muscleLoadThisWeek } from '../use-train.js'
 import ExerciseRows from './ExerciseRows.jsx'
 import FilterChips from './FilterChips.jsx'
@@ -30,7 +31,7 @@ export default function MuscleScreen() {
   const f = useExerciseFilters({ muscle })
   const pick = slug => setParams(slug === muscle ? {} : { muscle: slug }, { replace: true })
   const sets = useMemo(
-    () => Math.round(muscle ? muscleLoadThisWeek(S, todayISO())[muscle] || 0 : 0),
+    () => round1(muscle ? muscleLoadThisWeek(S, todayISO())[muscle] || 0 : 0),
     [muscle, S.workouts, S.active, S.weekStart],
   )
   const name = muscle ? t(MUSCLE_NAME[muscle]) : ''
@@ -59,7 +60,7 @@ export default function MuscleScreen() {
           {muscle && (
             <div className="g-xs-mcap">
               <b>{name}</b>
-              <span>{exCount(f.muscleTotal)} · {tn('{0} set this week', '{0} sets this week', sets)}</span>
+              <span>{exCount(f.muscleTotal)} · {tnf('{0} set this week', '{0} sets this week', sets, fmtNum(sets))}</span>
             </div>
           )}
         </div>

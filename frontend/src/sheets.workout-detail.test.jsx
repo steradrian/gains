@@ -75,6 +75,19 @@ describe('workout drawer', () => {
     expect([...host.querySelectorAll('.g-stat')].map(s => s.textContent)).toEqual(['Time1h 0m', 'Sets2', 'Volume12.4 t'])
   })
 
+  it('counts work sets once everywhere: the Sets tile and the routine headers skip warm-ups and agree on a per-side set', () => {
+    workoutDetailSheet(workout([
+      { id: lifts[0], rid: 'a', target: { mode: 'reps' }, sets: [done(40, 8, { phase: 'warmup' }), done(100, 5)] },
+      { id: lifts[1], rid: 'b', target: { mode: 'reps', side: true }, sets: [
+        { w: 10, r: 16, done: true, sides: { L: { w: 10, r: 8, done: true }, R: { w: 10, r: 8, done: true } } },
+      ] },
+    ], { routineIds: ['a', 'b'] }))
+    const host = mountTopSheet()
+    expect([...host.querySelectorAll('.g-stat')].map(s => s.textContent)[1]).toBe('Sets3')
+    const heads = [...host.querySelectorAll('.g-wd-group-head > span')].map(s => s.textContent.split(' · ')[0])
+    expect(heads).toEqual(['1 set', '2 sets'])
+  })
+
   it('leaves Time out when the session has no clock, as an import has none', () => {
     workoutDetailSheet(workout([], { start: undefined, end: undefined }))
     expect([...mountTopSheet().querySelectorAll('.g-stat > span')].map(s => s.textContent)).toEqual(['Sets', 'Volume'])

@@ -2,7 +2,7 @@
 // what they say, worked out from the store's state. Everything but useNow is pure, so it can be
 // tested on its own; the screens only lay it out.
 import { useEffect, useState } from 'react'
-import { dateLocale, t, tn } from '../../../lib/i18n.js'
+import { dateLocale, t, tn, tnf } from '../../../lib/i18n.js'
 import { durPart, fmtDate, fmtNum, weekKey, weekStartOf } from '../../../lib/format.js'
 import { activityGrid } from '../../../lib/activity-heatmap.js'
 import { dayNoteLine, dayNoteOf } from '../../../lib/day-notes.js'
@@ -28,19 +28,21 @@ const doneSets = e => (e.sets || []).filter(s => s?.done && !isWarmupRow(s)).len
 
 /** The clock the fatigue and strength maps read: it ticks once a minute, so a muscle recovers on screen. */
 export function useNow() {
-  const [, setTick] = useState(0)
+  // The tick's timestamp lives in state, so `now` is the same value between ticks and the memos
+  // keyed on it (the fatigue and strength maps) hit instead of recomputing on every render.
+  const [now, setNow] = useState(Date.now)
   useEffect(() => {
-    const iv = setInterval(() => setTick(tick => tick + 1), 60000)
+    const iv = setInterval(() => setNow(Date.now()), 60000)
     return () => clearInterval(iv)
   }, [])
-  return Date.now()
+  return now
 }
 
 /** The options fatigueOf and strengthOf read: the profile's unit and its bodyweight in kg. */
 export const recoveryOpts = S => ({ bodyweightKg: bodyweightKgOf(S), unit: S.unit })
 
 /** "1 set", "6.6 sets": a set count that may carry a decimal (secondaries count in part). */
-export const setsText = n => (n === 1 ? t('{0} set', fmtNum(1)) : t('{0} sets', fmtNum(n)))
+export const setsText = n => tnf('{0} set', '{0} sets', n, fmtNum(n))
 
 /* -------------------------------------------------------------- the page -- */
 
@@ -84,8 +86,10 @@ export function activityOf(S, metric, now = new Date()) {
   const locale = dateLocale()
   const days = cells.map(c => {
     const parts = [fmtDate(c.iso, true)]
-    if (c.n > 1) parts.push(tn('{0} workout', '{0} workouts', c.n))
-    if (c.n) parts.push(metric === 'vol' ? volumeText(c.vol, S.unit) : c.min ? t('{0} min', c.min) : null)
+    const measure = c.n ? (metric === 'vol' ? volumeText(c.vol, S.unit) : c.min ? t('{0} min', c.min) : null) : null
+    // A single workout with no time or volume to give would read like an empty day: say it.
+    if (c.n > 1 || (c.n === 1 && !measure)) parts.push(tn('{0} workout', '{0} workouts', c.n))
+    if (measure) parts.push(measure)
     if (c.noted) parts.push(dayNoteLine(dayNoteOf(S, c.iso), t))
     return { iso: (c.n || c.noted) && !c.future ? c.iso : undefined, label: parts.filter(Boolean).join(', '), today: c.today, future: c.future, noted: c.noted }
   })

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ExerciseStillImg from '../../components/ExerciseStillImg.jsx'
 import Icon from '../../components/Icon.jsx'
 import SwipeRow from '../../components/SwipeRow.jsx'
 import Act from '../../ds/Act.jsx'
@@ -13,12 +14,10 @@ import { useRoutines } from './use-routines.js'
 let flashSeq = 0
 
 // A routine's exercise pictures, overlapping (board T4.0); a slot with no picture is a dumbbell tile.
-function Thumbs({ thumbs }) {
+function Thumbs({ stills }) {
   return (
     <span className="g-rt-stack" aria-hidden="true">
-      {(thumbs.length ? thumbs : [null]).map((src, i) => (
-        <span key={i}>{src ? <img src={src} alt="" width="40" height="40" loading="lazy" /> : <i><Icon name="dumbbell" className="g-icon" /></i>}</span>
-      ))}
+      {(stills.length ? stills : [null]).map((id, i) => <span key={i}><ExerciseStillImg id={id} size="40" /></span>)}
     </span>
   )
 }
@@ -26,7 +25,7 @@ function Thumbs({ thumbs }) {
 function RoutineRow({ row, onClick }) {
   return (
     <Act onClick={onClick} className="g-glist-row g-rt-row">
-      <Thumbs thumbs={row.thumbs} />
+      <Thumbs stills={row.stills} />
       <span className="g-glist-body"><b>{row.name}</b>{row.sub && <span>{row.sub}</span>}</span>
       <Icon name="chevronRight" className="g-icon g-glist-chev" />
     </Act>

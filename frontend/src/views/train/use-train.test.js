@@ -202,9 +202,9 @@ describe('routines', () => {
     expect(rows[0]).toMatchObject({ sub: '2 exercises · Sun', inPlan: true, today: true })
     expect(rows[2].sub).toBe('1 exercise · Mon, Fri')
     expect(rows[3]).toMatchObject({ sub: '1 exercise', inPlan: false })
-    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', thumbs: [] })
-    expect(rows[0].thumbs).toHaveLength(2)
-    expect(rows[0].thumbs[0]).toMatch(/\.webp$/)
+    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', stills: [] })
+    expect(rows[0].stills).toHaveLength(2)
+    expect(rows[0].stills.every(id => typeof id === 'string' && id)).toBe(true)
   })
 
   it('in rotation mode a routine has no weekday to show', () => {

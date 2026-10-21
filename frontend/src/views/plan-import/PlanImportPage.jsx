@@ -7,6 +7,7 @@ import { exCount, routineCount } from '../../lib/format.js'
 import { nav } from '../../lib/nav.js'
 import { importPlan, undoImport } from '../../lib/plan-undo.js'
 import { markUndone, undoMarks } from '../../lib/sync-merge.js'
+import ExerciseStillImg from '../../components/ExerciseStillImg.jsx'
 import Icon from '../../components/Icon.jsx'
 import { Switch } from '../../components/ui.jsx'
 import Button from '../../ds/Button.jsx'
@@ -16,7 +17,6 @@ import StageEmpty from '../../ds/StageEmpty.jsx'
 import StagePage from '../../ds/StagePage.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import { importPlanFile, PLAN_FILE_ACCEPT } from '../../sheets.jsx'
-import { pictureOf } from '../train/use-train.js'
 
 const PLAN = '/train/schedule'
 
@@ -49,7 +49,6 @@ export function importPlanWithUndo(bundle, { schedule = false } = {}) {
  */
 export default function PlanImportPage({ bundle: given, error: givenError }) {
   const { state } = useLocation()
-  const st = useStore(s => s.S)
   const fileRef = useRef(null)
   const [schedule, setSchedule] = useState(false)
   const bundle = given ?? state?.bundle ?? null
@@ -93,17 +92,14 @@ export default function PlanImportPage({ bundle: given, error: givenError }) {
         {bundle.routines.length > 0 && <>
           <StageSection title={t('Routines in this file')} />
           <div className="g-glist g-glass">
-            {bundle.routines.map((r, i) => {
-              const src = r.ex[0] ? pictureOf(st, r.ex[0].id) : null
-              return (
-                <div key={r.id ?? i} className="g-glist-row g-gvr g-gvr-static">
-                  <span className="g-tr3-thumb" aria-hidden="true">
-                    {src ? <img src={src} alt="" width="44" height="44" loading="lazy" /> : <Icon name="dumbbell" className="g-icon" />}
-                  </span>
-                  <span className="g-glist-body"><b>{r.name || t('Shared routine')}</b><span>{exCount(r.ex.length)}</span></span>
-                </div>
-              )
-            })}
+            {bundle.routines.map((r, i) => (
+              <div key={r.id ?? i} className="g-glist-row g-gvr g-gvr-static">
+                <span className="g-tr3-thumb" aria-hidden="true">
+                  <ExerciseStillImg id={r.ex[0]?.id} size="44" fallback={<Icon name="dumbbell" className="g-icon" />} />
+                </span>
+                <span className="g-glist-body"><b>{r.name || t('Shared routine')}</b><span>{exCount(r.ex.length)}</span></span>
+              </div>
+            ))}
           </div>
         </>}
         {days && (

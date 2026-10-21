@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
-import { t, tn } from '../../lib/i18n.js'
+import { t, tn, tnf } from '../../lib/i18n.js'
 import { DAYN, fmtDate, fmtNum, isoOf, startOfWeek, weekOrder, weekStartOf } from '../../lib/format.js'
 import { glyphOf } from '../../lib/glyphs.js'
 import { effectiveRoutineIds, workoutDay } from '../../lib/history.js'
@@ -138,13 +138,19 @@ export function volumeOf(S) {
   const load = loadOfWeeklyPlan(S)
   const rows = rankOf(load).worked.map(m => {
     const sets = Math.round(load[m] * 10) / 10
-    return { key: m, name: t(MUSCLE_NAME[m]), sets, value: t('{0} sets', fmtNum(sets)) }
+    return { key: m, name: t(MUSCLE_NAME[m]), sets, value: tnf('{0} set', '{0} sets', sets, fmtNum(sets)) }
   })
   return rows.length ? { rows, target: VOLUME_TARGET } : null
 }
 
-/** Nothing to train on any day: no loop and no weekday routines (T3.3). */
-export const isEmpty = (S, seq) => !seq.length && !Object.keys(S.week || {}).some(d => dayRoutines(S, d).length)
+/**
+ * Nothing to train on (T3.3): in the loop, an empty loop; in a fixed week, no weekday routines.
+ * Each mode reads only its own plan, so a saved loop does not fill a fixed week's page, nor a
+ * fixed week a loop's.
+ */
+export const isEmpty = (S, seq, mode) => (mode === 'rotation'
+  ? !seq.length
+  : !Object.keys(S.week || {}).some(d => dayRoutines(S, d).length))
 
 /**
  * The large title's line: the loop's routines (in Fixed week, the week's), then "· 4 days a week"
@@ -155,7 +161,7 @@ export function subOf(S, { mode, seq, empty }) {
   if (empty) return t('Nothing planned this week')
   if (mode === 'rotation') return seq.length ? seq.map(id => routineOf(S, id)?.name ?? id).join(', ') : null
   const days = Object.keys(S.week || {}).filter(d => dayRoutines(S, d).length).length
-  return [weekRoutinesOf(S).map(r => r.name).join(', '), tn('1 day a week', '{0} days a week', days)].join(' · ')
+  return [weekRoutinesOf(S).map(r => r.name).join(', '), tn('1 day a week', '{0} days a week', days)].filter(Boolean).join(' · ')
 }
 
 /**
@@ -180,7 +186,7 @@ export function usePlan() {
   const mode = scheduleModeOf(S)
   const ls = loopState(S, today)
   const { liveQ, seq, seqLabel, external, managed, recovery, qv } = ls
-  const empty = isEmpty(S, seq)
+  const empty = isEmpty(S, seq, mode)
   const weeks = planWeeks(S, today)
 
   // The same switch as Settings' (lib/rotation.js), on the same keys. Leaving a running loop asks

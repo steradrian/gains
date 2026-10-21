@@ -118,13 +118,14 @@ function DayCard({ card: c, onIntent, onDayMenu }) {
 }
 
 // The first routines, each opening its editor, with ▶ to start it (or to add exercises to an
-// empty one); then Freestyle, which starts at a tap.
+// empty one); then Freestyle, which starts at a tap. A row's pictures are its `stills` (exercise
+// ids); `thumbs` (urls) is only what the dev gallery's fixtures (dev/screens/states/train.jsx) give.
 function tilesOf(routines, onRoutine, onRoutineStart) {
   const own = routines.filter(r => !r.freestyle).slice(0, ROUTINES)
   const free = routines.find(r => r.freestyle)
   return [
     ...own.map(r => ({
-      key: r.id, title: r.name, sub: r.sub, thumbs: r.thumbs, onClick: () => onRoutine(r),
+      key: r.id, title: r.name, sub: r.sub, stills: r.stills, thumbs: r.thumbs, onClick: () => onRoutine(r),
       play: { label: r.empty ? `${t('Add exercise')}, ${r.name}` : t('Start {0}', r.name), onClick: () => onRoutineStart(r) },
     })),
     ...(free ? [{ key: 'freestyle', title: free.name, sub: free.sub, icon: 'dumbbell', outline: true, onClick: () => onRoutine(free) }] : []),

@@ -119,17 +119,25 @@ const pluralCategory = n => {
  * forms of the target language, falling back through `other` to the English pair.
  */
 export function tn(one, other, n, ...rest) {
+  return tnf(one, other, n, n, ...rest)
+}
+
+/**
+ * tn() for a count that is shown formatted ("6.6", "1,200"): the form comes from `n`, and `shown`
+ * fills {0}. Passing the formatted string to t() or tn() would pick no plural form at all.
+ */
+export function tnf(one, other, n, shown, ...rest) {
   const forms = dict[other]
   if (forms && typeof forms === 'object') {
     const form = forms[pluralCategory(n)] || forms.other || forms.many || forms.one
     if (form) {
       let v = form
-      const args = [n, ...rest]
+      const args = [shown, ...rest]
       for (let i = 0; i < args.length; i++) v = v.replaceAll('{' + i + '}', args[i])
       return v
     }
   }
-  return t(n === 1 ? one : other, n, ...rest)
+  return t(n === 1 ? one : other, shown, ...rest)
 }
 
 // The English steps and descriptions of 5,000+ exercises are too big to sit in the bundle every
