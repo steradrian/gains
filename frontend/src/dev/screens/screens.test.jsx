@@ -698,7 +698,8 @@ describe('the screens gallery: the workout\'s exercise drawers', () => {
   const IDS = ['W1.4', 'W1.12', 'W1.13', 'W1.14', 'W1.15', 'W1.16', 'W1.17', 'W1.25', 'W1.33', 'W1.34', 'W1.43']
 
   it('has every exercise drawer under its board id', () => {
-    expect(screenAreas().find(a => a.name === 'Workout: drawers').entries.map(e => e.id)).toEqual(IDS)
+    // The area is shared with drawers-M3's map and options states (below).
+    expect(screenAreas().find(a => a.name === 'Workout: drawers').entries.map(e => e.id).filter(id => IDS.includes(id))).toEqual(IDS)
   })
 
   it('opens each drawer over the workout and leaves no rest, toast or session behind', async () => {
@@ -719,6 +720,33 @@ describe('the screens gallery: the workout\'s exercise drawers', () => {
     await check('W1.33', s => expect(s.text).toContain('First time with this one.'))
     await check('W1.34', s => expect(s.text).toContain('Best: '))
     await check('W1.43', s => expect(s.text).toContain('Held 2 × 30 s each side'))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useUI.getState().timer).toBeNull()
+    expect(useStore.getState().S).toBe(own)
+  }, 30000)
+})
+
+describe('the screens gallery: the workout\'s map, Add exercise and options', () => {
+  const IDS = ['W1.37', 'W1.23', 'W1.45', 'W1.18', 'W1.19', 'W1.20', 'W1.21']
+
+  it('has every state under its board id', () => {
+    expect(screenAreas().find(a => a.name === 'Workout: drawers').entries.map(e => e.id).filter(id => IDS.includes(id))).toEqual(IDS)
+  })
+
+  it('opens each drawer over the workout and leaves no session or timer behind', async () => {
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('W1.37', s => { expect(s.text).toContain('Drag to reorder within a phase'); expect(s.text).toContain('Skip cool-down'); expect(s.text).toContain('Workout options') })
+    await check('W1.23', s => expect(s.drawer).toBeTruthy())
+    await check('W1.45', s => expect(s.text).toContain('20 exercises'))
+    await check('W1.18', s => { expect(s.text).toContain('This workout'); expect(s.text).toContain('Add routine') })
+    await check('W1.19', s => expect(s.text).toMatch(/Added .* · \d+ of 13/))
+    await check('W1.20', s => { expect(s.text).toContain('Reorder exercises'); expect(s.text).toContain('Discard workout') })
+    await check('W1.21', s => { expect(s.text).toContain('Next exercise on its own'); expect(s.text).toContain('Plate loading') })
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useUI.getState().timer).toBeNull()
     expect(useStore.getState().S).toBe(own)

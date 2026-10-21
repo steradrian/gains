@@ -61,7 +61,7 @@ const ALL_DONE = Object.fromEntries(PUSH().map((e, k) => [k, e.sets.length]))
 
 // 20 exercises (W1.44): three warm-ups, fourteen lifts, three stretches.
 const pick = (bp, eq, n) => EXDB.filter(e => e.bp === bp && e.eq === eq).slice(0, n).map(e => e.id)
-const LONG = () => [
+export const LONG = () => [
   warm('3013', 15), warm('0276', 10), warm('1503', 15),
   ...[...pick('upper legs', 'barbell', 6), ...pick('upper legs', 'leverage machine', 4), ...pick('lower legs', 'body weight', 2), ...pick('waist', 'body weight', 2)]
     .map(id => lift(id, 60, 10, 3, { restSec: 90 })),
