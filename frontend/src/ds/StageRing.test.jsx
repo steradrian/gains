@@ -12,6 +12,15 @@ const offset = el => el.style.getPropertyValue('--to')
 const C = 653.45
 
 describe('StageRing', () => {
+  it('holds the two landing boxes of the onboarding thread on its 9 and 12 o\'clock tangents', () => {
+    view.render(<StageRing value={1} max={2} big="1" />)
+    // r = 104 at 240/16: the stroke's middle runs 16px in from the box
+    const v = q('.g-sring-land-v').style, h = q('.g-sring-land-h').style
+    expect([v.left, v.top, v.width, v.height]).toEqual(['16px', '88px', '1px', '64px'])
+    expect([h.left, h.top, h.width, h.height]).toEqual(['88px', '16px', '64px', '1px'])
+    expect(q('.g-sring-land-v').getAttribute('aria-hidden')).toBe('true')
+  })
+
   it('reads as one image: its lines in order', () => {
     view.render(<StageRing value={1200} max={2400} top="Left today" big="1,200" unit="of 2,400 kcal" />)
     const ring = q('.g-sring')

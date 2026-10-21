@@ -10,7 +10,9 @@ import Act from './Act.jsx'
 // and a button with its handler. `placeholder` is the scoped pill text ("Search food"), already
 // translated. `searching` + `onSearch` control the open state; without `onSearch` it keeps its
 // own. Any `unread` above 0 shows the dot, the count is only in the bell's name.
-export default function StageHeader({ initial, placeholder, unread = 0, searching, onSearch, settingsHref, searchHref, bellHref, onSettings, onBell }) {
+// `alert` (already translated, "Connection problem") puts a dot on the avatar and says why in its
+// name: the app's connection and hub-sync warnings live there.
+export default function StageHeader({ initial, placeholder, unread = 0, alert, searching, onSearch, settingsHref, searchHref, bellHref, onSettings, onBell }) {
   const [own, setOwn] = useState(!!searching)
   const open = onSearch ? !!searching : own
   const set = v => { setOwn(v); onSearch?.(v) }
@@ -18,7 +20,10 @@ export default function StageHeader({ initial, placeholder, unread = 0, searchin
   const bellName = open ? t('Close search') : unread > 0 ? t('Notifications, {0} new', unread) : t('Notifications')
   return (
     <header className={cx('g-shdr', open && 'g-shdr-open')}>
-      <Act href={settingsHref} onClick={onSettings} ariaLabel={t('Settings')} className="g-sbtn g-glass">{letter}</Act>
+      <Act href={settingsHref} onClick={onSettings} ariaLabel={alert ? t('Settings') + ', ' + alert : t('Settings')} className="g-sbtn g-glass">
+        {letter}
+        {alert && <span className="g-sdot" aria-hidden="true" />}
+      </Act>
       <Act href={open ? undefined : searchHref} onClick={() => set(true)} className="g-spill g-glass">
         <Icon name="magnifier" className="g-icon" />
         <span>{placeholder || t('Search')}</span>

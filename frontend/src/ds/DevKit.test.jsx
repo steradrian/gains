@@ -45,4 +45,11 @@ describe('DevKit', () => {
     expect(titles).toContain('GlassTabBar')
     expect(view.host.querySelectorAll('.g-gtabbar')).toHaveLength(4)
   })
+
+  it('renders the StageWeekMarks entry', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('StageWeekMarks')
+    expect(view.host.querySelectorAll('.g-wk')).toHaveLength(2)
+  })
 })

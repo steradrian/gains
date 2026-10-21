@@ -31,6 +31,15 @@ describe('StageHeader', () => {
     expect(avatar().textContent).toBe('Ș')
   })
 
+  it('puts a dot on the avatar for an alert, and says why in its name', () => {
+    view.render(<StageHeader initial="m" />)
+    expect(avatar().querySelector('.g-sdot')).toBeNull()
+    expect(avatar().getAttribute('aria-label')).toBe('Settings')
+    view.render(<StageHeader initial="m" alert="Connection problem" />)
+    expect(avatar().querySelector('.g-sdot')).toBeTruthy()
+    expect(avatar().getAttribute('aria-label')).toBe('Settings, Connection problem')
+  })
+
   it('is three buttons that call their handlers when there are no links', () => {
     const onSettings = vi.fn(), onSearch = vi.fn(), onBell = vi.fn()
     view.render(<StageHeader onSettings={onSettings} onSearch={onSearch} onBell={onBell} />)

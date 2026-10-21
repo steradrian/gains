@@ -20,6 +20,7 @@ import StageFooter from './StageFooter.jsx'
 import StageHeader from './StageHeader.jsx'
 import StageRing from './StageRing.jsx'
 import StageScreen, { ACCENTS } from './StageScreen.jsx'
+import StageWeekMarks from './StageWeekMarks.jsx'
 import StageWeekStrip from './StageWeekStrip.jsx'
 import SuccessCheck from './SuccessCheck.jsx'
 import TextField from './TextField.jsx'
@@ -55,6 +56,10 @@ const TRAINING_ACTIONS = [
   { icon: 'scale', label: 'Weigh-in', onClick: NOOP },
   { icon: 'calendar', label: 'Plan', href: SELF },
 ]
+const WEEK_MARKS = [
+  ['M', 'Monday', 'done'], ['T', 'Tuesday', 'rest'], ['W', 'Wednesday', 'missed'], ['T', 'Thursday', 'today'],
+  ['F', 'Friday', 'planned'], ['S', 'Saturday', 'rest'], ['S', 'Sunday', 'planned'],
+].map(([dow, day, state]) => ({ key: day, dow, state, label: day + ', ' + state }))
 
 export default function DevKit() {
   const [accent, setAccent] = useState('cobalt')
@@ -204,6 +209,13 @@ export default function DevKit() {
           </div>
           <div className="g-kit-light">
             <GlassTabBar current="eat" hrefs={{ today: SELF, train: SELF, eat: SELF, me: SELF, plus: SELF }} />
+          </div>
+        </Section>
+
+        <Section title="StageWeekMarks" note="The training profile's week: done, missed, today, planned and rest; then every day a button.">
+          <div className="g-kit-col">
+            <StageWeekMarks days={WEEK_MARKS} />
+            <StageWeekMarks days={WEEK_MARKS.map(d => ({ ...d, onClick: NOOP }))} />
           </div>
         </Section>
 
