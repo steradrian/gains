@@ -1,9 +1,11 @@
 import Icon from '../../components/Icon.jsx'
 import { t } from '../../lib/i18n.js'
+import { haptic as buzz } from '../../lib/use-haptic.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
 import GlassActions from '../../ds/GlassActions.jsx'
 import GlassList from '../../ds/GlassList.jsx'
 import GlassRow from '../../ds/GlassRow.jsx'
+import HapticSwitch from '../../ds/HapticSwitch.jsx'
 import RingCarousel from '../../ds/RingCarousel.jsx'
 import StageDayRail from '../../ds/StageDayRail.jsx'
 import StageEmpty from '../../ds/StageEmpty.jsx'
@@ -56,7 +58,9 @@ export default function EatScreen({ header, status, rail, hero, actions, again, 
               sub={again.sub}
               trailing={again.done
                 ? <span className="eat-logged g-glass"><Icon name="check" className="g-icon" />{t('Logged')}</span>
-                : <button type="button" className="g-trail-pill" onClick={again.onLog} disabled={again.disabled} aria-label={again.logLabel}>{t('Log again')}</button>}
+                : <button type="button" className="g-trail-pill g-haptic" onClick={e => { buzz('light'); again.onLog(e) }} disabled={again.disabled} aria-label={again.logLabel}>
+                  {t('Log again')}<HapticSwitch disabled={again.disabled} />
+                </button>}
             />
           </>}
           <StageSection title={t('Your food')} />

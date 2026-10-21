@@ -86,7 +86,7 @@ export function DiaryItemSheet({ date, item, close }) {
   return <BottomSheet type="half" title={t('Logged food')}
     footer={<div className="g-en-foot">
       <Button variant="danger" disabled={busy} onClick={remove} aria-label={t('Remove {0} from {1}', item.name, wasIn)}>{t('Remove')}</Button>
-      <Button variant="primary" busy={busy} disabled={!draft || !dirty} onClick={save}>{busy ? t('Saving…') : t('Save')}</Button>
+      <Button variant="primary" haptic busy={busy} disabled={!draft || !dirty} onClick={save}>{busy ? t('Saving…') : t('Save')}</Button>
     </div>}>
     <div className="g-en">
       <div className="g-en-head">

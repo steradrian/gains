@@ -39,7 +39,7 @@ export default function ScanFound({ food, mealName, picking, saved, busy, error,
       </div>
       {error && <p className="g-lf-note g-lf-err" role="alert">{error}</p>}
       <div className="g-scan-acts">
-        {!picking && <Button variant="secondary" busy={busy} disabled={saved} onClick={onSave}>{saved ? t('Saved') : t('Save food')}</Button>}
+        {!picking && <Button variant="secondary" haptic busy={busy} disabled={saved} onClick={onSave}>{saved ? t('Saved') : t('Save food')}</Button>}
         <Button variant="primary" haptic={!picking} onClick={onLog}>{picking ? t('Use') : mealName ? t('Log to {0}', mealName) : t('Log')}</Button>
       </div>
       <Button variant="ghost" onClick={onAgain}>{t('Scan another')}</Button>

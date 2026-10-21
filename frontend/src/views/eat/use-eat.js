@@ -164,7 +164,7 @@ export function useEat() {
     { icon: 'utensils', label: t('Log food'), onClick: () => foodPickerSheet({ date: today }) },
     { icon: 'scanBarcode', label: t('Scan'), onClick: scanToSelection },
     { icon: 'bookOpen', label: t('Saved meals'), onClick: () => nav(PATHS.meals) },
-    { icon: 'droplet', label: '+' + units.water(glass.ml), onClick: water },
+    { icon: 'droplet', label: '+' + units.water(glass.ml), onClick: water, haptic: true },
   ]
 
   const targets = settings ? dayTargetsOf({ settings, date: today, goalInputs: food.goalInputs, activity: activity[today] || null, tried: true }) : null
