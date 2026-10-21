@@ -859,3 +859,130 @@ div.g-mcard { cursor: default; }
 /* The coach week's or rotation's name and where it stands, under the drawer's title */
 .g-tr-week { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-tr-week b { font-weight: 600; color: var(--text); }
+
+/* === Shared: week (StageWeekCells, WeekStrip4, StatTiles; boards Sh2Week, Sh2WeekPast) === */
+/* The mini ring: a track and an arc of kcal against the day's target, amber past it */
+.g-mring { display: block; fill: none; transform: rotate(-90deg); flex: none; }
+.g-mring-track { stroke: var(--glass-track); }
+.g-mring-val { stroke: var(--on-stage); stroke-linecap: round; }
+.g-mring-over { stroke: var(--g-ring-over); }
+/* StageWeekCells: the card does not clip, so a cell's focus ring is never cut off */
+.g-swc { border-radius: 24px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-swc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 6px; }
+.g-swc-cell { appearance: none; border: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0; border-radius: 18px; background: none; color: inherit; font: inherit; text-decoration: none; cursor: pointer; transition: transform 180ms cubic-bezier(.34, 1.4, .64, 1); }
+.g-swc-cell:active { transform: scale(.95); }
+.g-swc-still { cursor: default; }
+.g-swc-still:active { transform: none; }
+.g-swc-dow { font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); }
+.g-swc-date { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 700 15px/1 var(--font-sans); }
+.g-swc-date.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-swc-m { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; }
+.g-swc-m .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+.g-swc-done { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-swc-missed { box-shadow: inset 0 0 0 1.5px var(--g-ring-over); color: var(--g-ring-over); }
+.g-swc-missed .g-icon { width: 13px; height: 13px; stroke-width: 2.8; }
+.g-swc-planned { box-shadow: inset 0 0 0 1.5px var(--glass-line); background: var(--glass); }
+.g-swc-skipped { background: var(--glass); color: var(--on-stage-2); }
+.g-swc-skipped .g-icon { width: 12px; height: 12px; stroke-width: 2.4; }
+.g-swc-rest i { width: 6px; height: 6px; border-radius: 50%; background: var(--glass-track); }
+.g-swc-none { width: 30px; height: 30px; display: grid; place-items: center; font: 600 12px/1 var(--font-sans); opacity: .6; }
+.g-swc-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 14px 14px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-swc-legend span { display: inline-flex; gap: 6px; align-items: center; }
+.g-swc-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.g-swc-k-done { background: var(--on-stage); }
+.g-swc-k-missed { box-shadow: inset 0 0 0 1.5px var(--g-ring-over); }
+/* WeekStrip4: the week on screen gets a white edge */
+.g-w4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-family: var(--font-sans); }
+.g-w4-cell { appearance: none; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 20px; color: var(--on-stage); font: inherit; text-align: start; text-decoration: none; transition: transform 180ms cubic-bezier(.34, 1.4, .64, 1); }
+button.g-w4-cell, a.g-w4-cell { cursor: pointer; }
+button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
+.g-w4-cell.on { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-w4-cell b { font: 700 14px/18px var(--font-sans); }
+.g-w4-bars { display: flex; gap: 3px; width: 100%; min-height: 26px; }
+.g-w4-bars i { flex: 1; height: 26px; border-radius: 5px; background: var(--glass-track); }
+.g-w4-bars i.on { background: var(--on-stage); }
+.g-w4-n { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); }
+/* StatTiles: white tiles on a light surface; on the stage glass at the boards' 18px and 12/14 */
+.g-stats { display: grid; gap: 10px; }
+.g-stat { min-width: 0; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); }
+.g-stat > span { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-stat b { font: 700 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); }
+.g-stat .g-pos { color: var(--positive); font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat { border-radius: 18px; padding: 12px 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-stats-stage .g-stat > span { color: var(--on-stage-2); }
+.g-stats-stage .g-stat > span + b + span { font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat b { color: var(--on-stage); }
+.g-stats-stage .g-stat .g-pos { color: var(--on-stage); }
+
+/* === Shared: day (the Day page, boards Sh1Day to Sh1Skipped) === */
+/* StageDayRail: a day before the first log is dimmed and cannot be opened (PR07Edges). */
+.g-rd:disabled { opacity: .4; cursor: default; }
+
+/* DayStatusCard: a glyph on a disc, a title and a line, an optional tag, faded stills and pill
+   buttons. No overflow clip, so a button's focus ring is never cut. */
+.g-dstat { border-radius: 24px; padding: 16px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-dstat-head { display: flex; align-items: center; gap: 14px; }
+.g-dstat-ic { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-dstat-ic .g-icon { width: 22px; height: 22px; }
+.g-dstat-warn .g-dstat-ic { background: color-mix(in srgb, var(--g-ring-over) 22%, transparent); color: var(--g-ring-over); }
+.g-dstat-warn .g-dstat-head { align-items: flex-start; }
+.g-dstat-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.g-dstat-b b { font: 700 18px/24px var(--font-sans); }
+.g-dstat-b span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-dstat-off .g-dstat-b b { font-size: 17px; line-height: 22px; }
+.g-dstat-stack { display: flex; gap: 6px; padding-top: 14px; }
+.g-dstat-stack > span { display: flex; opacity: .55; }
+.g-dstat-stack img, .g-dstat-stack i { width: 44px; height: 44px; border-radius: 12px; background: var(--g-white); object-fit: cover; }
+.g-dstat-stack i { display: grid; place-items: center; color: var(--accent-stage-end); }
+.g-dstat-acts { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
+.g-dstat-btn { appearance: none; border: 0; min-height: 40px; box-sizing: border-box; padding: 0 16px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; background: var(--glass); color: var(--on-stage); font: 700 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-dstat-btn.solid { background: var(--on-stage); color: var(--accent-text); }
+.g-dstat-btn:focus-visible { outline-color: var(--on-stage); }
+
+/* DayFoodCard: the ring and the total, three macro bars, then a row a meal under a hairline. */
+.g-dfood { border-radius: 24px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-dfood-top { display: flex; align-items: center; gap: 16px; padding: 16px; }
+.g-dfood-ring { display: block; flex: none; fill: none; transform: rotate(-90deg); }
+.g-dfood-track { stroke: var(--glass-track); stroke-width: 8; }
+.g-dfood-fill { stroke: var(--on-stage); stroke-width: 8; stroke-linecap: round; }
+.g-dfood-num { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-dfood-num b { font: 700 28px/32px var(--font-sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.g-dfood-num b span { font: 500 16px/20px var(--font-sans); letter-spacing: 0; color: var(--on-stage-2); }
+.g-dfood-num > span { font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-dfood-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 4px 16px 16px; }
+.g-dfood-macro { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.g-dfood-macro b { font: 600 14px/18px var(--font-sans); }
+.g-dfood-macro > span:last-child { font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-dfood-bar { display: block; height: 6px; border-radius: 3px; background: var(--glass-track); overflow: hidden; }
+.g-dfood-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); border-radius: 3px; background: var(--on-stage); }
+.g-dfood-meal { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; background: none; border-top: 1px solid var(--glass-line); color: inherit; font: inherit; text-align: start; text-decoration: none; }
+button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
+.g-dfood-meal:last-child { border-end-start-radius: 24px; border-end-end-radius: 24px; }
+.g-dfood-meal:focus-visible { outline-color: var(--on-stage); outline-offset: -3px; }
+.g-dfood-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-dfood-ic .g-icon { width: 20px; height: 20px; }
+.g-dfood-mb { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-dfood-mb b { font: 600 17px/22px var(--font-sans); }
+.g-dfood-mb span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-dfood-kcal { flex: none; font: 700 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-dfood-kcal span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+
+/* RadioRow (bundle.js g-radio). The same rules as Train's pushed-page kit (8ba0a095): when both
+   are merged, keep one copy. */
+.g-radio { appearance: none; border: 0; background: none; width: 100%; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: var(--text); font: inherit; text-align: start; text-decoration: none; cursor: pointer; position: relative; }
+.g-radio + .g-radio::before { content: ""; position: absolute; top: 0; inset-inline: 16px 0; border-top: 1px solid var(--line); }
+.g-radio:active { background: var(--surface-press); }
+.g-radio-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-radio-body b { font: 600 17px/22px var(--font-sans); }
+.g-radio-body span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-radio-mark { width: 24px; height: 24px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line-strong); transition: box-shadow .2s cubic-bezier(.34, 1.22, .64, 1); }
+.g-radio-mark.on { box-shadow: inset 0 0 0 7px var(--accent-fill); }
+@media (prefers-reduced-motion: reduce) { .g-radio-mark { transition: none; } }
+
+/* The light drawers of the Day page: Add past workout's white cards (D1.6) and the line under a
+   drawer that says where its logs go (D1.5, D1.6). */
+.g-pw-card { border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); overflow: hidden; }
+.g-pw-card .g-radio:focus-visible { outline-offset: -3px; }
+.g-pw-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; padding: 18px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
+.g-bs-note { margin: 10px 0 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
+.g-bs-foot .g-bs-note { margin: 0; }

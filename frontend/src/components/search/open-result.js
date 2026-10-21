@@ -3,6 +3,8 @@
 // overlay); a route opens on top of it as a search visit (lib/search/session.js), and back
 // returns to the overlay. Pure in what it decides (`targetOf`), so the table is testable.
 import { t } from '../../lib/i18n.js'
+import { dayPath } from '../../lib/day-route.js'
+import { todayISO } from '../../lib/format.js'
 import { useUI } from '../../store/useUI.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { visit } from '../../lib/search/session.js'
@@ -38,7 +40,11 @@ export function targetOf(r) {
         onSave: async f => { await useNutrition.getState().saveFood(f); useUI.getState().toast(t('Saved to your foods')) },
       }),
     }
-    case 'day': return { kind: 'route', path: '/food?date=' + r.date + (r.uuid ? '&find=' + encodeURIComponent(r.uuid) : ''), date: r.date }
+    // A past day opens its Day page under Eat (PR07 D1), the entry to find in its state; today's
+    // opens Nutrition's diary, which finds it (views/FoodHub.jsx).
+    case 'day': return r.date < todayISO()
+      ? { kind: 'route', path: dayPath(r.date, 'food'), ...(r.uuid ? { state: { find: r.uuid } } : {}) }
+      : { kind: 'route', path: '/food?date=' + r.date + (r.uuid ? '&find=' + encodeURIComponent(r.uuid) : ''), date: r.date }
     default: return { kind: 'none' }
   }
 }

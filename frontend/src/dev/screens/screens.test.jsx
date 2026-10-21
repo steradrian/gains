@@ -181,6 +181,59 @@ describe('the screens gallery', () => {
     })
   })
 
+  // Shared: week
+  it('has the Week page D2.0, D2.1 and a week with nothing', async () => {
+    const ids = screenAreas().find(a => a.name === 'Shared: week').entries.map(e => e.id)
+    expect(ids).toEqual(['D2.0', 'D2.1', 'D2.E-empty'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('D2.0', h => {
+      expect(h.querySelector('.week-ring-t').textContent).toContain('workouts · Push A is today')
+      expect(h.querySelectorAll('.g-swc-cell')).toHaveLength(7)
+      expect(h.querySelectorAll('.g-stat')).toHaveLength(8)
+      expect(h.querySelector('.week-nav-off')).toBeTruthy()
+    })
+    await check('D2.1', h => {
+      expect(h.querySelector('.week-title').textContent).toContain('Week 41 · complete')
+      expect(h.querySelector('.g-w4-cell.on').getAttribute('aria-label')).toBe('Week of 5 Oct, 3 of 4 workouts')
+    })
+    await check('D2.E-empty', h => {
+      expect([...h.querySelectorAll('.g-stat b')].every(b => b.textContent === '–')).toBe(true)
+      expect(h.querySelectorAll('.g-w4-cell')).toHaveLength(4)
+    })
+  })
+
+  // Shared: day
+  it('has the Day page D1.0 to D1.7, the drawers open and the toast held over the day', async () => {
+    const ids = screenAreas().find(a => a.name === 'Shared: day').entries.map(e => e.id)
+    expect(ids).toEqual(['D1.0', 'D1.1', 'D1.2', 'D1.3', 'D1.4', 'D1.5', 'D1.6', 'D1.7'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('D1.0', h => {
+      expect(h.querySelector('.day-head h2').textContent).toBe('Mon 12 Oct')
+      expect(h.querySelectorAll('.g-wcard-ex')).toHaveLength(6)
+      expect(h.querySelector('.g-dfood-num').textContent).toContain('On target')
+    })
+    await check('D1.1', h => expect(h.querySelector('.g-dstat').textContent).toContain('Pull A was next'))
+    await check('D1.2', h => expect([...h.querySelectorAll('.g-dstat-btn')].map(b => b.textContent)).toEqual(['Add past workout', 'Mark skipped']))
+    await check('D1.3', h => expect(h.querySelectorAll('.g-sempty-btn')).toHaveLength(3))
+    await check('D1.4', h => expect(h.querySelector('.g-dstat-off').textContent).toContain('Tracking off'))
+    await check('D1.5', h => {
+      const drawer = h.querySelector('.g-bs')
+      expect(drawer.querySelector('.g-bs-chip').textContent).toContain('Mon 12 Oct')
+      expect(drawer.textContent).toContain('Add past workout')
+      expect(drawer.querySelector('.g-bs-note').textContent).toContain('Everything here goes to Mon 12 Oct.')
+    })
+    await check('D1.6', h => {
+      const drawer = h.querySelector('.g-bs')
+      expect(drawer.querySelector('h2').textContent).toBe('Add past workout')
+      expect(drawer.querySelector('[role="radio"][aria-checked="true"]').textContent).toContain('Legs')
+      expect(drawer.querySelector('.g-bs-foot').textContent).toContain('Log Legs for Fri 16 Oct')
+    })
+    await check('D1.7', h => {
+      expect(h.querySelector('.g-dstat .g-tag').textContent).toBe('Skipped')
+      expect(h.textContent).toContain('Marked Legs skipped on Fri 16 Oct')
+    })
+  })
+
   it('has the Today drawers and toasts T1.3 to T1.8, each over the Today screen', async () => {
     const ids = screenAreas().find(a => a.name === 'Today: drawers and toasts').entries.map(e => e.id)
     expect(ids).toEqual(['T1.3', 'T1.3p', 'T1.3e', 'T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7', 'T1.8'])

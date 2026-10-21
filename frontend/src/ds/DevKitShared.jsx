@@ -6,13 +6,12 @@ import StageEmpty from './StageEmpty.jsx'
 import StageNavBar from './StageNavBar.jsx'
 import StageNote from './StageNote.jsx'
 import StageSection from './StageSection.jsx'
+import { STILL } from './dev-still.js'
 
 // The shared pages' part of the catalogue (DevKit.jsx): the parts the pushed pages (notifications,
 // Day, Week) are built from, on the stage with sample data.
 const SELF = '#/dev/kit'
 const NOOP = () => {}
-// A colourless stand-in for an exercise still (the UI guards allow no colour literal in source).
-const STILL = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52"><rect x="8" y="32" width="36" height="6" rx="3" fill-opacity=".35"/><rect x="16" y="14" width="20" height="14" rx="3" fill-opacity=".22"/></svg>')
 
 export default function DevKitShared() {
   return (

@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore.js'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { DAYN, durPart, exCount, fmtNum, isoOf, startOfWeek, todayISO, weekStartOf } from '../../lib/format.js'
 import { doneUnits, setUnits, setsDone, workoutDuration } from '../../lib/history.js'
+import { isoWeekOf, navToWeek } from '../../lib/day-route.js'
 import { weekTally } from '../../lib/queue.js'
 import { dayMark, nameOf, trainingDay } from '../../lib/training-day.js'
 import { mealItems, resolveGoalFor, totalsOf } from '../../lib/nutrition/diary.js'
@@ -397,7 +398,8 @@ export function useToday() {
     onMeal: m => (m.state === 'done' ? nutritionDaySheet({ date: today }) : logFood(today, m.slot)),
     onSeeDay: () => nutritionDaySheet({ date: today }),
     water,
-    week: food ? null : { days: weekOf(S, today), label: weekDone(S, today) },
+    // The line opens this week's Week page under Home (PR07 D2).
+    week: food ? null : { days: weekOf(S, today), label: weekDone(S, today), onOpen: () => navToWeek(isoWeekOf(today, weekStartOf(S)), 'home') },
   }
 }
 

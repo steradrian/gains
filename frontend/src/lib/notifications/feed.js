@@ -276,15 +276,13 @@ export function feedOf(S, { now = Date.now(), nutrition = null, reminders = [] }
 
 /**
  * The path a target opens under `tab` (home, train, food or me); null for one that is not a page.
- * The Day and Week pages (`/:tab/day/:date`, `/:tab/week/:week`, lib/day-route.js) come with the
- * day-week slice and are not on this branch, so until they land a day opens Train's History and a
- * week opens Train (PR07 N1 brief). When they do, these two lines go back to
- * `/${tab}/day/${target.day}` and `/${tab}/week/${target.week}`.
+ * A day opens the Day page and a week the Week page under that tab (lib/day-route.js dayPath and
+ * weekPath; the pages send today, a day to come or a bad address on themselves).
  */
 export function targetPath(target, tab = 'home') {
   if (!target) return null
   if (target.route) return target.route
-  if (target.day) return '/train/history'
-  if (target.week) return '/train'
+  if (target.day) return `/${tab}/day/${target.day}`
+  if (target.week) return `/${tab}/week/${target.week}`
   return null
 }

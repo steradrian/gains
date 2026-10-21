@@ -44,6 +44,8 @@ export function parentOf(pathname = '') {
   if (pathname === PROGRESS_ROOT) return TAB_ROOT.me
   if (under(pathname, PROGRESS_ROOT + '/body')) return PROGRESS_ROOT
   const tab = tabOf(pathname)
+  // A Day or Week page (lib/day-route.js) has no page above it but its tab's root.
+  if (tab && /^\/[a-z]+\/(day|week)\/[^/]+$/.test(pathname)) return TAB_ROOT[tab]
   if (!tab || pathname === TAB_ROOT[tab]) return TAB_ROOT.home
   return pathname.slice(0, pathname.lastIndexOf('/'))
 }
