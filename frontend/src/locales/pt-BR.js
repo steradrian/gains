@@ -1948,7 +1948,6 @@ export const PT_BR_OVERRIDES = {
   'Tap a muscle to see its numbers.': 'Toque em um músculo para ver os números dele.',
 
   // --- the redesigned Training tab ---
-  'Nothing planned this week': 'Nada planejado esta semana',
   'Pick exercises as you go': 'Escolha os exercícios na hora',
 }
 

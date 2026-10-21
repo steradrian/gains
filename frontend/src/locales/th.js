@@ -164,6 +164,14 @@ export default {
   '{0} weeks': '{0} weeks',
   '{0} suggestion this week': '{0} suggestion this week',
   '{0} suggestions this week': '{0} suggestions this week',
+  'Your training': 'Your training',
+  'Muscles this week': 'Muscles this week',
+  'Activity this week': 'Activity this week',
+  'Add training': 'Add training',
+  'Plan your week, log every set, watch your lifts grow.': 'Plan your week, log every set, watch your lifts grow.',
+  'Pick a ready-made plan': 'Pick a ready-made plan',
+  'Create a routine': 'Create a routine',
+  '{0} · planned': '{0} · planned',
   // --- licences (Settings, About) ---
   'Licences': 'ใบอนุญาต',
   'It comes with no warranty, to the extent the law allows.': 'ไม่มีการรับประกันใด ๆ ภายในขอบเขตที่กฎหมายอนุญาต',
@@ -290,7 +298,6 @@ export default {
   'Routine name': 'Routine name',
   'Training': 'Training',
   'Training load': 'Training load',
-  'Training settings': 'Training settings',
   'Weigh in': 'Weigh in',
   '{0} of your own': '{0} of your own',
   'Weight, measurements and photos': 'Weight, measurements and photos',
@@ -3240,7 +3247,6 @@ export default {
 
   // --- the redesigned Training tab ---
   'See all': 'ดูทั้งหมด',
-  'Nothing planned this week': 'สัปดาห์นี้ยังไม่มีแผน',
   'Pick exercises as you go': 'เลือกท่าระหว่างออกกำลังกายได้เลย',
   'Start a freestyle workout': 'เริ่มออกกำลังกายแบบฟรีสไตล์',
 
@@ -3289,7 +3295,6 @@ export default {
   // --- Empty-state title/body splits (Plan, Training, Coach): English until the translation pass ---
   'No rotation yet': 'No rotation yet',
   'Add routines in the order you want to train them. The first one you haven’t logged stays up next.': 'Add routines in the order you want to train them. The first one you haven’t logged stays up next.',
-  'Add routines to it in Plan.': 'Add routines to it in Plan.',
   'Ask the Coach for a plan first.': 'Ask the Coach for a plan first.',
   'Every plan, suggestion and debrief will be kept here, whether you said yes or no.': 'Every plan, suggestion and debrief will be kept here, whether you said yes or no.',
   'Not enough people are sharing yet': 'Not enough people are sharing yet',
