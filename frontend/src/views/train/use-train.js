@@ -45,6 +45,8 @@ const andList = names => {
 // Literal calls, so check-source-strings sees each key (lib/muscles.js REGIONS holds the English).
 // 'Back' alone is already the packs' back button, so the body part has a key of its own.
 const REGION_NAME = { Chest: () => t('Chest'), Back: () => t('Back muscles'), Shoulders: () => t('Shoulders'), Arms: () => t('Arms'), Core: () => t('Core'), Legs: () => t('Legs') }
+/** Body parts (lib/muscles.js REGIONS names) as one translated list: "Legs and core". */
+export const regionList = names => andList(names.map(n => REGION_NAME[n]()))
 
 /* ---------------------------------------------------------------- the rail -- */
 
@@ -328,7 +330,7 @@ export function musclesThisWeekOf(S, today, now = Date.now()) {
     levels: levelsOf(load),
     note: !missing.length ? null
       : missing.length === REGIONS.length ? t('Nothing trained yet this week')
-        : t('{0} not trained yet', andList(missing.map(n => REGION_NAME[n]()))),
+        : t('{0} not trained yet', regionList(missing)),
   }
 }
 
