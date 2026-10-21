@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // TextField: the label is the field's name (never a placeholder in its place), the unit is part of
 // it, the hint describes it, and each field's ids are its own.
+import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import TextField from './TextField.jsx'
 import { type, useView } from './render.test-util.js'
@@ -39,5 +40,22 @@ describe('TextField', () => {
     expect(input.value).toBe('150')
     type(input, '175')
     expect(onChange).toHaveBeenLastCalledWith('175')
+  })
+
+  it('multiline is a textarea of its rows, named and filled the same way', () => {
+    const onChange = vi.fn()
+    view.render(<TextField label="Day note" value="Flu" rows={4} multiline onChange={onChange} inputProps={{ maxLength: 20 }} />)
+    expect(inputs()).toHaveLength(0)
+    const area = view.host.querySelector('textarea')
+    expect(area.rows).toBe(4)
+    expect(area.maxLength).toBe(20)
+    expect(area.value).toBe('Flu')
+    expect(textOf(area.getAttribute('aria-labelledby'))).toBe('Day note')
+    expect(view.host.querySelector('.g-tfield-multi')).toBeTruthy()
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(area, 'Flu, better')
+      area.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(onChange).toHaveBeenLastCalledWith('Flu, better')
   })
 })
