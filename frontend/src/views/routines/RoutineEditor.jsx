@@ -82,7 +82,7 @@ export default function RoutineEditor() {
     <StagePage title={r.name} parent="/train/routines"
       actions={[{ icon: 'more', label: t('Routine options'), onClick: editor.menu }]}>
       <div className="g-re">
-        <header className="g-re-head">
+        <div className="g-re-head">
           <TextField tone="stage" wide label={t('Routine name')} value={r.name} onChange={editor.rename} inputRef={nameRef} />
           <p className="g-re-plan">{editor.plan}</p>
           <div className="g-re-saved">
@@ -96,7 +96,7 @@ export default function RoutineEditor() {
               <p className="g-re-stats">{editor.stats}</p>
             </>
           )}
-        </header>
+        </div>
 
         {editor.missing && <InlineBanner stage icon="warning" tone="warning" title={editor.missing} />}
 

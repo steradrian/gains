@@ -1313,7 +1313,7 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-re-list.is-reordering, .g-re-list.is-reordering * { cursor: grabbing; }
 .g-re-list.is-reordering .g-re-slot, .g-re-list.is-reordering .g-ssg { transition: none; }
 .g-re-slot.is-dragging, .g-ssg.is-dragging { z-index: 2; pointer-events: none; }
-.g-re-list > .g-re-slot.is-dragging, .g-ssg.is-dragging { border-radius: 18px; background: var(--accent-stage-end); box-shadow: 0 10px 28px rgba(0, 0, 0, .22); }
+.g-re-list > .g-re-slot.is-dragging, .g-ssg.is-dragging { border-radius: 18px; background: var(--accent-stage-end); box-shadow: var(--g-drag-shadow); }
 .g-re-drop { position: absolute; inset-inline: 12px; height: 3px; margin-top: -1.5px; border-radius: 2px; background: var(--on-stage); pointer-events: none; }
 .g-re-add { align-self: flex-start; margin-top: 12px; }
 .g-re .g-re-start { background: var(--on-stage); color: var(--accent-text); }

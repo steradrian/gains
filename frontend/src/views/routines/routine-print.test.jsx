@@ -14,7 +14,7 @@ vi.mock('../../lib/mobile.js', async importOriginal => {
   return { ...real, get MOBILE() { return env.mobile }, printHtml: env.printHtml }
 })
 
-import { printRoutine } from '../../sheets/routine-menu.jsx'
+import { printRoutine } from '../../sheets.jsx'
 import { DEF, useStore } from '../../store/useStore.js'
 import { printPlan } from '../../lib/plan-share.js'
 
