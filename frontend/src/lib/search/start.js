@@ -211,19 +211,25 @@ const recentKey = r => (r.kind === 'query' ? 'q:' + r.query.toLowerCase() : r.ty
  *   firstUse     nothing ever searched (no Recent ever, no search run): Suggested first, under
  *                the intro line, then Go to
  *   shortcuts    the Go to chips (shortcutsFor)
- *   recents      [{ r, key, row?, sub, gone }]: a query (`row` absent, `sub` "Search"), a result
- *                with the row it names, or `gone` (its target deleted, once its list has loaded)
+ *   recents      [{ r, key, row?, title?, sub, pending?, gone }]: a query (`row` absent, `sub`
+ *                "Search"), a result with the row it names, or one whose list has not loaded yet
+ *                (`pending`: its stored label as `title`, its kind as `sub`), kept in its place
+ *                until the list has loaded; `gone` (its target deleted, once its list has loaded)
+ *                drops out
  *   suggested    suggestionsFor, less any already in Recent: one row per thing
  * `list` and `searched` are the Recent store's (recents.js).
  */
 export function beforeTypingOf({ tab, data, list, searched, now }) {
   const entries = list.map(r => {
-    if (r.kind === 'query') return { r, key: recentKey(r), sub: t('Search') }
+    const key = recentKey(r)
+    if (r.kind === 'query') return { r, key, sub: t('Search') }
     const row = resolveRef(r.type, r.id, data)
-    return row ? { r, key: recentKey(r), row, sub: stageSub(row) } : { r, key: recentKey(r), gone: sourceReady(r.type, data) }
+    if (row) return { r, key, row, sub: stageSub(row) }
+    if (sourceReady(r.type, data)) return { r, key, gone: true }
+    return { r, key, pending: true, title: r.label || r.query || kindLabel(r.type) || '', sub: kindLabel(r.type) || '', gone: false }
   })
-  const recents = entries.filter(e => e.r.kind === 'query' || e.row)
-  const suggested = suggestionsFor(tab, data, now).filter(s => !recents.some(e => e.row?.key === s.key))
+  const recents = entries.filter(e => !e.gone && (e.r.kind === 'query' || e.row || e.pending))
+  const suggested = suggestionsFor(tab, data, now).filter(s => !recents.some(e => e.row?.key === s.key || e.key === s.key))
   return {
     placeholder: placeholderFor(tab),
     firstUse: !searched && !list.length,

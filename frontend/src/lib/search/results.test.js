@@ -259,6 +259,21 @@ describe('before typing', () => {
     expect(beforeTypingOf({ tab: 'home', data: data({ foodsReady: false }), list, searched: true, now }).entries[0].gone).toBe(false)
     expect(beforeTypingOf({ tab: 'home', data: data({ foodsReady: true }), list, searched: true, now }).entries[0].gone).toBe(true)
   })
+
+  it('a Recent food, meal or day stays in its place from its stored label until its list has loaded, then goes if it is gone', () => {
+    const list = [
+      { kind: 'result', type: 'food', id: 99, label: 'Greek yogurt 2%', query: 'yog' },
+      { kind: 'query', query: 'press' },
+      { kind: 'result', type: 'meal', id: 'm9', label: 'Usual breakfast', query: '' },
+      { kind: 'result', type: 'day', id: '2026-10-01', label: '', query: 'oats' },
+    ]
+    const shown = e => [e.row ? e.row.title : e.pending ? e.title : e.r.query, e.sub]
+    const loading = beforeTypingOf({ tab: 'home', data: data({ foodsReady: false, mealsReady: false, daysReady: false }), list, searched: true, now })
+    expect(loading.recents.map(shown)).toEqual([['Greek yogurt 2%', 'Your food'], ['press', 'Search'], ['Usual breakfast', 'Saved meal'], ['oats', 'Day']])
+    expect(loading.recents.filter(e => e.pending).map(e => e.key)).toEqual(['food:99', 'meal:m9', 'day:2026-10-01'])
+    const loaded = beforeTypingOf({ tab: 'home', data: data({ foodsReady: true, mealsReady: true, daysReady: true }), list, searched: true, now })
+    expect(loaded.recents.map(e => e.key)).toEqual(['q:press'])
+  })
 })
 
 describe('the pages registry', () => {

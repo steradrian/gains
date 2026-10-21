@@ -364,6 +364,18 @@ describe('the search overlay', () => {
     expect(document.getElementById(pill().getAttribute('aria-activedescendant'))?.getAttribute('aria-label')).toContain('History')
   })
 
+  it('a Recent food whose list has not loaded yet shows from what Recent kept, and searches for it on a tap', async () => {
+    addRecent({ kind: 'result', type: 'food', id: 99, label: 'Greek yogurt 2%', query: 'yog' })
+    await mount()
+    await open()
+    const row = options()[0]
+    expect(row.textContent).toContain('Greek yogurt 2%')
+    expect(row.textContent).toContain('Your food')
+    expect(useRecents.getState().list).toHaveLength(1)
+    await act(async () => row.click())
+    expect(useSearch.getState().query).toBe('Greek yogurt 2%')
+  })
+
   it('a recent query refills the field', async () => {
     addRecent({ kind: 'query', query: 'squat' })
     await mount()

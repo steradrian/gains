@@ -59,9 +59,11 @@ export default function BeforeTyping({ data, tab, onOpen, onChip, onQuery }) {
     {chips}
     <SearchListbox>
       <SearchSection title={t('Recent')} action={t('Clear')} onAction={clear} groupProps={{ role: 'group' }}>
+        {/* A result whose list is still loading stands in its place from what Recent kept (its
+            label and kind); tapped before the list is in, it searches for that name. */}
         {recents.map((e, i) => <SearchRow key={e.key}
-          title={e.row ? e.row.title : e.r.query} sub={e.sub} media={e.row ? e.row.media : { kind: 'glyph', glyph: 'clock' }}
-          onClick={() => (e.row ? onOpen(e.row) : onQuery(e.r.query))} optionProps={optionProps(e.key, active)}
+          title={e.row ? e.row.title : e.pending ? e.title : e.r.query} sub={e.sub} media={e.row ? e.row.media : { kind: 'glyph', glyph: 'clock' }}
+          onClick={() => (e.row ? onOpen(e.row) : onQuery(e.pending ? e.title : e.r.query))} optionProps={optionProps(e.key, active)}
           onRemove={() => remove(i)} removeProps={optionProps('x:' + e.key, active)} />)}
       </SearchSection>
       {suggestions}
