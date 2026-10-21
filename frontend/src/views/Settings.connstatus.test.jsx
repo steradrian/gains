@@ -39,6 +39,8 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+// The stage frame (nav bar, background) is the app's and has its own test; the lines are the point.
+vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/api.js', () => ({
   api: vi.fn(), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
 }))
@@ -110,7 +112,8 @@ describe('Show connection status', () => {
 })
 
 describe('guest footers', () => {
-  const footers = () => [...host.querySelectorAll('.sect-f')].map(f => f.textContent)
+  // Appearance's footers are old (.sect-f); the Account page's line is the stage's note (.g-snote).
+  const footers = () => [...host.querySelectorAll('.sect-f, .g-snote')].map(f => f.textContent)
 
   it('Appearance does not promise a guest that anything syncs with a profile', () => {
     mount()
