@@ -2,7 +2,7 @@
 // Skip it write, and that Undo puts the plan and the seen state back exactly.
 import { describe, expect, it } from 'vitest'
 import { effectiveRoutineIds } from './history.js'
-import { missedDay, movePlan, moveToToday, movingId, nextFreeDay, restDay, restPlan, seenOn, skipMissed, withSeen } from './missed-day.js'
+import { missedDay, movePlan, moveToToday, movingId, nextFreeDay, restDay, restPlan, seenOn, skipMissed, skippedOn, withSeen } from './missed-day.js'
 
 // Sun 18 Oct 2026 is today. The plan: Push on Sundays, Legs on Mondays and Fridays, Pull on Wednesdays.
 const TODAY = '2026-10-18'
@@ -225,7 +225,17 @@ describe('Skip it', () => {
     const s = S()
     delete s.missedSeen
     skipMissed(s, FRI, 7)
-    expect(s.missedSeen).toEqual({ [FRI]: { seen: true, _ts: 7 } })
+    expect(s.missedSeen).toEqual({ [FRI]: { seen: true, skipped: true, _ts: 7 } })
+  })
+
+  it('only Skip marks the day skipped: Move to today leaves it seen, not skipped', () => {
+    const skipped = S()
+    skipMissed(skipped, FRI, 7)
+    expect(skippedOn(skipped, FRI)).toBe(true)
+    const moved = S()
+    moveToToday(moved, FRI, TODAY, 7)
+    expect(seenOn(moved, FRI)).toBe(true)
+    expect(skippedOn(moved, FRI)).toBe(false)
   })
 })
 

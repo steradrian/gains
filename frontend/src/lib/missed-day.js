@@ -10,8 +10,9 @@
 //
 // Seen is stored per day, the way a day note is (lib/day-notes.js):
 //
-//   S.missedSeen = { '2026-10-16': { seen: true, _ts }, … }
+//   S.missedSeen = { '2026-10-16': { seen: true, skipped?: true, _ts }, … }
 //
+// `skipped` is written only by Skip, so a moved day is seen without reading as skipped.
 // Each day is its own entry with the time it was last written, merged by that stamp
 // (lib/sync-merge.js STAMPED_MAPS). Taking it back (Undo) writes a stamped cleared entry
 // (`{ _ts }`), not a deleted key, which would come straight back from another device's copy.
@@ -31,9 +32,12 @@ export const plusDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.s
 /** Whether the missed day `iso` has been answered (Move or Skip). */
 export const seenOn = (S, iso) => isMap(S?.missedSeen) && isMap(S.missedSeen[iso]) && S.missedSeen[iso].seen === true
 
-/** S.missedSeen with `iso` marked seen (or cleared), stamped `now`. */
-export function withSeen(map, iso, seen, now = Date.now()) {
-  return { ...(isMap(map) ? map : {}), [iso]: seen ? { seen: true, _ts: now } : { _ts: now } }
+/** Whether the missed day `iso` was answered with Skip (not Move): only Skip writes `skipped`. */
+export const skippedOn = (S, iso) => seenOn(S, iso) && S.missedSeen[iso].skipped === true
+
+/** S.missedSeen with `iso` marked seen (or cleared), stamped `now`; `skipped` when Skip answered it. */
+export function withSeen(map, iso, seen, now = Date.now(), skipped = false) {
+  return { ...(isMap(map) ? map : {}), [iso]: seen ? { seen: true, ...(skipped ? { skipped: true } : {}), _ts: now } : { _ts: now } }
 }
 
 /** The day of the first workout ever logged, or null. Before it nothing counts as missed. */
@@ -189,9 +193,10 @@ export function restDay(s, iso, today = todayISO()) {
   return { ...plan, undo }
 }
 
-/** Skip it, on a store draft: the day is seen and nothing else changes. Returns `{ iso, undo }`. */
+/** Skip it, on a store draft: the day is seen (and marked skipped) and nothing else changes.
+ *  Returns `{ iso, undo }`. */
 export function skipMissed(s, missedIso, now = Date.now()) {
   const undo = snapshot(s, [], missedIso)
-  s.missedSeen = withSeen(s.missedSeen, missedIso, true, now)
+  s.missedSeen = withSeen(s.missedSeen, missedIso, true, now, true)
   return { iso: missedIso, undo }
 }
