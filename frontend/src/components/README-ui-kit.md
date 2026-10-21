@@ -93,7 +93,7 @@ class throws in development, as everywhere in the kit.
   tracking `--ls-display`, `--ls-title`.
 - Sizes `--hdr-h` 56 and `--hdr-btn` 40 (the headers), `--disc` 56 and `--disc-sm` 36 (action and
   add discs), `--glyph` 24, `--art-w`×`--art-h` 96×72 (a media row's art), `--thumb-lg` 56,
-  `--tabbar-h` (what the tab bar takes from the bottom, measured: 63px, 81px from 1000px),
+  `--tabbar-h` (what the floating tab bar takes from the bottom at most: 82px, 86px from 1000px),
   `--search-panel-w`; layers `--z-search` 47, `--z-tab-hdr` 48. Line art `--il-w`, `--il-w-d`.
   Motion `--ease-io`, `--hero` (640ms).
 - Colour tokens, in `index.css`'s theme blocks: `--sel-fill`/`--on-sel` (a selected day or

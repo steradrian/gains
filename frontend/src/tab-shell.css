@@ -1,21 +1,16 @@
-/* The tab shell: the four-tab bar with its sliding pill and centre +, the hubs' targets, the +
-   sheet and the live dock. Kept out of
+/* The tab shell: where the tab bar sits, the hubs' targets, the + sheet and the live dock. The
+   bar itself is the design system's (ds/GlassTabBar.jsx, styled in ds/ds.css). Kept out of
    index.css so the design tokens there can move independently; it only reads them.
    This file loads before index.css (App.jsx is imported first), so a rule here that has to win
    over one there is written one step more specific. */
 
-/* A workout is running: its dot, on the Training tab, in the dock and in the + sheet. */
+/* A workout is running: its dot, in the dock and in the + sheet (the bar's Train has its own). */
 .live-dot{
   flex:none;width:8px;height:8px;border-radius:50%;background:var(--live);
   animation:livepulse 1.6s ease-in-out infinite alternate;
 }
 /* It breathes, but never fades below what still reads as a dot. */
 @keyframes livepulse{from{opacity:1}to{opacity:.7}}
-
-/* The lit tab's pill tint: the accent's soft tint, a step stronger in light, where gold and lime
-   would otherwise wash out. */
-:root{--tab-pill:var(--acc-soft)}
-:root[data-theme="light"]{--tab-pill:color-mix(in srgb,var(--acc) 20%,transparent)}
 
 /* The headers of a tab's root and of the pages under it live in tab-kit.css. */
 
@@ -30,38 +25,19 @@
 .hub-card .hub-card-n{font-size:13px;color:var(--label-2);margin-top:1px}
 .empty strong{display:block;color:var(--label);font-weight:600;margin-bottom:4px}
 
-/* --- bottom bar --- */
-/* Five equal slots (every button flex:1), the centre one the +, raised as the Start disc was. */
-#tabbar>button:not(.start){position:relative;z-index:1;color:var(--label-2);font-size:12px}
-#tabbar>button.on:not(.start){color:var(--acc-ink)}
-#tabbar>button.start{position:relative;z-index:1;margin-bottom:18px}
-#tabbar .tab-ic .live-dot{position:absolute;top:-1px;right:-5px;box-shadow:0 0 0 2px var(--bg-el)}
-
-/* The lit tab's pill. The track is the bar's content box (its padding mirrored here), one slot
-   of it moved by transform only. Static until it has painted twice (TabBar's `ready`). */
-#tabbar .tab-pill-track{position:absolute;z-index:0;top:7px;bottom:calc(6px + var(--sab));inset-inline:6px;pointer-events:none}
-@media (min-width:1000px){#tabbar .tab-pill-track{bottom:9px;inset-inline:10px}}
-#tabbar .tab-pill-slot{
-  position:absolute;top:0;bottom:0;inset-inline-start:0;width:20%;
-  transform:translateX(calc(100% * var(--slot)));transition:opacity var(--fast);
-}
-#tabbar .tab-pill-track.ready .tab-pill-slot{transition:transform var(--med) var(--ease),opacity var(--fast)}
-[dir="rtl"] #tabbar .tab-pill-slot{transform:translateX(calc(-100% * var(--slot)))}
-#tabbar .tab-pill-slot.off{opacity:0}
-/* Behind the icon only, so the label reads against the bar rather than the tint. */
-#tabbar .tab-pill{
-  position:absolute;top:3px;height:32px;left:50%;width:56px;margin-left:-28px;
-  border-radius:99px;background:var(--tab-pill);
-}
-/* Between the two halves of the bar the pill does not travel under the +: it fades in at its new
-   slot instead (TabBar's `jump`). */
-@keyframes pillfade{from{opacity:0}to{opacity:1}}
-#tabbar .tab-pill-track.ready .tab-pill-slot.jump{transition:opacity var(--fast)}
-#tabbar .tab-pill-slot.jump .tab-pill{animation:pillfade var(--fast) var(--ease)}
+/* --- the tab bar --- */
+/* GlassTabBar floats 12px off the sides and the bottom (the design system's chrome), on the home
+   indicator's inset where that is more, never wider than 520px. Its top is then at most
+   82px + --sab, the room every page keeps under its content (index.css #app, --tabbar-h). */
+#tabbar{position:fixed;inset-inline:0;bottom:max(12px,var(--sab));z-index:50;margin-inline:auto;width:min(520px,calc(100% - 24px))}
+@media (min-width:1000px){#tabbar{bottom:calc(16px + var(--sab))}}
 
 /* --- the live dock --- */
-/* The rest bar's own box (#timer), above the tab bar, holding the session as well. */
-#timer.dock{padding:10px 10px 10px 14px;gap:8px}
+/* The rest bar's own box (#timer), 8px above the tab bar (index.css), holding the session as
+   well. Its corners and width follow the bar it sits on; the + is inside the bar, so the dock
+   never covers it. */
+#timer.dock{padding:10px 10px 10px 14px;gap:8px;border-radius:var(--r-xl)}
+@media (max-width:999px){#timer.dock{max-width:520px;margin-inline:auto}}
 #timer.dock .dock-main{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;text-align:start;padding:2px 0}
 #timer.dock .dock-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
 #timer.dock .dock-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -79,7 +55,7 @@
 /* The countdown bar shrinks by transform, so it is not a layout every second. */
 #timer.dock .bar i{width:100%;transform-origin:left center;transition:transform 1s linear}
 [dir="rtl"] #timer.dock .bar i{transform-origin:right center}
-body.live-docked #app{padding-bottom:calc(160px + var(--sab))}
+body.live-docked #app{padding-bottom:calc(168px + var(--sab))}
 
 /* The on-screen keyboard is up (lib/keyboard-open.js): the bar and the dock step aside. */
 body.kb-open #tabbar,body.kb-open #timer.dock{display:none}
