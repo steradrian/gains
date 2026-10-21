@@ -1,6 +1,11 @@
 import { useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { EXDB } from '../../../lib/exercises.js'
+import { exerciseNameText } from '../../../lib/format.js'
+import { t } from '../../../lib/i18n.js'
+import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
+import RoutineEditor from '../../../views/routines/RoutineEditor.jsx'
 import RoutinesScreen from '../../../views/routines/RoutinesScreen.jsx'
 import { deletedText } from '../../../views/routines/routine-actions.js'
 import { registerScreens } from '../registry.js'
@@ -24,6 +29,8 @@ export const ROUTINES = [
 const trained = id => ({ id: 'g-w-' + id, d: '2026-10-14', start: 1, end: 2, name: id, routineIds: [id], entries: [], prs: [] })
 export const routinesPlan = (over = {}) => ({
   weekStart: 0,
+  // The editor backs up on the way out (useStore autoBackupNow) on a phone with the setting on.
+  autoBackup: false,
   routines: ROUTINES,
   week: { 0: ['g-push'], 4: ['g-push'], 3: ['g-pull'], 1: ['g-legs'], 6: ['g-legs'] },
   dayPlan: {}, queue: null, rotation: null, scheduleMode: 'week', active: null,
@@ -56,6 +63,28 @@ const held = text => async t => {
   await t.wait(60)
 }
 
+// The editor's page, as App.jsx routes it.
+const editor = () => <Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>
+const tr = t
+// A cable fly, for T5.4's "Added Cable standing fly to Push A".
+const FLY = EXDB.find(e => /cable/i.test(e.n) && /fly/i.test(e.n)) || EXDB[0]
+// Push A as the board draws it: rows with a double-progression range and a step, and the last two a
+// superset with 90 s rest after both; Push A's last workout took 55 minutes.
+const PUSH_BOARD = [
+  { id: '0025', mode: 'reps', sets: 4, reps: 8, repsMin: 6, weight: 80, prog: 'double', inc: 2.5 },
+  { id: '0314', mode: 'reps', sets: 3, reps: 10, repsMin: 8, weight: 26, prog: 'double', inc: 2 },
+  { id: '0426', mode: 'reps', sets: 3, reps: 12, weight: 14, inc: 1 },
+  { id: '0188', mode: 'reps', sets: 3, reps: 12, weight: 20, inc: 2.5 },
+  { id: '0334', mode: 'reps', sets: 3, reps: 12, weight: 25, inc: 2.5, sg: 'g-ss', sgRest: 90 },
+  { id: '0201', mode: 'reps', sets: 3, reps: 15, weight: 0, sg: 'g-ss', sgRest: 90 },
+]
+function editorPlan({ added = false, extra = [] } = {}) {
+  const base = routinesPlan()
+  const push = { ...ROUTINES[0], ex: added ? [...PUSH_BOARD, { id: FLY.id, mode: 'reps', sets: 3, reps: 10, weight: 0 }] : PUSH_BOARD }
+  const timed = base.workouts.map(w => (w.routineIds[0] === 'g-push' ? { ...w, start: 1, end: 1 + 55 * 60000 } : w))
+  return { ...base, routines: [push, ...ROUTINES.slice(1), ...extra], workouts: timed }
+}
+
 const withoutPush = () => {
   const full = routinesPlan()
   return { ...full, routines: full.routines.filter(r => r.id !== 'g-push'), week: { 3: ['g-pull'], 1: ['g-legs'], 6: ['g-legs'] } }
@@ -72,4 +101,25 @@ registerScreens('Train: routines', [
   { id: 'T4.4', title: 'Added from a plan file', note: 'The landing after an import: its routines first, each new. Plan M3 raises the toast.',
     path: '/train/routines', render: () => <Landing state={LANDING} />,
     mock: { S: routinesPlan({ routines: [...ROUTINES, ...IMPORTED] }) } },
+  // The routine editor (T5.0 and its edges, T5.4, T5.6): the real page over the same plan, with the
+  // board's numbers. Every tap stays in memory (mock-env.js swaps `update`), and the one play that
+  // touches the store's sync state (Offline) has it put back with the rest of the mocks.
+  { id: 'T5.0', title: 'Routine', note: 'Push A: in your Plan Sun and Thu, saved, the muscles on the map, the rows with their progression lines, a superset with its rest, Add exercise and Start.',
+    path: '/train/routines/g-push', render: editor, mock: { S: editorPlan() } },
+  { id: 'T5.0-pull', title: 'Routine, Pull A', note: 'The same page for Pull A (Wednesday).',
+    path: '/train/routines/g-pull', render: editor, mock: { S: editorPlan() } },
+  { id: 'T5.0-legs', title: 'Routine, Legs', note: 'The same page for Legs (Monday and Saturday).',
+    path: '/train/routines/g-legs', render: editor, mock: { S: editorPlan() } },
+  { id: 'T5.0-reorder', title: 'Routine, Reorder', note: 'Reorder: move buttons and a grip on every row; a long press or the grip drags, a superset whole.',
+    path: '/train/routines/g-push', render: editor, mock: { S: editorPlan() },
+    play: async t => { [...document.querySelectorAll('.g-ssec-act')].find(b => b.textContent === tr('Reorder'))?.click(); await t.wait(60) } },
+  { id: 'T5.0-offline', title: 'Routine, offline', note: 'Edits save on the phone; the pill says Offline. The store keeps no count of the changes waiting, so none is said.',
+    path: '/train/routines/g-push', render: editor, mock: { S: editorPlan() },
+    play: async t => { useStore.setState(s => ({ sync: { ...s.sync, offline: true, pending: true, status: 'offline' } })); await t.wait(60) } },
+  { id: 'T5.4', title: 'Exercise added', note: 'Back in the editor with the new row, and the toast naming it, with Undo (held here).',
+    path: '/train/routines/g-push', render: editor, mock: { S: editorPlan({ added: true }) },
+    play: held(tr('Added {0} to {1}', exerciseNameText(FLY), 'Push A')) },
+  { id: 'T5.6', title: 'New routine', note: 'Just made: the name focused and selected, “Nothing in it yet” and Add exercises. The first edit drops ?new=1.',
+    path: '/train/routines/g-new?new=1', render: editor,
+    mock: { S: editorPlan({ extra: [{ id: 'g-new', name: 'New routine', emoji: 'dumbbell', ex: [] }] }) } },
 ])

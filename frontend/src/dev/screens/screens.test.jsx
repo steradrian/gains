@@ -6,6 +6,7 @@ import { Stage } from './DevScreens.jsx'
 import { allScreens, screenAreas, screenById } from './registry.js'
 import { todayISO } from '../../lib/format.js'
 import { useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
 
 /* The screens gallery: every registered state renders its real screen, in its frame, with its
    taps played, without throwing; and putting the mocks away leaves the app as it was. The states
@@ -244,7 +245,8 @@ describe('the screens gallery', () => {
   }, 20000)
 
   it('has Train › Routines T4.0, T4.1, T4.3 (toast held) and T4.4, and the menu’s drawers over the routine’s page', async () => {
-    expect(screenAreas().find(a => a.name === 'Train: routines').entries.map(e => e.id)).toEqual(['T4.0', 'T4.1', 'T4.3', 'T4.4'])
+    expect(screenAreas().find(a => a.name === 'Train: routines').entries.map(e => e.id))
+      .toEqual(['T4.0', 'T4.1', 'T4.3', 'T4.4', 'T5.0', 'T5.0-pull', 'T5.0-legs', 'T5.0-reorder', 'T5.0-offline', 'T5.4', 'T5.6'])
     expect(screenAreas().find(a => a.name === 'Train: routines drawers').entries.map(e => e.id)).toEqual(['T5.8', 'T5.8-days', 'T5.8-share', 'T5.8-settings'])
     const own = useStore.getState().S
     const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
@@ -265,6 +267,29 @@ describe('the screens gallery', () => {
     await check('T5.8-days', h => expect(h.querySelectorAll('.g-bs [role="checkbox"]')).toHaveLength(7))
     await check('T5.8-share', h => expect(h.querySelector('.g-bs').textContent).toContain('As a plan file'))
     await check('T5.8-settings', h => expect(h.querySelector('.g-bs [role="switch"]')).toBeTruthy())
+    const sync = useStore.getState().sync
+    await check('T5.0', h => {
+      expect(h.querySelector('.g-snav').textContent).toContain('Push A')
+      expect(h.querySelector('.g-re-plan').textContent).toBe('In your Plan · Sun, Thu')
+      expect(h.querySelector('.g-re-stats').textContent).toMatch(/^6 exercises · 19 sets · about /)
+      expect(h.querySelectorAll('.g-re-list [data-routine-row]')).toHaveLength(6)
+      expect(h.querySelector('.g-ssg-h').textContent).toMatch(/rest after both/)
+      expect(h.querySelector('.g-rx-prog').textContent).toBe('Up 2.5 kg when every set hits 8')
+      expect(h.querySelector('.g-re-start').textContent).toBe('Start Push A')
+    })
+    await check('T5.0-pull', h => expect(h.querySelector('.g-re-plan').textContent).toBe('In your Plan · Wed'))
+    await check('T5.0-legs', h => expect(h.querySelector('.g-re-plan').textContent).toBe('In your Plan · Mon, Sat'))
+    await check('T5.0-reorder', h => expect(h.querySelectorAll('.g-rx-btn')).toHaveLength(12))
+    await check('T5.0-offline', h => expect(h.querySelector('.g-saved').textContent).toBe('Offline'))
+    expect(useStore.getState().sync).toBe(sync)
+    await check('T5.4', h => {
+      expect(h.querySelectorAll('.g-re-list [data-routine-row]')).toHaveLength(7)
+      expect(useUI.getState().toastMsg).toMatch(/^Added .+ to Push A$/)
+    })
+    await check('T5.6', h => {
+      expect(h.querySelector('.g-sempty').textContent).toContain('Nothing in it yet')
+      expect(document.activeElement).toBe(h.querySelector('.g-tfield input'))
+    })
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useStore.getState().S).toBe(own)
   }, 20000)
