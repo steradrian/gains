@@ -13,7 +13,7 @@ import Plan from './Plan.jsx'
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {}, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
-  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
+  calendarSheet: vi.fn(), readyOrStart: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
   planToolsSheet: vi.fn(),
 }))
 

@@ -14,7 +14,7 @@ const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(), menuSheet: vi.fn(),
-  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(), workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
+  calendarSheet: vi.fn(), readyOrStart: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(), workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
 }))
 // The diary's cards read NutriTrace; this is about the plan only.
 vi.mock('../lib/nutrition/use-diary-day.js', () => ({ useDiaryDay: () => ({ on: false, status: 'idle', settings: null, water: { total: 0, goal: 0 } }) }))
