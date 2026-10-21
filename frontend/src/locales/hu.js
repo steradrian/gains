@@ -2197,6 +2197,8 @@ export default {
   'Play even on silent': 'Némítva is szóljon',
   'Vibrate on silent too': 'Némítva is rezegjen',
   'Flash the screen': 'Villogjon a képernyő',
+  'Haptics': 'Haptikus visszajelzés',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Finom rezdülés, ha egy koppintás elment valamit, például egy szettet vagy egy mérést.',
   'Version': 'Verzió',
   'Source code': 'Forráskód',
   '{0} rest': '{0} pihenő',
@@ -3884,4 +3886,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Az edződ még melegít',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Elolvassa az edzéseidet és a check-ineket, majd változtatásokat javasol a hetedre. Semmi sem változik a jóváhagyásod nélkül.',
+  'A peek at what it will do': 'Betekintő abba, mit fog tenni',
+  'Preview': 'Előnézet',
+  'Coming soon': 'Hamarosan',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Négyből három edzés megvan a héten. A guggolásod kész a 102,5 kg × 5-re.',
+  'Move Legs to Thursday': 'Láb átrakása csütörtökre',
+  'You’ve missed Mondays three weeks running': 'Három hete egymás után kihagyod a hétfőket',
 }

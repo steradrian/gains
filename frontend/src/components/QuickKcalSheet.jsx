@@ -72,7 +72,7 @@ export default function QuickKcalSheet({ date, meal, mealName, onLogged, pending
         <NumberField value={f} onChange={setF} nullable aria-label={t('Fat')} /></label>
     </div>
     {error && <div className="nt-error small" role="alert">{error}</div>}
-    <Button variant="primary" onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : t('Log')}</Button>
+    <Button variant="primary" haptic onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : t('Log')}</Button>
   </div>
 }
 

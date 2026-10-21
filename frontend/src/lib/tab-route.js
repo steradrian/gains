@@ -52,6 +52,20 @@ export function parentOf(pathname = '') {
   return pathname.slice(0, pathname.lastIndexOf('/'))
 }
 
+// How deep a page sits: a tab's root is 1, a page pushed from it 2, and so on up parentOf's chain
+// (a Day or Week page is 2, Progress 2 under Me, Body under Progress 3). Page slides read it
+// (lib/route-transition.js). The workout belongs to no tab and opens over whichever one is on
+// screen, so it is deeper than anything: going into it always reads forward, leaving it back. A
+// path no tab owns is 0.
+export const WORKOUT_DEPTH = 1000
+export function routeDepth(pathname = '') {
+  if (under(pathname, '/train/workout')) return WORKOUT_DEPTH
+  if (!tabOf(pathname)) return 0
+  let depth = 1
+  for (let at = pathname; !isTabRoot(at) && depth < 12; at = parentOf(at)) depth++
+  return depth
+}
+
 // Profile pages the §5 merge renamed, old id → new id. /me/<old> and /settings/<old> land on the
 // new page (views/Settings.jsx SettingsRoute, and LEGACY below). Data & backup lands on Backup, the
 // page with its export and import.

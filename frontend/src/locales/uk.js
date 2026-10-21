@@ -2192,6 +2192,8 @@ export default {
   'Play even on silent': 'Грати і в беззвучному режимі',
   'Vibrate on silent too': 'Вібрувати і в беззвучному режимі',
   'Flash the screen': 'Блимати екраном',
+  'Haptics': 'Тактильний відгук',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Легкий відгук, коли дотик щось зберігає, наприклад підхід або зважування.',
   'Version': 'Версія',
   'Source code': 'Вихідний код',
   '{0} rest': 'відпочинок {0}',
@@ -3879,4 +3881,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Ваш тренер ще розминається',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Він вивчить ваші тренування та відмітки самопочуття і запропонує зміни в тижні. Нічого не зміниться без вашої згоди.',
+  'A peek at what it will do': 'Що він робитиме',
+  'Preview': 'Попередній перегляд',
+  'Coming soon': 'Незабаром',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Три з чотирьох тренувань цього тижня виконано. Ваш присід готовий до 102,5 кг × 5.',
+  'Move Legs to Thursday': 'Перенести Ноги на четвер',
+  'You’ve missed Mondays three weeks running': 'Ви пропускаєте понеділки вже третій тиждень поспіль',
 }

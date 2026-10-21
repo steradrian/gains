@@ -12,6 +12,7 @@ import { DEMO } from '../../../lib/demo.js'
 import { MOBILE } from '../../../lib/mobile.js'
 import { applicable, coachAvailable, hasConsent, markStale } from '../../../lib/coach.js'
 import { useCoachStatus } from '../../../lib/coach-api.js'
+import { COACH_COMING_SOON } from '../../../lib/coach-availability.js'
 import { useDismissPending } from '../../../lib/coach-dismiss.js'
 import { useStore } from '../../../store/useStore.js'
 import { dismissSuggestions } from './dismiss.js'
@@ -41,7 +42,7 @@ export function useCoachBanner() {
   const config = useStore(s => s.config)
   const user = useStore(s => s.user)
   const coachMode = useStore(s => s.coachLocal?.mode)
-  const on = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }) && hasConsent(S) && !!S.coach?.profile
+  const on = !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }) && hasConsent(S) && !!S.coach?.profile
   const { pending, job, refresh } = useCoachStatus(on)
   const hidden = useDismissPending(pending?.id)
   return useMemo(() => {

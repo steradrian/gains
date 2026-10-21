@@ -2197,6 +2197,8 @@ export default {
   'Play even on silent': 'साइलेंट पर भी बजाएँ',
   'Vibrate on silent too': 'साइलेंट पर भी कंपन',
   'Flash the screen': 'स्क्रीन चमकाएँ',
+  'Haptics': 'हैप्टिक',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'जब कोई टैप कुछ सहेजता है, जैसे सेट या वज़न दर्ज करना, तो हल्की टिक।',
   'Version': 'संस्करण',
   'Source code': 'सोर्स कोड',
   '{0} rest': '{0} आराम',
@@ -3881,4 +3883,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'आपका कोच अभी वार्म-अप कर रहा है',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'यह आपकी ट्रेनिंग और चेक-इन पढ़कर आपके हफ़्ते में बदलाव सुझाएगा। आपकी मंज़ूरी के बिना कुछ नहीं बदलेगा।',
+  'A peek at what it will do': 'यह क्या करेगा, इसकी झलक',
+  'Preview': 'पूर्वावलोकन',
+  'Coming soon': 'जल्द आ रहा है',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'इस हफ़्ते चार में से तीन सेशन हो गए। आपका स्क्वाट 102.5 kg × 5 के लिए तैयार है।',
+  'Move Legs to Thursday': 'लेग्स को गुरुवार पर ले जाएँ',
+  'You’ve missed Mondays three weeks running': 'लगातार तीन हफ़्तों से आपके सोमवार छूट रहे हैं',
 }

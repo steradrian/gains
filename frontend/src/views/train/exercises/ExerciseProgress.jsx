@@ -104,7 +104,7 @@ export default function ExerciseProgress() {
     return (
       <StagePage title={t('Strength')} parent="/progress">
         <div className="g-xp">
-          <StageEmpty icon="trophy" title={t('No lifts yet')} body={t('Finish your first workout and your progress curves will show up here.')} />
+          <StageEmpty illustration="chart" title={t('No lifts yet')} body={t('Finish your first workout and your progress curves will show up here.')} />
         </div>
       </StagePage>
     )
@@ -133,7 +133,7 @@ export default function ExerciseProgress() {
           {strip}
           {view === 'sets'
             ? <PastSetsList exId={shownId} history={h} />
-            : <StageEmpty icon="trophy" title={t('No sets logged yet')} body={t('Log it in a workout and its curve shows up here.')} />}
+            : <StageEmpty illustration="chart" title={t('No sets logged yet')} body={t('Log it in a workout and its curve shows up here.')} />}
         </div>
       </StagePage>
     )

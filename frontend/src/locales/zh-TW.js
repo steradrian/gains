@@ -2188,6 +2188,8 @@ export default {
   'Play even on silent': '靜音時也播放',
   'Vibrate on silent too': '靜音時也震動',
   'Flash the screen': '閃爍螢幕',
+  'Haptics': '觸覺回饋',
+  'A light tick when a tap saves something, like a set or a weigh-in.': '輕點儲存內容時（例如一組訓練或一次體重記錄）會有輕微的震動回饋。',
   'Version': '版本',
   'Source code': '原始碼',
   '{0} rest': '休息 {0}',
@@ -3875,4 +3877,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': '你的教練還在熱身',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': '它會讀取你的訓練與打卡，然後為你這週的安排提出調整建議。你核准之前，什麼都不會改變。',
+  'A peek at what it will do': '先看看它會做什麼',
+  'Preview': '預覽',
+  'Coming soon': '即將推出',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': '本週四次訓練已完成三次。你的深蹲已可挑戰 102.5 kg × 5。',
+  'Move Legs to Thursday': '把腿部訓練移到週四',
+  'You’ve missed Mondays three weeks running': '你已經連續三週沒練週一了',
 }

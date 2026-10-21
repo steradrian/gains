@@ -78,7 +78,7 @@ export default function MuscleScreen() {
             <ExerciseRows rows={rows} onOpen={exerciseDetailSheet} />
             {similar.length > 0 && <StageSection title={f.total ? t('Similar exercises') : t('No exact match. These come close:')} />}
             <ExerciseRows rows={similar} onOpen={exerciseDetailSheet} />
-            {!f.total && !similar.length && <StageEmpty icon="magnifier" title={t('No match')} />}
+            {!f.total && !similar.length && <StageEmpty illustration="search" title={t('No match')} />}
             {f.hasMore && <button type="button" ref={f.moreRef} className="g-xs-more g-xs-card g-glass" onClick={f.more}>{t('Show more')}</button>}
           </>
         )}

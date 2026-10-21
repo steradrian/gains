@@ -2217,6 +2217,8 @@ export default {
   'Play even on silent': 'Auch im Lautlos-Modus',
   'Vibrate on silent too': 'Auch lautlos vibrieren',
   'Flash the screen': 'Bildschirm blinken lassen',
+  'Haptics': 'Haptik',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Ein leichtes Ticken, wenn ein Tippen etwas speichert, etwa einen Satz oder eine Wägung.',
   'Version': 'Version',
   'Source code': 'Quellcode',
   '{0} rest': '{0} Pause',
@@ -3901,4 +3903,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Dein Coach wärmt sich noch auf',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Er liest dein Training und deine Check-ins und schlägt Änderungen für deine Woche vor. Nichts ändert sich, bevor du zustimmst.',
+  'A peek at what it will do': 'Ein Vorgeschmack auf das, was er kann',
+  'Preview': 'Vorschau',
+  'Coming soon': 'Bald verfügbar',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Drei von vier Einheiten diese Woche geschafft. Deine Kniebeuge ist bereit für 102,5 kg × 5.',
+  'Move Legs to Thursday': 'Beine auf Donnerstag legen',
+  'You’ve missed Mondays three weeks running': 'Du hast drei Wochen in Folge den Montag verpasst',
 }

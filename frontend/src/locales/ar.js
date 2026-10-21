@@ -2249,6 +2249,8 @@ export default {
   'Play even on silent': 'التشغيل حتى في الوضع الصامت',
   'Vibrate on silent too': 'الاهتزاز في الوضع الصامت أيضًا',
   'Flash the screen': 'وميض الشاشة',
+  'Haptics': 'الاهتزاز اللمسي',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'نقرة خفيفة عندما تحفظ لمستك شيئًا، مثل مجموعة أو وزن.',
   'Version': 'الإصدار',
   'Source code': 'الشيفرة المصدرية',
   '{0} rest': 'راحة {0}',
@@ -3936,4 +3938,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'مدربك ما زال يسخّن',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'سيقرأ تمارينك وتسجيلات الحالة ثم يقترح تعديلات على أسبوعك. لا يتغير شيء حتى توافق.',
+  'A peek at what it will do': 'لمحة عمّا سيفعله',
+  'Preview': 'معاينة',
+  'Coming soon': 'قريبًا',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'أنجزت ثلاث حصص من أربع هذا الأسبوع. السكوات جاهز لـ 102.5 كجم × 5.',
+  'Move Legs to Thursday': 'انقل الأرجل إلى الخميس',
+  'You’ve missed Mondays three weeks running': 'فاتتك أيام الاثنين ثلاثة أسابيع متتالية',
 }

@@ -61,7 +61,7 @@ export default function HistoryScreen() {
     <StagePage largeTitle={t('History')} sub={historySub(S, today)} parent="/train" actions={[logPast]}>
       {!rows.length ? (
         <div className="g-hist-pad">
-          <StageEmpty icon="calendar" title={t('No workouts yet')} body={t('Workouts you log show up here, newest first.')}
+          <StageEmpty illustration="calendar" title={t('No workouts yet')} body={t('Workouts you log show up here, newest first.')}
             actions={[
               { label: t('Start a workout'), icon: 'play', solid: true, onClick: () => startChooserSheet() },
               { label: t('Log a past workout'), onClick: () => logPastWorkoutSheet() },

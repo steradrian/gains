@@ -2197,6 +2197,8 @@ export default {
   'Play even on silent': 'Graj też przy wyciszeniu',
   'Vibrate on silent too': 'Wibruj też przy wyciszeniu',
   'Flash the screen': 'Mignij ekranem',
+  'Haptics': 'Wibracje dotykowe',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Lekkie stuknięcie, gdy dotknięcie coś zapisuje, np. serię lub ważenie.',
   'Version': 'Wersja',
   'Source code': 'Kod źródłowy',
   '{0} rest': '{0} przerwy',
@@ -3881,4 +3883,13 @@ export default {
   'Added {0} after {1} · {2} of {3}': 'Added {0} after {1} · {2} of {3}',
   'Added {0} · {1} of {2}': 'Added {0} · {1} of {2}',
   'In this workout · added': 'In this workout · added',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Twój trener jeszcze się rozgrzewa',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Przeczyta Twoje treningi i check-iny, a potem zaproponuje zmiany w tygodniu. Nic się nie zmieni bez Twojej zgody.',
+  'A peek at what it will do': 'Zerknij, co będzie robił',
+  'Preview': 'Podgląd',
+  'Coming soon': 'Wkrótce',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Trzy z czterech treningów w tym tygodniu za Tobą. Twój przysiad jest gotowy na 102,5 kg × 5.',
+  'Move Legs to Thursday': 'Przenieś Nogi na czwartek',
+  'You’ve missed Mondays three weeks running': 'Poniedziałki odpuszczasz już trzeci tydzień z rzędu',
 }

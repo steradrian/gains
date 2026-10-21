@@ -3,6 +3,7 @@ import { t } from '../lib/i18n.js'
 import { useUI } from '../store/useUI.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
+import { asksQuantity } from '../lib/nutrition/log-serving.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { OWN_SHOWN, useFoodSearch } from '../lib/nutrition/use-food-search.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
@@ -54,7 +55,10 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
   const total = ownTotal + online.results.length
   const announcement = online.status !== 'ready' ? '' : total ? t('Results: {0}', total) : t('No results')
 
-  const foodRows = (list, icon) => list.map(f => <LogFoodRow key={f.id ?? f.client_key} icon={icon} title={f.name} onAdd={() => pick(f)}
+  // A row ticks only when its tap logs outright: with "ask the quantity" on (the default) the tick
+  // belongs to the Log button of the sheet that opens (PortionSheet, RecipeServingsSheet).
+  const logsOutright = !asksQuantity(settings)
+  const foodRows = (list, icon) => list.map(f => <LogFoodRow key={f.id ?? f.client_key} icon={icon} title={f.name} onAdd={() => pick(f)} haptic={logsOutright}
     subtitle={[f.brand, `${f.portion || 100} ${f.unit || 'g'}`, energy(foodKcal(f))].filter(Boolean).join(' · ')} />)
   const note = text => <p className="g-lf-note">{text}</p>
   const heading = text => <h2 className="g-lf-sec">{text}</h2>
@@ -67,7 +71,7 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
     </>}
     {saved.all.slice(0, savedLimit).map(m => {
       const kcal = saved.kcal(m)
-      return <LogFoodRow key={saved.key(m)} icon={m.is_recipe ? 'cookingPot' : 'salad'} title={m.name} busy={saved.busy}
+      return <LogFoodRow key={saved.key(m)} icon={m.is_recipe ? 'cookingPot' : 'salad'} title={m.name} busy={saved.busy} haptic={logsOutright || !m.is_recipe}
         subtitle={saved.subtitle(m) + ' · ' + kcal.value + ' ' + kcal.unit} onAdd={() => saved.pick(m)} />
     })}
     {more(savedLimit, saved.all.length, () => setSavedLimit(n => n + SAVED_SHOWN))}

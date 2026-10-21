@@ -6,6 +6,7 @@ import { useRootHeader } from '../../components/use-root-header.js'
 import { addRoutine } from '../routines/routine-actions.js'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
+import { COACH_COMING_SOON } from '../../lib/coach-availability.js'
 import { canNoteDay, dayNoteOf } from '../../lib/day-notes.js'
 import { firstLogDay, navToDay } from '../../lib/day-route.js'
 import { DEMO } from '../../lib/demo.js'
@@ -368,7 +369,7 @@ export function musclesThisWeekOf(S, today, now = Date.now()) {
  * and the gym card ("Gym card", route /train/checkin) when Coach is off and check-in is on (owner
  * decision 3, renamed by owner question 7).
  */
-export function moreOf(S, { coach, suggestions = null }) {
+export function moreOf(S, { coach, soon = false, suggestions = null }) {
   const days = S.workouts.map(workoutDay).filter(Boolean).sort()
   const gym = activeProfile(S) || (S.equipProfiles || []).find(p => p.id === S.activeEquipId) || (S.equipProfiles || [])[0]
   return [
@@ -377,7 +378,8 @@ export function moreOf(S, { coach, suggestions = null }) {
       sub: S.workouts.length ? [tn('{0} workout', '{0} workouts', S.workouts.length), days.length && t('last: {0}', fmtDate(days.at(-1), true))].filter(Boolean).join(' · ') : t('Nothing logged yet'),
     },
     { key: 'load', title: t('Training load'), sub: t('Activity, muscle balance, fatigue, strength'), to: '/progress/load' },
-    coach && { key: 'coach', title: t('Coach'), sub: suggestions > 0 ? tn('{0} suggestion this week', '{0} suggestions this week', suggestions) : null, to: '/train/coach' },
+    soon && { key: 'coach', title: t('Coach'), sub: t('Coming soon'), to: '/train/coach' },
+    !soon && coach && { key: 'coach', title: t('Coach'), sub: suggestions > 0 ? tn('{0} suggestion this week', '{0} suggestions this week', suggestions) : null, to: '/train/coach' },
     { key: 'plans', title: t('Ready-made plans'), sub: [t('Full Body'), t('Push / Pull / Legs'), t('Upper / Lower'), t('5×5')].join(', '), action: 'plans' },
     { key: 'gym', title: t('Gym setup'), sub: gym?.name || null, to: '/me/equipment' },
     !coach && S.checkIn !== false && { key: 'checkin', title: t('Gym card'), sub: null, to: '/train/checkin' },
@@ -474,7 +476,8 @@ export function useTrain() {
   const today = useTodayDate()
   const [picked, select] = useState(null)
   const selected = picked || today
-  const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
+  // Coming soon: no Coach copy ("Coach suggests…") and the Gym card stays; the card says so itself.
+  const coach = !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
   // The header and its search field, as on every tab root (components/use-root-header.js).
   const header = useRootHeader('train')
   useDiaryIndex(s => s.version)
@@ -532,7 +535,7 @@ export function useTrain() {
     onRoutineStart: row => (row.freestyle ? start([]) : row.empty && !S.active ? nav('/train/routines/' + row.id) : start([row.id])),
     musclesThisWeek: musclesThisWeekOf(S, today),
     onMuscles: () => nav('/progress/load'),
-    more: moreOf(S, { coach }),
+    more: moreOf(S, { coach, soon: COACH_COMING_SOON }),
     onMore: row => (row.action === 'plans' ? starterPlanSheet() : nav(row.to)),
     // No source for other activities yet (lib/health-connect.js only writes): the list is empty.
     profile: profileOf(S),

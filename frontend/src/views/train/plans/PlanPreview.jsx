@@ -74,7 +74,7 @@ export default function PlanPreview({ id: given }) {
         </div>
       </div>
       <StageFooter sticky={false}>
-        <Button block onClick={load}>{t('Load {0}', copy.name)}</Button>
+        <Button block haptic onClick={load}>{t('Load {0}', copy.name)}</Button>
       </StageFooter>
     </StagePage>
   )

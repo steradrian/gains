@@ -33,7 +33,7 @@ export default function RecipeServingsSheet({ recipe, mealName, onLog, close }) 
     </label>
     {valid ? <Stat value={`${total.value} ${total.unit}`} /> : <div className="muted small" role="status">{t('Enter servings above 0.')}</div>}
     <SheetActions>
-      <Button variant="primary" onClick={log} disabled={!valid || busy}>{busy ? t('Saving…') : t('Log to {0}', mealName)}</Button>
+      <Button variant="primary" haptic onClick={log} disabled={!valid || busy}>{busy ? t('Saving…') : t('Log to {0}', mealName)}</Button>
     </SheetActions>
   </>
 }

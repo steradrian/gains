@@ -6,6 +6,9 @@
 // the rest of the app runs.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// These tests are about the Coach being on; the "coming soon" switch has its own tests.
+vi.mock('../lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'

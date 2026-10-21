@@ -11,9 +11,9 @@ export default function StageBackground({ className, style, children }) {
   )
 }
 
-/** The stage's painted ground alone: the gradient, the glows and the rings. The pinned header and
- *  the search panel each paint a copy anchored where the page's own starts, so the three read as
- *  one surface with no edge between them (ds.css .g-shdr-bg, search.css .search-ov-bg). */
+/** The stage's painted ground alone: the gradient, the glows and the rings. The app draws one fixed
+ *  behind every page (.g-app-stage), and the search panel paints a copy anchored to meet it
+ *  (search.css .search-ov-bg). */
 export function StageArt() {
   return (
     <div className="g-stage-art" aria-hidden="true">

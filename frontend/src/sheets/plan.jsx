@@ -4,6 +4,7 @@ import { todayISO, exCount } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { closeThenNav, nav, onSheetEntry } from '../lib/nav.js'
 import { coachAvailable } from '../lib/coach.js'
+import { COACH_COMING_SOON } from '../lib/coach-availability.js'
 import { DEMO } from '../lib/demo.js'
 import { buildPlanBundle, parsePlan, printPlan, planPrintHTML } from '../lib/plan-share.js'
 import { MOBILE, shareExport, printHtml } from '../lib/mobile.js'
@@ -72,7 +73,7 @@ function PlanMenuDrawer({ close }) {
   const coachMode = useStore(s => s.coachLocal?.mode)
   const fileRef = useRef(null)
   const has = planHasRoutines(st)
-  const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
+  const coach = !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
   const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; importPlanFile(f, close) }
   const items = [
     { key: 'share', icon: 'share', label: t('Share your plan'), disabled: !has, onClick: () => drawerFlow(planShareSheet),

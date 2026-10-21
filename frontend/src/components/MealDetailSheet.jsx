@@ -112,7 +112,7 @@ export function MealDetailSheet({ id, recipe, close }) {
     {draft && recipe && <div className="small muted">{t('{0} in total', `${eatenKcal.value} ${eatenKcal.unit}`)}</div>}
     {error && <div className="small muted" role="alert">{error}</div>}
     <SheetActions>
-      <Button variant="primary" onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : target ? t('Log to {0}', where) : t('Log')}</Button>
+      <Button variant="primary" haptic onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : target ? t('Log to {0}', where) : t('Log')}</Button>
     </SheetActions>
     <Section>
       <Row icon="pencil" title={t('Edit')} onClick={() => mealEditSheet({ meal, recipe })} />

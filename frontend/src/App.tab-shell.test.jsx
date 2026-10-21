@@ -405,17 +405,20 @@ describe('a page that redirects', () => {
     expect(document.querySelector('.g-spage-title').textContent).toBe('Routines')
   })
 
-  // With Coach off the page replaces itself with Train (T11 "Coach off"), once the config is known.
-  it('a cold #/coach as a guest goes to Train with the bar, not a blank Coach page', async () => {
+  // While the Coach is "coming soon" (lib/coach-availability.js) everyone lands on its coming-soon
+  // page, with the bar, not on a blank Coach page.
+  it('a cold #/coach as a guest lands on the coming-soon page with the bar', async () => {
     await launch('#/coach')
-    expect(hash()).toBe('#/train')
+    expect(hash()).toBe('#/train/coach')
+    expect(document.querySelector('.tcs')).not.toBeNull()
     expect(document.querySelector('#tabbar')).not.toBeNull()
     expect(lit()).toBe('Train')
   })
 
   it('a cold #/coach/proposal does the same', async () => {
     await launch('#/coach/proposal')
-    expect(hash()).toBe('#/train')
+    expect(hash()).toBe('#/train/coach')
+    expect(document.querySelector('.tcs')).not.toBeNull()
     expect(document.querySelector('#tabbar')).not.toBeNull()
   })
 })
