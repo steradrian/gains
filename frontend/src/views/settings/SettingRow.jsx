@@ -9,10 +9,11 @@ import './setting-rows.css'
 // setting this device can not do: shown, with the reason as `sub`, and out of reach.
 // `title` is what a search hit flashes (useFlashRow looks the row up by `data-find`), so it is the
 // row's visible, translated title.
-export default function SettingRow({ icon, title, sub, value, onClick, trailing, below, dim = false }) {
+export default function SettingRow({ icon, lead, title, sub, value, onClick, trailing, below, dim = false }) {
   const kids = (
     <>
-      {icon && <span className="g-glist-ic"><Icon name={icon} className="g-icon" /></span>}
+      {/* `lead` is a drawing in the disc where an icon would go (a category's colour dot). */}
+      {lead ? <span className="g-glist-ic">{lead}</span> : icon && <span className="g-glist-ic"><Icon name={icon} className="g-icon" /></span>}
       <span className="g-glist-body"><b>{title}</b>{sub && <span>{sub}</span>}</span>
       {value != null && <span className="g-gvr-val">{value}</span>}
       {trailing}

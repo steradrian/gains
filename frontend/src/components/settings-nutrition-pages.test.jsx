@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 // Profile's Nutrition pages (ia-proposal §5) against the fake hub, which holds every write to the
-// rules of fitness-hub src/nt-body-checks.ts: Water, Foods & scanning, Food sources,
-// Categories, Custom units and the rest of Diary & meals. Each save is one
+// rules of fitness-hub src/nt-body-checks.ts: Water, Foods & scanning, Food sources
+// and the rest of Diary & meals (Categories and Custom units: views/settings/pages/*.test.jsx).
+// Each save is one
 // { key, value } the hub takes, and a refused one keeps what was typed and says so.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -13,9 +14,7 @@ import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nut
 import { featuresFor, pageExists, pageVisible, ROOT_GROUPS, SEARCH, searchSettings } from '../views/settings-pages.js'
 import { _setLangState } from '../lib/i18n-core.js'
 import { bindUI } from './ui.jsx'
-import CustomUnitsSettings from './CustomUnitsSettings.jsx'
 import DiaryMealsSettings from './DiaryMealsSettings.jsx'
-import FoodCategoriesSettings from './FoodCategoriesSettings.jsx'
 import FoodSourcesSettings from './FoodSourcesSettings.jsx'
 import FoodsSettings from './FoodsSettings.jsx'
 import NtSettingsGate from './NtSettingsGate.jsx'
@@ -25,7 +24,6 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const PAGES = {
   diary: DiaryMealsSettings, water: WaterSettings, foods: FoodsSettings, sources: FoodSourcesSettings,
-  categories: FoodCategoriesSettings, customUnits: CustomUnitsSettings,
 }
 
 let host, root, nt, sheets, sheetRoots
@@ -241,77 +239,6 @@ describe('Food sources', () => {
   })
 })
 
-describe('Categories', () => {
-  it('adds a name alone as a plain string and a labelled one as { name, label }', async () => {
-    await mount('categories')
-    await click(rowTitled('Add a category'))
-    let { box } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'Dairy')
-    await click(buttonOf(box, 'Add'))
-    await click(rowTitled('Add a category'))
-    ;({ box } = openedSheet())
-    await type(fieldOf(box, 'Name'), 'Fruit')
-    await type(fieldOf(box, 'Label (an emoji, optional)'), '🍎')
-    await click(buttonOf(box, 'Add'))
-    expect(puts()).toEqual([
-      { key: 'foodCategories', value: ['Dairy'] },
-      { key: 'foodCategories', value: ['Dairy', { name: 'Fruit', label: '🍎' }] },
-    ])
-    expect(titles()).toEqual(['Dairy', '🍎 Fruit', 'Add a category'])
-  })
-
-  it('refuses a repeated name and a label over 16 characters before asking the hub', async () => {
-    await mount('categories', { foodCategories: ['Dairy'] })
-    await click(rowTitled('Add a category'))
-    const { box } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'Dairy')
-    await click(buttonOf(box, 'Add'))
-    expect(box.querySelector('[role="alert"]').textContent).toBe('You already have a category with that name.')
-    expect(puts()).toEqual([])
-  })
-
-  it('removes one whichever shape it is stored in, and writes the rest in the shapes NutriTrace uses', async () => {
-    await mount('categories', { foodCategories: ['Dairy', { name: 'Fruit', label: '🍎' }, { name: 'Veg', label: '' }] })
-    await click(rowTitled('Dairy').querySelector('button'))
-    expect(puts()).toEqual([{ key: 'foodCategories', value: [{ name: 'Fruit', label: '🍎' }, 'Veg'] }])
-  })
-})
-
-describe('Custom units', () => {
-  it('adds { abbr, full }, the full name defaulting to the abbreviation', async () => {
-    await mount('customUnits')
-    await click(rowTitled('Add a custom unit'))
-    let { box } = openedSheet()
-    await type(fieldOf(box, 'Abbreviation'), 'shot')
-    await type(fieldOf(box, 'Full name (optional)'), 'shot glass')
-    await click(buttonOf(box, 'Add'))
-    await click(rowTitled('Add a custom unit'))
-    ;({ box } = openedSheet())
-    await type(fieldOf(box, 'Abbreviation'), 'scoop')
-    await click(buttonOf(box, 'Add'))
-    expect(puts().at(-1)).toEqual({ key: 'customUnits', value: [{ abbr: 'shot', full: 'shot glass' }, { abbr: 'scoop', full: 'scoop' }] })
-    expect(rowTitled('shot glass').querySelector('.lrow-s').textContent).toBe('shot')
-  })
-
-  it('refuses a unit the built-in list has, with no request, and keeps the typing', async () => {
-    await mount('customUnits')
-    await click(rowTitled('Add a custom unit'))
-    const { box, close } = openedSheet()
-    await type(fieldOf(box, 'Abbreviation'), 'Cup')
-    await click(buttonOf(box, 'Add'))
-    expect(box.querySelector('[role="alert"]').textContent).toBe('That unit is already in the list.')
-    expect(fieldOf(box, 'Abbreviation').value).toBe('Cup')
-    expect(puts()).toEqual([])
-    expect(close).not.toHaveBeenCalled()
-  })
-
-  it('removes one and drops a gram weight an older client may have stored', async () => {
-    await mount('customUnits', { customUnits: [{ abbr: 'shot', full: 'shot glass' }, { abbr: 'stick', grams: 8 }] })
-    await click(rowTitled('shot glass').querySelector('button'))
-    expect(puts()).toEqual([{ key: 'customUnits', value: [{ abbr: 'stick', full: 'stick' }] }])
-  })
-})
-
 describe('Diary & meals', () => {
   it('shows NutriTrace\'s defaults and writes each switch as one key', async () => {
     await mount('diary')
@@ -445,23 +372,6 @@ describe('a list is changed over what the server has now, not over what the page
     expect(puts()).toEqual([{ key: 'waterContainers', value: [{ id: '2', name: 'Pot', volumeMl: 900 }] }])
   })
 
-  it('categories and custom units: an add keeps what was added elsewhere', async () => {
-    await mount('categories', { foodCategories: ['Dairy'] })
-    nt.state.settings.foodCategories = ['Dairy', 'Fish']
-    await click(rowTitled('Add a category'))
-    let { box } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'Fruit')
-    await click(buttonOf(box, 'Add'))
-    expect(puts().at(-1)).toEqual({ key: 'foodCategories', value: ['Dairy', 'Fish', 'Fruit'] })
-    await mount('customUnits', { customUnits: [{ abbr: 'shot', full: 'shot' }] })
-    nt.state.settings.customUnits = [{ abbr: 'shot', full: 'shot' }, { abbr: 'scoop', full: 'scoop' }]
-    await click(rowTitled('Add a custom unit'))
-    ;({ box } = openedSheet())
-    await type(fieldOf(box, 'Abbreviation'), 'stick')
-    await click(buttonOf(box, 'Add'))
-    expect(puts().at(-1).value.map(u => u.abbr)).toEqual(['shot', 'scoop', 'stick'])
-  })
-
   it('a page asks again when it opens, so it shows what NutriTrace has now', async () => {
     await mount('water', { waterContainers: [{ id: '1', name: 'Mug', volumeMl: 300 }] })
     nt.state.settings.waterContainers = [{ id: '1', name: 'Mug', volumeMl: 300 }, { id: '2', name: 'Pot', volumeMl: 900 }]
@@ -471,17 +381,6 @@ describe('a list is changed over what the server has now, not over what the page
     expect(titles()).toContain('Pot')
   })
 
-  it('a failed re-read saves nothing and says so', async () => {
-    await mount('categories', { foodCategories: ['Dairy'] })
-    await click(rowTitled('Add a category'))
-    const { box, close } = openedSheet()
-    await type(fieldOf(box, 'Name'), 'Fruit')
-    nt.failNext('GET', '/nt/api/settings', 'offline')
-    await click(buttonOf(box, 'Add'))
-    expect(puts()).toEqual([])
-    expect(box.querySelector('[role="alert"]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
-    expect(close).not.toHaveBeenCalled()
-  })
 })
 
 describe('meal names only save what was typed', () => {
