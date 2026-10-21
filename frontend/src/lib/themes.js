@@ -1,13 +1,13 @@
-// The accent themes: 25 presets, ported from the Background Lab (docs/handoffs/assets/pr06-themes).
+// The accent themes: 28 presets, ported from the Background Lab (docs/handoffs/assets/pr06-themes).
 //
-// `S.accent` stores one of these ids. Nothing stored is rewritten: ids from before the 25 (lime,
+// `S.accent` stores one of these ids. Nothing stored is rewritten: ids from before the 28 (lime,
 // sky, ... and 'custom') are mapped when read (migrateAccentId), so an older build on another
 // device keeps working, and the first pick writes a new id. A profile that never picked (null,
 // '' or 'auto', and the old default 'lime') follows the mode: ink in dark, cobalt in light.
 //
 // Per preset: fill/fillEnd/text/tint/on are the light-theme accent tokens, `dark` the dark-theme
-// ones, `stage` the three colours of the stage gradient and glow. blossom, watermelon and peach
-// have a light stage, so they carry `ink`, the colours that replace the stage's white
+// ones, `stage` the three colours of the stage gradient and glow. blossom, watermelon, snow, cream,
+// mist and peach have a light stage, so they carry `ink`, the colours that replace the stage's white
 // (ds/tokens.css sets them; the look engine reads `ink.art`).
 import { t } from './i18n-core.js'
 
@@ -57,7 +57,7 @@ export const THEMES = [
   { id: 'blush', name: 'Blush', fill: '#8B495C', fillEnd: '#713648', text: '#713648', tint: '#F2E7E9', on: '#FFFFFF',
     dark: { fill: '#DAA0AF', fillEnd: '#C38696', text: '#E0AEBB', tint: '#372228', on: '#1E0E13' },
     stage: { stage: '#924D62', end: '#512531', glow: '#FFC5D4' } },
-  // Light stages: pastel, with deep text. `ink` replaces the stage's white for these three only.
+  // Light stages: pastel, with deep text. `ink` replaces the stage's white for these six only.
   // on2 is an alpha; glass, glassLine, track and decor are [hex, alpha] pairs (decor's second value
   // multiplies the plate rings' opacity).
   { id: 'blossom', name: 'Blossom', fill: '#AA2B58', fillEnd: '#8C1745', text: '#8C1745', tint: '#F8E5E8', on: '#FFFFFF',
@@ -70,6 +70,22 @@ export const THEMES = [
     stage: { stage: '#FFB3C6', end: '#FB6F92', glow: '#FFE5EC' },
     ink: { on: '#48102B', on2: 0.82, glass: ['#FFFFFF', 0.40], glassLine: ['#FFFFFF', 0.60], track: ['#FFFFFF', 0.55],
       mark: '#94204A', cta: '#94204A', ctaIcon: '#FFFFFF', decor: ['#FFFFFF', 1.5] } },
+  // Neutral light stages: white, warm cream, cool mist. Dark ink, a dark accent on the ring.
+  { id: 'snow', name: 'Snow', fill: '#2B2A28', fillEnd: '#1B1A19', text: '#1B1A19', tint: '#EFEEEB', on: '#FFFFFF',
+    dark: { fill: '#F4F2EE', fillEnd: '#D8D5CF', text: '#F4F2EE', tint: '#2A2926', on: '#111111' },
+    stage: { stage: '#FFFFFF', end: '#ECEAE6', glow: '#FFFFFF' },
+    ink: { on: '#1B1A19', on2: 0.72, glass: ['#FFFFFF', 0.72], glassLine: ['#1B1A19', 0.08], track: ['#1B1A19', 0.10],
+      mark: '#1B1A19', cta: '#1B1A19', ctaIcon: '#FFFFFF', decor: ['#1B1A19', 0.5], art: ['#BDB9B1', '#DAD7D1'] } },
+  { id: 'cream', name: 'Cream', fill: '#7A5A2E', fillEnd: '#5E431F', text: '#5E431F', tint: '#F4EDE0', on: '#FFFFFF',
+    dark: { fill: '#D9BC8C', fillEnd: '#BFA172', text: '#E0C698', tint: '#33291A', on: '#1E1508' },
+    stage: { stage: '#FCF8F0', end: '#F0E4D0', glow: '#FFFFFF' },
+    ink: { on: '#3B2A14', on2: 0.76, glass: ['#FFFFFF', 0.62], glassLine: ['#7A5A2E', 0.14], track: ['#7A5A2E', 0.14],
+      mark: '#7A5A2E', cta: '#7A5A2E', ctaIcon: '#FFFFFF', decor: ['#7A5A2E', 0.7], art: ['#CDB48C', '#E4D2B2'] } },
+  { id: 'mist', name: 'Mist', fill: '#2F4F85', fillEnd: '#223C69', text: '#223C69', tint: '#E8EEF7', on: '#FFFFFF',
+    dark: { fill: '#9DB6E6', fillEnd: '#7F9BD0', text: '#ABC1EA', tint: '#1E293D', on: '#0D1524' },
+    stage: { stage: '#F2F6FC', end: '#D3E0F2', glow: '#FFFFFF' },
+    ink: { on: '#16284A', on2: 0.76, glass: ['#FFFFFF', 0.62], glassLine: ['#2F4F85', 0.14], track: ['#2F4F85', 0.14],
+      mark: '#2F4F85', cta: '#2F4F85', ctaIcon: '#FFFFFF', decor: ['#2F4F85', 0.7], art: ['#9FB6DA', '#BDD0EA'] } },
   { id: 'peach', name: 'Peach cream', fill: '#854B65', fillEnd: '#6C3850', text: '#6C3850', tint: '#F1E7EB', on: '#FFFFFF',
     dark: { fill: '#D5A2B7', fillEnd: '#BD889E', text: '#DBAFC1', tint: '#35232A', on: '#1D0F15' },
     stage: { stage: '#F8F3EA', end: '#FFDBD1', glow: '#FFE5EC' },

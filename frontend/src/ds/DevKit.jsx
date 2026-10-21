@@ -90,7 +90,7 @@ export default function DevKit() {
     <StageScreen accent={accent}>
       <OnboardingNav step={step} onBack={() => setStep(s => Math.max(1, s - 1))} onSkip={() => setStep(s => Math.min(8, s + 1))} />
       <div className="g-kit">
-        <Section title="Accent" note="The 25 themes (lib/themes.js), on the StageScreen's data-accent. Blossom, Watermelon and Peach cream have a light stage.">
+        <Section title="Accent" note="The 28 themes (lib/themes.js), on the StageScreen's data-accent. Blossom, Watermelon, Snow, Cream, Mist and Peach cream have a light stage.">
           <div className="g-kit-row">
             {THEME_IDS.map(a => <Button key={a} variant="secondary" size="sm" aria-pressed={a === accent} onClick={() => setAccent(a)}>{a}</Button>)}
           </div>

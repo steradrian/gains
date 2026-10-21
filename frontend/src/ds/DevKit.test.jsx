@@ -112,7 +112,9 @@ describe('DevKit', () => {
     // The other pages' entries sit above the Shared ones (the last in the kit), so the counts read
     // from the "Shared: pages" heading down.
     const sections = [...view.host.querySelectorAll('.g-kit-sec')]
-    const shared = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: pages'))
+    const headed = text => sections.findIndex(s => s.querySelector('h2').textContent === text)
+    // The Settings entries follow, and their SettingsPage draws a nav bar of its own.
+    const shared = sections.slice(headed('Shared: pages'), headed('Settings: shell'))
     const all = selector => shared.flatMap(s => [...s.querySelectorAll(selector)])
     expect(all('.g-sempty-btn').map(b => b.textContent)).toEqual(['Set a reminder'])
     // The app has no Coach notifications (lib/notifications/feed.js), so the kit never shows the line.

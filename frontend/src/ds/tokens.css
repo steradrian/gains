@@ -36,7 +36,7 @@
   --glass-track: rgba(255,255,255,0.18);
   --glass-new: rgba(255,255,255,0.12);
   /* What is drawn straight on the stage: the ring arc and checks, the round do-now buttons, the
-     plate rings. White on the 22 dark stages; the three light stages override them (ds.css). */
+     plate rings. White on the 22 dark stages; the six light stages override them (ds.css). */
   --stage-mark: #FFFFFF;
   --stage-cta: #FFFFFF;
   /* The label on the pill: the stage's own deep end, which reads on white in both modes. The
@@ -44,6 +44,11 @@
   --on-stage-cta: var(--accent-stage-end);
   --stage-decor: #FFFFFF;
   --stage-decor-k: 1;
+  /* DangerRow on the stage: pale on the dark stages, a deep red on the light ones (ds.css). */
+  --stage-danger: #FFD4CC;
+  --stage-danger-tint: rgba(255,138,122,0.22);
+  --stage-danger-light: #8F2A1E;
+  --stage-danger-tint-light: rgba(180,56,42,0.14);
   /* BodyMap's five stage shades (0 to 4 sets' worth), shared with the Week page's Less–More key */
   --bm-stage-l0: color-mix(in srgb, var(--on-stage) 16%, transparent);
   --bm-stage-l1: color-mix(in srgb, var(--on-stage) 34%, transparent);
@@ -196,6 +201,30 @@
   --watermelon-text: #910C3D;
   --watermelon-tint: #F9E4E7;
   --watermelon-on: #FFFFFF;
+  --snow-stage: #FFFFFF;
+  --snow-stage-end: #ECEAE6;
+  --snow-glow: #FFFFFF;
+  --snow-fill: #2B2A28;
+  --snow-fill-end: #1B1A19;
+  --snow-text: #1B1A19;
+  --snow-tint: #EFEEEB;
+  --snow-on: #FFFFFF;
+  --cream-stage: #FCF8F0;
+  --cream-stage-end: #F0E4D0;
+  --cream-glow: #FFFFFF;
+  --cream-fill: #7A5A2E;
+  --cream-fill-end: #5E431F;
+  --cream-text: #5E431F;
+  --cream-tint: #F4EDE0;
+  --cream-on: #FFFFFF;
+  --mist-stage: #F2F6FC;
+  --mist-stage-end: #D3E0F2;
+  --mist-glow: #FFFFFF;
+  --mist-fill: #2F4F85;
+  --mist-fill-end: #223C69;
+  --mist-text: #223C69;
+  --mist-tint: #E8EEF7;
+  --mist-on: #FFFFFF;
   --peach-stage: #F8F3EA;
   --peach-stage-end: #FFDBD1;
   --peach-glow: #FFE5EC;
@@ -274,6 +303,36 @@
   --watermelon-ink-cta-icon: #FFFFFF;
   --watermelon-ink-decor: #FFFFFF;
   --watermelon-ink-decor-k: 1.5;
+  --snow-ink-on: #1B1A19;
+  --snow-ink-on-2: rgba(27,26,25,0.72);
+  --snow-ink-glass: rgba(255,255,255,0.72);
+  --snow-ink-glass-line: rgba(27,26,25,0.08);
+  --snow-ink-glass-track: rgba(27,26,25,0.10);
+  --snow-ink-mark: #1B1A19;
+  --snow-ink-cta: #1B1A19;
+  --snow-ink-cta-icon: #FFFFFF;
+  --snow-ink-decor: #1B1A19;
+  --snow-ink-decor-k: 0.5;
+  --cream-ink-on: #3B2A14;
+  --cream-ink-on-2: rgba(59,42,20,0.76);
+  --cream-ink-glass: rgba(255,255,255,0.62);
+  --cream-ink-glass-line: rgba(122,90,46,0.14);
+  --cream-ink-glass-track: rgba(122,90,46,0.14);
+  --cream-ink-mark: #7A5A2E;
+  --cream-ink-cta: #7A5A2E;
+  --cream-ink-cta-icon: #FFFFFF;
+  --cream-ink-decor: #7A5A2E;
+  --cream-ink-decor-k: 0.7;
+  --mist-ink-on: #16284A;
+  --mist-ink-on-2: rgba(22,40,74,0.76);
+  --mist-ink-glass: rgba(255,255,255,0.62);
+  --mist-ink-glass-line: rgba(47,79,133,0.14);
+  --mist-ink-glass-track: rgba(47,79,133,0.14);
+  --mist-ink-mark: #2F4F85;
+  --mist-ink-cta: #2F4F85;
+  --mist-ink-cta-icon: #FFFFFF;
+  --mist-ink-decor: #2F4F85;
+  --mist-ink-decor-k: 0.7;
   --peach-ink-on: #53273C;
   --peach-ink-on-2: rgba(83,39,60,0.80);
   --peach-ink-glass: rgba(255,255,255,0.55);
@@ -460,6 +519,21 @@
   --watermelon-text: #FD9EAF;
   --watermelon-tint: #421A23;
   --watermelon-on: #26080F;
+  --snow-fill: #F4F2EE;
+  --snow-fill-end: #D8D5CF;
+  --snow-text: #F4F2EE;
+  --snow-tint: #2A2926;
+  --snow-on: #111111;
+  --cream-fill: #D9BC8C;
+  --cream-fill-end: #BFA172;
+  --cream-text: #E0C698;
+  --cream-tint: #33291A;
+  --cream-on: #1E1508;
+  --mist-fill: #9DB6E6;
+  --mist-fill-end: #7F9BD0;
+  --mist-text: #ABC1EA;
+  --mist-tint: #1E293D;
+  --mist-on: #0D1524;
   --peach-fill: #D5A2B7;
   --peach-fill-end: #BD889E;
   --peach-text: #DBAFC1;

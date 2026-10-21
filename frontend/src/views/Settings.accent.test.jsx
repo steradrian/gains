@@ -73,7 +73,7 @@ const swatches = () => [...host.querySelectorAll('.swatch')]
 const selected = () => swatches().filter(s => s.classList.contains('on')).map(s => s.getAttribute('aria-label'))
 
 describe('Settings: accent swatches', () => {
-  it('shows the 25 themes, each named for a screen reader, and no own-colour swatch', () => {
+  it('shows the 28 themes, each named for a screen reader, and no own-colour swatch', () => {
     mount()
     expect(swatches().map(s => s.getAttribute('aria-label'))).toEqual(THEMES.map(p => p.name))
     expect(host.querySelector('input[type="color"]')).toBe(null)

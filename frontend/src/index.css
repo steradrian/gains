@@ -44,8 +44,7 @@
 
   /* accent (per-account, synced) */
   /* Before the first paint's JS: the dark default theme (ink). lib/themes.js applyAccent sets all
-     four inline from the chosen theme; light mode defaults below. A user's own colour gets its own
-     in lib/accent.js customAccentVars. */
+     four inline from the chosen theme; light mode defaults below. */
   --acc:  #f4f2ee;
   --acc-2:#d8d5cf;
   --on-acc:#111111;

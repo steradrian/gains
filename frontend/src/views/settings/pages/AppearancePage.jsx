@@ -10,7 +10,7 @@ import Icon from '../../../components/Icon.jsx'
 import { Section, Row, Switch, Segmented } from '../../../components/ui.jsx'
 import { useSettingsCtx } from '../use-settings-ctx.js'
 
-// The 25 themes as swatches (look-m1 replaces this with the Appearance page's picker).
+// The 28 themes as swatches (look-m1 replaces this with the Appearance page's picker).
 function AccentSwatches({ S, update }) {
   const key = accentKey(S)
   const pickPreset = k => { update(s => { s.accent = k }); setRestAccent(k) }
