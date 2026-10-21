@@ -95,6 +95,8 @@ import Notifications from './views/shared/Notifications.jsx'
 // Eat root m2: Month and Food trends
 import MonthPage from './views/eat/MonthPage.jsx'
 import TrendsPage from './views/eat/TrendsPage.jsx'
+// Eat root m3
+import BurnedPage from './views/eat/BurnedPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -404,6 +406,8 @@ function AppRoutes({ location, fallback, S, user }) {
       {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
       <Route path="/food/month" element={<MonthPage />} />
       <Route path="/food/trends" element={<TrendsPage />} />
+      {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
+      <Route path="/food/burned" element={<BurnedPage />} />
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
       <Route path="/progress/body" element={<Body segment="weight" />} />
