@@ -58,7 +58,7 @@ describe('DevKit', () => {
   it('renders an entry for the Train kit and the rail turns its week', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
-    expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty']))
+    expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty', 'RoutineTiles', 'MusclesCard']))
     expect(view.host.querySelectorAll('.g-rail')).toHaveLength(2)
     expect(view.host.querySelectorAll('.g-tcard')).toHaveLength(6)
     expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(3)

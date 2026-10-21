@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import Section from './DevKitSection.jsx'
 import ExerciseThumbRow from './ExerciseThumbRow.jsx'
+import MusclesCard from './MusclesCard.jsx'
 import RingCarousel from './RingCarousel.jsx'
+import RoutineTiles from './RoutineTiles.jsx'
 import StageDayRail from './StageDayRail.jsx'
 import StageEmpty from './StageEmpty.jsx'
 import StageTrainCard from './StageTrainCard.jsx'
@@ -161,6 +163,29 @@ export default function DevKitTrain() {
         />
         <StageEmpty icon="clock" title="Nothing logged" body="Start a workout, or log one you did." action="Start a workout" href={SELF} />
         <StageEmpty icon="magnifier"title="No results" body="Try a shorter word." card={false} />
+      </Section>
+
+      <Section title="RoutineTiles" note="The Routines row on Train: glass tiles that scroll sideways, the routine's first pictures, its name and line; the corner ▶ starts it, the tile opens it. Freestyle is the outlined tile.">
+        <RoutineTiles
+          label="Routines"
+          items={[
+            { key: 'a', title: 'Push A', sub: '6 exercises · Sun', thumbs: STILLS, onClick: NOOP, play: { label: 'Start Push A', onClick: NOOP } },
+            { key: 'b', title: 'Pull A', sub: '6 exercises · Wed', thumbs: [STILL, null, STILL], onClick: NOOP, play: { label: 'Start Pull A', onClick: NOOP } },
+            { key: 'c', title: 'A routine with a long name', sub: 'No exercises', thumbs: [], onClick: NOOP },
+            { key: 'f', title: 'Freestyle', sub: 'Pick exercises as you go', icon: 'dumbbell', outline: true, onClick: NOOP },
+          ]}
+        />
+      </Section>
+
+      <Section title="MusclesCard" note="Muscles this week: front and back shaded by sets this week, what is not trained yet, and the whole card opens Training load.">
+        <MusclesCard
+          title="Muscles this week"
+          period="Week of 12 Oct"
+          levels={{ chest: 4, deltoids: 3, triceps: 3, 'upper-back': 2, biceps: 2, abs: 1 }}
+          note="Legs not trained yet"
+          action="Training load"
+          onClick={NOOP}
+        />
       </Section>
     </>
   )
