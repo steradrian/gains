@@ -21,7 +21,12 @@
 </script>
 <title>Gains</title>
 <meta name="description" content="Personal gym & body weight tracker">
-<meta name="theme-color" content="#0c0b0a">
+<meta name="theme-color" content="#2B2A28">
+<script>
+  // Before first paint: the stage top of the default accent for the resolved mode (ink dark, cobalt
+  // light; lib/themes.js DEFAULT_ACCENT_BY_MODE). lib/theme-color.js takes over once React runs.
+  if (document.documentElement.dataset.theme === 'light') document.querySelector('meta[name="theme-color"]').content = '#3A62D6';
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

@@ -28,7 +28,7 @@ import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
-import { BRAND } from './brand.js'
+import { chromeColor, isLightColor, syncThemeColor } from './lib/theme-color.js'
 import { exitWorkoutEdit } from './sheets.jsx'
 import TabBar from './components/TabBar.jsx'
 import LiveDock from './components/LiveDock.jsx'
@@ -113,9 +113,6 @@ function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = resolveTheme(theme)
   applyAccent(de, accent, de.dataset.theme)
-  const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = BRAND.themeColor[de.dataset.theme] || BRAND.themeColor.dark
-  if (MOBILE) setSystemBarsLight(de.dataset.theme === 'light')
 }
 
 function Shell() {
@@ -312,6 +309,14 @@ function Shell() {
 
   const authed = user || isGuest
   const sharedStage = !!authed && !inFlow && !onAddDevice && !needsMobileOnboarding
+  // The browser chrome and the status bar take the colour under them: the stage's top on a tab
+  // root, the page surface on a pushed page, in a drawer and in the flows with their own ground.
+  const sheetOpen = useUI(s => s.sheets.length > 0)
+  const chrome = chromeColor({ accent, mode, onStage: sharedStage && isTabRoot(shown.pathname) && !sheetOpen })
+  useEffect(() => {
+    syncThemeColor(chrome)
+    if (MOBILE) setSystemBarsLight(isLightColor(chrome))
+  }, [chrome])
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>

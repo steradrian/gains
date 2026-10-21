@@ -3748,5 +3748,12 @@ export default {
   'Cocoa': 'Cocoa',
   'Slate': 'Slate',
   'Ink': 'Ink',
+  // Settings themes m2
+  'Classic': 'Classic',
+  'Linen': 'Linen',
+  'Lines': 'Lines',
+  'Florals': 'Florals',
+  'Silk': 'Silk',
+  'Bloom': 'Bloom',
   'You’ve missed Mondays three weeks running': 'টানা তিন সপ্তাহ আপনি সোমবার মিস করেছেন',
 }
