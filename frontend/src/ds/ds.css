@@ -682,6 +682,25 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18); }
 .g-nrow-gap { width: 10px; flex: none; }
 
+/* StageNote: the quiet line at the foot of a pushed page (Sh3Notifications: "Kept for 30 days…").
+   .g-sbanner is the gutter a banner (InlineBanner stage) stands in on such a page (Sh3PermOff). */
+.g-snote { margin: 0; padding: 14px 24px 0; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-sbanner { padding: 4px 16px 14px; }
+
+/* StageEmpty: a glass disc or a white line-art scene, a title, a line, and a stack of buttons (T2.9 has three).
+   Identical to the Train kit's; whichever merges second drops its copy. */
+.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
+.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
+.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
+.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-sempty-btn .g-icon { width: 20px; height: 20px; }
+.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
+
 /* Accent presets. The design system selects them by data-accent on any ancestor (it expects
    <html>); the app's <html data-accent> holds its own accents (sky, lime…), so here they are read
    from the .g-root itself (StageScreen). Cobalt is the default. */

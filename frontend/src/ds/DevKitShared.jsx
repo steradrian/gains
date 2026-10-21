@@ -1,7 +1,10 @@
 import Section from './DevKitSection.jsx'
+import InlineBanner from './InlineBanner.jsx'
 import NotificationGroup from './NotificationGroup.jsx'
 import NotificationRow from './NotificationRow.jsx'
+import StageEmpty from './StageEmpty.jsx'
 import StageNavBar from './StageNavBar.jsx'
+import StageNote from './StageNote.jsx'
 import StageSection from './StageSection.jsx'
 
 // The shared pages' part of the catalogue (DevKit.jsx): the parts the pushed pages (notifications,
@@ -51,6 +54,21 @@ export default function DevKitShared() {
           <NotificationRow kind="coach" isNew title="A very long title that has to wrap onto a second line without pushing the dot out" body="And a line of detail that is just as long, to see the row grow and the dot stay at the top." when="Coach · Fri 2 Oct" onClick={NOOP} />
           <NotificationRow kind="milestone" title="Only a title" onClick={NOOP} />
         </NotificationGroup>
+      </Section>
+
+      <Section title="StageEmpty on the notifications page" note="Nothing yet (Sh3Empty): the bell disc, the title, the line and the one white button, bare on the stage.">
+        <StageEmpty card={false} icon="bell" title="Nothing new" body="Reminders you set, streaks, new bests and Coach changes show up here." action="Set a reminder" onClick={NOOP} />
+      </Section>
+
+      <Section title="Permission banner" note="Notifications off on this phone (Sh3PermOff): an InlineBanner on the stage with a solid Turn on and a Reminders link, in the page's gutter.">
+        <div className="g-sbanner">
+          <InlineBanner stage icon="bellSlash" title="Notifications are off on this phone" body="They still land here, but your phone won’t buzz. On iPhone, add Gains to the Home Screen first."
+            actions={[{ label: 'Turn on', solid: true, onClick: NOOP }, { label: 'Reminders', href: SELF }]} />
+        </div>
+      </Section>
+
+      <Section title="StageNote" note="The fine print at the foot of a pushed page.">
+        <StageNote>Kept for 30 days. The reminders you set live in Me › Reminders.</StageNote>
       </Section>
     </>
   )
