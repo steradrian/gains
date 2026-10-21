@@ -6,6 +6,7 @@ import { Stage } from './DevScreens.jsx'
 import { allScreens, screenAreas, screenById } from './registry.js'
 import { todayISO } from '../../lib/format.js'
 import { useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
 
 /* The screens gallery: every registered state renders its real screen, in its frame, with its
    taps played, without throwing; and putting the mocks away leaves the app as it was. The states
@@ -398,4 +399,40 @@ describe('the screens gallery', () => {
     expect(useStore.getState().config).toBe(before.config)
     expect(useStore.getState().user).toBe(before.user)
   })
+})
+
+// Workout core-M3
+describe('the screens gallery: the running workout', () => {
+  const IDS = ['W1.0', 'W1.2', 'W1.6', 'W1.35', 'W1.32', 'W1.3', 'W1.5', 'W1.7', 'W1.8', 'W1.36', 'W1.24', 'W1.38', 'W1.39',
+    'W1.41', 'W1.42', 'W1.9', 'W1.28', 'W1.28b', 'W1.29', 'W1.29b', 'W1.30', 'W1.44']
+
+  it('has every running-workout state under its board id', () => {
+    expect(screenAreas().find(a => a.name === 'Workout').entries.map(e => e.id)).toEqual(IDS)
+  })
+
+  it('shows each state it names and leaves no rest, hold or session behind', async () => {
+    const own = useStore.getState().S.active
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('W1.0', s => { expect(s.text).toContain('Cable middle fly'); expect(s.text).toContain('Done set'); expect(s.text).toContain('Trained so far') })
+    await check('W1.2', s => expect(s.text).toContain('Warm-up done'))
+    await check('W1.3', s => expect(s.host.querySelector('.g-wf-rest')).not.toBeNull())
+    await check('W1.5', s => expect(s.text).toContain('Go · set'))
+    await check('W1.8', s => { expect(s.text).toContain('NEW BEST'); expect(s.text).toContain('Trend') })
+    await check('W1.36', s => expect(s.text).toContain('Back to Cable middle fly · set 2'))
+    await check('W1.24', s => expect(s.text).toContain('Done · go to A2'))
+    await check('W1.41', s => expect(s.text).toContain('Switch side'))
+    await check('W1.9', s => expect(s.text).toContain('Every set done'))
+    await check('W1.28', s => { expect(s.text).toContain('Save changes'); expect(s.host.querySelector('.g-wf-rest')).toBeNull() })
+    await check('W1.29', s => expect(s.text).toContain('Offline · 6 waiting'))
+    await check('W1.29b', s => { expect(s.text).toContain('Offline'); expect(s.text).not.toContain('waiting') })
+    await check('W1.30', s => { expect(s.text).toContain('Pick as you go'); expect(s.text).toContain('Discard') })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useUI.getState().timer).toBeNull()
+    expect(useUI.getState().work).toBeNull()
+    expect(useStore.getState().S.active).toBe(own)
+  }, 20000)
 })
