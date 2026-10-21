@@ -1,18 +1,20 @@
 // The new workout screen's model (core-M1 brief step 4 `view`): plain data and every string the
 // screen shows or speaks, built from the store and the rest/hold timers. Pure, so it is tested
 // without rendering. Fields still to build are listed in the core-M1 hand-back (core-M3).
-import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
+import { exOr, figureOf, gifSrc, imgSrc, isCustomEx } from '../../lib/exercises.js'
 import { supersetUnits, unitOf, modeOf, setLabel, setUnitsTotal, setsDoneActive, lastEntryFor, pinnedNoteFor, exNoteFor, workoutVolume } from '../../lib/history.js'
 import { exerciseNameText, fmtDate, fmtNum, exCount } from '../../lib/format.js'
 import { fmtRest } from '../../lib/duration.js'
 import { t, tn } from '../../lib/i18n.js'
 import { sessionHistory } from '../../lib/backfill.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad } from '../../lib/plates.js'
-import { isWarmupRow, dropsOf } from '../../lib/workout-model.js'
+import { isWarmupRow, isSideSet, dropsOf } from '../../lib/workout-model.js'
+import { usesBar } from '../../lib/bar.js'
 import { partOf, partsOf } from '../../lib/workout-parts.js'
 // Workout core-M3
 import { isBw, isPerSide, repStep, effortOf, EFFORT, setsRepsOf } from '../../lib/history.js'
 import { weightIncrement } from '../../lib/progression.js'
+import { isPyramid, pyramidLabel } from '../../lib/pyramid.js'
 import { ownedWeightsFor } from '../../lib/dumbbells.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, INCLINE_STEP } from '../../lib/incline.js'
@@ -26,6 +28,13 @@ import { beatsBest } from '../../lib/workout-finish.js'
 const pictureOf = (S, id) => {
   const ex = exOr(id)
   return ex?.img && !isCustomEx(ex) ? imgSrc(ex, figureOf(S)) : null
+}
+// The exercise's animation, or null when Settings > Animations is Small or Hidden (the still
+// stands in) and for an exercise with none. Any other value of the setting behaves as Full.
+export const clipOf = (S, id) => {
+  const ex = exOr(id)
+  if (!ex?.gif || isCustomEx(ex) || S.gifSize === 'mini' || S.gifSize === 'off') return null
+  return gifSrc(ex, figureOf(S))
 }
 const TONE = { warmup: 'warm', main: 'main', cooldown: 'cool' }
 // A session this long folds every phase but the current one (W1.44).
@@ -61,14 +70,41 @@ export function setText(S, entry, s) {
   return fmtNum(s.w) + ' ' + S.unit + ' × ' + (s.r || 0)
 }
 
-/** The plate line under a barbell set: "Bar 20 kg + 25 + 5 each side". Null when it does not apply. */
+/**
+ * The plate line under a set that loads plates, for the weight `w`. A bar reads "Bar 20 kg + 25 + 5
+ * each side"; a plate-loaded machine set to per side has no bar to name, "25 + 5 per side"; a
+ * single stack (a belt, a sled) reads "Load 25". Null when it does not apply: reps mode only.
+ */
 export function plateLineFor(S, entry, w) {
   if (S.showPlates === false) return null
-  const load = rowLoad(loadKindFor(S, { ...(entry.target || {}), id: entry.id }), w, baseWeightFor(S, entry.id), inventoryFor(S))
-  if (!load || load.kind !== 'pairs') return null
+  const cfg = { ...(entry.target || {}), id: entry.id }
+  if (modeOf(cfg) !== 'reps') return null
+  const load = rowLoad(loadKindFor(S, cfg), w, baseWeightFor(S, entry.id), inventoryFor(S))
+  if (!load) return null
+  const stack = load.plates.map(fmtNum).join(' + ')
+  if (load.kind === 'single') return load.barOnly ? null : t('Load {0}', stack || '–')
+  if (!usesBar(entry.id)) return load.barOnly || !stack ? null : t('{0} per side', stack)
   const bar = t('Bar {0}', fmtNum(baseWeightFor(S, entry.id)) + ' ' + S.unit)
   if (load.barOnly || !load.plates.length) return bar
-  return t('{0} + {1} each side', bar, load.plates.map(fmtNum).join(' + '))
+  return t('{0} + {1} each side', bar, stack)
+}
+
+/**
+ * The plate line for one logged row. A unilateral row logs each side's own weight and the bar is
+ * the same for both legs, so the line uses the sides' weight while they agree (or only one side
+ * has a number yet) and stays away once they differ. A saved workout being corrected (#203) has
+ * nothing left to load, so its rows stay bare.
+ */
+export function plateLineForSet(S, entry, s, { editing = false } = {}) {
+  if (editing || !s) return null
+  let w = s.w
+  if (isSideSet(s)) {
+    const L = s.sides.L?.w || 0
+    const R = s.sides.R?.w || 0
+    if (L && R && L !== R) return null
+    w = L || R
+  }
+  return w > 0 ? plateLineFor(S, entry, w) : null
 }
 
 export function buildWorkoutView({ S, A, timer = null, work = null, sync = null, events = {}, now = Date.now() }) {
@@ -158,7 +194,7 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
         setLine: isWarmupRow(s) ? t('Warm-up') : t('Set {0} of {1}', workN, work.length),
         last: lastRow ? t('Last time {0}', setText(S, last, lastRow)) : null,
         first: !last ? t('First time') : null,
-        plateLine: s.w > 0 ? plateLineFor(S, entry, s.w) : null,
+        plateLine: plateLineForSet(S, entry, s, { editing }),
         doneLabel: unit.length > 1 && !roundEnds ? t('Done · go to {0}', labels[partnerIdx])
           : unit.length > 1 ? t('Done · rest {0} after both', fmtRest(restSec))
             : lastSet ? t('Done · last set') : t('Done set'),
@@ -255,6 +291,29 @@ function setNumberOf(sets, i) {
   return s.side === 'L' || s.side === 'R' ? Math.floor(k / 2) + 1 : k + 1
 }
 
+/**
+ * The plan the exercise was built from (issue #275), on one quiet line under the hero's meta:
+ * "Plan: 2 × 10", with "· today 3 × 10" when progression moved the sets or reps and "· reps from
+ * your last session" when they were carried. A pyramid reads as its targets. Null for an entry
+ * with no plan (freestyle, or started before plans were kept) and for cardio.
+ */
+export function planLineOf(entry) {
+  const planned = entry.planned
+  const today = entry.target || {}
+  const mode = modeOf(cfgOf(entry))
+  if (!planned || mode === 'cardio') return null
+  if (isPyramid(today)) return t('Plan: {0}', pyramidLabel(today.pyramid))
+  const timed = mode === 'time'
+  const todaySets = today.sets || planned.sets || 1
+  const inPlan = timed
+    ? today.sec == null || today.sec === planned.sec
+    : today.reps == null || (planned.repsMin > 0 ? today.reps >= planned.repsMin && today.reps <= planned.reps : today.reps === planned.reps)
+  const note = todaySets !== (planned.sets || 1) || !inPlan
+    ? t('today {0}', setsRepsOf({ mode, sets: todaySets, reps: today.reps, sec: today.sec }))
+    : entry.carried ? t('reps from your last session') : null
+  return t('Plan: {0}', setsRepsOf({ ...planned, mode })) + (note ? ' · ' + note : '')
+}
+
 /** The hero's meta line: "Barbell · 3 × 8 · 2:00 rest", "Timed · 2 × 0:30 a side", "… · done". */
 export function heroMeta(S, entry, { editing = false } = {}) {
   const cfg = cfgOf(entry)
@@ -319,6 +378,12 @@ export const EFFORT_OPTIONS = {
   rpe: () => [6, 7, 8, 9, 10].map(v => ({ value: v, label: String(v) })),
 }
 
+// A past set's numbers are their own island: in Arabic a set after the label took the label's
+// direction and read 8×60 where one after a Latin "RIR" read 60×8. Text that carries words of a
+// right-to-left script (a per-side set's side words) keeps its own direction, still isolated.
+const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/
+export const isolateDir = text => (RTL_LETTER.test(text) ? 'auto' : 'ltr')
+
 /** "17.5 × 12 · 12 · 11": one past session's sets, the weight said again only when it changes. */
 export const sessionLine = (exId, mode, sets, target, speedUnit) => sets.map((s, k) => {
   if (mode !== 'reps' || !(s.w > 0)) return setLabel(exId, s, target, speedUnit)
@@ -364,7 +429,9 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
     out.hero = {
       ...view.hero,
       image: pictureOf(S, entry.id),
+      clip: clipOf(S, entry.id),
       meta: heroMeta(S, entry, { editing }),
+      plan: planLineOf(entry),
       dots: entry.sets.map((s, k) => (s.done ? 'done' : k === open ? 'now' : 'todo')),
       dotsLabel: view.current ? view.current.setLine : null,
       howLabel: t('{0}, how to', view.hero.name),
@@ -438,8 +505,12 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       out.history = {
         title: t('{0}, last 3 times', view.hero.name),
         allLabel: t('All'),
-        rows: hist.sessions.map(x => ({ id: x.id, date: fmtDate(x.d, true), text: sessionLine(entry.id, x.mode, x.sets, x.target, S.speedUnit) })),
+        rows: hist.sessions.map(x => {
+          const text = sessionLine(entry.id, x.mode, x.sets, x.target, S.speedUnit)
+          return { id: x.id, date: fmtDate(x.d, true), text, dir: isolateDir(text) }
+        }),
         best: best ? t('Best: {0}', setText(S, { ...entry, target: best.target || entry.target }, best.set)) : null,
+        bestDir: best ? isolateDir(setText(S, { ...entry, target: best.target || entry.target }, best.set)) : null,
         bestSub: [e1 ? t('Est. 1RM {0}', fmtNum(Math.round(e1.est)) + ' ' + S.unit) : null, best ? fmtDate((e1 && e1.d) || best.d, true) : null].filter(Boolean).join(' · ') || null,
         first: null,
       }

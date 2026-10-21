@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DEF } from '../../store/useStore.js'
 import { EXIDX } from '../../lib/exercises.js'
-import { plateLineFor } from './workout-view.js'
+import { plateLineFor, plateLineForSet } from './workout-view.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn() }))
@@ -60,14 +60,54 @@ describe('the plate line', () => {
   })
 
   // old :122 (body weight with added weight is one stack, "Load 25")
-  it.todo('a body-weight exercise with added weight is one stack, "Load 25" (old Workout.plates:122); plateLineFor returns a bar line or null, never a "Load" line. Check what the screen shows and add the case')
+  it('a body-weight exercise with added weight is one stack, "Load 25"', () => {
+    expect(line(COCOONS, 25)).toBe('Load 25')
+  })
+
+  it('a body-weight exercise without added weight has no line', () => {
+    expect(line(COCOONS, 0)).toBeNull()
+  })
+
   // old :111, :148 (the short note): ported in exercise-drawers.extra.test.jsx, on the Plate loading drawer
+
+  // old :179: the Plate loading row reads Per side for a machine, and the line follows
+  it('a machine loaded per side with its own weight never says Bar', () => {
+    const MACHINE = Object.values(EXIDX).find(e => e.eq === 'leverage machine').id
+    const S = state({ loadKind: { [MACHINE]: { kind: 'pairs', _ts: 1 } }, barWeights: { [MACHINE]: 50 } })
+    const text = line(MACHINE, 145, { S })
+    expect(text).toBe('45 + 2.5 per side')
+    expect(text).not.toContain('Bar')
+  })
+})
+
+// The line for a logged row (plateLineForSet): per-side rows and the editor.
+describe('the plate line for a row', () => {
+  const LUNGE = '0054' // barbell lunge, the coach runs it per side
+  const side = (L, R) => ({ w: Math.max(L, R), r: 16, done: false, sides: { L: { w: L, r: 8, done: false }, R: { w: R, r: 8, done: false } } })
+  const lunge = sets => ({ id: LUNGE, target: { sets: sets.length, reps: 8, w: 65, side: true }, sets })
+  const forRow = (s, opts) => plateLineForSet(state(), lunge([s]), s, opts)
+
+  // old :70: both legs share the bar
+  it('a per-side bar exercise loads from the sides\' shared bar', () => {
+    expect(forRow(side(65, 65))).toBe('Bar 45 lb + 10 each side')
+  })
+
+  it('uses the side that has a number while the other has none yet', () => {
+    expect(forRow(side(65, 0))).toBe('Bar 45 lb + 10 each side')
+  })
+
   // old :80
-  it.todo('sides carrying different weights get no line (old Workout.plates:80): the screen builds the line from the heavier side (workout-view.js:161 `s.w`)')
-  // old :70
-  it.todo('a per-side bar exercise loads from the sides\' shared bar (old Workout.plates:70)')
-  // old :179
-  it.todo('a machine loaded per side with its own weight reads "Per side", not "Bar" (old Workout.plates:179): plateLineFor always says "Bar {0}"')
-  // old :197
-  it.todo('a saved workout being corrected has no plate line (old Workout.plates:197): WorkoutFocus passes the line whatever `editing` says')
+  it('sides carrying different weights get no line, not the heavier one\'s', () => {
+    expect(forRow(side(65, 75))).toBeNull()
+  })
+
+  it('a plain row loads its own weight', () => {
+    expect(forRow({ w: 145, r: 6, done: false })).toBe('Bar 45 lb + 45 + 5 each side')
+    expect(forRow({ w: 0, r: 6, done: false })).toBeNull()
+  })
+
+  // old :197 (#203)
+  it('a saved workout being corrected has no plate line', () => {
+    expect(forRow({ w: 145, r: 6, done: false }, { editing: true })).toBeNull()
+  })
 })
