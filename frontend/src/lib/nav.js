@@ -19,11 +19,28 @@ let liveSheetEntries = 0
 export const noteSheetEntries = n => { liveSheetEntries = n }
 export const sheetEntriesLive = () => liveSheetEntries
 
-export function closeThenNav(close, to) {
+// The `close` a sheet's render is handed closes that sheet alone; in a drawer's sub-panel that is
+// the panel, and a page change must take the whole drawer with it. `close.drawer` is the drawer's
+// (the same function for a sheet that is not a panel).
+const wholeDrawer = close => close?.drawer || close
+
+// Closes the drawer `close` belongs to and then runs `go(replace)`, which moves to another page:
+// `replace` says the new page takes the sheet's history entry (a drawer on one entry). A drawer
+// that holds sub-panels holds several, and one replace can only take one of them: they are all
+// walked off (Modals.jsx) first and `go(false)` pushes the page.
+export function closeThen(close, go) {
+  const drawer = wholeDrawer(close)
+  if (onSheetEntry() && liveSheetEntries > 1) {
+    drawer?.()
+    whenSheetGone(() => go(false))
+    return
+  }
   const replace = onSheetEntry()
-  close()
-  nav(to, replace ? { replace: true } : undefined)
+  drawer?.()
+  go(replace)
 }
+
+export const closeThenNav = (close, to) => closeThen(close, replace => nav(to, replace ? { replace: true } : undefined))
 
 // Runs `fn` once the sheet closing in this same handler has had its history entry walked off
 // (Modals.jsx does it after the sheet closes, while the address is still the one it opened on).
@@ -50,7 +67,7 @@ export function whenSheetGone(fn) {
 // not stay in history, or back lands on the page it replaced. The sheet's entry is walked off
 // first, then the page itself is replaced.
 export function closeThenReplace(close, to) {
-  close()
+  wholeDrawer(close)()
   whenSheetGone(() => nav(to, { replace: true }))
 }
 

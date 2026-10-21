@@ -125,6 +125,14 @@ const FADE_RM = {
   enter: { keyframes: [{ opacity: 0 }, { opacity: 1 }], ms: MS.rm, easing: 'linear' },
   exit: { keyframes: [{ opacity: 0 }], ms: MS.rm, easing: 'linear' },
 }
+/** A drawer's sub-panel slides over 260 ms (the same curve the drawer itself uses); reduced motion
+ *  crossfades over 150 ms. */
+export const PANEL_MS = 260
+export const PANEL_RM_MS = 150
+const PANEL_FADE = {
+  enter: { keyframes: [{ opacity: 0 }, { opacity: 1 }], ms: PANEL_RM_MS, easing: 'linear' },
+  exit: { keyframes: [{ opacity: 0 }], ms: PANEL_RM_MS, easing: 'linear' },
+}
 export const PRESETS = {
   // The sheet rises over --slow and leaves on the curve it came in on; the extra 32px clears its shadow.
   sheet: {
@@ -143,6 +151,22 @@ export const PRESETS = {
   sheetSwap: {
     exit: { keyframes: [{ opacity: 0 }], ms: MS.exitFast, easing: EASE.exit },
     rm: FADE_RM,
+  },
+  // A drawer's sub-panel (components/sheet-panes.jsx): in from the right over PANEL_MS and back out
+  // to it; the panel under it moves 30% the other way (panelDeepen) and returns (panelSurface).
+  // Reduced motion: a 150 ms opacity crossfade, nothing moves.
+  panelSlide: {
+    enter: { keyframes: [{ transform: 'translateX(100%)' }, { transform: 'none' }], ms: PANEL_MS, easing: EASE.ease },
+    exit: { keyframes: [{ transform: 'translateX(100%)' }], ms: PANEL_MS, easing: EASE.ease },
+    rm: PANEL_FADE,
+  },
+  panelDeepen: {
+    enter: { keyframes: [{ transform: 'none' }, { transform: 'translateX(-30%)' }], ms: PANEL_MS, easing: EASE.ease },
+    rm: { enter: { keyframes: [{ opacity: 1 }, { opacity: 0 }], ms: PANEL_RM_MS, easing: 'linear' } },
+  },
+  panelSurface: {
+    enter: { keyframes: [{ transform: 'translateX(-30%)' }, { transform: 'none' }], ms: PANEL_MS, easing: EASE.ease },
+    rm: { enter: { keyframes: [{ opacity: 0 }, { opacity: 1 }], ms: PANEL_RM_MS, easing: 'linear' } },
   },
   toast: {
     enter: { keyframes: [{ opacity: 0, transform: `translateY(${SHIFT.sm}px)` }, { opacity: 1, transform: 'none' }], ms: MS.med, easing: EASE.ease },

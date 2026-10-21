@@ -8,12 +8,13 @@ import { EXDB, EXIDX } from './lib/exercises.js'
 import { exerciseNameFor } from './lib/i18n.js'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { replaceExerciseSheet } from './sheets.jsx'
 
 const BENCH = EXIDX['0025']
 const mounted = []
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -91,7 +92,8 @@ describe('replaceExerciseSheet', () => {
     const host = renderTop()
     const search = [...host.querySelectorAll('button')].find(b => b.textContent === 'Search all exercises')
     act(() => search.click())
-    expect(useUI.getState().sheets).toHaveLength(2)
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
     const picker = renderTop()
     expect(picker.querySelector('h2').textContent).toBe('Replace exercise')
     expect(picker.querySelector('.g-bs-chip').textContent).toBe('Push A')

@@ -6,6 +6,7 @@ import { swapActiveWorkoutExercise } from './sheets.jsx'
 import { EXDB } from './lib/exercises.js'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 
 const clone = value => JSON.parse(JSON.stringify(value))
 const ids = EXDB.slice(0, 3).map(exercise => exercise.id)
@@ -30,10 +31,10 @@ function installActive() {
 
 function submitSwap(index, exercise, config) {
   swapActiveWorkoutExercise(index)
-  const picker = useUI.getState().sheets.at(-1)
+  const picker = topSurface(useUI.getState().sheets)
   const pickerView = picker.render(picker.close)
   act(() => pickerView.props.onPick(exercise))
-  const configSheet = useUI.getState().sheets.at(-1)
+  const configSheet = topSurface(useUI.getState().sheets)
   const configView = configSheet.render(configSheet.close)
   act(() => configView.props.onSave(config))
 }
@@ -90,7 +91,7 @@ describe('swapping an exercise kept out of progression', () => {
   it('keeps it out when the replacement goes in after logged sets', () => {
     install(true)
     submitSwap(0, EXDB[2], { mode: 'reps', sets: 1, reps: 12, weight: 10 })
-    const confirm = useUI.getState().sheets.at(-1)
+    const confirm = topSurface(useUI.getState().sheets)
     act(() => confirm.render(confirm.close).props.onConfirm())
     const entries = useStore.getState().S.active.entries
     expect(entries.map(e => e.id)).toEqual([ids[0], ids[2]])
@@ -126,11 +127,11 @@ describe('active exercise swap locale coverage', () => {
 describe('swap wording', () => {
   it('titles the picker as a swap and confirms into this workout', () => {
     swapActiveWorkoutExercise(1)
-    const picker = useUI.getState().sheets.at(-1)
+    const picker = topSurface(useUI.getState().sheets)
     const pickerView = picker.render(picker.close)
     expect(pickerView.props.title).toBe('Swap exercise')
     act(() => pickerView.props.onPick(EXDB[2]))
-    const configSheet = useUI.getState().sheets.at(-1)
+    const configSheet = topSurface(useUI.getState().sheets)
     const configView = configSheet.render(configSheet.close)
     expect(configView.props.saveLabel).toBe('Use in this workout')
   })

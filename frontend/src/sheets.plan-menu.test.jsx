@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { setNav } from './lib/nav.js'
 import { planShareSheet, planToolsSheet } from './sheets.jsx'
 
@@ -15,7 +16,7 @@ const mounted = []
 const EMPTY_HINT = 'Add an exercise to a routine first. An empty plan has nothing to share.'
 
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
