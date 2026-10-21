@@ -8,14 +8,15 @@ import Act from './Act.jsx'
 // `{ id, n, name, state, label }`: `state` 'next', 'done', 'pinned', 'later' or null, `label` what
 // a screen reader says for the chip ("1. Push A, Up next"). `numbered` puts `n` in each chip.
 // `empty` is said in place of the chips when there are none. `action` is one quiet text button
-// on the right of the title, `{ label, onClick, pressed }` (Edit / Done). Strings come from the caller.
+// on the right of the title, `{ label, ariaLabel, onClick, pressed }` (Edit / Done). Strings come
+// from the caller.
 export default function LoopStrip({ title, line, items = [], numbered = true, empty, note, action }) {
   return (
     <section className="g-loop g-glass">
       <div className="g-loop-top">
         <h2 className="g-loop-title">{title}</h2>
         {line && <span className="g-loop-line">{line}</span>}
-        {action && <Act onClick={action.onClick} pressed={action.pressed} className="g-loop-act">{action.label}</Act>}
+        {action && <Act onClick={action.onClick} pressed={action.pressed} ariaLabel={action.ariaLabel} className="g-loop-act">{action.label}</Act>}
       </div>
       {items.length > 0
         ? (
