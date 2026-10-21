@@ -157,6 +157,8 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
       : cfg
   })
   const [inSuperset, setInSuperset] = useState(!!options?.superset)
+  // Workout progression (W1.48): "Don't count today", kept out of progression for this session.
+  const [noCount, setNoCount] = useState(!!options?.noCount)
   // Workout drawers-M2: the part of the workout (lib/workout-parts.js), held by the caller.
   const [part, setPart] = useState(options?.part || 'main')
   // Cardio keeps its own duration+speed form; the reps/time choice (issue #16) is offered for
@@ -538,6 +540,12 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         </Row>}
         {options?.onSupersetChange && <Row icon="link" iconTint="var(--acc)" title={t('Superset with the exercise above')}>
           <Switch checked={inSuperset} onChange={v => { setInSuperset(v); options.onSupersetChange(v) }} />
+        </Row>}
+        {/* Workout progression: what today's number is, and the way to leave today out. */}
+        {options?.today && <p className="g-cfg-note">{options.today}</p>}
+        {options?.onNoCountChange && <Row icon="chartLineSlash" title={t('Don’t count today')}
+          subtitle={t('Logged as usual, left out of progression. For a sore day or a different machine.')}>
+          <Switch checked={noCount} onChange={v => { setNoCount(v); options.onNoCountChange(v) }} />
         </Row>}
         {/* Workout drawers-M2 */}
         {options?.onPartChange && <>

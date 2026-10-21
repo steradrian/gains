@@ -83,7 +83,7 @@ export default function WorkoutScreen() {
   if (!view) return null
   const { top, progress, hero, rest, footer, editing, empty, allDone } = view
   const showAllDone = !!allDone && !peek && !editing
-  const status = top.offline ? (top.offline.waiting != null ? t('Offline · {0} waiting', top.offline.waiting) : t('Offline')) : null
+  const status = top.offline ? (top.offline.waiting != null ? t('Offline · {0} waiting', top.offline.waiting) : t('Offline')) : top.notCounted || null
   // An empty freestyle session has nothing to finish: its pill is Discard (W1.30).
   const discards = empty && !useStore.getState().S.active?.routineIds?.length
   const finish = editing ? finishWorkout : discards ? discardSheet : finishSheet
@@ -114,7 +114,7 @@ export default function WorkoutScreen() {
         <WorkoutTopBar
           title={editing ? top.dateLine : top.name}
           clock={editing ? null : top.start ? <Elapsed start={top.start} /> : top.dateLine}
-          status={status}
+          status={status} statusIcon={top.offline ? 'wifiOff' : 'chartLineSlash'}
           closeIcon={editing} closeLabel={t('Close editor')} onClose={closeEditor}
           minimiseLabel={t('Minimise')} onMinimise={() => back()}
           finishLabel={top.finishLabel} onFinish={finish}

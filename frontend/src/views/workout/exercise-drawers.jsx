@@ -23,6 +23,7 @@ import { exerciseHistory, bestSetFor } from '../../lib/exercise-history.js'
 import { plannedConfigOf } from '../../lib/session-start.js'
 import { routineSlotIndex } from '../../lib/routines.js'
 import { weightIncrement } from '../../lib/progression.js'
+import { progressionGuidance } from '../../lib/progression-copy.js'
 import DurationWheel from '../../components/DurationWheel.jsx'
 import { applyRestLeft } from '../../components/RestTimer.jsx'
 import ExerciseStillRow from '../../components/ExerciseStillRow.jsx'
@@ -389,6 +390,12 @@ export function openHowTo(idx) {
   if (at) openDs(close => <HowToDrawer at={at} close={close} />)
 }
 
+/** "Today: Hit 12 reps in every set. Add 2.5 kg and go back to 8.": the plan's own reason, or null with no plan. */
+const todayOf = entry => {
+  const guidance = progressionGuidance(entry.plan)
+  return guidance && entry.plan.kind !== 'first' ? t('Today: {0}', t(...guidance.why)) : null
+}
+
 /**
  * Exercise settings for the exercise at `idx`, from inside the workout: the routine editor's sheet
  * at the plan's sets and reps, with "Part of the workout". A part changed there moves the exercise
@@ -406,7 +413,13 @@ export function exerciseSettingsSheet(idx) {
   exConfigSheet(exOr(entry.id), opened, cfg => {
     if (!applyExerciseSettingsAt(idx, cfg, opened, at)) return
     if (part !== partOf(useStore.getState().S.active.entries[idx])) setEntryPart(idx, part)
-  }, null, routine, null, null, undefined, { part, onPartChange: p => { part = p } })
+  }, null, routine, null, null, undefined, {
+    part, onPartChange: p => { part = p },
+    // Today's number and why, from the plan the session was built with (W1.48).
+    today: todayOf(entry),
+    // A routine that keeps its exercises out has no switch of its own, as in the ⋯ menu.
+    ...(routineKeepsOut(S, entry) ? {} : { noCount: entry.noProg === true, onNoCountChange: on => setNoProgAt(idx, on) }),
+  })
 }
 
 /* ------------------------------------------------------------- Plate loading (W1.25) -- */

@@ -14,6 +14,7 @@ import { editCompletedSession } from '../../lib/session-edit.js'
 import { lastEntryFor } from '../../lib/history.js'
 import { addExerciseSheet, workoutOptionsSheet } from './drawers.js'
 import { setNoProgAt } from './workout-actions.js'
+import { progressionOf } from './workout-view.js'
 import { finishSheet } from './finish-drawers.js'
 import { addRoutineToSessionSheet } from '../../sheets.jsx'
 
@@ -194,5 +195,17 @@ describe('the whole-workout switch in the saved-workout editor', () => {
 })
 
 describe('what the old cards showed', () => {
-  it.todo('every kept-out exercise shows "Not counted for progression" on its card, with an Undo [old Workout.noprog-session.test.jsx:111, :121, :145-153, :201, :217; no marker in views/workout]')
+  // The marker is W1.50 and W1.51's dashed line: the exercise's own, or "the whole workout is left out"
+  // with an Undo that counts it again; a deload routine's exercise shows it with no button.
+  it('every kept-out exercise shows the not-counted line, the session\'s own says the whole workout, a deload routine\'s has no Undo', () => {
+    seed([entry(BENCH, 'main', 100), entry(ROW, 'deload', 40, { noProg: true })])
+    const S = () => useStore.getState().S
+    expect(progressionOf(S(), A(), A().entries[0])).toBeNull()
+    expect(progressionOf(S(), A(), A().entries[1])).toMatchObject({ type: 'skipped', scope: 'exercise', text: 'Not counted for progression today', undoable: false })
+    act(() => setNoProgAt(0, true))
+    expect(progressionOf(S(), A(), A().entries[0])).toMatchObject({ type: 'skipped', scope: 'exercise', undoable: true, undoLabel: 'Undo, count it again' })
+    act(() => setNoProgAt(0, false))
+    toggleSession()
+    expect(progressionOf(S(), A(), A().entries[0])).toMatchObject({ type: 'skipped', scope: 'session', text: 'The whole workout is left out of progression', undoable: true })
+  })
 })

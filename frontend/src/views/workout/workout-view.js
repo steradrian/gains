@@ -15,7 +15,10 @@ import { partOf, partsOf } from '../../lib/workout-parts.js'
 import { isBw, isPerSide, repStep, effortOf, EFFORT, setsRepsOf } from '../../lib/history.js'
 import { weightIncrement } from '../../lib/progression.js'
 import { isPyramid, pyramidLabel } from '../../lib/pyramid.js'
-import { ownedWeightsFor } from '../../lib/dumbbells.js'
+import { ownedWeightsFor, bellsIn, dbLoadOf } from '../../lib/dumbbells.js'
+import { progressionGuidance } from '../../lib/progression-copy.js'
+import { sessionNoProg } from '../../lib/session-noprog.js'
+import { routineKeepsOut } from './workout-actions.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, INCLINE_STEP } from '../../lib/incline.js'
 import { exerciseHistory, bestSetFor } from '../../lib/exercise-history.js'
@@ -67,7 +70,19 @@ export function setText(S, entry, s) {
   if (mode !== 'reps' || !(s.w > 0)) return setLabel(entry.id, s, entry.target, S.speedUnit)
   const drops = dropsOf(s)
   if (drops.length) return [s, ...drops].map(d => fmtNum(d.w || 0) + ' × ' + (d.r || 0)).join(' + ')
+  // A weight logged per dumbbell says so ("22 each × 8"); the unit is on the stepper ("kg each").
+  if (isEachDb(entry)) return t('{0} each', fmtNum(s.w)) + ' × ' + (s.r || 0)
   return fmtNum(s.w) + ' ' + S.unit + ' × ' + (s.r || 0)
+}
+
+/**
+ * Whether the entry's weights are per dumbbell: the session logs "each" on a two-bell lift
+ * (W1.52). One-arm work has one bell, so the meaning is the same number and reads as it always did;
+ * volume counts both either way (lib/dumbbells.js volumeFactor).
+ */
+export function isEachDb(entry) {
+  const cfg = { ...(entry?.target || {}), id: entry?.id }
+  return !isBw(cfg) && bellsIn(cfg) === 2 && dbLoadOf(cfg.dbLoad) === 'each'
 }
 
 /**
@@ -314,6 +329,39 @@ export function planLineOf(entry) {
   return t('Plan: {0}', setsRepsOf({ ...planned, mode })) + (note ? ' · ' + note : '')
 }
 
+const PROGRESSION_ICON = { up: 'arrowUp', deload: 'arrowDown' }
+
+/**
+ * The line under the hero (boards W1.0, W1.47, W1.49, W1.50, W1.51): what progression decided for
+ * this exercise, `{ type: 'plan', icon, tone, policy, reason, label }`, or, when the exercise or the
+ * whole workout is kept out, `{ type: 'skipped', scope, text, undoText, undoLabel, undoable }`.
+ * Null where no line draws and none of its space is kept: a warm-up or cool-down, a first time (the
+ * hero's "New to you" takes the spot), and progression off. A routine that keeps its exercises out
+ * by itself shows the skipped line with nothing to undo.
+ */
+export function progressionOf(S, A, entry) {
+  const part = partOf(entry)
+  if (part === 'warmup' || part === 'cooldown') return null
+  if (entry.noProg === true) {
+    const session = sessionNoProg(A)
+    return {
+      type: 'skipped', scope: session ? 'session' : 'exercise',
+      text: session ? t('The whole workout is left out of progression') : t('Not counted for progression today'),
+      undoable: session || !routineKeepsOut(S, entry),
+      undoText: t('Undo'), undoLabel: t('Undo, count it again'),
+    }
+  }
+  if (entry.plan?.kind === 'first') return null
+  const guidance = progressionGuidance(entry.plan)
+  if (!guidance) return null
+  const policy = t(guidance.policyLabel)
+  const reason = t(...guidance.why)
+  return {
+    type: 'plan', icon: PROGRESSION_ICON[entry.plan.kind] || 'lightbulb', tone: entry.plan.kind === 'deload' ? 'warning' : 'default',
+    policy, reason, label: t('{0}. {1} Opens exercise settings', policy, reason),
+  }
+}
+
 /** The hero's meta line: "Barbell · 3 × 8 · 2:00 rest", "Timed · 2 × 0:30 a side", "… · done". */
 export function heroMeta(S, entry, { editing = false } = {}) {
   const cfg = cfgOf(entry)
@@ -324,8 +372,13 @@ export function heroMeta(S, entry, { editing = false } = {}) {
   const n = perSideTime ? Math.ceil(work.length / 2) : work.length
   const kind = mode === 'time' ? t('Timed') : mode === 'cardio' ? t('Cardio')
     : isBw(cfg) && !work.some(s => s.w > 0) ? t('Body weight') : sentence(ex?.eq ? t(ex.eq) : '')
-  const plan = editing ? tn('{0} set', '{0} sets', n) : n ? setsRepsOf({ ...cfg, sets: n }) + (perSideTime ? ' ' + t('a side') : '') : null
-  const rest = !editing && entry.target?.restSec > 0 && mode !== 'time' ? t('{0} rest', fmtRest(entry.target.restSec)) : null
+  // The load the sets open at (W1.0, W1.52): "3 × 8–12 at 22 kg each". With it the rest chip
+  // below says the rest, so the meta line keeps it only for a lift with no load.
+  const loaded = !editing && mode === 'reps' && !isBw(cfg) && cfg.weight > 0
+    ? fmtNum(cfg.weight) + ' ' + (S.unit || 'kg') : null
+  const load = loaded ? (isEachDb(entry) ? t('{0} each', loaded) : loaded) : null
+  const plan = editing ? tn('{0} set', '{0} sets', n) : n ? setsRepsOf({ ...cfg, sets: n }) + (load ? ' ' + t('at {0}', load) : '') + (perSideTime ? ' ' + t('a side') : '') : null
+  const rest = !editing && !load && entry.target?.restSec > 0 && mode !== 'time' ? t('{0} rest', fmtRest(entry.target.restSec)) : null
   const finished = !editing && entry.sets.length > 0 && entry.sets.every(s => s.done) ? t('done') : null
   return [kind, plan, finished || rest].filter(Boolean).join(' · ')
 }
@@ -365,7 +418,7 @@ export function setFields(S, entry, i, side = null) {
   const k = entry.sets.filter(x => isWarmupRow(x) === warm).indexOf(s)
   const lastRow = last?.sets?.filter(x => isWarmupRow(x) === warm)[k]
   const lastReps = lastRow ? (side && lastRow.sides ? lastRow.sides[side]?.r : lastRow.r) : undefined
-  const weight = field('w', isBw(cfg) ? t('Added ({0})', S.unit) : S.unit, step, {
+  const weight = field('w', isBw(cfg) ? t('Added ({0})', S.unit) : isEachDb(entry) ? t('{0} each', S.unit) : S.unit, step, {
     weight: true, owned, hint: owned ? null : t('{0} {1} steps', fmtNum(step), S.unit),
   })
   // A side's own count steps by one; the step of two belongs to the set's total over both sides.
@@ -405,7 +458,9 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
   const H = sessionHistory(S)
   const labels = supersetLabels(entries)
   const entry = view.hero ? entries[view.hero.idx] : null
-  const out = { ...view }
+  const out = { ...view, progression: null }
+  // The whole workout kept out of progression is also said under the title (W1.51).
+  if (view.top && !editing && sessionNoProg(A)) out.top = { ...view.top, notCounted: t('Not counted for progression') }
 
   // The phase bar counts the open phase from its own first segment.
   const run = partsOf(entries).find(r => view.progress.index >= r.from && view.progress.index <= r.to)
@@ -438,6 +493,8 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       howLabel: t('{0}, how to', view.hero.name),
       moreLabel: t('{0}, options', view.hero.name),
     }
+    const progression = editing ? null : progressionOf(S, A, entry)
+    out.progression = progression?.type === 'plan' && view.hero.newToYou ? null : progression
 
     // NEW BEST on the heaviest done working set that beats the best before this session.
     let bestI = -1
