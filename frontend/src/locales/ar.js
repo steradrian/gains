@@ -3444,7 +3444,7 @@ export default {
   // --- Shared: week, the Week page, English until the translation pass ---
   '{0} L': '{0} L',
   '{0} is today': '{0} is today',
-  '{0} last week': '{0} last week',
+  '{0} by this point last week': '{0} by this point last week',
   '{0} of {1} kcal': '{0} of {1} kcal',
   '{0} on the week before': '{0} on the week before',
   'a day': 'a day',
@@ -3462,7 +3462,7 @@ export default {
   'of {0} a day': 'of {0} a day',
   'one missed on {0}': 'one missed on {0}',
   'one skipped on {0}': 'one skipped on {0}',
-  'Read-only. A day opens its Day page; today opens Today.': 'Read-only. A day opens its Day page; today opens Today.',
+  'A past day opens its Day page, today opens Today, and a day to come opens its plan.': 'A past day opens its Day page, today opens Today, and a day to come opens its plan.',
   'Sets per muscle this week': 'Sets per muscle this week',
   'Trends': 'Trends',
   'within {0} kcal': 'within {0} kcal',
@@ -3506,4 +3506,9 @@ export default {
   'Took': 'Took',
   'Tracking off': 'Tracking off',
   'Water and body': 'Water and body',
+  // --- Shared: Day and Week review fixes, English until the translation pass ---
+  'Food not loaded yet': 'Food not loaded yet',
+  '{0} kcal, no target': '{0} kcal, no target',
+  '{1} of {0} workout': '{1} of {0} workout',
+  '{1} of {0} workouts': '{1} of {0} workouts',
 }
