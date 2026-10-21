@@ -870,7 +870,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': 'Izomegyensúly',
   'Weekly muscle volume': 'Heti izomvolumen',
-  'No muscle volume planned.': 'Nincs tervezett izomvolumen.',
   'Fatigue': 'Fáradtság',
   'Ready': 'Kész',
   'Recovering': 'Regenerálódik',
@@ -2114,7 +2113,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'Húzd az átrendezéshez. Koppints a mínuszra a törléshez.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Koppints egy rutinra a szerkesztéshez. Átrendezés és törlés a Szerkesztés alatt.',
   'Pick one routine, or more to train them together.': 'Válassz egy rutint, vagy többet, hogy együtt edzd őket.',
-  'Planned sets per week, from your plan.': 'Tervezett sorozatok hetente, a terved alapján.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'Időzítő jelzései',
   'Units & language': 'Mértékegységek és nyelv',

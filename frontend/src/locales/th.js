@@ -870,7 +870,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': 'ความสมดุลของกล้ามเนื้อ',
   'Weekly muscle volume': 'ปริมาณการฝึกกล้ามเนื้อรายสัปดาห์',
-  'No muscle volume planned.': 'ไม่มีปริมาณการฝึกกล้ามเนื้อที่วางแผนไว้',
   'Fatigue': 'ความล้า',
   'Ready': 'พร้อม',
   'Recovering': 'กำลังฟื้นตัว',
@@ -2122,7 +2121,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'ลากเพื่อจัดลำดับ แตะเครื่องหมายลบเพื่อลบ',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'แตะรูทีนเพื่อแก้ไข การจัดลำดับและการลบอยู่ในแก้ไข',
   'Pick one routine, or more to train them together.': 'เลือกหนึ่งรูทีน หรือหลายรูทีนเพื่อฝึกด้วยกัน',
-  'Planned sets per week, from your plan.': 'เซ็ตที่วางแผนต่อสัปดาห์ จากแผนของคุณ',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'การแจ้งเตือนของตัวจับเวลา',
   'Units & language': 'หน่วยและภาษา',

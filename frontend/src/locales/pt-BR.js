@@ -121,7 +121,6 @@ export const PT_BR_OVERRIDES = {
   'Planned': 'Planejado',
   'Completed': 'Concluído',
   'Weekly muscle volume': 'Volume muscular semanal',
-  'No muscle volume planned.': 'Nenhum volume muscular planejado.',
   'Enter a name': 'Informe um nome',
   'Registration failed': 'Falha no cadastro',
   'Create your profile': 'Crie seu perfil',
@@ -1126,7 +1125,6 @@ export const PT_BR_OVERRIDES = {
   'Drag to reorder. Tap the minus to delete.': 'Arraste para reordenar. Toque no sinal de menos para excluir.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Toque em uma rotina para editar. Reordenar e excluir ficam em Editar.',
   'Pick one routine, or more to train them together.': 'Escolha uma rotina, ou várias para treinar juntas.',
-  'Planned sets per week, from your plan.': 'Séries planejadas por semana, a partir do seu plano.',
   // --- Settings (v1.3.11) ---
   'Logging': 'Registro',
   'Buttons on the workout screen': 'Botões na tela de treino',

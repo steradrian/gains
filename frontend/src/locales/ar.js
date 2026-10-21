@@ -768,7 +768,6 @@ export default {
   'Admin dashboard': 'لوحة الإدارة',
   'Muscle balance': 'توازن العضلات',
   'Weekly muscle volume': 'حجم العضلات الأسبوعي',
-  'No muscle volume planned.': 'لا يوجد حجم عضلي مخطط.',
   'Fatigue': 'الإجهاد العضلي',
   'Ready': 'جاهز',
   'Recovering': 'يتعافى',
@@ -2166,7 +2165,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'اسحب لإعادة الترتيب. اضغط علامة الناقص للحذف.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'اضغط على روتين لتعديله. إعادة الترتيب والحذف ضمن تعديل.',
   'Pick one routine, or more to train them together.': 'اختر روتينًا واحدًا، أو أكثر لتتمرنها معًا.',
-  'Planned sets per week, from your plan.': 'المجموعات المخططة في الأسبوع، من خطتك.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'تنبيهات المؤقت',
   'Units & language': 'الوحدات واللغة',

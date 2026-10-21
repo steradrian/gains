@@ -951,7 +951,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': 'পেশির ভারসাম্য',
   'Weekly muscle volume': 'সাপ্তাহিক পেশি ভলিউম',
-  'No muscle volume planned.': 'কোনো পেশি ভলিউম প্ল্যান করা নেই।',
   'Fatigue': 'ক্লান্তি',
   'Ready': 'প্রস্তুত',
   'Recovering': 'রিকভারি চলছে',
@@ -2157,7 +2156,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'ক্রম বদলাতে টেনে সরান। মুছতে মাইনাসে ট্যাপ করুন।',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'সম্পাদনা করতে একটি রুটিনে ট্যাপ করুন। ক্রম বদলানো ও মুছে ফেলা “সম্পাদনা”-র ভেতরে।',
   'Pick one routine, or more to train them together.': 'একটি রুটিন বেছে নিন, অথবা একসাথে ট্রেন করতে একাধিক।',
-  'Planned sets per week, from your plan.': 'আপনার প্ল্যান অনুযায়ী প্রতি সপ্তাহে পরিকল্পিত সেট।',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'টাইমারের সতর্কতা',
   'Units & language': 'একক ও ভাষা',

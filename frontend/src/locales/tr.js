@@ -868,7 +868,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': 'Kas dengesi',
   'Weekly muscle volume': 'Haftalık kas hacmi',
-  'No muscle volume planned.': 'Planlanmış kas hacmi yok.',
   'Fatigue': 'Yorgunluk',
   'Ready': 'Hazır',
   'Recovering': 'Toparlanıyor',
@@ -2114,7 +2113,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'Sıralamak için sürükle. Silmek için eksiye dokun.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Düzenlemek için bir rutine dokun. Sıralama ve silme Düzenle altında.',
   'Pick one routine, or more to train them together.': 'Bir rutin seç ya da birlikte yapmak için birkaç tane.',
-  'Planned sets per week, from your plan.': 'Planına göre haftalık planlanan setler.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'Sayaç uyarıları',
   'Units & language': 'Birimler ve dil',

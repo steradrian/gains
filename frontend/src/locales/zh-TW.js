@@ -2004,7 +2004,6 @@ export default {
   'Show less': '顯示更少',
   'Completed': '已完成',
   'Weekly muscle volume': '每週肌肉訓練量',
-  'No muscle volume planned.': '尚未排定肌肉訓練量。',
   'Update routine': '更新課表',
   'Update “{0}”?': '要更新課表「{0}」嗎？',
   'Routine updated': '課表已更新',
@@ -2105,7 +2104,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': '拖曳可調整順序。點減號可刪除。',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': '點課表即可編輯。調整順序和刪除在「編輯」裡。',
   'Pick one routine, or more to train them together.': '選一個課表，或選多個一起練。',
-  'Planned sets per week, from your plan.': '依你的計畫，每週計畫的組數。',
   // --- Settings (v1.3.11) ---
   'Timer alerts': '計時提醒',
   'Units & language': '單位與語言',

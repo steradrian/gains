@@ -868,7 +868,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': 'Equilíbrio muscular',
   'Weekly muscle volume': 'Volume muscular semanal',
-  'No muscle volume planned.': 'Nenhum volume muscular planeado.',
   'Fatigue': 'Fadiga',
   'Ready': 'Pronto',
   'Recovering': 'Em recuperação',
@@ -2114,7 +2113,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'Arrasta para reordenar. Toca no sinal de menos para eliminar.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Toca numa rotina para a editar. Reordenar e eliminar estão em Editar.',
   'Pick one routine, or more to train them together.': 'Escolhe uma rotina, ou várias para as treinar juntas.',
-  'Planned sets per week, from your plan.': 'Séries planeadas por semana, a partir do teu plano.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'Alertas do temporizador',
   'Units & language': 'Unidades e idioma',

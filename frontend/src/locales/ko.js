@@ -868,7 +868,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': '근육 균형',
   'Weekly muscle volume': '주간 근육 볼륨',
-  'No muscle volume planned.': '계획된 근육 볼륨이 없습니다.',
   'Fatigue': '피로',
   'Ready': '준비됨',
   'Recovering': '회복 중',
@@ -2114,7 +2113,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': '드래그해서 순서를 바꾸세요. 삭제하려면 마이너스를 탭하세요.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': '루틴을 탭하면 편집할 수 있어요. 순서 변경과 삭제는 편집에 있어요.',
   'Pick one routine, or more to train them together.': '루틴 하나를 고르거나, 함께 하려면 여러 개를 고르세요.',
-  'Planned sets per week, from your plan.': '플랜에 따른 주간 계획 세트 수.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': '타이머 알림',
   'Units & language': '단위와 언어',

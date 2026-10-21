@@ -860,7 +860,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': 'Баланс мышц',
   'Weekly muscle volume': 'Недельный объём нагрузки на мышцы',
-  'No muscle volume planned.': 'Объём нагрузки на мышцы не запланирован.',
   'Fatigue': 'Усталость',
   'Ready': 'Готова',
   'Recovering': 'Восстанавливается',
@@ -2118,7 +2117,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'Перетащите, чтобы изменить порядок. Нажмите минус, чтобы удалить.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Нажмите на программу, чтобы изменить её. Порядок и удаление в разделе Изменить.',
   'Pick one routine, or more to train them together.': 'Выберите одну программу или несколько, чтобы делать их вместе.',
-  'Planned sets per week, from your plan.': 'Запланированные подходы в неделю по вашему плану.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'Сигналы таймера',
   'Units & language': 'Единицы и язык',

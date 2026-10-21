@@ -702,7 +702,6 @@ export default {
   // --- muscle map ---
   'Muscle balance': "Баланс м'язів",
   'Weekly muscle volume': 'Тижневий обсяг навантаження на м’язи',
-  'No muscle volume planned.': 'Обсяг навантаження на м’язи не заплановано.',
   'Fatigue': 'Втома',
   'Ready': 'Готовий',
   'Recovering': 'Відновлюється',
@@ -2109,7 +2108,6 @@ export default {
   'Drag to reorder. Tap the minus to delete.': 'Перетягни, щоб змінити порядок. Натисни мінус, щоб видалити.',
   'Tap a routine to edit it. Reorder and delete are behind Edit.': 'Натисни на програму, щоб змінити її. Порядок і видалення в розділі Змінити.',
   'Pick one routine, or more to train them together.': 'Вибери одну програму або кілька, щоб робити їх разом.',
-  'Planned sets per week, from your plan.': 'Заплановані підходи на тиждень за твоїм планом.',
   // --- Settings (v1.3.11) ---
   'Timer alerts': 'Сигнали таймера',
   'Units & language': 'Одиниці та мова',
