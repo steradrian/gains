@@ -8,6 +8,30 @@ import { useUI } from '../../store/useUI.js'
 import { discardWithUndo, DISCARD_UNDO_MS } from '../../lib/workout-discard.js'
 import { beginWorkout, confirmSheet, finishWorkoutSheet } from '../../sheets.jsx'
 
+/* ============================ Workout finish M2: leaving and Reopen ============================ */
+// A finish or a discard clears S.active a moment before the route changes (the drawer's history
+// entry is walked off first). In that moment /train/workout has nothing running and no `start`,
+// which is the way in, not the way out: WorkoutRoute renders nothing while this says so, rather
+// than today's Ready or the chooser.
+const LEAVING_MS = 1500
+let leavingUntil = 0
+export const markLeaving = (now = Date.now()) => { leavingUntil = now + LEAVING_MS }
+export const isLeaving = (now = Date.now()) => now < leavingUntil
+
+// What Reopen (W2.1) puts back, held from the save to the summary's Done, in memory only (never
+// in S). One at a time: a second save replaces it. `takeReopen(id)` hands it over once, and only
+// for the workout it was taken for.
+let held = null
+export function holdReopen(snapshot, workoutId) {
+  held = snapshot ? { snapshot, workoutId: String(workoutId) } : null
+}
+export function takeReopen(workoutId) {
+  if (!held || held.workoutId !== String(workoutId)) return null
+  const { snapshot } = held
+  held = null
+  return snapshot
+}
+
 /** W1.10 / W1.11: today's Finish sheet, its Discard going through discardSheet. */
 export function finishSheet() {
   finishWorkoutSheet({ onDiscard: () => discardSheet() })

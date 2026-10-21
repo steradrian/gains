@@ -20,5 +20,7 @@ export {
   saveWorkoutEdits, exitWorkoutEdit, setsLine, finishWorkout, finishWorkoutSheet,
   // Workout finish M1
   openReady, startFromReady, finishAndSave,
+  // Workout finish M2
+  readyOrStart, finishToSummary,
 } from './sheets/workout-flow.jsx'
 export { startChooserSheet, dayOptionsSheet } from './sheets/train-day.jsx'

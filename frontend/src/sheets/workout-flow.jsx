@@ -2,13 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { EXIDX, exOr, beatsWeight, isCustomEx } from '../lib/exercises.js'
-import { fmtDate, fmtNum, fmtVol, fmtDur, todayISO, isoOf, uid, exCount, setsWorkCount } from '../lib/format.js'
-import { effectiveRoutineIds, bestWeightForEntry, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, setLabel, workSetsDone, NOTE_MAX } from '../lib/history.js'
+import { fmtDate, fmtNum, todayISO, isoOf, uid, exCount } from '../lib/format.js'
+import { effectiveRoutineIds, bestWeightForEntry, workoutVolume, setsDoneActive, setUnitsTotal, NOTE_MAX } from '../lib/history.js'
 import { beep } from '../lib/sound.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from '../lib/nav.js'
-import { back } from '../lib/use-tab-nav.js'
-import WorkoutMediaSection from '../components/WorkoutMedia.jsx'
 import { workoutMediaOf } from '../lib/media-refs.js'
 import Stepper from '../components/Stepper.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
@@ -17,15 +15,12 @@ import { REST_MAX, fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Switch, SelectRow, Row } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
-import BodyMap from '../components/BodyMap.jsx'
-import { exerciseMuscleSnapshot, loadOfWorkouts } from '../lib/muscles.js'
-import { speedUnitOf } from '../lib/speed.js'
+import { exerciseMuscleSnapshot } from '../lib/muscles.js'
 import { buildCompletedWorkout, sessionEnd } from '../lib/finish-workout.js'
 import { refillAfter } from '../lib/rotation.js'
 import { repeatSessionEntries } from '../lib/session-repeat.js'
 import { useSheetKeyboard, tappable }from '../lib/use-sheet-keyboard.js'
 import { buildSessionEntries } from '../lib/session-start.js'
-import { finishCompare, finishCardio } from '../lib/finish-compare.js'
 import { joinSessionNoProg } from '../lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from '../lib/session-merge.js'
 import { syncNow } from '../lib/nutrition/sync.js'
@@ -42,7 +37,8 @@ import { mediaGoesToo } from './workout-detail.jsx'
 import { onSheetEntry } from '../lib/nav.js'
 import { sessionBests } from '../lib/workout-finish.js'
 import { countsForRecords, normaliseParts, partOf } from '../lib/workout-parts.js'
-import { warmupOfferSheet } from '../views/workout/finish-drawers.js'
+import { warmupOfferSheet, holdReopen, markLeaving } from '../views/workout/finish-drawers.js'
+import { closeThenReplace } from '../lib/nav.js'
 
 /* ============================ workout lifecycle ============================ */
 // Start / Resume from anywhere (the + sheet, the Training hub): back to the session that is on,
@@ -121,6 +117,16 @@ export function startFromReady(ids) {
     if (entries.some(e => partOf(e) === 'warmup')) warmupOfferSheet(ids, bw)
     else beginWorkout(ids, bw)
   })
+}
+
+/* ============================ Workout finish M2: the way in ============================ */
+// Every Start of a plan (Today's ▶, Train, the chooser) goes through Ready first (owner question
+// 3); Freestyle has nothing to show there and starts at once, after the weigh-in. Repeat today,
+// Resume and a past workout keep starting directly.
+export function readyOrStart(ids) {
+  const list = [].concat(ids ?? []).filter(Boolean)
+  if (list.length) openReady(list)
+  else startFlow([])
 }
 
 // "Repeat today" (#58): a saved workout's exercises as a new freestyle session dated today, each
@@ -509,18 +515,11 @@ export const supersetSheet = (meta, onSave) => ui().openSheet(close => <Superset
    already computed via applyIntensifierPlan; an unplanned straight set can still grow one live
    by tapping "+ Drop"/"+ Burst", which appends with the same suggested-next-value math. */
 
-// Shown when the last exercise's last set is checked — finish, or keep going.
-function WorkoutComplete({ close }) {
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="checkCircle" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t("That's the whole workout!")}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.')}</div>
-    <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); useUI.getState().toast(t('Keep going: tap “+ Add exercise” below')) }}>{t('Continue workout')}</Button>
-  </div>
-}
-export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
+// The centre sheet that popped after the last set is gone (Workout finish M2): the screen's
+// "Every set done" state (W1.9) says it, and its Finish opens the Finish drawer (W1.10). The name
+// stays, doing nothing, only while views/workout/use-workout.js and drawers.js still call it;
+// core-M3 and drawers-M3 take those calls out.
+export const workoutCompleteSheet = () => {}
 
 export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
   // A save decision left open after the editor already closed (a second prompt from a route
@@ -600,75 +599,6 @@ export function setsLine(sets, unit) {
   }
   return sets.map(s => (s.w > 0 ? fmtNum(s.w) + '×' : '') + reps(s)).join(' · ')
 }
-const TREND = { 1: ['arrowUp', 'var(--green-ink)'], 0: ['minus', 'var(--text-2)'], [-1]: ['arrowDown', 'var(--orange-ink)'] }
-function LastAndNext({ st, w }) {
-  const rows = finishCompare(st, w)
-  if (!rows.length) return null
-  const nextWord = { up: t('step up'), hold: t('same again'), down: t('lighter'), deload: t('deload') }
-  return <div style={{ textAlign: 'start', marginBottom: 14 }}>
-    <h4 className="sec">{t('Last time and next time')}</h4>
-    <div className="list">{rows.map(row => {
-      const ex = EXIDX[row.id]
-      const tr = row.trend == null ? null : TREND[row.trend]
-      return <div key={row.id} className="item" style={{ display: 'block' }}>
-        <div className="row between" style={{ gap: 8 }}>
-          <span className={'tt ' + exerciseNameClass(ex)} style={{ fontWeight: 600 }}>{ex ? exerciseNameFor(ex) : row.id}</span>
-          {tr ? <span style={{ color: tr[1], display: 'inline-flex' }} aria-label={row.trend > 0 ? t('Up on last time') : row.trend < 0 ? t('Down on last time') : t('Same as last time')}><Icon name={tr[0]} /></span>
-            : <span className="tag nocap">{t('First time')}</span>}
-        </div>
-        <div className="small">{t('Today')}: {setsLine(row.today, st.unit)}</div>
-        {row.last && <div className="small dim">{t('Last time')}: {setsLine(row.last, st.unit)}</div>}
-        {row.next && <div className="small accent">{t('Next time')}: {row.next.w != null ? fmtNum(row.next.w) + ' ' + st.unit : ''}{row.next.w != null && row.next.r != null ? ' × ' : ''}{row.next.r != null ? row.next.r : ''} · {nextWord[row.next.kind]}</div>}
-      </div>
-    })}</div>
-  </div>
-}
-
-// The cardio of the session, which "Last time and next time" leaves out: minutes, speed and the
-// treadmill's incline as they were logged.
-function CardioDone({ st, w }) {
-  const rows = finishCardio(w)
-  if (!rows.length) return null
-  return <div style={{ textAlign: 'start', marginBottom: 14 }}>
-    <h4 className="sec">{t('Cardio')}</h4>
-    <div className="list">{rows.map((row, i) => {
-      const ex = EXIDX[row.id]
-      return <div key={i} className="item" style={{ display: 'block' }}>
-        <span className={'tt ' + exerciseNameClass(ex)} style={{ fontWeight: 600 }}>{ex ? exerciseNameFor(ex) : row.id}</span>
-        <div className="small">{row.sets.map(x => setLabel(row.id, x, row.target, speedUnitOf(st))).join('  ·  ')}</div>
-      </div>
-    })}</div>
-  </div>
-}
-
-function FinishSummary({ w, prs, e1prs = [], close }) {
-  const st = useStore(s => s.S)
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="trophy" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
-    <div className="tiles" style={{ textAlign: 'start' }}>
-      <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>
-      <div className="tile"><div className="l">{t('Volume')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtVol(w.vol, st.unit)}</div></div>
-      <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{setsWorkCount(setsDone(w), workSetsDone(w))}</div></div>
-      <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '–'}</div></div>
-    </div>
-    {(prs.length > 0 || e1prs.length > 0) && <div style={{ textAlign: 'start', marginBottom: 12 }}>
-      {prs.map(id => <div key={id} className="small accent row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} <span className={exerciseNameClass(EXIDX[id])}>{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span></div>)}
-      {e1prs.map(p => <div key={p.id} className="small accent row" style={{ gap: 5 }}><Icon name="chartLine" style={{ fontSize: 13 }} />{t('Best estimated 1RM:')} <span className={exerciseNameClass(EXIDX[p.id])}>{EXIDX[p.id] ? exerciseNameFor(EXIDX[p.id]) : p.id}</span> · {fmtNum(p.est)} {st.unit}</div>)}
-    </div>}
-    <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>
-    <BodyMap load={loadOfWorkouts([w])} body={st.body} />
-    <div style={{ height: 14 }} />
-    <LastAndNext st={st} w={w} />
-    <CardioDone st={st} w={w} />
-    {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
-        what is added here goes straight onto its record. */}
-    <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    {/* Back where the workout was opened from, its page taken off the tab's stack: going on to
-        Home left the Start screen under it, one back press away (lib/use-tab-nav.js back). */}
-    <Button variant="primary" onClick={() => { close(); back() }}>{t('Nice!')}</Button>
-  </div>
-}
 export function finishWorkout() {
   if (S().active?.editingWorkoutId) { saveWorkoutEdits(); return }
   const A = S().active
@@ -699,11 +629,21 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
     ],
   })
 }
-function doFinishWorkout() {
+function doFinishWorkout() { finishToSummary() }
+
+/* ============================ Workout finish M2: to the summary ============================ */
+// Finish and save, then the summary (W2.0, /train/workout/summary/:id) in the workout's place:
+// replaced, so Back never returns to a finished session. `close` is the drawer that asked; a
+// sheet that closed itself first (confirmSheet, menuSheet) is waited for the same way
+// (closeThenReplace), so its history entry goes before the replace. What Reopen needs is held in
+// memory for the summary's Done (views/workout/finish-drawers.js). Returns finishAndSave's result.
+export function finishToSummary(close) {
+  markLeaving()
   const saved = finishAndSave()
-  if (!saved) return
-  const { w, prs, e1prs } = saved
-  ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+  if (!saved) return null
+  holdReopen(saved.snapshot, saved.w.id)
+  closeThenReplace(close || (() => {}), '/train/workout/summary/' + encodeURIComponent(saved.w.id))
+  return saved
 }
 
 /* ============================ Workout finish M1: the save ============================ */
