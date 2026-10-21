@@ -34,6 +34,13 @@
   --glass: rgba(255,255,255,0.14);
   --glass-line: rgba(255,255,255,0.20);
   --glass-track: rgba(255,255,255,0.18);
+  --glass-new: rgba(255,255,255,0.12);
+  /* BodyMap's five stage shades (0 to 4 sets' worth), shared with the Week page's Less–More key */
+  --bm-stage-l0: color-mix(in srgb, var(--on-stage) 16%, transparent);
+  --bm-stage-l1: color-mix(in srgb, var(--on-stage) 34%, transparent);
+  --bm-stage-l2: color-mix(in srgb, var(--on-stage) 55%, transparent);
+  --bm-stage-l3: color-mix(in srgb, var(--on-stage) 78%, transparent);
+  --bm-stage-l4: var(--on-stage);
   --chrome-glass: rgba(255,255,255,0.90);
   --ink-stage: #2B2A28;
   --ink-stage-end: #0B0B0A;
@@ -142,9 +149,7 @@
   --g-toast-shadow: 0 14px 34px -12px rgba(0,0,0,0.5);
   /* A routine editor row or superset lifted by its drag handle (T5.0 Reorder) */
   --g-drag-shadow: 0 10px 28px rgba(0,0,0,0.22);
-  /* NotificationRow, and the Train charts on the stage (LineChart, BarChart, Heatmap, MonthGrid) */
-  --g-nrow-new: rgba(255,255,255,0.12);
-  --g-nrow-dot-halo: rgba(255,255,255,0.18);
+  /* The Train charts on the stage (LineChart, BarChart, Heatmap, MonthGrid) */
   --g-chart-dot-halo-stage: rgba(255,255,255,0.3);
   --g-chart-target-stage: rgba(255,255,255,0.6);
   --g-heat-stage-10: rgba(255,255,255,0.1);

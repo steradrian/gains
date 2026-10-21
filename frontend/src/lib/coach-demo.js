@@ -16,7 +16,7 @@ import { EXIDX, EXDB } from './exercises.js'
 import { modeOf, workoutVolume, workoutAt } from './history.js'
 import { isWarmupRow } from './workout-model.js'
 import { best1RM } from './onerm.js'
-import { fmtNum } from './format.js'
+import { fmtNum, isoOf } from './format.js'
 import { planHash } from './coach.js'
 import { t } from './i18n.js'
 
@@ -27,7 +27,6 @@ let job = null
 let timer = null
 let lastError = null    // the last job that ended without a proposal, in the server's shape
 
-const iso = d => d.toISOString().slice(0, 10)
 
 /** The routine the canned review aims at: the first with two exercises, one to swap and one to cut a set from. */
 const reviewable = S => (S.routines || []).find(r => (r.ex || []).length >= 2)
@@ -72,7 +71,7 @@ function buildReview(S, checkIn = null) {
     id: 'demo-review', kind: 'review', createdAt: Date.now(), expiresAt: Date.now() + 864e5,
     planHash: planHash(S), iteration: 1,
     summary: t('Three things worth changing, and one worth knowing about. Everything else is working: the squat and the pulls are both progressing on schedule.'),
-    evidence: { from: sessions[0]?.d || iso(new Date(Date.now() - 28 * 864e5)), to: sessions.at(-1)?.d || iso(new Date()), sessions: sessions.length || 9 },
+    evidence: { from: sessions[0]?.d || isoOf(new Date(Date.now() - 28 * 864e5)), to: sessions.at(-1)?.d || isoOf(new Date()), sessions: sessions.length || 9 },
     changes,
     notes: [
       ...(checkIn ? [t('Your check-in is in, and these suggestions take it into account.')] : []),
@@ -210,7 +209,12 @@ export const demoDebrief = (S, workoutId) => {
   if (!(S.workouts || []).some(w => w && w.d)) throw Object.assign(new Error(t('There’s no workout to look at yet. Log one first.')), { status: 409, code: 'noworkout' })
   return start('debrief', () => buildDebrief(S, workoutId))
 }
-export const demoResolve = () => { pending = null; return { ok: true } }
+// The server's rule: a resolve naming another proposal than the pending one changes nothing.
+// Forget calls it with no body, which clears whatever is pending.
+export const demoResolve = body => {
+  if (body?.proposalId == null || pending?.id === body.proposalId) pending = null
+  return { ok: true }
+}
 export const demoDisclosure = () => ({
   provider: 'demo', providerLabel: t('the configured AI provider'),
   categories: ['plan', 'training', 'bodyweight', 'profile', 'prefs'], version: 1

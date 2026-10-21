@@ -173,6 +173,13 @@ describe('CoachIntake — the consent screen', () => {
     expect(training.textContent).toContain('your session notes')
   })
 
+  it('the training line names the weekly check-in, which a review carries (consent version 3)', () => {
+    mount()
+    const training = all('.ob-consent-row').find(r => r.querySelector('b').textContent === 'Your logged training')
+    expect(training.textContent).toContain('your weekly check-in: how training felt, how you slept, and your note')
+    expect(CONSENT_VERSION).toBe(3)
+  })
+
   it('lists the built-in categories first, then whatever the server says actually goes', async () => {
     vi.mocked(disclosure).mockResolvedValue({ categories: ['plan', 'prefs'], providerLabel: 'Anthropic', payer: 'you', host: 'api.anthropic.com' })
     mount()

@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { onSheetEntry } from '../lib/nav.js'
+import { isDate } from '../lib/day-route.js'
 import { DAYN, exCount, fmtDate, fmtDur, todayISO } from '../lib/format.js'
 import { effectiveRoutineIds, NOTE_MAX } from '../lib/history.js'
 import { workoutsOn } from '../lib/backfill.js'
@@ -26,7 +27,6 @@ import { musclesLine } from '../views/train/use-train.js'
 import { logPastWorkoutSheet } from './workout-flow.jsx'
 import { S, toast, ui, update } from './shared.js'
 
-const ISO = /^\d{4}-\d{2}-\d{2}$/
 const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i])
 
 /** "Chest, shoulders, triceps · 55 min": what a session works, and how long one routine usually
@@ -243,7 +243,7 @@ export function usePlanDayParam() {
     const first = cold.current
     cold.current = false
     if (!day || open || openOn === day) return
-    if (first && ISO.test(day)) { dayOverrideSheet(day); return }
+    if (first && isDate(day)) { dayOverrideSheet(day); return }
     if (onSheetEntry()) return
     const rest = new URLSearchParams(search)
     rest.delete('day')

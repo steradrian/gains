@@ -71,7 +71,7 @@ describe('routinesOf (T4.0)', () => {
   it('a row carries up to three pictures and says when it is empty', () => {
     const v = routinesOf(boards({ routines: [routine('e', 'Empty', 0), routine('f', 'Full', 5)], week: {} }))
     const [empty, full] = v.all
-    expect(empty).toMatchObject({ empty: true, thumbs: [] })
-    expect(full.thumbs).toHaveLength(3)
+    expect(empty).toMatchObject({ empty: true, stills: [] })
+    expect(full.stills).toEqual(['0025', '0025', '0025'])
   })
 })

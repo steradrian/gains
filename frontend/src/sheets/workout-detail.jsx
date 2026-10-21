@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { EXIDX, figureOf, imgSrc } from '../lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, exerciseNameText } from '../lib/format.js'
-import { effectiveRoutineIds, workoutDay, workoutDuration, workoutVolume, setsDone, sessionSections, setLabel, NOTE_MAX } from '../lib/history.js'
+import { effectiveRoutineIds, workoutDay, workoutDuration, workoutVolume, workSetsDone, sessionSections, setLabel, NOTE_MAX } from '../lib/history.js'
 import { t, tn, exerciseNameFor } from '../lib/i18n.js'
-import { nav, closeThenNav } from '../lib/nav.js'
+import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
+import { dayTargetOf, firstLogDay, navToDay } from '../lib/day-route.js'
+import { diaryIndexDays } from '../lib/nutrition/diary-index.js'
 import WorkoutMediaSection, { workoutMediaCount } from '../components/WorkoutMedia.jsx'
 import { workoutMediaOf } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
@@ -15,7 +17,7 @@ import { Button, Row } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { MOBILE, shareExportBlob } from '../lib/mobile.js'
 import { speedUnitOf } from '../lib/speed.js'
-import { isWarmupRow, hasCompletedWork } from '../lib/workout-model.js'
+import { hasCompletedWork } from '../lib/workout-model.js'
 import { saveSessionAsRoutine } from '../lib/session-routines.js'
 import { useSheetKeyboard, tappable } from '../lib/use-sheet-keyboard.js'
 import { workoutFit, fitFileName } from '../lib/fit-export.js'
@@ -243,7 +245,7 @@ function WorkoutDetail({ w, close }) {
   const ms = workoutDuration(w)
   const tiles = [
     ms >= 60000 && { label: t('Time'), value: fmtDur(ms) },
-    { label: t('Sets'), value: fmtNum(setsDone(w)) },
+    { label: t('Sets'), value: fmtNum(workSetsDone(w)) },
     { label: t('Volume'), value: volumeText(w.vol ?? workoutVolume(w), st.unit) },
     w.bw && { label: t('Body weight'), value: fmtNum(w.bw) + ' ' + st.unit },
   ].filter(Boolean)
@@ -263,12 +265,12 @@ function WorkoutDetail({ w, close }) {
       {grouped ? groups.map(g => {
         const r = g.rid ? st.routines.find(x => x.id === g.rid) : null
         const items = g.items.map(i => w.entries[i])
-        const setN = items.reduce((n, e) => n + e.sets.filter(s => s.done && !isWarmupRow(s)).length, 0)
+        const setN = workSetsDone({ entries: items })
         return (
           <section key={g.rid || '__none'} className="g-wd-group">
             <p className="g-wd-group-head">
               <b>{r && <Icon name={glyphOf(r.emoji)} className="g-icon" />}{r ? r.name : t('Freestyle')}</b>
-              <span>{t('{0} sets', setN)} · {volumeText(workoutVolume({ entries: items }), st.unit)}</span>
+              <span>{tn('{0} set', '{0} sets', setN)} · {volumeText(workoutVolume({ entries: items }), st.unit)}</span>
             </p>
             {entryRows(g.units)}
           </section>
@@ -351,14 +353,28 @@ export function deleteWorkoutWithUndo(w) {
   return true
 }
 
+// A past day from the first log on opens its Day page (PR07 D1), under the tab on screen. Today, a
+// day to come, a day before the first log and a day off with a note (its note is in the day sheet)
+// keep the sheets they had.
+const opensDayPage = (st, iso) => {
+  const noteOnly = !(st.workouts || []).some(w => workoutDay(w) === iso) && dayNoteOf(st, iso)
+  return !noteOnly && dayTargetOf(iso, { today: todayISO(), first: firstLogDay(st, diaryIndexDays()) }) === 'day'
+}
+
 /**
- * Opens the day `iso`, as History's calendar and a workout's date open it. The board's target is
- * the Day view (`/train/day/:date`, PR-07), which this base does not route yet, so it falls back
- * to what the calendar sheet did: the day's workouts as a list when it has any, else the day sheet
- * to plan a session there. `close` is the drawer it is opened from, closed first so that its
- * history entry goes with it.
+ * Opens the day `iso`, as History's calendar, the heatmap and a workout's date open it: the Day
+ * page (`/:tab/day/:date`) when the day opens there, else what the calendar sheet did: the day's
+ * workouts as a list when it has any, else the day sheet to plan a session there. `close` is the
+ * drawer it is opened from, closed first so that its history entry goes with it (the Day page
+ * takes that entry's place).
  */
 export function openDay(iso, close) {
+  if (opensDayPage(S(), iso)) {
+    const replace = onSheetEntry()
+    close?.()
+    navToDay(iso, undefined, { replace })
+    return
+  }
   close?.()
   if ((S().workouts || []).some(w => workoutDay(w) === iso)) dayWorkoutsSheet(iso)
   else dayOverrideSheet(iso)
@@ -432,6 +448,7 @@ function Calendar({ start, close, onPick, onFuture }) {
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (note ? ' noted' : '') + (ate ? ' logged' : '') + (iso === todayISO() ? ' today' : '')}
       title={note ? dayNoteLine(note, t) : undefined} disabled={!!onPick && !onFuture && iso > todayISO()} onClick={() => {
       if (onPick) { close(); if (onFuture && iso > todayISO()) onFuture(iso); else onPick(iso); return }
+      if (opensDayPage(st, iso)) { openDay(iso, close); return }
       if (!ws) { close(); dayOverrideSheet(iso); return }
       if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
       close(); dayWorkoutsSheet(iso)
@@ -466,7 +483,7 @@ export function WorkoutRow({ w, onClick }) {
   return <div className="item" {...tappable(onClick)}>
     <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
     <div className="grow"><div className="tt">{workoutLabel(w)}</div>
-      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), tn('{0} set', '{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
+      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), tn('{0} set', '{0} sets', workSetsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
     {mediaN > 0 && <span className="wrow-media" title={tn('{0} photo or video', '{0} photos or videos', mediaN)} aria-label={tn('{0} photo or video', '{0} photos or videos', mediaN)}><Icon name="image" />{mediaN}</span>}
     {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
     <Icon name="chevronRight" className="chev" />

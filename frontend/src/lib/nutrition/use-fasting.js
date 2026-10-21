@@ -107,10 +107,14 @@ export const useFasting = create((set, get) => ({
 }))
 
 /** Turns the fasting tracker on or off for the person (NutriTrace's `fastingEnabled` setting, so
- *  its own diary follows). Throws an NtError; the settings are re-read on success. */
+ *  its own diary follows). The write goes into the cached settings as soon as the server has it,
+ *  then they are re-read. Throws an NtError when the write fails, or when the settings could not be
+ *  read back and the cache still does not hold the new value (nothing could say it took). */
 export async function setFastingEnabled(on) {
-  await NtApi.putSetting('fastingEnabled', on)
+  await useNutrition.getState().saveSetting('fastingEnabled', on)
   await useNutrition.getState().loadSettings({ force: true })
+  const { status, data, error } = useNutrition.getState().settings
+  if (status === 'error' && data?.fastingEnabled !== on) throw error
 }
 
 /** Whether the fasting tracker is on: nutrition reachable and the setting on. False until the

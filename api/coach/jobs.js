@@ -399,10 +399,18 @@ async function execute(job) {
 
 /* ---------- decisions ---------- */
 
-/** The client has applied (or discarded) the pending proposal. Record it and clear. */
-export function resolvePending(uid, { accepted = [], rejected = [], dismissed = false } = {}) {
+/**
+ * The client has applied (or discarded) the pending proposal. Record it and clear.
+ *
+ * `proposalId` names the proposal decided. One that is not the pending one is a no-op: a Dismiss
+ * the client commits after its Undo window must not clear (and log as dismissed) a proposal that
+ * arrived meanwhile. A request with no id, from an app built before it was sent, resolves
+ * whatever is pending, as it always did.
+ */
+export function resolvePending(uid, { accepted = [], rejected = [], dismissed = false, proposalId = null } = {}) {
   const rec = readUser(uid);
   if (!rec.pending) return { ok: true };
+  if (proposalId != null && rec.pending.id !== proposalId) return { ok: true };
   const history = [...(rec.history || []), {
     id: rec.pending.id, kind: rec.pending.kind,
     outcome: dismissed ? 'dismissed' : 'applied',

@@ -179,20 +179,9 @@ function LogPastWorkout({ initial, close }) {
     ...st.routines.map(r => ({ value: r.id, label: r.name })),
   ]
 
-  const go = replaceId => {
-    close()
-    const routineIds = routineId === PLANNED_DAY ? planned.map(r => r.id) : routineId ? [routineId] : []
-    beginBackfill({ iso: date, time, durationMin: Math.max(1, dur), routineIds, replaceId })
-  }
   const submit = () => {
-    if (!date || date > today) { toast(t('Pick a day up to today')); return }
-    if (!(dur >= 1)) { toast(t('Enter how long it took (at least 1 minute).')); return }
-    if (dur > MAX_DURATION_MIN) { toast(t('That’s more than a day. Keep it to 24 hours or less.')); return }
-    if (endsInFuture(date, time, dur)) { toast(t('That’s still in the future. Try an earlier start.')); return }
-    const existing = workoutsOn(st, date)
-    if (!existing.length) { go(null); return }
-    ui().openSheet(c => <SameDayChoice iso={date} existing={existing} close={c}
-      onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { kind: 'center' })
+    const routineIds = routineId === PLANNED_DAY ? planned.map(r => r.id) : routineId ? [routineId] : []
+    submitPastWorkout({ iso: date, time, durationMin: dur, routineIds }, { before: close })
   }
 
   return <>
@@ -231,6 +220,30 @@ function SameDayChoice({ iso, existing, onReplace, onAdd, close }) {
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
   </div>
 }
+/**
+ * Logs a past workout: checks the day, start and length, asks what to do when the day already has
+ * a workout, then opens the session for that date on the workout screen. `before` runs just before
+ * it opens (the form that asked closes then, so cancelling the same-day question keeps it).
+ * Returns false, with a toast saying why, when nothing opens. The Day page's Add past workout
+ * drawer (PR07 D1.6) and Log a past workout both come here.
+ */
+export function submitPastWorkout({ iso, time = '18:00', durationMin, routineIds = [] }, { before } = {}) {
+  if (S().active) { toast(t('Finish the current workout first.')); return false }
+  if (!iso || iso > todayISO()) { toast(t('Pick a day up to today')); return false }
+  if (!(durationMin >= 1)) { toast(t('Enter how long it took (at least 1 minute).')); return false }
+  if (durationMin > MAX_DURATION_MIN) { toast(t('That’s more than a day. Keep it to 24 hours or less.')); return false }
+  if (endsInFuture(iso, time, durationMin)) { toast(t('That’s still in the future. Try an earlier start.')); return false }
+  const go = replaceId => {
+    before?.()
+    beginBackfill({ iso, time, durationMin: Math.max(1, durationMin), routineIds, replaceId })
+  }
+  const existing = workoutsOn(S(), iso)
+  if (!existing.length) { go(null); return true }
+  ui().openSheet(c => <SameDayChoice iso={iso} existing={existing} close={c}
+    onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { kind: 'center' })
+  return true
+}
+
 // History's button hands this its click event; only a day from the plan counts as `initial`.
 export function logPastWorkoutSheet(initial) {
   if (S().active) { toast(t('Finish the current workout first.')); return }

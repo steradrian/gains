@@ -43,17 +43,28 @@ function axisOf(points) {
 // An id with no logged sessions stays on that exercise with an empty state; with no workouts at
 // all "No lifts yet" shows whatever ?ex= says. Without ?ex= the exercise trained heaviest opens;
 // without ?range= the chart starts on All.
+// The address is read on every render, never copied into state, so a change made while the page is
+// mounted (a tab in a sheet, Search's link to another exercise, Back) shows at once; the pick
+// handlers only write it.
 export default function ExerciseProgress() {
   const nav = useNavigate()
   const { search } = useLocation()
   const S = useStore(s => s.S)
-  const [exId, setExId] = useState(() => new URLSearchParams(search).get('ex'))
+  const params = new URLSearchParams(search)
+  const exId = params.get('ex')
+  const exRange = rangeFrom(search, 0)
+  const view = params.get('view') === 'sets' ? 'sets' : 'progress'
+  // The chart the user picked is cleared when the exercise changes, so each one opens on its own
+  // default (adjusted during render, React's pattern for state that follows a prop).
   const [picked, setPicked] = useState(null)
-  const [exRange, setExRange] = useState(() => rangeFrom(search, 0))
-  const [view, setView] = useState(() => (new URLSearchParams(search).get('view') === 'sets' ? 'sets' : 'progress'))
-  // The estimated 1RM leads when the exercise has one, as the board draws it; the chart falls back
-  // to the top set on its own for the rest.
-  const p = useExerciseProgress(S, { exId, exRange, exMetric: picked ?? 'e1rm' })
+  const [pickedFor, setPickedFor] = useState(exId)
+  if (pickedFor !== exId) {
+    setPickedFor(exId)
+    setPicked(null)
+  }
+  // The estimated 1RM leads when the exercise has two of them, as the board draws it; the chart
+  // opens on the top set for the rest.
+  const p = useExerciseProgress(S, { exId, exRange, exMetric: picked })
   const { curEx, hd } = p
   // The address names an exercise the log has no sets for; curEx is then the heaviest lift.
   const unlogged = !!curEx && !!exId && curEx !== exId
@@ -67,9 +78,9 @@ export default function ExerciseProgress() {
     const query = q.toString()
     nav('/progress/strength' + (query ? '?' + query : ''), { replace: true })
   }
-  const pickEx = id => { setExId(id); write('ex', id) }
-  const pickRange = v => { setExRange(v); write('range', v) }
-  const pickView = v => { setView(v); write('view', v === 'sets' ? 'sets' : null) }
+  const pickEx = id => write('ex', id)
+  const pickRange = v => write('range', v)
+  const pickView = v => write('view', v === 'sets' ? 'sets' : null)
 
   const labelOf = id => (EXIDX[id] ? exerciseNameText(EXIDX[id]) : p.nameOf(id))
   // An id that is neither in the catalogue nor in the log: no name to show but the id itself.
@@ -152,14 +163,20 @@ export default function ExerciseProgress() {
 
   // "up 6 kg in 3 months": said for the weight, estimate and rep lines when the window holds two
   // points and they differ. Effort is not a gain, and the per-set lines have no single number.
+  // On an assistance machine the top set is the help given, so a rise is "more help", not "up".
   const trend = p.onSets || p.onEff ? null : trendDelta(p.chartPts)
+  const help = p.shown === 'top' && !p.repsOnly && isAssisted(ex)
   const trendLine = (() => {
     if (!trend || !trend.delta) return null
     const amount = fmtNum(Math.abs(trend.delta)) + ' ' + chartUnit
     const up = trend.delta > 0
     const period = periodOf(exRange)
-    if (period) return up ? t('up {0} in {1}', amount, period) : t('down {0} in {1}', amount, period)
-    const since = fmtMonth(p.chartPts[0].d, true)
+    if (period) {
+      if (help) return up ? t('{0} more help in {1}', amount, period) : t('{0} less help in {1}', amount, period)
+      return up ? t('up {0} in {1}', amount, period) : t('down {0} in {1}', amount, period)
+    }
+    const since = fmtMonth(p.chartPts[0].d, true, { yearIfOld: true })
+    if (help) return up ? t('{0} more help since {1}', amount, since) : t('{0} less help since {1}', amount, since)
     return up ? t('up {0} since {1}', amount, since) : t('down {0} since {1}', amount, since)
   })()
 
@@ -168,10 +185,9 @@ export default function ExerciseProgress() {
   // "Last workout" is only said when the newest session has a volume to show.
   const lastVolume = h.sessions[0]?.volume > 0 ? h.sessions[0].volume : null
   // The best set reads "82.5 kg" with "× 6 · Mon 12 Oct" under it when it is a loaded rep set.
-  const [bestValue, ...bestRest] = bestSet ? bestSet.label.split(' × ') : []
   const tiles = [
-    bestSet && { label: t('Best set'), value: bestValue, sub: (bestRest.length ? '× ' + bestRest.join(' × ') + ' · ' : '') + fmtDate(bestSet.d, true) },
-    oldest && { label: t('Sessions'), value: fmtNum(h.total), sub: t('since {0}', fmtMonth(oldest.d, true)) },
+    bestSet && { label: t('Best set'), value: bestSet.value, sub: [bestSet.rest, fmtDate(bestSet.d, true)].filter(Boolean).join(' · ') },
+    oldest && { label: t('Sessions'), value: fmtNum(h.total), sub: t('since {0}', fmtMonth(oldest.d, true, { yearIfOld: true })) },
     lastVolume && { label: t('Volume'), value: fmtVol(lastVolume, S.unit), sub: t('last workout') },
   ].filter(Boolean)
 
@@ -179,13 +195,15 @@ export default function ExerciseProgress() {
   const chartShort = p.chartPts.length < 2
   const points = p.chartPts
 
+  // Why the chart is short: the 1RM has too few estimates while Top has a line, the range is too
+  // narrow, or the exercise was logged once.
+  const shortText = p.onE1 && p.e1Count < 2 && p.topCount >= 2 ? t('Fewer than two estimated 1RMs. Pick Top to see every workout.')
+    : exRange !== 0 && h.points.length >= 2 ? t('Fewer than two workouts in this period. Pick a longer one.')
+      : t('Log it twice to see a trend.')
+
   let chart
   if (chartShort) {
-    chart = (
-      <p className="g-xp-short g-glass">
-        {exRange !== 0 && h.points.length >= 2 ? t('Fewer than two workouts in this period. Pick a longer one.') : t('Log it twice to see a trend.')}
-      </p>
-    )
+    chart = <p className="g-xp-short g-glass">{shortText}</p>
   } else if (p.onSets) {
     // One line per set number, on the anchoring sessions' dates; a set number a session did not
     // reach leaves a gap.
@@ -195,7 +213,7 @@ export default function ExerciseProgress() {
       <LineChart
         tone="stage" label={caption} unit={setUnit} labels={axisOf(anchors)}
         values={anchors.map(a => a.y)}
-        pointLabels={anchors.map(a => fmtDate(a.d, true) + (a.note ? ': ' + a.note : ''))}
+        pointLabels={anchors.map(a => fmtDate(a.d, true) + (a.note ? ' · ' + a.note : ''))}
         series={p.perSetChart.series.map(s => ({ color: s.color, values: anchors.map(a => s.points.find(q => q.t === a.t)?.y ?? null) }))}
       />
       <span className="g-xp-keys">
@@ -250,11 +268,15 @@ export default function ExerciseProgress() {
         {bests.length > 0 && <>
           <StageSection title={t('New bests')} />
           <div className="g-xp-list">
-            {bests.map(s => (
-              <GlassRow key={s.id} trailing="chev" onClick={() => pickView('sets')}
-                title={setLabel(shownId, s.sets[bestSetIndex(s, h.metric)], s.target, p.speedUnit)}
-                sub={fmtDate(s.d, true) + (s.e1rm != null ? ' · ' + t('est. 1RM {0}', fmtNum(s.e1rm) + ' ' + S.unit) : '')} />
-            ))}
+            {bests.map(s => {
+              // A legacy record kept only its top weight, with no set to name.
+              const at = bestSetIndex(s, h.metric)
+              const record = at < 0 ? t('Top set {0}', fmtNum(s.value) + ' ' + S.unit) : setLabel(shownId, s.sets[at], s.target, p.speedUnit)
+              return (
+                <GlassRow key={s.id} trailing="chev" onClick={() => pickView('sets')} title={record}
+                  sub={fmtDate(s.d, true) + (s.e1rm != null ? ' · ' + t('est. 1RM {0}', fmtNum(s.e1rm) + ' ' + S.unit) : '')} />
+              )
+            })}
           </div>
         </>}
         {!isCardio(ex) && !isAssisted(ex) && (

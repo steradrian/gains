@@ -1,8 +1,9 @@
 name: Deploy web
 
-# Deploys the gains-web image that "Publish images to GHCR" just published for a push to main, to
-# production (fit.adrianster.com). Only `web` is recreated: og-api, nutrition, hub and caddy keep
-# their running containers, as the manual deploys did.
+# Deploys the gains-web and gains-api images that "Publish images to GHCR" just published for a push
+# to main, to production (fit.adrianster.com). Both come from this repo and share OPENGYM_TAG, so
+# `web` and `og-api` are recreated together and always run the same commit. Nutrition, hub and
+# caddy keep their running containers.
 #
 # Run it by hand (Actions → Deploy web → Run workflow, or `gh workflow run deploy-web.yml -f sha=…`)
 # to redeploy or roll back to any SHA that has a published gains-web image.
@@ -70,28 +71,48 @@ jobs:
           done
           exit 1
 
+      # The second connection of a run has dropped with a silent exit 255 several times (2026-10-21),
+      # so the deploy retries on 255. The script is safe to re-run: a retry after .env already holds
+      # TAG keeps the earlier backup, so a rollback still goes to the image from before this run.
       - name: Deploy web
         id: deploy
         run: |
-          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ConnectionAttempts=3 \
-            "$HOST" "TAG=$TAG bash -s" <<'REMOTE'
+          cat > remote.sh <<'REMOTE'
           set -euo pipefail
           cd /srv/fit/deploy
-          docker compose config --services | grep -qx web
+          # Read the list once: `config | grep -q` exits as soon as grep matches, compose then
+          # writes into a closed pipe and pipefail fails the script with 255, at random.
+          services=$(docker compose config --services)
+          grep -qx web <<<"$services"
+          grep -qx og-api <<<"$services"
           # Pull before touching .env, so a SHA without an image changes nothing.
-          OPENGYM_TAG="$TAG" docker compose pull -q web
-          ts=$(date +%Y%m%d-%H%M%S)
-          cp .env ".env.pre-web-$ts"
-          echo "$ts" > .last-web-deploy
+          OPENGYM_TAG="$TAG" docker compose pull -q web og-api
+          if ! grep -qx "OPENGYM_TAG=$TAG" .env; then
+            ts=$(date +%Y%m%d-%H%M%S)
+            cp .env ".env.pre-web-$ts"
+            echo "$ts" > .last-web-deploy
+          fi
+          ts=$(cat .last-web-deploy)
           echo "before: $(grep '^OPENGYM_TAG=' .env || echo unset)"
           grep -q '^OPENGYM_TAG=' .env || echo 'OPENGYM_TAG=' >> .env
           sed -i "s/^OPENGYM_TAG=.*/OPENGYM_TAG=$TAG/" .env
           echo "after:  $(grep '^OPENGYM_TAG=' .env)"
           grep -E '^(NUTRITRACE|HUB|CADDY)_TAG=' .env || true
-          docker compose up -d --no-deps web
-          docker compose ps web
-          echo "Rollback: cd /srv/fit/deploy && cp .env.pre-web-$ts .env && docker compose up -d --no-deps web"
+          docker compose up -d --no-deps web og-api
+          docker compose ps web og-api
+          echo "Rollback: cd /srv/fit/deploy && cp .env.pre-web-$ts .env && docker compose up -d --no-deps web og-api"
           REMOTE
+          for i in 1 2 3 4 5; do
+            rc=0
+            ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+              "$HOST" "TAG=$TAG bash -s" < remote.sh || rc=$?
+            [[ $rc -eq 0 ]] && exit 0
+            [[ $rc -eq 255 ]] || exit "$rc"
+            echo "ssh dropped with 255 (attempt $i); connection debug:"
+            ssh -v -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 "$HOST" true 2>&1 | tail -8 || true
+            sleep $((i * 15))
+          done
+          exit 255
 
       - name: Check the site
         run: curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors -o /dev/null "$SITE"
@@ -105,6 +126,6 @@ jobs:
           cd /srv/fit/deploy
           ts=$(cat .last-web-deploy)
           cp ".env.pre-web-$ts" .env
-          docker compose up -d --no-deps web
+          docker compose up -d --no-deps web og-api
           echo "Rolled back to: $(grep '^OPENGYM_TAG=' .env || echo unset)"
           REMOTE

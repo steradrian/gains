@@ -18,7 +18,7 @@ import { closeThenNav } from '../lib/nav.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
-import { fmtDate } from '../lib/format.js'
+import { fmtDate, isoOf } from '../lib/format.js'
 import { DEMO } from '../lib/demo.js'
 import { MOBILE } from '../lib/mobile.js'
 import {
@@ -114,7 +114,7 @@ export default function CoachChat() {
 
   const send = async () => {
     const msg = text.trim()
-    if (!msg || busy) return
+    if (!msg || busy || hiding) return
     setBusy(true)
     try {
       // A message about a proposed plan refines it. With no plan at all — the first attempt
@@ -133,7 +133,11 @@ export default function CoachChat() {
     setBusy(false)
   }
 
+  // While a Dismiss waits out its Undo window nothing new is asked for: the proposal it would
+  // bring could land before the dismissal is sent (review #5). The chips and the menu's asks
+  // already wait for `idle`; the composer is held below.
   const ask = async (fn, line) => {
+    if (hiding) return
     setBusy(true)
     try {
       await fn()
@@ -230,11 +234,11 @@ export default function CoachChat() {
         {community && <button type="button" className="tco-chip g-glass" onClick={showCohort}><Icon name="person" className="g-icon" />{t('Compare')}</button>}
       </div>}
       <div className="tco-composer-in">
-        <textarea rows={1} value={text} maxLength={maxMessageLen || 1000} placeholder={placeholder} disabled={!!job}
+        <textarea rows={1} value={text} maxLength={maxMessageLen || 1000} placeholder={placeholder} disabled={!!job || hiding}
           aria-label={t('Message the Coach…')}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
-        <button type="button" className="tco-send" onClick={send} disabled={!text.trim() || busy || !!job} aria-label={t('Send')}><Icon name="arrowUp" className="g-icon" /></button>
+        <button type="button" className="tco-send" onClick={send} disabled={!text.trim() || busy || !!job || hiding} aria-label={t('Send')}><Icon name="arrowUp" className="g-icon" /></button>
       </div>
       {cap?.limit > 0 && <div className="tco-cap">{t('{0} of {1} Coach runs used today', cap.used, cap.limit)}</div>}
     </div>
@@ -272,7 +276,7 @@ const stamp = at => {
   const d = new Date(at)
   const today = new Date()
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return d.toDateString() === today.toDateString() ? time : fmtDate(d.toISOString().slice(0, 10)) + ' · ' + time
+  return d.toDateString() === today.toDateString() ? time : fmtDate(isoOf(d)) + ' · ' + time
 }
 
 function Typing({ S, kind, coachLocal, config }) {

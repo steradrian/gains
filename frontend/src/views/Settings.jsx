@@ -412,7 +412,7 @@ export default function Settings({ page = null, find = null, via = null }) {
   const preview = {
     workout: () => (S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')) + ' · ' + layoutLabel,
     alerts: () => [S.sound ? t('Sound') : null, canVibrate && S.vibrate !== false ? t('Vibrate') : null, S.timerFlash ? t('Flash') : null].filter(Boolean).join(' · ') || t('Silent'),
-    notifications: () => (S.reminder?.on ? (S.reminder.time || DEF.reminder?.time || '') : t('Off')),
+    reminders: () => (S.reminder?.on ? (S.reminder.time || DEF.reminder?.time || '') : t('Off')),
     schedule: () => (mode === 'rotation' ? t('Rotation') : t('Fixed Week')) + ' · ' + shortWeekday(weekStartOf(S) === SUNDAY ? 0 : 1),
     units: () => (S.unit || 'kg') + ' · ' + (LANGS[lang] || lang),
     equipment: () => (S.equipFilterOn && activeProfile ? activeProfile.name : t('Everything')),
@@ -614,7 +614,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       </>
     },
 
-    notifications: () => <NotificationsCard S={S} update={update} toast={toast} />,
+    reminders: () => <NotificationsCard S={S} update={update} toast={toast} />,
 
     schedule: () => <>
       <Section>

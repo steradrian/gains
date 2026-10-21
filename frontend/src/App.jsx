@@ -87,6 +87,9 @@ import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
 import Trends from './views/Trends.jsx'
 import Recovery from './views/Recovery.jsx'
+import DayPage from './views/shared/DayPage.jsx'
+import WeekPage from './views/shared/WeekPage.jsx'
+import Notifications from './views/shared/Notifications.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -340,6 +343,15 @@ function Shell() {
               <Route path="/train/workout" element={<WorkoutRoute />} />
               {/* Workout finish M2: the summary, in the finished workout's place (replace). */}
               <Route path="/train/workout/summary/:id" element={<SummaryScreen />} />
+              {/* A past day and a week, pushed under the tab they were opened from (lib/day-route.js). */}
+              <Route path="/:tab/day/:date" element={<DayPage />} />
+              <Route path="/:tab/week/:week" element={<WeekPage />} />
+              {/* Shared: the notifications inbox, under the tab whose bell opened it
+                  (lib/tab-route.js notificationsPath). /me/notifications is Me's. */}
+              <Route path="/home/notifications" element={<Notifications />} />
+              <Route path="/train/notifications" element={<Notifications />} />
+              <Route path="/food/notifications" element={<Notifications />} />
+              <Route path="/me/notifications" element={<Notifications />} />
               {/* Me: Profile */}
               <Route path="/me" element={<SettingsRoute />} />
               <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />

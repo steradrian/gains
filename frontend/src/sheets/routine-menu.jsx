@@ -7,7 +7,7 @@ import MenuList from '../ds/MenuList.jsx'
 import { DAYN, todayISO, weekOrder, weekStartOf } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { MOBILE, printHtml, shareExport } from '../lib/mobile.js'
-import { closeThenNav, closeThenReplace } from '../lib/nav.js'
+import { closeThenNav, whenSheetGone } from '../lib/nav.js'
 import { planPrintHTML, printPlan } from '../lib/plan-share.js'
 import { queueOf } from '../lib/queue.js'
 import { rotationIds, scheduleModeOf } from '../lib/rotation.js'
@@ -45,7 +45,7 @@ export function printRoutine(id) {
 
 /* ---------------------------------------------------------------- T5.8 the menu -- */
 
-function RoutineMenu({ id, close, leave }) {
+function RoutineMenu({ id, close }) {
   const st = useStore(s => s.S)
   const r = routineOf(st, id)
   if (!r) return null
@@ -68,8 +68,12 @@ function RoutineMenu({ id, close, leave }) {
       onClick: () => duplicateRoutine(id, { open: true, go: to => closeThenNav(close, to) }) },
     { key: 'share', icon: 'share', label: t('Share routine'), detail: t('As a plan file, or on paper'), onClick: () => { close(); shareRoutineSheet(id) } },
     { key: 'settings', icon: 'gear', label: t('Routine settings'), detail: t('Icon, progression and deload'), onClick: () => { close(); routineSettingsSheet(id) } },
+    // The menu's entry is walked off first and the routine goes after: deleted under the open
+    // menu, the editor's missing-routine redirect wrote the address in the same commit as the
+    // close, and the menu's history entry stayed behind (Back landed on the deleted routine, again
+    // and again). The editor then steps back off its page (use-routine-editor, use-tab-nav back).
     { key: 'delete', icon: 'trash', tone: 'danger', label: t('Delete routine'), detail: t('Comes back with Undo for 8 s'),
-      onClick: () => { deleteRoutineWithUndo(id); if (leave) closeThenReplace(close, '/train/routines'); else close() } },
+      onClick: () => { close(); whenSheetGone(() => deleteRoutineWithUndo(id)) } },
   ]
   return (
     <BottomSheet title={r.name}>
@@ -79,11 +83,11 @@ function RoutineMenu({ id, close, leave }) {
 }
 
 /**
- * Opens T5.8, routine `id`'s menu (the editor's ⋯). Delete leaves the editor for the Routines
- * page, where its toast shows, unless `leave` is false (a caller already on the Routines page).
+ * Opens T5.8, routine `id`'s menu (the editor's ⋯). Delete takes the editor off the history, back
+ * to the page it was opened from (the Routines page, where its toast shows).
  */
-export const routineMenuSheet = (id, { leave = true } = {}) =>
-  ui().openSheet(close => <RoutineMenu id={id} close={close} leave={leave} />, { variant: 'ds' })
+export const routineMenuSheet = id =>
+  ui().openSheet(close => <RoutineMenu id={id} close={close} />, { variant: 'ds' })
 
 /* ----------------------------------------------------------- T5.8's drawers -- */
 

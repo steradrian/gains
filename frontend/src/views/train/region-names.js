@@ -7,3 +7,5 @@ export const andList = names => {
 // The names of lib/muscles.js REGIONS. Literal calls, so check-source-strings sees each key (REGIONS
 // holds the English). 'Back' alone is already the packs' back button, so the body part has a key of its own.
 export const REGION_NAME = { Chest: () => t('Chest'), Back: () => t('Back muscles'), Shoulders: () => t('Shoulders'), Arms: () => t('Arms'), Core: () => t('Core'), Legs: () => t('Legs') }
+/** Body parts (lib/muscles.js REGIONS names) as one translated list: "Legs and core". */
+export const regionList = names => andList(names.map(n => REGION_NAME[n]()))

@@ -4,6 +4,8 @@
 // line, in a loop and in a fixed week.
 import { describe, expect, it, vi } from 'vitest'
 import { fmtDate, isoOf, todayISO } from '../../lib/format.js'
+import { _setLangState } from '../../lib/i18n-core.js'
+import ru from '../../locales/ru.js'
 import { railDay } from '../train/use-train.js'
 import { alsoFixedOf, isEmpty, loopOf, loopState, planWeeks, subOf, volumeOf, weekRoutinesOf, VOLUME_TARGET } from './use-plan.js'
 
@@ -128,12 +130,29 @@ describe('volumeOf and isEmpty', () => {
     expect(v.rows.map(x => x.sets)).toEqual([...v.rows.map(x => x.sets)].sort((a, b) => b - a))
   })
 
+  it('picks the plural form from the number of sets, not the formatted text (Russian: 2 подхода)', () => {
+    const two = { id: 'two', name: 'Two', emoji: null, ex: [{ id: '0025', sets: 2 }] }
+    _setLangState('ru', ru, null, null)
+    try {
+      const rows = volumeOf(base({ routines: [two], week: { 1: ['two'] } })).rows
+      expect(rows.find(x => x.sets === 2).value).toBe('2 подхода')
+    } finally {
+      _setLangState('en', {}, null, null)
+    }
+  })
+
   it('nothing planned: no volume, and the page is empty (T3.3)', () => {
     expect(volumeOf(base())).toBeNull()
-    expect(isEmpty(base(), [])).toBe(true)
-    expect(isEmpty(base({ week: { 1: ['gone'] } }), [])).toBe(true)
-    expect(isEmpty(base({ week: { 1: ['push'] } }), [])).toBe(false)
-    expect(isEmpty(base(), ['push'])).toBe(false)
+    expect(isEmpty(base(), [], 'week')).toBe(true)
+    expect(isEmpty(base({ week: { 1: ['gone'] } }), [], 'week')).toBe(true)
+    expect(isEmpty(base({ week: { 1: ['push'] } }), [], 'week')).toBe(false)
+    expect(isEmpty(base(), ['push'], 'rotation')).toBe(false)
+    expect(isEmpty(base(), [], 'rotation')).toBe(true)
+  })
+
+  it('each mode reads only its own plan: a saved loop does not fill an empty fixed week', () => {
+    expect(isEmpty(base(), ['push', 'pull'], 'week')).toBe(true)
+    expect(isEmpty(base({ week: { 1: ['push'] } }), [], 'rotation')).toBe(true)
   })
 })
 
@@ -148,6 +167,10 @@ describe('subOf', () => {
   it('a loop names its routines and no days a week: there is no stored target to say', () => {
     expect(subOf(base(), { mode: 'rotation', seq: ['push', 'pull', 'legs'], empty: false })).toBe('Push A, Pull A, Legs')
     expect(subOf(base(), { mode: 'rotation', seq: [], empty: false })).toBeNull()
+  })
+
+  it('a fixed week with nothing in it has no empty name part, no leading separator', () => {
+    expect(subOf(base(), { mode: 'week', seq: [], empty: false })).toBe('0 days a week')
   })
 
   it('nothing planned says so', () => {

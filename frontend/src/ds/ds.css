@@ -82,8 +82,11 @@
 
 /* Stage: tab roots, onboarding and sign-in on the person's accent */
 .g-glass { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-/* --focus: every control on the dark stage gets a ring that shows on it, not only the ones listed */
-.g-stage { position: relative; overflow: hidden; min-height: 100%; color: var(--on-stage); background: var(--accent-stage-end); font-family: var(--font-sans); --focus: var(--on-stage); }
+/* --focus: every control on the dark stage gets a ring that shows on it, not only the ones listed.
+   overflow: clip, not hidden: hidden makes the stage a scroll box that never scrolls, and every
+   sticky part inside it (StageNavBar, the onboarding footer) stuck to that box instead of the
+   page. clip cuts the same; hidden stays first for a browser without clip (Safari before 16). */
+.g-stage { position: relative; overflow: hidden; overflow: clip; min-height: 100%; color: var(--on-stage); background: var(--accent-stage-end); font-family: var(--font-sans); --focus: var(--on-stage); }
 .g-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: linear-gradient(170deg, var(--accent-stage) 0px, var(--accent-stage-end) 900px); }
 .g-stage-glow { position: absolute; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, var(--accent-glow) 0%, var(--g-white-clear) 62%); }
 .g-stage-glow-a { left: 130px; top: -180px; opacity: .5; }
@@ -345,11 +348,11 @@ button.g-saved { cursor: pointer; }
 .g-bmap svg { display: block; flex: none; }
 .g-bmap-ph { min-height: 160px; }
 .g-bmap-stage .g-bm-sil { fill: color-mix(in srgb, var(--on-stage) 10%, transparent); }
-.g-bmap-stage .g-bm-m.l0 { fill: color-mix(in srgb, var(--on-stage) 16%, transparent); }
-.g-bmap-stage .g-bm-m.l1 { fill: color-mix(in srgb, var(--on-stage) 34%, transparent); }
-.g-bmap-stage .g-bm-m.l2 { fill: color-mix(in srgb, var(--on-stage) 55%, transparent); }
-.g-bmap-stage .g-bm-m.l3 { fill: color-mix(in srgb, var(--on-stage) 78%, transparent); }
-.g-bmap-stage .g-bm-m.l4 { fill: var(--on-stage); }
+.g-bmap-stage .g-bm-m.l0 { fill: var(--bm-stage-l0); }
+.g-bmap-stage .g-bm-m.l1 { fill: var(--bm-stage-l1); }
+.g-bmap-stage .g-bm-m.l2 { fill: var(--bm-stage-l2); }
+.g-bmap-stage .g-bm-m.l3 { fill: var(--bm-stage-l3); }
+.g-bmap-stage .g-bm-m.l4 { fill: var(--bm-stage-l4); }
 .g-bmap-stage .g-bm-m.sel { stroke: var(--on-stage); stroke-width: 2.5; }
 .g-bm-tap { cursor: pointer; }
 .g-bmap-light .g-bm-sil { fill: var(--surface-sunken); }
@@ -444,7 +447,11 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
   .g-sring-val, .g-sring-over, .g-skel { animation: none; }
   .g-rc-dot i, .g-sbtn, .g-spill, .g-gact { transition: none; }
   .g-sbtn.g-bell > span { transition: opacity 140ms; }
+  .g-sbtn.g-bell .g-bell-b, .g-sbtn.g-bell-close .g-bell-a { transform: none; }
 }
+/* The app's own reduced motion (Settings): the bell and its × swap without the turn. */
+:root[data-motion="reduce"] .g-sbtn.g-bell > span { transition: none; }
+:root[data-motion="reduce"] .g-sbtn.g-bell .g-bell-b, :root[data-motion="reduce"] .g-sbtn.g-bell-close .g-bell-a { transform: none; }
 
 /* === Drawer and toast kit (BottomSheet, UndoToast) ===
    No keyframes of their own: they come and go through the kit's presence (the app's sheet frame,
@@ -636,6 +643,102 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-wk-missed { box-shadow: inset 0 0 0 1.5px var(--g-ring-over); color: var(--g-ring-over); }
 .g-wk-rest i { width: 6px; height: 6px; border-radius: 50%; background: var(--glass-track); }
 
+/* Shared: search (PR-07 H0; bundle.js SearchSection, SearchRow, ResultChips, BestMatch; boards Sh0*) */
+/* StageHeader as the search field: the pill is the input, the scope a white chip in it */
+.g-spill-field { cursor: text; }
+.g-spill-field:active { transform: none; }
+.g-spill-field input { flex: 1; min-width: 0; border: 0; padding: 0; background: none; outline: none; font: 600 17px/22px var(--font-sans); color: var(--on-stage); caret-color: var(--on-stage); }
+.g-spill-field input::placeholder { color: var(--on-stage-2); font-weight: 500; opacity: 1; }
+.g-spill-field:focus-within { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-ssf-scope { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 28px; padding-inline: 10px 4px; border-radius: 999px; background: var(--on-stage); color: var(--accent-stage-end); font: 700 14px/18px var(--font-sans); }
+.g-ssf-scope-x { appearance: none; border: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: none; color: inherit; cursor: pointer; padding: 0; }
+.g-ssf-scope-x .g-icon { width: 14px; height: 14px; }
+/* Sections: an uppercase heading, an action, the rows in one glass card */
+.g-ssect-stage { display: flex; flex-direction: column; color: var(--on-stage); font-family: var(--font-sans); }
+.g-ssect-stage > .g-ssect-h { display: flex; justify-content: space-between; align-items: baseline; padding: 20px 20px 10px; }
+.g-ssect-stage > .g-ssect-h h2 { margin: 0; font: 700 13px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--on-stage-2); }
+.g-ssect-act { appearance: none; border: 0; background: none; padding: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage); text-decoration: none; cursor: pointer; }
+.g-ssect-stage > .g-scard { margin-inline: 16px; border-radius: 24px; overflow: hidden; }
+/* Go to: glass chips scrolling sideways (the padding keeps their focus rings inside the scroller) */
+.g-goto-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 6px; scrollbar-width: none; }
+.g-goto-row::-webkit-scrollbar { display: none; }
+.g-goto-chip { appearance: none; border: 0; flex: none; height: 40px; padding-inline: 12px 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; color: var(--on-stage); font: 600 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-goto-chip .g-icon { width: 18px; height: 18px; stroke-width: 2.1; }
+/* Rows on the stage; a card clips them, so their focus ring is drawn inside */
+.g-srow { appearance: none; border: 0; background: none; width: 100%; display: flex; align-items: center; text-align: start; font: inherit; color: inherit; cursor: pointer; text-decoration: none; }
+.g-srow-wrap { display: flex; align-items: center; }
+.g-srow-stage + .g-srow-stage { border-top: 1px solid var(--glass-line); }
+.g-srow-main { flex: 1; min-width: 0; }
+.g-srow-stage .g-srow { min-height: 66px; padding: 10px 14px; gap: 14px; color: var(--on-stage); }
+.g-srow-stage .g-srow-main:focus-visible, .g-srow-xbtn:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -2px; }
+.g-srow-media { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center; overflow: hidden; background: var(--glass); color: var(--on-stage); }
+.g-srow-media .g-icon { width: 21px; height: 21px; stroke-width: 2; }
+.g-srow-img { background: var(--g-white); object-fit: cover; padding: 0; }
+.g-srow-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.g-srow-date { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.g-srow-date small { font: 600 11px/13px var(--font-sans); text-transform: uppercase; color: var(--on-stage-2); }
+.g-srow-date b { font: 700 17px/20px var(--font-sans); }
+.g-srow-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-srow-title { font: 600 17px/22px var(--font-sans); }
+.g-srow-sub { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-srow-xbtn { appearance: none; border: 0; width: 44px; height: 44px; flex: none; margin-inline-end: 6px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--on-stage-2); cursor: pointer; padding: 0; }
+.g-srow-xbtn .g-icon { width: 18px; height: 18px; stroke-width: 2.2; }
+.g-hl { background: none; color: inherit; font-weight: 800; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+/* Count chips: glass, the one shown alone white */
+.g-rchips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 16px 16px 4px; font-family: var(--font-sans); }
+.g-rchips::-webkit-scrollbar { display: none; }
+.g-rchip { appearance: none; border: 0; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 38px; padding-inline: 14px; border-radius: 999px; color: var(--on-stage); cursor: pointer; }
+.g-rchip b { font: 800 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-rchip span { font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-rchip.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-rchip.on span { color: inherit; }
+/* Best match */
+.g-best { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 26px; color: var(--on-stage); text-align: start; text-decoration: none; font-family: var(--font-sans); cursor: pointer; }
+.g-best-img { width: 72px; height: 72px; flex: none; border-radius: 20px; overflow: hidden; }
+.g-best-ic { display: grid; place-items: center; background: var(--glass); color: var(--on-stage); }
+.g-best-ic .g-icon { width: 30px; height: 30px; }
+.g-best-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-best-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-best-body > span:first-child { font: 600 13px/16px var(--font-sans); }
+.g-best-body b { font: 700 21px/26px var(--font-sans); }
+.g-best-chev { width: 18px; height: 18px; flex: none; stroke-width: 2.2; }
+/* A switched-off feature's card */
+.g-sfeat { border-radius: 26px; padding: 18px; display: flex; flex-direction: column; gap: 14px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sfeat-top { display: flex; gap: 14px; align-items: flex-start; }
+.g-sfeat-ic { width: 48px; height: 48px; flex: none; border-radius: 16px; display: grid; place-items: center; background: var(--glass); }
+.g-sfeat-ic .g-icon { width: 22px; height: 22px; }
+.g-sfeat-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.g-sfeat-name { display: flex; gap: 8px; align-items: center; }
+.g-sfeat-name b { font: 700 19px/24px var(--font-sans); }
+.g-sfeat-off { display: inline-flex; align-items: center; height: 24px; padding-inline: 9px; border-radius: 999px; font: 700 12px/14px var(--font-sans); background: var(--glass); }
+.g-sfeat-line { font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); }
+.g-sfeat-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.g-sfeat-on, .g-sfeat-page { appearance: none; border: 0; height: 40px; padding-inline: 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font: 700 15px/20px var(--font-sans); cursor: pointer; }
+.g-sfeat-on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-sfeat-on[aria-disabled="true"] { opacity: .6; cursor: default; }
+.g-sfeat-page { color: var(--on-stage); }
+/* Shared: search M2 (owner direction: the bearmenu header). The tab root's header pinned to the top
+   of the window: its row (--shdr-h), the status bar and the connection row inside it once, on the
+   stage's own top colour so it paints under the notch; no line under it. The row keeps the page's
+   column on a wide screen. The search's panel starts at its bottom edge (search.css .search-ov). */
+:root { --shdr-h: 58px; }
+.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; background: var(--accent-stage); transform: translate3d(0, var(--vv-top, 0px), 0); }
+/* Its ground is the stage's art (StageBackground StageArt), the window's width and anchored where
+   the page's stage starts (#app's --conn padding), clipped to the header: the 170° gradient's stops
+   hang off the top corner, not the height, so at rest the colours, glows and rings run on into the
+   page's own with no edge (owner: no separator). Under the row, never over it. */
+.g-shdr-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.g-shdr-bg > .g-stage-art { top: var(--conn, 0px); bottom: auto; height: 100vh; }
+.g-shdr-act { flex: none; display: flex; }
+.g-shdr-act > .hdr-left { min-height: 44px; padding-inline: 14px; border-radius: 999px; white-space: nowrap; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-shdr-act > .hdr-left.over { color: var(--g-ring-over); }
+.g-ssf-scan { appearance: none; border: 0; flex: none; width: 36px; height: 36px; margin-inline-end: -8px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--on-stage); cursor: pointer; padding: 0; }
+.g-ssf-scan .g-icon { width: 20px; height: 20px; }
+/* The option the arrow keys are on (the field's aria-activedescendant), and a row that only says something */
+.g-srow-stage .g-srow-main[aria-selected="true"] { background: var(--glass); }
+.g-best[aria-selected="true"], .g-srow-xbtn[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-srow-note { cursor: default; }
+
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
    never painted: the line arrives on the ring's own edge and is gone. */
@@ -677,33 +780,24 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-nrow + .g-nrow { border-top: 1px solid var(--glass-line); }
 .g-nrow:focus-visible { outline-offset: -3px; }
 .g-nrow:active { background: var(--glass); }
-.g-nrow-new { background: var(--g-nrow-new); }
+.g-nrow-new { background: var(--glass-new); }
 .g-nrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .g-nrow-body b { font: 600 17px/22px var(--font-sans); }
 .g-nrow-new .g-nrow-body b { font-weight: 700; }
 .g-nrow-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-nrow-body small { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); opacity: .85; }
-.g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px var(--g-nrow-dot-halo); }
+.g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px var(--glass-track); }
 .g-nrow-gap { width: 10px; flex: none; }
 
 /* StageNote: the quiet line at the foot of a pushed page (Sh3Notifications: "Kept for 30 days…").
    .g-sbanner is the gutter a banner (InlineBanner stage) stands in on such a page (Sh3PermOff). */
 .g-snote { margin: 0; padding: 14px 24px 0; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+/* StagePageTitle: a pushed page's large title under its nav bar, and its line */
+.g-sptitle { padding: 10px 20px 6px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sptitle h1 { margin: 0; font: 700 32px/38px var(--font-sans); letter-spacing: -.025em; }
+.g-sptitle h1:focus { outline: none; }
+.g-sptitle p { margin: 4px 0 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-sbanner { padding: 4px 16px 14px; }
-
-/* StageEmpty: a glass disc or a white line-art scene, a title, a line, and a stack of buttons (T2.9 has three).
-   Identical to the Train kit's; whichever merges second drops its copy. */
-.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
-.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
-.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
-.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
-.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
-.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
-.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
-.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
-.g-sempty-btn .g-icon { width: 20px; height: 20px; }
-.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 
 /* Accent presets. The design system selects them by data-accent on any ancestor (it expects
    <html>); the app's <html data-accent> holds its own accents (sky, lime…), so here they are read
@@ -909,6 +1003,9 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-bmap-stage .g-bm-btn:focus-visible { stroke: var(--on-stage); stroke-width: 3; }
 .g-bmap-light .g-bm-btn:focus-visible { stroke: var(--accent-text); stroke-width: 3; }
 @media (prefers-reduced-motion: reduce) { .g-bm-btn { transition: none; } }
+/* Group 2: the muscle the keyboard is on rings every shape of it, not only its one focusable path */
+.g-bmap-stage .g-bm-m.g-bm-ring { stroke: var(--on-stage); stroke-width: 3; }
+.g-bmap-light .g-bm-m.g-bm-ring { stroke: var(--accent-text); stroke-width: 3; }
 /* Chip: the stage filter chip. The look is 26px high; the tap area is padded out to 44px. */
 .g-fchip { appearance: none; border: 0; position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 10px; border-radius: 999px; font: 700 13px/16px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
 .g-fchip::after { content: ""; position: absolute; inset: -9px -4px; }
@@ -921,9 +1018,8 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 
 /* === Train pushed-page kit (StagePage, GlassValueRow, StageSegmented, RadioRow, ChipGroup) === */
 /* A pushed page's stage at half the roots' intensity: the glows and the plate rings at half
-   strength, and no calm zone (the Classic look has none to drop). The stage also stops clipping,
-   or the sticky nav bar (.g-snav) could not stick: the art clips its own glows. */
-.g-screen-pushed > .g-stage { overflow: visible; }
+   strength, and no calm zone (the Classic look has none to drop). The stage clips with
+   `overflow: clip` (above), which is no scroll box, so the sticky nav bar (.g-snav) still sticks. */
 .g-screen-pushed .g-stage-glow-a { opacity: .25; }
 .g-screen-pushed .g-stage-glow-b { opacity: .14; }
 .g-screen-pushed .g-stage-rings { opacity: .5; }
@@ -942,7 +1038,121 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 [dir="rtl"] .g-sseg-thumb { transform: translateX(calc(var(--i) * -1 * (100% + 4px))); }
 .g-sseg button, .g-sseg a { appearance: none; border: 0; position: relative; z-index: 1; flex: 1 1 0; min-width: 0; height: 38px; padding: 0 8px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: none; color: var(--on-stage); font: 600 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; transition: color 200ms; }
 .g-sseg [aria-checked="true"] { color: var(--accent-text); }
-/* RadioRow: one option of a choice on a light drawer; the hairline starts at the text */
+/* === Shared: week (StageWeekCells, WeekStrip4, StatTiles; boards Sh2Week, Sh2WeekPast) === */
+/* The mini ring: a track and an arc of kcal against the day's target, amber past it */
+.g-mring { display: block; fill: none; transform: rotate(-90deg); flex: none; }
+.g-mring-track { stroke: var(--glass-track); }
+.g-mring-val { stroke: var(--on-stage); stroke-linecap: round; }
+.g-mring-over { stroke: var(--g-ring-over); }
+/* StageWeekCells: the card does not clip, so a cell's focus ring is never cut off */
+.g-swc { border-radius: 24px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-swc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 6px; }
+.g-swc-cell { appearance: none; border: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0; border-radius: 18px; background: none; color: inherit; font: inherit; text-decoration: none; cursor: pointer; transition: transform 180ms cubic-bezier(.34, 1.4, .64, 1); }
+.g-swc-cell:active { transform: scale(.95); }
+.g-swc-still { cursor: default; }
+.g-swc-still:active { transform: none; }
+.g-swc-dow { font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); }
+.g-swc-date { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 700 15px/1 var(--font-sans); }
+.g-swc-date.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-swc-m { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; }
+.g-swc-m .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+.g-swc-done { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-swc-missed { box-shadow: inset 0 0 0 1.5px var(--g-ring-over); color: var(--g-ring-over); }
+.g-swc-missed .g-icon { width: 13px; height: 13px; stroke-width: 2.8; }
+.g-swc-planned { box-shadow: inset 0 0 0 1.5px var(--glass-line); background: var(--glass); }
+.g-swc-skipped { background: var(--glass); color: var(--on-stage-2); }
+.g-swc-skipped .g-icon { width: 12px; height: 12px; stroke-width: 2.4; }
+.g-swc-rest i { width: 6px; height: 6px; border-radius: 50%; background: var(--glass-track); }
+.g-swc-none { width: 30px; height: 30px; display: grid; place-items: center; font: 600 12px/1 var(--font-sans); opacity: .6; }
+.g-swc-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 14px 14px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-swc-legend span { display: inline-flex; gap: 6px; align-items: center; }
+.g-swc-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.g-swc-k-done { background: var(--on-stage); }
+.g-swc-k-missed { box-shadow: inset 0 0 0 1.5px var(--g-ring-over); }
+/* WeekStrip4: the week on screen gets a white edge */
+.g-w4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-family: var(--font-sans); }
+.g-w4-cell { appearance: none; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 20px; color: var(--on-stage); font: inherit; text-align: start; text-decoration: none; transition: transform 180ms cubic-bezier(.34, 1.4, .64, 1); }
+button.g-w4-cell, a.g-w4-cell { cursor: pointer; }
+button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
+.g-w4-cell.on { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-w4-cell b { font: 700 14px/18px var(--font-sans); }
+.g-w4-bars { display: flex; gap: 3px; width: 100%; min-height: 26px; }
+.g-w4-bars i { flex: 1; height: 26px; border-radius: 5px; background: var(--glass-track); }
+.g-w4-bars i.on { background: var(--on-stage); }
+.g-w4-n { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); }
+/* StatTiles: white tiles on a light surface; on the stage glass at the boards' 18px and 12/14 */
+.g-stats { display: grid; gap: 10px; }
+.g-stats-c1 { grid-template-columns: minmax(0, 1fr); }
+.g-stats-c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g-stats-c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g-stat { min-width: 0; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; text-align: start; font-family: var(--font-sans); }
+.g-stat > span { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-stat b { font: 700 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); overflow-wrap: anywhere; }
+.g-stat .g-pos { color: var(--positive); font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat { border-radius: 18px; padding: 12px 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-stats-stage .g-stat > span { color: var(--on-stage-2); }
+.g-stats-stage .g-stat > span + b + span { font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat b { color: var(--on-stage); }
+.g-stats-stage .g-stat .g-pos { color: var(--on-stage); }
+
+/* === Shared: day (the Day page, boards Sh1Day to Sh1Skipped) === */
+/* StageDayRail: a day before the first log is dimmed and cannot be opened (PR07Edges). */
+.g-rd:disabled { opacity: .4; cursor: default; }
+
+/* DayStatusCard: a glyph on a disc, a title and a line, an optional tag, faded stills and pill
+   buttons. No overflow clip, so a button's focus ring is never cut. */
+.g-dstat { border-radius: 24px; padding: 16px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-dstat-head { display: flex; align-items: center; gap: 14px; }
+.g-dstat-ic { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-dstat-ic .g-icon { width: 22px; height: 22px; }
+.g-dstat-warn .g-dstat-ic { background: color-mix(in srgb, var(--g-ring-over) 22%, transparent); color: var(--g-ring-over); }
+.g-dstat-warn .g-dstat-head { align-items: flex-start; }
+.g-dstat-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.g-dstat-b b { font: 700 18px/24px var(--font-sans); }
+.g-dstat-b span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-dstat-off .g-dstat-b b { font-size: 17px; line-height: 22px; }
+.g-dstat-stack { display: flex; gap: 6px; padding-top: 14px; }
+.g-dstat-stack > span { display: flex; opacity: .55; }
+.g-dstat-stack img, .g-dstat-stack i { width: 44px; height: 44px; border-radius: 12px; background: var(--g-white); object-fit: cover; }
+.g-dstat-stack i { display: grid; place-items: center; color: var(--accent-stage-end); }
+.g-dstat-acts { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
+.g-dstat-btn { appearance: none; border: 0; min-height: 40px; box-sizing: border-box; padding: 0 16px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; background: var(--glass); color: var(--on-stage); font: 700 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-dstat-btn.solid { background: var(--on-stage); color: var(--accent-text); }
+.g-dstat-btn:focus-visible { outline-color: var(--on-stage); }
+
+/* DayFoodCard: the ring and the total, three macro bars, then a row a meal under a hairline. */
+.g-dfood { border-radius: 24px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-dfood-top { display: flex; align-items: center; gap: 16px; padding: 16px; }
+.g-dfood-ring { display: block; flex: none; fill: none; transform: rotate(-90deg); }
+.g-dfood-track { stroke: var(--glass-track); stroke-width: 8; }
+.g-dfood-fill { stroke: var(--on-stage); stroke-width: 8; stroke-linecap: round; }
+.g-dfood-num { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-dfood-num b { font: 700 28px/32px var(--font-sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.g-dfood-num b span { font: 500 16px/20px var(--font-sans); letter-spacing: 0; color: var(--on-stage-2); }
+.g-dfood-num > span { font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-dfood-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 4px 16px 16px; }
+.g-dfood-macro { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.g-dfood-macro b { font: 600 14px/18px var(--font-sans); }
+.g-dfood-macro > span:last-child { font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-dfood-bar { display: block; height: 6px; border-radius: 3px; background: var(--glass-track); overflow: hidden; }
+.g-dfood-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); border-radius: 3px; background: var(--on-stage); }
+.g-dfood-meal { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; background: none; border-top: 1px solid var(--glass-line); color: inherit; font: inherit; text-align: start; text-decoration: none; }
+button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
+.g-dfood-meal:last-child { border-end-start-radius: 24px; border-end-end-radius: 24px; }
+.g-dfood-meal:focus-visible { outline-color: var(--on-stage); outline-offset: -3px; }
+/* The meal holding an entry a search opened the day for: lit, then settling to a soft glass */
+.g-dfood-found { background: var(--glass-new); animation: g-dfood-found 1.8s ease; }
+@keyframes g-dfood-found { 0%, 45% { background: var(--glass); } 100% { background: var(--glass-new); } }
+@media (prefers-reduced-motion: reduce) { .g-dfood-found { animation: none; } }
+.g-dfood-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-dfood-ic .g-icon { width: 20px; height: 20px; }
+.g-dfood-mb { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-dfood-mb b { font: 600 17px/22px var(--font-sans); }
+.g-dfood-mb span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-dfood-kcal { flex: none; font: 700 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-dfood-kcal span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+
+/* RadioRow (bundle.js g-radio): one option of a choice on a light drawer; the hairline starts at the text */
 .g-radio { appearance: none; border: 0; background: none; width: 100%; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: var(--text); font: inherit; text-align: start; text-decoration: none; cursor: pointer; position: relative; }
 .g-radio + .g-radio::before { content: ""; position: absolute; top: 0; inset-inline: 16px 0; border-top: 1px solid var(--line); }
 .g-radio:active { background: var(--surface-press); }
@@ -1153,20 +1363,7 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 .g-tr3-imp-note { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
 @media (prefers-reduced-motion: reduce) { .g-tr3-mark { transition: none; } }
 
-/* === Train charts (StatTiles, LineChart, BarChart, Heatmap, MonthGrid; boards T7.0, T8.0, T9.0 to T9.6) === */
-/* StatTiles: two or three tiles; glass on the stage */
-.g-stats { display: grid; gap: 10px; }
-.g-stats-1 { grid-template-columns: minmax(0, 1fr); }
-.g-stats-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.g-stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.g-stat { border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: start; font-family: var(--font-sans); }
-.g-stat > span { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
-.g-stat b { font: 700 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); overflow-wrap: anywhere; }
-.g-stat .g-pos { color: var(--positive); font-size: 13px; line-height: 16px; }
-.g-stats-stage .g-stat { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.g-stats-stage .g-stat > span { color: var(--on-stage-2); }
-.g-stats-stage .g-stat b { color: var(--on-stage); }
-.g-stats-stage .g-stat .g-pos { color: var(--on-stage); }
+/* === Train charts (LineChart, BarChart, Heatmap, MonthGrid; boards T7.0, T8.0, T9.0 to T9.6) === */
 
 /* The chart card LineChart and BarChart share: white, or glass on the stage */
 .g-chart { position: relative; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 18px 16px 14px; }
@@ -1772,3 +1969,11 @@ a.g-dock-main, button.g-dock-main { cursor: pointer; }
 .g-load-bar { height: 8px; border-radius: 4px; background: var(--glass); overflow: hidden; }
 .g-load-bar i { display: block; height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--on-stage) 55%, transparent); }
 .g-load-bar i.hard { background: var(--on-stage); }
+
+/* The light drawers of the Day page: Add past workout's white cards (D1.6) and the line under a
+   drawer that says where its logs go (D1.5, D1.6). */
+.g-pw-card { border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); overflow: hidden; }
+.g-pw-card .g-radio:focus-visible { outline-offset: -3px; }
+.g-pw-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; padding: 18px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
+.g-bs-note { margin: 10px 0 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
+.g-bs-foot .g-bs-note { margin: 0; }

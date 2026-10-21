@@ -62,8 +62,11 @@ describe('NotificationRow', () => {
     view.render(<NotificationRow title="Coach moved Legs" isNew onClick={() => {}} />)
     expect(row().classList.contains('g-nrow-new')).toBe(true)
     expect(row().querySelector('.g-nrow-dot').getAttribute('aria-hidden')).toBe('true')
-    expect(row().querySelector('b .g-sr').textContent).toBe('New: ')
-    expect(row().textContent.startsWith('New: Coach moved Legs')).toBe(true)
+    // One string to translate, so a language can put "new" where it goes; the title it draws is
+    // hidden from a screen reader, which hears the spoken one alone.
+    expect(row().querySelector('b .g-sr').textContent).toBe('New: Coach moved Legs')
+    expect(row().querySelector('b [aria-hidden="true"]').textContent).toBe('Coach moved Legs')
+    expect(row().querySelector('b').children).toHaveLength(2)
   })
 
   it('holds the dot’s place on a read row, and says nothing about it', () => {

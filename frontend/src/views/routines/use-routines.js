@@ -7,7 +7,6 @@ import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { workoutControls } from '../../lib/workout-controls.js'
 import { starterPlanSheet, startFlow } from '../../sheets.jsx'
 import { useStore } from '../../store/useStore.js'
-import { pictureOf } from '../train/use-train.js'
 import { addRoutine, deleteRoutineWithUndo, duplicateRoutine, routineDaysOf, weekdayShort } from './routine-actions.js'
 
 // A row shows at most this many exercise pictures (board T4.0).
@@ -38,7 +37,9 @@ export function planWhereOf(S, id, loop = loopIds(S)) {
  *
  *   { count, planned, sub, groups: [{ key, title, rows }], freestyle, empty }
  *
- * `all` is every row in `S.routines` order (the Reorder list). A row is `{ id, name, sub, thumbs, empty, inPlan }`. "In your Plan" is a routine on a weekday
+ * `all` is every row in `S.routines` order (the Reorder list). A row is `{ id, name, sub, stills,
+ * empty, inPlan }`, `stills` the ids of its first exercises (each drawn by ExerciseStillImg, so a
+ * custom exercise shows its own picture). "In your Plan" is a routine on a weekday
  * or, while the Plan runs as a loop, in it. Its line is "6 exercises · Sun, Thu", or "· in your
  * loop" for one that is only in the loop. Outside the Plan the line says where the routine came
  * from ("· imported from Upper Lower", plan M3's `importedFrom`; "· imported" when the file had
@@ -62,7 +63,7 @@ export function routinesOf(S, { imported = null } = {}) {
     return {
       id: r.id, name: r.name, inPlan, empty: !r.ex?.length,
       sub: [n, where].filter(Boolean).join(' · '),
-      thumbs: (r.ex || []).slice(0, THUMBS).map(cfg => pictureOf(S, cfg.id)),
+      stills: (r.ex || []).slice(0, THUMBS).map(cfg => cfg.id),
     }
   }
   const rows = S.routines.map(row)

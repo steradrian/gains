@@ -114,16 +114,18 @@ describe('Training load: segments and deep links', () => {
 })
 
 describe('Training load: Activity', () => {
-  it('opens one workout, and the day for several or a noted day', () => {
-    const only = workout('only', '2026-09-10', [set()])
-    show('', { workouts: [only, workout('a', '2026-09-11', [set()]), workout('b', '2026-09-11', [set()])] })
+  it('opens a past day through openDay (its Day page), and today\'s one workout as its detail', () => {
+    const today = workout('today', '2026-09-30', [set()])
+    show('', { workouts: [workout('only', '2026-09-10', [set()]), workout('a', '2026-09-11', [set()]), workout('b', '2026-09-11', [set()]), today] })
     mocks.heatmaps.at(-1).onDay('2026-09-10')
-    expect(sheets.workoutDetailSheet).toHaveBeenCalledWith(only)
+    expect(sheets.openDay).toHaveBeenLastCalledWith('2026-09-10')
     mocks.heatmaps.at(-1).onDay('2026-09-11')
-    expect(sheets.openDay).toHaveBeenCalledWith('2026-09-11')
+    expect(sheets.openDay).toHaveBeenLastCalledWith('2026-09-11')
     mocks.heatmaps.at(-1).onDay('2026-09-12')
     expect(sheets.openDay).toHaveBeenLastCalledWith('2026-09-12')
-    expect(sheets.workoutDetailSheet).toHaveBeenCalledTimes(1)
+    expect(sheets.workoutDetailSheet).not.toHaveBeenCalled()
+    mocks.heatmaps.at(-1).onDay('2026-09-30')
+    expect(sheets.workoutDetailSheet).toHaveBeenCalledWith(today)
   })
 
   it('reads the metric from the profile and keeps a change on it', () => {

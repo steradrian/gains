@@ -73,6 +73,15 @@ describe('the rail', () => {
     expect(first.days.slice(0, 3).map(d => d.state)).toEqual(['plain', 'plain', 'done'])
   })
 
+  it('dims the same days the Day page refuses: before the first log, which may be a weigh-in or food before any workout', () => {
+    // First log Thu 1 Oct (lib/day-route.js firstLogDay), first workout Sat 3 Oct.
+    const rail = railOf(S({ workouts: [workout('w0', '2026-10-03', ['pull'])] }), TODAY, '2026-10-01')
+    const first = rail.weeks[0]
+    expect(first.start).toBe('2026-10-01')
+    // Thu 1 opens; Fri 2 had Legs planned but comes before the first workout, so it is not missed.
+    expect(first.days.slice(0, 3).map(d => d.state)).toEqual(['rest', 'rest', 'done'])
+  })
+
   it('reaches back 8 weeks at most, however old the first workout: the rail is bounded by today', () => {
     const rail = railOf(S({ workouts: [workout('w0', '2023-10-05', ['pull']), workout('w1', '2026-10-14', ['pull'])] }), TODAY)
     expect(rail.from).toBe(-8)
@@ -156,7 +165,7 @@ describe('the card', () => {
     const card = cardOf(S({ workouts: [done] }), TODAY, TODAY)
     expect(card).toMatchObject({ kind: 'done', eyebrow: 'Workout done', title: 'Push A', sub: '52 min · 3 sets · 1,440 kg · 2 new bests' })
     expect(card.primary).toMatchObject({ intent: 'see-workout', label: 'See workout', workouts: [done] })
-    expect(card.thumbs).toEqual(done.entries.map(() => expect.stringContaining('.webp')))
+    expect(card.stills).toEqual(done.entries.map(e => e.id))
     expect(finishedLine({ entries: [], prs: [] }, 'kg')).toBeNull()
   })
 
@@ -172,7 +181,7 @@ describe('the card', () => {
     expect(card).toMatchObject({ kind: 'upcoming', title: 'Legs', chip: null, primary: null, eyebrow: fmtDate('2026-10-19', true) + ' · planned' })
     expect(card.sub).not.toMatch(/read-only/)
     expect(card.sub).toMatch(/1 exercise/)
-    expect(card.exercises).toEqual([expect.objectContaining({ id: '0025', line: expect.stringContaining('3 × 8'), image: expect.stringContaining('.webp') })])
+    expect(card.exercises).toEqual([expect.objectContaining({ id: '0025', line: expect.stringContaining('3 × 8') })])
     expect(card.secondary).toEqual([{ intent: 'change-day', label: 'Change this day', iso: '2026-10-19' }, { intent: 'see-routine', label: 'See routine', id: 'legs' }])
   })
 
@@ -184,9 +193,9 @@ describe('the card', () => {
     expect(cardOf(S(), '2026-10-20', TODAY)).toMatchObject({ kind: 'free', title: 'Rest day', primary: null, secondary: [{ intent: 'change-day' }] })
   })
 
-  it('a past day selects in place (conflict 2): logged gives See workout, missed Log this workout with its routines', () => {
+  it('a past day’s card: logged gives See workout for that day, missed Log this workout with its routines', () => {
     const logged = cardOf(S(), '2026-10-14', TODAY)
-    expect(logged).toMatchObject({ kind: 'past-logged', eyebrow: fmtDate('2026-10-14', true), title: 'Pull A', primary: { intent: 'see-workout' } })
+    expect(logged).toMatchObject({ kind: 'past-logged', eyebrow: fmtDate('2026-10-14', true), title: 'Pull A', primary: { intent: 'see-workout', iso: '2026-10-14' } })
     const missed = cardOf(S(), '2026-10-16', TODAY)
     expect(missed).toMatchObject({ kind: 'past-missed', title: 'Legs', sub: 'Planned, not logged' })
     expect(missed.primary).toEqual({ intent: 'log-workout', label: 'Log this workout', iso: '2026-10-16', routineIds: ['legs'] })
@@ -202,9 +211,9 @@ describe('routines', () => {
     expect(rows[0]).toMatchObject({ sub: '2 exercises · Sun', inPlan: true, today: true })
     expect(rows[2].sub).toBe('1 exercise · Mon, Fri')
     expect(rows[3]).toMatchObject({ sub: '1 exercise', inPlan: false })
-    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', thumbs: [] })
-    expect(rows[0].thumbs).toHaveLength(2)
-    expect(rows[0].thumbs[0]).toMatch(/\.webp$/)
+    expect(rows[4]).toMatchObject({ freestyle: true, sub: 'Pick exercises as you go', stills: [] })
+    expect(rows[0].stills).toHaveLength(2)
+    expect(rows[0].stills.every(id => typeof id === 'string' && id)).toBe(true)
   })
 
   it('in rotation mode a routine has no weekday to show', () => {

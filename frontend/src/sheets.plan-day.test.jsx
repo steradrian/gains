@@ -346,4 +346,11 @@ describe('usePlanDayParam', () => {
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(host.querySelector('.where').textContent).toBe('')
   })
+
+  it('a day that matches the pattern but is not on the calendar opens nothing and is taken away (review #24)', () => {
+    const host = page('/train/schedule?tab=x&day=2026-02-31')
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(host.querySelector('.where').textContent).toBe('?tab=x')
+    expect(useStore.getState().S.dayPlan).toEqual({})
+  })
 })

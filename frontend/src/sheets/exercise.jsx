@@ -4,7 +4,7 @@ import { smOf, exOr, isCustomEx } from '../lib/exercises.js'
 import { fmtDate, fmtNum, exerciseNameText, uid, exCount } from '../lib/format.js'
 import { cleanupSg, modeOf } from '../lib/history.js'
 import { t, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
-import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
+import { nav, closeThenNav, onSheetEntry, whenSheetGone } from '../lib/nav.js'
 import { hasProgress } from '../lib/use-exercise-progress.js'
 import { visit } from '../lib/search/session.js'
 import { isWorkoutPath } from '../lib/tab-route.js'
@@ -23,6 +23,7 @@ import { exerciseHistory } from '../lib/exercise-history.js'
 import { bestSetLabel } from '../lib/best-set.js'
 import { isBellEx, dbLoadFor, withDbLoad } from '../lib/dumbbells.js'
 import { isFav, toggleFav } from '../lib/favourites.js'
+import { speedLabel, speedUnitOf, toSpeed } from '../lib/speed.js'
 import BodyMap from '../ds/BodyMap.jsx'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import DetailRow from '../ds/DetailRow.jsx'
@@ -93,25 +94,6 @@ function loadSummary(st, ex) {
         : base > 0 ? t('Bar {0}', fmtNum(base) + ' ' + st.unit) : t('No bar')
 }
 
-// The ⋯ menu sits on the drawer's history entry with one of its own. An action that leaves the
-// drawer as well waits for the menu's entry to be walked off first, so the drawer's own close can
-// hand its entry on (closeThenNav) and no entry is left behind.
-const WALK_OFF_MS = 400
-function afterMenu(closeMenu, then) {
-  if (!onSheetEntry()) { closeMenu(); then(); return }
-  let done = false
-  const go = () => {
-    if (done) return
-    done = true
-    clearTimeout(timer)
-    globalThis.removeEventListener('popstate', go)
-    then()
-  }
-  const timer = setTimeout(go, WALK_OFF_MS)
-  globalThis.addEventListener('popstate', go)
-  closeMenu()
-}
-
 const inWorkout = () => isWorkoutPath(String(globalThis.location?.hash || '').slice(1))
 
 // Edit opens the Create exercise page (T6.4) in place of the drawer; inside a running workout it
@@ -121,7 +103,11 @@ function editCustomEx(ex, closeDrawer) {
   closeThenNav(closeDrawer, '/train/exercises/new?edit=' + encodeURIComponent(ex.id))
 }
 
+// The ⋯ menu sits on the drawer's history entry with one of its own. An action that leaves the
+// drawer as well waits for the menu's entry to be walked off first (whenSheetGone), so the
+// drawer's own close can hand its entry on (closeThenNav) and no entry is left behind.
 function exerciseMenuSheet(ex, closeDrawer) {
+  const afterMenu = (closeMenu, then) => { closeMenu(); whenSheetGone(then) }
   ui().openSheet(closeMenu => (
     <BottomSheet title={<span className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</span>}>
       <MenuList label={t('Exercise options')} items={[
@@ -181,7 +167,7 @@ function ExerciseDrawer({ ex, close }) {
         {custom && <IconButton tone="tonal" icon="more" label={t('Exercise options')} onClick={() => exerciseMenuSheet(ex, close)} />}
       </span>
     </div>
-    <Tabs ariaLabel={t('Exercise views')} value={tab} onChange={onTab} controls={panelId}
+    <Tabs manual ariaLabel={t('Exercise views')} value={tab} onChange={onTab} controls={panelId}
       options={[{ value: 'how', label: t('How to') }, { value: 'progress', label: t('Progress') }, { value: 'history', label: t('History') }]} />
   </>
 
@@ -272,13 +258,16 @@ function ExerciseHistorySheet({ exId }) {
   const st = useStore(s => s.S)
   const ex = exOr(exId)
   const h = useMemo(() => exerciseHistory(st, exId, { limit: Infinity }), [st, exId])
-  const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : t('min')
+  // A cardio history is the session's top speed, stored in km/h and shown in the profile's unit.
+  const speedUnit = speedUnitOf(st)
+  const shown = h.metric === 'speed' ? y => toSpeed(y, speedUnit) : y => y
+  const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : speedLabel(speedUnit)
   const name = exerciseNameFor(ex)
   return (
     <BottomSheet type="full" title={<span className={exerciseNameClass(ex)}>{name}</span>}>
       <div className="g-xd-hist">
-        {h.points.length >= 2 && <LineChart label={name + ' · ' + t('Top set')} unit={unit}
-          values={h.points.map(p => p.y)} pointLabels={h.points.map(p => fmtDate(p.d, true) + ': ' + fmtNum(p.y) + ' ' + unit)} />}
+        {h.points.length >= 2 && <LineChart label={name + ' · ' + (h.metric === 'speed' ? t('Top speed') : t('Top set'))} unit={unit}
+          values={h.points.map(p => shown(p.y))} pointLabels={h.points.map(p => fmtDate(p.d, true) + ': ' + fmtNum(shown(p.y)) + ' ' + unit)} />}
         <PastSetsList exId={exId} history={h} tone="light" />
       </div>
     </BottomSheet>

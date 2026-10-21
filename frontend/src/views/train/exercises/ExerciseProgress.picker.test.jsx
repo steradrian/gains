@@ -14,16 +14,31 @@ import { useUI } from '../../../store/useUI.js'
 const BASE_NOW = Date.UTC(2026, 0, 22, 12)
 const LEGACY_SNAPSHOT_ID = 'legacy-snapshot-only'
 
-const mocks = vi.hoisted(() => ({
-  charts: [], nav: vi.fn(), search: '',
-  S: { unit: 'kg', body: 'male', effort: 'rir', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts: [] },
-}))
+// The page reads the address on every render, so nav() to /progress/strength replaces the query
+// and re-renders it, as the router would.
+const mocks = vi.hoisted(() => {
+  const m = {
+    charts: [], search: '', listeners: new Set(),
+    S: { unit: 'kg', body: 'male', effort: 'rir', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts: [] },
+  }
+  m.nav = vi.fn(to => {
+    const [path, query] = String(to).split('?')
+    if (path !== '/progress/strength') return
+    m.search = query ? '?' + query : ''
+    m.listeners.forEach(f => f())
+  })
+  return m
+})
 
 vi.mock('../../../store/useStore.js', () => ({ useStore: selector => selector({ S: mocks.S }) }))
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mocks.nav,
-  useLocation: () => ({ search: mocks.search, pathname: '/progress/strength' }),
-}))
+vi.mock('react-router-dom', async () => {
+  const { useSyncExternalStore } = await import('react')
+  const subscribe = f => { mocks.listeners.add(f); return () => mocks.listeners.delete(f) }
+  return {
+    useNavigate: () => mocks.nav,
+    useLocation: () => ({ search: useSyncExternalStore(subscribe, () => mocks.search), pathname: '/progress/strength' }),
+  }
+})
 vi.mock('../../../lib/use-tab-nav.js', () => ({ back: vi.fn(), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
 vi.mock('../../../sheets.jsx', () => ({ exerciseDetailSheet: vi.fn(), workoutDetailSheet: vi.fn() }))
 vi.mock('../../../ds/LineChart.jsx', () => ({ default: props => {
@@ -287,6 +302,8 @@ describe('Progress exercise picker', () => {
 
     const matching = [...modal.querySelectorAll('button')].find(button => button.textContent.includes('Barbell Full Squat'))
     await click(matching)
+    // The choice lands once the sheet's history entry is walked off (lib/nav.js whenSheetGone).
+    await tick(500)
 
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(chosenName()).toContain('Barbell Full Squat')
@@ -302,6 +319,7 @@ describe('Progress exercise picker', () => {
     await click(container.querySelector('.g-xp-pick'))
     const modal = document.querySelector('#modal-root')
     await click([...modal.querySelectorAll('.sect-b button')].find(b => b.textContent.includes('Barbell Full Squat')))
+    await tick(500)
 
     expect(mocks.nav).toHaveBeenCalledTimes(1)
     const [url, opts] = mocks.nav.mock.calls[0]

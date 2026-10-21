@@ -2,17 +2,19 @@ import { useState } from 'react'
 import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
+import DevKitDay from './DevKitDay.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
 import DevKitPlan from './DevKitPlan.jsx'
 import DevKitPushed from './DevKitPushed.jsx'
 import DevKitRoutines from './DevKitRoutines.jsx'
+import DevKitSearch from './DevKitSearch.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
 import DevKitTrainCoach from './DevKitTrainCoach.jsx'
-import DevKitTrainLoad from './DevKitTrainLoad.jsx'
-// Train exercises kit (slice 4)
 import DevKitTrainExercises from './DevKitTrainExercises.jsx'
+import DevKitTrainLoad from './DevKitTrainLoad.jsx'
+import DevKitWeek from './DevKitWeek.jsx'
 // Workout drawer kit (drawers-M1)
 import DevKitWorkoutDrawers from './DevKitWorkoutDrawers.jsx'
 import GlassActions from './GlassActions.jsx'
@@ -219,6 +221,8 @@ export default function DevKit() {
         {/* Train exercises kit (slice 4) */}
         <DevKitTrainExercises />
         <DevKitDrawers />
+        {/* Shared: search */}
+        <DevKitSearch />
         {/* Workout screen kit (core M2) */}
         <DevKitWorkout />
         {/* Workout drawer kit (drawers-M1) */}
@@ -289,10 +293,14 @@ export default function DevKit() {
           </StageFooter>
         </Section>
 
-        <DevKitShared />
         <DevKitPushed />
         <DevKitPlan />
         <DevKitRoutines />
+        <DevKitShared />
+        {/* Shared: week */}
+        <DevKitWeek />
+        {/* Shared: day */}
+        <DevKitDay />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

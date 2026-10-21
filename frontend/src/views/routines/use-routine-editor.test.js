@@ -17,7 +17,7 @@ vi.mock('../../components/BodyMap.jsx', () => ({ default: () => null, useBodyPat
 import RoutineEditor from './RoutineEditor.jsx'
 import { editorOf, linkToAbove, planLineOf, progressionLine, removeAdded, saveStateOf, statsLineOf } from './use-routine-editor.js'
 import { DEF, useStore } from '../../store/useStore.js'
-import { exConfigSheet, routineMenuSheet, startFlow } from '../../sheets.jsx'
+import { exConfigSheet, replaceExerciseSheet, routineMenuSheet, startFlow } from '../../sheets.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const lift = (id, extra = {}) => ({ id, mode: 'reps', sets: 3, reps: 8, weight: 60, ...extra })
@@ -129,16 +129,37 @@ describe('the editor', () => {
   beforeEach(() => { vi.clearAllMocks() })
   afterEach(() => { act(() => root.unmount()); host.remove() })
 
-  it('T5.6: a routine just made opens with its name focused and selected, and the first edit drops ?new=1', () => {
+  // ?new=1 goes from the address as the editor opens, while no sheet is on top. Dropped on the first
+  // edit, it was replaced from under the picker's or the settings' history entry, and the ?new=1
+  // entry stayed below: the first Back opened T5.6 again (docs/audits/gains-train-review.md #7).
+  it('T5.6: a routine just made opens with its name focused and selected, and ?new=1 leaves the address at once', () => {
     mount('/train/routines/r1?new=1')
     expect(document.activeElement).toBe(nameInput())
     expect(nameInput().selectionStart).toBe(0)
     expect(nameInput().selectionEnd).toBe('New routine'.length)
     expect(host.textContent).toContain('Nothing in it yet')
-    expect(search()).toBe('?new=1')
+    expect(search()).toBe('')
     act(() => type(nameInput(), 'Push A'))
     expect(useStore.getState().S.routines[0].name).toBe('Push A')
     expect(search()).toBe('')
+  })
+
+  // A sync can reorder the routine while T5.5 is open (docs/audits/gains-train-review.md #10).
+  it('settings act on the exercise they were opened on, and do nothing once a sync moved it', () => {
+    mount('/train/routines/r1', [lift('0025'), lift('0027')])
+    act(() => host.querySelectorAll('.g-rx-open')[0].click())
+    const [, , onSave, onDelete, , , onReplace] = exConfigSheet.mock.calls[0]
+    act(() => useStore.getState().update(s => { s.routines[0].ex.reverse() }))
+    const before = structuredClone(useStore.getState().S.routines[0].ex)
+    act(() => onSave({ sets: 5, mode: 'reps', reps: 3, weight: 100 }))
+    act(() => onDelete())
+    act(() => onReplace())
+    expect(useStore.getState().S.routines[0].ex).toEqual(before)
+    expect(replaceExerciseSheet).not.toHaveBeenCalled()
+    // Back where it was opened, Done writes there again.
+    act(() => useStore.getState().update(s => { s.routines[0].ex.reverse() }))
+    act(() => onSave({ sets: 5, mode: 'reps', reps: 3, weight: 100 }))
+    expect(useStore.getState().S.routines[0].ex[0]).toEqual({ id: '0025', sets: 5, mode: 'reps', reps: 3, weight: 100 })
   })
 
   it('opened again, the name is not grabbed', () => {

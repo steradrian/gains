@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { CATALOGUE } from './exercises.js'
 import { newProfile } from './equipment.js'
-import { exercisesForMuscle, muscleCatalog, muscleCounts } from './muscle-explore.js'
-import { MUSCLES, musclesOf } from './muscles.js'
+import { exercisesForMuscle, muscleCatalog } from './muscle-explore.js'
+import { musclesOf } from './muscles.js'
 
 const custom = { id: 'c1', n: 'my move', bp: 'chest', eq: '', custom: true, tg: 'pectorals', sm: [] }
 
@@ -24,16 +24,10 @@ describe('muscleCatalog', () => {
   })
 })
 
-describe('exercisesForMuscle and muscleCounts', () => {
+describe('exercisesForMuscle', () => {
   it('keeps the exercises that train the muscle, primary or helper', () => {
     const chest = exercisesForMuscle(CATALOGUE, 'chest')
     expect(chest.length).toBeGreaterThan(0)
     expect(chest.every(e => musclesOf(e).chest > 0)).toBe(true)
-  })
-
-  it('counts every muscle the map draws', () => {
-    const counts = muscleCounts(CATALOGUE)
-    expect(Object.keys(counts)).toEqual(MUSCLES)
-    expect(counts.chest).toBe(exercisesForMuscle(CATALOGUE, 'chest').length)
   })
 })

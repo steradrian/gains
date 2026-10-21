@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { isoOf, todayISO } from '../lib/format.js'
+import { isoWeekOf } from '../lib/day-route.js'
 import { readyOrStart, workoutDetailSheet } from '../sheets.jsx'
 import Home from './Home.jsx'
 
@@ -19,6 +20,9 @@ vi.mock('../sheets.jsx', () => ({
   calendarSheet: vi.fn(), readyOrStart: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
 }))
+// The Week page opens through the app's own navigate (lib/day-route.js navToWeek).
+const libNav = vi.hoisted(() => vi.fn())
+vi.mock('../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: libNav }))
 
 const routines = [{ id: 'r1', name: 'Push', emoji: null, ex: [{ id: '0025' }, { id: '0047' }] }]
 const TODAY = todayISO()
@@ -168,6 +172,13 @@ describe('Today — Up next', () => {
     expect(cells).toHaveLength(7)
     const todayCell = cells.find(c => c.querySelector('.g-wk-done') && c.getAttribute('aria-label').endsWith('Done'))
     expect(todayCell).toBeTruthy()
+  })
+
+  it('the This week line opens this week’s Week page under Home', () => {
+    setS(); mountToday()
+    const line = [...host.querySelectorAll('.g-ssec')].find(s => s.querySelector('h2').textContent === 'This week')
+    tap(line.querySelector('.g-ssec-act'))
+    expect(libNav).toHaveBeenCalledWith('/home/week/' + isoWeekOf(TODAY), undefined)
   })
 
   it('the pill names the session planned today', () => {

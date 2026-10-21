@@ -10,7 +10,7 @@ import { api } from './api.js'
 import { DEMO } from './demo.js'
 import { MOBILE } from './mobile.js'
 import { t, getLang } from './i18n.js'
-import { pendingCheckIn } from './coach-checkin.js'
+import { markCheckInSent, unreadCheckIn } from './coach-checkin.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 
@@ -62,12 +62,16 @@ export const settleAwaited = id => { if (!id || awaited === id) awaited = null }
 
 export const coachStatus = async () => DEMO ? (await demo()).demoStatus() : LOCAL() ? (await local()).localStatus() : api('/api/coach/status')
 // Every review carries the latest weekly check-in the Coach has not read (lib/coach-checkin.js),
-// on all three paths; saving a check-in sends nothing by itself.
+// on all three paths; saving a check-in sends nothing by itself. A started job files which one it
+// carried (markCheckInSent), so only deciding that job's proposal marks it read.
 const _requestReview = async note => {
-  const checkIn = pendingCheckIn(S())
-  if (DEMO) return (await demo()).demoReview(S(), checkIn)
-  if (LOCAL()) return (await local()).localReview(S(), note, checkIn)
-  return api('/api/coach/review', { method: 'POST', body: JSON.stringify({ note: note || '', lang: getLang(), ...(checkIn && { checkIn }) }) })
+  const sent = unreadCheckIn(S())
+  const checkIn = sent?.checkIn || null
+  const r = DEMO ? await (await demo()).demoReview(S(), checkIn)
+    : LOCAL() ? await (await local()).localReview(S(), note, checkIn)
+      : await api('/api/coach/review', { method: 'POST', body: JSON.stringify({ note: note || '', lang: getLang(), ...(checkIn && { checkIn }) }) })
+  if (r?.job?.id) useStore.getState().update(s => markCheckInSent(s, r.job.id, sent))
+  return r
 }
 export const requestReview = (...a) => _requestReview(...a).then(track)
 const _requestPlan = async intake => DEMO ? (await demo()).demoPlan(S(), intake) : LOCAL() ? (await local()).localPlan(S(), intake) : api('/api/coach/plan', { method: 'POST', body: JSON.stringify({ intake, lang: getLang() }) })
@@ -80,7 +84,9 @@ export const requestDebrief = (...a) => _requestDebrief(...a).then(track)
 // server has a room; a phone with its own key and the demo both answer locally.
 export const cohortStats = async () => DEMO ? (await demo()).demoCohort(S()) : LOCAL() ? { ok: false, enabled: false } : api('/api/coach/cohort')
 export const setCohortShare = async share => (DEMO || LOCAL()) ? { ok: true, sharing: !!share } : api('/api/coach/cohort/share', { method: 'POST', body: JSON.stringify({ share: !!share }) })
-export const resolvePending = async body => DEMO ? (await demo()).demoResolve() : LOCAL() ? (await local()).localResolve(body) : api('/api/coach/pending/resolve', { method: 'POST', body: JSON.stringify(body) })
+// `body.proposalId` names the proposal decided. All three answers ignore a resolve whose id is
+// not the one pending: a Dismiss committed after its Undo window must not clear a newer proposal.
+export const resolvePending = async body => DEMO ? (await demo()).demoResolve(body) : LOCAL() ? (await local()).localResolve(body) : api('/api/coach/pending/resolve', { method: 'POST', body: JSON.stringify(body) })
 export const forgetCoach = async () => DEMO ? (await demo()).demoResolve() : LOCAL() ? (await local()).localForget() : api('/api/coach/forget', { method: 'POST', body: '{}' })
 export const disclosure = async () => DEMO ? (await demo()).demoDisclosure() : LOCAL() ? (await local()).localDisclosure() : api('/api/coach/disclosure')
 

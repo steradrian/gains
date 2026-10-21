@@ -6,9 +6,9 @@ import CoachChat from './CoachChat.jsx'
 import { CONSENT_VERSION } from '../lib/coach.js'   // the consent a fixture grants is the current one, whatever its number
 import { checkInWeek } from '../lib/coach-checkin.js'
 import { effectiveRoutine } from '../lib/history.js'
-import { todayISO } from '../lib/format.js'
+import { fmtDate, todayISO } from '../lib/format.js'
 import { back } from '../lib/use-tab-nav.js'
-import { cohortStats, resolvePending } from '../lib/coach-api.js'
+import { cohortStats, requestReview, resolvePending } from '../lib/coach-api.js'
 
 // The Coach page (T11.0): the suggestions with their toggles, Dismiss with Undo and Apply, the
 // weekly Check in, the thread with the plan and debrief cards, the ⋯ menu and its sheets, and
@@ -200,7 +200,7 @@ describe('the Coach page', () => {
     expect(mocks.S.routines.map(r => r.name)).toEqual(['Legs'])
     expect(mocks.S.coach.chat.at(-1).kind).toBe('applied')
     expect(mocks.S.coach.log.at(-1).decisions.map(d => d.status)).toEqual(['accepted', 'rejected'])
-    expect(resolvePending).toHaveBeenCalledWith({ accepted: ['b'], rejected: ['a'] })
+    expect(resolvePending).toHaveBeenCalledWith({ proposalId: 'r1', accepted: ['b'], rejected: ['a'] })
   })
 
   it('keeps an applied review in the thread as a card that opens the whole proposal', async () => {
@@ -320,7 +320,7 @@ describe('Dismiss, with Undo instead of a confirm (T11.3)', () => {
     expect(resolvePending).not.toHaveBeenCalled()
     expect(mocks.S.coach.chat.at(-1).kind).not.toBe('dismissed')
     await act(async () => { vi.advanceTimersByTime(1) })
-    expect(resolvePending).toHaveBeenCalledWith({ dismissed: true })
+    expect(resolvePending).toHaveBeenCalledWith({ proposalId: 'r1', dismissed: true })
     expect(mocks.S.coach.chat.at(-1).kind).toBe('dismissed')
     expect(mocks.refresh).toHaveBeenCalled()
   })
@@ -346,7 +346,33 @@ describe('Dismiss, with Undo instead of a confirm (T11.3)', () => {
     await rerender()
     expect(container.querySelector('.pcard')).toBeNull()
     await act(async () => { vi.advanceTimersByTime(8000) })
-    expect(resolvePending).toHaveBeenCalledWith({ dismissed: true })
+    expect(resolvePending).toHaveBeenCalledWith({ proposalId: 'p1', dismissed: true })
+  })
+
+  it('holds the composer while the dismissal waits, so no newer proposal can land under it (review #5)', async () => {
+    vi.useFakeTimers()
+    await mount(review())
+    await click(byText(/^Dismiss$/))
+    await rerender()
+    const box = () => container.querySelector('.tco-composer textarea')
+    expect(box().disabled).toBe(true)
+    expect(container.querySelector('.tco-send').disabled).toBe(true)
+    expect(requestReview).not.toHaveBeenCalled()
+    await act(async () => { vi.advanceTimersByTime(8000) })
+    await rerender()
+    expect(box().disabled).toBe(false)
+  })
+})
+
+describe('message stamps', () => {
+  it('date an older message by the local day, not the UTC one (review #23)', async () => {
+    // Half past midnight local time: east of UTC that is still the day before in UTC.
+    const at = new Date(2026, 0, 2, 0, 30).getTime()
+    const S = state()
+    S.coach.chat.push({ id: 'm1', role: 'user', kind: 'text', text: 'hello', at })
+    await mount(null, null, { S })
+    const stamps = [...container.querySelectorAll('small')].map(s => s.textContent)
+    expect(stamps.some(s => s.startsWith(fmtDate('2026-01-02') + ' · '))).toBe(true)
   })
 })
 

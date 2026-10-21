@@ -1,5 +1,34 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_RENAMED, isTabRoot, launchPath, legacyPath, parentOf, tabOf, workoutRunning } from './tab-route.js'
+import { PROFILE_RENAMED, isNotificationsPath, isTabRoot, launchPath, legacyPath, notificationsPath, parentOf, tabOf, workoutRunning } from './tab-route.js'
+
+describe('the notifications inbox', () => {
+  it('opens under the tab the bell was tapped on, so that tab stays lit', () => {
+    expect(notificationsPath('/home')).toBe('/home/notifications')
+    expect(notificationsPath('/train/history')).toBe('/train/notifications')
+    expect(notificationsPath('/food')).toBe('/food/notifications')
+    expect(notificationsPath('/me')).toBe('/me/notifications')
+    expect(notificationsPath('/progress/body')).toBe('/me/notifications')
+    for (const tab of ['home', 'train', 'food', 'me']) expect(tabOf(notificationsPath('/' + tab)), tab).toBe(tab)
+  })
+
+  it('a page no tab owns opens Home\'s', () => {
+    expect(notificationsPath('/train/workout')).toBe('/home/notifications')
+    expect(notificationsPath('')).toBe('/home/notifications')
+  })
+
+  it('knows its four paths, and Back goes to the tab root', () => {
+    for (const tab of ['home', 'train', 'food', 'me']) {
+      expect(isNotificationsPath('/' + tab + '/notifications')).toBe(true)
+      expect(parentOf('/' + tab + '/notifications')).toBe('/' + tab)
+    }
+    expect(isNotificationsPath('/me/reminders')).toBe(false)
+    expect(isNotificationsPath('/progress/notifications')).toBe(false)
+  })
+
+  it('old /me/notifications links are not rewritten: they are Me\'s inbox now', () => {
+    expect(legacyPath('/me/notifications')).toBeNull()
+  })
+})
 
 describe('the tab comes from the route', () => {
   it('Home, Training and Nutrition own their own paths', () => {
@@ -81,11 +110,11 @@ describe('the routes from before the tabs', () => {
 
   it('send the Profile pages the §5 merge renamed to their new names', () => {
     expect(legacyPath('/settings/look')).toBe('/me/appearance')
-    expect(legacyPath('/settings/reminders')).toBe('/me/notifications')
+    expect(legacyPath('/settings/reminders')).toBe('/me/reminders')
     expect(legacyPath('/settings/plan')).toBe('/me/schedule')
     expect(legacyPath('/settings/data', '?x=1')).toBe('/me/backup?x=1')
     expect(legacyPath('/settings/advanced')).toBe('/me/advanced')
-    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', reminders: 'notifications', plan: 'schedule', data: 'backup' })
+    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup' })
   })
 
   it('leave new and unknown routes alone', () => {

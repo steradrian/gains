@@ -47,6 +47,24 @@ describe('the shared matcher', () => {
     expect(nearest('chiken bowl', ['Chicken bowl', 'Rice'])).toBe('Chicken bowl')
     expect(nearest('abc', ['abd'])).toBeNull()
   })
+
+  it('allows the query\'s own typos and no more: one for 4 to 6 letters, two from 7', () => {
+    expect(nearest('rcie', ['Rice'])).toBe('Rice')
+    expect(nearest('rxyz', ['Rice'])).toBeNull()
+    expect(nearest('rowng', ['Rowing'])).toBe('Rowing')
+    expect(nearest('rowxg', ['Rowing'])).toBeNull()
+    expect(nearest('chikn bowl', ['Chicken bowl'])).toBe('Chicken bowl')
+    expect(nearest('chkn bowl', ['Chicken bowl'])).toBeNull()
+  })
+
+  it('breaks a tie by how often each was opened, and takes folded candidates as given', () => {
+    const a = { text: 'Leg bull', folded: 'leg bull' }
+    const b = { text: 'Leg pull', folded: 'leg pull' }
+    const weight = new Map([[a, 1], [b, 5]])
+    expect(nearest('leg xull', [a, b], c => weight.get(c))).toBe(b)
+    expect(nearest('leg xull', [a, b])).toBe(a)
+    expect(nearest('leg bul', [a, b], c => weight.get(c))).toBe(a)
+  })
 })
 
 describe('date words', () => {

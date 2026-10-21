@@ -8,9 +8,8 @@
 //   layoutWorkoutCard — where everything goes, given a way to measure text
 //   drawWorkoutCard   — paints a layout onto a 2D canvas context
 // Nothing here stores anything; the workout is read, never written.
-import { sessionSections, workoutVolume, workoutDuration, workoutDay, doneUnits } from './history.js'
+import { sessionSections, workoutVolume, workoutDuration, workoutDay, workSetsDone } from './history.js'
 import { EXIDX } from './exercises.js'
-import { isWarmupRow } from './workout-model.js'
 import { MUSCLES, INERT, levelsOf, loadOfWorkouts } from './muscles.js'
 import { bestSetOf } from './onerm.js'
 import { volumeText } from './train-stats.js'
@@ -45,7 +44,7 @@ const [, , MARK_VW, MARK_VH] = WORDMARK.viewBox.split(/\s+/).map(Number)
  */
 export function workoutCardModel(w, { unit, nameOf }) {
   const entries = w.entries || []
-  const sets = entries.reduce((n, e) => n + (e.sets || []).reduce((m, s) => m + (isWarmupRow(s) ? 0 : doneUnits(s)), 0), 0)
+  const sets = workSetsDone(w)
   // New bests in the order the sheet lists the exercises, each named once — a combined session
   // can hold the same lift twice.
   const prs = new Set(w.prs || [])

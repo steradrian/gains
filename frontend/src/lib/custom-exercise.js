@@ -6,7 +6,7 @@
 // Stored on the custom exercise as `mode` ('reps' | 'time' | 'cardio') and, for "Reps only",
 // `bodyweight: true`. It syncs with the rest of the exercise (lib/sync-merge.js stamps custom
 // exercises per field).
-import { isBodyweightEq, isCustomEx } from './exercises.js'
+import { EXIDX, isBodyweightEq, isCardio, isCustomEx } from './exercises.js'
 
 const MODES = ['reps', 'time', 'cardio']
 
@@ -21,6 +21,17 @@ export const LOG_CHOICES = ['weight', 'reps', 'time', 'cardio']
 export function customExDefaults(ex) {
   if (!isCustomEx(ex) || !MODES.includes(ex.mode)) return {}
   return ex.mode === 'reps' ? { mode: 'reps', bodyweight: !!ex.bodyweight } : { mode: ex.mode }
+}
+
+/**
+ * How exercise `idOrEx` (an id, or the exercise) is logged where a config does not say: a custom
+ * exercise's own mode, else cardio for the Cardio body part and reps for the rest (history.js
+ * modeOf). Read this rather than isCardio wherever a config is shaped by its exercise: isCardio
+ * looks at the body part only, and a custom exercise on Legs can be logged as cardio.
+ */
+export function loggedModeOf(idOrEx) {
+  const ex = typeof idOrEx === 'string' ? EXIDX[idOrEx] : idOrEx
+  return customExDefaults(ex).mode || (isCardio(ex) ? 'cardio' : 'reps')
 }
 
 /**

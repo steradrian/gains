@@ -1,15 +1,17 @@
 import { cx, oneOf } from '../lib/ui-kit.js'
 
-// A row of two or three tiles, each a label, a value and an optional line under it (bundle.js
-// `StatTiles`). `tone="stage"` is the glass version for a pushed page on the stage. The caller
-// formats the values and the line: the kit only lays them out. items: [{ label, value, sub,
-// tone: 'positive' }]; more than three items wrap onto a second row of three.
-export default function StatTiles({ items, tone = 'light' }) {
+// Tiles of numbers (bundle.js `StatTiles`): each a label, a value and an optional line under it.
+// `tone="stage"` turns them to glass with white text for a pushed page on the stage (Week's
+// Numbers, boards Sh2Week, Sh2WeekPast). items: [{ key, label, value, sub, tone: 'positive' }].
+// `columns` (1 to 3) defaults to the bundle's (as many as there are tiles, at most three); Week
+// sets two. The columns are a class (.g-stats-c1 to -c3), not an inline style.
+export default function StatTiles({ items, tone = 'light', columns }) {
   oneOf('StatTiles', 'tone', tone, ['light', 'stage'])
+  const n = Math.min(Math.max(columns || items.length, 1), 3)
   return (
-    <div className={cx('g-stats', 'g-stats-' + Math.min(items.length, 3), tone === 'stage' && 'g-stats-stage')}>
+    <div className={cx('g-stats', 'g-stats-c' + n, tone === 'stage' && 'g-stats-stage')}>
       {items.map(s => (
-        <div key={s.label} className="g-stat">
+        <div key={s.key || s.label} className="g-stat">
           <span>{s.label}</span>
           <b>{s.value}</b>
           {s.sub && <span className={s.tone === 'positive' ? 'g-pos' : undefined}>{s.sub}</span>}

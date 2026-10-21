@@ -13,6 +13,7 @@ import { exercisesForMuscle } from '../../../lib/muscle-explore.js'
 import { DEF, useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import { exerciseDetailSheet } from '../../../sheets.jsx'
+import { muscleLoadThisWeek } from '../use-train.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 vi.setConfig({ testTimeout: 15000 })
@@ -114,6 +115,13 @@ describe('By muscle: the page and the map', () => {
     act(() => { mounted.splice(0).forEach(root => root.unmount()) })
     seed({ workouts: [benchToday(1)] })
     expect((await muscle('chest')).querySelector('.g-xs-mcap span').textContent).toMatch(/· 1 set this week$/)
+  })
+
+  it('keeps a secondary mover\'s part-sets as a decimal, as Training load shows them', async () => {
+    seed({ workouts: [benchToday(3)] })
+    const shown = Math.round((muscleLoadThisWeek(useStore.getState().S, today().iso).triceps || 0) * 10) / 10
+    expect(Number.isInteger(shown)).toBe(false)
+    expect((await muscle('triceps')).querySelector('.g-xs-mcap span').textContent).toMatch(new RegExp(`· ${shown} sets this week$`))
   })
 
   it('tapping another muscle on the map switches to it in place; tapping the chosen one clears', async () => {

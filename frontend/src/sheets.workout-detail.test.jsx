@@ -11,7 +11,8 @@ import { useUI } from './store/useUI.js'
 import { createMediaStore, memoryBackend, _setMediaStore } from './lib/media-store.js'
 import { deleteWorkoutWithUndo, openDay, workoutDetailSheet } from './sheets.jsx'
 import { EXDB } from './lib/exercises-data.js'
-import { fmtDate } from './lib/format.js'
+import { fmtDate, todayISO } from './lib/format.js'
+import { setNav } from './lib/nav.js'
 
 const realToast = useUI.getState().toast
 const lifts = EXDB.filter(e => e.bp !== 'cardio' && e.eq === 'barbell').slice(0, 3).map(e => e.id)
@@ -73,6 +74,19 @@ describe('workout drawer', () => {
     expect(host.querySelector('.g-bs-head h2').textContent).toBe('Push')
     expect(host.querySelector('.g-bs-chip').textContent).toContain('15 Sep')
     expect([...host.querySelectorAll('.g-stat')].map(s => s.textContent)).toEqual(['Time1h 0m', 'Sets2', 'Volume12.4 t'])
+  })
+
+  it('counts work sets once everywhere: the Sets tile and the routine headers skip warm-ups and agree on a per-side set', () => {
+    workoutDetailSheet(workout([
+      { id: lifts[0], rid: 'a', target: { mode: 'reps' }, sets: [done(40, 8, { phase: 'warmup' }), done(100, 5)] },
+      { id: lifts[1], rid: 'b', target: { mode: 'reps', side: true }, sets: [
+        { w: 10, r: 16, done: true, sides: { L: { w: 10, r: 8, done: true }, R: { w: 10, r: 8, done: true } } },
+      ] },
+    ], { routineIds: ['a', 'b'] }))
+    const host = mountTopSheet()
+    expect([...host.querySelectorAll('.g-stat')].map(s => s.textContent)[1]).toBe('Sets3')
+    const heads = [...host.querySelectorAll('.g-wd-group-head > span')].map(s => s.textContent.split(' · ')[0])
+    expect(heads).toEqual(['1 set', '2 sets'])
   })
 
   it('leaves Time out when the session has no clock, as an import has none', () => {
@@ -249,26 +263,49 @@ describe('workout drawer', () => {
     expect(sets.textContent).toContain('Finish the current workout first.')
   })
 
-  it('the date opens the day: its workouts as a list, closing the drawer first', () => {
+  it('the date of a past workout opens its Day page, closing the drawer first', () => {
     const w = workout([{ id: lifts[0], target: { mode: 'reps' }, sets: [done(60, 5)] }])
     useStore.setState(s => ({ S: { ...s.S, workouts: [w, { ...w, id: 'w2', name: 'Pull', start: w.start + 7200e3, end: w.end + 7200e3 }] } }))
+    const navigated = []
+    setNav((to, opts) => navigated.push([to, opts]))
+    history.replaceState(null, '', '#/train/history')
     workoutDetailSheet(w)
     const chip = mountTopSheet().querySelector('.g-bs-chip')
     act(() => { chip.click() })
-    expect(useUI.getState().sheets).toHaveLength(1)
-    const day = mountTopSheet()
-    expect(day.querySelector('h3').textContent).toContain('15 Sep')
-    expect([...day.querySelectorAll('.item .tt')].map(el => el.textContent)).toEqual(['Push', 'Pull'])
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(navigated).toEqual([['/train/day/2026-09-15', undefined]])
   })
 })
 
-// openDay: the Day view (/train/day/:date, PR-07) is not routed on this base, so it falls back.
+// openDay: a past day from the first log on goes to its Day page (/:tab/day/:date, PR-07); any
+// other day keeps the sheets the calendar had.
 describe('openDay', () => {
-  it('a day with workouts lists them; one row opens its drawer', () => {
-    const w = workout([])
-    useStore.setState(s => ({ S: { ...s.S, workouts: [w] } }))
+  it('a past day opens its Day page under the tab on screen, after closing the drawer it came from', () => {
+    useStore.setState(s => ({ S: { ...s.S, workouts: [workout([])] } }))
+    const navigated = []
+    setNav((to, opts) => navigated.push([to, opts]))
+    history.replaceState(null, '', '#/train/history')
     const close = vi.fn()
     openDay('2026-09-15', close)
+    expect(close).toHaveBeenCalledTimes(1)
+    expect(navigated).toEqual([['/train/day/2026-09-15', undefined]])
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('a day off with a note keeps the day sheet, where the note is', () => {
+    useStore.setState(s => ({ S: { ...s.S, workouts: [workout([])], dayNotes: { '2026-09-10': { tag: 'sick', text: 'Flu', _ts: 1 } } } }))
+    const navigated = []
+    setNav((to, opts) => navigated.push([to, opts]))
+    openDay('2026-09-10')
+    expect(navigated).toEqual([])
+    expect(useUI.getState().sheets).toHaveLength(1)
+  })
+
+  it('today is never a Day page: its workouts as a list; one row opens its drawer', () => {
+    const w = workout([], { d: todayISO() })
+    useStore.setState(s => ({ S: { ...s.S, workouts: [w] } }))
+    const close = vi.fn()
+    openDay(todayISO(), close)
     expect(close).toHaveBeenCalledTimes(1)
     const day = mountTopSheet()
     act(() => { day.querySelector('.item').click() })

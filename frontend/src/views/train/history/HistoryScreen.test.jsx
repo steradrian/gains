@@ -72,8 +72,15 @@ describe('History (T8.0)', () => {
     expect(lines.map(l => l.querySelector('b').textContent)).toEqual(['Arms', 'Pull A', 'Push A', 'Pull A', 'Legs'])
     expect(lines[2].textContent).toBe('Push AMon 19 Oct · 52 min · 9,600 kg · 2 new bests')
     expect(lines[4].textContent).toBe('LegsTue 4 Aug · 52 min · 12.4 t')
+  })
+
+  it('a past workout opens its day (the Day page); today\'s opens its detail', () => {
+    show({ workouts })
     click(qa('.g-hist-row')[2])
-    expect(sheets.workoutDetailSheet).toHaveBeenCalledWith(workouts[2])
+    expect(sheets.openDay).toHaveBeenLastCalledWith('2026-10-19')
+    expect(sheets.workoutDetailSheet).not.toHaveBeenCalled()
+    click(qa('.g-hist-row')[0])
+    expect(sheets.workoutDetailSheet).toHaveBeenCalledWith(workouts[4])
   })
 
   it('keeps a day off with a note in its week, as a row that opens the note', () => {
@@ -100,15 +107,19 @@ describe('History (T8.0)', () => {
     expect(qa('.g-mg-head').map(h => h.textContent)).toEqual(['M', 'T', 'W', 'T', 'F', 'S', 'S'])
   })
 
-  it('a day with one workout opens it; several, or none, open the day', () => {
+  it('a day opens its day, except today with one workout, which opens that workout', () => {
     show({ workouts })
     const day = n => qa('.g-mg-cell')[n - 1]
     click(day(19))
-    expect(sheets.workoutDetailSheet).toHaveBeenCalledWith(workouts[2])
+    expect(sheets.openDay).toHaveBeenLastCalledWith('2026-10-19')
     click(day(21))
     expect(sheets.openDay).toHaveBeenLastCalledWith('2026-10-21')
     click(day(23))
     expect(sheets.openDay).toHaveBeenLastCalledWith('2026-10-23')
+    expect(sheets.workoutDetailSheet).not.toHaveBeenCalled()
+    show({ workouts: workouts.slice(0, 4) })
+    click(day(21))
+    expect(sheets.workoutDetailSheet).toHaveBeenCalledWith(workouts[3])
   })
 
   it('turns the month', () => {

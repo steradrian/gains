@@ -131,17 +131,28 @@ export function rangesIn(text, words) {
   return merge(words.map(w => inTitle(m, w)?.range).filter(Boolean))
 }
 
-/** A "did you mean": the candidate one or two typos from the whole query, nearest first. */
-export function nearest(query, candidates) {
+/**
+ * A "did you mean": the candidate within the query's own typo allowance (typosFor, as every word
+ * of the search has), nearest first; a tie goes to the higher `weightOf(candidate)` (how often it
+ * was opened), else to the first. A candidate is a string, or `{ text, folded }` with its folded
+ * text worked out once by the caller; the winner is returned as it was given.
+ */
+export function nearest(query, candidates, weightOf = () => 0) {
   const q = fold(query).trim()
   if (q.length < 4) return null
-  const max = typosFor(q) + 1
+  const max = typosFor(q)
   let best = null
   for (const c of candidates) {
-    const d = editDistance(q, fold(c), max)
-    if (d > 0 && d <= max && (!best || d < best.d)) best = { d, text: c }
+    const d = editDistance(q, typeof c === 'string' ? fold(c) : c.folded, max)
+    if (d === 0 || d > max) continue
+    if (!best || d < best.d) best = { d, c, w: null }
+    else if (d === best.d) {
+      if (best.w === null) best.w = weightOf(best.c)
+      const w = weightOf(c)
+      if (w > best.w) best = { d, c, w }
+    }
   }
-  return best?.text ?? null
+  return best ? best.c : null
 }
 
 /** Text split into plain and matched segments by ranges: what the row renders, never HTML. */

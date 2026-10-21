@@ -85,6 +85,3 @@ export function settingsResults(words, S, ctx, tr = t, { all = false } = {}) {
   }
   return out.sort((a, b) => b.score - a.score)
 }
-
-/** Every settings title, for "Did you mean". */
-export const settingTitles = (tr = t) => [...PAGE_IDS.map(id => tr(PAGES[id].title)), ...SEARCH.map(e => tr(e.title))]

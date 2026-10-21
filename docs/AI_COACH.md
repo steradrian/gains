@@ -264,8 +264,19 @@ The weekly check-in is filed on your device (and in your synced copy) when you s
 nothing goes to the Coach at that moment. It travels only inside the next review you ask for: as
 `checkIn` in the `POST /api/coach/review` body, which the server refuses with a 400 when a word
 is not one of its own or the note is too long, or straight into the payload on the phone's own
-key and in the demo. A scheduled review does not carry one. Once that review is applied or
-dismissed, the check-in counts as read and is not sent again.
+key and in the demo. A scheduled review does not carry one. Once the review that carried it is
+applied or dismissed, the check-in counts as read and is not sent again; deciding a review that
+did not carry it (a scheduled one, or one started before the check-in was saved) leaves it unread
+for the next. The app records which check-in each review it started carried
+(`coach.checkInSent`) and how far it has been read (`coach.checkInReadTs`).
+
+The consent screen names the check-in under "Your logged training" since consent version 3; a
+profile that agreed to version 2 is asked once more before its next review.
+
+A decision is sent to `POST /api/coach/pending/resolve` with the `proposalId` it is about, and a
+resolve naming another proposal than the waiting one is ignored: a Dismiss that is committed
+after its 8-second Undo window cannot clear a proposal that arrived in the meantime. While that
+window runs, the Coach page holds its composer.
 
 A review reads a training block, not a training career: the window is capped at **12 weeks or 60
 sessions**. Your profile is identified by a stable pseudonym that is never the user id and never

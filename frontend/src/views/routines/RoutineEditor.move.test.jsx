@@ -287,6 +287,24 @@ describe('routine move controls', () => {
       entry('c3', 30)
     ])
   })
+
+  // The rows are keyed by index, so the focused button stayed where it was and now belonged to the
+  // neighbour: a second Enter moved the neighbour (docs/audits/gains-train-review.md #9).
+  it('keeps the keyboard on the exercise it moved, and says where it went', () => {
+    setRoutine([entry('c1', 10), entry('c2', 20), entry('c3', 30)])
+    renderRoutine()
+    const said = () => container.querySelector('[aria-live="polite"]').textContent
+    moveButton('setup-10', 'Move down').focus()
+    act(() => document.activeElement.click())
+    expect(document.activeElement).toBe(moveButton('setup-10', 'Move down'))
+    expect(said()).toBe('C1 moved to 2 of 3')
+
+    // At the bottom its down arrow is off: the keyboard goes to its up arrow, not to the page.
+    act(() => document.activeElement.click())
+    expect(useStore.getState().S.routines[0].ex.map(e => e.id)).toEqual(['c2', 'c3', 'c1'])
+    expect(document.activeElement).toBe(moveButton('setup-10', 'Move up'))
+    expect(said()).toBe('C1 moved to 3 of 3')
+  })
 })
 
 describe('routine move-control locale coverage', () => {

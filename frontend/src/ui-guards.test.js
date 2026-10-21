@@ -68,7 +68,7 @@ describe('G8 finds a page choosing its own chrome', () => {
       writeFileSync(join(dir, 'views', 'Workout.jsx'), `export default () => <div className="hdr whdr-bar" />`)
       writeFileSync(join(dir, 'components', 'layout.jsx'), `import RootHeader from './RootHeader.jsx'`)
       expect(pageChrome(dir)).toEqual(['views/A.jsx: imports SubHeader.jsx', 'views/B.jsx: builds .hdr', 'views/B.jsx: renders its own <h1>', 'views/C.jsx: styles <Page>'])
-      expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx'])
+      expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx'])
     } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 
@@ -348,7 +348,7 @@ describe('G4 and G7', () => {
     const views = routeViewsWithoutPage()
     expect(views).toContain('Workout')
     expect(views).not.toContain('SettingsRoute')
-    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'CoachChat', 'CreateExercise', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'TrainHub', 'TrainingLoad', 'Workout'])
+    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'Workout'])
     expect(now.G4).not.toContain('Workout')
   })
 
