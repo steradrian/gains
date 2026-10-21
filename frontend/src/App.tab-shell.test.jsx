@@ -167,7 +167,7 @@ describe('the review repros', () => {
     planToday()
     await launch('#/home')
     await click(plus())
-    await click([...document.querySelectorAll('.plus-sheet .lrow')].find(r => r.textContent.includes('Start workout')))
+    await click([...document.querySelectorAll('.g-bs .g-atile')].find(r => r.textContent.includes('Start workout')))
     await click(button('Start without weighing in'))
     expect(hash()).toBe('#/train/workout')
     await click(document.querySelector('button[aria-label="Minimize"]'))
@@ -675,7 +675,7 @@ describe('a sheet that closes into a switch', () => {
     const realGo = window.history.go.bind(window.history)
     window.history.go = d => { setTimeout(() => realGo(d), 200) }
     try {
-      await act(async () => { [...document.querySelectorAll('.plus-sheet .lrow')].find(r => r.textContent.includes('Gym check-in')).click() })
+      await act(async () => { [...document.querySelectorAll('.g-bs .g-menuitem')].find(r => r.textContent.includes('Gym check-in')).click() })
       await act(async () => { await new Promise(r => setTimeout(r, 50)) })
       expect(document.getElementById('app').hasAttribute('inert')).toBe(true)
       await act(async () => { await new Promise(r => setTimeout(r, 700)) })
@@ -687,33 +687,23 @@ describe('a sheet that closes into a switch', () => {
 })
 
 describe('the + sheet', () => {
-  it('tints its rows only with colours a white glyph clears 3:1 on, in both themes', async () => {
+  it('offers the tiles, then what fits the screen first in the list, then the fixed items', async () => {
     await launch('#/progress/body')
     await click(plus())
-    const tints = [...document.querySelectorAll('.plus-sheet .lrow-i')].map(i => i.style.getPropertyValue('--tint'))
-    expect(tints.length).toBeGreaterThan(3)
-    for (const tint of tints) expect(['var(--blue)', 'var(--indigo)', 'var(--purple)', 'var(--pink)'], tint).toContain(tint)
-  })
-
-  it('offers what fits the screen first, then the fixed rows', async () => {
-    await launch('#/home')
-    await click(tab('Train'))
-    await click(target('History'))
-    await click(plus())
-    const rows = () => [...document.querySelectorAll('.plus-sheet .lrow')].map(r => r.textContent)
-    expect(rows()[0]).toContain('Log past workout')
-    expect(rows().some(r => r.includes('Weigh in'))).toBe(true)
-    expect(rows().some(r => r.includes('Start workout'))).toBe(true)
-    expect(rows().some(r => r.includes('Soon'))).toBe(false)
+    const tiles = [...document.querySelectorAll('.g-bs .g-atile')].map(r => r.textContent)
+    expect(tiles).toEqual(expect.arrayContaining(['Weigh-in', 'Start workout', 'Log activity']))
+    const items = [...document.querySelectorAll('.g-bs .g-menuitem')].map(r => r.textContent)
+    expect(items.slice(0, 2)).toEqual(['Log measurements', 'Add photo'])
+    expect(items.some(r => r.includes('Soon'))).toBe(false)
   })
 
   it('is a modal dialog: named, focus moved in and kept there, the page behind out of reach, focus back on +', async () => {
     await launch('#/home')
     plus().focus()
     await click(plus())
-    const dialog = document.querySelector('.plus-sheet[role="dialog"]')
+    const dialog = document.querySelector('.g-bs[role="dialog"]')
     expect(dialog.getAttribute('aria-modal')).toBe('true')
-    expect(document.getElementById(dialog.getAttribute('aria-labelledby')).textContent).toBe('Add')
+    expect(document.getElementById(dialog.getAttribute('aria-labelledby')).textContent).toBe('Add to Today')
     expect(dialog.contains(document.activeElement)).toBe(true)
     for (const id of ['app', 'tabbar']) expect(document.getElementById(id).hasAttribute('inert'), id).toBe(true)
     const controls = [...dialog.querySelectorAll('button')]
@@ -722,7 +712,7 @@ describe('the + sheet', () => {
     expect(document.activeElement).toBe(controls[0])
     await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })) })
     await settle()
-    expect(document.querySelector('.plus-sheet')).toBeNull()
+    expect(document.querySelector('.g-bs')).toBeNull()
     expect(document.getElementById('tabbar').hasAttribute('inert')).toBe(false)
     expect(document.activeElement).toBe(plus())
   })
@@ -731,8 +721,8 @@ describe('the + sheet', () => {
     running()
     await launch('#/home')
     await click(plus())
-    const row = [...document.querySelectorAll('.plus-sheet .lrow')].find(r => r.textContent.includes('Resume workout'))
-    expect(row.querySelector('.plus-sheet-live')).not.toBeNull()
+    const tile = [...document.querySelectorAll('.g-bs .g-atile')].find(r => r.textContent.includes('Resume workout'))
+    expect(tile.querySelector('.g-atile-detail')).not.toBeNull()
   })
 })
 

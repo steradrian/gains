@@ -317,7 +317,7 @@ describe('fasting on Nutrition, not on Today, and in the + sheet', () => {
     await mount(<div />)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    const row = [...lastSheet().querySelectorAll('.lrow')].find(r => r.textContent.startsWith('Fasting'))
+    const row = [...lastSheet().querySelectorAll('.g-menuitem')].find(r => r.textContent.startsWith('Fasting'))
     expect(row.textContent).toContain('2h 0m')
   })
 
@@ -326,6 +326,6 @@ describe('fasting on Nutrition, not on Today, and in the + sheet', () => {
     await mount(<div />)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    expect([...lastSheet().querySelectorAll('.lrow-t')].map(n => n.textContent)).not.toContain('Fast')
+    expect([...lastSheet().querySelectorAll('.g-menuitem b')].map(n => n.textContent)).not.toContain('Fast')
   })
 })

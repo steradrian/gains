@@ -18,6 +18,7 @@ import { usePlanRefused } from '../../lib/onboarding/use-plan-refused.js'
 import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
 import { bwSheet, startFlow, workoutDetailSheet } from '../../sheets.jsx'
 import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
+import { nutritionDaySheet } from '../../components/NutritionDaySheet.jsx'
 import { scanToSelection } from '../../components/scan-to-selection.js'
 import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
 import { workoutLine } from '../../components/TrainingHero.jsx'
@@ -179,8 +180,8 @@ function scanToday() {
 /**
  * Everything Today shows, for TodayScreen: { profile, loading, error, header, searching, rings,
  * onRing, actions, upNext, meals, onMeal, onSeeDay, water, week }. Sections a profile leaves out
- * are null. Taps go where the boards link; the drawers the boards draw (T1.3, T1.4, T1.7) are the
- * app's existing sheets until M5 restyles them, and Nutrition (T1.3) is the Eat tab until then.
+ * are null. Taps go where the boards link: the rings, See day and a logged meal open the Nutrition
+ * drawer (T1.3), on the ring's own tab.
  */
 export function useToday() {
   const nav = useNavigate()
@@ -238,7 +239,7 @@ export function useToday() {
   return {
     profile, loading, error, header, searching,
     rings: food ? (day.status === 'ready' ? foodRings(day, units) : []) : [trainingRing(S, today)],
-    onRing: () => nav(food ? '/food' : '/train'),
+    onRing: (_, i) => (food ? nutritionDaySheet({ date: today, tab: i }) : nav('/train')),
     actions: food
       ? [
         { icon: 'utensils', label: t('Log food'), onClick: () => logFood() },
@@ -254,8 +255,8 @@ export function useToday() {
       ],
     upNext: profile === 'food' ? null : upNextOf(S, today, { planRefused, nav }),
     meals: food ? mealsOf(day, meal, units) : null,
-    onMeal: m => (m.state === 'done' ? nav('/food') : logFood(m.slot)),
-    onSeeDay: () => nav('/food'),
+    onMeal: m => (m.state === 'done' ? nutritionDaySheet({ date: today }) : logFood(m.slot)),
+    onSeeDay: () => nutritionDaySheet({ date: today }),
     water,
     week: food ? null : { days: weekOf(S, today), label: weekDone(S, today) },
   }

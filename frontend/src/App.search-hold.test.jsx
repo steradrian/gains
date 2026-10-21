@@ -154,9 +154,9 @@ describe('the page behind an open search', () => {
     await launch('#/home')
     await openOverlay()
     await go(() => openPlusSheet('/home'))
-    const sheet = $('.plus-sheet')
+    const sheet = $('.g-bs')
     expect(sheet).not.toBeNull()
-    const rows = [...sheet.querySelectorAll('.lrow')]
+    const rows = [...sheet.querySelectorAll('.g-atile')]
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) expect(inert(row)).toBe(false)
     // The sheet holds #app itself; the tab bar is held by the search.
@@ -165,7 +165,7 @@ describe('the page behind an open search', () => {
     expect(leaks()).toEqual([])
     useUI.getState().closeAll()
     await settle()
-    expect($('.plus-sheet')).toBeNull()
+    expect($('.g-bs')).toBeNull()
     expect($('#app').hasAttribute('inert')).toBe(false)
     expect(inert($('#tabbar'))).toBe(true)
     expect(leaks()).toEqual([])
