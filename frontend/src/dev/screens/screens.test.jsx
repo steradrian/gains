@@ -243,6 +243,37 @@ describe('the screens gallery', () => {
     expect(useStore.getState().S).toBe(own)
   }, 20000)
 
+  it('has Train plan T3.0 (loop, fixed week, someone else’s, editing), T3.2 and T3.3, and gives the store its own state back', async () => {
+    const ids = screenAreas().find(a => a.name === 'Train: plan').entries.map(e => e.id)
+    expect(ids).toEqual(['T3.0', 'T3.0w', 'T3.0x', 'T3.0e', 'T3.2', 'T3.3'])
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const heads = h => [...h.querySelectorAll('h2')].map(e => e.textContent)
+    await check('T3.0', h => {
+      expect(h.querySelector('.g-spage-title').textContent).toBe('Plan')
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('Push A, Pull A, Legs')
+      expect(heads(h)).toEqual(expect.arrayContaining(['Your loop', 'This week', 'Next week', 'Weekly muscle volume']))
+      expect(h.querySelector('.g-loop-chip.on').textContent).toContain('Push A')
+      expect(h.querySelectorAll('.g-pcell')).toHaveLength(14)
+    })
+    await check('T3.0w', h => {
+      expect(heads(h)).toContain('Your week')
+      expect(h.querySelector('.g-spage-sub').textContent).toMatch(/ · 4 days a week$/)
+    })
+    await check('T3.0x', h => {
+      expect(h.querySelector('.g-sseg')).toBeNull()
+      expect(h.textContent).toContain('Externally managed')
+    })
+    await check('T3.0e', h => expect(h.querySelectorAll('.plan-erow')).toHaveLength(3))
+    await check('T3.2', h => expect(h.querySelector('.g-ibanner').textContent).toContain('Coach suggests 2 changes'))
+    await check('T3.3', h => {
+      expect(h.querySelector('.g-sempty b').textContent).toBe('No rotation yet')
+      expect(h.querySelector('.plan-volume')).toBeNull()
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+  }, 20000)
+
   it('a tap in a mocked state changes memory only: the real saved copy is untouched and nothing is pushed', async () => {
     localStorage.setItem('gym_state_v1', '{"real":true}')
     const realUpdate = useStore.getState().update
