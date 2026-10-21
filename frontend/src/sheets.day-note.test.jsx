@@ -15,6 +15,7 @@ import { activityOf } from './views/train/load/use-training-load.js'
 import History from './views/History.jsx'
 import { historyRows } from './views/train/history/use-history.js'
 import { withDayNote, dayNoteOf } from './lib/day-notes.js'
+import { fmtDate } from './lib/format.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const S = () => useStore.getState().S
@@ -84,9 +85,12 @@ describe('the day sheet offers a note', () => {
     expect(host.textContent).toContain('Sick')
     expect(host.textContent).toContain('Flu')
     expect(host.textContent).not.toContain('Add a note for this day')
-    act(() => { host.querySelector('.day-note-row').click() })
-    expect(useUI.getState().sheets).toHaveLength(2)
+    // The day drawer gives way to the note drawer (T3.1 → T3.4).
+    act(() => { [...host.querySelectorAll('.g-menuitem')].find(b => b.textContent.startsWith('Sick')).click() })
+    expect(useUI.getState().sheets).toHaveLength(1)
     const note = mountTopSheet()
+    expect(note.querySelector('h2').textContent).toBe('Day note')
+    expect(note.querySelector('.g-bs-chip').textContent).toBe(fmtDate('2026-09-14', true))
     expect(note.querySelector('textarea').value).toBe('Flu')
     expect(button(note, 'Sick').getAttribute('aria-pressed')).toBe('true')
   })

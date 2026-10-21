@@ -9,7 +9,8 @@ import { MUSCLES, MUSCLE_NAME, hasExplicitMuscleMetadata, inMuscleOrder, normali
 import { LOG_CHOICES, logChoiceOf, withLogChoice } from '../lib/custom-exercise.js'
 import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { cx } from '../lib/ui-kit.js'
-import { S, toast, update } from '../sheets/shared.js'
+import { useStore } from '../store/useStore.js'
+import { useUI } from '../store/useUI.js'
 import Button from '../ds/Button.jsx'
 import ChipGroup from '../ds/ChipGroup.jsx'
 import StageFooter from '../ds/StageFooter.jsx'
@@ -18,6 +19,8 @@ import CustomMediaField from './CustomMediaField.jsx'
 import Icon from './Icon.jsx'
 import { MultiSelectRow } from './ui.jsx'
 import '../views/train/exercises/exercises.css'
+
+const toast = m => useUI.getState().toast(m)
 
 // The board's seven body parts (T6.4), each the app's own `bp` value: a catalogue body part, so the
 // exercise files with the built-in ones. Lower arms, lower legs and neck have no chip; an exercise
@@ -140,7 +143,7 @@ export default function CustomExerciseForm({ existing, prefill, tone = 'light', 
     // An exercise kept under its own name is not a duplicate, even when the catalogue has one
     // spelled the same (an imported "trap bar deadlift"): only a new or changed name is checked.
     const renamed = !existing || name.toLowerCase() !== String(existing.n || '').trim().toLowerCase()
-    const dup = renamed && allExercises(S()).find(e => e.n.toLowerCase() === name.toLowerCase() && e.id !== (existing || {}).id)
+    const dup = renamed && allExercises(useStore.getState().S).find(e => e.n.toLowerCase() === name.toLowerCase() && e.id !== (existing || {}).id)
     if (dup) { toast(t('“{0}” already exists', dup.n)); return }
     const d = desc.trim().slice(0, 1000)
     // An empty field removes the link; anything else has to be a web address.
@@ -167,6 +170,7 @@ export default function CustomExerciseForm({ existing, prefill, tone = 'light', 
       if (!keepMedia) { if (ref) c.media = ref; else delete c.media }
       if (link) c.url = link; else delete c.url
     }
+    const { update } = useStore.getState()
     if (existing) update(s => { const c = (s.customEx || []).find(x => x.id === id); if (c) fill(c) })
     else {
       id = 'c' + uid()

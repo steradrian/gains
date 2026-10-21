@@ -9,7 +9,7 @@ export { barWeightSheet, plateInventorySheet, dumbbellInventorySheet, equipmentP
 export { detailTags, exerciseDetailSheet, exerciseHistorySheet, addToRoutineSheet, customExSheet, deleteCustomEx } from './sheets/exercise.jsx'
 export { exercisePicker, swapActiveWorkoutExercise } from './sheets/exercise-picker.jsx'
 export { exConfigSheet, glyphPicker, effortPickerSheet } from './sheets/exercise-config.jsx'
-export { planToolsSheet, planHasRoutines, exportPlanFile, printWholePlan, importPlanFile, planImportSheet, dayOverrideSheet, dayNoteSheet, dayAssignSheet } from './sheets/plan.jsx'
+export { planToolsSheet, planShareSheet, planHasRoutines, exportPlanFile, printWholePlan, importPlanFile, PLAN_FILE_ACCEPT, PLAN_IMPORT_PATH, dayOverrideSheet, dayNoteSheet, usePlanDayParam } from './sheets/plan.jsx'
 export { workoutDateSheet, workoutDurationSheet, workoutDetailSheet, calendarSheet, WorkoutRow } from './sheets/workout-detail.jsx'
 // Train history (slice 5): T8.1's Edit menu and Delete with Undo, opening a day, T8.3 Share.
 export { editWorkoutSheet, deleteWorkoutWithUndo, openDay, dayWorkoutsSheet } from './sheets/workout-detail.jsx'

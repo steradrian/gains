@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 // The setting is only worth anything if the screens actually follow it: the toggle has to
-// write the field, and the Plan list has to draw the week in that order.
+// write the field, and the Plan page's two weeks have to run in that order.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
-import Plan from './Plan.jsx'
+import PlanScreen from './plan/PlanScreen.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -46,7 +46,7 @@ vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), confirmSheet: vi.fn(), importFromApp: vi.fn(),
   importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(),
-  dayAssignSheet: vi.fn(), dayAddRoutineSheet: vi.fn(), planToolsSheet: vi.fn(),
+  dayAddRoutineSheet: vi.fn(), planToolsSheet: vi.fn(), usePlanDayParam: vi.fn(),
 }))
 
 globalThis.__APP_VERSION__ ??= 'test'
@@ -91,36 +91,40 @@ describe('Settings — week starts on', () => {
   })
 })
 
-describe('Plan — the week schedule follows the setting', () => {
-  const mount = () => act(() => root.render(<Plan />))
-  const planDays = () => [...host.querySelectorAll('.plan-day')].map(e => e.getAttribute('aria-label'))
+// The Plan page's grid: next week's seven cells (all still to come, whatever today is).
+const nextWeek = () => [...host.querySelectorAll('.g-pcell')].slice(7)
+const weekday = cell => new Date(cell.dataset.iso + 'T12:00:00').getDay()
 
-  it('runs Monday to Sunday by default', () => {
+describe('Plan — the two weeks follow the setting', () => {
+  const mount = () => act(() => root.render(<PlanScreen />))
+
+  it('run Monday to Sunday by default', () => {
     mount()
-    expect(planDays()).toEqual(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+    expect(nextWeek().map(weekday)).toEqual([1, 2, 3, 4, 5, 6, 0])
+    expect([...host.querySelectorAll('.g-pgrid-dow')]).toHaveLength(7)
   })
 
-  it('runs Sunday to Saturday for a Sunday profile', () => {
+  it('run Sunday to Saturday for a Sunday profile', () => {
     mocks.S.weekStart = 0
     mount()
-    expect(planDays()).toEqual(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
+    expect(nextWeek().map(weekday)).toEqual([0, 1, 2, 3, 4, 5, 6])
   })
 
-  it('keeps a routine attached to its day, not to its position in the list', () => {
+  it('keep a routine attached to its day, not to its place in the week', () => {
     mocks.S.routines = [{ id: 'r1', name: 'Push', emoji: null, ex: [] }]
     mocks.S.week = { 0: 'r1' }        // Sunday
     mocks.S.weekStart = 0
     mount()
-    const rows = [...host.querySelectorAll('.plan-day')]
-    expect(rows[0].getAttribute('aria-label')).toBe('Sunday')
-    expect(rows[0].querySelector('.tt').textContent).toBe('Push')
-    expect(rows[1].textContent).not.toContain('Push')
+    const cells = nextWeek()
+    expect(weekday(cells[0])).toBe(0)
+    expect(cells[0].getAttribute('aria-label')).toMatch(/, Push$/)
+    expect(cells[1].getAttribute('aria-label')).not.toContain('Push')
   })
 })
 
 describe('Plan — a combined day (combine routines)', () => {
-  const mount = () => act(() => root.render(<Plan />))
-  const day = name => [...host.querySelectorAll('.plan-day')].find(el => el.getAttribute('aria-label') === name)
+  const mount = () => act(() => root.render(<PlanScreen />))
+  const day = d => nextWeek().find(cell => weekday(cell) === d)
 
   beforeEach(() => {
     mocks.S.routines = [
@@ -132,17 +136,15 @@ describe('Plan — a combined day (combine routines)', () => {
   it('reads as one session with both names and the routine count', () => {
     mocks.S.week = { 1: ['r1', 'r2'] }
     mount()
-    const mon = day('Monday')
-    expect(mon.querySelector('.tt').textContent).toBe('Push + Core')
-    expect(mon.querySelector('.ss').textContent).toBe('2 routines')
+    expect(day(1).getAttribute('aria-label')).toMatch(/, Push \+ Core, 2 routines$/)
+    expect(day(1).textContent).toContain('Push + Core')
   })
 
-  it('an empty day is a rest day, one tappable row', () => {
+  it('an empty day is a rest day, one tappable cell', () => {
     mocks.S.week = {}
     mount()
-    const tue = day('Tuesday')
-    expect(tue.querySelector('.tt').textContent).toBe('Rest day')
-    expect(tue.getAttribute('role')).toBe('button')
-    expect(tue.querySelectorAll('button').length).toBe(0)
+    expect(day(2).getAttribute('aria-label')).toMatch(/, Rest day$/)
+    expect(day(2).tagName).toBe('BUTTON')
+    expect(day(2).querySelectorAll('button').length).toBe(0)
   })
 })
