@@ -11,6 +11,7 @@ import { useUI } from './store/useUI.js'
 import { createMediaStore, memoryBackend, _setMediaStore } from './lib/media-store.js'
 import { deleteWorkoutWithUndo, openDay, workoutDetailSheet } from './sheets.jsx'
 import { EXDB } from './lib/exercises-data.js'
+import { fmtDate } from './lib/format.js'
 
 const realToast = useUI.getState().toast
 const lifts = EXDB.filter(e => e.bp !== 'cardio' && e.eq === 'barbell').slice(0, 3).map(e => e.id)
@@ -145,7 +146,7 @@ describe('workout drawer', () => {
     const host = mountTopSheet()
     expect([...host.querySelectorAll('.g-drow')].map(r => r.textContent)).toEqual([
       'Repeat todaySame exercises, last weights',
-      'Save as routineBecomes “Push, 15 Sep”',
+      `Save as routineBecomes “Push, ${fmtDate('2026-09-15')}”`,
       'Share as imageA card with the map and your bests',
       'Edit workoutSets, date and time, duration',
       'Export as .fit fileGarmin Connect can take it from there',
@@ -223,7 +224,8 @@ describe('workout drawer', () => {
     const w = workout([{ id: lifts[0], target: { mode: 'reps' }, sets: [done(60, 5)] }])
     useStore.setState(s => ({ S: { ...s.S, workouts: [w] } }))
     workoutDetailSheet(w)
-    act(() => { row(mountTopSheet(), 'Edit workout').click() })
+    const edit = row(mountTopSheet(), 'Edit workout')
+    act(() => { edit.click() })
     expect(useUI.getState().sheets).toHaveLength(1)
     const menu = mountTopSheet()
     expect(menu.querySelector('.g-bs-head h2').textContent).toBe('Edit workout')
@@ -251,7 +253,8 @@ describe('workout drawer', () => {
     const w = workout([{ id: lifts[0], target: { mode: 'reps' }, sets: [done(60, 5)] }])
     useStore.setState(s => ({ S: { ...s.S, workouts: [w, { ...w, id: 'w2', name: 'Pull', start: w.start + 7200e3, end: w.end + 7200e3 }] } }))
     workoutDetailSheet(w)
-    act(() => { mountTopSheet().querySelector('.g-bs-chip').click() })
+    const chip = mountTopSheet().querySelector('.g-bs-chip')
+    act(() => { chip.click() })
     expect(useUI.getState().sheets).toHaveLength(1)
     const day = mountTopSheet()
     expect(day.querySelector('h3').textContent).toContain('15 Sep')
@@ -276,7 +279,7 @@ describe('openDay', () => {
   it('a day without a workout opens the day sheet to plan a session', () => {
     openDay('2026-09-16')
     expect(useUI.getState().sheets).toHaveLength(1)
-    expect(mountTopSheet().textContent).toContain('Tue 16 Sep')
+    expect(mountTopSheet().textContent).toContain(fmtDate('2026-09-16', true))
   })
 })
 
@@ -291,7 +294,8 @@ describe('delete with Undo (T8.4)', () => {
     const other = { ...workout([]), id: 'w0', d: '2026-10-01', start: 1 }
     useStore.setState(s => ({ S: { ...s.S, workouts: [other, w] } }))
     workoutDetailSheet(w)
-    act(() => { row(mountTopSheet(), 'Delete workout').click() })
+    const del = row(mountTopSheet(), 'Delete workout')
+    act(() => { del.click() })
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(S().workouts.map(x => x.id)).toEqual(['w0'])
     expect(S().deleted.workouts.w1).toBeGreaterThan(0)

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 // Training load's and the muscle page's derivations (use-training-load.js), ported from the old
 // MuscleBalance, TrainingLoad and Heatmap tests where the behaviour is the same.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

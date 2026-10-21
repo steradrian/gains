@@ -98,6 +98,7 @@ describe('layoutWorkoutCard', () => {
   const texts = layout => layout.items.filter(i => i.kind === 'text').map(i => i.text)
   const kinds = (layout, kind) => layout.items.filter(i => i.kind === kind)
   const text = (layout, s) => layout.items.find(i => i.text === s)
+  const firstLine = layout => layout.items.find(i => i.kind === 'text' && i.text.startsWith('58 min'))
   const map = { aspect: 1280 / 727 }
 
   it('puts the name and the date on one line, then the line, the new bests, and the wordmark at the foot', () => {
@@ -136,7 +137,8 @@ describe('layoutWorkoutCard', () => {
     expect([front.view, back.view]).toEqual(['front', 'back'])
     expect(front.h / front.w).toBeCloseTo(map.aspect)
     expect(back.x).toBeGreaterThan(front.x + front.w)
-    const line = text(layout, '58 min · 5 sets · 1,790 kg')
+    // Beside the map the column is narrow and the line wraps: its first line is what is placed.
+    const line = firstLine(layout)
     expect(line.x).toBeGreaterThan(back.x + back.w)
     expect(line.y).toBeGreaterThan(front.y)
     expect(line.y).toBeLessThan(front.y + front.h)
@@ -172,7 +174,7 @@ describe('layoutWorkoutCard', () => {
     expect(front(rtl).x + front(rtl).w).toBeCloseTo(rtl.width - front(ltr).x)
     const mark = l => kinds(l, 'wordmark')[0]
     expect(mark(rtl).x + mark(rtl).w).toBeCloseTo(rtl.width - mark(ltr).x)
-    expect(text(rtl, '58 min · 5 sets · 1,790 kg').x).toBeLessThan(front(rtl).x)
+    expect(firstLine(rtl).x).toBeLessThan(front(rtl).x)
   })
 })
 

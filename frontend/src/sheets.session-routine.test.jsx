@@ -6,6 +6,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { workoutDetailSheet } from './sheets.jsx'
 import { setNav } from './lib/nav.js'
+import { fmtDate } from './lib/format.js'
 
 const mounted = []
 const workout = () => ({
@@ -49,7 +50,7 @@ describe('WorkoutDetail — save as routine', () => {
     const host = (workoutDetailSheet(saved), renderTop())
     const save = row(host, 'Save as routine')
     // The row names the routine it will make: the session's name and its day.
-    expect(save.textContent).toBe('Save as routineBecomes “Push, 10 Sep”')
+    expect(save.textContent).toBe(`Save as routineBecomes “Push, ${fmtDate('2026-09-10')}”`)
 
     act(() => { save.click() })
     const confirm = renderTop()
@@ -58,7 +59,7 @@ describe('WorkoutDetail — save as routine', () => {
 
     act(() => { button(confirm, 'Save').click() })
     const routine = useStore.getState().S.routines[0]
-    expect(routine).toMatchObject({ name: 'Push, 10 Sep' })
+    expect(routine).toMatchObject({ name: 'Push, ' + fmtDate('2026-09-10') })
     expect(routine.ex.map(e => e.id)).toEqual(['bench', 'row'])
     expect(routine.ex[0].side).toBe(true)
     expect(routine.ex[0].warmupSets).toBe(1)

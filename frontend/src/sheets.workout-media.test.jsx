@@ -231,7 +231,8 @@ describe('a workout\'s photos and videos', () => {
   it('Delete workout in the drawer says its photos and videos go with it, and holds them until the Undo is gone', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [workout({ media: [refOf(1)] })] } }))
     workoutDetailSheet(S().workouts[0])
-    act(() => deleteRow(renderTop()).click())
+    const del = deleteRow(renderTop())
+    act(() => del.click())
     expect(S().workouts).toHaveLength(0)
     expect(useUI.getState().toastAction.body).toBe('Its photo or video is deleted with it.')
     expect(media.isHeld(refOf(1).hash)).toBe(true)
@@ -243,7 +244,8 @@ describe('a workout\'s photos and videos', () => {
 
   it('Delete workout without any says nothing about them', () => {
     workoutDetailSheet(S().workouts[0])
-    act(() => deleteRow(renderTop()).click())
+    const del = deleteRow(renderTop())
+    act(() => del.click())
     expect(useUI.getState().toastAction.body).toBeNull()
   })
 

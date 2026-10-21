@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { fmtDate } from '../../../lib/format.js'
 import { activitiesOf, historyRows, historySub, historyWeeks, monthOf, muscleSentence, workoutLine, workoutThumbs } from './use-history.js'
 
 const at = (iso, h = 17) => new Date(iso + 'T' + String(h).padStart(2, '0') + ':00:00').getTime()
@@ -28,7 +29,7 @@ describe('historyWeeks', () => {
   it('counts workouts only: a day note keeps its place in its week without counting', () => {
     const S = state({ workouts: [session('w', '2026-10-13')], dayNotes: { '2026-10-16': { text: 'Flu', _ts: 1 }, '2026-10-01': { tag: 'travel', _ts: 1 } } })
     const weeks = historyWeeks(S, TODAY)
-    expect(weeks.map(w => [w.title, w.workouts, w.rows.length])).toEqual([['Last week', 1, 2], ['Week of 28 Sep', 0, 1]])
+    expect(weeks.map(w => [w.title, w.workouts, w.rows.length])).toEqual([['Last week', 1, 2], ['Week of ' + fmtDate('2026-09-28'), 0, 1]])
   })
 
   it('follows a week that starts on Sunday', () => {
