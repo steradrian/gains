@@ -294,7 +294,7 @@ describe('the steps of the drawer', () => {
     expect(top().textContent).toContain('Enter an amount above 0.')
   })
 
-  it('A food in full has only the rows the record has, and Log replaces it and Amount with one Amount', async () => {
+  it('A food in full has only the rows the record has, and Log pushes an Amount that goes back through it to the results', async () => {
     ask()
     const drawer = await open()
     await click(row(drawer, 'Rolled oats'))
@@ -309,8 +309,12 @@ describe('the steps of the drawer', () => {
     expect(labels).not.toContain('Sugars')
     expect(button(top(), 'Edit')).toBeDefined()
     await click(button(top(), 'Log'))
-    expect(panels()).toHaveLength(1)
+    // A push, not a close-then-open: that would start a fresh root and lose the results.
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(panels()).toHaveLength(3)
     expect(top().querySelector('.g-la-name').textContent).toBe('Rolled oats')
+    await goBack()
+    await goBack()
     await goBack()
     expect(panels()).toHaveLength(0)
     expect(rows(drawer)).toContain('Rolled oats')

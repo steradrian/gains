@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { backSheet } from '../lib/sheet-nav.js'
 import { fmtDate, todayISO, isoOf } from '../lib/format.js'
 import { dateLocale } from '../lib/i18n.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -265,10 +266,17 @@ describe('Today', () => {
     await click([...lastSheet().querySelectorAll('.g-seg button')].find(b => b.textContent === 'Fat'))
     expect(ndTab()).toBe('Fat')
     expect(ndRows().map(r => r[0])).toEqual(['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
-    // A meal with nothing yet logs to it: the drawer gives way to Log food for that meal.
+    // A meal with nothing yet logs to it: Log food for that meal opens as a step of this drawer,
+    // so back returns to the Nutrition drawer.
     await click(button('Add Dinner', lastSheet()))
     expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Log food')
     expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe('Today · Dinner')
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
+    await act(async () => { backSheet(useUI.getState(), useUI.getState().sheets[0].id) })
+    await settle()
+    expect(useUI.getState().sheets[0].panels).toHaveLength(0)
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Nutrition today')
   })
 
   it('the Nutrition drawer with nothing logged: every meal has a +, and the total reads 0 of the target', async () => {

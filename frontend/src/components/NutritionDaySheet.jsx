@@ -7,7 +7,7 @@ import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useDiaryDay } from '../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import Button from '../ds/Button.jsx'
 import SegmentedControl from '../ds/SegmentedControl.jsx'
@@ -66,16 +66,17 @@ export function burnedOf(day, units) {
 
 // Nutrition for a day (board T13Nutrition): Calories, Protein, Carbs and Fat, each the day's total
 // against its target and the meals that make it up. A meal with nothing yet has a + that logs to it.
-function NutritionDay({ date, tab: first, close }) {
+function NutritionDay({ date, tab: first }) {
   const day = useDiaryDay(date)
   const units = useUnits()
   const [tab, setTab] = useState(TABS[first]?.key || TABS[0].key)
+  // Log food opens as a step of this drawer, so back returns here; logging or leaving to a page
+  // ends the flow and closes both (store/useUI.js drawerFlow).
   const addTo = slot => {
-    close()
     const sel = useDiarySelection.getState()
     sel.setDate(date)
     sel.setMeal(slot)
-    foodPickerSheet()
+    drawerFlow(() => foodPickerSheet())
   }
   const ready = day.status === 'ready'
   const view = ready ? nutritionTab(day, tab, units) : null
@@ -122,5 +123,5 @@ function NutritionDay({ date, tab: first, close }) {
 /** Opens the Nutrition drawer for `date` (today by default) on tab `tab` (0 Calories, 1 Protein,
  *  2 Carbs, 3 Fat: the index of Today's ring). */
 export function nutritionDaySheet({ date = todayISO(), tab = 0 } = {}) {
-  useUI.getState().openSheet(close => <NutritionDay date={date} tab={tab} close={close} />, { variant: 'ds' })
+  useUI.getState().openSheet(() => <NutritionDay date={date} tab={tab} />, { variant: 'ds' })
 }

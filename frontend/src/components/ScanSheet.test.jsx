@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { setNav } from '../lib/nav.js'
+import { backSheet } from '../lib/sheet-nav.js'
+import BottomSheet from '../ds/BottomSheet.jsx'
 import { todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
@@ -236,6 +238,20 @@ describe('scanning a product', () => {
     await open()
     await scan('9999999999999')
     expect(button('Search foods', overlay())).toBeUndefined()
+  })
+
+  it('Quick kcal from a scan opened over a drawer is a step of that drawer, so back returns to it', async () => {
+    await mount(<div />)
+    await act(async () => { useUI.getState().openSheet(() => <BottomSheet title="Log food"><p>results</p></BottomSheet>, { variant: 'ds' }) })
+    await act(async () => { scanSheet({ date: TODAY, meal: 1, mealName: 'Lunch' }) })
+    await settle()
+    await scan('9999999999999')
+    await click(button('Quick kcal', overlay()))
+    expect(overlay()).toBeNull()
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
+    await act(async () => { backSheet(useUI.getState(), useUI.getState().sheets[0].id) })
+    expect(useUI.getState().sheets[0].panels).toHaveLength(0)
   })
 
   it('with Open Food Facts off, a miss says only your foods were asked', async () => {

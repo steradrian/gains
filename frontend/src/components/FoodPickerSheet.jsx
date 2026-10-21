@@ -59,14 +59,15 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
   function openAmount(food, pending) {
     panel(c => <BottomSheet {...amountFrame({ date, mealName })}>
       <LogAmountStep key={food.id ?? food.client_key ?? food.name} food={food} {...log} pending={pending} close={whole(c)}
-        onFull={() => openFood(food, pending, c)} />
+        onFull={() => openFood(food, pending)} />
     </BottomSheet>)
   }
-  // `amount` closes with its panel and the food above it, so Log there lands on one Amount.
-  function openFood(food, pending, amount) {
+  // Log on the full food pushes one more Amount panel: closing the panel it came from and then
+  // opening this one would start a fresh root and lose the picker (store/useUI.js openSheet).
+  function openFood(food, pending) {
     panel(c => <BottomSheet {...foodFrame({ date, mealName })}>
       <LogFoodFullStep food={food} settings={liveSettings()}
-        onLog={next => { amount(); openAmount(next, pending) }}
+        onLog={next => openAmount(next, pending)}
         onSave={async next => {
           const savedFood = await useNutrition.getState().saveFood(next)
           useUI.getState().toast(t('Saved to your foods'))
