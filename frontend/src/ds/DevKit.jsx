@@ -9,6 +9,8 @@ import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
 import DevKitTrainCoach from './DevKitTrainCoach.jsx'
 import DevKitTrainLoad from './DevKitTrainLoad.jsx'
+// Train exercises kit (slice 4)
+import DevKitTrainExercises from './DevKitTrainExercises.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
 import GlassTabBar from './GlassTabBar.jsx'
@@ -208,6 +210,8 @@ export default function DevKit() {
         <DevKitTrainLoad />
         {/* Train coach and gym kit (slice 6) */}
         <DevKitTrainCoach />
+        {/* Train exercises kit (slice 4) */}
+        <DevKitTrainExercises />
         <DevKitDrawers />
 
         <Section title="GlassTabBar" note="Tap it (the first lights what is tapped, and the pill glides); then a running workout on Train, no tab lit, and over a light page.">

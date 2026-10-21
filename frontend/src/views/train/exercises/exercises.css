@@ -1,0 +1,73 @@
+/* Train exercises (slice 4): the exercise drawer (T6.1, sheets/exercise.jsx) and the Create exercise
+   form (T6.4, components/CustomExerciseForm.jsx) on its two hosts, the page on the stage and the
+   light drawer. Both sit inside a .g-root, so the design system's tokens apply. */
+
+/* ---- T6.1 the exercise drawer ---- */
+/* One long word (a German custom name) wraps instead of pushing the close button off the screen. */
+.g-xd-name { overflow-wrap: anywhere; }
+.g-xd-head { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; }
+.g-xd-pic { flex: none; width: 96px; height: 96px; border-radius: 20px; overflow: hidden; display: grid; place-items: center; background: var(--g-white); box-shadow: 0 0 0 1px var(--line); }
+.g-xd-pic .thumb, .g-xd-pic > * { width: 100%; height: 100%; border-radius: 0; object-fit: cover; }
+.g-xd-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.g-xd-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.g-xd-best { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-xd-acts { flex: none; align-self: flex-start; display: flex; flex-direction: column; align-items: center; }
+.g-xd-star.on { color: var(--accent-text); }
+.g-xd-panel { padding-block: 14px 24px; color: var(--text); }
+.g-xd-panel .exmedia { margin-bottom: 12px; border-radius: 20px; }
+.g-xd-desc { margin: 0 0 6px; font: 500 16px/23px var(--font-sans); color: var(--text-2); }
+.g-xd-muscles { display: flex; align-items: center; gap: 16px; padding-block: 12px; }
+.g-xd-mlines { display: flex; flex-direction: column; gap: 6px; font: 500 15px/20px var(--font-sans); color: var(--text-2); text-align: start; }
+.g-xd-mlines b { color: var(--text); }
+.g-xd-note { margin: 8px 0 0; font: 500 13px/18px var(--font-sans); color: var(--text-3); }
+.g-xd-steps { margin: 0; padding: 0; list-style: none; }
+.g-xd-steps li { display: flex; gap: 12px; padding-block: 8px; font: 500 16px/22px var(--font-sans); }
+.g-xd-steps li > span { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); font: 700 13px/1 var(--font-sans); }
+.g-xd-rows { padding-top: 10px; }
+.g-xd-rows .g-drow, .g-xd-setup .g-drow { padding-inline: 0; min-height: 60px; }
+.g-xd-rows .g-drow + .g-drow::before, .g-xd-setup .g-drow + .g-drow::before { inset-inline-start: 0; }
+.g-xd-setup h3 { margin: 20px 0 4px; font: 700 17px/22px var(--font-sans); }
+.g-xd-empty { margin: 0; padding: 32px 0; text-align: center; font: 500 16px/22px var(--font-sans); color: var(--text-3); }
+
+/* ---- T6.4 the Create exercise form ---- */
+.g-cxf { font-family: var(--font-sans); }
+.g-cxf-stage { padding: 8px 16px 0; color: var(--on-stage); }
+.g-cxf-light { color: var(--text); }
+.g-cxf-name.g-glass { padding: 18px; border-radius: 28px; }
+.g-cxf-h { display: flex; align-items: baseline; gap: 8px; margin: 20px 4px 12px; font: 700 20px/26px var(--font-sans); letter-spacing: -0.02em; }
+.g-cxf-h span { font: 500 15px/20px var(--font-sans); letter-spacing: 0; color: var(--text-3); }
+.g-cxf-stage .g-cxf-h span { color: var(--on-stage-2); }
+.g-cxf-light .g-cxf-h { margin-inline: 0; }
+
+/* How you log it: a radio group of rows; the chosen one's ring fills */
+.g-cxf-log { border-radius: 28px; }
+.g-cxf-log-light { border-radius: 20px; box-shadow: inset 0 0 0 1px var(--line); }
+.g-cxf-logrow { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.g-cxf-logrow + .g-cxf-logrow { border-top: 1px solid var(--line); }
+.g-cxf-stage .g-cxf-logrow + .g-cxf-logrow { border-top-color: var(--glass-line); }
+.g-cxf-logrow:focus-visible { outline-offset: -2px; }
+.g-cxf-stage .g-cxf-logrow:focus-visible { outline-color: var(--on-stage); }
+.g-cxf-logic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); }
+.g-cxf-stage .g-cxf-logic { background: var(--glass); color: var(--on-stage); }
+.g-cxf-logic .g-icon { width: 20px; height: 20px; }
+.g-cxf-logb { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-cxf-logb b { font: 600 17px/22px var(--font-sans); }
+.g-cxf-logb span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-cxf-stage .g-cxf-logb span { color: var(--on-stage-2); }
+.g-cxf-radio { width: 24px; height: 24px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line-strong); }
+.g-cxf-logrow[aria-checked="true"] .g-cxf-radio { box-shadow: inset 0 0 0 7px var(--accent-fill); }
+.g-cxf-stage .g-cxf-radio { box-shadow: inset 0 0 0 2px var(--glass-line); }
+.g-cxf-stage .g-cxf-logrow[aria-checked="true"] .g-cxf-radio { box-shadow: inset 0 0 0 7px var(--on-stage); }
+
+/* The picture, the link, the muscles and the description are the app's own fields, kept legible
+   on the stage on a light card; in the drawer they sit on the drawer itself. */
+.g-cxf-card { display: flex; flex-direction: column; gap: 12px; color: var(--text); }
+.g-cxf-stage .g-cxf-card { padding: 16px; border-radius: 20px; background: var(--surface); }
+.g-cxf-more { appearance: none; border: 0; background: none; display: flex; align-items: center; gap: 6px; min-height: var(--tap-min); margin: 20px 4px 4px; padding: 0; color: inherit; font: 700 17px/22px var(--font-sans); cursor: pointer; }
+.g-cxf-light .g-cxf-more { margin-inline: 0; }
+.g-cxf-more .g-icon { width: 18px; height: 18px; }
+.g-cxf-stage .g-cxf-more:focus-visible { outline-color: var(--on-stage); }
+.g-cxf-note { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-cxf-actions { display: flex; flex-direction: column; gap: 10px; padding-top: 24px; }
+.g-cxf-stage .g-sfoot { margin-top: 24px; padding-inline: 0; background: none; }
+.g-cxf-gone { margin: 24px 20px; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }

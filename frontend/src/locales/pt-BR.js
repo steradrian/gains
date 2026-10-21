@@ -294,9 +294,7 @@ export const PT_BR_OVERRIDES = {
   'hip flexors': 'flexores do quadril',
   'rotator cuff': 'manguito rotador',
   '“{0}” already exists': '“{0}” já existe',
-  '“{0}” created': '“{0}” criado',
-  'Cardio exercises log time + speed instead of weight × reps.': 'Exercícios de cardio registram tempo e velocidade em vez de peso × repetições.',
-  'Exercise deleted': 'Exercício excluído',
+  '“{0}” created': '“{0}” criado',  'Exercise deleted': 'Exercício excluído',
   'What you just trained': 'O que você acabou de treinar',
   'Import “{0}”': 'Importar “{0}”',
   'Something went wrong': 'Algo deu errado',
@@ -756,9 +754,7 @@ export const PT_BR_OVERRIDES = {
   'Pairs of each size you own. Every set row loads from this list, so a home gym with one pair of 45s is never told to use two.': 'Pares de cada tamanho que você tem. Cada linha de série carrega a partir desta lista, então uma academia em casa com apenas um par de anilhas de 45 nunca é instruída a usar duas.',
   'Your own list for {0}.': 'Sua lista própria para {0}.',
   'The standard set, plenty of each. Change any count to make it yours.': 'O conjunto padrão, com bastante de cada. Mude qualquer contagem para deixar do seu jeito.',
-  'Standard set. Tap to count the pairs you own.': 'Conjunto padrão. Toque para contar os pares que você tem.',
-  'You still log the total weight. This only feeds the plate line under each set.': 'Você continua registrando o peso total. Isso só alimenta a linha de anilhas embaixo de cada série.',
-  // Gym check-in (mobile-only) — only where pt-BR differs from pt (inherited via ...pt)
+  'Standard set. Tap to count the pairs you own.': 'Conjunto padrão. Toque para contar os pares que você tem.',  // Gym check-in (mobile-only) — only where pt-BR differs from pt (inherited via ...pt)
   'Show this at the gym': 'Mostre isto na academia',
   'Add your gym card': 'Adicione seu cartão da academia',
   'Scan it, import a photo, or type the code by hand.': 'Escaneie, importe uma foto ou digite o código à mão.',
@@ -962,9 +958,7 @@ export const PT_BR_OVERRIDES = {
   'Export with photos & videos (.zip)': 'Exportar com fotos e vídeos (.zip)',
   '{0} files could not be included': 'Não foi possível incluir {0} arquivos',
   '{0} file could not be included': 'Não foi possível incluir {0} arquivo',
-  'Without photos and videos': 'Sem fotos nem vídeos',
-  'Name it and pick a body part. It works just like any other exercise.': 'Dê um nome e escolha uma parte do corpo. Funciona igualzinho a qualquer outro exercício.',
-  'name + body part, and a photo or video if you like': 'nome + parte do corpo, e uma foto ou vídeo se quiser',
+  'Without photos and videos': 'Sem fotos nem vídeos',  'name + body part, and a photo or video if you like': 'nome + parte do corpo, e uma foto ou vídeo se quiser',
   '{0} photos or videos have not reached your server yet.': '{0} fotos ou vídeos ainda não chegaram ao seu servidor.',
   '{0} photo or video has not reached your server yet.': '{0} foto ou vídeo ainda não chegou ao seu servidor.',
   // --- a logged workout's own photos and videos ---
