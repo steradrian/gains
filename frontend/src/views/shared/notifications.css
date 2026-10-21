@@ -1,0 +1,6 @@
+/* The Notifications page on the stage (NotificationsScreen.jsx, boards Sh3*). The stage is full
+   bleed (index.css #app:has(> .g-screen)); StageScreen's body already clears the status bar, where
+   the nav bar sticks, so the page adds no top inset of its own (as on Today). It keeps the boards'
+   150px of air above the floating tab bar. */
+.notif{padding-bottom:calc(150px + var(--sab))}
+.notif-link{appearance:none;border:0;padding:0;background:none;color:var(--on-stage);font:inherit;font-weight:700;cursor:pointer;text-decoration:none}

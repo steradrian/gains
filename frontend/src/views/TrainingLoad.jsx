@@ -7,6 +7,7 @@ import { t } from '../lib/i18n.js'
 import { hasEffort, hasEstimableEffort } from '../lib/effort.js'
 import { loadOfWeeklyPlan } from '../lib/muscles.js'
 import { calendarSheet, dayOverrideSheet, workoutDetailSheet } from '../sheets.jsx'
+import { navToDay } from '../lib/day-route.js'
 import { Page } from '../components/layout.jsx'
 import { Card, EmptyState } from '../components/blocks.jsx'
 import Heatmap from '../components/Heatmap.jsx'
@@ -18,6 +19,15 @@ import { TabSection } from '../components/tab-kit.jsx'
 import { Segmented } from '../components/ui.jsx'
 
 const LEGACY_FOCUS = 'weekly-volume'
+
+// A heatmap day: a past trained day opens its Day page under Me (PR07 D1); today's workout its
+// detail (several: the calendar), and a day without one (a day off with a note) the day sheet.
+function openHeatmapDay(ws, iso) {
+  if (ws.length && iso < todayISO() && navToDay(iso, 'me') === 'day') return
+  if (ws.length === 1) workoutDetailSheet(ws[0])
+  else if (ws.length) calendarSheet(iso)
+  else dayOverrideSheet(iso)
+}
 
 // Progress › Training load (ux-redesign-tabs §4.3, ui-redesign-components §4): Activity (the year's
 // heatmap), Muscles (the muscle maps), Plan (the weekly volume the plan programs) and, once there
@@ -62,7 +72,7 @@ export default function TrainingLoad() {
         S={S}
         metric={S.heatmapMetric === 'vol' ? 'vol' : 'time'}
         onMetricChange={metric => useStore.getState().update(s => { s.heatmapMetric = metric })}
-        onDay={iso => { const ws = workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }}
+        onDay={iso => openHeatmapDay(workouts.filter(w => workoutDay(w) === iso), iso)}
       />
     </Card>}
     {view === 'muscles' && (hasMuscles ? <MuscleBalance S={S} />

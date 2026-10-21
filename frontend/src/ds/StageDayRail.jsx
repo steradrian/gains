@@ -22,7 +22,8 @@ const tagOf = d => d.tag ?? (d.name ? d.name.split(/\s+/)[0] : '')
 // need a swipe.
 // A day: { iso, dow, date, state, label, name | tag, href }. `state` is today, done, noted, missed,
 // rest, planned or plain (before the first workout: no mark); `label` is the whole day in words,
-// which the caller writes ("Mon 19 Oct, Legs"). `selected` is a day's `iso`, and `onSelect(day)`
+// which the caller writes ("Mon 19 Oct, Legs"). A day with `disabled` is dimmed and cannot be
+// tapped (the Day page's days before the first log). `selected` is a day's `iso`, and `onSelect(day)`
 // fires for every tap; a day with `href` is a link as well. The week's `title` ("This week") is the
 // caller's too, and so are the two arrows' names.
 export default function StageDayRail({
@@ -52,6 +53,7 @@ export default function StageDayRail({
             onClick={() => onSelect?.(d)}
             ariaLabel={d.label}
             pressed={d.href ? undefined : d.iso === selected}
+            disabled={d.href ? undefined : d.disabled}
             className={cx('g-rd', d.iso === selected && 'on', d.state === 'today' && 'now')}
           >
             <span className="g-rd-dow" aria-hidden="true">{d.dow}</span>

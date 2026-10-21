@@ -39,10 +39,10 @@
   --disc:56px; --disc-sm:36px; --glyph:24px;
   /* A media row's lead (line art or a licensed picture, 4:3) and the exercise variant's thumb. */
   --art-w:96px; --art-h:72px; --thumb-lg:56px;
-  --search-panel-w:680px;
-  /* Layers, beside index.css's 20/40 (pinned headers), 45 (connection row), 50 (tab bar), 60
-     (timer), 100 (#modal-root) and 200 (toast): the tab-root header over the search overlay. */
-  --z-search:47; --z-tab-hdr:48;
+  /* Layers, beside index.css's 20/40 (pinned headers), 44 (the tab-root header), 45 (connection
+     row), 50 (tab bar), 60 (timer), 100 (#modal-root) and 200 (toast): the search's results panel,
+     under the tab-root header's bottom edge. */
+  --z-search:47;
 
   /* line art: two strokes only */
   --il-w:2.5; --il-w-d:1.5;

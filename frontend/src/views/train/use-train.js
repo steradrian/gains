@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
-import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
-import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
+import { useRootHeader } from '../../components/use-root-header.js'
 import { addRoutine } from '../Plan.jsx'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
 import { canNoteDay, dayNoteOf } from '../../lib/day-notes.js'
+import { firstLogDay, navToDay } from '../../lib/day-route.js'
 import { DEMO } from '../../lib/demo.js'
 import { activeProfile } from '../../lib/equipment.js'
 import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
@@ -16,13 +15,14 @@ import { durPart, exCount, exerciseNameText, fmtDate, fmtNum, isoOf, startOfWeek
 import { doneUnits, effectiveRoutineIds, exLine, setUnits, setsDone, setsDoneActive, streakWeeks, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
 import { firstWorkoutDay, missedDay, movePlan, moveToToday, plusDays, skipMissed } from '../../lib/missed-day.js'
 import { MOBILE } from '../../lib/mobile.js'
+import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { levelsOf, loadOfActive, loadOfRoutine, loadOfWorkouts, muscleBalanceWindow, MUSCLE_NAME, rankOf, REGIONS, untrainedRegions } from '../../lib/muscles.js'
 import { queueOf } from '../../lib/queue.js'
 import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
-import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
+import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
@@ -45,6 +45,8 @@ const andList = names => {
 // Literal calls, so check-source-strings sees each key (lib/muscles.js REGIONS holds the English).
 // 'Back' alone is already the packs' back button, so the body part has a key of its own.
 const REGION_NAME = { Chest: () => t('Chest'), Back: () => t('Back muscles'), Shoulders: () => t('Shoulders'), Arms: () => t('Arms'), Core: () => t('Core'), Legs: () => t('Legs') }
+/** Body parts (lib/muscles.js REGIONS names) as one translated list: "Legs and core". */
+export const regionList = names => andList(names.map(n => REGION_NAME[n]()))
 
 /* ---------------------------------------------------------------- the rail -- */
 
@@ -60,19 +62,22 @@ export function railTitle(offset, start) {
 /**
  * One day of the rail: `{ iso, dow, date, mark, state, label, name }`. `mark` is the calendar's
  * (dayMark). `state` is 'today', a past day's 'done', 'noted', 'missed' or 'rest', a later day's
- * 'planned' or 'rest', or 'plain' for a day before the first workout (no marks). `name` is what
- * the day holds: the workout done, or the routines planned.
+ * 'planned' or 'rest', or 'plain' for a day before `first`, the first log (lib/day-route.js
+ * firstLogDay, the day the Day page opens from: no marks, and it cannot be opened). Nothing before
+ * the first workout counts as missed. `name` is what the day holds: the workout done, or the
+ * routines planned.
  */
-export function railDay(S, iso, today, first) {
+export function railDay(S, iso, today, first, workedFrom = firstWorkoutDay(S)) {
   const d = dateOf(iso)
   const base = { iso, dow: d.toLocaleDateString(dateLocale(), { weekday: 'narrow' }), date: d.getDate() }
   const long = d.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })
   if (iso < today && (!first || iso < first)) return { ...base, mark: undefined, state: 'plain', label: long, name: null }
   const mark = dayMark(S, iso)
   const planned = plannedOn(S, iso, today)
+  const owed = planned.length > 0 && !!workedFrom && iso >= workedFrom
   const state = iso === today ? 'today'
     : mark === 'done' ? 'done'
-      : iso < today ? (mark === 'noted' ? 'noted' : planned.length ? 'missed' : 'rest')
+      : iso < today ? (mark === 'noted' ? 'noted' : owed ? 'missed' : 'rest')
         : planned.length ? 'planned' : 'rest'
   const words = {
     today: t('Today'), done: t('Done'), noted: t('Day note'), missed: t('Planned, not logged'), planned: t('Planned'), rest: t('Rest day'),
@@ -83,17 +88,34 @@ export function railDay(S, iso, today, first) {
 }
 
 /**
- * The rail: `{ from, to, weeks }`, weeks from `from` (the week of the first workout, at most
+ * A store change with its Undo: `change(s)` runs on a draft and returns `{ undo(s) }` (or null
+ * when there is nothing to do). Returns `{ done, undo }`, or null. The Undo marks the plan days it
+ * puts back (Plan's pattern, lib/sync-merge.js undoMarks), so a change another device made to one
+ * of them in the meantime still wins. Train's missed-day banner and the Day page's Mark skipped.
+ */
+export function withUndo(change) {
+  const update = mut => useStore.getState().update(mut)
+  const before = useStore.getState().S
+  let done = null
+  update(s => { done = change(s) })
+  if (!done) return null
+  const marks = undoMarks(before, useStore.getState().S)
+  return { done, undo: () => update(s => { done.undo(s); markUndone(s, marks) }) }
+}
+
+/**
+ * The rail: `{ from, to, weeks }`, weeks from `from` (the week of the first log `first`, at most
  * RAIL_BEHIND back, or this week without one) to `to` (RAIL_AHEAD), each `{ offset, title, start,
  * days }`. Later weeks read the plan as it repeats (the weekdays, with any day changed on its own).
+ * `first` is lib/day-route.js firstLogDay, the same first day the Day page opens from.
  */
-export function railOf(S, today) {
-  const first = firstWorkoutDay(S)
+export function railOf(S, today, first = firstWorkoutDay(S)) {
   const from = first && first < today ? Math.max(-RAIL_BEHIND, Math.min(0, Math.floor(daysBetween(railWeekStart(today, 0), first) / 7))) : 0
+  const workedFrom = firstWorkoutDay(S)
   const weeks = []
   for (let offset = from; offset <= RAIL_AHEAD; offset++) {
     const start = railWeekStart(today, offset)
-    weeks.push({ offset, title: railTitle(offset, start), start, days: Array.from({ length: 7 }, (_, k) => railDay(S, plusDays(start, k), today, first)) })
+    weeks.push({ offset, title: railTitle(offset, start), start, days: Array.from({ length: 7 }, (_, k) => railDay(S, plusDays(start, k), today, first, workedFrom)) })
   }
   return { from, to: RAIL_AHEAD, weeks }
 }
@@ -141,7 +163,7 @@ export function ringsOf(S, today) {
 const intent = {
   start: (name, ids) => ({ intent: 'start', label: name ? t('Start {0}', name) : t('Start'), ids }),
   resume: () => ({ intent: 'resume', label: t('Resume') }),
-  seeWorkout: (workouts, title) => ({ intent: 'see-workout', label: workouts.length > 1 ? t('See workouts') : t('See workout'), workouts, title }),
+  seeWorkout: (workouts, title, iso) => ({ intent: 'see-workout', label: workouts.length > 1 ? t('See workouts') : t('See workout'), workouts, title, ...(iso ? { iso } : {}) }),
   trainAnyway: () => ({ intent: 'train-anyway', label: t('Train anyway') }),
   seeDay: iso => ({ intent: 'see-day', label: t('See {0}', longDay(iso)), iso }),
   changeDay: iso => ({ intent: 'change-day', label: t('Change this day'), iso }),
@@ -271,10 +293,10 @@ export function cardOf(S, iso, today) {
         ...card, kind: day.kind, eyebrow: date,
         title: one ? workoutLabel(one) : tn('{0} workout', '{0} workouts', day.workouts.length),
         sub: one ? finishedLine(one, S.unit) : null, thumbs: one ? stillsOf(S, one) : null,
-        primary: intent.seeWorkout(day.workouts, date), menu: [intent.changeDay(iso)],
+        primary: intent.seeWorkout(day.workouts, date, iso), menu: [intent.changeDay(iso)],
       }
     }
-    // Owner decision 2: a past day selects in place and keeps the backfill path (conflict 2).
+    // A past day's intents open its Day page (PR07 decision 6), where Add past workout logs it.
     case 'past-missed': return {
       ...card, kind: day.kind, eyebrow: date, title: day.name, sub: t('Planned, not logged'),
       primary: intent.log(iso, day.ids), menu: dayMenu,
@@ -328,7 +350,7 @@ export function musclesThisWeekOf(S, today, now = Date.now()) {
     levels: levelsOf(load),
     note: !missing.length ? null
       : missing.length === REGIONS.length ? t('Nothing trained yet this week')
-        : t('{0} not trained yet', andList(missing.map(n => REGION_NAME[n]()))),
+        : t('{0} not trained yet', regionList(missing)),
   }
 }
 
@@ -425,14 +447,16 @@ export function skippedText(S, missed, today) {
 /**
  * Everything Train's root shows (PR02 T2.0 and its states), as data:
  *
- *   { header, searching, today, selected, select(iso), rail, card(iso = selected), rings,
+ *   { header, today, selected, select(iso), rail, card(iso = selected), rings,
  *     onRing(slide), actions, onIntent(intent), onPlan, onDayMenu(card), routines, onRoutine(row), onRoutineStart(row),
  *     musclesThisWeek, onMuscles, more, onMore(row), profile, setup, missed }
  *
- * `header` is StageHeader's props. `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
+ * `header` is StageHeader's props, the tab root's own (components/use-root-header.js, as on Today).
+ * `setup` is T2.9's { onPlans, onRoutine, onImport(file) }.
  * `missed` adds `move()` and `skip()`, each returning the toast `{ text, undo }` (UndoToast) or
  * null, and `onMove()` / `onSkip()`, which do the same and show that toast.
- * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked.
+ * The rail selects locally (conflict 1): `selected` is Train's own, today until a day is picked;
+ * a past day opens its Day page instead (`/train/day/:date`, lib/day-route.js navToDay).
  */
 export function useTrain() {
   const nav = useNavigate()
@@ -444,11 +468,12 @@ export function useTrain() {
   const [picked, select] = useState(null)
   const selected = picked || today
   const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
-  const connection = useConnectionTrouble()
-  const searching = useSearch(s => s.open)
-  const update = mut => useStore.getState().update(mut)
+  // The header and its search field, as on every tab root (components/use-root-header.js).
+  const header = useRootHeader('train')
+  useDiaryIndex(s => s.version)
+  const first = firstLogDay(S, diaryIndexDays())
 
-  const rail = useMemo(() => railOf(S, today), [S, today])
+  const rail = useMemo(() => railOf(S, today, first), [S, today, first])
   const toWorkout = () => nav('/train/workout')
   const start = ids => (S.active ? toWorkout() : startFlow(ids))
 
@@ -457,11 +482,13 @@ export function useTrain() {
       case 'start': return start(it.ids)
       case 'resume': return toWorkout()
       case 'choose-workout': case 'train-anyway': return startChooserSheet()
-      case 'see-workout': return workoutsSheet(it.title, it.workouts)
+      // A past day's workouts and its backfill are on its Day page (PR07 decision 6); today's
+      // workout opens its detail.
+      case 'see-workout': return it.iso && it.iso < today ? navToDay(it.iso, 'train') : workoutsSheet(it.title, it.workouts)
       case 'see-day': return select(it.iso)
       case 'change-day': return dayOverrideSheet(it.iso)
       case 'see-routine': return nav('/train/routines/' + it.id)
-      case 'log-workout': return logPastWorkoutSheet(it.routineIds ? { iso: it.iso, routineIds: it.routineIds } : { iso: it.iso })
+      case 'log-workout': return navToDay(it.iso, 'train')
       case 'add-note': return dayNoteSheet(it.iso)
       default: return undefined
     }
@@ -473,20 +500,11 @@ export function useTrain() {
   // T2.12 and T2.13: the app's toast with Undo (8 s).
   const toast = r => { if (r) useUI.getState().toast(r.text, { action: t('Undo'), onAction: r.undo }) }
 
-  const header = {
-    initial: user?.name || '',
-    placeholder: t('Search training'),
-    alert: connection ? t('Connection problem') : null,
-    onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
-    // As on Today: the tab's own header takes over while the search is open, mounted and focused
-    // inside this tap so a phone raises its keyboard.
-    onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('train'))) },
-  }
-
   return {
-    header, searching,
-    today, selected, select,
+    header,
+    // A past day of the rail opens its Day page (PR07 decision 6; a day before the first log opens
+    // nothing); today and a day to come select in place.
+    today, selected, select: iso => (iso < today ? navToDay(iso, 'train') : select(iso)),
     rail,
     card: (iso = selected) => (iso === today ? todayCard : cardOf(S, iso, today)),
     rings: ringsOf(S, today),
@@ -516,16 +534,6 @@ export function useTrain() {
     missed: missed && { ...missed, move: moveMissed, skip: skipIt, onMove: () => toast(moveMissed()), onSkip: () => toast(skipIt()) },
   }
 
-  // An Undo marks the plan days it put back (Plan's pattern, lib/sync-merge.js undoMarks), so a
-  // change another device made to one of them in the meantime still wins.
-  function withUndo(change) {
-    const before = useStore.getState().S
-    let done = null
-    update(s => { done = change(s) })
-    if (!done) return null
-    const marks = undoMarks(before, useStore.getState().S)
-    return { done, undo: () => update(s => { done.undo(s); markUndone(s, marks) }) }
-  }
   function moveMissed() {
     const r = withUndo(s => moveToToday(s, missed.iso, today))
     return r && { text: movedText(S, r.done), undo: r.undo }

@@ -9,6 +9,7 @@ import { PROGRESS_ROOT, inProgress, tabOf } from '../../lib/tab-route.js'
 import { holdPage } from '../../lib/search/hold-page.js'
 import { closeSearch, endSearch, focusSearch, setQuery, syncSearchWithHistory, takeSuppressed, useSearch } from '../../lib/search/session.js'
 import { nav } from '../../lib/nav.js'
+import { useDsAccent } from '../../lib/use-ds-accent.js'
 
 // The overlay itself, its rows and the `motion` engine: one chunk, asked for in idle time after
 // the first paint so that it is there by the first tap, and at the latest by the first focus.
@@ -26,6 +27,7 @@ export default function SearchHost() {
   const live = useSearch(s => s.live)
   const open = useSearch(s => s.open)
   const user = useStore(s => s.user)
+  const accent = useDsAccent()
   const [loaded, setLoaded] = useState(false)
 
   // Load the chunk once the app has painted.
@@ -64,9 +66,15 @@ export default function SearchHost() {
     html.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     page.current = holdPage()
-    // The keyboard's height, so the last row scrolls clear of it.
+    // The keyboard's height, so the last row scrolls clear of it; and how far iOS has scrolled the
+    // visual viewport down under it (offsetTop, with <html> locked), which the pinned header and the
+    // panel follow (--vv-top: ds.css .g-shdr-pin, search.css .search-ov) so they stay in sight.
     const vv = window.visualViewport
-    const inset = () => html.style.setProperty('--search-kb', Math.max(0, window.innerHeight - (vv.height + vv.offsetTop)) + 'px')
+    const inset = () => {
+      const top = Math.max(0, Number(vv.offsetTop) || 0)
+      html.style.setProperty('--search-kb', Math.max(0, window.innerHeight - (vv.height + top)) + 'px')
+      html.style.setProperty('--vv-top', top + 'px')
+    }
     if (vv) { inset(); vv.addEventListener('resize', inset); vv.addEventListener('scroll', inset) }
     return () => {
       page.current.release()
@@ -75,6 +83,7 @@ export default function SearchHost() {
       document.body.style.overflow = prev[1]
       document.body.classList.remove('search-open')
       html.style.removeProperty('--search-kb')
+      html.style.removeProperty('--vv-top')
       if (vv) { vv.removeEventListener('resize', inset); vv.removeEventListener('scroll', inset) }
       if (document.body.style.position !== 'fixed') window.scrollTo(0, y)
     }
@@ -91,8 +100,9 @@ export default function SearchHost() {
       const slash = e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !typing(document.activeElement)
       if ((combo || slash) && !path.startsWith('/train/workout') && !useUI.getState().sheets.length) {
         e.preventDefault()
-        // A tab's root has the pill. In Me that is Progress, which keeps Me's stack (Profile under
-        // it); Profile itself has none, so from there, as from the workout, Home's is used.
+        // A tab's root has the pill. In Me the page with one is Progress, which keeps Me's stack
+        // (Profile under it); Profile itself has none, so from there, as from the workout, Home's
+        // is used. Either way the search is keyed by the real tab (lib/search/scopes.js).
         const tab = tabOf(path)
         focusSearch(() => (inProgress(path) ? popToRoot('me', PROGRESS_ROOT) : tab && tab !== 'me' ? popToRoot(tab) : nav('/home')))
         return
@@ -108,7 +118,7 @@ export default function SearchHost() {
   }, [])
 
   if (!loaded && !live) return null
-  return <Suspense fallback={live && open ? <div className="search-ov" aria-hidden="true" /> : null}>
+  return <Suspense fallback={live && open ? <div className="g-root search-ov" data-accent={accent} aria-hidden="true" /> : null}>
     <SearchOverlay />
   </Suspense>
 }

@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useStore } from '../../store/useStore.js'
-import { RECENT_MAX, addRecent, clearRecents, noteOpened, openedScore, pruneRecents, removeRecent, restoreRecents, useRecents } from './recents.js'
+import {
+  RECENT_MAX, addRecent, clearRecents, clearRecentsWithUndo, keepRecentsThroughUserSwap, markSearched, noteOpened, openedScore, pruneRecents, removeRecent,
+  restoreRecents, useRecents,
+} from './recents.js'
 
 beforeEach(() => {
   localStorage.clear()
@@ -69,5 +72,62 @@ describe('Recent', () => {
     const again = clearRecents()
     restoreRecents(again)
     expect(useRecents.getState().list.map(r => r.query)).toEqual(['rice'])
+  })
+
+  it('Clear hands back its Undo', () => {
+    addRecent({ kind: 'query', query: 'oats' })
+    const undo = clearRecentsWithUndo()
+    expect(useRecents.getState().list).toEqual([])
+    undo()
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['oats'])
+  })
+
+  it('Undo puts the cleared entries back under what was added since, once each, six at most', () => {
+    for (const q of ['a', 'b', 'c', 'd', 'e']) addRecent({ kind: 'query', query: q })
+    const undo = clearRecentsWithUndo()
+    addRecent({ kind: 'query', query: 'new' })
+    addRecent({ kind: 'query', query: 'C' })
+    undo()
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['C', 'new', 'e', 'd', 'b', 'a'])
+    expect(JSON.parse(localStorage.getItem('gains_search_recent:u1')).map(r => r.query)).toEqual(['C', 'new', 'e', 'd', 'b', 'a'])
+  })
+
+  it('a user laid over another while held (the screens gallery) wipes neither profile\'s stored Recent', () => {
+    addRecent({ kind: 'query', query: 'mine' })
+    markSearched()
+    const release = keepRecentsThroughUserSwap()
+    useStore.setState({ user: { id: 'g', name: 'Gallery' } })
+    expect(useRecents.getState().list).toEqual([])
+    useStore.setState({ user: { id: 1, name: 'A' } })
+    release()
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['mine'])
+    expect(localStorage.getItem('gains_search_searched:u1')).toBe('true')
+    // Released, a real switch wipes again.
+    useStore.setState({ user: { id: 2, name: 'B' } })
+    expect(localStorage.getItem('gains_search_recent:u1')).toBeNull()
+    useStore.setState({ user: { id: 1, name: 'A' } })
+  })
+})
+
+describe('the first use', () => {
+  it('lasts until a search is run or a Recent entry is kept, and Clear does not bring it back', () => {
+    useRecents.setState({ searched: false })
+    localStorage.removeItem('gains_search_searched:u1')
+    markSearched()
+    expect(useRecents.getState().searched).toBe(true)
+    expect(localStorage.getItem('gains_search_searched:u1')).toBe('true')
+    useRecents.setState({ searched: false })
+    addRecent({ kind: 'query', query: 'oats' })
+    expect(useRecents.getState().searched).toBe(true)
+    clearRecents()
+    expect(useRecents.getState().searched).toBe(true)
+  })
+
+  it('is per profile, wiped with it on sign-out', () => {
+    markSearched()
+    useStore.setState({ user: { id: 2, name: 'B' } })
+    expect(localStorage.getItem('gains_search_searched:u1')).toBeNull()
+    expect(useRecents.getState().searched).toBe(false)
+    useStore.setState({ user: { id: 1, name: 'A' } })
   })
 })

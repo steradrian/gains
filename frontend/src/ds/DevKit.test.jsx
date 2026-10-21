@@ -14,8 +14,26 @@ describe('DevKit', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
     for (const name of ['StageHeader', 'StageRing', 'RingCarousel', 'GlassActions']) expect(titles).toContain(name)
-    expect(view.host.querySelectorAll('.g-shdr')).toHaveLength(3)
+    // Three in the hero kit's entry, two more as the search field in Shared: search.
+    expect(view.host.querySelectorAll('.g-shdr')).toHaveLength(5)
     expect(view.host.querySelectorAll('.g-gacts')).toHaveLength(4)
+  })
+
+  it('renders the Shared: search kit', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining([
+      'Shared: search · StageHeader searching', 'GoToChips', 'SearchSection and SearchRow', 'ResultChips', 'BestMatch', 'SearchFeatureCard', 'Nothing matches: the ways on',
+    ]))
+    expect(view.host.querySelectorAll('.g-spill-field input')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-goto-chip')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-rchip')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-best')).toHaveLength(2)
+    expect(view.host.querySelector('.g-sfeat')).not.toBeNull()
+    // Recent's × takes its row away, in memory.
+    const before = view.host.querySelectorAll('.g-srow-xbtn').length
+    act(() => { view.host.querySelector('.g-srow-xbtn').click() })
+    expect(view.host.querySelectorAll('.g-srow-xbtn')).toHaveLength(before - 1)
   })
 
   it('renders an entry for the Today content kit', () => {
@@ -59,12 +77,60 @@ describe('DevKit', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
     expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty', 'RoutineTiles', 'MusclesCard']))
-    expect(view.host.querySelectorAll('.g-rail')).toHaveLength(2)
+    // Train's two, and the Day page's (Shared: day)
+    expect(view.host.querySelectorAll('.g-rail')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-tcard')).toHaveLength(6)
-    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(4)
     const title = () => view.host.querySelector('.g-rail-title').textContent
     expect(title()).toBe('This week')
     act(() => { view.host.querySelector('.g-rail-btn[aria-label="Next week"]').click() })
     expect(title()).toBe('Next week')
+  })
+
+  it('renders the shared pages entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining([
+      'Shared: pages', 'StageNavBar', 'StageSection variants', 'NotificationRow', 'StageEmpty on the notifications page', 'Permission banner', 'StageNote',
+    ]))
+    // The other pages' entries sit above the Shared ones (the last in the kit), so the counts read
+    // from the "Shared: pages" heading down.
+    const sections = [...view.host.querySelectorAll('.g-kit-sec')]
+    const shared = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'Shared: pages'))
+    const all = selector => shared.flatMap(s => [...s.querySelectorAll(selector)])
+    expect(all('.g-sempty-btn').map(b => b.textContent)).toEqual(['Set a reminder'])
+    // The app has no Coach notifications (lib/notifications/feed.js), so the kit never shows the line.
+    expect(all('.g-sempty')[0].textContent).not.toMatch(/Coach/)
+    expect(all('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
+    expect(all('.g-snote')[0].textContent).toContain('Kept for 30 days')
+    expect(all('.g-snav')).toHaveLength(7)
+    expect(all('.g-ssec-line')).toHaveLength(2)
+    expect(all('.g-ngroup')).toHaveLength(3)
+    expect(all('.g-nrow')).toHaveLength(9)
+    expect(all('.g-nrow-new')).toHaveLength(3)
+  })
+
+  // Shared: week
+  it('renders the Week page entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['Shared: week', 'StageWeekCells', 'WeekStrip4', 'StatTiles']))
+    expect(view.host.querySelectorAll('.g-swc')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-swc-cell')).toHaveLength(28)
+    expect(view.host.querySelectorAll('.g-w4')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-w4-cell.on')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-stats')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-stats-stage .g-stat')).toHaveLength(4)
+  })
+
+  // Shared: day
+  it('renders the Day page entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StageDayRail on a Day page', 'DayStatusCard', 'DayFoodCard', 'RadioRow']))
+    expect(view.host.querySelectorAll('.g-dstat')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-dfood')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-radio')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-rd[disabled]')).toHaveLength(2)
   })
 })

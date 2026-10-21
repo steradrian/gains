@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { t } from '../../lib/i18n.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
 import Elapsed from '../../components/Elapsed.jsx'
-import { Page } from '../../components/layout.jsx'
 import GlassActions from '../../ds/GlassActions.jsx'
 import GlassList from '../../ds/GlassList.jsx'
 import InlineBanner from '../../ds/InlineBanner.jsx'
@@ -26,17 +25,17 @@ const MORE_ICON = { history: 'history', load: 'chartLine', coach: 'chat', plans:
 // banner, the rings, the four actions, the selected day's card, Routines and Your training; with
 // training not set up (T2.9), the invitation instead. It draws what useTrain() gives it; the only
 // state it keeps is the rail's page, which follows the selected day. The floating tab bar is the
-// app's (#tabbar). While the search is open the tab root's own header (<Page root>) stands in,
-// since the app's search types into its input. `ring` is the page the rings open on.
+// app's (#tabbar). The header is pinned to the top and is the search's field while it is open
+// (components/use-root-header.js), as on Today. `ring` is the page the rings open on.
 export default function TrainScreen({
-  header, searching, selected, select, rail, card, rings, onRing, actions, onIntent, onPlan, onDayMenu,
+  header, selected, select, rail, card, rings, onRing, actions, onIntent, onPlan, onDayMenu,
   routines, onRoutine, onRoutineStart, musclesThisWeek, onMuscles, more, onMore, profile, setup, missed, ring = 0,
 }) {
   const accent = useDsAccent()
   return (
     <StageScreen accent={accent}>
       <div className="train">
-        {searching ? <Page root title={t('Training')} /> : <StageHeader {...header} />}
+        <StageHeader pinned title={t('Training')} {...header} />
         {profile.kind === 'off'
           ? <Setup activities={profile.activities} {...setup} />
           : <>

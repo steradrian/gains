@@ -249,6 +249,17 @@ describe('the Fasting page', () => {
     expect(button('Turn on fasting').disabled).toBe(false)
   })
 
+  it('turned on but the settings fail to load again: it says it is on, since the server took it', async () => {
+    useFake({ settings: fixtureSettings() })
+    await mount(<Fasting />)
+    nt.failNext('GET', '/nt/api/settings', { status: 500 })
+    await click(button('Turn on fasting'))
+    expect(nt.writes()).toEqual([expect.objectContaining({ method: 'PUT', path: '/nt/api/settings', body: { key: 'fastingEnabled', value: true } })])
+    expect(useNutrition.getState().settings.data.fastingEnabled).toBe(true)
+    expect(text()).toContain('Start a fast')
+    expect(host.querySelector('[role="alert"]')).toBeNull()
+  })
+
   it('says the settings did not load, with Try again that loads the page', async () => {
     useFake({ settings: fixtureSettings() })
     nt.failNext('GET', '/nt/api/settings', { status: 500 })

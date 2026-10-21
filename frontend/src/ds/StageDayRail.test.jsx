@@ -80,6 +80,16 @@ describe('StageDayRail', () => {
     expect(cells()[1].tagName).toBe('BUTTON')
   })
 
+  it('a disabled day cannot be tapped', () => {
+    const onSelect = vi.fn()
+    const weeks = [[{ ...THIS_WEEK[0], state: 'plain', disabled: true }, ...THIS_WEEK.slice(1)]]
+    view.render(rail({ weeks, week: 0, home: 0, onSelect }))
+    expect(cells()[0].disabled).toBe(true)
+    expect(cells()[1].disabled).toBe(false)
+    click(cells()[0])
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
   it('rejects an unknown state while developing', () => {
     const weeks = [[{ ...THIS_WEEK[0], state: 'bogus' }]]
     expect(() => view.render(rail({ weeks, week: 0, home: 0 }))).toThrow()

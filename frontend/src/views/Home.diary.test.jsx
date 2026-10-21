@@ -20,7 +20,7 @@ import Home from './Home.jsx'
 import DayNav from '../components/DayNav.jsx'
 import PortionSheet from '../components/PortionSheet.jsx'
 import QuickKcalSheet from '../components/QuickKcalSheet.jsx'
-import AvatarButton from '../components/AvatarButton.jsx'
+import RootHeader from '../components/RootHeader.jsx'
 import { openPlusSheet } from '../components/PlusSheet.jsx'
 import { bwSheet, calendarSheet } from '../sheets.jsx'
 import { weighInTime } from '../lib/bodyweight.js'
@@ -313,20 +313,35 @@ describe('Today', () => {
     } finally { vi.useRealTimers() }
   })
 
+  it('the bell counts the unread notifications in its name and shows the dot; none read, none shown', async () => {
+    const at = n => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(18, 0, 0, 0); return d.getTime() }
+    const lift = (id, n, w) => ({ id, d: shiftDay(-n), start: at(n), end: at(n) + 3600000, entries: [{ id: '0025', sets: [{ w, r: 1, done: true }] }] })
+    useStore.setState(s => ({ S: { ...s.S, workouts: [lift('w1', 10, 90), lift('w2', 3, 96)], notifRead: { at: 0, ids: [] } } }))
+    await mount(<Home />)
+    const bell = host.querySelector('.g-bell')
+    expect(bell.getAttribute('aria-label')).toMatch(/^Notifications, [1-9]\d* unread$/)
+    expect(bell.querySelector('.g-sdot')).toBeTruthy()
+    await act(async () => { useStore.setState(s => ({ S: { ...s.S, notifRead: { at: Date.now(), ids: [] } } })) })
+    expect(bell.getAttribute('aria-label')).toBe('Notifications')
+    expect(bell.querySelector('.g-sdot')).toBeNull()
+  })
+
   it('the header: the avatar opens Profile, the bell Notifications, the pill the app\'s search', async () => {
     await mount(<Home />)
     await click(button('Settings'))
     expect(navigate).toHaveBeenCalledWith('/me')
     await click(button('Notifications'))
-    expect(navigate).toHaveBeenCalledWith('/me/notifications')
-    await click(host.querySelector('.g-spill'))
-    expect(useSearch.getState().open).toBe(true)
-    // The tab's own header takes over, its input focused inside the tap.
-    expect(host.querySelector('.g-shdr')).toBeNull()
-    expect(document.activeElement).toBe(host.querySelector('.tab-hdr input'))
+    expect(navigate).toHaveBeenCalledWith('/home/notifications')
+    const field = host.querySelector('.g-spill-field input')
+    await act(async () => { field.focus() })
+    expect(useSearch.getState()).toMatchObject({ open: true, tab: 'home' })
+    // The header stays where it is: its pill is the field, focused, and the bell is the ×.
+    expect(host.querySelector('.g-shdr.g-shdr-pin')).toBeTruthy()
+    expect(document.activeElement).toBe(field)
+    expect(button('Close search')).toBeTruthy()
     await act(async () => { closeSearch() })
     await settle()
-    expect(host.querySelector('.g-shdr')).toBeTruthy()
+    expect(button('Notifications')).toBeTruthy()
   })
 
   it('the avatar carries the hub sync warning, with its reason in its name', async () => {
@@ -531,6 +546,37 @@ describe('the + sheet', () => {
     expect(lastSheet().querySelector('input[type="date"]').value).toBe(yesterday)
   })
 
+  it('on a Day page, Log food goes to that day as a parameter: Today and Eat stay on their own day', async () => {
+    await useNutrition.getState().loadSettings()
+    await mount(<></>)
+    await act(async () => { openPlusSheet('/train/day/' + yesterday) })
+    await settle()
+    await click(button('Log food', lastSheet()))
+    await settle()
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Log food')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(fmtDate(yesterday, true))
+    expect(useDiarySelection.getState().date).toBeNull()
+    expect(useDiarySelection.getState().day()).toBe(TODAY)
+  })
+
+  it('on a Day page, logs to that day: Log weight and Add past workout, and a line saying where (PR07 D1.5)', async () => {
+    await useNutrition.getState().loadSettings()
+    await mount(<></>)
+    await act(async () => { openPlusSheet('/train/day/' + yesterday) })
+    await settle()
+    const day = fmtDate(yesterday, true)
+    expect(useDiarySelection.getState().date).toBeNull()
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain(day)
+    expect([...lastSheet().querySelectorAll('.g-atile')].map(b => b.textContent)).toEqual(['Log food', 'Scan', 'Water', 'Log weight', 'Add past workout'])
+    expect(lastSheet().textContent).not.toContain('Gym check-in')
+    expect(lastSheet().querySelector('.g-bs-note').textContent).toBe(`Everything here goes to ${day}. Tap the chip to pick another meal.`)
+    await click(button('Add past workout', lastSheet()))
+    await settle()
+    expect(lastSheet().querySelector('.g-bs h2').textContent).toBe('Add past workout')
+    expect(lastSheet().querySelector('.g-bs-chip').textContent).toBe(day)
+  })
+
   it('a meal picked in the header is where Quick kcal logs', async () => {
     await useNutrition.getState().loadSettings()
     await mount(<></>)
@@ -621,17 +667,20 @@ describe('sync after a weigh-in and a workout', () => {
   })
 })
 
+// The avatar of every other tab root's header (RootHeader: the same stage header as Today's).
 describe('the avatar dot', () => {
+  const dot = () => host.querySelector('.g-sbtn:not(.g-bell) .g-sdot')
+
   it('shows when the hub sync needs the person', async () => {
-    await mount(<AvatarButton />)
-    expect(host.querySelector('.tab-dot')).toBeNull()
+    await mount(<RootHeader title="Nutrition" />)
+    expect(dot()).toBeNull()
     await act(async () => { useHubSync.setState({ status: fixtureSyncStatus('needs_confirmation') }) })
-    expect(host.querySelector('.tab-dot')).toBeTruthy()
-    expect(host.querySelector('.avatar-btn').getAttribute('aria-label')).toBe('Profile, Nutrition sync needs attention')
+    expect(dot()).toBeTruthy()
+    expect(host.querySelector('.g-sbtn:not(.g-bell)').getAttribute('aria-label')).toBe('Settings, Nutrition sync needs attention')
   })
 
   it('reads the hub status again when the app comes back to the front', async () => {
-    await mount(<AvatarButton />)
+    await mount(<RootHeader title="Nutrition" />)
     const reads = () => nt.requests.filter(r => r.path === '/hub/api/sync/status').length
     expect(reads()).toBe(1)
     nt.state.syncStatus = fixtureSyncStatus('error')
@@ -639,7 +688,7 @@ describe('the avatar dot', () => {
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
     await settle()
     expect(reads()).toBe(2)
-    expect(host.querySelector('.tab-dot')).toBeTruthy()
+    expect(dot()).toBeTruthy()
     // Within the refresh interval, focus does not ask again.
     await act(async () => { window.dispatchEvent(new Event('focus')) })
     await settle()

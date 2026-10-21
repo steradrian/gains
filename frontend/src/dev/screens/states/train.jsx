@@ -74,7 +74,6 @@ const FUTURE = {
 
 export const base = {
   header: { initial: 'Alex', placeholder: 'Search training', onSettings: NOOP, onBell: NOOP, onSearch: NOOP },
-  searching: false,
   selected: TODAY,
   select: NOOP,
   rail: railOf(null),

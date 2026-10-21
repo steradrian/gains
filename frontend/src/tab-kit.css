@@ -9,81 +9,11 @@
 
 /* ------------------------------------------------------------------ headers -- */
 
-/* The tab-root header: [search pill] [context button] [avatar], one 56px row in the page's
-   gutter, pinned under the system bars. Its padding covers the status bar and the connection row
-   when it is pinned, which is why it sits under the connection row (45) and over the pinned
-   workout headers (20, 40); the search overlay lifts it to --z-tab-hdr while it is open. The
-   hairline under it fades in once the page has scrolled (RootHeader's `scrolled`). */
-.tab-hdr{
-  position:sticky;top:0;z-index:44;
-  margin:calc(-1 * (var(--sat) + var(--conn))) calc(-1 * var(--pad)) var(--space-4);
-  padding:calc(var(--sat) + var(--conn)) var(--pad) 0;
-  background:var(--bg);
-}
-.tab-hdr::after{
-  content:'';position:absolute;inset-inline:0;bottom:0;height:var(--hair);background:var(--sep);
-  opacity:0;transition:opacity var(--fast) var(--ease);pointer-events:none;
-}
-.tab-hdr.scrolled::after{opacity:1}
-.tab-hdr-row{display:flex;align-items:center;gap:var(--space-4);height:var(--hdr-h)}
-/* A context button: the avatar's chrome at the same size. Its slot carries the row's gap ahead
-   of it, so the slot closing to 0 while search is open hands the pill all of that room
-   (search/header-motion.jsx ContextSlot). */
-.hdr-slot{flex:none;display:flex;margin-inline-start:calc(-1 * var(--space-4))}
-.hdr-slot-in{display:flex;padding-inline-start:var(--space-4)}
-.hdr-slot-in>.iconbtn{width:var(--hdr-btn);height:var(--hdr-btn);font-size:20px;box-shadow:var(--ring-hair),var(--shadow-card)}
-/* A context readout (Nutrition's "N left"): a text pill, 44px to tap, in the same chrome. */
-.hdr-slot-in>.hdr-left{
-  min-height:var(--tap-min);padding-inline:12px;border-radius:var(--r-pill);white-space:nowrap;
-  background:var(--surface);box-shadow:var(--ring-hair),var(--shadow-card);
-  font-size:var(--fs-subhead);font-weight:var(--fw-medium);color:var(--acc-ink);font-variant-numeric:tabular-nums;
-}
-.hdr-slot-in>.hdr-left.over{color:var(--orange-ink)}
-
-/* The search pill: the real input, 40px, the same surface as the avatar beside it. */
-.spill{
-  flex:1;min-width:0;height:var(--hdr-btn);border-radius:var(--r-pill);
-  display:flex;align-items:center;gap:var(--space-4);padding-inline:12px 4px;
-  background:var(--surface);box-shadow:var(--ring-hair),var(--shadow-card);
-  transition:background var(--fast) var(--ease);
-}
-.spill-g{font-size:18px;color:var(--label-2)}
-/* 16px is the size under which iOS zooms into a focused field. */
-.spill-i{
-  flex:1;min-width:0;height:100%;padding:0;border:0;outline:none;background:none;
-  font-size:var(--fs-callout);font-weight:var(--fw-regular);letter-spacing:-.01em;
-  color:var(--label);caret-color:var(--acc-ink);text-overflow:ellipsis;
-}
-.spill-i::placeholder{color:var(--label-2);opacity:1}
-.spill-i:focus-visible{outline:none}
-.spill:focus-within{box-shadow:inset 0 0 0 1.5px var(--acc-line),var(--shadow-card)}
-.spill:focus-within .spill-g{color:var(--label)}
-.spill:focus-within:has(:focus-visible){outline:2.5px solid var(--acc-ink);outline-offset:2px}
-@media (hover:hover){.spill:hover{background:color-mix(in srgb,var(--surface-2) 50%,var(--surface))}}
-@media (min-width:1000px){.spill-i{font-size:var(--fs-subhead)}}
-/* Clear: a 44px target around the 22px disc of .searchf's clear. */
-.spill-clear{flex:none;width:var(--tap-min);height:var(--tap-min);margin-block:-2px;display:flex;align-items:center;justify-content:center}
-.spill-x{
-  width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:var(--label-3);color:var(--bg);font-size:11px;--icon-stroke:3;
-}
-
-/* The avatar: a 40px circle with the pill's surface, 44px to tap. The way into Profile, and
-   while search is open its close button. */
-.avatar-btn{
-  position:relative;flex:none;width:var(--hdr-btn);height:var(--hdr-btn);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;color:var(--label);
-  background:var(--surface);box-shadow:var(--ring-hair),var(--shadow-card);
-  transition:transform var(--fast) var(--ease);
-}
-.avatar-btn::before{content:'';position:absolute;inset:-2px;border-radius:50%}
-.avatar-btn:active{transform:scale(.92)}
-.avatar-c{display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:var(--fw-semibold)}
-.avatar-c .icn{font-size:20px;color:var(--label-2)}
-.avatar-btn.close .avatar-c .icn{font-size:18px;color:var(--label);--icon-stroke:2.25}
-.avatar-btn .tab-dot{top:0;right:0;box-shadow:0 0 0 2px var(--bg)}
-/* The only sync indicator: --orange is 2:1 on the light ground, its ink 5.7:1. */
-:root[data-theme="light"] .avatar-btn .tab-dot{background:var(--orange-ink)}
+/* A tab root's header is the stage's (RootHeader.jsx: ds/StageHeader `pinned`, fixed to the top
+   of the window with the status bar and the connection row inside it). #app already pads the
+   bars and its own top (--app-top), so the room left for the header's row is what is missing of
+   it, then the space a header leaves above the page. */
+.root-hdr-space{height:calc(var(--shdr-h) - var(--app-top));margin-bottom:var(--space-4)}
 
 /* The sub-page header: back · the centred title · up to two actions. The side columns share what
    the title leaves equally and never go under one button or under their own buttons, so the title
@@ -469,8 +399,8 @@
    blocks are the same rules, since a media query and an attribute selector cannot share one;
    tab-kit.reduced-motion.test.js keeps them whole. */
 @media (prefers-reduced-motion: reduce){
-  .avatar-btn:active,.wk-d:active,.media-play:active,.lrow-plus:active{transform:none;opacity:.6}
+  .wk-d:active,.media-play:active,.lrow-plus:active{transform:none;opacity:.6}
   .act-b:active .act-d{transform:none;opacity:.6}
 }
-html[data-motion=reduce] .avatar-btn:active,html[data-motion=reduce] .wk-d:active,html[data-motion=reduce] .media-play:active,html[data-motion=reduce] .lrow-plus:active{transform:none;opacity:.6}
+html[data-motion=reduce] .wk-d:active,html[data-motion=reduce] .media-play:active,html[data-motion=reduce] .lrow-plus:active{transform:none;opacity:.6}
 html[data-motion=reduce] .act-b:active .act-d{transform:none;opacity:.6}
