@@ -67,6 +67,11 @@ export function connectionView(sync, { mobile = MOBILE, online = isOnline() } = 
       return { tone: 'ok', icon: 'cloud', line: t('All synced'), banner: null, action: null }
     case 'pending':   // the sentence already says "tap to retry": no second word for it
       return { tone: 'wait', icon: 'reset', line: t('Waiting to sync'), banner: t('Not synced yet. Tap to retry.'), action: 'retry', label: null }
+    // The account is scheduled for deletion (useStore pauseForDeletion): the server takes no
+    // changes until it is cancelled. Deliberate, not a fault: the Settings root's banner says it
+    // and offers Cancel deletion, so no app-wide banner and nothing to retry.
+    case 'paused':
+      return { tone: 'quiet', icon: 'cloudSlash', line: t('Sync paused · deletion scheduled'), banner: null, action: null }
     // A sign-in's question about this device's workouts is still open (useStore adoptProfile):
     // nothing syncs until it is answered, and "retry" — Sync now — asks it again.
     case 'held':
