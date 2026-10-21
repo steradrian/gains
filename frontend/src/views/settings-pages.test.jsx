@@ -91,8 +91,10 @@ afterEach(() => {
 })
 
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
-const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
-const titles = () => [...host.querySelectorAll('.lrow .lrow-t')].map(e => e.textContent)
+// A legacy row is `.lrow` with a `.lrow-t`; a row on the stage (SettingRow) carries its title in `data-find`.
+const rowTitled = title => [...host.querySelectorAll('.lrow, [data-find]')].find(r => (r.dataset.find ?? r.querySelector('.lrow-t')?.textContent) === title)
+const titles = () => [...host.querySelectorAll('.lrow .lrow-t, [data-find]')].map(e => e.dataset.find ?? e.textContent)
+const valueOf = row => (row.querySelector('.g-gvr-val') || row.querySelector('.lrow-v')).textContent
 
 // This test's guest in a browser, as the page itself sees it.
 const guestWeb = {
@@ -108,12 +110,11 @@ describe('the root', () => {
     expect(host.querySelector('.sp-acct .lrow-s').textContent).toBe('Your data lives on this device. Sign in to sync.')
     // a guest in a browser has no notifications (no push server), no Coach page (the server's
     // Coach), no Health Connect, no photos yet, nothing to sync and nothing to log out of
-    expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout', 'Fine-tuning', 'Timer alerts',
-      'Schedule defaults', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
+    expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout screen', 'Fine-tuning',
+      'Schedule', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['General', 'Training', 'Body & progress', 'Data', 'About'])
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
-    expect(rowTitled('Timer alerts').querySelector('.lrow-v').textContent).toBe('Sound · Vibrate')
-    expect(rowTitled('Schedule defaults').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
+    expect(rowTitled('Workout screen').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
+    expect(rowTitled('Schedule').querySelector('.lrow-v').textContent).toMatch(/^Fixed Week · Mon/)
     expect(rowTitled('Units & language').querySelector('.lrow-v').textContent).toBe('kg · English')
     expect(rowTitled('Equipment').querySelector('.lrow-v').textContent).toBe('Everything')
     expect(rowTitled('About & updates').querySelector('.lrow-v').textContent).toMatch(/^v\d|^vtest/)
@@ -157,7 +158,7 @@ describe('the root', () => {
 
   it('marks the page rows so a long preview wraps instead of losing its second half', () => {
     mount()
-    const rows = ['Workout', 'Timer alerts', 'Schedule defaults', 'Units & language', 'Appearance'].map(rowTitled)
+    const rows = ['Workout screen', 'Schedule', 'Units & language', 'Appearance'].map(rowTitled)
     for (const r of rows) expect(r.classList.contains('sp-root-row')).toBe(true)
     // index.css: the marked rows' value may wrap, and never shrinks below its longest word
     const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
@@ -170,10 +171,10 @@ describe('the root', () => {
   it('previews a rest that was never on the old list, and no timer at all', () => {
     mocks.S.restSec = 105
     mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:45 rest · Cards')
+    expect(rowTitled('Workout screen').querySelector('.lrow-v').textContent).toBe('1:45 rest · Cards')
     mocks.S.restSec = 0
     mount()
-    expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
+    expect(rowTitled('Workout screen').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
   })
 
   it('signed in, Reminders is there and the card names the account; on the phone app the Coach too', () => {
@@ -195,10 +196,10 @@ describe('the root', () => {
   it('a row opens its page; the Coach row opens the phone Coach setup; the card opens Account', () => {
     mocks.MOBILE = true
     mount()
-    act(() => rowTitled('Timer alerts').click())
+    act(() => rowTitled('Workout screen').click())
     act(() => rowTitled('AI Coach').click())
     act(() => host.querySelector('.sp-acct').click())
-    expect(mocks.navs).toEqual([['/me/alerts'], ['/train/coach/setup'], ['/me/account']])
+    expect(mocks.navs).toEqual([['/me/workout'],['/train/coach/setup'], ['/me/account']])
   })
 
   it('searches every setting and a hit goes to its page with the row to flash', () => {
@@ -211,9 +212,9 @@ describe('the root', () => {
     })
     type('haptic')
     expect(titles()).toEqual(['Vibrate'])
-    expect(host.querySelector('.lrow .lrow-s').textContent).toBe('Timer alerts')
+    expect(host.querySelector('.lrow .lrow-s').textContent).toBe('Workout screen')
     act(() => rowTitled('Vibrate').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Vibrate' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/workout', { state: { find: 'Vibrate' } }])
     type('zzzz')
     expect(host.querySelector('.empty[data-surface=page] .lineart[data-scene=search]')).not.toBeNull()
     expect(host.querySelector('.empty h2').textContent).toBe('No setting matches “zzzz”.')
@@ -335,7 +336,7 @@ describe('the search query', () => {
     window.history.replaceState({ key: 'root2', idx: 3 }, '')  // the gear, a tab, Android Back then the gear
     mount()
     expect(host.querySelector('.sp-search input').value).toBe('')
-    expect(titles()).toContain('Timer alerts')
+    expect(titles()).toContain('Workout screen')
   })
 })
 
@@ -343,7 +344,7 @@ describe('the pages', () => {
   it('each search entry is a row on its page (guest in a browser)', () => {
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, guestWeb) && (!e.when || e.when(guestWeb))) (byPage[e.page] ||= []).push(e.title)
-    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'alerts', 'appearance', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
+    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'appearance', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
       // Equipment is Gym setup, a stage page outside this Settings shell (SettingsRoute): its
       // rows and the search's anchors are checked in views/train/gym/GymSetup.test.jsx
@@ -354,19 +355,21 @@ describe('the pages', () => {
     }
   })
 
-  it('every old row has a home: the Workout page holds the rest, logging and the before/during rows', () => {
+  it('every old row has a home: Workout screen holds layout, the rest, the end-of-rest rows and the during rows', () => {
     mount('workout')
-    expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['Rest', 'Logging', 'Before and during'])
-    expect(titles()).toEqual(['Rest timer', 'Rest-pause rest', 'Effort per set', 'Shown under each exercise', 'Layout',
-      'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Exercise animations'])
-    // QA 10-05: the "screen stays on" line is the awake row's own subtitle, not a section footer
-    // that read as if it explained the animations above it.
-    expect(rowTitled('Keep screen awake').querySelector('.lrow-s').textContent).toMatch(/^The screen stays on/)
-    expect(rowTitled('Exercise animations').querySelector('.lrow-s')).toBeNull()
-    expect([...host.querySelectorAll('.sect-f')].some(f => /screen stays on/.test(f.textContent))).toBe(false)
+    expect([...host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Layout', 'On each exercise', 'Rest', 'When a rest ends', 'During a workout'])
+    expect(titles()).toEqual(['Layout', 'Effort per set', 'Shown under each exercise', 'Exercise animations', 'Rest timer', 'Rest-pause rest',
+      'Play a sound', 'Sound', 'Vibrate', 'Flash the screen', 'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Fine-tuning'])
+    expect(host.querySelector('h1').textContent).toBe('Workout screen')
     mount('advanced')
     expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Weight and reps buttons',
-      'Drop and burst shortcuts on every set', 'Swipe actions', 'Exercise chips at the top', 'Superset buttons in the exercise header', 'Move, swap and remove buttons below the exercise'])
+      'Drop and burst shortcuts', 'Swipe actions', 'Exercise chips at the top', 'Superset buttons in the header', 'Move, swap and remove buttons'])
+  })
+
+  it('the Fine-tuning row on Workout screen opens Fine-tuning', () => {
+    mount('workout')
+    act(() => rowTitled('Fine-tuning').click())
+    expect(mocks.navs.at(-1)).toEqual(['/me/advanced'])
   })
 
   it('Collapse completed exercises is saved for every session and drops a running session\'s own choice', () => {
@@ -381,7 +384,7 @@ describe('the pages', () => {
 
   it('the Fine-tuning switches write S.wc as the old Workout controls sheet did', () => {
     mount('advanced')
-    act(() => rowTitled('Superset buttons in the exercise header').querySelector('[role="switch"]').click())
+    act(() => rowTitled('Superset buttons in the header').querySelector('[role="switch"]').click())
     expect(mocks.S.wc.pairButtons).toBe(true)
     // the chip row at the top of a workout (#323) is on by default; its switch turns it off
     const chips = rowTitled('Exercise chips at the top').querySelector('[role="switch"]')
@@ -391,10 +394,21 @@ describe('the pages', () => {
   })
 
   it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
-    for (const [page, title] of [['alerts', 'Timer alerts'], ['advanced', 'Fine-tuning'], ['licences', 'Licences'], ['danger', 'Danger zone'], ['features', 'Features']]) {
+    for (const [page, title] of [['licences', 'Licences'], ['danger', 'Danger zone'], ['features', 'Features']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr h1').textContent).toBe(title)
       act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
+      expect(mocks.backs.at(-1), page).toBe('/me')
+    }
+  })
+
+  it('the pages on the stage draw their own frame, not the old header, and Back goes to Profile', () => {
+    for (const [page, title] of [['workout', 'Workout screen'], ['advanced', 'Fine-tuning'], ['schedule', 'Schedule']]) {
+      mount(page)
+      expect(host.querySelector('.sub-hdr'), page).toBeNull()
+      expect(host.querySelectorAll('h1'), page).toHaveLength(1)
+      expect(host.querySelector('h1').textContent).toBe(title)
+      act(() => host.querySelector('.g-snav-back').click())
       expect(mocks.backs.at(-1), page).toBe('/me')
     }
   })
@@ -406,7 +420,7 @@ describe('the pages', () => {
   })
 
   it('a search hit flashes its row', () => {
-    mount('alerts', 'Flash the screen')
+    mount('workout', 'Flash the screen')
     expect(rowTitled('Flash the screen').classList.contains('sp-flash')).toBe(true)
   })
 })
@@ -419,27 +433,21 @@ describe('the rest wheels', () => {
     act(() => r.render(sheet(close)))
     return { h, r, close }
   }
-  it('Rest timer opens the wheel and stores any value as seconds in restSec', () => {
+  // The drawer itself (steps, presets, live writes) is rest-timer-sheet.test.jsx.
+  it('Rest timer shows the rest and opens its drawer', () => {
     mount('workout')
-    expect(rowTitled('Rest timer').querySelector('.lrow-v').textContent).toBe('1:30')
+    expect(valueOf(rowTitled('Rest timer'))).toBe('1:30')
     act(() => rowTitled('Rest timer').click())
     const { h, r } = doneIn(mocks.sheets.at(-1))
-    expect(h.querySelector('h3').textContent).toBe('Rest timer')
-    const [min, sec] = h.querySelectorAll('[role="spinbutton"]')
-    expect(min.getAttribute('aria-valuemax')).toBe('15')
-    act(() => { sec.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', bubbles: true })) })
-    act(() => { sec.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })) })
-    act(() => { [...h.querySelectorAll('button')].find(b => b.textContent === 'Done').click() })
-    expect(mocks.S.restSec).toBe(101)
+    expect(h.querySelector('h2').textContent).toBe('Rest timer')
+    expect(h.querySelector('.set-rest-time').textContent).toBe('1:30')
     act(() => r.unmount()); h.remove()
-    mount('workout')
-    expect(rowTitled('Rest timer').querySelector('.lrow-v').textContent).toBe('1:41')
   })
 
   it('0:00 is the timer off', () => {
     mocks.S.restSec = 0
     mount('workout')
-    expect(rowTitled('Rest timer').querySelector('.lrow-v').textContent).toBe('Off')
+    expect(valueOf(rowTitled('Rest timer'))).toBe('Off')
   })
 
   it('Rest-pause rest uses the wheel too, 5 s to 5 minutes', () => {
@@ -493,9 +501,9 @@ describe('searchSettings', () => {
   })
 
   it('searches in the app language as well', () => {
-    const de = { Vibrate: 'Vibration', 'Timer alerts': 'Timer-Hinweise', Settings: 'Einstellungen' }
+    const de = { Vibrate: 'Vibration', 'Workout screen': 'Workout-Ansicht', Settings: 'Einstellungen' }
     const hits = searchSettings('vibration', guestWeb, s => de[s] || s)
-    expect(hits[0]).toMatchObject({ title: 'Vibrate', label: 'Vibration', trail: 'Timer-Hinweise' })
+    expect(hits[0]).toMatchObject({ title: 'Vibrate', label: 'Vibration', trail: 'Workout-Ansicht' })
   })
 
   it('finds the translated choices of a row, and words of its own language', async () => {
@@ -520,7 +528,7 @@ describe('searchSettings', () => {
       await setLang('de')
       const titles = searchSettings('ton', guestWeb, t).map(h => h.title)
       expect(titles).not.toContain('Weight and reps buttons')
-      expect(titles).not.toContain('Superset buttons in the exercise header')
+      expect(titles).not.toContain('Superset buttons in the header')
     } finally { await setLang('en') }
     expect(searchSettings('tone', { ...guestWeb, user: { id: 'u' }, pushOK: true, reminderOn: true, nudge: true }, s => s).map(h => h.title)).toContain('Nudge tone')
     expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup (JSON)')
@@ -553,10 +561,10 @@ describe('Features', () => {
     expect(t).not.toContain('Workout day reminder')     // no reminders for a guest in a browser
     expect(t).not.toContain('Auto-backup on changes')   // the phone app's
     expect(rowTitled('Flash the screen').querySelector('.lrow-v').textContent).toBe('On')
-    expect(rowTitled('Flash the screen').querySelector('.lrow-s').textContent).toBe('Timer alerts')
+    expect(rowTitled('Flash the screen').querySelector('.lrow-s').textContent).toBe('Workout screen')
     expect(rowTitled('Reduce motion').querySelector('.lrow-v').textContent).toBe('Off')
     act(() => rowTitled('Flash the screen').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me/alerts', { state: { find: 'Flash the screen' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/workout', { state: { find: 'Flash the screen' } }])
   })
 
   it('a reminder that waits on push opens Reminders with Push notifications to flash instead', () => {

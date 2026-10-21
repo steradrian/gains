@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
 import { preloadPages } from './settings/pages/index.js'
-import { bindUI } from '../components/ui.jsx'
 
 await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -51,13 +50,8 @@ vi.mock('../sheets.jsx', () => ({
 // The Settings view reads the build-time version constant at render time.
 globalThis.__APP_VERSION__ ??= 'test'
 
-// SelectRow opens its choices through the bound UI store; capture the sheet to render it here.
-let sheet = null
-bindUI({ getState: () => ({ openSheet: render => { sheet = render; return { close: () => {} } } }) })
-
 let host, root
 beforeEach(() => {
-  sheet = null
   mocks.S = {
     unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',
     gifSize: 'full', workouts: [], routines: [], exWeights: {},
@@ -72,37 +66,25 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="workout" />))
-const row = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Shown under each exercise'))
-const choose = label => {
-  act(() => { row().click() })
-  expect(sheet).toBeTypeOf('function')
-  const box = document.createElement('div')
-  document.body.appendChild(box)
-  const sheetRoot = createRoot(box)
-  act(() => sheetRoot.render(sheet(() => {})))
-  const option = [...box.querySelectorAll('button.lrow')].find(b => b.querySelector('.lrow-t')?.textContent === label)
-  expect(option).toBeTruthy()
-  act(() => { option.click() })
-  act(() => sheetRoot.unmount())
-  box.remove()
-}
+const group = () => host.querySelector('[role="radiogroup"][aria-label="Shown under each exercise"]')
+const option = label => [...group().querySelectorAll('[role="radio"]')].find(b => b.textContent === label)
 
 // #173: the line under each exercise can hold the rows against the best set instead of last time.
 // The workout switches it with a tap on the line; Settings is where the choice can be found.
 describe('Settings — shown under each exercise', () => {
   it('reads an older profile without the setting as last time', () => {
     mount()
-    expect(row()).toBeTruthy()
-    expect(row().textContent).toContain('Last time')
+    expect(group()).toBeTruthy()
+    expect(option('Last time').getAttribute('aria-checked')).toBe('true')
   })
 
   it('switches to the best set and back, writing logRef to the store', () => {
     mount()
-    choose('Best set')
+    act(() => { option('Best set').click() })
     expect(mocks.S.logRef).toBe('best')
     mount()
-    expect(row().textContent).toContain('Best set')
-    choose('Last time')
+    expect(option('Best set').getAttribute('aria-checked')).toBe('true')
+    act(() => { option('Last time').click() })
     expect(mocks.S.logRef).toBe('last')
   })
 })

@@ -42,6 +42,12 @@ describe('SettingsRoute', () => {
     expect(seenProps.last.page).toBe('units')
   })
 
+  it('/me/alerts (the old Timer alerts page) lands on Workout with the row to flash', () => {
+    open({ pathname: '/me/alerts', state: { find: 'Vibrate' } })
+    expect(seen).toBe('/me/workout')
+    expect(seenProps.last).toMatchObject({ page: 'workout', find: 'Vibrate' })
+  })
+
   it('a renamed page goes to its new name, an unknown one to the root', () => {
     open('/me/look')
     expect(seen).toBe('/me/appearance')
