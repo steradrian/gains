@@ -850,3 +850,57 @@ div.g-mcard { cursor: default; }
 /* The coach week's or rotation's name and where it stands, under the drawer's title */
 .g-tr-week { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-tr-week b { font-weight: 600; color: var(--text); }
+
+/* === Shared: week (StageWeekCells, WeekStrip4, StatTiles; boards Sh2Week, Sh2WeekPast) === */
+/* The mini ring: a track and an arc of kcal against the day's target, amber past it */
+.g-mring { display: block; fill: none; transform: rotate(-90deg); flex: none; }
+.g-mring-track { stroke: var(--glass-track); }
+.g-mring-val { stroke: var(--on-stage); stroke-linecap: round; }
+.g-mring-over { stroke: #FFC56B; }
+/* StageWeekCells: the card does not clip, so a cell's focus ring is never cut off */
+.g-swc { border-radius: 24px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-swc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 6px; }
+.g-swc-cell { appearance: none; border: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0; border-radius: 18px; background: none; color: inherit; font: inherit; text-decoration: none; cursor: pointer; transition: transform 180ms cubic-bezier(.34, 1.4, .64, 1); }
+.g-swc-cell:active { transform: scale(.95); }
+.g-swc-still { cursor: default; }
+.g-swc-still:active { transform: none; }
+.g-swc-dow { font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); }
+.g-swc-date { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 700 15px/1 var(--font-sans); }
+.g-swc-date.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-swc-m { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; }
+.g-swc-m .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+.g-swc-done { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-swc-missed { box-shadow: inset 0 0 0 1.5px #FFC56B; color: #FFC56B; }
+.g-swc-missed .g-icon { width: 13px; height: 13px; stroke-width: 2.8; }
+.g-swc-planned { box-shadow: inset 0 0 0 1.5px var(--glass-line); background: var(--glass); }
+.g-swc-skipped { background: var(--glass); color: var(--on-stage-2); }
+.g-swc-skipped .g-icon { width: 12px; height: 12px; stroke-width: 2.4; }
+.g-swc-rest i { width: 6px; height: 6px; border-radius: 50%; background: var(--glass-track); }
+.g-swc-none { width: 30px; height: 30px; display: grid; place-items: center; font: 600 12px/1 var(--font-sans); opacity: .6; }
+.g-swc-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 14px 14px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-swc-legend span { display: inline-flex; gap: 6px; align-items: center; }
+.g-swc-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.g-swc-k-done { background: var(--on-stage); }
+.g-swc-k-missed { box-shadow: inset 0 0 0 1.5px #FFC56B; }
+/* WeekStrip4: the week on screen gets a white edge */
+.g-w4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; font-family: var(--font-sans); }
+.g-w4-cell { appearance: none; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 20px; color: var(--on-stage); font: inherit; text-align: start; text-decoration: none; transition: transform 180ms cubic-bezier(.34, 1.4, .64, 1); }
+button.g-w4-cell, a.g-w4-cell { cursor: pointer; }
+button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
+.g-w4-cell.on { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-w4-cell b { font: 700 14px/18px var(--font-sans); }
+.g-w4-bars { display: flex; gap: 3px; width: 100%; min-height: 26px; }
+.g-w4-bars i { flex: 1; height: 26px; border-radius: 5px; background: var(--glass-track); }
+.g-w4-bars i.on { background: var(--on-stage); }
+.g-w4-n { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); }
+/* StatTiles: white tiles on a light surface; on the stage glass at the boards' 18px and 12/14 */
+.g-stats { display: grid; gap: 10px; }
+.g-stat { min-width: 0; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); }
+.g-stat > span { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-stat b { font: 700 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); }
+.g-stat .g-pos { color: var(--positive); font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat { border-radius: 18px; padding: 12px 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-stats-stage .g-stat > span { color: var(--on-stage-2); }
+.g-stats-stage .g-stat > span + b + span { font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat b { color: var(--on-stage); }
+.g-stats-stage .g-stat .g-pos { color: var(--on-stage); }

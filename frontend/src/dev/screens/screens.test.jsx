@@ -177,6 +177,27 @@ describe('the screens gallery', () => {
     })
   })
 
+  // Shared: week
+  it('has the Week page D2.0, D2.1 and a week with nothing', async () => {
+    const ids = screenAreas().find(a => a.name === 'Shared: week').entries.map(e => e.id)
+    expect(ids).toEqual(['D2.0', 'D2.1', 'D2.E-empty'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('D2.0', h => {
+      expect(h.querySelector('.week-ring-t').textContent).toContain('workouts · Push A is today')
+      expect(h.querySelectorAll('.g-swc-cell')).toHaveLength(7)
+      expect(h.querySelectorAll('.g-stat')).toHaveLength(8)
+      expect(h.querySelector('.week-nav-off')).toBeTruthy()
+    })
+    await check('D2.1', h => {
+      expect(h.querySelector('.week-title').textContent).toContain('Week 41 · complete')
+      expect(h.querySelector('.g-w4-cell.on').getAttribute('aria-label')).toBe('Week of 5 Oct, 3 of 4 workouts')
+    })
+    await check('D2.E-empty', h => {
+      expect([...h.querySelectorAll('.g-stat b')].every(b => b.textContent === '–')).toBe(true)
+      expect(h.querySelectorAll('.g-w4-cell')).toHaveLength(4)
+    })
+  })
+
   it('has the Today drawers and toasts T1.3 to T1.8, each over the Today screen', async () => {
     const ids = screenAreas().find(a => a.name === 'Today: drawers and toasts').entries.map(e => e.id)
     expect(ids).toEqual(['T1.3', 'T1.3p', 'T1.3e', 'T1.4', 'T1.4e', 'T1.4p', 'T1.5', 'T1.6', 'T1.7', 'T1.8'])

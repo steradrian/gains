@@ -83,4 +83,17 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-nrow')).toHaveLength(9)
     expect(view.host.querySelectorAll('.g-nrow-new')).toHaveLength(3)
   })
+
+  // Shared: week
+  it('renders the Week page entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['Shared: week', 'StageWeekCells', 'WeekStrip4', 'StatTiles']))
+    expect(view.host.querySelectorAll('.g-swc')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-swc-cell')).toHaveLength(28)
+    expect(view.host.querySelectorAll('.g-w4')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-w4-cell.on')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-stats')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-stats-stage .g-stat')).toHaveLength(4)
+  })
 })
