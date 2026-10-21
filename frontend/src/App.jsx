@@ -78,6 +78,8 @@ import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
 import MyFoods from './views/MyFoods.jsx'
+import FoodEditor from './views/my-foods/FoodEditor.jsx'
+import MealEditor from './views/my-foods/MealEditor.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
@@ -319,6 +321,10 @@ function Shell() {
               {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
                   /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
               <Route path="/food/my-foods" element={<MyFoods />} />
+              {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
+                  keeps its form when the address takes the real id; recipes are library-m3's. */}
+              <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
+              <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
               {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
               <Route path="/progress" element={<ProgressHub />} />
               <Route path="/progress/body" element={<Body segment="weight" />} />

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
+import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { addedText, dayName, toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { mealDraft } from '../lib/nutrition/meals.js'
@@ -17,10 +18,11 @@ import { useSheetTarget } from './LoggingTo.jsx'
  *   busy    a write is out
  *   log     (servings = 1) => Promise<boolean>: whether it was logged; a failure is a toast
  */
-export function useLibraryLog(entry) {
+export function useLibraryLog(entry, { today = false } = {}) {
   const settings = useNutrition(s => s.settings.data)
   const [start] = useState(() => useDiarySelection.getState().target(settings))
-  const target = useSheetTarget({ date: start.date, meal: start.meal })
+  // `today`: the saved meal editor logs to Today whichever day the diary had selected.
+  const target = useSheetTarget(today ? { date: todayISO() } : { date: start.date, meal: start.meal })
   const [busy, setBusy] = useState(false)
   const drafts = useRef(new Map()).current
   const working = useRef(false)

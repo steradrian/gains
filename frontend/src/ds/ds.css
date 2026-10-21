@@ -1670,3 +1670,16 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-mf-macros span { font: 500 13px/16px var(--font-sans); color: var(--text-3); }
 .g-mf-sub { margin: 0 0 8px; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-mf-amount { margin: 12px 0 0; text-align: center; font: 600 17px/22px var(--font-sans); color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* === Eat library m2: the food and saved meal editors (boards Ea5Food, Ea5Deleted, Ea5Meal, Ea5MealDeleted) === */
+.g-fe { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; color: var(--on-stage); }
+.g-fe-saved { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-fe-saved .g-savedbar { padding: 0; }
+.g-fe-fields { display: flex; flex-direction: column; gap: 12px; }
+.g-fe-list { overflow: visible; }
+.g-fe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.g-fe .g-ssec { padding-inline: 4px; }
+.g-fe-more { align-self: flex-start; }
+.g-fe-change { flex: none; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-fe-problem { margin: 0; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--on-stage); }
+.g-fe-delete { margin-top: 8px; }

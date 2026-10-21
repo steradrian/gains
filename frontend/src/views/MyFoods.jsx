@@ -11,7 +11,8 @@ import CatalogTab from './my-foods/CatalogTab.jsx'
 import FoodsTab from './my-foods/FoodsTab.jsx'
 
 const TABS = ['foods', 'meals', 'recipes']
-// The editors library-m2 and library-m3 register; until they merge a New lands on the fallback route.
+// The editors: foods and meals are library-m2's; the recipe editor is library-m3's, and until it
+// merges a New recipe lands on the fallback route.
 const NEW_PATH = {
   foods: '/food/my-foods/foods/new',
   meals: '/food/my-foods/meals/new',
