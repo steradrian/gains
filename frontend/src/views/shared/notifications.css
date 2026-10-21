@@ -1,0 +1,9 @@
+/* The Notifications page on the stage (NotificationsScreen.jsx, boards Sh3*). The stage is full
+   bleed (index.css #app:has(> .g-screen)); the page pads itself under the status bar, where the
+   nav bar sticks, and keeps the boards' 150px of air above the floating tab bar. */
+.notif{padding-top:var(--sat);padding-bottom:calc(150px + var(--sab))}
+.notif-head{padding:10px 20px 6px;color:var(--on-stage);font-family:var(--font-sans)}
+.notif-head h2{margin:0;font:700 32px/38px var(--font-sans);letter-spacing:-.025em}
+.notif-head h2:focus{outline:none}
+.notif-head p{margin:4px 0 0;font:500 15px/20px var(--font-sans);color:var(--on-stage-2)}
+.notif-link{appearance:none;border:0;padding:0;background:none;color:var(--on-stage);font:inherit;font-weight:700;cursor:pointer;text-decoration:none}

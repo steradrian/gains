@@ -53,7 +53,16 @@ export function parentOf(pathname = '') {
 // Profile pages the §5 merge renamed, old id → new id. /me/<old> and /settings/<old> land on the
 // new page (views/Settings.jsx SettingsRoute, and LEGACY below). Data & backup lands on Backup, the
 // page with its export and import.
-export const PROFILE_RENAMED = { look: 'appearance', reminders: 'notifications', plan: 'schedule', data: 'backup' }
+// The reminder settings are at /me/reminders again (PR07 decision 2), so /settings/reminders needs
+// no rename: it lands there through /settings below.
+export const PROFILE_RENAMED = { look: 'appearance', plan: 'schedule', data: 'backup' }
+
+// The notifications inbox (PR07 N1.0) is pushed under the tab its bell was tapped on, so the lit
+// tab and Back stay where you were: /home/notifications, /train/notifications, … A page no tab
+// owns (the workout) opens Home's. /me/notifications, the reminder settings' old address, is Me's
+// inbox now, so the links already out there still open something that makes sense.
+export const notificationsPath = (pathname = '') => '/' + (tabOf(pathname) || 'home') + '/notifications'
+export const isNotificationsPath = (pathname = '') => TABS.some(tab => pathname === '/' + tab + '/notifications')
 
 // Routes from before the tabs, still reachable from bookmarks, home-screen shortcuts and the links
 // already sitting in delivered notifications (the server's Coach push says #/coach). Longest

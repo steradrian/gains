@@ -313,12 +313,25 @@ describe('Today', () => {
     } finally { vi.useRealTimers() }
   })
 
+  it('the bell counts the unread notifications in its name and shows the dot; none read, none shown', async () => {
+    const at = n => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(18, 0, 0, 0); return d.getTime() }
+    const lift = (id, n, w) => ({ id, d: shiftDay(-n), start: at(n), end: at(n) + 3600000, entries: [{ id: '0025', sets: [{ w, r: 1, done: true }] }] })
+    useStore.setState(s => ({ S: { ...s.S, workouts: [lift('w1', 10, 90), lift('w2', 3, 96)], notifRead: { at: 0, ids: [] } } }))
+    await mount(<Home />)
+    const bell = host.querySelector('.g-bell')
+    expect(bell.getAttribute('aria-label')).toMatch(/^Notifications, [1-9]\d* unread$/)
+    expect(bell.querySelector('.g-sdot')).toBeTruthy()
+    await act(async () => { useStore.setState(s => ({ S: { ...s.S, notifRead: { at: Date.now(), ids: [] } } })) })
+    expect(bell.getAttribute('aria-label')).toBe('Notifications')
+    expect(bell.querySelector('.g-sdot')).toBeNull()
+  })
+
   it('the header: the avatar opens Profile, the bell Notifications, the pill the app\'s search', async () => {
     await mount(<Home />)
     await click(button('Settings'))
     expect(navigate).toHaveBeenCalledWith('/me')
     await click(button('Notifications'))
-    expect(navigate).toHaveBeenCalledWith('/me/notifications')
+    expect(navigate).toHaveBeenCalledWith('/home/notifications')
     await click(host.querySelector('.g-spill'))
     expect(useSearch.getState().open).toBe(true)
     // The tab's own header takes over, its input focused inside the tap.

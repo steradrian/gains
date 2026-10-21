@@ -3,6 +3,7 @@ import Button from './Button.jsx'
 import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
+import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
 import GlassActions from './GlassActions.jsx'
@@ -267,6 +268,8 @@ export default function DevKit() {
             <Button block variant="ghost">Cancel</Button>
           </StageFooter>
         </Section>
+
+        <DevKitShared />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

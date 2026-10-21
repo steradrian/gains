@@ -18,6 +18,7 @@ import { useHubStatusRefresh, useHubTrouble } from '../../lib/nutrition/sync.js'
 import { useDiaryDay } from '../../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { waterButtons } from '../../lib/nutrition/water.js'
+import { useUnreadCount } from '../../lib/notifications/use-notifications.js'
 import { usePlanRefused } from '../../lib/onboarding/use-plan-refused.js'
 import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
 import { bwSheet, startFlow, workoutDetailSheet } from '../../sheets.jsx'
@@ -300,6 +301,7 @@ export function useToday() {
   const indexSynced = useDiaryIndex(s => s.synced)
   useDiaryIndex(s => s.version)
   const saved = useOfflinePill()
+  const unread = useUnreadCount()
 
   const profile = todayProfile(day.on)
   const food = profile !== 'training'
@@ -342,7 +344,8 @@ export function useToday() {
     placeholder: t('Search'),
     alert: connection ? t('Connection problem') : hub ? t('Nutrition sync needs attention') : null,
     onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
+    unread,
+    onBell: () => nav('/home/notifications'),
     // The app's search types into a header input: the tab's own header takes over while it is open,
     // mounted and focused inside this tap so a phone raises its keyboard.
     onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('home'))) },

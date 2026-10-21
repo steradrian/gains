@@ -61,10 +61,26 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty', 'RoutineTiles', 'MusclesCard']))
     expect(view.host.querySelectorAll('.g-rail')).toHaveLength(2)
     expect(view.host.querySelectorAll('.g-tcard')).toHaveLength(6)
-    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(4)
     const title = () => view.host.querySelector('.g-rail-title').textContent
     expect(title()).toBe('This week')
     act(() => { view.host.querySelector('.g-rail-btn[aria-label="Next week"]').click() })
     expect(title()).toBe('Next week')
+  })
+
+  it('renders the shared pages entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining([
+      'Shared: pages', 'StageNavBar', 'StageSection variants', 'NotificationRow', 'StageEmpty on the notifications page', 'Permission banner', 'StageNote',
+    ]))
+    expect(view.host.querySelector('.g-sempty-btn').textContent).toBe('Set a reminder')
+    expect(view.host.querySelectorAll('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
+    expect(view.host.querySelector('.g-snote').textContent).toContain('Kept for 30 days')
+    expect(view.host.querySelectorAll('.g-snav')).toHaveLength(7)
+    expect(view.host.querySelectorAll('.g-ssec-line')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ngroup')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-nrow')).toHaveLength(9)
+    expect(view.host.querySelectorAll('.g-nrow-new')).toHaveLength(3)
   })
 })

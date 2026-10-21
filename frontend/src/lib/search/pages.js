@@ -14,6 +14,8 @@ const nutrition = c => (c.nutrition ? 'on' : 'hidden')
 export const PAGE_INDEX = [
   // Home
   { path: TAB_ROOT.home, tab: 'home', title: 'Home', glyph: 'house', kw: 'today dashboard day start' },
+  // The inbox; the reminder settings are Profile's (Reminders, from the settings source).
+  { path: '/home/notifications', tab: 'home', title: 'Notifications', glyph: 'bell', kw: 'inbox alerts streak new best recap milestone' },
   // Training
   { path: TAB_ROOT.train, tab: 'train', title: 'Training', glyph: 'dumbbell', kw: 'train workout gym' },
   { path: '/train/history', tab: 'train', title: 'History', glyph: 'history', kw: 'past workouts log sessions done calendar' },

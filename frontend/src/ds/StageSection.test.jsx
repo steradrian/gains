@@ -35,4 +35,43 @@ describe('StageSection', () => {
     view.render(<StageSection title="Up next" />)
     expect(act()).toBeNull()
   })
+
+  describe('variant', () => {
+    it('label is the small heading over a group', () => {
+      view.render(<StageSection variant="label" title="This week" />)
+      expect(view.host.querySelector('.g-ssec').classList.contains('g-ssec-label')).toBe(true)
+      expect(view.host.querySelector('h2').textContent).toBe('This week')
+    })
+
+    it('line is a status text, not a heading, with a glass pill button to act on it', () => {
+      const onAction = vi.fn()
+      view.render(<StageSection variant="line" title="2 new" action="Mark all read" onAction={onAction} />)
+      expect(view.host.querySelector('h2')).toBeNull()
+      expect(view.host.querySelector('.g-ssec-t').textContent).toBe('2 new')
+      expect(view.host.querySelector('.g-ssec-t').getAttribute('aria-live')).toBe('polite')
+      expect(act().tagName).toBe('BUTTON')
+      expect(act().classList.contains('g-glass')).toBe(true)
+      click(act())
+      expect(onAction).toHaveBeenCalledTimes(1)
+    })
+
+    it('line says "Nothing unread" as plain text once there is nothing to mark', () => {
+      view.render(<StageSection variant="line" title="All read" action="Nothing unread" />)
+      expect(act().tagName).toBe('SPAN')
+      expect(act().classList.contains('g-glass')).toBe(false)
+      expect(view.host.querySelector('button, a')).toBeNull()
+    })
+
+    it('line keeps its live text element when "2 new" turns into "All read"', () => {
+      view.render(<StageSection variant="line" title="2 new" action="Mark all read" onAction={() => {}} />)
+      const text = view.host.querySelector('.g-ssec-t')
+      view.render(<StageSection variant="line" title="All read" action="Nothing unread" />)
+      expect(view.host.querySelector('.g-ssec-t')).toBe(text)
+      expect(text.textContent).toBe('All read')
+    })
+
+    it('rejects a variant it has no style for', () => {
+      expect(() => view.render(<StageSection variant="big" title="x" />)).toThrow(/variant="big"/)
+    })
+  })
 })
