@@ -26,7 +26,7 @@ const YEAR_MONTHS = [{ week: 0, label: 'May' }, { week: 4, label: 'Jun' }, { wee
 const OCTOBER = Array.from({ length: 31 }, (_, i) => {
   const n = i + 1
   const trained = [1, 4, 6, 8, 11, 13, 15, 18, 20].includes(n)
-  return { day: n, iso: `2026-10-${String(n).padStart(2, '0')}`, value: n <= 21 ? (trained ? 1 : null) : null, label: `${n} Oct${trained ? ', 1 workout' : ''}` }
+  return { day: n, iso: `2026-10-${String(n).padStart(2, '0')}`, value: trained ? 1 : null,label: `${n} Oct${trained ? ', 1 workout' : ''}` }
 })
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
