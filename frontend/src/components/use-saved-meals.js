@@ -63,7 +63,6 @@ export function useSavedMeals({ query, date, meal: slot, mealName, onLogged }) {
 
   const pick = entry => {
     if (working.current) return
-    // TODO(sheet-panels): from the Log food drawer this servings drawer opens on top of it.
     if (entry.is_recipe && asksQuantity(settings)) recipeServingsSheet({ recipe: entry, mealName, onLog: servings => log(entry, servings) })
     else log(entry)
   }

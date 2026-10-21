@@ -120,7 +120,6 @@ function Few({ count, onLog }) {
   const shown = Math.min(count, MIN_TREND_DAYS)
   return (
     <div className="eh-few">
-      {/* TODO(empty-scenes): `chart` arrives with ds/empty-scenes.js */}
       <StageEmpty
         card={false} illustration="chart" title={t('Trends need 3 days')}
         body={(
@@ -150,7 +149,6 @@ export default function TrendsScreen({ data, status = 'ready', errorText, fastin
           />
         </div>
         {status === 'error' && (
-          // TODO(empty-scenes): `chart` arrives with ds/empty-scenes.js
           <StageEmpty illustration="chart" title={errorText} action={t('Retry')} onClick={onRetry} />
         )}
         {status === 'ready' && !data.enough && <Few count={data.loggedCount} onLog={onLog} />}

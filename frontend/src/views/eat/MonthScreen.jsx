@@ -58,7 +58,6 @@ export default function MonthScreen({ data, status = 'ready', errorText, today, 
     <StagePage title={monthName(data.month)} onBack={onBack} parent="/food">
       <div className="eh" aria-busy={status === 'loading' || undefined}>
         {status === 'error' ? (
-          // TODO(empty-scenes): `chart` arrives with ds/empty-scenes.js
           <StageEmpty illustration="chart" title={errorText} action={t('Retry')} onClick={onRetry} />
         ) : (
           <>
