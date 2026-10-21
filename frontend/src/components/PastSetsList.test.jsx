@@ -43,7 +43,8 @@ describe('PastSetsList', () => {
     ], 'bench')
     expect(cards()).toHaveLength(2)
     expect(cards()[0].textContent).toContain('Push B')
-    expect(setsOf(cards()[0])).toEqual([['Set 1', '70×5']])
+    // the 70 beat the 60, so the newest session also carries its record mark
+    expect(setsOf(cards()[0])).toEqual([['Set 1', '70×5', 'New best']])
     expect(setsOf(cards()[1])).toEqual([['Set 1', '60×5'], ['Set 2', '60×5']])
     expect(host.querySelector('.g-ps-count').textContent).toBe('2 sessions')
   })
@@ -72,6 +73,12 @@ describe('PastSetsList', () => {
   it('puts the volume and the estimated 1RM under the sets', () => {
     mount([at(0, 'bench', { mode: 'reps' }, [work(60, 5), work(60, 5)])], 'bench')
     expect(cards()[0].querySelector('.g-ps-tail').textContent).toMatch(/^Volume 600 kg · Est\. 1RM \d+/)
+  })
+
+  it('gives a legacy record with no sets its top set instead', () => {
+    mount([{ ...at(0, 'bench', { mode: 'reps' }, []), entries: [{ id: 'bench', target: { mode: 'reps' }, sets: [], topW: 70 }] }], 'bench')
+    expect(setsOf(cards()[0])).toEqual([])
+    expect(cards()[0].querySelector('.g-ps-tail').textContent).toBe('Top set 70 kg')
   })
 
   it('shows twenty sessions, then twenty more on Show more', () => {

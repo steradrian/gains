@@ -193,6 +193,15 @@ describe('exerciseHistory', () => {
     expect(nextPrescription(S, S.routines[0].ex[0], S.routines[0]).weight).toBe(102.5)
     expect(nextPrescription(S, S.routines[1].ex[0], S.routines[1]).weight).toBe(62.5)
   })
+
+  it('counts a legacy record that kept its load only in topW as a session, valued at that load', () => {
+    const S = { workouts: [session(0, [], { topW: 70 }), session(2, [work(72.5, 5)])] }
+    const h = exerciseHistory(S, 'bench')
+    expect(h.total).toBe(2)
+    expect(h.sessions[1]).toMatchObject({ id: 'w0', value: 70, sets: [], volume: 0 })
+    expect(h.sessions[0].pr).toBe(true)
+    expect(h.points.map(p => p.y)).toEqual([70, 72.5])
+  })
 })
 
 // #173: the workout card can hold today's rows against your best set instead of last time.

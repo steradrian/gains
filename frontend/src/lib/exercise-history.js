@@ -43,7 +43,9 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS } = {}) {
     const sameMode = entries.filter(item => item.mode === mode)
     const rows = sameMode.flatMap(item => item.rows)
     const en = { ...sameMode.at(-1).entry, sets: rows }
-    if (rows.length) logged.push({ w, en, mode, rows })
+    // An occurrence with no rows is a legacy reps record holding its load in topW only
+    // (metricEntriesForExercise keeps no other kind): a session, with that load as its value.
+    logged.push({ w, en, mode, rows })
   })
   logged.sort((a, b) => workoutAt(a.w) - workoutAt(b.w))
 
