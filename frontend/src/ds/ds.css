@@ -1841,3 +1841,18 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
   .g-landscape-cover .g-stage-body { display: grid; place-items: center; }
   .g-landscape-cover .g-ill { width: 120px; height: auto; }
 }
+
+/* Settings acct m1: Account and data (St2*) page and its drawers */
+.g-acct { padding-inline: 16px; }
+.g-acct-card { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 28px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-acct-ava { width: 48px; height: 48px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); font: 700 20px/1 var(--font-sans); }
+.g-acct-who { display: flex; flex-direction: column; min-width: 0; }
+.g-acct-who b { font: 700 19px/24px var(--font-sans); overflow-wrap: anywhere; }
+.g-acct-who span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-acct-sheet { display: flex; flex-direction: column; gap: 16px; font-family: var(--font-sans); }
+.g-acct-p { margin: 0; font: 500 16px/23px var(--font-sans); color: var(--text-2); }
+.g-acct-p b { color: var(--text); }
+.g-acct-quiet { font-size: 14px; line-height: 20px; color: var(--text-3); }
+.g-acct-err { margin: 0; font: 600 14px/20px var(--font-sans); color: var(--danger); }
+.g-acct-qr { display: grid; place-items: center; padding: 16px; border-radius: 20px; background: var(--g-white); }
+.g-acct-code { text-align: center; padding: 14px 0; border-radius: 16px; background: var(--surface-sunken); color: var(--text); font: 700 26px/1.2 var(--font-mono); letter-spacing: .08em; overflow-wrap: anywhere; }
