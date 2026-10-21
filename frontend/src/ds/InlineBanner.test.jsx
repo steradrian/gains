@@ -43,6 +43,19 @@ describe('InlineBanner', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 
+  it('on the stage it holds a solid button and a link side by side (notifications off, Sh3PermOff)', () => {
+    const turnOn = vi.fn()
+    view.render(
+      <InlineBanner stage icon="bellSlash" title="Notifications are off on this phone" body="They still land here, but your phone won’t buzz."
+        actions={[{ label: 'Turn on', solid: true, onClick: turnOn }, { label: 'Reminders', href: '#/me/reminders' }]} />,
+    )
+    const [on, reminders] = [...banner().querySelectorAll('.g-ibanner-btn')]
+    expect([on.tagName, on.classList.contains('g-ibanner-solid')]).toEqual(['BUTTON', true])
+    expect([reminders.tagName, reminders.getAttribute('href'), reminders.classList.contains('g-ibanner-solid')]).toEqual(['A', '#/me/reminders', false])
+    click(on)
+    expect(turnOn).toHaveBeenCalledTimes(1)
+  })
+
   it('refuses a tone the design system does not have, in development', () => {
     expect(() => view.render(<InlineBanner tone="loud" title="x" />)).toThrow(/tone="loud"/)
   })
