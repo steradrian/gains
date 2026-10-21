@@ -9,7 +9,7 @@ import { useUnreadCount } from '../../lib/notifications/use-notifications.js'
 import { useStore } from '../../store/useStore.js'
 import Notifications from './Notifications.jsx'
 
-const navigate = vi.fn()
+const { navigate } = vi.hoisted(() => ({ navigate: vi.fn() }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useLocation: () => ({ pathname: '/home/notifications' }) }))
 
 const view = useView()
