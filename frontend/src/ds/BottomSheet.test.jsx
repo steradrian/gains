@@ -59,6 +59,18 @@ describe('BottomSheet, drawn alone', () => {
     expect(q('.g-bs-body').contains(pin)).toBe(false)
   })
 
+  it('puts `meta` after the title as a plain figure, before the close, with no icon and no label of its own', () => {
+    view.render(<BottomSheet title="Push A · 12 exercises" meta="24:18" type="full" onClose={() => {}} />)
+    const meta = q('.g-bs-meta')
+    expect(meta.textContent).toBe('24:18')
+    expect(meta.querySelector('svg')).toBeNull()
+    expect(meta.previousElementSibling.tagName).toBe('H2')
+    expect(meta.nextElementSibling.classList.contains('g-bs-x')).toBe(true)
+    expect(q('.g-bs-chip')).toBeNull()
+    view.render(<BottomSheet title="Push A" onClose={() => {}} />)
+    expect(q('.g-bs-meta')).toBeNull()
+  })
+
   it('throws in development on a type it does not have', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(() => view.render(<BottomSheet title="x" type="tall" />)).toThrow(/type="tall"/)

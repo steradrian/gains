@@ -11,14 +11,16 @@ const TYPES = ['auto', 'half', 'full']
 // The design system's light drawer (bundle.js `BottomSheet`): grab bar, title, the day and meal it
 // writes to (`chip`, tappable through `onChip`), close ×, a body that scrolls inside, `footer`.
 // `type`: auto (as tall as its content), half, full (56px from the top). `head` is pinned under the
-// title, outside the scroll (a search field that stays while the results move, board T1.4).
+// title, outside the scroll (a search field that stays while the results move, board T1.4). `meta`
+// is a plain figure in a quiet pill after the title (the running workout's clock on the map, board
+// W1.37); unlike `chip` it is not a place and has no icon.
 //
 // Opened through the app's sheet frame (`openSheet(render, { variant: 'ds' })`, Modals.jsx), the
 // frame owns everything a sheet does: presence motion, focus in and back, Escape, back button,
 // scrim and drag to dismiss, the page lock and the keyboard. The drawer only draws, on the refs
 // the frame gives it. The × runs `onClose`, else the frame's dismiss (the scrim's, so a sheet's
 // onDismiss runs either way). Outside the frame it draws itself open and still.
-export default function BottomSheet({ title, chip, onChip, type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
+export default function BottomSheet({ title, chip, onChip, meta, type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
   oneOf('BottomSheet', 'type', type, TYPES)
   const frame = useContext(SheetFrameContext)
   const accent = useStore(s => dsAccentFor(s.S))
@@ -36,6 +38,7 @@ export default function BottomSheet({ title, chip, onChip, type = 'auto', onClos
         {chip && (onChip
           ? <button type="button" className="g-bs-chip" onClick={onChip} aria-label={t('Logging to {0}', chip)}><Icon name="calendar" className="g-icon" />{chip}</button>
           : <span className="g-bs-chip"><Icon name="calendar" className="g-icon" />{chip}</span>)}
+        {meta && <span className="g-bs-meta">{meta}</span>}
         {hasClose && (closeHref
           ? <a href={closeHref} onClick={onClose} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></a>
           : <button type="button" onClick={close} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></button>)}
