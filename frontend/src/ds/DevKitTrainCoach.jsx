@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import Section from './DevKitSection.jsx'
+import BigStepper from './BigStepper.jsx'
 import StageSwitch from './StageSwitch.jsx'
 
 // The Train coach and gym kit's part of the catalogue (DevKit.jsx), with static sample data.
 export default function DevKitTrainCoach() {
   const [filter, setFilter] = useState(true)
+  const [pairs, setPairs] = useState(2)
+  const [bell, setBell] = useState(12.5)
 
   return (
     <>
@@ -19,6 +22,14 @@ export default function DevKitTrainCoach() {
             <StageSwitch label="Uncontrolled, starts off" />
           </div>
         </div>
+      </Section>
+
+      <Section title="BigStepper" note="A count a step at a time, on a light drawer: whole pairs with a unit and a hint, stopping at 0 and at a maximum; then a fraction with a step of 2.5; then on the stage.">
+        <div className="g-kit-light">
+          <BigStepper label="25 kg plates, pairs" value={pairs} max={6} unit="pairs" hint="Per side of the bar" lessLabel="Fewer 25 kg plates" moreLabel="More 25 kg plates" onChange={setPairs} />
+          <BigStepper label="Dumbbell" value={bell} step={2.5} min={2} unit="kg" lessLabel="Lighter dumbbell" moreLabel="Heavier dumbbell" onChange={setBell} />
+        </div>
+        <BigStepper tone="stage" label="Rest between sets" value={90} step={15} unit="s" hint="Quarter-minute steps" lessLabel="Shorter rest" moreLabel="Longer rest" />
       </Section>
     </>
   )
