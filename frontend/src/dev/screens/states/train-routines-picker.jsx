@@ -22,16 +22,18 @@ const addPicker = () => exercisePicker(NOOP, {
   multi: { label: n => `Add ${n} ${n === 1 ? 'exercise' : 'exercises'} to ${PUSH.name}`, onAdd: NOOP },
 })
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
-const tap = selector => document.querySelector(selector)?.click()
+// A dispatched click, not .click(): the muscle map's muscles are SVG paths, which have no .click().
+const tap = selector => document.querySelector(selector)?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 const tabButton = label => [...document.querySelectorAll('.g-bs .g-seg button')].find(b => b.textContent === label)
 function typeInto(input, value) {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
-// Starred exercises for T5.2, and one logged set of an incline press for "you did" in T5.7.
+// Starred exercises for T5.2, and one logged set of a decline press for "you did" in T5.7. It is a
+// barbell press, so it sits among the 20 rows Replace shows for the bench press (same kit first).
 const favourites = ['0025', '0043', '0861', '0334']
-const incline = { id: 'g-w-incline', d: '2026-10-14', start: 1, end: 2, unit: 'kg', name: 'Push A', routineIds: ['g-push'], prs: [], entries: [{ id: '0314', sets: [{ done: true, w: 30, r: 10 }] }] }
+const decline = { id: 'g-w-decline', d: '2026-10-14', start: 1, end: 2, unit: 'kg', name: 'Push A', routineIds: ['g-push'], prs: [], entries: [{ id: '0033', sets: [{ done: true, w: 30, r: 10 }] }] }
 const state = (over = {}) => routinesPlan({ favEx: favourites, ...over })
 
 const settings = (existing, options) => exConfigSheet(BENCH, existing, NOOP, NOOP, PUSH, null, NOOP, null, { superset: false, onSupersetChange: NOOP, removeUndo: true, ...options })
@@ -55,7 +57,7 @@ registerScreens('Train: routines picker', [
   { id: 'T5.5-pyramid', title: 'Exercise settings, pyramid sets', note: 'A row a set: reps, weight and rest in each, Max, remove, Add set.',
     path: PATH, render: editor, mock: { S: state() },
     play: async () => { settings({ sets: 3, mode: 'reps', reps: 10, weight: 0, pyramid: [12, 10, 8], pyramidWeight: [60, 70, 80], pyramidRest: [90, 120, 150] }); await wait(250) } },
-  { id: 'T5.7', title: 'Replace exercise', note: 'The same muscles, your equipment first; “you did 30 kg × 10” only for the incline press, which was logged.',
-    path: PATH, render: editor, mock: { S: state({ workouts: [...routinesPlan().workouts, incline] }) },
+  { id: 'T5.7', title: 'Replace exercise', note: 'The same muscles, your equipment first; “you did 30 kg × 10” only for the decline press, which was logged.',
+    path: PATH, render: editor, mock: { S: state({ workouts: [...routinesPlan().workouts, decline] }) },
     play: async () => { replaceExerciseSheet(BENCH.id, NOOP, { routine: PUSH.name }); await wait(250) } },
 ])
