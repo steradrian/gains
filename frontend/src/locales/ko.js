@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': '무음 모드에서도 재생',
   'Vibrate on silent too': '무음 모드에서도 진동',
   'Flash the screen': '화면 깜빡이기',
+  'Haptics': '햅틱',
+  'A light tick when a tap saves something, like a set or a weigh-in.': '세트나 체중 기록처럼 탭으로 무언가를 저장하면 가볍게 진동해요.',
   'Version': '버전',
   'Source code': '소스 코드',
   '{0} rest': '휴식 {0}',

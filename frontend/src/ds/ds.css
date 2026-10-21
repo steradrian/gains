@@ -1093,3 +1093,49 @@ button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
 .g-pw-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; padding: 18px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
 .g-bs-note { margin: 10px 0 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
 .g-bs-foot .g-bs-note { margin: 0; }
+
+/* Native motion and haptics */
+
+/* Page slides (App.jsx, lib/use-route-transition.js). Every page sits in a route layer. At rest the
+   layer is `display: contents` and the page is in the document as it always was. While a slide runs
+   (data-slide) the page arriving and the page leaving are both lifted into viewport-sized boxes, so
+   neither depends on the document's height (the one scroll position they share) and a fixed child
+   of either, the pinned header or the Coach's composer, is fixed to its own box. The page inside is
+   drawn at the scroll offset it had (--route-y) by a negative margin, a layout shift that its
+   sticky bars account for and its fixed children ignore. Only transform and opacity animate. The tab bar, the dock and the sync
+   banner are outside the layers and stay put. A slide is the incoming page from the end edge to 0
+   while the page under it drifts 30% back and dims (push), or the same reversed (pop). */
+.g-route { display: contents; --route-ms: 300ms; --route-fade-ms: 150ms; --route-dir: 1; }
+[dir="rtl"] .g-route { --route-dir: -1; }
+.g-route[data-slide] { display: block; position: fixed; inset: 0; overflow: clip; background: var(--bg); will-change: transform, opacity; }
+.g-route[data-slide] > div { margin-top: calc(-1 * var(--route-y, 0px)) !important; }   /* !important: #app's own margin is an id rule */
+/* The page underneath dims: a scrim over it, its opacity animated. */
+.g-route[data-slide="push"][data-route="out"]::after,
+.g-route[data-slide="pop"][data-route="in"]::after { content: ""; position: absolute; inset: 0; z-index: 60; pointer-events: none; background: var(--scrim); opacity: 0; }
+.g-route[data-slide="push"][data-route="in"] { z-index: 2; animation: g-route-enter var(--route-ms) var(--ease, cubic-bezier(.32, .72, 0, 1)) both; }
+.g-route[data-slide="push"][data-route="out"] { z-index: 1; animation: g-route-under var(--route-ms) var(--ease, cubic-bezier(.32, .72, 0, 1)) both; }
+.g-route[data-slide="push"][data-route="out"]::after { animation: g-route-dim var(--route-ms) var(--ease, cubic-bezier(.32, .72, 0, 1)) both; }
+.g-route[data-slide="pop"][data-route="out"] { z-index: 2; animation: g-route-leave var(--route-ms) var(--ease, cubic-bezier(.32, .72, 0, 1)) both; }
+.g-route[data-slide="pop"][data-route="in"] { z-index: 1; animation: g-route-back var(--route-ms) var(--ease, cubic-bezier(.32, .72, 0, 1)) both; }
+.g-route[data-slide="pop"][data-route="in"]::after { animation: g-route-undim var(--route-ms) var(--ease, cubic-bezier(.32, .72, 0, 1)) both; }
+@keyframes g-route-enter { from { transform: translate3d(calc(100% * var(--route-dir)), 0, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes g-route-under { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-30% * var(--route-dir)), 0, 0); } }
+@keyframes g-route-leave { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(100% * var(--route-dir)), 0, 0); } }
+@keyframes g-route-back { from { transform: translate3d(calc(-30% * var(--route-dir)), 0, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes g-route-dim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes g-route-undim { from { opacity: 1; } to { opacity: 0; } }
+/* Reduced motion, the device's or Profile's: no transform at all, the page arriving fades in over
+   the one leaving. !important and the extra specificity beat index.css's blanket "no animation"
+   rule for reduced motion, which would otherwise swap the pages with no fade. */
+:root .g-route[data-slide="fade"][data-route="in"] { z-index: 2; animation: g-route-fade var(--route-fade-ms) linear both !important; }
+:root .g-route[data-slide="fade"][data-route="out"] { z-index: 1; }
+@keyframes g-route-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Haptics (ds/HapticSwitch.jsx, lib/use-haptic.js). A control that ticks carries `g-haptic`, which
+   makes it the box the invisible switch fills; :where() keeps it from outranking a control that
+   positions itself some other way. The switch is opacity 0, never display none (a switch that is not
+   rendered does not tick), and takes its host's corners and cursor. */
+:where(.g-haptic) { position: relative; }
+.g-hsw { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: inherit; border-radius: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* The checkbox's tap area reaches 7px past its painted circle (index.css .chk::before): so does the switch. */
+.chk > .g-hsw { inset: -7px auto auto -4px; width: calc(100% + 11px); height: calc(100% + 14px); }

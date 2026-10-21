@@ -2138,6 +2138,8 @@ export default {
   'Play even on silent': 'Играть и в беззвучном режиме',
   'Vibrate on silent too': 'Вибрировать и в беззвучном режиме',
   'Flash the screen': 'Мигать экраном',
+  'Haptics': 'Тактильный отклик',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Лёгкий отклик, когда нажатие что-то сохраняет, например подход или взвешивание.',
   'Version': 'Версия',
   'Source code': 'Исходный код',
   '{0} rest': 'отдых {0}',

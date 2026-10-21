@@ -96,7 +96,7 @@ export function FoodDetailSheet({ food, settings, close, onEdit, onSave }) {
       <SelectRow title={t('Meal')} value={meal} options={names.map((label, slot) => ({ value: slot, label }))} onChange={setMeal} />
     </Section>
     <SheetActions>
-      <Button variant="primary" onClick={log} disabled={busy}>{t('Log to {0}', mealName)}</Button>
+      <Button variant="primary" haptic onClick={log} disabled={busy}>{t('Log to {0}', mealName)}</Button>
       {!own && onSave && <Button variant="tinted" onClick={save} disabled={busy}>{t('Save as food')}</Button>}
     </SheetActions>
     {own && onEdit && <Section>

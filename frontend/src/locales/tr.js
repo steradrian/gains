@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': 'Sessizdeyken de çal',
   'Vibrate on silent too': 'Sessizdeyken de titreş',
   'Flash the screen': 'Ekranı yakıp söndür',
+  'Haptics': 'Dokunsal geri bildirim',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Bir dokunuş set veya tartı gibi bir şeyi kaydettiğinde hafif bir titreşim.',
   'Version': 'Sürüm',
   'Source code': 'Kaynak kodu',
   '{0} rest': '{0} dinlenme',

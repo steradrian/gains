@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': 'Némítva is szóljon',
   'Vibrate on silent too': 'Némítva is rezegjen',
   'Flash the screen': 'Villogjon a képernyő',
+  'Haptics': 'Haptikus visszajelzés',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Finom rezdülés, ha egy koppintás elment valamit, például egy szettet vagy egy mérést.',
   'Version': 'Verzió',
   'Source code': 'Forráskód',
   '{0} rest': '{0} pihenő',

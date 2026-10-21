@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': 'Suona anche in silenzioso',
   'Vibrate on silent too': 'Vibra anche in silenzioso',
   'Flash the screen': 'Fai lampeggiare lo schermo',
+  'Haptics': 'Feedback aptico',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Un leggero tic quando un tocco salva qualcosa, come una serie o una pesata.',
   'Version': 'Versione',
   'Source code': 'Codice sorgente',
   '{0} rest': '{0} di recupero',

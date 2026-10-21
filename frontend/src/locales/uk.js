@@ -2128,6 +2128,8 @@ export default {
   'Play even on silent': 'Грати і в беззвучному режимі',
   'Vibrate on silent too': 'Вібрувати і в беззвучному режимі',
   'Flash the screen': 'Блимати екраном',
+  'Haptics': 'Тактильний відгук',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Легкий відгук, коли дотик щось зберігає, наприклад підхід або зважування.',
   'Version': 'Версія',
   'Source code': 'Вихідний код',
   '{0} rest': 'відпочинок {0}',

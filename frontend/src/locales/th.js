@@ -2142,6 +2142,8 @@ export default {
   'Play even on silent': 'เล่นแม้อยู่ในโหมดเงียบ',
   'Vibrate on silent too': 'สั่นแม้อยู่ในโหมดเงียบ',
   'Flash the screen': 'กะพริบหน้าจอ',
+  'Haptics': 'การสั่นตอบสนอง',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'สั่นเบา ๆ เมื่อการแตะบันทึกบางอย่าง เช่น เซ็ตหรือการชั่งน้ำหนัก',
   'Version': 'เวอร์ชัน',
   'Source code': 'ซอร์สโค้ด',
   '{0} rest': 'พัก {0}',

@@ -62,6 +62,7 @@ import SyncStatusCard from '../components/SyncStatusCard.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
 import { manageMeasurementsSheet } from './Measurements.jsx'
 import { systemReducesMotion } from '../lib/reduced-motion.js'
+import { hapticsSupported } from '../lib/use-haptic.js'
 import { PAGES, ROOT_GROUPS, pageExists, pageVisible, searchSettings } from './settings-pages.js'
 import { BRAND, LINKS } from '../brand.js'
 
@@ -394,7 +395,7 @@ export default function Settings({ page = null, find = null, via = null }) {
   const systemMotion = systemReducesMotion()
   const ctx = {
     user, mobile: MOBILE, android, demo: DEMO, wakeOK, hasMedia, pwOn, webauthn: webauthnOK(),
-    sound: !!S.sound, playOnSilent: playOnSilentSupported(), canVibrate, vibrate: S.vibrate !== false,
+    sound: !!S.sound, playOnSilent: playOnSilentSupported(), canVibrate, vibrate: S.vibrate !== false, canHaptic: hapticsSupported(),
     profiles: (S.equipProfiles || []).length > 0, nameLang: EXERCISE_NAME_LANGS.includes(baseLang(lang)),
     pushOK: !MOBILE && pushSupported(), reminderOn: !!S.reminder?.on, nudge: !!S.reminder?.nudge,
     autoBackup: !!S.autoBackup, synced: !!sync, installTip: !MOBILE && !standalone(), androidWeb: IS_ANDROID,
@@ -747,6 +748,13 @@ export default function Settings({ page = null, find = null, via = null }) {
           <Switch aria-label={t('Reduce motion')} checked={systemMotion || S.reduceMotion === true} disabled={systemMotion}
             onChange={v => update(s => { s.reduceMotion = v })} />
         </Row>
+        {/* iPhone ticks through a hidden native switch under the finger, Android vibrates
+            (lib/use-haptic.js); a desktop browser has neither, so the row is not offered there. */}
+        {ctx.canHaptic && (
+          <Row icon="vibrate" iconTint="var(--indigo)" title={t('Haptics')} subtitle={t('A light tick when a tap saves something, like a set or a weigh-in.')}>
+            <Switch aria-label={t('Haptics')} checked={S.haptics !== false} onChange={v => update(s => { s.haptics = v })} />
+          </Row>
+        )}
       </Section>
       <Section title={t('On Today')}>
         {/* Membership QR codes (views/CheckIn.jsx), opened from Training's actions and the + drawer;

@@ -2125,6 +2125,8 @@ export default {
   'Play even on silent': '靜音時也播放',
   'Vibrate on silent too': '靜音時也震動',
   'Flash the screen': '閃爍螢幕',
+  'Haptics': '觸覺回饋',
+  'A light tick when a tap saves something, like a set or a weigh-in.': '輕點儲存內容時（例如一組訓練或一次體重記錄）會有輕微的震動回饋。',
   'Version': '版本',
   'Source code': '原始碼',
   '{0} rest': '休息 {0}',

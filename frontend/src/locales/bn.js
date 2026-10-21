@@ -2176,6 +2176,8 @@ export default {
   'Play even on silent': 'সাইলেন্টেও বাজান',
   'Vibrate on silent too': 'সাইলেন্টেও ভাইব্রেট করুন',
   'Flash the screen': 'স্ক্রিন ঝলকান',
+  'Haptics': 'হ্যাপটিক',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'কোনো ট্যাপ সেট বা ওজন মাপার মতো কিছু সংরক্ষণ করলে হালকা কম্পন।',
   'Version': 'সংস্করণ',
   'Source code': 'সোর্স কোড',
   '{0} rest': '{0} বিশ্রাম',

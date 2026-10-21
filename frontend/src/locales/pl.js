@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': 'Graj też przy wyciszeniu',
   'Vibrate on silent too': 'Wibruj też przy wyciszeniu',
   'Flash the screen': 'Mignij ekranem',
+  'Haptics': 'Wibracje dotykowe',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Lekkie stuknięcie, gdy dotknięcie coś zapisuje, np. serię lub ważenie.',
   'Version': 'Wersja',
   'Source code': 'Kod źródłowy',
   '{0} rest': '{0} przerwy',

@@ -113,7 +113,8 @@ function BwSheet({ required, onDone, close, date }) {
   // plain close: no onDone, no navigation, the screen underneath as it was.
   return <BottomSheet title={required ? t('Quick check-in') : t('Weigh-in')} chip={dayName(day)} onClose={required ? () => close() : undefined}
     footer={<>
-      <DsButton block onClick={save}>{required ? t('Save & start workout') : t('Save weigh-in')}</DsButton>
+      {/* Ticks only when the save will go through: a tick before "Enter a valid weight" would lie. */}
+      <DsButton block haptic={!!n && n > 0 && !bwTooHeavy(n, unit)} onClick={save}>{required ? t('Save & start workout') : t('Save weigh-in')}</DsButton>
       {required && <>
         <DsButton block variant="secondary" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</DsButton>
         <DsButton block variant="ghost" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</DsButton>

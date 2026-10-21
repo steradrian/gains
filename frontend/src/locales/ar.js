@@ -2186,6 +2186,8 @@ export default {
   'Play even on silent': 'التشغيل حتى في الوضع الصامت',
   'Vibrate on silent too': 'الاهتزاز في الوضع الصامت أيضًا',
   'Flash the screen': 'وميض الشاشة',
+  'Haptics': 'الاهتزاز اللمسي',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'نقرة خفيفة عندما تحفظ لمستك شيئًا، مثل مجموعة أو وزن.',
   'Version': 'الإصدار',
   'Source code': 'الشيفرة المصدرية',
   '{0} rest': 'راحة {0}',

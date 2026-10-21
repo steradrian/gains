@@ -647,8 +647,8 @@ export function finishWorkout() {
   if (!A) return
   const done = setsDoneActive(A)
   const total = setUnitsTotal(A.entries)
-  if (!done) { confirmSheet({ title: t('Nothing logged yet'), message: t('You haven’t checked off any sets. Finish the workout anyway?'), confirmText: t('Finish anyway'), onConfirm: doFinishWorkout }); return }
-  if (done < total) { confirmSheet({ title: t('Finish early?'), message: tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done), confirmText: t('Finish workout'), onConfirm: doFinishWorkout }); return }
+  if (!done) { confirmSheet({ title: t('Nothing logged yet'), message: t('You haven’t checked off any sets. Finish the workout anyway?'), confirmText: t('Finish anyway'), haptic: true, onConfirm: doFinishWorkout }); return }
+  if (done < total) { confirmSheet({ title: t('Finish early?'), message: tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done), confirmText: t('Finish workout'), haptic: true, onConfirm: doFinishWorkout }); return }
   doFinishWorkout()
 }
 // The workout screen's Finish pill (v1.3.11): one sheet with both ways out, Finish and save or
@@ -666,7 +666,7 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
     subtitle: !done ? t('You haven’t checked off any sets. Finish the workout anyway?')
       : done < total ? tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done) : null,
     sections: [
-      { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), onClick: doFinishWorkout }] },
+      { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), haptic: true, onClick: doFinishWorkout }] },
       { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
     ],
   })

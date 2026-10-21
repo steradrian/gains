@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': 'साइलेंट पर भी बजाएँ',
   'Vibrate on silent too': 'साइलेंट पर भी कंपन',
   'Flash the screen': 'स्क्रीन चमकाएँ',
+  'Haptics': 'हैप्टिक',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'जब कोई टैप कुछ सहेजता है, जैसे सेट या वज़न दर्ज करना, तो हल्की टिक।',
   'Version': 'संस्करण',
   'Source code': 'सोर्स कोड',
   '{0} rest': '{0} आराम',

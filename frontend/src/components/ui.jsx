@@ -19,7 +19,9 @@ import { EmptyState } from './blocks.jsx'
 import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
+import HapticSwitch, { isHapticSwitchTarget } from '../ds/HapticSwitch.jsx'
 
 /* ============================ text ============================ */
 
@@ -100,17 +102,20 @@ export const SearchField = forwardRef(function SearchField({ value, onChange, on
 
 /* ============================ switch ============================ */
 
-export function Switch({ checked, onChange, disabled, ...accessibility }) {
+// A flipped switch is a write that is already made, so it ticks (ds/HapticSwitch.jsx); `haptic={false}`
+// for the rare one that only previews.
+export function Switch({ checked, onChange, disabled, haptic = true, ...accessibility }) {
   return (
     <button
       {...accessibility}
       role="switch"
       aria-checked={!!checked}
       disabled={disabled}
-      className={'sw' + (checked ? ' on' : '')}
-      onClick={() => onChange(!checked)}
+      className={'sw' + (checked ? ' on' : '') + (haptic ? ' g-haptic' : '')}
+      onClick={() => { if (haptic) buzz('selection'); onChange(!checked) }}
     >
       <span className="knob" />
+      {haptic && <HapticSwitch disabled={disabled} />}
     </button>
   )
 }
@@ -295,7 +300,8 @@ export function Slider({ value, min = 0, max = 100, step = 1, onChange, classNam
 
 /* ============================ checkbox ============================ */
 
-export function Check({ checked, onChange, className = '', size, label }) {
+// `haptic`: the tick of a set checked off, where the tap itself is the write (off by default).
+export function Check({ checked, onChange, className = '', size, label, haptic = false }) {
   return (
     <button
       role="checkbox"
@@ -303,9 +309,10 @@ export function Check({ checked, onChange, className = '', size, label }) {
       aria-label={label}
       className={'chk' + (checked ? ' on' : '') + ' ' + className}
       style={size ? { width: size, height: size } : null}
-      onClick={() => onChange(!checked)}
+      onClick={() => { if (haptic) buzz('light'); onChange(!checked) }}
     >
       <Icon name="check" />
+      {haptic && <HapticSwitch />}
     </button>
   )
 }
@@ -517,13 +524,20 @@ function require_ui() {
 /* ============================ buttons ============================ */
 
 // shape="pill": a 44px rounded pill sized to its label (empty states, the sticky action bar).
-export function Button({ variant = 'plain', size, shape, icon, trailingIcon, children, className = '', ...rest }) {
+// `haptic` (off by default; ds/Button.jsx says what earns a tick) lays a HapticSwitch over it on iOS.
+export function Button({ variant = 'plain', size, shape, icon, trailingIcon, haptic = false, hapticStyle = 'light', onClick, children, className = '', ...rest }) {
   oneOf('Button', 'shape', shape, ['pill'])
+  const click = haptic ? e => {
+    buzz(hapticStyle)
+    onClick?.(e)
+    if (rest.type === 'submit' && !e.defaultPrevented && isHapticSwitchTarget(e.target)) e.currentTarget.form?.requestSubmit(e.currentTarget)
+  } : onClick
   return (
-    <button className={`btn ${variant}${size ? ' ' + size : ''}${shape ? ' btn-' + shape : ''} ${className}`} {...rest}>
+    <button className={`btn ${variant}${size ? ' ' + size : ''}${shape ? ' btn-' + shape : ''}${haptic ? ' g-haptic' : ''} ${className}`} onClick={click} {...rest}>
       {icon && <Icon name={icon} />}
       {children && <span>{children}</span>}
       {trailingIcon && <Icon name={trailingIcon} />}
+      {haptic && <HapticSwitch disabled={rest.disabled} />}
     </button>
   )
 }

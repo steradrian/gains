@@ -16,6 +16,9 @@ import { useWakeLock } from './lib/wakelock.js'
 import { launchPath, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
 import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
+import { useRouteTransition } from './lib/use-route-transition.js'
+import { reducedMotion } from './lib/reduced-motion.js'
+import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
@@ -111,6 +114,8 @@ function Shell() {
   useEffect(() => { setPlayOnSilent(!!S.soundOnSilent) }, [S.soundOnSilent])
   // Settings → Vibrate, the same way: one page-level switch rather than a check at each buzz.
   useEffect(() => { setVibrate(S.vibrate !== false) }, [S.vibrate])
+  // Settings → Haptics: the tick of a tap that saved something (lib/use-haptic.js), on unless turned off.
+  useEffect(() => { setHapticsEnabled(S.haptics !== false) }, [S.haptics])
   // Android app: "Vibrate when the phone is on silent" sends the end-of-rest buzz through the
   // native side as an alarm (#375). buzzAsAlarm answers false off Android, so iOS buzzes as before.
   useEffect(() => { setAlarmBuzzer(MOBILE && S.vibrate !== false && S.vibrateOnSilent ? buzzAsAlarm : null) }, [S.vibrate, S.vibrateOnSilent])
@@ -195,10 +200,13 @@ function Shell() {
   // event then (the browser clamping) is not a position anyone chose.
   const switchingRef = useRef(false)
   useLayoutEffect(() => { switchingRef.current = switching }, [switching])
+  // The same while a page slide runs: both pages are lifted out of the document, which then is too
+  // short to hold a position, and the browser clamps the scroll to the top.
+  const slidingRef = useRef(false)
   useEffect(() => {
     const onScroll = () => {
       // Modals pins the body while a sheet is open; scrollY is 0 then, not a position.
-      if (document.body.style.position === 'fixed' || switchingRef.current) return
+      if (document.body.style.position === 'fixed' || switchingRef.current || slidingRef.current) return
       scrollPositions.set(pathRef.current, window.scrollY)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -208,7 +216,30 @@ function Shell() {
   const tabSwitch = !!shown.state?.tabSwitch && navType !== 'POP'
   // A page any tab can open (the workout) keeps a scroll position per tab it is opened from.
   const scrollKey = tab + ' ' + shown.pathname
+  // The first-run onboarding (views/onboarding): the invite landing and every step after it, a
+  // full-screen flow of its own on the web. The phone build has its own first launch.
+  const inFlow = !MOBILE && isFlowPath(shown.pathname)
+  // Add this device (views/AddDevice.jsx) is a stage screen of its own, shown before the sign-in
+  // check: the passkey it makes signs this browser in, and the screen is still up to say so.
+  const onAddDevice = shown.pathname === ADD_DEVICE_PATH
+  // Pages slide into each other (lib/route-transition.js). The screens that bring an entrance of
+  // their own do not: the onboarding flow, sign-in, the first-launch card and Add this device.
+  const trans = useRouteTransition({
+    location: shown,
+    navType,
+    routeKey: inFlow ? 'onboarding' : shown.pathname,
+    enabled: !inFlow && !onAddDevice && !needsMobileOnboarding && !!(user || isGuest),
+    reduced: reducedMotion(),
+    // Read once, as the slide starts: the page left (the route layout effect below has not moved
+    // pathRef on yet) and the page returned to.
+    leavingY: () => scrollPositions.get(pathRef.current) || 0,
+    arrivingY: () => scrollPositions.get(scrollKey) || 0,
+  })
+  useLayoutEffect(() => { slidingRef.current = trans.active }, [trans.active])
+  // Where the page slid back to lands once the slide has put it in the document again.
+  const restoreY = useRef(null)
   useLayoutEffect(() => {
+    restoreY.current = null
     if (switching) return
     const first = pathRef.current === null
     const samePath = pathRef.current === scrollKey
@@ -227,12 +258,20 @@ function Shell() {
     // scroll's event had even been dispatched.
     if (action === 'keep') return
     const y = scrollPositions.get(scrollKey) || 0
+    // Back onto a page by a slide: it is drawn at y already (lib/use-route-transition.js) and is
+    // put there for real when the slide ends, the document being too short to scroll until then.
+    if (trans.active) { restoreY.current = y; return }
     // Into another tab: its page goes back where it was left before it is first painted.
     if (tabSwitch) window.scrollTo(0, y)
     // the restored view needs a layout pass before it is tall enough to scroll to y
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, y))
     return () => window.cancelAnimationFrame(frame)
   }, [scrollKey, navType, switching])
+  useLayoutEffect(() => {
+    if (trans.active || restoreY.current === null) return
+    window.scrollTo(0, restoreY.current)
+    restoreY.current = null
+  }, [trans.active])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && !S.active.editingWorkoutId && S.keepAwake !== false)
   // A running workout has the whole screen (v1.3.11): no tab bar, and the rest bar docks to the
@@ -240,12 +279,6 @@ function Shell() {
   // live dock brings it back.
   const onWorkout = shown.pathname === '/train/workout'
   const inWorkout = onWorkout && !!S.active
-  // The first-run onboarding (views/onboarding): the invite landing and every step after it, a
-  // full-screen flow of its own on the web. The phone build has its own first launch.
-  const inFlow = !MOBILE && isFlowPath(shown.pathname)
-  // Add this device (views/AddDevice.jsx) is a stage screen of its own, shown before the sign-in
-  // check: the passkey it makes signs this browser in, and the screen is still up to say so.
-  const onAddDevice = shown.pathname === ADD_DEVICE_PATH
   // Not while "Passkey added" is on screen: it asks again once the person has left that screen.
   useOnboardingResume({ user, ready: ready && !onAddDevice, pathname: shown.pathname, navigate })
   useEffect(() => {
@@ -274,68 +307,24 @@ function Shell() {
           switch rebuilds the history under it (inert: no tap can start a navigation mid-walk). */}
       {/* The onboarding keeps one key for all its steps: its layout, and the thread in it, outlive
           every screen, and it brings each screen in itself. */}
-      <div id="app" className={inFlow ? undefined : 'vfade'} key={inFlow ? 'onboarding' : shown.pathname} inert={switching || undefined}>
-        <ErrorBoundary>
-          {inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> : onAddDevice ? <AddDevice /> : !authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
-            <Routes location={shown}>
-              <Route path="/" element={<Navigate to={fallback} replace />} />
-              {/* Home */}
-              <Route path="/home" element={<Home />} />
-              {/* Training */}
-              <Route path="/train" element={<TrainHub />} />
-              <Route path="/train/schedule" element={<Plan view="schedule" />} />
-              <Route path="/train/routines" element={<Plan view="routines" />} />
-              <Route path="/train/routines/:id" element={<RoutineEdit />} />
-              <Route path="/train/history" element={<History />} />
-              <Route path="/train/exercises" element={<Library />} />
-              <Route path="/train/exercises/muscles" element={<Muscles />} />
-              {/* Gym check-in — switched off in Settings, the route falls through to the
-                  catch-all redirect below. */}
-              {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
-              {/* The Coach screens gate themselves on the instance config; the routes exist
-                  unconditionally so a deep link from a notification lands somewhere sane
-                  rather than on the catch-all. */}
-              <Route path="/train/coach" element={<CoachChat />} />
-              <Route path="/train/coach/intake" element={<CoachIntake />} />
-              <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
-              <Route path="/train/coach/setup" element={<CoachSetup />} />
-              {/* Nutrition */}
-              <Route path="/food" element={<FoodHub />} />
-              <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
-              <Route path="/food/recipes" element={<MealCatalog recipes />} />
-              <Route path="/food/foods" element={<Foods />} />
-              <Route path="/food/goals" element={<NutritionGoals />} />
-              <Route path="/food/fasting" element={<Fasting />} />
-              {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
-              <Route path="/progress" element={<ProgressHub />} />
-              <Route path="/progress/body" element={<Body segment="weight" />} />
-              <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
-              <Route path="/progress/body/photos" element={<Body segment="photos" />} />
-              <Route path="/progress/strength" element={<Strength />} />
-              <Route path="/progress/strength/balance" element={<StructuralBalance />} />
-              <Route path="/progress/load" element={<TrainingLoad />} />
-              <Route path="/progress/trends" element={<Trends />} />
-              <Route path="/progress/recovery" element={<Recovery />} />
-              {/* Opened from any tab, on top of it: the workout. */}
-              <Route path="/train/workout" element={<Workout />} />
-              {/* A past day and a week, pushed under the tab they were opened from (lib/day-route.js). */}
-              <Route path="/:tab/day/:date" element={<DayPage />} />
-              <Route path="/:tab/week/:week" element={<WeekPage />} />
-              {/* Shared: the notifications inbox, under the tab whose bell opened it
-                  (lib/tab-route.js notificationsPath). /me/notifications is Me's. */}
-              <Route path="/home/notifications" element={<Notifications />} />
-              <Route path="/train/notifications" element={<Notifications />} />
-              <Route path="/food/notifications" element={<Notifications />} />
-              <Route path="/me/notifications" element={<Notifications />} />
-              {/* Me: Profile */}
-              <Route path="/me" element={<SettingsRoute />} />
-              <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
-              <Route path="/me/:page" element={<SettingsRoute />} />
-              <Route path="*" element={<Navigate to={fallback} replace />} />
-            </Routes>
-          )}
-        </ErrorBoundary>
-      </div>
+      {/* One layer per page on screen: the page itself, and for the length of a slide the page it
+          replaces (lib/use-route-transition.js). A layer is `display: contents` at rest and lifted
+          out of the document while a slide runs (ds.css "Native motion and haptics"). The page left
+          is the same element it was, no longer #app, held still and out of reach. */}
+      {trans.layers.map(layer => (
+        <div key={layer.key} className="g-route" data-route={layer.role} data-slide={trans.active ? layer.style : undefined}
+          style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}
+          onAnimationEnd={layer.role === 'in' && trans.active ? e => { if (e.target === e.currentTarget) trans.settle() } : undefined}>
+          <div id={layer.role === 'in' ? 'app' : undefined} className={layer.fade && !inFlow ? 'vfade' : undefined}
+            inert={layer.role === 'out' || switching || undefined} aria-hidden={layer.role === 'out' || undefined}>
+            <ErrorBoundary>
+              {layer.role === 'out' ? <AppRoutes location={layer.location} fallback={fallback} S={S} user={user} />
+                : inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> : onAddDevice ? <AddDevice /> : !authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding />
+                  : <AppRoutes location={shown} fallback={fallback} S={S} user={user} />}
+            </ErrorBoundary>
+          </div>
+        </div>
+      ))}
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
@@ -350,6 +339,69 @@ function Shell() {
       <Toast />
       <TimerFlash />
     </>
+  )
+}
+
+// The route table. `location` is the page to draw, which is not always the one the router is on:
+// a slide keeps the page it leaves mounted (useRouteTransition), drawn at its own location.
+function AppRoutes({ location, fallback, S, user }) {
+  return (
+    <Routes location={location}>
+      <Route path="/" element={<Navigate to={fallback} replace />} />
+      {/* Home */}
+      <Route path="/home" element={<Home />} />
+      {/* Training */}
+      <Route path="/train" element={<TrainHub />} />
+      <Route path="/train/schedule" element={<Plan view="schedule" />} />
+      <Route path="/train/routines" element={<Plan view="routines" />} />
+      <Route path="/train/routines/:id" element={<RoutineEdit />} />
+      <Route path="/train/history" element={<History />} />
+      <Route path="/train/exercises" element={<Library />} />
+      <Route path="/train/exercises/muscles" element={<Muscles />} />
+      {/* Gym check-in — switched off in Settings, the route falls through to the
+          catch-all redirect below. */}
+      {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
+      {/* The Coach screens gate themselves on the instance config; the routes exist
+          unconditionally so a deep link from a notification lands somewhere sane
+          rather than on the catch-all. */}
+      <Route path="/train/coach" element={<CoachChat />} />
+      <Route path="/train/coach/intake" element={<CoachIntake />} />
+      <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
+      <Route path="/train/coach/setup" element={<CoachSetup />} />
+      {/* Nutrition */}
+      <Route path="/food" element={<FoodHub />} />
+      <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
+      <Route path="/food/recipes" element={<MealCatalog recipes />} />
+      <Route path="/food/foods" element={<Foods />} />
+      <Route path="/food/goals" element={<NutritionGoals />} />
+      <Route path="/food/fasting" element={<Fasting />} />
+      {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
+      <Route path="/progress" element={<ProgressHub />} />
+      <Route path="/progress/body" element={<Body segment="weight" />} />
+      <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
+      <Route path="/progress/body/photos" element={<Body segment="photos" />} />
+      <Route path="/progress/strength" element={<Strength />} />
+      <Route path="/progress/strength/balance" element={<StructuralBalance />} />
+      <Route path="/progress/load" element={<TrainingLoad />} />
+      <Route path="/progress/trends" element={<Trends />} />
+      <Route path="/progress/recovery" element={<Recovery />} />
+      {/* Opened from any tab, on top of it: the workout. */}
+      <Route path="/train/workout" element={<Workout />} />
+      {/* A past day and a week, pushed under the tab they were opened from (lib/day-route.js). */}
+      <Route path="/:tab/day/:date" element={<DayPage />} />
+      <Route path="/:tab/week/:week" element={<WeekPage />} />
+      {/* Shared: the notifications inbox, under the tab whose bell opened it
+          (lib/tab-route.js notificationsPath). /me/notifications is Me's. */}
+      <Route path="/home/notifications" element={<Notifications />} />
+      <Route path="/train/notifications" element={<Notifications />} />
+      <Route path="/food/notifications" element={<Notifications />} />
+      <Route path="/me/notifications" element={<Notifications />} />
+      {/* Me: Profile */}
+      <Route path="/me" element={<SettingsRoute />} />
+      <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
+      <Route path="/me/:page" element={<SettingsRoute />} />
+      <Route path="*" element={<Navigate to={fallback} replace />} />
+    </Routes>
   )
 }
 

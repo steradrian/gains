@@ -280,7 +280,9 @@ body.no-tabbar.resting #app{padding-bottom:calc(96px + var(--sab))}
    fixed child, so the pinned tab-root header (ds.css .g-shdr-pin) would ride the fade on each
    navigation. */
 @keyframes viewfade{from{opacity:0}to{opacity:1}}
-#app.vfade{animation:viewfade var(--med) var(--ease)}
+/* --fast (140ms): what a tab switch, a replace and a first load do instead of a page slide (ds.css
+   "Native motion and haptics"), a quick cross-fade under the 150ms ceiling. */
+#app.vfade{animation:viewfade var(--fast) var(--ease)}
 
 /* Connection indicator (components/SyncBanner.jsx): pinned under the status bar for as long as
    the app is not connected to a server. It carries the page's own ground and blur, like the

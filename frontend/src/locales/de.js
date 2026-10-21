@@ -2154,6 +2154,8 @@ export default {
   'Play even on silent': 'Auch im Lautlos-Modus',
   'Vibrate on silent too': 'Auch lautlos vibrieren',
   'Flash the screen': 'Bildschirm blinken lassen',
+  'Haptics': 'Haptik',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Ein leichtes Ticken, wenn ein Tippen etwas speichert, etwa einen Satz oder eine Wägung.',
   'Version': 'Version',
   'Source code': 'Quellcode',
   '{0} rest': '{0} Pause',

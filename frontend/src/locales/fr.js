@@ -2134,6 +2134,8 @@ export default {
   'Play even on silent': 'Jouer même en silencieux',
   'Vibrate on silent too': 'Vibrer aussi en silencieux',
   'Flash the screen': 'Faire clignoter l’écran',
+  'Haptics': 'Retour haptique',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Un léger tic quand un appui enregistre quelque chose, comme une série ou une pesée.',
   'Version': 'Version',
   'Source code': 'Code source',
   '{0} rest': '{0} de repos',
