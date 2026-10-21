@@ -13,6 +13,7 @@ import Button from '../ds/Button.jsx'
 import SegmentedControl from '../ds/SegmentedControl.jsx'
 import { foodPickerSheet } from './FoodPickerSheet.jsx'
 import Icon from './Icon.jsx'
+import { Loading } from './Loader.jsx'
 
 // The tabs, in the order of Today's rings (views/today/use-today.js foodRings), so a ring opens its own.
 const TABS = [
@@ -89,7 +90,7 @@ function NutritionDay({ date, tab: first, close }) {
           <Button variant="secondary" onClick={day.reload}>{t('Try again')}</Button>
         </>
         : !view
-          ? <p className="g-nd-note">{t('Loading…')}</p>
+          ? <Loading />
           : <div className={'g-nd g-nd-' + view.key}>
             <div className="g-nd-total">
               <span><span className="g-nd-num">{view.big}</span><span className="g-nd-of">{view.of}</span></span>
