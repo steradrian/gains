@@ -913,6 +913,11 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 @keyframes g-ssf-spin { from { transform: rotate(-90deg) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .g-ssf-spin { animation: none; } }
 :root[data-motion="reduce"] .g-ssf-spin { animation: none; }
+/* BodyMap with onMuscle: a muscle is a button; its ring is drawn on the shape, as an SVG path takes no outline */
+.g-bm-btn { cursor: pointer; outline: none; transition: fill .2s; }
+.g-bmap-stage .g-bm-btn:focus-visible { stroke: var(--on-stage); stroke-width: 3; }
+.g-bmap-light .g-bm-btn:focus-visible { stroke: var(--accent-text); stroke-width: 3; }
+@media (prefers-reduced-motion: reduce) { .g-bm-btn { transition: none; } }
 /* Chip: the stage filter chip. The look is 26px high; the tap area is padded out to 44px. */
 .g-fchip { appearance: none; border: 0; position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 10px; border-radius: 999px; font: 700 13px/16px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
 .g-fchip::after { content: ""; position: absolute; inset: -9px -4px; }
