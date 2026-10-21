@@ -58,7 +58,7 @@ const OTHER = 'c'.repeat(64)
 const items = n => Array.from({ length: n }, (_, i) => ({ id: 'x' + i }))
 const photoEx = { id: 'c1', n: 'Sandbag carry', custom: true, media: { kind: 'image', hash: HASH, mime: 'image/jpeg', size: 10, width: 4, height: 4, at: 1 } }
 
-let host, root, actions, media
+let host, root, actions, media, clock
 function Harness() { actions = useAccountActions(); return null }
 const settle = async () => { for (let i = 0; i < 8; i++) await act(async () => { await new Promise(r => setTimeout(r, 0)) }) }
 const until = async (cond, ms = 4000) => {
@@ -71,10 +71,18 @@ const openConfirm = () => {
   expect(mocks.confirmDrawer).toHaveBeenCalledTimes(1)
   return mocks.confirmDrawer.mock.calls[0][0]
 }
+// Opened, then confirmed. Not inside one act(): the harness has to render this test's store first.
+const confirmed = () => {
+  const dialog = openConfirm()
+  act(() => { dialog.onConfirm() })
+}
 const serverForgetCalls = () => mocks.api.mock.calls.filter(([path]) => path === '/api/coach/forget')
 
 beforeEach(() => {
-  media = createMediaStore(memoryBackend())
+  // The clean-up keeps a file put at the moment it runs (retainOnly keepPutAfter): files here are
+  // put a second before the reset.
+  clock = 1000
+  media = createMediaStore(memoryBackend(), { now: () => clock })
   _setMediaStore(media)
   mocks.S = { unit: 'kg', workouts: [], routines: [], bodyweight: [], measurements: [], customEx: [], week: {} }
   mocks.user = null
@@ -160,7 +168,7 @@ describe('Start over: the confirm and what it does', () => {
   it('paired phone with its own key: clears the Coach on the server and on the device', () => {
     mocks.user = { id: 'u1', name: 'Ana' }
     mocks.coachLocal = { mode: 'byok', provider: 'anthropic' }
-    act(() => { openConfirm().onConfirm() })
+    confirmed()
     expect(serverForgetCalls()).toHaveLength(1)
     expect(mocks.forgetCoach).toHaveBeenCalledTimes(1)
     expect(mocks.resetEverything).toHaveBeenCalledTimes(1)
@@ -168,7 +176,7 @@ describe('Start over: the confirm and what it does', () => {
 
   it('own key, no server: clears the device Coach without touching the server', () => {
     mocks.coachLocal = { mode: 'byok', provider: 'anthropic' }
-    act(() => { openConfirm().onConfirm() })
+    confirmed()
     expect(serverForgetCalls()).toHaveLength(0)
     expect(mocks.forgetCoach).toHaveBeenCalledTimes(1)
     expect(mocks.resetEverything).toHaveBeenCalledTimes(1)
@@ -182,7 +190,8 @@ describe('Start over: photos and videos', () => {
     await media.put(HASH, new Blob(['p']), { mime: 'image/jpeg', pending: false })
     await media.put(OTHER, new Blob(['x']), { mime: 'image/png', pending: true })
     mocks.stashed = new Set([OTHER])
-    act(() => { openConfirm().onConfirm() })
+    clock += 1000
+    confirmed()
     await until(async () => !(await media.has(HASH)))
     expect(mocks.pushState).toHaveBeenCalled()
     expect(mocks.api.mock.calls.map(c => c[0])).toContain('/api/media/sweep')
@@ -194,7 +203,7 @@ describe('Start over: photos and videos', () => {
     mocks.user = { id: 'u1', name: 'Ana' }
     mocks.config = { media: { imageMB: 2 } }
     mocks.sync = { status: 'offline' }
-    act(() => { openConfirm().onConfirm() })
+    confirmed()
     await until(() => mocks.pushState.mock.calls.length > 0)
     await settle()
     expect(mocks.api.mock.calls.map(c => c[0])).not.toContain('/api/media/sweep')
@@ -203,7 +212,8 @@ describe('Start over: photos and videos', () => {
     mocks.sync = { status: 'ok' }
     mocks.confirmDrawer.mockClear(); mocks.api.mockClear()
     await media.put(HASH, new Blob(['p']), { mime: 'image/jpeg', pending: true })
-    act(() => { openConfirm().onConfirm() })
+    clock += 1000
+    confirmed()
     await until(async () => !(await media.has(HASH)))
     expect(mocks.api).not.toHaveBeenCalled()
     expect(await media.has(HASH)).toBe(false)
