@@ -9,7 +9,7 @@ import { useUI } from '../store/useUI.js'
 import { exOr, betterWeight } from '../lib/exercises.js'
 import { usesBar } from '../lib/bar.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad, sameLoad, plateDelta, dropGrid } from '../lib/plates.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, repStep, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, barFloor, makeWarmupAt, canBeWarmup, makeWorkAt, removeRowAt, removeLastSet, setSpanAt, copyRowAt, copySpanAt, insertRowAt, pairAdjacent, unpairSuperset, cleanupSg, applyIntensifierPlan, pinnedNoteFor, exNoteFor, setsRepsOf } from '../lib/history.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, repStep, EFFORT, effortOf, stepEffort, capEffort, insertWarmupRow, barFloor, canBeWarmup, removeLastSet, setSpanAt, pairAdjacent, unpairSuperset, applyIntensifierPlan, pinnedNoteFor, exNoteFor, setsRepsOf } from '../lib/history.js'
 import { fmtNum, fmtPlate, exerciseNameText, fmtDate, fmtDaysAgo, todayISO, exCount, DAYN } from '../lib/format.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from '../lib/incline.js'
@@ -37,7 +37,7 @@ import { Card, Chip, EmptyState, SectionTitle, Stat, Tag } from '../components/b
 import { Inline, Spacer } from '../components/layout.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
 import { cx } from '../lib/ui-kit.js'
-import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
+import { defaultIncrement, weightIncrement } from '../lib/progression.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
 import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../lib/session-start.js'
 import { routineChangesFromEntry, updateRoutineFromEntry } from '../lib/routines.js'
@@ -45,13 +45,14 @@ import { sessionNoProg, setSessionNoProg, setEntryNoProg, joinSessionNoProg } fr
 import { glyphOf } from '../lib/glyphs.js'
 import { markAllSetsDone, sessionHistory } from '../lib/backfill.js'
 import { bestSetFor } from '../lib/exercise-history.js'
-import { isWarmupRow, isFailureSet, toggleFailure, isDropSet, isRestPauseSet, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, makeSideSet, setSideField, toggleSide, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../lib/workout-model.js'
+import { isWarmupRow, isFailureSet, isDropSet, isRestPauseSet, dropsOf, clustersOf, isSideSet, makeSideSet, toggleSide } from '../lib/workout-model.js'
 import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEntry, moveActiveWorkoutEntry } from '../lib/active-workout-order.js'
 import { nextOpenSet, workoutKeyAction } from '../lib/workout-keys.js'
 import { reducedMotion } from '../lib/reduced-motion.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import FocusView from './FocusView.jsx'
-import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
+import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor } from '../lib/dumbbells.js'
+import { setNumberAt, deleteActiveSet, undoDeleteSet, copyActiveSet, removeActiveExercise, holdRow, setHoldRow, setFieldAt, stepLoad as stepLoadOf, toggleWarmupRowAt, toggleFailureAt as toggleFailureOf, addDropAt, addBurstAt, removeDropOf, removeBurstOf, setDropFieldAt, setBurstAt, setSideFieldAt } from './workout/workout-actions.js'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
 // that bounces, or a double press, sends two presses a moment apart: the first starts the hold,
@@ -117,70 +118,18 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // Drops/bursts mutate the row in place — same card, not a new set with its own long rest.
   // A planned exercise (see the exercise's "Intensifier" config) arrives with these already
   // filled in by applyIntensifierPlan; these only add/edit/remove entries live from here on.
-  const mutSet = (i, fn) => update(s => { const row = s.active.entries[entryIdx].sets[i]; s.active.entries[entryIdx].sets[i] = fn(row) }, true)
-  // Warm-up or work is the row's phase; switching it moves the row to the edge of the warm-ups.
-  const setPhaseAt = (i, warm) => update(s => {
-    const e = s.active.entries[entryIdx]
-    e.sets = warm ? makeWarmupAt(e.sets, i) : makeWorkAt(e.sets, i)
-  }, true)
-  const toggleFailureAt = i => update(s => {
-    const e = s.active.entries[entryIdx]
-    const [start, count] = setSpanAt(e.sets, i)
-    const on = !isFailureSet(e.sets[i])
-    for (let j = start; j < start + count; j++) if (isFailureSet(e.sets[j]) !== on) e.sets[j] = toggleFailure(e.sets[j])
-  }, true)
-  const addDropRow = i => mutSet(i, row => {
-    // A unilateral set drops per side (issue #60): addSideDrop seeds each side from its own weight.
-    if (isSideSet(row)) {
-      const pct = entry.target?.intensifier?.type === 'dropset' ? entry.target.intensifier.pct : undefined
-      return addSideDrop(row, pct, dropGrid(S, { ...entry.target, id: entry.id }))
-    }
-    const drops = dropsOf(row)
-    const base = drops.length ? drops[drops.length - 1].w : (row.w || 0)
-    const pct = entry.target?.intensifier?.type === 'dropset' ? entry.target.intensifier.pct : undefined
-    // On a weight you can load: the plates you own, else the exercise's step (lib/plates.js).
-    return addDrop(row, { w: nextDropWeight(base, pct, dropGrid(S, { ...entry.target, id: entry.id })), r: row.r })
-  })
-  // A rest-pause row's own reps are always the total across every burst (see
-  // applyIntensifierPlan/history.js) — clusters are the breakdown of that total, not extra on
-  // top of it — so adding, removing or editing one keeps `r` in step by the same delta.
-  const addBurstRow = i => mutSet(i, row => {
-    const restSec = entry.target?.intensifier?.type === 'restpause' ? entry.target.intensifier.restSec : (S.restPauseSec || 15)
-    if (isSideSet(row)) return addSideCluster(row, restSec)   // per side, each keeps its own r in step
-    const clusters = clustersOf(row)
-    const base = clusters.length ? clusters[clusters.length - 1].r : (row.r || 0)
-    const added = nextBurstReps(base)
-    return { ...addCluster(row, { r: added, restSec }), r: (row.r || 0) + added }
-  })
-  // Per-side weight/reps/effort edits (issue #60): patch one side of a unilateral row, keeping
-  // the row's aggregate (r/w/done/effort) in step via the model helper so every other reader
-  // stays right. The done tick goes through onToggleSide → toggle() instead, so ticking a side
-  // still fires the rest timer / auto-advance / workout-complete flow.
-  const setSide = (i, side, field, v) => {
-    if (field !== 'w') return mutSet(i, row => setSideField(row, side, field, v))
-    update(s => {
-      const e = s.active.entries[entryIdx]
-      const row = setSideField(e.sets[i], side, field, v)
-      row.sides[side].weightOrigin = WEIGHT_ORIGIN_MANUAL
-      e.sets[i] = row
-      e.sets = cascadeWeight(e.sets, i, v, side, e.target?.backoffStep)
-    }, true)
-  }
-  // Drop/burst edits accept an optional `side` ('L'|'R'): present for a per-side row (edits that
-  // one limb's drop/burst), absent for a straight row (edits the row's own).
-  const removeDrop = (i, di) => mutSet(i, row => isSideSet(row) ? removeSideDropAt(row, di) : removeDropAt(row, di))
-  const removeCluster = (i, ci) => mutSet(i, row => {
-    if (isSideSet(row)) return removeSideClusterAt(row, ci)
-    const removed = clustersOf(row)[ci]?.r || 0
-    return { ...removeClusterAt(row, ci), r: Math.max(0, (row.r || 0) - removed) }
-  })
-  const setDropField = (i, di, field, v, side) => mutSet(i, row =>
-    isSideSet(row) ? setSideDropAt(row, side, di, { [field]: v }) : setDropAt(row, di, { [field]: v }))
-  const setClusterField = (i, ci, v, side) => mutSet(i, row => {
-    if (isSideSet(row)) return setSideClusterAt(row, side, ci, v)
-    const delta = (Number(v) || 0) - (clustersOf(row)[ci]?.r || 0)
-    return { ...setClusterAt(row, ci, { r: v }), r: Math.max(0, (row.r || 0) + delta) }
-  })
+  // Every mutation lives in views/workout/workout-actions.js, bound here to this exercise.
+  const setPhaseAt = (i, warm) => toggleWarmupRowAt(entryIdx, i, warm)
+  const toggleFailureAt = i => toggleFailureOf(entryIdx, i)
+  const addDropRow = i => addDropAt(entryIdx, i)
+  const addBurstRow = i => addBurstAt(entryIdx, i)
+  // Per-side edits (issue #60). The done tick goes through onToggleSide → toggle() instead, so
+  // ticking a side still fires the rest timer / auto-advance / workout-complete flow.
+  const setSide = (i, side, field, v) => setSideFieldAt(entryIdx, i, side, field, v)
+  const removeDrop = (i, di) => removeDropOf(entryIdx, i, di)
+  const removeCluster = (i, ci) => removeBurstOf(entryIdx, i, ci)
+  const setDropField = (i, di, field, v, side) => setDropFieldAt(entryIdx, i, di, field, v, side)
+  const setClusterField = (i, ci, v, side) => setBurstAt(entryIdx, i, ci, v, side)
   const ex = exOr(entry.id)
   const thumb = !dense && S.gifSize === 'mini' && hasWorkoutMedia(ex)
   const mode = modeOf({ ...(entry.target || {}), id: entry.id })
@@ -272,7 +221,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // With the dumbbells you own listed (issue #376), + and − walk from bell to bell — 9, 11, 13 —
   // instead of along the increment's grid; an off-list weight goes to the nearest bell that way.
   const owned = mode === 'reps' ? ownedWeightsFor(S, cfg) : null
-  const stepLoad = (v, step, dir) => (owned ? stepOwned(owned, v, dir) : stepWeight(v, step, dir))
+  const stepLoad = (v, step, dir) => stepLoadOf(v, step, dir, owned)
   // The weight column says what a dumbbell weight means when the exercise has said (#474): one
   // bell or both together. A one-arm exercise holds one bell, so its plain heading is already true.
   const bells = !bw && bellsIn(cfg) === 2 ? meaning : 'as'
@@ -771,123 +720,17 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
 }
 
 /* ---------- swipe on sets: delete, undo, copy (v1.3.11) ---------- */
-// The swipe, the set-number menu and the Undo on the toast all come through here, so a set is
-// removed, put back and copied the same way whichever you used, and always through the store's
-// normal update: the sync sees an ordinary edit (with its _rev/baseRev), never an old snapshot
-// written back over newer state.
-//
-// Rows have no id of their own, so whatever points at a row by its index has to move with it:
-// the running hold (its callback writes the seconds to a row) and the rest a set started
-// (timer.forSet). Removing the set either one belongs to stops it first; Undo does not start it
-// again. Rows above or below just shift.
-let holdAt = null    // { owner, idx, i }: the row a running hold will write to (startTimed)
-let flashSeq = 0
-// UI state written from here and from effects; a test that stubs the UI store without setState
-// simply does not see it.
+// The swipe, the set-number menu and the Undo on the toast all come through the set helpers in
+// views/workout/workout-actions.js, so a set is removed, put back and copied the same way
+// whichever you used, and always through the store's normal update: the sync sees an ordinary
+// edit (with its _rev/baseRev), never an old snapshot written back over newer state. Re-exported
+// here for the callers and tests that import them from this file.
+export { setNumberAt, deleteActiveSet, undoDeleteSet, copyActiveSet, removeActiveExercise }
+// UI state written from effects here; a test that stubs the UI store without setState simply
+// does not see it.
 const setUI = patch => useUI.setState?.(patch)
-const shiftRowRefs = (idx, from, by) => {
-  if (holdAt && holdAt.idx === idx && holdAt.i >= from) holdAt = { ...holdAt, i: holdAt.i + by }
-  // The hold's saved owner (useUI.work.owner, what a reload brings it back to) moves with it.
-  const wk = useUI.getState().work
-  if (wk?.owner && wk.owner.idx === idx && wk.owner.i >= from) setUI({ work: { ...wk, owner: { ...wk.owner, i: wk.owner.i + by } } })
-  const rest = useUI.getState().timer
-  if (rest && rest.forIdx === idx && rest.forSet != null && rest.forSet >= from) setUI({ timer: { ...rest, forSet: rest.forSet + by } })
-}
-/** The number a set row shows: counted per phase (warm-ups and work sets each from 1), and a
- *  timed per-side L/R pair as one set. */
-export function setNumberAt(sets, i) {
-  const s = sets[i]
-  const warm = isWarmupRow(s)
-  const phaseNum = sets.slice(0, i + 1).filter(x => isWarmupRow(x) === warm).length
-  return s?.side ? Math.ceil(phaseNum / 2) : phaseNum
-}
-/** Removes set `i` of active entry `idx`, with an Undo on the toast. In a live session one set
- *  always stays (removeRowAt); the editor of a saved workout may take them all. */
-export function deleteActiveSet(idx, i, { editing = false } = {}) {
-  const A = useStore.getState().S.active
-  const e = A?.entries?.[idx]
-  const row = e?.sets?.[i]
-  if (!row) return false
-  const ui = useUI.getState()
-  // A timed per-side hold is an L row and an R row that read as one set: both go, and both come back.
-  const [start, count] = setSpanAt(e.sets, i)
-  if (!editing && e.sets.length <= count) { ui.toast(t('Keep at least one set, champ')); return false }
-  const inSpan = j => j != null && j >= start && j < start + count
-  let stopped = false
-  const holdHere = ui.work && ((holdAt && holdAt.idx === idx && inSpan(holdAt.i)) || (ui.work.owner && ui.work.owner.idx === idx && inSpan(ui.work.owner.i)))
-  if (holdHere) { holdAt = null; ui.stopWork(); stopped = true }
-  const rest = ui.timer
-  if (rest && rest.forIdx === idx && inSpan(rest.forSet)) { ui.stopRest(); stopped = !rest.ready || stopped }
-  shiftRowRefs(idx, start + count, -count)
-  const n = setNumberAt(e.sets, i)
-  const warm = isWarmupRow(row)
-  const token = { activeId: A.id, idx, entryId: e.id, i: start, rows: structuredClone(e.sets.slice(start, start + count)) }
-  useStore.getState().update(s => {
-    const en = s.active?.entries?.[idx]
-    if (!en) return
-    if (editing) en.sets.splice(start, count)
-    else en.sets = removeRowAt(en.sets, i)
-  }, true)
-  const msg = warm ? t('Warm-up gone.') : stopped ? t('Set {0} gone. Its timer stopped too.', n) : t('Set {0} gone.', n)
-  ui.toast(msg, { action: t('Undo'), onAction: () => undoDeleteSet(token) })
-  return true
-}
-/** Puts a removed set back exactly as it was, at its old place in the same exercise. If the
- *  exercise moved, it is found by its id; if it is gone, or the workout is, there is nothing to
- *  put it back into. */
-export function undoDeleteSet(token) {
-  const A = useStore.getState().S.active
-  const ui = useUI.getState()
-  const at = !A || A.id !== token.activeId ? -1
-    : A.entries[token.idx]?.id === token.entryId ? token.idx
-      : A.entries.findIndex(en => en.id === token.entryId)
-  if (at < 0) { ui.toast(t('Too late, that one’s gone')); return false }
-  const rows = token.rows || [token.row]
-  const i = Math.min(token.i, A.entries[at].sets.length)
-  shiftRowRefs(at, i, rows.length)
-  useStore.getState().update(s => {
-    const en = s.active.entries[at]
-    en.sets = rows.reduce((acc, r, k) => insertRowAt(acc, i + k, r), en.sets)
-  }, true)
-  setUI({ setFlash: { idx: at, i, id: ++flashSeq } })
-  return true
-}
-/** "One more like this one": a copy of set `i` right below it (lib/history.js copyRowAt). */
-export function copyActiveSet(idx, i) {
-  const e = useStore.getState().S.active?.entries?.[idx]
-  if (!e?.sets?.[i]) return false
-  const { start, end } = copySpanAt(e.sets, i)
-  shiftRowRefs(idx, end + 1, end - start + 1)
-  useStore.getState().update(s => {
-    const en = s.active?.entries?.[idx]
-    if (en) en.sets = copyRowAt(en.sets, i)
-  }, true)
-  setUI({ setFlash: { idx, i: end + 1, id: ++flashSeq } })
-  useUI.getState().toast(t('Copied. One more like that one.'))
-  return true
-}
 
 /* ---------- active workout ---------- */
-export function removeActiveExercise(idx) {
-  // Clear the work callback before indexes can shift. This also protects a confirmation sheet
-  // that was opened first and confirmed after a timed hold started.
-  useUI.getState().stopWork()
-  // A rest countdown belongs to the exercise whose set started it (timer.forIdx). Removing that
-  // exercise ends the rest — there is nothing left to rest for. Removing any other exercise
-  // keeps the countdown and only re-points it, so a pause you are in the middle of survives
-  // tidying up the list.
-  const rest = useUI.getState().timer
-  if (rest && rest.forIdx === idx) useUI.getState().stopRest()
-  else useUI.getState().shiftRestOwner(idx + 1, -1)
-  useStore.getState().update(s => {
-    if (!s.active || !Array.isArray(s.active.entries)) return
-    if (idx < 0 || idx >= s.active.entries.length) return
-    s.active.entries.splice(idx, 1)
-    cleanupSg(s.active.entries)
-    if (idx < s.active.cur) s.active.cur--
-    if (s.active.cur >= s.active.entries.length) s.active.cur = Math.max(0, s.active.entries.length - 1)
-  }, true)
-}
 
 // Whether a set row sits wholly between the fixed bars at the top and at the bottom: the status bar
 // and the connection bar above, the tab bar and the rest or hold bar below. The Cards header
@@ -1129,22 +972,8 @@ function ActiveWorkout() {
   const done = setsDoneActive(A)
 
   const mutEntry = (idx, fn) => update(s => { fn(s.active.entries[idx]) }, true)
-  // Clearing an optional field drops the key rather than storing null, so a set only carries
-  // what was actually logged — in the session, in history and in a backup.
-  const setField = (idx, i, field, v) => mutEntry(idx, e => {
-    if (v == null) delete e.sets[i][field]; else e.sets[i][field] = v
-    // Typing a duration IS the new plan, the same way ticking the row ends it: a plan a displaced
-    // hold put aside must not outrank what you just typed, or the field would read 45 and the ▶
-    // would still hold the 30 the row was asking for before.
-    if (field === 'sec') delete e.sets[i].planSec
-    // Changing a work set's weight cascades to the following inherited work sets, so a correction
-    // carries through without retyping every row while explicit manual exceptions stay put. A
-    // warm-up edit stays on its own row, and the later rungs keep their ramp loads.
-    if (field === 'w') {
-      e.sets[i].weightOrigin = WEIGHT_ORIGIN_MANUAL
-      e.sets = cascadeWeight(e.sets, i, v, undefined, e.target?.backoffStep)
-    }
-  })
+  // A field of one set: views/workout/workout-actions.js setFieldAt (cascade, planSec, cleared keys).
+  const setField = setFieldAt
   const modeAt = idx => modeOf({ ...(A.entries[idx].target || {}), id: A.entries[idx].id })
   const addSet = idx => mutEntry(idx, e => {
     const l = e.sets[e.sets.length - 1]
@@ -1240,6 +1069,7 @@ function ActiveWorkout() {
   // exercise's ⋯ menu, there only while the routine's slot says something else than the session
   // did. Sets, reps and weight are not part of it (routineChangesFromEntry).
   const restWord = v => (Number(v) > 0 ? fmtRest(v) : t('Default ({0})', fmtRest(S.restSec)))
+  const partWord = p => (p === 'warmup' ? t('Warm-up') : p === 'cooldown' ? t('Cool-down') : t('Workout'))
   const routineUpdateFor = idx => {
     const entry = A.entries[idx]
     const routine = !editing && entry?.rid ? S.routines.find(r => r.id === entry.rid) : null
@@ -1251,6 +1081,7 @@ function ActiveWorkout() {
       // A rest reads as the wheel shows it: "3:00", and 0 (no rest of its own) as the default.
       sub: found.changes.map(c => c.key === 'note' ? t('Note')
         : c.key === 'warmupSets' ? t('Warm-up sets') + ' ' + c.from + ' → ' + c.to
+          : c.key === 'part' ? t('Part of the workout') + ' ' + partWord(c.from) + ' → ' + partWord(c.to)
         : t('Rest') + ' ' + restWord(c.from) + ' → ' + restWord(c.to)).join(' · '),
       run: () => confirmSheet({
         title: t('Update “{0}”?', routine.name),
@@ -1582,17 +1413,18 @@ function ActiveWorkout() {
     const owner = { idx, i }
     useUI.getState().startWork(plan, exerciseNameText(exOr(e.id)), holdDone(owner, plan, onFocusProgress), { idx, i, id: e.id })
     // After startWork: a hold it displaced has already written its seconds to its own row.
-    holdAt = { owner, idx, i }
+    setHoldRow({ owner, idx, i })
   }
   // What a hold hands back to its row: on its end, its Done, or a rest displacing it. Also bound
   // again to a hold restored after a reload (useUI.bindWork, below).
   const holdDone = (owner, plan, onFocusProgress) => (elapsed, { abandoned = false, chimed = false } = {}) => {
     const { idx } = owner
     // The row may have moved while the hold ran (a set copied or removed above it): write to
-    // where it is now. holdAt is that place (deleteActiveSet, copyActiveSet).
-    const mine = holdAt?.owner === owner
-    const i = mine ? holdAt.i : owner.i
-    if (mine) holdAt = null
+    // where it is now. holdRow() is that place (deleteActiveSet, copyActiveSet).
+    const held = holdRow()
+    const mine = held?.owner === owner
+    const i = mine ? held.i : owner.i
+    if (mine) setHoldRow(null)
     // A hold a rest displaced (useUI.abandonWork: a set ticked on another row, or another
     // exercise) keeps its seconds and nothing else. It is not a finish: the row stays unticked
     // and starts no rest, because the rest that displaced the hold is already counting down —
@@ -1613,10 +1445,10 @@ function ActiveWorkout() {
   holdDoneRef.current = holdDone
   useEffect(() => {
     useUI.getState().bindWork?.(wk => {
-      // From here on it is tracked like a hold started on this screen (holdAt), so a set copied or
+      // From here on it is tracked like a hold started on this screen (holdRow), so a set copied or
       // removed above it moves it along.
       const owner = { idx: wk.owner.idx, i: wk.owner.i }
-      holdAt = { owner, idx: owner.idx, i: owner.i }
+      setHoldRow({ owner, idx: owner.idx, i: owner.i })
       return (...a) => holdDoneRef.current(owner, wk.total)(...a)
     })
   }, [])

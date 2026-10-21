@@ -3366,4 +3366,7 @@ export default {
   'See in Training load': 'See in Training load',
   'Tap a day below to plan it, or add routines first.': 'Tap a day below to plan it, or add routines first.',
   'Your week': 'Your week',
+  // Workout core M1
+  'Cool-down': 'Cool-down',
+  'Part of the workout': 'Part of the workout',
 }
