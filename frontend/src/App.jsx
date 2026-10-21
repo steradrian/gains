@@ -56,7 +56,7 @@ import Plan from './views/Plan.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
-import Workout from './views/Workout.jsx'
+import WorkoutRoute from './views/workout/WorkoutRoute.jsx'
 import Body from './views/Body.jsx'
 import Strength from './views/Strength.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
@@ -321,7 +321,7 @@ function Shell() {
               <Route path="/progress/trends" element={<Trends />} />
               <Route path="/progress/recovery" element={<Recovery />} />
               {/* Opened from any tab, on top of it: the workout. */}
-              <Route path="/train/workout" element={<Workout />} />
+              <Route path="/train/workout" element={<WorkoutRoute />} />
               {/* Me: Profile */}
               <Route path="/me" element={<SettingsRoute />} />
               <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
