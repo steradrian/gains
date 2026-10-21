@@ -147,8 +147,6 @@ function ExerciseDrawer({ ex, close }) {
   const fav = isFav(st, ex.id)
   const custom = isCustomEx(ex)
   const best = bestLine(st, ex)
-  const muscles = musclesOfEx(ex)
-  const steps = instrFor(ex)
 
   const onTab = v => {
     if (v === 'how' || !logged) { setTab(v); return }
@@ -191,23 +189,7 @@ function ExerciseDrawer({ ex, close }) {
     <BottomSheet type="full" title={<span className={cx('g-xd-name', exerciseNameClass(ex))}>{exerciseNameFor(ex)}</span>} head={head}>
       <div id={panelId} role="tabpanel" className="g-xd-panel">
         {tab !== 'how' ? <p className="g-xd-empty">{t('No sessions logged yet')}</p> : <>
-          <Media ex={ex} compact />
-          {descFor(ex) && <p className="g-xd-desc">{descFor(ex)}</p>}
-          {(muscles.primary.length > 0 || muscles.secondary.length > 0) && (
-            <div className="g-xd-muscles">
-              <BodyMap tone="light" body={st.body} levels={muscles.levels} width={74} />
-              <span className="g-xd-mlines">
-                {muscles.primary.length > 0 && <span><b>{t('Primary')}</b> · {muscles.primary.join(', ')}</span>}
-                {muscles.secondary.length > 0 && <span><b>{t('Additional')}</b> · {muscles.secondary.join(', ')}</span>}
-              </span>
-            </div>
-          )}
-          {steps.length > 0 && <>
-            {getLang() !== 'en' && !instrTranslated(ex) && <p className="g-xd-note">{t('instructions in English')}</p>}
-            <ol className="g-xd-steps">
-              {steps.map((s, i) => <li key={i}><span aria-hidden="true">{i + 1}</span>{s}</li>)}
-            </ol>
-          </>}
+          <ExerciseHowTo ex={ex} />
           <div className="g-xd-rows">
             <DetailRow icon="plus" title={t('Add to my plan')} sub={t('Pick a routine. Sets, reps and weight come next.')} onClick={() => addToRoutineSheet(ex)} />
             {/* The catalogue is community-edited (catalogue/README.md): a wrong muscle, a clumsy step or
@@ -220,6 +202,41 @@ function ExerciseDrawer({ ex, close }) {
       </div>
     </BottomSheet>
   )
+}
+
+/**
+ * The How to panel: the clip (or the custom photo, video and link), the description, the muscle
+ * map with Primary and Additional, and the steps. The exercise drawer shows it on its How to tab,
+ * the running workout's How to drawer (views/workout/exercise-drawers.jsx) as its body. `tags`
+ * ([{ key, label, tone }]) are drawn under the clip and `intro` (a node) after them: the workout
+ * drawer's equipment, muscle and part, and its first-time lines.
+ */
+export function ExerciseHowTo({ ex, tags, intro }) {
+  useLang()
+  const body = useStore(s => s.S.body)
+  const muscles = musclesOfEx(ex)
+  const steps = instrFor(ex)
+  return <>
+    <Media ex={ex} compact />
+    {tags?.length > 0 && <span className="g-xd-tags">{tags.map(tg => <DsTag key={tg.key} tone={tg.tone || 'muted'}>{tg.label}</DsTag>)}</span>}
+    {intro}
+    {descFor(ex) && <p className="g-xd-desc">{descFor(ex)}</p>}
+    {(muscles.primary.length > 0 || muscles.secondary.length > 0) && (
+      <div className="g-xd-muscles">
+        <BodyMap tone="light" body={body} levels={muscles.levels} width={74} />
+        <span className="g-xd-mlines">
+          {muscles.primary.length > 0 && <span><b>{t('Primary')}</b> · {muscles.primary.join(', ')}</span>}
+          {muscles.secondary.length > 0 && <span><b>{t('Additional')}</b> · {muscles.secondary.join(', ')}</span>}
+        </span>
+      </div>
+    )}
+    {steps.length > 0 && <>
+      {getLang() !== 'en' && !instrTranslated(ex) && <p className="g-xd-note">{t('instructions in English')}</p>}
+      <ol className="g-xd-steps">
+        {steps.map((s, i) => <li key={i}><span aria-hidden="true">{i + 1}</span>{s}</li>)}
+      </ol>
+    </>}
+  </>
 }
 
 // "Your setup": how this exercise is loaded wherever it is logged. Plate loading opens its own
