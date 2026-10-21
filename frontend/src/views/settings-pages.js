@@ -10,6 +10,7 @@ import { THEMES } from '../lib/themes.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { MEAL_NAMES_MAX } from '../lib/nutrition/settings-lists.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
+import { HELP_TOPICS } from './settings/help-topics.js'
 
 export const PAGES = {
   appearance: { title: 'Appearance', icon: 'palette', tint: 'var(--purple)' },
@@ -39,6 +40,7 @@ export const PAGES = {
   media: { title: 'Photos & videos', icon: 'image', tint: 'var(--teal)' },
   danger: { title: 'Danger zone', icon: 'trash', tint: 'var(--red)' },
   admin: { title: 'Admin dashboard', icon: 'crown', tint: 'var(--indigo)', to: '/me/admin' },
+  help: { title: 'Help', icon: 'circleHelp', tint: 'var(--blue)', kw: 'help faq questions answers support how does' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
   licences: { title: 'Licences', icon: 'shield', tint: 'var(--grey)' },
   account: { title: 'Account', icon: 'personCircle', tint: 'var(--grey)' },
@@ -221,8 +223,12 @@ export const SEARCH = [
   // About & updates
   { page: 'about', title: 'Check for updates', icon: 'download', tint: 'var(--green)', kw: 'update apk android version', when: c => c.mobile && c.android },
   { page: 'about', title: 'Version', icon: 'info', tint: 'var(--grey)', kw: 'version about licence license source code open source' },
-  { page: 'about', title: 'In Chrome: ⋮ menu → Add to Home screen', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen tip pwa', when: c => c.installTip && c.androidWeb },
-  { page: 'about', title: 'In Safari: Share → Add to Home Screen', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen tip pwa', when: c => c.installTip && !c.androidWeb },
+  // Settings food m2: one Install row, which says Chrome's or Safari's steps (or that it is installed).
+  // Searchable only where there is something to do (a browser, not yet installed).
+  { page: 'about', title: 'Install', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen add to home screen safari chrome share pwa', when: c => c.installTip },
+  // Settings food m2: Help, one entry per answer (its words are searchable) and the report row.
+  ...HELP_TOPICS.map(h => ({ page: 'help', title: h.title, icon: h.icon, tint: 'var(--blue)', kw: h.answer, tkw: () => t(h.answer) })),
+  { page: 'help', title: 'Report a problem', icon: 'flag', tint: 'var(--blue)', kw: 'bug issue feedback contact support github' },
   // Licences
   { page: 'licences', title: 'Full licence text', icon: 'bookOpen', tint: 'var(--grey)', kw: 'licence license agpl copyright warranty notices open source credits' },
   // Account

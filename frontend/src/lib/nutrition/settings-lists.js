@@ -73,6 +73,29 @@ export function addCategory(categories, { name, label }) {
 
 export const removeCategory = (categories, name) => listOf(categories).filter(c => categoryName(c) !== name).map(categoryOf)
 
+/** Edits the category called `name` in place (same position). The same rules as addCategory. */
+export function updateCategory(categories, name, { name: nextName, label }) {
+  const list = listOf(categories).map(categoryOf)
+  const at = list.findIndex(c => categoryName(c) === name)
+  if (at < 0) return { error: 'missing' }
+  const cleanName = String(nextName || '').trim()
+  const cleanLabel = String(label || '').trim()
+  if (!cleanName || cleanName.length > CATEGORY_NAME_MAX) return { error: 'name' }
+  if (cleanLabel.length > CATEGORY_LABEL_MAX) return { error: 'label' }
+  if (list.some((c, i) => i !== at && categoryName(c) === cleanName)) return { error: 'duplicate' }
+  list[at] = cleanLabel ? { name: cleanName, label: cleanLabel } : cleanName
+  return { list }
+}
+
+/** Puts a removed category back where it was (the Undo of a delete). */
+export function restoreCategory(categories, entry, index) {
+  const list = listOf(categories).map(categoryOf)
+  if (list.some(c => categoryName(c) === categoryName(entry))) return { error: 'duplicate' }
+  if (list.length >= CATEGORIES_MAX) return { error: 'full' }
+  list.splice(Math.min(Math.max(index, 0), list.length), 0, categoryOf(entry))
+  return { list }
+}
+
 /* ------------------------------------------------------------------ custom units ------------- */
 
 const unitOf = u => ({ abbr: u.abbr, full: u.full ?? u.abbr })
@@ -91,6 +114,27 @@ export function addCustomUnit(units, { abbr, full }) {
 }
 
 export const removeCustomUnit = (units, abbr) => listOf(units).filter(u => u.abbr !== abbr).map(unitOf)
+
+/** Renames the unit with this abbreviation. The abbreviation itself is what past entries are
+ *  logged in, so only the full name changes. */
+export function updateCustomUnit(units, abbr, { full }) {
+  const list = listOf(units).map(unitOf)
+  const at = list.findIndex(u => u.abbr === abbr)
+  if (at < 0) return { error: 'missing' }
+  const cleanFull = String(full || '').trim() || abbr
+  if (cleanFull.length > CUSTOM_UNIT_FULL_MAX) return { error: 'full' }
+  list[at] = { abbr, full: cleanFull }
+  return { list }
+}
+
+/** Puts a removed unit back where it was (the Undo of a delete). */
+export function restoreCustomUnit(units, entry, index) {
+  const list = listOf(units).map(unitOf)
+  if (list.some(u => String(u.abbr).toLowerCase() === String(entry.abbr).toLowerCase())) return { error: 'duplicate' }
+  if (list.length >= CUSTOM_UNITS_MAX) return { error: 'full-list' }
+  list.splice(Math.min(Math.max(index, 0), list.length), 0, unitOf(entry))
+  return { list }
+}
 
 /* ------------------------------------------------------------------ meal names --------------- */
 

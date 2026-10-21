@@ -47,7 +47,6 @@ export const ROOT_GROUPS = [
     { id: 'media', title: 'Photos & videos', icon: 'image' },
   ] },
   { key: 'help', title: 'Help', rows: [
-    // Help has no page until the Help milestone adds it to PAGES; pageVisible keeps the row away.
     { id: 'help', title: 'Help', sub: 'How Gains works, in short answers', icon: 'circleHelp' },
     { id: 'about', title: 'About and updates', icon: 'info' },
     // Admins only (pageVisible); no count, the app has none to give.

@@ -146,7 +146,7 @@ describe('focus ring and inline links', () => {
     expect(CSS).toMatch(/:focus-visible\{outline:2\.5px solid var\(--acc-ink\)/)
   })
   it('links in running text are underlined, not told apart by colour alone', () => {
-    expect(CSS).toMatch(/\.sp-version a,\.sp-lic a\{text-decoration:underline/)
+    expect(CSS).toMatch(/\.sp-version a\{text-decoration:underline/)
   })
 })
 

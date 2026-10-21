@@ -44,3 +44,40 @@
 .set-sheet-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .set-sheet-pair .g-btn { width: 100%; }
 .set-sheet-none { margin: 0; padding: 16px 0; text-align: center; font: 500 15px/21px var(--font-sans); color: var(--text-3); }
+
+/* Settings food m2: category dots, the drawers' forms, Help answers, About and Licences */
+.set-dot { display: block; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--cat-ring); }
+.set-dot-red { background: var(--cat-red); }
+.set-dot-orange { background: var(--cat-orange); }
+.set-dot-yellow { background: var(--cat-yellow); }
+.set-dot-green { background: var(--cat-green); }
+.set-dot-blue { background: var(--cat-blue); }
+.set-dot-purple { background: var(--cat-purple); }
+.set-dot-brown { background: var(--cat-brown); }
+.set-dot-black { background: var(--cat-black); }
+
+.set-form { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; }
+.set-note { margin: 0; font: 500 14px/19px var(--font-sans); color: var(--text-3); }
+.set-err { margin: 0; font: 600 14px/19px var(--font-sans); color: var(--danger); }
+.set-swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.set-swatch { appearance: none; border: 0; background: none; height: 48px; display: grid; place-items: center; cursor: pointer; border-radius: 12px; }
+.set-swatch .set-dot { width: 28px; height: 28px; }
+.set-swatch[aria-checked="true"] .set-dot { outline: 2px solid var(--text); outline-offset: 3px; }
+.set-swatch:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
+
+.set-help-answer { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.set-help-answer p { margin: 0; font: 500 17px/24px var(--font-sans); color: var(--text); }
+
+.set-about-logo { display: flex; justify-content: center; padding: 8px 0 20px; color: var(--on-stage); }
+
+.set-lic { padding: 16px; color: var(--on-stage); font: 500 14px/20px var(--font-sans); overflow-wrap: anywhere; }
+.set-lic b { display: block; font: 700 15px/20px var(--font-sans); margin-bottom: 4px; }
+.set-lic p { margin: 0; color: var(--on-stage-2); }
+.set-lic + .g-glist-row { border-top: 1px solid var(--glass-line); }
+
+.set-dl { padding: 8px 0; }
+.set-dl-bar { display: block; width: 100%; height: 6px; margin: 16px 0; border-radius: 3px; appearance: none; border: 0; background: var(--fill-3); overflow: hidden; }
+/* The progress sheet is the app's own sheet, not a design-system drawer: the app's tokens. */
+.set-dl-bar::-webkit-progress-bar { background: var(--fill-3); }
+.set-dl-bar::-webkit-progress-value { background: var(--acc); border-radius: 3px; transition: width .2s; }
+.set-dl-bar::-moz-progress-bar { background: var(--acc); border-radius: 3px; }

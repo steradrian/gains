@@ -182,7 +182,7 @@ input,select,textarea{font:inherit;color:var(--label);letter-spacing:inherit}
 img{max-width:100%}
 a{color:var(--acc-ink);text-decoration:none}
 /* A link inside running text is told apart by more than its colour. */
-p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+p a,.small a,.dim a,.sect-f a,.sp-version a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
 :focus{outline:none}
 /* --acc-ink, not --acc: >= 4.5:1 on every fill the ring lands on, so also >= 3:1 as a ring */
 :focus-visible{outline:2.5px solid var(--acc-ink);outline-offset:2px;border-radius:6px}
@@ -1781,10 +1781,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 /* ------------------------------------------------------- Settings (v1.3.11) -- */
 .sp-version{text-align:center;margin-top:4px;line-height:1.6}
 .icn g[data-lucide] *{vector-effect:non-scaling-stroke}
-.sp-lic-title{display:block;margin-bottom:6px;font-size:17px;font-weight:600;color:var(--label)}
-.sp-lic{padding:12px 16px;font-size:13px;line-height:1.45;color:var(--label-2)}
-.sp-lic b{color:var(--label);font-weight:600}
-.sp-lic a{color:var(--acc-ink)}
 .lrow.dis .lrow-i,.lrow.dis .lrow-t,.lrow.dis .sw{opacity:.45}
 /* a row a search result jumped to: a short accent wash that fades out */
 .lrow.sp-flash,.btn.sp-flash{animation:spflash 1.8s ease}

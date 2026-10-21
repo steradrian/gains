@@ -10,7 +10,7 @@ const titles = ctx => rootGroups(ctx).map(g => g.title)
 describe('rootGroups', () => {
   it('a guest in a browser: no food, no reminders, no admin', () => {
     const got = ids({ user: null, mobile: false }, undefined)
-    expect(got).toEqual(['appearance', 'units', 'features', 'workout', 'schedule', 'equipment', 'coach', 'advanced', 'progress', 'backup', 'import', 'account', 'about'])
+    expect(got).toEqual(['appearance', 'units', 'features', 'workout', 'schedule', 'equipment', 'coach', 'advanced', 'progress', 'backup', 'import', 'account', 'help', 'about'])
     expect(titles({ user: null })).toEqual(['Make it yours', 'Keep you on track', 'Training', 'Your data', 'Help'])
   })
 
@@ -28,8 +28,12 @@ describe('rootGroups', () => {
     expect(ids({ mobile: true, android: false })).not.toContain('health')
   })
 
-  it('Help has no row until its page exists', () => {
-    expect(ids({ user: { id: 'u' } })).not.toContain('help')
+  it('Help has a row, for everyone, ahead of About', () => {
+    for (const ctx of [{ user: { id: 'u' } }, { user: null }, { mobile: true }]) {
+      const got = ids(ctx)
+      expect(got).toContain('help')
+      expect(got.indexOf('help')).toBeLessThan(got.indexOf('about'))
+    }
   })
 
   it('every row names a real page, or has an address of its own', () => {
