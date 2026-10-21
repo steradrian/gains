@@ -11,6 +11,7 @@ import { finishWorkout, finishWorkoutSheet, finishAndSave, beginWorkout, openRea
 import { EXDB } from './lib/exercises-data.js'
 import { setNav } from './lib/nav.js'
 import { reopenWorkout } from './lib/workout-reopen.js'
+import { takeReopen } from './views/workout/finish-drawers.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const S = () => useStore.getState().S
@@ -132,20 +133,25 @@ describe('the Finish sheet', () => {
   })
 })
 
-// Workout finish M1: doFinishWorkout is finishAndSave plus the old summary sheet, so nothing the
-// user sees changes; finishAndSave alone saves and hands back what Reopen needs.
+// doFinishWorkout is finishAndSave, then the summary route in the workout's place (finish M2,
+// finishToSummary); finishAndSave alone saves and hands back what Reopen needs.
 describe('doFinishWorkout and finishAndSave', () => {
   const ID = EXDB[0].id
 
-  it('Finish still saves, confirms the weight, marks the best and opens the locked summary', () => {
+  it('Finish saves, confirms the weight, marks the best, replaces the route with the summary and holds Reopen', () => {
+    const to = vi.fn()
+    setNav(to)
     install([{ w: 40, r: 5, done: true }])
     act(() => finishWorkout())
     expect(S().active).toBeNull()
     expect(S().workouts).toHaveLength(1)
     expect(S().workouts[0].prs).toEqual([ID])
     expect(S().exWeights[ID]).toEqual({ w: 40, d: '2026-09-28' })
-    const sheet = useUI.getState().sheets.at(-1)
-    expect(sheet).toMatchObject({ kind: 'center', locked: true })
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(to).toHaveBeenCalledWith('/train/workout/summary/fin', { replace: true })
+    expect(takeReopen('fin')).toMatchObject({ workoutId: 'fin' })
+    expect(takeReopen('fin')).toBeNull()   // handed over once
+    setNav(() => {})
   })
 
   it('finishAndSave saves without a sheet and returns the record, the bests and the snapshot', () => {

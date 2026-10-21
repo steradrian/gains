@@ -18,9 +18,11 @@ export { shareWorkoutSheet } from './sheets/workout-share.jsx'
 export {
   startOrResume, startFlow, beginWorkout, repeatWorkout, logPastWorkoutSheet, addRoutineToSessionSheet,
   exerciseNoteSheet, setNoteSheet, sessionNoteSheet, renameWorkoutSheet, supersetSheet, workoutCompleteSheet,
-  saveWorkoutEdits, exitWorkoutEdit, setsLine, finishWorkout, finishWorkoutSheet,
+  saveWorkoutEdits, exitWorkoutEdit, finishWorkout, finishWorkoutSheet,
   // Workout finish M1
   openReady, startFromReady, finishAndSave,
+  // Workout finish M2
+  readyOrStart, finishToSummary,
 } from './sheets/workout-flow.jsx'
 export { startChooserSheet, dayOptionsSheet } from './sheets/train-day.jsx'
 export { routineMenuSheet, planDaysSheet, shareRoutineSheet, routineSettingsSheet, exportRoutineFile, printRoutine } from './sheets/routine-menu.jsx'

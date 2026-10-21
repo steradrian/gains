@@ -173,7 +173,8 @@ describe('formatting', () => {
   it('the clock', () => {
     expect(clockText((51 * 60 + 40) * 1000)).toBe('51:40')
     expect(clockText(0)).toBe('0:00')
-    expect(clockText(75 * 60000)).toBe('75:00')
+    expect(clockText(75 * 60000)).toBe('1:15:00')
+    expect(clockText(23 * 3600000 + 5000)).toBe('23:00:05')
   })
 
   it('volume in tonnes from a tonne in kilograms; pounds stay pounds', () => {

@@ -519,3 +519,54 @@ describe('the screens gallery: the running workout', () => {
     expect(useStore.getState().S.active).toBe(own)
   }, 20000)
 })
+
+// Workout finish M2
+describe('the screens gallery: Workout, start and finish', () => {
+  it('has Ready, the drawers over it and the running workout, the toasts and the summary, all in memory', async () => {
+    const ids = screenAreas().find(a => a.name === 'Workout: start and finish').entries.map(e => e.id)
+    expect(ids).toEqual(['W1.1', 'W1.31', 'W1.40', 'W1.10', 'W1.11', 'W1.46', 'W1.26', 'W1.27', 'W2.0', 'W2.1', 'W2.2'])
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    const sheetTitle = s => s.drawer.querySelector('.g-bs-head h2').textContent
+    await check('W1.1', s => {
+      expect(s.host.querySelector('.g-ready-title').textContent).toBe('Push A')
+      expect(s.host.querySelectorAll('.g-ready-gh')).toHaveLength(3)
+      expect([...s.host.querySelectorAll('button')].some(b => b.textContent.trim() === 'Start workout')).toBe(true)
+    })
+    await check('W1.31', s => {
+      expect(s.host.querySelector('.g-ready-title').textContent).toBe('Push A')
+      expect(sheetTitle(s)).toBe('Start with your warm-up')
+    })
+    await check('W1.40', s => expect(sheetTitle(s)).toBe('Cool-down'))
+    await check('W1.10', s => expect(sheetTitle(s)).toBe('Finish Push A?'))
+    await check('W1.11', s => expect(sheetTitle(s)).toBe('Finish early?'))
+    await check('W1.46', s => expect(sheetTitle(s)).toMatch(/^Discard \d+ sets?\?$/))
+    await check('W1.26', s => {
+      expect(s.host.querySelectorAll('.g-rc-slide')).toHaveLength(4)
+      expect(s.host.textContent).toContain('Discarded Push A. The sets go unless you undo.')
+    })
+    await check('W1.27', s => expect(sheetTitle(s)).toBe('Push A is still open'))
+    await check('W2.0', s => {
+      expect(s.host.querySelector('h1').textContent).toBe('Push A, done')
+      expect([...s.host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(expect.arrayContaining(['New bests', 'Muscles worked', 'What you just trained']))
+      expect(s.host.textContent).not.toContain('Your first time')
+    })
+    await check('W2.1', s => {
+      expect(s.host.querySelectorAll('.g-rc-slide')).toHaveLength(4)
+      expect(s.host.textContent).toContain('Saved Push A')
+    })
+    await check('W2.2', s => {
+      expect(s.host.textContent).toContain('Your first time')
+      expect([...s.host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).not.toContain('New bests')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    localStorage.removeItem('gym_state_v1')
+  }, 30000)
+})

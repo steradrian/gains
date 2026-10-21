@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // Train's two drawers (PR02 T2.1 Start a workout, T2.2 Day options): what each row shows and does.
-// Starting goes through startFlow, so the weigh-in still asks first; a running workout skips the
+// A routine opens Ready (whose Start workout asks the weigh-in, ReadyScreen.test.jsx); Freestyle
+// starts after the weigh-in; a running workout skips the
 // chooser; with no routines the chooser offers ways to get a plan; Rest / skip this day moves the
 // session to the next free day and Undo puts the plan back.
 import React, { act } from 'react'
@@ -87,17 +88,18 @@ describe('T2.1 Start a workout', () => {
     expect(host.textContent).toContain('Browse ready-made plans')
   })
 
-  it('a routine starts through startFlow: today\'s plan, any other routine, Freestyle', () => {
+  it('a routine opens its Ready and starts nothing: today\'s plan, any other routine; Freestyle starts', () => {
     startChooserSheet()
     tap(mountTop(), 'Push A')
-    expect(S().active.routineIds).toEqual(['push'])
-    expect(navigated).toBe('/train/workout')
+    expect(S().active).toBeNull()
+    expect(navigated).toBe('/train/workout?start=push')
     expect(useUI.getState().sheets).toHaveLength(0)
 
     install()
     startChooserSheet()
     tap(mountTop(), 'Legs')
-    expect(S().active.routineIds).toEqual(['legs'])
+    expect(S().active).toBeNull()
+    expect(navigated).toBe('/train/workout?start=legs')
 
     install()
     startChooserSheet()
@@ -106,11 +108,17 @@ describe('T2.1 Start a workout', () => {
     expect(S().active.name).toBe('Freestyle')
   })
 
-  it('still asks the weigh-in first when it is on, and starts once it is answered', () => {
+  it('with the weigh-in on, a routine still opens Ready without asking; Freestyle asks first', () => {
     install({ weighIn: true })
     startChooserSheet()
-    const chooser = topSheet().id
     tap(mountTop(), 'Pull A')
+    expect(S().active).toBeNull()
+    expect(navigated).toBe('/train/workout?start=pull')
+    expect(useUI.getState().sheets).toHaveLength(0)
+
+    startChooserSheet()
+    const chooser = topSheet().id
+    tap(mountTop(), 'Freestyle')
     expect(S().active).toBeNull()
     expect(topSheet().id).not.toBe(chooser)
     expect(topSheet().variant).toBe('ds')
