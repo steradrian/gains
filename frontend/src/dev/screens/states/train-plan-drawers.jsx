@@ -4,6 +4,7 @@ import { t } from '../../../lib/i18n.js'
 import { parsePlan } from '../../../lib/plan-share.js'
 import { dayNoteSheet, dayOverrideSheet, planShareSheet, planToolsSheet } from '../../../sheets.jsx'
 import Plan from '../../../views/Plan.jsx'
+import PlanScreen from '../../../views/plan/PlanScreen.jsx'
 import PlanImportPage, { importPlanWithUndo } from '../../../views/plan-import/PlanImportPage.jsx'
 import { registerScreens } from '../registry.js'
 
@@ -47,7 +48,7 @@ const FILE = parsePlan({
   customEx: [],
 }, 'kg')
 
-const planPage = () => <Plan view="schedule" />
+const planPage = () => <PlanScreen />
 const open = fn => async tools => { fn(); await tools.wait(200) }
 const ahead = isoOf(day(2))
 const missed = isoOf(day(-2))

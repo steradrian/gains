@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { t } from '../../lib/i18n.js'
+import { usePlanDayParam } from '../../sheets.jsx'
 import Button from '../../ds/Button.jsx'
 import GlassList from '../../ds/GlassList.jsx'
 import GlassValueRow from '../../ds/GlassValueRow.jsx'
@@ -25,6 +26,7 @@ import './plan.css'
 export default function PlanScreen(over) {
   const plan = { ...usePlan(), ...over }
   const [editing, setEditing] = useState(false)
+  usePlanDayParam()
   const { loop } = plan
   const loopMode = plan.mode === 'rotation'
   const editable = loopMode && plan.editable
