@@ -81,7 +81,8 @@
 
 /* Stage: tab roots, onboarding and sign-in on the person's accent */
 .g-glass { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.g-stage { position: relative; overflow: hidden; min-height: 100%; color: var(--on-stage); background: var(--accent-stage-end); font-family: var(--font-sans); }
+/* --focus: every control on the dark stage gets a ring that shows on it, not only the ones listed */
+.g-stage { position: relative; overflow: hidden; min-height: 100%; color: var(--on-stage); background: var(--accent-stage-end); font-family: var(--font-sans); --focus: var(--on-stage); }
 .g-stage-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: linear-gradient(170deg, var(--accent-stage) 0px, var(--accent-stage-end) 900px); }
 .g-stage-glow { position: absolute; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, var(--accent-glow) 0%, var(--g-white-clear) 62%); }
 .g-stage-glow-a { left: 130px; top: -180px; opacity: .5; }
@@ -398,7 +399,6 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
 .g-sbtn.g-bell-close .g-bell-a { transform: rotate(90deg) scale(.6); opacity: 0; }
 .g-sbtn.g-bell-close .g-bell-b { transform: none; opacity: 1; }
 .g-sdot { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--g-notify-dot); box-shadow: 0 0 0 2px var(--accent-stage); }
-.g-sbtn:focus-visible, .g-spill:focus-visible, .g-rc-slide:focus-visible, .g-rc-dot:focus-visible, .g-gact:focus-visible { outline-color: var(--on-stage); }
 
 /* StageRing: the arc draws in; over-target is amber on top of the closed ring */
 .g-sring { position: relative; display: block; flex: none; }

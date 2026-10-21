@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // StageScreen: the design system's root, so its tokens reach what is inside and nothing else, with
 // its own accent preset, never the app's <html data-accent>.
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import StageScreen from './StageScreen.jsx'
 import { useView } from './render.test-util.js'
@@ -28,6 +29,13 @@ describe('StageScreen', () => {
       view.render(<StageScreen accent="ember" />)
       expect(document.documentElement.dataset.accent).toBe('sky')
     } finally { delete document.documentElement.dataset.accent }
+  })
+
+  // Light mode's --focus is near-black, about 1.3:1 on the dark stage: the stage sets its own, so
+  // every control on it (tiles, glass rows, the water +, week cells) shows its keyboard focus.
+  it('gives everything on the stage a focus ring in the stage\'s ink', () => {
+    const ds = readFileSync(process.cwd() + '/src/ds/ds.css', 'utf8')
+    expect(ds.match(/\n\.g-stage \{([^}]*)\}/)[1]).toMatch(/--focus: var\(--on-stage\);/)
   })
 
   it('refuses an accent the design system has no preset for, in development', () => {
