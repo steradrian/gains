@@ -54,6 +54,7 @@ const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScr
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Workout from './views/Workout.jsx'
 import Body from './views/Body.jsx'
 import Strength from './views/Strength.jsx'
@@ -281,7 +282,7 @@ function Shell() {
               {/* Training */}
               <Route path="/train" element={<TrainHub />} />
               <Route path="/train/schedule" element={<Plan view="schedule" />} />
-              <Route path="/train/routines" element={<Plan view="routines" />} />
+              <Route path="/train/routines" element={<RoutinesScreen />} />
               <Route path="/train/routines/:id" element={<RoutineEdit />} />
               <Route path="/train/history" element={<History />} />
               <Route path="/train/exercises" element={<Library />} />

@@ -13,14 +13,14 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { dateLocale } from '../lib/i18n.js'
 import { fmtDate, isoOf, todayISO } from '../lib/format.js'
 import { dayOptionsSheet, dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startChooserSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
-import { addRoutine } from './Plan.jsx'
+import { addRoutine } from './routines/routine-actions.js'
 import TrainHub from './TrainHub.jsx'
 
 const nav = vi.fn()
 const coach = vi.hoisted(() => ({ on: false }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train' }) }))
 vi.mock('../lib/coach.js', () => ({ coachAvailable: () => coach.on }))
-vi.mock('./Plan.jsx', () => ({ addRoutine: vi.fn() }))
+vi.mock('./routines/routine-actions.js', () => ({ addRoutine: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), dayOverrideSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), dayNoteSheet: vi.fn(), menuSheet: vi.fn(), startFlow: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(),

@@ -1966,7 +1966,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
    to their own line instead and stay on the trailing edge. */
 .plan-sec-h>.plan-sec-acts{margin-inline-start:auto}
 .plan-sec-h h4.sec{margin:0}
-.plan-routines-bar{margin-top:0}
 .plan-textbtn{color:var(--acc-ink);font-size:16px;padding:6px 4px;position:relative}
 .plan-textbtn::before{content:'';position:absolute;inset:-6px}
 .plan .sect-f{margin:0 0 4px}

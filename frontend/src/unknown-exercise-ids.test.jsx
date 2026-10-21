@@ -18,6 +18,7 @@ import { beginWorkout, exerciseDetailSheet, exerciseHistorySheet, workoutDetailS
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Workout from './views/Workout.jsx'
 import History from './views/History.jsx'
 import Strength from './views/Strength.jsx'
@@ -108,7 +109,7 @@ describe('exercise ids this build does not know', () => {
   it('Home, the plan, the routine editor and the Library draw it', () => {
     seed()
     expect(render(<Home />).textContent).toContain('Push')
-    render(<Plan view="routines" />)
+    render(<RoutinesScreen />)
     const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes>, '/train/routines/r1')
     expect(edit.textContent).toContain('Unknown exercise')
     render(<Library />)
@@ -123,7 +124,7 @@ describe('exercise ids this build does not know', () => {
       scheduleMode: 'rotation',
     })
     render(<Home />)
-    render(<Plan view="schedule" />)
+    render(<Plan />)
     expectKept(useStore.getState().S)
   })
 

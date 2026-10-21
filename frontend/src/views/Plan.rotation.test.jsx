@@ -337,16 +337,6 @@ describe('Plan — no routines', () => {
     click([...host.querySelectorAll('.empty-acts button')].find(b => b.textContent === 'Load starter plan'))
     expect(starterPlanSheet).toHaveBeenCalledTimes(1)
   })
-
-  it('the Routines list shows it too, with the same action', () => {
-    starterPlanSheet.mockClear()
-    mocks.S = baseS({ routines: [], week: {} })
-    act(() => root.render(<Plan view="routines" />))
-    expect(emptyTitle()).toBe('No routines yet')
-    expect(emptyArt()).not.toBeNull()
-    click([...host.querySelectorAll('.empty-acts button')].find(b => b.textContent === 'Load starter plan'))
-    expect(starterPlanSheet).toHaveBeenCalledTimes(1)
-  })
 })
 
 describe('Plan — Schedule extras', () => {
@@ -361,18 +351,13 @@ describe('Plan — Schedule extras', () => {
     expect(host.querySelector('.plan-link')).toBe(null)
   })
 
-  it('is one page per view, with no Schedule | Routines switch', () => {
+  // The Routines page is its own screen now (views/routines/RoutinesScreen.jsx).
+  it('is the Schedule only, with no Schedule | Routines switch', () => {
     mount()
     expect(host.querySelector('.plan-views')).toBe(null)
     expect(host.querySelector('.plan-mode')).toBeTruthy()
     expect(host.querySelector('.plan-routines')).toBe(null)
     expect(host.querySelector('h1').textContent).toBe('Schedule')
-    act(() => root.unmount()); root = createRoot(host)
-    act(() => root.render(<Plan view="routines" />))
-    expect(host.querySelector('.plan-views')).toBe(null)
-    expect(host.querySelector('.plan-mode')).toBe(null)
-    expect(host.querySelector('.plan-routines')).toBeTruthy()
-    expect(host.querySelector('h1').textContent).toBe('Routines')
   })
 
   it('one Plan menu holds share, print, import and the starter plans', () => {
