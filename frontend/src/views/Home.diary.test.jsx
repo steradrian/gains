@@ -463,7 +463,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet() })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     await settle()
     expect(order[0]).toBe('push')
     expect(order).toContain('/hub/api/sync/now')
@@ -473,7 +473,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet({ date: yesterday }) })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     // `t` is the change stamp (now); charts place it on its own day, not on the day it was typed.
     const entry = useStore.getState().S.bodyweight.find(b => b.d === yesterday)
     expect(entry.t).toBeGreaterThan(new Date(TODAY + 'T00:00:00').getTime())
@@ -484,7 +484,7 @@ describe('sync after a weigh-in and a workout', () => {
     await mount(<></>)
     await act(async () => { bwSheet({ date: tomorrow }) })
     await settle()
-    await click(button('Save', lastSheet()))
+    await click(button('Save weigh-in', lastSheet()))
     const bw = useStore.getState().S.bodyweight
     expect(bw.some(b => b.d === tomorrow)).toBe(false)
     expect(bw.find(b => b.d === TODAY)).toBeTruthy()

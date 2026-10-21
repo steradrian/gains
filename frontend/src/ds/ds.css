@@ -482,6 +482,18 @@ button.g-bs-chip { cursor: pointer; }
 .g-seg button[aria-pressed="true"] { color: var(--text); }
 @media (prefers-reduced-motion: reduce) { .g-seg-thumb, .g-seg button { transition: none; } }
 :root[data-motion="reduce"] .g-seg-thumb, :root[data-motion="reduce"] .g-seg button { transition: none; }
+
+/* Weigh-in drawer (board T1.7): ±0.1 discs either side of the big number, which takes typing */
+.g-wi { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0 6px; }
+.g-wi-pm { appearance: none; border: 0; width: 56px; height: 56px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }
+.g-wi-pm:active { background: var(--surface-press); }
+.g-wi-pm .g-icon { width: 24px; height: 24px; stroke-width: 2.2; }
+.g-wi-read { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.g-wi-read .g-wi-num { min-width: 2ch; max-width: 100%; height: auto; margin: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text); font: 700 56px/60px var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; text-align: center; }
+.g-wi-u { font: 600 20px/24px var(--font-sans); color: var(--text-2); }
+.g-wi-note, .g-wi-far, .g-wi-last { margin: 0; text-align: center; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-wi-note { padding-bottom: 8px; }
+.g-wi-far { padding-bottom: 4px; color: var(--warning); font-weight: 600; }
 @media (min-width: 1000px) {
   #modal-root .g-bs { left: 50%; right: auto; margin-left: -320px; width: 640px; }
 }

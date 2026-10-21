@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { bwSheet, weighInsSheet } from './sheets.jsx'
+import { weighInsSheet } from './sheets.jsx'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const mounted = []
@@ -87,15 +87,6 @@ describe('weigh-ins sheet', () => {
     expect(useStore.getState().S.bodyweight).toHaveLength(5)
   })
 
-  // The log sheet's recent three are the ones just typed: a typo there still goes in one tap.
-  it('still deletes one of the log sheet\'s recent weigh-ins in one tap', () => {
-    bwSheet()
-    const log = mountTopSheet()
-    act(() => { log.querySelector('button[aria-label="Delete weigh-in"]').click() })
-    expect(useUI.getState().sheets).toHaveLength(1)
-    expect(useStore.getState().S.bodyweight).toHaveLength(4)
-  })
-
   it('has an empty state', () => {
     install({ bodyweight: [] })
     weighInsSheet()
@@ -105,20 +96,5 @@ describe('weigh-ins sheet', () => {
     expect(host.querySelector('.empty .empty-t').textContent).toBe('No weigh-ins yet')
     expect(host.textContent).toContain('Log your weight to start the curve.')
     expect(host.querySelector('.chart')).toBeNull()
-  })
-
-  it('is reached from the log sheet once there are more weigh-ins than its recent three', () => {
-    bwSheet()
-    const log = mountTopSheet()
-    expect(log.querySelectorAll('button[aria-label="Delete weigh-in"]')).toHaveLength(3)
-    const all = button(log, 'All weigh-ins')
-    expect(all).toBeTruthy()
-    act(() => { all.click() })
-    expect(mountTopSheet().querySelector('h3').textContent).toBe('Weigh-ins')
-
-    useUI.setState({ sheets: [] })
-    install({ bodyweight: clone(LOG).slice(0, 2) })
-    bwSheet()
-    expect(button(mountTopSheet(), 'All weigh-ins')).toBeUndefined()
   })
 })
