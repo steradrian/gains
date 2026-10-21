@@ -1,4 +1,5 @@
 import SettingsPage from '../views/settings/SettingsPage.jsx'
+import { Card, SegmentedRow, SwitchRow } from '../views/settings/pages/prefs-rows.jsx'
 import ConfirmDrawer from './ConfirmDrawer.jsx'
 import DangerRow from './DangerRow.jsx'
 import Section from './DevKitSection.jsx'
@@ -31,6 +32,16 @@ export default function DevKitSettings() {
           <DangerRow title="Start over" sub="Wipes your training data" onClick={NOOP} />
           <DangerRow first={false} icon="warning" title="Delete account" sub="Gone after 7 days" onClick={NOOP} />
         </div>
+      </Section>
+
+      {/* Settings prefs m1 */}
+      <Section title="Settings prefs m1: rows with a control" note="A card of rows whose control is the only thing to tap: a switch (the last one disabled, as AI Coach is while it is coming soon) and a segmented control.">
+        <Card>
+          <SwitchRow icon="timer" title="Fasting" sub="Adds Fast to the + sheet, with a timer and history." checked={false} onChange={NOOP} />
+          <SwitchRow icon="chat" title="AI Coach" sub="Coming soon" checked={false} disabled onChange={NOOP} />
+          <SegmentedRow icon="scale" title="Weight unit" sub="Sets, weigh-ins, plates"
+            options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]} value="kg" onChange={NOOP} />
+        </Card>
       </Section>
     </>
   )

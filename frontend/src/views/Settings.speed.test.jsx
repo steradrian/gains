@@ -68,17 +68,17 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="units" />))
-const segButton = label => [...host.querySelectorAll('.seg button')].find(b => b.textContent === label)
+const segButton = label => [...host.querySelectorAll('.g-sseg button')].find(b => b.textContent === label)
 
 describe('Settings — speed unit', () => {
   it('shows km/h for a kg profile and mph for a pound profile until one is chosen', () => {
     mount()
-    expect(segButton('km/h').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('km/h').getAttribute('aria-checked')).toBe('true')
     act(() => root.unmount())
     root = createRoot(host)
     mocks.S.unit = 'lb'
     mount()
-    expect(segButton('mph').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('mph').getAttribute('aria-checked')).toBe('true')
   })
 
   it('stores the choice and nothing else', () => {
@@ -89,7 +89,7 @@ describe('Settings — speed unit', () => {
     expect(mocks.S.speedUnit).toBe('mph')
     expect({ ...mocks.S, speedUnit: undefined }).toEqual({ ...before, speedUnit: undefined })
     mount()
-    expect(segButton('mph').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('mph').getAttribute('aria-checked')).toBe('true')
     act(() => { segButton('km/h').click() })
     expect(mocks.S.speedUnit).toBe('kmh')
   })

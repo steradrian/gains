@@ -14,6 +14,7 @@ export function useFlashRow(body, find, via) {
     if (!find || !body.current) return
     const el = body.current
     const named = label => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
+      || [...el.querySelectorAll('.g-glist-row, .g-drow')].find(r => r.querySelector('b')?.textContent === label)
       || [...el.querySelectorAll('.btn')].find(b => b.textContent.trim() === label)
     let tm = null
     const flash = row => {
