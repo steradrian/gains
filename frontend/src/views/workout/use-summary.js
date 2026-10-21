@@ -86,7 +86,7 @@ function topSetOf(w, id) {
  * `bests` `[{ id, name, kind: 'weight' | 'e1rm', text }]`; `trained` `[{ id, name, line, trend,
  * trendText }]` (`trend` 'up' | 'same' | 'down' | 'first'); `cardio` `[{ id, name, line }]`;
  * `next` `[{ id, name, kind, text }]`. `first` (W2.2) is the first workout of its routines: no
- * delta, no bests, no next time, and `firstNote` says why.
+ * delta and no next time, and `firstNote` says why. Its bests are listed like any other's.
  */
 export function summaryOf(S, id) {
   const w = (S?.workouts || []).find(x => x && x.id != null && String(x.id) === String(id))
@@ -113,20 +113,18 @@ export function summaryOf(S, id) {
     },
   ]
 
-  let bests = []
-  if (!first) {
-    const weightIds = [...new Set(w.prs || [])]
-    const weight = weightIds.map(exId => {
-      const top = topSetOf(w, exId)
-      return top ? { id: exId, name: nameOf(exId), kind: 'weight', text: t('{0} × {1} · best set ever', kg(top.w, unit), top.r) } : null
-    }).filter(Boolean)
-    const { e1prs } = sessionBests({ ...S, workouts: before }, w)
-    const e1 = e1prs.filter(p => !weightIds.includes(p.id)).map(p => ({
-      id: p.id, name: nameOf(p.id), kind: 'e1rm',
-      text: p.prev > 0 ? t('Est. 1RM {0} · up {1}', kg(p.est, unit), kg(p.est - p.prev, unit)) : t('Est. 1RM {0}', kg(p.est, unit)),
-    }))
-    bests = [...weight, ...e1]
-  }
+  // The bests the Finish drawer promised and the record carries, first time of its routines or not.
+  const weightIds = [...new Set(w.prs || [])]
+  const weight = weightIds.map(exId => {
+    const top = topSetOf(w, exId)
+    return top ? { id: exId, name: nameOf(exId), kind: 'weight', text: t('{0} × {1} · best set ever', kg(top.w, unit), top.r) } : null
+  }).filter(Boolean)
+  const { e1prs } = sessionBests({ ...S, workouts: before }, w)
+  const e1 = e1prs.filter(p => !weightIds.includes(p.id)).map(p => ({
+    id: p.id, name: nameOf(p.id), kind: 'e1rm',
+    text: p.prev > 0 ? t('Est. 1RM {0} · up {1}', kg(p.est, unit), kg(p.est - p.prev, unit)) : t('Est. 1RM {0}', kg(p.est, unit)),
+  }))
+  const bests = [...weight, ...e1]
 
   const rows = finishCompare(S, w)
   const trained = rows.map(row => {

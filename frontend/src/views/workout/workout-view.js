@@ -177,7 +177,7 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
     const partLine = run && unit.length > 1
       ? t('{0} · {1}–{2} of {3}', partName(run.part), unit[0] - run.from + 1, unit[unit.length - 1] - run.from + 1, run.count)
       : t('{0} · {1} of {2}', partName(run?.part || 'main'), inRun, run?.count || total)
-    const last = lastEntryFor(H, entry.id, entry.rid)
+    const last = lastEntryFor(H, entry.id, entry.rid, partOf(entry))
     hero = {
       idx: cur,
       exId: entry.id,
@@ -414,8 +414,8 @@ export function setFields(S, entry, i, side = null) {
   const step = weightIncrement(cfg, S.unit)
   const owned = ownedWeightsFor(S, cfg)
   const bodyweight = isBw(cfg) && !(Number(row.w) > 0)
-  const last = lastEntryFor(sessionHistory(S), entry.id, entry.rid)
-  const k = entry.sets.filter(x => isWarmupRow(x) === warm).indexOf(s)
+  const last = lastEntryFor(sessionHistory(S), entry.id, entry.rid, partOf(entry))
+  const k =entry.sets.filter(x => isWarmupRow(x) === warm).indexOf(s)
   const lastRow = last?.sets?.filter(x => isWarmupRow(x) === warm)[k]
   const lastReps = lastRow ? (side && lastRow.sides ? lastRow.sides[side]?.r : lastRow.r) : undefined
   const weight = field('w', isBw(cfg) ? t('Added ({0})', S.unit) : isEachDb(entry) ? t('{0} each', S.unit) : S.unit, step, {

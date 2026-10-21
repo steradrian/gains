@@ -167,9 +167,9 @@ describe('the summary (W2.0)', () => {
 })
 
 describe('the first time (W2.2)', () => {
-  it('"Your first time" with its line, no bests and no next time; rows say first time', () => {
+  it('"Your first time" with its line, the record\'s bests and no next time; rows say first time', () => {
     show([workout('f', '2026-10-18', ['push'], [{ id: SQUAT, sets: sets(80, 5, 5, 5) }], { prs: [SQUAT] })], 'f')
-    expect(headings()).toEqual(['Your first time', 'Muscles worked', 'What you just trained', 'Session note', 'Photos and clips'])
+    expect(headings()).toEqual(['Your first time', 'New bests', 'Muscles worked', 'What you just trained', 'Session note', 'Photos and clips'])
     expect(q('.g-sum-first').textContent).toBe('Your first Push A. From the next one on, this shows what went up and your new bests.')
     expect(qa('.g-stat')[2].textContent).toContain('first time')
     const row = sectionOf('What you just trained').querySelector('.g-xrow')

@@ -11,6 +11,7 @@ import { api, beacon } from '../../lib/api.js'
 import { workoutCompleteSheet } from '../../sheets.jsx'
 import { addExerciseSheet, exerciseRestSheet } from './drawers.js'
 import { exerciseSettingsSheet } from './exercise-drawers.jsx'
+import { makeSideSet } from '../../lib/workout-model.js'
 import { resetBested, useWorkout } from './use-workout.js'
 import { copyActiveSet, deleteActiveSet, moveEntryWithinPart } from './workout-actions.js'
 import { PAST_BENCH, active, exercise, lift, mountHook, resetTimers, seed, stretch, timed } from './test-fixtures.js'
@@ -131,6 +132,14 @@ describe('a new best', () => {
     start([bench(90), lift('0426', 24, 8, 1)], { workouts: [PAST_BENCH], active: { backfill: { durationMin: 60, replaceId: null } } })
     tick(0, 0)
     expect(view().newBest).toBeNull()
+  })
+
+  it('is raised for a per-side set once both sides are ticked', () => {
+    const split = { ...bench(85), target: { mode: 'reps', sets: 1, reps: 8, weight: 85, side: true }, sets: [makeSideSet({ w: 85, r: 16 })] }
+    start([split, lift('0426', 24, 8, 1)], { workouts: [PAST_BENCH] })
+    tick(0, 0, 'L')
+    tick(0, 0, 'R')
+    expect(view().newBest).toMatchObject({ exId: '0025', idx: 0 })
   })
 
   it('is not raised twice when the screen is left and come back to', () => {

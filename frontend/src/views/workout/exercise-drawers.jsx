@@ -80,8 +80,8 @@ const partLabel = part => (part === 'warmup' ? t('Warm-up') : part === 'cooldown
 function lastRowFor(S, entry, i, side) {
   const s = entry.sets[i]
   const warm = isWarmupRow(s)
-  const last = lastEntryFor(sessionHistory(S), entry.id, entry.rid)
-  const k = entry.sets.filter(x => isWarmupRow(x) === warm).indexOf(s)
+  const last = lastEntryFor(sessionHistory(S), entry.id, entry.rid, partOf(entry))
+  const k =entry.sets.filter(x => isWarmupRow(x) === warm).indexOf(s)
   const row = last?.sets?.filter(x => isWarmupRow(x) === warm && x.done)[k]
   if (!row) return null
   return side && row.sides ? row.sides[side] || null : row
@@ -329,7 +329,7 @@ function HowToDrawer({ at, close }) {
   const ex = exOr(entry.id)
   const mode = modeOf(cfgOf(entry))
   const part = partOf(entry)
-  const first = !lastEntryFor(sessionHistory(S), entry.id)
+  const first = !lastEntryFor(sessionHistory(S), entry.id, undefined, partOf(entry))
   const facts = factsFor(S, entry)
   const update = routineUpdateAt(idx)
   const lastTime = exerciseHistory(sessionHistory(S), entry.id, { limit: 1 }).sessions[0]

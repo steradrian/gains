@@ -77,15 +77,23 @@ describe('summaryOf', () => {
 })
 
 describe('the first time (W2.2)', () => {
-  it('no delta but "first time", no bests, no next time, and the note says why', () => {
+  it('no delta but "first time", no next time, and the note says why; the saved bests still show', () => {
     const first = workout('f', '2026-10-18', ['push'], [{ id: SQUAT, sets: sets(80, 5, 5, 5) }], { prs: [SQUAT] })
     const m = summaryOf(state([first]), 'f')
     expect(m.first).toBe(true)
     expect(m.tiles[2].delta).toEqual({ dir: null, text: 'first time' })
-    expect(m.bests).toEqual([])
+    expect(m.bests).toEqual([{ id: SQUAT, name: name(SQUAT), kind: 'weight', text: '80 kg × 5 · best set ever' }])
     expect(m.next).toEqual([])
     expect(m.firstNote).toBe('Your first Push A. From the next one on, this shows what went up and your new bests.')
     expect(m.trained).toEqual([{ id: SQUAT, name: name(SQUAT), line: '3 sets at 80 kg', trend: 'first', trendText: 'first time' }])
+  })
+
+  it('a first pairing of lifts trained before keeps the bests its record carries', () => {
+    const earlier = workout('e', '2026-10-01', [], [{ id: SQUAT, sets: sets(70, 5, 5, 5) }], { name: 'Freestyle' })
+    const first = workout('f', '2026-10-18', ['push'], [{ id: SQUAT, sets: sets(80, 5, 5, 5) }], { prs: [SQUAT] })
+    const m = summaryOf(state([earlier, first]), 'f')
+    expect(m.first).toBe(true)
+    expect(m.bests.map(b => b.id)).toEqual([SQUAT])
   })
 
   it('freestyle has no comparison of its own: no delta, never "first"', () => {

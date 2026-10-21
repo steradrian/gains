@@ -338,7 +338,8 @@ export function useWorkout() {
         return
       }
 
-      if (!side) raiseNewBest(idx, i)
+      // A per-side set is done only once both sides are; raiseNewBest looks at the row itself.
+      raiseNewBest(idx, i)
 
       if (freshUnitDone && freshUnit?.includes(fresh.cur)) {
         // The next exercise takes over (S.autoNext, default on), with a bar toast
