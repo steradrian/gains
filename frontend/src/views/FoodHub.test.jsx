@@ -215,7 +215,7 @@ describe('the header\'s "left" readout', () => {
       o.cb([{ isIntersecting: !gone, boundingClientRect: { top: gone ? -200 : 120 } }])
     }
   })
-  const pill = () => host.querySelector('.hdr-slot .hdr-left')
+  const pill = () => host.querySelector('.g-shdr-act .hdr-left')
 
   it('takes the header\'s context slot once the hero has scrolled away, and goes when it is back', async () => {
     await openHub()

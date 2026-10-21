@@ -37,11 +37,7 @@ export const GROUP_ORDER = {
 
 export const GROUP_LIMIT = 3
 
-/** A group's title, and its noun for the counts ("4 exercises"). */
-export const groupTitle = g => ({
-  features: t('Turned-off features'), pages: t('Pages'), settings: t('Settings'), exercises: t('Exercises'), routines: t('Routines'),
-  workouts: t('Workouts'), foods: t('Your foods'), days: t('Days'), online: t('Open Food Facts'),
-})[g]
+/** A group's noun for the counts ("4 exercises"); its title is lib/search/scopes.js groupTitle. */
 export const groupCount = (g, n) => ({
   features: tn('{0} turned-off feature', '{0} turned-off features', n),
   pages: tn('{0} page', '{0} pages', n), settings: tn('{0} setting', '{0} settings', n), exercises: tn('{0} exercise', '{0} exercises', n),

@@ -167,11 +167,6 @@ export function Skeleton({ w = '100%', h = 12, r = 4, className }) {
   return <span className={cx('skel', className)} aria-hidden="true" style={{ '--skel-w': len(w), '--skel-h': len(h), '--skel-r': len(r) }} />
 }
 
-// A key on the keyboard, as a hint ("⌘ K", "esc"): 20px tall, never a control.
-export function Kbd({ className, children }) {
-  return <kbd className={cx('kbd', className)}>{children}</kbd>
-}
-
 export function SectionTitle({ as: El = 'h4', className, children }) {
   return <El className={cx('sec', className)}>{children}</El>
 }
@@ -182,12 +177,8 @@ export function Tag({ tone, icon, nocap = false, className, children }) {
   return <span className={cx('tag', tone, nocap && 'nocap', className)}>{icon && <Icon name={icon} />}{children}</span>
 }
 
-// size="lg": the 36px chip of a destination strip (the search's shortcuts), with a leading `icon`.
-export function Chip({ on = false, nocap = false, size, icon, onClick, className, children, ...rest }) {
-  oneOf('Chip', 'size', size, ['lg'])
-  return <button type="button" className={cx('chip', nocap && 'nocap', on && 'on', size && 'chip-' + size, className)} onClick={onClick} {...rest}>
-    {icon && <Icon name={icon} />}{children}
-  </button>
+export function Chip({ on = false, nocap = false, onClick, className, children, ...rest }) {
+  return <button type="button" className={cx('chip', nocap && 'nocap', on && 'on', className)} onClick={onClick} {...rest}>{children}</button>
 }
 
 // The horizontal chip strip. `ref` reaches the strip, for useRevealActiveChip.

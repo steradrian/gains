@@ -9,6 +9,7 @@ import { PROGRESS_ROOT, inProgress, tabOf } from '../../lib/tab-route.js'
 import { holdPage } from '../../lib/search/hold-page.js'
 import { closeSearch, endSearch, focusSearch, setQuery, syncSearchWithHistory, takeSuppressed, useSearch } from '../../lib/search/session.js'
 import { nav } from '../../lib/nav.js'
+import { useDsAccent } from '../../lib/use-ds-accent.js'
 
 // The overlay itself, its rows and the `motion` engine: one chunk, asked for in idle time after
 // the first paint so that it is there by the first tap, and at the latest by the first focus.
@@ -26,6 +27,7 @@ export default function SearchHost() {
   const live = useSearch(s => s.live)
   const open = useSearch(s => s.open)
   const user = useStore(s => s.user)
+  const accent = useDsAccent()
   const [loaded, setLoaded] = useState(false)
 
   // Load the chunk once the app has painted.
@@ -109,7 +111,7 @@ export default function SearchHost() {
   }, [])
 
   if (!loaded && !live) return null
-  return <Suspense fallback={live && open ? <div className="search-ov" aria-hidden="true" /> : null}>
+  return <Suspense fallback={live && open ? <div className="g-root search-ov" data-accent={accent} aria-hidden="true" /> : null}>
     <SearchOverlay />
   </Suspense>
 }

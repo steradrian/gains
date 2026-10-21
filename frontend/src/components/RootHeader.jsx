@@ -1,67 +1,28 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { t } from '../lib/i18n.js'
-import { cx } from '../lib/ui-kit.js'
+import StageHeader from '../ds/StageHeader.jsx'
 import { tabOf } from '../lib/tab-route.js'
-import { useScrolledBy } from '../lib/use-scrolled-by.js'
-import { useStore } from '../store/useStore.js'
+import { useDsAccent } from '../lib/use-ds-accent.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
-import { searchTab } from '../lib/search/scopes.js'
-import { SEARCH_LIST_ID, closeSearch, openSearch, overlayKey, registerPill, setQuery, takeFocusOnMount, useSearch } from '../lib/search/session.js'
-import AvatarButton from './AvatarButton.jsx'
-import SearchPill from './SearchPill.jsx'
+import { useStore } from '../store/useStore.js'
 import { scanToSelection } from './scan-to-selection.js'
+import { useRootHeader } from './use-root-header.js'
 
-// The context button's exit and return load with the search chunk; until then it just goes.
-const ContextSlot = lazy(() => import('./search/header-motion.jsx').then(m => ({ default: m.ContextSlot })))
-
-// What the pill says while the search is scoped to one group (ui-search.md §5).
-const SCOPED = {
-  pages: () => t('Search pages'), settings: () => t('Search settings'), exercises: () => t('Search exercises'),
-  routines: () => t('Search routines'), workouts: () => t('Search workouts'), foods: () => t('Search your foods'), days: () => t('Search days'),
-}
-
-const desktopKeys = () => { try { return !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches } catch { return false } }
-
-// The header of a tab's root (Home, Training, Nutrition, Progress), the bearmenu mobile header:
-// one pinned row of the search pill, the tab's one context button where it has one (`action`),
-// and the avatar. It carries no visible title, since the tab bar already names the tab; `title`
-// is the page's name for a screen reader, its h1. The pill's placeholder is the tab's, read from
-// the address rather than chosen by the page. A hairline fades in under it once the page scrolls.
-// The pill is the global search's input (lib/search/session.js): focusing it opens the overlay,
-// the avatar becomes its close button and the context button steps aside while it is open. The
-// query shows only while the overlay does: a tab root a search visit opened on top of it (a Page
-// result) has an empty pill, not the query of the overlay waiting underneath.
+// The header of a tab root that is not on the stage yet (Train, Eat, Progress): the same header as
+// Today's (ds/StageHeader, the avatar, the search pill and the bell), on the stage's ground, fixed
+// to the top of the window with the status bar inside it (owner direction, PR-07: the bearmenu
+// header). Nothing in it moves while searching; the bell turns into the search's ×. `title` is
+// the page's name for a screen reader, its h1, since the tab bar already names the tab. `action`
+// is the tab's one context readout (Nutrition's "N left"). The spacer keeps the page's first
+// block clear of the fixed header.
 export default function RootHeader({ title, action }) {
   const { pathname } = useLocation()
-  const scrolled = useScrolledBy(4)
-  // The search's scope is the tab the page is on (Progress is Me's).
-  const tab = searchTab(tabOf(pathname))
-  const open = useSearch(s => s.open)
-  const query = useSearch(s => s.query)
-  const group = useSearch(s => s.group)
-  const active = useSearch(s => s.active)
+  const accent = useDsAccent()
   const nutrition = nutritionAvailable(useStore(s => s.user))
-  const input = useRef(null)
-  useEffect(() => {
-    registerPill(input.current)
-    if (takeFocusOnMount()) input.current?.focus()
-    return () => registerPill(null)
-  }, [])
-  const close = () => { closeSearch(); input.current?.blur() }
-  return (
-    <div className={cx('tab-hdr', (scrolled || open) && 'scrolled')}>
-      <h1 className="sr-only">{title}</h1>
-      <div className="tab-hdr-row">
-        <SearchPill scope={tab} value={open ? query : ''} onChange={setQuery} onOpen={() => openSearch(tab)} expanded={open}
-          controls={SEARCH_LIST_ID} activeDescendant={active} inputRef={input} shortcut={desktopKeys()}
-          placeholder={open && group ? SCOPED[group]?.() : undefined}
-          onEscape={close} onKeys={overlayKey} onScan={nutrition ? scanToSelection : undefined} />
-        {action && <Suspense fallback={!open && <div className="hdr-slot"><div className="hdr-slot-in">{action}</div></div>}>
-          <ContextSlot show={!open}>{action}</ContextSlot>
-        </Suspense>}
-        <AvatarButton mode={open ? 'close' : 'profile'} onClose={close} />
-      </div>
+  const header = useRootHeader(tabOf(pathname))
+  return <>
+    <div className="g-root root-hdr" data-accent={accent}>
+      <StageHeader pinned title={title} {...header} action={action} onScan={nutrition ? scanToSelection : undefined} />
     </div>
-  )
+    <div className="root-hdr-space" aria-hidden="true" />
+  </>
 }

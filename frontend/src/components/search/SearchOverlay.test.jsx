@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
-// The overlay as a person uses it: the pill opens it, before typing, results, the keyboard, Escape,
-// the avatar's close, no results, offline, and reduced motion.
+// The overlay as a person uses it (owner direction for PR-07, the bearmenu search: the header stays,
+// its pill is the one input, the panel under it holds the results): the field opens it, before
+// typing, results, the keyboard, Escape, the bell's ×, nothing matches, one kind, Open Food Facts
+// slow, failing and offline, and reduced motion.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
@@ -8,8 +10,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../sheets.jsx', async orig => ({ ...(await orig()), exerciseDetailSheet: vi.fn(), customExSheet: vi.fn(), weighInsSheet: vi.fn() }))
 
-const { useStore } = await import('../../store/useStore.js')
+const { DEF, useStore } = await import('../../store/useStore.js')
+const { useUI } = await import('../../store/useUI.js')
 const { setNav } = await import('../../lib/nav.js')
+const { CATALOGUE } = await import('../../lib/exercises.js')
 const { endSearch, syncSearchWithHistory, useSearch } = await import('../../lib/search/session.js')
 const { addRecent, clearRecents, noteOpened, useRecents } = await import('../../lib/search/recents.js')
 const { createFakeNutriTrace } = await import('../../lib/nutrition/fake-nutritrace.js')
@@ -21,7 +25,7 @@ const SearchOverlay = (await import('./SearchOverlay.jsx')).default
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-let host, root, navigate
+let host, root, navigate, originalS
 beforeEach(() => {
   host = document.createElement('div')
   document.body.appendChild(host)
@@ -30,6 +34,7 @@ beforeEach(() => {
   setNav(navigate)
   history.replaceState({ idx: 0, key: 'k' }, '')
   vi.spyOn(history, 'back').mockImplementation(() => {})
+  originalS = useStore.getState().S
   useStore.setState({ user: null })
 })
 afterEach(() => {
@@ -38,6 +43,8 @@ afterEach(() => {
   act(() => endSearch())
   clearRecents()
   useRecents.setState({ opened: {}, searched: false })
+  useStore.setState({ S: originalS })
+  useUI.setState({ toastMsg: '', toastAction: null })
   delete document.documentElement.dataset.motion
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -46,9 +53,16 @@ afterEach(() => {
 const wait = ms => act(() => new Promise(r => setTimeout(r, ms)))
 const $ = s => document.querySelector(s)
 const $$ = s => [...document.querySelectorAll(s)]
-const pill = () => $('.spill-i')
-async function mount(path = '/home') {
-  await act(async () => root.render(<MemoryRouter initialEntries={[path]}><RootHeader title="Home" /><SearchOverlay /></MemoryRouter>))
+const pill = () => $('.g-shdr-pin .g-spill-field input')
+const closeX = () => $('.g-shdr-pin .g-bell')
+const list = () => $('#gains-search-list')
+const options = () => [...list().querySelectorAll('[role="option"]')]
+async function mount(path = '/home', action) {
+  await act(async () => root.render(<MemoryRouter initialEntries={[path]}><RootHeader title="Home" action={action} /><SearchOverlay /></MemoryRouter>))
+}
+async function open() {
+  await act(async () => pill().focus())
+  await wait(50)
 }
 async function type(value) {
   await act(async () => {
@@ -58,167 +72,253 @@ async function type(value) {
   await wait(320)
 }
 const key = (k, opts = {}) => act(() => { pill().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...opts })) })
+const signedIn = () => {
+  const nt = createFakeNutriTrace()
+  vi.stubGlobal('fetch', nt.fetch)
+  resetOnlineSearch()
+  useNutrition.getState().reset()
+  useStore.setState({ user: { id: 7, name: 'A' } })
+  return nt
+}
 
 describe('the search overlay', () => {
-  it('opens on the pill\'s focus: the pill a combobox controlling the results listbox, with the tab\'s shortcuts', async () => {
+  it('opens on the field\'s focus under the header, which stays: the field a combobox controlling the results listbox', async () => {
     await mount()
     expect(pill().getAttribute('aria-haspopup')).toBe('listbox')
     expect(pill().getAttribute('aria-expanded')).toBe('false')
-    await act(async () => pill().focus())
-    await wait(50)
+    expect($('#gains-search')).toBeNull()
+    await open()
     expect(pill().getAttribute('role')).toBe('combobox')
     expect(pill().getAttribute('aria-expanded')).toBe('true')
     expect(pill().getAttribute('aria-controls')).toBe('gains-search-list')
-    const list = $('#gains-search-list')
-    expect(list.getAttribute('role')).toBe('listbox')
-    expect(list.closest('#gains-search')).not.toBeNull()
-    // The shortcuts are actions, not choices: plain buttons in the tab order, outside the listbox.
-    const chips = $$('.chip-lg')
+    // The panel is on the stage, a results panel only: no input, no scrim, no header of its own.
+    const panel = $('#gains-search')
+    expect(panel.classList.contains('search-ov')).toBe(true)
+    expect(panel.classList.contains('g-root')).toBe(true)
+    expect(panel.querySelector('input')).toBeNull()
+    expect(panel.querySelector('header')).toBeNull()
+    expect(list().getAttribute('role')).toBe('listbox')
+    expect(list().closest('#gains-search')).not.toBeNull()
+    expect(closeX().getAttribute('aria-label')).toBe('Close search')
+    expect($('.g-shdr-pin .g-sbtn:not(.g-bell)').getAttribute('aria-label')).toBe('Settings')
+  })
+
+  it('first use: "Search everything", Suggested, then the tab\'s Go to chips, plain buttons outside the listbox', async () => {
+    await mount()
+    await open()
+    expect($('#gains-search .g-sempty b').textContent).toBe('Search everything')
+    expect($('#gains-search .g-sempty').textContent).toContain('Find any page, setting, exercise, workout, food or day.')
+    const chips = $$('#gains-search .g-goto-chip')
     expect(chips.map(c => c.textContent)).toEqual(['History', 'Exercises', 'Routines', 'Body'])
     for (const c of chips) {
       expect(c.hasAttribute('role')).toBe(false)
       expect(c.tabIndex).toBe(0)
-      expect(list.contains(c)).toBe(false)
+      expect(list().contains(c)).toBe(false)
+      // First use: the chips come after the listbox.
+      expect(list().compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     }
-    expect(list.querySelectorAll('[role="option"]')).toHaveLength(0)
-    expect($('.avatar-btn').getAttribute('aria-label')).toBe('Close search')
   })
 
-  it('the keyboard order is the pill, then the shortcuts and Clear, then the listbox the arrows walk', async () => {
+  it('the keyboard order is the header, then the chips and Clear; the rows and their × are the arrows\'', async () => {
     addRecent({ kind: 'query', query: 'squat' })
     await mount()
-    await act(async () => pill().focus())
-    await wait(50)
-    const tabbable = [...document.querySelectorAll('button, input, [tabindex]')].filter(el => el.tabIndex >= 0 && !el.closest('[inert]'))
-    const order = tabbable.map(el => el.matches('.spill-i') ? 'pill' : el.classList.contains('avatar-btn') ? 'avatar'
-      : el.classList.contains('chip-lg') ? 'chip' : el.classList.contains('sr-clear') ? 'clear' : el.closest('#gains-search-list') ? 'listbox' : 'other:' + el.className)
-    expect(order).toEqual(['pill', 'avatar', 'chip', 'chip', 'chip', 'chip', 'clear'])
-    const list = $('#gains-search-list')
-    expect(list.contains($('.sr-clear'))).toBe(false)
-    expect(list.compareDocumentPosition($('.sr-clear')) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
-    // Clear does what it says, and the focus goes back to the pill instead of leaving with it.
-    await act(async () => $('.sr-clear').click())
+    await open()
+    expect($('#gains-search .g-sempty')).toBeNull()
+    const tabbable = [...document.querySelectorAll('button, input, a[href], [tabindex]')].filter(el => el.tabIndex >= 0 && !el.closest('[inert]'))
+    const order = tabbable.map(el => (el === pill() ? 'pill' : el.classList.contains('g-bell') ? 'close' : el.classList.contains('g-sbtn') ? 'avatar'
+      : el.classList.contains('g-goto-chip') ? 'chip' : el.classList.contains('g-ssect-act') ? 'clear' : 'other:' + el.className))
+    expect(order).toEqual(['avatar', 'pill', 'close', 'chip', 'chip', 'chip', 'chip', 'clear'])
+    // Clear does what it says, with Undo for 8 s, and the focus goes back to the field.
+    await act(async () => $('.g-ssect-act').click())
     expect(useRecents.getState().list).toEqual([])
     expect(document.activeElement).toBe(pill())
+    expect(useUI.getState().toastMsg).toBe('Recent searches cleared')
+    expect(useUI.getState().toastAction).toMatchObject({ label: 'Undo', ms: 8000 })
+    await act(async () => useUI.getState().runToastAction())
+    expect(useRecents.getState().list.map(r => r.query)).toEqual(['squat'])
   })
 
-  it('shows the best match and the groups, walks them with the arrows and opens one with Enter', async () => {
+  it('shows the counts, the best match and the groups, walks them with the arrows and opens one with Enter', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('history')
-    expect($('.sr-best').textContent).toContain('History')
-    expect($('.sr-summary')).not.toBeNull()
+    expect($('.g-best').textContent).toContain('History')
+    expect($('.g-best').textContent).toContain('Best match · Page')
+    expect($('.g-rchips')).not.toBeNull()
+    expect(list().contains($('.g-rchips'))).toBe(false)
     await key('ArrowDown')
-    const first = $$('[data-search-row]')[0]
+    const first = options()[0]
+    expect(first).toBe($('.g-best'))
     expect(pill().getAttribute('aria-activedescendant')).toBe(first.id)
-    expect(first.classList.contains('on')).toBe(true)
+    expect(first.getAttribute('aria-selected')).toBe('true')
     await key('Enter')
     expect(navigate).toHaveBeenCalledWith('/train/history', { state: { searchVisit: useSearch.getState().id } })
     expect(useSearch.getState()).toMatchObject({ open: false, live: true })
   })
 
-  it('Escape clears first, then closes; the avatar closes too', async () => {
+  it('Escape clears first, then closes; the bell\'s × closes too and lets go of the field', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('squat')
     await key('Escape')
     expect(pill().value).toBe('')
     expect(useSearch.getState().open).toBe(true)
     await key('Escape')
     expect(useSearch.getState().live).toBe(false)
-    await act(async () => pill().focus())
+    await open()
     expect(useSearch.getState().open).toBe(true)
-    await act(async () => $('.avatar-btn').click())
+    await act(async () => closeX().click())
     expect(useSearch.getState().live).toBe(false)
+    expect(document.activeElement).not.toBe(pill())
+    expect(closeX().getAttribute('aria-label')).toBe('Notifications')
   })
 
   it('says when nothing matches, and offers to make it', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('qqzzxxv')
-    expect(document.body.textContent).toContain('Nothing matches “qqzzxxv”')
-    const empty = $('#gains-search .empty[data-surface=sheet]')
-    expect(empty.querySelector('.lineart[data-scene=search]')).not.toBeNull()
-    expect(empty.querySelector('h4').textContent).toBe('Nothing matches “qqzzxxv”')
-    const make = $$('[data-search-row]').find(r => r.textContent.includes('Create exercise'))
+    expect($('#gains-search .g-sempty b').textContent).toBe('Nothing matches “qqzzxxv”')
+    expect($('#gains-search .g-sempty').textContent).toContain('Try another word, or make it yourself.')
+    const make = options().find(r => r.textContent.includes('Create exercise'))
     await act(async () => make.click())
     expect(customExSheet).toHaveBeenCalledWith(null, null, 'qqzzxxv')
   })
 
-  it('scopes to a group from the summary line, and Backspace in the empty pill drops the scope', async () => {
+  it('no such exercise from Train: Create the name first, which opens New exercise with it', async () => {
+    await mount('/train')
+    await open()
+    await type('qqzzxxv')
+    expect($('#gains-search .g-sempty b').textContent).toBe('No exercise called “qqzzxxv”')
+    expect($('#gains-search .g-sempty').textContent).toContain('It isn’t in the library or your own exercises yet.')
+    const first = options()[0]
+    expect(first.textContent).toContain('Create “qqzzxxv”')
+    expect(first.textContent).toContain('Opens New exercise with the name filled in')
+    await act(async () => first.click())
+    expect(customExSheet).toHaveBeenCalledWith(null, null, 'qqzzxxv')
+  })
+
+  it('scopes to one kind from the counts: a chip in the field, the line over it; Backspace in the empty field drops it', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('press')
-    const exercises = $$('.sr-sum').find(b => b.textContent.includes('exercises'))
+    const exercises = $$('.g-rchip').find(b => b.textContent.includes('exercises'))
     await act(async () => exercises.click())
     expect(useSearch.getState().group).toBe('exercises')
-    expect($('.sr-token')).not.toBeNull()
-    expect(pill().placeholder).toBe('Search exercises')
+    expect($('.g-ssf-scope').textContent).toBe('Exercises')
+    expect($('.search-sum').textContent).toMatch(/exercises? with “press”\. × on the chip shows everything again\./)
+    expect(options().length).toBeGreaterThan(0)
     await type('')
     await key('Backspace')
     expect(useSearch.getState().group).toBe(null)
   })
 
-  it('offline: your own results work, and Online says it comes back with the connection', async () => {
-    const nt = createFakeNutriTrace()
-    vi.stubGlobal('fetch', nt.fetch)
-    resetOnlineSearch()
-    useNutrition.getState().reset()
-    useStore.setState({ user: { id: 7, name: 'A' } })
+  it('only workouts: every match, a section a month, newest first', async () => {
+    const bench = CATALOGUE.find(e => e.n === 'barbell bench press')
+    const workout = (id, d) => ({ id, d, start: Date.parse(d + 'T18:00:00'), end: Date.parse(d + 'T18:52:00'), name: 'Push A', entries: [{ id: bench.id, sets: [{ w: 80, r: 5, done: true }] }], prs: [] })
+    useStore.setState({ S: { ...structuredClone(DEF), workouts: [workout('w2', '2025-09-28'), workout('w1', '2025-10-12'), workout('w3', '2025-10-05')] } })
+    await mount()
+    await open()
+    await type('push')
+    await act(async () => useSearch.setState({ group: 'workouts' }))
+    await wait(50)
+    const groups = [...list().querySelectorAll('[role="group"]')]
+    expect(groups.map(g => document.getElementById(g.getAttribute('aria-labelledby'))?.textContent)).toEqual(['October 2025', 'September 2025'])
+    expect([...groups[0].querySelectorAll('[role="option"]')].map(o => o.id)).toEqual(['sr-workout_w1', 'sr-workout_w3'])
+    expect($('.search-sum').textContent).toContain('3 workouts with “push”, newest first')
+  })
+
+  it('a feature that is off: one card with Turn on and Features, before the rest, and not an option', async () => {
+    signedIn()
+    await mount()
+    await open()
+    await type('fasting')
+    const card = $('.g-sfeat')
+    expect(card.textContent).toContain('Off')
+    expect([...card.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Turn on Fasting', 'Features'])
+    expect(list().contains(card)).toBe(false)
+    await act(async () => [...card.querySelectorAll('button')][1].click())
+    expect(navigate).toHaveBeenCalledWith('/me/features', expect.objectContaining({ state: expect.objectContaining({ find: 'Fasting' }) }))
+  })
+
+  it('Open Food Facts says "Searching…" in its place while it asks; your own results do not wait', async () => {
+    const nt = signedIn()
+    nt.hold('GET', '/nt/api/proxy')
+    await mount()
+    await open()
+    await type('zzqx')
+    expect(list().textContent).toContain('Searching Open Food Facts…')
+    expect($$('#gains-search .g-ssect h2').map(h => h.textContent)).toContain('Open Food Facts')
+  })
+
+  it('Open Food Facts that fails reads "Couldn’t reach · Try again", one option that asks again', async () => {
+    const nt = signedIn()
+    nt.failNext('GET', '/nt/api/proxy', { status: 500 })
+    const asked = () => nt.requests.filter(r => r.path.startsWith('/nt/api/proxy')).length
+    await mount()
+    await open()
+    await type('zzqy')
+    await wait(700)
+    const row = $('#sr-note_online')
+    expect(row.getAttribute('role')).toBe('option')
+    expect(row.textContent).toContain('Couldn’t reach Open Food Facts')
+    expect(row.textContent).toContain('Try again')
+    const before = asked()
+    await act(async () => row.click())
+    await wait(50)
+    expect(asked()).toBe(before + 1)
+  })
+
+  it('offline: your own results work, and the Open Food Facts row is left out', async () => {
+    signedIn()
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('nutella')
     await wait(50)
-    expect(document.body.textContent).toContain('Online results come back when you reconnect')
+    expect($('#sr-note_online')).toBeNull()
+    expect($('#sr-online-ask')).toBeNull()
+    expect(document.body.textContent).not.toContain('Searching Open Food Facts…')
+    expect($$('#gains-search .g-ssect h2').map(h => h.textContent)).not.toContain('Open Food Facts')
   })
 
   it('with reduced motion still opens, scrolls and answers the keys', async () => {
     document.documentElement.dataset.motion = 'reduce'
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('history')
-    expect($('.sr-best')).not.toBeNull()
+    expect($('.g-best')).not.toBeNull()
     await key('ArrowDown')
     expect(pill().getAttribute('aria-activedescendant')).toBeTruthy()
   })
 
   it('the results are a listbox of groups named by their headings, every row an option with a unique id', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     // A page, settings and exercises: three groups.
     await type('rest')
-    const list = $('#gains-search-list')
-    const options = [...list.querySelectorAll('[role="option"]')]
-    expect(options.length).toBeGreaterThan(3)
-    expect(options.map(o => o.id)).toEqual([...new Set(options.map(o => o.id))])
-    for (const o of options) {
+    const all = options()
+    expect(all.length).toBeGreaterThan(3)
+    expect(all.map(o => o.id)).toEqual([...new Set(all.map(o => o.id))])
+    for (const o of all) {
       expect(o.getAttribute('aria-selected')).toBe('false')
+      expect(o.tabIndex).toBe(-1)
       // No control inside an option.
       expect(o.querySelector('button, a, input')).toBeNull()
     }
-    const groups = [...list.querySelectorAll('[role="group"]')]
+    const groups = [...list().querySelectorAll('[role="group"]')]
     expect(groups.length).toBeGreaterThan(1)
-    for (const g of groups) {
-      const heading = document.getElementById(g.getAttribute('aria-labelledby'))
-      expect(heading.tagName).toBe('H2')
-      expect(g.contains(heading)).toBe(true)
-    }
-    // The summary line is not an option, and sits outside the listbox.
-    expect(list.querySelector('.sr-summary')).toBeNull()
+    for (const g of groups) expect(document.getElementById(g.getAttribute('aria-labelledby')).tagName).toBe('H2')
   })
 
   it('walks the options with the arrows from group to group, Home and End, and Enter activates the active one', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('rest')
-    const options = () => [...$('#gains-search-list').querySelectorAll('[role="option"]')]
     const groupOf = el => el.closest('[role="group"]')?.getAttribute('aria-labelledby') || null
     const seen = []
     for (let i = 0; i < options().length; i++) {
       await key('ArrowDown')
-      const id = pill().getAttribute('aria-activedescendant')
-      const el = document.getElementById(id)
+      const el = document.getElementById(pill().getAttribute('aria-activedescendant'))
       expect(el).toBe(options()[i])
       expect(options().filter(o => o.getAttribute('aria-selected') === 'true')).toEqual([el])
       seen.push(groupOf(el))
@@ -228,8 +328,7 @@ describe('the search overlay', () => {
     await key('Home')
     expect(pill().getAttribute('aria-activedescendant')).toBe(options()[0].id)
     await key('End')
-    const last = options().at(-1)
-    expect(pill().getAttribute('aria-activedescendant')).toBe(last.id)
+    expect(pill().getAttribute('aria-activedescendant')).toBe(options().at(-1).id)
     // Up from the first option leaves the list.
     await key('Home')
     await key('ArrowUp')
@@ -237,22 +336,20 @@ describe('the search overlay', () => {
     // Enter on an option in the second group opens it.
     const target = options().find(o => groupOf(o) && groupOf(o) !== groupOf(options().find(x => groupOf(x))))
     while (pill().getAttribute('aria-activedescendant') !== target.id) await key('ArrowDown')
-    const open = vi.spyOn(target, 'click')
+    const opened = vi.spyOn(target, 'click')
     await key('Enter')
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(opened).toHaveBeenCalledTimes(1)
   })
 
-  it('before typing: Recent is a group of the listbox, and the arrows walk its entries and their ×, but not the shortcuts or Clear', async () => {
+  it('before typing: Recent is a group of the listbox, and the arrows walk its entries and their ×, but not the chips or Clear', async () => {
     addRecent({ kind: 'query', query: 'squat' })
     addRecent({ kind: 'result', type: 'page', id: '/train/history', label: 'History', query: 'hist' })
     await mount()
-    await act(async () => pill().focus())
-    await wait(50)
-    const options = () => [...$('#gains-search-list').querySelectorAll('[role="option"]')]
+    await open()
     const names = options().map(o => o.getAttribute('aria-label') || o.textContent.trim())
-    expect(names).toEqual([expect.stringContaining('History'), 'Remove History from recent', 'squat', 'Remove squat from recent'])
-    const labels = new Set(options().map(o => o.closest('[role="group"]').getAttribute('aria-labelledby')))
-    expect([...labels]).toEqual(['sr-recent'])
+    expect(names).toEqual([expect.stringContaining('History'), 'Remove History from recent', expect.stringContaining('squat'), 'Remove squat from recent'])
+    const headings = new Set(options().map(o => document.getElementById(o.closest('[role="group"]').getAttribute('aria-labelledby')).textContent))
+    expect([...headings]).toEqual(['Recent'])
     // Down to the second ×, Enter: "squat" goes, and the arrows are handed to the entry before it.
     for (let i = 0; i < 4; i++) await key('ArrowDown')
     expect(pill().getAttribute('aria-activedescendant')).toBe('sr-x_q_squat')
@@ -261,41 +358,28 @@ describe('the search overlay', () => {
     expect(document.getElementById(pill().getAttribute('aria-activedescendant'))?.getAttribute('aria-label')).toContain('History')
   })
 
+  it('a recent query refills the field', async () => {
+    addRecent({ kind: 'query', query: 'squat' })
+    await mount()
+    await open()
+    await act(async () => options()[0].click())
+    expect(useSearch.getState().query).toBe('squat')
+  })
+
   it('a result in both Recent and Suggested shows once, in Recent', async () => {
     addRecent({ kind: 'result', type: 'page', id: '/train/history', label: 'History', query: '' })
     noteOpened('page:/train/history')
     noteOpened('page:/train/history')
     await mount()
-    await act(async () => pill().focus())
-    await wait(50)
-    const ids = $$('#gains-search-list [role="option"]').map(o => o.id)
+    await open()
+    const ids = options().map(o => o.id)
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids.filter(id => id === 'sr-page__train_history')).toHaveLength(1)
-    expect($('#sr-sugg')).toBeNull()
   })
 
-  it('a slow source\'s note is a disabled option the arrows still reach; its error is one option that retries', async () => {
-    const nt = createFakeNutriTrace()
-    vi.stubGlobal('fetch', nt.fetch)
-    resetOnlineSearch()
-    useNutrition.getState().reset()
-    useStore.setState({ user: { id: 7, name: 'A' } })
-    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+  it('the field shows the query only while the overlay does', async () => {
     await mount()
-    await act(async () => pill().focus())
-    await type('nutella')
-    await wait(50)
-    const note = $('#sr-note_online')
-    expect(note.getAttribute('role')).toBe('option')
-    expect(note.getAttribute('aria-disabled')).toBe('true')
-    while (pill().getAttribute('aria-activedescendant') !== 'sr-note_online') await key('ArrowDown')
-    await key('Enter')
-    expect(useSearch.getState()).toMatchObject({ open: true, live: true })
-  })
-
-  it('the pill shows the query only while the overlay does', async () => {
-    await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('history')
     await key('ArrowDown')
     await key('Enter')
@@ -304,44 +388,31 @@ describe('the search overlay', () => {
     expect(pill().getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('a back press or the scrim that ends the visit lets go of the pill', async () => {
+  it('a back press that ends the visit lets go of the field; focused again, it opens again', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     expect(document.activeElement).toBe(pill())
     // Android back: the pop lands under the overlay's entry.
     await act(async () => syncSearchWithHistory({ idx: 0 }))
     expect(useSearch.getState().live).toBe(false)
     expect(document.activeElement).not.toBe(pill())
-    await act(async () => pill().focus())
-    expect(useSearch.getState().open).toBe(true)
-    await wait(50)
-    await act(async () => $('.search-scrim').click())
-    expect(useSearch.getState().live).toBe(false)
-    expect(document.activeElement).not.toBe(pill())
-    // Focused again, it opens again.
-    await act(async () => pill().focus())
+    await open()
     expect(useSearch.getState().open).toBe(true)
   })
 
-  it('the tab\'s context button steps aside while search is open and comes back on close; under reduced motion at once', async () => {
-    document.documentElement.dataset.motion = 'reduce'
+  it('nothing in the header moves while searching: a context readout stays in its place before the bell', async () => {
     const ctx = () => $$('button').find(b => b.getAttribute('aria-label') === 'Context')
-    await act(async () => root.render(<MemoryRouter initialEntries={['/home']}>
-      <RootHeader title="Home" action={<button type="button" className="iconbtn" aria-label="Context">c</button>} /><SearchOverlay />
-    </MemoryRouter>))
-    await wait(50)
-    expect(ctx().closest('.hdr-slot')).not.toBeNull()
-    await act(async () => pill().focus())
-    await wait(50)
-    expect(ctx()).toBeUndefined()
-    await act(async () => $('.avatar-btn').click())
-    await wait(50)
+    await mount('/home', <button type="button" className="hdr-left" aria-label="Context">c</button>)
+    expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
+    await open()
+    expect(ctx().closest('.g-shdr-act').nextElementSibling).toBe(closeX())
+    await act(async () => closeX().click())
     expect(ctx()).toBeDefined()
   })
 
   it('speaks the results once typing has stopped, in one polite region', async () => {
     await mount()
-    await act(async () => pill().focus())
+    await open()
     await type('history')
     await wait(700)
     const live = $$('[role="status"]').find(el => el.getAttribute('aria-live') === 'polite' && el.closest('#gains-search'))

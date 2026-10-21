@@ -62,7 +62,7 @@ export function openSearch(opener) {
 
 const currentPath = () => String(globalThis.location?.hash || '').replace(/^#/, '') || '/home'
 
-/** The avatar's ×, Escape on an empty field: the overlay goes and its history entry with it. */
+/** The bell's ×, Escape on an empty field: the overlay goes and its history entry with it. */
 export function closeSearch() {
   const s = useSearch.getState()
   if (!s.live) return

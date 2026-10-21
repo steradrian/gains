@@ -34,6 +34,17 @@ describe('SearchRow', () => {
     expect(onClick).not.toHaveBeenCalled()
   })
 
+  it('the × can be a listbox option of its own, beside the row\'s, never inside it', () => {
+    view.render(<SearchRow title="press" onClick={vi.fn()} onRemove={vi.fn()}
+      optionProps={{ role: 'option', id: 'sr-q_press', tabIndex: -1 }} removeProps={{ role: 'option', id: 'sr-x_q_press', 'aria-selected': true, tabIndex: -1 }} />)
+    const x = q('.g-srow-xbtn')
+    expect(x.getAttribute('role')).toBe('option')
+    expect(x.id).toBe('sr-x_q_press')
+    expect(x.getAttribute('aria-selected')).toBe('true')
+    expect(x.tabIndex).toBe(-1)
+    expect(q('.g-srow-main').contains(x)).toBe(false)
+  })
+
   it('draws a date block, a photo, a link, and takes a listbox option\'s props', () => {
     view.render(<SearchRow title="Mon 12 Oct" media={{ kind: 'date', iso: '2026-10-12' }} href="#/day" optionProps={{ role: 'option', id: 'sr-day', 'aria-selected': true }} />)
     expect(q('.g-srow-date b').textContent).toBe('12')
