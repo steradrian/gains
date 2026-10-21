@@ -78,6 +78,7 @@ import { bestWeightForEntry } from './history.js'
 import { convertStateUnit, convertBodyWeight } from './units.js'
 import { sanitizeAccent } from './accent.js'
 import { readDayNote as readNote } from './day-notes.js'
+import { mergePlanChanges } from './coach-plan-changes.js'
 
 const clone = o => JSON.parse(JSON.stringify(o))
 const list = v => (Array.isArray(v) ? v : [])
@@ -868,6 +869,12 @@ export function mergeStates(a0, b0, { prefer } = {}) {
       if (m && !(k in bumps)) undone[k] = clone(m)
     }
     if (Object.keys(undone).length) out.undone = undone; else delete out.undone
+  }
+  // Eat coach m1: `coach` is stamped as one slice, so the copy that wins it would drop the other's
+  // plan-change stamps (lib/coach-plan-changes.js). Those are append-only with ids: the union of
+  // both copies', a reverted mark from either kept. With `prefer` the preferred side's list stays.
+  if (!prefer && isMap(out.coach) && (list(n.coach?.planChanges).length || list(o.coach?.planChanges).length)) {
+    out.coach.planChanges = mergePlanChanges(n.coach?.planChanges, o.coach?.planChanges)
   }
   if (deleted) out.deleted = deleted; else delete out.deleted
   out._ts = Math.max(a._ts || 0, b._ts || 0)

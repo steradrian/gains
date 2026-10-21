@@ -4,7 +4,7 @@
 //
 // An item: { id, kind, at, title, body, target }, newest first.
 //   id      kind + its source's key, so a read survives every recompute: `best:<exercise>:<workout>`,
-//           `streak:<week start>`, `recap:<week start>`, `milestone:<count>`, `reminder:<kind>:<date>`.
+//           `coach:<proposal id>:<change id>`, `streak:<week start>`, `recap:<week start>`, `milestone:<count>`, `reminder:<kind>:<date>`.
 //   at      ms; when it happened (a workout's end, a week's last moment, a reminder's time).
 //   target  where a tap goes: { route } (a full path), { day, changed? } (the day page under the
 //           tab you are on, targetPath), or { week } (an ISO week, `2026-W42`). `changed` is the
@@ -21,14 +21,16 @@
 //              for all seven days), weight change (only with two weigh-ins).
 //   reminder   the reminders that went off on this phone (reminder-log.js), passed in.
 //   milestone  workout counts: 10, 25, 50, 100, then every 50 to 500 and every 250 after.
-// Not here: `coach`. Nothing re-dates a day for the Coach: its applied changes are weekday
-// (`S.week`) and routine edits, the only `S.dayPlan` writes are the ones you make in the day sheet
-// (the Coach only sweeps future ones away when a new plan replaces the week), and a coach week's
-// missed session is never moved, it floats (queue.js). "Coach moved Legs to Mon 19 Oct" has no
-// source to read, so the kind stays out until something writes one.
+//   coach      the weekday and routine edits the Coach applied (a weekday set to a routine or to
+//              rest, a routine added, removed or renamed, a new plan), one item per stamp in
+//              `S.coach.planChanges` (lib/coach-plan-changes.js), written when the change was
+//              applied. The names are the stamp's own, so a line outlives a later rename or
+//              delete. An older change has no stamp and no item; an undone one (reverted) none.
+//              Nothing re-dates a day for the Coach, so there is no "moved to Mon 19 Oct" line.
 import { dateLocale, getVersion, t, tn } from '../i18n-core.js'
 import { EXIDX } from '../exercises.js'
-import { exerciseNameText, fmtDate, fmtDateRange, fmtNum, isoOf, startOfWeek, SUNDAY, weekStartOf } from '../format.js'
+import { cleanPlanChange } from '../coach-plan-changes.js'
+import { DAYN, exerciseNameText, fmtDate, fmtDateRange, fmtNum, isoOf, startOfWeek, SUNDAY, weekStartOf } from '../format.js'
 import { workoutAt, workoutDay } from '../history.js'
 import { NUDGE_COPY, lineIndex } from '../nudge.js'
 import { e1rmSeries, formulaOf } from '../onerm.js'
@@ -239,6 +241,25 @@ function clockOf(e) {
   return d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
 }
 
+function coachTitle(c) {
+  switch (c.type) {
+    case 'week': return c.routineName ? t('Coach set {0} to {1}', t(DAYN[c.weekday]), c.routineName) : t('Coach made {0} a rest day', t(DAYN[c.weekday]))
+    case 'add-routine': return t('Coach added {0}', c.routineName)
+    case 'remove-routine': return t('Coach removed {0}', c.routineName)
+    case 'rename-routine': return t('Coach renamed {0} to {1}', c.from, c.to)
+    default: return t('Coach set up a new plan')
+  }
+}
+
+function coachItems(S, from, now) {
+  const stamps = Array.isArray(S.coach?.planChanges) ? S.coach.planChanges : []
+  return stamps.flatMap(raw => {
+    const c = cleanPlanChange(raw)
+    if (!c || c.reverted || c.at < from || c.at > now) return []
+    return [{ id: `coach:${c.id}`, kind: 'coach', at: c.at, title: coachTitle(c), body: t('See your plan'), target: { route: '/train/schedule' } }]
+  })
+}
+
 /** Everything feedOf reads of `S` (and the UI language its lines are in), as one string: the
  *  feed is worked out again only when this changes, not on every change to the profile (the
  *  store clones the whole profile on each, so nothing is the same object twice). Worked out once
@@ -251,7 +272,7 @@ export function feedKey(S) {
     const stamps = Object.entries(ed).filter(([k]) => k === 'queue' || k === 'weekStart' || k.startsWith('week.'))
     keys.set(S, JSON.stringify([
       S.workouts, S.routines, S.customEx, S.week, S.queue, S.bodyweight, S.unit, S.weekStart,
-      S.oneRmFormula, S.dbLoad, stamps, S.deleted?.routines,
+      S.oneRmFormula, S.dbLoad, stamps, S.deleted?.routines, S.coach?.planChanges,
     ]))
   }
   return getVersion() + '|' + keys.get(S)
@@ -266,6 +287,7 @@ export function feedOf(S, { now = Date.now(), nutrition = null, reminders = [] }
   const from = now - FEED_DAYS * DAY_MS
   const logged = loggedOf(S)
   const items = [
+    ...coachItems(S, from, now),
     ...bestItems(S, logged, from, now),
     ...weekItems(S, logged, from, now, nutrition),
     ...reminderItems(S, reminders, from, now),

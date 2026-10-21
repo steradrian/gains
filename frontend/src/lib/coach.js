@@ -20,6 +20,7 @@ import { deleteRoutine } from './routines.js'
 import { POLICIES } from './progression.js'
 import { t, tn } from './i18n.js'
 import { markCheckInRead } from './coach-checkin.js'
+import { addPlanChanges, planChangeOf, revertPlanChanges } from './coach-plan-changes.js'
 
 // Bumping this re-prompts everyone: it means what we share, or who we share it with, changed.
 // 2: the training line names the session notes, which the payload carries and version 1 never
@@ -44,7 +45,10 @@ export const emptyCoach = () => ({
   // server-side (or in the phone's device file) until it is applied or dismissed.
   chat: [],
   // How long the last few jobs took, so the typing bubble can say "usually about 2 minutes".
-  timings: []
+  timings: [],
+  // Eat coach m1: the weekday and routine edits the Coach applied, for the notifications feed
+  // (lib/coach-plan-changes.js). Merged on its own when two devices sync.
+  planChanges: []
 })
 const coachOf = s => (s.coach = s.coach || emptyCoach())
 
@@ -282,6 +286,9 @@ export function revertLast(s) {
   s.week = clone(snap.week)
   // Snapshots taken before this field existed have nothing to put back.
   if (snap.dayPlanRestore) Object.assign(s.dayPlan, snap.dayPlanRestore)
+  // The snapshot holds the plan, not the stamps: the undone change's notification is marked
+  // reverted (a tombstone, so the other device's copy cannot bring it back).
+  revertPlanChanges(c, snap.proposalId)
   appendLog(s, { kind: 'revert', at: Date.now(), proposalId: snap.proposalId, summary: t('Reverted the last Coach changes.') })
   return true
 }
@@ -412,6 +419,8 @@ export function applyCreatedPlan(s, proposal, { schedule } = {}) {
   // Only when the week actually moved — with the switch off the old schedule still stands, and
   // so do the reschedules made against it.
   if (schedule) sweepDayPlan(s, todayISO())
+  const at = Date.now()
+  addPlanChanges(coachOf(s), [{ id: `${proposal.id}:plan`, at, type: 'create' }], at)
   res.logId = appendLog(s, {
     kind: 'create', at: Date.now(), proposalId: proposal.id,
     summary: proposal.summary || '', routines: res.routines, iteration: proposal.iteration || 1,
@@ -562,10 +571,18 @@ export function applyChangeSet(s, proposal, acceptedIds) {
 
   pushSnapshot(s, proposal.id, t('Before the Coach’s changes'))
   const applied = []
+  // Eat coach m1: stamps are kept aside and written once every change has applied, so a throw
+  // part-way leaves none behind even on a draft the caller keeps.
+  const at = Date.now()
+  const stamps = []
   for (const c of changes) {
+    const prior = findRoutine(s, c.target?.routineId)?.name
     CHANGE_APPLY[c.type](s, c)
     applied.push(decisionOf(c, 'accepted'))
+    const stamp = planChangeOf(s, c, { proposalId: proposal.id, at, prior })
+    if (stamp) stamps.push(stamp)
   }
+  if (stamps.length) addPlanChanges(coachOf(s), stamps, at)
   // Turned-down changes keep their before/after too: the chat shows the whole proposal back
   // later, and "you declined something about sets" is not a memory anyone can use.
   const rejected = (proposal.changes || [])

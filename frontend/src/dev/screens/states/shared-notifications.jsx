@@ -15,7 +15,8 @@ const STREAK = { id: 'streak:2026-10-05', kind: 'streak', at: at(2026, 10, 11, 2
 const RECAP = { id: 'recap:2026-10-05', kind: 'recap', at: at(2026, 10, 11, 23, 59), title: 'Your week, 5 Oct – 11 Oct', body: '3 of 4 workouts · 6 of 7 days on target · −0.4 kg' }
 const REMINDER = { id: 'reminder:workout:2026-10-05', kind: 'reminder', at: at(2026, 10, 5, 18), title: 'Workout today: Push A', body: 'Your 18:00 reminder.' }
 const MILESTONE = { id: 'milestone:50', kind: 'milestone', at: at(2026, 10, 2, 19), title: '50 workouts', body: 'Since you started on 3 Jun.' }
-const READ = { new: [], thisWeek: [BEST, STREAK, RECAP], earlier: [REMINDER, MILESTONE] }
+const COACH = { id: 'coach:p1:c1', kind: 'coach', at: at(2026, 10, 13, 9), title: 'Coach set Thursday to Legs', body: 'See your plan' }
+const READ = { new: [], thisWeek: [COACH, BEST, STREAK, RECAP], earlier: [REMINDER, MILESTONE] }
 // The web app: its reminders are server pushes the inbox never sees, so no reminder row.
 const READ_WEB = { new: [], thisWeek: [BEST, STREAK, RECAP], earlier: [MILESTONE] }
 const NONE = { new: [], thisWeek: [], earlier: [] }
