@@ -5,6 +5,7 @@ import Section from './DevKitSection.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
+import GlassTabBar from './GlassTabBar.jsx'
 import IconButton from './IconButton.jsx'
 import Illustration from './Illustration.jsx'
 import InlineBanner from './InlineBanner.jsx'
@@ -192,6 +193,17 @@ export default function DevKit() {
         </Section>
 
         <DevKitToday />
+
+        <Section title="GlassTabBar" note="Tap it (the first lights what is tapped, and the pill glides); then a running workout on Train, no tab lit, and over a light page.">
+          <div className="g-kit-col">
+            <GlassTabBar onPlus={NOOP} />
+            <GlassTabBar current="train" running onChange={NOOP} onPlus={NOOP} />
+            <GlassTabBar current={null} onChange={NOOP} onPlus={NOOP} />
+          </div>
+          <div className="g-kit-light">
+            <GlassTabBar current="eat" hrefs={{ today: SELF, train: SELF, eat: SELF, me: SELF, plus: SELF }} />
+          </div>
+        </Section>
 
         <Section title="SuccessCheck" note="The ring draws itself once as the screen arrives.">
           <div className="g-kit-row"><SuccessCheck /></div>
