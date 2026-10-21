@@ -16,7 +16,7 @@ export default function ScanMiss({ code, noNutrition, offOn, picking, onCreate, 
   return (
     <div className="g-scan-card" role="group" aria-labelledby="g-scan-miss-title">
       <span className="g-scan-card-code" dir="ltr">{formatBarcode(code)}</span>
-      <h3 id="g-scan-miss-title" data-step-heading>{title}</h3>
+      <h2 id="g-scan-miss-title" data-step-heading>{title}</h2>
       <p>{body}</p>
       <div className="g-scan-acts-col">
         <Button variant="primary" onClick={onCreate}>{t('Create food with this barcode')}</Button>

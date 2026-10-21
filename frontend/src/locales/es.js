@@ -3693,6 +3693,7 @@ export default {
   '{0} g protein': '{0} g protein',
   '{0} favourite': '{0} favourite',
   '{0} favourites': '{0} favourites',
+  '{0} hours': '{0} hours',
   '{0} meal': '{0} meal',
   '{0}, logged in one tap': '{0}, logged in one tap',
   '{0} recipe': '{0} recipe',

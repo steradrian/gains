@@ -77,7 +77,7 @@ export default function ActivitySheet({ date, type: startType, minutes: startMin
       <div className="g-act">
         <ChipGroup label={t('Type')} value={type} onChange={setType} options={ACTIVITY_TYPES.map(x => ({ value: x.id, label: typeLabel(x.id) }))} />
         <div>
-          <h3 className="g-act-label">{t('How long')}</h3>
+          <p className="g-act-label">{t('How long')}</p>
           <DurationWheel value={sec} onChange={setSec} min={60} max={MAX_MINUTES * 60} readRef={read} />
         </div>
         <div className="g-act-fields">

@@ -207,7 +207,7 @@ describe('scanning a product', () => {
     expect(document.activeElement.textContent).toBe('Point the camera at the barcode')
     expect(camera.opts.enabled).toBe(true)
     await scan('9999999999999')
-    expect(document.activeElement.tagName).toBe('H3')
+    expect(document.activeElement.tagName).toBe('H2')
   })
 
   it('a barcode nobody knows says so, and Create food leaves the overlay and opens the editor with the code filled in', async () => {
@@ -217,7 +217,7 @@ describe('scanning a product', () => {
     await scan('5941234567890')
     const card = overlay().querySelector('.g-scan-card')
     expect(card.textContent).toContain('5 941234 567890')
-    expect(card.querySelector('h3').textContent).toBe('Not in Open Food Facts yet')
+    expect(card.querySelector('h2').textContent).toBe('Not in Open Food Facts yet')
     expect(card.textContent).toContain('Next time this barcode opens it straight away.')
     expect(button('Scan again', card)).toBeTruthy()
     await click(button('Create food with this barcode', card))
@@ -244,7 +244,7 @@ describe('scanning a product', () => {
     await open()
     await scan('3017620422003')
     expect(proxyCalls()).toEqual([])
-    expect(overlay().querySelector('h3').textContent).toBe('Not in your foods yet')
+    expect(overlay().querySelector('.g-scan-card h2').textContent).toBe('Not in your foods yet')
   })
 
   it('a product listed without calories cannot be logged and says why', async () => {

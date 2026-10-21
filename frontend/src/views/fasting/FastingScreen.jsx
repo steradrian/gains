@@ -5,6 +5,7 @@ import StageNote from '../../ds/StageNote.jsx'
 import StagePage from '../../ds/StagePage.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import { t } from '../../lib/i18n.js'
+import { Loading } from '../../components/Loader.jsx'
 import { fastingStats, recentDays } from '../../lib/nutrition/fasting.js'
 import FastDaysChart from './FastDaysChart.jsx'
 import FastInsightTiles from './FastInsightTiles.jsx'
@@ -28,7 +29,7 @@ export default function FastingScreen({
   if (view === 'unavailable') {
     body = <StageEmpty illustration="plan" title={t('Fasting lives in the web app')} body={t('Sign in on the web app to track your fasts.')} />
   } else if (view === 'loading') {
-    body = <StageNote>{t('Loading…')}</StageNote>
+    body = <Loading />
   } else if (view === 'settings-error' || view === 'fasts-error') {
     body = <StageAlert action={t('Try again')} onAction={onRetry}>{view === 'settings-error' ? t('Your settings did not load.') : t('Your fasts did not load.')}</StageAlert>
   } else if (view === 'off') {
