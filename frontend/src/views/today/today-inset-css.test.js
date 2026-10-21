@@ -34,7 +34,7 @@ describe('the stage\'s top inset', () => {
     expect(hits).toEqual(['.g-screen > .g-stage > .g-stage-body'])
   })
 
-  it('Today adds no top inset of its own', () => {
-    for (const r of rulesOf('views/today/today.css')) expect(r.decls, r.selector).not.toMatch(TOP_INSET)
+  it.each(['views/today/today.css', 'views/train/train.css'])('%s adds no top inset of its own', file => {
+    for (const r of rulesOf(file)) expect(r.decls, r.selector).not.toMatch(TOP_INSET)
   })
 })
