@@ -123,4 +123,23 @@ describe('DevKit', () => {
     act(() => { view.host.querySelector('.g-pcell-missed').click() })
     expect(view.host.textContent).toContain('Tapped: 2026-10-16')
   })
+
+  it('renders the Workout screen kit, and Switch side turns the first hold to the other side', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining([
+      'WorkoutTopBar', 'PhaseProgress', 'SupersetSwitch', 'ExerciseHero', 'DoneSetRows', 'SetStepper, CurrentSet and PlateLine', 'TimedHold', 'WorkoutFooter', 'BarToast',
+    ]))
+    expect(view.host.querySelectorAll('.g-wtop')).toHaveLength(5)
+    expect(view.host.querySelectorAll('.g-pp')).toHaveLength(5)
+    expect(view.host.querySelectorAll('.g-ssw')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-xh')).toHaveLength(5)
+    expect(view.host.querySelectorAll('.g-th')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-wf')).toHaveLength(7)
+    expect(view.host.querySelectorAll('.g-btoast')).toHaveLength(4)
+    const ring = () => view.host.querySelector('.g-th-ring').getAttribute('aria-label')
+    expect(ring()).toBe('Left side, 18 seconds left')
+    act(() => { [...view.host.querySelectorAll('.g-th-main')].find(b => b.textContent === 'Switch side').click() })
+    expect(ring()).toBe('Right side, 18 seconds left')
+  })
 })
