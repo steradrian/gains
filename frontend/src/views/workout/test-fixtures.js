@@ -13,7 +13,7 @@ export const clone = value => JSON.parse(JSON.stringify(value))
 export function exercise(id, sets, extra = {}) {
   return {
     id,
-    target: { mode: 'reps', reps: 5, weight: 60, bodyweight: false },
+    target: { mode: 'reps', sets: sets.length, reps: 5, weight: 60, bodyweight: false },
     sets: sets.map(done => ({ w: 60, r: 5, done })),
     ...extra,
   }

@@ -6,30 +6,10 @@ import { describe, it } from 'vitest'
 
 const todos = (title, list) => describe(title, () => { for (const name of list) it.todo(name) })
 
-todos('add exercise and no-progression blocks', [
-  'Workout.test.jsx:543 inserts after the current unit and leaves the inserted exercise selected (freestyle, planned) [drawers.js addExerciseSheet, mock exercisePicker and exConfigSheet]',
-  'Workout.test.jsx:571 inserts after the complete current superset without splitting the group; the confirm says "Add to this workout" [drawers.js addExerciseSheet]',
-  'Workout.test.jsx:602 an exercise added to a rehab block is kept out too, at the numbers typed',
-  'Workout.test.jsx:611 still progresses when the block is a regular routine\'s',
-  'Workout.test.jsx:622 an exercise added to a past workout is built from the history before its day',
-  'Workout.test.jsx:633 does not pass on an exercise kept out by hand for today',
-])
-
-todos('weight controls on the new steppers (aria-label "More kg" / "Less kg")', [
-  'Workout.test.jsx:652 configured weight step for manual increases and decreases, with the default fallback',
-  'Workout.test.jsx:668 added weight stays editable at zero for a bodyweight exercise ("More Added (kg)")',
-  'Workout.test.jsx:684 matches automatic progression rounding for a fractional configured step',
-  'Workout.test.jsx:698 drop-set weight step [Set edit drawer: exercise-drawers.test.jsx, drawers-M3 does not own it]',
-  'Workout.test.jsx:709 timed seconds and optional timed weight keep their steps ("More Seconds", "More kg")',
-  'Workout.stepper.test.jsx:153 increments a superset member weight by one step per tap',
-  'Workout.stepper.test.jsx:167 advances reps by exactly one per tap across repeated taps',
-  'Workout.stepper.test.jsx:183 steps the partner exercise correctly after the first member was changed',
-  'Workout.stepper.test.jsx:197 decrements a superset member weight by one step per tap',
-])
-
-todos('discard timer lifecycle (finish-drawers discardSheet and lib/workout-discard.js discardWithUndo)', [
-  'Workout.test.jsx:833 preserves active timers while discard is awaiting confirmation',
-  'Workout.test.jsx:850 clears rest and work timers only after discard is confirmed',
+// Ported to WorkoutScreen.add.test.jsx (add exercise, no-progression blocks, discard lifecycle) and
+// WorkoutScreen.steppers.test.jsx (weight controls, superset steppers).
+todos('drop-set weight step (Set edit drawer, drawers-M2\'s exercise-drawers.test.jsx has no stepper case for it)', [
+  'Workout.test.jsx:698 uses the configured reps weight step for drop-set weight controls',
 ])
 
 todos('progression guidance and settings (the plan line moved into How to / Exercise settings, drawers-M2)', [
