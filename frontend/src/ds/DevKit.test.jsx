@@ -112,4 +112,15 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-cgroup')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-cgroup-stage')).toHaveLength(2)
   })
+
+  it('renders the Train coach kit, and the switch turns', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('StageSwitch')
+    const switches = view.host.querySelectorAll('.g-sswitch')
+    expect(switches).toHaveLength(2)
+    expect(switches[0].getAttribute('aria-checked')).toBe('true')
+    act(() => { switches[0].click() })
+    expect(view.host.querySelectorAll('.g-sswitch')[0].getAttribute('aria-checked')).toBe('false')
+  })
 })

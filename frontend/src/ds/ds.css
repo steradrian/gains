@@ -1018,3 +1018,12 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-mg-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 6px 2px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
 .g-mg-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .g-mg-nav:focus-visible, .g-mg-cell:focus-visible { outline-color: var(--on-stage); }
+
+/* === Train coach kit (StageSwitch, BigStepper; boards T12.0, T12.1) === */
+.g-sswitch { appearance: none; border: 0; padding: 0; position: relative; flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--glass-track); box-shadow: inset 0 0 0 1px var(--glass-line); cursor: pointer; transition: background-color 220ms; }
+.g-sswitch i { position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--on-stage); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), background-color 220ms; }
+.g-sswitch.on { background: var(--on-stage); box-shadow: none; }
+.g-sswitch.on i { transform: translateX(20px); background: var(--accent-fill); }
+[dir="rtl"] .g-sswitch.on i { transform: translateX(-20px); }
+.g-sswitch:focus-visible { outline-color: var(--on-stage); }
+@media (prefers-reduced-motion: reduce) { .g-sswitch, .g-sswitch i { transition: none; } }
