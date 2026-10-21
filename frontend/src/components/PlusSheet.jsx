@@ -4,7 +4,7 @@ import { drawerFlow, useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { todayISO } from '../lib/format.js'
 import { workoutRunning } from '../lib/tab-route.js'
-import { closeThenNav, closeThenReplace } from '../lib/nav.js'
+import { closeThen, closeThenNav, closeThenReplace } from '../lib/nav.js'
 import { bwSheet, customExSheet, exerciseDetailSheet, logPastWorkoutSheet, startOrResume } from '../sheets.jsx'
 import { addRoutine } from '../views/routines/routine-actions.js'
 import { measurementLogSheet } from '../views/Measurements.jsx'
@@ -84,7 +84,7 @@ function PlusSheet({ close, pathname, day }) {
       { icon: 'history', label: t('Add past workout'), onClick: () => drawerFlow(() => pastWorkoutSheet(target.date)) },
     ] : [
       {
-        icon: 'play', label: S.active ? t('Resume workout') : t('Start workout'), onClick: () => { close(); startOrResume() },
+        icon: 'play', label: S.active ? t('Resume workout') : t('Start workout'), onClick: () => closeThen(close, () => startOrResume()),
         detail: live ? <Elapsed start={S.active.start} /> : null,
       },
       { icon: 'history', label: t('Log activity'), onClick: () => drawerFlow(() => logPastWorkoutSheet(past ? { iso: target.date } : undefined)) },

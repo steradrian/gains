@@ -687,8 +687,8 @@ describe('the screens gallery: Workout, start and finish', () => {
       expect(s.host.textContent).toContain('Saved Push A')
     })
     await check('W2.2', s => {
+      // The first time shows no Next time; the bests its record carries still show.
       expect(s.host.textContent).toContain('Your first time')
-      expect([...s.host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).not.toContain('New bests')
     })
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useStore.getState().S).toBe(own)

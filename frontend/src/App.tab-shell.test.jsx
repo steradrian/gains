@@ -172,6 +172,8 @@ describe('the review repros', () => {
     await launch('#/home')
     await click(plus())
     await click([...document.querySelectorAll('.g-bs .g-atile')].find(r => r.textContent.includes('Start workout')))
+    // A planned day opens Ready first; its Start asks the weigh-in.
+    await click(button('Start workout'))
     await click(button('Start without weighing in'))
     expect(hash()).toBe('#/train/workout')
     await click(document.querySelector('button[aria-label="Minimise"]'))

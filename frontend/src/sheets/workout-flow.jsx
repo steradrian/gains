@@ -34,7 +34,7 @@ import { confirmSheet } from './confirm-menu.jsx'
 import { bwSheet } from './body-weight.jsx'
 import { mediaGoesToo } from './workout-detail.jsx'
 // Workout finish M1
-import { onSheetEntry } from '../lib/nav.js'
+import { onSheetEntry, whenSheetGone } from '../lib/nav.js'
 import { sessionBests } from '../lib/workout-finish.js'
 import { countsForRecords, normaliseParts, partOf } from '../lib/workout-parts.js'
 import { warmupOfferSheet, holdReopen, markLeaving } from '../views/workout/finish-drawers.js'
@@ -104,7 +104,9 @@ function weighInThen(go) {
   if (S().weighIn === false) { go(null); return }
   const weighed = weighedToday()
   if (weighed) { go(weighed.w); return }
-  bwSheet({ required: true, onDone: go })
+  // The weigh-in drawer's history entry is walked off first, so the start takes Ready's entry
+  // and one back from the session leaves it, as the warm-up offer's Start does.
+  bwSheet({ required: true, onDone: bw => whenSheetGone(() => go(bw)) })
 }
 
 // Ready's Start workout: the weigh-in, then the warm-up offer (W1.31) when the session has
