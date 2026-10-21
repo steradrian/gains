@@ -1,46 +1,33 @@
-import { useEffect, useState, forwardRef } from 'react'
-import { useStore } from '../../../store/useStore.js'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useUI } from '../../../store/useUI.js'
 import { t } from '../../../lib/i18n.js'
 import { IS_ANDROID } from '../../../lib/api.js'
+import { BUILD_DATE } from '../../../lib/build-info.js'
+import { fmtDate } from '../../../lib/format.js'
 import { MOBILE, isAndroid } from '../../../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, fetchChecksum, RELEASES_PAGE } from '../../../lib/update.js'
 import { confirmSheet } from '../../../sheets.jsx'
-import { SheetHeader } from '../../../components/sheet-layout.jsx'
-import { Section, Row } from '../../../components/ui.jsx'
+import { openExternal } from '../../../components/CustomMedia.jsx'
+import Logo from '../../../ds/Logo.jsx'
+import StageNote from '../../../ds/StageNote.jsx'
+import StageSection from '../../../ds/StageSection.jsx'
 import { BRAND, LINKS } from '../../../brand.js'
-import { useSettingsCtx, standalone } from '../use-settings-ctx.js'
+import SettingRow from '../SettingRow.jsx'
+import SettingsPage from '../SettingsPage.jsx'
+import { settingsPath } from '../paths.js'
+import { standalone } from '../use-settings-ctx.js'
+import DownloadProgress from './download-progress.jsx'
 
-// Download progress sheet — receives a ref callback that exposes a (received, total) setter.
-// Uses forwardRef so the caller can push byte counts in without re-rendering the whole page.
-const DownloadProgress = forwardRef(function DownloadProgress(_, ref) {
-  const [pct, setPct] = useState(0)
-  const [text, setText] = useState(t('Starting download…'))
-  // Expose a setter the caller can invoke directly
-  if (ref) ref(function update(received, total) {
-    if (total > 0) {
-      const p = Math.min(100, Math.round((received / total) * 100))
-      setPct(p)
-      setText(t('{0} %', p))
-    } else {
-      setText(t('{0} MB', (received / 1_000_000).toFixed(1)))
-    }
-  })
-  return (
-    <div className="ta-center" style={{ padding: '8px 0' }}>
-      <SheetHeader title={t('Downloading update…')} />
-      <div style={{ margin: '16px 0', height: 6, borderRadius: 3, background: 'var(--fill-3)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: pct + '%', background: 'var(--acc)', borderRadius: 3, transition: 'width .2s' }} />
-      </div>
-      <div className="muted small">{text}</div>
-    </div>
-  )
-})
-
+// About (board St1About, A1.36): the logo and version, the update check, how to install the web
+// app, and where the credits are. On Android the row checks GitHub on demand and installs a newer
+// release (checksum verified, see onUpdateRowClick). Gains ships no APK for the web or iOS builds,
+// which update together with their server: the service worker's "A new version is ready" toast
+// (lib/sw-update.js) is their update, so they have no check row.
 export default function AboutPage() {
-  const user = useStore(s => s.user)
+  const nav = useNavigate()
   const toast = useUI(s => s.toast)
-  const { android } = useSettingsCtx()
+  const [android, setAndroid] = useState(false)
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
   const [checking, setChecking] = useState(false)
 
@@ -50,7 +37,10 @@ export default function AboutPage() {
     // already answers false off the mobile build; the MOBILE check on top keeps the web bundle
     // from even asking (and from calling GitHub on every Settings visit).
     if (!MOBILE) return
-    isAndroid().then(ok => { if (ok) checkForUpdate().then(setUpdateInfo).catch(() => {}) })
+    isAndroid().then(ok => {
+      setAndroid(ok)
+      if (ok) checkForUpdate().then(setUpdateInfo).catch(() => {})
+    })
   }, [])
 
   // The same check, on demand: the automatic one is silent when it finds nothing or cannot
@@ -107,36 +97,42 @@ export default function AboutPage() {
     }
   }
 
-  return <>
-    {/* Updates. On Android the row is always there: it checks on demand and installs when a
-        release is newer (checksum verified, see onUpdateRowClick). Gains ships no APK, so the
-        web build shows only the version: it updates together with its server. */}
-    <Section footer={MOBILE && android ? t('Releases are checked on GitHub. The download is verified against its checksum before the installer opens.') : null}>
-      <Row icon="info" iconTint="var(--grey)" title={t('Version')} value={'v' + BRAND.version} />
-      {MOBILE
-        ? android && <Row icon="download" iconTint="var(--green)"
-            title={updateInfo?.hasUpdate ? t('Update to Gains v{0}', updateInfo.latestVersion) : t('Check for updates')}
-            subtitle={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
-            accessory="chevron"
-            onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
-        : null}
-    </Section>
-    {/* "Add to Home screen": not inside the phone app, and not once it is installed. */}
-    {!MOBILE && !standalone() && <Section title={t('Tip')}>
-      <Row icon="share" iconTint="var(--blue)"
-        title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')}
-        subtitle={t('to install Gains as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile. Sign in anywhere and it’s there.') : t('Guest data stays on this device, so export a backup now and then!'))} />
-    </Section>}
-    {/* The version, where the support template tells people to look for it. On the phone
-        build there is no address bar and no about box, so without this there is no way to tell
-        which build you are running, or whether an update actually installed. */}
-    <div className="dim small sp-version">
-      {BRAND.name} v{BRAND.version} · {t('free & open source (AGPL v3)')}<br />
-      <a href={LINKS.source[0].url} target="_blank" rel="noopener">{t('Source code')}</a><br />
-      {/* Attribution the media licence asks for word for word (agreement §8c), so it is not translated:
-          it names the project the media were licensed to, on purpose. */}
-      Exercise media © Aliaksandr Makatserchyk, <a href={LINKS.media.url} target="_blank" rel="noopener">Gym visual</a>, gymvisual.com.
-      Media licensed for use in {LINKS.upstream.name} only; see <a href={LINKS.upstream.notice} target="_blank" rel="noopener">NOTICE.md</a>
-    </div>
-  </>
+  const installed = standalone()
+  const showUpdate = MOBILE && android
+
+  return (
+    <SettingsPage title={t('About')} line={t('Made by Adrian, for a few friends')}>
+      <div className="set-body">
+        <div className="set-about-logo"><Logo variant="lockup" size={56} /></div>
+
+        <div className="g-glist g-glass">
+          <SettingRow icon="info" title={t('Version')} value={'v' + BRAND.version} sub={BUILD_DATE ? t('Built {0}', fmtDate(BUILD_DATE, false, true)) : undefined} />
+          {showUpdate && (
+            <SettingRow icon="download"
+              title={updateInfo?.hasUpdate ? t('Update to Gains v{0}', updateInfo.latestVersion) : t('Check for updates')}
+              sub={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
+              onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
+          )}
+        </div>
+        {showUpdate && <StageNote>{t('Releases are checked on GitHub. The download is verified against its checksum before the installer opens.')}</StageNote>}
+
+        {/* "Add to Home screen" is for the web app: not inside the phone app. */}
+        {!MOBILE && (
+          <div className="g-glist g-glass">
+            <SettingRow icon={installed ? 'checkCircle' : 'share'} title={t('Install')}
+              sub={installed ? t('Already installed on this device')
+                : IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')} />
+          </div>
+        )}
+
+        <StageSection variant="label" title={t('Credits')} />
+        <div className="g-glist g-glass">
+          <SettingRow icon="shield" title={t('Licences')} sub={t('AGPL-3.0 · open source')} onClick={() => nav(settingsPath('licences'))} />
+          <SettingRow icon="image" title={t('Exercise pictures')} sub={t('Licensed from {0}', LINKS.media.name)} onClick={() => openExternal(LINKS.media.url)} />
+          <SettingRow icon="apple" title={t('Food data')} sub={t('{0}, ODbL', LINKS.openFoodFacts.name)} onClick={() => openExternal(LINKS.openFoodFacts.url)} />
+          <SettingRow icon="arm" title={t('Muscle map')} sub={t('{0} by Melih Colpan, MIT', LINKS.muscleMap.name)} onClick={() => openExternal(LINKS.muscleMap.url)} />
+        </div>
+      </div>
+    </SettingsPage>
+  )
 }

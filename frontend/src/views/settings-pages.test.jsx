@@ -287,8 +287,9 @@ describe('the search lands on a row', () => {
     expect(searchSettings('loop', web, tr).map(h => h.title)).toContain('How you train')
     expect(searchSettings('swipe', web, tr)[0].title).toBe('Swipe actions')
     expect(searchSettings('gesture', web, tr).map(h => h.title)).toEqual(['Swipe actions'])
-    expect(searchSettings('home screen', web, tr).map(h => h.title)).toEqual(['In Safari: Share → Add to Home Screen'])
-    expect(searchSettings('install', { ...web, androidWeb: true }, tr).map(h => h.title)).toEqual(['In Chrome: ⋮ menu → Add to Home screen'])
+    expect(searchSettings('home screen', web, tr).map(h => h.title)).toEqual(['Install'])
+    expect(searchSettings('install', { ...web, androidWeb: true }, tr).map(h => h.title)).toEqual(['Install'])
+    expect(searchSettings('install', { ...web, installTip: false }, tr)).toEqual([])
     expect(searchSettings('backup folder', { ...guestWeb, mobile: true, android: true, autoBackup: true }, tr).map(h => h.title)).toEqual(['Backup folder'])
     expect(searchSettings('backup folder', { ...guestWeb, mobile: true, android: true }, tr)).toEqual([])
   })
@@ -344,7 +345,7 @@ describe('the pages', () => {
   it('each search entry is a row on its page (guest in a browser)', () => {
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, guestWeb) && (!e.when || e.when(guestWeb))) (byPage[e.page] ||= []).push(e.title)
-    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'appearance', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
+    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'appearance', 'backup', 'danger', 'equipment', 'help', 'import', 'licences', 'schedule', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
       // Equipment is Gym setup, a stage page outside this Settings shell (SettingsRoute): its
       // rows and the search's anchors are checked in views/train/gym/GymSetup.test.jsx
@@ -394,7 +395,7 @@ describe('the pages', () => {
   })
 
   it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
-    for (const [page, title] of [['licences', 'Licences'], ['danger', 'Danger zone'], ['features', 'Features']]) {
+    for (const [page, title] of [['danger', 'Danger zone'], ['features', 'Features']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr h1').textContent).toBe(title)
       act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
@@ -403,7 +404,7 @@ describe('the pages', () => {
   })
 
   it('the pages on the stage draw their own frame, not the old header, and Back goes to Profile', () => {
-    for (const [page, title] of [['workout', 'Workout screen'], ['advanced', 'Fine-tuning'], ['schedule', 'Schedule']]) {
+    for (const [page, title] of [['workout', 'Workout screen'], ['advanced', 'Fine-tuning'], ['schedule', 'Schedule'], ['help', 'Help'], ['about', 'About']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr'), page).toBeNull()
       expect(host.querySelectorAll('h1'), page).toHaveLength(1)
@@ -411,6 +412,14 @@ describe('the pages', () => {
       act(() => host.querySelector('.g-snav-back').click())
       expect(mocks.backs.at(-1), page).toBe('/me')
     }
+  })
+
+  it('Licences draws its own frame too, and Back goes to About, where it is opened from', () => {
+    mount('licences')
+    expect(host.querySelector('.sub-hdr')).toBeNull()
+    expect(host.querySelector('h1').textContent).toBe('Licences')
+    act(() => host.querySelector('.g-snav-back').click())
+    expect(mocks.backs.at(-1)).toBe('/me/about')
   })
 
   it('the root carries it too, titled Profile, with no back: it is the Me tab\'s root', () => {

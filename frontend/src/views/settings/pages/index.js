@@ -22,6 +22,7 @@ const LOADERS = {
   import: () => import('./ImportPage.jsx'),
   media: () => import('./MediaPage.jsx'),
   danger: () => import('./DangerPage.jsx'),
+  help: () => import('./HelpPage.jsx'),
   about: () => import('./AboutPage.jsx'),
   licences: () => import('./LicencesPage.jsx'),
   account: () => import('./AccountPage.jsx'),
@@ -30,7 +31,8 @@ const LOADERS = {
 // Pages that draw their own frame (SettingsPage: nav bar, large title) instead of sitting under the
 // host's old page header. Each page milestone adds its ids and, in the same pass, nothing else.
 // Settings train m1:
-export const OWN_FRAME = new Set(['workout', 'advanced', 'schedule'])
+// Settings food m2: categories, customUnits, help, about, licences.
+export const OWN_FRAME = new Set(['workout', 'advanced', 'schedule', 'categories', 'customUnits', 'help', 'about', 'licences'])
 export const drawsOwnFrame = id => OWN_FRAME.has(id)
 
 export const PAGE_COMPONENTS =Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))
