@@ -19,8 +19,7 @@
     "views/Workout.jsx": 18,
     "views/settings/pages/AboutPage.jsx": 10,
     "views/settings/pages/BackupPage.jsx": 1,
-    "views/settings/pages/ImportPage.jsx": 1,
-    "views/settings/pages/RemindersPage.jsx": 1
+    "views/settings/pages/ImportPage.jsx": 1
   },
   "G2css": {
     "admin.css": 1,
