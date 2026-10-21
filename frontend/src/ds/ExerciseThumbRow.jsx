@@ -8,8 +8,9 @@ import Act from './Act.jsx'
 // (the dumbbell tile without a picture is 52, or 40 when small). `first={false}` adds the rule
 // above. A row is a link or a button only with `href` or `onClick`, and then ends in a chevron
 // unless `trailing` says otherwise. WorkoutCard's exercise lines are its own (they sit in that
-// card's padding and read bigger), so they are not this.
-export default function ExerciseThumbRow({ image, size = 52, title, sub, href, onClick, trailing, first = true, tone = 'light' }) {
+// card's padding and read bigger), so they are not this. `pressed` makes a button row a toggle (a
+// picker that takes several: the row says whether it is chosen).
+export default function ExerciseThumbRow({ image, size = 52, title, sub, href, onClick, trailing, first = true, tone = 'light', pressed }) {
   const tap = !!(href || onClick)
   const kids = (
     <>
@@ -21,5 +22,5 @@ export default function ExerciseThumbRow({ image, size = 52, title, sub, href, o
     </>
   )
   const className = cx('g-xrow', tone === 'stage' && 'g-xrow-stage', size <= 44 && 'g-xrow-sm', !first && 'g-xrow-line')
-  return tap ? <Act href={href} onClick={onClick} className={className}>{kids}</Act> : <div className={className}>{kids}</div>
+  return tap ? <Act href={href} onClick={onClick} className={className} pressed={pressed}>{kids}</Act> : <div className={className}>{kids}</div>
 }

@@ -4,6 +4,7 @@ import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
 import DevKitPushed from './DevKitPushed.jsx'
+import DevKitRoutines from './DevKitRoutines.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
@@ -272,6 +273,7 @@ export default function DevKit() {
 
         <DevKitShared />
         <DevKitPushed />
+        <DevKitRoutines />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

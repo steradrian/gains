@@ -17,8 +17,10 @@ const TYPES = ['auto', 'half', 'full']
 // frame owns everything a sheet does: presence motion, focus in and back, Escape, back button,
 // scrim and drag to dismiss, the page lock and the keyboard. The drawer only draws, on the refs
 // the frame gives it. The × runs `onClose`, else the frame's dismiss (the scrim's, so a sheet's
-// onDismiss runs either way). Outside the frame it draws itself open and still.
-export default function BottomSheet({ title, chip, onChip, type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
+// onDismiss runs either way). Outside the frame it draws itself open and still. `chipIcon` is the
+// glyph in the chip: the calendar for the day a drawer writes to, another for what it belongs to
+// (the routine in the exercise picker and settings).
+export default function BottomSheet({ title, chip, onChip, chipIcon = 'calendar', type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
   oneOf('BottomSheet', 'type', type, TYPES)
   const frame = useContext(SheetFrameContext)
   const accent = useStore(s => dsAccentFor(s.S))
@@ -34,8 +36,8 @@ export default function BottomSheet({ title, chip, onChip, type = 'auto', onClos
       <div className="g-bs-head">
         <h2 id={titleId}>{title}</h2>
         {chip && (onChip
-          ? <button type="button" className="g-bs-chip" onClick={onChip} aria-label={t('Logging to {0}', chip)}><Icon name="calendar" className="g-icon" />{chip}</button>
-          : <span className="g-bs-chip"><Icon name="calendar" className="g-icon" />{chip}</span>)}
+          ? <button type="button" className="g-bs-chip" onClick={onChip} aria-label={t('Logging to {0}', chip)}><Icon name={chipIcon} className="g-icon" />{chip}</button>
+          : <span className="g-bs-chip"><Icon name={chipIcon} className="g-icon" />{chip}</span>)}
         {hasClose && (closeHref
           ? <a href={closeHref} onClick={onClose} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></a>
           : <button type="button" onClick={close} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></button>)}

@@ -195,6 +195,9 @@ export const figureOf = S => (S?.exFigure === 'female' || S?.exFigure === 'male'
   : (S?.body === 'female' ? 'female' : 'male')
 const drawing = (ex, figure) => (figure === 'female' ? ex.fv : figure === 'male' ? ex.mv : null) || null
 export const imgSrc = (ex, figure) => IMG_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.webp' : ex.img)
+// The catalogue still a list row shows, or null for an exercise with no picture (a custom one keeps
+// its media in the local store, which a plain <img src> cannot reach): the row then draws its own tile.
+export const stillOf = (ex, figure) => (ex?.img ? imgSrc(ex, figure) : null)
 const clipFile = f => (CLIP_EXT !== '.mp4' && f.endsWith('.mp4') ? f.slice(0, -4) + CLIP_EXT : f)
 export const gifSrc = (ex, figure) => GIF_BASE + clipFile(drawing(ex, figure) ? drawing(ex, figure) + '.mp4' : ex.gif)
 // The catalogue's animations are short MP4 loops; a fork's or an older build's may still be GIFs.

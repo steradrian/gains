@@ -97,4 +97,15 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-cgroup')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-cgroup-stage')).toHaveLength(2)
   })
+
+  it('renders the routines kit: the sets table, as a summary row and as a row a set', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('SetTable')
+    const tables = view.host.querySelectorAll('.g-sett')
+    expect(tables).toHaveLength(2)
+    expect(tables[0].querySelectorAll('[role="row"]')).toHaveLength(2)
+    expect(tables[1].querySelectorAll('[role="row"]')).toHaveLength(4)
+    expect(tables[1].querySelectorAll('.g-sett-rmbtn')).toHaveLength(3)
+  })
 })

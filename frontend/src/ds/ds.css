@@ -941,3 +941,78 @@ div.g-mcard { cursor: default; }
 .g-rt-check:focus-visible, .g-glist-light .g-radio:focus-visible, .g-glist-light .g-gvr:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -3px; }
 .g-rt-label { margin: 20px 4px 8px; font: 600 13px/18px var(--font-sans); letter-spacing: .02em; text-transform: uppercase; color: var(--text-3); }
 .g-rt-note { margin: 10px 4px 0; font: 400 14px/20px var(--font-sans); color: var(--text-2); }
+
+/* === Train routines picker and settings (T5.1–T5.7, SetTable) === */
+/* The picker's search shares Log food's .g-lf-search; the result count sits before the ×. Focus rings
+   sit inside the rows and the chip rows (the body scrolls and clips what is outside it). */
+.g-pk-count { flex: none; padding-inline-end: 6px; font: 600 14px/18px var(--font-sans); color: var(--text-3); font-variant-numeric: tabular-nums; }
+.g-pk-prof { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-pk-prof .g-icon { width: 16px; height: 16px; flex: none; }
+.g-pk-prof span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.g-pk-prof button { appearance: none; border: 0; flex: none; height: 30px; padding: 0 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text); font: 600 13px/16px var(--font-sans); cursor: pointer; }
+.g-pk-chips { margin: 0 0 10px; }
+.g-pk-cicon { width: 15px; height: 15px; margin-inline-end: 6px; stroke-width: 2.2; }
+.g-pk-map { display: flex; justify-content: center; padding: 8px 0 4px; }
+.g-pk-head { margin: 12px 0 4px; font: 700 15px/20px var(--font-sans); color: var(--text); }
+.g-pk-hint { font-weight: 500; color: var(--text-3); }
+.g-pk-note { margin: 0; padding: 14px 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-pk-list { padding-bottom: 6px; }
+.g-pk-item { display: flex; align-items: center; gap: 6px; }
+.g-pk-item + .g-pk-item, .g-pk-new + .g-pk-item { border-top: 1px solid var(--line); }
+.g-pk-item .g-xrow { flex: 1; min-width: 0; }
+.g-pk-item .g-xrow-b b { display: flex; align-items: center; gap: 6px; }
+.g-pk-item .g-xrow-b b i { min-width: 0; font-style: normal; overflow-wrap: anywhere; }
+.g-pk-fav { width: 15px; height: 15px; flex: none; color: var(--warning); }
+.g-pk-add { appearance: none; border: 0; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); cursor: pointer; }
+.g-pk-add .g-icon { width: 20px; height: 20px; stroke-width: 2.4; }
+.g-pk-tick { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--line-strong); color: var(--on-accent); }
+.g-pk-tick.on { background: var(--accent-fill); box-shadow: none; }
+.g-pk-tick .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+.g-pk-new .g-xrow-ph { background: var(--accent-tint); color: var(--accent-text); }
+.g-pk-new .g-icon { stroke-width: 2.2; }
+.g-pk-more { padding: 12px 0; }
+.g-pk-list .g-xrow:focus-visible, .g-pk-add:focus-visible, .g-pk-prof button:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -3px; }
+.g-sw-sub { margin: 0; padding-bottom: 6px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+
+/* Exercise settings (T5.5). The old steppers, switches and rows keep their own controls inside it. */
+.g-cfg { padding-bottom: 8px; }
+.g-cfg-top { display: flex; align-items: center; gap: 14px; padding-bottom: 12px; }
+.g-cfg-top img, .g-cfg-ph { width: 64px; height: 64px; flex: none; border-radius: 16px; box-shadow: 0 0 0 1px var(--line); }
+.g-cfg-top img { background: var(--g-white); object-fit: cover; }
+.g-cfg-ph { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-cfg-nm { min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-cfg-nm b { font: 700 19px/24px var(--font-sans); overflow-wrap: anywhere; }
+.g-cfg-nm span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-cfg-tags { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+.g-cfg-mode { padding: 4px 0 12px; }
+.g-cfg-h { margin: 20px 0 8px; font: 700 17px/22px var(--font-sans); }
+.g-cfg .g-cgroup { margin-top: 2px; }
+.g-cfg-note { margin: 8px 0 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-cfg-alert { margin-top: 8px; color: var(--danger); }
+.g-cfg-steps { margin-top: 12px; }
+.g-cfg-opts { margin-top: 18px; }
+.g-cfg-text { width: 100%; box-sizing: border-box; margin-top: 18px; padding: 12px 14px; border: 0; border-radius: 16px; background: var(--surface-sunken); color: var(--text); font: 500 16px/22px var(--font-sans); resize: vertical; }
+.g-cfg-text:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
+.g-cfg .g-menulist { margin-top: 18px; }
+
+/* SetTable: a header and a row a set; the number columns read left to right even in an RTL page */
+.g-sett { margin-top: 4px; }
+.g-sett-row { display: grid; grid-template-columns: 52px repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center; min-height: 48px; border-top: 1px solid var(--line); font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; text-align: start; }
+.g-sett-rm { grid-template-columns: 52px repeat(3, minmax(0, 1fr)) 36px; }
+.g-sett-head { min-height: 0; padding-bottom: 6px; border-top: 0; font: 600 13px/16px var(--font-sans); color: var(--text-3); }
+.g-sett-row > * { min-width: 0; }
+.g-sett-t, .g-sett-na { unicode-bidi: plaintext; }
+.g-sett-muted { color: var(--text-3); }
+.g-sett-num input { width: 100%; box-sizing: border-box; height: 40px; padding: 0 8px; border: 0; border-radius: 12px; background: var(--surface-sunken); color: var(--text); font: inherit; text-align: start; unicode-bidi: plaintext; -webkit-appearance: none; appearance: none; }
+.g-sett-btn { appearance: none; border: 0; width: 100%; height: 40px; padding: 0 8px; border-radius: 12px; background: var(--surface-sunken); color: var(--text); font: inherit; text-align: start; unicode-bidi: plaintext; cursor: pointer; }
+.g-sett-btn.g-sett-muted { color: var(--text-3); }
+.g-sett-with { display: flex; align-items: center; gap: 6px; }
+.g-sett-with .g-sett-num { flex: 1; min-width: 0; }
+.g-sett-aux { appearance: none; border: 0; flex: none; height: 32px; padding: 0 10px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text-2); font: 600 13px/16px var(--font-sans); cursor: pointer; }
+.g-sett-aux[aria-pressed="true"] { background: var(--accent-fill); color: var(--on-accent); }
+.g-sett-rmbtn { appearance: none; border: 0; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--text-3); cursor: pointer; }
+.g-sett-rmbtn .g-icon { width: 18px; height: 18px; }
+.g-sett-add { appearance: none; border: 0; border-top: 1px solid var(--line); width: 100%; height: 48px; display: flex; align-items: center; gap: 6px; background: none; color: var(--accent-text); font: 700 16px/20px var(--font-sans); text-align: start; cursor: pointer; }
+.g-sett-add:disabled { opacity: .5; cursor: default; }
+.g-sett-add .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
+.g-sett-num input:focus-visible, .g-sett-btn:focus-visible, .g-sett-aux:focus-visible, .g-sett-rmbtn:focus-visible, .g-sett-add:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
