@@ -8,7 +8,11 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 const src = resolve(process.cwd(), 'src')
-const files = readdirSync(src).filter(f => f.endsWith('.css'))
+// The design system's glass (ds/ds.css) has fallbacks too, so it is read alongside the app's sheets.
+const files = [
+  ...readdirSync(src).filter(f => f.endsWith('.css')),
+  ...readdirSync(join(src, 'ds')).filter(f => f.endsWith('.css')).map(f => join('ds', f)),
+]
 const NO_GLASS = /^@supports\s+not\s*\(\s*\(\s*backdrop-filter/
 
 // Every style rule in `css`, with where it opens and the at-rules it sits in.

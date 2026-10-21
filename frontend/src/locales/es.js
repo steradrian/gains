@@ -1,5 +1,10 @@
 // Spanish UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // --- App chrome (GlassTabBar): English until the translation pass ---
+  'Train': 'Train',
+  'Eat': 'Eat',
+  'Me': 'Me',
+  'Add to Today': 'Add to Today',
   // --- Today content kit: English until the translation pass ---
   'Syncing': 'Syncing',
   'Offline': 'Offline',

@@ -129,8 +129,10 @@ describe('the two halves agree', () => {
   })
 
   it('the tab bar is left under the keyboard', () => {
-    const tabbar = css.match(/#tabbar\{[^}]*\}/)[0]
+    // Placed by the tab shell's stylesheet (the bar itself is ds/GlassTabBar.jsx).
+    const shell = read('../tab-shell.css')
+    const tabbar = shell.match(/#tabbar\{[^}]*\}/)[0]
     expect(tabbar).not.toMatch(/native-kb/)
-    expect(css).not.toMatch(/data-native-kb\][^{]*#tabbar/)
+    for (const sheet of [css, shell]) expect(sheet).not.toMatch(/data-native-kb\][^{]*#tabbar/)
   })
 })

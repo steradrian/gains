@@ -38,4 +38,11 @@ describe('DevKit', () => {
     expect(document.querySelector('#modal-root .g-bs')).not.toBeNull()
     act(() => { useUI.getState().closeAll() })
   })
+
+  it('renders the GlassTabBar entry', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toContain('GlassTabBar')
+    expect(view.host.querySelectorAll('.g-gtabbar')).toHaveLength(4)
+  })
 })
