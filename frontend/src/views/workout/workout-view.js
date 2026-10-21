@@ -1,7 +1,7 @@
 // The new workout screen's model (core-M1 brief step 4 `view`): plain data and every string the
 // screen shows or speaks, built from the store and the rest/hold timers. Pure, so it is tested
 // without rendering. Fields still to build are listed in the core-M1 hand-back (core-M3).
-import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
+import { exOr, figureOf, gifSrc, imgSrc, isCustomEx } from '../../lib/exercises.js'
 import { supersetUnits, unitOf, modeOf, setLabel, setUnitsTotal, setsDoneActive, lastEntryFor, pinnedNoteFor, exNoteFor, workoutVolume } from '../../lib/history.js'
 import { exerciseNameText, fmtDate, fmtNum, exCount } from '../../lib/format.js'
 import { fmtRest } from '../../lib/duration.js'
@@ -28,6 +28,13 @@ import { beatsBest } from '../../lib/workout-finish.js'
 const pictureOf = (S, id) => {
   const ex = exOr(id)
   return ex?.img && !isCustomEx(ex) ? imgSrc(ex, figureOf(S)) : null
+}
+// The exercise's animation, or null when Settings > Animations is Small or Hidden (the still
+// stands in) and for an exercise with none. Any other value of the setting behaves as Full.
+export const clipOf = (S, id) => {
+  const ex = exOr(id)
+  if (!ex?.gif || isCustomEx(ex) || S.gifSize === 'mini' || S.gifSize === 'off') return null
+  return gifSrc(ex, figureOf(S))
 }
 const TONE = { warmup: 'warm', main: 'main', cooldown: 'cool' }
 // A session this long folds every phase but the current one (W1.44).
@@ -422,6 +429,7 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
     out.hero = {
       ...view.hero,
       image: pictureOf(S, entry.id),
+      clip: clipOf(S, entry.id),
       meta: heroMeta(S, entry, { editing }),
       plan: planLineOf(entry),
       dots: entry.sets.map((s, k) => (s.done ? 'done' : k === open ? 'now' : 'todo')),

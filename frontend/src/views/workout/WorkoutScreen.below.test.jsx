@@ -174,3 +174,22 @@ describe('the plan line', () => {
     expect(plan()).toBeNull()
   })
 })
+
+// old :3440, :3448: Settings > Animations. Full plays the exercise's animation in the hero's
+// picture; Small and Hidden show the still, and so does an exercise with no animation.
+describe('the hero picture follows the Animations setting', () => {
+  it('plays the animation when it is Full, and by default', () => {
+    start([lift(BENCH, 60, 8, 1)], { gifSize: 'full' })
+    expect(view().hero.clip).toMatch(/\.(mp4|webp)$/)
+    expect(view().hero.image).toMatch(/\.webp$/)
+    hook.unmount()
+    start([lift(BENCH, 60, 8, 1)])
+    expect(view().hero.clip).toMatch(/\.(mp4|webp)$/)
+  })
+
+  it.each(['mini', 'off'])('shows the still, no animation, when it is %s', gifSize => {
+    start([lift(BENCH, 60, 8, 1)], { gifSize })
+    expect(view().hero.clip).toBeNull()
+    expect(view().hero.image).toMatch(/\.webp$/)
+  })
+})

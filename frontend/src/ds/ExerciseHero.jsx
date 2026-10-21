@@ -21,7 +21,7 @@ const LONG_NAME = 22
 // towards the start is 'next'). Every string, the spoken names `howLabel` ("Bench press, how to")
 // and `moreLabel` ("Bench press, options") and `dotsLabel` ("Set 1 of 3") included, is the caller's.
 export default function ExerciseHero({
-  image, name, meta, plan, dots = [], dotsLabel, newToYou = false, newText,
+  image, clip, name, meta, plan, dots = [], dotsLabel, newToYou = false, newText,
   howLabel, howHref, onHow, moreLabel, moreHref, onMore, note, part, onSwipe,
 }) {
   const view = useRef(null)
@@ -66,7 +66,7 @@ export default function ExerciseHero({
       {part && <p className="g-xh-part">{part}</p>}
       <div className="g-xh-row">
         <Act href={howHref} onClick={onHow} ariaLabel={howLabel} className="g-xh-pic">
-          <WorkoutThumb image={image} size="lg" />
+          <WorkoutThumb image={image} clip={clip} size="lg" />
           <span className="g-xh-play" aria-hidden="true"><Icon name="play" className="g-icon" /></span>
         </Act>
         <span className="g-xh-b">
