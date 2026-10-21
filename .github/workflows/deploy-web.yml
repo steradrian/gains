@@ -59,10 +59,21 @@ jobs:
           chmod 600 ~/.ssh/deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
 
+      # A runner's first connection can drop with a silent exit 255 (seen on 2026-10-21); retry
+      # until the server answers, so a network blip doesn't fail the deploy.
+      - name: Reach the server
+        run: |
+          for i in 1 2 3 4 5; do
+            ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 "$HOST" true && exit 0
+            echo "ssh attempt $i failed (exit $?), retrying"
+            sleep $((i * 5))
+          done
+          exit 1
+
       - name: Deploy web
         id: deploy
         run: |
-          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ConnectionAttempts=3 \
             "$HOST" "TAG=$TAG bash -s" <<'REMOTE'
           set -euo pipefail
           cd /srv/fit/deploy
@@ -88,7 +99,7 @@ jobs:
       - name: Roll back
         if: failure() && steps.deploy.outcome == 'success'
         run: |
-          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ConnectionAttempts=3 \
             "$HOST" 'bash -s' <<'REMOTE'
           set -euo pipefail
           cd /srv/fit/deploy
