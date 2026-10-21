@@ -560,10 +560,6 @@ h4.sec{
 /* favourite marker (issue #6): a small yellow star glued to the exercise name — distinct from
    the accent "chosen" tag at the row's end, which means "already in a routine or the log" */
 .fav-star{color:var(--yellow-ink);font-size:12px;display:inline-block;margin-inline-end:5px;vertical-align:-1px}
-.fav-btn{margin-top:-4px;flex:none}
-/* One long word (a German custom name) wraps instead of pushing the star off the screen. */
-.exdetail-name{min-width:0;overflow-wrap:anywhere}
-.fav-btn.on{color:var(--yellow-ink)}
 /* Exercise cards (S.exerciseView 'cards', ExerciseViewToggle): the Library, the picker and the
    muscle explorer as a grid of pictures with the name underneath — two across on a phone, more
    as the page or sheet widens. The id-prefixed selectors outrank the desktop rules further down
@@ -966,8 +962,6 @@ body.chips-dragging *{cursor:inherit}
 .cmf-sub .icn{font-size:13px}
 .cmf-note{margin:0 4px 6px;line-height:1.35}
 .cmf-link{margin-top:4px}
-.exd-row{margin-top:4px}
-.exd-row>.btn{flex:1}
 /* A logged workout's photos and videos (WorkoutMedia.jsx): a grid of posters with an Add tile,
    and the full-screen viewer they open in. Logical properties only, so RTL mirrors by itself. */
 .wmedia{margin:4px 0 12px}
@@ -1739,11 +1733,6 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 /* ---------------------------------------------------------------- misc --- */
 .empty{text-align:center;color:var(--label-2);padding:44px 20px;font-size:15px;line-height:1.45}
 .empty .ico{font-size:34px;color:var(--label-2);margin-bottom:12px;display:flex;justify-content:center}
-.steps-list{
-  padding-inline-start:18px;color:var(--label-2);font-size:15px;line-height:1.5;
-  display:flex;flex-direction:column;gap:9px;
-}
-.steps-list::marker{color:var(--label-3)}
 
 /* --- month calendar --- */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
@@ -2058,5 +2047,4 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 [dir="rtl"] .hm-wrap,[dir="rtl"] .cal-grid{direction:ltr}
 /* Tight tracking is tuned for Latin; Arabic is a connected script and gets none. */
 [dir="rtl"] *{letter-spacing:0}
-.exfix-link{display:inline-flex;align-items:center;gap:5px;margin:14px 0 4px;color:var(--label-3);text-decoration:none}
 .list .similar-label{margin:16px 2px 6px;grid-column:1/-1}

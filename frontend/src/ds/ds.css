@@ -990,3 +990,141 @@ div.g-mcard { cursor: default; }
 .g-tr3-thumb .g-icon { width: 20px; height: 20px; }
 .g-tr3-imp-note { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
 @media (prefers-reduced-motion: reduce) { .g-tr3-mark { transition: none; } }
+
+/* === Train charts (StatTiles, LineChart, BarChart, Heatmap, MonthGrid; boards T7.0, T8.0, T9.0 to T9.6) === */
+/* StatTiles: two or three tiles; glass on the stage */
+.g-stats { display: grid; gap: 10px; }
+.g-stats-1 { grid-template-columns: minmax(0, 1fr); }
+.g-stats-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g-stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g-stat { border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: start; font-family: var(--font-sans); }
+.g-stat > span { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-stat b { font: 700 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); overflow-wrap: anywhere; }
+.g-stat .g-pos { color: var(--positive); font-size: 13px; line-height: 16px; }
+.g-stats-stage .g-stat { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-stats-stage .g-stat > span { color: var(--on-stage-2); }
+.g-stats-stage .g-stat b { color: var(--on-stage); }
+.g-stats-stage .g-stat .g-pos { color: var(--on-stage); }
+
+/* The chart card LineChart and BarChart share: white, or glass on the stage */
+.g-chart { position: relative; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 18px 16px 14px; }
+.g-chart-stage { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+
+/* LineChart: the line and its area are svg stretched to the card; the dots are boxes, so they stay round */
+.g-lc { --g-lc: var(--accent-fill); }
+.g-lc.g-chart-stage { --g-lc: var(--on-stage); }
+.g-lc-plot { position: relative; touch-action: pan-y; }
+.g-lc-plot svg { display: block; overflow: visible; }
+.g-lc-line { fill: none; stroke: var(--g-lc); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.g-lc-area { fill: var(--g-lc); fill-opacity: 0.12; }
+.g-lc-cursor { stroke: var(--g-lc); stroke-opacity: 0.45; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.g-lc-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--g-lc); pointer-events: none; }
+.g-lc-dot-on { width: 14px; height: 14px; margin: -7px 0 0 -7px; box-shadow: 0 0 0 3px var(--surface); }
+.g-lc.g-chart-stage .g-lc-dot-on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); }
+.g-lc-tip { position: absolute; top: 0; left: clamp(20%, var(--x), 80%); transform: translateX(-50%); max-width: 100%; box-sizing: border-box; padding: 4px 10px; border-radius: 999px; background: var(--text); color: var(--surface); font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.g-lc.g-chart-stage .g-lc-tip { background: var(--on-stage); color: var(--accent-text); }
+.g-lc-x { display: flex; justify-content: space-between; padding-top: 8px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
+.g-lc.g-chart-stage .g-lc-x { color: var(--on-stage-2); }
+
+/* BarChart */
+.g-bars { position: relative; display: flex; gap: 8px; }
+.g-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.g-bar-col { width: 100%; display: flex; align-items: flex-end; }
+.g-bar-col i { display: block; width: 100%; border-radius: 8px; background: var(--g-bar, var(--accent-fill)); }
+.g-bar-col i.g-bar-dim { opacity: 0.35; }
+.g-bar small { font: 600 12px/14px var(--font-sans); color: var(--text-3); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-bars-target { position: absolute; inset-inline: 0; border-top: 1.5px dashed var(--line-strong); }
+.g-bars-card.g-chart-stage .g-bar-col i { background: var(--g-bar, var(--on-stage)); }
+.g-bars-card.g-chart-stage .g-bar small { color: var(--on-stage-2); }
+.g-bars-card.g-chart-stage .g-bars-target { border-top-color: rgba(255, 255, 255, 0.6); }
+
+/* Heatmap: days shaded by how much happened. 3 shades (n3) or 5 (n5); a card, or glass on the stage. A year
+   (weeks) is a column a week, scrolls sideways, and follows the page's direction. */
+.g-heat { --heat-cell: 11px; --heat-gap: 3px; --g-heat-ring: var(--text-3); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 16px; }
+.g-heat-stage { --g-heat-ring: var(--on-stage); background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+/* The padding is the focus ring's room: a scroll box clips whatever sticks out of it */
+.g-heat-scroll { overflow-x: auto; padding-block: 4px; padding-inline: 2px; margin-inline: -2px; }
+.g-heat-grid { display: grid; gap: var(--heat-gap); }
+.g-heat-weeks .g-heat-grid { grid-auto-flow: column; grid-template-rows: repeat(7, var(--heat-cell)); grid-auto-columns: var(--heat-cell); width: max-content; }
+.g-heat-months { display: grid; grid-auto-flow: column; grid-auto-columns: var(--heat-cell); column-gap: var(--heat-gap); width: max-content; padding-bottom: 8px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
+.g-heat-months span { grid-row: 1; width: max-content; white-space: nowrap; }
+.g-heat-stage .g-heat-months, .g-heat-stage .g-heat-legend { color: var(--on-stage-2); }
+.g-heat-c { appearance: none; border: 0; padding: 0; display: block; aspect-ratio: 1; border-radius: 3px; }
+.g-heat-weeks .g-heat-c { aspect-ratio: auto; }
+button.g-heat-c { cursor: pointer; }
+button.g-heat-c:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 1px; }
+.g-heat-stage button.g-heat-c:focus-visible { outline-color: var(--on-stage); }
+.g-heat-future { opacity: 0.35; }
+.g-heat-today { box-shadow: 0 0 0 1.5px var(--g-heat-ring); }
+.g-heat-noted { box-shadow: inset 0 0 0 1.5px var(--g-heat-ring); }
+.g-heat-legend { display: flex; justify-content: flex-end; align-items: center; gap: 4px; padding-top: 10px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
+.g-heat-legend i { display: block; width: 10px; height: 10px; border-radius: 3px; }
+.g-heat-n3 .g-heat-0 { background: var(--surface-sunken); }
+.g-heat-n3 .g-heat-1 { background: var(--accent-tint); }
+.g-heat-n3 .g-heat-2 { background: var(--accent-fill); }
+.g-heat-n5 .g-heat-0 { background: var(--surface-sunken); }
+.g-heat-n5 .g-heat-1 { background: var(--accent-tint); }
+.g-heat-n5 .g-heat-2 { background: color-mix(in srgb, var(--accent-fill) 40%, var(--accent-tint)); }
+.g-heat-n5 .g-heat-3 { background: color-mix(in srgb, var(--accent-fill) 70%, var(--accent-tint)); }
+.g-heat-n5 .g-heat-4 { background: var(--accent-fill); }
+.g-heat-stage.g-heat-n3 .g-heat-0, .g-heat-stage.g-heat-n5 .g-heat-0 { background: rgba(255, 255, 255, 0.1); }
+.g-heat-stage.g-heat-n3 .g-heat-1 { background: rgba(255, 255, 255, 0.48); }
+.g-heat-stage.g-heat-n3 .g-heat-2 { background: rgba(255, 255, 255, 1); }
+.g-heat-stage.g-heat-n5 .g-heat-1 { background: rgba(255, 255, 255, 0.28); }
+.g-heat-stage.g-heat-n5 .g-heat-2 { background: rgba(255, 255, 255, 0.48); }
+.g-heat-stage.g-heat-n5 .g-heat-3 { background: rgba(255, 255, 255, 0.72); }
+.g-heat-stage.g-heat-n5 .g-heat-4 { background: rgba(255, 255, 255, 1); }
+
+/* MonthGrid: a month on the stage. The grid follows the page's direction; the arrows mirror. */
+.g-mring { display: block; fill: none; transform: rotate(-90deg); flex: none; }
+.g-mring-track { stroke: var(--glass-track); }
+.g-mring-val { stroke: var(--on-stage); stroke-linecap: round; }
+.g-mring-over { stroke: var(--g-ring-over); }
+.g-mg { border-radius: 28px; padding: 14px 10px; color: var(--on-stage); }
+.g-mg-top { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 10px; }
+.g-mg-top b { font: 700 18px/24px var(--font-sans); }
+.g-mg-top > span { display: flex; gap: 6px; }
+.g-mg-nav { appearance: none; border: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--glass); color: inherit; cursor: pointer; }
+.g-mg-nav:disabled { opacity: 0.4; cursor: default; }
+.g-mg-nav .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
+[dir="rtl"] .g-mg-nav .g-icon { transform: scaleX(-1); }
+.g-mg-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 4px; }
+.g-mg-head { text-align: center; font: 600 12px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-mg-cell { appearance: none; border: 0; background: none; display: grid; place-items: center; height: 44px; border-radius: 14px; color: inherit; font: inherit; text-decoration: none; padding: 0; }
+a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
+.g-mg-on { background: rgba(255, 255, 255, 0.16); }
+.g-mg-in { position: relative; width: 36px; height: 36px; display: grid; place-items: center; }
+.g-mg-in b { position: absolute; inset: 0; display: grid; place-items: center; font: 600 14px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-mg-on .g-mg-in b { font-weight: 800; }
+.g-mg-future { opacity: 0.45; }
+.g-mg-ph { display: block; width: 36px; height: 36px; }
+.g-mg-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 6px 2px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-mg-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.g-mg-nav:focus-visible, .g-mg-cell:focus-visible { outline-color: var(--on-stage); }
+
+/* === Train exercises kit (Tabs, DetailRow; board T6.1) === */
+/* Tabs: text tabs over a hairline; the line slides to the chosen one. It is placed from the
+   physical left because Tabs.jsx measures the tab with offsetLeft, which is physical in both
+   directions. */
+.g-tabs { position: relative; display: flex; gap: var(--space-6); border-bottom: 1px solid var(--line); }
+.g-tabs button { appearance: none; border: 0; background: none; padding: 0; min-height: var(--tap-min); color: var(--text-3); font: 500 15px/20px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color 200ms; }
+.g-tabs button[aria-selected="true"] { color: var(--text); }
+.g-tabs-ink { position: absolute; left: 0; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--text); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), width 320ms cubic-bezier(.34,1.22,.64,1), opacity 140ms; }
+@media (prefers-reduced-motion: reduce) { .g-tabs-ink { transition: none; } }
+:root[data-motion="reduce"] .g-tabs-ink { transition: none; }
+/* DetailRow: the light drawer's row; rows that follow one another are ruled from after the inline padding */
+.g-drow { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: var(--text); text-align: start; font: inherit; text-decoration: none; position: relative; cursor: default; }
+a.g-drow, button.g-drow { cursor: pointer; }
+a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
+.g-drow + .g-drow::before { content: ""; position: absolute; top: 0; inset-inline-start: 16px; inset-inline-end: 0; border-top: 1px solid var(--line); }
+.g-drow-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-drow-ic .g-icon { width: 20px; height: 20px; stroke-width: 2; }
+.g-drow-ic-tint { background: var(--accent-tint); color: var(--accent-text); }
+.g-drow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-drow-body b { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-drow-body span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-drow-body .g-danger { color: var(--danger); }
+.g-drow-val { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text-2); text-align: end; }
+.g-drow-chev { width: 18px; height: 18px; color: var(--text-3); stroke-width: 2.2; flex: none; }
+/* A row is as wide as the drawer's scrolling body, which would clip a ring drawn outside it */
+.g-drow:focus-visible { outline-offset: -2px; }

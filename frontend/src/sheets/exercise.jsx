@@ -1,73 +1,48 @@
-import { useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { EXIDX, BODYPARTS, isCardio, allExercises, smOf, exOr, isAssisted, isCustomEx } from '../lib/exercises.js'
-import { ALL_EQUIPMENT } from '../lib/equipment.js'
+import { smOf, exOr, isCustomEx } from '../lib/exercises.js'
 import { fmtDate, fmtNum, exerciseNameText, fmtVol, uid, exCount } from '../lib/format.js'
-import { lastEntryFor, bestWeightFor, setLabel, cleanupSg, modeOf } from '../lib/history.js'
+import { cleanupSg, lastEntryFor, setLabel, modeOf } from '../lib/history.js'
 import { t, tn, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from '../lib/i18n.js'
-import { nav, onSheetEntry } from '../lib/nav.js'
+import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
 import { hasProgress } from '../lib/use-exercise-progress.js'
 import { visit } from '../lib/search/session.js'
-import Media from '../components/Media.jsx'
-import CustomMediaField from '../components/CustomMediaField.jsx'
-import { mediaOf, normalizeMediaRef, cleanUrl } from '../lib/media-refs.js'
-import { syncMedia } from '../lib/media-sync.js'
+import { isWorkoutPath } from '../lib/tab-route.js'
+import { usesBar } from '../lib/bar.js'
+import { loadKindFor, baseWeightFor } from '../lib/plates.js'
+import Media, { Thumb } from '../components/Media.jsx'
+import { openExternal } from '../components/CustomMedia.jsx'
+import CustomExerciseForm from '../components/CustomExerciseForm.jsx'
 import LineChart from '../components/LineChart.jsx'
-import Stepper from '../components/Stepper.jsx'
 import Icon from '../components/Icon.jsx'
-import { Chip, ChipRow, EmptyState, ItemRow, SectionTitle, Tag } from '../components/blocks.jsx'
+import { EmptyState, ItemRow, SectionTitle, Tag } from '../components/blocks.jsx'
 import { Inline } from '../components/layout.jsx'
-import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { cx } from '../lib/ui-kit.js'
-import { Button, Segmented, MultiSelectRow } from '../components/ui.jsx'
+import { Segmented } from '../components/ui.jsx'
 import { glyphOf, DEFAULT_GLYPH } from '../lib/glyphs.js'
-import { exerciseMuscleSnapshot, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from '../lib/muscles.js'
-import { estimate1RM, best1RM, REP_CAP, formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
-import { exerciseHistory } from '../lib/exercise-history.js'
+import { exerciseMuscleSnapshot, MUSCLE_NAME, muscleWeightsOf, musclesOf } from '../lib/muscles.js'
+import { exerciseHistory, bestSetFor } from '../lib/exercise-history.js'
 import { isBellEx, dbLoadFor, withDbLoad, currentDbLoad } from '../lib/dumbbells.js'
 import { speedUnitOf } from '../lib/speed.js'
-import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { isFav, toggleFav } from '../lib/favourites.js'
+import BodyMap from '../ds/BodyMap.jsx'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import DetailRow from '../ds/DetailRow.jsx'
+import IconButton from '../ds/IconButton.jsx'
+import MenuList from '../ds/MenuList.jsx'
+import Tabs from '../ds/Tabs.jsx'
+import DsTag from '../ds/Tag.jsx'
 import { S, update, ui, toast } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 import { exConfigSheet } from './exercise-config.jsx'
-import { BarWeightEditor, DbLoadPicker } from './equipment.jsx'
+import { barWeightSheet, DbLoadPicker } from './equipment.jsx'
+import '../views/train/exercises/exercises.css'
 
 /* ============================ exercise detail ============================ */
-// Estimated 1RM for one exercise (issue #18): what the log already implies, plus a calculator
-// for a set you have not done — so the number is reachable before there is any history.
-function OneRM({ ex }) {
-  const st = useStore(s => s.S)
-  const best = best1RM(st, ex.id)
-  const [w, setW] = useState(best ? best.w : (st.exWeights[ex.id] || {}).w || 20)
-  const [r, setR] = useState(best ? best.r : 5)
-  const est = estimate1RM(w, r, formulaOf(st))
-  return <>
-    <SectionTitle>{t('Estimated 1RM')}</SectionTitle>
-    {best && <div className="small mb-4">
-      {t('From your log:')} <b className="accent">{fmtNum(best.est)} {st.unit}</b>
-      <span className="dim"> · {t('{0} × {1} on {2}', fmtNum(best.w) + ' ' + st.unit, best.r, fmtDate(best.d, true))}</span>
-    </div>}
-    <Inline className="cfgrow mb-5">
-      <Stepper label={t('Weight ({0})', st.unit)} value={w} step={2.5} onChange={setW} />
-      <Stepper label={t('Reps')} value={r} step={1} decimal={false} onChange={setR} />
-    </Inline>
-    <Inline justify="between" className="mb-2">
-      <span className="muted small">{t('Estimate')}</span>
-      <b className="accent fs-title3">{est === null ? '–' : fmtNum(est) + ' ' + st.unit}</b>
-    </Inline>
-    <div className="small dim">{est === null
-      ? t('Enter a weight and 1–{0} reps. Beyond that it’s basically guesswork.', REP_CAP)
-      : formulaOf(st) === 'weighted'
-        ? t('A blend of seven formulas: calculated from one set, not a tested max.')
-        : t('{0} formula: calculated from one set, not a tested max.', FORMULA_NAMES[formulaOf(st)])}</div>
-  </>
-}
-
 // A muscle the catalogue credits with nothing (a bench press's biceps, #359) is not one it trains,
 // so it is not shown as a tag either; "By muscle" already leaves the exercise out.
 export const trainedBy = ex => { const weights = muscleWeightsOf(ex); return slug => weights[slug] !== 0 }
-// The detail page's tags: body part, main muscles, equipment, then up to three helpers. A word
+// The drawer's tags: body part, main muscles, equipment, then up to three helpers. A word
 // says once what it says: the body part "Chest" and the main muscle "Chest" of a bench press
 // were two tags (QA 10-06), and a helper never repeats a main muscle.
 export function detailTags(ex) {
@@ -92,67 +67,192 @@ export function detailTags(ex) {
   return out
 }
 
-// `progress` (opened from a Search result, ux-search §4): a way on to the exercise's strength chart.
-// The page takes the sheet's history entry, so back from it lands on the overlay.
-function ExerciseDetail({ ex, close, progress }) {
-  useLang() // the description and steps arrive in their own chunk the first time a sheet asks
-  const st = useStore(s => s.S)
+// "Best 82.5 kg × 6 · Mon 12 Oct": the best set in the mode it was last logged in, read in the
+// exercise's current dumbbell meaning, or nothing when there is none.
+function bestLine(st, ex) {
   const last = lastEntryFor(st, ex.id)
-  const charted = progress && hasProgress(st, ex.id)
-  const best = bestWeightFor(st, ex.id, currentDbLoad(st, ex.id))
+  const mode = modeOf({ ...(last?.target || {}), id: ex.id })
+  const best = bestSetFor(st, ex.id, mode, currentDbLoad(st, ex.id))
+  if (!best) return null
+  let label = setLabel(ex.id, best.set, best.target, speedUnitOf(st))
+  // A plain loaded set reads "82.5×6"; here it carries its unit, as the board draws it.
+  const plain = fmtNum(best.set.w) + '×'
+  if (mode === 'reps' && best.set.w > 0 && label.startsWith(plain)) label = `${fmtNum(best.set.w)} ${st.unit} × ${label.slice(plain.length)}`
+  return t('Best {0} · {1}', label, fmtDate(best.d, true))
+}
+
+// The muscle map beside "Primary · Chest" and "Additional · Triceps, Shoulders": main muscles at
+// full shade, helpers at half.
+function musclesOfEx(ex) {
+  const trained = trainedBy(ex)
+  const prim = ex.bp === 'cardio' ? ['cardiovascular system'] : (ex.primaries?.length ? ex.primaries : (ex.tg ? [ex.tg] : [])).filter(trained)
+  const sec = (ex.secondaries?.length ? ex.secondaries : smOf(ex)).filter(trained).filter(s => !prim.includes(s))
+  const name = s => t(MUSCLE_NAME[s] || s)
+  const levels = Object.fromEntries(Object.entries(musclesOf(ex)).map(([slug, w]) => [slug, w >= 1 ? 4 : 2]))
+  return { primary: [...new Set(prim.map(name))], secondary: [...new Set(sec.map(name))], levels }
+}
+
+// What the plate-loading row says it is set to, as the workout's ⋯ menu says it.
+function loadSummary(st, ex) {
+  const kind = loadKindFor(st, ex.id)
+  const base = baseWeightFor(st, ex.id)
+  return kind === 'none' ? t('Off')
+    : kind === 'single' ? t('Single stack')
+      : !usesBar(ex) ? t('Per side')
+        : base > 0 ? t('Bar {0}', fmtNum(base) + ' ' + st.unit) : t('No bar')
+}
+
+// The ⋯ menu sits on the drawer's history entry with one of its own. An action that leaves the
+// drawer as well waits for the menu's entry to be walked off first, so the drawer's own close can
+// hand its entry on (closeThenNav) and no entry is left behind.
+const WALK_OFF_MS = 400
+function afterMenu(closeMenu, then) {
+  if (!onSheetEntry()) { closeMenu(); then(); return }
+  let done = false
+  const go = () => {
+    if (done) return
+    done = true
+    clearTimeout(timer)
+    globalThis.removeEventListener('popstate', go)
+    then()
+  }
+  const timer = setTimeout(go, WALK_OFF_MS)
+  globalThis.addEventListener('popstate', go)
+  closeMenu()
+}
+
+const inWorkout = () => isWorkoutPath(String(globalThis.location?.hash || '').slice(1))
+
+// Edit opens the Create exercise page (T6.4) in place of the drawer; inside a running workout it
+// stays a drawer, so nobody leaves the workout.
+function editCustomEx(ex, closeDrawer) {
+  if (inWorkout()) { closeDrawer(); customExSheet(ex); return }
+  closeThenNav(closeDrawer, '/train/exercises/new?edit=' + encodeURIComponent(ex.id))
+}
+
+function exerciseMenuSheet(ex, closeDrawer) {
+  ui().openSheet(closeMenu => (
+    <BottomSheet title={<span className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</span>}>
+      <MenuList label={t('Exercise options')} items={[
+        { key: 'edit', icon: 'pencil', label: t('Edit'), onClick: () => afterMenu(closeMenu, () => editCustomEx(ex, closeDrawer)) },
+        { key: 'delete', icon: 'trash', label: t('Delete'), tone: 'danger', onClick: () => afterMenu(closeMenu, () => deleteCustomEx(ex, closeDrawer)) },
+      ]} />
+    </BottomSheet>
+  ), { variant: 'ds' })
+}
+
+// T6.1: the exercise drawer. The head (picture, tags, best set, star, and ⋯ for a custom exercise)
+// and the tabs stay put while the content scrolls. How to is the description, the muscle map, the
+// steps, Add to my plan, the catalogue fix link and the exercise's own setup. Progress and History
+// open the exercise's strength page (T7.0, T7.1) in the drawer's place, through a running Search
+// as well (search/session.js visit); before the exercise is logged they say so instead. Inside a
+// running workout, History stays the light history drawer.
+function ExerciseDrawer({ ex, close }) {
+  useLang() // the description and steps arrive in their own chunk the first time a drawer asks
+  const st = useStore(s => s.S)
+  const panelId = useId()
+  const [tab, setTab] = useState('how')
+  const logged = hasProgress(st, ex.id)
   const fav = isFav(st, ex.id)
+  const custom = isCustomEx(ex)
+  const best = bestLine(st, ex)
+  const muscles = musclesOfEx(ex)
+  const steps = instrFor(ex)
+
+  const onTab = v => {
+    if (v === 'how' || !logged) { setTab(v); return }
+    if (v === 'history' && inWorkout()) { exerciseHistorySheet(ex.id); return }
+    const path = '/progress/strength?ex=' + encodeURIComponent(ex.id) + (v === 'history' ? '&view=sets' : '')
+    const replace = onSheetEntry()
+    close()
+    visit(path, { replace })
+  }
   const flipFav = () => {
     let on = false
     update(s => { on = toggleFav(s, ex.id) })
-    toast(on ? t('Added to favourites') : t('Removed from favourites'))
+    const name = exerciseNameText(ex)
+    ui().toast(on ? t('Added {0} to favourites', name) : t('Removed {0} from favourites', name), {
+      action: t('Undo'), icon: on ? 'starFill' : 'star',
+      onAction: () => update(s => { if (isFav(s, ex.id) === on) toggleFav(s, ex.id) }),
+    })
   }
-  return <>
-    <Inline justify="between" gap={4} align="start">
-      <h3 className={'exdetail-name ' + exerciseNameClass(ex)}>{exerciseNameFor(ex)}</h3>
-      <button className={'iconbtn fav-btn' + (fav ? ' on' : '')} aria-pressed={fav}
-        aria-label={fav ? t('Remove from favourites') : t('Add to favourites')} onClick={flipFav}>
-        <Icon name={fav ? 'starFill' : 'star'} />
-      </button>
-    </Inline>
-    <Media ex={ex} />
-    <Inline gap={3} wrap className="mt-5 mb-5">
-      {detailTags(ex).map(tg => <Tag key={tg.key} tone={tg.acc ? 'acc' : undefined} icon={tg.icon}>{tg.label}</Tag>)}
-    </Inline>
-    {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
-    {best > 0 && <Inline gap={2.5} className="small mb-3"><Icon name="trophy" className="ink-warn" style={{ fontSize: 14 }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</Inline>}
-    <Button variant="primary" icon="plus" className="mt-5 mb-2" onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
-    {(last || charted) && <Inline gap={4} className="exd-row">
-      {last && <Button icon="history" onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
-      {charted && <Button icon="chart" trailingIcon="chevronRight" onClick={() => { const replace = onSheetEntry(); close(); visit('/progress/strength?ex=' + encodeURIComponent(ex.id), { replace }) }}>{t('Progress')}</Button>}
-    </Inline>}
-    {isCustomEx(ex) && <Inline gap={4} className="mt-4">
-      <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
-      <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
-    </Inline>}
-    {modeOf({ id: ex.id }) === 'reps' && <>
-      <SectionTitle>{t('Plate loading')}</SectionTitle>
-      <BarWeightEditor ex={ex} extra={t('You still log the total weight. This only feeds the plate line under each set.')} />
-    </>}
-    {/* The exercise's own default meaning of its weight (S.dbLoad), stamped like the loading
-        above. A routine can still pick its own on the exercise's settings. */}
-    {isBellEx(ex) && <>
-      <SectionTitle>{t('Weight means')}</SectionTitle>
-      <DbLoadPicker ex={ex} value={dbLoadFor(st, ex.id)}
-        onChange={v => update(s => { s.dbLoad = withDbLoad(s.dbLoad, ex.id, v) })} />
-    </>}
-    {/* No one-rep max on an assistance machine: the load is the help you were given, so the
-        calculator would answer "your 1RM is 23 kg" about a number that gets smaller as you get
-        stronger (issue #232). Cardio has none for the same kind of reason. */}
-    {!isCardio(ex) && !isAssisted(ex) && <OneRM ex={ex} />}
-    {instrFor(ex).length > 0 &&<><SectionTitle>{t('How to')}{getLang() !== 'en' && !instrTranslated(ex) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</SectionTitle><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
-    {/* The catalogue is community-edited (catalogue/README.md): a wrong muscle, a clumsy step or a
-        missing translation is one tap from an issue that already names the exercise. */}
-    {!isCustomEx(ex) && !ex.missing && <a className="small dim exfix-link" target="_blank" rel="noopener"
-      href={'https://github.com/steradrian/gains/issues/new?template=exercise.yml&exercise=' + encodeURIComponent(ex.id + ', ' + ex.n)}>
-      <Icon name="pencil" /> {t('Suggest a fix for this exercise')}</a>}
+
+  const head = <>
+    <div className="g-xd-head">
+      <span className="g-xd-pic"><Thumb ex={ex} /></span>
+      <span className="g-xd-meta">
+        <span className="g-xd-tags">
+          {detailTags(ex).map(tg => <DsTag key={tg.key} tone={tg.acc ? 'accent' : 'muted'}>{tg.label}</DsTag>)}
+        </span>
+        {best && <span className="g-xd-best">{best}</span>}
+      </span>
+      <span className="g-xd-acts">
+        <IconButton tone="tonal" icon={fav ? 'starFill' : 'star'} aria-pressed={fav} className={cx('g-xd-star', fav && 'on')}
+          label={fav ? t('Remove from favourites') : t('Add to favourites')} onClick={flipFav} />
+        {custom && <IconButton tone="tonal" icon="more" label={t('Exercise options')} onClick={() => exerciseMenuSheet(ex, close)} />}
+      </span>
+    </div>
+    <Tabs ariaLabel={t('Exercise views')} value={tab} onChange={onTab} controls={panelId}
+      options={[{ value: 'how', label: t('How to') }, { value: 'progress', label: t('Progress') }, { value: 'history', label: t('History') }]} />
   </>
+
+  return (
+    <BottomSheet type="full" title={<span className={cx('g-xd-name', exerciseNameClass(ex))}>{exerciseNameFor(ex)}</span>} head={head}>
+      <div id={panelId} role="tabpanel" className="g-xd-panel">
+        {tab !== 'how' ? <p className="g-xd-empty">{t('No sessions logged yet')}</p> : <>
+          <Media ex={ex} compact />
+          {descFor(ex) && <p className="g-xd-desc">{descFor(ex)}</p>}
+          {(muscles.primary.length > 0 || muscles.secondary.length > 0) && (
+            <div className="g-xd-muscles">
+              <BodyMap tone="light" body={st.body} levels={muscles.levels} width={74} />
+              <span className="g-xd-mlines">
+                {muscles.primary.length > 0 && <span><b>{t('Primary')}</b> · {muscles.primary.join(', ')}</span>}
+                {muscles.secondary.length > 0 && <span><b>{t('Additional')}</b> · {muscles.secondary.join(', ')}</span>}
+              </span>
+            </div>
+          )}
+          {steps.length > 0 && <>
+            {getLang() !== 'en' && !instrTranslated(ex) && <p className="g-xd-note">{t('instructions in English')}</p>}
+            <ol className="g-xd-steps">
+              {steps.map((s, i) => <li key={i}><span aria-hidden="true">{i + 1}</span>{s}</li>)}
+            </ol>
+          </>}
+          <div className="g-xd-rows">
+            <DetailRow icon="plus" title={t('Add to my plan')} sub={t('Pick a routine. Sets, reps and weight come next.')} onClick={() => addToRoutineSheet(ex)} />
+            {/* The catalogue is community-edited (catalogue/README.md): a wrong muscle, a clumsy step or
+                a missing translation is one tap from an issue that already names the exercise. */}
+            {!custom && !ex.missing && <DetailRow icon="pencil" title={t('Suggest a fix for this exercise')} sub={t('Opens the catalogue on GitHub')}
+              onClick={() => openExternal('https://github.com/steradrian/gains/issues/new?template=exercise.yml&exercise=' + encodeURIComponent(ex.id + ', ' + ex.n))} />}
+          </div>
+          <ExerciseSetup ex={ex} st={st} />
+        </>}
+      </div>
+    </BottomSheet>
+  )
 }
-export const exerciseDetailSheet = (ex, { progress = false } = {}) => ui().openSheet(close => <ExerciseDetail ex={ex} close={close} progress={progress} />)
+
+// "Your setup": how this exercise is loaded wherever it is logged. Plate loading opens its own
+// drawer; Weight means (S.dbLoad, stamped like the loading) is picked here. A routine can still
+// pick its own meaning on the exercise's settings.
+function ExerciseSetup({ ex, st }) {
+  const plates = modeOf({ id: ex.id }) === 'reps'
+  const bell = isBellEx(ex)
+  if (!plates && !bell) return null
+  return (
+    <div className="g-xd-setup">
+      <h3>{t('Your setup')}</h3>
+      {plates && <DetailRow icon="plate" title={t('Plate loading')} value={loadSummary(st, ex)} onClick={() => barWeightSheet(ex.id)} />}
+      {bell && <>
+        <DetailRow icon="dumbbell" title={t('Weight means')} />
+        <DbLoadPicker ex={ex} value={dbLoadFor(st, ex.id)} onChange={v => update(s => { s.dbLoad = withDbLoad(s.dbLoad, ex.id, v) })} />
+      </>}
+    </div>
+  )
+}
+
+// The second argument ({ progress }, from Search) is still accepted; every drawer now has Progress
+// and History, so it changes nothing.
+export const exerciseDetailSheet = ex => ui().openSheet(close => <ExerciseDrawer ex={ex} close={close} />, { variant: 'ds' })
 
 /* ============================ exercise history ============================ */
 // What you did on this exercise before, reachable mid-workout (issue #43): the curve first,
@@ -205,6 +305,10 @@ function ExerciseHistory({ exId }) {
 export const exerciseHistorySheet = exId => ui().openSheet(close => <ExerciseHistory exId={exId} close={close} />)
 
 /* ============================ add to routine ============================ */
+// The new entry's config starts from defaultConfig (lib/history.js), which a custom exercise's own
+// "How you log it" seeds (customExDefaults); the routine's existing entries are never touched.
+// While a workout runs this still works: "New routine" creates the routine and opens its editor,
+// and starts nothing.
 function AddToRoutine({ ex, close }) {
   const st = useStore(s => s.S)
   const pick = rid => {
@@ -243,133 +347,19 @@ function AddToRoutine({ ex, close }) {
 export const addToRoutineSheet = ex => ui().openSheet(close => <AddToRoutine ex={ex} close={close} />)
 
 /* ============================ custom exercises (issue #11) ============================ */
-// Name + body part is all it takes — the exercise then behaves like any built-in one
-// (planning, logging, PRs, stats). A photo, GIF or video of your own, and a link to a video or
-// guide, are optional (components/CustomMediaField.jsx): the state keeps a small reference to the
-// file, never the file itself, and the link is cleaned on save and again whenever it is opened.
-function CustomExForm({ existing, prefill, onDone, close }) {
-  const nameRef = useRef(null)
-  const onNameFocus = useSheetKeyboard(nameRef)
-  const [n, setN] = useState(existing ? existing.n : (prefill || ''))
-  const [bp, setBp] = useState(existing ? existing.bp : '')
-  const [eq, setEq] = useState(existing ? (existing.eq || '') : '')
-  const storedEq = existing && typeof existing.eq === 'string' && existing.eq && !ALL_EQUIPMENT.includes(existing.eq) ? existing.eq : null
-  const [desc, setDesc] = useState(existing ? (existing.desc || '') : '')
-  const [media, setMedia] = useState(() => mediaOf(existing))
-  // Whether this form changed the media at all. An edit that did not touch it writes back what the
-  // exercise had, byte for byte: a ref from a newer version of the app (a codec or type this one
-  // does not know) reads as nothing here, and re-normalizing it on a rename would delete it on
-  // every device.
-  const [mediaTouched, setMediaTouched] = useState(false)
-  const [url, setUrl] = useState(existing && typeof existing.url === 'string' ? existing.url : '')
-  const onMedia = patch => {
-    if ('media' in patch) { setMedia(patch.media); setMediaTouched(true) }
-    if ('url' in patch) setUrl(patch.url)
-  }
-  const [primaries, setPrimaries] = useState(() => {
-    if (existing && Array.isArray(existing.primaries) && existing.primaries.length) return [...existing.primaries]
-    if (existing?.bp === 'cardio') return ['cardiovascular system']
-    const norm = hasExplicitMuscleMetadata(existing || {}) ? normalizeMuscleGroups(existing || {}) : []
-    return norm.length ? [norm[0]] : []
-  })
-  const [secondaries, setSecondaries] = useState(() => {
-    if (existing && Array.isArray(existing.primaries) && existing.primaries.length) return [...(existing.secondaries || [])]
-    const norm = hasExplicitMuscleMetadata(existing || {}) ? normalizeMuscleGroups(existing || {}) : []
-    return norm.slice(1)
-  })
-  // Every primary chip this sheet saw a tap on, in that order. `primaries` alone cannot say what the
-  // user reached for first: an existing exercise seeds it in the map's order, because that is how the
-  // muscles are stored. The taps are the only record of the user's own order, and they decide the
-  // target when the one the exercise had is un-ticked.
-  const [primaryTaps, setPrimaryTaps] = useState([])
-  const togglePrimary = value => {
-    setPrimaryTaps(current => [...current, value])
-    setPrimaries(current => current.includes(value) ? current.filter(m => m !== value) : [...current, value])
-  }
-  const toggleSecondary = value => setSecondaries(current => current.includes(value) ? current.filter(m => m !== value) : [...current, value])
-  const save = () => {
-    const name = n.trim()
-    if (!name) { toast(t('Give it a name')); return }
-    if (!bp) { toast(t('Pick a body part')); return }
-    if (!eq) { toast(t('Pick equipment')); return }
-    // An exercise kept under its own name is not a duplicate, even when the catalogue has one
-    // spelled the same (an imported "trap bar deadlift"): only a new or changed name is checked.
-    const renamed = !existing || name.toLowerCase() !== String(existing.n || '').trim().toLowerCase()
-    const dup = renamed && allExercises(S()).find(e => e.n.toLowerCase() === name.toLowerCase() && e.id !== (existing || {}).id)
-    if (dup) { toast(t('“{0}” already exists', dup.n)); return }
-    const d = desc.trim().slice(0, 1000)
-    // An empty field removes the link; anything else has to be a web address.
-    const link = url.trim() ? cleanUrl(url) : null
-    if (url.trim() && !link) { toast(t('That link is not a web address')); return }
-    const keepMedia = !!existing && !mediaTouched
-    const ref = keepMedia ? null : normalizeMediaRef(media)
-    // Stored in the map's order, not the order the chips were tapped in — the tags on the exercise
-    // used to shuffle with every edit.
-    const prim = bp === 'cardio' ? ['cardiovascular system'] : inMuscleOrder(primaries)
-    const sm = inMuscleOrder(secondaries.filter(m => !prim.includes(m)))
-    const groups = [...prim, ...sm]
-    // The one-word target (the library row, the picker, the Muscles view) is not the sorted list's
-    // head — a hip thrust with Traps as an extra primary is not a Traps exercise. It is the primary
-    // tapped first, and an edit keeps the exercise's target as long as that muscle is still a primary.
-    // Once that muscle is gone the next answer is the first one tapped here that survived — a tap that
-    // only turned a chip off says nothing and is skipped with it. The sorted list is the last resort,
-    // for the user who drops the target and adds nothing in its place.
-    const tg = (existing && prim.includes(existing.tg)) ? existing.tg : (primaryTaps.find(m => prim.includes(m)) || prim[0] || '')
-    let id = existing && existing.id
-    const extra = c => {
-      if (!keepMedia) { if (ref) c.media = ref; else delete c.media }
-      if (link) c.url = link; else delete c.url
-    }
-    if (existing) update(s => { const c = (s.customEx || []).find(x => x.id === id); if (c) {
-      c.n = name; c.bp = bp; c.desc = d; c.tg = tg; c.sm = sm; c.muscleGroups = groups; c.primaries = prim; c.secondaries = sm; c.eq = eq
-      extra(c)
-    } })
-    else {
-      id = 'c' + uid()
-      update(s => { const c = { id, n: name, bp, desc: d, tg, sm, muscleGroups: groups, primaries: prim, secondaries: sm, eq, custom: true }; extra(c); (s.customEx = s.customEx || []).push(c) })
-    }
-    // The file goes to the server now rather than after the state's own debounce: another device
-    // that sees the reference first shows a tile until it arrives.
-    if (ref) syncMedia({ force: true })
-    close()
-    toast(existing ? t('Saved') : t('“{0}” created', name))
-    onDone && onDone(EXIDX[id])
-  }
-  return <>
-    <SheetHeader title={existing ? t('Edit custom exercise') : t('Create your own exercise')} />
-    <div className="muted small mb-6">{t('Name it and pick a body part. It works just like any other exercise.')}</div>
-    <input ref={nameRef} className="input" placeholder={t('Exercise name')} maxLength={80} value={n} onFocus={onNameFocus} onChange={e => setN(e.target.value)} />
-    <ChipRow className="mt-6 mb-6">
-      {BODYPARTS.map(b => <Chip key={b} on={bp === b} onClick={() => setBp(b)}>{t(b)}</Chip>)}
-    </ChipRow>
-    <ChipRow className="mt-6 mb-6">
-      {ALL_EQUIPMENT.map(k => (<Chip key={k} on={eq === k} onClick={() => setEq(k)}>{t(k)}</Chip>))}
-      {/* An imported exercise can carry equipment the list does not have (`custom` from a CSV or
-          Hevy import). It stays a chip of its own, picked, so Save does not stop on "Pick equipment". */}
-      {storedEq && <Chip key={storedEq} on={eq === storedEq} onClick={() => setEq(storedEq)}>{t(storedEq)}</Chip>}
-    </ChipRow>
-    {bp && <>
-      {bp !== 'cardio' && <MultiSelectRow title={t('Primary muscle groups')} sheetTitle={t('Primary muscle groups')}
-        values={primaries}
-        options={MUSCLES.map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
-        onToggle={togglePrimary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
-      }
-      <MultiSelectRow title={t('Additional muscle groups')} sheetTitle={t('Additional muscle groups')}
-        values={secondaries}
-        options={MUSCLES.filter(m => !primaries.includes(m)).map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
-        onToggle={toggleSecondary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
-    </>}
-    {bp === 'cardio' && <Inline gap={2.5} className="small dim mb-5"><Icon name="figureRun" className="fs-footnote" />{t('Cardio exercises log time + speed instead of weight × reps.')}</Inline>}
-    <textarea className="input" rows={4} maxLength={1000} placeholder={t('Description (optional): setup, cues, anything you want to remember')}
-      value={desc} onChange={e => setDesc(e.target.value)} />
-    <CustomMediaField media={media} url={url} onChange={onMedia} />
-    <SheetActions>
-      <Button variant="primary" onClick={save}>{existing ? t('Save') : t('Create exercise')}</Button>
-      {existing ? <Button variant="danger" icon="trash" onClick={() => { close(); deleteCustomEx(existing) }}>{t('Delete exercise')}</Button> : null}
-    </SheetActions>
-  </>
+// The drawer host of the Create exercise form (T6.4), for the callers that sit inside a drawer or
+// the workout (the picker, the exercise settings, the + sheet, Search). The page host is
+// views/train/exercises/CreateExercise.jsx.
+function CustomExerciseDrawer({ existing, prefill, onDone, close }) {
+  return (
+    <BottomSheet type="full" title={existing ? t('Edit custom exercise') : t('New exercise')}>
+      <CustomExerciseForm existing={existing} prefill={prefill} tone="light"
+        onSaved={ex => { close(); onDone?.(ex) }}
+        onDelete={existing ? () => { close(); deleteCustomEx(existing) } : undefined} />
+    </BottomSheet>
+  )
 }
-export const customExSheet = (existing, onDone, prefill) => ui().openSheet(close => <CustomExForm existing={existing} prefill={prefill} onDone={onDone} close={close} />)
+export const customExSheet = (existing, onDone, prefill) => ui().openSheet(close => <CustomExerciseDrawer existing={existing} prefill={prefill} onDone={onDone} close={close} />, { variant: 'ds' })
 
 export function deleteCustomEx(ex, afterDelete) {
   if (S().active?.entries.some(e => e.id === ex.id)) { toast(t('Finish your current workout first')); return }
