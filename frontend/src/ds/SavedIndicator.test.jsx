@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
 // SavedIndicator: idle shows nothing but keeps its live region; the other states say where the
 // last change is, on a light header or as the stage's glass pill (board T1.14).
+import { act } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import SavedIndicator from './SavedIndicator.jsx'
 import { click, useView } from './render.test-util.js'
+import { PRESETS, setMotionDriver } from '../lib/motion.js'
+import { fakeMotionDriver } from '../lib/motion.test-util.js'
 
 const view = useView()
 const pill = () => view.host.querySelector('.g-saved')
@@ -58,6 +61,25 @@ describe('SavedIndicator', () => {
     view.render(<SavedIndicator state="offline" waiting={2} />)
     expect(pill().tagName).toBe('SPAN')
     expect(view.host.querySelector('button')).toBeNull()
+  })
+
+  it('the stage pill, once Saved has had its say, stays while its row closes, then goes', async () => {
+    const driver = fakeMotionDriver()
+    setMotionDriver(driver)
+    try {
+      view.render(<SavedIndicator state="saved" tone="stage" />)
+      const el = pill()
+      view.render(<SavedIndicator tone="stage" />)
+      expect(pill()).toBe(el)
+      expect(el.textContent).toBe('Saved')
+      expect(driver.on(el).map(a => a.keyframes)).toEqual([PRESETS.foldAway.exit.keyframes])
+      expect(driver.on(el.parentElement).at(-1).keyframes.at(-1)).toEqual({ height: '0px' })
+      await act(async () => { for (const a of driver.running()) a.finish() })
+      expect(pill()).toBeNull()
+      expect(view.host.firstElementChild.getAttribute('aria-live')).toBe('polite')
+    } finally {
+      setMotionDriver(null)
+    }
   })
 
   it('refuses a state or tone the design system does not have, in development', () => {
