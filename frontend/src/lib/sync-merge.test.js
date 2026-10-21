@@ -506,6 +506,33 @@ describe('custom exercises keep the version edited last', () => {
     stampCustomEx(next, again, 2000)
     expect(again.map(c => c._ts)).toEqual([1000, 6, 1000])
   })
+
+  // "How you log it" (T6.4) is two new fields on the exercise; they are stamped and merged per
+  // field like the rest, so a mode set on one device and a rename on the other both survive.
+  it('the log mode set on A and a rename on B, made later, both survive the merge', () => {
+    const before = [cx({ _ts: 5 })]
+    const onA = clone(before)
+    onA[0].mode = 'reps'
+    onA[0].bodyweight = true
+    stampCustomEx(before, onA, 100)
+    const onB = clone(before)
+    onB[0].n = 'sandbag bear hug carry'
+    stampCustomEx(before, onB, 200)
+    for (const m of [mergeStates(base({ _ts: 100, customEx: onA }), base({ _ts: 200, customEx: onB })),
+      mergeStates(base({ _ts: 200, customEx: onB }), base({ _ts: 100, customEx: onA }))]) {
+      expect(m.customEx[0]).toMatchObject({ n: 'sandbag bear hug carry', mode: 'reps', bodyweight: true })
+    }
+  })
+
+  it('Weight × reps after Reps only takes the flag off on the other device too', () => {
+    const before = [cx({ mode: 'reps', bodyweight: true, _ts: 5 })]
+    const later = clone(before)
+    delete later[0].bodyweight
+    stampCustomEx(before, later, 300)
+    const m = mergeStates(base({ _ts: 50, customEx: before }), base({ _ts: 40, customEx: later }))
+    expect(m.customEx[0].bodyweight).toBeUndefined()
+    expect(m.customEx[0].mode).toBe('reps')
+  })
 })
 
 

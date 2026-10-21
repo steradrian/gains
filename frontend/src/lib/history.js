@@ -3,7 +3,8 @@ import { syncSupersetMeta } from './superset-meta.js'
 import { todayISO, isoOf, weekKey, weekStartOf, fmtNum } from './format.js'
 import { fmtSpeed } from './speed.js'
 import { hasIncline, inclineFrom } from './incline.js'
-import { isCardio, isBodyweightEq, isAssisted, betterWeight } from './exercises.js'
+import { isCardio, isBodyweightEq, isAssisted, betterWeight, EXIDX } from './exercises.js'
+import { customExDefaults } from './custom-exercise.js'
 import { barWeightFor } from './bar.js'
 import { phaseForSet, modeForSet, modeForEntry, isWarmupRow, isFailureSet, isDropSet, isRestPauseSet, normalizeMode, completedVolumeOf, hasCompletedWork, nextDropWeight, splitBurstReps, makeSideSet, isSideSet, syncSideAggregate, WEIGHT_ORIGIN_MANUAL, dropsOf, clustersOf } from './workout-model.js'
 import { backoffAt, backoffStepOf, backoffWeights } from './backoff.js'
@@ -204,13 +205,21 @@ export function setLabel(id, s, cfg, speedUnit) {
   // rather than "0×12", which says a set was performed with no weight and means nothing.
   return oneSide(s) + fail + effortTail(s)
 }
-// Default config for a freshly added exercise.
+// Default config for a freshly added exercise. A custom exercise's own "How you log it"
+// (customExDefaults) seeds the mode and the bodyweight flag when the caller names no mode; every
+// place that adds an exercise starts here, so an entry's own cfg.mode, once it has one, still wins.
 export function defaultConfig(id, mode) {
-  const m = mode || modeOf({ id })
-  if (m === 'cardio') return { sets: 1, min: 20, speed: 8 }
+  const own = mode ? {} : customExDefaults(EXIDX[id])
+  const m = mode || own.mode || modeOf({ id })
+  // A custom exercise logged as cardio outside the Cardio body part says so, since modeOf reads
+  // cardio from the body part alone.
+  if (m === 'cardio') return own.mode === 'cardio' && !isCardio(id) ? { sets: 1, min: 20, speed: 8, mode: 'cardio' } : { sets: 1, min: 20, speed: 8 }
   // Written only when it is true, so a barbell config is byte-for-byte what it was before
-  // the flag existed and a plan file gains nothing it does not need.
-  const bw = isBodyweightEq(id) ? { bodyweight: true } : {}
+  // the flag existed and a plan file gains nothing it does not need. A custom "Weight × reps" on
+  // body-weight equipment writes false, as the config sheet does, so the flag does not follow
+  // the equipment back to true.
+  const bwEq = isBodyweightEq(id)
+  const bw = (own.bodyweight ?? bwEq) ? { bodyweight: true } : bwEq ? { bodyweight: false } : {}
   if (m === 'time') return { sets: 3, sec: 45, weight: 0, mode: 'time', ...bw }
   return { sets: 3, reps: 10, weight: 0, mode: 'reps', ...bw }
 }

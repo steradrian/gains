@@ -1051,3 +1051,30 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-wd-card img { display: block; width: 100%; height: auto; }
 .g-wd-card-ph { display: grid; place-items: center; min-height: 260px; margin: 0; padding: 20px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-wd-share-acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+/* === Train exercises kit (Tabs, DetailRow; board T6.1) === */
+/* Tabs: text tabs over a hairline; the line slides to the chosen one. It is placed from the
+   physical left because Tabs.jsx measures the tab with offsetLeft, which is physical in both
+   directions. */
+.g-tabs { position: relative; display: flex; gap: var(--space-6); border-bottom: 1px solid var(--line); }
+.g-tabs button { appearance: none; border: 0; background: none; padding: 0; min-height: var(--tap-min); color: var(--text-3); font: 500 15px/20px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color 200ms; }
+.g-tabs button[aria-selected="true"] { color: var(--text); }
+.g-tabs-ink { position: absolute; left: 0; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--text); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), width 320ms cubic-bezier(.34,1.22,.64,1), opacity 140ms; }
+@media (prefers-reduced-motion: reduce) { .g-tabs-ink { transition: none; } }
+:root[data-motion="reduce"] .g-tabs-ink { transition: none; }
+/* DetailRow: the light drawer's row; rows that follow one another are ruled from after the inline padding */
+.g-drow { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: var(--text); text-align: start; font: inherit; text-decoration: none; position: relative; cursor: default; }
+a.g-drow, button.g-drow { cursor: pointer; }
+a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
+.g-drow + .g-drow::before { content: ""; position: absolute; top: 0; inset-inline-start: 16px; inset-inline-end: 0; border-top: 1px solid var(--line); }
+.g-drow-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-drow-ic .g-icon { width: 20px; height: 20px; stroke-width: 2; }
+.g-drow-ic-tint { background: var(--accent-tint); color: var(--accent-text); }
+.g-drow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-drow-body b { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-drow-body span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-drow-body .g-danger { color: var(--danger); }
+.g-drow-val { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text-2); text-align: end; }
+.g-drow-chev { width: 18px; height: 18px; color: var(--text-3); stroke-width: 2.2; flex: none; }
+/* A row is as wide as the drawer's scrolling body, which would clip a ring drawn outside it */
+.g-drow:focus-visible { outline-offset: -2px; }
