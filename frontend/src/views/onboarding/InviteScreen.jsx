@@ -14,6 +14,7 @@ import { codeOf } from '../../lib/onboarding/flow.js'
 import { askAddDeviceData } from '../../sheets.jsx'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
+import { SETTINGS_ROOT } from '../settings/paths.js'
 
 // 0 Invite landing, /join/<code> (ux-onboarding §3, §6; boards O1.0-O1.5): the invite is checked
 // on arrival, without using it up, so a bad one shows here with a next step instead of after the
@@ -67,8 +68,11 @@ export default function InviteScreen() {
   if (user) {
     return <StepScreen noNav far titleId="ob-inv-t" title={t('You’re already in')}
       sub={t('This phone is signed in as {0}. The invite stays unused, so it still works for someone else.', user.name)}
-      footer={<Button onClick={() => navigate('/home', { replace: true })}>{t('Go to Today')}</Button>}>
-      <StageNotice icon="users" title={t('Signed in as {0}', user.name)}>{t('To make a second profile, sign out first in Settings › Account.')}</StageNotice>
+      footer={<>
+        <Button onClick={() => navigate('/home', { replace: true })}>{t('Go to Today')}</Button>
+        <Button variant="ghost" onClick={() => navigate(SETTINGS_ROOT)}>{t('Open Settings')}</Button>
+      </>}>
+      <StageNotice icon="users" title={t('Signed in as {0}', user.name)}>{t('To make a second profile, sign out first.')}</StageNotice>
     </StepScreen>
   }
   // No scene while the check is out: the answer brings the inviter's initial and a subtitle, which

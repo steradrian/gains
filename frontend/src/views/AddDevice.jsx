@@ -156,7 +156,7 @@ export default function AddDevice() {
   const joining = info && info.code === code ? info : null
   const elsewhere = joining && joining.id !== user?.id
   const badCode = fail?.kind === 'code'
-  const row = [{ icon: 'smartphone', title: t('Where is the code?'), sub: t('On your other device: Settings › Account') }]
+  const row = [{ icon: 'smartphone', title: t('Where is the code?'), sub: t('On your other device, when you add a device') }]
   return (
     <StageScreen>
       <form className="si-col" onSubmit={submit} noValidate>
@@ -165,7 +165,7 @@ export default function AddDevice() {
           <h1>{t('Add this device')}</h1>
           <p>{joining
             ? t('Create a passkey on this device for the profile “{0}”. It signs you in here from now on.', joining.name)
-            : t('Enter the code your other device shows under Settings › Account › Add another device. This device then gets a passkey of its own.')}</p>
+            : t('Enter the code your other device shows. This device then gets a passkey of its own.')}</p>
         </div>
         <div className="si-code">
           <CodeCells length={CODE_LENGTH} label={t('Code from your other device')} value={code} onChange={v => { setCode(v); if (badCode) setFail(null) }} invalid={badCode} inputRef={inputRef} />

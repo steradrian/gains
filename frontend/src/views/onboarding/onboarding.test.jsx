@@ -186,6 +186,16 @@ describe('0 Invite', () => {
     expect(page.querySelector('h1').textContent).toBe('You’re already in')
     expect(page.querySelector('.ob-sub').textContent).toContain('signed in as Maria')
     expect(page.querySelector('.ob-notice h2').textContent).toBe('Signed in as Maria')
+    // No "Settings › Account" in the notice: the way to sign out is a button.
+    expect(page.querySelector('.ob-notice').textContent).not.toContain('›')
+    click(button(page, 'Open Settings'))
+    expect(where(page)).toBe('/me')
+  })
+
+  it('and Go to Today leaves it too', async () => {
+    signedIn()
+    const page = mount('/join/AB12')
+    await flush()
     click(button(page, 'Go to Today'))
     expect(where(page)).toBe('/home')
   })

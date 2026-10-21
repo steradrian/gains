@@ -223,7 +223,7 @@ describe('S0.3 Having trouble?', () => {
     expect(sheet.textContent).toContain('Passkeys need Safari or Chrome, with Face ID, Touch ID or a screen lock turned on.')
     expect(sheet.textContent).toContain('Your other device gets you in, then this one gets its own passkey')
     // No password where the instance has none.
-    expect(sheet.textContent).not.toContain('If you set one in Settings › Account')
+    expect(sheet.textContent).not.toContain('If you set one earlier')
   })
 
   it('the code row closes the drawer and goes to the Add this device screen', async () => {
@@ -237,7 +237,9 @@ describe('S0.3 Having trouble?', () => {
     const { sheet, close } = await open({ password_login: true })
     const rows = [...sheet.querySelectorAll('.g-glist-row')]
     expect(rows).toHaveLength(2)
-    expect(rows[1].textContent).toContain('If you set one in Settings › Account')
+    // The row is the control: it signs in with the password, so it points nowhere else in prose.
+    expect(rows[1].textContent).toContain('If you set one earlier')
+    expect(rows[1].textContent).not.toContain('›')
     const before = mocks.sheets.length
     act(() => rows[1].click())
     // the drawer under it is not closed ahead of it: the panel's back returns to it
