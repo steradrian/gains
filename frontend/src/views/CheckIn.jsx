@@ -27,7 +27,8 @@ export function moveGymCard(cards, from, to) {
   return next
 }
 
-// Gym check-in (reached from the Home "Check in" card; app and PWA alike). Shows each saved
+// The gym card (route /train/checkin; "Check in" is the Coach's weekly check-in now, owner
+// question 7; app and PWA alike). Shows each saved
 // membership code as a QR the turnstile can read, swiped through horizontally, with a trailing
 // "+" to add another. We only ever store the code's value + symbology; the QR is regenerated from
 // it here every time (see lib/qr.js), so nothing sensitive is kept as an image.
@@ -69,7 +70,7 @@ export default function CheckIn() {
   }
 
   return <div>
-    <Page title={t('Check in')} sub={cards.length ? t('Show this at the gym') : t('Add your gym card')} />
+    <Page title={t('Gym card')} sub={cards.length ? t('Show this at the gym') : t('Add your gym card')} />
 
     <div className="ci-rail" ref={railRef} onScroll={onScroll}>
       {cards.map((card, i) => <CardFace

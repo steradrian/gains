@@ -428,3 +428,42 @@ test('the app\'s active equipment profile stands in when the Coach was told no e
   S.coach.profile.equipment = ['barbell'];
   assert.deepEqual(payload.build(S, { handle: handleFor('u1'), kind: 'create' }).coachProfile.equipment, ['barbell']);
 });
+
+/* Train coach: the weekly check-in rides with a review, by name and bounded, and nowhere else. */
+test('a review carries the weekly check-in it was sent, cleaned; other jobs never do', () => {
+  const S = sampleState();
+  const checkIn = { week: '2026-10-12', feel: 'much', sleep: 'poor', note: 'Shoulder a bit tight', extra: 'dropped' };
+  const review = payload.build(S, { handle: handleFor('u1'), kind: 'review', checkIn });
+  assert.deepEqual(review.checkIn, { week: '2026-10-12', feel: 'much', sleep: 'poor', note: 'Shoulder a bit tight' });
+  assert.equal('checkIn' in payload.build(S, { handle: handleFor('u1'), kind: 'review' }), false);
+  assert.equal('checkIn' in payload.build(S, { handle: handleFor('u1'), kind: 'create', checkIn }), false);
+  assert.equal('checkIn' in payload.build(S, { handle: handleFor('u1'), kind: 'debrief', checkIn }), false);
+  // The synced copy's check-ins are never read: only what the request carried.
+  S.coachCheckIns = { '2026-10-12': { feel: 'hard', _ts: 1 } };
+  assert.equal('checkIn' in payload.build(S, { handle: handleFor('u1'), kind: 'review' }), false);
+});
+
+test('cleanCheckIn keeps the words it knows and cuts the note; nothing answered is no check-in', () => {
+  assert.deepEqual(payload.cleanCheckIn({ week: '2026-10-12', feel: 'meh', sleep: 'ok', note: 'n'.repeat(900) }),
+    { week: '2026-10-12', feel: null, sleep: 'ok', note: 'n'.repeat(payload.CHECKIN_NOTE_MAX) });
+  assert.equal(payload.cleanCheckIn({ week: '2026-10-12' }), null);
+  assert.equal(payload.cleanCheckIn({ week: 'last week', feel: 'hard' }), null);
+  assert.equal(payload.cleanCheckIn({ week: '2026-10-12', note: { a: 1 } }), null);
+  assert.equal(payload.cleanCheckIn('hard'), null);
+  assert.equal(payload.cleanCheckIn(null), null);
+});
+
+test('validCheckIn: an ISO week, the enums, a bounded note, and at least one answer', () => {
+  const ok = { week: '2026-10-12', feel: 'right' };
+  assert.equal(payload.validCheckIn(ok), true);
+  assert.equal(payload.validCheckIn({ week: '2026-10-12', sleep: 'good', note: 'fine' }), true);
+  assert.equal(payload.validCheckIn({ ...ok, feel: null, note: 'only a note' }), true);
+  assert.equal(payload.validCheckIn({ ...ok, feel: 'meh' }), false);
+  assert.equal(payload.validCheckIn({ ...ok, sleep: 'great' }), false);
+  assert.equal(payload.validCheckIn({ ...ok, note: 'n'.repeat(payload.CHECKIN_NOTE_MAX + 1) }), false);
+  assert.equal(payload.validCheckIn({ ...ok, note: 42 }), false);
+  assert.equal(payload.validCheckIn({ ...ok, week: '12/10/2026' }), false);
+  assert.equal(payload.validCheckIn({ week: '2026-10-12', note: '   ' }), false);
+  assert.equal(payload.validCheckIn([ok]), false);
+  assert.equal(payload.validCheckIn('right'), false);
+});

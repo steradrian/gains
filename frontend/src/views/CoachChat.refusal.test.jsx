@@ -89,8 +89,8 @@ afterEach(() => {
 
 const mount = () => act(() => { root.render(<CoachChat />) })
 const send = async text => {
-  act(() => { type(host.querySelector('.composer textarea'), text) })
-  await act(async () => { host.querySelector('.composer .send').dispatchEvent(new Event('click', { bubbles: true })); await Promise.resolve() })
+  act(() => { type(host.querySelector('.tco-composer textarea'), text) })
+  await act(async () => { host.querySelector('.tco-send').dispatchEvent(new Event('click', { bubbles: true })); await Promise.resolve() })
 }
 const chip = re => [...host.querySelectorAll('button')].find(b => re.test(b.textContent || ''))
 

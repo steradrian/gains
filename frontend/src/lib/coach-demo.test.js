@@ -240,6 +240,14 @@ describe('coach-demo — the review', () => {
     expect(think(() => demoReview(S)).changes.map(c => c.type)).toEqual(['swap-exercise', 'sets'])
   })
 
+  it('says it read a weekly check-in when one rides along, and only then', () => {
+    const without = think(() => demoReview(state())).notes
+    demoResolve()
+    const withIt = think(() => demoReview(state(), { week: '2026-09-14', feel: 'hard' })).notes
+    expect(withIt).toHaveLength(without.length + 1)
+    expect(withIt.slice(1)).toEqual(without)
+  })
+
   it('reports the last nine sessions as its evidence window', () => {
     const workouts = Array.from({ length: 12 }, (_, i) => workout({ id: 'w' + i, d: day(12 - i) }))
     const p = think(() => demoReview(state({ workouts })))

@@ -400,6 +400,39 @@ describe('missedSeen keeps each day as answered last', () => {
   })
 })
 
+// Train coach: the weekly Coach check-in (lib/coach-checkin.js), one stamped entry per week, so
+// weeks checked in on different devices are all kept and an Undo holds against the older answer.
+describe('coachCheckIns keeps each week as saved last', () => {
+  const W1 = '2026-10-05', W2 = '2026-10-12'
+  const entry = (feel, _ts) => ({ feel, sleep: 'ok', note: '', _ts })
+
+  it('weeks checked in on different devices are all kept, whichever copy is newer', () => {
+    const phone = base({ _ts: 100, coachCheckIns: { [W1]: entry('hard', 90) } })
+    const desk = base({ _ts: 200, workouts: [workout('w2')], coachCheckIns: { [W2]: entry('easy', 150) } })
+    for (const m of [mergeStates(phone, desk), mergeStates(desk, phone)]) {
+      expect(m.coachCheckIns[W1].feel).toBe('hard')
+      expect(m.coachCheckIns[W2].feel).toBe('easy')
+    }
+  })
+
+  it('the same week keeps the answer saved last, and a stamped clear (Undo) beats an older answer', () => {
+    const older = base({ _ts: 300, coachCheckIns: { [W2]: entry('hard', 100) } })
+    const newer = base({ _ts: 50, coachCheckIns: { [W2]: entry('right', 120) } })
+    expect(mergeStates(older, newer).coachCheckIns[W2].feel).toBe('right')
+    expect(mergeStates(newer, older).coachCheckIns[W2].feel).toBe('right')
+    const cleared = base({ _ts: 10, coachCheckIns: { [W2]: { _ts: 130 } } })
+    expect(mergeStates(newer, cleared).coachCheckIns[W2].feel).toBeUndefined()
+  })
+
+  it('a change re-stamps the entry it wrote', () => {
+    const prev = base({ _ts: 500, coachCheckIns: {} })
+    const next = clone(prev)
+    next.coachCheckIns = { [W2]: entry('much', 1) }
+    stampChange(prev, next, 900)
+    expect(next.coachCheckIns[W2]._ts).toBeGreaterThan(500)
+  })
+})
+
 // Plate loading (lib/plates.js): an exercise's loading and each unit's plate inventory are
 // stamped like a Structural Balance override, the way back to the default included, so the
 // change made last survives a conflict either way round. A plain key union let the copy that was

@@ -72,6 +72,8 @@ import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
 import TrainHub from './views/TrainHub.jsx'
+import PlansScreen from './views/train/plans/PlansScreen.jsx'
+import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
 import MealCatalog from './views/MealCatalog.jsx'
 import Foods from './views/Foods.jsx'
@@ -303,6 +305,9 @@ function Shell() {
               <Route path="/train/coach/intake" element={<CoachIntake />} />
               <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
               <Route path="/train/coach/setup" element={<CoachSetup />} />
+              {/* Train slice 6 routes: Ready-made plans and a plan's preview. Gym setup is /me/equipment (SettingsRoute). */}
+              <Route path="/train/plans" element={<PlansScreen />} />
+              <Route path="/train/plans/:id" element={<PlanPreview />} />
               {/* Nutrition */}
               <Route path="/food" element={<FoodHub />} />
               <Route path="/food/meals" element={<MealCatalog recipes={false} />} />

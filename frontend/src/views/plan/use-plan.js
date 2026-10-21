@@ -15,6 +15,7 @@ import { moved } from '../../lib/use-list-reorder.js'
 import { workoutControls } from '../../lib/workout-controls.js'
 import { confirmSheet, dayOverrideSheet, menuSheet, planToolsSheet, starterPlanSheet } from '../../sheets.jsx'
 import { useTodayDate } from '../today/use-today.js'
+import { useCoachBanner } from '../train/coach/use-coach-banner.js'
 import { railDay } from '../train/use-train.js'
 import { workoutsSheet } from '../train/workouts-sheet.js'
 import { takeOutOfLoop } from './plan-actions.js'
@@ -165,14 +166,15 @@ export function subOf(S, { mode, seq, empty }) {
  *     setMode(v), setSeq(ids), reorder(from, to), takeOut(id), addToLoop(), adopt(), startPass(),
  *     startNewPass(), discardBroken(), openDay(iso), openMenu(), openVolume(), addRoutines(), pickPlan() }
  *
- * `coach` is always null for now: a Coach proposal is held by the server (or the phone's device
- * file) and read only by the chat's status poll (views/CoachChat.jsx useCoachStatus); the store
- * keeps no pending proposal for this page to show (owner question 5, slice 6).
+ * `coach` is `{ title, body, onReview, onDismiss }` while a Coach review waits, else null. The
+ * proposal is held by the server (or the phone's device file), not the store, so it comes from the
+ * Coach page's own status poll (views/train/coach/use-coach-banner.js).
  */
 export function usePlan() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const today = useTodayDate()
+  const coach = useCoachBanner()
   const update = mut => useStore.getState().update(mut)
 
   const mode = scheduleModeOf(S)
@@ -250,7 +252,7 @@ export function usePlan() {
     weeks,
     alsoFixed: mode === 'rotation' ? alsoFixedOf(S, today, seq) : [],
     volume: empty ? null : volumeOf(S),
-    coach: null,
+    coach,
     empty,
     setMode, setSeq,
     reorder: (from, to) => setSeq(moved(seq, from, to)),
