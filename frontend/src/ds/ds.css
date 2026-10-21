@@ -526,7 +526,6 @@ button.g-lf-add[aria-disabled="true"] { opacity: .6; cursor: default; }
 .g-la-food { display: grid; gap: 2px; }
 .g-la-name { font: 700 20px/26px var(--font-sans); overflow-wrap: anywhere; }
 .g-la-sub { font: 500 15px/20px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
-.g-la-link { appearance: none; border: 0; background: none; padding: 0; font: inherit; color: var(--accent-text); text-decoration: underline; cursor: pointer; }
 .g-la-field { display: grid; gap: 6px; }
 .g-la-flabel { font: 600 13px/18px var(--font-sans); letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-3); }
 .g-la-stp { display: flex; align-items: center; gap: 12px; }
@@ -863,6 +862,11 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
 .g-sempty-btn .g-icon { width: 20px; height: 20px; }
 .g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
+.g-sempty-light { color: var(--text); }
+.g-sempty-light > span:not(.g-sempty-ic) { color: var(--text-3); }
+.g-sempty-light .g-sempty-btn { background: var(--surface-sunken); box-shadow: none; color: var(--text); }
+.g-sempty-light .g-sempty-btn.solid { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+.g-sempty-light .g-sempty-btn:focus-visible { outline-color: var(--accent-text); }
 
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,

@@ -22,8 +22,8 @@ const MotionMagnifier = lazy(() => import('../components/search/header-motion.js
 // typing calls `onQuery(text)` with `query` the text, and the header owns the query, so the
 // results panel under it never has an input of its own. The bell turns into × in its place; ×
 // closes. Nothing else in the header moves. Scoped to one kind, `scope` (its name, translated)
-// sits in the field as a chip whose × calls `onClearScope`. `onScan` adds the barcode button in
-// the field while it is open. `inputRef` reaches the input; `inputProps` go onto it (a combobox's
+// sits in the field as a chip whose × calls `onClearScope`. `onScan` adds the barcode button at the
+// end of the field, at rest and open; it scans without opening the search. `inputRef` reaches the input; `inputProps` go onto it (a combobox's
 // aria-controls, aria-activedescendant, onKeyDown). Without `onQuery` the pill is a link or a
 // button that opens the search, as on a screen that hands the search to another header.
 //
@@ -66,7 +66,7 @@ export default function StageHeader({
           <input {...inputProps} ref={inputRef} type="text" inputMode="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
             aria-label={text} placeholder={text} value={open ? query ?? '' : ''}
             onFocus={e => { inputProps?.onFocus?.(e); if (!open) set(true) }} onChange={e => onQuery(e.target.value)} />
-          {open && onScan && <button type="button" className="g-ssf-scan" onClick={onScan} aria-label={t('Scan barcode')}>
+          {onScan && <button type="button" className="g-ssf-scan" onClick={onScan} aria-label={t('Scan barcode')}>
             <Icon name="scanBarcode" className="g-icon" />
           </button>}
         </label>

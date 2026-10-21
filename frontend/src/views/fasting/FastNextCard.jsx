@@ -16,7 +16,7 @@ export default function FastNextCard({ now, hour12, usualStart, hours, onPick, o
       <b className="g-fast-big">{usualStart ? timeText(usualStart, hour12) : t('Now')}</b>
       <span className="g-fast-sub">{t('{0} · ends {1}', plan, dayTimeText(endsAt(start, hours), hour12))}</span>
       <FastPlanChips hours={hours} onPick={onPick} tone="stage" isCustom={planLabelOf(hours) === null} />
-      <Button block onClick={onStart}>{t('Start fast')}</Button>
+      <Button block haptic onClick={onStart}>{t('Start fast')}</Button>
     </section>
   )
 }

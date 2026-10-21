@@ -104,7 +104,7 @@ registerScreens('Eat: Log food', [
   { id: 'Ea8FoodDetail', title: 'Log food, amount', note: 'Serving size and servings step, unit chips, kcal and macros, the After this line (a goal is set).', render: today, mock: nt(),
     play: logFood(async () => press(rowTitled('Greek yogurt 2%')), t => t.wait(500)) },
   { id: 'Ea8Food', title: 'A food in full', note: 'An online result: per 100 g and per serving, Save as food and Log.', render: today, mock: nt(),
-    play: logFood(search('greek'), async () => press(rowTitled('Greek yogurt 10%')), async () => press(named('see it in full'))) },
+    play: logFood(search('greek'), async () => press(rowTitled('Greek yogurt 10%')), async () => press(named('See it in full'))) },
   { id: 'Ea8Meal', title: 'Log food, logging to', note: 'The meal chip opens the four meals as they stand on the day, and the day.', render: today, mock: nt(),
     play: logFood(async () => press(b => b.classList.contains('g-bs-chip')), t => t.wait(400)) },
   { id: 'Ea8Saved', title: 'Log food, saved meals and recipes', note: 'A meal logs all its foods in one tap; a recipe asks for servings.', render: today, mock: nt(),

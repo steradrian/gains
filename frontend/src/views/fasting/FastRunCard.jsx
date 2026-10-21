@@ -23,7 +23,7 @@ export default function FastRunCard({ fast, now, hour12, busy, onChangeStart, on
       <span className="g-fast-sub">{t('Started {0} · goal {1} h, ends {2}.', fullWhenText(start, hour12), fast.goal_hours, dayTimeText(p.targetAt, hour12))}</span>
       <div className="g-fast-acts">
         {!p.reached && <Button variant="glass" block onClick={onChangeStart}>{t('Change start')}</Button>}
-        <Button block busy={busy} onClick={onEnd}>{t('End fast')}</Button>
+        <Button block haptic busy={busy} onClick={onEnd}>{t('End fast')}</Button>
       </div>
     </section>
   )

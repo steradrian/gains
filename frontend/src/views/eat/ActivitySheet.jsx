@@ -71,7 +71,7 @@ export default function ActivitySheet({ date, type: startType, minutes: startMin
       chip={dayName(date)}
       footer={<>
         {save.state === 'error' && <p className="g-bs-note" role="alert">{writeErrorText(save.error)}</p>}
-        <Button variant="primary" block disabled={!canSave} busy={save.state === 'saving'} onClick={submit}>{t('Save activity')}</Button>
+        <Button variant="primary" block haptic disabled={!canSave} busy={save.state === 'saving'} onClick={submit}>{t('Save activity')}</Button>
       </>}
     >
       <div className="g-act">

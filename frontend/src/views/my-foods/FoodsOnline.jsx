@@ -28,9 +28,9 @@ export default function FoodsOnline({ q, settings }) {
   const owned = result => !!result.barcode && foods.list.some(f => f.barcode === result.barcode)
 
   let body
-  if (query.length < MIN_QUERY) body = <StageEmpty illustration="search" title={t('Type a food to search Open Food Facts.')} />
+  if (query.length < MIN_QUERY) body = <StageEmpty card={false} illustration="search" title={t('Type a food to search Open Food Facts.')} />
   else if (online.status !== 'ready') body = <OnlineStatus online={online} query={query} />
-  else if (!online.results.length) body = <StageEmpty illustration="search" title={t('No results online.')} />
+  else if (!online.results.length) body = <StageEmpty card={false} illustration="search" title={t('No results online.')} />
   else {
     body = (
       <>

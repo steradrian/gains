@@ -34,10 +34,10 @@ export default function CatalogTab({ recipes, settings, onNew }) {
   if (catalog.status !== 'ready' && !all.length) return <Loading />
   if (!all.length) {
     return recipes
-      ? <StageEmpty illustration="plate" title={t('No recipes yet')}
+      ? <StageEmpty card={false} illustration="plate" title={t('No recipes yet')}
         body={t('Add the ingredients once and Gains works out each serving. Log it like any other food.')}
         action={t('New recipe')} onClick={onNew} />
-      : <StageEmpty illustration="plate" title={t('No saved meals yet')}
+      : <StageEmpty card={false} illustration="plate" title={t('No saved meals yet')}
         body={t('Choose New saved meal, add the foods you eat together, and log them all in one tap.')}
         action={t('New saved meal')} onClick={onNew} />
   }
@@ -54,7 +54,7 @@ export default function CatalogTab({ recipes, settings, onNew }) {
               onClick={() => mealDetailSheet({ id: meal.id, recipe: recipes })} />
           ))}
         </LibraryList>
-        : <StageEmpty illustration="search" title={t('No match')} />}
+        : <StageEmpty card={false} illustration="search" title={t('No match')} />}
       <StageNote>
         {recipes
           ? t('Tap a recipe to log servings of it. Edit opens its ingredients.')

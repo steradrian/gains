@@ -88,7 +88,7 @@ export default function MealEditorForm({ meal, prefill, settings }) {
 
         {recordId && (
           <>
-            <Button block busy={log.busy} disabled={empty} onClick={logIt}>
+            <Button block haptic busy={log.busy} disabled={empty} onClick={logIt}>
               {t('Log to {0}, {1}', dayName(log.target.date), log.target.mealName)}
             </Button>
             <Button variant="glass" block icon="trash" className="g-fe-delete" onClick={editor.remove}>{t('Delete saved meal')}</Button>

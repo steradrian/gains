@@ -25,14 +25,14 @@ export default function FoodsYours({ q, settings, onNew, onSearchOnline }) {
   }
   if (foods.status !== 'ready' && !foods.list.length) return <LoadingList />
   if (!foods.list.length) {
-    return <StageEmpty illustration="plate" title={t('No foods yet')}
+    return <StageEmpty card={false} illustration="plate" title={t('No foods yet')}
       body={onSearchOnline ? t('Create a food, or search online and save one.') : t('Create a food to find it here.')}
       action={t('New food')} onClick={onNew} />
   }
 
   const { favourites, rest } = splitFavourites(visibleFoods(foods.list, { query: q, sort }))
   if (!favourites.length && !rest.length) {
-    return <StageEmpty illustration="search" title={t('No match')}
+    return <StageEmpty card={false} illustration="search" title={t('No match')}
       action={onSearchOnline && q.trim().length >= MIN_QUERY ? t('Search online') : undefined} onClick={onSearchOnline} />
   }
 

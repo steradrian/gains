@@ -90,7 +90,7 @@ export default function LogFoodFullStep({ food: given, settings, onLog, onSave, 
     {error && <p className="g-lf-note g-lf-err" role="alert">{error}</p>}
     <div className="g-ff-acts">
       {own && onEdit && <Button variant="secondary" onClick={() => onEdit(food)}>{t('Edit')}</Button>}
-      {!own && onSave && <Button variant="secondary" busy={busy} onClick={save}>{t('Save as food')}</Button>}
+      {!own && onSave && <Button variant="secondary" haptic busy={busy} onClick={save}>{t('Save as food')}</Button>}
       <Button variant="primary" haptic onClick={() => onLog(food)}>{t('Log')}</Button>
     </div>
   </div>

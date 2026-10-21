@@ -25,7 +25,8 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining([
       'Shared: search · StageHeader searching', 'GoToChips', 'SearchSection and SearchRow', 'ResultChips', 'BestMatch', 'SearchFeatureCard', 'Nothing matches: the ways on',
     ]))
-    expect(view.host.querySelectorAll('.g-spill-field input')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-spill-field input')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-spill-field .g-ssf-scan')).toHaveLength(1)
     expect(view.host.querySelectorAll('.g-goto-chip')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-rchip')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-best')).toHaveLength(2)

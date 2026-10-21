@@ -64,7 +64,7 @@ export default function DailyTargetsSheet({ close }) {
       type="half"
       footer={<>
         {form.save.state === 'error' && <p className="g-bs-note" role="alert">{writeErrorText(form.save.error)}</p>}
-        <Button variant="primary" block disabled={!canSave} busy={form.save.state === 'saving'} onClick={start}>{t('Start tracking food')}</Button>
+        <Button variant="primary" block haptic disabled={!canSave} busy={form.save.state === 'saving'} onClick={start}>{t('Start tracking food')}</Button>
       </>}
     >
       {form.status === 'error' && !ready

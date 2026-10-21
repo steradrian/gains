@@ -41,7 +41,7 @@ export default function MyFoods() {
   if (!on) {
     return (
       <StagePage title={t('My foods')} parent="/food">
-        <StageEmpty illustration="plate" title={t('Foods live in the web app')} body={t('Sign in on the web app to keep your foods here.')} />
+        <StageEmpty card={false} illustration="plate" title={t('Foods live in the web app')} body={t('Sign in on the web app to keep your foods here.')} />
       </StagePage>
     )
   }

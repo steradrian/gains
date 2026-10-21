@@ -24,12 +24,12 @@ export default function BurnedScreen({ status, error, title, sub, note, groups, 
       largeTitle={title}
       sub={sub}
     >
-      {status === 'error' && <StageEmpty illustration={SCENE} title={loadErrorText(error)} />}
+      {status === 'error' && <StageEmpty card={false} illustration={SCENE} title={loadErrorText(error)} />}
       {status === 'ready' && failed && (
-        <StageEmpty illustration={SCENE} title={t('Could not load this week')} action={t('Retry')} onClick={onRetry} />
+        <StageEmpty card={false} illustration={SCENE} title={t('Could not load this week')} action={t('Retry')} onClick={onRetry} />
       )}
       {status === 'ready' && !failed && empty && (
-        <StageEmpty illustration={SCENE} title={t('Nothing burned logged this week')} action={canLog ? t('Log activity') : undefined} onClick={canLog ? onLog : undefined} />
+        <StageEmpty card={false} illustration={SCENE} title={t('Nothing burned logged this week')} action={canLog ? t('Log activity') : undefined} onClick={canLog ? onLog : undefined} />
       )}
       {status === 'ready' && !failed && !empty && <>
         {note && <div className="burned-gut"><GlassList items={[{ icon: 'info', title: note.title, sub: note.body }]} /></div>}
