@@ -190,7 +190,7 @@ export default {
   'A .json file a friend can import': 'A .json file a friend can import',
   'Add a starter plan to your week': 'Add a starter plan to your week',
   'Added {0} routine from {1}': 'Added {0} routine from {1}',
-  'Added {0} routines from {1}': 'Added {0} routines from {1}',
+  'Added {0} routines from {1}': { one: 'Added {0} routine from {1}', few: 'Added {0} routines from {1}', many: 'Added {0} routines from {1}', other: 'Added {0} routines from {1}' },
   'Choose another file': 'Choose another file',
   'Every {0}': 'Every {0}',
   'Every {0} changes future {0}s only; past days keep what was logged.': 'Every {0} changes future {0}s only; past days keep what was logged.',
@@ -3349,10 +3349,10 @@ export default {
   'You’re already in': 'You’re already in',
   'You’re offline': 'You’re offline',
   // --- Shared pages: English until the translation pass ---
-  'Notifications, {0} unread': 'Notifications, {0} unread',
+  'Notifications, {0} unread': { one: 'Notifications, {0} unread', few: 'Notifications, {0} unread', many: 'Notifications, {0} unread', other: 'Notifications, {0} unread' },
   // --- Train plan: English until the translation pass ---
   '{0} workout, then repeat': '{0} workout, then repeat',
-  '{0} workouts, then repeat': '{0} workouts, then repeat',
+  '{0} workouts, then repeat': { one: '{0} workout, then repeat', few: '{0} workouts, then repeat', many: '{0} workouts, then repeat', other: '{0} workouts, then repeat' },
   'A missed day moves the loop forward; nothing is lost.': 'A missed day moves the loop forward; nothing is lost.',
   'Add routines': 'Add routines',
   'Add routines to your Plan and they repeat in a loop, one per training day.': 'Add routines to your Plan and they repeat in a loop, one per training day.',
