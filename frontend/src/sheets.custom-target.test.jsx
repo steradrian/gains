@@ -3,7 +3,8 @@
 // one-word target `tg` was silently taken from the sorted list: a hip thrust with Traps as an
 // extra primary became a "Traps" exercise in the library, the picker and the Muscles view, and
 // tap order no longer let the user correct it. The target is the primary picked first; an edit
-// keeps the old target while it is still a primary.
+// keeps the old target while it is still a primary. The muscles live under More details on the
+// Create exercise form (T6.4), here in its drawer host.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -39,6 +40,7 @@ const click = (host, sel, text) => {
   if (!el) throw new Error(`nothing with text "${text}"`)
   act(() => el.click())
 }
+const chip = (host, text) => click(host, 'button[aria-pressed]', text)
 // The form's multi-select rows open a nested sheet; tap the given labels there, in order, then Done.
 function pickMuscles(form, rowTitle, labels) {
   const row = [...form.querySelectorAll('.lrow')].find(e => e.textContent.includes(rowTitle))
@@ -76,15 +78,30 @@ describe('custom exercise target (QA C10)', () => {
   it('is the primary tapped first, while the stored list keeps the map order', () => {
     customExSheet(null)
     const form = renderTop()
-    act(() => type(form.querySelector('input.input'), 'QA Hip Thrust Pull'))
-    click(form, '.chip', 'upper legs')
-    click(form, '.chip', 'barbell')
+    act(() => type(form.querySelector('.g-tfield input'), 'QA Hip Thrust Pull'))
+    chip(form, 'Legs')
+    chip(form, 'barbell')
+    click(form, 'button', 'More details')
     pickMuscles(form, 'Primary muscle groups', ['Hamstrings', 'Glutes', 'Traps'])
     click(form, 'button', 'Create exercise')
     const c = S().customEx.find(x => x.n === 'QA Hip Thrust Pull')
+    expect(c.bp).toBe('upper legs')
     expect(c.primaries).toEqual(['trapezius', 'gluteal', 'hamstring'])
     expect(c.tg).toBe('hamstring')
     expect(c.muscleGroups).toEqual(['trapezius', 'gluteal', 'hamstring'])
+  })
+
+  it('opens More details by itself for an exercise that has muscles, and asks for a body part first on a new one', () => {
+    seed(custom())
+    customExSheet(EXIDX['cqa1'])
+    expect(renderTop().textContent).toContain('Primary muscle groups')
+    useUI.setState({ sheets: [] })
+    customExSheet(null)
+    const form = renderTop()
+    expect(form.textContent).not.toContain('Primary muscle groups')
+    click(form, 'button', 'More details')
+    expect(form.textContent).toContain('Pick a body part to choose the muscles.')
+    expect(byText(form, 'button', 'More details').getAttribute('aria-expanded')).toBe('true')
   })
 
   it('survives an edit that adds a primary higher up the body', () => {
@@ -113,7 +130,7 @@ describe('custom exercise target (QA C10)', () => {
 
   // Dropping the target used to hand it to the head of the map-sorted list, which is where C10
   // started: an upper-legs exercise read "Traps · barbell" again the moment its target went away.
-  it('hands a dropped target to the primary tapped in this sheet, not to the topmost muscle', () => {
+  it('hands a dropped target to the primary tapped in this form, not to the topmost muscle', () => {
     const ex = custom({ tg: 'hamstring', primaries: ['trapezius', 'gluteal', 'hamstring'], secondaries: ['forearm'], sm: ['forearm'],
       muscleGroups: ['trapezius', 'gluteal', 'hamstring', 'forearm'] })
     seed(ex)
