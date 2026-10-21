@@ -565,6 +565,8 @@ function doFinishWorkout() { finishToSummary() }
 // (closeThenReplace), so its history entry goes before the replace. What Reopen needs is held in
 // memory for the summary's Done (views/workout/finish-drawers.js). Returns finishAndSave's result.
 export function finishToSummary(close) {
+  // A saved workout open in the editor is updated in place, never saved again as a new record.
+  if (S().active?.editingWorkoutId) { close?.(); saveWorkoutEdits(); return null }
   markLeaving()
   const saved = finishAndSave()
   if (!saved) return null
@@ -586,7 +588,7 @@ const cloneData = v => (v == null ? v : JSON.parse(JSON.stringify(v)))
 export function finishAndSave({ end } = {}) {
   const st = S()
   const A = st.active
-  if (!A) return null
+  if (!A || A.editingWorkoutId) return null
   const past = !!A.backfill
   // A workout logged into the past is held against the history before it, the way an edit of a
   // saved one is (rebuildPrHistory, below): it gains a badge it leads with, and a later session

@@ -278,7 +278,7 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
   // The cool-down offer, once: after the last working set, when there is a cool-down to do.
   const hasCool = runs.some(r => r.part === 'cooldown')
   const mainDone = entries.filter(e => partOf(e) === 'main').every(done)
-  const offer = hasCool && mainDone && entries.some(e => partOf(e) === 'main') && !A.offered?.cooldown && !A.skipped?.cooldown
+  const offer = !editing && hasCool && mainDone &&entries.some(e => partOf(e) === 'main') && !A.offered?.cooldown && !A.skipped?.cooldown
     && entries.filter(e => partOf(e) === 'cooldown').some(e => !done(e)) ? 'cooldown' : null
 
   return {

@@ -65,7 +65,7 @@ export function warmupOfferSheet(ids, bw = null) {
 /** W1.40 over the running screen, once per session (`A.offered.cooldown`), only when it has a cool-down. */
 export function cooldownOfferSheet() {
   const A = S().active
-  if (!A || A.offered?.cooldown || !(A.entries || []).some(e => partOf(e) === 'cooldown')) return
+  if (!A || A.editingWorkoutId || A.offered?.cooldown || !(A.entries || []).some(e => partOf(e) === 'cooldown')) return
   markOffered('cooldown')
   open(CooldownOfferDrawer)
 }
