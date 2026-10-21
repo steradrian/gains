@@ -33,15 +33,19 @@ export default function StaleWorkoutCheck() {
   const [waiting, setWaiting] = useState(false)
 
   useEffect(() => {
-    const check = () => {
-      if (asked || isWorkoutPath(path.current)) return
+    // A running session launches onto the workout route (lib/tab-route.js launchPath), so the
+    // launch check runs there too and takes it to Today. On a return to the front, the workout
+    // on screen says it all and is left alone; the summary never asks.
+    const check = (launch = false) => {
+      const onRun = path.current === '/train/workout'
+      if (asked || (isWorkoutPath(path.current) && !(launch && onRun))) return
       if (!staleFacts(useStore.getState().S.active)) return
       asked = true
       if (path.current === TODAY) openWhenSettled()
       else { setWaiting(true); nav(TODAY) }
     }
     const onVisible = () => { if (document.visibilityState === 'visible') check() }
-    check()
+    check(true)
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])

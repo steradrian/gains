@@ -44,10 +44,13 @@ export function beatsBest(st, entry, set) {
   return beatsWeight(entry.id, Number(set.w) || 0, bestWeightFor(st, entry.id, entryDbLoad(entry)))
 }
 
-/** "51:40": a session's running time, as the workout's clock shows it. */
+/** "51:40", "1:15:00": a session's running time, as the workout's clock shows it. */
 export function clockText(ms) {
   const s = Math.max(0, Math.floor((Number(ms) || 0) / 1000))
-  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0')
+  const h = Math.floor(s / 3600)
+  const mm = Math.floor((s % 3600) / 60)
+  const ss = String(s % 60).padStart(2, '0')
+  return h ? h + ':' + String(mm).padStart(2, '0') + ':' + ss : mm + ':' + ss
 }
 
 // A workout's volume reads in tonnes from a tonne up when the profile lifts in kilograms (the

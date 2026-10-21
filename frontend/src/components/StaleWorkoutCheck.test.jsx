@@ -86,13 +86,17 @@ describe('StaleWorkoutCheck', () => {
     expect(pathAtOpen).toBe('/home')
   })
 
-  it('never over the workout or its summary, even on a return to the front', () => {
+  it('a launch onto the workout (where a running session opens) goes to Today and asks there', () => {
     install(session(23 * HOUR, 22 * HOUR))
     launch('/train/workout')
-    toFront()
-    expect(where).toBe('/train/workout')
-    unmount()
+    expect(where).toBe('/home')
+  })
+
+  it('never over the summary, nor over the workout on a return to the front', () => {
+    install(session(23 * HOUR, 22 * HOUR))
     launch('/train/workout/summary/w1')
+    toFront()
+    expect(where).toBe('/train/workout/summary/w1')
     expect(staleWorkoutSheet).not.toHaveBeenCalled()
   })
 
