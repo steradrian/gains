@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { EXIDX } from '../../lib/exercises.js'
-import { setFields } from './workout-view.js'
+import { setFields, setText } from './workout-view.js'
 import { stepFieldAt } from './workout-actions.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
@@ -44,7 +44,15 @@ describe('dumbbell weight field', () => {
     expect(weightField(1).label).toBe('kg')
   })
 
-  it.todo('names the meaning the session logs in: "Each (kg)" for dbLoad each, "Both (kg)" for total [old Workout.dumbbells.test.jsx:60; setFields labels every rep-lift weight with the unit only]')
+  // W1.52: a weight logged per dumbbell is "kg each" and its sets read "22 each × 8"; both together
+  // stays the plain weight, and so does one arm (one bell).
+  it('names the meaning the session logs in: "kg each" and "22 each × 8" for dbLoad each', () => {
+    const S = seed([entry(BENCH, [work(22)], { dbLoad: 'each' }), entry(BENCH, [work(44)], { dbLoad: 'total' })])
+    expect(weightField(0).label).toBe('kg each')
+    expect(setText(S, A().entries[0], A().entries[0].sets[0])).toBe('22 each × 8')
+    expect(weightField(1).label).toBe('kg')
+    expect(setText(S, A().entries[1], A().entries[1].sets[0])).toBe('44 kg × 8')
+  })
 })
 
 describe('stepper over owned dumbbells', () => {

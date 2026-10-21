@@ -3870,4 +3870,13 @@ export default {
   'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Três de quatro sessões feitas esta semana. O teu agachamento está pronto para 102,5 kg × 5.',
   'Move Legs to Thursday': 'Passar Pernas para quinta-feira',
   'You’ve missed Mondays three weeks running': 'Faltaste às segundas-feiras três semanas seguidas',
+  // Workout progression
+  'The whole workout is left out of progression': 'The whole workout is left out of progression',
+  'Not counted for progression today': 'Not counted for progression today',
+  'Undo, count it again': 'Undo, count it again',
+  '{0}. {1} Opens exercise settings': '{0}. {1} Opens exercise settings',
+  'Today: {0}': 'Today: {0}',
+  'Don’t count today': 'Don’t count today',
+  'Logged as usual, left out of progression. For a sore day or a different machine.': 'Logged as usual, left out of progression. For a sore day or a different machine.',
+  'at {0}': 'at {0}',
 }

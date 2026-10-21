@@ -15,6 +15,7 @@ import { buildSessionEntries, plannedConfigOf } from '../../lib/session-start.js
 import { EXIDX } from '../../lib/exercises.js'
 import { howToSheet } from './drawers.js'
 import { applyExerciseSettingsAt, setNoProgAt, swapEntryWithUndo } from './workout-actions.js'
+import { progressionOf } from './workout-view.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn() }))
@@ -208,5 +209,13 @@ describe('don’t count this session for progression', () => {
 })
 
 describe('what the old cards showed', () => {
-  it.todo('a kept-out exercise shows "Not counted for progression" on its card, with an Undo button; a deload routine’s shows it with no button [old Workout.noprog.test.jsx:96, :112, :236; no marker in views/workout]')
+  // The marker is W1.50's dashed line (WorkoutScreen.progression.test.jsx renders it and taps Undo).
+  it('a kept-out exercise shows the not-counted line with an Undo; a deload routine’s shows it with no button', () => {
+    seed([entry(BENCH, 'main', 100), entry(ROW, 'deload', 40, { noProg: true })])
+    const S = () => useStore.getState().S
+    expect(progressionOf(S(), A(), A().entries[0])).toBeNull()
+    act(() => setNoProgAt(0, true))
+    expect(progressionOf(S(), A(), A().entries[0])).toMatchObject({ type: 'skipped', scope: 'exercise', text: 'Not counted for progression today', undoable: true })
+    expect(progressionOf(S(), A(), A().entries[1])).toMatchObject({ type: 'skipped', undoable: false })
+  })
 })

@@ -16,7 +16,9 @@ import DoneSetRows from '../../ds/DoneSetRows.jsx'
 import EffortChips from '../../ds/EffortChips.jsx'
 import ExerciseHero from '../../ds/ExerciseHero.jsx'
 import HapticSwitch from '../../ds/HapticSwitch.jsx'
+import NotCountedLine from '../../ds/NotCountedLine.jsx'
 import PlateLine from '../../ds/PlateLine.jsx'
+import ProgressionLine from '../../ds/ProgressionLine.jsx'
 import SetStepper from '../../ds/SetStepper.jsx'
 import SupersetSwitch from '../../ds/SupersetSwitch.jsx'
 import TimedHold from '../../ds/TimedHold.jsx'
@@ -37,7 +39,7 @@ function Steppers({ idx, i, fields }) {
 export default function WorkoutFocus({ view, actions }) {
   const S = useStore(s => s.S)
   const [editAt, setEditAt] = useState(null)
-  const { hero, current, review, superset, hold, editing } = view
+  const { hero, current, review, superset, hold, editing, progression } = view
   const idx = hero.idx
   const entry = S.active.entries[idx]
   const how = () => howToSheet(idx)
@@ -71,6 +73,18 @@ export default function WorkoutFocus({ view, actions }) {
         image={hero.image} clip={hero.clip} name={hero.name} meta={hero.meta} plan={hero.plan} dots={hero.dots} dotsLabel={hero.dotsLabel} part={hero.partLine} note={hero.note}
         newToYou={!!hero.newToYou && !editing} newText={hero.newToYou} howLabel={hero.howLabel} onHow={how} moreLabel={hero.moreLabel} onMore={how} onSwipe={swipe}
       />
+      {progression?.type === 'plan' && (
+        <ProgressionLine
+          icon={progression.icon} tone={progression.tone} policy={progression.policy} reason={progression.reason}
+          label={progression.label} onClick={() => actions.openProgressionSettings(idx)}
+        />
+      )}
+      {progression?.type === 'skipped' && (
+        <NotCountedLine
+          text={progression.text} undoText={progression.undoText} undoLabel={progression.undoLabel}
+          onUndo={progression.undoable ? (progression.scope === 'session' ? actions.toggleSessionNoProg : () => actions.setNoProg(idx, false)) : undefined}
+        />
+      )}
       <DoneSetRows rows={rows} bestLabel={view.bestLabel} />
 
       {edited && (
