@@ -14,7 +14,7 @@ const { navMock, sheetMock, backMock, params } = vi.hoisted(() => ({
 }))
 vi.mock('react-router-dom', async orig => ({ ...(await orig()), useParams: () => params, Navigate: ({ to }) => <output data-to={to} /> }))
 vi.mock('../../lib/nav.js', async orig => ({ ...(await orig()), nav: navMock }))
-vi.mock('../../sheets/plan.jsx', async orig => ({ ...(await orig()), dayOverrideSheet: sheetMock }))
+vi.mock('../../sheets.jsx',async orig => ({ ...(await orig()), dayOverrideSheet: sheetMock }))
 vi.mock('../../lib/use-tab-nav.js', async orig => ({ ...(await orig()), back: backMock }))
 
 const view = useView()

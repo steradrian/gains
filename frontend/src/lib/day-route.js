@@ -13,7 +13,7 @@ import { firstWorkoutDay, plusDays } from './missed-day.js'
 import { nav } from './nav.js'
 import { diaryIndexDays } from './nutrition/diary-index.js'
 import { TABS, TAB_ROOT, tabOf } from './tab-route.js'
-import { dayOverrideSheet } from '../sheets/plan.jsx'
+import { dayOverrideSheet } from '../sheets.jsx'
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/
 const WEEK = /^(\d{4})-W(\d{2})$/

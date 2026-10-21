@@ -8,7 +8,7 @@ import { SUNDAY } from './format.js'
 const nav = vi.fn()
 const dayOverrideSheet = vi.fn()
 vi.mock('./nav.js', async importOriginal => ({ ...(await importOriginal()), nav: (...a) => nav(...a) }))
-vi.mock('../sheets/plan.jsx', async importOriginal => ({ ...(await importOriginal()), dayOverrideSheet: (...a) => dayOverrideSheet(...a) }))
+vi.mock('../sheets.jsx',async importOriginal => ({ ...(await importOriginal()), dayOverrideSheet: (...a) => dayOverrideSheet(...a) }))
 
 const {
   dayPath, dayTargetOf, firstLogDay, isDate, isoWeekOf, navToDay, navToWeek, weekNumberOf, weekPath, weekStartOfId, weekTargetOf,

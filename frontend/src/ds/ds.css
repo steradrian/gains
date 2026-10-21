@@ -673,13 +673,13 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-nrow + .g-nrow { border-top: 1px solid var(--glass-line); }
 .g-nrow:focus-visible { outline-offset: -3px; }
 .g-nrow:active { background: var(--glass); }
-.g-nrow-new { background: rgba(255, 255, 255, 0.12); }
+.g-nrow-new { background: color-mix(in srgb, var(--on-stage) 12%, transparent); }
 .g-nrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .g-nrow-body b { font: 600 17px/22px var(--font-sans); }
 .g-nrow-new .g-nrow-body b { font-weight: 700; }
 .g-nrow-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-nrow-body small { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); opacity: .85; }
-.g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18); }
+.g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px var(--glass-track); }
 .g-nrow-gap { width: 10px; flex: none; }
 
 /* StageNote: the quiet line at the foot of a pushed page (Sh3Notifications: "Kept for 30 days…").

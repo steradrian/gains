@@ -4,12 +4,11 @@ import DayStatusCard from './DayStatusCard.jsx'
 import Section from './DevKitSection.jsx'
 import RadioRow from './RadioRow.jsx'
 import StageDayRail from './StageDayRail.jsx'
+import { STILL } from './dev-still.js'
 
 // The Day page's part of the catalogue (DevKit.jsx, under "Shared: pages"): the parts the Day
 // page (PR07 D1) adds, on the stage with sample data.
 const NOOP = () => {}
-// A white tile standing in for an exercise still.
-const STILL = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44"><rect width="44" height="44" fill="#fff"/><path d="M8 22h28M13 15v14M31 15v14" stroke="#555" stroke-width="3" stroke-linecap="round"/></svg>')
 
 const MACROS = [
   { key: 'p', name: 'Protein', line: '132 of 150 g', progress: 0.88 },

@@ -28,8 +28,10 @@ export const PRIMITIVE_FILES = [
   'components/date-nav.jsx', 'components/line-art.jsx', 'components/tab-kit.jsx',
 ]
 // Routed views that draw their own chrome and never render <Page> (G4). Home is Today on the
-// stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02).
-export const PAGE_EXEMPT = ['AddDevice', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'TrainHub', 'Workout']
+// stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02);
+// Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
+// design system's StageNavBar. A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
+export const PAGE_EXEMPT = ['AddDevice', 'DayPage', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'Notifications', 'TrainHub', 'WeekPage', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
@@ -394,7 +396,8 @@ export function routeViewsWithoutPage(src = SRC) {
 // layout.jsx are where a header is built; the full-screen views draw their own chrome.
 export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx']
 const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
-const exemptView = file => PAGE_EXEMPT.some(name => file === `views/${name}.jsx`)
+const exemptView = file => PAGE_EXEMPT.some(name =>
+  file === `views/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
 
 // Every place a page chooses its own header: importing a header component past <Page>, building
 // a header's classes by hand, or handing <Page> a class or a style of its own. `file: what`.
