@@ -1346,7 +1346,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'يصمم خطتك من بضعة إجابات ويعدّلها بناءً على ما تسجله فعلًا. لا يغيّر شيئًا دون موافقتك، ويمكنك التراجع عن كل تغيير.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'الروتينات والتمارين والمجموعات والتكرارات، وجدولك الأسبوعي وإعدادات التقدم.',
   'Your logged training': 'تدريبك المسجل',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'المجموعات التي سجلتها خلال فترة المراجعة: الأوزان والتكرارات والأوقات وتقييمات الجهد ومدة الجلسات، وملاحظات جلساتك.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'المجموعات التي سجلتها خلال فترة المراجعة: الأوزان والتكرارات والأوقات وتقييمات الجهد ومدة الجلسات، وملاحظات جلساتك. وأيضًا تقييمك الأسبوعي: كيف شعرت بالتمرين، وكيف نمت، وملاحظتك.',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'قياسات الوزن من الفترة نفسها، ووزنك المستهدف إن كنت قد حددته.',
   'What you tell the Coach': 'ما تخبر به المدرب',
   'Your intake answers, including any limitations or injuries you describe.': 'إجاباتك على أسئلة البداية، بما في ذلك أي قيود أو إصابات تصفها.',

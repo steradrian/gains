@@ -5,7 +5,7 @@
 // these inside `.tco-card`, which maps their colours onto the stage (coach-page.css).
 import { useMemo, useState } from 'react'
 import { t, tn } from '../../../lib/i18n.js'
-import { fmtDate, fmtNum, DAYS, weekOrder, weekStartOf } from '../../../lib/format.js'
+import { fmtDate, fmtNum, DAYS, isoOf, weekOrder, weekStartOf } from '../../../lib/format.js'
 import { exLine } from '../../../lib/history.js'
 import { speedUnitOf } from '../../../lib/speed.js'
 import { appendChat, applyCreatedPlan, recordDebrief, changeTitle, changeValues, exName } from '../../../lib/coach.js'
@@ -39,7 +39,7 @@ export function PlanCard({ p, S, update, toast, refresh }) {
           ? t('Imported! {0} routines are in your plan and your week is set. See you at the next session.', n)
           : t('Imported! {0} routines are in your plan. Your week is unchanged; schedule them whenever you like.', n) })
       })
-      resolvePending({ accepted: ['plan'] }).catch(() => {})
+      resolvePending({ proposalId: p.id, accepted: ['plan'] }).catch(() => {})
       toast(t('Your plan is live'))
       refresh()
     } catch (e) { toast(e.message || t('That proposal can’t be read.')) }
@@ -214,7 +214,7 @@ const scoreWord = s => s >= 9 ? t('Excellent session') : s >= 7 ? t('Good sessio
 export function DebriefCard({ p, S, update, toast, refresh }) {
   const done = () => {
     update(s => { const ref = recordDebrief(s, p); appendChat(s, { role: 'coach', kind: 'debrief', ref, text: '' }) })
-    resolvePending({ accepted: ['debrief'] }).catch(() => {})
+    resolvePending({ proposalId: p.id, accepted: ['debrief'] }).catch(() => {})
     toast(t('Kept in your Coach history'))
     refresh()
   }
@@ -275,7 +275,7 @@ export function ProposalDetail({ entry, S }) {
   const weekDays = useMemo(() => new Set(Object.keys(b?.week || {}).map(Number)), [b])
   return <div className="pdetail">
     <div className="pcard-hd">
-      <div className="pcard-eyebrow">{kind === 'create' ? t('Plan') : kind === 'debrief' ? t('Workout debrief') : t('Suggestions')} · {fmtDate(new Date(entry.at).toISOString().slice(0, 10))}</div>
+      <div className="pcard-eyebrow">{kind === 'create' ? t('Plan') : kind === 'debrief' ? t('Workout debrief') : t('Suggestions')} · {fmtDate(isoOf(new Date(entry.at)))}</div>
       <h2 className="pcard-h">{kind === 'create' ? (b?.name || t('Coach plan')) : kind === 'debrief' ? (entry.workout?.name || t('Workout')) : tn('{0} suggestion', '{0} suggestions', entry.decisions?.length || 0)}</h2>
       {!!entry.summary && <p className="pcard-sum">{entry.summary}</p>}
       {entry.dismissed && <p className="pcard-sum ink-danger">{t('You declined this.')}</p>}

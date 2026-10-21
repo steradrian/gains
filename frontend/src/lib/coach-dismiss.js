@@ -29,7 +29,7 @@ function commit(proposal, onCommit) {
         : t('Got it. I won’t suggest these again without new evidence.')
     })
   })
-  resolvePending({ dismissed: true }).catch(() => {})
+  resolvePending({ proposalId: proposal.id, dismissed: true }).catch(() => {})
   if (onCommit) onCommit()
 }
 
@@ -42,7 +42,7 @@ function settle() {
 
 /**
  * Hides `proposal`'s suggestions now and dismisses them for real (recordDismissal, then
- * resolvePending({ dismissed: true })) when the window closes without an Undo. `onCommit` runs
+ * resolvePending({ proposalId, dismissed: true })) when the window closes without an Undo. `onCommit` runs
  * after that, for the caller to refresh. A second dismissal while one waits commits the first
  * at once.
  *

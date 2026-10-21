@@ -2442,7 +2442,7 @@ export default {
   'Added before your work sets and left out of volume, records and progression. Each one closes half the gap to the work weight, never below the bar on a barbell lift, and you can still change any of them mid-session.': 'ওয়ার্ক সেটের আগে যোগ হয়, ভলিউম, রেকর্ড আর প্রগ্রেশনে গোনা হয় না। প্রতিটি ওয়ার্ক ওয়েটের দূরত্বের অর্ধেক কমায়, বারবেল লিফটে বারের নিচে কখনো নামে না, আর সেশনের মাঝেও যেকোনোটা বদলাতে পারবেন।',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'রুটিন, ব্যায়াম, সেট ও রেপ, আপনার সাপ্তাহিক সূচি আর প্রগ্রেশন সেটিংস।',
   'Your logged training': 'আপনার লগ করা ট্রেনিং',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'রিভিউ সময়ের মধ্যে লগ করা সেট: ওজন, রেপ, সময়, এফর্টের রেটিং, সেশন কত লম্বা ছিল আর আপনার সেশন নোট।',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'রিভিউ সময়ের মধ্যে লগ করা সেট: ওজন, রেপ, সময়, এফর্টের রেটিং, সেশন কত লম্বা ছিল আর আপনার সেশন নোট। এছাড়া আপনার সাপ্তাহিক চেক-ইন: ট্রেনিং কেমন লেগেছে, ঘুম কেমন হয়েছে আর আপনার নোট।',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'একই সময়ের ওজন মাপা আর, দিয়ে থাকলে, আপনার লক্ষ্য ওজন।',
   'What you tell the Coach': 'কোচকে আপনি যা বলেন',
   'Your intake answers, including any limitations or injuries you describe.': 'আপনার ইনটেক উত্তর, সীমাবদ্ধতা বা চোটের বর্ণনা থাকলে সেটাও।',

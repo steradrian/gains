@@ -2710,7 +2710,8 @@ paths:
       description: |
         The client applies the accepted changes to its own state and syncs them through
         `PUT /api/data`; this only records the decision and clears the proposal. Sending
-        it when nothing is waiting is a no-op, not an error.
+        it when nothing is waiting is a no-op, not an error, and so is sending it with a
+        `proposalId` that is not the waiting proposal's: a late Dismiss cannot clear a newer one.
       requestBody:
         required: false
         content:
@@ -2718,6 +2719,12 @@ paths:
             schema:
               type: object
               properties:
+                proposalId:
+                  type: string
+                  maxLength: 64
+                  description: |
+                    The id of the proposal decided (the `pending.id` from `GET /api/coach/status`).
+                    Every current client sends it. Left out, whatever is waiting is resolved.
                 accepted:
                   type: array
                   items: { type: string }

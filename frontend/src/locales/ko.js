@@ -1459,7 +1459,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': '몇 가지 답변으로 계획을 설계하고 실제 기록에 따라 조정합니다. 동의 없이는 아무것도 바꾸지 않으며, 모든 변경을 되돌릴 수 있습니다.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': '루틴, 운동, 세트와 횟수, 주간 일정과 점진적 증가 설정.',
   'Your logged training': '내 운동 기록',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': '검토 기간에 기록한 세트: 무게, 횟수, 시간, 강도 평가, 세션 소요 시간, 그리고 운동 메모.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': '검토 기간에 기록한 세트: 무게, 횟수, 시간, 강도 평가, 세션 소요 시간, 그리고 운동 메모. 주간 체크인도 포함됩니다: 훈련이 어땠는지, 잠은 어땠는지, 그리고 메모.',
   'Weigh-ins from the same window, and your goal weight if you set one.': '같은 기간의 체중 기록, 그리고 설정했다면 목표 체중.',
   'What you tell the Coach': '코치에게 알려 준 내용',
   'Your intake answers, including any limitations or injuries you describe.': '시작 질문에 대한 답변. 설명한 제약 사항이나 부상도 포함됩니다.',

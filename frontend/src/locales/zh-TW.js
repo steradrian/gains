@@ -1449,7 +1449,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': '它會根據簡短問答規劃課表，並根據實際紀錄進行調整。未經授權絕不自行變更，且隨時可以復原修改。',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': '課表、動作、組數與次數、你的每週排程以及漸進超負荷設定。',
   'Your logged training': '你記錄的訓練',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': '你在檢討期間內記錄的各組資料：重量、次數、時間、強度評分、每次訓練的時長，以及你的訓練總結筆記。',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': '你在檢討期間內記錄的各組資料：重量、次數、時間、強度評分、每次訓練的時長，以及你的訓練總結筆記。還有你的每週回顧：訓練感覺如何、睡得如何，以及你的備註。',
   'Weigh-ins from the same window, and your goal weight if you set one.': '同一期間的體重紀錄，以及你設定的目標體重（如有）。',
   'What you tell the Coach': '你告訴教練的內容',
   'Your intake answers, including any limitations or injuries you describe.': '你在初始問答中的回答，包括你描述的任何限制或傷病。',

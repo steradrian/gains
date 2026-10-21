@@ -1459,7 +1459,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'यह कुछ उत्तरों से आपकी योजना बनाता है और आपके वास्तविक रिकॉर्ड के आधार पर उसे समायोजित करता है। आपकी अनुमति के बिना कुछ नहीं बदलता, और हर बदलाव को पूर्ववत किया जा सकता है।',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'रूटीन, व्यायाम, सेट और रेप्स, आपका साप्ताहिक कार्यक्रम और प्रगति सेटिंग।',
   'Your logged training': 'आपकी दर्ज ट्रेनिंग',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'समीक्षा अवधि में आपके दर्ज किए सेट: वज़न, रेप्स, समय, मेहनत की रेटिंग, सेशन कितनी देर चले, और आपके सेशन के नोट।',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'समीक्षा अवधि में आपके दर्ज किए सेट: वज़न, रेप्स, समय, मेहनत की रेटिंग, सेशन कितनी देर चले, और आपके सेशन के नोट। साथ ही आपका साप्ताहिक चेक-इन: ट्रेनिंग कैसी लगी, नींद कैसी रही, और आपका नोट।',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'उसी अवधि के वज़न मापन, और आपका लक्ष्य वज़न, अगर आपने तय किया है।',
   'What you tell the Coach': 'आप कोच को क्या बताते हैं',
   'Your intake answers, including any limitations or injuries you describe.': 'शुरुआती सवालों के आपके उत्तर, जिनमें आपकी बताई गई सीमाएँ या चोटें भी शामिल हैं।',

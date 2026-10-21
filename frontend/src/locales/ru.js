@@ -1443,7 +1443,7 @@ export default {
   'It designs your plan from a few answers and adjusts it from what you actually log. It never changes anything without your say-so, and you can undo every change.': 'Он составляет план из нескольких ответов и корректирует его по тому, что вы реально записываете. Он ничего не меняет без вашего согласия, и любое изменение можно отменить.',
   'Routines, exercises, sets and reps, your weekly schedule and progression settings.': 'Программы, упражнения, подходы и повторения, ваше расписание недели и настройки прогрессии.',
   'Your logged training': 'Ваши записанные тренировки',
-  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.': 'Подходы, которые вы записали за период разбора: веса, повторения, время, оценки усилия, длительность тренировок и ваши заметки о тренировках.',
+  'Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.': 'Подходы, которые вы записали за период разбора: веса, повторения, время, оценки усилия, длительность тренировок и ваши заметки о тренировках. А также ваш еженедельный отчёт: как ощущались тренировки, как вы спали и ваша заметка.',
   'Weigh-ins from the same window, and your goal weight if you set one.': 'Взвешивания за тот же период и ваш целевой вес, если вы его задали.',
   'What you tell the Coach': 'Что вы рассказываете Тренеру',
   'Your intake answers, including any limitations or injuries you describe.': 'Ваши ответы в анкете, включая ограничения и травмы, которые вы описываете.',

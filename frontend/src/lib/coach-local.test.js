@@ -180,6 +180,15 @@ describe('the Coach on a phone with its own key', () => {
     expect(device.data.pending).toBeNull()
   })
 
+  it('a resolve naming another proposal leaves the pending one alone (review #5)', async () => {
+    await local.localReview(state()); await settle()
+    const id = device.data.pending.id
+    await local.localResolve({ proposalId: 'an-older-one', dismissed: true })
+    expect(device.data.pending?.id).toBe(id)
+    await local.localResolve({ proposalId: id, dismissed: true })
+    expect(device.data.pending).toBeNull()
+  })
+
   it('creates a plan from an intake, and refines it against the previous bundle', async () => {
     const plan = { coach_contract: 1, opengym_plan: 1, name: 'P', summary: 's', basedOn: 'b', week: { 1: 'r1', 3: 'r2', 5: 'r1' },
       routines: [

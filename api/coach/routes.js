@@ -129,7 +129,8 @@ export function coachRoutes({ json, readBody, readSession, requireAdmin }) {
       json(res, 200, jobs.resolvePending(user.id, {
         accepted: Array.isArray(body.accepted) ? body.accepted : [],
         rejected: Array.isArray(body.rejected) ? body.rejected : [],
-        dismissed: !!body.dismissed
+        dismissed: !!body.dismissed,
+        proposalId: typeof body.proposalId === 'string' ? body.proposalId.slice(0, 64) : null
       }));
     },
 
