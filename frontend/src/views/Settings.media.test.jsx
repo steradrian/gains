@@ -78,7 +78,8 @@ const until = async (cond, ms = 4000) => {
   const end = Date.now() + ms
   while (!(await cond()) && Date.now() < end) await act(async () => { await new Promise(r => setTimeout(r, 10)) })
 }
-const row = text => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes(text))
+// A page's rows, or the root's (Settings shell m2: stage rows).
+const row = text => [...host.querySelectorAll('.lrow, .g-glist-row')].find(r => r.textContent.includes(text))
 const stateWithPhoto = () => ({
   unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none', gifSize: 'full', workouts: [], routines: [], exWeights: {},
   customEx: [{ id: 'c1', n: 'Sandbag carry', bp: 'back', custom: true, media: { kind: 'image', hash: HASH, mime: 'image/jpeg', size: PHOTO.length, width: 640, height: 480, at: 1 } }]

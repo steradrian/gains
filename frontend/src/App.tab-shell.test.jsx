@@ -470,8 +470,8 @@ describe('back on a sub-page', () => {
     await click(tab('Train'))
     await click(avatar())
     expect(hash()).toBe('#/me')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Profile')
-    expect(document.querySelector('.sub-hdr button[aria-label="Back"]')).toBeNull()
+    expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
+    expect(document.querySelector('button[aria-label="Back"]')).toBeNull()
   })
 
   it('a Profile page goes back to Profile', async () => {
@@ -486,13 +486,13 @@ describe('back on a sub-page', () => {
 
 // Me is Profile; Progress lives under it, entered from Profile's Progress row.
 describe('Me, Profile and Progress', () => {
-  const progressRow = () => [...document.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Progress')
+  const progressRow = () => [...document.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Progress')
 
   it('the Me tab opens Profile, not Progress', async () => {
     await launch('#/home')
     await click(tab('Me'))
     expect(hash()).toBe('#/me')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Profile')
+    expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
     expect(lit()).toBe('Me')
   })
 
