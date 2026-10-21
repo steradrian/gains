@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { activeProfile, profileEquipment } from '../lib/equipment.js'
-import { DAYN } from '../lib/format.js'
-import { t, dateLocale } from '../lib/i18n.js'
-import { buildStarterPlan, starterPlanDays, starterPlanOptions } from '../lib/starter.js'
+import { activeProfile } from '../lib/equipment.js'
+import { t } from '../lib/i18n.js'
+import { starterPlanOptions } from '../lib/starter.js'
+import { loadStarterPlanWithUndo } from '../lib/starter-load.js'
 import Icon from '../components/Icon.jsx'
 import { Chip, ChipRow, ItemRow } from '../components/blocks.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
-import { update, ui, toast } from './shared.js'
-import { confirmSheet } from './confirm-menu.jsx'
+import { ui } from './shared.js'
 
 /* ============================ starter plan ============================ */
 // Plan names and blurbs live here, not in lib/starter.js: check-source-strings.mjs only finds
@@ -21,56 +20,34 @@ const PLAN_COPY = {
   '5x5': () => ({ name: t('5×5'), about: t('Five sets of five on the main barbell lifts.') })
 }
 
-// Adds the plan's routines (reusing one you already have under the same name) and puts them on
-// its weekdays. Existing routines are never touched
-// and only the weekdays the plan asks for are reassigned; an id with no plan behind it changes
-// nothing at all. planId is deliberately required — a default invites `onClick={loadStarterPlan}`,
-// which hands the click event in as the plan and silently loads nothing.
+/** A chooser plan's name and blurb, or null for a plan the chooser has no copy for. */
+export const planCopy = id => PLAN_COPY[id]?.() ?? null
+
+/** The toast after a load: the plan's name, and with a profile what fitting it swapped and dropped. */
+export function loadedText(planId, profile, fit) {
+  const name = planCopy(planId)?.name ?? planId
+  return fit && profile
+    ? t('{0} loaded, fitted to "{1}": {2} swapped, {3} dropped', name, profile.name, fit.swapped, fit.dropped)
+    : t('{0} loaded', name)
+}
+
+// Loads the plan over the whole weekly plan (lib/starter-load.js) and offers Undo in the toast
+// instead of asking first. An id with no plan behind it changes nothing at all. planId is
+// deliberately required — a default invites `onClick={loadStarterPlan}`, which hands the click
+// event in as the plan and silently loads nothing.
 export function loadStarterPlan(planId, profile) {
-  const plan = buildStarterPlan(planId, profile ? profileEquipment(profile) : undefined)
-  if (!plan) return false
-  update(st => {
-    // Loading the same plan again reuses the routines it added last time (same name, same
-    // exercises) for the weekdays instead of a second Upper A, Lower A, ... under the same names.
-    // A plan fitted to different equipment has other exercises, so it is added alongside.
-    const idOf = {}
-    const sameLift = (a, b) => a.ex.length === b.ex.length && a.ex.every((e, i) => e.id === b.ex[i].id)
-    plan.routines.forEach(r => {
-      const have = st.routines.find(x => x.name === r.name && sameLift(x, r))
-      if (have) idOf[r.id] = have.id
-      else { st.routines.push(r); idOf[r.id] = r.id }
-    })
-    plan.schedule.forEach(({ day, routineId }) => { st.week[day] = [idOf[routineId]] })
-  })
-  if (plan.fit) toast(t('{0} loaded, fitted to "{1}": {2} swapped, {3} dropped', PLAN_COPY[planId]().name, profile.name, plan.fit.swapped, plan.fit.dropped))
-  else toast(t('{0} loaded', PLAN_COPY[planId]().name))
+  const res = loadStarterPlanWithUndo(planId, { fit: profile || null })
+  if (!res) return false
+  ui().toast(loadedText(planId, profile, res.fit), { action: t('Undo'), onAction: res.undo })
   return true
 }
 
-// Intl joins the days the way each language does it — "and" vs "und", "、" in Chinese.
-const dayList = days => new Intl.ListFormat(dateLocale()).format(days.map(d => t(DAYN[d])))
-
 function StarterPlanChooser({ close }) {
-  const week = useStore(s => s.S.week)
-  const routines = useStore(s => s.S.routines)
   const profiles = useStore(s => s.S.equipProfiles) || []
   // Fitting starts on for the profile you already filter by; '' leaves the plan as written.
   const [fitId, setFitId] = useState(() => activeProfile(useStore.getState().S)?.id || '')
   const fit = profiles.find(p => p.id === fitId) || null
-  const choose = (id, name) => {
-    const days = starterPlanDays(id)
-    close()
-    // A confirmation is only worth showing when one of those days is actually occupied — by a
-    // routine that still exists, not by a stale id the Plan already shows as "Rest".
-    const taken = day => [].concat(week[day] || []).some(id => routines.some(r => r.id === id))
-    if (!days.some(taken)) { loadStarterPlan(id, fit); return }
-    confirmSheet({
-      title: t('Load {0}?', name),
-      message: t('The new plan goes on {0}. Your existing routines stay; only those days of the weekly plan change.', dayList(days)),
-      confirmText: t('Load plan'),
-      onConfirm: () => loadStarterPlan(id, fit)
-    })
-  }
+  const choose = id => { close(); loadStarterPlan(id, fit) }
   return <>
     <SheetHeader title={t('Choose starter plan')} />
     {profiles.length > 0
@@ -88,7 +65,7 @@ function StarterPlanChooser({ close }) {
           title={name}
           subtitle={<>{t('{0} days per week', days)} · {about}</>}
           chevron
-          onClick={() => choose(id, name)} />
+          onClick={() => choose(id)} />
       })}
     </div>
   </>

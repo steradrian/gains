@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// The chooser is where a starter plan can quietly do the wrong thing: overwrite a weekday
-// without asking, ask when there was nothing to overwrite, or apply a plan the user cancelled.
+// The chooser is where a starter plan can quietly do the wrong thing: load the wrong week, or
+// leave an Undo that does not put the old week back (lib/starter-load.js has the edge cases).
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -26,7 +26,6 @@ function renderTop() {
 }
 
 const rowFor = (host, name) => [...host.querySelectorAll('.item')].find(el => el.querySelector('.tt')?.textContent === name)
-const buttonFor = (host, label) => [...host.querySelectorAll('button')].find(b => b.textContent === label)
 
 // Opens the chooser and taps one of its rows.
 function choose(name) {
@@ -37,9 +36,9 @@ function choose(name) {
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  useUI.setState({ sheets: [], toastMsg: '' })
+  useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
   useStore.setState(s => ({
-    S: { ...s.S, routines: [{ id: 'mine', name: 'My routine', emoji: 'star', ex: [] }], week: {}, active: null },
+    S: { ...s.S, routines: [{ id: 'mine', name: 'My routine', emoji: 'star', ex: [] }], week: {}, dayPlan: {}, active: null, queue: null, scheduleMode: null },
   }))
   document.body.innerHTML = ''
 })
@@ -57,7 +56,7 @@ describe('starter plan chooser', () => {
     expect(rowFor(host, 'Upper / Lower').querySelector('.ss').textContent).toContain('4 days per week')
   })
 
-  it('loads straight away when the plan’s weekdays are free, without asking', () => {
+  it('loads straight away over the whole week, without asking, and offers Undo', () => {
     useStore.setState(s => ({ S: { ...s.S, week: { 0: ['mine'], 6: ['mine'] } } }))
     choose('Upper / Lower')
 
@@ -66,10 +65,11 @@ describe('starter plan chooser', () => {
     expect(nameOn(2)).toBe('Lower A')
     expect(nameOn(4)).toBe('Upper B')
     expect(nameOn(5)).toBe('Lower B')
-    expect(S().week[0]).toEqual(['mine'])             // untouched weekdays stay put
-    expect(S().week[6]).toEqual(['mine'])
-    expect(S().routines[0].name).toBe('My routine')   // and nothing is deleted
+    expect(S().week[0]).toBeUndefined()               // every other weekday becomes rest
+    expect(S().week[6]).toBeUndefined()
+    expect(S().routines[0].name).toBe('My routine')   // and no routine is deleted
     expect(useUI.getState().toastMsg).toBe('Upper / Lower loaded')
+    expect(useUI.getState().toastAction?.label).toBe('Undo')
   })
 
   it('loading the same plan twice reuses its routines instead of duplicating them', () => {
@@ -82,38 +82,24 @@ describe('starter plan chooser', () => {
     expect(S().week).toEqual(week)
   })
 
-  it('asks first when a weekday the plan wants is already taken', () => {
+  it('does not ask even when a weekday the plan wants is taken: it loads over it', () => {
     useStore.setState(s => ({ S: { ...s.S, week: { 3: ['mine'] } } }))
     choose('Full Body')
 
-    const confirm = renderTop()
-    expect(confirm.querySelector('h3').textContent).toBe('Load Full Body?')
-    expect(confirm.textContent).toContain('Monday, Wednesday and Friday')
-    expect(S().week[3]).toEqual(['mine'])                  // nothing applied yet
-    expect(S().routines).toHaveLength(1)
-
-    act(() => { buttonFor(confirm, 'Load plan').click() })
+    expect(useUI.getState().sheets).toHaveLength(0)
     expect(nameOn(1)).toBe('Full Body A')
     expect(nameOn(3)).toBe('Full Body B')
     expect(nameOn(5)).toBe('Full Body C')
   })
 
-  it('leaves everything alone when the confirmation is cancelled', () => {
-    useStore.setState(s => ({ S: { ...s.S, week: { 1: ['mine'] } } }))
-    const before = structuredClone(S())
+  it('Undo in the toast puts the week back and takes away only the routines it added', () => {
+    useStore.setState(s => ({ S: { ...s.S, week: { 1: ['mine'], 2: ['mine'] } } }))
     choose('5×5')
+    expect(S().routines).toHaveLength(4)
 
-    const confirm = renderTop()
-    act(() => { buttonFor(confirm, 'Cancel').click() })
-    expect(S()).toEqual(before)
-    expect(useUI.getState().toastMsg).toBe('')
-  })
-
-  it('does not ask when only weekdays outside the plan are occupied', () => {
-    useStore.setState(s => ({ S: { ...s.S, week: { 2: ['mine'], 4: ['mine'] } } }))   // Tue + Thu
-    choose('5×5')                                                                // wants Mon/Wed/Fri
-    expect(useUI.getState().sheets).toHaveLength(0)
-    expect(nameOn(1)).toBe('5×5 A')
+    act(() => { useUI.getState().runToastAction() })
+    expect(S().routines.map(r => r.id)).toEqual(['mine'])
+    expect(S().week).toEqual({ 1: ['mine'], 2: ['mine'] })
   })
 })
 

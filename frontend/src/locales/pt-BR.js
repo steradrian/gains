@@ -106,7 +106,6 @@ export const PT_BR_OVERRIDES = {
   'As written': 'Do jeito que está',
   'Add an equipment profile in Settings to fit a plan to what you own.': 'Adicione um perfil de equipamento em Ajustes para adaptar um plano ao que você tem.',
   '{0} loaded, fitted to "{1}": {2} swapped, {3} dropped': '{0} carregado e adaptado a "{1}": {2} trocados, {3} removidos',
-  'The new plan goes on {0}. Your existing routines stay; only those days of the weekly plan change.': 'O novo plano fica em {0}. Suas rotinas continuam; só esses dias do plano semanal mudam.',
   'Push / Pull / Legs': 'Push / Pull / Legs',
   'Finish your first workout and your progress curves will show up here.': 'Termine seu primeiro treino e seus gráficos de progresso aparecem aqui.',
   'Your weekly routine': 'Sua rotina semanal',
