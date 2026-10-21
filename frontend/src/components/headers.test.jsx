@@ -130,12 +130,12 @@ describe('RootHeader (the tab-root header)', () => {
 
   it('the avatar opens Profile from another tab; the bell the notifications under its own tab', () => {
     at('/food', <RootHeader title="Nutrition" />)
+    act(() => bell().click())
+    expect(where).toBe('/food/notifications')
+    at('/train', <RootHeader title="Training" />)
     expect(avatar().getAttribute('aria-label')).toBe('Settings')
     act(() => avatar().click())
     expect(where).toBe('/me')
-    at('/food', <RootHeader title="Nutrition" />)
-    act(() => bell().click())
-    expect(where).toBe('/food/notifications')
     at('/progress', <RootHeader title="Progress" />)
     act(() => bell().click())
     expect(where).toBe('/me/notifications')
