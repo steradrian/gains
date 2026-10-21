@@ -1506,6 +1506,9 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 /* A sheet on its way out is closed: the page under it takes taps again (components/presence.jsx).
    !important because a leaving toast with an action still has the class that made it tappable. */
 #modal-root:not(.live),[data-leaving]{pointer-events:none!important}
+/* components/Collapse.jsx: the closing row clips what it held, which settles back from its top. */
+.collapse[data-leaving]{overflow:hidden}
+.collapse[data-leaving]>*{transform-origin:50% 0}
 .mback{
   position:absolute;inset:0;background:rgba(0,0,0,.4);
   -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);

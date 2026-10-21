@@ -325,7 +325,8 @@ button.g-saved { cursor: pointer; }
 .g-saved-offline { background: var(--warning-tint); color: var(--warning); }
 .g-saved-error { background: var(--danger-tint); color: var(--danger); }
 .g-savedbar { display: flex; justify-content: center; }
-.g-savedbar > .g-saved { margin-top: 12px; }
+/* Inside its Collapse row (a flex item, so the row's height takes the margin and closes it too). */
+.g-savedbar > .collapse > .g-saved { margin-top: 12px; }
 .g-saved.g-saved-stage { height: 34px; gap: 8px; padding: 0 14px; background: var(--glass); color: var(--on-stage); font: 600 14px/18px var(--font-sans); }
 .g-saved-stage .g-icon { width: 16px; height: 16px; stroke-width: 2.2; }
 
