@@ -2114,3 +2114,16 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 
 /* === Workout guard-M2d === */
 .g-xh-plan { font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); opacity: .8; }
+
+/* === Workout progression === */
+.g-prog { appearance: none; width: calc(100% - 32px); margin: 10px 16px 0; display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border: 0; border-radius: 16px; background: rgba(255, 255, 255, .08); color: var(--on-stage); text-align: start; text-decoration: none; font: 500 14px/19px var(--font-sans); cursor: pointer; }
+.g-prog .g-icon { width: 16px; height: 16px; flex: none; margin-top: 1.5px; }
+.g-prog-text { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.g-prog-text b { font-weight: 700; }
+.g-prog-warning, .g-prog-warning .g-prog-text b { color: var(--warning); }
+.g-nc { width: calc(100% - 32px); margin: 10px 16px 0; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-inline: 14px 8px; border: 1.5px dashed rgba(255, 255, 255, .35); border-radius: 16px; color: var(--on-stage-2); font: 500 14px/19px var(--font-sans); }
+.g-nc .g-icon { width: 16px; height: 16px; flex: none; }
+.g-nc-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.g-nc-undo { appearance: none; flex: none; min-height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: transparent; color: var(--on-stage); font: 700 14px/18px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-nc-undo:active { background: rgba(255, 255, 255, .12); }
+.g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }

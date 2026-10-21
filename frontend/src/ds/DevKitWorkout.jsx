@@ -5,7 +5,9 @@ import CurrentSet from './CurrentSet.jsx'
 import DoneSetRows from './DoneSetRows.jsx'
 import ExerciseHero from './ExerciseHero.jsx'
 import PhaseProgress from './PhaseProgress.jsx'
+import NotCountedLine from './NotCountedLine.jsx'
 import PlateLine from './PlateLine.jsx'
+import ProgressionLine from './ProgressionLine.jsx'
 import SetStepper from './SetStepper.jsx'
 import SupersetSwitch from './SupersetSwitch.jsx'
 import TimedHold from './TimedHold.jsx'
@@ -198,6 +200,19 @@ export default function DevKitWorkout() {
         <div className="g-kit-wk g-kit-wk-pad">
           <BarToast image={STILL} message="Next: Dumbbell seated shoulder press" actionLabel="Back" onAction={NOOP} />
           <BarToast message="Round done" />
+        </div>
+      </Section>
+
+      {/* === Workout progression === */}
+      <Section title="Workout progression" note="ProgressionLine: what progression decided for this exercise, one button that opens Exercise settings; up, hold, a deload in the warning tone, and a long reason cut at two lines. NotCountedLine: the dashed line in its place when the exercise or the whole workout is kept out, with Undo (or none, when a routine keeps it out).">
+        <div className="g-kit-wk g-kit-wk-pad">
+          <ProgressionLine icon="arrowUp" policy="Double progression" reason="Hit 12 reps in every set. Add 2.5 kg and go back to 8." label="Double progression. Hit 12 reps in every set. Add 2.5 kg and go back to 8. Open exercise settings" onClick={NOOP} />
+          <ProgressionLine icon="lightbulb" policy="Linear" reason="Missed reps last time. Same weight again (2 of 3 to go)." label="Linear. Missed reps last time. Same weight again, 2 of 3 to go. Open exercise settings" onClick={NOOP} />
+          <ProgressionLine icon="arrowDown" tone="warning" policy="Double progression" reason="Missed 8 reps twice. Drop to 22 kg and build back up." label="Double progression. Missed 8 reps twice. Drop to 22 kg and build back up. Open exercise settings" onClick={NOOP} />
+          <ProgressionLine icon="lightbulb" policy="Double progression" reason="You have outgrown the rack: 24 kg is your heaviest dumbbell, so the weight stays. Add a heavier pair in Gym setup to keep going up." label="Double progression. Open exercise settings" onClick={NOOP} />
+          <NotCountedLine text="Not counted for progression today" undoText="Undo" undoLabel="Count Cable fly for progression again" onUndo={NOOP} />
+          <NotCountedLine text="The whole workout is left out of progression" undoText="Undo" undoLabel="Count Push A for progression again" onUndo={NOOP} />
+          <NotCountedLine text="Not counted for progression" />
         </div>
       </Section>
     </>
