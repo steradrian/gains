@@ -17,6 +17,7 @@ import Fasting from './Fasting.jsx'
 import Home from './Home.jsx'
 import TodayFastRow from '../components/TodayFastRow.jsx'
 import { openPlusSheet } from '../components/PlusSheet.jsx'
+import { setNav } from '../lib/nav.js'
 
 const navigate = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useLocation: () => ({ pathname: '/home' }) }))
@@ -310,15 +311,44 @@ describe('fasting on Nutrition, not on Today, and in the + sheet', () => {
     await click(button('Start a 18 hour fast', lastSheet()))
     expect(nt.writes().find(r => r.path === '/nt/api/fasts/start').body).toEqual({ goal_hours: 18 })
     expect(useUI.getState().sheets.length).toBe(0)
+    expect(useUI.getState().toastMsg).toBe('Fast started: 18 h goal')
   })
 
-  it('the + sheet shows the time fasted while one runs, and opens the page', async () => {
-    useFake({ fasts: [running(2 * H)] })
+  it('the + sheet\'s Fast says when one was already running elsewhere, not that it started', async () => {
     await mount(<div />)
     await act(async () => { openPlusSheet('/home') })
     await settle()
-    const row = [...lastSheet().querySelectorAll('.g-menuitem')].find(r => r.textContent.startsWith('Fasting'))
-    expect(row.textContent).toContain('2h 0m')
+    nt.state.fasts.push(running(H))
+    await click(button('Start a 16 hour fast', lastSheet()))
+    expect(useUI.getState().sheets.length).toBe(0)
+    expect(useUI.getState().toastMsg).toBe('A fast is already running')
+  })
+
+  it('a Fast that did not start says why and keeps the + sheet, its item there to try again', async () => {
+    await mount(<div />)
+    await act(async () => { openPlusSheet('/home') })
+    await settle()
+    nt.failNext('POST', '/nt/api/fasts/start', 'offline')
+    await click(button('Start a 16 hour fast', lastSheet()))
+    expect(useUI.getState().toastMsg).toBe('Not saved: no connection. Try again when you are back online.')
+    expect(useUI.getState().sheets.length).toBe(1)
+    expect(button('Start a 16 hour fast', lastSheet()).disabled).toBe(false)
+  })
+
+  it('the + sheet shows the time fasted while one runs, and opens the page', async () => {
+    const went = []
+    setNav(to => { went.push(to) })
+    try {
+      useFake({ fasts: [running(2 * H)] })
+      await mount(<div />)
+      await act(async () => { openPlusSheet('/home') })
+      await settle()
+      const row = [...lastSheet().querySelectorAll('.g-menuitem')].find(r => r.textContent.startsWith('Fasting'))
+      expect(row.textContent).toContain('2h 0m')
+      await click(row)
+      expect(useUI.getState().sheets.length).toBe(0)
+      expect(went).toEqual(['/food/fasting'])
+    } finally { setNav(() => {}) }
   })
 
   it('the + sheet has no Fast row while fasting is off', async () => {
