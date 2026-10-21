@@ -78,9 +78,31 @@ describe('loadStarterPlanWithUndo', () => {
     expect(S().routines.flatMap(r => r.ex.map(e => e.id))).not.toContain('0025')
   })
 
+  it('adds a fitted plan beside a same-named routine with other exercises, and reuses the fitted ones the next time', () => {
+    const home = { id: 'home', name: 'Home', equipment: ['dumbbell'] }
+    loadStarterPlanWithUndo('ppl', { today: WED })
+    loadStarterPlanWithUndo('ppl', { fit: home, today: WED })
+    const pushes = S().routines.filter(r => r.name === 'Push Day')
+    expect(pushes).toHaveLength(2)
+    expect(pushes[0].ex.map(e => e.id)).not.toEqual(pushes[1].ex.map(e => e.id))
+    expect(S().week[1]).toEqual([pushes[1].id])
+    loadStarterPlanWithUndo('ppl', { fit: home, today: WED })
+    expect(S().routines.filter(r => r.name === 'Push Day')).toHaveLength(2)
+  })
+
+  it('two different plans add independent routines', () => {
+    loadStarterPlanWithUndo('ppl', { today: WED })
+    const first = S().routines.slice(1).map(r => r.id)
+    loadStarterPlanWithUndo('full-body', { today: WED })
+    const second = S().routines.slice(4).map(r => r.id)
+    expect(S().routines).toHaveLength(7)
+    expect(new Set([...first, ...second]).size).toBe(6)
+  })
+
   it('changes nothing for a plan it does not know', () => {
     const before = structuredClone(S())
     expect(loadStarterPlanWithUndo('nope')).toBeNull()
+    expect(loadStarterPlanWithUndo(undefined)).toBeNull()
     expect(S()).toEqual(before)
   })
 })

@@ -1,0 +1,42 @@
+/* Train's plans and gym pages on the stage (Ready-made plans, a plan's preview, Gym setup; boards
+   T10.0, T10.1, T12.0). StagePage owns the frame and the foot's room for the tab bar; the body is a
+   column with the boards' 16px gutters. Only tokens here: the kit's parts carry the colours. */
+.tcp { display: flex; flex-direction: column; gap: 20px; padding: 4px 16px 0; }
+.tcp-block { display: flex; flex-direction: column; gap: 12px; }
+.tcp-block > .g-ssec { padding-inline: 4px; }
+
+/* A line of fine print on the stage, and the link inside it */
+.tcp-line { margin: 0; padding-inline: 4px; font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); }
+.tcp-line + .tcp-line { margin-top: -4px; }
+.tcp-link { appearance: none; border: 0; padding: 0; background: none; font: inherit; color: var(--on-stage); text-decoration: underline; text-underline-offset: 2px; text-align: start; cursor: pointer; }
+.tcp-link:focus-visible { outline-color: var(--on-stage); }
+
+/* The fit control: when there is nothing to fit to it is shown off and out of reach (inert) */
+.tcp-off { opacity: 0.45; }
+
+/* Your week: seven cells, a weekday and the routine on it, or Rest */
+.tcp-week { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.tcp-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 8px 2px 10px; border-radius: 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); text-align: center; }
+.tcp-cell b { font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); }
+.tcp-cell span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-width: 100%; font: 700 11px/13px var(--font-sans); overflow-wrap: anywhere; }
+.tcp-cell-rest span { font-weight: 500; color: var(--on-stage-2); }
+
+/* The note under the routines: what loading the plan does to the week */
+.tcp-note { padding: 14px 16px; border-radius: 20px; display: flex; flex-direction: column; gap: 2px; color: var(--on-stage); }
+.tcp-note b { font: 600 15px/20px var(--font-sans); }
+.tcp-note span { font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); }
+
+/* The drawers over Gym setup (plates, dumbbells, a profile): a line of explanation, the weight
+   field with its Add, the checklist's rows a little shorter than a radio row */
+.tcp-dnote { margin: 0 0 12px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.tcp-add { display: flex; align-items: flex-end; gap: 10px; margin-block: 12px; }
+.tcp-add .g-tfield { flex: 1; min-width: 0; }
+.g-radio.tcp-check { min-height: 48px; }
+.tcp-check .g-radio-mark { border-radius: 8px; }
+.g-bs-body .g-btn-block + .g-btn-block { margin-top: 10px; }
+
+/* Gym setup: the lines under a list, and the part a Settings search hit flashes */
+.tcp-sub { margin: 0; padding-inline: 4px; font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); }
+.tcp-sub + .tcp-sub { margin-top: -6px; }
+.tcp-flash { outline: 2px solid var(--on-stage); outline-offset: 4px; border-radius: 20px; animation: tcp-flash 1.8s ease forwards; }
+@keyframes tcp-flash { 0%, 60% { outline-color: var(--on-stage); } 100% { outline-color: var(--glass-line); } }

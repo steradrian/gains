@@ -12,7 +12,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { finishWorkout, loadStarterPlan } from './sheets.jsx'
+import { finishWorkout } from './sheets.jsx'
+import { loadStarterPlanWithUndo } from './lib/starter-load.js'
 import { nav } from './lib/nav.js'
 import { switchTab } from './lib/use-tab-nav.js'
 import { endSearch, setQuery, useSearch, visit } from './lib/search/session.js'
@@ -101,7 +102,7 @@ afterEach(() => {
 const running = () => useStore.getState().update(s => { s.active = { id: 'a', name: 'Push A', entries: [], cur: 0, start: Date.now() - 60_000 } }, false)
 // A plan with a routine on today, so Start starts it.
 function planToday() {
-  loadStarterPlan('full-body')
+  loadStarterPlanWithUndo('full-body')
   useStore.getState().update(s => { s.week = { [new Date().getDay()]: [s.routines.find(r => r.ex.length).id] } }, false)
 }
 
