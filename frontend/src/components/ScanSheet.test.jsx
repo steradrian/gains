@@ -1,25 +1,25 @@
 // @vitest-environment happy-dom
-// Barcode scanning: the + sheet's Scan tile and the picker's barcode button, down to the food
-// logged. The camera is mocked (it hands the sheet a code); the lookups run against NutriTrace
-// faked at the fetch boundary, under the hub's rules for the proxy.
+// Barcode scanning (boards Ea9*): the dark camera overlay over the + sheet and the picker, down to
+// the food logged. The camera is a stand-in (lib/use-camera-scan.fake.js) that reads what the test
+// tells it; the lookups run against NutriTrace faked at the fetch boundary, under the hub's rules
+// for the proxy.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { setNav } from '../lib/nav.js'
 import { todayISO } from '../lib/format.js'
 import { setNav } from '../lib/nav.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
+import { camera, resetCamera, seeCode } from '../lib/use-camera-scan.fake.js'
 import { openPlusSheet } from './PlusSheet.jsx'
 import FoodPicker from './FoodPicker.jsx'
+import { scanSheet } from './ScanSheet.jsx'
 
-// The camera hands over whatever the test queues; it is a button in place of a live feed.
-const camera = { hit: null }
-vi.mock('./CameraScan.jsx', () => ({
-  default: ({ onFound }) => <button type="button" onClick={() => onFound(camera.hit)}>camera sees a code</button>,
-}))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -36,6 +36,8 @@ const mount = async el => { await act(async () => { root.render(<>{el}<Sheets />
 const button = (label, scope = host) => [...scope.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent).trim() === label)
 const click = async el => { await act(async () => { el.click() }); await settle() }
 const lastSheet = () => [...host.querySelectorAll('[data-sheet]')].at(-1)
+// Amount's button names the meal ("Add to Lunch").
+const addButton = (scope = lastSheet()) => [...scope.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('Add to '))
 const typeInto = async (input, value) => {
   await act(async () => {
     Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, value)
@@ -43,13 +45,20 @@ const typeInto = async (input, value) => {
   })
   await settle()
 }
-const scan = async value => { camera.hit = { value, fmt: 'ean13' }; await click(button('camera sees a code', lastSheet())) }
+const scan = async value => { await act(async () => { seeCode(value) }); await settle() }
 const proxyCalls = () => nt.requests.filter(r => r.path === '/nt/api/proxy')
-const openScan = async () => {
+const overlay = () => host.querySelector('.g-scan')
+const open = async (props = {}) => {
   await mount(<div />)
-  await act(async () => { openPlusSheet('/home') })
+  await act(async () => { scanSheet({ date: TODAY, meal: 1, mealName: 'Lunch', ...props }) })
   await settle()
-  await click(button('Scan', lastSheet()))
+}
+// Type the barcode: the drawer over the overlay.
+const typeCode = async value => {
+  await click(button('Type the barcode', overlay()))
+  const field = lastSheet().querySelector('input[inputmode="numeric"]')
+  await typeInto(field, value)
+  return lastSheet()
 }
 
 beforeEach(() => {
@@ -63,106 +72,180 @@ beforeEach(() => {
   useNutrition.getState().reset()
   useDiarySelection.getState().reset()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
-  camera.hit = null
+  resetCamera()
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
 })
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals() })
 
+describe('the overlay', () => {
+  it('is a viewer over what opened it: the dark camera, Point the camera, Type the barcode, and a × that just closes', async () => {
+    const go = vi.fn()
+    setNav(go)
+    await mount(<div />)
+    await act(async () => { openPlusSheet('/home') })
+    await settle()
+    await click(button('Scan', lastSheet()))
+    expect(useUI.getState().sheets.map(s => s.kind)).toEqual(['sheet', 'viewer'])
+    expect(overlay().querySelector('h2').textContent).toBe('Scan a barcode')
+    expect(overlay().textContent).toContain('Point the camera at the barcode')
+    expect(button('Type the barcode', overlay())).toBeTruthy()
+    await click(button('Close scan', overlay()))
+    expect(overlay()).toBeNull()
+    // Back on the + sheet it came from, and nothing navigated.
+    expect(useUI.getState().sheets.map(s => s.kind)).toEqual(['sheet'])
+    expect(go).not.toHaveBeenCalled()
+  })
+
+  it('shows the torch only where the camera has one', async () => {
+    await open()
+    expect(button('Torch', overlay())).toBeUndefined()
+    await act(async () => { await useUI.getState().closeAll() })
+    camera.torch = { available: true, on: false, toggle: vi.fn() }
+    await open()
+    await click(button('Torch', overlay()))
+    expect(camera.torch.toggle).toHaveBeenCalledTimes(1)
+  })
+
+  it('Camera is blocked says how to allow it, offers Type the barcode and Try again, which asks again', async () => {
+    camera.error = 'denied'
+    await open()
+    expect(overlay().textContent).toContain('Camera is blocked')
+    expect(overlay().textContent).toContain('Allow the camera for Gains in your browser settings')
+    expect(overlay().querySelector('.g-sempty')).not.toBeNull()
+    await click(button('Try again', overlay()))
+    expect(camera.retry).toHaveBeenCalledTimes(1)
+    await click(button('Type the barcode', overlay()))
+    expect(lastSheet().querySelector('h2').textContent).toBe('Type the barcode')
+  })
+
+  it('no camera at all offers the typed code and no retry', async () => {
+    camera.error = 'unavailable'
+    await open()
+    expect(overlay().textContent).toContain('No camera found')
+    expect(button('Try again', overlay())).toBeUndefined()
+    expect(button('Type the barcode', overlay())).toBeTruthy()
+  })
+})
+
 describe('scanning a product', () => {
-  it('logs one of your own foods straight from its barcode, with no lookup', async () => {
-    await openScan()
+  it('asks your own foods first: one of them opens Amount at once, with no lookup', async () => {
+    await open()
     await scan('5000000000001')
-    expect(lastSheet().textContent).toContain('Wholemeal bread')
-    expect(lastSheet().textContent).toContain('One of your foods')
     expect(proxyCalls()).toEqual([])
-    await click(button('Log', lastSheet()))
-    // The portion sheet, as for a food picked from the list.
+    expect(overlay()).toBeNull()
+    // Amount, as for a food picked from the list.
+    expect(lastSheet().textContent).toContain('Wholemeal bread')
     expect(lastSheet().textContent).toContain('Serving size')
-    await click(button('Log', lastSheet()))
+    await click(addButton())
     const put = nt.writes().find(r => r.method === 'PUT')
     expect(put.path).toBe(`/nt/api/diary/${TODAY}`)
-    expect(put.body.items.at(-1)).toMatchObject({ name: 'Wholemeal bread', food_server_id: 12, quantity: 1 })
+    expect(put.body.items.at(-1)).toMatchObject({ name: 'Wholemeal bread', food_server_id: 12, quantity: 1, meal: 1 })
     expect(nt.writes().some(r => r.path === '/nt/api/foods')).toBe(false)
+    expect(useUI.getState().toastMsg).toBe('Added Wholemeal bread to Today, Lunch')
   })
 
   it('an own food saved under the UPC form still matches the EAN scan', async () => {
     nt.state.foods[1].barcode = '5000000000001'
-    await openScan()
+    await open()
     await scan('05000000000001')
     expect(lastSheet().textContent).toContain('Wholemeal bread')
   })
 
-  it('looks up a product Open Food Facts knows and logs it, saving it as one of your foods first', async () => {
-    await openScan()
+  it('then Open Food Facts: the product, its energy and macros, and Log to the meal it was opened for, landing on Amount', async () => {
+    await open()
     await scan('3017620422003')
-    expect(lastSheet().textContent).toContain('Nutella')
-    expect(lastSheet().textContent).toContain('From Open Food Facts')
+    const card = overlay().querySelector('.g-scan-card')
+    expect(card.textContent).toContain('Nutella')
+    expect(card.textContent).toContain('Online')
+    expect([...card.querySelectorAll('.g-scan-stat span')].map(s => s.textContent)).toEqual(['kcal', 'Protein g', 'Carbs g', 'Fat g'])
     expect(proxyCalls().length).toBe(1)
     expect(proxyCalls()[0].query.url).toBe('https://world.openfoodfacts.org/api/v3/product/3017620422003?lc=en')
-    await click(button('Log', lastSheet()))
-    await click(button('Log', lastSheet()))
+    await click(button('Log to Lunch', card))
+    expect(overlay()).toBeNull()
+    expect(lastSheet().textContent).toContain('Serving size')
+    await click(addButton())
     const saved = nt.writes().find(r => r.path === '/nt/api/foods')
     expect(saved.body).toMatchObject({ name: 'Nutella', barcode: '3017620422003', visibility: 'private' })
     expect(saved.body).not.toHaveProperty('imgUrl')
-    expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Nutella' })
+    expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Nutella', meal: 1 })
+    expect(useUI.getState().toastMsg).toBe('Added Nutella to Today, Lunch')
   })
 
-  it('saves a product as a food without logging it', async () => {
-    await openScan()
+  it('Save food keeps a product in My foods without logging it, and Log then logs that saved food', async () => {
+    await open()
     await scan('3017620422003')
-    await click(button('Save to my foods', lastSheet()))
+    await click(button('Save food', overlay()))
     expect(nt.writes().map(r => `${r.method} ${r.path}`)).toEqual(['POST /nt/api/foods'])
-    expect(button('Saved', lastSheet()).disabled).toBe(true)
+    expect(button('Saved', overlay()).disabled).toBe(true)
     expect(nt.writes().some(r => r.method === 'PUT')).toBe(false)
     expect(useNutrition.getState().foods.list.some(f => f.barcode === '3017620422003')).toBe(true)
+    await click(button('Log to Lunch', overlay()))
+    await click(addButton())
+    expect(nt.writes().filter(r => r.method === 'POST' && r.path === '/nt/api/foods')).toHaveLength(1)
   })
 
   it('an 8-digit UPC-E is expanded to its UPC-A, then the EAN-13, before the lookup', async () => {
-    await openScan()
+    await open()
     await scan('04252614')
     expect(proxyCalls()[0].query.url).toContain('/product/0042100005264?')
   })
 
-  it('announces each step and moves focus to its heading', async () => {
-    await openScan()
-    await scan('3017620422003')
-    const hit = lastSheet().querySelector('.scan-hit')
-    expect(hit.getAttribute('role')).toBe('status')
-    expect(document.activeElement).toBe(hit.querySelector('.tt'))
-    await click(button('Scan another', lastSheet()))
-    expect(document.activeElement.tagName).toBe('H3')
-    await scan('9999999999999')
-    expect(document.activeElement).toBe(lastSheet().querySelector('.scan-hit .tt'))
-  })
-
   it('a 12-digit UPC-A is looked up as the EAN-13 Open Food Facts files it under', async () => {
-    await openScan()
+    await open()
     await scan('036000291452')
     expect(proxyCalls()[0].query.url).toContain('/product/0036000291452?')
-    expect(lastSheet().textContent).toContain('Nutella')
+    expect(overlay().textContent).toContain('Nutella')
   })
 
-  it('a barcode nobody knows says so and offers search and a quick kcal', async () => {
-    await openScan()
+  it('moves focus to each step\'s heading, and Scan another goes back to reading', async () => {
+    await open()
+    await scan('3017620422003')
+    expect(document.activeElement.textContent).toBe('Nutella')
+    await click(button('Scan another', overlay()))
+    expect(overlay().textContent).toContain('Point the camera at the barcode')
+    expect(document.activeElement.textContent).toBe('Point the camera at the barcode')
+    expect(camera.opts.enabled).toBe(true)
     await scan('9999999999999')
-    expect(lastSheet().textContent).toContain('No product found for 9999999999999')
-    expect(button('Search foods', lastSheet())).toBeTruthy()
-    expect(button('Quick kcal', lastSheet())).toBeTruthy()
-    await click(button('Search foods', lastSheet()))
-    expect(lastSheet().textContent).toContain('Log food')
+    expect(document.activeElement.tagName).toBe('H3')
   })
 
-  it('a miss opens the new-food editor with the scanned barcode, and writes nothing', async () => {
+  it('a barcode nobody knows says so, and Create food leaves the overlay and opens the editor with the code filled in', async () => {
     const go = vi.fn()
     setNav(go)
-    await openScan()
-    await scan('9999999999999')
-    await click(button('New food', lastSheet()))
-    expect(go).toHaveBeenCalledWith('/food/my-foods/foods/new', expect.objectContaining({ state: { prefill: { barcode: '9999999999999' } } }))
+    await open()
+    await scan('5941234567890')
+    const card = overlay().querySelector('.g-scan-card')
+    expect(card.textContent).toContain('5 941234 567890')
+    expect(card.querySelector('h3').textContent).toBe('Not in Open Food Facts yet')
+    expect(card.textContent).toContain('Next time this barcode opens it straight away.')
+    expect(button('Scan again', card)).toBeTruthy()
+    await click(button('Create food with this barcode', card))
     expect(useUI.getState().sheets).toHaveLength(0)
-    expect(nt.writes().find(w => w.method === 'POST' && w.path === '/nt/api/foods')).toBeUndefined()
+    expect(go).toHaveBeenCalledWith('/food/my-foods/foods/new', { state: { prefill: { barcode: '5941234567890' } } })
+  })
+
+  it('offers Search foods only when the opener can search, and Quick kcal', async () => {
+    const onSearch = vi.fn()
+    await open({ onSearch })
+    await scan('9999999999999')
+    expect(button('Quick kcal', overlay())).toBeTruthy()
+    await click(button('Search foods', overlay()))
+    expect(onSearch).toHaveBeenCalledTimes(1)
+    expect(overlay()).toBeNull()
+    await open()
+    await scan('9999999999999')
+    expect(button('Search foods', overlay())).toBeUndefined()
+  })
+
+  it('with Open Food Facts off, a miss says only your foods were asked', async () => {
+    nt.state.settings.offEnabled = false
+    await useNutrition.getState().loadSettings()
+    await open()
+    await scan('3017620422003')
+    expect(proxyCalls()).toEqual([])
+    expect(overlay().querySelector('h3').textContent).toBe('Not in your foods yet')
   })
 
   it('a product listed without calories cannot be logged and says why', async () => {
@@ -170,45 +253,57 @@ describe('scanning a product', () => {
     bare.product.nutriments = { proteins_100g: 3 }
     nt = createFakeNutriTrace({ offProducts: { '1234567890128': bare } })
     vi.stubGlobal('fetch', nt.fetch)
-    await openScan()
+    await open()
     await scan('1234567890128')
-    expect(lastSheet().textContent).toContain('No energy value for 1234567890128')
-    expect(button('Log', lastSheet())).toBeUndefined()
+    expect(overlay().textContent).toContain('No energy value for 1234567890128')
+    expect(button('Log to Lunch', overlay())).toBeUndefined()
   })
 
   it('a lookup that fails is not a miss: it says so and tries again', async () => {
-    await openScan()
+    await open()
     nt.failNext('GET', '/nt/api/proxy', 'offline')
     await scan('3017620422003')
-    expect(lastSheet().querySelector('[role="alert"]').textContent).toBe('The lookup did not go through: no connection.')
-    await click(button('Try again', lastSheet()))
-    expect(lastSheet().textContent).toContain('Nutella')
+    expect(overlay().querySelector('[role="alert"]').textContent).toBe('The lookup did not go through: no connection.')
+    expect(overlay().textContent).toContain('3 017620 422003')
+    await click(button('Try again', overlay()))
+    expect(overlay().textContent).toContain('Nutella')
   })
 
   it('too many lookups asks to wait', async () => {
-    await openScan()
+    await open()
     nt.failNext('GET', '/nt/api/proxy', { status: 429 })
     await scan('3017620422003')
-    expect(lastSheet().querySelector('[role="alert"]').textContent).toBe('Too many lookups. Wait a minute and try again.')
+    expect(overlay().querySelector('[role="alert"]').textContent).toBe('Too many lookups. Wait a minute and try again.')
   })
+})
 
-  it('types a code when there is no camera, and refuses what is not a barcode', async () => {
-    await openScan()
-    const field = lastSheet().querySelector('input[aria-label="Barcode"]')
-    await typeInto(field, 'hello')
-    await click(button('Look up', lastSheet()))
-    expect(lastSheet().querySelector('[role="alert"]').textContent).toBe('That is not a product barcode.')
-    expect(proxyCalls()).toEqual([])
+describe('Type the barcode', () => {
+  it('keeps Look up off until the digits are a barcode, and says why', async () => {
+    await open()
+    await click(button('Type the barcode', overlay()))
+    const sheet = lastSheet()
+    expect(sheet.querySelector('h2').textContent).toBe('Type the barcode')
+    expect(sheet.textContent).toContain('The 8 or 13 digits under the bars.')
+    expect(button('Look up', sheet).disabled).toBe(true)
+    const field = sheet.querySelector('input[inputmode="numeric"]')
+    await typeInto(field, '30176')
+    expect(sheet.textContent).toContain('Barcodes are 8 to 14 digits, numbers only.')
+    expect(button('Look up', sheet).disabled).toBe(true)
+    await typeInto(field, '3017620422004')
+    expect(sheet.textContent).toContain('The last digit does not match the others. Check for a typo.')
+    expect(button('Look up', sheet).disabled).toBe(true)
     await typeInto(field, '3017 6204 22003')
-    await click(button('Look up', lastSheet()))
-    expect(lastSheet().textContent).toContain('Nutella')
+    expect(button('Look up', sheet).disabled).toBe(false)
+    expect(proxyCalls()).toEqual([])
   })
 
-  it('Scan another goes back to the camera', async () => {
-    await openScan()
-    await scan('9999999999999')
-    await click(button('Scan another', lastSheet()))
-    expect(button('camera sees a code', lastSheet())).toBeTruthy()
+  it('looks the number up on the overlay under it, spaces and all', async () => {
+    await open()
+    await typeCode('3017 6204 22003')
+    await click(button('Look up', lastSheet()))
+    expect(useUI.getState().sheets.map(s => s.kind)).toEqual(['viewer'])
+    expect(overlay().textContent).toContain('Nutella')
+    expect(proxyCalls()).toHaveLength(1)
   })
 })
 
@@ -217,8 +312,7 @@ describe('the picker', () => {
     await mount(<FoodPicker date={TODAY} meal={2} mealName="Dinner" />)
     await click(button('Scan a barcode'))
     await scan('5000000000001')
-    await click(button('Log', lastSheet()))
-    await click(button('Log', lastSheet()))
+    await click(button('Add to Dinner', lastSheet()))
     expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Wholemeal bread', meal: 2 })
   })
 })

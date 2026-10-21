@@ -50,7 +50,7 @@ describe('DevKit', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
     expect(titles).toEqual(expect.arrayContaining(['BottomSheet', 'SegmentedControl', 'ActionGrid', 'MenuList', 'UndoToast']))
-    expect(view.host.querySelectorAll('.g-kit-frame .g-bs')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-kit-frame .g-bs')).toHaveLength(5)
     expect(view.host.querySelectorAll('.g-kit-frame .g-bs .g-agrid-lg + .g-menulist')).toHaveLength(1)
     expect(view.host.querySelectorAll('.g-kit-frame .g-bs-pin .g-seg')).toHaveLength(1)
     expect(view.host.querySelectorAll('.g-kit-col .g-utoast')).toHaveLength(3)

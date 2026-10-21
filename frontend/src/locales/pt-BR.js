@@ -1369,7 +1369,6 @@ export const PT_BR_OVERRIDES = {
   'Nutrition lives in the web app': 'Nutrition lives in the web app',
   'Per 100 {0}': 'Per 100 {0}',
   'Per serving': 'Per serving',
-  'Per serving ({0})': 'Per serving ({0})',
   'Phosphorus': 'Phosphorus',
   'Polyunsaturated fat': 'Polyunsaturated fat',
   'Potassium': 'Potassium',

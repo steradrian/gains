@@ -15,12 +15,10 @@ import { noteAnswer, resetOffBudget } from '../lib/nutrition/off-budget.js'
 import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
 import { offResults } from '../lib/nutrition/off.js'
 import { createFakeNutriTrace, fixtureDay, fixtureOffProduct } from '../lib/nutrition/fake-nutritrace.js'
+import { resetCamera, seeCode } from '../lib/use-camera-scan.fake.js'
 import FoodPicker from './FoodPicker.jsx'
 
-const camera = { hit: null }
-vi.mock('./CameraScan.jsx', () => ({
-  default: ({ onFound }) => <button type="button" onClick={() => onFound(camera.hit)}>camera sees a code</button>,
-}))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -69,7 +67,7 @@ beforeEach(() => {
   resetOnlineSearch()
   resetOffBudget()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
-  camera.hit = null
+  resetCamera()
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -215,7 +213,7 @@ describe('the diary picker', () => {
     await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
     await search(host, 'nutella')
     await click(row(host, 'Nutella'))
-    await click(buttonIn(lastSheet(), 'Log'))
+    await click(buttonIn(lastSheet(), 'Add to Breakfast'))
     expect(foodPosts()[0].body).toMatchObject({ name: 'Nutella', visibility: 'private' })
     expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Nutella' })
   })

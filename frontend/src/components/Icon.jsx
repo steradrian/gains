@@ -224,6 +224,9 @@ const P = {
   fingerprint: <><path d="M5.2 9.2a7.8 7.8 0 0 1 13.6 0" /><path d="M4.8 14.4v-1.2a7.2 7.2 0 0 1 .4-2.4M18.8 9.2a7.6 7.6 0 0 1 .4 2.6v3" /><path d="M8.6 20a9.6 9.6 0 0 1-1.2-4.6v-2.2a4.6 4.6 0 0 1 9.2 0v1.6" /><path d="M12 13v2.6a9.4 9.4 0 0 0 1.6 5" /><path d="M16.6 18.2v.6c0 .6.1 1.2.2 1.6" /></>,
   // how a message sounds (the nudge tone)
   chat: <path d="M5.6 4.8h12.8a2.2 2.2 0 0 1 2.2 2.2v8a2.2 2.2 0 0 1-2.2 2.2H11l-4.4 3.4v-3.4h-1a2.2 2.2 0 0 1-2.2-2.2V7a2.2 2.2 0 0 1 2.2-2.2Z" />,
+  // Eat logging m2: the Scan overlay's torch, and Type the barcode
+  keyboard: lucide(<><path d="M10 8h.01M12 12h.01M14 8h.01M16 12h.01M18 8h.01M6 8h.01M7 16h10M8 12h.01" /><rect x="2" y="4" width="20" height="16" rx="2" /></>),
+  flashlight: <><path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12Z" /><path d="M6 6h12" /><path d="M12 12v.01" /></>,
 }
 
 export const ICON_NAMES = Object.keys(P)

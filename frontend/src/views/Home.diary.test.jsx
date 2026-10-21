@@ -27,6 +27,7 @@ import { weighInTime } from '../lib/bodyweight.js'
 
 const { navigate } = vi.hoisted(() => ({ navigate: vi.fn() }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useLocation: () => ({ pathname: '/home' }) }))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const TODAY = todayISO()
@@ -191,7 +192,7 @@ describe('Today', () => {
     await mount(<Home />)
     expect(actions()).toEqual(['Log food', 'Scan', 'Water', 'Weigh-in'])
     await click(action('Scan'))
-    expect(lastSheet().querySelector('.scan-sheet h3').textContent).toBe('Scan a barcode')
+    expect(lastSheet().querySelector('.g-scan h2').textContent).toBe('Scan a barcode')
     await act(async () => { useUI.setState({ sheets: [] }) })
     await click(action('Weigh-in'))
     await click(button('Save weigh-in', lastSheet()))
@@ -446,8 +447,8 @@ describe('logging a food', () => {
     await mount(<PortionSheet food={bread()} date={TODAY} meal={2} mealName="Dinner" close={() => {}} />)
     await click(button('slice'))
     await typeInto(host.querySelector('input[aria-label="Serving size"]'), '2')
-    expect(host.querySelector('.portion-sum .big').textContent).toBe('178 kcal')
-    await click(button('Log'))
+    expect(host.querySelector('.g-la-big').textContent).toBe('178 kcal')
+    await click(button('Add to Dinner'))
     const item = nt.state.days[TODAY].items.at(-1)
     expect(item).toMatchObject({ name: 'Wholemeal bread', meal: 2, portion: 2, unit: 'slice', quantity: 1 })
     expect(useUI.getState().toastMsg).toBe('Added Wholemeal bread to Today, Dinner')
@@ -458,11 +459,11 @@ describe('logging a food', () => {
     await mount(<PortionSheet food={bread()} date={TODAY} meal={0} mealName="Breakfast" close={close} />)
     await typeInto(host.querySelector('input[aria-label="Servings"]'), '3')
     nt.failNext('PUT', '/nt/api/diary/', { lost: true })
-    await click(button('Log'))
+    await click(button('Add to Breakfast'))
     expect(close).not.toHaveBeenCalled()
     expect(host.querySelector('[role="alert"]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
     expect(host.querySelector('input[aria-label="Servings"]').value).toBe('3')
-    await click(button('Log'))
+    await click(button('Add to Breakfast'))
     expect(close).toHaveBeenCalled()
     expect(nt.state.days[TODAY].items.filter(i => i.name === 'Wholemeal bread')).toHaveLength(1)
   })
@@ -470,7 +471,7 @@ describe('logging a food', () => {
   it('refuses 0 servings instead of logging one', async () => {
     await mount(<PortionSheet food={bread()} date={TODAY} meal={0} mealName="Breakfast" close={() => {}} />)
     await typeInto(host.querySelector('input[aria-label="Servings"]'), '0')
-    expect(button('Log').disabled).toBe(true)
+    expect(button('Add to Breakfast').disabled).toBe(true)
     expect(text()).toContain('Enter an amount above 0.')
   })
 
@@ -478,9 +479,9 @@ describe('logging a food', () => {
     const pending = { uuid: null, food: null }
     await mount(<PortionSheet food={bread()} date={TODAY} meal={0} mealName="Breakfast" pending={pending} close={() => {}} />)
     nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
-    await click(button('Log'))
+    await click(button('Add to Breakfast'))
     await typeInto(host.querySelector('input[aria-label="Servings"]'), '2')
-    await click(button('Log'))
+    await click(button('Add to Breakfast'))
     const logged = nt.state.days[TODAY].items.filter(i => i.name === 'Wholemeal bread')
     expect(logged).toHaveLength(1)
     expect(logged[0].quantity).toBe(2)
@@ -490,9 +491,9 @@ describe('logging a food', () => {
     const pending = { uuid: null, food: null }
     nt.failNext('PUT', '/nt/api/diary/', { lost: true, status: 504 })
     await mount(<PortionSheet key="a" food={bread()} date={TODAY} meal={0} mealName="Breakfast" pending={pending} close={() => {}} />)
-    await click(button('Log'))
+    await click(button('Add to Breakfast'))
     await mount(<PortionSheet key="b" food={bread()} date={TODAY} meal={0} mealName="Breakfast" pending={pending} close={() => {}} />)
-    await click(button('Log'))
+    await click(button('Add to Breakfast'))
     expect(nt.state.days[TODAY].items.filter(i => i.name === 'Wholemeal bread')).toHaveLength(1)
   })
 
@@ -501,7 +502,7 @@ describe('logging a food', () => {
     await useNutrition.getState().loadSettings()
     await mount(<QuickKcalSheet date={TODAY} meal={1} mealName="Lunch" close={() => {}} />)
     await typeInto(host.querySelector('input[aria-label="kJ"]'), '1000')
-    await click(button('Log'))
+    await click(button('Add to Lunch'))
     expect(nt.state.days[TODAY].items.at(-1).nutrition.calories).toBe(239)
   })
 })
@@ -588,7 +589,7 @@ describe('the + sheet', () => {
     expect(lastSheet().querySelector('.g-bs-chip').textContent).toContain('Snacks')
     await click(button('Quick kcal', lastSheet()))
     await typeInto(lastSheet().querySelector('input[aria-label="kcal"]'), '300')
-    await click(button('Log', lastSheet()))
+    await click(button('Add to Snacks', lastSheet()))
     expect(nt.state.days[TODAY].items.at(-1)).toMatchObject({ type: 'quick_calories', meal: 3, nutrition: { calories: 300 } })
   })
 

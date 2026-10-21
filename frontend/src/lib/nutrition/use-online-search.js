@@ -86,12 +86,7 @@ function watch(entry, signal) {
   })
 }
 
-/** One Open Food Facts search, counted against the budget (off-budget.js) and kept in the cache;
- *  the same query already on its way is joined, not sent again. `kind` is 'auto' for a search
- *  nobody asked for by name (typing), 'tap' for one they did.
- *  Throws an NtError: 'aborted' once `signal` aborts, and a 429 when the budget is spent, so that
- *  every caller, the pickers and the global search alike, stays inside it. */
-export async function fetchOnline(q, { lang = 'en', country = null, signal, kind = 'auto' } = {}) {
+async function fetchOne(q, { lang, country, signal, kind }) {
   const key = keyOf(q, lang, country)
   const hit = cachedOnline(q, { lang, country })
   if (hit) return hit
@@ -101,6 +96,54 @@ export async function fetchOnline(q, { lang = 'en', country = null, signal, kind
     entry = start(key, q, { lang, country, kind })
   }
   return watch(entry, signal)
+}
+
+/** A country-filtered search that finds fewer than this many products asks World as well. */
+export const FALLBACK_BELOW = 5
+
+// The products that came from the World search, by identity: the Log food list sets them under
+// "More from everywhere". A mark on the food itself would travel into the save request.
+const fromWorld = new WeakSet()
+export const isFromWorld = food => fromWorld.has(food)
+
+/** `local` followed by the World products that are not in it already (same barcode), marked
+ *  (isFromWorld) on copies so the cached World answer itself stays unmarked. */
+export function appendWorld(local, world) {
+  const seen = new Set(local.map(f => f.barcode).filter(Boolean))
+  const extra = []
+  for (const f of world) {
+    if (f.barcode) {
+      if (seen.has(f.barcode)) continue
+      seen.add(f.barcode)
+    }
+    const copy = { ...f }
+    fromWorld.add(copy)
+    extra.push(copy)
+  }
+  return [...local, ...extra]
+}
+
+/** One Open Food Facts search, counted against the budget (off-budget.js) and kept in the cache;
+ *  the same query already on its way is joined, not sent again. `kind` is 'auto' for a search
+ *  nobody asked for by name (typing), 'tap' for one they did.
+ *  Throws an NtError: 'aborted' once `signal` aborts, and a 429 when the budget is spent, so that
+ *  every caller, the pickers and the global search alike, stays inside it.
+ *  Under a country filter that finds fewer than FALLBACK_BELOW products, World is asked too and
+ *  its products follow (appendWorld); the answer is cached under the country's key. */
+export async function fetchOnline(q, { lang = 'en', country = null, signal, kind = 'auto' } = {}) {
+  const was = epoch
+  const local = await fetchOne(q, { lang, country, signal, kind })
+  if (!country || country === 'World' || local.length >= FALLBACK_BELOW) return local
+  let world
+  try {
+    world = await fetchOne(q, { lang, country: null, signal, kind })
+  } catch (e) {
+    if (e?.code === 'aborted') throw e
+    return local     // the country's own results stand when the second search cannot be made
+  }
+  const merged = appendWorld(local, world)
+  if (was === epoch) remember(keyOf(q, lang, country), merged)
+  return merged
 }
 
 // Open Food Facts results for what is typed, once typing pauses. Nothing is asked for a query

@@ -269,6 +269,104 @@ describe('the screens gallery', () => {
     await check('T1.7', s => expect(s.drawer.textContent).toContain('Save weigh-in'))
   }, 20000)
 
+  // Eat logging m1: the Log food steps (boards Ea8Search to Ea8Offline), over the Today screen.
+  it('has the Log food steps, each over the Today screen and each at the step it names', async () => {
+    const ids = screenAreas().find(a => a.name === 'Eat: Log food').entries.map(e => e.id)
+    expect(ids).toEqual(['Ea8Search', 'Ea8FoodDetail', 'Ea8Food', 'Ea8Meal', 'Ea8Saved', 'Ea8SavedRecipes', 'Ea8NoMatch', 'Ea8Quick', 'Ea8Offline'])
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      // The pane on screen: the step's sub-panel when one is open, else the drawer's own results.
+      test({ host, drawer: [...host.querySelectorAll('.g-bs-pane:not([inert])')].at(-1) ?? host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    for (const id of ids) await check(id, s => expect(s.host.querySelectorAll('.g-rc-slide'), id).toHaveLength(4))
+    await check('Ea8Search', s => {
+      expect(s.drawer.textContent).toContain('Greek yogurt 10%')
+      expect(s.drawer.querySelector('.g-tag').textContent).toBe('OFF')
+      expect(s.drawer.querySelector('button[aria-label="Add Greek yogurt 2% to Lunch"]')).not.toBeNull()
+    })
+    await check('Ea8FoodDetail', s => expect(s.drawer.textContent).toContain('After this, Lunch is'))
+    await check('Ea8Food', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Food')
+      expect(s.drawer.textContent).toContain('Per 100 g')
+      expect(s.drawer.textContent).toContain('Save as food')
+    })
+    await check('Ea8Meal', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Logging to')
+      expect(s.drawer.textContent).toContain('420 kcal logged')
+      expect(s.drawer.textContent).toContain('Now, by the clock')
+      expect(s.drawer.textContent).toContain('Your pick holds for the next half hour.')
+    })
+    await check('Ea8Saved', s => {
+      expect(s.drawer.textContent).toContain('Saved meals · one tap logs all')
+      expect(s.drawer.textContent).toContain('Office lunch')
+    })
+    await check('Ea8SavedRecipes', s => expect(s.drawer.textContent).toContain('Chili con carne'))
+    await check('Ea8NoMatch', s => {
+      expect(s.drawer.textContent).toContain('No match for “sarmalle cu mamaliga”')
+      expect(s.drawer.textContent).toContain('Did you mean sarmale cu mamaliga')
+      expect(s.drawer.textContent).toContain('Add calories only')
+    })
+    await check('Ea8Quick', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Quick calories')
+      expect(s.drawer.textContent).toContain('stays out of My foods')
+    })
+    await check('Ea8Offline', s => {
+      expect(s.drawer.textContent).toContain('Online results need a connection')
+      expect(s.drawer.textContent).toContain('Greek yogurt 2%')
+    })
+  }, 30000)
+
+  // Eat logging m2: a logged entry and the Scan overlay (boards Ea8Entry, Ea8Removed, Ea9*).
+  it('has the logged entry and the Scan states, the camera a static placeholder', async () => {
+    const ids = screenAreas().find(a => a.name === 'Eat: logged entry and Scan').entries.map(e => e.id)
+    expect(ids).toEqual(['Ea8Entry', 'Ea8Removed', 'Ea9Scan', 'Ea9Looking', 'Ea9Found', 'Ea9NotFound', 'Ea9Denied', 'Ea9Type'])
+    const getUserMedia = vi.fn()
+    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } })
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, scan: host.querySelector('.g-scan'), drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    for (const id of ids) await check(id, s => expect(s.host.querySelectorAll('.g-rc-slide'), id).toHaveLength(4))
+    await check('Ea8Entry', s => {
+      expect(s.drawer.classList.contains('g-bs-half')).toBe(true)
+      expect(s.drawer.querySelector('h2').textContent).toBe('Logged food')
+      expect(s.drawer.querySelector('.g-en-name').textContent).toBe('Banana')
+      expect(s.drawer.querySelector('.g-en-sub').textContent).toMatch(/^Snacks · logged \d\d:\d\d · 105 kcal$/)
+      expect(s.drawer.querySelector('button[aria-label="Remove Banana from Snacks"]')).not.toBeNull()
+    })
+    await check('Ea8Removed', s => expect(s.host.ownerDocument.body.textContent).toContain('Removed Banana from Today, Snacks'))
+    await check('Ea9Scan', s => {
+      expect(s.scan.querySelector('h2').textContent).toBe('Scan a barcode')
+      expect(s.scan.textContent).toContain('Point the camera at the barcode')
+      expect(s.scan.querySelector('video')).toBeNull()
+    })
+    await check('Ea9Looking', s => {
+      expect(s.scan.textContent).toContain('5 201054 012345')
+      expect(s.scan.textContent).toContain('Looking in your foods, then Open Food Facts')
+    })
+    await check('Ea9Found', s => {
+      expect(s.scan.querySelector('.g-scan-card').textContent).toContain('Greek yogurt 10%')
+      expect(s.scan.textContent).toContain('Log to Lunch')
+      expect(s.scan.textContent).toContain('Save food')
+    })
+    await check('Ea9NotFound', s => {
+      expect(s.scan.querySelector('h3').textContent).toBe('Not in Open Food Facts yet')
+      expect(s.scan.textContent).toContain('Create food with this barcode')
+    })
+    await check('Ea9Denied', s => {
+      expect(s.scan.textContent).toContain('Camera is blocked')
+      expect(s.scan.textContent).toContain('Try again')
+    })
+    await check('Ea9Type', s => {
+      expect(s.drawer.querySelector('h2').textContent).toBe('Type the barcode')
+      expect(s.drawer.querySelector('.g-bs-foot button').disabled).toBe(false)
+    })
+    expect(getUserMedia).not.toHaveBeenCalled()
+    Reflect.deleteProperty(navigator, 'mediaDevices')
+  }, 30000)
+
   it('has the search H0.0 to H0.9, its Open Food Facts rows and T6.9, each the real header over the real panel', async () => {
     const ids = screenAreas().find(a => a.name === 'Shared: search').entries.map(e => e.id)
     expect(ids).toEqual(['H0.0', 'H0.1', 'H0.2', 'H0.3', 'H0.4', 'H0.4-searching', 'H0.4-error', 'H0.4-offline', 'H0.5', 'H0.6', 'H0.7', 'H0.8', 'H0.9', 'T6.9'])

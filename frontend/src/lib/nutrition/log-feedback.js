@@ -12,6 +12,9 @@ export const addedText = (date, mealName, what) => (what
   ? t('Added {0} to {1}, {2}', what, dayName(date), mealName)
   : t('Added to {0}, {1}', dayName(date), mealName))
 
+/** The toast after an entry is removed from a day (board Ea8Removed): "Removed Banana from Today, Snacks". */
+export const removedText = (date, mealName, what) => t('Removed {0} from {1}, {2}', what, dayName(date), mealName)
+
 /** The toast after water (board T1.6), in the person's water unit: "Added 250 ml of water to Today". */
 export function waterAddedText(date, ml, settings) {
   const w = waterOf(ml, settings)
