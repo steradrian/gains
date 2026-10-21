@@ -723,20 +723,6 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-best[aria-selected="true"], .g-srow-xbtn[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--on-stage); }
 .g-srow-note { cursor: default; }
 
-/* StageEmpty: a glass disc or a white line-art scene, a title, a line, and a stack of buttons (T2.9 has three).
-   Identical to the Train kit's; whichever merges second drops its copy. */
-.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
-.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
-.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
-.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
-.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
-.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
-.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
-.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
-.g-sempty-btn .g-icon { width: 20px; height: 20px; }
-.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
-
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
    never painted: the line arrives on the ring's own edge and is gone. */
