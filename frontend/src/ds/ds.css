@@ -233,6 +233,149 @@ div.g-glist-row { cursor: default; }
 .g-glist-light .g-glist-body span { color: var(--text-3); }
 .g-glist-light .g-glist-chev { color: var(--text-3); }
 
+/* ---- Today content kit (bundle.js; sizes from boards T1.0 and T1.9 to T1.14 where they differ) ---- */
+.g-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: -1px; }
+@keyframes g-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+button.g-grow:active, a.g-grow:active, .g-tile:active, .g-water-add:active { transform: scale(.95); }
+
+/* StageSection */
+.g-ssec { display: flex; justify-content: space-between; align-items: baseline; padding: 32px 20px 12px; color: var(--on-stage); }
+.g-ssec h2 { margin: 0; font: 700 20px/26px var(--font-sans); letter-spacing: -0.02em; }
+.g-ssec-act { appearance: none; border: 0; background: none; padding: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); text-decoration: none; }
+button.g-ssec-act, a.g-ssec-act { cursor: pointer; }
+
+/* GlassRow: the check trail is 48px on the done board (T1.12), the bundle's 56 */
+.g-grow { appearance: none; border: 0; box-sizing: border-box; width: calc(100% - 32px); margin: 0 16px; display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 14px 14px 14px 18px; border-radius: 28px; color: var(--on-stage); text-align: left; font: inherit; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+button.g-grow, a.g-grow { cursor: pointer; }
+.g-grow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.g-grow-body b { font: 700 20px/26px var(--font-sans); letter-spacing: -0.01em; }
+.g-grow-k { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-grow-body .g-grow-k:first-child { font-size: 14px; line-height: 18px; }
+.g-trail { width: 56px; height: 56px; flex: none; border-radius: 50%; display: grid; place-items: center; }
+.g-trail-md { width: 48px; height: 48px; }
+.g-trail-sm { width: 40px; height: 40px; }
+.g-trail .g-icon { width: 22px; height: 22px; stroke-width: 2; }
+.g-trail-solid { background: var(--on-stage); color: var(--accent-text); }
+.g-trail-solid .g-icon { stroke-width: 2.2; }
+.g-trail-sm .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
+.g-trail-pill { flex: none; height: 44px; padding: 0 18px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 6px; background: var(--on-stage); color: var(--accent-text); font: 700 15px/20px var(--font-sans); }
+.g-trail-pill .g-icon { width: 16px; height: 16px; stroke-width: 2.2; }
+
+/* MealTiles: the tiles grow with the tallest, so a name on two lines and a number never clip */
+.g-tiles { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 6px; scrollbar-width: none; }
+.g-tiles::-webkit-scrollbar { display: none; }
+.g-tiles-end { flex: none; width: 6px; }
+.g-tile { appearance: none; border: 0; flex: none; width: 138px; min-height: 154px; box-sizing: border-box; border-radius: 28px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; text-align: left; color: var(--on-stage); font: inherit; cursor: pointer; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+.g-tile-now { background: var(--surface); color: var(--accent-text); box-shadow: var(--g-tile-now-shadow); }
+.g-tile-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.g-tile-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-tile-ic .g-icon { width: 22px; height: 22px; stroke-width: 2; }
+.g-tile-now .g-tile-ic { background: var(--accent-tint); }
+.g-tile-done { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--on-stage); color: var(--accent-stage-end); }
+.g-tile-done .g-icon { width: 14px; height: 14px; stroke-width: 3; }
+.g-tile-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.g-tile-body b { font: 700 18px/22px var(--font-sans); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.g-tile-now .g-tile-body b { color: var(--text); }
+.g-tile-body > span { display: flex; align-items: center; gap: 4px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-tile-now .g-tile-body > span { color: var(--accent-text); font-weight: 700; }
+.g-tile-body .g-icon { width: 16px; height: 16px; stroke-width: 2.6; }
+
+/* WaterGlasses */
+.g-water { margin: 0 16px; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 18px; border-radius: 28px; color: var(--on-stage); }
+.g-water-g { flex: 1; display: flex; gap: 5px; align-items: flex-end; }
+.g-water-g i { flex: 1; height: 30px; border-radius: 10px 10px 12px 12px; background: var(--glass-track); transition: background 220ms; }
+.g-water-g i.on { background: var(--on-stage); }
+.g-water-add { appearance: none; border: 0; width: 48px; height: 48px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--on-stage); color: var(--accent-text); cursor: pointer; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+.g-water-add .g-icon { width: 22px; height: 22px; stroke-width: 2.4; }
+
+/* FirstSteps (T1.9): a glass list, the step to do an outlined ring, the done one a white disc */
+.g-fsteps { list-style: none; margin: 0 16px; padding: 0; border-radius: 28px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
+.g-fstep + .g-fstep { border-top: 1px solid var(--glass-line); }
+.g-fstep-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 18px; color: inherit; font: inherit; text-align: left; text-decoration: none; }
+button.g-fstep-row, a.g-fstep-row { cursor: pointer; }
+.g-fstep-dot { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--glass-line); }
+.g-fstep-dot.on { background: var(--on-stage); color: var(--accent-stage-end); box-shadow: none; }
+.g-fstep-dot .g-icon { width: 16px; height: 16px; stroke-width: 3; }
+.g-fstep-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-fstep-body b { font: 600 17px/22px var(--font-sans); }
+.g-fstep.done .g-fstep-body b { text-decoration: line-through; opacity: .7; }
+.g-fstep-body span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-fstep-chev { width: 18px; height: 18px; stroke-width: 2.2; flex: none; }
+
+/* AwayCard (T1.10): one glass card with a message and up to two buttons */
+.g-away { margin: 16px 16px 0; padding: 18px; border-radius: 28px; display: flex; flex-direction: column; gap: 14px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-away-row { display: flex; gap: 14px; align-items: flex-start; }
+.g-away-ic { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-away-ic .g-icon { width: 22px; height: 22px; stroke-width: 2; }
+.g-away-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.g-away-body b { font: 700 19px/24px var(--font-sans); }
+.g-away-body span { font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); }
+.g-away-acts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }
+.g-away-btn { appearance: none; border: 0; height: 46px; padding: 0 12px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; background: var(--glass); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-away-solid { background: var(--on-stage); color: var(--accent-text); }
+
+/* SavedIndicator: a small tag beside the date (light), a glass pill under the stage header (T1.14) */
+.g-saved-live { display: inline-flex; }
+.g-saved { appearance: none; border: 0; background: transparent; display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border-radius: var(--radius-pill); font: 500 12px/16px var(--font-sans); color: var(--text-3); text-decoration: none; }
+button.g-saved { cursor: pointer; }
+.g-saved i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.g-saved-saved { color: var(--positive); }
+.g-saved-syncing i { animation: g-pulse 1.2s ease-in-out infinite; }
+.g-saved-offline { background: var(--warning-tint); color: var(--warning); }
+.g-saved-error { background: var(--danger-tint); color: var(--danger); }
+.g-savedbar { display: flex; justify-content: center; }
+.g-savedbar > .g-saved { margin-top: 12px; }
+.g-saved.g-saved-stage { height: 34px; gap: 8px; padding: 0 14px; background: var(--glass); color: var(--on-stage); font: 600 14px/18px var(--font-sans); }
+.g-saved-stage .g-icon { width: 16px; height: 16px; stroke-width: 2.2; }
+
+/* Tag */
+.g-tag { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; border-radius: var(--radius-pill); font: 700 12px/14px var(--font-sans); white-space: nowrap; }
+.g-tag .g-icon { width: 13px; height: 13px; stroke-width: 2.6; }
+.g-tag-accent { background: var(--accent-tint); color: var(--accent-text); }
+.g-tag-positive { background: var(--positive-tint); color: var(--positive); }
+.g-tag-warning { background: var(--warning-tint); color: var(--warning); }
+.g-tag-muted { background: var(--surface-sunken); color: var(--text-2); }
+.g-tag-glass { background: var(--glass); color: var(--on-stage); }
+
+/* BodyMap: the stage shades are the stage's white at a share, the light ones the accent */
+.g-bmap { display: flex; justify-content: center; gap: 14px; }
+.g-bmap svg { display: block; flex: none; }
+.g-bmap-ph { min-height: 160px; }
+.g-bmap-stage .g-bm-sil { fill: color-mix(in srgb, var(--on-stage) 10%, transparent); }
+.g-bmap-stage .g-bm-m.l0 { fill: color-mix(in srgb, var(--on-stage) 16%, transparent); }
+.g-bmap-stage .g-bm-m.l1 { fill: color-mix(in srgb, var(--on-stage) 34%, transparent); }
+.g-bmap-stage .g-bm-m.l2 { fill: color-mix(in srgb, var(--on-stage) 55%, transparent); }
+.g-bmap-stage .g-bm-m.l3 { fill: color-mix(in srgb, var(--on-stage) 78%, transparent); }
+.g-bmap-stage .g-bm-m.l4 { fill: var(--on-stage); }
+.g-bmap-stage .g-bm-m.sel { stroke: var(--on-stage); stroke-width: 2.5; }
+.g-bmap-light .g-bm-sil { fill: var(--surface-sunken); }
+.g-bmap-light .g-bm-m.l0 { fill: var(--line-strong); }
+.g-bmap-light .g-bm-m.l1 { fill: color-mix(in srgb, var(--accent-fill) 30%, var(--surface)); }
+.g-bmap-light .g-bm-m.l2 { fill: color-mix(in srgb, var(--accent-fill) 55%, var(--surface)); }
+.g-bmap-light .g-bm-m.l3 { fill: color-mix(in srgb, var(--accent-fill) 78%, var(--surface)); }
+.g-bmap-light .g-bm-m.l4 { fill: var(--accent-fill); }
+.g-bmap-light .g-bm-m.sel { stroke: var(--accent-text); stroke-width: 2.5; }
+
+/* WorkoutCard */
+.g-lead { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--glass); color: var(--on-stage); }
+.g-lead .g-icon { width: 21px; height: 21px; }
+.g-wcard { border-radius: 24px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
+.g-wcard-head { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; background: none; color: inherit; text-align: left; text-decoration: none; }
+button.g-wcard-head, a.g-wcard-head { cursor: pointer; }
+.g-wcard-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-wcard-t b { font: 700 20px/26px var(--font-sans); }
+.g-wcard-t span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-wcard-map { display: flex; align-items: center; gap: 16px; padding: 0 16px 14px; }
+.g-wcard-map .g-bmap-ph { min-height: 128px; }
+.g-wcard-map > span { flex: 1; display: flex; flex-direction: column; gap: 4px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-wcard-map > span b { font: 700 15px/20px var(--font-sans); color: var(--on-stage); }
+.g-wcard-ex { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 70px; padding: 8px 16px; background: none; border-top: 1px solid var(--glass-line); color: inherit; text-align: left; text-decoration: none; }
+button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
+.g-wcard-ex > img { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--g-white); object-fit: cover; }
+.g-wcard-exb { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-wcard-exb b { font: 600 17px/22px var(--font-sans); }
+.g-wcard-exb span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+
 /* SuccessCheck: the ring draws itself once (it is a circle of r=46, 289 round) */
 .g-check { display: block; }
 .g-check-disc { fill: var(--glass); }
@@ -270,7 +413,6 @@ div.g-glist-row { cursor: default; }
 @keyframes g-arc { from { stroke-dashoffset: var(--full); } to { stroke-dashoffset: var(--to); } }
 /* skeleton shapes: glass-track blobs that pulse (T11Loading) */
 .g-skel { display: block; border-radius: 12px; background: var(--glass-track); animation: g-pulse 1.4s ease-in-out infinite; }
-@keyframes g-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 .g-sring-sk-n { width: 120px; height: 44px; }
 .g-sring-sk-l { width: 90px; height: 14px; margin-top: 10px; border-radius: 7px; }
 

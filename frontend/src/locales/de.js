@@ -1,5 +1,14 @@
 // German UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // --- Today content kit: English until the translation pass ---
+  'Syncing': 'Syncing',
+  'Offline': 'Offline',
+  'Offline · {0} change waiting': 'Offline · {0} change waiting',
+  'Offline · {0} changes waiting': 'Offline · {0} changes waiting',
+  'Not saved · Retry': 'Not saved · Retry',
+  'Water, {0} of {1} L': 'Water, {0} of {1} L',
+  'Add {0} ml of water': 'Add {0} ml of water',
+  'New best': 'New best',
   // --- fasting and barcode scanning: English until the translation pass ---
   '{0} days': '{0} days',
   '{0} fasts logged': '{0} fasts logged',
