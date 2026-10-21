@@ -11,6 +11,8 @@ import DevKitTrain from './DevKitTrain.jsx'
 import DevKitTrainLoad from './DevKitTrainLoad.jsx'
 // Train exercises kit (slice 4)
 import DevKitTrainExercises from './DevKitTrainExercises.jsx'
+// Workout drawer kit (drawers-M1)
+import DevKitWorkoutDrawers from './DevKitWorkoutDrawers.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
 import GlassTabBar from './GlassTabBar.jsx'
@@ -211,6 +213,8 @@ export default function DevKit() {
         {/* Train exercises kit (slice 4) */}
         <DevKitTrainExercises />
         <DevKitDrawers />
+        {/* Workout drawer kit (drawers-M1) */}
+        <DevKitWorkoutDrawers />
 
         <Section title="GlassTabBar" note="Tap it (the first lights what is tapped, and the pill glides); then a running workout on Train, no tab lit, and over a light page.">
           <div className="g-kit-col">
