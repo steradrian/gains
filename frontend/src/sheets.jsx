@@ -17,3 +17,4 @@ export {
   saveWorkoutEdits, exitWorkoutEdit, setsLine, finishWorkout, finishWorkoutSheet,
 } from './sheets/workout-flow.jsx'
 export { startChooserSheet, dayOptionsSheet } from './sheets/train-day.jsx'
+export { routineMenuSheet, planDaysSheet, shareRoutineSheet, routineSettingsSheet, exportRoutineFile, printRoutine } from './sheets/routine-menu.jsx'
