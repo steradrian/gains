@@ -14,7 +14,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => () => {}, useLocation: (
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
   calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
-  dayAssignSheet: vi.fn(), planToolsSheet: vi.fn(),
+  planToolsSheet: vi.fn(),
 }))
 
 let host, root

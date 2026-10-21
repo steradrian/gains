@@ -49,7 +49,9 @@ describe('exercise drawer: Progress and History', () => {
   it('Progress opens that exercise on the strength chart, closes the drawer and steps the overlay aside', () => {
     act(() => { openSearch('home') })
     exerciseDetailSheet(EXIDX[EX], { progress: true })
-    act(() => { tab(renderTop(), 'Progress').click() })
+    // Rendered outside the click's act: a render nested in it would not flush before the query.
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
     expect(navigate).toHaveBeenCalledTimes(1)
     const [to, opts] = navigate.mock.calls[0]
     expect(to).toBe(STRENGTH)
@@ -62,14 +64,16 @@ describe('exercise drawer: Progress and History', () => {
     act(() => { openSearch('home') })
     history.replaceState({ ...(history.state || {}), gainsSheet: 'x' }, '')
     exerciseDetailSheet(EXIDX[EX], { progress: true })
-    act(() => { tab(renderTop(), 'Progress').click() })
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
     expect(navigate.mock.calls[0][1].replace).toBe(true)
   })
 
   it('is offered for an exercise logged only in a deload, which Strength still charts', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [{ ...logged, excludeFromProgression: true }] } }))
     exerciseDetailSheet(EXIDX[EX])
-    act(() => { tab(renderTop(), 'Progress').click() })
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
     expect(navigate.mock.calls[0][0]).toBe(STRENGTH)
   })
 
@@ -86,7 +90,8 @@ describe('exercise drawer: Progress and History', () => {
 
   it('is on a drawer opened anywhere, not only from Search', () => {
     exerciseDetailSheet(EXIDX[EX])
-    act(() => { tab(renderTop(), 'Progress').click() })
+    const progress = tab(renderTop(), 'Progress')
+    act(() => { progress.click() })
     expect(navigate).toHaveBeenCalledTimes(1)
     expect(navigate.mock.calls[0][0]).toBe(STRENGTH)
   })

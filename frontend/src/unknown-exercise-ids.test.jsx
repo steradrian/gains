@@ -17,6 +17,7 @@ import { todayISO } from './lib/format.js'
 import { beginWorkout, exerciseDetailSheet, exerciseHistorySheet, workoutDetailSheet, finishWorkout } from './sheets.jsx'
 import Home from './views/Home.jsx'
 import Plan from './views/Plan.jsx'
+import PlanScreen from './views/plan/PlanScreen.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
 import History from './views/History.jsx'
@@ -123,7 +124,7 @@ describe('exercise ids this build does not know', () => {
       scheduleMode: 'rotation',
     })
     render(<Home />)
-    render(<Plan view="schedule" />)
+    render(<PlanScreen />)
     expectKept(useStore.getState().S)
   })
 
