@@ -1,15 +1,13 @@
 // The running workout's controller: every handler the workout screen runs (the completion flow,
 // sets, pairing, order, holds, navigation, the exercise's own rest and progression sheets) and the
 // effects that belong to a running session (hardware keys, the live-presence heartbeat, the
-// progress high-water marks, the one-time swipe hint, a hold back from a reload), plus the new
-// screen's view model (workout-view.js). The old screen (views/Workout.jsx ActiveWorkout) runs on
-// the same actions and passes `legacy` with the hooks its own DOM needs; the new screen calls it
-// bare.
+// progress high-water marks, a hold back from a reload), plus the screen's view model
+// (workout-view.js).
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { exOr } from '../../lib/exercises.js'
-import { setsDoneActive, setUnitsTotal, supersetUnits, unitOf, modeOf, isPerSide, removeLastSet, pairAdjacent, unpairSuperset, bestWeightForEntry, workoutVolume } from '../../lib/history.js'
+import { setsDoneActive, setUnitsTotal, supersetUnits, modeOf, isPerSide, removeLastSet, pairAdjacent, bestWeightForEntry, workoutVolume } from '../../lib/history.js'
 import { exerciseNameText, fmtNum } from '../../lib/format.js'
 import { inclineFrom } from '../../lib/incline.js'
 import { beep, vibrate, unlock } from '../../lib/sound.js'
@@ -18,7 +16,6 @@ import { api, beacon } from '../../lib/api.js'
 import { pyramidRestFor } from '../../lib/pyramid.js'
 import { nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from '../../lib/supersetFlow.js'
 import { swapActiveWorkoutExercise } from '../../sheets.jsx'
-import { workoutControls } from '../../lib/workout-controls.js'
 import { sessionNoProg, setSessionNoProg } from '../../lib/session-noprog.js'
 import { markAllSetsDone } from '../../lib/backfill.js'
 import { isWarmupRow, isSideSet, makeSideSet, toggleSide } from '../../lib/workout-model.js'
@@ -51,12 +48,10 @@ const bestedIn = id => {
 export const resetBested = () => { bested = { id: null, ids: new Set() } }
 
 /**
- * `legacy` (the old screen only): `{ listMode, collapseOn, focusMode, onShift(force), onCurMoved(cur),
- * onReveal(), onKeyMove(), selectUnit(idx) }`. Without it the hook runs the new screen's flow:
- * after an exercise's last set the next one takes over when S.autoNext is on (the default), and
+ * After an exercise's last set the next one takes over when S.autoNext is on (the default), and
  * the hero stays on the finished exercise when it is off.
  */
-export function useWorkout(legacy = null) {
+export function useWorkout() {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const sync = useStore(s => s.sync)
@@ -67,9 +62,6 @@ export function useWorkout(legacy = null) {
   // A past workout has no rest to time; the work timer for timed sets stays.
   const startRest = (A?.backfill || editing) ? () => {} : liveRest
   const entries = A?.entries || []
-  const listMode = !!legacy?.listMode
-  const focusMode = !!legacy?.focusMode
-  const shift = force => legacy?.onShift?.(force)
   // The event toasts (takeover, new best), each shown once and then taken.
   const [events, setEvents] = useState({ takeover: null, newBest: null })
   const raise = (kind, ev) => setEvents(prev => ({ ...prev, [kind]: { ...ev, id: Date.now() + Math.random() } }))
@@ -81,7 +73,7 @@ export function useWorkout(legacy = null) {
   const heroOpen = heroIdx >= 0 && entries[heroIdx].sets.some(s => !s.done)
   const heroId = heroIdx >= 0 ? entries[heroIdx].id : null
   useEffect(() => {
-    if (!legacy && heroOpen) setOrigin(o => (o?.idx === heroIdx && o?.id === heroId ? o : { idx: heroIdx, id: heroId }))
+    if (heroOpen) setOrigin(o => (o?.idx === heroIdx && o?.id === heroId ? o : { idx: heroIdx, id: heroId }))
   }, [heroIdx, heroId, heroOpen])
 
   const progressHighWater = useRef(entries.map(e => e.sets.filter(s => s.done).length))
@@ -105,33 +97,7 @@ export function useWorkout(legacy = null) {
     })
   }, [setCounts.join(',')])
 
-  // The one-time swipe hint (v1.3.11): seen once per person (S.hints, synced).
-  const wc = workoutControls(S)
-  const hintSeen = !!(S.hints && S.hints.swipeSets)
-  const hintTm = useRef(null)
-  useEffect(() => {
-    if (!legacy || !wc.swipeSets || hintSeen || !entries.length) return
-    const tm = setTimeout(() => {
-      const A2 = useStore.getState().S.active
-      if (!A2 || useStore.getState().S.hints?.swipeSets) return
-      const c = Math.min(Math.max(A2.cur || 0, 0), A2.entries.length - 1)
-      const shownUnit = unitOf(supersetUnits(A2.entries), c)
-      const order = listMode ? [c, ...A2.entries.keys()] : shownUnit
-      let at = null
-      for (const k of order) {
-        const j = A2.entries[k]?.sets.findIndex(x => !x.done) ?? -1
-        if (j >= 0) { at = { idx: k, i: j }; break }
-      }
-      if (!at) return
-      update(s => { s.hints = { ...(s.hints || {}), swipeSets: true } })
-      const id = Date.now()
-      setUI({ swipeHint: { ...at, id } })
-      clearTimeout(hintTm.current)
-      hintTm.current = setTimeout(() => { if (useUI.getState().swipeHint?.id === id) setUI({ swipeHint: null }) }, 6000)
-    }, 600)
-    return () => clearTimeout(tm)
-  }, [wc.swipeSets, hintSeen, entries.length, A?.cur, listMode])
-  useEffect(() => () => { clearTimeout(hintTm.current); setUI({ swipeHint: null, setFlash: null }) }, [])
+  useEffect(() => () => { setUI({ setFlash: null }) }, [])
 
   const mutEntry = (idx, fn) => update(s => { fn(s.active.entries[idx]) }, true)
   const modeAt = idx => modeOf({ ...(entries[idx].target || {}), id: entries[idx].id })
@@ -166,16 +132,9 @@ export function useWorkout(legacy = null) {
   const removeSetAt = (idx, i) => deleteActiveSet(idx, i, { editing })
   const copySetAt = (idx, i) => copyActiveSet(idx, i)
   const pairAt = (first, second) => update(s => {
-    shift()
     s.active.entries = pairAdjacent(s.active.entries, first, second)
   })
-  const unpairAt = idx => {
-    if (!legacy) { unpairEntryAt(idx); return }
-    update(s => {
-      shift()
-      s.active.entries = unpairSuperset(s.active.entries, idx)
-    })
-  }
+  const unpairAt = idx => unpairEntryAt(idx)
   // `member`: the exercise ⋯ menu's move, which reorders a superset member inside its superset.
   const moveUnitAt = (at, direction, member = false) => {
     const u = useUI.getState()
@@ -185,12 +144,9 @@ export function useWorkout(legacy = null) {
     // Invalidate an old timed callback before indexes shift. A running rest belongs to an
     // exercise (timer.forIdx), and that exercise only changes position.
     u.stopWork()
-    shift(true)
     update(s => {
       const moved = (member ? moveActiveWorkoutEntry : moveActiveWorkoutUnit)(s.active, at, direction)
       if (!moved) return
-      // The marker follows its unit: the old screen's superset scroll must not read that as a move.
-      legacy?.onCurMoved?.(s.active.cur)
       progressHighWater.current = moved.indices.map(index => progressHighWater.current[index])
       const rest = useUI.getState().timer
       if (rest && rest.forIdx != null) {
@@ -210,10 +166,7 @@ export function useWorkout(legacy = null) {
   // The exercise's ⋯ "Update routine": copy what the session changed back into the routine.
   const routineUpdateFor = idx => routineUpdateAt(idx)
 
-  const swapExercise = idx => {
-    shift()
-    swapActiveWorkoutExercise(idx)
-  }
+  const swapExercise = idx => swapActiveWorkoutExercise(idx)
   const selectEntry = idx => update(s => { if (s.active) s.active.cur = idx })
   const advanceUnit = () => update(s => {
     if (!s.active) return
@@ -244,7 +197,7 @@ export function useWorkout(legacy = null) {
   }
   // Adds an exercise after the current unit (or `afterIdx`), into `part` when given
   // (drawers.js addExerciseSheet).
-  const addExercise = ({ afterIdx = null, part = null } = {}) => addExerciseSheet(afterIdx, part, { onShift: () => shift() })
+  const addExercise = ({ afterIdx = null, part = null } = {}) => addExerciseSheet(afterIdx, part)
   // An exercise's own rest (drawers.js exerciseRestSheet).
   const openExerciseRest = idx => exerciseRestSheet(idx)
   const openProgressionSettings = idx => exerciseSettingsSheet(idx)
@@ -380,16 +333,10 @@ export function useWorkout(legacy = null) {
         return
       }
 
-      if (!side && !legacy) raiseNewBest(idx, i)
+      if (!side) raiseNewBest(idx, i)
 
-      if (legacy) {
-        // The old list folds a finished unit away: the marker moves on to what is left.
-        if (legacy.collapseOn && freshUnitDone && nextUnit && freshUnit?.includes(fresh.cur)) {
-          legacy.onReveal?.()
-          update(s => { if (s.active) s.active.cur = nextUnit[0] })
-        }
-      } else if (freshUnitDone && freshUnit?.includes(fresh.cur)) {
-        // The new screen: the next exercise takes over (S.autoNext, default on), with a bar toast
+      if (freshUnitDone && freshUnit?.includes(fresh.cur)) {
+        // The next exercise takes over (S.autoNext, default on), with a bar toast
         // whose Back returns here; off, the hero stays on the finished exercise (W1.36).
         const ev = takeoverAfter(fresh, idx, freshUnit)
         if (nextUnit && S.autoNext !== false) {
@@ -405,7 +352,7 @@ export function useWorkout(legacy = null) {
         : sideOf(rows[i]) === 'R' && sideOf(rows[i - 1]) === 'L' ? rows[i - 1] : null
       if (m === 'time' && partner && !partner.done && restAfter > 0) {
         startRest(Math.min(SWITCH_SIDES_SEC, restAfter), idx, { kind: 'switch', forSet: i })
-        if (!legacy && sideOf(rows[i]) === 'L') raise('takeover', { kind: 'side', idx, backTo: null, text: t('Left side done · right side started') })
+        if (sideOf(rows[i]) === 'L') raise('takeover', { kind: 'side', idx, backTo: null, text: t('Left side done · right side started') })
         return
       }
 
@@ -425,13 +372,11 @@ export function useWorkout(legacy = null) {
         if (step.nextIdx != null) update(s => { if (s.active) s.active.cur = step.nextIdx })
         if (step.roundDone) {
           startRest(restAfter, idx, { forSet: i })
-          if (!legacy) {
-            const labels = supersetLabels(fresh.entries)
-            const round = Math.min(...freshUnit.map(k => fresh.entries[k].sets.filter(x => x.done).length))
-            const names = freshUnit.map(k => labels[k])
-            const both = t('{0} and {1}', names.slice(0, -1).join(', '), names[names.length - 1])
-            raise('takeover', { kind: 'round', idx, backTo: null, text: t('Round {0} done · {1}', round, both) })
-          }
+          const labels = supersetLabels(fresh.entries)
+          const round = Math.min(...freshUnit.map(k => fresh.entries[k].sets.filter(x => x.done).length))
+          const names = freshUnit.map(k => labels[k])
+          const both = t('{0} and {1}', names.slice(0, -1).join(', '), names[names.length - 1])
+          raise('takeover', { kind: 'round', idx, backTo: null, text: t('Round {0} done · {1}', round, both) })
         }
       }
       onFocusProgress?.({ unitDone: freshUnitDone })
@@ -442,14 +387,13 @@ export function useWorkout(legacy = null) {
   // listener is added once and calls the handler of the latest render.
   const tabbed = useRef(false)
   const onKey = useRef(null)
-  const selectUnit = legacy?.selectUnit || selectEntry
   onKey.current = event => {
     // A sheet on top owns the keyboard.
     if (useUI.getState().sheets.length) return false
     const action = workoutKeyAction(event, { tabbed: tabbed.current, rtl: document.documentElement.dir === 'rtl' })
     if (!action) return false
     event.preventDefault()
-    if (action !== 'tick') { navigateUnit(action === 'next' ? 1 : -1); legacy?.onKeyMove?.(); return true }
+    if (action !== 'tick') { navigateUnit(action === 'next' ? 1 : -1); return true }
     // A hold being timed: the key is its "Done", once past its first moments.
     const work = useUI.getState().work
     if (work) {
@@ -460,7 +404,7 @@ export function useWorkout(legacy = null) {
     const next = nextOpenSet(fresh?.entries, fresh?.cur)
     if (!next) return true
     // The exercise on screen is finished: this press brings up the next one.
-    if (!next.current) { selectUnit(next.idx); legacy?.onKeyMove?.(); return true }
+    if (!next.current) { selectEntry(next.idx); return true }
     // A timed set is started rather than ticked; the timer ticks it.
     if (!next.side && modeAt(next.idx) === 'time') startTimed(next.idx, next.i)
     else toggle(next.idx, next.i, next.side)
@@ -538,10 +482,9 @@ export function useWorkout(legacy = null) {
     // The takeover toast's Back: the exercise you were on.
     backTo: idx => { if (idx != null) selectEntry(idx); take('takeover') },
   }
-  // The old screen renders its own DOM from the store; only the new screen needs the model.
   // Offline: how many changes wait for the server (null when the device cannot say).
   const offline = sync?.offline ? { offline: true, waiting: useStore.getState().unsyncedChanges?.()?.count ?? null } : null
-  const view = A && !legacy ? extendWorkoutView(buildWorkoutView({
+  const view = A ? extendWorkoutView(buildWorkoutView({
     S, A, timer: ui.timer, work: ui.work, sync: offline,
     events: { ...events, bests: bestedIn(A.id).size }, now: Date.now(),
   }), { S, A, work: ui.work, origin }) : null

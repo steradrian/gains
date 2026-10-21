@@ -233,7 +233,6 @@ export const useUI = create((set, get) => ({
   toastMsg: '',
   toastAction: null,   // { label, run, id, icon, ms, body, onClose } while the toast offers an action (Undo)
   toastPaused: false,  // held still under a finger: its drain bar stops with it
-  swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }
                        // kind: 'switch' for the short pause between the two sides of a timed set

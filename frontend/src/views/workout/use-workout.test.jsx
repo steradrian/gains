@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 // useWorkout (core-M1), the running workout's one hook, against the real store and the real timers.
-// First its own contract: `legacy` (the old screen's flow) against the new screen's takeover and
-// S.autoNext, a new best at most once per exercise per session, the openers it calls through
+// First its own contract: the takeover and S.autoNext, a new best at most once per exercise per session, the openers it calls through
 // drawers.js, the high-water marks. Then the cases ported from views/Workout.test.jsx (guard-M1):
 // the completion flow, the hold a rest displaced, the live-presence heartbeat and its "left" signal.
 import { act } from 'react'
@@ -30,11 +29,9 @@ const realStartRest = useUI.getState().startRest
 let startRest
 let hook
 
-// `legacy` is the old screen's flow (an object, even an empty one); undefined is the new screen's.
-const LEGACY = {}
-function start(entries, { legacy, ...opts } = {}) {
+function start(entries, opts = {}) {
   seed(entries, opts)
-  hook = mountHook(useWorkout, legacy)
+  hook = mountHook(useWorkout)
   return hook
 }
 const actions = () => hook.out.current.actions
@@ -56,23 +53,8 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('the hook: legacy against the new screen', () => {
-  it('legacy keeps the old flow: no view, no events, and the marker moves only when the old list folds the unit away', () => {
-    const onReveal = vi.fn()
-    start([lift('0025', 80, 8, 1), lift('0426', 24, 8, 1)], { legacy: { collapseOn: true, onReveal } })
-    expect(view()).toBeNull()
-    tick(0, 0)
-    expect(active().cur).toBe(1)
-    expect(onReveal).toHaveBeenCalledTimes(1)
-  })
-
-  it('legacy without the fold leaves the finished exercise selected', () => {
-    start([lift('0025', 80, 8, 1), lift('0426', 24, 8, 1)], { legacy: LEGACY })
-    tick(0, 0)
-    expect(active().cur).toBe(0)
-  })
-
-  it('the new screen hands over to the next exercise after the last set and raises a takeover whose Back returns', () => {
+describe('the hook: takeover and autoNext', () => {
+  it('hands over to the next exercise after the last set and raises a takeover whose Back returns', () => {
     start([lift('0025', 80, 8, 1), lift('0426', 24, 8, 1)])
     tick(0, 0)
     expect(active().cur).toBe(1)
@@ -166,9 +148,9 @@ describe('the openers go through drawers.js', () => {
   it('Add exercise opens addExerciseSheet after the given exercise, into the given part', () => {
     start([lift('0025', 80, 8, 1)])
     act(() => actions().addExercise({ afterIdx: 0, part: 'cooldown' }))
-    expect(addExerciseSheet).toHaveBeenCalledWith(0, 'cooldown', { onShift: expect.any(Function) })
+    expect(addExerciseSheet).toHaveBeenCalledWith(0, 'cooldown')
     act(() => actions().addExercise())
-    expect(addExerciseSheet).toHaveBeenLastCalledWith(null, null, { onShift: expect.any(Function) })
+    expect(addExerciseSheet).toHaveBeenLastCalledWith(null, null)
   })
 
   it('the exercise rest and the progression settings open their own drawers for that exercise', () => {
@@ -195,8 +177,8 @@ describe('the progress high-water mark', () => {
 })
 
 describe('Workout set completion flow (ported from views/Workout.test.jsx:285)', () => {
-  const MODES = [['legacy', LEGACY], ['the new screen with autoNext off', undefined]]
-  const setup = (entries, legacy, opts = {}) => start(entries, { legacy, ...(legacy ? {} : { autoNext: false }), ...opts })
+  // autoNext off: the hero stays on the finished exercise unless the test moves it.
+  const setup = (entries, opts = {}) => start(entries, { autoNext: false, ...opts })
 
   it('rests the exercise\'s warm-up rest between ramp sets, and its working rest after the last ramp set', () => {
     start([exercise('ramped-squat', [false, false, false, false], {
@@ -207,7 +189,7 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
         { w: 125, r: 6, done: false, phase: 'work' },
         { w: 125, r: 6, done: false, phase: 'work' },
       ],
-    })], { legacy: LEGACY })
+    })], { autoNext: false })
     tick(0, 0)
     expect(startRest).toHaveBeenLastCalledWith(45, expect.any(Number), { forSet: expect.any(Number) })
     tick(0, 1)
@@ -218,7 +200,7 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
   })
 
   it('starts rest after a non-final ordinary set, but stops rest without restarting it on the final set', () => {
-    start([exercise('plain-bench', [false, false, false])], { legacy: LEGACY })
+    start([exercise('plain-bench', [false, false, false])], { autoNext: false })
     tick(0, 0)
     expect(startRest).toHaveBeenCalledTimes(1)
     expect(startRest).toHaveBeenCalledWith(90, expect.any(Number), { forSet: expect.any(Number) })
@@ -226,15 +208,15 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
 
     hook.unmount()
     startRest.mockClear()
-    start([exercise('plain-treadmill', [false], { target: { mode: 'cardio', min: 20, speed: 8 } })], { legacy: LEGACY })
+    start([exercise('plain-treadmill', [false], { target: { mode: 'cardio', min: 20, speed: 8 } })], { autoNext: false })
     realStartRest(60, 0)
     tick(0, 0)
     expect(useUI.getState().timer).toBeNull()
     expect(startRest).not.toHaveBeenCalled()
   })
 
-  it.each(MODES)('auto-captures a completed weighted exercise without prompting, leaving navigation to Next (%s)', (_name, legacy) => {
-    setup([exercise('plain-bench', [false]), exercise('next', [false])], legacy)
+  it('auto-captures a completed weighted exercise without prompting, leaving navigation to Next (autoNext off)', () => {
+    setup([exercise('plain-bench', [false]), exercise('next', [false])])
     tick(0, 0)
     expect(active().entries[0].topW).toBe(60)
     expect(useStore.getState().S.exWeights['plain-bench']).toBeUndefined()   // written at the finish, not while ticking
@@ -244,8 +226,8 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
     expect(active().cur).toBe(1)
   })
 
-  it.each(MODES)('auto-captures superset members without prompting, then leaves the completed unit for Next (%s)', (_name, legacy) => {
-    setup([exercise('superset-a', [false], { sg: 'superset-1' }), exercise('superset-b', [false], { sg: 'superset-1' }), exercise('next', [false])], legacy)
+  it('auto-captures superset members without prompting, then leaves the completed unit for Next (autoNext off)', () => {
+    setup([exercise('superset-a', [false], { sg: 'superset-1' }), exercise('superset-b', [false], { sg: 'superset-1' }), exercise('next', [false])])
     tick(0, 0)
     expect(active().cur).toBe(1)
     expect(startRest).not.toHaveBeenCalled()
@@ -261,7 +243,7 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
   })
 
   it.each(['warmup', 'warm-up', 'warm_up'])('starts no transition rest before an incomplete %s row in the next ordinary exercise', phase => {
-    setup([exercise('current', [false], { asked: true }), incompleteWarmup(phase)], LEGACY)
+    setup([exercise('current', [false], { asked: true }), incompleteWarmup(phase)])
     tick(0, 0)
     expect(active().cur).toBe(0)
     expect(startRest).not.toHaveBeenCalled()
@@ -274,22 +256,22 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
     expect(startRest).not.toHaveBeenCalled()
   })
 
-  it.each(MODES)('does not navigate or start transition rest when a completed superset meets an incomplete warm-up (%s)', (_name, legacy) => {
-    setup([exercise('superset-a', [true], { sg: 'group', asked: true }), exercise('superset-b', [false], { sg: 'group', asked: true }), incompleteWarmup('warmup')], legacy, { cur: 1 })
+  it('does not navigate or start transition rest when a completed superset meets an incomplete warm-up (autoNext off)', () => {
+    setup([exercise('superset-a', [true], { sg: 'group', asked: true }), exercise('superset-b', [false], { sg: 'group', asked: true }), incompleteWarmup('warmup')], { cur: 1 })
     tick(1, 0)
     expect(active().cur).toBe(1)
     expect(startRest).not.toHaveBeenCalled()
   })
 
-  it.each(MODES)('leaves the completed ordinary exercise selected without transition rest before an incomplete warm-up (%s)', (_name, legacy) => {
-    setup([exercise('current-loaded', [false]), incompleteWarmup('warmup')], legacy)
+  it('leaves the completed ordinary exercise selected without transition rest before an incomplete warm-up (autoNext off)', () => {
+    setup([exercise('current-loaded', [false]), incompleteWarmup('warmup')])
     tick(0, 0)
     expect(active().cur).toBe(0)
     expect(startRest).not.toHaveBeenCalled()
   })
 
-  it.each(MODES)('does not restart transition rest when re-checking a completed unit before an incomplete warm-up (%s)', (_name, legacy) => {
-    setup([exercise('current', [true], { asked: true }), incompleteWarmup('warmup')], legacy)
+  it('does not restart transition rest when re-checking a completed unit before an incomplete warm-up (autoNext off)', () => {
+    setup([exercise('current', [true], { asked: true }), incompleteWarmup('warmup')])
     tick(0, 0)
     tick(0, 0)
     expect(active().cur).toBe(0)
@@ -299,7 +281,7 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
   // A rest that ran out stays on screen as Ready (#204) until it is dismissed. It is not a rest
   // counting down, so re-checking a finished set still owes the rest it always did (issue #3).
   it('starts the rest a re-check owes while the last one only shows Ready', () => {
-    setup([exercise('current', [true, false, false])], LEGACY)
+    setup([exercise('current', [true, false, false])])
     useUI.setState({ timer: { left: 0, total: 90, endsAt: Date.now() - 1000, forIdx: 0, ready: true } })
     tick(0, 0)
     tick(0, 0)
@@ -307,31 +289,31 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
   })
 
   it('leaves a rest that is still counting down alone on a re-check', () => {
-    setup([exercise('current', [true, false, false])], LEGACY)
+    setup([exercise('current', [true, false, false])])
     useUI.setState({ timer: { left: 40, total: 90, endsAt: Date.now() + 40000, forIdx: 0 } })
     tick(0, 0)
     tick(0, 0)
     expect(startRest).not.toHaveBeenCalled()
   })
 
-  it.each(MODES)('leaves a completed superset selected without opening a top-weight sheet (%s)', (_name, legacy) => {
+  it('leaves a completed superset selected without opening a top-weight sheet (autoNext off)', () => {
     setup([
       exercise('superset-a', [true, true, true], { sg: 'superset-1', asked: true }),
       exercise('superset-b', [true, true, false], { sg: 'superset-1' }),
       exercise('next-exercise', [false, false, false]),
-    ], legacy, { cur: 1 })
+    ], { cur: 1 })
     tick(1, 2)
     expect(active().cur).toBe(1)
     expect(startRest).toHaveBeenCalledWith(90, expect.any(Number), { forSet: expect.any(Number) })
   })
 
-  it.each(MODES)('does not auto-select an unfinished superset after completing an ordinary exercise (%s)', (_name, legacy) => {
+  it('does not auto-select an unfinished superset after completing an ordinary exercise (autoNext off)', () => {
     setup([
       exercise('current-hold', [false], { asked: true, target: { mode: 'time', sec: 30, weight: 0 } }),
       exercise('already-done', [true], { asked: true }),
       exercise('pending-a', [false], { sg: 'pending-group' }),
       exercise('pending-b', [false], { sg: 'pending-group' }),
-    ], legacy)
+    ])
     tick(0, 0)
     expect(active().cur).toBe(0)
     expect(workoutCompleteSheet).not.toHaveBeenCalled()
@@ -339,35 +321,27 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
     expect(startRest).toHaveBeenCalledWith(90, expect.any(Number), { forSet: expect.any(Number) })
   })
 
-  it.each(MODES)('does not auto-select earlier unfinished work after completing an ordinary exercise (%s)', (_name, legacy) => {
+  it('does not auto-select earlier unfinished work after completing an ordinary exercise (autoNext off)', () => {
     setup([
       exercise('pending-earlier', [false], { asked: true }),
       exercise('current-hold', [false], { asked: true, target: { mode: 'time', sec: 30, weight: 0 } }),
-    ], legacy, { cur: 1 })
+    ], { cur: 1 })
     tick(1, 0)
     expect(active().cur).toBe(1)
     expect(workoutCompleteSheet).not.toHaveBeenCalled()
     expect(startRest).toHaveBeenCalledWith(90, expect.any(Number), { forSet: expect.any(Number) })
   })
 
-  it.each(MODES)('leaves a completed ordinary exercise selected without declaring completion while work remains (%s)', (_name, legacy) => {
-    setup([exercise('current-loaded', [false]), exercise('pending', [false], { asked: true })], legacy)
+  it('leaves a completed ordinary exercise selected without declaring completion while work remains (autoNext off)', () => {
+    setup([exercise('current-loaded', [false]), exercise('pending', [false], { asked: true })])
     tick(0, 0)
     expect(workoutCompleteSheet).not.toHaveBeenCalled()
-    expect(view()?.allDone ?? null).toBeNull()
+    expect(view().allDone).toBeNull()
     expect(active().cur).toBe(0)
     expect(startRest).toHaveBeenCalledWith(90, expect.any(Number), { forSet: expect.any(Number) })
   })
 
-  it('shows workout completion only when no unfinished unit remains: the old screen asks in a sheet', () => {
-    start([exercise('already-done', [true], { asked: true }), exercise('final-hold', [false], { asked: true, target: { mode: 'time', sec: 30, weight: 0 } })], { legacy: LEGACY, cur: 1 })
-    tick(1, 0)
-    expect(workoutCompleteSheet).toHaveBeenCalledTimes(1)
-    expect(active().cur).toBe(1)
-    expect(startRest).not.toHaveBeenCalled()
-  })
-
-  it('shows workout completion only when no unfinished unit remains: the new screen shows W1.9 itself', () => {
+  it('shows workout completion only when no unfinished unit remains: the screen shows W1.9 itself', () => {
     start([exercise('already-done', [true], { asked: true }), exercise('final-hold', [false], { asked: true, target: { mode: 'time', sec: 30, weight: 0 } })], { cur: 1 })
     expect(view().allDone).toBeNull()
     tick(1, 0)
@@ -394,7 +368,7 @@ describe('Workout set completion flow (ported from views/Workout.test.jsx:285)',
 // that displaced it is the one counting down. And `sec` on a timed row is both the plan and the
 // log, so a part-held set must not become the next hold's target.
 describe('a hold a rest displaced (ported from views/Workout.test.jsx:727)', () => {
-  const hold = (sec = 30) => start([timed('timed-plank', sec)], { legacy: LEGACY })
+  const hold = (sec = 30) => start([timed('timed-plank', sec)], { autoNext: false })
   const startHold = () => act(() => actions().startTimed(0, 0))
   const held = sec => act(() => { vi.advanceTimersByTime(sec * 1000) })
   // The displacing rest is another exercise's, started directly: useUI.startRest abandons the hold.
@@ -664,7 +638,7 @@ describe('the hook after a reorder (ported from views/Workout.test.jsx:2834 and 
   })
 
   it('a hold writes what it held to its own row after a set above it was copied or removed', () => {
-    start([timed('timed-plank', 50, 3)], { legacy: LEGACY })
+    start([timed('timed-plank', 50, 3)], { autoNext: false })
     act(() => actions().startTimed(0, 2))
     expect(useUI.getState().work).not.toBeNull()
     act(() => { copyActiveSet(0, 0) })
@@ -679,7 +653,7 @@ describe('the hook after a reorder (ported from views/Workout.test.jsx:2834 and 
   })
 
   it('a hold writes to its own exercise after the exercises were reordered', () => {
-    start([timed('timed-plank', 30, 1), lift('0025', 80, 8, 1)], { legacy: LEGACY })
+    start([timed('timed-plank', 30, 1), lift('0025', 80, 8, 1)], { autoNext: false })
     act(() => actions().startTimed(0, 0))
     act(() => { moveEntryWithinPart(0, 1) })
     expect(active().entries[1].id).toBe('timed-plank')

@@ -59,9 +59,8 @@ function undoAdded({ activeId, at, exId, prevCur }) {
  * Add exercise (W1.18). After `afterIdx` (null: after the current unit), into `part` when given
  * (the end of that part's run, so the parts stay in order). A freehand add inherits the current
  * unit's routine (`rid`) and its block's `noProg`; a session kept out as a whole takes it too.
- * `onShift` is the old Focus screen's pointer, moved before the list changes.
  */
-export function addExerciseSheet(afterIdx = null, part = null, { onShift } = {}) {
+export function addExerciseSheet(afterIdx = null, part = null) {
   exercisePicker((ex, quick) => {
     const S = state()
     const A = S.active
@@ -75,7 +74,6 @@ export function addExerciseSheet(afterIdx = null, part = null, { onShift } = {})
     const seed = freestyle ? freestyleConfig(sessionHistory(S), { id: ex.id, ...defaultConfig(ex.id) }) : null
     const into = part && part !== 'main' ? part : null
     const commit = cfg => {
-      onShift?.()
       let added = null
       update(s => {
         if (!s.active) return
