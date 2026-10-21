@@ -145,7 +145,17 @@ tags:
   - name: data
     description: Per-user state sync (the whole app state as one JSON blob)
   - name: push
-    description: Web Push (VAPID) subscriptions, rest-timer and test pushes
+    description: |
+      Web Push (VAPID) subscriptions, rest-timer and test pushes.
+
+      Two boot-time switches serve the hand-over of push to another service (both read once, a
+      change is a restart). `PUSH_SUBS_READONLY=1` freezes the subscription routes, see the
+      `PushReadonly` response. `PUSH_SCHEDULER=local|external` (default `local`) decides who sends
+      the scheduled pushes: with `external` this server sends no day reminder and no missed-workout
+      nudge (their tick is never started, so `lastReminder` and `lastNudge` stay as they were) and
+      no "your Coach has been reading" push when a proposal is ready (the proposal itself is made
+      and stored as before). Every other push stays: the routes above, the test push and the
+      rest-timer alert. Any other value stops the boot. It logs one line at boot when `external`.
   - name: activity
     description: Live-workout presence heartbeat
   - name: admin
