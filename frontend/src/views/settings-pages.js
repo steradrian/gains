@@ -37,7 +37,6 @@ export const PAGES = {
   backup: { title: 'Backup', icon: 'folder', tint: 'var(--blue)' },
   import: { title: 'Import', icon: 'download', tint: 'var(--teal)' },
   media: { title: 'Photos & videos', icon: 'image', tint: 'var(--teal)' },
-  danger: { title: 'Danger zone', icon: 'trash', tint: 'var(--red)' },
   admin: { title: 'Admin dashboard', icon: 'crown', tint: 'var(--indigo)', to: '/me/admin' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
   licences: { title: 'Licences', icon: 'shield', tint: 'var(--grey)' },
@@ -55,7 +54,7 @@ export const ROOT_GROUPS = [
   { title: 'Training', ids: ['workout', 'advanced', 'alerts', 'schedule', 'equipment'] },
   { title: 'Nutrition', ids: ['goals', 'diary', 'water', 'foods', 'sources', 'categories', 'customUnits'] },
   { title: 'Body & progress', ids: ['fields'] },
-  { title: 'Data', ids: ['backup', 'import', 'media', 'danger'] },
+  { title: 'Data', ids: ['backup', 'import', 'media'] },
   { title: 'Admin', ids: ['admin'] },
   { title: 'About', ids: ['about', 'licences'] },
 ]
@@ -224,8 +223,10 @@ export const SEARCH = [
   { page: 'import', title: 'Import from Hevy', icon: 'key', tint: 'var(--teal)', kw: 'hevy api import' },
   // Connected apps & health
   { page: 'health', title: 'Write to Health Connect', icon: 'heart', tint: 'var(--red)', kw: 'health connect android google fit share workouts weigh-ins', feature: () => null },
-  // Danger zone
-  { page: 'danger', title: 'Reset training data', icon: 'trash', tint: 'var(--red)', kw: 'delete wipe reset erase clear everything' },
+  // Account and data: starting again (the old Danger zone)
+  { page: 'account', title: 'Start over', icon: 'reset', tint: 'var(--red)', kw: 'delete wipe reset erase clear everything training data danger zone' },
+  { page: 'account', title: 'Delete account', icon: 'trash', tint: 'var(--red)', kw: 'delete remove close erase account profile', when: signedInWeb },
+  { page: 'account', title: 'Download my data', icon: 'download', tint: 'var(--blue)', kw: 'export download data json zip backup', when: signedInWeb },
   // About & updates
   { page: 'about', title: 'Check for updates', icon: 'download', tint: 'var(--green)', kw: 'update apk android version', when: c => c.mobile && c.android },
   { page: 'about', title: 'Version', icon: 'info', tint: 'var(--grey)', kw: 'version about licence license source code open source' },

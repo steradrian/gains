@@ -93,6 +93,8 @@ afterEach(() => {
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
 const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
 const titles = () => [...host.querySelectorAll('.lrow .lrow-t')].map(e => e.textContent)
+// The rows of a page already on the stage (GlassValueRow, DangerRow): the title is the row's <b>.
+const stageTitles = () => [...host.querySelectorAll('.g-glist-row > .g-glist-body > b, .g-danger-row b')].map(e => e.textContent)
 
 // This test's guest in a browser, as the page itself sees it.
 const guestWeb = {
@@ -109,7 +111,7 @@ describe('the root', () => {
     // a guest in a browser has no notifications (no push server), no Coach page (the server's
     // Coach), no Health Connect, no photos yet, nothing to sync and nothing to log out of
     expect(titles()).toEqual(['Guest', 'Progress', 'Appearance', 'Units & language', 'Features', 'Workout', 'Fine-tuning', 'Timer alerts',
-      'Schedule defaults', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'Danger zone', 'About & updates', 'Licences'])
+      'Schedule defaults', 'Equipment', 'Measurement fields', 'Backup', 'Import', 'About & updates', 'Licences'])
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['General', 'Training', 'Body & progress', 'Data', 'About'])
     expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('1:30 rest · Cards')
     expect(rowTitled('Timer alerts').querySelector('.lrow-v').textContent).toBe('Sound · Vibrate')
@@ -343,13 +345,13 @@ describe('the pages', () => {
   it('each search entry is a row on its page (guest in a browser)', () => {
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, guestWeb) && (!e.when || e.when(guestWeb))) (byPage[e.page] ||= []).push(e.title)
-    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'alerts', 'appearance', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
+    expect(Object.keys(byPage).sort()).toEqual(['about', 'account', 'advanced', 'alerts', 'appearance', 'backup', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
       // Equipment is Gym setup, a stage page outside this Settings shell (SettingsRoute): its
       // rows and the search's anchors are checked in views/train/gym/GymSetup.test.jsx
       if (page === 'equipment') continue
       mount(page)
-      const have = titles()
+      const have = [...titles(), ...stageTitles()]
       for (const title of want) expect(have, `${page}: ${title}`).toContain(title)
     }
   })
@@ -391,7 +393,7 @@ describe('the pages', () => {
   })
 
   it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
-    for (const [page, title] of [['alerts', 'Timer alerts'], ['advanced', 'Fine-tuning'], ['licences', 'Licences'], ['danger', 'Danger zone'], ['features', 'Features']]) {
+    for (const [page, title] of [['alerts', 'Timer alerts'], ['advanced', 'Fine-tuning'], ['licences', 'Licences'], ['features', 'Features']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr h1').textContent).toBe(title)
       act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())

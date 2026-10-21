@@ -70,8 +70,9 @@ export function routeDepth(pathname = '') {
 // new page (views/Settings.jsx SettingsRoute, and LEGACY below). Data & backup lands on Backup, the
 // page with its export and import.
 // The reminder settings are at /me/reminders again (PR07 decision 2), so /settings/reminders needs
-// no rename: it lands there through /settings below.
-export const PROFILE_RENAMED = { look: 'appearance', plan: 'schedule', data: 'backup' }
+// no rename: it lands there through /settings below. The Danger zone's Start over lives on Account
+// and data now (PR-06).
+export const PROFILE_RENAMED = { look: 'appearance', plan: 'schedule', data: 'backup', danger: 'account' }
 
 // The notifications inbox (PR07 N1.0) is pushed under the tab its bell was tapped on, so the lit
 // tab and Back stay where you were: /home/notifications, /train/notifications, … A page no tab

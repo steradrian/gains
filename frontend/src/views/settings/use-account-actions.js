@@ -4,13 +4,21 @@ import { useUI } from '../../store/useUI.js'
 import { t } from '../../lib/i18n.js'
 import { api } from '../../lib/api.js'
 import { forgetCoach } from '../../lib/coach-api.js'
+import { DEMO } from '../../lib/demo.js'
+import { MOBILE } from '../../lib/mobile.js'
 import { mediaStore } from '../../lib/media-store.js'
+import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { confirmSheet } from '../../sheets.jsx'
 import { leaveServer } from '../../components/ServerSync.jsx'
 import { useDataActions } from './use-data-actions.js'
+import { settingsPath } from './paths.js'
 import { confirmSignOutEverywhere, keptNote, signOutWaiting } from './sheets/sign-out-sheets.js'
+import { confirmStartOver } from './sheets/start-over.jsx'
 
-/* After "Reset training data": the photos and videos go too. Signed in, the empty state is pushed
+// Where Start over lands (A2.10, pages/StartedOverScreen.jsx).
+const STARTED_OVER = settingsPath('account/started-over')
+
+/* After Start over: the photos and videos go too. Signed in, the empty state is pushed
    first and, once the server holds it, the server is asked to drop every file that state no
    longer refers to (POST /api/media/sweep) — asked before the push landed, it would still see the
    old state and keep everything, which is the safe side. Then this device keeps only the files a
@@ -27,7 +35,7 @@ async function clearMediaAfterReset(signedIn) {
 }
 
 /**
- * Disconnect (phone), Sign out, Sign out everywhere and Reset training data: the confirms and
+ * Disconnect (phone), Sign out, Sign out everywhere and Start over: the confirms and
  * what they do, as Settings always had them.
  *
  * None of the sign-outs wipes this device while the server is missing a change: the confirm no
@@ -74,27 +82,26 @@ export function useAccountActions() {
     running: running(),
     onConfirm: () => leaveAsking('everywhere', t('Signed out on all devices')),
   })
-  // Signed in, the empty state is pushed to the profile like any other change, so the wipe
-  // reaches the server and every device that syncs with it — the dialog has to say so. The Coach
-  // keeps its data outside S in two homes that can both be in use on one phone: a file per
-  // profile on the server, and — when it runs with the phone's own key — a file on the device.
-  // Each is cleared on its own; forgetCoach() alone would pick one by mode. A failed call must
-  // not stop the reset.
-  // Training data only: NutriTrace's diary, foods and goals are not Gains' to wipe.
-  const resetEverything = () => confirmSheet({
-    title: t('Reset training data?'),
-    message: user
-      ? t('Deletes your plan, workouts, body weight, photos and videos from your profile on this server and on every signed-in device. This cannot be undone.')
-      : t('Deletes your plan, workouts, body weight, photos and videos on this device. This cannot be undone.'),
-    confirmText: t('Delete training data'), danger: true,
+  // Start over (A2.9, sheets/start-over.jsx). Signed in, the empty state is pushed to the profile
+  // like any other change, so the wipe reaches the server and every device that syncs with it —
+  // the confirm has to say so. The Coach keeps its data outside S in two homes that can both be in
+  // use on one phone: a file per profile on the server, and — when it runs with the phone's own
+  // key — a file on the device. Each is cleared on its own; forgetCoach() alone would pick one by
+  // mode. A failed call must not stop the reset. NutriTrace's diary, foods and goals are not
+  // Gains' to wipe. It lands on Started over (A2.10).
+  const startOver = () => confirmStartOver({
+    S,
+    signedIn: !!user,
+    server: !!user && !MOBILE && !DEMO,
+    nutrition: nutritionAvailable(user),
     onConfirm: () => {
       if (user) api('/api/coach/forget', { method: 'POST', body: '{}' }).catch(() => {})
       if (coachLocal?.mode === 'byok') forgetCoach().catch(() => {})
       resetAll()
-      nav('/home'); toast(t('Training data reset'))
+      nav(STARTED_OVER)
       clearMediaAfterReset(!!user).catch(() => {})
     },
   })
 
-  return { disconnect, signOutHere, signOutEverywhere, resetEverything }
+  return { disconnect, signOutHere, signOutEverywhere, startOver }
 }

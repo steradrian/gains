@@ -22,7 +22,6 @@ const LOADERS = {
   backup: () => import('./BackupPage.jsx'),
   import: () => import('./ImportPage.jsx'),
   media: () => import('./MediaPage.jsx'),
-  danger: () => import('./DangerPage.jsx'),
   about: () => import('./AboutPage.jsx'),
   licences: () => import('./LicencesPage.jsx'),
   account: () => import('./AccountPage.jsx'),

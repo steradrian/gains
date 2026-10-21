@@ -15,13 +15,12 @@ await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Settings → Data with photos and videos: the JSON export says it leaves them out, the zip export
-   carries them, Import takes either, and "Reset training data" takes the files too — on the server
-   once the empty state is there, and on this device except what a stash still refers to. */
+   carries them, and Import takes either. (Start over taking the files too is tested in
+   settings/sheets/start-over.test.jsx.) */
 const mocks = vi.hoisted(() => {
-  const state = { S: null, user: null, config: null, sync: { status: 'ok' }, stashed: new Set() }
+  const state = { S: null, user: null, config: null, sync: { status: 'ok' } }
   state.replaceState = vi.fn()
   state.importBackup = vi.fn()
-  state.resetEverything = vi.fn()
   state.menuSheet = vi.fn()
   state.conflict = null
   state.pushState = vi.fn(async () => {})
@@ -37,8 +36,7 @@ const mocks = vi.hoisted(() => {
     update: vi.fn(), replaceState: state.replaceState, setUser: vi.fn(), pullState: vi.fn(), pushState: state.pushState,
     signOut: vi.fn(), signOutAll: vi.fn(), resetDemo: vi.fn(), disconnectServer: vi.fn(),
     syncNow: vi.fn(), unsyncedChanges: () => ({ owed: false, count: 0 }), keptChanges: state.keptChanges,
-    stashedMediaHashes: async () => state.stashed,
-    importConflict: async () => state.conflict, importBackup: state.importBackup, resetEverything: state.resetEverything
+    importConflict: async () => state.conflict, importBackup: state.importBackup,
   })
   return state
 })
@@ -93,9 +91,8 @@ beforeEach(async () => {
   mocks.user = null
   mocks.config = null
   mocks.sync = { status: 'ok' }
-  mocks.stashed = new Set()
   mocks.conflict = null
-  for (const f of [mocks.replaceState, mocks.importBackup, mocks.resetEverything, mocks.menuSheet, mocks.pushState, mocks.confirmSheet, mocks.api, mocks.toast]) f.mockClear()
+  for (const f of [mocks.replaceState, mocks.importBackup, mocks.menuSheet, mocks.pushState, mocks.confirmSheet, mocks.api, mocks.toast]) f.mockClear()
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -106,7 +103,7 @@ afterEach(() => {
   _setMediaStore(null)
 })
 // Backup holds the exports and the import; Photos & videos (shown once there are any) the status
-// row; Danger zone the reset.
+// row.
 const mount = async (page = 'backup') => { act(() => root.render(<Settings page={page} />)); await settle() }
 
 describe('Settings — photos and videos', () => {
@@ -213,46 +210,5 @@ describe('Settings — photos and videos', () => {
     expect(mocks.importBackup.mock.calls[0][1]).toEqual({ mergeWith: mocks.conflict })
     await act(async () => { await sheet.items[0].onClick() })
     expect(mocks.importBackup.mock.calls[1][1]).toEqual({ mergeWith: null })
-  })
-
-  it('Reset, signed in: pushes, asks the server to sweep, and keeps only what a stash refers to', async () => {
-    mocks.user = { id: 'u1', name: 'Ana' }
-    mocks.config = { media: { imageMB: 2 } }
-    const other = 'c'.repeat(64)
-    await media.put(HASH, new Blob([PHOTO]), { mime: 'image/jpeg', pending: false })
-    await media.put(other, new Blob(['x']), { mime: 'image/png', pending: true })
-    mocks.stashed = new Set([other])
-    await mount('danger')
-    act(() => { row('Reset training data').click() })
-    act(() => { mocks.confirmSheet.mock.calls[0][0].onConfirm() })
-    await until(async () => !(await media.has(HASH)))
-    expect(mocks.pushState).toHaveBeenCalled()
-    expect(mocks.api.mock.calls.map(c => c[0])).toContain('/api/media/sweep')
-    expect(await media.has(HASH)).toBe(false)
-    expect(await media.has(other)).toBe(true)
-  })
-
-  it('Reset: no sweep before the empty state is on the server, nor for a guest', async () => {
-    mocks.user = { id: 'u1', name: 'Ana' }
-    mocks.config = { media: { imageMB: 2 } }
-    mocks.sync = { status: 'offline' }
-    await mount('danger')
-    act(() => { row('Reset training data').click() })
-    act(() => { mocks.confirmSheet.mock.calls[0][0].onConfirm() })
-    await until(() => mocks.pushState.mock.calls.length > 0)
-    await settle()
-    expect(mocks.api.mock.calls.map(c => c[0])).not.toContain('/api/media/sweep')
-    act(() => root.unmount())
-    root = createRoot(host)
-    mocks.user = null
-    mocks.sync = { status: 'ok' }
-    mocks.confirmSheet.mockClear(); mocks.api.mockClear()
-    await media.put(HASH, new Blob([PHOTO]), { mime: 'image/jpeg', pending: true })
-    await mount('danger')
-    act(() => { row('Reset training data').click() })
-    act(() => { mocks.confirmSheet.mock.calls[0][0].onConfirm() })
-    await until(async () => !(await media.has(HASH)))
-    expect(mocks.api).not.toHaveBeenCalled()
-    expect(await media.has(HASH)).toBe(false)
   })
 })
