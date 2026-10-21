@@ -115,7 +115,7 @@ describe('the rings', () => {
   it('the streak, weeks in a row, with the best ever on its pill', () => {
     const weeks = ['2026-08-03', '2026-08-10', '2026-08-17', '2026-10-07', '2026-10-14']
     const streak = ringsOf(S({ workouts: weeks.map((d, i) => workout('w' + i, d, ['pull'])) }), TODAY)[2]
-    expect(streak).toMatchObject({ key: 'streak', top: 'On plan', big: '2', unit: 'weeks in a row', pill: 'Best: 3 weeks' })
+    expect(streak).toMatchObject({ key: 'streak', top: 'On plan', big: '2', unit: 'weeks in a row', pill: 'Best: 3 weeks', hint: 'Open Plan' })
     expect(ringsOf(S({ workouts: [] }), TODAY)[2]).toMatchObject({ big: '0', pill: null })
   })
 })

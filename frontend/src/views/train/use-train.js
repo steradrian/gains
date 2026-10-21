@@ -127,7 +127,8 @@ export function ringsOf(S, today) {
 
   const streak = streakWeeks(S), best = Math.max(bestStreakWeeks(S), streak)
   const run = {
-    key: 'streak', name: t('Streak'), icon: 'flame', top: t('On plan'), big: String(streak),
+    // The streak opens the Plan (onRing), and says so as the board does.
+    key: 'streak', name: t('Streak'), icon: 'flame', top: t('On plan'), big: String(streak), hint: t('Open Plan'),
     unit: tn('week in a row', 'weeks in a row', streak), value: streak, max: Math.max(best, 1),
     pill: best > 0 ? t('Best: {0}', tn('{0} week', '{0} weeks', best)) : null,
   }

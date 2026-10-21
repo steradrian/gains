@@ -82,7 +82,7 @@ export const base = {
   rings: [
     { key: 'workouts', name: 'Workouts', icon: 'dumbbell', top: 'This week', big: 2, unit: 'of 4 workouts', value: 2, max: 4, pill: 'Push A today' },
     { key: 'volume', name: 'Volume', icon: 'chartLine', top: 'Volume this week', big: '14.3', unit: 't of 18.9 t last week', value: 14.3, max: 18.9, pill: 'Bench press best: 82.5 kg' },
-    { key: 'streak', name: 'Streak', icon: 'flame', top: 'On plan', big: '6', unit: 'weeks in a row', value: 6, max: 8, pill: 'Best: 8 weeks' },
+    { key: 'streak', name: 'Streak', icon: 'flame', top: 'On plan', big: '6', unit: 'weeks in a row', value: 6, max: 8, pill: 'Best: 8 weeks', hint: 'Open Plan' },
   ],
   onRing: NOOP,
   actions: [

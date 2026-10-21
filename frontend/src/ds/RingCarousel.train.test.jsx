@@ -10,7 +10,7 @@ const view = useView()
 const SLIDES = [
   { name: 'Workouts', top: 'This week', big: 2, unit: 'of 4 workouts', value: 2, max: 4, pill: 'Push A today', icon: 'dumbbell' },
   { name: 'Volume', top: 'Volume this week', big: '14.3', unit: 't of 18.9 t last week', value: 14.3, max: 18.9, pill: 'Bench press best: 82.5 kg', icon: 'chartLine' },
-  { name: 'Streak', top: 'On plan', big: '6', unit: 'weeks in a row', value: 6, max: 8, pill: 'Best: 8 weeks', icon: 'flame' },
+  { name: 'Streak', top: 'On plan', big: '6', unit: 'weeks in a row', value: 6, max: 8, pill: 'Best: 8 weeks', icon: 'flame', hint: 'Open Plan' },
 ]
 
 describe('RingCarousel with the Train rings', () => {
@@ -20,7 +20,8 @@ describe('RingCarousel with the Train rings', () => {
     expect(slides.map(s => s.getAttribute('aria-label'))).toEqual([
       'Workouts: This week 2 of 4 workouts, Push A today. Open details',
       'Volume: Volume this week 14.3 t of 18.9 t last week, Bench press best: 82.5 kg. Open details',
-      'Streak: On plan 6 weeks in a row, Best: 8 weeks. Open details',
+      // A slide's own hint says where the tap goes; without one it is "Open details".
+      'Streak: On plan 6 weeks in a row, Best: 8 weeks. Open Plan',
     ])
     expect(slides.map(s => s.querySelector('.g-sring').getAttribute('aria-label'))).toEqual([
       'This week 2 of 4 workouts',
