@@ -98,6 +98,23 @@ export const useFasting = create((set, get) => ({
     return fast
   },
 
+  /** Puts a just-ended fast back as the running one (the Undo of End): starts a fast with its goal
+   *  and its own start, then removes the ended one. Start comes first so a refusal leaves the
+   *  ended fast as it was. Throws an NtError when the hub refuses (a fast is running elsewhere, the
+   *  start is older than the hub back-dates; see `canReopen`). */
+  async reopen(ended) {
+    const g = gen
+    const next = await NtApi.startFast(ended.goal_hours, ended.start_at)
+    try {
+      await NtApi.deleteFast(ended.id)
+    } catch (e) {
+      await NtApi.deleteFast(next.id).catch(() => {})
+      throw e
+    }
+    if (g === gen) set(s => ({ active: next, history: s.history.filter(f => f.id !== ended.id) }))
+    return next
+  },
+
   /** Takes a finished fast out of the history. */
   async remove(id) {
     const g = gen
