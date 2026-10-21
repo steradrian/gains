@@ -240,6 +240,10 @@ export const DEF = {
   // cleared) replaces that role's curated exercise-id whitelist with a single user-chosen
   // exercise id; the stamp is what lets a sync keep the choice made last (lib/sync-merge.js).
   balanceTemplate: DEFAULT_TEMPLATE_ID, balanceOverrides: {},
+  // Workout core M1 (Workout settings, W1.21): `autoNext`, the next exercise takes over after an
+  // exercise's last set (off: the finished one stays until › or the map); `showPlates`, the plate
+  // line under a barbell set. Both on is how the workout always behaved.
+  autoNext: true, showPlates: true,
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 

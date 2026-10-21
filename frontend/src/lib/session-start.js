@@ -9,6 +9,7 @@ import { nextPrescription, applyPrescription, defaultIncrement, weightIncrement,
 import { dropGrid } from './plates.js'
 import { backoffStepOf, applyBackoff } from './backoff.js'
 import { dbLoadFor, historyAs, ownedWeightsFor } from './dumbbells.js'
+import { partOf, normaliseParts } from './workout-parts.js'
 
 /**
  * Where a planned session's reps come from (Settings → During a workout). 'plan', the default:
@@ -119,8 +120,11 @@ export function buildSessionEntries(st, r) {
   // The prescription is applied as the session is built, so you walk up to the bar with the
   // right weight already on the screen instead of being told about it afterwards.
   const noProg = r?.excludeFromProgression === true
-  return (r ? r.ex : []).map(cfg => {
+  // The part of the workout (lib/workout-parts.js) rides from the routine entry onto the session
+  // entry, written only for a warm-up or cool-down, and the list keeps warm-ups first.
+  return normaliseParts((r ? r.ex : []).map(cfg => {
     const built = buildPlannedEntry(st, cfg, r, { noProg })
-    return { id: cfg.id, sg: cfg.sg, ...built, ...(noProg ? { noProg: true } : {}) }
-  })
+    const part = partOf(cfg)
+    return { id: cfg.id, sg: cfg.sg, ...built, ...(noProg ? { noProg: true } : {}), ...(part !== 'main' ? { part } : {}) }
+  }))
 }
