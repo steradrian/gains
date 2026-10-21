@@ -3,7 +3,7 @@ import { useUI } from '../../store/useUI.js'
 import { t } from '../../lib/i18n.js'
 
 /**
- * A search hit: scroll its row (a button, or a stage row carrying `data-find`) into view and flash it once. A row that shows only
+ * A search hit: scroll its row (a button, or a stage row found by its `<b>` title) into view and flash it once. A row that shows only
  * once the page has heard back from the server (web push, the passkey list) is waited for a
  * moment; still missing, the hit's `via` row, if it names one, is flashed instead, with a word
  * on why. `body` is the ref of the element the rows are in; `find` the row's English title.
@@ -14,7 +14,7 @@ export function useFlashRow(body, find, via) {
     if (!find || !body.current) return
     const el = body.current
     const named = label => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
-      || [...el.querySelectorAll('[data-find]')].find(r => r.dataset.find === label)
+      || [...el.querySelectorAll('.g-glist-row, .g-drow')].find(r => r.querySelector('b')?.textContent === label)
       || [...el.querySelectorAll('.btn')].find(b => b.textContent.trim() === label)
     let tm = null
     const flash = row => {

@@ -66,10 +66,11 @@ export const exerciseNameText = ex => (exerciseNameClass(ex) ? capWords(exercise
  * 62.5 is 62.5 either way. Nothing rounds differently in storage — this is display only.
  */
 let decimals = 1
-export const setWeightDecimals = n => { decimals = n === 2 ? 2 : 1 }
+// 0 is "None" (Settings > Units and language): whole numbers only.
+export const setWeightDecimals = n => { decimals = n === 2 ? 2 : n === 0 ? 0 : 1 }
 export const weightDecimals = () => decimals
 export const fmtNum = n => {
-  const p = decimals === 2 ? 100 : 10
+  const p = decimals === 2 ? 100 : decimals === 0 ? 1 : 10
   return (Math.round(n * p) / p).toLocaleString(dateLocale(), { maximumFractionDigits: decimals })
 }
 // Plate sizes keep their quarter: 1.25 and 21.25 are real numbers on a plate and a bar.

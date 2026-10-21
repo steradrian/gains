@@ -91,9 +91,9 @@ afterEach(() => {
 })
 
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
-// A legacy row is `.lrow` with a `.lrow-t`; a row on the stage (SettingRow) carries its title in `data-find`.
-const rowTitled = title => [...host.querySelectorAll('.lrow, [data-find]')].find(r => (r.dataset.find ?? r.querySelector('.lrow-t')?.textContent) === title)
-const titles = () => [...host.querySelectorAll('.lrow .lrow-t, [data-find]')].map(e => e.dataset.find ?? e.textContent)
+// A legacy row is `.lrow` with a `.lrow-t`; a row on the stage is `.g-glist-row` with its title in the <b>.
+const rowTitled = title => [...host.querySelectorAll('.lrow, .g-glist-row')].find(r => (r.querySelector('.lrow-t') ?? r.querySelector('b'))?.textContent === title)
+const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row b')].map(e => e.textContent)
 const valueOf = row => (row.querySelector('.g-gvr-val') || row.querySelector('.lrow-v')).textContent
 
 // This test's guest in a browser, as the page itself sees it.
@@ -394,7 +394,7 @@ describe('the pages', () => {
   })
 
   it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
-    for (const [page, title] of [['licences', 'Licences'], ['danger', 'Danger zone'], ['features', 'Features']]) {
+    for (const [page, title] of [['licences', 'Licences'], ['danger', 'Danger zone']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr h1').textContent).toBe(title)
       act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
@@ -402,8 +402,8 @@ describe('the pages', () => {
     }
   })
 
-  it('the pages on the stage draw their own frame, not the old header, and Back goes to Profile', () => {
-    for (const [page, title] of [['workout', 'Workout screen'], ['advanced', 'Fine-tuning'], ['schedule', 'Schedule']]) {
+  it('a page on the stage frame has its own title and Back, and no old header over it', () => {
+    for (const [page, title] of [['workout', 'Workout screen'], ['advanced', 'Fine-tuning'], ['schedule', 'Schedule'], ['units', 'Units & language'], ['features', 'Features']]) {
       mount(page)
       expect(host.querySelector('.sub-hdr'), page).toBeNull()
       expect(host.querySelectorAll('h1'), page).toHaveLength(1)
@@ -560,9 +560,9 @@ describe('Features', () => {
     expect(t).toContain('Filter by equipment')          // this test's profile has an equipment profile
     expect(t).not.toContain('Workout day reminder')     // no reminders for a guest in a browser
     expect(t).not.toContain('Auto-backup on changes')   // the phone app's
-    expect(rowTitled('Flash the screen').querySelector('.lrow-v').textContent).toBe('On')
-    expect(rowTitled('Flash the screen').querySelector('.lrow-s').textContent).toBe('Workout screen')
-    expect(rowTitled('Reduce motion').querySelector('.lrow-v').textContent).toBe('Off')
+    expect(valueOf(rowTitled('Flash the screen'))).toBe('On')
+    expect(rowTitled('Flash the screen').querySelector('.g-glist-body span, .lrow-s').textContent).toBe('Workout screen')
+    expect(valueOf(rowTitled('Reduce motion'))).toBe('Off')
     act(() => rowTitled('Flash the screen').click())
     expect(mocks.navs.at(-1)).toEqual(['/me/workout', { state: { find: 'Flash the screen' } }])
   })
@@ -602,6 +602,9 @@ describe('Features', () => {
         await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve() })
         for (const row of host.querySelectorAll('.lrow')) {
           if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(row.querySelector('.lrow-t').textContent)
+        }
+        for (const row of host.querySelectorAll('.g-glist-row')) {
+          if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(row.querySelector('b').textContent)
         }
         act(() => root.render(null))
       }

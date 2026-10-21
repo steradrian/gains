@@ -13,6 +13,7 @@ import { dayHasLog } from '../../lib/nutrition/first-log.js'
 import { loadErrorText } from '../../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../../lib/nutrition/meal-name.js'
 import { useDiarySelection, useDiaryTarget } from '../../lib/nutrition/selection.js'
+import { trainingTracked } from '../../lib/nutrition/food-tracked.js'
 import { useDiaryDay } from '../../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { waterButtons } from '../../lib/nutrition/water.js'
@@ -49,8 +50,8 @@ export function useTodayDate() {
 }
 
 /** Which Today: 'both', 'food' (no Up next) or 'training' (one ring, the week, no food). Food is
- *  nutrition being there (a session for the hub, not the phone build); training has no switch
- *  yet, so it is always on. */
+ *  nutrition being there (a session for the hub, not the phone build) and tracked; training is
+ *  its Settings > Features switch (`S.trackTraining`), on unless turned off. */
 export function todayProfile(food, training = true) {
   if (food && training) return 'both'
   return food ? 'food' : 'training'
@@ -296,7 +297,7 @@ export function useToday() {
   useDiaryIndex(s => s.version)
   const saved = useOfflinePill()
 
-  const profile = todayProfile(day.on)
+  const profile = todayProfile(day.on, trainingTracked(S))
   const food = profile !== 'training'
   // What Today knows below the rings, one value every section reads: 'failed' when the day did
   // not load (a retry banner, nothing that looks like an empty day), 'pending' until it has.

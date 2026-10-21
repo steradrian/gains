@@ -79,8 +79,8 @@ afterEach(() => {
 })
 
 const mount = (page = 'workout') => act(() => root.render(<Settings page={page} />))
-const allRows = () => [...host.querySelectorAll('[data-find]')]
-const rowTitled = title => allRows().find(r => r.dataset.find === title)
+const allRows = () => [...host.querySelectorAll('.g-glist-row')]
+const rowTitled = title => allRows().find(r => r.querySelector('b')?.textContent === title)
 const switchIn = row => row.querySelector('[role="switch"]')
 const sub = row => row.querySelector('.g-glist-body span')?.textContent
 

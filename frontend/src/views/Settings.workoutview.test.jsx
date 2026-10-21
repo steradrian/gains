@@ -85,7 +85,8 @@ describe('Settings — workout view', () => {
   // /me/alerts is the old Timer alerts page: it lands here with the row to flash (SettingsRoute).
   it('flashes the row a search hit or an old /me/alerts link asked for', () => {
     act(() => root.render(<Settings page="workout" find="Flash the screen" />))
-    expect(host.querySelector('[data-find="Flash the screen"]').classList.contains('sp-flash')).toBe(true)
+    const lit = [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Flash the screen')
+    expect(lit.classList.contains('sp-flash')).toBe(true)
   })
 
   it('shows a legacy/absent value as Cards', () => {

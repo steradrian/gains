@@ -13,7 +13,7 @@ import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nut
 import { pageExists, pageVisible, searchSettings } from '../views/settings-pages.js'
 import { bindUI } from './ui.jsx'
 import DiaryMealsPage from './DiaryMealsSettings.jsx'
-import FeaturesList from './FeaturesList.jsx'
+import FeaturesPage from '../views/settings/pages/FeaturesPage.jsx'
 import NtSettingsGate from './NtSettingsGate.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
@@ -111,11 +111,13 @@ describe('Diary & meals', () => {
 })
 
 describe('Features › Fasting', () => {
+  // The Features page's rows are glass rows: the title is the row's <b>.
+  const glassRow = title => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === title)
+
   function Harness() {
-    const data = useNutrition(s => s.settings.data)
     const plusRow = useFastingOn()
     return <>
-      <FeaturesList S={{}} ctx={{ nutrition: true, ntSettings: data, fastingOn: data?.fastingEnabled === true }} />
+      <FeaturesPage />
       <span className="plus-fast">{plusRow ? 'fast row' : 'no fast row'}</span>
     </>
   }
@@ -126,11 +128,11 @@ describe('Features › Fasting', () => {
     act(() => root.render(<Harness />))
     await settle()
     expect(host.querySelector('.plus-fast').textContent).toBe('no fast row')
-    await act(async () => { rowTitled('Fasting').querySelector('[role="switch"]').click() })
+    await act(async () => { glassRow('Fasting').querySelector('[role="switch"]').click() })
     await settle()
     expect(puts().map(r => r.body)).toEqual([{ key: 'fastingEnabled', value: true }])
     expect(host.querySelector('.plus-fast').textContent).toBe('fast row')
-    expect(rowTitled('Fasting').querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
+    expect(glassRow('Fasting').querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
   })
 
   it('settings that did not load say so with Try again, instead of a switch that never wakes', async () => {
@@ -139,11 +141,11 @@ describe('Features › Fasting', () => {
     await act(async () => { await useNutrition.getState().loadSettings().catch(() => {}) })
     act(() => root.render(<Harness />))
     await settle()
-    expect(rowTitled('Fasting').textContent).toContain('Your settings did not load.')
-    expect(rowTitled('Fasting').querySelector('[role="switch"]')).toBeNull()
-    await act(async () => { [...rowTitled('Fasting').querySelectorAll('button')].find(b => b.textContent === 'Try again').click() })
+    expect(glassRow('Fasting').textContent).toContain('Your settings did not load.')
+    expect(glassRow('Fasting').querySelector('[role="switch"]')).toBeNull()
+    await act(async () => { [...glassRow('Fasting').querySelectorAll('button')].find(b => b.textContent === 'Try again').click() })
     await settle()
-    const sw = rowTitled('Fasting').querySelector('[role="switch"]')
+    const sw = glassRow('Fasting').querySelector('[role="switch"]')
     expect(sw.getAttribute('aria-checked')).toBe('false')
     expect(sw.disabled || sw.getAttribute('aria-disabled') === 'true').toBe(false)
   })

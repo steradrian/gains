@@ -1851,3 +1851,13 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-ltile.on { background: var(--on-stage); color: var(--accent-text); }
 .g-ltile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .g-ltile { transition: none; } }
+
+/* Settings prefs m1: a card of rows in a Settings page's gutter (pages/prefs-rows.jsx), a segmented
+   control or a switch at the end of a row, the disabled switch, and the search-hit flash on glass rows. */
+.g-sp-card { padding: 0 16px; }
+.g-sp-card + .g-sp-card { padding-top: 12px; }
+.g-sp-danger { border-radius: 28px; overflow: hidden; }
+.g-sp-seg { flex: none; min-width: 132px; }
+.g-sp-seg .g-sseg button { height: 34px; padding: 0 12px; }
+.g-sswitch:disabled { opacity: 0.45; cursor: default; }
+.g-glist-row.sp-flash, .g-drow.sp-flash { animation: spflash 1.8s ease; }

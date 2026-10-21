@@ -47,7 +47,7 @@ export default function WorkoutPage() {
     <SettingsPage title={t('Workout screen')} line={line}>
       <div className="set-body">
         <StageSection variant="label" title={t('Layout')} />
-        <div className="set-tiles" role="radiogroup" aria-label={t('Layout')} data-find={t('Layout')}>
+        <div className="set-tiles" role="radiogroup" aria-label={t('Layout')}>
           {LAYOUTS.map(([v, label]) => (
             <LayoutTile key={v} layout={v} label={t(label)} selected={layout === v} tabIndex={layout === v ? 0 : -1} onClick={() => set('workoutView', v)} />
           ))}

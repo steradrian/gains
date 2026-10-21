@@ -57,7 +57,7 @@ const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
-import CheckIn from './views/CheckIn.jsx'
+import GymPassPage from './views/settings/pages/GymPassPage.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
 import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
 import RoutineEditor from './views/routines/RoutineEditor.jsx'
@@ -390,7 +390,7 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/exercises/new" element={<CreateExercise />} />
       {/* Gym check-in — switched off in Settings, the route falls through to the
           catch-all redirect below. */}
-      {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
+      {S.checkIn !== false && <Route path="/train/checkin" element={<GymPassPage />} />}
       {/* The Coach screens gate themselves on the instance config; the routes exist
           unconditionally so a deep link from a notification lands somewhere sane
           rather than on the catch-all. */}

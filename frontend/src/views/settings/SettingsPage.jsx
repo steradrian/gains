@@ -1,5 +1,7 @@
+import { useContext, useLayoutEffect } from 'react'
 import StagePage from '../../ds/StagePage.jsx'
 import StagePageTitle from '../../ds/StagePageTitle.jsx'
+import { HostFrameContext } from './host-frame.js'
 import { SETTINGS_ROOT } from './paths.js'
 
 /**
@@ -10,6 +12,8 @@ import { SETTINGS_ROOT } from './paths.js'
  * `[{ icon, label, onClick }]`. The page is transparent: the stage behind it is the app's.
  */
 export default function SettingsPage({ title, line, parent = SETTINGS_ROOT, actions, children }) {
+  const framed = useContext(HostFrameContext)
+  useLayoutEffect(() => { framed?.() }, [framed])
   return (
     <StagePage parent={parent} actions={actions}>
       <StagePageTitle title={title} line={line} />

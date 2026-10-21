@@ -26,7 +26,14 @@ describe('weight decimals', () => {
     expect(fmtNum(0)).toBe('0')
   })
 
-  it('ignores anything that is not 1 or 2', () => {
+  it('None shows whole numbers', () => {
+    setWeightDecimals(0)
+    expect(weightDecimals()).toBe(0)
+    expect(fmtNum(62.75)).toBe('63')
+    expect(fmtNum(100)).toBe('100')
+  })
+
+  it('ignores anything that is not 0, 1 or 2', () => {
     setWeightDecimals(5); expect(weightDecimals()).toBe(1)
     setWeightDecimals(undefined); expect(weightDecimals()).toBe(1)
     setWeightDecimals(2); expect(weightDecimals()).toBe(2)

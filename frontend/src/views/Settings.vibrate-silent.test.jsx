@@ -89,7 +89,7 @@ const mount = async () => {
   await act(async () => { await Promise.resolve(); await Promise.resolve() })
 }
 const TITLE = 'Vibrate on silent too'
-const rowTitled = title => [...host.querySelectorAll('[data-find]')].find(r => r.dataset.find === title)
+const rowTitled = title => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === title)
 const switchIn = row => row.querySelector('[role="switch"]')
 
 describe('Settings — vibrate when the phone is on silent', () => {
@@ -100,7 +100,7 @@ describe('Settings — vibrate when the phone is on silent', () => {
     const row = rowTitled(TITLE)
     expect(row).toBeTruthy()
     expect(row.querySelector('.g-glist-body span').textContent).toBe('The end of a rest or a hold buzzes like an alarm, even in silent mode.')
-    const rows = [...host.querySelectorAll('[data-find]')]
+    const rows = [...host.querySelectorAll('.g-glist-row')]
     expect(rows.indexOf(row)).toBe(rows.indexOf(rowTitled('Vibrate')) + 1)
     expect(switchIn(row).getAttribute('aria-checked')).toBe('false')
     act(() => { switchIn(row).click() })

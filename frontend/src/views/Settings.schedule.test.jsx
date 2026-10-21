@@ -73,7 +73,7 @@ const ownLoop = {
 const plannerQueue = { queue: { ids: ['a', 'b'], since: Date.now(), startsOn: todayISO(), label: 'US W1' } }
 
 const mount = over => { mocks.S = baseS(over); act(() => root.render(<Settings page="schedule" />)) }
-const howRow = () => [...host.querySelectorAll('[data-find]')].find(r => r.dataset.find === 'How you train')
+const howRow = () => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'How you train')
 const option = label => [...howRow().querySelectorAll('[role="radio"]')].find(b => b.textContent === label)
 const picked = () => [...howRow().querySelectorAll('[role="radio"]')].find(b => b.getAttribute('aria-checked') === 'true')?.textContent
 

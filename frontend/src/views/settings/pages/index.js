@@ -27,13 +27,7 @@ const LOADERS = {
   account: () => import('./AccountPage.jsx'),
 }
 
-// Pages that draw their own frame (SettingsPage: nav bar, large title) instead of sitting under the
-// host's old page header. Each page milestone adds its ids and, in the same pass, nothing else.
-// Settings train m1:
-export const OWN_FRAME = new Set(['workout', 'advanced', 'schedule'])
-export const drawsOwnFrame = id => OWN_FRAME.has(id)
-
-export const PAGE_COMPONENTS =Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))
+export const PAGE_COMPONENTS = Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))
 
 // Pages whose module is already loaded (preloadPages): drawn at once instead of suspending.
 const loaded = {}

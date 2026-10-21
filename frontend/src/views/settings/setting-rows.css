@@ -5,10 +5,6 @@
 .set-body > .g-snote { padding-inline: 4px; }
 .set-body > .g-glist { margin-bottom: 4px; }
 
-/* A search hit flashes its row once (useFlashRow): the row is a button or a div, so it takes the
-   same keyframes as the legacy rows. */
-.set-row.sp-flash { animation: spflash 1.8s ease; }
-
 /* A row that holds a control under its text (a segmented control, the layout tiles): the text on
    top, the control the full width below it. */
 .set-row-stack { flex-wrap: wrap; row-gap: 12px; padding-bottom: 14px; }

@@ -35,8 +35,9 @@ export const PRIMITIVE_FILES = [
 // Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
 // design system's StageNavBar. A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
 // SettingsRoute (PR-06) only picks the page: the chrome is in views/Settings.jsx and settings/SettingsPageHost.jsx,
-// in other files than the route, which this guard cannot follow.
-export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'TrainHub', 'TrainingLoad', 'WeekPage', 'Workout']
+// in other files than the route, which this guard cannot follow. GymPassPage (Gym check-in, route
+// /train/checkin) draws its chrome through settings/SettingsPage.jsx, a StagePage in another file.
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'FocusView', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'TrainHub', 'TrainingLoad', 'WeekPage', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 

@@ -7,8 +7,8 @@ import './setting-rows.css'
 // chevron (and its `value` before it); a row with `trailing` carries a switch or a button; a row
 // with `below` puts a control (a segmented control) the full width under its text. `dim` is a
 // setting this device can not do: shown, with the reason as `sub`, and out of reach.
-// `title` is what a search hit flashes (useFlashRow looks the row up by `data-find`), so it is the
-// row's visible, translated title.
+// `title` is what a search hit flashes (useFlashRow looks a `.g-glist-row` up by its `<b>`), so it
+// is the row's visible, translated title.
 export default function SettingRow({ icon, title, sub, value, onClick, trailing, below, dim = false }) {
   const kids = (
     <>
@@ -22,6 +22,6 @@ export default function SettingRow({ icon, title, sub, value, onClick, trailing,
   )
   const cls = cx('g-glist-row g-gvr set-row', !onClick && 'g-gvr-static', below && 'set-row-stack', dim && 'set-row-dim')
   return onClick
-    ? <button type="button" className={cls} data-find={title} onClick={onClick}>{kids}</button>
-    : <div className={cls} data-find={title} aria-disabled={dim || undefined}>{kids}</div>
+    ? <button type="button" className={cls} onClick={onClick}>{kids}</button>
+    : <div className={cls} aria-disabled={dim || undefined}>{kids}</div>
 }
