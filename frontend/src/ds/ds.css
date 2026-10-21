@@ -907,3 +907,54 @@ div.g-mcard { cursor: default; }
 .g-cgroup-stage .g-cchip { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); }
 .g-cgroup-stage .g-cchip.on { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
 @media (prefers-reduced-motion: reduce) { .g-sseg-thumb, .g-radio-mark, .g-cchip { transition: none; } }
+
+/* === Train plan (PlanWeekGrid, LoopStrip, VolumeBars; boards T3.0–T3.3) === */
+/* PlanWeekGrid: a glass card of seven columns, the weekday letters, then per week a title and
+   seven 62px cells. Nothing clips, so a cell's focus ring shows whole. The grid follows `dir`. */
+.g-pgrid { border-radius: 28px; padding: 14px 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-pgrid-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.g-pgrid-dow { text-align: center; font: 600 12px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-pgrid-week { grid-column: 1 / -1; margin: 0; padding: 12px 2px 2px; text-align: start; font: 700 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-pgrid-dow + .g-pgrid-week { padding-top: 4px; }
+.g-pcell { appearance: none; border: 0; min-width: 0; height: 62px; padding: 0 2px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font-family: var(--font-sans); cursor: pointer; }
+.g-pcell b { font: 700 16px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-pcell-tag { max-width: 100%; display: flex; align-items: center; justify-content: center; gap: 2px; font: 600 11px/14px var(--font-sans); }
+.g-pcell-tag span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-pcell-tag .g-icon { width: 11px; height: 11px; flex: none; stroke-width: 3.2; }
+.g-pcell-rest { background: none; box-shadow: none; opacity: .6; }
+.g-pcell-noted { background: none; box-shadow: none; opacity: .8; }
+.g-pcell-done { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
+.g-pcell-missed { background: none; box-shadow: inset 0 0 0 1.5px var(--g-ring-over); color: var(--g-ring-over); }
+.g-pcell.today { opacity: 1; box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-pcell.today.g-pcell-rest, .g-pcell.today.g-pcell-noted { background: var(--glass); }
+.g-pcell:focus-visible { outline-color: var(--on-stage); }
+
+/* LoopStrip: the title with its line, chips that wrap with a chevron between, the line under them */
+.g-loop { border-radius: 28px; padding: 18px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-loop-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.g-loop-title { margin: 0; flex: 1 1 auto; font: 700 17px/22px var(--font-sans); }
+.g-loop-line { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-loop-act { appearance: none; border: 0; padding: 0; background: none; color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.g-loop-chips { list-style: none; margin: 0; padding: 12px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.g-loop-item { display: inline-flex; align-items: center; gap: 6px; }
+.g-loop-sep { width: 14px; height: 14px; stroke-width: 2.4; opacity: .6; }
+[dir="rtl"] .g-loop-sep { transform: scaleX(-1); }
+.g-loop-chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--glass); font: 700 15px/20px var(--font-sans); }
+.g-loop-chip.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-loop-chip.done { opacity: .6; }
+.g-loop-chip .g-icon { width: 14px; height: 14px; stroke-width: 2.8; }
+.g-loop-n { font-variant-numeric: tabular-nums; opacity: .7; }
+.g-loop-empty, .g-loop-note { margin: 0; padding-top: 12px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-loop-act:focus-visible { outline-color: var(--on-stage); }
+
+/* VolumeBars: a row per muscle, an 8px track with the fill and the target band drawn over it */
+.g-vbars { border-radius: 28px; padding: 10px 18px 18px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-vbars-list { list-style: none; margin: 0; padding: 0; }
+.g-vbar { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
+.g-vbar-top { display: flex; justify-content: space-between; gap: 12px; font: 600 15px/20px var(--font-sans); }
+.g-vbar-val { color: var(--on-stage-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.g-vbar-track { position: relative; height: 8px; border-radius: 4px; background: var(--glass-track); }
+.g-vbar-fill { display: block; width: var(--w); height: 100%; border-radius: 4px; background: var(--on-stage); }
+.g-vbar-fill.low { background: var(--g-ring-over); }
+.g-vbar-band { position: absolute; top: -3px; bottom: -3px; inset-inline-start: var(--lo); width: calc(var(--hi) - var(--lo)); min-width: 2px; box-sizing: border-box; border-inline: 2px solid var(--on-stage-2); }
+.g-vbars-note { margin: 0; padding-top: 8px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
