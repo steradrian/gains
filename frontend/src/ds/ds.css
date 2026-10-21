@@ -135,29 +135,29 @@
 .g-ccard { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 74px; padding: 12px 16px; border-radius: 22px; color: var(--on-stage); text-align: start; text-decoration: none; font-family: var(--font-sans); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 220ms; }
 .g-ccard:active { transform: scale(.97); }
 .g-ccard-slim { min-height: 56px; }
-.g-ccard.on { background: var(--on-stage); color: var(--text); box-shadow: var(--g-ccard-on-shadow); }
+.g-ccard.on { background: var(--stage-cta); color: var(--on-stage-cta); box-shadow: var(--g-ccard-on-shadow); }
 .g-ccard-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--glass); }
 .g-ccard.on .g-ccard-ic { background: var(--accent-tint); color: var(--accent-text); }
 .g-ccard-ic .g-icon { width: 21px; height: 21px; }
 .g-ccard-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .g-ccard-b b { font: 700 17px/22px var(--font-sans); }
 .g-ccard-b span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
-.g-ccard.on .g-ccard-b span { color: var(--text-3); }
+.g-ccard.on .g-ccard-b span { color: var(--on-stage-cta); opacity: 0.78; }
 .g-ccard-mark { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--glass-line); }
-.g-ccard.on .g-ccard-mark { background: var(--accent-fill); color: var(--on-accent); box-shadow: none; }
+.g-ccard.on .g-ccard-mark { background: var(--on-stage-cta); color: var(--stage-cta); box-shadow: none; }
 .g-ccard-mark .g-icon { width: 14px; height: 14px; stroke-width: 3; }
 
 /* StageDayCount: number keys four to a row, the chosen one white */
 .g-daycount { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .g-daycount-k { appearance: none; border: 0; height: 56px; border-radius: 18px; display: grid; place-items: center; color: var(--on-stage); font: 700 22px/1 var(--font-sans); font-variant-numeric: tabular-nums; cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 220ms; }
 .g-daycount-k:active { transform: scale(.95); }
-.g-daycount-k.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-daycount-k.on { background: var(--stage-cta); color: var(--on-stage-cta); }
 
 /* StageWeekStrip: seven days, the lit ones a white disc with a dumbbell, 40ms apart */
 .g-week { display: flex; justify-content: space-between; padding: 14px; border-radius: 22px; }
 .g-week-d { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); }
 .g-week-disc { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px var(--glass-line); color: var(--accent-stage-end); transition: background-color 220ms cubic-bezier(.32,.72,0,1) calc(var(--k, 0) * 40ms), box-shadow 220ms; }
-.g-week-disc.on { background: var(--on-stage); box-shadow: none; }
+.g-week-disc.on { background: var(--stage-mark); color: var(--on-stage-cta); box-shadow: none; }
 .g-week-disc .g-icon { width: 16px; height: 16px; stroke-width: 2.2; }
 
 /* CodeCells */
@@ -279,7 +279,7 @@ button.g-grow, a.g-grow { cursor: pointer; }
 .g-tile-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
 .g-tile-ic .g-icon { width: 22px; height: 22px; stroke-width: 2; }
 .g-tile-now .g-tile-ic { background: var(--accent-tint); }
-.g-tile-done { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--on-stage); color: var(--accent-stage-end); }
+.g-tile-done { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--stage-mark); color: var(--on-stage-cta); }
 .g-tile-done .g-icon { width: 14px; height: 14px; stroke-width: 3; }
 .g-tile-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
 .g-tile-body b { font: 700 18px/22px var(--font-sans); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
@@ -302,7 +302,7 @@ button.g-grow, a.g-grow { cursor: pointer; }
 .g-fstep-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 18px; color: inherit; font: inherit; text-align: start; text-decoration: none; }
 button.g-fstep-row, a.g-fstep-row { cursor: pointer; }
 .g-fstep-dot { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--glass-line); }
-.g-fstep-dot.on { background: var(--on-stage); color: var(--accent-stage-end); box-shadow: none; }
+.g-fstep-dot.on { background: var(--stage-mark); color: var(--on-stage-cta); box-shadow: none; }
 .g-fstep-dot .g-icon { width: 16px; height: 16px; stroke-width: 3; }
 .g-fstep-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .g-fstep-body b { font: 600 17px/22px var(--font-sans); }
@@ -742,7 +742,7 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
 .g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
 .g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
+.g-sempty-btn.solid { background: var(--stage-cta); box-shadow: none; color: var(--on-stage-cta); }
 .g-sempty-btn .g-icon { width: 20px; height: 20px; }
 .g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 
@@ -926,7 +926,7 @@ a.g-xrow-stage:focus-visible, button.g-xrow-stage:focus-visible { outline-color:
 .g-tcard-acts { display: flex; gap: 10px; padding-top: 16px; }
 .g-tcard-acts.tight { padding-top: 14px; }
 .g-tcard-btn { appearance: none; border: 0; flex: 1 1 0; min-width: 0; min-height: 50px; box-sizing: border-box; padding: 8px 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-align: center; text-decoration: none; cursor: pointer; }
-.g-tcard-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
+.g-tcard-btn.solid { background: var(--stage-cta); box-shadow: none; color: var(--on-stage-cta); }
 .g-tcard-btn .g-icon { width: 20px; height: 20px; }
 .g-tcard-menu { appearance: none; border: 0; padding: 0; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); text-decoration: none; cursor: pointer; }
 .g-tcard-btn:focus-visible, .g-tcard-menu:focus-visible, .g-tcard .g-xrow:focus-visible { outline-color: var(--on-stage); }
@@ -1159,7 +1159,7 @@ button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
 .g-dstat-stack i { display: grid; place-items: center; color: var(--accent-stage-end); }
 .g-dstat-acts { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
 .g-dstat-btn { appearance: none; border: 0; min-height: 40px; box-sizing: border-box; padding: 0 16px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; background: var(--glass); color: var(--on-stage); font: 700 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-dstat-btn.solid { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-dstat-btn.solid { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-dstat-btn:focus-visible { outline-color: var(--on-stage); }
 
 /* DayFoodCard: the ring and the total, three macro bars, then a row a meal under a hairline. */
@@ -1426,7 +1426,7 @@ button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
 .g-lc-dot-on { width: 14px; height: 14px; margin: -7px 0 0 -7px; box-shadow: 0 0 0 3px var(--surface); }
 .g-lc.g-chart-stage .g-lc-dot-on { box-shadow: 0 0 0 3px var(--g-chart-dot-halo-stage); }
 .g-lc-tip { position: absolute; top: 0; left: clamp(20%, var(--x), 80%); transform: translateX(-50%); width: min(100%, max-content); box-sizing: border-box; padding: 4px 10px; border-radius: 999px; background: var(--text); color: var(--surface); font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
-.g-lc.g-chart-stage .g-lc-tip { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-lc.g-chart-stage .g-lc-tip { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-lc-x { display: flex; justify-content: space-between; padding-top: 8px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
 .g-lc.g-chart-stage .g-lc-x { color: var(--on-stage-2); }
 
@@ -1558,7 +1558,7 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-re-list > .g-re-slot.is-dragging, .g-ssg.is-dragging { border-radius: 18px; background: var(--accent-stage-end); box-shadow: var(--g-drag-shadow); }
 .g-re-drop { position: absolute; inset-inline: 12px; height: 3px; margin-top: -1.5px; border-radius: 2px; background: var(--on-stage); pointer-events: none; }
 .g-re-add { align-self: flex-start; margin-top: 12px; }
-.g-re .g-re-start { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-re .g-re-start { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-re .g-re-start:disabled { opacity: .5; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .g-re-slot { transition: none; } }
 /* === Train coach kit (StageSwitch, BigStepper; boards T12.0, T12.1) === */
