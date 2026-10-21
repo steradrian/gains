@@ -148,8 +148,6 @@ export function LinkCard({ url, compact, mini }) {
 export default function CustomMedia({ ex, id, compact, minimizable }) {
   const gifSize = useStore(s => s.S.gifSize)
   const update = useStore(s => s.update)
-  // The workout's list layout, from the store: only the workout card is minimizable.
-  const listLayout = useStore(s => !!minimizable && ((s.S.active?.workoutView || s.S.workoutView) === 'list'))
   const m = mediaOf(ex)
   const link = cleanUrl(ex?.url)
   if (!m && !link) return null
@@ -163,7 +161,7 @@ export default function CustomMedia({ ex, id, compact, minimizable }) {
   const name = exerciseNameFor(ex)
   if (!m) return <LinkCard url={link} compact={compact} mini={mini} />
   const body = m.kind === 'video'
-    ? <CustomVideo key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} mini={mini} still={listLayout || reducedMotion()} />
+    ? <CustomVideo key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} mini={mini} still={reducedMotion()} />
     : m.kind === 'gif'
       ? <CustomGif key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} mini={mini} />
       : <CustomImage key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} />

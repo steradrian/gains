@@ -81,9 +81,6 @@ export function beginWorkout(routineIds, bw, { skipWarmup = false } = {}) {
       routineIds: rids,
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
       bw: bw || null, cur: firstWork > 0 ? firstWork : 0, entries,
-      // Snapshot the layout at start so the header ⋮ can change it for this session only —
-      // changing the saved default (Settings → Workout view) mid-session leaves it alone.
-      workoutView: st.workoutView || 'cards',
       ...(skipWarmup ? { skipped: { warmup: true }, offered: { warmup: true } } : {}),
     }
   })
@@ -143,7 +140,6 @@ export function repeatWorkout(w, close) {
       s.active = {
         id: uid(), d: todayISO(), start: Date.now(), routineIds: [],
         name: w.name || t('Freestyle'), bw: bw || null, cur: 0, entries,
-        workoutView: s.workoutView || 'cards',
       }
     })
     useUI.getState().stopRest()
@@ -266,8 +262,6 @@ function beginBackfill({ iso, time, durationMin, routineIds, replaceId }) {
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
       bw: null, cur: 0, entries,
       backfill: { durationMin, replaceId: replaceId || null },
-      // Same layout snapshot as a live session (see beginWorkout).
-      workoutView: st.workoutView || 'cards',
     }
   })
   useUI.getState().stopRest()

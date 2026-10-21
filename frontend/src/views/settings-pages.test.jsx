@@ -355,37 +355,23 @@ describe('the pages', () => {
   it('every old row has a home: the Workout page holds the rest, logging and the before/during rows', () => {
     mount('workout')
     expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['Rest', 'Logging', 'Before and during'])
-    expect(titles()).toEqual(['Rest timer', 'Rest-pause rest', 'Effort per set', 'Shown under each exercise', 'Layout',
-      'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Exercise animations'])
+    expect(titles()).toEqual(['Rest timer', 'Rest-pause rest', 'Effort per set', 'Shown under each exercise',
+      'Weigh in before workouts', 'Keep screen awake', 'Exercise animations'])
     // QA 10-05: the "screen stays on" line is the awake row's own subtitle, not a section footer
     // that read as if it explained the animations above it.
     expect(rowTitled('Keep screen awake').querySelector('.lrow-s').textContent).toMatch(/^The screen stays on/)
     expect(rowTitled('Exercise animations').querySelector('.lrow-s')).toBeNull()
     expect([...host.querySelectorAll('.sect-f')].some(f => /screen stays on/.test(f.textContent))).toBe(false)
     mount('advanced')
-    expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Weight and reps buttons',
-      'Drop and burst shortcuts on every set', 'Swipe actions', 'Exercise chips at the top', 'Superset buttons in the exercise header', 'Move, swap and remove buttons below the exercise'])
+    expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Swipe actions'])
   })
 
-  it('Collapse completed exercises is saved for every session and drops a running session\'s own choice', () => {
-    mount('workout')
-    mocks.S.active = { collapseCompleted: false, entries: [] }
-    const sw = rowTitled('Collapse completed exercises').querySelector('[role="switch"]')
-    expect(sw.getAttribute('aria-checked')).toBe('false')
-    act(() => sw.click())
-    expect(mocks.S.collapseCompleted).toBe(true)
-    expect('collapseCompleted' in mocks.S.active).toBe(false)
-  })
-
-  it('the Fine-tuning switches write S.wc as the old Workout controls sheet did', () => {
+  it('the Swipe actions switch writes S.wc.swipeSets', () => {
     mount('advanced')
-    act(() => rowTitled('Superset buttons in the exercise header').querySelector('[role="switch"]').click())
-    expect(mocks.S.wc.pairButtons).toBe(true)
-    // the chip row at the top of a workout (#323) is on by default; its switch turns it off
-    const chips = rowTitled('Exercise chips at the top').querySelector('[role="switch"]')
-    expect(chips.getAttribute('aria-checked')).toBe('true')
-    act(() => chips.click())
-    expect(mocks.S.wc.exerciseChips).toBe(false)
+    const sw = rowTitled('Swipe actions').querySelector('[role="switch"]')
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+    act(() => sw.click())
+    expect(mocks.S.wc.swipeSets).toBe(false)
   })
 
   it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
@@ -504,7 +490,6 @@ describe('searchSettings', () => {
       expect(first('Dunkel')).toBe('Theme')
       expect(first('Feste Woche')).toBe('How you train')
       expect(first('Wochenstart')).toBe('Week starts on')
-      expect(first('kompakt')).toBe('Layout')
       expect(first('wischen')).toBe('Swipe actions')
       expect(first('Geste')).toBe('Swipe actions')
       await setLang('ar')
@@ -512,14 +497,7 @@ describe('searchSettings', () => {
     } finally { await setLang('en') }
   })
 
-  it('English words match from the start of a word only, so "ton" never finds "buttons"', async () => {
-    const { setLang, t } = await import('../lib/i18n.js')
-    try {
-      await setLang('de')
-      const titles = searchSettings('ton', guestWeb, t).map(h => h.title)
-      expect(titles).not.toContain('Weight and reps buttons')
-      expect(titles).not.toContain('Superset buttons in the exercise header')
-    } finally { await setLang('en') }
+  it('finds a tone and a JSON export by their English words', () => {
     expect(searchSettings('tone', { ...guestWeb, user: { id: 'u' }, pushOK: true, reminderOn: true, nudge: true }, s => s).map(h => h.title)).toContain('Nudge tone')
     expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup (JSON)')
   })
