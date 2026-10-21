@@ -398,6 +398,22 @@ function pushFrozen(res) {
   return true;
 }
 
+// The cutover's other switch (PUSH_SCHEDULER=local|external, default local): `external` means the
+// notification service owns the scheduled pushes, so the three this server raises on its own go
+// quiet: the day reminder and the missed-workout nudge (one tick, never started) and the Coach
+// proposal push (its hook, never set). Nothing they would have written is written either
+// (user.lastReminder, user.lastNudge). Everything else stays, the subscription routes, the test
+// push and the rest-timer included: those are PUSH_SUBS_READONLY's business, not this one's. Read
+// once at boot like it; a value that is neither word stops the boot, because a typo here would
+// leave both services sending.
+const PUSH_SCHEDULER = (process.env.PUSH_SCHEDULER || 'local').trim().toLowerCase() || 'local';
+if (PUSH_SCHEDULER !== 'local' && PUSH_SCHEDULER !== 'external') {
+  console.error(`PUSH_SCHEDULER=${JSON.stringify(process.env.PUSH_SCHEDULER)} is not local or external. Refusing to start.`);
+  process.exit(1);
+}
+const PUSH_SCHEDULER_EXTERNAL = PUSH_SCHEDULER === 'external';
+if (PUSH_SCHEDULER_EXTERNAL) console.log('PUSH_SCHEDULER=external: the day reminder, the missed-workout nudge and the Coach proposal push are silenced');
+
 // Forgets a subscription the push service says is dead, or that the send path refuses. Not while
 // the freeze is on: the frozen set must stay exactly as it was (PUSH_SUBS_READONLY above).
 function pruneSub(endpoint) {
@@ -589,7 +605,8 @@ function nudgeTick(user, S, now) {
   saveDb();
   sendPush(user.id, nudgePush(S.lang, toneOf(S.reminder), routine, now.date));
 }
-setInterval(() => {
+// The day reminder and the nudge: not scheduled at all under PUSH_SCHEDULER=external.
+if (!PUSH_SCHEDULER_EXTERNAL) setInterval(() => {
   for (const user of db.users) {
     if (!db.subs.some(s => s.userId === user.id)) continue;
     // One user's state file is one user's problem: a shape this tick cannot read is logged and
@@ -2772,8 +2789,8 @@ function commitState(uid, cur, next) {
 // a spinner that never resolves.
 coachJobs.recoverOnBoot();
 // A ready proposal is the one Coach event worth a notification. Failures and "nothing to
-// change" stay silent on purpose (FR-38/E4).
-coachJobs.setProposalHook((uid, pending) => {
+// change" stay silent on purpose (FR-38/E4). No hook at all under PUSH_SCHEDULER=external.
+if (!PUSH_SCHEDULER_EXTERNAL) coachJobs.setProposalHook((uid, pending) => {
   const n = (pending?.changes || []).length;
   if (!n) return;
   sendPush(uid, {
