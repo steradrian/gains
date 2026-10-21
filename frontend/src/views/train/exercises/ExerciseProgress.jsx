@@ -109,21 +109,25 @@ export default function ExerciseProgress() {
     </button>
   )
 
+  const strip = (
+    <StageSegmented label={t('Exercise views')} value={view} onChange={pickView}
+      options={[{ value: 'progress', label: t('Progress') }, { value: 'sets', label: t('History') }]} />
+  )
+
+  // The exercise stays on its page with its empty states, in both views, and the picker to leave it.
   if (unlogged) {
     return (
       <StagePage title={title} actions={actions} parent="/progress">
         <div className="g-xp">
           {pill}
-          <StageEmpty icon="trophy" title={t('No sets logged yet')} body={t('Log it in a workout and its curve shows up here.')} />
+          {strip}
+          {view === 'sets'
+            ? <PastSetsList exId={shownId} history={h} />
+            : <StageEmpty icon="trophy" title={t('No sets logged yet')} body={t('Log it in a workout and its curve shows up here.')} />}
         </div>
       </StagePage>
     )
   }
-
-  const strip = (
-    <StageSegmented label={t('Exercise views')} value={view} onChange={pickView}
-      options={[{ value: 'progress', label: t('Progress') }, { value: 'sets', label: t('History') }]} />
-  )
 
   if (view === 'sets') {
     return (

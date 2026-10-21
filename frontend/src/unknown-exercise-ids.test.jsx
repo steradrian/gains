@@ -20,7 +20,7 @@ import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
 import History from './views/History.jsx'
-import Strength from './views/Strength.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
 import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 
@@ -148,13 +148,13 @@ describe('exercise ids this build does not know', () => {
     expectKept(useStore.getState().S)
   })
 
-  it('Strength draws it, and its exercise picker leaves out the id it has no name for', () => {
+  it('the exercise progress page draws it, and leaves out the id it has no name for', () => {
     seed()
-    const host = render(<Strength />)
-    // Strength opens on the known lift: an id with no name to show is left out of
-    // the picker (use-exercise-progress.js exHist), not charted as a bare number.
-    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Full Squat')
-    expect(host.textContent).toContain('Now 100 kg')
+    const host = render(<ExerciseProgress />)
+    // It opens on the known lift: an id with no name to show is left out of the picker
+    // (use-exercise-progress.js exHist), not charted as a bare number.
+    expect(host.querySelector('.g-snav-title').textContent).toBe('Barbell Full Squat')
+    expect(host.querySelector('.g-xp-big').textContent).toContain('kg')
     expect(host.textContent).not.toContain(UNK)
     expectKept(useStore.getState().S)
   })
