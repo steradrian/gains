@@ -3460,7 +3460,6 @@ export default {
   'Save image': 'Save image',
   'Sets, date and time, duration': 'Sets, date and time, duration',
   'Show': 'Show',
-  'Undo for 8 s': 'Undo for 8 s',
   'Workouts you log show up here, newest first.': 'Workouts you log show up here, newest first.',
   '{0} did most of the work.': '{0} did most of the work.',
   '{0} since {1}': '{0} since {1}',

@@ -12,7 +12,6 @@ import { useUI } from './store/useUI.js'
 import { _setLangState } from './lib/i18n-core.js'
 import de from './locales/de.js'
 import { exercisePicker, exConfigSheet } from './sheets.jsx'
-import MuscleExplorer from './components/MuscleExplorer.jsx'
 
 const mounted = []
 const S = () => useStore.getState().S
@@ -27,19 +26,11 @@ function renderTop() {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-function render(node) {
-  const host = document.createElement('div')
-  document.body.appendChild(host)
-  const root = createRoot(host)
-  mounted.push(root)
-  act(() => root.render(node))
-  return host
-}
 function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-// The picker's rows are the drawer's (ExerciseThumbRow); the Muscles explorer keeps the app's own.
+// The picker's rows are the drawer's (ExerciseThumbRow).
 const rowFor = (host, name) => [...host.querySelectorAll('.item, .g-pk-item')].find(e => e.textContent.includes(name))
 const subOf = row => (row.querySelector('.ss') || row.querySelector('.g-xrow-b > span')).textContent
 const searchBox = host => host.querySelector('input[type="search"]')
@@ -119,14 +110,5 @@ describe('muscle names in the rows and tags (QA C9)', () => {
     const sheet = renderTop()
     expect(settingsTags(sheet)).toEqual(['Cardio'])
     expect(settingsLine(sheet)).toBe('Herz-Kreislauf · Körpergewicht')
-  })
-
-  it('Muscles explorer row names the target the same way', () => {
-    seed(custom())
-    const host = render(<MuscleExplorer onPick={vi.fn()} />)
-    const chip = [...host.querySelectorAll('.chip[aria-pressed]')].find(e => e.textContent.startsWith('Glutes'))
-    act(() => chip.click())
-    act(() => type(host.querySelector('.search input'), 'QA Custom'))
-    expect(rowFor(host, 'QA Custom Thrust').querySelector('.ss').textContent).toBe('Primary target · Glutes · barbell')
   })
 })

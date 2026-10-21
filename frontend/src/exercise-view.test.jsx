@@ -1,11 +1,8 @@
 // @vitest-environment happy-dom
 // List or cards (S.exerciseView). The Exercises and By muscle pages on the stage are always rows,
 // and the add-exercise picker (T5.1) is a drawer of rows with no cards button, whatever the setting
-// says. What is left of the cards view is MuscleExplorer's (components/MuscleExplorer.jsx) and the
-// grid CSS below.
+// says.
 import React, { act } from 'react'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
@@ -45,15 +42,5 @@ describe('exercise list or cards', () => {
     expect(toggle(host)).toBeNull()
     expect(host.querySelector('.ex-grid')).toBeNull()
     expect(host.querySelectorAll('.g-pk-item').length).toBeGreaterThan(0)
-  })
-
-  // The desktop layout turns every #app list into two columns and forces every sheet list back
-  // into one column, both on an id selector — the grid has to win over each of them.
-  it('lays the cards out as a grid over the desktop two-column and the sheet column rules', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
-    const rule = css.match(/^([^{}\n]*\.list\.ex-grid[^{}\n]*)\{([^}]*)\}/m)
-    expect(rule?.[1]).toContain('#app .list.ex-grid')
-    expect(rule[1]).toContain('#modal-root .list.ex-grid')
-    expect(rule[2]).toContain('display:grid')
   })
 })
