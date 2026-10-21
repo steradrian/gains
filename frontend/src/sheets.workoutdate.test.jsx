@@ -7,6 +7,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { workoutDateSheet, workoutDetailSheet, workoutDurationSheet } from './sheets.jsx'
 import { backfillStart } from './lib/backfill.js'
 import { startTimeOf } from './lib/workout-date.js'
@@ -14,7 +15,7 @@ import { startTimeOf } from './lib/workout-date.js'
 const mounted = []
 function render(open) {
   open()
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

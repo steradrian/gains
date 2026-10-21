@@ -3,9 +3,7 @@
 // 12 Oct, Tue 13 Oct was a rest day with food and a weigh-in, Thu 15 Oct has nothing, Legs was
 // missed on Fri 16 Oct. In memory only. `fn` makes each tap (the test passes vi.fn).
 import { isoOf } from '../../../lib/format.js'
-import { pictureOf } from '../../../views/train/use-train.js'
 
-const pic = id => pictureOf({}, id)
 const plusDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoOf(d) }
 const TODAY = '2026-10-18'
 
@@ -46,9 +44,9 @@ export const PUSH = {
   id: 'w1', workout: { id: 'w1' }, name: 'Push A', line: '52 min · 18 sets · 7,900 kg · 2 new bests', start: '18:30',
   durationMs: 52 * 60000, sets: 18, volume: 7900, unit: 'kg', bests: 2, muscles: 'Chest, shoulders, triceps', load: {},
   levels: { chest: 4, deltoids: 3, triceps: 3 },
-  exercises: PUSH_EXERCISES.map(([id, name, sets, best = false]) => ({ id, name, image: pic(id), sets, best })),
+  exercises: PUSH_EXERCISES.map(([id, name, sets, best = false]) => ({ id, name, sets, best })),
 }
-const LEGS_STILLS = ['0043', '0085', '0739', '0585', '0586'].map(pic)
+const LEGS_STILLS = ['0043', '0085', '0739', '0585', '0586']
 
 const meal = (slot, name, items) => ({
   slot, name, kcal: items.reduce((n, [, kcal]) => n + kcal, 0),
@@ -90,7 +88,7 @@ export function dayFixture(over = {}, fn = () => () => {}) {
   }
 }
 
-const LEGS = { ids: ['legs'], name: 'Legs', routines: [{ id: 'legs', name: 'Legs', sub: '5 exercises', images: LEGS_STILLS }] }
+const LEGS = { ids: ['legs'], name: 'Legs', routines: [{ id: 'legs', name: 'Legs', sub: '5 exercises', stills: LEGS_STILLS }] }
 const WATER_6 = { ml: 1500, goalMl: 2500, glasses: 6, glassMl: 250, last: null }
 
 /** The boards' other days, each as `over` for dayFixture. */

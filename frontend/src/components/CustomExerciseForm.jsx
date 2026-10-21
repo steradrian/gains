@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { EXIDX, allExercises } from '../lib/exercises.js'
 import { ALL_EQUIPMENT } from '../lib/equipment.js'
 import { uid } from '../lib/format.js'
@@ -7,7 +7,6 @@ import { cleanUrl, mediaOf, normalizeMediaRef } from '../lib/media-refs.js'
 import { syncMedia } from '../lib/media-sync.js'
 import { MUSCLES, MUSCLE_NAME, hasExplicitMuscleMetadata, inMuscleOrder, normalizeMuscleGroups } from '../lib/muscles.js'
 import { LOG_CHOICES, logChoiceOf, withLogChoice } from '../lib/custom-exercise.js'
-import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { cx } from '../lib/ui-kit.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -90,8 +89,6 @@ function LogChoice({ value, onChange, tone, labelledBy }) {
  * runs after the save; `onDelete` (edit only) is the host's Delete.
  */
 export default function CustomExerciseForm({ existing, prefill, tone = 'light', onSaved, onDelete }) {
-  const nameRef = useRef(null)
-  const onNameFocus = useSheetKeyboard(nameRef, tone === 'light')
   const logId = useId()
   const [n, setN] = useState(existing ? existing.n : (prefill || ''))
   const [bp, setBp] = useState(existing ? existing.bp : '')
@@ -195,8 +192,8 @@ export default function CustomExerciseForm({ existing, prefill, tone = 'light', 
   return (
     <div className={cx('g-cxf', stage ? 'g-cxf-stage' : 'g-cxf-light')}>
       <div className={cx('g-cxf-name', stage && 'g-glass')}>
-        <TextField label={t('Exercise name')} value={n} tone={chipTone} onChange={setN} inputRef={nameRef}
-          inputProps={{ maxLength: 80, onFocus: onNameFocus, autoComplete: 'off' }} />
+        <TextField label={t('Exercise name')} value={n} tone={chipTone} onChange={setN}
+          inputProps={{ maxLength: 80, autoComplete: 'off' }} />
       </div>
 
       <h2 className="g-cxf-h">{t('Body part')}</h2>

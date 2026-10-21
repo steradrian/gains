@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Workout from './Workout.jsx'
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { topSurface } from '../lib/sheet-nav.js'
 import { editCompletedSession } from '../lib/session-edit.js'
 import { lastEntryFor } from '../lib/history.js'
 import { EXDB } from '../lib/exercises.js'
@@ -62,7 +63,7 @@ function renderEditor(saved) {
 function renderTopSheet() {
   if (sheetRoot) act(() => sheetRoot.unmount())
   if (sheetContainer) sheetContainer.remove()
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   expect(sheet).toBeTruthy()
   sheetContainer = document.createElement('div')
   document.body.appendChild(sheetContainer)
@@ -156,7 +157,7 @@ describe('don’t count the whole workout for progression', () => {
     tapHeaderItem()
     const add = [...container.querySelectorAll('button')].find(b => b.textContent.trim() === 'Add exercise')
     act(() => add.click())
-    const picker = useUI.getState().sheets.at(-1)
+    const picker = topSurface(useUI.getState().sheets)
     act(() => picker.render(picker.close).props.onPick(EXDB.find(e => e.id === SQUAT), true))
     expect(active().entries.map(e => [e.id, e.noProg])).toEqual([[BENCH, true], [SQUAT, true]])
   })
@@ -179,7 +180,7 @@ describe('don’t count the whole workout for progression', () => {
     expect(isOn(headerItem())).toBe(false)
     const add = [...container.querySelectorAll('button')].find(b => b.textContent.trim() === 'Add exercise')
     act(() => add.click())
-    const picker = useUI.getState().sheets.at(-1)
+    const picker = topSurface(useUI.getState().sheets)
     act(() => picker.render(picker.close).props.onPick(EXDB.find(e => e.id === SQUAT), true))
     expect(active().entries.find(e => e.id === SQUAT).noProg).toBeUndefined()
   })

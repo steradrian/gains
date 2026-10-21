@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { setNav } from './lib/nav.js'
 import { routineMenuSheet } from './sheets.jsx'
 
@@ -34,7 +35,7 @@ function install(extra = {}) {
   useStore.setState({ S: st, user: null })
 }
 function mountTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -69,7 +70,7 @@ afterEach(() => {
 describe('T5.8 the routine menu', () => {
   it('is a DS drawer titled with the routine, with every row the board draws plus Routine settings', () => {
     const host = openMenu()
-    expect(useUI.getState().sheets.at(-1).variant).toBe('ds')
+    expect(topSurface(useUI.getState().sheets).variant).toBe('ds')
     expect(title(host)).toBe('Push A')
     expect(items(host)).toEqual([
       ['Start Push A', null],

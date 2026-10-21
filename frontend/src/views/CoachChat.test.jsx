@@ -35,7 +35,7 @@ vi.mock('../store/useStore.js', () => {
 vi.mock('../store/useUI.js', () => {
   const useUI = selector => selector ? selector(mocks.uiSnapshot()) : mocks.uiSnapshot()
   useUI.getState = mocks.uiSnapshot
-  return { useUI, TOAST_ACTION_MS: 8000 }
+  return { useUI, TOAST_ACTION_MS: 8000, drawerFlow: open => open() }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
 vi.mock('../lib/coach-api.js', () => ({

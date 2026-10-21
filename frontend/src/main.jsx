@@ -5,6 +5,7 @@ import { MOBILE } from './lib/mobile.js'
 import { useStore } from './store/useStore.js'
 import { startMediaSync } from './lib/media-sync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
+import { startSheetKeyboard } from './lib/sheet-keyboard.js'
 import { startSwMessages } from './lib/sw-update.js'
 import './index.css'
 import './ui-kit.css'
@@ -35,6 +36,10 @@ startMediaSync(useStore)
 // Android 15 does not resize the page for the soft keyboard; the app says how much it covers and
 // this keeps the focused field above it. Idle everywhere else.
 startNativeKeyboard()
+
+// Every sheet and drawer stands on the soft keyboard (--kb) and stops short of the top (--vvh):
+// positioned by these two numbers, never resized by them (lib/sheet-keyboard.js).
+startSheetKeyboard()
 
 // Not in the mobile build: the native shell already serves everything from disk.
 if (!MOBILE && 'serviceWorker' in navigator && location.protocol === 'https:') {

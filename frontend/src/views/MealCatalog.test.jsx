@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { topSurface } from '../lib/sheet-nav.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { useHubSync } from '../lib/nutrition/sync.js'
@@ -46,7 +47,7 @@ const mealPosts = () => nt.writes().filter(r => r.path === '/nt/api/meals')
 
 // Renders the sheet on top of the stack the way Modals does.
 function topSheet() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -500,7 +501,7 @@ describe('changing one', () => {
     await openPage(false)
     tap(rowOf('Oats and bread'))
     tap(buttonSaying(topSheet(), 'Edit'))
-    expect(useUI.getState().sheets.at(-1).locked).toBe(true)
+    expect(topSurface(useUI.getState().sheets).locked).toBe(true)
     const untouched = topSheet()
     tap(untouched.querySelector('button[aria-label="Cancel"]'))
     expect(useUI.getState().sheets).toHaveLength(1)

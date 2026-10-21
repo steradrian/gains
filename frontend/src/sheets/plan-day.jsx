@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { onSheetEntry } from '../lib/nav.js'
 import { isDate } from '../lib/day-route.js'
@@ -14,7 +14,6 @@ import { restDay, restPlan } from '../lib/missed-day.js'
 import { markUndone, undoMarks } from '../lib/sync-merge.js'
 import { usualDuration } from '../lib/train-stats.js'
 import { nameOf } from '../lib/training-day.js'
-import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { canNoteDay, dayNoteOf, withDayNote, DAY_NOTE_ICON, DAY_NOTE_LABEL, DAY_NOTE_TAGS } from '../lib/day-notes.js'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import Button from '../ds/Button.jsx'
@@ -129,7 +128,8 @@ function PlanDayDrawer({ iso, close }) {
   const [many, setMany] = useState(startMany)
   const titleId = useId()
 
-  const openNote = () => { close(); dayNoteSheet(iso) }
+  // The note slides in over this drawer; the picks made here stay where they are for when it goes.
+  const openNote = () => dayNoteSheet(iso)
   const noteItem = canNote && {
     key: 'note', icon: note?.tag ? DAY_NOTE_ICON[note.tag] : 'note',
     label: note ? (note.tag ? t(DAY_NOTE_LABEL[note.tag]) : t('Day note')) : t('Add a note for this day'),
@@ -149,7 +149,7 @@ function PlanDayDrawer({ iso, close }) {
   )
 
   if (past) {
-    const logIt = () => { close(); logPastWorkoutSheet({ iso, routineIds: effIds }) }
+    const logIt = () => drawerFlow(() => logPastWorkoutSheet({ iso, routineIds: effIds }))
     const items = [
       hasOvr && { key: 'weekly', icon: 'reset', label: t('Back to weekly plan'), detail: weekly, onClick: backToWeekly },
       noteItem,
@@ -259,8 +259,6 @@ export function usePlanDayParam() {
  * does Remove note.
  */
 function DayNoteDrawer({ iso, close }) {
-  const noteRef = useRef(null)
-  const onNoteFocus = useSheetKeyboard(noteRef)
   const st = useStore(s => s.S)
   const had = dayNoteOf(st, iso)
   const [tag, setTag] = useState(had?.tag || null)
@@ -286,7 +284,7 @@ function DayNoteDrawer({ iso, close }) {
           options={DAY_NOTE_TAGS.map(k => ({ value: k, label: t(DAY_NOTE_LABEL[k]) }))} />
       </div>
       <TextField label={t('Day note')} value={had?.text || ''} placeholder={t('Anything else? (optional)')} multiline rows={3}
-        inputRef={noteRef} inputProps={{ maxLength: NOTE_MAX, onFocus: onNoteFocus }} onChange={setText} />
+        inputProps={{ maxLength: NOTE_MAX }} onChange={setText} />
     </BottomSheet>
   )
 }

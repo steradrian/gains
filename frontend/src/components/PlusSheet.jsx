@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { todayISO } from '../lib/format.js'
 import { workoutRunning } from '../lib/tab-route.js'
@@ -31,9 +31,9 @@ const under = (pathname, base) => pathname === base || pathname.startsWith(base 
 // The items for what is on screen (at most two), as MenuList items taking the sheet's close.
 function hereItems(pathname) {
   if (pathname === '/train/routines') return [{ icon: 'clipboard', label: t('New routine'), act: close => addRoutine(to => closeThenNav(close, to)) }]
-  if (under(pathname, '/train/exercises')) return [{ icon: 'dumbbell', label: t('New exercise'), act: close => { close(); customExSheet(null, ex => exerciseDetailSheet(ex)) } }]
+  if (under(pathname, '/train/exercises')) return [{ icon: 'dumbbell', label: t('New exercise'), act: () => drawerFlow(() => customExSheet(null, ex => exerciseDetailSheet(ex))) }]
   if (under(pathname, '/progress/body')) return [
-    { icon: 'ruler', label: t('Log measurements'), act: close => { close(); measurementLogSheet() } },
+    { icon: 'ruler', label: t('Log measurements'), act: () => drawerFlow(() => measurementLogSheet()) },
     // Photos is a segment of the page the sheet is over: it takes that page's place, so back goes to Progress.
     { icon: 'camera', label: t('Add photo'), act: close => closeThenReplace(close, '/progress/body/photos') },
   ]
@@ -75,24 +75,24 @@ function PlusSheet({ close, pathname, day }) {
 
   const tiles = [
     ...(food ? [
-      { icon: 'utensils', label: t('Log food'), onClick: () => { close(); pickFood() } },
-      { icon: 'scanBarcode', label: t('Scan'), onClick: () => { close(); scanSheet({ ...where, onSearch: pickFood }) } },
+      { icon: 'utensils', label: t('Log food'), onClick: () => drawerFlow(pickFood) },
+      { icon: 'scanBarcode', label: t('Scan'), onClick: () => drawerFlow(() => scanSheet({ ...where, onSearch: pickFood })) },
       { icon: 'droplet', label: t('Water'), ariaLabel: waterAria(glasses[0], units), disabled: watering, onClick: () => water(glasses[0].ml) },
     ] : []),
-    { icon: 'scale', label: day ? t('Log weight') : t('Weigh-in'), onClick: () => { close(); bwSheet({ date: target.date }) } },
+    { icon: 'scale', label: day ? t('Log weight') : t('Weigh-in'), onClick: () => drawerFlow(() => bwSheet({ date: target.date })) },
     ...(day ? [
-      { icon: 'history', label: t('Add past workout'), onClick: () => { close(); pastWorkoutSheet(target.date) } },
+      { icon: 'history', label: t('Add past workout'), onClick: () => drawerFlow(() => pastWorkoutSheet(target.date)) },
     ] : [
       {
         icon: 'play', label: S.active ? t('Resume workout') : t('Start workout'), onClick: () => { close(); startOrResume() },
         detail: live ? <Elapsed start={S.active.start} /> : null,
       },
-      { icon: 'history', label: t('Log activity'), onClick: () => { close(); logPastWorkoutSheet(past ? { iso: target.date } : undefined) } },
+      { icon: 'history', label: t('Log activity'), onClick: () => drawerFlow(() => logPastWorkoutSheet(past ? { iso: target.date } : undefined)) },
     ]),
   ]
   const items = [
     ...hereItems(pathname).map(x => ({ icon: x.icon, label: x.label, onClick: () => x.act(close) })),
-    food && settingOf(settings, 'showQuickCalories') && { icon: 'bolt', label: t('Quick kcal'), onClick: () => { close(); quickKcalSheet(where) } },
+    food && settingOf(settings, 'showQuickCalories') && { icon: 'bolt', label: t('Quick kcal'), onClick: () => drawerFlow(() => quickKcalSheet(where)) },
     // The first container is the Water tile; the others are a tap each here.
     ...glasses.slice(1).map(b => ({ key: 'water-' + b.id, icon: 'droplet', label: t('Water'), value: units.water(b.ml), ariaLabel: waterAria(b, units), disabled: watering, onClick: () => water(b.ml) })),
     !day && fast,

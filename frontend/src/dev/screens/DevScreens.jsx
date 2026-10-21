@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import Modals from '../../components/Modals.jsx'
 import Toast from '../../components/Toast.jsx'
 import { setNav } from '../../lib/nav.js'
+import { applySheetKeyboard } from '../../lib/sheet-keyboard.js'
 import { useUI } from '../../store/useUI.js'
 import AddDevice, { ADD_DEVICE_PATH } from '../../views/AddDevice.jsx'
 import { installMocks } from './mock-env.js'
@@ -66,6 +67,7 @@ export function Stage({ entry, onPlayed }) {
     // Drawers and the toast live in the app's store, not in the frame: one left up by the state
     // before would still be there.
     const clear = () => {
+      applySheetKeyboard(window)   // a state's simulated keyboard (states/sheet-panels.jsx) goes with it
       useUI.getState().closeAll()
       useUI.getState().resumeToast()
       useUI.setState({ toastMsg: '', toastAction: null })

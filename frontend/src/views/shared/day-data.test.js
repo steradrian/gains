@@ -63,7 +63,9 @@ describe('the state of a past day', () => {
     expect(d.state).toBe('missed')
     expect(d.planned).toMatchObject({ ids: ['legs'], name: 'Legs' })
     expect(d.planned.routines).toEqual([expect.objectContaining({ id: 'legs', name: 'Legs', sub: '5 exercises' })])
-    expect(d.planned.routines[0].images).toHaveLength(5)
+    // ids, not urls: the card draws each still itself, so a custom exercise shows its own
+    expect(d.planned.routines[0].stills).toHaveLength(5)
+    expect(d.planned.routines[0].stills.every(id => typeof id === 'string')).toBe(true)
     expect(d.summary).toBe('Legs missed · 1600 kcal · 2 days ago')
   })
 

@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { EXDB } from './lib/exercises.js'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { exConfigSheet } from './sheets.jsx'
 
 // A weighted machine exercise: double progression adds the two rep steppers and the
@@ -14,7 +15,7 @@ const mounted = []
 
 function renderConfig(cfg) {
   exConfigSheet(ex, { sets: 3, reps: 10, weight: 40, mode: 'reps', ...cfg }, vi.fn())
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
