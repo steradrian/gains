@@ -139,3 +139,52 @@ describe('a sub-panel sizes to its own content', () => {
     expect(panesHeight()).toBe(60 + 120 + 40)
   })
 })
+
+// Breakfast card -> meal panel (a sub-panel) -> "Add now": close(); open(Log food) in one handler.
+describe('close then open from a sub-panel', () => {
+  const Meal = ({ close }) => <BottomSheet title="Breakfast"><button id="add-now" onClick={() => { close(); ui().openSheet(c => <Food close={c} />, { variant: 'ds' }) }}>Add now</button></BottomSheet>
+  const Today = () => <BottomSheet title="Today"><button id="to-meal" onClick={() => ui().openSheet(c => <Meal close={c} />, { variant: 'ds' })}>Breakfast</button></BottomSheet>
+  const toMeal = async () => {
+    await act(async () => { ui().openSheet(() => <Today />, { variant: 'ds' }) })
+    await click(q('#to-meal'))
+    expect(ui().sheets[0].panels).toHaveLength(1)
+  }
+
+  it('opens a fresh root: no chevron, one drawer, no panels', async () => {
+    await toMeal()
+    await click(q('#add-now'))
+    await settle()
+    expect(ui().sheets).toHaveLength(1)
+    expect(ui().sheets[0].panels).toHaveLength(0)
+    expect(all('.g-bs-back')).toHaveLength(0)
+    expect(all('.g-bs-head h2').filter(h => h.textContent === 'Log food')).toHaveLength(1)
+  })
+
+  it('back closes the sheet and leaves no history entry behind', async () => {
+    await toMeal()
+    await click(q('#add-now'))
+    await settle()
+    expect(sheetEntryCount(ui().sheets)).toBe(1)
+    expect(sheetEntriesLive()).toBe(1)
+    // history.go is mocked: the first popstate is the browser finishing the walk-off of the old panel's entry
+    await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')) })
+    expect(ui().sheets).toHaveLength(1)
+    await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')) })
+    expect(ui().sheets).toHaveLength(0)
+    await settle()
+    expect(sheetEntriesLive()).toBe(0)
+  })
+
+  it('a plain close from a sub-panel still pops that one panel', async () => {
+    await toMeal()
+    let panel
+    panel = ui().sheets[0].panels[0]
+    await act(async () => { ui().closeSheet(panel.id) })
+    await settle()
+    expect(ui().sheets).toHaveLength(1)
+    expect(ui().sheets[0].panels).toHaveLength(0)
+    // and a sheet opened later, not in that tick, is a step of the drawer again
+    await act(async () => { ui().openSheet(c => <Food close={c} />, { variant: 'ds' }) })
+    expect(ui().sheets[0].panels).toHaveLength(1)
+  })
+})
