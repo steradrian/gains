@@ -140,6 +140,16 @@
   --g-toast-fill: rgba(255,255,255,0.14);
   --g-toast-drain: rgba(255,255,255,0.5);
   --g-toast-shadow: 0 14px 34px -12px rgba(0,0,0,0.5);
+  /* NotificationRow, and the Train charts on the stage (LineChart, BarChart, Heatmap, MonthGrid) */
+  --g-nrow-new: rgba(255,255,255,0.12);
+  --g-nrow-dot-halo: rgba(255,255,255,0.18);
+  --g-chart-dot-halo-stage: rgba(255,255,255,0.3);
+  --g-chart-target-stage: rgba(255,255,255,0.6);
+  --g-heat-stage-10: rgba(255,255,255,0.1);
+  --g-heat-stage-28: rgba(255,255,255,0.28);
+  --g-heat-stage-48: rgba(255,255,255,0.48);
+  --g-heat-stage-72: rgba(255,255,255,0.72);
+  --g-mg-on-stage: rgba(255,255,255,0.16);
 }
 :root[data-theme="dark"] .g-root {
   --canvas: #0B0B0A;

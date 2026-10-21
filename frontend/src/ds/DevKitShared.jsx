@@ -11,8 +11,9 @@ import StageSection from './StageSection.jsx'
 // Day, Week) are built from, on the stage with sample data.
 const SELF = '#/dev/kit'
 const NOOP = () => {}
-// A white tile standing in for an exercise still.
-const STILL = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44"><rect width="44" height="44" fill="#fff"/><path d="M8 22h28M13 15v14M31 15v14" stroke="#555" stroke-width="3" stroke-linecap="round"/></svg>')
+// A plain tile standing in for an exercise still, drawn in opacities of the default black, as
+// DevKitTrain's is, so it holds no colour literal (ui-guards G2).
+const STILL = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44"><rect width="44" height="44" fill-opacity=".08"/><path d="M8 22h28M13 15v14M31 15v14" stroke="currentColor" stroke-opacity=".67" stroke-width="3" stroke-linecap="round"/></svg>')
 
 export default function DevKitShared() {
   return (
