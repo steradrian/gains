@@ -1,6 +1,7 @@
 import { fmtDate, todayISO } from '../format.js'
-import { t } from '../i18n.js'
+import { dateLocale, t } from '../i18n.js'
 import { useUI } from '../../store/useUI.js'
+import { waterOf } from './diary.js'
 
 /** The day a log goes to, as a drawer's chip and a toast name it: Today, else its date. */
 export const dayName = date => (date === todayISO() ? t('Today') : fmtDate(date, true))
@@ -10,6 +11,12 @@ export const dayName = date => (date === todayISO() ? t('Today') : fmtDate(date,
 export const addedText = (date, mealName, what) => (what
   ? t('Added {0} to {1}, {2}', what, dayName(date), mealName)
   : t('Added to {0}, {1}', dayName(date), mealName))
+
+/** The toast after water (board T1.6), in the person's water unit: "Added 250 ml of water to Today". */
+export function waterAddedText(date, ml, settings) {
+  const w = waterOf(ml, settings)
+  return t('Added {0} of water to {1}', w.value.toLocaleString(dateLocale()) + ' ' + w.unit, dayName(date))
+}
 
 // What a failed write tells the person. The input it came from stays where it was.
 export function writeErrorText(e) {

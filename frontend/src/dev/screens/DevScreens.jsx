@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import Modals from '../../components/Modals.jsx'
+import Toast from '../../components/Toast.jsx'
 import { setNav } from '../../lib/nav.js'
 import { useUI } from '../../store/useUI.js'
 import AddDevice, { ADD_DEVICE_PATH } from '../../views/AddDevice.jsx'
@@ -62,12 +63,17 @@ export function Stage({ entry, onPlayed }) {
   const [ready, setReady] = useState(false)
   const frame = useRef(null)
   useLayoutEffect(() => {
-    // Drawers live in the app's store, not in the frame: one left open by the state before would
-    // still be there.
-    useUI.getState().closeAll()
+    // Drawers and the toast live in the app's store, not in the frame: one left up by the state
+    // before would still be there.
+    const clear = () => {
+      useUI.getState().closeAll()
+      useUI.getState().resumeToast()
+      useUI.setState({ toastMsg: '', toastAction: null })
+    }
+    clear()
     const undo = installMocks(entry.mock)
     setReady(true)
-    return () => { setReady(false); useUI.getState().closeAll(); undo() }
+    return () => { setReady(false); clear(); undo() }
   }, [entry])
   useEffect(() => {
     if (!ready) return
@@ -92,6 +98,7 @@ export function Stage({ entry, onPlayed }) {
             <Route path="*" element={entry.render()} />
           </Routes>
           <Modals />
+          <Toast />
         </MemoryRouter>
       )}
     </div>
