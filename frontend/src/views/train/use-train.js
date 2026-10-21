@@ -22,7 +22,7 @@ import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
 import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
-import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
+import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, readyOrStart, starterPlanSheet, startChooserSheet } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
 import { andList, REGION_NAME } from './region-names.js'
 import { workoutsSheet } from './workouts-sheet.js'
@@ -456,7 +456,7 @@ export function useTrain() {
 
   const rail = useMemo(() => railOf(S, today), [S, today])
   const toWorkout = () => nav('/train/workout')
-  const start = ids => (S.active ? toWorkout() : startFlow(ids))
+  const start = ids => (S.active ? toWorkout() : readyOrStart(ids))
 
   const onIntent = it => {
     switch (it.intent) {
