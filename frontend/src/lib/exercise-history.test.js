@@ -106,7 +106,7 @@ describe('exerciseHistory', () => {
     expect(h.prId).toBe('w1')
   })
 
-  it('plots the longest hold for timed work and the minutes for cardio', () => {
+  it('plots the longest hold for timed work and the top speed for cardio', () => {
     const hold = i => ({ id: 'h' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'plank', target: { mode: 'time' }, sets: [{ sec: 40 + i * 10, done: true }, { sec: 30, done: true }] }] })
     const run = i => ({ id: 'r' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'run', target: { mode: 'cardio' }, sets: [{ min: 20, speed: 10, done: true }, { min: 5, speed: 12, done: true }] }] })
     const S = { workouts: [hold(0), hold(1), run(0)] }
@@ -116,8 +116,31 @@ describe('exerciseHistory', () => {
     expect(plank.sessions[0].volume).toBeNull()
     expect(plank.e1rmPoints).toEqual([])
     const cardio = exerciseHistory(S, 'run')
-    expect(cardio).toMatchObject({ mode: 'cardio', metric: 'min', best: 25 })
-    expect(cardio.points[0].y).toBe(25)
+    expect(cardio).toMatchObject({ mode: 'cardio', metric: 'speed', best: 12 })
+    expect(cardio.points[0].y).toBe(12)
+  })
+
+  // The Progress hero ranks cardio by top speed, so a long slow run is not a New best under it.
+  it('marks a faster cardio session as the record, not a longer one', () => {
+    const run = (i, min, speed) => ({ id: 'r' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'run', target: { mode: 'cardio' }, sets: [{ min, speed, done: true }] }] })
+    const h = exerciseHistory({ workouts: [run(0, 20, 10), run(1, 60, 8), run(2, 15, 11)] }, 'run', { limit: Infinity })
+    expect(h.sessions.map(s => [s.id, s.pr])).toEqual([['r2', true], ['r1', false], ['r0', false]])
+    expect(h.prId).toBe('r2')
+  })
+
+  // On an assistance machine less help is the better set, as the Progress hero reads it.
+  it('marks the session that needed least help on an assistance machine', () => {
+    const help = (i, w) => ({ id: 'a' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: '0017', target: { mode: 'reps' }, sets: [work(w, 8)] }] })
+    const h = exerciseHistory({ workouts: [help(0, 30), help(1, 40), help(2, 20)] }, '0017', { limit: Infinity })
+    expect(h.sessions.map(s => [s.id, s.pr])).toEqual([['a2', true], ['a1', false], ['a0', false]])
+    expect(h.prId).toBe('a2')
+    expect(h.best).toBe(20)
+  })
+
+  it('estimates each session\'s 1RM with the profile\'s formula', () => {
+    const S = { oneRmFormula: 'brzycki', workouts: [session(0, [work(100, 8)])] }
+    expect(exerciseHistory(S, 'bench').sessions[0].e1rm).toBe(estimate1RM(100, 8, 'brzycki'))
+    expect(exerciseHistory({ workouts: S.workouts }, 'bench').sessions[0].e1rm).toBe(estimate1RM(100, 8, 'epley'))
   })
 
   it('gives a session logged in another mode no point, but keeps it in the list', () => {
@@ -168,7 +191,7 @@ describe('exerciseHistory', () => {
       { id: 'run', target: { mode: 'cardio' }, sets: [{ min: 5, speed: 10, done: true }] },
     ] }
     expect(exerciseHistory({ workouts: [hold] }, 'plank').sessions[0]).toMatchObject({ value: 45, volume: null })
-    expect(exerciseHistory({ workouts: [run] }, 'run').sessions[0]).toMatchObject({ value: 25, volume: null })
+    expect(exerciseHistory({ workouts: [run] }, 'run').sessions[0]).toMatchObject({ value: 10, volume: null })
   })
 
   // The history sheet and Stats speak for the exercise, so a combined day that trains it in two
@@ -262,6 +285,11 @@ describe('bestSetIndex', () => {
     expect(bestSetIndex({ value: 80, sets: [work(75, 8), work(80, 6), work(80, 6)] }, 'weight')).toBe(1)
     expect(bestSetIndex({ value: 12, sets: [work(0, 8), work(0, 12)] }, 'reps')).toBe(1)
     expect(bestSetIndex({ value: 90, sets: [{ sec: 60 }, { sec: 90 }] }, 'sec')).toBe(1)
+    expect(bestSetIndex({ value: 12, sets: [{ min: 30, speed: 10 }, { min: 10, speed: 12 }] }, 'speed')).toBe(1)
+  })
+
+  it('is -1 for a legacy record with no sets, so the caller marks its top-set line instead', () => {
+    expect(bestSetIndex({ value: 70, sets: [] }, 'weight')).toBe(-1)
   })
 
   it('falls back to the first set when no set matches, for minutes and for a session with no value', () => {

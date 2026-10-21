@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { bestSetIndex } from '../lib/exercise-history.js'
 import { fmtDate, fmtNum, fmtVol } from '../lib/format.js'
@@ -26,12 +26,13 @@ export default function PastSetsList({ exId, history, tone = 'stage', onOpen }) 
 
   if (!history.total) return <p className={cx('g-ps-empty', light && 'g-ps-light')}>{t('No sessions logged yet')}</p>
 
+  // The line under the sets. A legacy record kept its load only, with no sets to list: its top set
+  // leads the line and carries the session's "New best" mark, as a set would.
   const tail = s => [
-    // a legacy record kept its load only, with no sets to list
-    !s.sets.length && s.value > 0 && t('Top set') + ' ' + fmtNum(s.value) + ' ' + S.unit,
-    s.volume > 0 &&t('Volume') + ' ' + fmtVol(s.volume, S.unit),
-    s.e1rm != null && t('Est. 1RM') + ' ' + fmtNum(s.e1rm) + ' ' + S.unit,
-  ].filter(Boolean).join(' · ')
+    !s.sets.length && s.value > 0 && { text: t('Top set {0}', fmtNum(s.value) + ' ' + S.unit), pr: s.pr },
+    s.volume > 0 && { text: t('Volume {0}', fmtVol(s.volume, S.unit)) },
+    s.e1rm != null && { text: t('Est. 1RM {0}', fmtNum(s.e1rm) + ' ' + S.unit) },
+  ].filter(Boolean)
 
   const card = s => {
     const best = s.pr ? bestSetIndex(s, history.metric) : -1
@@ -49,7 +50,14 @@ export default function PastSetsList({ exId, history, tone = 'stage', onOpen }) 
           {i === best && <span className="g-ps-pr">{t('New best')}</span>}
         </li>)}
       </ol>
-      {foot && <span className="g-ps-tail">{foot}</span>}
+      {foot.length > 0 && (
+        <span className="g-ps-tail">
+          {foot.map((part, i) => <Fragment key={i}>
+            {i > 0 && ' · '}{part.text}
+            {part.pr && <> <span className="g-ps-pr">{t('New best')}</span></>}
+          </Fragment>)}
+        </span>
+      )}
     </>
   }
 

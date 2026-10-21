@@ -81,6 +81,16 @@ describe('PastSetsList', () => {
     expect(cards()[0].querySelector('.g-ps-tail').textContent).toBe('Top set 70 kg')
   })
 
+  // Two sessions logged before sets were kept: the 70 beat the 60 and has no set to carry the mark.
+  it('puts a legacy record\'s New best on its top-set line', () => {
+    const legacy = (i, topW) => ({ ...at(i, 'bench', { mode: 'reps' }, []), entries: [{ id: 'bench', target: { mode: 'reps' }, sets: [], topW }] })
+    mount([legacy(0, 60), legacy(2, 70)], 'bench')
+    const tail = cards()[0].querySelector('.g-ps-tail')
+    expect(tail.textContent).toBe('Top set 70 kg New best')
+    expect(tail.querySelector('.g-ps-pr').textContent).toBe('New best')
+    expect(cards()[1].querySelector('.g-ps-pr')).toBeNull()
+  })
+
   it('shows twenty sessions, then twenty more on Show more', () => {
     mount(Array.from({ length: 25 }, (_, i) => at(i, 'bench', { mode: 'reps' }, [work(50 + i, 5)])), 'bench')
     expect(cards()).toHaveLength(20)

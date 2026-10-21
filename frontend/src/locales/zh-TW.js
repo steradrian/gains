@@ -3490,4 +3490,14 @@ export default {
   'See in Training load': 'See in Training load',
   'Tap a day below to plan it, or add routines first.': 'Tap a day below to plan it, or add routines first.',
   'Your week': 'Your week',
+  // --- Train fix group 3: exercise progress and records ---
+  'Top set {0}': '最佳組 {0}',
+  'Volume {0}': '總訓練量 {0}',
+  'Est. 1RM {0}': '預估 1RM {0}',
+  'Set {0}: {1}': '第 {0} 組：{1}',
+  'Fewer than two estimated 1RMs. Pick Top to see every workout.': 'Fewer than two estimated 1RMs. Pick Top to see every workout.',
+  '{0} more help in {1}': '{0} more help in {1}',
+  '{0} less help in {1}': '{0} less help in {1}',
+  '{0} more help since {1}': '{0} more help since {1}',
+  '{0} less help since {1}': '{0} less help since {1}',
 }
