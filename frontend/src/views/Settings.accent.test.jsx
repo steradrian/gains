@@ -69,24 +69,24 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="appearance" />))
-const swatches = () => [...host.querySelectorAll('.swatch')]
-const selected = () => swatches().filter(s => s.classList.contains('on')).map(s => s.getAttribute('aria-label'))
+const swatches = () => [...host.querySelectorAll('.g-apick [role="radio"]')]
+const selected = () => swatches().filter(s => s.getAttribute('aria-checked') === 'true').map(s => s.textContent)
 
-describe('Settings: accent swatches', () => {
-  it('shows the 28 themes, each named for a screen reader, and no own-colour swatch', () => {
+describe('Settings: accent picker', () => {
+  it('shows the 28 themes by name, and no own-colour picker', () => {
     mount()
-    expect(swatches().map(s => s.getAttribute('aria-label'))).toEqual(THEMES.map(p => p.name))
+    expect(swatches().map(s => s.textContent)).toEqual(THEMES.map(p => p.name))
     expect(host.querySelector('input[type="color"]')).toBe(null)
   })
 
   it('picking one stores its id and tells the native countdown', () => {
     mount()
-    act(() => host.querySelector('.swatch[aria-label="Moss"]').click())
+    act(() => swatches().find(s => s.textContent === 'Moss').click())
     expect(mocks.S.accent).toBe('moss')
     expect(setRestAccent).toHaveBeenCalledWith('moss')
     mount()
     expect(selected()).toEqual(['Moss'])
-    expect(host.querySelector('.lrow-v').textContent).toBe('Moss')
+    expect(host.querySelector('.g-sptitle p').textContent).toMatch(/^Moss · /)
   })
 
   it('an accent never picked shows the mode default and writes nothing', () => {

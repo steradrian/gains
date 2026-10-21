@@ -1492,7 +1492,6 @@ export const PT_BR_OVERRIDES = {
   'Delete training data': 'Delete training data',
   'Training data reset': 'Training data reset',
   'Your nutrition diary, foods and goals stay.': 'Your nutrition diary, foods and goals stay.',
-  'On in your device settings, so it is on here too.': 'On in your device settings, so it is on here too.',
   'Training synced, but nutrition did not: the sync service did not answer.': 'Training synced, but nutrition did not: the sync service did not answer.',
   'Foods & scanning': 'Foods & scanning',
   'Food sources': 'Food sources',

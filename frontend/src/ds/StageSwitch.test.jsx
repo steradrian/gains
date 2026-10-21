@@ -59,6 +59,15 @@ describe('StageSwitch', () => {
     expect(sw().getAttribute('aria-checked')).toBe('false')
   })
 
+  it('disabled keeps its state and does not tell the caller', () => {
+    const onChange = vi.fn()
+    view.render(<StageSwitch label="x" checked disabled onChange={onChange} />)
+    expect(sw().disabled).toBe(true)
+    expect(sw().getAttribute('aria-checked')).toBe('true')
+    click(sw())
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('hides its knob from a screen reader', () => {
     view.render(<StageSwitch label="x" />)
     expect(sw().querySelector('i').getAttribute('aria-hidden')).toBe('true')

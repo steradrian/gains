@@ -13,12 +13,13 @@ export function useFlashRow(body, find, via) {
   useEffect(() => {
     if (!find || !body.current) return
     const el = body.current
+    // The old rows, and the stage's: a glass or danger row (title in its `b`), the layout tiles
+    // (by aria-label) or a section heading.
     const named = label => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
-      || [...el.querySelectorAll('.g-glist-row, .g-drow')].find(r => r.querySelector('b')?.textContent === label)
+      || [...el.querySelectorAll('.g-glist-row, .g-drow, .g-danger-row')].find(r => r.querySelector('b')?.textContent === label)
       || [...el.querySelectorAll('.set-tiles')].find(g => g.getAttribute('aria-label') === label)
+      || [...el.querySelectorAll('.g-ssec')].find(r => r.querySelector('h2')?.textContent === label)
       || [...el.querySelectorAll('.btn')].find(b => b.textContent.trim() === label)
-      // Settings shell m2: the stage's rows (GlassList, GlassValueRow, DangerRow) name themselves in a <b>.
-      || [...el.querySelectorAll('.g-glist-row, .g-danger-row')].find(r => r.querySelector('b')?.textContent === label)
     let tm = null
     const flash = row => {
       row.classList.add('sp-flash')

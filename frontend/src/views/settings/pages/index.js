@@ -5,6 +5,7 @@ import { lazy } from 'react'
 // nothing else in Settings changes. `equipment` is Gym setup, which SettingsRoute renders itself.
 const LOADERS = {
   appearance: () => import('./AppearancePage.jsx'),
+  background: () => import('./BackgroundPage.jsx'),
   units: () => import('./UnitsPage.jsx'),
   reminders: () => import('./RemindersPage.jsx'),
   features: () => import('./FeaturesPage.jsx'),
