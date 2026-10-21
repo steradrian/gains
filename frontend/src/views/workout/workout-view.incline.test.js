@@ -85,5 +85,15 @@ describe('the incline field', () => {
     } finally { hook.unmount() }
   })
 
-  it.todo('the incline field is empty until a grade is logged, not a 0 [old Workout.incline.test.jsx:56; setFields hands the stepper value 0 for a missing grade]')
+  it('is empty until a grade is logged, and stays empty rather than becoming a 0', () => {
+    seed(TREADMILL, [{ min: 20, speed: 5, done: false }])
+    expect(inclineField().empty).toBe(true)
+    expect('incline' in stored()).toBe(false)
+    changeSetField(0, 0, inclineField(), 3)
+    expect(inclineField().empty).toBe(false)
+    expect(inclineField().value).toBe(3)
+    // A flat grade somebody chose is a value, not an empty field.
+    seed(TREADMILL, [{ min: 20, speed: 5, incline: 0, done: false }])
+    expect(inclineField().empty).toBe(false)
+  })
 })

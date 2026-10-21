@@ -7,7 +7,7 @@
 // the rendered hero; these cases keep the old numbers and the unit rules.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
-import { setFields, sessionLine } from './workout-view.js'
+import { buildWorkoutView, extendWorkoutView, setFields, sessionLine } from './workout-view.js'
 import { changeSetField } from './set-field-change.js'
 
 vi.mock('../../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
@@ -74,5 +74,14 @@ describe('the reference line in mph', () => {
     expect(sessionLine(BIKE, 'cardio', e.sets, e.target, 'kmh')).toContain('20 min @ 16.1 km/h')
   })
 
-  it.todo('the best set of a cardio exercise is also said in mph [old Workout.speed.test.jsx:97, logRef "best"; history.best for cardio is not asserted]')
+  it('says the best set of a cardio exercise, and the last sessions, in mph for a profile in pounds', () => {
+    seed({ unit: 'lb', workouts: [past] })
+    const S = useStore.getState().S
+    const view = extendWorkoutView(buildWorkoutView({ S, A: S.active }), { S, A: S.active })
+    expect(view.history.best).toBe('Best: 20 min @ 10 mph')
+    expect(view.history.rows[0].text).toContain('20 min @ 10 mph')
+    seed({ unit: 'kg', workouts: [past] })
+    const K = useStore.getState().S
+    expect(extendWorkoutView(buildWorkoutView({ S: K, A: K.active }), { S: K, A: K.active }).history.best).toBe('Best: 20 min @ 16.1 km/h')
+  })
 })

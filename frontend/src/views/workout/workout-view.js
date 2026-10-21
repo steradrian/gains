@@ -14,7 +14,7 @@ import { partOf, partsOf } from '../../lib/workout-parts.js'
 // Workout core-M3
 import { isBw, isPerSide, repStep, effortOf, EFFORT, setsRepsOf } from '../../lib/history.js'
 import { weightIncrement } from '../../lib/progression.js'
-import { isPyramid, pyramidLabel } from '../../lib/pyramid.js'
+import { isPyramid, pyramidLabel, maxRecordAt } from '../../lib/pyramid.js'
 import { ownedWeightsFor, bellsIn, dbLoadOf } from '../../lib/dumbbells.js'
 import { progressionGuidance } from '../../lib/progression-copy.js'
 import { sessionNoProg } from '../../lib/session-noprog.js'
@@ -24,7 +24,7 @@ import { clampIncline, hasIncline, inclineFits, INCLINE_STEP } from '../../lib/i
 import { exerciseHistory, bestSetFor } from '../../lib/exercise-history.js'
 import { best1RM } from '../../lib/onerm.js'
 import { loadOfActive, levelsOf } from '../../lib/muscles.js'
-import { beatsBest } from '../../lib/workout-finish.js'
+import { beatsBest, clockText } from '../../lib/workout-finish.js'
 
 // A catalogue exercise's still, or null; the same rule as views/train/use-train.js pictureOf,
 // kept here so the workout's module graph does not load the Train screen.
@@ -67,7 +67,7 @@ const spanOf = (unit, total) => (unit.length > 1
 /** One logged set as text: "80 kg × 8", drops "80 × 8 + 60 × 6"; other modes as the history says them. */
 export function setText(S, entry, s) {
   const mode = modeOf({ ...(entry.target || {}), id: entry.id })
-  if (mode !== 'reps' || !(s.w > 0)) return setLabel(entry.id, s, entry.target, S.speedUnit)
+  if (mode !== 'reps' || !(s.w > 0)) return setLabel(entry.id, s, entry.target, speedUnitOf(S))
   const drops = dropsOf(s)
   if (drops.length) return [s, ...drops].map(d => fmtNum(d.w || 0) + ' × ' + (d.r || 0)).join(' + ')
   // A weight logged per dumbbell says so ("22 each × 8"); the unit is on the stepper ("kg each").
@@ -183,7 +183,7 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
       exId: entry.id,
       name: nameOf(entry),
       label: labels[cur] || null,
-      dots: entry.sets.map(s => (s.done ? 'done' : 'todo')),
+      dots: setUnitsOf(entry.sets).map(u => (u.every(k => entry.sets[k].done) ? 'done' : 'todo')),
       newToYou: !last ? t('New to you · how to') : null,
       note: (entry.sets.some(s => !s.done) && pinnedNoteFor(S, entry.id)) || exNoteFor(S, entry.id) || null,
       partLine,
@@ -194,10 +194,10 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
       return { i, n: k + 1, text, warmup: isWarmupRow(s), label: t('{0}, {1}. Edit', k + 1, text) }
     })
     const open = entry.sets.findIndex(s => !s.done)
-    const work = entry.sets.filter(s => !isWarmupRow(s))
     if (open >= 0) {
       const s = entry.sets[open]
-      const workN = work.indexOf(s) + 1
+      // A timed per-side hold is one set with two sides, not two sets.
+      const workUnits = setUnitsOf(entry.sets).filter(u => !isWarmupRow(entry.sets[u[0]]))
       const lastSet = open === entry.sets.length - 1
       const restSec = entry.target?.restSec > 0 ? entry.target.restSec : S.restSec
       const partnerIdx = unit.length > 1 ? unit[(unit.indexOf(cur) + 1) % unit.length] : null
@@ -206,7 +206,7 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
       current = {
         idx: cur, i: open,
         warmup: isWarmupRow(s),
-        setLine: isWarmupRow(s) ? t('Warm-up') : t('Set {0} of {1}', workN, work.length),
+        setLine: isWarmupRow(s) ? t('Warm-up') : t('Set {0} of {1}', setNumberOf(entry.sets, open), workUnits.length),
         last: lastRow ? t('Last time {0}', setText(S, last, lastRow)) : null,
         first: !last ? t('First time') : null,
         plateLine: plateLineForSet(S, entry, s, { editing }),
@@ -262,9 +262,8 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
   const exDone = entries.filter(e => e.sets.some(s => s.done)).length
   const trainedSoFar = { line: t('{0} · {1}', exCount(exDone), tn('{0} set', '{0} sets', setsDone)) }
   const bests = events.bests || 0
-  // The session's length so far, "51:40" (minutes and seconds).
-  const secs = A.start ? Math.max(0, Math.round((now - A.start) / 1000)) : 0
-  const clock = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')
+  // The session's length so far, "51:40", "1:33:12" past an hour (the same clock the drawers read).
+  const clock = clockText(A.start ? now - A.start : 0)
   const allDone = allFinished ? {
     line: [exCount(total), clock, bests ? tn('{0} new best', '{0} new bests', bests) : null].filter(Boolean).join(' · '),
     rows: entries.map((e, idx) => ({
@@ -297,6 +296,18 @@ export function buildWorkoutView({ S, A, timer = null, work = null, sync = null,
 
 const sentence = s => (s ? s.charAt(0).toLocaleUpperCase() + s.slice(1) : s)
 const cfgOf = entry => ({ ...(entry.target || {}), id: entry.id })
+
+/** The sets as units of row indexes: a timed per-side hold's Left and Right rows are one unit. */
+function setUnitsOf(sets) {
+  const units = []
+  for (let i = 0; i < sets.length; i++) {
+    if (!isWarmupRow(sets[i]) && sets[i].side === 'L' && sets[i + 1]?.side === 'R') {
+      units.push([i, i + 1])
+      i++
+    } else units.push([i])
+  }
+  return units
+}
 
 /** "Set 2": a row's number among the working sets (a per-side timed pair is one). */
 function setNumberOf(sets, i) {
@@ -406,7 +417,7 @@ export function setFields(S, entry, i, side = null) {
       field('min', t('min'), 1),
       field('speed', unit === 'mph' ? 'mph' : 'km/h', 0.5, { view: v => toSpeed(v, unit), store: v => fromSpeed(v, unit) }),
     ]
-    if (inclineFits(exOr(entry.id)) || entry.sets.some(hasIncline)) list.push(field('incline', '%', INCLINE_STEP, { hint: t('incline'), store: clampIncline }))
+    if (inclineFits(exOr(entry.id)) || entry.sets.some(hasIncline)) list.push(field('incline', '%', INCLINE_STEP, { hint: t('incline'), store: clampIncline, empty: row.incline == null }))
     return { fields: list, bodyweight: false }
   }
   if (mode === 'time') return { fields: [field('sec', t('Seconds'), 5), field('w', S.unit, 2.5, { weight: true })], bodyweight: false }
@@ -488,7 +499,7 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       clip: clipOf(S, entry.id),
       meta: heroMeta(S, entry, { editing }),
       plan: planLineOf(entry),
-      dots: entry.sets.map((s, k) => (s.done ? 'done' : k === open ? 'now' : 'todo')),
+      dots: setUnitsOf(entry.sets).map(u => (u.every(k => entry.sets[k].done) ? 'done' : u.includes(open) ? 'now' : 'todo')),
       dotsLabel: view.current ? view.current.setLine : null,
       howLabel: t('{0}, how to', view.hero.name),
       moreLabel: t('{0}, options', view.hero.name),
@@ -501,7 +512,8 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
     if (!editing && !A.backfill) entry.sets.forEach((s, k) => { if (beatsBest(S, entry, s) && (bestI < 0 || s.w > entry.sets[bestI].w)) bestI = k })
     out.doneRows = view.doneRows.map(r => ({
       ...r,
-      name: sup ? t('Round {0}', r.n) : r.warmup ? t('Warm-up') : t('Set {0}', setNumberOf(entry.sets, r.i)),
+      name: sup ? t('Round {0}', r.n) : r.warmup ? t('Warm-up')
+        : [t('Set {0}', setNumberOf(entry.sets, r.i)), entry.sets[r.i]?.max ? t('Max') : null].filter(Boolean).join(' · '),
       label: sup ? t('Round {0}, {1}. Edit', r.n, r.text) : r.label,
       best: r.i === bestI,
     }))
@@ -522,10 +534,20 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
       const kind = effortOf(S)
       const prevI = view.current.i - 1
       const prev = entry.sets[prevI]
-      const sideWord = side === 'L' ? t('Left') : side === 'R' ? t('Right') : null
+      // A per-side reps set says the side it is on; a timed one is a row per side.
+      const sideOn = side || (s.side === 'L' || s.side === 'R' ? s.side : null)
+      const sideWord = sideOn === 'L' ? t('Left') : sideOn === 'R' ? t('Right') : null
+      // A pyramid's Max set: as many reps as you can, against the record at that weight or heavier.
+      const rec = s.max && !isWarmupRow(s) ? maxRecordAt(H.workouts, entry.id, s.w) : null
+      const maxLine = s.max && !isWarmupRow(s)
+        ? [t('Max: as many reps as you can'), rec ? (rec.w > 0
+          ? tn('Record: {0} rep at {1}', 'Record: {0} reps at {1}', rec.r, fmtNum(rec.w) + ' ' + S.unit)
+          : tn('Record: {0} rep', 'Record: {0} reps', rec.r)) : null].filter(Boolean).join(' · ')
+        : null
       out.current = {
         ...view.current,
-        setLine: [sup ? t('{0} · {1}', labels[view.hero.idx], view.superset.round) : view.current.setLine, sideWord].filter(Boolean).join(' · '),
+        setLine: [sup ? t('{0} · {1}', labels[view.hero.idx], view.superset.round) : view.current.setLine, s.max && !isWarmupRow(s) ? t('Max') : null, sideWord].filter(Boolean).join(' · '),
+        maxLine,
         side, fields, bodyweight,
         timed: mode === 'time',
         startLabel: mode === 'time' ? t('Start · {0}', fmtClock(s.sec || 45)) : null,
@@ -564,7 +586,7 @@ export function extendWorkoutView(view, { S, A, work = null, origin = null }) {
         title: t('{0}, last 3 times', view.hero.name),
         allLabel: t('All'),
         rows: hist.sessions.map(x => {
-          const text = sessionLine(entry.id, x.mode, x.sets, x.target, S.speedUnit)
+          const text = sessionLine(entry.id, x.mode, x.sets, x.target, speedUnitOf(S))
           return { id: x.id, date: fmtDate(x.d, true), text, dir: isolateDir(text) }
         }),
         best: best ? t('Best: {0}', setText(S, { ...entry, target: best.target || entry.target }, best.set)) : null,

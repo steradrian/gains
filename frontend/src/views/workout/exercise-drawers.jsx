@@ -18,6 +18,7 @@ import { activeProfile } from '../../lib/equipment.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad } from '../../lib/plates.js'
 import { isWarmupRow, isFailureSet, isDropSet, isRestPauseSet, isSideSet, dropsOf, clustersOf } from '../../lib/workout-model.js'
 import { partOf } from '../../lib/workout-parts.js'
+import { speedUnitOf } from '../../lib/speed.js'
 import { MUSCLE_NAME } from '../../lib/muscles.js'
 import { exerciseHistory, bestSetFor } from '../../lib/exercise-history.js'
 import { plannedConfigOf } from '../../lib/session-start.js'
@@ -243,7 +244,7 @@ function factsFor(S, entry) {
   const best = bestSetFor(H, entry.id, mode)
   return {
     best: best ? t('Best: {0}', setText(S, { ...entry, target: best.target || entry.target }, best.set)) : null,
-    last: t('Last: {0}, {1}', sessionLine(entry.id, last.mode, last.sets, last.target, S.speedUnit), fmtDate(last.d, true)),
+    last: t('Last: {0}, {1}', sessionLine(entry.id, last.mode, last.sets, last.target, speedUnitOf(S)), fmtDate(last.d, true)),
   }
 }
 

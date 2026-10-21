@@ -30,7 +30,7 @@ import { changeSetField } from './set-field-change.js'
 function Steppers({ idx, i, fields }) {
   return fields.map(f => (
     <SetStepper
-      key={f.f + (f.side || '')} label={f.label} value={f.value} step={f.step} decimals={f.decimals} hint={f.hint}
+      key={f.f + (f.side || '')} label={f.label} value={f.value} step={f.step} decimals={f.decimals} hint={f.hint} blank={!!f.empty}
       lessLabel={f.lessLabel} moreLabel={f.moreLabel} onChange={v => changeSetField(idx, i, f, v)}
     />
   ))
@@ -121,6 +121,7 @@ export default function WorkoutFocus({ view, actions }) {
             onLoad={() => setEditSheet(idx, current.i)}
             fields={<Steppers idx={idx} i={current.i} fields={current.fields} />}
           >
+            {current.maxLine && <p className="wk-max">{current.maxLine}</p>}
             <PlateLine text={current.plateLine} label={t('Plate loading')} onClick={() => platesSheet(idx)} />
           </CurrentSet>
           {/* Done is the write; Start on a timed set only begins the hold, so it stays silent. */}

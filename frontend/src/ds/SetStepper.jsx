@@ -11,8 +11,10 @@ const round = v => Math.round(v * 100) / 100
 // leaves it to the component. Both buttons stop at `min` (0 unless given) and step by `step`;
 // `decimals` is how many places the value shows (one when the step is fractional). The spoken
 // names of the buttons ("Less kg", "More Reps") are `lessLabel` and `moreLabel`; every string is
-// the caller's. A typed value commits on every valid keystroke and the text is tidied on blur.
-export default function SetStepper({ label, value, defaultValue = 0, step = 1, decimals, min = 0, hint, onChange, lessLabel, moreLabel }) {
+// the caller's. `blank` shows an empty field for a number nobody has set yet; the buttons still
+// count from `value`, and the field fills in once the caller drops `blank`. A typed value commits
+// on every valid keystroke and the text is tidied on blur.
+export default function SetStepper({ label, value, defaultValue = 0, step = 1, decimals, min = 0, hint, blank = false, onChange, lessLabel, moreLabel }) {
   const [own, setOwn] = useState(defaultValue)
   const [draft, setDraft] = useState(null)
   const current = value ?? own
@@ -44,7 +46,7 @@ export default function SetStepper({ label, value, defaultValue = 0, step = 1, d
           inputMode="decimal"
           autoComplete="off"
           aria-label={label}
-          value={draft ?? show(current)}
+          value={draft ?? (blank ? '' : show(current))}
           onChange={type}
           onFocus={e => e.target.select()}
           onBlur={() => setDraft(null)}
