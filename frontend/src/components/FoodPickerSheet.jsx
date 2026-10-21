@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
+import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { useUI } from '../store/useUI.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
@@ -36,6 +37,10 @@ export default function FoodPickerSheet({ close }) {
   const [tab, setTab] = useState('recent')
   const [limit, setLimit] = useState(OWN_SHOWN)
   const [savedLimit, setSavedLimit] = useState(SAVED_SHOWN)
+  const search = useRef(null)
+  // The search opens focused: the drawer is lifted over the keyboard so Scan and Create a food
+  // at its foot stay in reach while the person types (iOS; Android 15 passes --native-kb).
+  const syncKeyboard = useSheetKeyboard(search)
   const { query: q, recents, own, ownTotal, online, foods } = useFoodSearch(query, { limit })
   const { pick, quick, showQuick } = useFoodPick(log)
   const saved = useSavedMeals({ query: q, ...log })
@@ -106,10 +111,11 @@ export default function FoodPickerSheet({ close }) {
     head={<>
       <label className="g-lf-search">
         <Icon name="magnifier" className="g-icon" />
-        <input type="search" value={query} placeholder={t('Search foods')} aria-label={t('Search foods')} autoFocus enterKeyHint="search"
-          onChange={e => { setQuery(e.target.value); setLimit(OWN_SHOWN) }}
+        <input ref={search} type="search" value={query} placeholder={t('Search foods')} aria-label={t('Search foods')} autoFocus enterKeyHint="search"
+          onFocus={syncKeyboard} onChange={e => { setQuery(e.target.value); setLimit(OWN_SHOWN) }}
           onKeyDown={e => { if (e.key === 'Enter' && online.status === 'tap') online.ask() }} />
-        {query && <button type="button" className="g-lf-clear" onClick={() => setQuery('')} aria-label={t('Clear')}><Icon name="xmark" className="g-icon" /></button>}
+        {/* The × goes once the query does: focus goes back to the field, not out of the drawer. */}
+        {query && <button type="button" className="g-lf-clear" onClick={() => { setQuery(''); setLimit(OWN_SHOWN); search.current?.focus() }} aria-label={t('Clear')}><Icon name="xmark" className="g-icon" /></button>}
       </label>
       {!q && <div className="g-lf-tabs">
         <SegmentedControl label={t('Food source')} value={tab} onChange={setTab}

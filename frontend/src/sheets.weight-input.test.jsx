@@ -142,20 +142,40 @@ describe('the weigh-in drawer', () => {
     const { input, button, host } = renderBw()
     expect(host.querySelector('.g-wi-last').textContent).toBe(`Last weigh-in: 81.7 kg on ${fmtDate(last, true)}`)
     act(() => type(input, '84.7'))
-    expect(host.querySelector('.g-wi-far')).toBeNull()
+    // The status is there and empty before it has anything to say, so a screen reader announces
+    // the text when it lands in it.
+    const status = host.querySelector('.g-wi-far[role="status"]')
+    expect(status.textContent).toBe('')
     act(() => type(input, '84.8'))
-    expect(host.querySelector('.g-wi-far').textContent).toBe('3.1 kg from your last weigh-in. Check it before you save.')
+    expect(host.querySelector('.g-wi-far')).toBe(status)
+    expect(status.textContent).toBe('3.1 kg from your last weigh-in. Check it before you save.')
     act(() => type(input, '18.4'))
     expect(host.querySelector('.g-wi-far').textContent).toContain('63.3 kg')
     act(() => button('Save weigh-in').click())
     expect(useStore.getState().S.bodyweight.at(-1).w).toBe(18.4)
   })
 
+  it('lifts the drawer over the keyboard the read-out raises, Save in reach', () => {
+    const before = Object.getOwnPropertyDescriptor(window, 'visualViewport')
+    const height = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: 600, offsetTop: 0, addEventListener() {}, removeEventListener() {} } })
+    try {
+      const { host } = renderBw()
+      const drawer = host.querySelector('.g-bs')
+      expect(drawer.style.getPropertyValue('--picker-keyboard-bottom')).toBe('300px')
+      expect(drawer.style.getPropertyValue('--picker-visual-height')).toBe('600px')
+    } finally {
+      if (before) Object.defineProperty(window, 'visualViewport', before); else delete window.visualViewport
+      if (height) Object.defineProperty(window, 'innerHeight', height); else delete window.innerHeight
+    }
+  })
+
   it('reads the 3 kg in pounds for a pound profile', () => {
     useStore.setState(s => ({ S: { ...s.S, unit: 'lb', bodyweight: [{ d: daysAgo(1), w: 180, t: 1 }] } }))
     const { input, host } = renderBw()
     act(() => type(input, '186'))
-    expect(host.querySelector('.g-wi-far')).toBeNull()
+    expect(host.querySelector('.g-wi-far').textContent).toBe('')
     act(() => type(input, '187'))
     expect(host.querySelector('.g-wi-far').textContent).toContain('7 lb')
   })

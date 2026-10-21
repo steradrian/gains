@@ -520,6 +520,7 @@ button.g-bs-chip { cursor: pointer; }
 .g-wi-note, .g-wi-far, .g-wi-last { margin: 0; text-align: center; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-wi-note { padding-bottom: 8px; }
 .g-wi-far { padding-bottom: 4px; color: var(--warning); font-weight: 600; }
+.g-wi-far:empty { padding: 0; }
 
 /* Add to Today drawer (board T18Add): ActionGrid, MenuList */
 .g-agrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }

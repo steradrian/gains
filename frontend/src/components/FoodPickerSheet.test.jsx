@@ -118,9 +118,27 @@ describe('the Log food drawer', () => {
     expect([...drawer.querySelectorAll('.g-lf-sec')].map(h => h.textContent)).toContain('Your foods')
     expect(rows(drawer)).toContain('Wholemeal bread')
     expect(rows(drawer)).not.toContain('Rolled oats')
+    button(drawer, 'Clear').focus()
     await click(button(drawer, 'Clear'))
     expect(drawer.querySelector('.g-lf-search input').value).toBe('')
     expect(drawer.querySelector('.g-seg')).not.toBeNull()
+    // The × is gone with the query; focus stays in the drawer, back on the field.
+    expect(document.activeElement).toBe(drawer.querySelector('.g-lf-search input'))
+  })
+
+  it('lifts the drawer over the keyboard the search raises, so Scan and Create a food stay in reach', async () => {
+    const before = Object.getOwnPropertyDescriptor(window, 'visualViewport')
+    const height = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: 560, offsetTop: 0, addEventListener() {}, removeEventListener() {} } })
+    try {
+      const drawer = await open()
+      expect(drawer.style.getPropertyValue('--picker-keyboard-bottom')).toBe('340px')
+      expect(drawer.style.getPropertyValue('--picker-visual-height')).toBe('560px')
+    } finally {
+      if (before) Object.defineProperty(window, 'visualViewport', before); else delete window.visualViewport
+      if (height) Object.defineProperty(window, 'innerHeight', height); else delete window.innerHeight
+    }
   })
 
   // Edge table: no recent foods.
