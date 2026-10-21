@@ -1362,3 +1362,168 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .g-wf-restrow, .g-btoast { animation: none; } .g-wf-arc, .g-th-arc, .g-ssw-s, .g-sst-b { transition: none; } }
 :root[data-motion="reduce"] .g-wf-restrow, :root[data-motion="reduce"] .g-btoast { animation: none; }
 :root[data-motion="reduce"] .g-wf-arc, :root[data-motion="reduce"] .g-th-arc, :root[data-motion="reduce"] .g-ssw-s, :root[data-motion="reduce"] .g-sst-b { transition: none; }
+
+/* === Workout drawer kit (MapDrawer, MapRow, PhaseOfferSheet, ConfirmDrawer, EffortChips, PlateBar, Switch, Dock; boards W1.4, W1.12, W1.20–W1.25, W1.31, W1.37, W1.40, W1.45, W1.46) === */
+/* The phase colours (--phase-warm, --phase-cool, --phase-ink) are core-M2's, in tokens.css. */
+
+/* BottomSheet `meta`: a plain figure after the title (the map's clock) */
+.g-bs-meta { flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text-2); font: 500 15px/20px var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Switch: the light drawer's, 52 x 32; the hit area reaches 6px past the track */
+.g-switch { appearance: none; border: 0; padding: 0; margin: 0; width: 52px; height: 32px; border-radius: var(--radius-pill); background: var(--line-strong); position: relative; cursor: pointer; flex: none; transition: background-color 220ms; }
+.g-switch::before { content: ""; position: absolute; inset: -6px -4px; }
+.g-switch::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-card); transition: transform 220ms cubic-bezier(.32, .72, 0, 1); }
+.g-switch[aria-checked="true"] { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); }
+.g-switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--on-accent); }
+[dir="rtl"] .g-switch[aria-checked="true"]::after { transform: translateX(-20px); }
+.g-switch[disabled] { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .g-switch, .g-switch::after { transition: none; } }
+:root[data-motion="reduce"] .g-switch, :root[data-motion="reduce"] .g-switch::after { transition: none; }
+.g-switchrow { display: flex; gap: var(--space-4); align-items: center; min-height: 64px; padding: 10px 16px; color: var(--text); }
+.g-switchrow > div:first-child { flex: 1; min-width: 0; text-align: start; }
+.g-switch-title { font: 600 17px/22px var(--font-sans); }
+.g-switch-sub { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+
+/* EffortChips: wrapping pills, the answer in the accent. The row has 2px of room so a ring is not clipped by the drawer's scroll. */
+.g-effort { display: flex; flex-direction: column; gap: 8px; font-family: var(--font-sans); }
+.g-effort-l { font: 600 14px/18px var(--font-sans); color: var(--text-2); }
+.g-effort-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px; }
+.g-effort-row button { appearance: none; border: 0; flex: none; min-width: 44px; height: 38px; padding: 0 14px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; background: var(--surface-sunken); color: var(--text); font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; cursor: pointer; transition: background-color 220ms, color 220ms; }
+.g-effort-row button[aria-checked="true"] { background: var(--accent-fill); color: var(--on-accent); }
+.g-effort-h { font: 500 13px/16px var(--font-sans); color: var(--text-3); }
+.g-effort-stage .g-effort-l, .g-effort-stage .g-effort-h { color: var(--on-stage-2); }
+.g-effort-stage .g-effort-row button { background: var(--glass); color: var(--on-stage); }
+.g-effort-stage .g-effort-row button[aria-checked="true"] { background: var(--on-stage); color: var(--accent-text); }
+.g-effort-stage .g-effort-row button:focus-visible { outline-color: var(--on-stage); }
+/* The pills sit at the edge of the drawer's scrolling body, which would clip a ring drawn outside them */
+.g-effort-row button:focus-visible { outline-offset: -2px; }
+/* So do the full-width buttons of the offer, the confirm and the map's foot */
+.g-offer-foot .g-btn:focus-visible, .g-confirm .g-btn:focus-visible, .g-md-foot .g-btn:focus-visible { outline-offset: -4px; }
+@media (prefers-reduced-motion: reduce) { .g-effort-row button { transition: none; } }
+
+/* PlateBar: the loaded bar on a sunken panel */
+.g-plates { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 8px; border-radius: 22px; background: var(--surface-sunken); font-family: var(--font-sans); }
+.g-plates svg { display: block; width: min(100%, 320px); height: auto; }
+.g-plate-bar { fill: var(--line-strong); }
+.g-plate { fill: var(--accent-fill); }
+.g-plate-2 { fill: var(--accent-fill-end); }
+.g-plates figcaption { font: 500 15px/20px var(--font-sans); color: var(--text-3); text-align: center; }
+
+/* ConfirmDrawer */
+.g-confirm { display: flex; flex-direction: column; gap: 10px; font-family: var(--font-sans); }
+.g-confirm p { margin: 0; font: 500 16px/23px var(--font-sans); color: var(--text-2); }
+.g-confirm ul { margin: 0; padding: 0; list-style: none; }
+.g-confirm li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font: 500 16px/22px var(--font-sans); color: var(--text-2); }
+.g-confirm li .g-icon { width: 16px; height: 16px; stroke-width: 2.4; color: var(--danger); margin-top: 3px; flex: none; }
+.g-confirm .g-confirm-note { margin-top: 2px; font-size: 14px; line-height: 20px; color: var(--text-3); }
+.g-confirm-danger { display: flex; width: 100%; margin-top: 8px; background: var(--danger-tint); color: var(--danger); font-weight: 700; }
+
+/* PhaseOfferSheet: the tag in the phase's light tint: the phase pastel thinned into the surface,
+   its text the pastel pulled toward --phase-ink; in the dark drawer a faint wash with the pastel
+   as the text. (No colour literals in this file: the UI guards, G7.) */
+.g-offer { --g-offer-warm-bg: color-mix(in srgb, var(--phase-warm) 35%, var(--surface)); --g-offer-warm-ink: color-mix(in srgb, var(--phase-warm) 30%, var(--phase-ink)); --g-offer-cool-bg: color-mix(in srgb, var(--phase-cool) 40%, var(--surface)); --g-offer-cool-ink: color-mix(in srgb, var(--phase-cool) 30%, var(--phase-ink)); display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--text); }
+:root[data-theme="dark"] .g-offer { --g-offer-warm-bg: color-mix(in srgb, var(--phase-warm) 16%, var(--surface)); --g-offer-warm-ink: var(--phase-warm); --g-offer-cool-bg: color-mix(in srgb, var(--phase-cool) 16%, var(--surface)); --g-offer-cool-ink: var(--phase-cool); }
+.g-offer-tag { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: var(--radius-pill); font: 700 13px/16px var(--font-sans); }
+.g-offer-warm { background: var(--g-offer-warm-bg); color: var(--g-offer-warm-ink); }
+.g-offer-cool { background: var(--g-offer-cool-bg); color: var(--g-offer-cool-ink); }
+.g-offer p { margin: 10px 0 8px; font: 500 16px/22px var(--font-sans); color: var(--text-2); }
+.g-offer-list { margin: 0; padding: 0; list-style: none; }
+.g-offer-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.g-offer-row + .g-offer-row { border-top: 1px solid var(--line); }
+.g-offer-row img, .g-offer-ph { width: 48px; height: 48px; flex: none; border-radius: 14px; }
+.g-offer-row img { background: var(--g-white); object-fit: cover; }
+.g-offer-ph { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-3); }
+.g-offer-t { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-offer-t b { font: 600 16px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-offer-t small { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-offer-foot { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; }
+.g-offer-foot .g-btn { height: 54px; font: 700 17px/22px var(--font-sans); }
+
+/* MapDrawer and MapRow. The hint and the foot are sticky in the sheet's scrolling body, so the
+   list is all that moves. Rows are as wide as that body, so their rings sit inside them. */
+.g-md { position: relative; color: var(--text); font-family: var(--font-sans); }
+.g-md-hint { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; margin: 2px 0 0; padding: 8px 12px; border-radius: 14px; background: var(--surface-sunken); box-shadow: 0 4px 0 var(--surface); color: var(--text-2); font: 600 14px/18px var(--font-sans); text-align: start; }
+.g-md-hint .g-icon { width: 16px; height: 16px; flex: none; color: var(--text-3); }
+.g-md-sec { margin-bottom: 4px; }
+.g-md-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 4px 6px; }
+.g-md-t { margin: 0; display: inline-flex; align-items: center; gap: 8px; font: 700 13px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.g-md-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.g-md-dot-warm, .g-mr-dot-warm { background: var(--phase-warm); }
+.g-md-dot-cool, .g-mr-dot-cool { background: var(--phase-cool); }
+.g-md-a { appearance: none; border: 0; background: none; margin: -6px -4px; padding: 6px 4px; color: var(--accent-text); font: 700 14px/18px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-md-rows { position: relative; }
+.g-md-item { position: relative; z-index: 1; }
+.g-md-hold .g-md-item { transition: transform 180ms cubic-bezier(.32, .72, 0, 1); }
+.g-md-hold .g-md-held { transition: none; z-index: 4; }
+.g-md-slot { position: absolute; inset-inline: 0; z-index: 0; border-radius: 16px; box-shadow: inset 0 0 0 2px var(--accent-tint); background: repeating-linear-gradient(135deg, transparent 0 8px, var(--accent-tint) 8px 10px); }
+.g-md-pin { position: sticky; bottom: 0; z-index: 3; margin-top: 8px; padding-top: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+.g-md-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.g-md-foot .g-btn { height: 54px; font: 700 17px/22px var(--font-sans); }
+.g-md-more { display: flex; justify-content: center; }
+.g-mr { position: relative; display: flex; align-items: center; min-height: 64px; border-radius: 16px; color: var(--text); }
+.g-mr-cur { background: var(--accent-tint); }
+.g-mr-main { appearance: none; border: 0; background: none; margin: 0; font: inherit; color: inherit; text-align: start; text-decoration: none; flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; gap: 12px; padding-block: 8px; padding-inline: 16px 6px; border-radius: 16px; }
+a.g-mr-main, button.g-mr-main { cursor: pointer; }
+a.g-mr-main:active, button.g-mr-main:active { background: var(--surface-press); }
+.g-mr-main:focus-visible, .g-mr-grip:focus-visible { outline-offset: -2px; }
+.g-mr-br { position: absolute; inset-inline-start: 6px; width: 3px; border-radius: 2px; background: var(--accent-fill); pointer-events: none; }
+.g-mr-ss-a .g-mr-br { top: 50%; bottom: 0; }
+.g-mr-ss-b .g-mr-br { top: 0; bottom: 50%; }
+.g-mr-dot { position: absolute; inset-inline-start: 4px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line-strong); pointer-events: none; }
+.g-mr-img, .g-mr-ph { width: 48px; height: 48px; flex: none; border-radius: 14px; }
+.g-mr-img { background: var(--g-white); object-fit: cover; }
+.g-mr-ph { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-3); }
+.g-mr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-mr-b b { font: 600 16px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-mr-b span { font: 500 13px/18px var(--font-sans); color: var(--text-3); }
+.g-mr-done { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-fill); color: var(--on-accent); }
+.g-mr-done .g-icon { width: 16px; height: 16px; stroke-width: 3; }
+.g-mr-now { flex: none; height: 26px; padding: 0 10px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; background: var(--accent-fill); color: var(--on-accent); font: 700 12px/14px var(--font-sans); white-space: nowrap; }
+.g-mr-todo { display: block; width: 30px; height: 30px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line-strong); }
+.g-mr-grip { appearance: none; border: 0; background: none; padding: 0; flex: none; width: 44px; height: 44px; margin-inline-end: 4px; border-radius: 14px; display: grid; place-items: center; color: var(--text-3); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.g-mr-grip:active { cursor: grabbing; color: var(--accent-text); }
+.g-mr-grip .g-icon { width: 18px; height: 18px; }
+.g-mr-lifted { background: var(--surface); box-shadow: var(--shadow-float), 0 0 0 1px var(--line); transform: rotate(-1.5deg) scale(1.03); }
+.g-mr-lifted .g-mr-grip { color: var(--accent-text); }
+
+/* Dock: LiveDock's #timer host keeps the position (bottom, insets, the desktop column) and drops
+   its old card, so the .g-dock is the only surface. */
+#timer.dock.g-dock-host { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; border-radius: 0; overflow: visible; box-shadow: none; display: block; }
+.g-dock { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); min-height: var(--dock-h); padding-block: 6px; padding-inline: var(--space-4) 6px; border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); overflow: hidden; font-family: var(--font-sans); }
+.g-dock-hold { box-shadow: inset 0 0 0 2px var(--accent-fill), var(--shadow-float); }
+.g-dock-bar { position: absolute; top: 0; inset-inline: 0; height: 3px; background: var(--line); pointer-events: none; }
+.g-dock-bar i { display: block; height: 100%; background: var(--accent-fill); transform-origin: left center; transition: transform 1s linear; }
+[dir="rtl"] .g-dock-bar i { transform-origin: right center; }
+.g-dock-main { appearance: none; border: 0; background: none; margin: 0; padding: 2px 0; font: inherit; color: inherit; text-align: start; text-decoration: none; flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 10px; overflow: hidden; }
+a.g-dock-main, button.g-dock-main { cursor: pointer; }
+.g-dock-main:focus-visible { outline-offset: -2px; }
+.g-dock-live { width: 8px; height: 8px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); animation: g-pulse 1.6s ease-in-out infinite; }
+.g-dock-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.g-dock-text b { font: 600 16px/22px var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-dock-meta { font: 500 14px/18px var(--font-sans); color: var(--text-2); white-space: nowrap; }
+.g-dock-clock { font: 500 14px/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent-text); white-space: nowrap; }
+.g-dock-count { flex: none; font: 500 20px/24px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent-text); white-space: nowrap; }
+.g-dock-acts { flex: none; display: flex; align-items: center; gap: 6px; }
+.g-dock .g-btn { flex: none; height: 44px; padding: 0 var(--space-5); font-size: 15px; }
+.g-dock-acts .g-btn { padding: 0 14px; }
+@media (prefers-reduced-motion: reduce) { .g-dock-live { animation: none; } .g-dock-bar i { transition: none; } }
+:root[data-motion="reduce"] .g-dock-live { animation: none; }
+:root[data-motion="reduce"] .g-dock-bar i { transition: none; }
+
+/* DurationWheel variant="ds": the wheel in a DS drawer (board W1.4). Same rows and band as the
+   default look (WHEEL_ITEM is 40px in both), in the DS tokens. */
+.dw.dw-ds { margin: 0 auto; border-radius: 22px; background: var(--surface-sunken); }
+.dw-ds .dw-band { inset-inline: 12px; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-card); }
+.dw-ds .dw-col:focus-visible::after { inset-inline: 12px; border-radius: 14px; box-shadow: 0 0 0 2px var(--focus); }
+.dw-ds .dw-it { font-family: var(--font-mono); font-size: 22px; color: var(--text-3); }
+.dw-ds .dw-it.on { color: var(--text); font-weight: 700; }
+.dw-ds .dw-it.out { color: var(--text-disabled); }
+.dw-ds .dw-unit { color: var(--text); font: 600 15px/1 var(--font-sans); }
+@media (hover: hover) { .dw-ds .dw-it:hover { color: var(--text); } }
+
+/* The kit page's (#/dev/kit, DevKitWorkoutDrawers) phone-sized frame for a drawer, with the rest
+   wheel's hint and buttons. Its own class, so the older drawers' frame counts are not touched. */
+.g-wd-frame { position: relative; height: 640px; overflow: hidden; border-radius: var(--radius-lg); background: var(--canvas); }
+.g-wd-hint { margin: 0; padding: 10px 4px 0; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
+.g-wd-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding-top: 14px; }
+.g-wd-foot .g-btn { height: 54px; font: 700 17px/22px var(--font-sans); }
