@@ -63,16 +63,22 @@ describe('the exercise drawer head', () => {
 
 describe('How to', () => {
   it('draws the muscles beside Primary and Additional, and numbers the steps', () => {
-    exerciseDetailSheet(BENCH)
+    // The English steps load lazily (i18n-core askDetails) and are not there in a test, so the
+    // exercise carries its own: instrFor falls back to `st`.
+    const bench = { ...BENCH, st: ['Lie back on the bench.', 'Press the bar up.'] }
+    exerciseDetailSheet(bench)
     const host = renderTop()
     expect(host.querySelector('.g-xd-mlines').textContent).toContain('Primary · ')
-    expect(host.querySelectorAll('.g-xd-steps li')).toHaveLength(instrFor(BENCH).length)
+    expect(instrFor(bench).length).toBeGreaterThan(0)
+    expect(host.querySelectorAll('.g-xd-steps li')).toHaveLength(instrFor(bench).length)
     expect(host.querySelector('.g-xd-steps li span').textContent).toBe('1')
   })
 
   it('Add to my plan opens the routine list over the drawer', () => {
     exerciseDetailSheet(BENCH)
-    act(() => row(renderTop(), 'Add to my plan').click())
+    // Rendered outside the click's act: a render nested in it would not flush before the query.
+    const add = row(renderTop(), 'Add to my plan')
+    act(() => add.click())
     expect(useUI.getState().sheets).toHaveLength(2)
     expect(renderTop().textContent).toContain('Pick a routine. Sets, reps and weight come next.')
   })
@@ -80,7 +86,8 @@ describe('How to', () => {
   it('a built-in exercise links to its catalogue issue; a custom one has no such row', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null)
     exerciseDetailSheet(BENCH)
-    act(() => row(renderTop(), 'Suggest a fix for this exercise').click())
+    const fix = row(renderTop(), 'Suggest a fix for this exercise')
+    act(() => fix.click())
     expect(open).toHaveBeenCalledWith(expect.stringContaining('https://github.com/steradrian/gains/issues/new?template=exercise.yml&exercise=0025'), '_blank', 'noopener,noreferrer')
     const own = { id: 'cdrw1', n: 'My row', bp: 'back', eq: 'barbell', custom: true }
     useStore.setState(s => ({ S: { ...s.S, customEx: [own] } }))

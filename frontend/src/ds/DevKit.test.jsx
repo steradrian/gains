@@ -136,4 +136,15 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-bubble-me')).toHaveLength(2)
     expect(view.host.querySelectorAll('.g-bubble-error')).toHaveLength(1)
   })
+
+  it('renders the Train plan kit, and a tapped day says which', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['PlanWeekGrid', 'LoopStrip', 'VolumeBars']))
+    expect(view.host.querySelectorAll('.g-pcell')).toHaveLength(14)
+    expect(view.host.querySelectorAll('.g-loop')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-vbar')).toHaveLength(8)
+    act(() => { view.host.querySelector('.g-pcell-missed').click() })
+    expect(view.host.textContent).toContain('Tapped: 2026-10-16')
+  })
 })

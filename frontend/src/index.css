@@ -1943,36 +1943,14 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .cam-wrap video{width:100%;height:100%;object-fit:cover;display:block}
 .cam-frame{position:absolute;inset:0;margin:auto;width:62%;aspect-ratio:1;border:2px dashed rgba(255,255,255,.75);border-radius:14px;pointer-events:none}
 /* ---------------------------------------------------------------- Plan -- */
-/* Schedule and Routines (views/Plan.jsx). Settings-like pages, one column at every width. */
-.plan .plan-mode .lrow-t{white-space:nowrap}
-/* The control takes the rest of the row when it fits, and a full line of its own when it does
-   not, rather than squeezing "Fixed Week" onto two lines. */
-.plan-mode .seg-inline{flex:1 1 200px;min-width:0}
-.plan-mode .seg-inline button{white-space:nowrap}
-.plan-mode-locked{margin-inline-start:auto;text-align:end}
+/* Routines (views/Plan.jsx). A settings-like page, one column at every width. */
 .plan-sec-h{margin:22px 0 8px;gap:8px;flex-wrap:wrap}
-/* Long words (German "Hinzufügen") push the loop's buttons off a 320 px screen; they drop
-   to their own line instead and stay on the trailing edge. */
-.plan-sec-h>.plan-sec-acts{margin-inline-start:auto}
 .plan-sec-h h4.sec{margin:0}
 .plan-routines-bar{margin-top:0}
 .plan-textbtn{color:var(--acc-ink);font-size:16px;padding:6px 4px;position:relative}
 .plan-textbtn::before{content:'';position:absolute;inset:-6px}
 .plan .sect-f{margin:0 0 4px}
 .plan .list+.sect-f{padding-top:8px}
-/* a weekday: short day name, the routine's glyph (a moon on a rest day), what is on it */
-.plan-day-n{min-width:30px;flex:none;white-space:nowrap;font-size:15px;font-weight:600;color:var(--label-2)}
-.plan-day-n.today{color:var(--acc-ink)}
-/* Arabic names the whole day: one column wide enough for the longest keeps the glyphs aligned */
-[dir="rtl"] .plan-day-n{min-width:88px}
-.item .lrow-i.rest{background:var(--surface-3);color:var(--label-2)}
-/* the loop: a numbered position, lit when up next, a tick once done this round */
-.plan-order{
-  width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;
-  font-size:13px;font-weight:600;color:var(--label-2);background:var(--surface-3);--icon-stroke:2.6;
-}
-.plan-order.next{background:var(--acc);color:var(--on-acc)}
-.rotation-row.is-done .tt{color:var(--label-2)}
 /* Edit mode, as on an iPhone: a red minus at the start, a handle at the end */
 .plan-minus{
   width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;
@@ -1985,7 +1963,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 }
 .plan-handle:active{cursor:grabbing;color:var(--label-2)}
 .plan [data-reorder-row]{transition:transform var(--fast) var(--ease)}
-.plan-link{margin-top:24px}
 
 /* ------------------------------------------------- duration wheel picker -- */
 /* components/DurationWheel.jsx: two scroll-snap wheels under one highlight band. --dw-item is

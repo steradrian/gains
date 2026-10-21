@@ -28,10 +28,10 @@ export const PRIMITIVE_FILES = [
   'components/date-nav.jsx', 'components/line-art.jsx', 'components/tab-kit.jsx',
 ]
 // Routed views that draw their own chrome and never render <Page> (G4). Home is Today on the
-// stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02), and
-// so are its pushed pages (PlansScreen, PlanPreview, CoachChat), which stand in the design system's
-// StagePage.
-export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'PlanPreview', 'PlansScreen', 'TrainHub', 'Workout']
+// stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02);
+// PlanScreen (its Plan page), PlanImportPage (Import a plan), CreateExercise (Create exercise),
+// PlansScreen, PlanPreview and CoachChat are pushed pages on the stage (StagePage).
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'TrainHub', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
