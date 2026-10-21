@@ -18,8 +18,7 @@
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
     "views/Settings.jsx": 26,
-    "views/StructuralBalance.jsx": 8,
-    "views/Workout.jsx": 18
+    "views/StructuralBalance.jsx": 8
   },
   "G2css": {
     "admin.css": 1,
@@ -52,7 +51,6 @@
     "views/AdminCoach.jsx": 2,
     "views/FocusView.jsx": 4,
     "views/Settings.jsx": 2,
-    "views/Workout.jsx": 3,
     "views/train/load/LoadBalance.jsx": 1,
     "views/train/load/LoadEffort.jsx": 2
   },

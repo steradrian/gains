@@ -1,8 +1,7 @@
 // The running workout's store mutations, shared by the workout screen and its drawers (PR-03).
 // Plain functions over the store's `update`: no React, so a drawer, a hardware key and the screen
-// all change a set the same way. Moved here from views/Workout.jsx (the set helpers and the
-// per-set mutations ExerciseBlock and ActiveWorkout made inline); Workout.jsx re-exports the
-// helpers its tests import.
+// all change a set the same way. The set helpers and per-set mutations the old screen made inline
+// live here now.
 //
 // Rows have no id of their own, so whatever points at a row by its index has to move with it:
 // the running hold (its callback writes the seconds to a row) and the rest a set started
