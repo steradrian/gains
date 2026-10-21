@@ -41,8 +41,10 @@ const A = () => useStore.getState().S.active
 const ids = () => A().entries.map(e => e.id)
 
 const mounted = []
+// The drawer on screen: its newest sub-panel when it has one (openSheet inside an open drawer).
 function top() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const drawer = useUI.getState().sheets.at(-1)
+  const sheet = drawer?.panels?.at(-1) || drawer
   if (!sheet) return null
   const host = document.createElement('div')
   document.body.appendChild(host)
@@ -238,13 +240,14 @@ describe('Add exercise (W1.18, W1.19)', () => {
     expect(A().entries[4].id).toBe(STRETCH)
   })
 
-  it('opens from the map’s Add exercise, closing the map first', () => {
+  it('opens from the map’s Add exercise as a panel of the map', () => {
     seed()
     workoutMapSheet()
     const host = top()
     tap(button(host, 'Add exercise'))
     const next = useUI.getState().sheets
     expect(next).toHaveLength(1)
+    expect(next[0].panels).toHaveLength(1)
     expect(top().textContent).toContain('This workout')
   })
 })
@@ -283,20 +286,35 @@ describe('Workout options (W1.20)', () => {
     expect(A().noProg).toBe(true)
   })
 
-  it('Reorder exercises closes Options and opens the map', () => {
+  it('Reorder exercises opens the map as a panel of Options, in the same drawer', () => {
     seed()
     workoutOptionsSheet()
     const host = top()
     tap([...host.querySelectorAll('.g-drow')].find(r => r.textContent.includes('Reorder exercises')))
     expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
     expect(top().textContent).toContain('Drag to reorder within a phase')
   })
 
-  it('Discard workout closes Options and opens the confirmation', () => {
+  it('Rename workout and Session note are panels of Options too', () => {
+    seed()
+    workoutOptionsSheet()
+    for (const title of ['Rename workout', 'Session note']) {
+      const options = useUI.getState().sheets[0]
+      tap([...top().querySelectorAll('.g-drow')].find(r => r.textContent.includes(title)))
+      expect(useUI.getState().sheets, title).toHaveLength(1)
+      expect(useUI.getState().sheets[0].panels, title).toHaveLength(1)
+      act(() => useUI.getState().closeSheet(useUI.getState().sheets[0].panels[0].id))
+      expect(useUI.getState().sheets[0].id).toBe(options.id)
+    }
+  })
+
+  it('Discard workout opens the confirmation as a panel of Options', () => {
     seed()
     workoutOptionsSheet()
     tap([...top().querySelectorAll('.g-drow')].find(r => r.textContent.includes('Discard workout')))
     expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
   })
 
   it('is reached from the map’s Workout options', () => {

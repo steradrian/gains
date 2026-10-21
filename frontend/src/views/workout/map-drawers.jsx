@@ -77,7 +77,6 @@ function MapHost({ close, addExercise }) {
   const count = A.entries.length
   const seen = {}
   const keys = A.entries.map(e => { seen[e.id] = (seen[e.id] || 0) + 1; return e.id + ':' + seen[e.id] })
-  const then = fn => () => { close(); fn() }
 
   const row = idx => {
     const e = A.entries[idx]
@@ -138,13 +137,12 @@ function MapHost({ close, addExercise }) {
       title={`${A.name || t('Workout')} · ${tn('{0} exercise', '{0} exercises', count)}`}>
       <MapDrawer sections={sections} hint={t('Drag to reorder within a phase')} onReorder={reorder}
         movedLabel={(name, place, total) => t('Moved {0} to {1} of {2}', name, place, total)}
-        addLabel={t('Add exercise')} onAdd={then(() => addExercise?.(cur ? partOf(cur) : null))}
+        addLabel={t('Add exercise')} onAdd={() => addExercise?.(cur ? partOf(cur) : null)}
         supersetLabel={unit.length ? t('Unpair') : pairable ? t('Make superset') : undefined}
         onSuperset={() => (unit.length ? unpairAt(A.cur) : pairWithNext(A.cur))}
         footer={<div className="g-mp-foot">
           {unit.length > 0 && <Button variant="ghost" icon="timer" onClick={openSuperset}>{t('Superset settings')}</Button>}
-          {/* TODO(sheet-panels): Options is a second drawer here; it should be a panel of this one. */}
-          <Button variant="ghost" icon="gear" onClick={then(() => openOptions({ addExercise }))}>{t('Workout options')}</Button>
+          <Button variant="ghost" icon="gear" onClick={() => openOptions({ addExercise })}>{t('Workout options')}</Button>
         </div>} />
     </BottomSheet>
   )
@@ -172,7 +170,6 @@ function OptionsHost({ close, markAllDone, addExercise }) {
     update(s => { if (s.active) s.active.entries = markAllSetsDone(s.active.entries) }, true)
     finishSheet()
   })
-  const then = fn => () => { close(); fn() }
 
   if (step === 'rest') {
     return <BottomSheet type="auto" title={t('Rest timer')}>
@@ -190,18 +187,17 @@ function OptionsHost({ close, markAllDone, addExercise }) {
   return (
     <BottomSheet type="auto" title={t('Workout options')}>
       <div className="g-ws-body">
-        {/* TODO(sheet-panels): Reorder, Rename, Session note, Add routine and Discard each close this drawer and open another. */}
         <DetailRow icon="chevronsUpDown" title={t('Reorder exercises')} sub={t('Drag in the map, any phase')}
-          onClick={then(() => openMap({ addExercise }))} />
-        <DetailRow icon="pencil" title={t('Rename workout')} sub={A.name || undefined} onClick={then(renameWorkoutSheet)} />
-        <DetailRow icon="note" title={t('Session note')} sub={A.note || t('How it went, what to change')} onClick={then(sessionNoteSheet)} />
+          onClick={() => openMap({ addExercise })} />
+        <DetailRow icon="pencil" title={t('Rename workout')} sub={A.name || undefined} onClick={() => renameWorkoutSheet()} />
+        <DetailRow icon="note" title={t('Session note')} sub={A.note || t('How it went, what to change')} onClick={() => sessionNoteSheet()} />
         {!editing && <DetailRow icon="clipboard" title={t('Add routine')} sub={t('Bring another routine into this session')}
-          onClick={then(addRoutineToSessionSheet)} />}
+          onClick={() => addRoutineToSessionSheet()} />}
         <DetailRow icon="gear" title={t('Workout settings')} sub={t('Next exercise, rest, sound, plates')} onClick={() => setStep('settings')} />
-        {A.backfill && A.entries.length > 0 && <DetailRow icon="checkCircle" title={t('Mark all sets done')} onClick={then(markAll)} />}
+        {A.backfill && A.entries.length > 0 && <DetailRow icon="checkCircle" title={t('Mark all sets done')} onClick={() => markAll()} />}
         {switchable && <Switch label={t('Don’t count for progression')} description={t('Every exercise in this workout')}
           checked={sessionNoProg(A)} onChange={on => update(s => setSessionNoProg(s.active, on, keepsOut))} />}
-        {!editing && <DetailRow icon="trash" danger title={t('Discard workout')} sub={t('Asks first, then Undo')} onClick={then(discardSheet)} />}
+        {!editing && <DetailRow icon="trash" danger title={t('Discard workout')} sub={t('Asks first, then Undo')} onClick={() => discardSheet()} />}
       </div>
     </BottomSheet>
   )
