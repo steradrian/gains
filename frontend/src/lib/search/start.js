@@ -27,7 +27,7 @@ const STRENGTH = chip('strength', 'Strength', 'chartLine', route('/progress/stre
 const WORKOUT_SETTINGS = chip('workout-settings', 'Workout settings', 'gear', route('/me/workout'))
 const SAVED_MEALS = chip('meals', 'Saved meals', 'utensils', route('/food/meals'))
 const RECIPES = chip('recipes', 'Recipes', 'cookingPot', route('/food/recipes'))
-const TRENDS = chip('trends', 'Trends', 'chart', route('/progress/trends'))
+const TRENDS = chip('trends', 'Trends', 'chart', route('/food/trends'))
 // Days has no page of its own: the chip scopes the search to your diary's days, newest first.
 const DAYS = chip('days', 'Days', 'calendar', { kind: 'scope', group: 'days' })
 

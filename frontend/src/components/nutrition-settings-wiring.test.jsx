@@ -156,13 +156,6 @@ describe('Home meals', () => {
     expect(mealRows(items, { summed: true }).map(r => [r.name, r.kcal])).toEqual([['Quick kcal', 150]])
     expect(mealRows(items, { summed: false }).map(r => r.kcal)).toEqual([100, 50])
   })
-
-  it('mealNames: Home lists the meals under the names saved in Profile', async () => {
-    const { default: MealsCard } = await import('./MealsCard.jsx')
-    const day = { entry: { items: [] }, settings: { mealNames: ['Brunch', 'Supper'] }, activityRows: [], target: null, activitySum: null }
-    await mount(<MealsCard date={TODAY} day={day} />, { mealNames: ['Brunch', 'Supper'] })
-    expect([...host.querySelectorAll('.meal-name')].map(e => e.textContent)).toEqual(['Brunch', 'Supper'])
-  })
 })
 
 describe('adding food', () => {

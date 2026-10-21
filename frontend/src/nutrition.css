@@ -44,11 +44,6 @@
 .meal-item .tt,.activity-row .tt{display:block;font-size:15px}
 .meal-item .ss,.activity-row .ss{display:block}
 .meal-picker{padding-bottom:12px}
-/* yesterday's meal, inside today's empty one */
-.meal-again{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4)}
-.meal-again .grow{min-width:0}
-.meal-again .tt{display:block;font-size:var(--fs-subhead);font-weight:var(--fw-medium)}
-.meal-again .ss{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meal-picker .item{background:var(--surface-2)}
 .activity-rows{padding-top:4px}
 .activity-rows ul{list-style:none;margin:0;padding:0}

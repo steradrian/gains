@@ -1,0 +1,8 @@
+/* Eat on the stage (EatScreen.jsx). As .train: the stage is full bleed and the header is pinned
+   (ds.css .g-shdr-pin, the one place that paints the --sat inset), so the screen adds no top inset
+   of its own, only the header's row (--shdr-h) and the boards' 150px of air above the tab bar. */
+.eat{padding-top:var(--shdr-h);padding-bottom:calc(150px + var(--sab))}
+.eat-gut{padding:0 16px}
+.eat-logged{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px 0 10px;border-radius:999px;font:600 14px/18px var(--font-sans);color:var(--on-stage)}
+.eat-logged .g-icon{width:16px;height:16px;stroke-width:2.4}
+.eat button.g-trail-pill:disabled{opacity:.6}
