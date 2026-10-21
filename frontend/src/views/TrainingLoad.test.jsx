@@ -215,9 +215,12 @@ describe('TrainingLoad — calendar action and heatmap taps', () => {
     expect(mocks.calendarSheet).toHaveBeenCalledWith(todayISO())
   })
 
-  it('opens the workout detail when the tapped day has one workout', () => {
+  // A past day with workouts opens its Day page; these are the days that page does not open
+  // (navToDay returns 'none', before the first log), which keep the sheets.
+  it('opens the workout detail when the tapped day has one workout and no Day page', () => {
     const only = workout('only', '2026-01-10', [set()])
     mocks.S = state({ workouts: [only, workout('other', '2026-01-11', [set()])] })
+    navToDay.mockReturnValueOnce('none')
     mount()
     mocks.heatmaps.at(-1).onDay('2026-01-10')
     expect(mocks.workoutDetailSheet).toHaveBeenCalledWith(only)
@@ -225,8 +228,9 @@ describe('TrainingLoad — calendar action and heatmap taps', () => {
     expect(mocks.dayOverrideSheet).not.toHaveBeenCalled()
   })
 
-  it('opens the calendar on the day when it has several workouts', () => {
+  it('opens the calendar on the day when it has several workouts and no Day page', () => {
     mocks.S = state({ workouts: [workout('a', '2026-01-10', [set()]), workout('b', '2026-01-10', [set()])] })
+    navToDay.mockReturnValueOnce('none')
     mount()
     mocks.heatmaps.at(-1).onDay('2026-01-10')
     expect(mocks.calendarSheet).toHaveBeenCalledWith('2026-01-10')

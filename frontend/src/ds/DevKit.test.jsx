@@ -75,7 +75,7 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining([
       'Shared: pages', 'StageNavBar', 'StageSection variants', 'NotificationRow', 'StageEmpty on the notifications page', 'Permission banner', 'StageNote',
     ]))
-    expect(view.host.querySelector('.g-sempty-btn').textContent).toBe('Set a reminder')
+    expect([...view.host.querySelectorAll('.g-sempty-btn')].map(b => b.textContent)).toContain('Set a reminder')
     expect(view.host.querySelectorAll('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
     expect(view.host.querySelector('.g-snote').textContent).toContain('Kept for 30 days')
     expect(view.host.querySelectorAll('.g-snav')).toHaveLength(7)

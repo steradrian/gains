@@ -4,7 +4,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SettingsRoute } from './Settings.jsx'
 import { useStore } from '../store/useStore.js'
 
@@ -52,6 +52,8 @@ describe('the reminder settings', () => {
   afterEach(() => useStore.setState({ user }))
 
   it('open at /me/reminders for a signed-in profile', () => {
+    // Settings loads NutriTrace's settings on mount for a signed-in profile.
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}')))
     open('/me/reminders')
     expect(seen).toBe('/me/reminders')
     expect(host.textContent).toContain('Reminders')

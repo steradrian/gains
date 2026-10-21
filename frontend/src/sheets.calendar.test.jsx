@@ -90,7 +90,7 @@ describe('Calendar — a past day opens its Day page (PR07 D1)', () => {
     calendarSheet(past)
     const host = renderTop()
     act(() => dayButton(host, past).click())
-    expect(go).toHaveBeenCalledWith('/me/day/' + past, undefined)
+    expect(go).toHaveBeenCalledWith('/me/day/' + past)
     expect(useUI.getState().sheets).toHaveLength(0)
   })
 
