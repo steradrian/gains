@@ -20,6 +20,10 @@ export function webPermission({ notification, ios, installed: home }) {
   return ios && !home ? 'off' : 'unsupported'
 }
 
+/** Whether this is an iPhone browser tab, which can only buzz once Gains is on the Home Screen:
+ *  the banner's "add Gains to the Home Screen first" (Sh3PermOff) is said only where it is true. */
+export const needsHomeScreen = (win = globalThis) => !MOBILE && isIOS(win?.navigator) && !installed(win)
+
 /** This device's permission, as 'on' | 'off' | 'unsupported'. */
 export async function readPermission() {
   if (MOBILE) {

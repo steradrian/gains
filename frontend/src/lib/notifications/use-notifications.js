@@ -11,7 +11,7 @@ import { diaryIndexDays, useDiaryIndex } from '../nutrition/diary-index.js'
 import { useNutrition } from '../nutrition/store.js'
 import { tabOf } from '../tab-route.js'
 import { feedOf, targetPath } from './feed.js'
-import { readPermission, requestPermission } from './permission.js'
+import { needsHomeScreen, readPermission, requestPermission } from './permission.js'
 import { isUnread, readOf, unreadCount, withAllRead, withRead } from './read-state.js'
 import { firedReminders } from './reminder-log.js'
 
@@ -82,6 +82,7 @@ export function useUnreadCount() {
  *   pathOf(item) that path, without going
  *   permission   'on' | 'off' | 'unsupported', or null until this device has answered
  *   turnOn()     asks the system where it can; else, or with the reminder off, opens Me › Reminders
+ *   homeScreen   off because this is an iPhone browser tab: Gains has to go on the Home Screen first
  */
 export function useNotifications() {
   const { S, items, read } = useFeed()
@@ -123,7 +124,9 @@ export function useNotifications() {
   const open = useCallback(item => {
     if (isUnread(item, read)) markRead(item.id)
     const path = pathOf(item)
-    if (path) nav(path)
+    // A target that is gone opens its day, which says what changed (PR07Edges): the Day page reads
+    // it from the location's state.
+    if (path) nav(path, item.target?.changed ? { state: { changed: item.target.changed } } : undefined)
     return path
   }, [read, markRead, pathOf, nav])
 
@@ -138,5 +141,6 @@ export function useNotifications() {
     items, sections, unreadCount: sections.new.length,
     isUnread: item => isUnread(item, read),
     markRead, markAllRead, open, pathOf, permission, turnOn,
+    homeScreen: permission === 'off' && needsHomeScreen(),
   }
 }
