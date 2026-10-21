@@ -5,7 +5,7 @@ import { atPortion, nutritionOf, unitsFor } from '../lib/nutrition/diary.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
-import { writeErrorText, toastLogged } from '../lib/nutrition/log-feedback.js'
+import { addedText, writeErrorText, toastLogged } from '../lib/nutrition/log-feedback.js'
 import { fmtDate } from '../lib/format.js'
 import MacroLine from './MacroLine.jsx'
 import { Button, NumberField } from './ui.jsx'
@@ -52,7 +52,7 @@ export default function PortionSheet({ food, date, meal, mealName, onLogged, pen
       pending.food = null
       close()
       if (onLogged) onLogged()
-      toastLogged(t('Logged to {0}', mealName), () => useNutrition.getState().removeItem(date, item.uuid))
+      toastLogged(addedText(date, mealName, food.name),() => useNutrition.getState().removeItem(date, item.uuid))
     } catch (e) {
       pending.uuid = draft.item.uuid
       pending.food = foodKey(food)

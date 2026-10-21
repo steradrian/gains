@@ -5,6 +5,7 @@ import { t } from '../lib/i18n.js'
 import { againAttempt, againEntries, againItems, againKcal, againLogged } from '../lib/nutrition/again.js'
 import { energyOf, mealItems } from '../lib/nutrition/diary.js'
 import { foodErrorText } from '../lib/nutrition/foods.js'
+import { addedText } from '../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { Tag } from './blocks.jsx'
@@ -47,7 +48,7 @@ export default function YesterdayMealRow({ settings, meal, whileEmpty = false, i
     const n = useNutrition.getState()
     try {
       const logged = await n.logItems(today, againEntries(items, meal, { from: yesterday, to: today, attempt, n }))
-      toast(t('Logged to {0}', label), {
+      toast(addedText(today, label), {
         action: t('Undo'),
         onAction: () => { useNutrition.getState().removeItems(today, logged.map(i => i.uuid)).catch(e => toast(foodErrorText(e, { write: true }))) },
       })

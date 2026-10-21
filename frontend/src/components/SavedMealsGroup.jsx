@@ -3,7 +3,7 @@ import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { energyOf, matchesFood } from '../lib/nutrition/diary.js'
 import { asksQuantity } from '../lib/nutrition/log-serving.js'
-import { toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { addedText, toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { mealDraft, mealKcal, mealLoadErrorText } from '../lib/nutrition/meals.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { Tag, ItemRow, SectionTitle } from './blocks.jsx'
@@ -48,7 +48,7 @@ export default function SavedMealsGroup({ query, date, meal: slot, mealName, onL
       const items = await useNutrition.getState().logMeal(date, drafts.get(key))
       drafts.delete(key)
       if (onLogged) onLogged()
-      toastLogged(t('Logged to {0}', mealName), () => useNutrition.getState().removeItems(date, items.map(i => i.uuid)))
+      toastLogged(addedText(date, mealName, entry.name),() => useNutrition.getState().removeItems(date, items.map(i => i.uuid)))
       return true
     } catch (e) {
       if (e?.code === 'invalid') drafts.delete(key)

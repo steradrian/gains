@@ -482,7 +482,7 @@ describe('logging from a food', () => {
     const item = put.body.items.at(-1)
     expect(item).toMatchObject({ name: 'Rolled oats', meal: 1, portion: 150, unit: 'g', food_server_id: 11, quantity: 1 })
     expect(item.nutrition.calories).toBeCloseTo(570)
-    expect(toastText()).toBe('Logged to Lunch')
+    expect(toastText()).toBe('Added Rolled oats to Today, Lunch')
   })
 
   it('does not log twice when the answer to a log is lost and it is tapped again', async () => {

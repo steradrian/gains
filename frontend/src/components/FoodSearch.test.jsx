@@ -249,7 +249,7 @@ describe('saved meals in the diary picker', () => {
     expect(putItems()).toHaveLength(1)
     const added = nt.state.days[TODAY].items.filter(i => ['Rolled oats', 'Wholemeal bread'].includes(i.name) && i.meal === 1)
     expect(added.map(i => i.name)).toEqual(['Rolled oats', 'Wholemeal bread'])
-    expect(useUI.getState().toastMsg).toBe('Logged to Lunch')
+    expect(useUI.getState().toastMsg).toBe('Added Oats and bread to Today, Lunch')
     expect(onLogged).toHaveBeenCalledTimes(1)
     await act(async () => { useUI.getState().runToastAction() })
     await settle()

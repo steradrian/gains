@@ -1,5 +1,15 @@
+import { fmtDate, todayISO } from '../format.js'
 import { t } from '../i18n.js'
 import { useUI } from '../../store/useUI.js'
+
+/** The day a log goes to, as a drawer's chip and a toast name it: Today, else its date. */
+export const dayName = date => (date === todayISO() ? t('Today') : fmtDate(date, true))
+
+/** What a log's toast says (board T1.5): where it went, "Added Banana to Today, Lunch", or, with
+ *  no one thing to name, "Added to Today, Lunch". */
+export const addedText = (date, mealName, what) => (what
+  ? t('Added {0} to {1}, {2}', what, dayName(date), mealName)
+  : t('Added to {0}, {1}', dayName(date), mealName))
 
 // What a failed write tells the person. The input it came from stays where it was.
 export function writeErrorText(e) {

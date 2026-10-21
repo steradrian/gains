@@ -150,7 +150,7 @@ describe('Home is the hub', () => {
     expect(puts()).toHaveLength(1)
     expect(puts()[0].body.water.map(w => w.amount)).toEqual([250, 250])
     expect(metric(1).value).toBe('500')
-    expect(useUI.getState().toastMsg).toBe('Water added')
+    expect(useUI.getState().toastMsg).toBe('Added 250 ml of water to Today')
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
     expect(metric(1).value).toBe('250')
@@ -292,7 +292,7 @@ describe('Home is the hub', () => {
     await click(button('Log yesterday’s Breakfast again'))
     expect(nt.state.days[TODAY].items.map(i => i.name)).toEqual(['Rolled oats'])
     expect(text()).not.toContain('Yesterday’s Breakfast')
-    expect(useUI.getState().toastMsg).toBe('Logged to Breakfast')
+    expect(useUI.getState().toastMsg).toBe('Added to Today, Breakfast')
     // The row has gone: focus lands on Breakfast's pill, not the body.
     await settle(20)
     expect(document.activeElement).toBe(host.querySelector('[data-meal-slot="0"]'))
@@ -342,7 +342,7 @@ describe('logging a food', () => {
     await click(button('Log'))
     const item = nt.state.days[TODAY].items.at(-1)
     expect(item).toMatchObject({ name: 'Wholemeal bread', meal: 2, portion: 2, unit: 'slice', quantity: 1 })
-    expect(useUI.getState().toastMsg).toBe('Logged to Dinner')
+    expect(useUI.getState().toastMsg).toBe('Added Wholemeal bread to Today, Dinner')
   })
 
   it('a failed write keeps the sheet and its amount, and the retry logs once', async () => {

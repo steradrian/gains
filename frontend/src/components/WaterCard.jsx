@@ -1,11 +1,12 @@
 import { useId, useState } from 'react'
-import { t } from '../lib/i18n.js'
+import { dateLocale, t } from '../lib/i18n.js'
+import { waterOf } from '../lib/nutrition/diary.js'
 import { useUI } from '../store/useUI.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { waterButtons } from '../lib/nutrition/water.js'
-import { toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { dayName, toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { Button, Row, Section } from './ui.jsx'
 
 // A water entry whose write failed, by date and amount: the next tap sends that same entry again,
@@ -22,7 +23,8 @@ export async function addWater(date, ml) {
   try {
     await n.logWater(date, log)
     delete pending[key]
-    toastLogged(t('Water added'), () => useNutrition.getState().removeWater(date, log.uuid))
+    const w = waterOf(ml, n.settings.data)
+    toastLogged(t('Added {0} of water to {1}', w.value.toLocaleString(dateLocale()) + ' ' + w.unit, dayName(date)), () => useNutrition.getState().removeWater(date, log.uuid))
     return true
   } catch (e) {
     useUI.getState().toast(writeErrorText(e))
