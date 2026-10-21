@@ -71,11 +71,20 @@ describe('writing an activity', () => {
     expect(useActivityWrites.getState().supported).toBe(false)
   })
 
-  it('a 404 on update is the same answer', async () => {
-    nt.failNext('PUT', '/nt/api/activity/', { status: 404 })
+  it('a 405 on update is the same answer', async () => {
+    nt.failNext('PUT', '/nt/api/activity/', { status: 405 })
     const err = await setActivityKcal({ id: 7, date: DATE }, 300).catch(e => e)
     expect(err.code).toBe('activity-unsupported')
     expect(useActivityWrites.getState().supported).toBe(false)
+  })
+
+  it('a 404 on update is a row deleted elsewhere: the gate stays on, the day is read again, the error is the ordinary one', async () => {
+    nt.failNext('PUT', '/nt/api/activity/', { status: 404 })
+    const err = await setActivityKcal({ id: 7, date: DATE }, 300).catch(e => e)
+    expect(err.code).not.toBe('activity-unsupported')
+    expect(writeErrorText(err)).toBe('Not saved. Try again.')
+    expect(useActivityWrites.getState().supported).toBe(true)
+    expect(useNutrition.getState().activity[DATE]?.status).toBe('ready')
   })
 
   it('any other failure stays an ordinary error and the capability stays on', async () => {

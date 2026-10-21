@@ -9,13 +9,15 @@ import { useNutrition } from './store.js'
 // memory, and Burned stops offering to add or edit. Reading activity is not affected.
 export const useActivityWrites = create(() => ({ supported: true }))
 
-const refusedByHub = e => e?.status === 404 || e?.status === 405
+// A POST 404 or 405 and a PUT 405 mean the route is not there. A PUT 404 is a missing row (deleted
+// on another device), not a missing route, so it never flips the gate.
+const refusedByHub = (e, creating) => e?.status === 405 || (creating && e?.status === 404)
 
-async function write(send) {
+async function write(send, { creating = false } = {}) {
   try {
     return await send()
   } catch (e) {
-    if (!refusedByHub(e)) throw e
+    if (!refusedByHub(e, creating)) throw e
     useActivityWrites.setState({ supported: false })
     throw Object.assign(new Error('Logging activity is not available on this hub yet'), { code: 'activity-unsupported', cause: e })
   }
@@ -69,12 +71,18 @@ async function refresh(date) {
 /** Writes a manual activity (`kcal` always kcal, `distance` km) and reloads that day's record, so
  *  Burned, Today and the Day page read it. Throws the write's error; nothing is kept then. */
 export async function saveActivity({ date, name, kcal, minutes, distance = null }) {
-  await write(() => NtApi.createActivity(date, { name, kcal, duration_min: minutes, distance }))
+  await write(() => NtApi.createActivity(date, { name, kcal, duration_min: minutes, distance }), { creating: true })
   await refresh(date)
 }
 
 /** Adds the Burned number to a row that has none (a workout from before Burned was turned on). */
 export async function setActivityKcal(row, kcal) {
-  await write(() => NtApi.updateActivity(row.id, { kcal }))
+  try {
+    await write(() => NtApi.updateActivity(row.id, { kcal }))
+  } catch (e) {
+    // The row is gone: read the day again so Burned stops showing it, and say the ordinary error.
+    if (e?.status === 404) await refresh(row.date).catch(() => {})
+    throw e
+  }
   await refresh(row.date)
 }

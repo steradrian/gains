@@ -162,6 +162,22 @@ describe('food tracking off', () => {
   })
 })
 
+describe('the Burned row', () => {
+  const rowText = () => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Burned')?.textContent ?? ''
+
+  it('says the week could not be read, not a partial total, when a day failed', async () => {
+    nt.failNext('GET', `/nt/api/activity/${day(-3)}`, 'offline')
+    mount()
+    await settle(() => expect(rowText()).toContain('Could not load this week'))
+    expect(rowText()).not.toContain('this week,')
+  })
+
+  it('says nothing was burned when the week read fine and is empty', async () => {
+    mount()
+    await settle(() => expect(rowText()).toContain('Nothing burned logged this week'))
+  })
+})
+
 describe('the old library addresses', () => {
   it.each([
     ['/food/foods', '/food/my-foods?tab=foods'],
