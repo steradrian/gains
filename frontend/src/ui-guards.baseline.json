@@ -54,7 +54,6 @@
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
     "views/FocusView.jsx": 4,
-    "views/Settings.jsx": 1,
     "views/Workout.jsx": 3,
     "views/settings/pages/AppearancePage.jsx": 1,
     "views/train/load/LoadBalance.jsx": 1,
