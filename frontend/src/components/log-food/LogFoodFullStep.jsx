@@ -21,8 +21,8 @@ const UNIT = { salt: 'g' }
 const has = (nutrition, id) => nutrition?.[id] != null && nutrition[id] !== '' && Number.isFinite(Number(nutrition[id]))
 
 /** The drawer's frame for this step (ds/BottomSheet props). */
-export const foodFrame = ({ date, mealName, onBack }) => ({
-  type: 'full', title: t('Food'), chip: dayName(date) + ' · ' + mealName, onBack, backLabel: t('Back to results'),
+export const foodFrame = ({ date, mealName }) => ({
+  type: 'full', title: t('Food'), chip: dayName(date) + ' · ' + mealName,
 })
 
 // A food in full (board Ea8Food): its nutrition per 100 g and per serving, only the rows the

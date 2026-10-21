@@ -15,8 +15,8 @@ const foodKey = food => String(food.id ?? food.client_key ?? food.name)
 const stepOf = unit => (unit === 'g' || unit === 'ml' ? 10 : 1)
 
 /** The drawer's frame for this step (ds/BottomSheet props). */
-export const amountFrame = ({ date, mealName, onBack }) => ({
-  type: 'auto', title: t('Log food'), chip: dayName(date) + ' · ' + mealName, onBack, backLabel: t('Back to results'),
+export const amountFrame = ({ date, mealName }) => ({
+  type: 'auto', title: t('Log food'), chip: dayName(date) + ' · ' + mealName,
 })
 
 // Amount (board Ea8FoodDetail): how much of a food, then Add to <meal>. The serving size steps in

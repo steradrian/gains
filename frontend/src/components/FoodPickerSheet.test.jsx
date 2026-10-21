@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { setNav } from '../lib/nav.js'
+import { backSheet } from '../lib/sheet-nav.js'
 import { fmtDate, todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
@@ -37,6 +38,11 @@ const open = async () => {
   return host.querySelector('[data-sheet] .g-bs')
 }
 const lastSheet = () => [...host.querySelectorAll('[data-sheet]')].at(-1)
+// The harness draws a sub-panel as a sheet of its own: `top()` is the step on screen, `goBack()` is
+// what the ‹, Escape and the browser's back do.
+const panels = () => useUI.getState().sheets[0]?.panels ?? []
+const top = () => lastSheet().querySelector('.g-bs')
+const goBack = async () => { await act(async () => { backSheet(useUI.getState(), useUI.getState().sheets[0].id) }); await settle() }
 const click = async el => { await act(async () => { el.click() }); await settle() }
 const typeInto = async (input, value) => {
   await act(async () => {
@@ -188,9 +194,10 @@ describe('the Log food drawer', () => {
   it('the chip opens Logging to, and a meal picked there is this drawer\'s meal', async () => {
     const drawer = await open()
     await click(drawer.querySelector('.g-bs-chip'))
-    expect(drawer.querySelector('h2').textContent).toBe('Logging to')
-    await click([...drawer.querySelectorAll('[role="radio"]')].find(m => m.textContent.startsWith('Snacks')))
-    // The pick takes the drawer back to the results.
+    expect(top().querySelector('h2').textContent).toBe('Logging to')
+    await click([...top().querySelectorAll('[role="radio"]')].find(m => m.textContent.startsWith('Snacks')))
+    // The pick takes the panel off, back at the results.
+    expect(panels()).toHaveLength(0)
     expect(drawer.querySelector('h2').textContent).toBe('Log food')
     expect(drawer.querySelector('.g-bs-chip').textContent).toBe('Today · Snacks')
     await click(row(drawer, 'Rolled oats'))
@@ -211,23 +218,23 @@ describe('the Log food drawer', () => {
 })
 
 // Eat logging m1: the steps behind a row (boards Ea8FoodDetail, Ea8Food, Ea8Meal, Ea8Quick,
-// Ea8NoMatch, Ea8Offline).
+// Ea8NoMatch, Ea8Offline), each a sub-panel of the drawer.
 describe('the steps of the drawer', () => {
   const ask = () => { nt.state.settings.diaryPromptQuantity = true }
-  const back = drawer => drawer.querySelector('.g-bs-back')
-  const field = (drawer, label) => drawer.querySelector(`input[aria-label="${label}"]`)
+  const field = (scope, label) => scope.querySelector(`input[aria-label="${label}"]`)
   afterEach(() => { Reflect.deleteProperty(navigator, 'onLine') })
 
-  it('a row opens Amount with a way back, and the + logs one serving at once', async () => {
+  it('a row opens Amount as a panel of the drawer that goes back to the results, and the + logs one serving at once', async () => {
     ask()
     const drawer = await open()
-    expect(back(drawer)).toBeNull()
+    expect(panels()).toHaveLength(0)
     await click(row(drawer, 'Rolled oats'))
-    expect(back(drawer)).not.toBeNull()
-    expect(drawer.querySelector('.g-la-name').textContent).toBe('Rolled oats')
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(panels()).toHaveLength(1)
+    expect(top().querySelector('.g-la-name').textContent).toBe('Rolled oats')
     expect(nt.writes()).toHaveLength(0)
-    await click(back(drawer))
-    expect(back(drawer)).toBeNull()
+    await goBack()
+    expect(panels()).toHaveLength(0)
     expect(rows(drawer)).toContain('Rolled oats')
     await click(button(drawer, 'Add Rolled oats to Lunch'))
     expect(nt.state.days[TODAY].items.at(-1)).toMatchObject({ name: 'Rolled oats', meal: 1, portion: 100, unit: 'g', quantity: 1 })
@@ -239,13 +246,13 @@ describe('the steps of the drawer', () => {
     ask()
     const drawer = await open()
     await click(row(drawer, 'Wholemeal bread'))
-    await click(button(drawer, 'More 10 g'))
-    expect(field(drawer, 'Serving size').value).toBe('110')
-    expect(drawer.querySelector('.g-la-big').textContent).toBe('272 kcal')
-    await click([...drawer.querySelectorAll('.g-la-units button')].find(b => b.textContent === 'slice'))
-    await typeInto(field(drawer, 'Serving size'), '2')
-    expect(drawer.querySelector('.g-la-big').textContent).toBe('178 kcal')
-    await click(button(drawer, 'Add to Lunch'))
+    await click(button(top(), 'More 10 g'))
+    expect(field(top(), 'Serving size').value).toBe('110')
+    expect(top().querySelector('.g-la-big').textContent).toBe('272 kcal')
+    await click([...top().querySelectorAll('.g-la-units button')].find(b => b.textContent === 'slice'))
+    await typeInto(field(top(), 'Serving size'), '2')
+    expect(top().querySelector('.g-la-big').textContent).toBe('178 kcal')
+    await click(button(top(), 'Add to Lunch'))
     expect(nt.state.days[TODAY].items.at(-1)).toMatchObject({ name: 'Wholemeal bread', meal: 1, portion: 2, unit: 'slice', quantity: 1 })
     expect(useUI.getState().toastMsg).toBe('Added Wholemeal bread to Today, Lunch')
   })
@@ -256,7 +263,7 @@ describe('the steps of the drawer', () => {
     await click(row(drawer, 'Rolled oats'))
     await settle()
     // Lunch holds 450 kcal, the day 678 of 2,200: 380 more.
-    expect(drawer.querySelector('.g-la-after').textContent).toBe('After this, Lunch is 830 kcal and the 1,522 kcal left today goes to 1,142.')
+    expect(top().querySelector('.g-la-after').textContent).toBe('After this, Lunch is 830 kcal and the 1,522 kcal left today goes to 1,142.')
   })
 
   it('Amount says by how much the day goes over when it does', async () => {
@@ -265,7 +272,7 @@ describe('the steps of the drawer', () => {
     const drawer = await open()
     await click(row(drawer, 'Rolled oats'))
     await settle()
-    expect(drawer.querySelector('.g-la-after').textContent).toBe('After this, Lunch is 830 kcal and you are 258 kcal over today.')
+    expect(top().querySelector('.g-la-after').textContent).toBe('After this, Lunch is 830 kcal and you are 258 kcal over today.')
   })
 
   it('Amount leaves the line out without a calorie goal, never assuming 2000', async () => {
@@ -274,35 +281,38 @@ describe('the steps of the drawer', () => {
     const drawer = await open()
     await click(row(drawer, 'Rolled oats'))
     await settle()
-    expect(drawer.querySelector('.g-la-after')).toBeNull()
-    expect(drawer.textContent).not.toContain('2,000')
+    expect(top().querySelector('.g-la-after')).toBeNull()
+    expect(top().textContent).not.toContain('2,000')
   })
 
   it('Amount refuses an amount of nothing', async () => {
     ask()
     const drawer = await open()
     await click(row(drawer, 'Rolled oats'))
-    await typeInto(field(drawer, 'Servings'), '0')
-    expect(button(drawer, 'Add to Lunch').disabled).toBe(true)
-    expect(drawer.textContent).toContain('Enter an amount above 0.')
+    await typeInto(field(top(), 'Servings'), '0')
+    expect(button(top(), 'Add to Lunch').disabled).toBe(true)
+    expect(top().textContent).toContain('Enter an amount above 0.')
   })
 
-  it('A food in full has only the rows the record has, and Log goes to Amount', async () => {
+  it('A food in full has only the rows the record has, and Log replaces it and Amount with one Amount', async () => {
     ask()
     const drawer = await open()
     await click(row(drawer, 'Rolled oats'))
-    await click(button(drawer, 'see it in full'))
-    expect(drawer.querySelector('h2').textContent).toBe('Food')
-    const labels = [...drawer.querySelectorAll('.g-ff-table tbody th')].map(th => th.textContent)
+    await click(button(top(), 'see it in full'))
+    expect(panels()).toHaveLength(2)
+    expect(top().querySelector('h2').textContent).toBe('Food')
+    const labels = [...top().querySelectorAll('.g-ff-table tbody th')].map(th => th.textContent)
     expect(labels).toContain('Protein')
     // The record carries fiber but no salt or sugars: no row, not a zero.
     expect(labels).toContain('Fiber')
     expect(labels).not.toContain('Salt')
     expect(labels).not.toContain('Sugars')
-    expect(button(drawer, 'Edit')).toBeDefined()
-    await click(button(drawer, 'Log'))
-    expect(drawer.querySelector('.g-la-name').textContent).toBe('Rolled oats')
-    await click(back(drawer))
+    expect(button(top(), 'Edit')).toBeDefined()
+    await click(button(top(), 'Log'))
+    expect(panels()).toHaveLength(1)
+    expect(top().querySelector('.g-la-name').textContent).toBe('Rolled oats')
+    await goBack()
+    expect(panels()).toHaveLength(0)
     expect(rows(drawer)).toContain('Rolled oats')
   })
 
@@ -312,13 +322,13 @@ describe('the steps of the drawer', () => {
     await typeInto(drawer.querySelector('.g-lf-search input'), 'nutella')
     await settle(300)
     await click(row(drawer, 'Nutella'))
-    await click(button(drawer, 'see it in full'))
-    expect(drawer.textContent).toContain('Logging it saves it to your foods first')
-    await click(button(drawer, 'Save as food'))
+    await click(button(top(), 'see it in full'))
+    expect(top().textContent).toContain('Logging it saves it to your foods first')
+    await click(button(top(), 'Save as food'))
     expect(nt.writes().filter(w => w.method === 'POST' && w.path === '/nt/api/foods')).toHaveLength(1)
-    expect(button(drawer, 'Save as food')).toBeUndefined()
-    await click(button(drawer, 'Log'))
-    await click(button(drawer, 'Add to Lunch'))
+    expect(button(top(), 'Save as food')).toBeUndefined()
+    await click(button(top(), 'Log'))
+    await click(button(top(), 'Add to Lunch'))
     expect(nt.writes().filter(w => w.method === 'POST' && w.path === '/nt/api/foods')).toHaveLength(1)
     expect(nt.state.days[TODAY].items.at(-1)).toMatchObject({ name: 'Nutella', meal: 1 })
     expect(typeof nt.state.days[TODAY].items.at(-1).food_server_id).toBe('number')
@@ -327,12 +337,12 @@ describe('the steps of the drawer', () => {
   it('Logging to names what each meal holds on the day, and the pick holds for the drawer and the next half hour', async () => {
     const drawer = await open()
     await click(drawer.querySelector('.g-bs-chip'))
-    const meal = name => [...drawer.querySelectorAll('.g-lm-row')].find(r => r.querySelector('b').textContent === name)
+    const meal = name => [...top().querySelectorAll('.g-lm-row')].find(r => r.querySelector('b').textContent === name)
     expect(meal('Breakfast').textContent).toContain('228 kcal logged')
     expect(meal('Lunch').textContent).toContain('450 kcal logged')
     expect(meal('Dinner').textContent).toMatch(/Nothing yet|Now, by the clock/)
     expect(meal('Lunch').getAttribute('aria-checked')).toBe('true')
-    expect(drawer.textContent).toContain('Your pick holds for the next half hour.')
+    expect(top().textContent).toContain('Your pick holds for the next half hour.')
     await click(meal('Snacks'))
     expect(useDiarySelection.getState().meal).toMatchObject({ slot: 3 })
   })
@@ -345,9 +355,9 @@ describe('the steps of the drawer', () => {
     await settle()
     const drawer = host.querySelector('[data-sheet] .g-bs')
     await click(drawer.querySelector('.g-bs-chip'))
-    expect(drawer.textContent).not.toContain('Your pick holds')
-    expect(drawer.textContent).toContain('Where this sheet logs.')
-    await click([...drawer.querySelectorAll('.g-lm-row')].find(r => r.querySelector('b').textContent === 'Snacks'))
+    expect(top().textContent).not.toContain('Your pick holds')
+    expect(top().textContent).toContain('Where this sheet logs.')
+    await click([...top().querySelectorAll('.g-lm-row')].find(r => r.querySelector('b').textContent === 'Snacks'))
     expect(drawer.querySelector('.g-bs-chip').textContent).toBe(`${fmtDate(day, true)} · Snacks`)
     expect(useDiarySelection.getState().meal).toMatchObject({ slot: 1 })
   })
@@ -379,10 +389,10 @@ describe('the steps of the drawer', () => {
       const drawer = await open()
       await typeInto(drawer.querySelector('.g-lf-search input'), 'zzzzzz')
       await click(button(drawer, 'Add calories only'))
-      expect(drawer.querySelector('h2').textContent).toBe('Quick calories')
-      expect(drawer.textContent).toContain('stays out of My foods')
-      await typeInto(field(drawer, 'kcal'), '300')
-      await click(button(drawer, 'Add to Lunch'))
+      expect(top().querySelector('h2').textContent).toBe('Quick calories')
+      expect(top().textContent).toContain('stays out of My foods')
+      await typeInto(field(top(), 'kcal'), '300')
+      await click(button(top(), 'Add to Lunch'))
       expect(nt.state.days[TODAY].items.at(-1)).toMatchObject({ meal: 1, nutrition: { calories: 300 } })
       expect(nt.state.foods).toHaveLength(fixtureFoods().length)
     })

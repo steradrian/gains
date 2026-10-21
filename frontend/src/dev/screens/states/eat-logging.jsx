@@ -68,7 +68,8 @@ const nt = (proxy = off(GREEK)) => ({
 
 const today = () => <TodayScreen {...both} />
 const wait = ms => new Promise(r => setTimeout(r, ms))
-const drawer = () => [...document.querySelectorAll('.g-bs')].at(-1)
+// The pane on screen: the sub-panel on top when a step is open, else the drawer's own content.
+const drawer = () => [...document.querySelectorAll('.g-bs-pane:not([inert])')].at(-1) ?? [...document.querySelectorAll('.g-bs')].at(-1)
 const press = async match => {
   let el
   for (let waited = 0; !el && waited < 2000; waited += 40) {

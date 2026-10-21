@@ -66,12 +66,6 @@ export default function DevKitDrawers() {
           <BottomSheet title="Log food" chip="Today · Lunch" onChip={NOOP} type="full" closeHref={SELF}
             head={<SegmentedControl options={['Recent', 'Saved meals', 'My foods']} label="Food source" />}><FoodList /></BottomSheet>
         </div>
-        {/* Eat logging m1: a step of a drawer that is a stack (Log food's Amount) wears a ‹ before its title */}
-        <div className="g-kit-frame">
-          <BottomSheet title="Log food" chip="Today · Lunch" onBack={NOOP} backLabel="Back to results" onClose={NOOP}>
-            <p className="g-kit-p">A step after the results: the ‹ goes back one step.</p>
-          </BottomSheet>
-        </div>
       </Section>
 
       <Section title="SegmentedControl" note="Three options keeping their own choice (also pinned in the full drawer's head above), and two controlled.">

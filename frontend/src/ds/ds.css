@@ -512,10 +512,7 @@ button.g-bs-chip { cursor: pointer; }
 .g-lf-row:active .g-lf-add { transform: scale(.94); }
 .g-lf-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .g-lf-body > .g-btn { margin: 12px 0; }
-/* Eat logging m1 (boards Ea8*): the Log food drawer as a stack of steps */
-.g-bs-back { appearance: none; border: 0; width: 40px; height: 40px; flex: none; margin-inline-start: -4px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }
-.g-bs-back .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
-[dir="rtl"] .g-bs-back .g-icon { transform: scaleX(-1); }
+/* Eat logging m1 (boards Ea8*): the Log food steps */
 .g-lf-item { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
 .g-lf-item .g-lf-row { flex: 1; min-width: 0; width: auto; border-bottom: 0; }
 button.g-lf-add { appearance: none; border: 0; cursor: pointer; }

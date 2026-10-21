@@ -10,9 +10,9 @@ import { NumberField, TextField } from '../ui.jsx'
 const KJ_PER_KCAL = 4.184
 
 /** The drawer's frame for this step (ds/BottomSheet props). */
-export const quickFrame = ({ date, mealName, onBack }) => ({
+export const quickFrame = ({ date, mealName }) => ({
   type: 'auto', title: t('Quick calories'), chip: date === todayISO() ? mealName : fmtDate(date, true) + ' · ' + mealName,
-  chipIcon: 'utensils', onBack, backLabel: t('Back to results'),
+  chipIcon: 'utensils',
 })
 
 // Quick calories (board Ea8Quick): energy with no food behind it, in the person's unit (kJ is

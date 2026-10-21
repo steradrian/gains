@@ -36,19 +36,6 @@ describe('BottomSheet, drawn alone', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
-  // Eat logging m1: a drawer that is a stack of steps (Log food) goes back with the ‹ before its title.
-  it('shows a back button before the title only when it has somewhere to go back to', () => {
-    const onBack = vi.fn()
-    view.render(<BottomSheet title="Log food" onBack={onBack} backLabel="Back to results" onClose={vi.fn()} />)
-    const back = q('.g-bs-head > button.g-bs-back')
-    expect(back.getAttribute('aria-label')).toBe('Back to results')
-    expect(back.nextElementSibling.tagName).toBe('H2')
-    click(back)
-    expect(onBack).toHaveBeenCalledTimes(1)
-    view.render(<BottomSheet title="Log food" onClose={vi.fn()} />)
-    expect(q('.g-bs-back')).toBeNull()
-  })
-
   it('the chip wears the calendar unless told another glyph (the routine in the exercise picker)', () => {
     view.render(<BottomSheet title="Add exercise" chip="Push A" chipIcon="clipboard" />)
     const clipboard = q('span.g-bs-chip svg').innerHTML

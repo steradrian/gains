@@ -27,7 +27,7 @@ export const searchFrame = ctx => {
     type: 'full',
     title: t('Log food'),
     chip: dayName(ctx.date) + ' · ' + ctx.mealName,
-    onChip: () => ctx.push({ kind: 'meal' }),
+    onChip: ctx.openMeal,
     head: <>
       <label className="g-lf-search">
         <Icon name="magnifier" className="g-icon" />
@@ -43,7 +43,6 @@ export const searchFrame = ctx => {
       </div>}
     </>,
     footer: <div className="g-lf-foot">
-      {/* TODO(sheet-panels): the barcode scanner opens as a sheet from inside this drawer. */}
       <Button variant={firstRun ? 'primary' : 'secondary'} icon="scanBarcode" onClick={ctx.scan}>{t('Scan')}</Button>
       <Button variant="secondary" onClick={() => ctx.createFood(found.query)}>{t('Create a food')}</Button>
     </div>,

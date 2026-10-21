@@ -8,8 +8,8 @@ import { useNutrition } from '../../lib/nutrition/store.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 
 /** The drawer's frame for this step (ds/BottomSheet props). */
-export const mealFrame = ({ date, mealName, onBack }) => ({
-  type: 'auto', title: t('Logging to'), chip: dayName(date) + ' · ' + mealName, onBack, backLabel: t('Back to results'),
+export const mealFrame = ({ date, mealName }) => ({
+  type: 'auto', title: t('Logging to'), chip: dayName(date) + ' · ' + mealName,
 })
 
 // Logging to (board Ea8Meal): the four meals with what each holds on that day, and the day. A pick
