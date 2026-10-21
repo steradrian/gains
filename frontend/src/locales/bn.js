@@ -3383,4 +3383,8 @@ export default {
   'Best match · {0}': 'Best match · {0}',
   'Best match': 'Best match',
   'Turn on {0}': 'Turn on {0}',
+  // --- Shared: search M2 (PR-07 H0, the overlay): English until the translation pass ---
+  'Search everything': 'Search everything',
+  'See all {0}': 'See all {0}',
+  '{0}. × on the chip shows everything again.': '{0}. × on the chip shows everything again.',
 }
