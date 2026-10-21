@@ -61,6 +61,8 @@ import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
 import Library from './views/Library.jsx'
 import Muscles from './views/Muscles.jsx'
+// Train slice 5
+import MuscleScreen from './views/train/load/MuscleScreen.jsx'
 // Train slice 4
 import CreateExercise from './views/train/exercises/CreateExercise.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
@@ -315,6 +317,8 @@ function Shell() {
               <Route path="/progress/strength" element={<Strength />} />
               <Route path="/progress/strength/balance" element={<StructuralBalance />} />
               <Route path="/progress/load" element={<TrainingLoad />} />
+              {/* Train slice 5 routes */}
+              <Route path="/progress/load/muscle/:slug" element={<MuscleScreen />} />
               <Route path="/progress/trends" element={<Trends />} />
               <Route path="/progress/recovery" element={<Recovery />} />
               {/* Opened from any tab, on top of it: the workout. */}

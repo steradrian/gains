@@ -10,7 +10,9 @@
 // Deep links into Progress (ux-redesign-tabs §5 item 3), each taking ?range=30|90|365|0 too:
 //   /progress/body, /progress/body/measurements, /progress/body/photos   the Body page's segments
 //   /progress/strength?ex=<exercise id>                                   Strength on that exercise
-//   /progress/load?view=activity|muscles|plan|effort                      a Training load segment
+//   /progress/load?view=activity|muscles|fatigue|strength|effort          a Training load segment
+//     (view=plan, like the old focus=weekly-volume, is replaced by /train/schedule)
+//   /progress/load/muscle/<slug>                                          one muscle (lib/muscles.js MUSCLES)
 // The Body segments are one page, so a cold one's back goes to Progress, not to Weight.
 
 export const TABS = ['home', 'train', 'food', 'me']
