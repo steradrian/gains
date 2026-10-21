@@ -91,8 +91,9 @@ afterEach(() => {
 })
 
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
-const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
-const titles = () => [...host.querySelectorAll('.lrow .lrow-t')].map(e => e.textContent)
+// Rows are the old `.lrow`s and the stage's glass rows; a stage page's section headings count as titles too.
+const rowTitled = title => [...host.querySelectorAll('.lrow, .g-glist-row')].find(r => (r.querySelector('.lrow-t') || r.querySelector('.g-glist-body > b'))?.textContent === title)
+const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row .g-glist-body > b, .g-ssec h2')].map(e => e.textContent)
 
 // This test's guest in a browser, as the page itself sees it.
 const guestWeb = {
@@ -343,7 +344,7 @@ describe('the pages', () => {
   it('each search entry is a row on its page (guest in a browser)', () => {
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, guestWeb) && (!e.when || e.when(guestWeb))) (byPage[e.page] ||= []).push(e.title)
-    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'alerts', 'appearance', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
+    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'alerts', 'appearance', 'background', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
       // Equipment is Gym setup, a stage page outside this Settings shell (SettingsRoute): its
       // rows and the search's anchors are checked in views/train/gym/GymSetup.test.jsx
@@ -592,8 +593,8 @@ describe('Features', () => {
         if (page === 'features' || page === 'account' || page === 'equipment' || !pageExists(page, { user: mocks.user, mobile: mocks.MOBILE })) continue
         mount(page)
         await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve() })
-        for (const row of host.querySelectorAll('.lrow')) {
-          if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add(row.querySelector('.lrow-t').textContent)
+        for (const row of host.querySelectorAll('.lrow, .g-glist-row')) {
+          if (row.querySelector('[role="switch"][aria-checked="false"]')) off.add((row.querySelector('.lrow-t') || row.querySelector('.g-glist-body > b')).textContent)
         }
         act(() => root.render(null))
       }
@@ -609,9 +610,16 @@ describe('Features', () => {
 describe('Appearance', () => {
   it('keeps reduce motion, and drops nothing else of its own', () => {
     mount('appearance')
-    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Show connection status'])
+    expect(titles()).toEqual(['Accent color', 'Ready-made', 'Theme', 'Background', 'Pictures', 'Body diagram', 'Exercise drawings',
+      'On screen', 'Reduce motion', 'Gym check-in', 'Add card', 'Show connection status'])
     act(() => rowTitled('Reduce motion').querySelector('[role="switch"]').click())
     expect(mocks.S.reduceMotion).toBe(true)
+  })
+
+  it('Background is its own page: the picker for the looks and the Intensity heading search finds', () => {
+    mount('background')
+    expect(titles()).toEqual(['Intensity', 'Built in', 'Calm behind the ring', 'Quiet under cards', 'Slow drift'])
+    expect(host.querySelectorAll('.g-lgrid [role="radio"]')).toHaveLength(6)
   })
 
   it('reduce motion shows on, and says why, when the device already reduces motion', () => {
@@ -621,7 +629,8 @@ describe('Appearance', () => {
       mount('appearance')
       const sw = rowTitled('Reduce motion').querySelector('[role="switch"]')
       expect(sw.getAttribute('aria-checked')).toBe('true')
-      expect(rowTitled('Reduce motion').querySelector('.lrow-s').textContent).toBe('On in your device settings, so it is on here too.')
+      expect(sw.disabled).toBe(true)
+      expect(rowTitled('Reduce motion').querySelector('.g-glist-body > span').textContent).toBe('Follows your phone. Rings appear without drawing in; looks stand still')
       mount('features')
       expect(rowTitled('Reduce motion').querySelector('.lrow-v').textContent).toBe('On')
     } finally { window.matchMedia = real }

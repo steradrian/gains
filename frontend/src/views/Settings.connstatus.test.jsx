@@ -78,7 +78,7 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="appearance" />))
-const row = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Show connection status'))
+const row = () => [...host.querySelectorAll('.g-glist-row')].find(r => r.textContent.includes('Show connection status'))
 
 describe('Show connection status', () => {
   it('is there with no account, on a phone kept local, and on by default', () => {
@@ -112,8 +112,7 @@ describe('Show connection status', () => {
 describe('guest footers', () => {
   const footers = () => [...host.querySelectorAll('.sect-f')].map(f => f.textContent)
 
-  it('Appearance does not promise a guest that anything syncs with a profile', () => {
-    mount()
+  it('Appearance does not promise a guest that anything syncs with a profile', () => {    mount()
     expect(host.textContent).not.toContain('synced with your profile')
     mocks.user = { id: 'u1' }
     act(() => root.render(<Settings key="in" page="appearance" />))

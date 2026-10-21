@@ -1,14 +1,22 @@
+import { useState } from 'react'
+import { LOOKS, lookLabel } from '../lib/stage-look/index.js'
 import SettingsPage from '../views/settings/SettingsPage.jsx'
+import AccentPicker from './AccentPicker.jsx'
 import ConfirmDrawer from './ConfirmDrawer.jsx'
 import DangerRow from './DangerRow.jsx'
 import Section from './DevKitSection.jsx'
+import LookTile from './LookTile.jsx'
 import StageNote from './StageNote.jsx'
+import StageSlider from './StageSlider.jsx'
 
 // Settings' part of the catalogue (DevKit.jsx): what the Settings pages stand on. Later milestones
 // append a block under "Settings <slice> m<n>".
 const NOOP = () => {}
 
 export default function DevKitSettings() {
+  const [accent, setAccent] = useState('cobalt')
+  const [look, setLook] = useState('linen')
+  const [intensity, setIntensity] = useState(0.45)
   return (
     <>
       <Section title="Settings: shell" note="The page frame, the R5 confirm and the destructive row." />
@@ -31,6 +39,26 @@ export default function DevKitSettings() {
           <DangerRow title="Start over" sub="Wipes your training data" onClick={NOOP} />
           <DangerRow first={false} icon="warning" title="Delete account" sub="Gone after 7 days" onClick={NOOP} />
         </div>
+      </Section>
+
+      {/* Settings look m1 */}
+      <Section title="Settings: look" note="The Appearance and Background pages' controls." />
+
+      <Section title="AccentPicker" note="The 28 themes as a radio group, five to a row; the check marks the lit one. Arrow keys move the choice.">
+        <AccentPicker value={accent} onChange={setAccent} label="Accent color" haptic={false} />
+      </Section>
+
+      <Section title="LookTile" note="A still preview of a look in the current accent at the slider's strength; Classic is the CSS stage. Without WebGL the gradient stays.">
+        <div className="g-lgrid" role="radiogroup" aria-label="Background">
+          {LOOKS.map(id => (
+            <LookTile key={id} look={id} accent={accent} intensity={intensity} label={lookLabel(id)} selected={id === look}
+              onSelect={setLook} haptic={false} />
+          ))}
+        </div>
+      </Section>
+
+      <Section title="StageSlider" note="Quiet to Bold. onChange previews while the thumb moves; onCommit writes once on release.">
+        <StageSlider label="Intensity" minLabel="Quiet" maxLabel="Bold" value={intensity} onChange={setIntensity} haptic={false} />
       </Section>
     </>
   )
