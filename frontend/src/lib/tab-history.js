@@ -88,7 +88,8 @@ export function planSwitch(nav, target, { path, toRoot = false, leaving } = {}) 
   if (target === nav.tab) {
     if (!toRoot) return null
     const stack = path && path !== TAB_ROOT[target] ? [TAB_ROOT[target], path] : [TAB_ROOT[target]]
-    if (here.join('\n') === stack.join('\n') && nav.entries.slice(0, nav.idx + 1).every(p => !p || own(p))) return null
+    // The workout is left out of `here`, but a session open on top of the root is still a page to leave.
+    if (here.join('\n') === stack.join('\n') && nav.entries.slice(0, nav.idx + 1).every(p => !p || (own(p) && !isWorkoutPath(p)))) return null
     return { back: Math.max(0, nav.idx), stack, nav }
   }
   return {

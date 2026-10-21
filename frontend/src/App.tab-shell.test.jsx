@@ -174,7 +174,7 @@ describe('the review repros', () => {
     await click([...document.querySelectorAll('.g-bs .g-atile')].find(r => r.textContent.includes('Start workout')))
     await click(button('Start without weighing in'))
     expect(hash()).toBe('#/train/workout')
-    await click(document.querySelector('button[aria-label="Minimize"]'))
+    await click(document.querySelector('button[aria-label="Minimise"]'))
     expect(hash()).toBe('#/home')
     await click(tab('Eat'))
     expect(hash()).toBe('#/food')
@@ -357,10 +357,9 @@ describe('a walk back that lands late', () => {
 // screen once the session is over.
 describe('a workout that has ended', () => {
   const discard = async () => {
-    await click(document.querySelector('button[aria-label="Workout options"]'))
-    await click([...document.querySelectorAll('.sheet button, .sheet .lrow, .sheet [role="button"]')].find(b => b.textContent.includes('Discard')))
-    // The confirm dialog's own button.
-    await click([...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Discard'))
+    // A session with nothing in it has Discard where Finish would be (W1.30), and nothing to
+    // confirm: it goes at once.
+    await click(document.querySelector('.g-wtop-finish'))
   }
 
   it('discarded from a Nutrition dock, it leaves Nutrition and Training as they were', async () => {
@@ -371,7 +370,8 @@ describe('a workout that has ended', () => {
     expect(hash()).toBe('#/train/workout')
     await discard()
     expect(useStore.getState().S.active).toBeNull()
-    expect(hash()).toBe('#/food')
+    // A discard lands on Today (FinishDrawers discardNow), with the Undo toast there.
+    expect(hash()).toBe('#/home')
     await click(tab('Today'))
     await click(tab('Eat'))
     expect(hash()).toBe('#/food')
