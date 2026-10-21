@@ -68,7 +68,9 @@ describe('T3.5 the Plan menu', () => {
   it('Share opens T3.6 in its place', () => {
     install([push])
     planToolsSheet()
-    act(() => { item(renderTop(), 'Share your plan').click() })
+    // Rendered outside the click's act: a render nested in it would not flush before the query.
+    const share = item(renderTop(), 'Share your plan')
+    act(() => { share.click() })
     expect(useUI.getState().sheets).toHaveLength(1)
     expect(renderTop().querySelector('h2').textContent).toBe('Share your plan')
   })
@@ -84,7 +86,8 @@ describe('T3.5 the Plan menu', () => {
     setNav(go)
     install([push], { config: { coach: { enabled: true } }, user: { id: 'u1', name: 'Alex' } })
     planToolsSheet()
-    act(() => { item(renderTop(), 'Coach').click() })
+    const coach = item(renderTop(), 'Coach')
+    act(() => { coach.click() })
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(go.mock.calls[0][0]).toBe('/train/coach')
   })

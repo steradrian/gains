@@ -22,6 +22,7 @@ vi.mock('../../sheets.jsx', () => ({
   confirmSheet: vi.fn(), menuSheet: vi.fn(), dayOverrideSheet: vi.fn(), planToolsSheet: vi.fn(), starterPlanSheet: vi.fn(),
   workoutDetailSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), startFlow: vi.fn(),
   logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(), planHasRoutines: () => true, exportPlanFile: vi.fn(), printWholePlan: vi.fn(),
+  usePlanDayParam: vi.fn(),
 }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true

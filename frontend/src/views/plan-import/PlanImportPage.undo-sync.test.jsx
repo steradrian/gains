@@ -67,7 +67,8 @@ describe('Undo after an import the other device has already pulled', () => {
 
   it('a weekday the other device changed before it saw the import keeps its change', () => {
     const before = clone(S())
-    const combined = change(before, s => { s.week[1] = ['a', 'b'] }, Date.now() + 1)
+    // A minute before the import: a stamp equal to the import's own is a tie the Undo wins (undoPick).
+    const combined = change(before, s => { s.week[1] = ['a', 'b'] }, Date.now() - 60_000)
     importPlanWithUndo(file, { schedule: true })
     undo()
     const m = mergeStates(S(), combined)

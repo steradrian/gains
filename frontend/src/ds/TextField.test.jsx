@@ -47,7 +47,8 @@ describe('TextField', () => {
     view.render(<TextField label="Day note" value="Flu" rows={4} multiline onChange={onChange} inputProps={{ maxLength: 20 }} />)
     expect(inputs()).toHaveLength(0)
     const area = view.host.querySelector('textarea')
-    expect(area.rows).toBe(4)
+    // The attribute, not the property: the test DOM reflects `rows` as a string.
+    expect(area.getAttribute('rows')).toBe('4')
     expect(area.maxLength).toBe(20)
     expect(area.value).toBe('Flu')
     expect(textOf(area.getAttribute('aria-labelledby'))).toBe('Day note')
