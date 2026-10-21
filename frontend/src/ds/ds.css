@@ -3,7 +3,8 @@
    so these reach only the design system's own markup. Left out on purpose: bundle.css's Google
    Fonts @import (the app hosts Figtree and Geist Mono itself, main.jsx) and its `body` rule (the
    app owns the page). The literal colours it writes inline are tokens in tokens.css (ui-guards
-   G7), and its two max-widths are written as widths (the guard reads max-width as a page width). */
+   G7), and its max-widths are written as widths, `width: min(cap, …)` (the guard reads max-width
+   as a page width). The kit's later components follow both rules. */
 
 .g-root, .g-root * { box-sizing: border-box; }
 .g-root { font-family: var(--font-sans); color: var(--text); -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1, "ss01" 1; }
@@ -673,13 +674,13 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-nrow + .g-nrow { border-top: 1px solid var(--glass-line); }
 .g-nrow:focus-visible { outline-offset: -3px; }
 .g-nrow:active { background: var(--glass); }
-.g-nrow-new { background: rgba(255, 255, 255, 0.12); }
+.g-nrow-new { background: var(--g-nrow-new); }
 .g-nrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .g-nrow-body b { font: 600 17px/22px var(--font-sans); }
 .g-nrow-new .g-nrow-body b { font-weight: 700; }
 .g-nrow-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-nrow-body small { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); opacity: .85; }
-.g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18); }
+.g-nrow-dot { width: 10px; height: 10px; flex: none; margin-top: 6px; border-radius: 50%; background: var(--on-stage); box-shadow: 0 0 0 4px var(--g-nrow-dot-halo); }
 .g-nrow-gap { width: 10px; flex: none; }
 
 /* StageNote: the quiet line at the foot of a pushed page (Sh3Notifications: "Kept for 30 days…").
@@ -747,19 +748,6 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-rail-act:focus-visible, .g-rail-btn:focus-visible, .g-rd:focus-visible { outline-color: var(--on-stage); }
 @media (prefers-reduced-motion: reduce) { .g-rail-track { transition: none; } }
 :root[data-motion="reduce"] .g-rail-track { transition: none; }
-
-/* StageEmpty: a glass disc or a white line-art scene, a title, a line, and a stack of buttons (T2.9 has three) */
-.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
-.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
-.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
-.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
-.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
-.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
-.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
-.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
-.g-sempty-btn .g-icon { width: 20px; height: 20px; }
-.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 
 /* ExerciseThumbRow: the still sits on a white tile; stage is for glass lists, sm for the today card */
 .g-xrow { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 10px 2px; background: none; color: var(--text); text-align: start; text-decoration: none; font-family: var(--font-sans); }
@@ -865,6 +853,69 @@ div.g-mcard { cursor: default; }
 .g-tr-week { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-tr-week b { font-weight: 600; color: var(--text); }
 
+/* === Train exercises kit (Tabs, DetailRow; board T6.1) === */
+/* Tabs: text tabs over a hairline; the line slides to the chosen one. It is placed from the
+   physical left because Tabs.jsx measures the tab with offsetLeft, which is physical in both
+   directions. */
+.g-tabs { position: relative; display: flex; gap: var(--space-6); border-bottom: 1px solid var(--line); }
+.g-tabs button { appearance: none; border: 0; background: none; padding: 0; min-height: var(--tap-min); color: var(--text-3); font: 500 15px/20px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color 200ms; }
+.g-tabs button[aria-selected="true"] { color: var(--text); }
+.g-tabs-ink { position: absolute; left: 0; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--text); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), width 320ms cubic-bezier(.34,1.22,.64,1), opacity 140ms; }
+@media (prefers-reduced-motion: reduce) { .g-tabs-ink { transition: none; } }
+:root[data-motion="reduce"] .g-tabs-ink { transition: none; }
+/* DetailRow: the light drawer's row; rows that follow one another are ruled from after the inline padding */
+.g-drow { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: var(--text); text-align: start; font: inherit; text-decoration: none; position: relative; cursor: default; }
+a.g-drow, button.g-drow { cursor: pointer; }
+a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
+.g-drow + .g-drow::before { content: ""; position: absolute; top: 0; inset-inline-start: 16px; inset-inline-end: 0; border-top: 1px solid var(--line); }
+.g-drow-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-drow-ic .g-icon { width: 20px; height: 20px; stroke-width: 2; }
+.g-drow-ic-tint { background: var(--accent-tint); color: var(--accent-text); }
+.g-drow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-drow-body b { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-drow-body span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-drow-body .g-danger { color: var(--danger); }
+.g-drow-val { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text-2); text-align: end; }
+.g-drow-chev { width: 18px; height: 18px; color: var(--text-3); stroke-width: 2.2; flex: none; }
+/* A row is as wide as the drawer's scrolling body, which would clip a ring drawn outside it */
+.g-drow:focus-visible { outline-offset: -2px; }
+/* StageSearchField: the overlay's head (a ringed field and a glass ×) and the in-page field (T6.0) */
+.g-ssf { display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); }
+.g-ssf-box { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 999px; background: var(--glass-track); box-shadow: inset 0 0 0 2px var(--on-stage); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage-2); }
+.g-ssf-box .g-icon { width: 20px; height: 20px; flex: none; }
+.g-ssf-box input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 600 17px/22px var(--font-sans); color: var(--on-stage); caret-color: var(--on-stage); text-align: start; }
+.g-ssf-box input::placeholder { color: var(--on-stage-2); font-weight: 500; opacity: 1; }
+.g-ssf-box input::-webkit-search-cancel-button, .g-ssf-box input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+.g-ssf-page .g-ssf-box { height: 48px; padding: 0 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); gap: 10px; }
+.g-ssf-page .g-ssf-box:focus-within { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-ssf-page .g-ssf-box input { font-weight: 500; }
+.g-ssf-count { flex: none; font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-stage-2); }
+.g-ssf-clear { appearance: none; border: 0; flex: none; width: 32px; height: 32px; margin-inline-end: -8px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--on-stage); cursor: pointer; }
+.g-ssf-clear .g-icon { width: 18px; height: 18px; }
+.g-ssf-clear:focus-visible, .g-ssf-scope-x:focus-visible, .g-ssf-close:focus-visible { outline-color: var(--on-stage); }
+.g-ssf-scope { flex: none; display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 4px 0 10px; border-radius: 999px; background: var(--on-stage); color: var(--accent-stage-end); font: 700 14px/18px var(--font-sans); }
+.g-ssf-scope-x { appearance: none; border: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: none; color: inherit; cursor: pointer; }
+.g-ssf-scope-x .g-icon { width: 14px; height: 14px; }
+.g-ssf-close { appearance: none; border: 0; width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; }
+.g-ssf-spin { display: grid; animation: g-ssf-spin .36s cubic-bezier(.34, 1.3, .64, 1) both; }
+@keyframes g-ssf-spin { from { transform: rotate(-90deg) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .g-ssf-spin { animation: none; } }
+:root[data-motion="reduce"] .g-ssf-spin { animation: none; }
+/* BodyMap with onMuscle: a muscle is a button; its ring is drawn on the shape, as an SVG path takes no outline */
+.g-bm-btn { cursor: pointer; outline: none; transition: fill .2s; }
+.g-bmap-stage .g-bm-btn:focus-visible { stroke: var(--on-stage); stroke-width: 3; }
+.g-bmap-light .g-bm-btn:focus-visible { stroke: var(--accent-text); stroke-width: 3; }
+@media (prefers-reduced-motion: reduce) { .g-bm-btn { transition: none; } }
+/* Chip: the stage filter chip. The look is 26px high; the tap area is padded out to 44px. */
+.g-fchip { appearance: none; border: 0; position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 10px; border-radius: 999px; font: 700 13px/16px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
+.g-fchip::after { content: ""; position: absolute; inset: -9px -4px; }
+.g-fchip-stage { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); }
+.g-fchip-stage.on { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-fchip-stage:focus-visible { outline-color: var(--on-stage); }
+.g-fchip-n { font-variant-numeric: tabular-nums; }
+.g-fchip-caret { width: 14px; height: 14px; stroke-width: 2.4; margin-inline-start: 2px; }
+@media (prefers-reduced-motion: reduce) { .g-fchip { transition: none; } }
+
 /* === Train pushed-page kit (StagePage, GlassValueRow, StageSegmented, RadioRow, ChipGroup) === */
 /* A pushed page's stage at half the roots' intensity: the glows and the plate rings at half
    strength, and no calm zone (the Classic look has none to drop). The stage also stops clipping,
@@ -880,7 +931,7 @@ div.g-mcard { cursor: default; }
 .g-spage-title { margin: 0; font: 700 32px/38px var(--font-sans); letter-spacing: -0.025em; color: var(--on-stage); overflow-wrap: anywhere; }
 .g-spage-sub { margin: 4px 0 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 /* GlassValueRow: the value sits before the chevron; a static row says something and opens nothing */
-.g-gvr-val { flex: none; max-width: 50%; font: 700 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-stage); text-align: end; overflow-wrap: anywhere; }
+.g-gvr-val { flex: none; width: min(50%, max-content); font: 700 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-stage); text-align: end; overflow-wrap: anywhere; }
 .g-gvr-static { cursor: default; }
 /* StageSegmented: glass track, a white thumb that overshoots; the thumb starts at the inline start */
 .g-sseg { position: relative; display: flex; gap: 4px; padding: 4px; border-radius: 999px; font-family: var(--font-sans); }
@@ -1016,6 +1067,88 @@ div.g-mcard { cursor: default; }
 .g-sett-add:disabled { opacity: .5; cursor: default; }
 .g-sett-add .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
 .g-sett-num input:focus-visible, .g-sett-btn:focus-visible, .g-sett-aux:focus-visible, .g-sett-rmbtn:focus-visible, .g-sett-add:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
+/* === Train plan (PlanWeekGrid, LoopStrip, VolumeBars; boards T3.0–T3.3) === */
+/* PlanWeekGrid: a glass card of seven columns, the weekday letters, then per week a title and
+   seven 62px cells. Nothing clips, so a cell's focus ring shows whole. The grid follows `dir`. */
+.g-pgrid { border-radius: 28px; padding: 14px 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-pgrid-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.g-pgrid-dow { text-align: center; font: 600 12px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-pgrid-week { grid-column: 1 / -1; margin: 0; padding: 12px 2px 2px; text-align: start; font: 700 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-pgrid-dow + .g-pgrid-week { padding-top: 4px; }
+.g-pcell { appearance: none; border: 0; min-width: 0; height: 62px; padding: 0 2px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font-family: var(--font-sans); cursor: pointer; }
+.g-pcell b { font: 700 16px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-pcell-tag { width: min(100%, max-content); display: flex; align-items: center; justify-content: center; gap: 2px; font: 600 11px/14px var(--font-sans); }
+.g-pcell-tag span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-pcell-tag .g-icon { width: 11px; height: 11px; flex: none; stroke-width: 3.2; }
+.g-pcell-rest { background: none; box-shadow: none; opacity: .6; }
+.g-pcell-noted { background: none; box-shadow: none; opacity: .8; }
+.g-pcell-done { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
+.g-pcell-missed { background: none; box-shadow: inset 0 0 0 1.5px var(--g-ring-over); color: var(--g-ring-over); }
+.g-pcell.today { opacity: 1; box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-pcell.today.g-pcell-rest, .g-pcell.today.g-pcell-noted { background: var(--glass); }
+.g-pcell:focus-visible { outline-color: var(--on-stage); }
+
+/* LoopStrip: the title with its line, chips that wrap with a chevron between, the line under them */
+.g-loop { border-radius: 28px; padding: 18px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-loop-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.g-loop-title { margin: 0; flex: 1 1 auto; font: 700 17px/22px var(--font-sans); }
+.g-loop-line { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-loop-act { appearance: none; border: 0; padding: 0; background: none; color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.g-loop-chips { list-style: none; margin: 0; padding: 12px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.g-loop-item { display: inline-flex; align-items: center; gap: 6px; }
+.g-loop-sep { width: 14px; height: 14px; stroke-width: 2.4; opacity: .6; }
+[dir="rtl"] .g-loop-sep { transform: scaleX(-1); }
+.g-loop-chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; background: var(--glass); font: 700 15px/20px var(--font-sans); }
+.g-loop-chip.on { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-loop-chip.done { opacity: .6; }
+.g-loop-chip .g-icon { width: 14px; height: 14px; stroke-width: 2.8; }
+.g-loop-n { font-variant-numeric: tabular-nums; opacity: .7; }
+.g-loop-empty, .g-loop-note { margin: 0; padding-top: 12px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-loop-act:focus-visible { outline-color: var(--on-stage); }
+
+/* VolumeBars: a row per muscle, an 8px track with the fill and the target band drawn over it */
+.g-vbars { border-radius: 28px; padding: 10px 18px 18px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-vbars-list { list-style: none; margin: 0; padding: 0; }
+.g-vbar { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
+.g-vbar-top { display: flex; justify-content: space-between; gap: 12px; font: 600 15px/20px var(--font-sans); }
+.g-vbar-val { color: var(--on-stage-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.g-vbar-track { position: relative; height: 8px; border-radius: 4px; background: var(--glass-track); }
+.g-vbar-fill { display: block; width: var(--w); height: 100%; border-radius: 4px; background: var(--on-stage); }
+.g-vbar-fill.low { background: var(--g-ring-over); }
+.g-vbar-band { position: absolute; top: -3px; bottom: -3px; inset-inline-start: var(--lo); width: calc(var(--hi) - var(--lo)); min-width: 2px; box-sizing: border-box; border-inline: 2px solid var(--on-stage-2); }
+.g-vbars-note { margin: 0; padding-top: 8px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+
+/* === Train plan drawers (T3.1–T3.7: plan day, day note, plan menu, share, import page) === */
+/* TextField multiline: the box grows to its rows and the text wraps */
+.g-tfield-multi .g-tfield-box { height: auto; align-items: stretch; padding: 12px 16px; }
+.g-tfield-box textarea { flex: 1; min-width: 0; width: 100%; border: 0; background: none; outline: none; resize: none; font: 500 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+/* T3.1: the weekly plan line, the scope's hint, the routine list with room for focus rings */
+.g-tr3-plan { margin: 0 0 12px; font: 500 15px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-tr3-plan b { font-weight: 600; color: var(--text); }
+.g-tr3-hint { margin: 10px 0 4px; font: 500 15px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-tr3-list { padding: 4px; margin: 0 -4px; }
+.g-tr3-list .g-tr3-hint { padding: 0 16px; }
+.g-tr3-sec { margin: 12px 16px 2px; font: 600 13px/18px var(--font-sans); letter-spacing: .02em; text-transform: uppercase; color: var(--text-3); text-align: start; }
+.g-tr3-sec + .g-radio::before { content: none; }
+/* A check row of the weekday's multi-pick: a rounded square that fills with a tick */
+.g-tr3-mark { width: 24px; height: 24px; flex: none; border-radius: 7px; box-shadow: inset 0 0 0 2px var(--line-strong); display: grid; place-items: center; transition: background .2s, box-shadow .2s; }
+.g-tr3-mark.on { background: var(--accent-fill); box-shadow: none; }
+.g-tr3-mark.on::after { content: ""; width: 10px; height: 5px; border: solid var(--g-white); border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+.g-tr3-note { margin-top: 8px; }
+/* T3.4: the tags with room for their focus rings above the text */
+.g-tr3-tags { padding: 4px; margin: -4px -4px 12px; }
+/* T3.6: what goes out, as a small card */
+.g-tr3-card { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; padding: 16px; border-radius: 20px; background: var(--surface-sunken); font-family: var(--font-sans); text-align: start; }
+.g-tr3-card b { font: 600 17px/22px var(--font-sans); color: var(--text); }
+.g-tr3-card span { font: 500 15px/20px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+/* T3.7: the import page on the stage */
+.g-tr3-imp { display: flex; flex-direction: column; gap: 16px; padding: 8px 20px 0; }
+.g-tr3-imp .g-glist-body { text-align: start; }
+.g-tr3-thumb { width: 44px; height: 44px; flex: none; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: var(--g-white); color: var(--text-2); }
+.g-tr3-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.g-tr3-thumb .g-icon { width: 20px; height: 20px; }
+.g-tr3-imp-note { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+@media (prefers-reduced-motion: reduce) { .g-tr3-mark { transition: none; } }
 
 /* === Train charts (StatTiles, LineChart, BarChart, Heatmap, MonthGrid; boards T7.0, T8.0, T9.0 to T9.6) === */
 /* StatTiles: two or three tiles; glass on the stage */
@@ -1045,9 +1178,12 @@ div.g-mcard { cursor: default; }
 .g-lc-area { fill: var(--g-lc); fill-opacity: 0.12; }
 .g-lc-cursor { stroke: var(--g-lc); stroke-opacity: 0.45; stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .g-lc-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--g-lc); pointer-events: none; }
+.g-lc-series { fill: none; stroke: var(--g-s); stroke-width: var(--g-sw); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.g-lc-sdot { position: absolute; width: calc(var(--g-sw) + 2px); height: calc(var(--g-sw) + 2px); transform: translate(-50%, -50%); border-radius: 50%; background: var(--g-s); pointer-events: none; }
+.g-lc-mark { position: absolute; width: var(--g-m); height: var(--g-m); transform: translate(-50%, -50%); border-radius: 50%; background: var(--g-lc); opacity: var(--g-mo); pointer-events: none; }
 .g-lc-dot-on { width: 14px; height: 14px; margin: -7px 0 0 -7px; box-shadow: 0 0 0 3px var(--surface); }
-.g-lc.g-chart-stage .g-lc-dot-on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); }
-.g-lc-tip { position: absolute; top: 0; left: clamp(20%, var(--x), 80%); transform: translateX(-50%); max-width: 100%; box-sizing: border-box; padding: 4px 10px; border-radius: 999px; background: var(--text); color: var(--surface); font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.g-lc.g-chart-stage .g-lc-dot-on { box-shadow: 0 0 0 3px var(--g-chart-dot-halo-stage); }
+.g-lc-tip { position: absolute; top: 0; left: clamp(20%, var(--x), 80%); transform: translateX(-50%); width: min(100%, max-content); box-sizing: border-box; padding: 4px 10px; border-radius: 999px; background: var(--text); color: var(--surface); font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .g-lc.g-chart-stage .g-lc-tip { background: var(--on-stage); color: var(--accent-text); }
 .g-lc-x { display: flex; justify-content: space-between; padding-top: 8px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
 .g-lc.g-chart-stage .g-lc-x { color: var(--on-stage-2); }
@@ -1058,11 +1194,11 @@ div.g-mcard { cursor: default; }
 .g-bar-col { width: 100%; display: flex; align-items: flex-end; }
 .g-bar-col i { display: block; width: 100%; border-radius: 8px; background: var(--g-bar, var(--accent-fill)); }
 .g-bar-col i.g-bar-dim { opacity: 0.35; }
-.g-bar small { font: 600 12px/14px var(--font-sans); color: var(--text-3); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-bar small { font: 600 12px/14px var(--font-sans); color: var(--text-3); width: min(100%, max-content); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .g-bars-target { position: absolute; inset-inline: 0; border-top: 1.5px dashed var(--line-strong); }
 .g-bars-card.g-chart-stage .g-bar-col i { background: var(--g-bar, var(--on-stage)); }
 .g-bars-card.g-chart-stage .g-bar small { color: var(--on-stage-2); }
-.g-bars-card.g-chart-stage .g-bars-target { border-top-color: rgba(255, 255, 255, 0.6); }
+.g-bars-card.g-chart-stage .g-bars-target { border-top-color: var(--g-chart-target-stage); }
 
 /* Heatmap: days shaded by how much happened. 3 shades (n3) or 5 (n5); a card, or glass on the stage. A year
    (weeks) is a column a week, scrolls sideways, and follows the page's direction. */
@@ -1093,13 +1229,13 @@ button.g-heat-c:focus-visible { outline: 2px solid var(--accent-fill); outline-o
 .g-heat-n5 .g-heat-2 { background: color-mix(in srgb, var(--accent-fill) 40%, var(--accent-tint)); }
 .g-heat-n5 .g-heat-3 { background: color-mix(in srgb, var(--accent-fill) 70%, var(--accent-tint)); }
 .g-heat-n5 .g-heat-4 { background: var(--accent-fill); }
-.g-heat-stage.g-heat-n3 .g-heat-0, .g-heat-stage.g-heat-n5 .g-heat-0 { background: rgba(255, 255, 255, 0.1); }
-.g-heat-stage.g-heat-n3 .g-heat-1 { background: rgba(255, 255, 255, 0.48); }
-.g-heat-stage.g-heat-n3 .g-heat-2 { background: rgba(255, 255, 255, 1); }
-.g-heat-stage.g-heat-n5 .g-heat-1 { background: rgba(255, 255, 255, 0.28); }
-.g-heat-stage.g-heat-n5 .g-heat-2 { background: rgba(255, 255, 255, 0.48); }
-.g-heat-stage.g-heat-n5 .g-heat-3 { background: rgba(255, 255, 255, 0.72); }
-.g-heat-stage.g-heat-n5 .g-heat-4 { background: rgba(255, 255, 255, 1); }
+.g-heat-stage.g-heat-n3 .g-heat-0, .g-heat-stage.g-heat-n5 .g-heat-0 { background: var(--g-heat-stage-10); }
+.g-heat-stage.g-heat-n3 .g-heat-1 { background: var(--g-heat-stage-48); }
+.g-heat-stage.g-heat-n3 .g-heat-2 { background: var(--g-white); }
+.g-heat-stage.g-heat-n5 .g-heat-1 { background: var(--g-heat-stage-28); }
+.g-heat-stage.g-heat-n5 .g-heat-2 { background: var(--g-heat-stage-48); }
+.g-heat-stage.g-heat-n5 .g-heat-3 { background: var(--g-heat-stage-72); }
+.g-heat-stage.g-heat-n5 .g-heat-4 { background: var(--g-white); }
 
 /* MonthGrid: a month on the stage. The grid follows the page's direction; the arrows mirror. */
 .g-mring { display: block; fill: none; transform: rotate(-90deg); flex: none; }
@@ -1118,7 +1254,7 @@ button.g-heat-c:focus-visible { outline: 2px solid var(--accent-fill); outline-o
 .g-mg-head { text-align: center; font: 600 12px/16px var(--font-sans); color: var(--on-stage-2); }
 .g-mg-cell { appearance: none; border: 0; background: none; display: grid; place-items: center; height: 44px; border-radius: 14px; color: inherit; font: inherit; text-decoration: none; padding: 0; }
 a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
-.g-mg-on { background: rgba(255, 255, 255, 0.16); }
+.g-mg-on { background: var(--g-mg-on-stage); }
 .g-mg-in { position: relative; width: 36px; height: 36px; display: grid; place-items: center; }
 .g-mg-in b { position: absolute; inset: 0; display: grid; place-items: center; font: 600 14px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
 .g-mg-on .g-mg-in b { font-weight: 800; }
@@ -1127,33 +1263,6 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-mg-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 6px 2px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
 .g-mg-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .g-mg-nav:focus-visible, .g-mg-cell:focus-visible { outline-color: var(--on-stage); }
-
-/* === Train exercises kit (Tabs, DetailRow; board T6.1) === */
-/* Tabs: text tabs over a hairline; the line slides to the chosen one. It is placed from the
-   physical left because Tabs.jsx measures the tab with offsetLeft, which is physical in both
-   directions. */
-.g-tabs { position: relative; display: flex; gap: var(--space-6); border-bottom: 1px solid var(--line); }
-.g-tabs button { appearance: none; border: 0; background: none; padding: 0; min-height: var(--tap-min); color: var(--text-3); font: 500 15px/20px var(--font-sans); cursor: pointer; white-space: nowrap; transition: color 200ms; }
-.g-tabs button[aria-selected="true"] { color: var(--text); }
-.g-tabs-ink { position: absolute; left: 0; bottom: -1px; height: 2.5px; border-radius: 2px; background: var(--text); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), width 320ms cubic-bezier(.34,1.22,.64,1), opacity 140ms; }
-@media (prefers-reduced-motion: reduce) { .g-tabs-ink { transition: none; } }
-:root[data-motion="reduce"] .g-tabs-ink { transition: none; }
-/* DetailRow: the light drawer's row; rows that follow one another are ruled from after the inline padding */
-.g-drow { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: var(--text); text-align: start; font: inherit; text-decoration: none; position: relative; cursor: default; }
-a.g-drow, button.g-drow { cursor: pointer; }
-a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
-.g-drow + .g-drow::before { content: ""; position: absolute; top: 0; inset-inline-start: 16px; inset-inline-end: 0; border-top: 1px solid var(--line); }
-.g-drow-ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
-.g-drow-ic .g-icon { width: 20px; height: 20px; stroke-width: 2; }
-.g-drow-ic-tint { background: var(--accent-tint); color: var(--accent-text); }
-.g-drow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.g-drow-body b { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
-.g-drow-body span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
-.g-drow-body .g-danger { color: var(--danger); }
-.g-drow-val { flex: none; font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text-2); text-align: end; }
-.g-drow-chev { width: 18px; height: 18px; color: var(--text-3); stroke-width: 2.2; flex: none; }
-/* A row is as wide as the drawer's scrolling body, which would clip a ring drawn outside it */
-.g-drow:focus-visible { outline-offset: -2px; }
 
 /* === Train routine editor (T5.0, RoutineExerciseRow, SupersetGroup) === */
 /* RoutineExerciseRow: the stage ExerciseThumbRow, with the progression line and, in reorder mode,
@@ -1210,3 +1319,37 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-re .g-re-start { background: var(--on-stage); color: var(--accent-text); }
 .g-re .g-re-start:disabled { opacity: .5; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .g-re-slot { transition: none; } }
+/* === Train coach kit (StageSwitch, BigStepper; boards T12.0, T12.1) === */
+.g-sswitch { appearance: none; border: 0; padding: 0; position: relative; flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--glass-track); box-shadow: inset 0 0 0 1px var(--glass-line); cursor: pointer; transition: background-color 220ms; }
+.g-sswitch i { position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--on-stage); transition: transform 320ms cubic-bezier(.34,1.22,.64,1), background-color 220ms; }
+.g-sswitch.on { background: var(--on-stage); box-shadow: none; }
+.g-sswitch.on i { transform: translateX(20px); background: var(--accent-fill); }
+[dir="rtl"] .g-sswitch.on i { transform: translateX(-20px); }
+.g-sswitch:focus-visible { outline-color: var(--on-stage); }
+@media (prefers-reduced-motion: reduce) { .g-sswitch, .g-sswitch i { transition: none; } }
+.g-bstep { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; font-family: var(--font-sans); color: var(--text); }
+.g-bstep-l { font: 600 14px/18px var(--font-sans); color: var(--text-2); }
+.g-bstep-row { display: flex; align-items: center; justify-content: space-between; }
+.g-bstep-row button { appearance: none; border: 0; padding: 0; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1); }
+.g-bstep-row button:active { transform: scale(.92); }
+.g-bstep-row button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+.g-bstep-row button[aria-disabled="true"]:active { transform: none; }
+.g-bstep-row button .g-icon { width: 24px; height: 24px; stroke-width: 2.4; }
+.g-bstep-v { display: flex; align-items: baseline; gap: 6px; }
+.g-bstep-v b { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-bstep-v span { font: 600 18px/22px var(--font-sans); color: var(--text-2); }
+.g-bstep-h { text-align: center; font: 500 13px/16px var(--font-sans); color: var(--text-3); }
+.g-bstep-stage { color: var(--on-stage); }
+.g-bstep-stage .g-bstep-l, .g-bstep-stage .g-bstep-v span, .g-bstep-stage .g-bstep-h { color: var(--on-stage-2); }
+.g-bstep-stage .g-bstep-row button { background: var(--glass); color: var(--on-stage); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.g-bstep-stage .g-bstep-row button:focus-visible { outline-color: var(--on-stage); }
+@media (prefers-reduced-motion: reduce) { .g-bstep-row button { transition: none; } }
+/* ChatBubble (board T11.0): logical sides, so RTL mirrors the thread */
+.g-bubble { width: min(300px, 86%, max-content); box-sizing: border-box; padding: 12px 16px; font: 500 16px/22px var(--font-sans); display: flex; flex-direction: column; gap: 4px; text-align: start; overflow-wrap: anywhere; }
+.g-bubble small { font: 500 12px/14px var(--font-sans); opacity: .7; }
+.g-bubble ul { margin: 4px 0 0; padding-inline-start: 18px; }
+.g-bubble-them { align-self: flex-start; border-radius: 22px 22px 22px 6px; color: var(--on-stage); }
+.g-bubble-me { align-self: flex-end; border-radius: 22px 22px 6px 22px; background: var(--on-stage); color: var(--accent-stage-end); }
+[dir="rtl"] .g-bubble-them { border-radius: 22px 22px 6px 22px; }
+[dir="rtl"] .g-bubble-me { border-radius: 22px 22px 22px 6px; }
+.g-bubble-error { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--danger) 70%, transparent); }

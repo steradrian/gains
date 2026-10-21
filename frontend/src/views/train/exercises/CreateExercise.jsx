@@ -36,13 +36,15 @@ function leave(then) {
 export default function CreateExercise() {
   const [params] = useSearchParams()
   const editId = params.get('edit')
+  // Exercises' "Create your own" after a search carries the search text as the name to start from.
+  const prefill = params.get('name') || ''
   const [existing] = useState(() => (editId ? (useStore.getState().S.customEx || []).find(c => c.id === editId) || null : null))
   const editing = !!existing
   return (
     <StagePage largeTitle={editing ? t('Edit exercise') : t('New exercise')} sub={t('Works just like any other exercise')}>
       {editId && !editing
         ? <p className="g-cxf-gone">{t('This exercise is no longer here.')}</p>
-        : <CustomExerciseForm key={editId || 'new'} existing={existing} tone="stage"
+        : <CustomExerciseForm key={editId || 'new'} existing={existing} prefill={prefill} tone="stage"
             onSaved={(ex, { created }) => leave(created && ex ? () => exerciseDetailSheet(ex) : undefined)}
             onDelete={editing ? () => deleteCustomEx(existing, () => leave()) : undefined} />}
     </StagePage>

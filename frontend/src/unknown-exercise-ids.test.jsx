@@ -16,13 +16,13 @@ import { mergeStates } from './lib/sync-merge.js'
 import { todayISO } from './lib/format.js'
 import { beginWorkout, exerciseDetailSheet, exerciseHistorySheet, workoutDetailSheet, finishWorkout } from './sheets.jsx'
 import Home from './views/Home.jsx'
-import Plan from './views/Plan.jsx'
+import PlanScreen from './views/plan/PlanScreen.jsx'
 import RoutineEditor from './views/routines/RoutineEditor.jsx'
 import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Workout from './views/Workout.jsx'
 import History from './views/History.jsx'
-import Strength from './views/Strength.jsx'
-import Library from './views/Library.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 
 vi.mock('./lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn(), restOver: vi.fn() }))
@@ -106,13 +106,13 @@ describe('exercise ids this build does not know', () => {
     expect(exOr(UNK)).toMatchObject({ id: UNK, missing: true })
   })
 
-  it('Home, the plan, the routine editor and the Library draw it', () => {
+  it('Home, the plan, the routine editor and the Exercises page draw it', () => {
     seed()
     expect(render(<Home />).textContent).toContain('Push')
     render(<RoutinesScreen />)
     const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>, '/train/routines/r1')
     expect(edit.textContent).toContain('Unknown exercise')
-    render(<Library />)
+    render(<ExercisesScreen />)
     render(<StructuralBalance />)
     expectKept(useStore.getState().S)
   })
@@ -124,7 +124,7 @@ describe('exercise ids this build does not know', () => {
       scheduleMode: 'rotation',
     })
     render(<Home />)
-    render(<Plan />)
+    render(<PlanScreen />)
     expectKept(useStore.getState().S)
   })
 
@@ -149,13 +149,13 @@ describe('exercise ids this build does not know', () => {
     expectKept(useStore.getState().S)
   })
 
-  it('Strength draws it, and its exercise picker leaves out the id it has no name for', () => {
+  it('the exercise progress page draws it, and leaves out the id it has no name for', () => {
     seed()
-    const host = render(<Strength />)
-    // Strength opens on the known lift: an id with no name to show is left out of
-    // the picker (use-exercise-progress.js exHist), not charted as a bare number.
-    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Full Squat')
-    expect(host.textContent).toContain('Now 100 kg')
+    const host = render(<ExerciseProgress />)
+    // It opens on the known lift: an id with no name to show is left out of the picker
+    // (use-exercise-progress.js exHist), not charted as a bare number.
+    expect(host.querySelector('.g-snav-title').textContent).toBe('Barbell Full Squat')
+    expect(host.querySelector('.g-xp-big').textContent).toContain('kg')
     expect(host.textContent).not.toContain(UNK)
     expectKept(useStore.getState().S)
   })

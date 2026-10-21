@@ -3,14 +3,12 @@ import { useStore } from '../store/useStore.js'
 import { dateLocale, t } from '../lib/i18n.js'
 import { closeThenNav, nav } from '../lib/nav.js'
 import { queueOf, queueView } from '../lib/queue.js'
-import { exCount, fmtDate, fmtDur, todayISO } from '../lib/format.js'
+import { fmtDate, todayISO } from '../lib/format.js'
 import { effectiveRoutineIds, workoutDay } from '../lib/history.js'
 import { EXIDX, figureOf, imgSrc } from '../lib/exercises.js'
 import { workoutsOn } from '../lib/backfill.js'
 import { canNoteDay, dayNoteOf, DAY_NOTE_LABEL } from '../lib/day-notes.js'
-import { restDay, restPlan } from '../lib/missed-day.js'
-import { markUndone, undoMarks } from '../lib/sync-merge.js'
-import { usualDuration } from '../lib/train-stats.js'
+import { restPlan } from '../lib/missed-day.js'
 import { nameOf, workoutLabel } from '../lib/training-day.js'
 import Icon from '../components/Icon.jsx'
 import { useStartChoices } from '../components/use-start-choices.js'
@@ -19,22 +17,15 @@ import Button from '../ds/Button.jsx'
 import MenuList from '../ds/MenuList.jsx'
 import Tag from '../ds/Tag.jsx'
 import { addRoutine } from '../views/routines/routine-actions.js'
-import { musclesLine } from '../views/train/use-train.js'
-import { dayNoteSheet, dayOverrideSheet, importPlanFile } from './plan.jsx'
+import { dayNoteSheet, dayOverrideSheet, importPlanFile, PLAN_FILE_ACCEPT } from './plan.jsx'
+import { restDayWithUndo, routineSub } from './plan-day.jsx'
 import { starterPlanSheet } from './starter.jsx'
 import { repeatWorkout, startFlow } from './workout-flow.jsx'
-import { S, ui, update } from './shared.js'
+import { S, ui } from './shared.js'
 
 // The stack of exercise stills on a routine row (board T2.1 draws three).
 const THUMBS = 3
 const weekdayOf = iso => new Date(iso + 'T12:00:00').toLocaleDateString(dateLocale(), { weekday: 'short' })
-
-// "Chest, shoulders, triceps · 55 min": what a session works, and how long one routine usually takes.
-function routineSub(st, routines) {
-  const ms = routines.length === 1 ? usualDuration(st, routines[0].id) : null
-  const n = routines.reduce((sum, r) => sum + (r.ex?.length || 0), 0)
-  return [musclesLine(routines) || exCount(n), ms && fmtDur(ms)].filter(Boolean).join(' · ')
-}
 
 function thumbsOf(st, routines) {
   const figure = figureOf(st)
@@ -131,7 +122,7 @@ function StartChooserDrawer({ close }) {
           disabled={r.disabled} onClick={() => open(r)} />
       ))}
       {actions.map((a, i) => <ActionRow key={a.key} {...a} first={!rows.length && i === 0} />)}
-      {noPlan && <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />}
+      {noPlan && <input ref={fileRef} type="file" accept={PLAN_FILE_ACCEPT} onChange={pickFile} hidden />}
       {!noPlan && (
         <div className="g-tr-more">
           <Button variant="secondary" block onClick={() => { close(); starterPlanSheet() }}>{t('Browse ready-made plans')}</Button>
@@ -168,20 +159,7 @@ function DayOptionsDrawer({ iso, close }) {
     : rest.to ? t('{0} moves to your next free day', routineName(rest.id))
       : rest.floats ? t('{0} moves to the next day you train', routineName(rest.id))
         : t('No workout this day')
-  const restIt = () => {
-    const before = S()
-    let done = null
-    update(s => { done = restDay(s, iso, today) })
-    close()
-    if (!done) return
-    // The Undo marks the plan days it put back, so another device's later edit to one still wins.
-    const marks = undoMarks(before, S())
-    const moved = routineName(done.id)
-    const text = done.to ? t('{0} moved to {1}', moved, fmtDate(done.to, true))
-      : done.floats ? t('{0} moves to the next day you train', moved)
-        : t('{0} set to rest', fmtDate(iso))
-    ui().toast(text, { action: t('Undo'), onAction: () => update(s => { done.undo(s); markUndone(s, marks) }) })
-  }
+  const restIt = () => { close(); restDayWithUndo(iso, today) }
   const items = [
     { key: 'change', icon: 'calendar', label: t('Change this day'), detail: t('Pick another routine for {0}', date), onClick: () => { close(); dayOverrideSheet(iso) } },
     iso === today && !st.active && { key: 'choose', icon: 'swap', label: t('Choose a different workout'), detail: t('Just for today'), onClick: () => { close(); startChooserSheet() } },

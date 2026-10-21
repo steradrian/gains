@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
-// List or cards (S.exerciseView): one button beside the search field switches every exercise
-// list — the Library, the add-exercise picker and the muscle explorer — between rows with a 50px
-// thumbnail and a grid of picture cards with the name under the picture. The list stays the default, so a profile that
-// never touches the button sees exactly what it saw before.
+// List or cards (S.exerciseView). The Exercises and By muscle pages on the stage are always rows,
+// and the add-exercise picker (T5.1) is a drawer of rows with no cards button, whatever the setting
+// says. What is left of the cards view is MuscleExplorer's (components/MuscleExplorer.jsx) and the
+// grid CSS below.
 import React, { act } from 'react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -11,13 +11,8 @@ import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
-import Library from './views/Library.jsx'
-import Muscles from './views/Muscles.jsx'
-
-vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 
 const mounted = []
-const view = () => useStore.getState().S.exerciseView
 function render(node) {
   const host = document.createElement('div')
   document.body.appendChild(host)
@@ -32,10 +27,6 @@ function renderTop() {
   return render(sheet.render(() => useUI.getState().closeSheet(sheet.id)))
 }
 const toggle = host => host.querySelector('button[aria-label="Cards"]')
-// The button belongs to the search row, next to the field — never in a header (see the next test).
-const besideSearch = btn => btn.parentElement.classList.contains('search-row') && !!btn.parentElement.querySelector('.search input')
-const isCards = host => host.querySelector('.list').classList.contains('ex-grid')
-const pickMuscle = host => act(() => host.querySelector('.chip[aria-pressed]').click())
 const setView = v => useStore.setState(s => ({ S: { ...s.S, exerciseView: v } }))
 
 beforeEach(() => {
@@ -47,34 +38,6 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
 
 describe('exercise list or cards', () => {
-  it('Library: a list until the button beside the search turns the cards on, and back', () => {
-    const host = render(<Library />)
-    expect(isCards(host)).toBe(false)
-    expect(besideSearch(toggle(host))).toBe(true)
-    expect(toggle(host).closest('.hdr')).toBeNull()
-    expect(toggle(host).getAttribute('aria-pressed')).toBe('false')
-    act(() => toggle(host).click())
-    expect(view()).toBe('cards')
-    expect(isCards(host)).toBe(true)
-    expect(toggle(host).getAttribute('aria-pressed')).toBe('true')
-    act(() => toggle(host).click())
-    expect(view()).toBe('list')
-    expect(isCards(host)).toBe(false)
-  })
-
-  it('reads a profile saved before the setting existed as the list', () => {
-    useStore.setState(s => { const S = { ...s.S }; delete S.exerciseView; return { S } })
-    expect(isCards(render(<Library />))).toBe(false)
-  })
-
-  it('keeps "Create your own exercise" a full-width row above the cards', () => {
-    setView('cards')
-    const first = render(<Library />).querySelector('.list.ex-grid > .item')
-    expect(first.classList.contains('ex-new')).toBe(true)
-  })
-
-  // The picker (T5.1) is a drawer of rows and has no cards view; the setting is the Library's and the
-  // Muscles page's alone.
   it('picker: the drawer keeps to rows and offers no cards button, whatever the setting says', () => {
     setView('cards')
     exercisePicker(vi.fn())
@@ -82,15 +45,6 @@ describe('exercise list or cards', () => {
     expect(toggle(host)).toBeNull()
     expect(host.querySelector('.ex-grid')).toBeNull()
     expect(host.querySelectorAll('.g-pk-item').length).toBeGreaterThan(0)
-  })
-
-  it('Muscles page: the results follow the setting, with the button beside their search', () => {
-    setView('cards')
-    const host = render(<Muscles />)
-    pickMuscle(host)
-    expect(isCards(host)).toBe(true)
-    expect(besideSearch(toggle(host))).toBe(true)
-    expect(toggle(host).closest('.hdr')).toBeNull()
   })
 
   // The desktop layout turns every #app list into two columns and forces every sheet list back

@@ -199,6 +199,48 @@ describe('week schedule as a routine-id list', () => {
     expect(target.week[2]).toBeUndefined()             // emptied → left absent, not stored as []
   })
 
+  // Routines M1: a one-routine file carries no weekdays, and "Use this weekly schedule" on it used
+  // to clear the whole week.
+  it('a file with no weekday leaves the week alone even with the schedule on', () => {
+    const bundle = { routines: [{ id: 'a', name: 'A', ex: [{ id: '0025', sets: 3, reps: 5 }] }], week: {}, customEx: [] }
+    const target = { routines: [{ id: 'mine', name: 'Mine', ex: [] }], week: { 1: ['mine'], 4: ['mine'] }, customEx: [] }
+    const res = mergePlan(target, bundle, { schedule: true })
+    expect(target.week).toEqual({ 1: ['mine'], 4: ['mine'] })
+    expect(res.scheduled).toBe(false)
+    // …and so does one whose weekdays name only routines that did not survive parsing
+    const stale = { ...bundle, week: { 2: ['gone'] } }
+    expect(mergePlan(target, stale, { schedule: true }).scheduled).toBe(false)
+    expect(target.week).toEqual({ 1: ['mine'], 4: ['mine'] })
+  })
+
+  it('says what it added: the new routine ids, the custom exercises it created, whether it replaced the week', () => {
+    const file = {
+      routines: [{ id: 'a', name: 'A', ex: [{ id: 'c1', sets: 3 }] }, { id: 'b', name: 'B', ex: [{ id: '0025', sets: 3 }] }],
+      week: { 1: ['a'] }, customEx: [{ id: 'c1', n: 'Sled push', bp: 'upper legs' }],
+    }
+    const target = { routines: [], week: { 3: ['x'] }, customEx: [] }
+    const res = mergePlan(target, file, { schedule: true })
+    expect(res.routines).toBe(2)
+    expect(res.ids).toEqual(target.routines.map(r => r.id))
+    expect(res.exIds).toEqual([target.customEx[0].id])
+    expect(res.scheduled).toBe(true)
+    expect(target.week).toEqual({ 1: [res.ids[0]] })
+    // a custom exercise you already have is reused, not created, so it is not the import's
+    const again = mergePlan(target, file)
+    expect(again.exIds).toEqual([])
+    expect(again.scheduled).toBe(false)
+  })
+
+  it('an imported routine says which plan it came from; the coach’s does not', () => {
+    const file = { name: 'Upper Lower', routines: [{ id: 'a', name: 'A', ex: [{ id: '0025', sets: 3 }] }], week: {}, customEx: [] }
+    const target = { routines: [], week: {}, customEx: [] }
+    mergePlan(target, file, { imported: true })
+    mergePlan(target, { ...file, name: '' }, { imported: true })
+    mergePlan(target, file)
+    expect(target.routines.map(r => r.importedFrom)).toEqual(['Upper Lower', null, undefined])
+    expect('importedFrom' in target.routines[2]).toBe(false)
+  })
+
   it('scheduledDays counts a populated array day as 1 and a [] / absent day as 0', () => {
     expect(parsePlan({ opengym_plan: 1, routines: [], customEx: [], week: { 1: ['a'], 2: [], 4: 'b' } }).scheduledDays).toBe(2)
   })

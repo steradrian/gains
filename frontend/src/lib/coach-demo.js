@@ -32,8 +32,9 @@ const iso = d => d.toISOString().slice(0, 10)
 /** The routine the canned review aims at: the first with two exercises, one to swap and one to cut a set from. */
 const reviewable = S => (S.routines || []).find(r => (r.ex || []).length >= 2)
 
-/** A change-set that reads like a real one, aimed at whatever the demo profile actually has. */
-function buildReview(S) {
+/** A change-set that reads like a real one, aimed at whatever the demo profile actually has.
+ *  With a weekly check-in (lib/coach-checkin.js) it says it read it, as the real Coach would. */
+function buildReview(S, checkIn = null) {
   const routine = reviewable(S)
   if (!routine) return null
   const reps = (routine.ex || []).filter(e => modeOf(e) === 'reps')
@@ -73,7 +74,10 @@ function buildReview(S) {
     summary: t('Three things worth changing, and one worth knowing about. Everything else is working: the squat and the pulls are both progressing on schedule.'),
     evidence: { from: sessions[0]?.d || iso(new Date(Date.now() - 28 * 864e5)), to: sessions.at(-1)?.d || iso(new Date()), sessions: sessions.length || 9 },
     changes,
-    notes: [t('Body weight has been flat for four weeks while the goal is to gain. That’s a kitchen problem, not a training one. The plan isn’t what’s holding it back.')]
+    notes: [
+      ...(checkIn ? [t('Your check-in is in, and these suggestions take it into account.')] : []),
+      t('Body weight has been flat for four weeks while the goal is to gain. That’s a kitchen problem, not a training one. The plan isn’t what’s holding it back.')
+    ]
   }
 }
 
@@ -187,12 +191,12 @@ function start(kind, make) {
   }, DELAY)
   return { job }
 }
-export const demoReview = S => {
+export const demoReview = (S, checkIn = null) => {
   // Refused before the job starts, the way demoDebrief refuses with no workout: without a
   // two-exercise routine buildReview has nothing to aim at, and a job that runs the whole wait
   // and ends with neither a proposal nor an error reads as the Coach ignoring you.
   if (!reviewable(S)) throw Object.assign(new Error(t('There’s no routine to review yet. Build one with at least two exercises first.')), { status: 409, code: 'noroutine' })
-  return start('review', () => buildReview(S))
+  return start('review', () => buildReview(S, checkIn))
 }
 export const demoPlan = (S, intake) => start('create', () => buildPlan(S, intake))
 // A refine re-reads the saved answers, as the server's payload does when a refine carries no

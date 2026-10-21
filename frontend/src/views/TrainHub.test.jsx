@@ -348,9 +348,9 @@ describe('Train — Your training', () => {
     expect(nav).toHaveBeenCalledWith('/progress/load')
   })
 
-  it('History, Training load, Ready-made plans and Gym setup; Check in with Coach off and check-in on', () => {
+  it('History, Training load, Ready-made plans and Gym setup; Gym card with Coach off and check-in on', () => {
     setS({ checkIn: true }); mount()
-    expect($$('.g-glist-row b').map(b => b.textContent)).toEqual(['History', 'Training load', 'Ready-made plans', 'Gym setup', 'Check in'])
+    expect($$('.g-glist-row b').map(b => b.textContent)).toEqual(['History', 'Training load', 'Ready-made plans', 'Gym setup', 'Gym card'])
     tap(row('History'))
     expect(nav).toHaveBeenCalledWith('/train/history')
     tap(row('Training load'))
@@ -359,16 +359,17 @@ describe('Train — Your training', () => {
     expect(starterPlanSheet).toHaveBeenCalled()
     tap(row('Gym setup'))
     expect(nav).toHaveBeenCalledWith('/me/equipment')
-    tap(row('Check in'))
+    tap(row('Gym card'))
     expect(nav).toHaveBeenCalledWith('/train/checkin')
+    expect(row('Check in')).toBeUndefined()
   })
 
-  it('Coach on: its row, and no Check in', () => {
+  it('Coach on: its row, and no Gym card', () => {
     coach.on = true
     setS({ checkIn: true }); mount()
     tap(row('Coach'))
     expect(nav).toHaveBeenCalledWith('/train/coach')
-    expect(row('Check in')).toBeUndefined()
+    expect(row('Gym card')).toBeUndefined()
   })
 
   it('the Exercises and Routines actions open their pages', () => {

@@ -78,7 +78,7 @@ const maybeRestNotification = async () => {
 
 let toastTm = null
 const TOAST_MS = 2200
-const TOAST_ACTION_MS = 8000
+export const TOAST_ACTION_MS = 8000
 let toastLeft = 0
 let toastT0 = 0
 let toastPaused = false

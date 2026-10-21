@@ -1,19 +1,18 @@
 // @vitest-environment happy-dom
-// The long exercise lists — the Library, the add-exercise picker and the muscle explorer — load
-// their next page by themselves once the "Show more" button at their foot comes near the screen
-// (lib/use-auto-more.js). The button stays, and without IntersectionObserver it is the way on.
+// The long exercise lists — the Exercises page, the add-exercise picker and the muscle explorer —
+// load their next page by themselves once the "Show more" button at their foot comes near the
+// screen (lib/use-auto-more.js). The button stays, and without IntersectionObserver it is the way on.
 // happy-dom has no IntersectionObserver, so a fake one stands in and is fired by hand.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
+import { MemoryRouter } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
-import Library from './views/Library.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { BODYPARTS, EXDB } from './lib/exercises.js'
-
-vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 
 const observers = []
 class FakeIntersectionObserver {
@@ -38,8 +37,9 @@ function renderTop() {
   const sheet = useUI.getState().sheets.at(-1)
   return render(sheet.render(() => useUI.getState().closeSheet(sheet.id)))
 }
-const rows = host => host.querySelectorAll('.list > .item').length - 1   // drop "Create your own"
 const pickerRows = host => host.querySelectorAll('.g-pk-item').length
+const page = () => render(<MemoryRouter><ExercisesScreen /></MemoryRouter>)
+const pageRows = host => host.querySelectorAll('.g-xr .g-xrow').length
 const showMore = host => [...host.querySelectorAll('button')].find(b => b.textContent === 'Show more')
 
 beforeEach(() => {
@@ -56,13 +56,13 @@ afterEach(() => {
 })
 
 describe('lists load their next page as you scroll', () => {
-  it('Library: the button coming into view loads the next 40', () => {
-    const host = render(<Library />)
-    expect(rows(host)).toBe(40)
+  it('Exercises page: the button coming into view loads the next 40', () => {
+    const host = page()
+    expect(pageRows(host)).toBe(40)
     comeIntoView()
-    expect(rows(host)).toBe(80)
+    expect(pageRows(host)).toBe(80)
     comeIntoView()
-    expect(rows(host)).toBe(120)
+    expect(pageRows(host)).toBe(120)
   })
 
   it('picker: the next 50, the same way', () => {
@@ -74,7 +74,7 @@ describe('lists load their next page as you scroll', () => {
   })
 
   it('muscle explorer: the results of a muscle load on too', () => {
-    const host = render(<MuscleExplorer onDetail={vi.fn()} onPlan={vi.fn()} />)
+    const host = render(<MuscleExplorer onPick={vi.fn()} />)
     // the muscle with the most exercises, so there is a second page to load
     const chips = [...host.querySelectorAll('.chip[aria-pressed]')]
     const biggest = chips.reduce((a, b) => (+b.querySelector('.dim').textContent > +a.querySelector('.dim').textContent ? b : a))
@@ -89,19 +89,19 @@ describe('lists load their next page as you scroll', () => {
     // a body part with a few pages, not the whole catalogue
     const count = bp => EXDB.filter(e => e.bp === bp).length
     const bp = BODYPARTS.filter(b => count(b) > 40).sort((a, b) => count(a) - count(b))[0]
-    const host = render(<Library />)
-    act(() => [...host.querySelectorAll('.chips .chip')].find(c => c.textContent === bp).click())
+    const host = page()
+    act(() => [...host.querySelectorAll('.g-cchip')].find(c => c.textContent === bp.charAt(0).toUpperCase() + bp.slice(1)).click())
     for (let i = 0; i < 10 && showMore(host); i++) comeIntoView()
-    expect(rows(host)).toBe(count(bp))
+    expect(pageRows(host)).toBe(count(bp))
     expect(showMore(host)).toBeUndefined()
     expect(observers.every(o => o.els.size === 0)).toBe(true)
   })
 
   it('without IntersectionObserver the button still loads more, and nothing breaks', () => {
     vi.stubGlobal('IntersectionObserver', undefined)
-    const host = render(<Library />)
-    expect(rows(host)).toBe(40)
+    const host = page()
+    expect(pageRows(host)).toBe(40)
     act(() => showMore(host).click())
-    expect(rows(host)).toBe(80)
+    expect(pageRows(host)).toBe(80)
   })
 })

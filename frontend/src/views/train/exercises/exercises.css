@@ -28,6 +28,8 @@
 .g-xd-rows .g-drow + .g-drow::before, .g-xd-setup .g-drow + .g-drow::before { inset-inline-start: 0; }
 .g-xd-setup h3 { margin: 20px 0 4px; font: 700 17px/22px var(--font-sans); }
 .g-xd-empty { margin: 0; padding: 32px 0; text-align: center; font: 500 16px/22px var(--font-sans); color: var(--text-3); }
+/* The mid-workout history drawer: the top-set curve, then the past sets list (components/PastSetsList.jsx). */
+.g-xd-hist { display: flex; flex-direction: column; gap: 16px; padding-block: 8px 24px; color: var(--text); }
 
 /* ---- T6.4 the Create exercise form ---- */
 .g-cxf { font-family: var(--font-sans); }
@@ -71,3 +73,32 @@
 .g-cxf-actions { display: flex; flex-direction: column; gap: 10px; padding-top: 24px; }
 .g-cxf-stage .g-sfoot { margin-top: 24px; padding-inline: 0; background: none; }
 .g-cxf-gone { margin: 24px 20px; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+
+/* ---- T6.0 Exercises and T6.2 By muscle ---- */
+.g-xs { display: flex; flex-direction: column; color: var(--on-stage); font-family: var(--font-sans); }
+/* The search, the body parts and the filter chips share one inset and one rhythm. The chip strip
+   keeps its own 4px of room all round, so a focus ring is not clipped by its scrolling. */
+.g-xs-in { display: flex; flex-direction: column; gap: 10px; padding: 8px 16px 6px; }
+.g-xf { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 2px; }
+.g-xs-card { margin-inline: 16px; }
+.g-xs .g-sempty { margin-inline: 16px; }
+.g-xr { border-radius: 28px; overflow: hidden; }
+/* The card clips, so a row's focus ring is drawn inside it. */
+.g-xr .g-xrow:focus-visible { outline-offset: -2px; }
+.g-xr-star { display: inline-grid; vertical-align: -2px; margin-inline-end: 6px; }
+.g-xr-star .g-icon { width: 14px; height: 14px; }
+.g-xs-mcard { appearance: none; border: 0; width: calc(100% - 32px); box-sizing: border-box; display: flex; align-items: center; gap: 16px; margin-top: 12px; padding: 16px 18px; border-radius: 28px; color: var(--on-stage); font: inherit; text-align: start; cursor: pointer; }
+.g-xs-mcard:focus-visible, .g-xs-more:focus-visible { outline-color: var(--on-stage); }
+.g-xs-mtext { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-xs-mtext b { font: 700 17px/22px var(--font-sans); }
+.g-xs-mtext span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-xs-mchev { width: 18px; height: 18px; flex: none; color: var(--on-stage-2); }
+[dir="rtl"] .g-xs-mchev { transform: scaleX(-1); }
+.g-xs-map { margin-top: 12px; padding: 18px; border-radius: 28px; }
+/* Two maps of 150px do not fit a 320px screen: they shrink together, keeping their shape. */
+.g-xs-map .g-bmap svg { width: min(150px, calc(50% - 7px)); height: auto; }
+.g-xs-mcap { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 12px; }
+.g-xs-mcap b { font: 700 19px/24px var(--font-sans); }
+.g-xs-mcap span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: end; }
+.g-xs-more { appearance: none; border: 0; width: calc(100% - 32px); height: 48px; margin-top: 16px; border-radius: 999px; color: var(--on-stage); font: 600 17px/22px var(--font-sans); cursor: pointer; }
+.g-xs .g-glist.g-xs-card { margin-top: 16px; }

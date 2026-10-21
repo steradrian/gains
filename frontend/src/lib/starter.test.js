@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EXIDX } from './exercises.js'
 import { ALL_EQUIPMENT, eqAvailable } from './equipment.js'
-import { buildStarterPlan, starterPlanDays, starterPlanOptions, starterRoutines } from './starter.js'
+import { applyStarterPlan, buildStarterPlan, previewStarterPlan, starterPlanDays, starterPlanOptions, starterRoutines } from './starter.js'
 
 // The approved prescription, written out again rather than imported: a test that reads the
 // same table as the code would pass no matter what that table said. [weekday, name, sets].
@@ -200,7 +200,7 @@ describe('the onboarding plans (2, 5 and 6 days)', () => {
       }
     }
     const full = buildStarterPlan('ppl-6', ALL_EQUIPMENT)
-    expect(full.fit).toEqual({ swapped: 0, dropped: 0 })
+    expect(full.fit).toEqual({ swapped: 0, dropped: 0, swaps: [], drops: [] })
     expect(full.routines.map(shape)).toEqual(APPROVED['ppl-6'].map(([, , list]) => list))
   })
 
@@ -231,7 +231,7 @@ describe('fitting a starter plan to equipment', () => {
     const all = ALL_EQUIPMENT
     const fitted = buildStarterPlan('ppl', all)
     expect(fitted.routines.map(shape)).toEqual(APPROVED.ppl.map(([, , list]) => list))
-    expect(fitted.fit).toEqual({ swapped: 0, dropped: 0 })
+    expect(fitted.fit).toEqual({ swapped: 0, dropped: 0, swaps: [], drops: [] })
   })
 
   it('has no fit report when no equipment is given', () => {
@@ -305,5 +305,127 @@ describe('fitting a starter plan to equipment', () => {
     const fitted = buildStarterPlan('5x5', [])
     const have = new Set(fitted.routines.map(r => r.id))
     for (const { routineId } of fitted.schedule) expect(have.has(routineId)).toBe(true)
+  })
+
+  it('names every swap and drop, and the counts agree with the lists', () => {
+    const fitted = buildStarterPlan('ppl', ['dumbbell'])
+    expect(fitted.fit.swaps).toHaveLength(fitted.fit.swapped)
+    expect(fitted.fit.drops).toHaveLength(fitted.fit.dropped)
+    expect(fitted.fit.swaps).toContainEqual({ from: '0025', to: fitted.routines[0].ex[0].id })
+    const planned = new Set(fitted.routines.flatMap(r => r.ex.map(e => e.id)))
+    for (const { from, to } of fitted.fit.swaps) {
+      expect(planned.has(to)).toBe(true)
+      expect(eqAvailable(['dumbbell'], EXIDX[from])).toBe(false)
+    }
+  })
+})
+
+// The ready-made plan load (PR02 T10.1, owner question 6): the whole week, with Undo.
+describe('applyStarterPlan', () => {
+  const mine = { id: 'mine', name: 'Push A', emoji: 'star', ex: [{ id: '0025', sets: 3, reps: 8 }] }
+  const draft = (over = {}) => ({ routines: [structuredClone(mine)], week: { 1: ['mine'], 3: ['mine'], 6: ['mine'] }, dayPlan: {}, ...over })
+
+  it('replaces the whole week: the plan’s days get its routines and every other day is rest', () => {
+    const s = draft()
+    const { ids, added } = applyStarterPlan(s, buildStarterPlan('upper-lower'))
+    const name = d => s.routines.find(r => r.id === s.week[d][0]).name
+    expect(Object.keys(s.week).sort()).toEqual(['1', '2', '4', '5'])
+    expect([1, 2, 4, 5].map(name)).toEqual(['Upper A', 'Lower A', 'Upper B', 'Lower B'])
+    expect(added).toHaveLength(4)
+    expect(ids).toEqual(added)
+    expect(s.routines[0].id).toBe('mine')   // routines are never removed
+  })
+
+  it('reuses a routine with the same name and exercises instead of adding a second one', () => {
+    const s = draft()
+    applyStarterPlan(s, buildStarterPlan('ppl'))
+    const count = s.routines.length
+    const second = applyStarterPlan(s, buildStarterPlan('ppl'))
+    expect(second.added).toEqual([])
+    expect(s.routines).toHaveLength(count)
+    expect(second.ids.every(id => s.routines.some(r => r.id === id))).toBe(true)
+  })
+
+  it('undo puts the week back and removes only what it added', () => {
+    const s = draft()
+    const before = structuredClone(s)
+    const { undo } = applyStarterPlan(s, buildStarterPlan('full-body'))
+    undo(s)
+    expect(s.week).toEqual(before.week)
+    expect(s.routines).toEqual(before.routines)
+  })
+
+  it('undo keeps a day changed after the load, and clears what pointed at an added routine', () => {
+    const s = draft()
+    const { undo, added } = applyStarterPlan(s, buildStarterPlan('full-body'))
+    s.week[0] = ['mine']                    // set after the load, on some device
+    s.dayPlan['2026-10-24'] = added[0]      // a one-off move of an added routine
+    undo(s)
+    expect(s.week[0]).toEqual(['mine'])
+    expect(s.week[1]).toEqual(['mine'])
+    expect(s.dayPlan['2026-10-24']).toBeUndefined()
+    expect(s.routines.map(r => r.id)).toEqual(['mine'])
+  })
+})
+
+describe('previewStarterPlan', () => {
+  const S = (over = {}) => ({
+    weekStart: 1,
+    routines: [
+      { id: 'pa', name: 'Push A', ex: [{ id: '0025' }] },
+      { id: 'pl', name: 'Pull A', ex: [{ id: '2330' }] },
+      { id: 'lg', name: 'Legs', ex: [{ id: '0043' }] },
+      { id: 'idle', name: 'Old', ex: [] }
+    ],
+    week: { 1: ['pa'], 3: ['pl'], 5: ['lg'] },
+    ...over
+  })
+
+  it('draws the week in the profile’s order, with rest days as null', () => {
+    const p = previewStarterPlan(S(), 'upper-lower')
+    expect(p.days).toBe(4)
+    expect(p.week.map(d => d.day)).toEqual([1, 2, 3, 4, 5, 6, 0])
+    expect(p.week.map(d => d.routine)).toEqual(['Upper A', 'Lower A', null, 'Upper B', 'Lower B', null, null])
+    expect(previewStarterPlan(S({ weekStart: 0 }), 'upper-lower').week[0]).toEqual({ day: 0, routine: null })
+  })
+
+  it('lists the routines with their exercise counts and days', () => {
+    const p = previewStarterPlan(S(), 'upper-lower')
+    expect(p.routines).toEqual([
+      { name: 'Upper A', exercises: 7, days: [1] },
+      { name: 'Lower A', exercises: 5, days: [2] },
+      { name: 'Upper B', exercises: 7, days: [4] },
+      { name: 'Lower B', exercises: 5, days: [5] }
+    ])
+  })
+
+  it('names the routines that come off the Plan, not one that is only in Routines', () => {
+    expect(previewStarterPlan(S(), 'upper-lower').replaces.map(r => r.name)).toEqual(['Push A', 'Pull A', 'Legs'])
+    expect(previewStarterPlan(S({ week: {} }), 'upper-lower').replaces).toEqual([])
+  })
+
+  it('does not name a routine the load would reuse', () => {
+    const ppl = buildStarterPlan('ppl').routines[0]
+    const s = S({ routines: [{ ...ppl, id: 'push' }], week: { 1: ['push'] } })
+    expect(previewStarterPlan(s, 'ppl').replaces).toEqual([])
+  })
+
+  it('has no fit summary as written, and names each swap with a profile', () => {
+    expect(previewStarterPlan(S(), 'ppl').fit).toBeNull()
+    const home = { id: 'home', name: 'Home gym', equipment: ['dumbbell'] }
+    const { fit } = previewStarterPlan(S(), 'ppl', { fit: home })
+    expect(fit.profile).toEqual({ id: 'home', name: 'Home gym' })
+    expect(fit.swaps.length).toBeGreaterThan(0)
+    expect(fit.swaps[0].from).toEqual({ id: '0025', name: EXIDX['0025'].n })
+    expect(typeof fit.swaps[0].to.name).toBe('string')
+    expect(fit.drops).toEqual([])
+  })
+
+  it('is null for a plan it does not know, and never changes the state it reads', () => {
+    const s = S()
+    const before = structuredClone(s)
+    expect(previewStarterPlan(s, 'nope')).toBeNull()
+    previewStarterPlan(s, 'ppl')
+    expect(s).toEqual(before)
   })
 })

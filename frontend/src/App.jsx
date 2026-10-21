@@ -52,18 +52,19 @@ const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : nul
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import CheckIn from './views/CheckIn.jsx'
-import Plan from './views/Plan.jsx'
+import PlanScreen from './views/plan/PlanScreen.jsx'
+import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
 import RoutineEditor from './views/routines/RoutineEditor.jsx'
 import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 import Workout from './views/Workout.jsx'
 import Body from './views/Body.jsx'
-import Strength from './views/Strength.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
-import Library from './views/Library.jsx'
-import Muscles from './views/Muscles.jsx'
 // Train slice 4
 import CreateExercise from './views/train/exercises/CreateExercise.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
+import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
@@ -71,6 +72,8 @@ import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
 import TrainHub from './views/TrainHub.jsx'
+import PlansScreen from './views/train/plans/PlansScreen.jsx'
+import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
 import MealCatalog from './views/MealCatalog.jsx'
 import Foods from './views/Foods.jsx'
@@ -283,13 +286,14 @@ function Shell() {
               <Route path="/home" element={<Home />} />
               {/* Training */}
               <Route path="/train" element={<TrainHub />} />
-              <Route path="/train/schedule" element={<Plan view="schedule" />} />
+              <Route path="/train/schedule" element={<PlanScreen />} />
+              <Route path="/train/schedule/import" element={<PlanImportPage />} />
               <Route path="/train/routines" element={<RoutinesScreen />} />
               <Route path="/train/routines/:id" element={<RoutineEditor />} />
               <Route path="/train/history" element={<History />} />
-              <Route path="/train/exercises" element={<Library />} />
-              <Route path="/train/exercises/muscles" element={<Muscles />} />
               {/* Train slice 4 routes */}
+              <Route path="/train/exercises" element={<ExercisesScreen />} />
+              <Route path="/train/exercises/muscles" element={<MuscleScreen />} />
               <Route path="/train/exercises/new" element={<CreateExercise />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
@@ -301,6 +305,9 @@ function Shell() {
               <Route path="/train/coach/intake" element={<CoachIntake />} />
               <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
               <Route path="/train/coach/setup" element={<CoachSetup />} />
+              {/* Train slice 6 routes: Ready-made plans and a plan's preview. Gym setup is /me/equipment (SettingsRoute). */}
+              <Route path="/train/plans" element={<PlansScreen />} />
+              <Route path="/train/plans/:id" element={<PlanPreview />} />
               {/* Nutrition */}
               <Route path="/food" element={<FoodHub />} />
               <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
@@ -313,7 +320,7 @@ function Shell() {
               <Route path="/progress/body" element={<Body segment="weight" />} />
               <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
               <Route path="/progress/body/photos" element={<Body segment="photos" />} />
-              <Route path="/progress/strength" element={<Strength />} />
+              <Route path="/progress/strength" element={<ExerciseProgress />} />
               <Route path="/progress/strength/balance" element={<StructuralBalance />} />
               <Route path="/progress/load" element={<TrainingLoad />} />
               <Route path="/progress/trends" element={<Trends />} />

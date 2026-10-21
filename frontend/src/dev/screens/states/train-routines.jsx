@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { EXDB } from '../../../lib/exercises.js'
 import { exerciseNameText } from '../../../lib/format.js'
-import { t } from '../../../lib/i18n.js'
+import { t, tn } from '../../../lib/i18n.js'
 import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import RoutineEditor from '../../../views/routines/RoutineEditor.jsx'
@@ -98,9 +98,10 @@ registerScreens('Train: routines', [
   { id: 'T4.3', title: 'Routine deleted', note: 'Push A swiped away: its toast names the days that became rest, with Undo (held here).',
     path: '/train/routines', render: () => <RoutinesScreen />, mock: { S: withoutPush() },
     play: held(deletedText(routinesPlan(), 'g-push')) },
-  { id: 'T4.4', title: 'Added from a plan file', note: 'The landing after an import: its routines first, each new. Plan M3 raises the toast.',
+  { id: 'T4.4', title: 'Added from a plan file', note: 'The landing after an import: its routines first, each new, and the import’s toast with Undo (held here).',
     path: '/train/routines', render: () => <Landing state={LANDING} />,
-    mock: { S: routinesPlan({ routines: [...ROUTINES, ...IMPORTED] }) } },
+    mock: { S: routinesPlan({ routines: [...ROUTINES, ...IMPORTED] }) },
+    play: held(tn('Added {0} routine from {1}', 'Added {0} routines from {1}', IMPORTED.length, 'Upper Lower')) },
   // The routine editor (T5.0 and its edges, T5.4, T5.6): the real page over the same plan, with the
   // board's numbers. Every tap stays in memory (mock-env.js swaps `update`), and the one play that
   // touches the store's sync state (Offline) has it put back with the rest of the mocks.
