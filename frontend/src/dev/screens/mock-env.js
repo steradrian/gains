@@ -35,15 +35,24 @@ const json = (status, body) => new Response(JSON.stringify(body), { status, head
  * The hub's routes count as under it (/hub/api/onboarding is 'GET /api/onboarding').
  * `onboarding` is what the onboarding kept for this tab (lib/onboarding/state.js), `online: false`
  * a browser with no connection. `S` is laid over the store's own state (routines, plan, workouts)
- * while the state shows, and the store's own comes back after.
+ * while the state shows, and the store's own comes back after. While it is laid over, a change a
+ * tap makes (`update`) stays in memory: the store's own update would save the mock over this
+ * browser's copy of the real data and push it.
  */
 export function installMocks({ config = null, user = null, linkCode = null, webauthn = true, api = {}, credentials = {}, onboarding = null, online = true, S = null } = {}) {
   const undo = []
 
   if (S) {
-    const own = useStore.getState().S
-    useStore.setState({ S: { ...own, ...S } })
-    undo.push(() => useStore.setState({ S: own }))
+    const { S: own, update } = useStore.getState()
+    useStore.setState({
+      S: { ...own, ...S },
+      update: mut => {
+        const next = structuredClone(useStore.getState().S)
+        mut(next)
+        useStore.setState({ S: next })
+      },
+    })
+    undo.push(() => useStore.setState({ S: own, update }))
   }
 
   const saved = Object.fromEntries(STORE_KEYS.map(k => [k, useStore.getState()[k]]))

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Stage } from './DevScreens.jsx'
 import { allScreens, screenAreas, screenById } from './registry.js'
+import { todayISO } from '../../lib/format.js'
 import { useStore } from '../../store/useStore.js'
 
 /* The screens gallery: every registered state renders its real screen, in its frame, with its
@@ -241,6 +242,21 @@ describe('the screens gallery', () => {
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useStore.getState().S).toBe(own)
   }, 20000)
+
+  it('a tap in a mocked state changes memory only: the real saved copy is untouched and nothing is pushed', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const realUpdate = useStore.getState().update
+    const host = await show(screenById('T2.2'))
+    const rest = [...host.querySelectorAll('.g-bs button')].find(b => b.textContent.startsWith('Rest / skip this day'))
+    rest.click()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S.dayPlan).toMatchObject({ [todayISO()]: 'rest' })
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    unmountAll()
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().update).toBe(realUpdate)
+    localStorage.removeItem('gym_state_v1')
+  }, 10000)
 
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
