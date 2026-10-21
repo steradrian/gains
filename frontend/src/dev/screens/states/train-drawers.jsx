@@ -1,6 +1,6 @@
 import { EXDB } from '../../../lib/exercises-data.js'
 import { isoOf, todayISO } from '../../../lib/format.js'
-import { dayOptionsSheet, startChooserSheet } from '../../../sheets/train-day.jsx'
+import { dayOptionsSheet, startChooserSheet } from '../../../sheets.jsx'
 import TrainHub from '../../../views/TrainHub.jsx'
 import { registerScreens } from '../registry.js'
 

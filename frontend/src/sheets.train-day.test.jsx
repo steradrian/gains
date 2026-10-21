@@ -10,7 +10,7 @@ import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { setNav } from './lib/nav.js'
 import { fmtDate } from './lib/format.js'
-import { dayOptionsSheet, startChooserSheet } from './sheets/train-day.jsx'
+import { dayOptionsSheet, startChooserSheet } from './sheets.jsx'
 
 const BENCH = '0025'
 // Sun 18 Oct 2026. Push on Sundays, Pull on Wednesdays (logged on the 14th), Legs on Fridays (missed on the 16th).
