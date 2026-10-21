@@ -34,6 +34,8 @@ const mount = async el => { await act(async () => { root.render(<>{el}<Sheets />
 const button = (label, scope = host) => [...scope.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent).trim() === label)
 const click = async el => { await act(async () => { el.click() }); await settle() }
 const lastSheet = () => [...host.querySelectorAll('[data-sheet]')].at(-1)
+// Amount's button names the meal ("Add to Lunch"), which the + sheet takes from the clock.
+const addButton = (scope = lastSheet()) => [...scope.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('Add to '))
 const typeInto = async (input, value) => {
   await act(async () => {
     Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, value)
@@ -78,7 +80,7 @@ describe('scanning a product', () => {
     await click(button('Log', lastSheet()))
     // The portion sheet, as for a food picked from the list.
     expect(lastSheet().textContent).toContain('Serving size')
-    await click(button('Log', lastSheet()))
+    await click(addButton())
     const put = nt.writes().find(r => r.method === 'PUT')
     expect(put.path).toBe(`/nt/api/diary/${TODAY}`)
     expect(put.body.items.at(-1)).toMatchObject({ name: 'Wholemeal bread', food_server_id: 12, quantity: 1 })
@@ -100,7 +102,7 @@ describe('scanning a product', () => {
     expect(proxyCalls().length).toBe(1)
     expect(proxyCalls()[0].query.url).toBe('https://world.openfoodfacts.org/api/v3/product/3017620422003?lc=en')
     await click(button('Log', lastSheet()))
-    await click(button('Log', lastSheet()))
+    await click(addButton())
     const saved = nt.writes().find(r => r.path === '/nt/api/foods')
     expect(saved.body).toMatchObject({ name: 'Nutella', barcode: '3017620422003', visibility: 'private' })
     expect(saved.body).not.toHaveProperty('imgUrl')
@@ -217,7 +219,7 @@ describe('the picker', () => {
     await click(button('Scan a barcode'))
     await scan('5000000000001')
     await click(button('Log', lastSheet()))
-    await click(button('Log', lastSheet()))
+    await click(button('Add to Dinner', lastSheet()))
     expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Wholemeal bread', meal: 2 })
   })
 })

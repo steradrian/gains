@@ -214,7 +214,7 @@ describe('the diary picker', () => {
     await mount(<FoodPicker date={TODAY} meal="breakfast" mealName="Breakfast" />)
     await search(host, 'nutella')
     await click(row(host, 'Nutella'))
-    await click(buttonIn(lastSheet(), 'Log'))
+    await click(buttonIn(lastSheet(), 'Add to Breakfast'))
     expect(foodPosts()[0].body).toMatchObject({ name: 'Nutella', visibility: 'private' })
     expect(nt.writes().find(r => r.method === 'PUT').body.items.at(-1)).toMatchObject({ name: 'Nutella' })
   })
