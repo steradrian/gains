@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { DAYN, durPart, exCount, fmtNum, isoOf, startOfWeek, todayISO, weekStartOf } from '../../lib/format.js'
@@ -18,6 +18,7 @@ import { useDiaryDay } from '../../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { waterButtons } from '../../lib/nutrition/water.js'
 import { useUnreadCount } from '../../lib/notifications/use-notifications.js'
+import { notificationsPath } from '../../lib/tab-route.js'
 import { usePlanRefused } from '../../lib/onboarding/use-plan-refused.js'
 import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
 import { bwSheet, startFlow, workoutDetailSheet } from '../../sheets.jsx'
@@ -284,6 +285,7 @@ function scanToday(day) {
  */
 export function useToday() {
   const nav = useNavigate()
+  const { pathname } = useLocation()
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const units = useUnits()
@@ -344,7 +346,7 @@ export function useToday() {
     alert: connection ? t('Connection problem') : hub ? t('Nutrition sync needs attention') : null,
     onSettings: () => nav('/me'),
     unread,
-    onBell: () => nav('/home/notifications'),
+    onBell: () => nav(notificationsPath(pathname)),
     // The app's search types into a header input: the tab's own header takes over while it is open,
     // mounted and focused inside this tap so a phone raises its keyboard.
     onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('home'))) },

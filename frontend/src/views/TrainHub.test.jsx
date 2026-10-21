@@ -94,12 +94,13 @@ describe('Train — the screen', () => {
     expect($('h1.sr-only').textContent).toBe('Training')
   })
 
-  it('the header: the avatar opens Me, the bell notifications', () => {
+  it('the header: the avatar opens Me, the bell Train\'s own notifications', () => {
     setS(); mount()
     tap($('.g-shdr .g-sbtn:not(.g-bell)'))
     expect(nav).toHaveBeenCalledWith('/me')
     tap($('.g-bell'))
-    expect(nav).toHaveBeenCalledWith('/me/notifications')
+    expect(nav).toHaveBeenCalledWith('/train/notifications')
+    expect(nav).not.toHaveBeenCalledWith('/me/notifications')
   })
 
   it('the rail marks today and a planned day, and Plan opens the schedule', () => {

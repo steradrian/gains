@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { focusSearch, openSearch, useSearch } from '../../lib/search/session.js'
@@ -24,6 +24,8 @@ import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../li
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, logPastWorkoutSheet, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
+import { useUnreadCount } from '../../lib/notifications/use-notifications.js'
+import { notificationsPath } from '../../lib/tab-route.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
 // T2.14: the rail reaches eight weeks past this one, and back no further than eight weeks before
@@ -436,6 +438,8 @@ export function skippedText(S, missed, today) {
  */
 export function useTrain() {
   const nav = useNavigate()
+  const { pathname } = useLocation()
+  const unread = useUnreadCount()
   const S = useStore(s => s.S)
   const config = useStore(s => s.config)
   const user = useStore(s => s.user)
@@ -478,7 +482,8 @@ export function useTrain() {
     placeholder: t('Search training'),
     alert: connection ? t('Connection problem') : null,
     onSettings: () => nav('/me'),
-    onBell: () => nav('/me/notifications'),
+    unread,
+    onBell: () => nav(notificationsPath(pathname)),
     // As on Today: the tab's own header takes over while the search is open, mounted and focused
     // inside this tap so a phone raises its keyboard.
     onSearch: open => { if (open) flushSync(() => focusSearch(() => openSearch('train'))) },
