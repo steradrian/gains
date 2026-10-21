@@ -569,6 +569,70 @@ button.g-lf-add[aria-disabled="true"] { opacity: .6; cursor: default; }
 .g-lq-f > span { font: 600 13px/18px var(--font-sans); color: var(--text-3); }
 .g-lq-f .num, .g-lq-f .field { width: 100%; }
 
+/* Eat logging m2 (boards Ea8Entry, Ea9*): a logged entry's drawer, and the Scan overlay */
+.g-en { display: grid; gap: 14px; padding-bottom: 4px; }
+.g-en-head { display: flex; align-items: center; gap: 12px; }
+.g-en-lead { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); }
+.g-en-lead .g-icon { width: 22px; height: 22px; stroke-width: 2; }
+.g-en-id { min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-en-name { font: 700 19px/24px var(--font-sans); overflow-wrap: anywhere; }
+.g-en-sub { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-en-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.g-en-meal select { flex: 1; min-width: 0; width: 100%; border: 0; background: none; outline: none; appearance: none; font: 600 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+.g-en-meal .g-icon { width: 20px; height: 20px; flex: none; color: var(--text-3); pointer-events: none; }
+.g-en-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+.g-en-foot .g-btn-danger:not([disabled]) { background: var(--danger-tint); }
+/* The overlay stays dark in every theme: it is a camera. The card over it is the app's surface. */
+.g-scan { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: #0F0F0E; color: #fff; font-family: var(--font-sans); text-align: start; }
+.g-scan-cam { position: absolute; inset: 0; background: radial-gradient(120% 70% at 50% 40%, #4A4741 0%, #262422 55%, #121110 100%); }
+.g-scan-cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.g-scan-still span:first-child { position: absolute; inset: 0; margin: auto; width: 206px; height: 120px; border-radius: 12px; background: linear-gradient(160deg, #EDEBE6, #CFCBC2); opacity: .9; }
+.g-scan-still span:last-child { position: absolute; inset: 0; margin: auto; width: 146px; height: 64px; background: repeating-linear-gradient(90deg, #1A1A1A 0 3px, transparent 3px 6px, #1A1A1A 6px 7px, transparent 7px 11px); }
+.g-scan-find { position: absolute; inset: 0; z-index: 1; margin: auto; width: min(290px, calc(100% - 100px)); height: 180px; border-radius: 22px; box-shadow: 0 0 0 2000px rgba(0, 0, 0, .45); pointer-events: none; }
+.g-scan-line { position: absolute; inset-inline: 18px; top: 50%; height: 2px; background: #FF6B4A; box-shadow: 0 0 12px #FF6B4A; }
+.g-scan-c { position: absolute; width: 34px; height: 34px; border: 0 solid #fff; }
+.g-scan-c-tl { inset-block-start: -2px; inset-inline-start: -2px; border-block-start-width: 4px; border-inline-start-width: 4px; border-start-start-radius: 22px; }
+.g-scan-c-tr { inset-block-start: -2px; inset-inline-end: -2px; border-block-start-width: 4px; border-inline-end-width: 4px; border-start-end-radius: 22px; }
+.g-scan-c-bl { inset-block-end: -2px; inset-inline-start: -2px; border-block-end-width: 4px; border-inline-start-width: 4px; border-end-start-radius: 22px; }
+.g-scan-c-br { inset-block-end: -2px; inset-inline-end: -2px; border-block-end-width: 4px; border-inline-end-width: 4px; border-end-end-radius: 22px; }
+/* The camera view owns the safe areas: the top bar clears the status bar, the foot the home bar. */
+.g-scan-top { position: absolute; inset-inline: 0; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(var(--sat, 0px) + 14px) 16px 14px; }
+.g-scan-top h2 { margin: 0; font: 700 17px/22px var(--font-sans); text-align: center; }
+.g-scan-btn { appearance: none; border: 0; width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .16); color: #fff; cursor: pointer; }
+.g-scan-btn .g-icon { width: 22px; height: 22px; stroke-width: 2.2; }
+.g-scan-btn[aria-pressed="true"] { background: #fff; color: #111; }
+.g-scan-gap { width: 44px; height: 44px; flex: none; }
+.g-scan-foot { position: absolute; inset-inline: 0; bottom: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0 24px calc(var(--sab, 0px) + 48px); text-align: center; }
+.g-scan-hint { font: 600 17px/22px var(--font-sans); outline: none; }
+.g-scan-notice { font: 600 15px/20px var(--font-sans); color: #FFB4A4; }
+.g-scan-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.g-scan-pill { appearance: none; border: 0; height: 52px; padding: 0 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255, 255, 255, .16); color: #fff; font: 700 16px/20px var(--font-sans); cursor: pointer; }
+.g-scan-pill .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
+.g-scan-pill-solid { background: #fff; color: #111; }
+.g-scan-btn:focus-visible, .g-scan-pill:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.g-scan-code { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 999px; background: rgba(255, 255, 255, .16); font: 600 16px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-scan-denied { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 0 32px; background: #121110; }
+.g-scan-card { position: absolute; inset-inline: 12px; bottom: calc(var(--sab, 0px) + 24px); z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 28px; background: var(--surface); color: var(--text); }
+.g-scan-prod { display: flex; align-items: center; gap: 12px; }
+.g-scan-prod-ic { width: 52px; height: 52px; flex: none; border-radius: 16px; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); }
+.g-scan-prod-ic .g-icon { width: 26px; height: 26px; stroke-width: 2; }
+.g-scan-prod-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-scan-prod-t b { font: 700 20px/26px var(--font-sans); overflow-wrap: anywhere; outline: none; }
+.g-scan-prod-t span { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-scan-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.g-scan-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px; border-radius: 16px; background: var(--surface-sunken); }
+.g-scan-stat b { font: 700 20px/24px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-scan-stat span { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/14px var(--font-sans); color: var(--text-3); }
+.g-scan-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-fill); }
+.g-scan-dot-p { background: var(--macro-protein); }
+.g-scan-dot-c { background: var(--macro-carbs); }
+.g-scan-dot-f { background: var(--macro-fat); }
+.g-scan-acts { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.g-scan-acts-col { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
+.g-scan-card-code { font: 600 13px/16px var(--font-mono); color: var(--text-3); }
+.g-scan-card h3 { margin: 0; font: 700 22px/28px var(--font-sans); outline: none; }
+.g-scan-card p { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-3); }
+
 /* Weigh-in drawer (board T1.7): ±0.1 discs either side of the big number, which takes typing */
 .g-wi { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0 6px; }
 .g-wi-pm { appearance: none; border: 0; width: 56px; height: 56px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }

@@ -23,12 +23,10 @@ import FoodSearch from './FoodSearch.jsx'
 import MealRow from './MealRow.jsx'
 import PortionSheet from './PortionSheet.jsx'
 import ScanSheet from './ScanSheet.jsx'
+import { seeCode } from '../lib/use-camera-scan.fake.js'
 import WaterCard from './WaterCard.jsx'
 
-const camera = { hit: null }
-vi.mock('./CameraScan.jsx', () => ({
-  default: ({ onFound }) => <button type="button" onClick={() => onFound(camera.hit)}>camera sees a code</button>,
-}))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 const beep = vi.hoisted(() => vi.fn())
 vi.mock('../lib/sound.js', async orig => ({ ...(await orig()), beep }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/home', search: '' }) }))
@@ -196,15 +194,14 @@ describe('adding food', () => {
   })
 
   it('diaryPromptQuantity: off, a scanned product is logged at once too', async () => {
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
     await mount(<><ScanSheet date={TODAY} meal={0} mealName="Breakfast" close={() => {}} /><Sheets /></>, { diaryPromptQuantity: false })
-    await click(buttonSaying(host, 'camera sees a code'))
-    await click(buttonSaying(host, 'Log'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
+    await click(buttonSaying(host, 'Log to Breakfast'))
     expect(host.querySelector('.g-la')).toBeNull()
     expect(puts(`/nt/api/diary/${TODAY}`)[0].body.items[0]).toMatchObject({ name: 'Nutella', quantity: 1, meal: 0 })
     await mount(<><ScanSheet date={TODAY} meal={0} mealName="Breakfast" close={() => {}} /><Sheets /></>, { diaryPromptQuantity: true })
-    await click(buttonSaying(host, 'camera sees a code'))
-    await click(buttonSaying(host, 'Log'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
+    await click(buttonSaying(host, 'Log to Breakfast'))
     expect(puts(`/nt/api/diary/${TODAY}`)).toHaveLength(0)
     expect(host.querySelector('.g-la')).toBeTruthy()
   })
@@ -290,12 +287,11 @@ describe('food sources', () => {
   })
 
   it('barcodeBeep: the camera reading a code beeps only when it is on', async () => {
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
     await mount(<ScanSheet close={() => {}} />, { barcodeBeep: true })
-    await click(buttonSaying(host, 'camera sees a code'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
     expect(beep).toHaveBeenLastCalledWith(true, 1040, 0.12)
     await mount(<ScanSheet close={() => {}} />, { barcodeBeep: false })
-    await click(buttonSaying(host, 'camera sees a code'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
     expect(beep).toHaveBeenLastCalledWith(false, 1040, 0.12)
   })
 })

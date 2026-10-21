@@ -27,6 +27,7 @@ import { weighInTime } from '../lib/bodyweight.js'
 
 const { navigate } = vi.hoisted(() => ({ navigate: vi.fn() }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useLocation: () => ({ pathname: '/home' }) }))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const TODAY = todayISO()
@@ -191,7 +192,7 @@ describe('Today', () => {
     await mount(<Home />)
     expect(actions()).toEqual(['Log food', 'Scan', 'Water', 'Weigh-in'])
     await click(action('Scan'))
-    expect(lastSheet().querySelector('.scan-sheet h3').textContent).toBe('Scan a barcode')
+    expect(lastSheet().querySelector('.g-scan h2').textContent).toBe('Scan a barcode')
     await act(async () => { useUI.setState({ sheets: [] }) })
     await click(action('Weigh-in'))
     await click(button('Save weigh-in', lastSheet()))

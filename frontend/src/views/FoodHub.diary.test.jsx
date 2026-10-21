@@ -20,7 +20,7 @@ const navigate = vi.hoisted(() => vi.fn())
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigate, useLocation: () => ({ pathname: '/food' }), useSearchParams: () => [new URLSearchParams(), vi.fn()],
 }))
-vi.mock('../components/CameraScan.jsx', () => ({ default: () => <p>camera</p> }))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const TODAY = todayISO()
@@ -261,7 +261,7 @@ describe('the action row', () => {
     await mount(<FoodHub />)
     await click(action('Scan'))
     expect(sheets()).toHaveLength(1)
-    expect(sheets()[0].querySelector('.scan-sheet').textContent).toContain('Scan a barcode')
+    expect(sheets()[0].querySelector('.g-scan').textContent).toContain('Scan a barcode')
   })
 
   it('Saved meals opens the Saved meals page', async () => {

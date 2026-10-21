@@ -71,15 +71,6 @@
 .portion-sum{display:flex;flex-direction:column;gap:4px;margin:8px 0 12px}
 .nt-error{color:var(--red-ink);margin:4px 0 10px}
 
-/* --- barcode scan sheet --- */
-.scan-sheet .cam-frame.wide{width:84%;aspect-ratio:2.4}
-.cam-note{margin:12px 0}
-.cam-note.center{text-align:center}
-.scan-type{display:flex;gap:8px;align-items:center;margin-top:12px}
-.scan-type .field{flex:1;min-width:0}
-.scan-hit{display:flex;flex-direction:column;gap:2px;margin:8px 0 14px}
-.scan-hit .tt{font-size:17px;font-weight:600}
-.scan-actions{display:flex;flex-direction:column;gap:8px}
 
 /* --- fasting: Home's live row, the Fasting page --- */
 .card.today-fast{display:flex;align-items:center;gap:9px;cursor:pointer}
