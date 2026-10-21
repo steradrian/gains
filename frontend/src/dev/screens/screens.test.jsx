@@ -615,7 +615,8 @@ describe('the screens gallery: the running workout', () => {
     'W1.41', 'W1.42', 'W1.9', 'W1.28', 'W1.28b', 'W1.29', 'W1.29b', 'W1.30', 'W1.44']
 
   it('has every running-workout state under its board id', () => {
-    expect(screenAreas().find(a => a.name === 'Workout').entries.map(e => e.id)).toEqual(IDS)
+    // The area is shared with the progression states (W1.47 to W1.51, tested below).
+    expect(screenAreas().find(a => a.name === 'Workout').entries.map(e => e.id).filter(id => IDS.includes(id))).toEqual(IDS)
   })
 
   it('shows each state it names and leaves no rest, hold or session behind', async () => {
@@ -753,5 +754,41 @@ describe('the screens gallery: the workout\'s map, Add exercise and options', ()
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useUI.getState().timer).toBeNull()
     expect(useStore.getState().S).toBe(own)
+  }, 30000)
+})
+
+// Workout progression
+describe('the screens gallery: Workout progression', () => {
+  it('has W1.47 to W1.52 under their board ids, in the Workout areas', () => {
+    const ids = name => screenAreas().find(a => a.name === name).entries.map(e => e.id)
+    expect(ids('Workout').filter(id => ['W1.47', 'W1.49', 'W1.50', 'W1.51'].includes(id))).toEqual(['W1.47', 'W1.49', 'W1.50', 'W1.51'])
+    expect(ids('Workout: drawers').filter(id => ['W1.48', 'W1.52'].includes(id))).toEqual(['W1.48', 'W1.52'])
+  })
+
+  it('shows the line, the dashed lines and the settings, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('W1.47', s => {
+      expect(s.host.querySelector('.g-prog-warning')).not.toBeNull()
+      expect(s.text).toContain('Deload to 22 kg')
+      expect(s.text).toContain('22 kg each')
+    })
+    await check('W1.49', s => {
+      const line = s.host.querySelector('.g-prog')
+      expect(line.textContent).toContain('Target goes up by 5s.')
+      expect(s.host.querySelector('.g-xh').compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+    await check('W1.50', s => { expect(s.host.querySelector('.g-prog')).toBeNull(); expect(s.host.querySelector('.g-nc-undo')).not.toBeNull() })
+    await check('W1.51', s => { expect(s.text).toContain('The whole workout is left out of progression'); expect(s.host.querySelector('.g-wtop-status')).not.toBeNull() })
+    await check('W1.48', s => { expect(s.text).toContain('Don’t count today'); expect(s.text).toContain('Today: ') })
+    await check('W1.52', s => { expect(s.text).toContain('Weight means'); expect(s.text).toContain('Each') })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
   }, 30000)
 })
