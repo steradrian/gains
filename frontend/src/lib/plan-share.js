@@ -277,48 +277,63 @@ export function parsePlan(raw, destinationUnit = 'kg') {
  *  - customs: reuse one you already have with the same name + body part, else add it fresh
  *  - routines: always added as NEW routines (fresh ids) — never overwrites yours
  *  - schedule: optional; when on, the shared week REPLACES yours (days the shared plan
- *    leaves empty become rest days — a half-overwritten week would silently mix two plans)
+ *    leaves empty become rest days — a half-overwritten week would silently mix two plans).
+ *    A file with no weekday that names one of its routines (a one-routine file has none) leaves
+ *    your week alone: replacing it would only wipe it.
+ *  - imported: a plan file someone sent (PR02 T3.7), not the coach's: each new routine says where
+ *    it came from, `importedFrom: <the plan's name>`, or null when the file has none.
+ * Returns how many routines it added, their ids, the custom exercises it created (not the ones it
+ * reused) and whether it replaced the week, which is what an Undo takes away (lib/plan-undo.js).
  */
-export function mergePlan(s, bundle, { schedule } = {}) {
+export function mergePlan(s, bundle, { schedule, imported = false } = {}) {
   const destination = planUnit(s.unit == null ? 'kg' : s.unit)
   if (!destination) unitError()
   const source = convertedBundle(bundle, destination)
   s.customEx = s.customEx || []
   const exIdMap = {}
+  const exIds = []
   ;(source.customEx || []).forEach(c => {
     const same = s.customEx.find(x => (x.n || '').toLowerCase() === (c.n || '').toLowerCase() && x.bp === c.bp)
     if (same) { exIdMap[c.id] = same.id; return }
     const nid = uid()
     exIdMap[c.id] = nid
+    exIds.push(nid)
     // Stored exactly as the form would have created it — `custom: true` is what lets the recipient
     // edit or delete it, and `sm` mirrors the secondaries the way the form writes them.
     const clean = cleanCustom(c)
     s.customEx.push({ ...clean, id: nid, ...(clean.secondaries ? { sm: clean.secondaries } : {}), custom: true })
   })
   const ridMap = {}
+  const ids = []
   source.routines.forEach(r => {
     const nid = uid()
     ridMap[r.id] = nid
+    ids.push(nid)
     s.routines.push({
       id: nid,
       name: r.name || t('Shared routine'),
       emoji: r.emoji,
       ...(r.prog ? { prog: r.prog } : {}),
       ...(r.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
+      ...(imported ? { importedFrom: bundle.name || null } : {}),
       ex: (r.ex || []).map(e => ({ ...e, id: exIdMap[e.id] || canonicalExId(e.id) }))
     })
   })
-  if (schedule) {
+  // `[].concat` tolerates a pre-upgrade scalar bundle value. An element whose routine id didn't
+  // survive parsing is dropped, not written as undefined; a day that ends up empty is left absent
+  // rather than stored as `[]`.
+  const week = {}
+  Object.entries(source.week || {}).forEach(([d, val]) => {
+    const ids = [].concat(val).map(oldId => ridMap[oldId]).filter(Boolean)
+    if (ids.length) week[d] = ids
+  })
+  const scheduled = !!schedule && Object.keys(week).length > 0
+  if (scheduled) {
+    s.week = s.week || {}
     WEEK_DAYS.forEach(d => { delete s.week[d] })
-    Object.entries(source.week || {}).forEach(([d, val]) => {
-      // `[].concat` tolerates a pre-upgrade scalar bundle value. An element whose routine id
-      // didn't survive parsing is dropped, not written as undefined; a day that ends up empty
-      // is left absent rather than stored as `[]`.
-      const ids = [].concat(val).map(oldId => ridMap[oldId]).filter(Boolean)
-      if (ids.length) s.week[d] = ids
-    })
+    Object.assign(s.week, week)
   }
-  return { routines: source.routines.length }
+  return { routines: source.routines.length, ids, exIds, scheduled }
 }
 
 /* ------------------------------- printable PDF ------------------------------- */

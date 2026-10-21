@@ -55,6 +55,7 @@ import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
+import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
 import Workout from './views/Workout.jsx'
 import Body from './views/Body.jsx'
 import Strength from './views/Strength.jsx'
@@ -282,6 +283,7 @@ function Shell() {
               {/* Training */}
               <Route path="/train" element={<TrainHub />} />
               <Route path="/train/schedule" element={<PlanScreen />} />
+              <Route path="/train/schedule/import" element={<PlanImportPage />} />
               <Route path="/train/routines" element={<Plan view="routines" />} />
               <Route path="/train/routines/:id" element={<RoutineEdit />} />
               <Route path="/train/history" element={<History />} />
