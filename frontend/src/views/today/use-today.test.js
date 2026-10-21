@@ -5,8 +5,19 @@ import { describe, expect, it, vi } from 'vitest'
 import { todayISO } from '../../lib/format.js'
 import { DEF } from '../../store/useStore.js'
 import {
-  AWAY_DAYS, awayDays, doneLine, exercisesDone, firstStepsOf, foodRings, glassOf, lastLogOf, mealsOf, todayProfile, upNextOf,
+  AWAY_DAYS, awayDays, doneLine, exercisesDone, firstStepsOf, foodRings, glassOf, goalSetOf, lastLogOf, mealsOf, todayProfile, upNextOf,
 } from './use-today.js'
+
+describe('goalSetOf (T1.9\'s first step)', () => {
+  it('is set by a calorie goal of their own or by Adaptive or Dynamic, never by the 2000 fallback', () => {
+    const date = '2026-10-21'
+    expect(goalSetOf(null, date)).toBe(false)
+    expect(goalSetOf({ goals: {} }, date)).toBe(false)
+    expect(goalSetOf({ goals: { calories: { max: 2200, sharedGoal: true } } }, date)).toBe(true)
+    expect(goalSetOf({ calorieGoalMode: 'adaptive', goals: {} }, date)).toBe(true)
+    expect(goalSetOf({ calorieGoalMode: 'dynamic' }, date)).toBe(true)
+  })
+})
 
 const units = {
   energyUnit: 'kcal',

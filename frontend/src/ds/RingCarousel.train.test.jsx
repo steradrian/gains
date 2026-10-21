@@ -18,9 +18,9 @@ describe('RingCarousel with the Train rings', () => {
     view.render(<RingCarousel slides={SLIDES} label="Training this week" />)
     const slides = [...view.host.querySelectorAll('.g-rc-slide')]
     expect(slides.map(s => s.getAttribute('aria-label'))).toEqual([
-      'Workouts: 2 of 4 workouts. Open details',
-      'Volume: 14.3 t of 18.9 t last week. Open details',
-      'Streak: 6 weeks in a row. Open details',
+      'Workouts: This week 2 of 4 workouts, Push A today. Open details',
+      'Volume: Volume this week 14.3 t of 18.9 t last week, Bench press best: 82.5 kg. Open details',
+      'Streak: On plan 6 weeks in a row, Best: 8 weeks. Open details',
     ])
     expect(slides.map(s => s.querySelector('.g-sring').getAttribute('aria-label'))).toEqual([
       'This week 2 of 4 workouts',

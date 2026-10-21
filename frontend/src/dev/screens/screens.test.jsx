@@ -132,7 +132,7 @@ describe('the screens gallery', () => {
 
   it('has Today T1.0 to T1.2, its two profiles and the variants T1.9 to T1.15', async () => {
     const ids = screenAreas().find(a => a.name === 'Today').entries.map(e => e.id)
-    expect(ids).toEqual(['T1.0', 'T1.1', 'T1.2', 'T1.E-food', 'T1.E-training', 'T1.9', 'T1.10', 'T1.11', 'T1.12', 'T1.13', 'T1.14', 'T1.15'])
+    expect(ids).toEqual(['T1.0', 'T1.1', 'T1.1-failed', 'T1.1-row', 'T1.2', 'T1.E-food', 'T1.E-training', 'T1.9', 'T1.10', 'T1.11', 'T1.12', 'T1.13', 'T1.14', 'T1.15'])
     const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
     await check('T1.0', h => {
       expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(4)

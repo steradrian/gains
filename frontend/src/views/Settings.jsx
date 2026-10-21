@@ -749,15 +749,11 @@ export default function Settings({ page = null, find = null, via = null }) {
         </Row>
       </Section>
       <Section title={t('On Home')}>
-        {/* Membership QR codes on Home (views/CheckIn.jsx); off = no Home card, no route. */}
+        {/* Membership QR codes (views/CheckIn.jsx), opened from Training's actions and the + drawer;
+            off = neither entry, no route. */}
         <Row icon="qr" iconTint="var(--blue)" title={t('Gym check-in')}
-          subtitle={t('Show a card on Home with your membership QR codes.')}>
+          subtitle={t('Adds Check in to Training and the + sheet, with your membership QR codes.')}>
           <Switch checked={S.checkIn !== false} onChange={v => update(s => { s.checkIn = v })} />
-        </Row>
-        {/* The Home summary is optional; hiding it leaves weight logging, history and Stats intact. */}
-        <Row icon="scale" iconTint="var(--green)" title={t('Body weight')}
-          subtitle={t('Show the body weight card on Home.')}>
-          <Switch checked={S.showWeightCard !== false} onChange={v => update(s => { s.showWeightCard = v })} />
         </Row>
         {/* The bar at the top that says the app is offline, kept local, or not synced (#369, #330).
             Here and not under Server & sync, which a phone kept local never shows. Switching it on
@@ -985,8 +981,8 @@ function SettingsRoot({ bodyRef, ctx, preview, open, user, sync, logOut, go }) {
     : { title: t('Guest'), sub: t('Your data lives on this device. Sign in to sync.') }
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
   return <div ref={bodyRef}>
-    {/* Profile opens from the avatar on every tab, so back is back, not a fixed Home. */}
-    <Page title={t('Profile')} />
+    {/* Profile is the Me tab's root: like every tab root it has no back (the bar is the way out). */}
+    <Page title={t('Profile')} onBack={false} />
     <div className="sp-search">
       <SearchField value={q} onChange={e => set(e.target.value)} onClear={() => set('')}
         placeholder={t('Search…')} aria-label={t('Search settings')} inputMode="search" enterKeyHint="search" autoComplete="off" />

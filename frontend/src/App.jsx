@@ -327,7 +327,7 @@ function Shell() {
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
-      <SyncBanner />
+      <SyncBanner onToday={shown.pathname === '/home'} />
       {/* The dock before the bar: it sits above the bar on screen, so it comes first in the
           reading and tab order too. */}
       {docked ? <LiveDock /> : <RestTimer />}

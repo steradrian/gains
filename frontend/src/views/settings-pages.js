@@ -124,7 +124,6 @@ export const SEARCH = [
   { page: 'appearance', title: 'Exercise drawings', icon: 'figureStrength', tint: 'var(--teal)', kw: 'figure male female woman man picture', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Reduce motion', icon: 'minimize', tint: 'var(--blue)', kw: 'animation motion transitions accessibility calm', feature: (S, c) => !!c.systemMotion || S.reduceMotion === true },
   { page: 'appearance', title: 'Gym check-in', icon: 'qr', tint: 'var(--blue)', kw: 'qr code membership card check in barcode' },
-  { page: 'appearance', title: 'Body weight', icon: 'scale', tint: 'var(--green)', kw: 'weight card home' },
   { page: 'appearance', title: 'Show connection status', icon: 'cloud', tint: 'var(--blue)', kw: 'sync offline banner bar connection', when: c => !c.demo },
   // Features (the NutriTrace switches whose only home is here)
   { page: 'features', title: 'Fasting', icon: 'timer', tint: 'var(--indigo)', kw: 'fast fasting intermittent 16:8 omad', when: c => !!c.nutrition, feature: (S, c) => !!c.fastingOn },

@@ -10,10 +10,6 @@
 .tint-quiet{--tint:var(--surface-3)}
 .tint-quiet .icn{color:var(--label)}
 
-/* --- Home's meal pills: the meal, then its energy or a + --- */
-.meal-pill-v{margin-inline-start:6px;color:var(--label-2);font-variant-numeric:tabular-nums}
-.meal-pills .chip .icn{margin-inline-start:4px;font-size:14px}
-
 /* --- macros: the dots that key P · C · F, and the track the fasting card fills --- */
 .macro-track{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-top:4px}
 .macro-track>i{display:block;height:100%;border-radius:3px;background:var(--acc)}
@@ -105,17 +101,6 @@
 .fast-bar-day{line-height:1}
 .fast-off{display:flex;flex-direction:column;align-items:center;margin-top:12px}
 
-/* --- weight --- */
-.bw-card>.row:first-child{margin-bottom:6px;flex-wrap:wrap;row-gap:8px}
-.bw-card>.row:first-child>.row{margin-inline-start:auto}
-.bw-delta{font-weight:500}
-.bw-delta .icn{font-size:12px}
-.bw-delta .muted{font-weight:400}
-.bw-when{margin-inline-start:auto}
-.bw-goal{color:var(--yellow-ink);margin-top:4px}
-.bw-goal .icn{font-size:13px}
-.bw-chart{margin-top:8px}
-.bw-goal-btn{color:var(--yellow-ink)}
 
 /* --- the calendar's food mark (Home's date picker) --- */
 .cal-d.logged>span{text-decoration:underline;text-decoration-color:var(--blue);text-decoration-thickness:2px;text-underline-offset:3px}

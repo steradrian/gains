@@ -22,11 +22,13 @@ import './today.css'
 // Food and Water, or the week for the training profile. It draws what useToday() gives it and
 // holds nothing; the floating tab bar is the app's (#tabbar). `ring` is the page the rings open on
 // (T12Protein opens on Protein). While the search is open the tab root's own header (<Page root>)
-// stands in, since the app's search types into its input.
+// stands in, since the app's search types into its input. `status` other than 'known' (the day
+// loading, or failed with the retry banner) draws the skeleton, never what looks like an empty day.
 export default function TodayScreen({
-  loading, error, header, searching, saved, away, firstSteps, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
+  status = 'known', error, header, searching, saved, away, firstSteps, nextPending, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
 }) {
   const accent = useDsAccent()
+  const known = status === 'known'
   return (
     <StageScreen accent={accent}>
       <div className="today">
@@ -34,13 +36,14 @@ export default function TodayScreen({
         <SavedIndicator tone="stage" state={saved?.state} waiting={saved?.waiting} />
         {away && <AwayCard {...away} />}
         {error && <div className="today-alert"><InlineBanner stage role="alert" icon="warning" title={error.text} actions={[{ label: t('Try again'), onClick: error.retry, solid: true }]} /></div>}
-        <RingCarousel slides={rings} start={ring} loading={loading || !!error} onOpen={onRing} />
-        <GlassActions items={actions} loading={loading} />
-        {loading ? <Skeleton food={!!meals} /> : <>
+        <RingCarousel slides={rings} start={ring} loading={!known} onOpen={onRing} />
+        <GlassActions items={actions} loading={!known} />
+        {!known ? <Skeleton food={!!meals} /> : <>
+          {nextPending && <i className="g-skel today-sk-row" aria-hidden="true" />}
           {firstSteps && <><StageSection title={t('First steps')} action={firstSteps.label} /><FirstSteps steps={firstSteps.steps} /></>}
           {upNext && <><StageSection title={t('Up next')} /><UpNext {...upNext} /></>}
           {meals && <><StageSection title={t('Food')} action={t('See day')} onAction={onSeeDay} /><MealTiles meals={meals} onPick={onMeal} /></>}
-          {water && <><StageSection title={t('Water')} action={water.label} /><WaterGlasses value={water.value} target={water.target} step={water.step} onAdd={water.onAdd} /></>}
+          {water && <><StageSection title={t('Water')} action={water.label} /><WaterGlasses value={water.value} target={water.target} step={water.step} onAdd={water.onAdd} label={water.ariaLabel} addLabel={water.addLabel} /></>}
           {week && <><StageSection title={t('This week')} action={week.label} /><StageWeekMarks days={week.days} /></>}
         </>}
       </div>

@@ -8,7 +8,6 @@ import Section from './DevKitSection.jsx'
 import MenuList from './MenuList.jsx'
 import SegmentedControl from './SegmentedControl.jsx'
 import UndoToast from './UndoToast.jsx'
-import WhenChip from './WhenChip.jsx'
 
 // The drawer and toast kit's part of the catalogue (DevKit.jsx): each drawn still in a phone-sized
 // frame, and opened for real through the app's sheet frame and toast (mounted here, since the
@@ -88,13 +87,6 @@ export default function DevKitDrawers() {
 
       <Section title="MenuList" note="Glyph, label, a detail line, a value at the end; a danger item.">
         <MenuList label="More" items={[...ADD_ITEMS, { icon: 'trash', label: 'Delete this day', detail: 'Removes every log', tone: 'danger', onClick: NOOP }]} />
-      </Section>
-
-      <Section title="WhenChip" note="Where a log goes, tapped to change it: day and meal, then the day alone.">
-        <div className="g-kit-row">
-          <WhenChip day="Today" meal="Lunch" onClick={NOOP} />
-          <WhenChip day="Tue 13 Oct" onClick={NOOP} />
-        </div>
       </Section>
 
       <Section title="UndoToast" note="Drawn still: Undo with its 8 s bar, another action, and text alone. Then the app's one toast, which draws through it.">

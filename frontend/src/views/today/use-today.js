@@ -7,7 +7,7 @@ import { DAYN, durPart, exCount, fmtNum, isoOf, startOfWeek, todayISO, weekStart
 import { doneUnits, setUnits, setsDone, workoutDuration } from '../../lib/history.js'
 import { weekTally } from '../../lib/queue.js'
 import { dayMark, nameOf, trainingDay } from '../../lib/training-day.js'
-import { mealItems, totalsOf } from '../../lib/nutrition/diary.js'
+import { mealItems, resolveGoalFor, totalsOf } from '../../lib/nutrition/diary.js'
 import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { dayHasLog } from '../../lib/nutrition/first-log.js'
 import { loadErrorText } from '../../lib/nutrition/log-feedback.js'
@@ -24,7 +24,7 @@ import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
 import { nutritionDaySheet } from '../../components/NutritionDaySheet.jsx'
 import { scanToSelection } from '../../components/scan-to-selection.js'
 import { useConnectionTrouble } from '../../components/SyncBanner.jsx'
-import { addWater } from '../../components/WaterCard.jsx'
+import { addWater, waterAria } from '../../components/WaterCard.jsx'
 import { useOfflinePill } from './use-offline-pill.js'
 
 // The glasses row stays one line: twelve at most (ds/WaterGlasses).
@@ -199,18 +199,24 @@ export function firstStepsOf({ food, training = true, goalSet, planRefused, nav,
   return { steps, label: t('{0} of {1}', steps.filter(s => s.done).length, steps.length) }
 }
 
-/** The welcome back (T1.10), once per return: shown for the last log it was owed for, and not
- *  again for that one, whether it was answered or not. Logging anything puts it away. */
+/** The welcome back (T1.10), once per return: shown for the last log it is owed for until it is
+ *  answered (Weigh in or Not now), then not again for that one. Logging anything puts it away. */
 function useAway(lastLog, today) {
   const days = awayDays(lastLog, today)
-  const owed = days > 0 && storage()?.getItem(AWAY_KEY) !== lastLog
-  const [shownFor, setShownFor] = useState(null)
-  useEffect(() => {
-    if (!owed) return
-    try { storage()?.setItem(AWAY_KEY, lastLog) } catch { /* private mode: it may show once more */ }
-    setShownFor(lastLog)
-  }, [owed, lastLog])
-  return { days: shownFor && shownFor === lastLog ? days : 0, close: () => setShownFor(null) }
+  const [answered, setAnswered] = useState(null)
+  const owed = days > 0 && answered !== lastLog && storage()?.getItem(AWAY_KEY) !== lastLog
+  const answer = () => {
+    try { storage()?.setItem(AWAY_KEY, lastLog) } catch { /* private mode: it shows again next open */ }
+    setAnswered(lastLog)
+  }
+  return { days: owed ? days : 0, answer }
+}
+
+/** Whether the person chose a calorie goal: a target of their own, or Adaptive or Dynamic, which
+ *  set it for them. calorieTarget falls back to 2000 without one, so its target cannot tell. */
+export function goalSetOf(settings, date) {
+  const mode = settings?.calorieGoalMode
+  return mode === 'adaptive' || mode === 'dynamic' || resolveGoalFor(settings?.goals?.calories, date) != null
 }
 
 /** The week of the training profile, a mark a day: done, missed, today, planned or rest. */
@@ -226,7 +232,7 @@ export function weekOf(S, today) {
     const plans = mark === 'plan' || mark === 'ovr'
     const state = mark === 'done' ? 'done' : iso === today ? 'today' : plans ? (iso < today ? 'missed' : 'planned') : 'rest'
     const long = d.toLocaleDateString(dateLocale(), { weekday: 'long' })
-    return { key: iso, dow: d.toLocaleDateString(dateLocale(), { weekday: 'narrow' }), state, label: long + ', ' + words[state] }
+    return { key: iso, dow: d.toLocaleDateString(dateLocale(), { weekday: 'narrow' }), state, label: t('{0}, {1}', long, words[state]) }
   })
 }
 
@@ -249,24 +255,29 @@ export function glassOf(settings, goal) {
   return buttons.find(b => goal / b.ml <= MAX_GLASSES) || buttons.reduce((a, b) => (b.ml > a.ml ? b : a))
 }
 
-// Today logs to today. The selected day is shared with Nutrition, so a log from here moves it back
-// to today first, the way the picker's own chip would show it.
-function logFood(slot) {
-  const sel = useDiarySelection.getState()
-  sel.setDate(null)
-  if (slot != null) sel.setMeal(slot)
+// Today logs to the day on screen. The selected day is shared with Nutrition, so a log from here
+// moves it to that day first, the way the picker's own chip shows it. Past midnight with the app
+// still open that is yesterday (PR01Edges, Midnight), the day the water and the rings are on too.
+function selectDay(day) {
+  useDiarySelection.getState().setDate(day === todayISO() ? null : day)
+}
+function logFood(day, slot) {
+  selectDay(day)
+  if (slot != null) useDiarySelection.getState().setMeal(slot)
   foodPickerSheet()
 }
-function scanToday() {
-  useDiarySelection.getState().setDate(null)
+function scanToday(day) {
+  selectDay(day)
   scanToSelection()
 }
 
 /**
- * Everything Today shows, for TodayScreen: { profile, loading, error, header, searching, saved,
- * away, firstSteps, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week }.
+ * Everything Today shows, for TodayScreen: { profile, status, error, header, searching,
+ * saved, away, firstSteps, nextPending, rings, onRing, actions, upNext, meals, onMeal, onSeeDay,
+ * water, week }. `status` ('known' | 'pending' | 'failed') gates everything below the rings.
  * Sections a profile or the day leaves out are null: firstSteps (T1.9) stands in for Up next on a
- * first day, away (T1.10) is the welcome back, saved (T1.14) the offline pill. Taps go where the
+ * first day, nextPending while that is not known yet, away (T1.10) is the welcome back, saved
+ * (T1.14) the offline pill. Taps go where the
  * boards link: the rings, See day and a logged meal open the Nutrition drawer (T1.3), on the
  * ring's own tab.
  */
@@ -284,22 +295,32 @@ export function useToday() {
   useHubStatusRefresh()
   const searching = useSearch(s => s.open)
   const [watering, setWatering] = useState(false)
-  const indexReady = useDiaryIndex(s => s.complete)
+  const indexComplete = useDiaryIndex(s => s.complete)
+  const indexSynced = useDiaryIndex(s => s.synced)
   useDiaryIndex(s => s.version)
   const saved = useOfflinePill()
 
   const profile = todayProfile(day.on)
   const food = profile !== 'training'
-  // The newest food log: today's diary when it has one, else the diary index once every day has
-  // landed. Until then it is not known, and neither First steps nor the welcome back shows.
+  // What Today knows below the rings, one value every section reads: 'failed' when the day did
+  // not load (a retry banner, nothing that looks like an empty day), 'pending' until it has.
+  const status = !food ? 'known' : day.status === 'error' ? 'failed' : day.status === 'ready' ? 'known' : 'pending'
+  // The newest food log: today's diary once it has landed and has one, else the diary index once
+  // this session's sync has caught every day up (a saved copy from a past visit can be behind).
+  // Until then it is not known, and neither First steps nor the welcome back shows.
   const foodLast = !food ? null
-    : day.dayReady && dayHasLog(day.entry) ? today
-      : indexReady ? (diaryIndexDays()[0]?.date ?? null) : undefined
+    : !day.dayReady ? undefined
+      : dayHasLog(day.entry) ? today
+        : indexComplete && indexSynced ? (diaryIndexDays()[0]?.date ?? null) : undefined
   const lastLog = lastLogOf(S, foodLast)
   const away = useAway(lastLog, today)
-  const firstDay = lastLog === null && !S.routines.length && !S.active
-  const loading = food && (day.status === 'loading' || day.status === 'idle')
-  const error = food && day.status === 'error' ? { text: loadErrorText(day.error), retry: day.reload } : null
+  // A first day needs no plan and no log anywhere. Without a plan or a log in Gains, the row under
+  // the actions waits for the food one (a skeleton), unless the index sync failed: then it is Up
+  // next, never First steps for someone who may have years of logs.
+  const planless = !S.routines.length && !S.active
+  const firstDay = planless && lastLog === null
+  const nextPending = planless && lastLog === undefined && !indexSynced && lastLogOf(S, null) === null
+  const error = status === 'failed' ? { text: loadErrorText(day.error), retry: day.reload } : null
   const glass = food ? glassOf(day.settings, day.water.goal) : null
 
   const addGlass = async () => {
@@ -331,30 +352,32 @@ export function useToday() {
     target: day.water.goal / 1000,
     step: glass.ml / 1000,
     label: t('{0} of {1}', units.waterParts(day.water.total).value, units.water(day.water.goal)),
+    ariaLabel: t('Water, {0} of {1}', units.water(day.water.total), units.water(day.water.goal)),
+    addLabel: waterAria(glass, units),
     onAdd: addGlass,
   } : null
 
   const firstSteps = firstDay
-    ? firstStepsOf({ food, training: profile !== 'food', goalSet: day.target?.target > 0, planRefused, nav, onMeal: () => logFood(), onWeigh: weighIn.onClick })
+    ? firstStepsOf({ food, training: profile !== 'food', goalSet: goalSetOf(day.settings, today), planRefused, nav, onMeal: () => logFood(today), onWeigh: weighIn.onClick })
     : null
   const welcome = away.days > 0 ? {
     title: t('Welcome back'),
     body: tn('{0} day since your last log.', '{0} days since your last log.', away.days) + ' '
       + (S.routines.length ? t('Your Plan kept going, so start from today. Nothing to catch up on.') : t('Start from today. Nothing to catch up on.')),
     actions: [
-      { label: t('Weigh in'), solid: true, onClick: () => { away.close(); bwSheet({ date: today }) } },
-      { label: t('Not now'), onClick: away.close },
+      { label: t('Weigh in'), solid: true, onClick: () => { away.answer(); bwSheet({ date: today }) } },
+      { label: t('Not now'), onClick: away.answer },
     ],
   } : null
 
   return {
-    profile, loading, error, header, searching, saved, away: welcome, firstSteps,
+    profile, status, error, header, searching, saved, away: welcome, firstSteps, nextPending,
     rings: food ? (day.status === 'ready' ? foodRings(day, units) : []) : [trainingRing(S, today)],
     onRing: (_, i) => (food ? nutritionDaySheet({ date: today, tab: i }) : nav('/train')),
     actions: food
       ? [
-        { icon: 'utensils', label: t('Log food'), onClick: () => logFood() },
-        { icon: 'scanBarcode', label: t('Scan'), onClick: scanToday },
+        { icon: 'utensils', label: t('Log food'), onClick: () => logFood(today) },
+        { icon: 'scanBarcode', label: t('Scan'), onClick: () => scanToday(today) },
         { icon: 'droplet', label: t('Water'), onClick: addGlass },
         weighIn,
       ]
@@ -364,9 +387,9 @@ export function useToday() {
         weighIn,
         { icon: 'calendar', label: t('Plan'), onClick: () => nav('/train/schedule') },
       ],
-    upNext: profile === 'food' || firstSteps ? null : upNextOf(S, today, { planRefused, nav }),
+    upNext: profile === 'food' || firstSteps || nextPending ? null : upNextOf(S, today, { planRefused, nav }),
     meals: food ? mealsOf(day, meal, units) : null,
-    onMeal: m => (m.state === 'done' ? nutritionDaySheet({ date: today }) : logFood(m.slot)),
+    onMeal: m => (m.state === 'done' ? nutritionDaySheet({ date: today }) : logFood(today, m.slot)),
     onSeeDay: () => nutritionDaySheet({ date: today }),
     water,
     week: food ? null : { days: weekOf(S, today), label: weekDone(S, today) },

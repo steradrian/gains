@@ -44,10 +44,10 @@ describe('RingCarousel', () => {
     const slides = qa('.g-rc-slide')
     expect(slides).toHaveLength(4)
     expect(slides.map(s => s.getAttribute('aria-label'))).toEqual([
-      'Calories: 1,240 kcal of 2,100. Open details',
-      'Protein: 9 g of 150 g. Open details',
-      'Carbs: 120 g of 230 g. Open details',
-      'Fat: 30 g of 70 g. Open details',
+      'Calories: Left today 1,240 kcal of 2,100, 860 eaten. Open details',
+      'Protein: Protein left 9 g of 150 g, 141 g eaten. Open details',
+      'Carbs: Carbs left 120 g of 230 g. Open details',
+      'Fat: Fat left 30 g of 70 g. Open details',
     ])
     expect(slides.map(s => s.querySelector('.g-rc-pill')?.textContent ?? null)).toEqual(['860 eaten', '141 g eaten', null, null])
     expect(slides[0].querySelector('.g-rc-pill [data-icon="flame"]')).not.toBeNull()
@@ -117,6 +117,27 @@ describe('RingCarousel', () => {
     expect(onChange).toHaveBeenCalledTimes(1)
     expect(onChange).toHaveBeenCalledWith(3)
     expect(activeDot()).toBe(3)
+  })
+
+  it.each(['wheel', 'touchstart'])('a %s during a dot\'s glide hands the page back to the scroll', type => {
+    const onChange = vi.fn()
+    view.render(<RingCarousel slides={SLIDES} onChange={onChange} />)
+    click(dots()[3])
+    act(() => { q('.g-rc').dispatchEvent(new Event(type, { bubbles: true })) })
+    scrollToPage(1)
+    expect(onChange).toHaveBeenCalledWith(1)
+    expect(activeDot()).toBe(1)
+  })
+
+  it('a glide that ends short of the dot\'s page settles where it stopped', () => {
+    const onChange = vi.fn()
+    view.render(<RingCarousel slides={SLIDES} onChange={onChange} />)
+    click(dots()[3])
+    scrollToPage(2)
+    expect(onChange).not.toHaveBeenCalled()
+    act(() => { q('.g-rc').dispatchEvent(new Event('scrollend', { bubbles: true })) })
+    expect(onChange).toHaveBeenCalledWith(2)
+    expect(activeDot()).toBe(2)
   })
 
   it('jumps instead of gliding under reduced motion', () => {

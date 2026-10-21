@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { fmtDate, fmtNum, todayISO, weekStartOf } from '../lib/format.js'
 import { lastBW } from '../lib/history.js'
 import { t, tn } from '../lib/i18n.js'
 import { closeThenNav } from '../lib/nav.js'
 import { convertBodyWeight } from '../lib/units.js'
+import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Chip, ChipRow, EmptyState } from '../components/blocks.jsx'
@@ -85,6 +86,10 @@ function BwSheet({ required, onDone, close, date }) {
   // A slip of a digit (81.4 typed 18.4, or 8.14) reads as a real change on the curve: say so before
   // saving. Saving still works, and Undo follows it.
   const far = prev && n > 0 && Math.abs(n - prev.w) > convertBodyWeight(FAR_KG, 'kg', unit)
+  // The read-out raises the keyboard: the drawer is lifted over it, Save in reach (iOS; Android 15
+  // passes --native-kb). NumberField takes no ref, so the hook finds the drawer from its label.
+  const read = useRef(null)
+  const syncKeyboard = useSheetKeyboard(read)
   const save = () => {
     if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
     if (bwTooHeavy(n, unit)) return
@@ -117,14 +122,16 @@ function BwSheet({ required, onDone, close, date }) {
     {required && <p className="g-wi-note">{t('We ask before your first workout each day so your curve stays honest.')}</p>}
     <div className="g-wi">
       <button type="button" className="g-wi-pm" onClick={() => step(-0.1)} aria-label={t('Decrease by {0}', fmtNum(0.1))}><Icon name="minus" className="g-icon" /></button>
-      <label className="g-wi-read">
+      <label className="g-wi-read" ref={read} onFocus={syncKeyboard}>
         <NumberField fit className="g-wi-num" value={v} onChange={setV} aria-label={t('Weight ({0})', unit)} enterKeyHint="done"
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
         <span className="g-wi-u">{unit}</span>
       </label>
       <button type="button" className="g-wi-pm" onClick={() => step(0.1)} aria-label={t('Increase by {0}', fmtNum(0.1))}><Icon name="plus" className="g-icon" /></button>
     </div>
-    {far && <p className="g-wi-far" role="status">{t('{0} from your last weigh-in. Check it before you save.', fmtNum(Math.abs(Math.round((n - prev.w) * 10) / 10)) + ' ' + unit)}</p>}
+    {/* Always mounted, only its text swapped: a live region that mounts with its text is often
+        not announced. */}
+    <p className="g-wi-far" role="status">{far ? t('{0} from your last weigh-in. Check it before you save.', fmtNum(Math.abs(Math.round((n - prev.w) * 10) / 10)) + ' ' + unit) : ''}</p>
     {prev && <p className="g-wi-last">{t('Last weigh-in: {0} on {1}', fmtNum(prev.w) + ' ' + unit, fmtDate(prev.d, true))}</p>}
   </BottomSheet>
 }

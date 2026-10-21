@@ -39,9 +39,6 @@
   --disc:56px; --disc-sm:36px; --glyph:24px;
   /* A media row's lead (line art or a licensed picture, 4:3) and the exercise variant's thumb. */
   --art-w:96px; --art-h:72px; --thumb-lg:56px;
-  /* What the tab bar takes from the bottom of the screen above --sab, at most (tab-shell.css):
-     70px floating 12px up on a phone; on desktop it floats 16px up. */
-  --tabbar-h:82px;
   --search-panel-w:680px;
   /* Layers, beside index.css's 20/40 (pinned headers), 45 (connection row), 50 (tab bar), 60
      (timer), 100 (#modal-root) and 200 (toast): the tab-root header over the search overlay. */
@@ -64,7 +61,6 @@
   /* The mark's groove is a hole cut with a luminance mask: white keeps the stroke, black cuts it. */
   --mark-cut-on:#fff; --mark-cut-off:#000;
 }
-@media (min-width:1000px){:root{--tabbar-h:86px}}
 
 /* ---------------------------------------------------------------- utilities -- */
 

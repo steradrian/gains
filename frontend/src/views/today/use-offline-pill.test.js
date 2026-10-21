@@ -4,7 +4,7 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../../store/useStore.js'
-import { SAVED_MS, nextPhase, useOfflinePill } from './use-offline-pill.js'
+import { SAVED_MS, SYNC_MAX_MS, nextPhase, useOfflinePill } from './use-offline-pill.js'
 
 const run = (steps, phase = 'idle') => steps.map(s => (phase = nextPhase(phase, { back: false, online: true, ...s })))
 
@@ -61,5 +61,45 @@ describe('useOfflinePill', () => {
     root = createRoot(host)
     act(() => root.render(createElement(Probe)))
     expect(seen).toBeNull()
+  })
+
+  describe(`Syncing gives up after ${SYNC_MAX_MS / 1000} s`, () => {
+    let onLine = false
+    const setOnline = value => {
+      onLine = value
+      act(() => { window.dispatchEvent(new Event(value ? 'online' : 'offline')) })
+    }
+    // Offline with no network, then the network back while the server is still out of reach:
+    // the retry is on its way, so Syncing.
+    const toSyncing = () => {
+      vi.useFakeTimers()
+      globalThis.IS_REACT_ACT_ENVIRONMENT = true
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => onLine })
+      onLine = false
+      useStore.setState({ user: { id: 'u1' }, sync: sync('offline'), unsyncedChanges: () => ({ owed: true, count: 2 }) })
+      host = document.createElement('div')
+      root = createRoot(host)
+      act(() => root.render(createElement(Probe)))
+      expect(seen).toEqual({ state: 'offline', waiting: 2 })
+      setOnline(true)
+      expect(seen).toEqual({ state: 'syncing', waiting: 0 })
+    }
+    afterEach(() => { delete navigator.onLine })
+
+    it('back to Offline when the retry never got through', () => {
+      toSyncing()
+      act(() => { vi.advanceTimersByTime(SYNC_MAX_MS - 1) })
+      expect(seen.state).toBe('syncing')
+      act(() => { vi.advanceTimersByTime(1) })
+      expect(seen).toEqual({ state: 'offline', waiting: 2 })
+    })
+
+    it('gone when the connection is up but a change still waits', () => {
+      toSyncing()
+      act(() => useStore.setState({ sync: sync('pending') }))
+      expect(seen.state).toBe('syncing')
+      act(() => { vi.advanceTimersByTime(SYNC_MAX_MS) })
+      expect(seen).toBeNull()
+    })
   })
 })

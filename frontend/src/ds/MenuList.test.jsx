@@ -7,7 +7,7 @@ const view = useView()
 const items = () => [...view.host.querySelectorAll('.g-menuitem')]
 
 describe('MenuList', () => {
-  it('is a named menu of items: glyph, label, detail and value', () => {
+  it('is a named group of plain buttons: glyph, label, detail and value', () => {
     const onKcal = vi.fn()
     view.render(<MenuList label="More" items={[
       { icon: 'bolt', label: 'Quick kcal', onClick: onKcal },
@@ -15,9 +15,10 @@ describe('MenuList', () => {
       { icon: 'trash', label: 'Delete', tone: 'danger' },
     ]} />)
     const menu = view.host.querySelector('.g-menulist')
-    expect(menu.getAttribute('role')).toBe('menu')
+    // Not a role=menu: it has no arrow keys or roving focus, so it must not promise them.
+    expect(menu.getAttribute('role')).toBe('group')
     expect(menu.getAttribute('aria-label')).toBe('More')
-    expect(items().map(b => b.getAttribute('role'))).toEqual(['menuitem', 'menuitem', 'menuitem'])
+    expect(items().map(b => [b.tagName, b.getAttribute('role')])).toEqual([['BUTTON', null], ['BUTTON', null], ['BUTTON', null]])
     expect(items()[0].querySelector('b').textContent).toBe('Quick kcal')
     expect(items()[1].querySelector('.g-menuitem-body span').textContent).toBe('Your last plan')
     expect(items()[1].querySelector('.g-menuitem-value').textContent).toBe('16 h')

@@ -31,8 +31,8 @@ export function tabOf(pathname = '') {
 
 export const isTabRoot = (pathname = '') => TABS.some(tab => TAB_ROOT[tab] === pathname)
 
-// Bar slot of a tab: slot 2 is the centre +, which a tab never occupies.
-export const slotOf = i => (i < 2 ? i : i + 1)
+// Progress and its pages: Me's, under Profile, with a root header (and search pill) of their own.
+export const inProgress = (pathname = '') => under(pathname, PROGRESS_ROOT)
 
 // Back on a cold entry (a deep link or a reload with nothing under it in its tab): the page's
 // parent, one level up, down to its tab's root. The Coach goes to Training; the workout, which any

@@ -131,6 +131,17 @@ describe('Today — Up next', () => {
     expect(card()).toBeNull()
   })
 
+  it('an unanswered welcome back comes back after a remount, until Weigh in or Not now (T1.10)', () => {
+    localStorage.removeItem('gains.awaySeen')
+    const d = new Date(); d.setDate(d.getDate() - 8)
+    setS({ workouts: [{ id: 'w', d: isoOf(d), name: 'Push', entries: [] }], bodyweight: [] }); mountToday()
+    expect(host.querySelector('.g-away')).toBeTruthy()
+    act(() => root.unmount())
+    root = createRoot(host)
+    mountToday()
+    expect(host.querySelector('.g-away')).toBeTruthy()
+  })
+
   it('no welcome back within a week of the last log', () => {
     localStorage.removeItem('gains.awaySeen')
     const d = new Date(); d.setDate(d.getDate() - 6)
@@ -151,7 +162,7 @@ describe('Today — Up next', () => {
   it('the training profile: the week\'s workouts as one ring, today\'s session on its pill, each day marked', () => {
     const now = Date.now()
     setS({ workouts: [{ id: 'w', d: TODAY, start: now - 3600000, end: now, routineIds: ['r1'], routineId: 'r1', name: 'Push', entries: [] }] }); mountToday()
-    expect(host.querySelector('.g-rc-slide').getAttribute('aria-label')).toBe('Workouts: 1 of 7 workouts. Open details')
+    expect(host.querySelector('.g-rc-slide').getAttribute('aria-label')).toBe('Workouts: This week 1 of 7 workouts. Open details')
     expect([...host.querySelectorAll('.g-ssec')].map(s => s.textContent)).toContain('This week1 of 7 done')
     const cells = [...host.querySelectorAll('.g-wk-cell')]
     expect(cells).toHaveLength(7)
@@ -162,5 +173,12 @@ describe('Today — Up next', () => {
   it('the pill names the session planned today', () => {
     setS(); mountToday()
     expect(host.querySelector('.g-rc-pill').textContent).toBe('Push today')
+  })
+})
+
+describe('Today — body weight', () => {
+  it('Today has no body-weight card, whatever the old preference said', () => {
+    setS({ routines: [], week: {} }); mountToday()
+    expect([...host.querySelectorAll('h2')].some(el => el.textContent === 'Body weight')).toBe(false)
   })
 })

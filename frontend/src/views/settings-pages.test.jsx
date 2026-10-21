@@ -392,12 +392,10 @@ describe('the pages', () => {
     }
   })
 
-  it('the root carries it too, titled Profile, and its back is the tab\'s own', () => {
+  it('the root carries it too, titled Profile, with no back: it is the Me tab\'s root', () => {
     mount()
     expect(host.querySelector('.sub-hdr h1').textContent).toBe('Profile')
-    const before = mocks.backs.length
-    act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
-    expect(mocks.backs).toHaveLength(before + 1)   // the tab's back, with no parent given: the tab decides
+    expect(host.querySelector('.sub-hdr button[aria-label="Back"]')).toBeNull()
   })
 
   it('a search hit flashes its row', () => {
@@ -603,7 +601,7 @@ describe('Features', () => {
 describe('Appearance', () => {
   it('keeps reduce motion, and drops nothing else of its own', () => {
     mount('appearance')
-    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Body weight', 'Show connection status'])
+    expect(titles()).toEqual(['Theme', 'Accent color', 'Body diagram', 'Exercise drawings', 'Reduce motion', 'Gym check-in', 'Show connection status'])
     act(() => rowTitled('Reduce motion').querySelector('[role="switch"]').click())
     expect(mocks.S.reduceMotion).toBe(true)
   })

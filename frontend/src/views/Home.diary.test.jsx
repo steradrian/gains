@@ -11,6 +11,7 @@ import { fmtDate, todayISO, isoOf } from '../lib/format.js'
 import { dateLocale } from '../lib/i18n.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
+import { __test as diaryIndex, useDiaryIndex } from '../lib/nutrition/diary-index.js'
 import { useHubSync, resetSyncThrottle } from '../lib/nutrition/sync.js'
 import { closeSearch, useSearch } from '../lib/search/session.js'
 import { createFakeNutriTrace, emptyDay, fixtureActivity, fixtureActivitySum, fixtureDay, fixtureFoods, fixtureSettings, fixtureSyncStatus } from '../lib/nutrition/fake-nutritrace.js'
@@ -98,6 +99,7 @@ beforeEach(() => {
   useNutrition.getState().reset()
   useDiarySelection.getState().reset()
   useHubSync.getState().reset()
+  diaryIndex.restore()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
   resetSyncThrottle()
   host = document.createElement('div')
@@ -111,10 +113,10 @@ describe('Today', () => {
     await mount(<Home />)
     // 2200 target − (228 oats + 450 quick) eaten
     expect(slides().map(s => s.getAttribute('aria-label'))).toEqual([
-      'Calories: 1,522 of 2,200 kcal. Open details',
-      'Protein: 152 g of 160 g. Open details',
-      'Carbs: 129 g of 165 g. Open details',
-      'Fat: 66 g of 70 g. Open details',
+      'Calories: Left today 1,522 of 2,200 kcal, 190 burned · 678 eaten. Open details',
+      'Protein: Protein left 152 g of 160 g, 8 g eaten. Open details',
+      'Carbs: Carbs left 129 g of 165 g, 36 g eaten. Open details',
+      'Fat: Fat left 66 g of 70 g, 4 g eaten. Open details',
     ])
     expect(ring(0)).toEqual({ top: ['Left today', 'of 2,200 kcal'], big: '1,522', pill: expect.stringMatching(/678 eaten$/) })
     expect(ring(1)).toEqual({ top: ['Protein left', 'g of 160 g'], big: '152', pill: '8 g eaten' })
@@ -140,8 +142,46 @@ describe('Today', () => {
     expect(host.querySelector('[role="alert"]').textContent).toContain('The diary did not load: no connection.')
     expect(host.querySelector('.g-rcb[aria-busy="true"]')).toBeTruthy()
     expect(host.querySelector('.g-sring-in b')).toBeNull()
+    // Nothing below the rings reads as an empty day: no water amount, no meal tiles, no dead +.
+    expect(sections()).toEqual([])
+    expect(host.querySelector('.g-tile, .g-water')).toBeNull()
+    expect(actions()).toEqual([])
     await click(button('Try again'))
     expect(ring(0).big).toBe('1,522')
+    expect(sections()).toContain('Water250 of 2,500 ml')
+  })
+
+  it('past midnight with the app still open, food and water both log to the day on screen', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(`${TODAY}T23:59:00`))
+    try {
+      await mount(<Home />)
+      vi.setSystemTime(new Date(`${tomorrow}T00:01:00`))
+      await click(action('Log food'))
+      expect(useDiarySelection.getState().day()).toBe(TODAY)
+      await act(async () => { useUI.getState().closeAll() })
+      await settle()
+      await click(tile('Snacks'))
+      expect(useDiarySelection.getState().day()).toBe(TODAY)
+      await act(async () => { useUI.getState().closeAll() })
+      await settle()
+      await click(action('Water'))
+      expect(puts().at(-1).path).toBe(`/nt/api/diary/${TODAY}`)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('a first day waits for the diary index before it is one: no Up next, no First steps until then', async () => {
+    useFake({ days: { [TODAY]: emptyDay(TODAY) } })
+    useStore.setState(s => ({ S: { ...s.S, bodyweight: [] } }))
+    // A saved copy says complete, but this session has not synced it yet: it may be behind.
+    useDiaryIndex.setState({ complete: true, synced: false })
+    await mount(<Home />)
+    expect(host.querySelector('.today .today-sk-row')).toBeTruthy()
+    expect(host.querySelector('.g-grow, .g-fstep')).toBeNull()
+    expect(tiles().map(t => t[0])).toEqual(['Breakfast', 'Lunch', 'Dinner', 'Snacks'])
+    await act(async () => { useDiaryIndex.setState({ synced: true }) })
+    expect(host.querySelector('.today-sk-row')).toBeNull()
+    expect(sections()[0]).toBe('First steps1 of 4')
   })
 
   it('the four actions: Log food, Scan, Water and Weigh-in, each the flow the app already runs', async () => {
@@ -172,7 +212,9 @@ describe('Today', () => {
     await act(async () => { useUI.getState().runToastAction() })
     await settle()
     expect(sections()).toContain('Water250 of 2,500 ml')
-    await click(button('Add 250 ml of water'))
+    // Spoken in the person's water unit, as the Nutrition tab's quick-adds are.
+    expect(host.querySelector('.g-water').getAttribute('aria-label')).toBe('Water, 250 ml of 2,500 ml')
+    await click(button('Add a glass of water, 250 ml'))
     expect(puts().at(-1).body.water.map(w => w.amount)).toEqual([250, 250])
   })
 
@@ -298,7 +340,7 @@ describe('Today', () => {
   it('without nutrition (a guest, the phone build): one ring for the week, the week\'s marks, no food', async () => {
     useStore.setState({ user: null })
     await mount(<Home />)
-    expect(slides().map(s => s.getAttribute('aria-label'))).toEqual(['Workouts: 0 of 0 workouts. Open details'])
+    expect(slides().map(s => s.getAttribute('aria-label'))).toEqual(['Workouts: This week 0 of 0 workouts. Open details'])
     expect(actions()).toEqual(['Start', 'Activity', 'Weigh-in', 'Plan'])
     expect(sections()).toEqual(['Up next', 'This week0 of 0 done'])
     expect(host.querySelectorAll('.g-wk-cell')).toHaveLength(7)
