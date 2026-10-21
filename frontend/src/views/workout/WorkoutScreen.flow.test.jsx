@@ -158,9 +158,10 @@ todos('drop-set weight step (Set edit drawer, drawers-M2\'s exercise-drawers.tes
   'Workout.test.jsx:698 uses the configured reps weight step for drop-set weight controls',
 ])
 
-todos('progression guidance and settings (the plan line moved into How to / Exercise settings, drawers-M2)', [
-  'Workout.test.jsx:998 labels the visible outcome with the policy that calculated it [gap check: does the new screen show a progression line at all]',
-  'Workout.test.jsx:1012 progression line is a keyboard-accessible button that opens settings for the pressed grouped entry',
+// Workout.test.jsx:998 and :1012 (the .progline and its button) are dropped by design: the boards put
+// progression in Exercise settings. The data cases below move to drawers-M2's exercise-drawers.test.jsx
+// or lib/progression tests; not ported here, still open.
+todos('progression settings data cases (Exercise settings, drawers-M2)', [
   'Workout.test.jsx:1040 does not save into a different duplicate occurrence after the entry list shifts [exercise-drawers entry-id guard]',
   'Workout.test.jsx:1060 does not save through a sheet left open from a replaced workout',
   'Workout.test.jsx:1081 leaves the active entry unchanged when progression settings are cancelled',
@@ -180,36 +181,17 @@ todos('whole-unit moves and swap (actions, map is drawers-M3)', [
   'Workout.test.jsx:1545 opens the swap flow for the selected duplicate occurrence [exercise-drawers Swap step]',
 ])
 
-todos('focus view cases (the new screen is one focus screen; the focus progression is its own)', [
-  'Workout.test.jsx:1558 shows only the first incomplete set with its prescription and tactile controls',
-  'Workout.test.jsx:1573 moves with chevrons and dots without completing a set',
+// Focus cases ported to WorkoutScreen.focus.test.jsx; 1838 and 1854 are WorkoutScreen.test.jsx's
+// hand-over and superset cases; 1806 is exercise-drawers.test.jsx:124. What has no home yet:
+todos('focus view cases still open', [
+  'Workout.test.jsx:1573 the progress dots move to a set without completing it (the ‹ › half is WorkoutScreen.test.jsx)',
   'Workout.test.jsx:1599 pairs adjacent exercises and can unpair them [map, drawers-M3]',
-  'Workout.test.jsx:1615 uses the shared effort picker for the selected RPE scale',
-  'Workout.test.jsx:1631 hides effort when Settings selects none',
-  'Workout.test.jsx:1643 locks completed set inputs and mutes their values',
-  'Workout.test.jsx:1656 renders and updates independent unilateral sides',
-  'Workout.test.jsx:1677 completes both unilateral sides before advancing',
-  'Workout.test.jsx:1697 advances when the second individual side is completed',
-  'Workout.test.jsx:1716 renders and edits unilateral extras added through the set menu',
-  'Workout.test.jsx:1749 shows the timer action instead of reps for timed sets',
-  'Workout.test.jsx:1762 advances when a timed set finishes through the shared timer',
-  'Workout.test.jsx:1778 does not advance when rechecking a completed final set',
-  'Workout.test.jsx:1792 uses the duration and speed fields for cardio',
-  'Workout.test.jsx:1806 keeps drop and burst rows editable and opens every set action [Set edit, exercise-drawers.test.jsx:124]',
-  'Workout.test.jsx:1838 completes, starts rest, advances sets, then advances to the next unfinished exercise',
-  'Workout.test.jsx:1854 shows one superset member and follows round-major completion order',
-  'Workout.test.jsx:1883 uses the superset switch for inspection without completing work',
-  'Workout.test.jsx:1896 and :1915 :1930 :1946 :1960 :1975 inspected-set pointer cases: dropped by design if the screen keeps no per-set pointer (confirm)',
+  'Workout.test.jsx:1716 renders and edits unilateral extras added through Set edit (exercise-drawers.test.jsx:169 covers both sides, not drops and bursts per side)',
+  'Workout.test.jsx:1883 the superset switch selects the partner without completing work',
 ])
 
 // Holds and sides: WorkoutScreen.hold.test.jsx. The footer's rest: WorkoutScreen.rest.test.jsx
 // (its three gap todos live there). Superset scroll: dropped by design.
 
-todos('FocusView.test.jsx (the focus progression is the new screen\'s)', [
-  'FocusView.test.jsx:58 omits a plan that repeats the prescription and keeps plate guidance in the badge row',
-  'FocusView.test.jsx:75 shows only a changed plan as a badge',
-  'FocusView.test.jsx:92 offers the per-exercise progression switch and marks the current exercise',
-  'FocusView.test.jsx:107 uses the exercise rest-pause duration for a new burst',
-  'FocusView.test.jsx:143 reads, steps and takes typing in mph for a profile in pounds, and stores km/h',
-  'FocusView.test.jsx:153 follows a chosen unit over the weight unit, and leaves km/h as it was',
-])
+// FocusView.test.jsx:107, :143 and :153 are in WorkoutScreen.focus.test.jsx. :58, :75 and :92 are the
+// old plan line and its switch: dropped by design (progression lives in Exercise settings).
