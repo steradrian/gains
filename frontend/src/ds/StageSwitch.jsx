@@ -9,8 +9,9 @@ import HapticSwitch from './HapticSwitch.jsx'
 // button, so the caller names it: `label` (or `ariaLabel`, the same, `label` first) is its spoken
 // name, and the visible text beside it is the caller's. There is no English default.
 // A flipped switch is a write already made, so it ticks (ds/HapticSwitch.jsx), like the legacy
-// Switch; `haptic={false}` for one that only previews.
-export default function StageSwitch({ checked, onChange, label, ariaLabel, haptic = true }) {
+// Switch; `haptic={false}` for one that only previews. `disabled` is a switch whose state is
+// decided elsewhere (Reduce motion when the phone already reduces it): dimmed, no tap, no tick.
+export default function StageSwitch({ checked, onChange, label, ariaLabel, haptic = true, disabled = false }) {
   const [own, setOwn] = useState(!!checked)
   const on = checked !== undefined ? !!checked : own
   const toggle = () => {
@@ -19,9 +20,10 @@ export default function StageSwitch({ checked, onChange, label, ariaLabel, hapti
     onChange?.(!on)
   }
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label || ariaLabel} className={cx('g-sswitch', on && 'on', haptic && 'g-haptic')} onClick={toggle}>
+    <button type="button" role="switch" aria-checked={on} aria-label={label || ariaLabel} disabled={disabled}
+      className={cx('g-sswitch', on && 'on', haptic && !disabled && 'g-haptic')} onClick={toggle}>
       <i aria-hidden="true" />
-      {haptic && <HapticSwitch />}
+      {haptic && !disabled && <HapticSwitch />}
     </button>
   )
 }
