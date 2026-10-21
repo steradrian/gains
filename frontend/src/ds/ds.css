@@ -1929,3 +1929,14 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-rt-days { list-style: none; margin: 0; padding: 0; display: flex; justify-content: center; gap: 8px; }
 .g-rt-days li { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-3); font: 600 14px/20px var(--font-sans); }
 .g-rt-days li.on { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+
+/* Settings data m1: Import. The Hevy key drawer's column, the progress screen (ring, line, note,
+   Cancel) and the done screen (headline, range, tiles, two cards). */
+.g-imp-sheet { display: flex; flex-direction: column; gap: 14px; padding-bottom: 8px; }
+.g-imp-progress { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 24px 0; text-align: center; }
+.g-imp-progress .g-snote { padding: 0; }
+.g-imp-label { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage); font-variant-numeric: tabular-nums; }
+.g-imp-done { display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; }
+.g-imp-head { margin: 0; padding: 4px 24px 0; font: 700 28px/32px var(--font-sans); letter-spacing: -0.02em; color: var(--on-stage); text-align: start; }
+.g-imp-line { margin: -8px 0 0; padding: 0 24px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-imp-done .g-stats { margin: 0 16px; }

@@ -3,11 +3,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import Settings from './Settings.jsx'
-import { preloadPages } from './settings/pages/index.js'
-import { bindUI } from '../components/ui.jsx'
 
-await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
@@ -15,59 +11,45 @@ const mocks = vi.hoisted(() => {
   state.snapshot = () => ({
     S: state.S,
     user: null,
+    sync: { status: 'local' },
     update: mut => {
       const next = structuredClone(state.S)
       mut(next)
       state.S = next
     },
-    replaceState: vi.fn(), setUser: vi.fn(), pullState: vi.fn(), pushState: vi.fn(),
-    signOut: vi.fn(), signOutAll: vi.fn(), resetDemo: vi.fn(), disconnectServer: vi.fn(),
   })
   return state
 })
-vi.mock('../store/useStore.js', () => {
+vi.mock('../../../store/useStore.js', () => {
   const useStore = selector => selector ? selector(mocks.snapshot()) : mocks.snapshot()
   useStore.getState = mocks.snapshot
-  return { useStore, DEF: { reminder: { time: '17:30' } }, hasData: () => false }
+  return { useStore }
 })
-vi.mock('../store/useUI.js', () => {
+vi.mock('../../../store/useUI.js', () => {
   const snap = () => ({ toast: vi.fn(), openSheet: vi.fn() })
   const useUI = selector => selector ? selector(snap()) : snap()
   useUI.getState = snap
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
-vi.mock('../lib/api.js', () => ({
-  api: vi.fn(), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
-}))
-vi.mock('../lib/push.js', () => ({ pushSupported: () => false, enablePush: vi.fn(), disablePush: vi.fn(), sendTestPush: vi.fn() }))
-vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => false }))
-vi.mock('../lib/mobile.js', () => ({ get MOBILE() { return mocks.MOBILE }, isAndroid: () => Promise.resolve(mocks.android), shareExport: vi.fn(), syncReminder: vi.fn() }))
-vi.mock('../components/BackupFolderRow.jsx', async () => {
-  const real = await vi.importActual('../components/BackupFolderRow.jsx')
+vi.mock('../../../lib/use-tab-nav.js', () => ({ back: vi.fn() }))
+vi.mock('../../../lib/mobile.js', () => ({ get MOBILE() { return mocks.MOBILE }, isAndroid: () => Promise.resolve(mocks.android), shareExport: vi.fn() }))
+vi.mock('../use-settings-ctx.js', () => ({ useSettingsCtx: () => ({ android: mocks.android, hasMedia: false }) }))
+vi.mock('../use-data-actions.js', () => ({ useDataActions: () => ({ buildJson: vi.fn(), buildZip: vi.fn(), saveFile: vi.fn(), doImport: vi.fn() }) }))
+vi.mock('../../MobileOnboarding.jsx', () => ({ ConnectSheet: () => null, CfAccessSheet: () => null }))
+vi.mock('./backup-folder.jsx', async () => {
+  const real = await vi.importActual('./backup-folder.jsx')
   return {
     default: () => <div className="backup-folder-row" />,
     useBackupFolder: enabled => { mocks.asked.push(enabled); return [enabled ? mocks.folder : null, () => {}] },
     autoBackupSubtitle: real.autoBackupSubtitle,
   }
 })
-vi.mock('../lib/update.js', () => ({ checkForUpdate: () => new Promise(() => {}), downloadAndInstall: vi.fn() }))
-vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
-vi.mock('../sheets.jsx', () => ({
-  loadStarterPlan: vi.fn(), starterPlanSheet: vi.fn(), confirmSheet: vi.fn(), importFromApp: vi.fn(),
-  importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(),
-}))
 
-// The Settings view reads the build-time version constant at render time.
-globalThis.__APP_VERSION__ ??= 'test'
-
-// SelectRow opens its choices through the bound UI store; capture the sheet to render it here.
-let sheet = null
-bindUI({ getState: () => ({ openSheet: render => { sheet = render; return { close: () => {} } } }) })
+const { default: SyncPage } = await import('./SyncPage.jsx')
 
 let host, root
 beforeEach(() => {
-  sheet = null
   mocks.S = {
     unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',
     gifSize: 'full', workouts: [], routines: [], exWeights: {},
@@ -85,7 +67,7 @@ afterEach(() => {
   host.remove()
 })
 
-const mount = async () => { await act(async () => { root.render(<Settings page="backup" />) }) }
+const mount = async () => { await act(async () => { root.render(<SyncPage />) }) }
 const shown = () => !!host.querySelector('.backup-folder-row')
 
 describe('the backup folder rows', () => {
@@ -109,7 +91,7 @@ describe('the backup folder rows', () => {
 
 // Android QA: the Auto-backup row still said Documents/Gains after another folder was chosen.
 describe('the Auto-backup row', () => {
-  const subtitle = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Auto-backup on changes'))?.querySelector('.lrow-s')?.textContent
+  const subtitle = () => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Auto-backup on changes')?.querySelector('.g-glist-body span')?.textContent
   it('names the chosen folder', async () => {
     mocks.S.autoBackup = true
     mocks.folder = { uri: 'content://tree/Sync', label: 'SyncFolder' }
@@ -121,5 +103,12 @@ describe('the Auto-backup row', () => {
     mocks.S.autoBackup = true
     await mount()
     expect(subtitle()).toContain('Documents/Gains')
+  })
+  it('flips the setting', async () => {
+    mocks.S.autoBackup = false
+    await mount()
+    const sw = [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Auto-backup on changes').querySelector('[role="switch"], input')
+    await act(async () => { sw.click() })
+    expect(mocks.S.autoBackup).toBe(true)
   })
 })

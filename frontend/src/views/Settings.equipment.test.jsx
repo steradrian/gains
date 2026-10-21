@@ -96,7 +96,7 @@ describe('SettingsRoute: the Equipment page', () => {
   })
 
   it('leaves the other pages in the Settings shell', () => {
-    mocks.params = { page: 'import' }
+    mocks.params = { page: 'media' }
     mount()
     expect(host.querySelector('.g-spage')).toBeNull()
     expect(host.querySelector('.lrow')).not.toBeNull()

@@ -334,7 +334,7 @@ describe('searchSettings', () => {
     expect(pageTrail(null, tr)).toBe('Profile')
     expect(searchSettings('overtime', guestWeb, tr)[0].trail).toBe('Fine-tuning')
     expect(searchSettings('sign out', { ...guestWeb, user: { id: 'u' }, synced: true }, tr)[0]).toMatchObject({ page: null, trail: 'Profile' })
-    expect(searchSettings('sync now', { ...guestWeb, user: { id: 'u' }, synced: true }, tr)[0]).toMatchObject({ page: 'backup', trail: 'Backup' })
+    expect(searchSettings('sync now', { ...guestWeb, user: { id: 'u' }, synced: true }, tr)[0]).toMatchObject({ page: 'backup', trail: 'Sync and backup' })
     expect(searchSettings('admin', guestWeb, tr)).toEqual([])
     expect(searchSettings('admin', { ...guestWeb, user: { id: 'u', admin: true } }, tr)[0]).toMatchObject({ page: 'admin', isPage: true })
     expect(searchSettings('health connect', guestWeb, tr)).toEqual([])
@@ -380,7 +380,7 @@ describe('searchSettings', () => {
       expect(titles).not.toContain('Superset buttons in the header')
     } finally { await setLang('en') }
     expect(searchSettings('tone', { ...guestWeb, user: { id: 'u' }, pushOK: true, reminderOn: true, nudge: true }, s => s).map(h => h.title)).toContain('Nudge tone')
-    expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup (JSON)')
+    expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup')
   })
 })
 

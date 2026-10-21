@@ -3,7 +3,6 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
-import SyncStatusCard from '../components/SyncStatusCard.jsx'
 import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
@@ -108,17 +107,10 @@ describe('Server & sync', () => {
     expect(rowByTitle(b, 'All synced').textContent).toContain('Last synced: 5 minutes ago')
     expect(rowByTitle(page, 'Account ID')).toBeTruthy()       // the phone's account id sits under the block
     expect(rowByTitle(b, 'Pair again')).toBeUndefined()       // nothing to fix
-    expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Profile, once
+    expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Sync and backup, once (SyncPage.test.jsx)
 
-    // The root says it in its pill; the card with Sync now is SyncStatusCard, which the Sync page
-    // takes over (Settings shell m2).
+    // The root says it in its pill; Sync now and its outcome are SyncPage.test.jsx's.
     expect(mount(<Settings />).querySelector('.sroot-pill').textContent).toBe('All synced · 5 minutes ago')
-    const card = block(mount(<SyncStatusCard />), 'Sync')
-    expect(rowByTitle(card, 'Training and body').textContent).toContain('All synced · Last synced: 5 minutes ago')
-    expect(rowByTitle(card, 'Nutrition')).toBeUndefined()     // the phone app has no nutrition
-    await act(async () => { rowByTitle(card, 'Sync now').click() })
-    expect(mocks.syncNow).toHaveBeenCalledTimes(1)
-    expect(mocks.toast).toHaveBeenCalledWith('All synced')
   })
 
   it('refused by the server: says so, how much is waiting, and offers "Pair again" with the address filled in', async () => {
@@ -133,11 +125,6 @@ describe('Server & sync', () => {
     const sheet = openSheet().querySelector('.connect')
     expect(sheet.dataset.url).toBe(BASE)
     expect(sheet.dataset.again).toBe('true')
-
-    // Sync now reports the outcome, whatever it is.
-    const card = block(mount(<SyncStatusCard />), 'Sync')
-    await act(async () => { rowByTitle(card, 'Sync now').click() })
-    expect(mocks.toast).toHaveBeenCalledWith('The server refuses this phone')
   })
 
   // A v1.3.8 phone that lost its pairing, upgraded: both rows said "This phone is not connected to a

@@ -35,7 +35,7 @@ export const PAGES = {
   categories: { title: 'Categories', icon: 'list', tint: 'var(--indigo)', kw: 'food categories emoji label groups' },
   customUnits: { title: 'Custom units', icon: 'ruler', tint: 'var(--purple)', kw: 'custom units serving shot scoop stick abbreviation' },
   fields: { title: 'Measurement fields', icon: 'ruler', tint: 'var(--purple)', sheet: true },
-  backup: { title: 'Backup', icon: 'folder', tint: 'var(--blue)' },
+  backup: { title: 'Sync and backup', icon: 'folder', tint: 'var(--blue)' },
   import: { title: 'Import', icon: 'download', tint: 'var(--teal)' },
   media: { title: 'Photos & videos', icon: 'image', tint: 'var(--teal)' },
   danger: { title: 'Danger zone', icon: 'trash', tint: 'var(--red)' },
@@ -105,7 +105,7 @@ const ntOn = c => !!c.nutrition
 const ntValue = (c, key) => settingOf(c.ntSettings, key)
 const ntFeature = key => (S, c) => (c.ntSettings ? c.ntSettings[key] === true : null)
 export const SEARCH = [
-  // Root. Sync now moved to Sync and backup (the root's pill opens it).
+  // Root. Sync now is on Sync and backup (the root's pill opens it).
   { page: 'backup', title: 'Sync now', icon: 'reset', tint: 'var(--acc)', kw: 'server sync upload refresh status connection nutrition', when: c => !!c.user && !c.demo && c.synced },
   { page: null, title: 'Sign out', icon: 'signOut', tint: 'var(--red)', kw: 'log out logout sign out', when: signedInWeb },
   { page: null, title: 'Disconnect', icon: 'signOut', tint: 'var(--red)', kw: 'disconnect server local log out', when: c => c.mobile && !!c.user },
@@ -208,13 +208,18 @@ export const SEARCH = [
   { page: 'equipment', title: 'Active profile', icon: 'house', tint: 'var(--blue)', kw: 'equipment profile home gym', when: c => c.profiles },
   { page: 'equipment', title: 'Add equipment profile', icon: 'plusCircle', tint: 'var(--green)', kw: 'equipment profile home gym hotel' },
   // Backup
-  { page: 'backup', title: 'Export backup (JSON)', icon: 'share', tint: 'var(--blue)', kw: 'export backup json download save data' },
-  { page: 'backup', title: 'Export with photos & videos (.zip)', icon: 'share', tint: 'var(--blue)', kw: 'zip media export backup', when: c => c.hasMedia },
+  { page: 'backup', title: 'Export backup', icon: 'share', tint: 'var(--blue)', kw: 'export backup json download save data' },
+  { page: 'backup', title: 'Export with photos and videos', icon: 'share', tint: 'var(--blue)', kw: 'zip media export backup', when: c => c.hasMedia },
   { page: 'backup', title: 'Auto-backup on changes', icon: 'folder', tint: 'var(--blue)', kw: 'auto backup automatic', when: c => c.mobile, feature: S => !!S.autoBackup },
   { page: 'backup', title: 'Backup folder', icon: 'folder', tint: 'var(--blue)', kw: 'auto backup folder location directory', when: c => c.mobile && c.android && c.autoBackup },
   { page: 'backup', title: 'Import backup', icon: 'download', tint: 'var(--teal)', kw: 'import restore backup json zip' },
   // Import
-  { page: 'import', title: 'Import from another app', icon: 'download', tint: 'var(--teal)', kw: 'strong hevy fitnotes apple health csv import' },
+  { page: 'import', title: 'Strong', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv export history workouts' },
+  { page: 'import', title: 'Hevy', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv export history workouts' },
+  { page: 'import', title: 'FitNotes', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv spreadsheet export history workouts' },
+  { page: 'import', title: 'Gravl', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv export history workouts' },
+  { page: 'import', title: 'Apple Health', icon: 'heart', tint: 'var(--teal)', kw: 'import xml body weight weigh-ins health export' },
+  { page: 'import', title: 'Your own CSV', icon: 'download', tint: 'var(--teal)', kw: 'import csv spreadsheet file own date exercise' },
   { page: 'import', title: 'Import from Hevy', icon: 'key', tint: 'var(--teal)', kw: 'hevy api import' },
   // Connected apps & health
   { page: 'health', title: 'Write to Health Connect', icon: 'heart', tint: 'var(--red)', kw: 'health connect android google fit share workouts weigh-ins', feature: () => null },

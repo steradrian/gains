@@ -6,7 +6,7 @@
     "sheets/confirm-menu.jsx": 1,
     "sheets/exercise-config.jsx": 7,
     "sheets/exercise.jsx": 1,
-    "sheets/import.jsx": 19,
+    "sheets/import.jsx": 18,
     "sheets/workout-detail.jsx": 21,
     "sheets/workout-flow.jsx": 67,
     "views/Admin.jsx": 29,
@@ -16,9 +16,7 @@
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
     "views/StructuralBalance.jsx": 8,
-    "views/Workout.jsx": 18,
-    "views/settings/pages/BackupPage.jsx": 1,
-    "views/settings/pages/ImportPage.jsx": 1
+    "views/Workout.jsx": 18
   },
   "G2css": {
     "admin.css": 1,
@@ -28,6 +26,7 @@
   "G2js": {
     "brand.js": 2,
     "lib/media-ingest.js": 1,
+    "lib/nutrition/category-colors.js": 8,
     "lib/plan-share.js": 22,
     "lib/qr.js": 2,
     "lib/themes.js": 426,

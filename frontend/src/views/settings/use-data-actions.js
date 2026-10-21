@@ -5,7 +5,7 @@ import { t, tn } from '../../lib/i18n.js'
 import { MOBILE, shareExport, shareExportBlob } from '../../lib/mobile.js'
 import { syncMedia, fetchToStore } from '../../lib/media-sync.js'
 import { limitsFrom } from '../../lib/media-limits.js'
-import { importFromApp, importFromHevy, confirmSheet, menuSheet } from '../../sheets.jsx'
+import { confirmSheet, menuSheet } from '../../sheets.jsx'
 
 /**
  * Export and import of the whole state, shared by Backup, Import and the sign-out confirms (which
@@ -101,5 +101,5 @@ export function useDataActions() {
     })
   }
 
-  return { doExport, doExportZip, buildJson, buildZip, saveFile, doImport, importFromApp, importFromHevy }
+  return { doExport, doExportZip, buildJson, buildZip, saveFile, doImport }
 }

@@ -78,7 +78,7 @@ const until = async (cond, ms = 4000) => {
   const end = Date.now() + ms
   while (!(await cond()) && Date.now() < end) await act(async () => { await new Promise(r => setTimeout(r, 10)) })
 }
-// A page's rows, or the root's (Settings shell m2: stage rows).
+// A page's rows, or the root's: stage rows (.g-glist-row) and Photos & videos' older ones (.lrow).
 const row = text => [...host.querySelectorAll('.lrow, .g-glist-row')].find(r => r.textContent.includes(text))
 const stateWithPhoto = () => ({
   unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none', gifSize: 'full', workouts: [], routines: [], exWeights: {},
@@ -113,8 +113,8 @@ const mount = async (page = 'backup') => { act(() => root.render(<Settings page=
 describe('Settings — photos and videos', () => {
   it('the JSON export says it leaves them out, the zip row and the Photos & videos row appear', async () => {
     await mount()
-    expect(row('Export backup (JSON)').textContent).toContain('Without photos and videos')
-    expect(row('Export with photos & videos (.zip)')).toBeTruthy()
+    expect(row('Export backup').textContent).toContain('Without photos and videos')
+    expect(row('Export with photos and videos')).toBeTruthy()
     expect(host.querySelector('input[type="file"][accept=".json,.zip,application/json,application/zip"]')).toBeTruthy()
     await mount(null)
     expect(row('Photos & videos')).toBeTruthy()
@@ -146,8 +146,8 @@ describe('Settings — photos and videos', () => {
   it('without any, none of that shows', async () => {
     mocks.S = { ...stateWithPhoto(), customEx: [] }
     await mount()
-    expect(row('Export backup (JSON)').textContent).not.toContain('Without photos')
-    expect(row('Export with photos & videos')).toBeUndefined()
+    expect(row('Export backup').textContent).not.toContain('Without photos')
+    expect(row('Export with photos and videos')).toBeUndefined()
     await mount(null)
     expect(row('Photos & videos')).toBeUndefined()
   })
@@ -158,12 +158,14 @@ describe('Settings — photos and videos', () => {
     const created = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { blob = b; return 'blob:zip' })
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     await mount()
-    act(() => { row('Export with photos & videos (.zip)').click() })
+    act(() => { row('Export with photos and videos').click() })
     await until(() => created.mock.calls.length > 0)
     expect(created).toHaveBeenCalled()
     const names = (await readZip(blob)).map(e => e.name)
     expect(names).toEqual(['gains-backup.json', `media/${HASH}.jpg`, 'README.txt'])
-    expect(mocks.toast).toHaveBeenCalledWith('Backup exported')
+    // The toast names the file and its size (board St1Backup).
+    await until(() => mocks.toast.mock.calls.some(c => c[0] === 'Backup exported'))
+    expect(mocks.toast).toHaveBeenCalledWith('Backup exported', expect.objectContaining({ body: expect.stringMatching(/^gains-backup-\d{4}-\d{2}-\d{2}\.zip · \d+ KB$/) }))
     vi.restoreAllMocks()
   })
 
@@ -172,9 +174,11 @@ describe('Settings — photos and videos', () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     try {
       await mount()   // the photo is not on this device, and a guest has nowhere to fetch it from
-      act(() => { row('Export with photos & videos (.zip)').click() })
+      act(() => { row('Export with photos and videos').click() })
       await until(() => created.mock.calls.length > 0)
       expect(mocks.toast).toHaveBeenCalledWith('1 file could not be included')
+      // buildZip said so already: the "Backup exported" toast would replace that line.
+      expect(mocks.toast).not.toHaveBeenCalledWith('Backup exported', expect.anything())
     } finally { vi.restoreAllMocks() }
   })
 
