@@ -202,34 +202,8 @@ todos('focus view cases (the new screen is one focus screen; the focus progressi
   'Workout.test.jsx:1896 and :1915 :1930 :1946 :1960 :1975 inspected-set pointer cases: dropped by design if the screen keeps no per-set pointer (confirm)',
 ])
 
-todos('timed hold and sides (Workout.hold.test.jsx)', [
-  'Workout.hold.test.jsx:63 ran out on its own: chime and buzz pattern, no tick beep or short buzz after',
-  'Workout.hold.test.jsx:75 finished early with Done: ticks the way a tap does, beep and buzz',
-  'Workout.hold.test.jsx:100 left held: a 10 s Switch sides countdown that ends with the chime [WorkoutScreen.test.jsx covers the switch itself]',
-  'Workout.hold.test.jsx:113 right held too: the set\'s full rest, not another switch',
-  'Workout.hold.test.jsx:123 Left and Right pills one width (#322): dropped by design if TimedHold replaced the pills',
-])
-
-todos('superset scroll (Workout.superset-scroll.test.jsx): dropped by design, one focus screen has no list to scroll (owner question 1)', [
-  'Workout.superset-scroll.test.jsx:139-303 thirteen scroll cases, confirm the drop with the orchestrator',
-])
-
-todos('rest in the footer (RestTimer.dock / RestTimer.ready, now WorkoutFooter)', [
-  'RestTimer.dock.test.jsx:47 one row: the clock with its label, then -15, +15, pause and Skip',
-  'RestTimer.dock.test.jsx:61 keeps every button in its slot when the rest turns Ready',
-  'RestTimer.dock.test.jsx:81 Skip as an icon, Dismiss as x once Ready: dropped by design if the footer has no narrow form',
-  'RestTimer.dock.test.jsx:102 says Paused under the clock while the rest is held',
-  'RestTimer.dock.test.jsx:109 opens the wheel at the time left, Done sets the rest [exercise-drawers.test.jsx:357 covers the wheel]',
-  'RestTimer.dock.test.jsx:123 ends the rest at 0:00, and starts a fresh one when the old one had run out',
-  'RestTimer.dock.test.jsx:136 Done on an untouched wheel leaves the rest alone',
-  'RestTimer.dock.test.jsx:168 +15 s stops at the wheel maximum of 15:00',
-  'RestTimer.dock.test.jsx:180 keeps a paused rest paused at the new time',
-  'RestTimer.ready.test.jsx:37 keeps Ready and its Dismiss action across a remount',
-  'RestTimer.ready.test.jsx:55 shows a plus clock and an empty bar during opted-in overtime',
-  'RestTimer.ready.test.jsx:70 pauses the countdown, shows it held, resumes from the same second',
-  'RestTimer.ready.test.jsx:90 offers no pause once the rest is Ready, and none on the timed hold',
-  'RestTimer.ready.test.jsx:104 names the pause, counts it down, and goes without a Ready or a toast',
-])
+// Holds and sides: WorkoutScreen.hold.test.jsx. The footer's rest: WorkoutScreen.rest.test.jsx
+// (its three gap todos live there). Superset scroll: dropped by design.
 
 todos('FocusView.test.jsx (the focus progression is the new screen\'s)', [
   'FocusView.test.jsx:58 omits a plan that repeats the prescription and keeps plate guidance in the badge row',
