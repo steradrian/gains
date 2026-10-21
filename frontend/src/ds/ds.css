@@ -1774,3 +1774,38 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .sheet .g-bs-back { color: var(--label); }
 .sheet .g-bs-back:active { background: var(--label-4); }
 .g-bs-head h2:focus, .g-bs-pane h3:focus { outline: none; }
+/* Eat fasting m1: the Fasting page (Ea6Fasting, Ea6Off, Ea6Running, Ea6Reached) and its two light
+   drawers (Ea6Start, Ea6Edit). */
+.g-fast { display: flex; flex-direction: column; gap: 12px; padding-inline: 16px; color: var(--on-stage); --g-fast-done: #6FD39C; }
+.g-fast .g-ssec { padding-inline: 4px; }
+.g-fast .g-snote { padding-inline: 4px; text-align: start; }
+.g-fast .g-sempty { margin-inline: 0; }
+.g-fast-card { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 18px 18px; border-radius: 28px; text-align: center; }
+.g-fast-k { font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-fast-big { font: 700 56px/60px var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.g-fast-sub { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-fast-card .g-cgroup { justify-content: center; }
+.g-fast-ring .g-sring-in b { font-family: var(--font-mono); letter-spacing: -0.02em; }
+.g-fast-done .g-sring-val { stroke: var(--g-fast-done); }
+.g-fast-acts { display: flex; flex-direction: column; gap: 10px; align-self: stretch; }
+.g-fast-off { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.g-fast-off .g-cgroup { justify-content: center; }
+.g-fast-foot { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 8px; }
+.g-fast-rows { list-style: none; margin: 0; padding: 0; border-radius: 24px; overflow: hidden; }
+.g-fast-row { display: flex; align-items: center; gap: 12px; padding: 12px 6px 12px 18px; }
+.g-fast-row + .g-fast-row { box-shadow: inset 0 1px 0 var(--glass-line); }
+.g-fast-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-fast-row-body b { font: 600 16px/22px var(--font-sans); }
+.g-fast-row-body span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-fast-row-dur { font: 600 16px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-fast-row-x { appearance: none; border: 0; background: none; color: var(--on-stage-2); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; cursor: pointer; }
+.g-fast-row-x:focus-visible { outline-offset: -4px; }
+.g-fast-row-x .g-icon { width: 20px; height: 20px; }
+.g-fast-sheet { display: flex; flex-direction: column; gap: 16px; }
+.g-fast-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.g-fast-lead { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-fast-sum { margin: 0; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-card); }
+.g-fast-sum div { display: flex; justify-content: space-between; gap: 12px; font: 500 15px/20px var(--font-sans); }
+.g-fast-sum dt { color: var(--text-3); }
+.g-fast-sum dd { margin: 0; font-weight: 600; text-align: end; }
+.g-fast-why { margin: 0; color: var(--text-2); }
