@@ -115,6 +115,26 @@ describe('W1.10 / W1.11 Finish', () => {
     expect(takeReopen(id)).toBeTruthy()
   })
 
+  it('Finish and save ticks (the write), Keep going does not', () => {
+    Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/130.0 Mobile Safari/537.36', configurable: true })
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+    try {
+      install(running([reps(BENCH, [row(80, 8, true, NOW - 5 * MIN)])]))
+      finishSheet()
+      const host = mountTop()
+      tap(host, 'Keep going')
+      expect(vibrate).not.toHaveBeenCalled()
+      finishSheet()
+      tap(mountTop(), 'Finish and save')
+      expect(vibrate).toHaveBeenCalledTimes(1)
+      expect(vibrate).toHaveBeenCalledWith([10, 50, 10])
+    } finally {
+      delete navigator.userAgent
+      delete navigator.vibrate
+    }
+  })
+
   it('sets left: Finish early?, what is left from the facts, Finish anyway', () => {
     install(running([reps(BENCH, [row(80, 8, true, NOW - 5 * MIN), row(80, 8, false)]), reps(FLY, [row(17.5, 12, false)])]))
     const facts = finishFacts(S(), S().active, NOW)

@@ -146,7 +146,7 @@ export function FinishStep({ facts, onFinish, onKeep, onDiscard }) {
       {kind === 'done' && facts.bestsCount && <p><Tag tone="positive" icon="trophy">{facts.bestsCount}</Tag> {facts.bestsLine}</p>}
       {kind === 'early' && <p><b>{facts.headline}</b> {facts.sentence}</p>}
       {!worked && <p>{facts.message || t('You haven’t checked off any sets. Finish anyway?')}</p>}
-      <Button block onClick={onFinish}>{kind === 'done' ? t('Finish and save') : t('Finish anyway')}</Button>
+      <Button block haptic hapticStyle="success" onClick={onFinish}>{kind === 'done' ? t('Finish and save') : t('Finish anyway')}</Button>
       <Button block variant="secondary" onClick={onKeep}>{t('Keep going')}</Button>
       <Button block variant="danger" onClick={onDiscard}>{t('Discard workout')}</Button>
     </div>

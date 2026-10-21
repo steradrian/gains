@@ -8,12 +8,14 @@ import { useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { t } from '../../lib/i18n.js'
+import { haptic as buzz } from '../../lib/use-haptic.js'
 import { finishWorkout } from '../../sheets.jsx'
 import Icon from '../../components/Icon.jsx'
 import CurrentSet from '../../ds/CurrentSet.jsx'
 import DoneSetRows from '../../ds/DoneSetRows.jsx'
 import EffortChips from '../../ds/EffortChips.jsx'
 import ExerciseHero from '../../ds/ExerciseHero.jsx'
+import HapticSwitch from '../../ds/HapticSwitch.jsx'
 import PlateLine from '../../ds/PlateLine.jsx'
 import SetStepper from '../../ds/SetStepper.jsx'
 import SupersetSwitch from '../../ds/SupersetSwitch.jsx'
@@ -109,7 +111,12 @@ export default function WorkoutFocus({ view, actions }) {
           >
             <PlateLine text={current.plateLine} label={t('Plate loading')} onClick={() => platesSheet(idx)} />
           </CurrentSet>
-          <button type="button" className="wk-done" onClick={done}>{current.timed ? current.startLabel : current.doneLabel}</button>
+          {/* Done is the write; Start on a timed set only begins the hold, so it stays silent. */}
+          <button type="button" className={'wk-done' + (current.timed ? '' : ' g-haptic')}
+            onClick={() => { if (!current.timed) buzz('light'); done() }}>
+            {current.timed ? current.startLabel : current.doneLabel}
+            {!current.timed && <HapticSwitch />}
+          </button>
           {current.upcoming.length > 0 && (
             <div className="wk-todo g-glass">
               {current.upcoming.map(u => (

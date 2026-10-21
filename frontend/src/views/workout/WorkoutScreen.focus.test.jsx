@@ -57,6 +57,22 @@ describe('the first open set', () => {
     expect(host.textContent).toContain('2:00 rest')
   })
 
+  it('ticks on Done set (the write), and carries the iOS switch overlay on that button only', () => {
+    Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) Chrome/130.0 Mobile Safari/537.36', configurable: true })
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+    try {
+      render([exercise(BENCH, [false, false])], { autoNext: false })
+      expect(button('Done set').classList.contains('g-haptic')).toBe(true)
+      tap(button('Done set'))
+      expect(vibrate).toHaveBeenCalledTimes(1)
+      expect(vibrate).toHaveBeenCalledWith(10)
+    } finally {
+      delete navigator.userAgent
+      delete navigator.vibrate
+    }
+  })
+
   it('locks the sets already done: they are rows that open the set to fix, and the steppers belong to the next one', () => {
     render([exercise(BENCH, [false, false])], { autoNext: false })
     tap(button('Done set'))
