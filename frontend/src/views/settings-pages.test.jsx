@@ -52,7 +52,7 @@ vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('./Measurements.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), confirmSheet: vi.fn(), importFromApp: vi.fn(), importFromHevy: vi.fn(),
-  equipmentProfileSheet: vi.fn(), plateInventorySheet: vi.fn(), menuSheet: vi.fn(),
+  menuSheet: vi.fn(),
 }))
 
 import Settings from './Settings.jsx'
@@ -341,6 +341,9 @@ describe('the pages', () => {
     for (const e of SEARCH) if (pageVisible(e.page, guestWeb) && (!e.when || e.when(guestWeb))) (byPage[e.page] ||= []).push(e.title)
     expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'alerts', 'appearance', 'backup', 'danger', 'equipment', 'import', 'licences', 'schedule', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
+      // Equipment is Gym setup, a stage page outside this Settings shell (SettingsRoute): its
+      // rows and the search's anchors are checked in views/train/gym/GymSetup.test.jsx
+      if (page === 'equipment') continue
       mount(page)
       const have = titles()
       for (const title of want) expect(have, `${page}: ${title}`).toContain(title)
@@ -581,7 +584,8 @@ describe('Features', () => {
       setUp()
       const off = new Set()
       for (const page of PAGE_IDS) {
-        if (page === 'features' || page === 'account' || !pageExists(page, { user: mocks.user, mobile: mocks.MOBILE })) continue
+        // Equipment is Gym setup, off this shell; its one switch is on Features through the search list
+        if (page === 'features' || page === 'account' || page === 'equipment' || !pageExists(page, { user: mocks.user, mobile: mocks.MOBILE })) continue
         mount(page)
         await act(async () => { for (let i = 0; i < 4; i++) await Promise.resolve() })
         for (const row of host.querySelectorAll('.lrow')) {
