@@ -28,29 +28,36 @@ export function useAutosave(write, { initial = 'idle', delay = AUTOSAVE_MS, onEr
     errorRef.current = onError
   })
 
-  const run = useCallback(async () => {
-    if (running.current) return
+  // The loop that is writing now. A caller that asks to run while it is out gets this promise, so
+  // `await flush()` really waits for the write (and whatever queued behind it).
+  const inflight = useRef(null)
+
+  const run = useCallback(() => {
+    if (running.current) return inflight.current
     running.current = true
-    try {
-      while (waiting.current.has) {
-        const { value } = waiting.current
-        waiting.current = { has: false, value: null }
-        failed.current = { has: false, value: null }
-        if (alive.current) setState('syncing')
-        try {
-          const wrote = await writeRef.current(value)
-          if (alive.current && !waiting.current.has) setState(wrote === false ? 'idle' : 'saved')
-        } catch (e) {
-          // A newer value replaces the one that failed: it carries the same fields and more.
-          failed.current = waiting.current.has ? { has: false, value: null } : { has: true, value }
-          if (alive.current) setState('error')
-          errorRef.current?.(e)
-          break
+    inflight.current = (async () => {
+      try {
+        while (waiting.current.has) {
+          const { value } = waiting.current
+          waiting.current = { has: false, value: null }
+          failed.current = { has: false, value: null }
+          if (alive.current) setState('syncing')
+          try {
+            const wrote = await writeRef.current(value)
+            if (alive.current && !waiting.current.has) setState(wrote === false ? 'idle' : 'saved')
+          } catch (e) {
+            // A newer value replaces the one that failed: it carries the same fields and more.
+            failed.current = waiting.current.has ? { has: false, value: null } : { has: true, value }
+            if (alive.current) setState('error')
+            errorRef.current?.(e)
+            break
+          }
         }
+      } finally {
+        running.current = false
       }
-    } finally {
-      running.current = false
-    }
+    })()
+    return inflight.current
   }, [])
 
   const flush = useCallback(() => {

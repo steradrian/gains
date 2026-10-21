@@ -296,6 +296,25 @@ describe('Delete food', () => {
     expect(nt.writes().filter(w => w.method === 'DELETE')).toHaveLength(0)
   })
 
+  it('Delete waits for a save that is still out: the food stays off the list and Undo brings back the saved version', async () => {
+    await openEditor('/food/my-foods/foods/12', { foods: [bread(), fixtureFoods()[0]], days: { [TODAY]: day() } })
+    await settle(() => expect(useNutrition.getState().foods.list).toHaveLength(2))
+    const slow = nt.hold('PUT', '/nt/api/foods/12')
+    type(fieldNear('Name'), 'Seeded bread')
+    await pause(500)
+    await settle(() => expect(puts()).toHaveLength(1))
+    tap(buttonSaying('Delete food'))
+    await pause(50)
+    expect(nav.leaveTo).not.toHaveBeenCalled()
+    slow.release()
+    await settle(() => expect(nav.leaveTo).toHaveBeenCalled())
+    await pause(50)
+    expect(useNutrition.getState().foods.list.map(f => f.id)).toEqual([11])
+    expect(useUI.getState().toastMsg).toBe('Deleted Seeded bread from My foods')
+    act(() => useUI.getState().runToastAction())
+    expect(useNutrition.getState().foods.list.find(f => f.id === 12)?.name).toBe('Seeded bread')
+  })
+
   it('sends the delete once the Undo is gone, and the entries already logged keep their numbers', async () => {
     await openAndDelete()
     const items = JSON.stringify(nt.state.days[TODAY].items)

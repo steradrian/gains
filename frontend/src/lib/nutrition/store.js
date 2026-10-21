@@ -239,7 +239,8 @@ export const useNutrition = create((set, get) => {
     async saveFood(food) {
       const g = gen
       const saved = withImg(typeof food.id === 'number' ? await NtApi.updateFood(food.id, food) : await NtApi.createFood(food))
-      if (g === gen) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
+      // A food taken off the lists for its delete's Undo window stays off when a late save lands.
+      if (g === gen && !held.food.has(saved.id)) set(s => ({ foods: { ...s.foods, list: [...s.foods.list.filter(f => f.id !== saved.id), saved] } }))
       return saved
     },
 
@@ -346,7 +347,7 @@ export const useNutrition = create((set, get) => {
     async saveMeal(meal) {
       const g = gen
       const saved = withImg(typeof meal.id === 'number' ? await NtApi.updateMeal(meal.id, meal) : await NtApi.createMeal(meal))
-      if (g === gen) {
+      if (g === gen && !held.meal.has(saved.id)) {
         const key = saved.is_recipe ? 'recipes' : 'meals'
         set(s => ({ [key]: { ...s[key], list: sortedByName([...s[key].list.filter(m => m.id !== saved.id), saved]) } }))
       }
