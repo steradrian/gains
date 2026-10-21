@@ -76,7 +76,7 @@ export default function ExercisesScreen() {
         {similar.length > 0 && <StageSection title={f.total ? t('Similar exercises') : t('No exact match. These come close:')} />}
         <ExerciseRows rows={similar} onOpen={exerciseDetailSheet} />
 
-        {empty && <StageEmpty icon="magnifier" title={t('No match')} />}
+        {empty && <StageEmpty illustration="search" title={t('No match')} />}
         {f.hasMore && <button type="button" ref={f.moreRef} className="g-xs-more g-xs-card g-glass" onClick={f.more}>{t('Show more')}</button>}
         {!f.hasMore && (
           <div className="g-xs-card g-glist g-glass">

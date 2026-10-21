@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore, DEF } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { barWeightSheet, plateInventorySheet } from './sheets.jsx'
 import { EXIDX } from './lib/exercises.js'
 import { loadKindFor } from './lib/plates.js'
@@ -19,7 +20,7 @@ const DUMBBELL = Object.values(EXIDX).find(e => e.eq === 'dumbbell').id
 
 const mounted = []
 function mountTopSheet() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -178,7 +179,7 @@ describe('plates drawer', () => {
 
   it('lists every lb size with the standard count; the first edit copies the set and changes one count', () => {
     act(() => plateInventorySheet())
-    expect(useUI.getState().sheets.at(-1).variant).toBe('ds')
+    expect(topSurface(useUI.getState().sheets).variant).toBe('ds')
     const host = mountTopSheet()
     expect(host.querySelector('.g-bs-head h2').textContent).toBe('Plates')
     for (const w of ['45 lb', '35 lb', '25 lb', '15 lb', '10 lb', '5 lb', '2.5 lb', '1.25 lb']) expect(pairStepper(host, w), w).toBeTruthy()

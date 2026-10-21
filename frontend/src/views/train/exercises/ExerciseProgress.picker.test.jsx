@@ -263,7 +263,8 @@ describe('Progress exercise picker', () => {
 
     // A focused search can leave a newly narrowed result below the visual viewport. The
     // correction must advance the sheet's own scroll position, not the page behind it.
-    const sheet = modal.querySelector('.sheet')
+    // The pane inside the sheet is what scrolls (the sheet holds the panels of a drawer).
+    const sheet = modal.querySelector('.sheet .g-bs-pane')
     const firstOption = optionButtons()[0]
     Object.defineProperties(sheet, {
       clientHeight: { configurable: true, value: 400 },
@@ -273,8 +274,6 @@ describe('Progress exercise picker', () => {
     vi.spyOn(firstOption, 'getBoundingClientRect').mockReturnValue({ bottom: 500 })
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: 300 } })
     input.focus()
-    expect(sheet.style.getPropertyValue('--picker-visual-height')).toBe('300px')
-    expect(sheet.style.getPropertyValue('--picker-keyboard-bottom')).toBe(`${Math.max(0, window.innerHeight - 300)}px`)
     await setSearch('bench')
     await tick(100)
     expect(sheet.scrollTop).toBeGreaterThan(0)

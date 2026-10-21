@@ -2205,6 +2205,8 @@ export default {
   'Play even on silent': '무음 모드에서도 재생',
   'Vibrate on silent too': '무음 모드에서도 진동',
   'Flash the screen': '화면 깜빡이기',
+  'Haptics': '햅틱',
+  'A light tick when a tap saves something, like a set or a weigh-in.': '세트나 체중 기록처럼 탭으로 무언가를 저장하면 가볍게 진동해요.',
   'Version': '버전',
   'Source code': '소스 코드',
   '{0} rest': '휴식 {0}',
@@ -3690,4 +3692,13 @@ export default {
   'Log to {0}, {1}': 'Log to {0}, {1}',
   'Delete saved meal': 'Delete saved meal',
   'Sign in on the web app to keep your saved meals here.': 'Sign in on the web app to keep your saved meals here.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': '코치가 아직 워밍업 중이에요',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': '운동 기록과 체크인을 읽고 이번 주 계획을 바꿔 보자고 제안해요. 승인하기 전에는 아무것도 바뀌지 않아요.',
+  'A peek at what it will do': '코치가 하게 될 일 미리 보기',
+  'Preview': '미리 보기',
+  'Coming soon': '곧 공개',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': '이번 주 네 번 중 세 번 완료했어요. 스쿼트는 102.5 kg × 5를 할 준비가 됐어요.',
+  'Move Legs to Thursday': '하체 운동을 목요일로 옮기기',
+  'You’ve missed Mondays three weeks running': '3주 연속 월요일을 놓쳤어요',
 }

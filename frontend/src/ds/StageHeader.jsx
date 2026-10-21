@@ -3,7 +3,6 @@ import Icon from '../components/Icon.jsx'
 import { t, tn } from '../lib/i18n.js'
 import { cx } from '../lib/ui-kit.js'
 import Act from './Act.jsx'
-import { StageArt } from './StageBackground.jsx'
 
 // The magnifier's sweep loads with the search chunk; until then the glyph stands still.
 const MotionMagnifier = lazy(() => import('../components/search/header-motion.jsx').then(m => ({ default: m.MotionMagnifier })))
@@ -30,9 +29,9 @@ const MotionMagnifier = lazy(() => import('../components/search/header-motion.js
 //
 // `pinned`: the app's header, fixed to the top of the window on the stage. Its height and top
 // padding take the status bar (--sat) and the connection row (--conn) once, so its own ground
-// paints under the notch in the installed app and what scrolls goes under it. That ground is the
-// stage's own art, anchored where the page's stage starts, so at rest the header and the stage under
-// it are one surface with no edge. `action` is a tab's one context readout, between the pill and
+// reaches under the notch in the installed app and what scrolls goes under it. It paints no ground
+// of its own: it floats on the app's shared stage (App.jsx .g-app-stage), so there is no band and no
+// edge. `action` is a tab's one context readout, between the pill and
 // the bell; it steps out while searching so the field keeps its width on a 375px phone. `title` is
 // the page's name for a screen reader only (its h1): the tab bar already names the tab.
 export default function StageHeader({
@@ -50,7 +49,6 @@ export default function StageHeader({
   const glyph = <Icon name="magnifier" className="g-icon" />
   return (
     <header className={cx('g-shdr', open && 'g-shdr-open', pinned && 'g-shdr-pin')}>
-      {pinned && <span className="g-shdr-bg"><StageArt /></span>}
       {title && <h1 className="sr-only">{title}</h1>}
       <Act href={settingsHref} onClick={onSettings} ariaLabel={alert ? t('Settings') + ', ' + alert : t('Settings')} className="g-sbtn g-glass">
         {letter}

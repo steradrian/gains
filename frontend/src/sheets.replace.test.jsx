@@ -7,11 +7,12 @@ import { createRoot } from 'react-dom/client'
 import { EXIDX } from './lib/exercises.js'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { exConfigSheet, exercisePicker } from './sheets.jsx'
 
 const mounted = []
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -33,7 +34,7 @@ afterEach(() => {
 })
 
 describe('Replace exercise', () => {
-  it('sits on the settings sheet of a routine exercise and closes it before handing over', () => {
+  it('sits on the settings sheet of a routine exercise and hands over, what it opens sliding in over the sheet', () => {
     const onReplace = vi.fn()
     exConfigSheet(EXIDX['0025'], { sets: 3, mode: 'reps', reps: 10, weight: 60 }, vi.fn(), vi.fn(), null, null, onReplace)
     const host = renderTop()
@@ -41,7 +42,8 @@ describe('Replace exercise', () => {
     expect(replace).toBeTruthy()
     act(() => replace.click())
     expect(onReplace).toHaveBeenCalledOnce()
-    expect(useUI.getState().sheets).toHaveLength(0)
+    // here the handler opens nothing; the settings sheet is not closed ahead of what it hands over to
+    expect(useUI.getState().sheets).toHaveLength(1)
   })
 
   it('names its save button after what saving does, when the caller says', () => {

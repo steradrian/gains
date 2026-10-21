@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { EXDB } from './lib/exercises.js'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { exConfigSheet } from './sheets.jsx'
 
 // #445: with Pyramid sets on, the exercise settings had no weight field at all. Each set now has
@@ -15,7 +16,7 @@ const mounted = []
 function renderConfig(cfg, exercise = ex) {
   const onSave = vi.fn()
   exConfigSheet(exercise, { sets: 3, reps: 10, weight: 0, mode: 'reps', pyramid: [12, 10, 8], ...cfg }, onSave)
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

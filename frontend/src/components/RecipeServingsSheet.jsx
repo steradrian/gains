@@ -36,7 +36,7 @@ export default function RecipeServingsSheet({ recipe, mealName, chip, onChip, on
       footer={
         <div className="g-mf-acts">
           {onEdit && <Button variant="secondary" onClick={onEdit}>{t('Edit')}</Button>}
-          <Button busy={working || busy} onClick={log}>{t('Log to {0}', mealName)}</Button>
+          <Button haptic busy={working || busy} onClick={log}>{t('Log to {0}', mealName)}</Button>
         </div>
       }>
       <p className="g-mf-sub">{recipeSubtitle(recipe, settings, { makes: true })}</p>

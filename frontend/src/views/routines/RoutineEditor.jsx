@@ -123,7 +123,7 @@ export default function RoutineEditor() {
         {editor.missing && <InlineBanner stage icon="warning" tone="warning" title={editor.missing} />}
 
         {empty
-          ? <StageEmpty icon="list" title={t('Nothing in it yet')} body={t('Add exercises from the library. Sets, reps and weight come next.')}
+          ? <StageEmpty illustration="dumbbell" title={t('Nothing in it yet')} body={t('Add exercises from the library. Sets, reps and weight come next.')}
             action={t('Add exercises')} onClick={editor.pick} />
           : (
             <section className="g-re-sec">

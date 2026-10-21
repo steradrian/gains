@@ -109,7 +109,7 @@ export default function PlanImportPage({ bundle: given, error: givenError }) {
           </div>
         )}
         {!schedule && <p className="g-tr3-imp-note">{t('These are added as new routines. Nothing you already have is touched.')}</p>}
-        <Button block disabled={!bundle.routines.length} onClick={() => importPlanWithUndo(bundle, { schedule: days && schedule })}>{t('Import this plan')}</Button>
+        <Button block haptic disabled={!bundle.routines.length} onClick={() => importPlanWithUndo(bundle, { schedule: days && schedule })}>{t('Import this plan')}</Button>
       </div>
     </StagePage>
   )

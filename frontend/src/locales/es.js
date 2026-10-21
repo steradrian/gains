@@ -2205,6 +2205,8 @@ export default {
   'Play even on silent': 'Sonar también en silencio',
   'Vibrate on silent too': 'Vibrar también en silencio',
   'Flash the screen': 'Hacer parpadear la pantalla',
+  'Haptics': 'Respuesta háptica',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Un toque suave cuando una pulsación guarda algo, como una serie o un pesaje.',
   'Version': 'Versión',
   'Source code': 'Código fuente',
   '{0} rest': '{0} de descanso',
@@ -3690,4 +3692,13 @@ export default {
   'Log to {0}, {1}': 'Log to {0}, {1}',
   'Delete saved meal': 'Delete saved meal',
   'Sign in on the web app to keep your saved meals here.': 'Sign in on the web app to keep your saved meals here.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': 'Tu coach todavía está calentando',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': 'Leerá tu entrenamiento y tus check-ins y te propondrá cambios para la semana. Nada cambia hasta que lo apruebes.',
+  'A peek at what it will do': 'Un adelanto de lo que hará',
+  'Preview': 'Vista previa',
+  'Coming soon': 'Próximamente',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': 'Tres de cuatro sesiones hechas esta semana. Tu sentadilla está lista para 102,5 kg × 5.',
+  'Move Legs to Thursday': 'Mover Piernas al jueves',
+  'You’ve missed Mondays three weeks running': 'Has faltado los lunes tres semanas seguidas',
 }

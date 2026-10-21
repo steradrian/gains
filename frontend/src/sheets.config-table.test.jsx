@@ -8,12 +8,13 @@ import { EXIDX } from './lib/exercises.js'
 import { exerciseNameFor } from './lib/i18n.js'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { exConfigSheet } from './sheets.jsx'
 
 const ex = EXIDX['0025']
 const mounted = []
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

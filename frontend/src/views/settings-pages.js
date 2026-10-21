@@ -124,6 +124,7 @@ export const SEARCH = [
   { page: 'appearance', title: 'Body diagram', icon: 'figureStrength', tint: 'var(--teal)', kw: 'muscle map body male female', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Exercise drawings', icon: 'figureStrength', tint: 'var(--teal)', kw: 'figure male female woman man picture', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Reduce motion', icon: 'minimize', tint: 'var(--blue)', kw: 'animation motion transitions accessibility calm', feature: (S, c) => !!c.systemMotion || S.reduceMotion === true },
+  { page: 'appearance', title: 'Haptics', icon: 'vibrate', tint: 'var(--indigo)', kw: 'haptic haptics tick tap vibrate vibration feedback buzz', when: c => c.canHaptic },
   { page: 'appearance', title: 'Gym check-in', icon: 'qr', tint: 'var(--blue)', kw: 'qr code membership card check in barcode' },
   { page: 'appearance', title: 'Show connection status', icon: 'cloud', tint: 'var(--blue)', kw: 'sync offline banner bar connection', when: c => !c.demo },
   // Features (the NutriTrace switches whose only home is here)

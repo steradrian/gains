@@ -82,7 +82,7 @@ export default function PortionSheet({ food, date, meal, mealName, onLogged, pen
     </div>
     {!draft && <div className="muted small" role="status">{t('Enter an amount above 0.')}</div>}
     {error && <div className="nt-error small" role="alert">{error}</div>}
-    <Button variant="primary" onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : t('Log')}</Button>
+    <Button variant="primary" haptic onClick={log} disabled={!draft || busy}>{busy ? t('Saving…') : t('Log')}</Button>
   </div>
 }
 

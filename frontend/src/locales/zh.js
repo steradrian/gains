@@ -2205,6 +2205,8 @@ export default {
   'Play even on silent': '静音时也播放',
   'Vibrate on silent too': '静音时也振动',
   'Flash the screen': '闪烁屏幕',
+  'Haptics': '触觉反馈',
+  'A light tick when a tap saves something, like a set or a weigh-in.': '轻点保存内容时（例如一组训练或一次体重记录）会有轻微的震动反馈。',
   'Version': '版本',
   'Source code': '源代码',
   '{0} rest': '休息 {0}',
@@ -3690,4 +3692,13 @@ export default {
   'Log to {0}, {1}': 'Log to {0}, {1}',
   'Delete saved meal': 'Delete saved meal',
   'Sign in on the web app to keep your saved meals here.': 'Sign in on the web app to keep your saved meals here.',
+  // --- Coach coming soon ---
+  'Your coach is still warming up': '你的教练还在热身',
+  'It will read your training and check-ins, then suggest changes to your week. Nothing moves until you approve it.': '它会读取你的训练和打卡，然后为你这周的安排提出调整建议。你批准之前，什么都不会改变。',
+  'A peek at what it will do': '先看看它会做什么',
+  'Preview': '预览',
+  'Coming soon': '即将上线',
+  'Three of four sessions done this week. Your squat is ready for 102.5 kg × 5.': '本周四次训练已完成三次。你的深蹲已可以挑战 102.5 kg × 5。',
+  'Move Legs to Thursday': '把腿部训练移到周四',
+  'You’ve missed Mondays three weeks running': '你已经连续三周没练周一了',
 }

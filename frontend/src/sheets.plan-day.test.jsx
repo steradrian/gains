@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { dayOverrideSheet, usePlanDayParam } from './sheets.jsx'
 import { todayISO, isoOf, fmtDate } from './lib/format.js'
 
@@ -27,7 +28,7 @@ function mount(el) {
   return host
 }
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   return mount(sheet.render(() => useUI.getState().closeSheet(sheet.id)))
 }
 const header = host => host.querySelector('.g-tr3-plan').textContent

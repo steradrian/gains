@@ -458,20 +458,14 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
    components/Modals.jsx; components/Toast.jsx). Outside it (the catalogue) they are drawn still. */
 .g-bs-wrap { position: absolute; inset: 0; }
 .g-bs-scrim { position: absolute; inset: 0; display: block; background: var(--scrim); touch-action: none; overscroll-behavior: none; }
-/* Stands on the keyboard and stops short of the status bar, as the app's sheet does (index.css
-   .sheet): --native-kb on Android 15, --picker-keyboard-bottom/-visual-height from
-   lib/use-sheet-keyboard.js elsewhere. */
+/* Where it stands (on the keyboard, under the status bar) and how tall it is: Sheet panels and keyboard, below. */
 .g-bs {
-  position: absolute; left: 0; right: 0; bottom: max(var(--picker-keyboard-bottom, 0px), var(--native-kb, 0px));
-  max-height: min(calc(100dvh - var(--sat, 0px) - 8px - var(--native-kb, 0px)), calc(var(--picker-visual-height, 100dvh) - var(--sat, 0px) - 8px));
+  position: absolute; left: 0; right: 0;
   display: flex; flex-direction: column; background: var(--surface); color: var(--text);
-  border-radius: 28px 28px 0 0; box-shadow: var(--shadow-sheet);
+  border-radius: 28px 28px 0 0;
   padding: 8px 20px max(30px, calc(20px + var(--sab, 0px)));
   overflow: hidden; overscroll-behavior: contain; touch-action: pan-y; will-change: transform; font-family: var(--font-sans);
 }
-:root[data-native-kb] .g-bs { padding-bottom: 20px; }
-.g-bs-half { top: 40%; }
-.g-bs-full { top: max(56px, calc(var(--sat, 0px) + 8px)); }
 .g-bs-grab { flex: none; align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line-strong); }
 .g-bs-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 0 16px; }
 .g-bs-head h2 { margin: 0; flex: 1; min-width: 0; font: 700 22px/28px var(--font-sans); letter-spacing: -0.02em; }
@@ -719,16 +713,11 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sfeat-page { color: var(--on-stage); }
 /* Shared: search M2 (owner direction: the bearmenu header). The tab root's header pinned to the top
    of the window: its row (--shdr-h), the status bar and the connection row inside it once, on the
-   stage's own top colour so it paints under the notch; no line under it. The row keeps the page's
-   column on a wide screen. The search's panel starts at its bottom edge (search.css .search-ov). */
+   shared stage with no ground of its own: no band, no shadow, no line under it (the board's header
+   is transparent and has no scroll-under treatment). The row keeps the page's column on a wide
+   screen. The search's panel starts at its bottom edge (search.css .search-ov). */
 :root { --shdr-h: 58px; }
-.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; background: var(--accent-stage); transform: translate3d(0, var(--vv-top, 0px), 0); }
-/* Its ground is the stage's art (StageBackground StageArt), the window's width and anchored where
-   the page's stage starts (#app's --conn padding), clipped to the header: the 170° gradient's stops
-   hang off the top corner, not the height, so at rest the colours, glows and rings run on into the
-   page's own with no edge (owner: no separator). Under the row, never over it. */
-.g-shdr-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.g-shdr-bg > .g-stage-art { top: var(--conn, 0px); bottom: auto; height: 100vh; }
+.g-shdr-pin { position: fixed; inset-inline: 0; top: 0; z-index: 44; box-sizing: border-box; height: calc(var(--sat, 0px) + var(--conn, 0px) + var(--shdr-h)); padding: calc(var(--sat, 0px) + var(--conn, 0px) + 14px) max(16px, calc((100% - var(--page-w, 100%)) / 2 + 16px)) 0; transform: translate3d(0, var(--vv-top, 0px), 0); }
 .g-shdr-act { flex: none; display: flex; }
 .g-shdr-act > .hdr-left { min-height: 44px; padding-inline: 14px; border-radius: 999px; white-space: nowrap; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
 .g-shdr-act > .hdr-left.over { color: var(--g-ring-over); }
@@ -738,6 +727,21 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-srow-stage .g-srow-main[aria-selected="true"] { background: var(--glass); }
 .g-best[aria-selected="true"], .g-srow-xbtn[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--on-stage); }
 .g-srow-note { cursor: default; }
+
+/* StageEmpty: a line-art scene (or a glass disc with an icon), a title, a line, and a stack of buttons (T2.9 has three),
+   centred and stacked. The scene is Illustration (white on the stage, drawn in). */
+.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
+.g-sempty .g-ill { margin-bottom: 4px; }
+.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
+.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
+.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-stage-end); }
+.g-sempty-btn .g-icon { width: 20px; height: 20px; }
+.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
@@ -1683,3 +1687,132 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-fe-change { flex: none; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-fe-problem { margin: 0; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--on-stage); }
 .g-fe-delete { margin-top: 8px; }
+
+/* Native motion and haptics */
+
+/* Page slides (App.jsx, lib/use-route-transition.js). Every page sits in a route layer. At rest the
+   layer is `display: contents` and the page is in the document as it always was. While a slide runs
+   (data-slide) the page arriving and the page leaving are both lifted into viewport-sized boxes, so
+   neither depends on the document's height (the one scroll position they share) and a fixed child
+   of either, the pinned header or the Coach's composer, is fixed to its own box. The page inside is
+   drawn at the scroll offset it had (--route-y) by a negative margin, a layout shift that its
+   sticky bars account for and its fixed children ignore. Only transform and opacity animate. The tab bar, the dock and the sync
+   banner are outside the layers and stay put.
+
+   The ground is not part of a page: the stage (gradient, glows, rings) is drawn once, fixed behind
+   every layer (.g-app-stage, App.jsx), and a layer is transparent, so what slides is the page's
+   content across that shared surface. A push: the incoming content from the end edge to 0, fading
+   in over the whole slide; the content under it drifts 30% back and is gone by 60% of it. A pop is
+   the same, reversed. A page that is not on the stage (it paints its own ground) keeps that ground
+   on its own content, so it slides and fades with it. */
+.g-route { display: contents; --route-ms: 400ms; --route-fade-ms: 150ms; --route-dir: 1; --route-ease: var(--ease, cubic-bezier(.32, .72, 0, 1)); }
+[dir="rtl"] .g-route { --route-dir: -1; }
+.g-route[data-slide] { display: block; position: fixed; inset: 0; overflow: clip; will-change: transform, opacity; }
+.g-route[data-slide] > div { margin-top: calc(-1 * var(--route-y, 0px)) !important; }   /* !important: #app's own margin is an id rule */
+.g-route[data-slide] > div:not(:has(.g-stage)) { background: var(--bg); }
+.g-route[data-slide="push"][data-route="in"] { z-index: 2; animation: g-route-enter var(--route-ms) var(--route-ease) both, g-route-fade-in var(--route-ms) linear both; }
+.g-route[data-slide="push"][data-route="out"] { z-index: 1; animation: g-route-under var(--route-ms) var(--route-ease) both, g-route-fade-out calc(var(--route-ms) * .6) linear both; }
+.g-route[data-slide="pop"][data-route="out"] { z-index: 2; animation: g-route-leave var(--route-ms) var(--route-ease) both, g-route-fade-out calc(var(--route-ms) * .6) linear both; }
+.g-route[data-slide="pop"][data-route="in"] { z-index: 1; animation: g-route-back var(--route-ms) var(--route-ease) both, g-route-fade-in var(--route-ms) linear both; }
+@keyframes g-route-enter { from { transform: translate3d(calc(100% * var(--route-dir)), 0, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes g-route-under { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-30% * var(--route-dir)), 0, 0); } }
+@keyframes g-route-leave { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(100% * var(--route-dir)), 0, 0); } }
+@keyframes g-route-back { from { transform: translate3d(calc(-30% * var(--route-dir)), 0, 0); } to { transform: translate3d(0, 0, 0); } }
+@keyframes g-route-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes g-route-fade-out { from { opacity: 1; } to { opacity: 0; } }
+/* The shared ground (App.jsx): fixed behind every page, drawn only while a page on the stage is on
+   screen. A pushed page has the stage at half intensity; it eases there and back, apart from the
+   content's slide. */
+.g-app-stage { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; display: none; color: var(--on-stage); background: var(--accent-stage-end); }
+body:has(.g-route[data-shared] .g-stage) .g-app-stage { display: block; }
+/* The body's own ground (index.css) paints over a z-index -1 layer, so it steps aside while the
+   stage is up; the canvas (html) stays under the stage. */
+body:has(.g-route[data-shared] .g-stage) { background: transparent; }
+.g-app-stage .g-stage-glow, .g-app-stage .g-stage-rings { transition: opacity 400ms var(--ease, cubic-bezier(.32, .72, 0, 1)); }
+.g-app-stage[data-pushed] .g-stage-glow-a { opacity: .25; }
+.g-app-stage[data-pushed] .g-stage-glow-b { opacity: .14; }
+.g-app-stage[data-pushed] .g-stage-rings { opacity: .5; }
+.g-route[data-shared] .g-stage { background: transparent; }
+.g-route[data-shared] .g-stage-art { display: none; }
+/* Reduced motion, the device's or Profile's: no transform at all, the page arriving fades in over
+   the one leaving. !important and the extra specificity beat index.css's blanket "no animation"
+   rule for reduced motion, which would otherwise swap the pages with no fade. */
+:root .g-route[data-slide="fade"][data-route="in"] { z-index: 2; animation: g-route-fade-in var(--route-fade-ms) linear both !important; }
+:root .g-route[data-slide="fade"][data-route="out"] { z-index: 1; animation: g-route-fade-out var(--route-fade-ms) linear both !important; }
+
+/* Haptics (ds/HapticSwitch.jsx, lib/use-haptic.js). A control that ticks carries `g-haptic`, which
+   makes it the box the invisible switch fills; :where() keeps it from outranking a control that
+   positions itself some other way. The switch is opacity 0, never display none (a switch that is not
+   rendered does not tick), and takes its host's corners and cursor. */
+:where(.g-haptic) { position: relative; }
+.g-hsw { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: inherit; border-radius: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* The checkbox's tap area reaches 7px past its painted circle (index.css .chk::before): so does the switch. */
+.chk > .g-hsw { inset: -7px auto auto -4px; width: calc(100% + 11px); height: calc(100% + 14px); }
+
+/* Coach coming soon (views/CoachSoon.jsx): the scene, then a non-interactive preview. The scene's
+   three dots pulse in a loop; under reduced motion index.css stops every animation, so they sit lit. */
+.tcs { display: flex; flex-direction: column; gap: 20px; padding: 4px 16px 0; }
+.g-ill-art .cs-dot.il-dot { animation: tcs-pulse 1.4s ease-in-out calc(var(--i, 0) * 160ms) infinite; }
+@keyframes tcs-pulse { 0%, 100% { opacity: .35; } 40% { opacity: 1; } }
+.tcs-prev { display: flex; flex-direction: column; gap: 10px; }
+.tcs-cards { display: flex; flex-direction: column; gap: 10px; }
+.tcs-cards .tco-chg { cursor: default; }
+.tcs-cards .tco-chg-mark.tcs-on { background: var(--on-stage); color: var(--accent-stage-end); box-shadow: none; }
+.tcs-card { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 22px; color: var(--on-stage); text-align: start; }
+.tcs-card > b { font: 600 16px/21px var(--font-sans); }
+.tcs-label { margin: 6px 0 0; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+
+/* Sheet panels and keyboard */
+/* Keyboard. A drawer is positioned, never resized, by the keyboard: it keeps its height, stands on
+   the keyboard (--kb, how far the keyboard reaches up the screen) and is capped to what is left
+   above it (--vvh); its body scrolls if that is tight. Both are set on <html> by
+   lib/sheet-keyboard.js (iOS and Android Chrome from the visual viewport, Android 15 from
+   --native-kb); without a keyboard they are 0px and unset, and the cap is the whole screen.
+   iOS scrolls the layout viewport under the keyboard, so the page can show below where the layout
+   viewport ends: the scrim reaches past it both ways, and the drawer carries its own colour
+   120px below its foot (a shadow, which its overflow does not clip), so no strip of the page shows,
+   un-dimmed, between the drawer and the keyboard's accessory bar. The keyboard covers the home
+   indicator, so the foot drops the safe-area inset while it is up (data-kb). */
+.g-bs-scrim, #modal-root .mback { inset: -50vh 0; }
+.g-bs {
+  bottom: var(--kb, 0px);
+  max-height: calc(var(--vvh, 100dvh) - var(--sat, 0px) - 8px);
+  box-shadow: var(--shadow-sheet), 0 120px 0 0 var(--surface);
+}
+:root[data-kb] .g-bs { padding-bottom: 20px; }
+.g-bs-half { height: 60%; }
+.g-bs-full { height: calc(100% - max(56px, calc(var(--sat, 0px) + 8px))); }
+.sheet { box-shadow: 0 120px 0 0 var(--bg-el); }
+:root[data-theme="light"] .sheet { box-shadow: 0 120px 0 0 var(--bg); }
+
+/* Sub-panels (components/sheet-panes.jsx). An action in a drawer that would open another drawer
+   slides its content in from the right inside the same drawer; the panel under it moves back 30%.
+   The panes sit edge to edge in the drawer (the negative margin undoes its side padding) so the
+   slide is clipped by the drawer, and each pane puts the padding back. Only the active pane is
+   live: the others are inert and, once the move has played, hidden. The root pane stays in the
+   flow while it is the active one, so a drawer with no panel lays out as it always did; the height
+   of the panes is then set by script and animated between panels (260 ms). */
+.g-bs-panes { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-inline: -20px; background: inherit; }
+.sheet .g-bs-panes { margin-inline: -18px; }
+.g-bs-pane { flex: 1 1 auto; min-height: 0; padding-inline: 20px; background: inherit; }
+.sheet .g-bs-pane { padding-inline: 18px; }
+.g-bs-pane-ds { display: flex; flex-direction: column; overflow: hidden; }
+.g-bs-pane-legacy { overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(20px + var(--sab, 0px)); }
+:root[data-kb] .g-bs-pane-legacy { scroll-padding-bottom: 20px; }
+.g-bs-pane-sub, .g-bs-panes[data-deep] > .g-bs-pane-root { position: absolute; inset: 0; }
+.g-bs-pane-sub { z-index: 1; }
+.g-bs-pane[data-pos="under"] { transform: translateX(-30%); visibility: hidden; pointer-events: none; transition: visibility 0s linear 260ms; }
+@media (prefers-reduced-motion: reduce) {
+  .g-bs-pane[data-pos="under"] { transform: none; transition-duration: 150ms; }
+}
+:root[data-motion="reduce"] .g-bs-pane[data-pos="under"] { transform: none; transition-duration: 150ms; }
+/* The back chevron: in a ds panel's header ahead of the title, and for a panel that draws no header of
+   its own (an older sheet's content) on a bar of its own. */
+.g-bs-back { appearance: none; border: 0; width: 40px; height: 40px; flex: none; margin-inline-start: -8px; border-radius: 50%; display: grid; place-items: center; background: none; color: var(--text); cursor: pointer; }
+.g-bs-back .g-icon { width: 24px; height: 24px; stroke-width: 2.2; }
+.g-bs-back:active { background: var(--surface-press); }
+[dir="rtl"] .g-bs-back .g-icon { transform: scaleX(-1); }
+.g-bs-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; padding: 6px 0 2px; background: inherit; }
+.sheet .g-bs-back { color: var(--label); }
+.sheet .g-bs-back:active { background: var(--label-4); }
+.g-bs-head h2:focus, .g-bs-pane h3:focus { outline: none; }

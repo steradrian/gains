@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { exerciseHistorySheet, exerciseDetailSheet } from './sheets.jsx'
 import { EXIDX } from './lib/exercises.js'
 import { exerciseNameFor } from './lib/i18n.js'
@@ -15,7 +16,7 @@ import { exerciseNameFor } from './lib/i18n.js'
 const mounted = []
 
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -114,7 +115,8 @@ describe('exercise history sheet', () => {
       exerciseDetailSheet(EXIDX[EX])
       const host = renderTop()
       act(() => { tab(host).click() })
-      expect(useUI.getState().sheets).toHaveLength(2)
+      expect(useUI.getState().sheets).toHaveLength(1)
+      expect(useUI.getState().sheets[0].panels).toHaveLength(1)
       const top = renderTop()
       expect(top.querySelectorAll('.g-ps-card')).toHaveLength(1)
     } finally { location.hash = hash }

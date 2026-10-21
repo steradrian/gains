@@ -1108,6 +1108,8 @@ export const PT_BR_OVERRIDES = {
   'Play even on silent': 'Tocar mesmo no silencioso',
   'Vibrate on silent too': 'Vibrar também no silencioso',
   'Flash the screen': 'Piscar a tela',
+  'Haptics': 'Feedback tátil',
+  'A light tick when a tap saves something, like a set or a weigh-in.': 'Uma leve vibração quando um toque salva algo, como uma série ou uma pesagem.',
   'Your server': 'Seu servidor',
   'Your API key': 'Sua chave de API',
   'Android app only': 'Só no aplicativo Android',

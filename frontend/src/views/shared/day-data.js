@@ -16,7 +16,7 @@ import { speedUnitOf } from '../../lib/speed.js'
 import { nameOf, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { hasCompletedWork, isWarmupRow } from '../../lib/workout-model.js'
 import { glassOf } from '../today/use-today.js'
-import { finishedLine, pictureOf, railDay } from '../train/use-train.js'
+import { finishedLine, railDay } from '../train/use-train.js'
 import { dayTargetsOf, waterGoalSet } from './food-target.js'
 
 // "On target": within this many kcal of the day's target either way (Sh2Week: "within 150 kcal").
@@ -59,9 +59,10 @@ const startTime = w => (Number(w.start) > 0
 
 /**
  * A logged workout as the Day page shows it: `{ id, workout, name, line, start, durationMs, sets,
- * volume, unit, bests, muscles, load, levels, exercises }`. `exercises` are `{ id, name, image,
- * sets, best }` with each work set ticked off as a line ("80×6"), warm-ups left out; `best` when
- * the workout set a new best on it. `muscles` names the three most worked ("Chest, shoulders,
+ * volume, unit, bests, muscles, load, levels, exercises }`. `exercises` are `{ id, name, sets,
+ * best }` with each work set ticked off as a line ("80×6"), warm-ups left out; `best` when the
+ * workout set a new best on it. The picture is drawn from the `id` (ds/WorkoutCard), so a custom
+ * exercise shows its own. `muscles` names the three most worked ("Chest, shoulders,
  * triceps"), `load` is the sets per muscle and `levels` the BodyMap shade (0–4).
  */
 export function workoutOf(S, w) {
@@ -69,7 +70,7 @@ export function workoutOf(S, w) {
   const speed = speedUnitOf(S)
   const exercises = (w.entries || []).map(e => {
     const sets = (e.sets || []).filter(s => hasCompletedWork(s) && !isWarmupRow(s)).map(s => setLabel(e.id, s, e.target, speed))
-    return { id: e.id, name: exerciseNameText(exOr(e.id)), image: pictureOf(S, e.id), sets, best: bests.has(e.id) }
+    return { id: e.id, name: exerciseNameText(exOr(e.id)), sets, best: bests.has(e.id) }
   }).filter(e => e.sets.length)
   const load = loadOfWorkouts([w])
   const top = rankOf(load).worked.slice(0, 3)
@@ -99,10 +100,11 @@ export function missedPlanOf(S, iso, today) {
 }
 
 /** What a missed day had planned: `{ ids, name, routines }`, each routine `{ id, name, sub,
- *  images }`, `images` the catalogue stills of its exercises (null where there is none). */
-const plannedOf = (S, day) => ({
+ *  stills }`, `stills` the ids of its exercises, which the card draws the pictures of (a custom
+ *  exercise shows its own). */
+const plannedOf = day => ({
   ids: day.ids, name: day.name,
-  routines: day.routines.map(r => ({ id: r.id, name: r.name, sub: exCount(r.ex?.length || 0), images: (r.ex || []).map(cfg => pictureOf(S, cfg.id)) })),
+  routines: day.routines.map(r => ({ id: r.id, name: r.name, sub: exCount(r.ex?.length || 0), stills: (r.ex || []).map(cfg => cfg.id) })),
 })
 
 /** On a rest day, what the plan had next: `{ name, iso, date }` for the first of the seven days
@@ -238,7 +240,7 @@ export function dayOf({ S, iso, today, first, diary, goalInputs = {}, activity =
   const water = waterOf(diary)
   const weighIn = weighInOf(S, iso)
   const state = dayStateOf(S, iso, today, { workouts, food, water, weighIn })
-  const planned = missed ? plannedOf(S, missed) : null
+  const planned = missed ? plannedOf(missed) : null
   const ago = fmtDaysAgo(iso, today)
   const known = planKnownOn(S, iso)
   const restInPlan = known && state === 'empty' && hasPlan(S) && !effectiveRoutines(S, iso).length

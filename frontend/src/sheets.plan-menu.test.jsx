@@ -4,9 +4,13 @@
 // is picked here, ready-made plans, and the coach only when there is one.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// These tests are about the Coach being on; the "coming soon" switch has its own tests.
+vi.mock('./lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { setNav } from './lib/nav.js'
 import { planShareSheet, planToolsSheet } from './sheets.jsx'
 
@@ -15,7 +19,7 @@ const mounted = []
 const EMPTY_HINT = 'Add an exercise to a routine first. An empty plan has nothing to share.'
 
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)

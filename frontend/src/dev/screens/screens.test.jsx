@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+// The gallery draws the Coach's own screens and the onboarding offer with the Coach on.
+vi.mock('../../lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import { Stage } from './DevScreens.jsx'
 import { allScreens, screenAreas, screenById } from './registry.js'
 import { todayISO } from '../../lib/format.js'

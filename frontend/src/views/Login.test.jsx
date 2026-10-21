@@ -30,7 +30,7 @@ vi.mock('../store/useUI.js', () => {
   const snap = () => ({ toast: (...a) => mocks.toast(...a), openSheet: render => { mocks.sheets.push(render); return {} } })
   const useUI = selector => selector ? selector(snap()) : snap()
   useUI.getState = snap
-  return { useUI }
+  return { useUI, drawerFlow: open => open() }
 })
 vi.mock('../lib/api.js', () => ({
   webauthnOK: () => mocks.webauthn, passkeyLogin: (...a) => mocks.passkeyLogin(...a), passkeyRegister: vi.fn(), BIO: 'your fingerprint', bio: () => 'your fingerprint',
@@ -38,7 +38,10 @@ vi.mock('../lib/api.js', () => ({
   createPasskey: vi.fn(),
   passkeyError: (e, fallback) => (e?.data?.code === 'disabled' ? 'This account has been disabled.' : e?.message || fallback),
 }))
-vi.mock('../lib/nav.js', () => ({ nav: (...a) => mocks.nav(...a), onSheetEntry: () => false }))
+vi.mock('../lib/nav.js', () => ({
+  nav: (...a) => mocks.nav(...a), onSheetEntry: () => false,
+  closeThen: (close, go) => { close?.(); go(false) },
+}))
 vi.mock('../lib/clipboard.js', () => ({ copyText: (...a) => mocks.copyText(...a) }))
 vi.mock('../lib/demo.js', () => ({ DEMO: false, REPO: 'https://example.invalid' }))
 vi.mock('../sheets.jsx', () => ({ askAddDeviceData: vi.fn(), confirmSheet: vi.fn() }))
@@ -230,14 +233,15 @@ describe('S0.3 Having trouble?', () => {
     expect(mocks.nav).toHaveBeenCalledWith('/add-device', undefined)
   })
 
-  it('where passwords are on, a second row opens the password drawer in its place', async () => {
+  it('where passwords are on, a second row opens the password drawer, which slides in over this one', async () => {
     const { sheet, close } = await open({ password_login: true })
     const rows = [...sheet.querySelectorAll('.g-glist-row')]
     expect(rows).toHaveLength(2)
     expect(rows[1].textContent).toContain('If you set one in Settings › Account')
     const before = mocks.sheets.length
     act(() => rows[1].click())
-    expect(close).toHaveBeenCalled()
+    // the drawer under it is not closed ahead of it: the panel's back returns to it
+    expect(close).not.toHaveBeenCalled()
     expect(mocks.sheets).toHaveLength(before + 1)
     expect(mount(mocks.sheets.at(-1)(() => {})).querySelector('h3').textContent).toBe('Sign in with password')
   })

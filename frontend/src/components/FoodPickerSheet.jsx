@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
-import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import { useUI } from '../store/useUI.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
 import { openNewFood } from '../lib/nutrition/editor-routes.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
+import { asksQuantity } from '../lib/nutrition/log-serving.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { OWN_SHOWN, useFoodSearch } from '../lib/nutrition/use-food-search.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
@@ -38,10 +38,9 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
   const [tab, setTab] = useState('recent')
   const [limit, setLimit] = useState(OWN_SHOWN)
   const [savedLimit, setSavedLimit] = useState(SAVED_SHOWN)
+  // The search opens focused: the drawer stands on the keyboard (lib/sheet-keyboard.js) so Scan and
+  // Create a food at its foot stay in reach while the person types.
   const search = useRef(null)
-  // The search opens focused: the drawer is lifted over the keyboard so Scan and Create a food
-  // at its foot stay in reach while the person types (iOS; Android 15 passes --native-kb).
-  const syncKeyboard = useSheetKeyboard(search)
   const { query: q, recents, own, ownTotal, online, foods } = useFoodSearch(query, { limit })
   const { pick, quick, showQuick } = useFoodPick(log)
   const saved = useSavedMeals({ query: q, ...log })
@@ -56,7 +55,10 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
   const total = ownTotal + online.results.length
   const announcement = online.status !== 'ready' ? '' : total ? t('Results: {0}', total) : t('No results')
 
-  const foodRows = (list, icon) => list.map(f => <LogFoodRow key={f.id ?? f.client_key} icon={icon} title={f.name} onAdd={() => pick(f)}
+  // A row ticks only when its tap logs outright: with "ask the quantity" on (the default) the tick
+  // belongs to the Log button of the sheet that opens (PortionSheet, RecipeServingsSheet).
+  const logsOutright = !asksQuantity(settings)
+  const foodRows = (list, icon) => list.map(f => <LogFoodRow key={f.id ?? f.client_key} icon={icon} title={f.name} onAdd={() => pick(f)} haptic={logsOutright}
     subtitle={[f.brand, `${f.portion || 100} ${f.unit || 'g'}`, energy(foodKcal(f))].filter(Boolean).join(' · ')} />)
   const note = text => <p className="g-lf-note">{text}</p>
   const heading = text => <h2 className="g-lf-sec">{text}</h2>
@@ -69,7 +71,7 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
     </>}
     {saved.all.slice(0, savedLimit).map(m => {
       const kcal = saved.kcal(m)
-      return <LogFoodRow key={saved.key(m)} icon={m.is_recipe ? 'cookingPot' : 'salad'} title={m.name} busy={saved.busy}
+      return <LogFoodRow key={saved.key(m)} icon={m.is_recipe ? 'cookingPot' : 'salad'} title={m.name} busy={saved.busy} haptic={logsOutright || !m.is_recipe}
         subtitle={saved.subtitle(m) + ' · ' + kcal.value + ' ' + kcal.unit} onAdd={() => saved.pick(m)} />
     })}
     {more(savedLimit, saved.all.length, () => setSavedLimit(n => n + SAVED_SHOWN))}
@@ -113,7 +115,7 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
       <label className="g-lf-search">
         <Icon name="magnifier" className="g-icon" />
         <input ref={search} type="search" value={query} placeholder={t('Search foods')} aria-label={t('Search foods')} autoFocus enterKeyHint="search"
-          onFocus={syncKeyboard} onChange={e => { setQuery(e.target.value); setLimit(OWN_SHOWN) }}
+          onChange={e => { setQuery(e.target.value); setLimit(OWN_SHOWN) }}
           onKeyDown={e => { if (e.key === 'Enter' && online.status === 'tap') online.ask() }} />
         {/* The × goes once the query does: focus goes back to the field, not out of the drawer. */}
         {query && <button type="button" className="g-lf-clear" onClick={() => { setQuery(''); setLimit(OWN_SHOWN); search.current?.focus() }} aria-label={t('Clear')}><Icon name="xmark" className="g-icon" /></button>}

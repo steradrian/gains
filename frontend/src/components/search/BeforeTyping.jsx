@@ -47,7 +47,7 @@ export default function BeforeTyping({ data, tab, onOpen, onChip, onQuery }) {
 
   if (view.firstUse) {
     return <>
-      <StageEmpty card={false} icon="magnifier" title={t('Search everything')} body={t('Find any page, setting, exercise, workout, food or day.')} />
+      <StageEmpty card={false} illustration="search" title={t('Search everything')} body={t('Find any page, setting, exercise, workout, food or day.')} />
       <SearchListbox>{suggestions}</SearchListbox>
       {chips}
     </>

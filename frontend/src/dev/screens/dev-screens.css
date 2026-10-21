@@ -15,3 +15,6 @@
 .dsg-frame .g-screen > .g-stage,
 .dsg-frame .g-screen > .g-stage > .g-stage-body,
 .dsg-frame .si-col { min-height: 844px; }
+/* H1.0, the haptic controls beside the silent ones. */
+.dsg-haptics { display: grid; gap: 16px; padding: 72px 20px 40px; }
+.dsg-haptics-row { display: flex; align-items: center; gap: 16px; }

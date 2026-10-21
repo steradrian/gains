@@ -55,7 +55,7 @@ export default function Suggestions({ p, S, update, toast, refresh }) {
 
       <div className="tco-acts">
         <Button variant="glass" onClick={dismiss}>{t('Dismiss')}</Button>
-        <Button onClick={apply} disabled={!ids.length}>{ids.length === usable.length ? t('Apply all') : t('Apply {0}', ids.length)}</Button>
+        <Button haptic onClick={apply} disabled={!ids.length}>{ids.length === usable.length ? t('Apply all') : t('Apply {0}', ids.length)}</Button>
       </div>
 
       {(!!marked.notes?.length || !!marked.evidence) && <div className="tco-card g-glass">

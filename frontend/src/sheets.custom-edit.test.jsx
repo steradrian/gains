@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client'
 import { EXIDX, registerCustom } from './lib/exercises.js'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { _setLangState } from './lib/i18n-core.js'
 import { setNav } from './lib/nav.js'
 import { bindUI } from './components/ui.jsx'
@@ -32,7 +33,7 @@ function render(el) {
   return host
 }
 const renderTop = () => {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   return render(sheet.render(() => useUI.getState().closeSheet(sheet.id)))
 }
 const buttons = host => [...host.querySelectorAll('button')].map(b => b.textContent.trim())

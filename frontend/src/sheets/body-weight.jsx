@@ -1,11 +1,10 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { fmtDate, fmtNum, todayISO, weekStartOf } from '../lib/format.js'
 import { lastBW } from '../lib/history.js'
 import { t, tn } from '../lib/i18n.js'
 import { closeThenNav } from '../lib/nav.js'
 import { convertBodyWeight } from '../lib/units.js'
-import { useSheetKeyboard } from '../lib/use-sheet-keyboard.js'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Chip, ChipRow, EmptyState } from '../components/blocks.jsx'
@@ -86,10 +85,6 @@ function BwSheet({ required, onDone, close, date }) {
   // A slip of a digit (81.4 typed 18.4, or 8.14) reads as a real change on the curve: say so before
   // saving. Saving still works, and Undo follows it.
   const far = prev && n > 0 && Math.abs(n - prev.w) > convertBodyWeight(FAR_KG, 'kg', unit)
-  // The read-out raises the keyboard: the drawer is lifted over it, Save in reach (iOS; Android 15
-  // passes --native-kb). NumberField takes no ref, so the hook finds the drawer from its label.
-  const read = useRef(null)
-  const syncKeyboard = useSheetKeyboard(read)
   const save = () => {
     if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
     if (bwTooHeavy(n, unit)) return
@@ -113,7 +108,8 @@ function BwSheet({ required, onDone, close, date }) {
   // plain close: no onDone, no navigation, the screen underneath as it was.
   return <BottomSheet title={required ? t('Quick check-in') : t('Weigh-in')} chip={dayName(day)} onClose={required ? () => close() : undefined}
     footer={<>
-      <DsButton block onClick={save}>{required ? t('Save & start workout') : t('Save weigh-in')}</DsButton>
+      {/* Ticks only when the save will go through: a tick before "Enter a valid weight" would lie. */}
+      <DsButton block haptic={!!n && n > 0 && !bwTooHeavy(n, unit)} onClick={save}>{required ? t('Save & start workout') : t('Save weigh-in')}</DsButton>
       {required && <>
         <DsButton block variant="secondary" onClick={() => { close(); onDone && onDone(null) }}>{t('Start without weighing in')}</DsButton>
         <DsButton block variant="ghost" icon="swap" onClick={() => closeThenNav(close, '/train/workout')}>{t('Choose a different workout')}</DsButton>
@@ -122,7 +118,7 @@ function BwSheet({ required, onDone, close, date }) {
     {required && <p className="g-wi-note">{t('We ask before your first workout each day so your curve stays honest.')}</p>}
     <div className="g-wi">
       <button type="button" className="g-wi-pm" onClick={() => step(-0.1)} aria-label={t('Decrease by {0}', fmtNum(0.1))}><Icon name="minus" className="g-icon" /></button>
-      <label className="g-wi-read" ref={read} onFocus={syncKeyboard}>
+      <label className="g-wi-read">
         <NumberField fit className="g-wi-num" value={v} onChange={setV} aria-label={t('Weight ({0})', unit)} enterKeyHint="done"
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
         <span className="g-wi-u">{unit}</span>

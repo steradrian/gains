@@ -185,13 +185,10 @@ describe('StageHeader pinned, on a tab root', () => {
     expect(q('.g-shdr-act').nextElementSibling).toBe(bell())
   })
 
-  it('paints the stage\'s own art under its row, hidden from a screen reader, so it meets the stage with no edge', () => {
+  it('paints no ground of its own: it floats on the shared stage, with no band under its row', () => {
     view.render(<StageHeader pinned title="Today" />)
-    const bg = q('.g-shdr > .g-shdr-bg')
-    expect(bg).not.toBeNull()
-    expect(bg.querySelector('.g-stage-art').getAttribute('aria-hidden')).toBe('true')
-    expect(bg.querySelectorAll('.g-stage-glow')).toHaveLength(2)
-    expect(bg.querySelector('.g-stage-rings')).not.toBeNull()
+    expect(q('.g-shdr-bg')).toBeNull()
+    expect(q('.g-shdr .g-stage-art')).toBeNull()
   })
 
   it('is not pinned unless asked (the kit page shows several)', () => {

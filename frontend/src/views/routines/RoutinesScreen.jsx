@@ -86,7 +86,7 @@ export default function RoutinesScreen() {
     <StagePage largeTitle={t('Routines')} sub={r.sub} parent="/train"
       actions={[{ icon: 'plus', label: t('New routine'), onClick: r.add }]}>
       {r.empty && (
-        <StageEmpty icon="list" title={t('No routines yet')}
+        <StageEmpty illustration="dumbbell" title={t('No routines yet')}
           body={t('A routine is a saved list of exercises with sets, reps and weight. Make one, or start from a ready-made plan.')}
           action={t('New routine')} onClick={r.add}
           actions={[{ label: t('Pick a ready-made plan'), icon: 'clipboard', onClick: r.plans }]} />

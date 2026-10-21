@@ -7,6 +7,9 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// These tests are about the Coach being on; the "coming soon" switch has its own tests.
+vi.mock('../../lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import Modals, { scrollRestorePending } from '../../components/Modals.jsx'
 import { setMotionDriver } from '../../lib/motion.js'
 import { fakeMotionDriver } from '../../lib/motion.test-util.js'

@@ -97,11 +97,11 @@ function Training({ day }) {
       {day.state === 'logged' && day.workouts.map(w => (
         <WorkoutCard key={w.id} name={w.name} meta={workoutMeta(w)} badge={w.bests > 0 ? tn('{0} new best', '{0} new bests', w.bests) : null}
           onClick={() => day.openWorkout(w)} levels={w.levels} muscles={w.muscles} summary={workoutSummary(w)}
-          exercises={w.exercises.map(e => ({ name: e.name, sets: e.sets.join(' · '), image: e.image, newBest: e.best, onClick: () => day.openExercise(e) }))} />
+          exercises={w.exercises.map(e => ({ id: e.id, name: e.name, sets: e.sets.join(' · '), newBest: e.best, onClick: () => day.openExercise(e) }))} />
       ))}
       {day.state === 'missed' && (
         <DayStatusCard tone="warn" icon="calendar" title={t('{0} was planned, not logged', planned.name)}
-          body={t('Log it if you trained and forgot, or mark it skipped.')} thumbs={planned.routines.flatMap(r => r.images || [])}
+          body={t('Log it if you trained and forgot, or mark it skipped.')} stills={planned.routines.flatMap(r => r.stills || [])}
           actions={[{ label: t('Add past workout'), solid: true, onClick: day.addPastWorkout }, { label: t('Mark skipped'), onClick: day.markSkipped }]} />
       )}
       {day.state === 'skipped' && (
@@ -203,7 +203,7 @@ function Empty({ day }) {
     { label: t('Log weight'), onClick: day.weighInSheet },
   ].filter(Boolean)
   return (
-    <StageEmpty card={false} icon="calendar" title={t('Nothing logged')} body={t('Anything you add from here goes to {0}, not today.', day.title)}
+    <StageEmpty card={false} illustration="calendar" title={t('Nothing logged')} body={t('Anything you add from here goes to {0}, not today.', day.title)}
       action={ways[0].label} onClick={ways[0].onClick} actions={ways.slice(1)} />
   )
 }

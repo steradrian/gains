@@ -24,8 +24,8 @@ body.search-open #tabbar,body.search-open #timer.dock{
    .g-shdr-pin) to the window's, on the stage, so it covers everything below the header. Its own
    scroller keeps the page behind still (SearchHost locks <html> and <body>); the bottom padding
    clears the home indicator and the keyboard. The column keeps the page's width on a wide screen.
-   Its ground is the stage's art anchored where the page's stage starts, as the header's is (ds.css
-   .g-shdr-bg), so the two meet with no edge. It is on the stage, so its focus rings are white.
+   Its ground is the stage's art anchored to meet the app's shared stage (ds.css .g-app-stage)
+   under the header, so there is no edge. It is on the stage, so its focus rings are white.
    With the iOS keyboard up the visual viewport scrolls; the header and the panel follow it down
    (--vv-top, SearchHost) so they stay where the eye is. Only the panel's opacity is animated here,
    the transform is this rule's. */

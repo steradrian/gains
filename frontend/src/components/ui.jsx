@@ -16,11 +16,11 @@
 import { useRef, useState, useEffect, useCallback, forwardRef } from 'react'
 import Icon from './Icon.jsx'
 import { EmptyState } from './blocks.jsx'
-import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
-import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import { whenSheetGone } from '../lib/nav.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
+import HapticSwitch, { isHapticSwitchTarget } from '../ds/HapticSwitch.jsx'
 
 /* ============================ text ============================ */
 
@@ -101,17 +101,20 @@ export const SearchField = forwardRef(function SearchField({ value, onChange, on
 
 /* ============================ switch ============================ */
 
-export function Switch({ checked, onChange, disabled, ...accessibility }) {
+// A flipped switch is a write that is already made, so it ticks (ds/HapticSwitch.jsx); `haptic={false}`
+// for the rare one that only previews.
+export function Switch({ checked, onChange, disabled, haptic = true, ...accessibility }) {
   return (
     <button
       {...accessibility}
       role="switch"
       aria-checked={!!checked}
       disabled={disabled}
-      className={'sw' + (checked ? ' on' : '')}
-      onClick={() => onChange(!checked)}
+      className={'sw' + (checked ? ' on' : '') + (haptic ? ' g-haptic' : '')}
+      onClick={() => { if (haptic) buzz('selection'); onChange(!checked) }}
     >
       <span className="knob" />
+      {haptic && <HapticSwitch disabled={disabled} />}
     </button>
   )
 }
@@ -296,7 +299,8 @@ export function Slider({ value, min = 0, max = 100, step = 1, onChange, classNam
 
 /* ============================ checkbox ============================ */
 
-export function Check({ checked, onChange, className = '', size, label }) {
+// `haptic`: the tick of a set checked off, where the tap itself is the write (off by default).
+export function Check({ checked, onChange, className = '', size, label, haptic = false }) {
   return (
     <button
       role="checkbox"
@@ -304,9 +308,10 @@ export function Check({ checked, onChange, className = '', size, label }) {
       aria-label={label}
       className={'chk' + (checked ? ' on' : '') + ' ' + className}
       style={size ? { width: size, height: size } : null}
-      onClick={() => onChange(!checked)}
+      onClick={() => { if (haptic) buzz('light'); onChange(!checked) }}
     >
       <Icon name="check" />
+      {haptic && <HapticSwitch />}
     </button>
   )
 }
@@ -383,40 +388,12 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
   const firstVisibleRef = useRef(null)
-  const syncPickerViewport = useCallback(() => {
-    const input = inputRef.current
-    const sheet = input?.closest('.sheet')
-    const viewport = window.visualViewport
-    if (!sheet || !viewport) return
-    // the visual viewport, or on Android 15 the keyboard the app passes (lib/native-keyboard.js)
-    const { bottomInset, visualHeight } = sheetKeyboardInsets(window)
-    sheet.style.setProperty('--picker-keyboard-bottom', `${bottomInset}px`)
-    sheet.style.setProperty('--picker-visual-height', `${visualHeight}px`)
-  }, [])
   const matcher = typeof search === 'function' ? search : search?.match
   const visible = matcher ? options.filter(o => matcher(o, query)) : options
 
-  useEffect(() => {
-    if (!search) return
-    const viewport = window.visualViewport
-    if (!viewport) return
-    const sync = () => syncPickerViewport()
-    sync()
-    viewport.addEventListener('resize', sync)
-    viewport.addEventListener('scroll', sync)
-    window.addEventListener(NATIVE_KEYBOARD_EVENT, sync)
-    return () => {
-      viewport.removeEventListener('resize', sync)
-      viewport.removeEventListener('scroll', sync)
-      window.removeEventListener(NATIVE_KEYBOARD_EVENT, sync)
-      const sheet = inputRef.current?.closest('.sheet')
-      sheet?.style.removeProperty('--picker-keyboard-bottom')
-      sheet?.style.removeProperty('--picker-visual-height')
-    }
-  }, [search, syncPickerViewport])
-
   // Filtering can leave the first result underneath the mobile keyboard. Keep the
-  // correction local to the sheet instead of letting focus/scrollIntoView move the page.
+  // correction local to the sheet (its pane scrolls) instead of letting focus/scrollIntoView
+  // move the page.
   useEffect(() => {
     if (!query.trim() || !visible.length) return
     const input = inputRef.current
@@ -430,7 +407,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
     const frame = schedule(() => {
       if (document.activeElement !== input) return
       const option = firstVisibleRef.current
-      const sheet = option?.closest('.sheet')
+      const sheet = option?.closest('.g-bs-pane, .sheet')
       if (!option || !sheet) return
       const viewport = window.visualViewport
       const visualBottom = viewport ? (viewport.offsetTop || 0) + viewport.height : window.innerHeight
@@ -449,7 +426,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
       <h3>{title}</h3>
       {search && <div className="picker-search">
         <SearchField value={query} onChange={e => setQuery(e.target.value)} onInput={e => setQuery(e.target.value)}
-          onClear={() => setQuery('')} onFocus={syncPickerViewport} ref={inputRef} placeholder={search.placeholder} aria-label={search.label || search.placeholder} />
+          onClear={() => setQuery('')} ref={inputRef} placeholder={search.placeholder} aria-label={search.label || search.placeholder} />
       </div>}
       <div className="sect-b">
         {visible.map((o, index) => (
@@ -520,13 +497,20 @@ function require_ui() {
 /* ============================ buttons ============================ */
 
 // shape="pill": a 44px rounded pill sized to its label (empty states, the sticky action bar).
-export function Button({ variant = 'plain', size, shape, icon, trailingIcon, children, className = '', ...rest }) {
+// `haptic` (off by default; ds/Button.jsx says what earns a tick) lays a HapticSwitch over it on iOS.
+export function Button({ variant = 'plain', size, shape, icon, trailingIcon, haptic = false, hapticStyle = 'light', onClick, children, className = '', ...rest }) {
   oneOf('Button', 'shape', shape, ['pill'])
+  const click = haptic ? e => {
+    buzz(hapticStyle)
+    onClick?.(e)
+    if (rest.type === 'submit' && !e.defaultPrevented && isHapticSwitchTarget(e.target)) e.currentTarget.form?.requestSubmit(e.currentTarget)
+  } : onClick
   return (
-    <button className={`btn ${variant}${size ? ' ' + size : ''}${shape ? ' btn-' + shape : ''} ${className}`} {...rest}>
+    <button className={`btn ${variant}${size ? ' ' + size : ''}${shape ? ' btn-' + shape : ''}${haptic ? ' g-haptic' : ''} ${className}`} onClick={click} {...rest}>
       {icon && <Icon name={icon} />}
       {children && <span>{children}</span>}
       {trailingIcon && <Icon name={trailingIcon} />}
+      {haptic && <HapticSwitch disabled={rest.disabled} />}
     </button>
   )
 }

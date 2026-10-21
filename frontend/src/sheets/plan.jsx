@@ -4,12 +4,13 @@ import { todayISO, exCount } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import { closeThenNav, nav, onSheetEntry } from '../lib/nav.js'
 import { coachAvailable } from '../lib/coach.js'
+import { COACH_COMING_SOON } from '../lib/coach-availability.js'
 import { DEMO } from '../lib/demo.js'
 import { buildPlanBundle, parsePlan, printPlan, planPrintHTML } from '../lib/plan-share.js'
 import { MOBILE, shareExport, printHtml } from '../lib/mobile.js'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import MenuList from '../ds/MenuList.jsx'
-import { starterPlanSheet } from './starter.jsx'
+import { drawerFlow } from '../store/useUI.js'
 import { S, ui, toast } from './shared.js'
 
 export { dayOverrideSheet, dayNoteSheet, usePlanDayParam } from './plan-day.jsx'
@@ -72,13 +73,13 @@ function PlanMenuDrawer({ close }) {
   const coachMode = useStore(s => s.coachLocal?.mode)
   const fileRef = useRef(null)
   const has = planHasRoutines(st)
-  const coach = coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
+  const coach = !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode })
   const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; importPlanFile(f, close) }
   const items = [
-    { key: 'share', icon: 'share', label: t('Share your plan'), disabled: !has, onClick: () => { close(); planShareSheet() },
+    { key: 'share', icon: 'share', label: t('Share your plan'), disabled: !has, onClick: () => drawerFlow(planShareSheet),
       detail: has ? t('Send your routines to a friend, or put your week on paper.') : t('Add an exercise to a routine first. An empty plan has nothing to share.') },
     { key: 'import', icon: 'download', label: t('Import a plan file'), detail: t('Got a plan from a friend?'), onClick: () => fileRef.current?.click() },
-    { key: 'plans', icon: 'clipboard', label: t('Ready-made plans'), detail: t('Add a starter plan to your week'), onClick: () => { close(); starterPlanSheet() } },
+    { key: 'plans', icon: 'clipboard', label: t('Ready-made plans'), detail: t('Add a starter plan to your week'), onClick: () => closeThenNav(close, '/train/plans') },
     coach && { key: 'coach', icon: 'chat', label: t('Coach'), detail: t('Plan design and reviews, from your own training'), onClick: () => closeThenNav(close, '/train/coach') },
   ].filter(Boolean)
   return (

@@ -36,7 +36,7 @@ export default function SavedMealSheet({ id, close }) {
       footer={
         <div className="g-mf-acts">
           <Button variant="secondary" onClick={() => closeThenNav(close, `/food/my-foods/meals/${meal.id}`)}>{t('Edit')}</Button>
-          <Button busy={busy} disabled={empty} onClick={logIt}>{t('Log to {0}', target.mealName)}</Button>
+          <Button haptic busy={busy} disabled={empty} onClick={logIt}>{t('Log to {0}', target.mealName)}</Button>
         </div>
       }>
       {empty
