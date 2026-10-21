@@ -60,7 +60,7 @@ function ToastPill({ msg, action, paused }) {
   }, [msg, present])
   const live = !!(present && action)
   return <UndoToast ref={ref} role={null} className={action ? 'has-action' : undefined} {...leavingProps(present)}
-    message={msg} icon={action?.icon ?? null}
+    message={msg} body={action?.body} icon={action?.icon ?? null}
     onUndo={action ? run : false} actionLabel={action?.label} duration={action ? action.ms / 1000 : false}
     paused={paused} restartKey={action?.id}
     onPointerEnter={live ? pauseToast : undefined} onPointerDown={live ? pauseToast : undefined}
