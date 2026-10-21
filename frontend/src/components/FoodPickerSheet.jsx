@@ -53,7 +53,7 @@ export default function FoodPickerSheet({ close }) {
   const foodRows = (list, icon) => list.map(f => <LogFoodRow key={f.id ?? f.client_key} icon={icon} title={f.name} onAdd={() => pick(f)}
     subtitle={[f.brand, `${f.portion || 100} ${f.unit || 'g'}`, energy(foodKcal(f))].filter(Boolean).join(' · ')} />)
   const note = text => <p className="g-lf-note">{text}</p>
-  const heading = text => <h3 className="g-lf-sec">{text}</h3>
+  const heading = text => <h2 className="g-lf-sec">{text}</h2>
   const more = (shown, all, onMore) => all > shown && <Button variant="ghost" size="sm" onClick={onMore}>{t('Show more')}</Button>
 
   const savedRows = () => <>

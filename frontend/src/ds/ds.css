@@ -515,7 +515,7 @@ button.g-bs-chip { cursor: pointer; }
 .g-wi-pm:active { background: var(--surface-press); }
 .g-wi-pm .g-icon { width: 24px; height: 24px; stroke-width: 2.2; }
 .g-wi-read { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.g-wi-read .g-wi-num { min-width: 2ch; max-width: 100%; height: auto; margin: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text); font: 700 56px/60px var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; text-align: center; }
+.g-wi-read .g-wi-num { min-width: 2ch; height: auto; margin: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text); font: 700 56px/60px var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; text-align: center; }
 .g-wi-u { font: 600 20px/24px var(--font-sans); color: var(--text-2); }
 .g-wi-note, .g-wi-far, .g-wi-last { margin: 0; text-align: center; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
 .g-wi-note { padding-bottom: 8px; }
