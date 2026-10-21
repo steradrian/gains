@@ -84,8 +84,15 @@ describe('the first time (W2.2)', () => {
     expect(m.tiles[2].delta).toEqual({ dir: null, text: 'first time' })
     expect(m.bests).toEqual([{ id: SQUAT, name: name(SQUAT), kind: 'weight', text: '80 kg × 5 · best set ever' }])
     expect(m.next).toEqual([])
-    expect(m.firstNote).toBe('Your first Push A. From the next one on, this shows what went up and your new bests.')
+    expect(m.firstNote).toBe('Your first Push A. Its new bests are below.')
     expect(m.trained).toEqual([{ id: SQUAT, name: name(SQUAT), line: '3 sets at 80 kg', trend: 'first', trendText: 'first time' }])
+  })
+
+  it('a first workout with no bests keeps the promise for the next one', () => {
+    const first = workout('f', '2026-10-18', ['push'], [{ id: SQUAT, sets: sets(80, 5, 5, 5) }])
+    const m = summaryOf(state([first]), 'f')
+    expect(m.bests).toEqual([])
+    expect(m.firstNote).toBe('Your first Push A. From the next one on, this shows what went up and your new bests.')
   })
 
   it('a first pairing of lifts trained before keeps the bests its record carries', () => {

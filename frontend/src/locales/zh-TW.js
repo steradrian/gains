@@ -1809,7 +1809,6 @@ export default {
   'Keep editing': '繼續編輯',
   'This workout was deleted on another device. Your edits are still here.': '此筆訓練已在其他裝置上被刪除。你的修改目前仍保留於此處。',
   'Close editor': '關閉編輯器',
-  'Editing a saved workout. Date and duration stay unchanged.': '正在編輯已存檔的訓練。日期與時長將維持不變。',
   // --- demo build (v1.3.7) ---
   'A pull for every press, so the shoulders stay balanced.': '每個推的動作皆搭配一個拉的動作，讓肩膀前後維持肌力均衡。',
   'A two-day rotation across three sessions a week, built around the equipment you listed. Compounds first, one pull for every press, and enough overlap between the days that nothing goes two weeks without being trained.': '以每週三次、兩天輪替為基礎，完全圍繞你現有的器材規劃。優先安排複合動作，推拉平衡，確保任何部位都不會超過兩週未受刺激。',
@@ -3591,7 +3590,6 @@ export default {
   'Bar and loading': 'Bar and loading',
   'Base': 'Base',
   'Cable': 'Cable',
-  'Change them in Gym setup.': 'Change them in Gym setup.',
   'Done before': 'Done before',
   'Each side': 'Each side',
   'Filter': 'Filter',
@@ -3656,7 +3654,6 @@ export default {
   'Back to {0} · set {1}': 'Back to {0} · set {1}',
   'Bring a routine in': 'Bring a routine in',
   'Change rest time': 'Change rest time',
-  'Date and duration stay as they were. No rest timers while you edit.': 'Date and duration stay as they were. No rest timers while you edit.',
   'Every set done': 'Every set done',
   'Go': 'Go',
   'How hard was set {0}?': 'How hard was set {0}?',
@@ -3873,4 +3870,7 @@ export default {
   'Don’t count today': 'Don’t count today',
   'Logged as usual, left out of progression. For a sore day or a different machine.': 'Logged as usual, left out of progression. For a sore day or a different machine.',
   'at {0}': 'at {0}',
+
+  // Workout fix round
+  'Your first {0}. Its new bests are below.': 'Your first {0}. Its new bests are below.',
 }

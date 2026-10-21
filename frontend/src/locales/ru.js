@@ -1811,7 +1811,6 @@ export default {
   'Keep editing': 'Продолжить редактирование',
   'This workout was deleted on another device. Your edits are still here.': 'Эта тренировка удалена на другом устройстве. Ваши изменения всё ещё здесь.',
   'Close editor': 'Закрыть редактор',
-  'Editing a saved workout. Date and duration stay unchanged.': 'Вы редактируете сохранённую тренировку. Дата и длительность не изменятся.',
   // --- demo build (v1.3.7) ---
   'A pull for every press, so the shoulders stay balanced.': 'На каждый жим своя тяга, чтобы плечи оставались сбалансированными.',
   'A two-day rotation across three sessions a week, built around the equipment you listed. Compounds first, one pull for every press, and enough overlap between the days that nothing goes two weeks without being trained.': 'Двухдневная ротация на три тренировки в неделю, собранная под указанное вами оборудование. Сначала базовые движения, на каждый жим своя тяга, и между днями достаточно пересечений, чтобы ничто не оставалось без нагрузки дольше двух недель.',
@@ -3601,7 +3600,6 @@ export default {
   'Bar and loading': 'Bar and loading',
   'Base': 'Base',
   'Cable': 'Cable',
-  'Change them in Gym setup.': 'Change them in Gym setup.',
   'Done before': 'Done before',
   'Each side': 'Each side',
   'Filter': 'Filter',
@@ -3666,7 +3664,6 @@ export default {
   'Back to {0} · set {1}': 'Back to {0} · set {1}',
   'Bring a routine in': 'Bring a routine in',
   'Change rest time': 'Change rest time',
-  'Date and duration stay as they were. No rest timers while you edit.': 'Date and duration stay as they were. No rest timers while you edit.',
   'Every set done': 'Every set done',
   'Go': 'Go',
   'How hard was set {0}?': 'How hard was set {0}?',
@@ -3883,4 +3880,7 @@ export default {
   'Don’t count today': 'Don’t count today',
   'Logged as usual, left out of progression. For a sore day or a different machine.': 'Logged as usual, left out of progression. For a sore day or a different machine.',
   'at {0}': 'at {0}',
+
+  // Workout fix round
+  'Your first {0}. Its new bests are below.': 'Your first {0}. Its new bests are below.',
 }

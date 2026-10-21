@@ -143,7 +143,9 @@ export function summaryOf(S, id) {
     title: t('{0}, done', name),
     dateLine: [day ? fmtDate(day, true) : null, span].filter(Boolean).join(' · '),
     first,
-    firstNote: first ? t('Your first {0}. From the next one on, this shows what went up and your new bests.', name) : null,
+    firstNote: !first ? null
+      : bests.length ? t('Your first {0}. Its new bests are below.', name)
+      : t('Your first {0}. From the next one on, this shows what went up and your new bests.', name),
     tiles, bests,
     muscles: loadOfWorkouts([w]),
     trained, cardio, next,

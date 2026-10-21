@@ -827,7 +827,6 @@ export const PT_BR_OVERRIDES = {
   'Keep editing': 'Continuar editando',
   'This workout was deleted on another device. Your edits are still here.': 'Este treino foi excluído em outro dispositivo. Suas alterações continuam aqui.',
   'Close editor': 'Fechar editor',
-  'Editing a saved workout. Date and duration stay unchanged.': 'Você está editando um treino salvo. A data e a duração permanecem iguais.',
   // --- demo build (v1.3.7) ---
   'A two-day rotation across three sessions a week, built around the equipment you listed. Compounds first, one pull for every press, and enough overlap between the days that nothing goes two weeks without being trained.': 'Uma rotação de dois dias em três sessões por semana, montada em torno do equipamento que você informou. Primeiro os exercícios compostos, uma puxada para cada empurrão e sobreposição suficiente entre os dias para que nada fique duas semanas sem ser treinado.',
   'Body weight has been flat for four weeks while the goal is to gain. That’s a kitchen problem, not a training one. The plan isn’t what’s holding it back.': 'O peso corporal está parado há quatro semanas, e o objetivo é ganhar. Isso é problema de cozinha, não de treino. Não é o plano que está segurando.',

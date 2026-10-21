@@ -1894,7 +1894,6 @@ export default {
   'Keep editing': 'সম্পাদনা চালিয়ে যান',
   'This workout was deleted on another device. Your edits are still here.': 'এই ওয়ার্কআউট অন্য ডিভাইসে মুছে ফেলা হয়েছে। আপনার সম্পাদনাগুলো এখনও এখানে আছে।',
   'Close editor': 'এডিটর বন্ধ করুন',
-  'Editing a saved workout. Date and duration stay unchanged.': 'একটি সেভ করা ওয়ার্কআউট সম্পাদনা হচ্ছে। তারিখ ও সময়কাল অপরিবর্তিত থাকে।',
   // --- demo build (v1.3.7) ---
   'A pull for every press, so the shoulders stay balanced.': 'প্রতিটি প্রেসের জন্য একটি পুল, যাতে কাঁধের ভারসাম্য থাকে।',
   'A two-day rotation across three sessions a week, built around the equipment you listed. Compounds first, one pull for every press, and enough overlap between the days that nothing goes two weeks without being trained.': 'সপ্তাহে তিনটি সেশনে দুই দিনের পালাক্রম, আপনার তালিকার সরঞ্জাম ঘিরে তৈরি। আগে কম্পাউন্ড, প্রতিটি প্রেসের জন্য একটি পুল, এবং দিনগুলোর মধ্যে যথেষ্ট মিল, যাতে কোনো কিছুই দুই সপ্তাহ ট্রেনিং ছাড়া না থাকে।',
@@ -3676,7 +3675,6 @@ export default {
   'Bar and loading': 'Bar and loading',
   'Base': 'Base',
   'Cable': 'Cable',
-  'Change them in Gym setup.': 'Change them in Gym setup.',
   'Done before': 'Done before',
   'Each side': 'Each side',
   'Filter': 'Filter',
@@ -3741,7 +3739,6 @@ export default {
   'Back to {0} · set {1}': 'Back to {0} · set {1}',
   'Bring a routine in': 'Bring a routine in',
   'Change rest time': 'Change rest time',
-  'Date and duration stay as they were. No rest timers while you edit.': 'Date and duration stay as they were. No rest timers while you edit.',
   'Every set done': 'Every set done',
   'Go': 'Go',
   'How hard was set {0}?': 'How hard was set {0}?',
@@ -3958,4 +3955,7 @@ export default {
   'Don’t count today': 'Don’t count today',
   'Logged as usual, left out of progression. For a sore day or a different machine.': 'Logged as usual, left out of progression. For a sore day or a different machine.',
   'at {0}': 'at {0}',
+
+  // Workout fix round
+  'Your first {0}. Its new bests are below.': 'Your first {0}. Its new bests are below.',
 }
