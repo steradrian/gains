@@ -126,7 +126,7 @@
 .g-onav-skip { appearance: none; border: 0; background: none; height: 44px; min-width: 44px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: flex-end; color: var(--on-stage); font: 600 17px/22px var(--font-sans); cursor: pointer; text-decoration: none; }
 
 /* StageChoiceCard */
-.g-ccard { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 74px; padding: 12px 16px; border-radius: 22px; color: var(--on-stage); text-align: left; text-decoration: none; font-family: var(--font-sans); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 220ms; }
+.g-ccard { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 74px; padding: 12px 16px; border-radius: 22px; color: var(--on-stage); text-align: start; text-decoration: none; font-family: var(--font-sans); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1), background-color 220ms; }
 .g-ccard:active { transform: scale(.97); }
 .g-ccard-slim { min-height: 56px; }
 .g-ccard.on { background: var(--on-stage); color: var(--text); box-shadow: var(--g-ccard-on-shadow); }
@@ -218,7 +218,7 @@
 
 /* GlassList (bundle.js): rows in one rounded card, on the stage or (light) in a drawer */
 .g-glist { border-radius: 28px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
-.g-glist-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.g-glist-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
 div.g-glist-row { cursor: default; }
 .g-glist-tall { min-height: 72px; padding: 12px 18px; }
 .g-glist-row + .g-glist-row { border-top: 1px solid var(--glass-line); }
@@ -246,7 +246,7 @@ button.g-grow:active, a.g-grow:active, .g-tile:active, .g-water-add:active { tra
 button.g-ssec-act, a.g-ssec-act { cursor: pointer; }
 
 /* GlassRow: the check trail is 48px on the done board (T1.12), the bundle's 56 */
-.g-grow { appearance: none; border: 0; box-sizing: border-box; width: calc(100% - 32px); margin: 0 16px; display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 14px 14px 14px 18px; border-radius: 28px; color: var(--on-stage); text-align: left; font: inherit; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+.g-grow { appearance: none; border: 0; box-sizing: border-box; width: calc(100% - 32px); margin: 0 16px; display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 14px 14px 14px 18px; border-radius: 28px; color: var(--on-stage); text-align: start; font: inherit; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
 button.g-grow, a.g-grow { cursor: pointer; }
 .g-grow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .g-grow-body b { font: 700 20px/26px var(--font-sans); letter-spacing: -0.01em; }
@@ -266,7 +266,7 @@ button.g-grow, a.g-grow { cursor: pointer; }
 .g-tiles { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 6px; scrollbar-width: none; }
 .g-tiles::-webkit-scrollbar { display: none; }
 .g-tiles-end { flex: none; width: 6px; }
-.g-tile { appearance: none; border: 0; flex: none; width: 138px; min-height: 154px; box-sizing: border-box; border-radius: 28px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; text-align: left; color: var(--on-stage); font: inherit; cursor: pointer; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+.g-tile { appearance: none; border: 0; flex: none; width: 138px; min-height: 154px; box-sizing: border-box; border-radius: 28px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; text-align: start; color: var(--on-stage); font: inherit; cursor: pointer; text-decoration: none; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
 .g-tile-now { background: var(--surface); color: var(--accent-text); box-shadow: var(--g-tile-now-shadow); }
 .g-tile-top { display: flex; justify-content: space-between; align-items: flex-start; }
 .g-tile-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
@@ -292,7 +292,7 @@ button.g-grow, a.g-grow { cursor: pointer; }
 /* FirstSteps (T1.9): a glass list, the step to do an outlined ring, the done one a white disc */
 .g-fsteps { list-style: none; margin: 0 16px; padding: 0; border-radius: 28px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
 .g-fstep + .g-fstep { border-top: 1px solid var(--glass-line); }
-.g-fstep-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 18px; color: inherit; font: inherit; text-align: left; text-decoration: none; }
+.g-fstep-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 10px 18px; color: inherit; font: inherit; text-align: start; text-decoration: none; }
 button.g-fstep-row, a.g-fstep-row { cursor: pointer; }
 .g-fstep-dot { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--glass-line); }
 .g-fstep-dot.on { background: var(--on-stage); color: var(--accent-stage-end); box-shadow: none; }
@@ -362,7 +362,7 @@ button.g-saved { cursor: pointer; }
 .g-lead { width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--glass); color: var(--on-stage); }
 .g-lead .g-icon { width: 21px; height: 21px; }
 .g-wcard { border-radius: 24px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
-.g-wcard-head { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; background: none; color: inherit; text-align: left; text-decoration: none; }
+.g-wcard-head { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; background: none; color: inherit; text-align: start; text-decoration: none; }
 button.g-wcard-head, a.g-wcard-head { cursor: pointer; }
 .g-wcard-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .g-wcard-t b { font: 700 20px/26px var(--font-sans); }
@@ -371,7 +371,7 @@ button.g-wcard-head, a.g-wcard-head { cursor: pointer; }
 .g-wcard-map .g-bmap-ph { min-height: 128px; }
 .g-wcard-map > span { flex: 1; display: flex; flex-direction: column; gap: 4px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-wcard-map > span b { font: 700 15px/20px var(--font-sans); color: var(--on-stage); }
-.g-wcard-ex { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 70px; padding: 8px 16px; background: none; border-top: 1px solid var(--glass-line); color: inherit; text-align: left; text-decoration: none; }
+.g-wcard-ex { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 70px; padding: 8px 16px; background: none; border-top: 1px solid var(--glass-line); color: inherit; text-align: start; text-decoration: none; }
 button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
 .g-wcard-ex > img { width: 52px; height: 52px; flex: none; border-radius: 14px; background: var(--g-white); object-fit: cover; }
 .g-wcard-exb { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -649,3 +649,157 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-root[data-accent="plum"] { --accent-fill: var(--plum-fill); --accent-fill-end: var(--plum-fill-end); --accent-text: var(--plum-text); --accent-tint: var(--plum-tint); --on-accent: var(--plum-on); --accent-stage: var(--plum-stage); --accent-stage-end: var(--plum-stage-end); --accent-glow: var(--plum-glow); }
 .g-root[data-accent="cobalt"] { --accent-fill: var(--cobalt-fill); --accent-fill-end: var(--cobalt-fill-end); --accent-text: var(--cobalt-text); --accent-tint: var(--cobalt-tint); --on-accent: var(--cobalt-on); --accent-stage: var(--cobalt-stage); --accent-stage-end: var(--cobalt-stage-end); --accent-glow: var(--cobalt-glow); }
 .g-root[data-accent="ink"] { --accent-fill: var(--ink-fill); --accent-fill-end: var(--ink-fill-end); --accent-text: var(--ink-text); --accent-tint: var(--ink-tint); --on-accent: var(--ink-on); --accent-stage: var(--ink-stage); --accent-stage-end: var(--ink-stage-end); --accent-glow: var(--ink-glow); }
+
+/* === Train kit (StageDayRail, StageEmpty, ExerciseThumbRow, StageTrainCard; boards T2.0 to T2.14) === */
+/* StageDayRail: pages side by side in a clipped track, moved by transform only (the drag follows the
+   finger with no transition; a release glides). The pages stay in the DOM and the unshown ones are inert. */
+.g-rail { color: var(--on-stage); font-family: var(--font-sans); }
+.g-rail-top { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 8px; }
+.g-rail-title { font: 700 17px/22px var(--font-sans); }
+.g-rail-nav { display: inline-flex; align-items: center; gap: 12px; }
+.g-rail-act { appearance: none; border: 0; padding: 0; background: none; display: inline-flex; align-items: center; gap: 2px; color: var(--on-stage-2); font: 600 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-rail-act .g-icon { width: 14px; height: 14px; stroke-width: 2.4; }
+.g-rail-btn { appearance: none; border: 0; padding: 0; width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); cursor: pointer; }
+.g-rail-btn .g-icon { width: 16px; height: 16px; stroke-width: 2.4; }
+/* ‹ is not drawn on this week (the board has only ›), but a keyboard still reaches earlier weeks */
+.g-rail-quiet:not(:focus-visible) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.g-rail-btn[aria-disabled="true"] { opacity: 0.35; cursor: default; }
+/* The pages' 4px of block padding leaves room for a day's focus ring inside the clipping view;
+   the view's negative margin gives the layout that room back. */
+.g-rail-view { overflow: hidden; touch-action: pan-y; margin-block: -4px; }
+.g-rail-track { --dir: 1; display: flex; transform: translateX(calc(var(--week) * var(--dir) * -100% + var(--drag))); transition: transform 320ms cubic-bezier(.2, .8, .2, 1); }
+.g-rail-track.drag { transition: none; }
+[dir="rtl"] .g-rail-track { --dir: -1; }
+.g-rail-page { flex: 0 0 100%; box-sizing: border-box; padding: 4px 16px; display: flex; justify-content: space-between; }
+.g-rd { appearance: none; border: 0; padding: 0; flex: none; width: 46px; height: 88px; box-sizing: border-box; border-radius: 23px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; color: var(--on-stage); font-family: var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-rd.now { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.g-rd.on { background: var(--on-stage); color: var(--accent-stage-end); box-shadow: none; }
+.g-rd-dow { font: 600 12px/14px var(--font-sans); opacity: .8; }
+.g-rd b { font: 700 19px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-rd-dot { display: block; width: 6px; height: 6px; border-radius: 50%; }
+.g-rd-done { background: currentColor; }
+.g-rd-planned { box-shadow: inset 0 0 0 1.5px currentColor; opacity: .8; }
+.g-rd-today { box-shadow: inset 0 0 0 1.5px currentColor; }
+.g-rd-missed { background: var(--g-ring-over); }
+.g-rd-noted { background: currentColor; opacity: .45; }
+.g-rd-tag { box-sizing: border-box; width: 100%; height: 12px; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 10px/12px var(--font-sans); opacity: .75; }
+.g-rail-act:focus-visible, .g-rail-btn:focus-visible, .g-rd:focus-visible { outline-color: var(--on-stage); }
+@media (prefers-reduced-motion: reduce) { .g-rail-track { transition: none; } }
+:root[data-motion="reduce"] .g-rail-track { transition: none; }
+
+/* StageEmpty: a glass disc or a white line-art scene, a title, a line, and a stack of buttons (T2.9 has three) */
+.g-sempty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 20px 22px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-sempty-card { margin: 16px 16px 0; border-radius: 28px; }
+.g-sempty-ic { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-sempty-ic .g-icon { width: 34px; height: 34px; stroke-width: 1.8; }
+.g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
+.g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-sempty-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-sempty-btn .g-icon { width: 20px; height: 20px; }
+.g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
+
+/* ExerciseThumbRow: the still sits on a white tile; stage is for glass lists, sm for the today card */
+.g-xrow { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 10px 2px; background: none; color: var(--text); text-align: start; text-decoration: none; font-family: var(--font-sans); }
+a.g-xrow, button.g-xrow { cursor: pointer; }
+.g-xrow-line { border-top: 1px solid var(--line); }
+.g-xrow img { flex: none; border-radius: 14px; background: var(--g-white); object-fit: cover; }
+.g-xrow-ph { width: 52px; height: 52px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--surface-sunken); }
+.g-xrow-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-xrow-b b { font: 600 17px/22px var(--font-sans); }
+.g-xrow-b span { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-xrow-chev { width: 18px; height: 18px; color: var(--text-3); }
+.g-xrow-stage { color: var(--on-stage); padding: 10px 16px; }
+.g-xrow-stage.g-xrow-line { border-top-color: var(--glass-line); }
+.g-xrow-stage .g-xrow-b span, .g-xrow-stage .g-xrow-chev { color: var(--on-stage-2); }
+.g-xrow-stage .g-xrow-ph { background: var(--glass); }
+.g-xrow-sm { gap: 12px; min-height: 0; padding-top: 8px; padding-bottom: 8px; }
+.g-xrow-sm img { border-radius: 12px; }
+.g-xrow-sm .g-xrow-ph { width: 40px; height: 40px; border-radius: 12px; }
+.g-xrow-sm .g-xrow-b b { font: 600 16px/21px var(--font-sans); }
+a.g-xrow-stage:focus-visible, button.g-xrow-stage:focus-visible { outline-color: var(--on-stage); }
+
+/* StageTrainCard: status tags, name and line, a bar or a stack of stills or rows, then equal buttons and the ⋯ */
+.g-tcard { margin: 10px 16px 0; padding: 18px; border-radius: 28px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-tcard-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-tcard-head { padding-top: 12px; display: flex; flex-direction: column; }
+.g-tcard-head b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
+.g-tcard-head span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-tcard-bar { height: 8px; margin-top: 14px; border-radius: 4px; background: var(--glass-track); overflow: hidden; }
+.g-tcard-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); border-radius: 4px; background: var(--on-stage); }
+.g-tcard-stack { display: flex; padding-top: 14px; }
+.g-tcard-stack > span { display: flex; border-radius: 15px; box-shadow: 0 0 0 2px var(--accent-stage-end); }
+.g-tcard-stack > span + span { margin-inline-start: -10px; }
+.g-tcard-stack img, .g-tcard-stack i { width: 44px; height: 44px; border-radius: 14px; background: var(--g-white); object-fit: cover; }
+.g-tcard-stack i { display: grid; place-items: center; color: var(--accent-stage-end); }
+.g-tcard-rows { padding-top: 10px; }
+.g-tcard-rows .g-xrow-stage { padding-left: 0; padding-right: 0; }
+.g-tcard-acts { display: flex; gap: 10px; padding-top: 16px; }
+.g-tcard-acts.tight { padding-top: 14px; }
+.g-tcard-btn { appearance: none; border: 0; flex: 1 1 0; min-width: 0; min-height: 50px; box-sizing: border-box; padding: 8px 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-align: center; text-decoration: none; cursor: pointer; }
+.g-tcard-btn.solid { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-tcard-btn .g-icon { width: 20px; height: 20px; }
+.g-tcard-menu { appearance: none; border: 0; padding: 0; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); text-decoration: none; cursor: pointer; }
+.g-tcard-btn:focus-visible, .g-tcard-menu:focus-visible, .g-tcard .g-xrow:focus-visible { outline-color: var(--on-stage); }
+
+/* === Train screen kit (RoutineTiles, MusclesCard; board T2.0) === */
+/* RoutineTiles: 168x132 tiles in a sideways row that scrolls; the last one keeps the gutter. */
+/* 4px of block padding (the top one given back by the margin) keeps a tile's focus ring inside
+   the scroller, which clips it */
+.g-rtiles { list-style: none; margin: -4px 0 0; display: flex; gap: 10px; overflow-x: auto; padding: 4px 16px; scrollbar-width: none; scroll-padding-inline: 16px; }
+.g-rtiles::-webkit-scrollbar { display: none; }
+.g-rtiles::after { content: ''; flex: none; width: 6px; }
+.g-rtile { position: relative; flex: none; width: 168px; height: 132px; border-radius: 26px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-rtile-line { box-shadow: inset 0 0 0 1.5px var(--glass-line); }
+.g-rtile-open { appearance: none; border: 0; background: none; width: 100%; height: 100%; box-sizing: border-box; padding: 16px; border-radius: inherit; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
+.g-rtile-stack { display: flex; }
+.g-rtile-stack > span { display: flex; border-radius: 15px; box-shadow: 0 0 0 2px var(--accent-stage-end); }
+.g-rtile-stack > span + span { margin-inline-start: -10px; }
+.g-rtile-stack img, .g-rtile-stack i { width: 36px; height: 36px; border-radius: 14px; background: var(--g-white); object-fit: cover; }
+.g-rtile-stack i { display: grid; place-items: center; color: var(--accent-stage-end); }
+.g-rtile-stack i .g-icon { width: 20px; height: 20px; }
+.g-rtile-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); }
+.g-rtile-ic .g-icon { width: 22px; height: 22px; }
+.g-rtile-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; width: 100%; }
+.g-rtile-body b { font: 700 17px/22px var(--font-sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-rtile-body span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-rtile-play { position: absolute; top: 12px; inset-inline-end: 12px; appearance: none; border: 0; padding: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); color: var(--on-stage); cursor: pointer; }
+.g-rtile-play .g-icon { width: 18px; height: 18px; }
+.g-rtile-open:focus-visible, .g-rtile-play:focus-visible { outline-color: var(--on-stage); }
+
+/* MusclesCard: the whole card is the link to Training load. */
+.g-mcard { appearance: none; border: 0; display: block; width: 100%; box-sizing: border-box; border-radius: 28px; padding: 18px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; text-decoration: none; cursor: pointer; }
+div.g-mcard { cursor: default; }
+.g-mcard-head, .g-mcard-foot { display: flex; justify-content: space-between; gap: 12px; }
+.g-mcard-head { align-items: baseline; }
+.g-mcard-head b { font: 700 17px/22px var(--font-sans); }
+.g-mcard-head span, .g-mcard-foot > span:first-child { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-mcard-map { display: block; padding: 14px 0 6px; }
+.g-mcard-foot { align-items: center; padding-top: 8px; }
+.g-mcard-act { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 700 15px/20px var(--font-sans); }
+.g-mcard-act .g-icon { width: 16px; height: 16px; stroke-width: 2.4; }
+.g-mcard:focus-visible { outline-color: var(--on-stage); }
+
+/* === Train drawers (boards T2.1 Start a workout, T2.2 Day options) === */
+/* Rows on the light drawer: a routine's stack of stills, or a sunken disc for Freestyle and the rest */
+.g-tr-choice { min-height: 70px; cursor: pointer; }
+.g-tr-act { min-height: 60px; padding-top: 6px; padding-bottom: 6px; }
+.g-tr-choice:active { background: var(--surface-press); }
+.g-tr-stack { display: flex; flex: none; }
+.g-tr-stack > span { display: flex; border-radius: 13px; box-shadow: 0 0 0 2px var(--surface); }
+.g-tr-stack > span + span { margin-inline-start: -10px; }
+.g-tr-stack img, .g-tr-stack i { width: 40px; height: 40px; border-radius: 12px; background: var(--g-white); object-fit: cover; }
+.g-tr-stack i { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-2); }
+.g-tr-stack i .g-icon, .g-tr-disc .g-icon { width: 20px; height: 20px; }
+.g-tr-disc { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); }
+.g-tr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-tr-b > b { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-tr-b > span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-tr-more { padding-top: 16px; }
+/* A done coach-week session: shown for orientation, not startable */
+.g-tr-choice:disabled { cursor: default; background: none; }
+.g-tr-choice:disabled .g-tr-stack, .g-tr-choice:disabled .g-tr-b > b { opacity: 0.55; }
+/* The coach week's or rotation's name and where it stands, under the drawer's title */
+.g-tr-week { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-tr-week b { font-weight: 600; color: var(--text); }

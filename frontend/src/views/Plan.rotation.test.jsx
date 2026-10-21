@@ -247,7 +247,7 @@ describe('Plan — the loop', () => {
     const d = new Date(); d.setDate(d.getDate() + 1)
     const tomorrow = isoOf(d)
     mount({ queue: live({ startsOn: tomorrow, rotationId: 'r1' }), rotation: saved })
-    expect(host.querySelector('.rotation .sect-f').textContent).toBe('Next round starts ' + fmtDate(tomorrow, true) + '. Trained out of order? Just pick another routine on Home.')
+    expect(host.querySelector('.rotation .sect-f').textContent).toBe('Next round starts ' + fmtDate(tomorrow, true) + '. Trained out of order? Just pick another routine in Start a workout on Train.')
   })
 
   it('a saved loop with no round running offers Start the loop', () => {

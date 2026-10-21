@@ -1,0 +1,6 @@
+/* Train on the stage (TrainScreen.jsx). The stage is full bleed (index.css #app:has(> .g-screen));
+   the screen pads itself under the status bar and keeps the boards' 150px of air above the
+   floating tab bar. The kit's parts carry their own gutters; the glass cards here do not. */
+.train{padding-top:var(--sat);padding-bottom:calc(150px + var(--sab))}
+.train-banner{padding:12px 16px 0}
+.train-gut{padding:0 16px;display:flex;flex-direction:column;gap:12px}

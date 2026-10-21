@@ -1,21 +1,15 @@
 // @vitest-environment happy-dom
 // Today's Up next in each training state (board T10Today, PR01 variants): planned (play), done
 // (trophy), rest (Recover, the next session), running (Resume), an open edit, no plan; and the
-// training profile's ring and week. Then Training's hero and its action row's first slot, on the
-// day every tab shares (ux-redesign-tabs §1.1): planned (Start), done (Workout), rest (Workout),
-// running (Resume), an open edit (Edit), a past day (Log workout); and the hero's ⋯ with "Choose a
-// different workout" — the way to the Start screen when a plan already owns today, since Start goes
-// straight into it — and "Change this day". Last, the plan welcome.
+// training profile's ring and week. Training's own hero, action row and week card are gone; the
+// Train screen (TrainHub.test.jsx) covers those states.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
-import { useDiarySelection, useDiaryTarget } from '../lib/nutrition/selection.js'
-import { fmtDate, isoOf, todayISO } from '../lib/format.js'
-import { dayOverrideSheet, logPastWorkoutSheet, menuSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
-import PlanWelcome from '../components/PlanWelcome.jsx'
-import TrainingHero from '../components/TrainingHero.jsx'
-import TrainingSlot from '../components/TrainingSlot.jsx'
+import { useDiarySelection } from '../lib/nutrition/selection.js'
+import { isoOf, todayISO } from '../lib/format.js'
+import { startFlow, workoutDetailSheet } from '../sheets.jsx'
 import Home from './Home.jsx'
 
 const nav = vi.fn()
@@ -47,26 +41,10 @@ const setS = (over = {}) => useStore.setState(s => ({
   S: { ...s.S, routines, dayPlan: {}, workouts: [], active: null, weighIn: false, queue: null, scheduleMode: null, week: EVERY_DAY, ...over },
   user: null,
 }))
-function TrainingDay() {
-  const { date } = useDiaryTarget(null)
-  return <><TrainingHero date={date} /><TrainingSlot date={date} /></>
-}
-const mount = () => act(() => root.render(<TrainingDay />))
 const mountToday = () => act(() => root.render(<Home />))
 const upNext = () => [...host.querySelectorAll('.g-grow-body > *')].map(e => e.textContent)
 const row = () => host.querySelector('.g-grow')
-const hero = () => ({
-  eyebrow: host.querySelector('.hero-e')?.textContent ?? null,
-  title: host.querySelector('.hero-t').textContent,
-  caption: host.querySelector('.hero-c')?.textContent ?? null,
-})
-const first = () => host.querySelector('.act-b')
 const tap = el => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
-// The ⋯ menu's items, as menuSheet was handed them.
-const menu = () => {
-  tap(host.querySelector('.hero-more'))
-  return menuSheet.mock.calls.at(-1)[0].items.filter(Boolean)
-}
 
 describe('Today — Up next', () => {
   it('a planned day: training today, the routine and its exercises; the play starts it', () => {
@@ -198,138 +176,7 @@ describe('Today — Up next', () => {
   })
 })
 
-describe('Training — the hero and the first action', () => {
-  it('a planned day: the routine and its exercises; Start starts it', () => {
-    setS(); mount()
-    expect(hero()).toEqual({ eyebrow: null, title: 'Push', caption: '2 exercises' })
-    expect(first().textContent).toBe('Start')
-    tap(first())
-    expect(startFlow).toHaveBeenCalledWith(['r1'])
-  })
-
-  it('a day changed in the plan says so', () => {
-    setS({ week: {}, dayPlan: { [TODAY]: 'r1' } }); mount()
-    expect(hero().caption).toBe('2 exercises · rescheduled')
-  })
-
-  it('the ⋯ offers a different workout without starting anything, and changing the day', () => {
-    setS(); mount()
-    const items = menu()
-    expect(items.map(i => i.label)).toEqual(['Choose a different workout', 'Change this day'])
-    items[0].onClick()
-    expect(nav).toHaveBeenCalledWith('/train/workout')
-    expect(startFlow).not.toHaveBeenCalled()
-    items[1].onClick()
-    expect(dayOverrideSheet).toHaveBeenCalledWith(TODAY)
-  })
-
-  it('a rest day: when the next session is, and Workout opens the Start screen', () => {
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
-    setS({ week: { [tomorrow.getDay()]: ['r1'] } }); mount()
-    expect(hero().title).toBe('Rest day')
-    expect(hero().caption).toMatch(/^Next session: \w+, Push$/)
-    expect(first().textContent).toBe('Workout')
-    tap(first())
-    expect(nav).toHaveBeenCalledWith('/train/workout')
-    expect(startFlow).not.toHaveBeenCalled()
-  })
-
-  it('a rest day names every routine of the next session', () => {
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
-    const pull = { id: 'r2', name: 'Pull', emoji: null, ex: [{ id: '0025' }] }
-    setS({ routines: [...routines, pull], week: { [tomorrow.getDay()]: ['r1', 'r2'] } }); mount()
-    expect(hero().caption).toMatch(/^Next session: \w+, Push \+ Pull$/)
-  })
-
-  it('the ⋯ comes after the heading in reading order', () => {
-    setS(); mount()
-    const title = host.querySelector('.hero-t'), more = host.querySelector('.hero-more')
-    expect(title.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-  })
-
-  it('done: the session with its time and PRs, the way to it, and Workout for another', () => {
-    const start = Date.now() - 60 * 60000
-    const w = { id: 'w1', d: TODAY, start, end: start + 52 * 60000, routineIds: ['r1'], routineId: 'r1', name: 'Push', prs: ['a', 'b'], entries: [] }
-    setS({ workouts: [w] }); mount()
-    expect(hero()).toEqual({ eyebrow: 'Done', title: 'Push', caption: '52 min · 2 PRs' })
-    tap(host.querySelector('.hero-l'))
-    expect(workoutDetailSheet).toHaveBeenCalledWith(w)
-    expect(first().textContent).toBe('Workout')
-  })
-
-  it('running: the session and its clock; Resume goes back to it, and the ⋯ has no different workout', () => {
-    setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } }); mount()
-    expect(hero().eyebrow).toBe('In progress')
-    expect(hero().title).toBe('Push')
-    expect(hero().caption).toMatch(/^\d+:\d{2}$/)
-    expect(first().textContent).toBe('Resume')
-    tap(first())
-    expect(nav).toHaveBeenCalledWith('/train/workout')
-    expect(menu().map(i => i.label)).toEqual(['Change this day'])
-  })
-
-  it('reads an open editor on a saved workout as an edit, not as a session in progress', () => {
-    setS({ active: { id: 'w', name: 'Push', start: 1000, cur: 0, entries: [], editingWorkoutId: 'w' } }); mount()
-    expect(hero()).toEqual({ eyebrow: null, title: 'Push', caption: 'Editing a saved workout' })
-    expect(first().textContent).toBe('Edit')
-    tap(first())
-    expect(nav).toHaveBeenCalledWith('/train/workout')
-  })
-
-  it('a past day planned and not logged: Log workout opens it with that day\'s plan', () => {
-    setS(); act(() => useDiarySelection.getState().setDate(yesterday)); mount()
-    expect(hero()).toEqual({ eyebrow: fmtDate(yesterday, true), title: 'Push', caption: 'Planned, not logged' })
-    expect(first().textContent).toBe('Log workout')
-    tap(first())
-    expect(logPastWorkoutSheet).toHaveBeenCalledWith({ iso: yesterday, routineIds: ['r1'] })
-    menu()[0].onClick()
-    expect(dayOverrideSheet).toHaveBeenCalledWith(yesterday)
-  })
-
-  it('a past day with workouts: each opens, and Log workout adds another to that day', () => {
-    const at = h => new Date(yesterday + `T${h}:00:00`).getTime()
-    const a = { id: 'a', d: yesterday, start: at(8), end: at(9), routineIds: ['r1'], name: 'Push', entries: [] }
-    const b = { id: 'b', d: yesterday, start: at(18), end: at(19), routineIds: [], name: 'Freestyle', entries: [] }
-    setS({ workouts: [a, b] }); act(() => useDiarySelection.getState().setDate(yesterday)); mount()
-    expect(hero().title).toBe('2 workouts')
-    tap(host.querySelector('.hero-l'))
-    const items = menuSheet.mock.calls.at(-1)[0].items
-    expect(items.map(i => i.label)).toEqual(['Push', 'Freestyle'])
-    items[1].onClick()
-    expect(workoutDetailSheet).toHaveBeenCalledWith(b)
-    tap(first())
-    expect(logPastWorkoutSheet).toHaveBeenCalledWith({ iso: yesterday })
-  })
-
-  it('a workout with no name still has a label in the See workouts menu', () => {
-    const at = h => new Date(yesterday + `T${h}:00:00`).getTime()
-    const a = { id: 'a', d: yesterday, start: at(8), end: at(9), routineIds: [], name: '', entries: [] }
-    const b = { id: 'b', d: yesterday, start: at(18), end: at(19), routineIds: [], name: 'Push', entries: [] }
-    setS({ workouts: [a, b] }); act(() => useDiarySelection.getState().setDate(yesterday)); mount()
-    tap(host.querySelector('.hero-l'))
-    expect(menuSheet.mock.calls.at(-1)[0].items.map(i => i.label)).toEqual(['Workout', 'Push'])
-  })
-
-  it('a session in progress keeps the first slot on a past day too', () => {
-    setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } })
-    act(() => useDiarySelection.getState().setDate(yesterday)); mount()
-    expect(first().textContent).toBe('Resume')
-  })
-})
-
-describe('Plan welcome', () => {
-  it('with no routines, welcomes with a starter plan or your own', () => {
-    setS({ routines: [], week: {} }); act(() => root.render(<PlanWelcome />))
-    expect(host.textContent).toContain('Welcome!')
-    const empty = host.querySelector('.empty[data-surface=page]')
-    expect(empty.querySelector('.lineart[data-scene=routine]')).not.toBeNull()
-    expect(empty.closest('.card')).toBeNull()
-    const pill = label => [...host.querySelectorAll('.empty-acts button')].find(b => b.textContent === label)
-    expect(pill('Load starter plan')).toBeTruthy()
-    tap(pill('Build my own plan'))
-    expect(nav).toHaveBeenCalledWith('/train/routines')
-  })
-
+describe('Today — body weight', () => {
   it('Today has no body-weight card, whatever the old preference said', () => {
     setS({ routines: [], week: {} }); mountToday()
     expect([...host.querySelectorAll('h2')].some(el => el.textContent === 'Body weight')).toBe(false)
