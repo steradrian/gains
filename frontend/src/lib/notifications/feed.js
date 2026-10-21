@@ -12,10 +12,13 @@
 //
 // Kinds, each only where its source is real (lesson 6: a line the data cannot back is left out):
 //   best       a new best estimated 1RM from a logged workout, with the four-week rise when there
-//              is a best from four weeks before to rise from.
-//   streak     weeks on plan, at each week's end from two in a row, with the best run so far.
-//   recap      each finished week: workouts done of planned, days on target (only with nutrition
-//              that can say so for all seven days), weight change (only with two weigh-ins).
+//              is a best from four weeks before to rise from. Never a first session of an
+//              exercise: a best needs an earlier session to beat.
+//   streak     weeks on plan, at each week's end from two in a row, with the best run so far. A
+//              week whose plan cannot be proven to be today's (planKnown) breaks the run.
+//   recap      each finished week: workouts done of planned (the done count alone when the plan
+//              cannot be proven, planKnown), days on target (only with nutrition that can say so
+//              for all seven days), weight change (only with two weigh-ins).
 //   reminder   the reminders that went off on this phone (reminder-log.js), passed in.
 //   milestone  workout counts: 10, 25, 50, 100, then every 50 to 500 and every 250 after.
 // Not here: `coach`. Nothing re-dates a day for the Coach: its applied changes are weekday
@@ -23,13 +26,13 @@
 // (the Coach only sweeps future ones away when a new plan replaces the week), and a coach week's
 // missed session is never moved, it floats (queue.js). "Coach moved Legs to Mon 19 Oct" has no
 // source to read, so the kind stays out until something writes one.
-import { t, tn } from '../i18n-core.js'
+import { dateLocale, getVersion, t, tn } from '../i18n-core.js'
 import { EXIDX } from '../exercises.js'
 import { exerciseNameText, fmtDate, fmtDateRange, fmtNum, isoOf, startOfWeek, SUNDAY, weekStartOf } from '../format.js'
 import { workoutAt, workoutDay } from '../history.js'
 import { NUDGE_COPY, lineIndex } from '../nudge.js'
 import { e1rmSeries, formulaOf } from '../onerm.js'
-import { weekTally } from '../queue.js'
+import { queueOf, weekTally } from '../queue.js'
 
 export const FEED_DAYS = 30
 const DAY_MS = 86400000
@@ -73,11 +76,11 @@ function bestItems(S, logged, from, now) {
   const exIds = new Set(recent.flatMap(w => (Array.isArray(w.entries) ? w.entries : []).map(e => e?.id).filter(Boolean)))
   for (const exId of exIds) {
     const points = e1rmSeries(S, exId, formula).filter(p => Number.isFinite(p.t)).sort((a, b) => a.t - b.t)
-    let before = null
     points.forEach((p, i) => {
-      const prev = before
-      before = before == null ? p.y : Math.max(before, p.y)
-      if (prev == null || p.y <= prev) return
+      // Only a session before this one counts: a first log, or two logged at the same moment, has
+      // nothing earlier to beat.
+      const earlier = points.slice(0, i).filter(q => q.t < p.t)
+      if (!earlier.length || p.y <= Math.max(...earlier.map(q => q.y))) return
       // The point's workout: e1rmSeries keys a point by the workout's start and day.
       const w = recent.find(x => workoutAt(x) === p.t && x.d === p.d && (x.entries || []).some(e => e?.id === exId))
       if (!w) return
@@ -104,6 +107,29 @@ function bestItems(S, logged, from, now) {
  *  for a week with nothing planned, any workout at all. */
 const onPlan = ({ done, planned }) => (planned > 0 ? done >= planned : done > 0)
 
+const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
+
+/**
+ * Whether the plan weekTally reads, which is today's (`S.week`, the queue, the routines that still
+ * exist), is provably the one the week from `wk` to `end` had. Nothing is snapshotted, so it is
+ * proven only by the edit stamps (lib/sync-merge.js `edited`, `deleted`): no plan day, queue, week
+ * start or routine removal since the week began, and every planned weekday stamped before it (a
+ * weekday with no stamp was set before stamps existed, at a time nobody knows). A coach queue that
+ * reaches into the week never is: its done count is the whole pass, not that week's.
+ */
+export function planKnown(S, wk, end) {
+  const from = new Date(wk + 'T00:00:00').getTime()
+  const ed = isMap(S.edited) ? S.edited : {}
+  const after = at => Number(at) >= from
+  const q = queueOf(S)
+  if (q && end >= q.startsOn) return false
+  if (after(ed.queue) || after(ed.weekStart)) return false
+  if (Object.entries(ed).some(([k, at]) => k.startsWith('week.') && after(at))) return false
+  if (Object.values(isMap(S.deleted?.routines) ? S.deleted.routines : {}).some(after)) return false
+  return Object.entries(isMap(S.week) ? S.week : {})
+    .every(([day, ids]) => ![].concat(ids || []).length || Number(ed['week.' + day]) > 0)
+}
+
 function weekItems(S, logged, from, now, nutrition) {
   if (!logged.length) return []
   const items = []
@@ -115,8 +141,11 @@ function weekItems(S, logged, from, now, nutrition) {
   let run = 0, best = 0
   for (let wk = isoOf(startOfWeek(first, ws)); wk < current; wk = plusDays(wk, 7)) {
     const end = plusDays(wk, 6)
-    const tally = weekTally(S, end)
-    run = onPlan(tally) ? run + 1 : 0
+    // A plan that changed since (or may have) has no "of y" to hold the week to, and no claim to
+    // the streak: the week counts its workouts and breaks the run.
+    const known = planKnown(S, wk, end)
+    const tally = known ? weekTally(S, end) : { done: (S.workouts || []).filter(w => w?.d >= wk && w.d <= end).length, planned: 0 }
+    run = known && onPlan(tally) ? run + 1 : 0
     best = Math.max(best, run)
     const at = endOfDay(end)
     if (at < from || at > now) continue
@@ -198,8 +227,34 @@ function reminderItems(S, reminders, from, now) {
       return [{ id: `reminder:nudge:${e.iso}`, kind: 'reminder', at: e.at, title: t(copy.title), body: t(copy.lines[lineIndex(e.iso, copy.lines.length)], label), target }]
     }
     if (e.kind !== 'workout') return []
-    return [{ id: `reminder:workout:${e.iso}`, kind: 'reminder', at: e.at, title: t('Workout today: {0}', label), body: t('Your {0} reminder.', e.time || ''), target }]
+    return [{ id: `reminder:workout:${e.iso}`, kind: 'reminder', at: e.at, title: t('Workout today: {0}', label), body: t('Your {0} reminder.', clockOf(e)), target }]
   })
+}
+
+// The reminder's time of day in the UI language ("18:00", "6:00 PM"): the time it was set for, or,
+// in an entry without one, when it went off.
+function clockOf(e) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(e.time || '')
+  const d = m ? new Date(`${e.iso}T${m[1].padStart(2, '0')}:${m[2]}:00`) : new Date(e.at)
+  return d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
+}
+
+/** Everything feedOf reads of `S` (and the UI language its lines are in), as one string: the
+ *  feed is worked out again only when this changes, not on every change to the profile (the
+ *  store clones the whole profile on each, so nothing is the same object twice). Worked out once
+ *  per profile object, however many bells ask. */
+const keys = new WeakMap()
+export function feedKey(S) {
+  if (!S || typeof S !== 'object') return ''
+  if (!keys.has(S)) {
+    const ed = isMap(S.edited) ? S.edited : {}
+    const stamps = Object.entries(ed).filter(([k]) => k === 'queue' || k === 'weekStart' || k.startsWith('week.'))
+    keys.set(S, JSON.stringify([
+      S.workouts, S.routines, S.customEx, S.week, S.queue, S.bodyweight, S.unit, S.weekStart,
+      S.oneRmFormula, S.dbLoad, stamps, S.deleted?.routines,
+    ]))
+  }
+  return getVersion() + '|' + keys.get(S)
 }
 
 /**

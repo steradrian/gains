@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fmtDate, isoOf } from '../format.js'
+import { dateLocale } from '../i18n-core.js'
 import { NUDGE_COPY } from '../nudge.js'
-import { FEED_DAYS, feedOf, isoWeekOf, milestonesUpTo, targetPath } from './feed.js'
+import { FEED_DAYS, feedKey, feedOf, isoWeekOf, milestonesUpTo, targetPath } from './feed.js'
 
 // Wednesday 21 Oct 2026, noon: the feed reaches back to Monday 21 Sep, noon.
 const NOW = new Date(2026, 9, 21, 12).getTime()
@@ -16,6 +17,9 @@ const profile = (over = {}) => ({
   unit: 'kg', workouts: [], routines: [], week: {}, dayPlan: {}, queue: null, bodyweight: [], customEx: [], ...over,
 })
 const PUSH = { id: 'r1', name: 'Push A', ex: [{ id: BENCH }] }
+// Monday planned since July, before every week these tests look at (the plan's edit stamp,
+// lib/sync-merge.js `edited`): the plan today is provably the plan those weeks had.
+const SET = { 'week.1': at('2026-07-01') }
 // Every Monday from `from`, `n` weeks, at a steady 100 kg (no new bests).
 const mondays = (from, n, skip = []) => Array.from({ length: n }, (_, i) => {
   const d = new Date(from + 'T12:00:00')
@@ -42,6 +46,13 @@ describe('feedOf: new bests', () => {
     expect(of(feedOf(S, { now: NOW }), 'best').map(i => i.body)).toEqual(['Est. 1RM 96 kg.'])
   })
 
+  it('a beginner\'s first session of an exercise is never a best, nor one logged at the same moment as it', () => {
+    const first = profile({ workouts: [workout('w1', '2026-10-12', 60)] })
+    expect(of(feedOf(first, { now: NOW }), 'best')).toEqual([])
+    const twin = profile({ workouts: [workout('w1', '2026-10-12', 60), workout('w2', '2026-10-12', 70)] })
+    expect(of(feedOf(twin, { now: NOW }), 'best')).toEqual([])
+  })
+
   it('is not a best when it only matches or falls short, nor on the first log ever', () => {
     const S = profile({ workouts: [workout('w1', '2026-10-01', 100), workout('w2', '2026-10-08', 100), workout('w3', '2026-10-15', 95)] })
     expect(of(feedOf(S, { now: NOW }), 'best')).toEqual([])
@@ -59,7 +70,7 @@ describe('feedOf: streaks', () => {
   it('weeks on plan at each week end from two in a row, with the best run so far', () => {
     // Six weeks from 3 Aug, a week off (14 Sep), then four from 21 Sep: the last is 4 of a best 6.
     const days = mondays('2026-08-03', 11, ['2026-09-14'])
-    const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, workouts: days.map((d, i) => workout('w' + i, d)) })
+    const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, edited: SET, workouts: days.map((d, i) => workout('w' + i, d)) })
     const streaks = of(feedOf(S, { now: NOW }), 'streak')
     expect(streaks.map(i => i.id)).toEqual(['streak:2026-10-12', 'streak:2026-10-05', 'streak:2026-09-28'])
     expect(streaks[0]).toMatchObject({
@@ -71,9 +82,34 @@ describe('feedOf: streaks', () => {
   })
 
   it('says so when the run is the best yet', () => {
-    const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, workouts: mondays('2026-09-21', 4).map((d, i) => workout('w' + i, d)) })
+    const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, edited: SET, workouts: mondays('2026-09-21', 4).map((d, i) => workout('w' + i, d)) })
     const [latest] = of(feedOf(S, { now: NOW }), 'streak')
     expect(latest).toMatchObject({ title: '4 weeks on plan', body: 'Every planned workout done or moved. Your best run yet.' })
+  })
+
+  it('a week whose plan changed after it began is not held to today\'s plan, and breaks the run', () => {
+    // Monday planned on Wed 7 Oct: only the week of 12 Oct provably had today's plan. Every Monday
+    // was trained, but the three weeks before it count their workouts alone and no run builds.
+    const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, edited: { 'week.1': at('2026-10-07') }, workouts: mondays('2026-09-21', 4).map((d, i) => workout('w' + i, d)) })
+    expect(of(feedOf(S, { now: NOW }), 'streak')).toEqual([])
+    const recaps = Object.fromEntries(of(feedOf(S, { now: NOW }), 'recap').map(i => [i.id, i.body]))
+    expect(recaps).toEqual({
+      'recap:2026-09-21': '1 workout', 'recap:2026-09-28': '1 workout', 'recap:2026-10-05': '1 workout', 'recap:2026-10-12': '1 of 1 workouts',
+    })
+  })
+
+  it('a planned weekday with no stamp was set at a time nobody knows: the done count alone, no streak', () => {
+    const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, workouts: mondays('2026-09-21', 4).map((d, i) => workout('w' + i, d)) })
+    expect(of(feedOf(S, { now: NOW }), 'streak')).toEqual([])
+    expect(feedOf(S, { now: NOW }).find(i => i.id === 'recap:2026-10-12').body).toBe('1 workout')
+  })
+
+  it('a routine deleted since the week began, or a coach queue reaching into it, cannot be proven either', () => {
+    const base = { routines: [PUSH], week: { 1: ['r1'] }, edited: SET, workouts: [workout('w1', '2026-10-12')] }
+    const deleted = profile({ ...base, deleted: { routines: { r9: at('2026-10-14') } } })
+    expect(feedOf(deleted, { now: NOW }).find(i => i.id === 'recap:2026-10-12').body).toBe('1 workout')
+    const queued = profile({ ...base, queue: { ids: ['r1', 'r1'], since: at('2026-10-09'), startsOn: '2026-10-12', label: 'W1' } })
+    expect(feedOf(queued, { now: NOW }).find(i => i.id === 'recap:2026-10-12').body).toBe('1 workout')
   })
 
   it('a week short of its plan breaks the run', () => {
@@ -84,7 +120,7 @@ describe('feedOf: streaks', () => {
 })
 
 describe('feedOf: the weekly recap', () => {
-  const week = { routines: [PUSH], week: { 1: ['r1'] }, workouts: [workout('w1', '2026-10-12')] }
+  const week = { routines: [PUSH], week: { 1: ['r1'] }, edited: SET, workouts: [workout('w1', '2026-10-12')] }
 
   it('workouts done of planned, days on target with nutrition, and the weight change', () => {
     const S = profile({ ...week, bodyweight: [{ d: '2026-10-12', w: 82.1 }, { d: '2026-10-17', w: 81.7 }] })
@@ -136,6 +172,13 @@ describe('feedOf: reminders that went off', () => {
     })
   })
 
+  it('says the reminder\'s time the way the UI language writes it', () => {
+    const clock = new Date('2026-10-19T07:05:00').toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
+    const [item] = feedOf(profile({ routines: [PUSH] }), { now: NOW, reminders: [fired({ time: '7:05' })] })
+    expect(item.body).toBe(`Your ${clock} reminder.`)
+    expect(item.body).not.toBe('Your 7:05 reminder.')
+  })
+
   it('a nudge in its tone', () => {
     const [item] = feedOf(profile({ routines: [PUSH] }), { now: NOW, reminders: [fired({ kind: 'nudge', tone: 'friendly', at: at('2026-10-19', 20) })] })
     expect(item).toMatchObject({ id: 'reminder:nudge:2026-10-19', title: NUDGE_COPY.friendly.title })
@@ -183,6 +226,28 @@ describe('feedOf: the feed as a whole', () => {
     expect(ids.length).toBeGreaterThan(3)
     const later = feedOf({ ...S, workouts: [...S.workouts, workout('w99', '2026-10-21', 100)] }, { now: NOW + 3600000 }).map(i => i.id)
     expect(later).toEqual(expect.arrayContaining(ids))
+  })
+})
+
+describe('feedKey: what the feed is worked out again for', () => {
+  const S = profile({ routines: [PUSH], week: { 1: ['r1'] }, edited: SET, workouts: [workout('w1', '2026-10-12')] })
+  const copy = over => JSON.parse(JSON.stringify({ ...S, ...over }))
+
+  it('is the same for a copy of the profile that only changed what the feed does not read', () => {
+    expect(feedKey(copy({ restSec: 75, active: { started: 1 }, notifRead: { at: 5, ids: {} }, edited: { ...SET, restSec: 9 } }))).toBe(feedKey(S))
+  })
+
+  it('changes with the workouts, the plan and its stamps, the queue, routines and weigh-ins', () => {
+    const key = feedKey(S)
+    for (const over of [
+      { workouts: [...S.workouts, workout('w2', '2026-10-13')] },
+      { week: { 1: ['r1'], 3: ['r1'] } },
+      { edited: { ...SET, 'week.3': 5 } },
+      { queue: { ids: ['r1'], since: 1, startsOn: '2026-10-19' } },
+      { routines: [{ ...PUSH, name: 'Push B' }] },
+      { bodyweight: [{ d: '2026-10-12', w: 80 }] },
+      { deleted: { routines: { r9: 5 } } },
+    ]) expect(feedKey(copy(over))).not.toBe(key)
   })
 })
 
