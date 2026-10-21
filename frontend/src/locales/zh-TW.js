@@ -3375,7 +3375,6 @@ export default {
   'Reminders you set, streaks and new bests': 'Reminders you set, streaks and new bests',
   'Reminders you set, streaks and new bests show up here.': 'Reminders you set, streaks and new bests show up here.',
   'Set a reminder': 'Set a reminder',
-  'Streak': 'Streak',
   'They still land here, but your phone won’t buzz.': 'They still land here, but your phone won’t buzz.',
   'Weekly recap': 'Weekly recap',
   // --- Shared: week, the Week page, English until the translation pass ---
