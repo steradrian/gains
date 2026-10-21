@@ -41,8 +41,10 @@ const target = title => (title === 'Routines'
   : [...document.querySelectorAll('.act-b')].find(b => b.textContent === title))
 const plus = () => document.querySelector('#tabbar button.g-plus')
 const click = async el => { await act(async () => { el.click() }); await settle() }
-// Home's action row, its first slot while a session runs.
-const homeResume = () => [...document.querySelectorAll('.act-b')].find(b => b.textContent === 'Resume')
+// Today's Up next while a session runs: the row with its Resume.
+const homeResume = () => document.querySelector('.g-grow:has(.g-trail-pill)')
+// Today's avatar (StageHeader), or a tab root's.
+const avatar = () => document.querySelector('.g-shdr .g-sbtn:not(.g-bell), .avatar-btn')
 const go = async fn => { await act(async () => { fn() }); await settle() }
 const back = async () => { await act(async () => { window.history.back() }); await settle() }
 // One back press from here: does it leave the app (land on the marker under it)?
@@ -198,8 +200,9 @@ describe('the review repros', () => {
 // overlay, then Home.
 describe('a search visit', () => {
   const pill = () => document.querySelector('.spill-i')
+  // Today's stage pill is a button that hands over to the tab root's header and its input.
   const openOverlay = async query => {
-    await act(async () => { pill().focus() })
+    await act(async () => { const stage = document.querySelector('.g-spill'); if (stage) stage.click(); else pill().focus() })
     await go(() => setQuery(query))
   }
   afterEach(() => act(() => endSearch()))
@@ -567,7 +570,7 @@ describe('a navigation in the middle of a switch', () => {
 
   it('a push while walking back is carried out once the switch is done', async () => {
     await launch('#/home')
-    await click(document.querySelector('.avatar-btn'))
+    await click(avatar())
     expect(hash()).toBe('#/me')
     // The walk back takes a while, as it can on a device; the push lands in the middle of it.
     const realGo = window.history.go.bind(window.history)
@@ -588,7 +591,7 @@ describe('a navigation in the middle of a switch', () => {
 describe('a sheet that closes into a switch', () => {
   it('leaves the page inert until the switch is done', async () => {
     await launch('#/home')
-    await click(document.querySelector('.avatar-btn'))
+    await click(avatar())
     await click(plus())
     const realGo = window.history.go.bind(window.history)
     window.history.go = d => { setTimeout(() => realGo(d), 200) }

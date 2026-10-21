@@ -530,6 +530,8 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
    never painted: the line arrives on the ring's own edge and is gone. */
 .g-sring-land { position: absolute; pointer-events: none; }
+.g-sring-land-v { width: 1px; height: 64px; }
+.g-sring-land-h { width: 64px; height: 1px; }
 
 /* Accent presets. The design system selects them by data-accent on any ancestor (it expects
    <html>); the app's <html data-accent> holds its own accents (sky, lime…), so here they are read

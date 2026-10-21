@@ -1,6 +1,6 @@
 import { t } from '../../lib/i18n.js'
 import { useDsAccent } from '../../lib/use-ds-accent.js'
-import RootHeader from '../../components/RootHeader.jsx'
+import { Page } from '../../components/layout.jsx'
 import GlassActions from '../../ds/GlassActions.jsx'
 import GlassRow from '../../ds/GlassRow.jsx'
 import InlineBanner from '../../ds/InlineBanner.jsx'
@@ -17,15 +17,13 @@ import './today.css'
 // the rings, the four actions, Up next, Food and Water, or the week for the training profile. It
 // draws what useToday() gives it and holds nothing; the floating tab bar is the app's (#tabbar).
 // `ring` is the page the rings open on (T12Protein opens on Protein). While the search is open the
-// tab's own header (RootHeader) stands in, since the app's search types into its input.
+// tab root's own header (<Page root>) stands in, since the app's search types into its input.
 export default function TodayScreen({ loading, error, header, searching, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week, ring = 0 }) {
   const accent = useDsAccent()
   return (
     <StageScreen accent={accent}>
       <div className="today">
-        {searching
-          ? <RootHeader title={t('Today')} />
-          : <><h1 className="sr-only">{t('Today')}</h1><StageHeader {...header} /></>}
+        {searching ? <Page root title={t('Today')} /> : <StageHeader {...header} />}
         {error && <div className="today-alert"><InlineBanner stage role="alert" icon="warning" title={error.text} actions={[{ label: t('Try again'), onClick: error.retry, solid: true }]} /></div>}
         <RingCarousel slides={rings} start={ring} loading={loading || !!error} onOpen={onRing} />
         <GlassActions items={actions} loading={loading} />
