@@ -47,7 +47,8 @@ export function startOrResume() {
   const st = S()
   if (st.active) { navToWorkout(); return }
   const ids = effectiveRoutineIds(st, todayISO())
-  if (ids.some(id => st.routines.find(r => r.id === id)?.ex.length)) { startFlow(ids); return }
+  // A planned day goes through Ready and the warm-up offer like every other Start of a plan.
+  if (ids.some(id => st.routines.find(r => r.id === id)?.ex.length)) { readyOrStart(ids); return }
   navToWorkout()
 }
 

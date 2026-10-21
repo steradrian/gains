@@ -275,17 +275,40 @@ describe('How to (W1.14, W1.33, W1.34, W1.43)', () => {
     expect(removeRow()).toBeTruthy()
   })
 
-  it('opens Exercise settings with Part of the workout, closing How to first', () => {
+  it('opens Exercise settings with Part of the workout as a panel of How to, which follows the exercise when the part moves it', () => {
     seed([lift(BENCH, [row()]), lift(FLY, [row()])])
     howToSheet(1)
+    const how = useUI.getState().sheets[0]
     tap([...top().querySelectorAll('.g-drow')].find(r => r.textContent.includes('Exercise settings')))
     expect(sheetsOpen()).toBe(1)
-    const host = top()
+    expect(useUI.getState().sheets[0].id).toBe(how.id)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    mounted.push([root, host])
+    const panel = useUI.getState().sheets[0].panels[0]
+    act(() => root.render(panel.render(() => useUI.getState().closeSheet(panel.id))))
     expect(host.querySelector('.g-seg[aria-label="Part of the workout"]')).not.toBeNull()
     tap([...host.querySelectorAll('.g-seg button')].find(b => b.textContent === 'Warm-up'))
     tap(button(host, 'Done'))
     expect(A().entries.map(e => e.id)).toEqual([FLY, BENCH])
     expect(A().entries[0].part).toBe('warmup')
+    // How to is still the drawer, and it is still on the same exercise, now first in the list.
+    expect(useUI.getState().sheets[0].id).toBe(how.id)
+  })
+
+  it('Update routine asks over How to without closing it', () => {
+    seed([lift(BENCH, [row()]), lift(FLY, [row()])])
+    act(() => useStore.getState().update(s => { s.active.entries[1].part = 'cooldown' }))
+    howToSheet(1)
+    const how = useUI.getState().sheets[0]
+    const rowOf = () => [...top().querySelectorAll('.g-drow')].find(r => r.textContent.includes('Update'))
+    expect(rowOf()).toBeTruthy()
+    tap(rowOf())
+    const sheets = useUI.getState().sheets
+    expect(sheets[0].id).toBe(how.id)
+    expect(sheets.at(-1).kind).toBe('center')
   })
 })
 

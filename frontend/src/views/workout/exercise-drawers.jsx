@@ -346,9 +346,9 @@ function HowToDrawer({ at, close }) {
       {part === 'warmup' && <p>{t('A warm-up: it counts in your history and muscles, not for new bests.')}</p>}
     </div>
   )
-  // Exercise settings, the warm-up, Update and Remove close this drawer first: Exercise settings
-  // can change the part, which reorders the entries and would leave this drawer on another
-  // exercise. Note and History open as panels of it.
+  // The warm-up set and Remove are actions: they close this drawer first. Exercise settings, Note,
+  // History and Update open over it as panels or a dialog; useEntryAt follows the exercise by id,
+  // so a part change that reorders the list leaves this drawer on the same one.
   const then = fn => () => { close(); fn() }
 
   return (
@@ -370,14 +370,14 @@ function HowToDrawer({ at, close }) {
           {facts.last && <span>{facts.last}</span>}
         </p>}
         <div className="g-xd-rows">
-          <DetailRow icon="slider" title={t('Exercise settings')} sub={t('Sets, reps, rest, progression for this exercise')} onClick={then(() => exerciseSettingsSheet(idx))} />
+          <DetailRow icon="slider" title={t('Exercise settings')} sub={t('Sets, reps, rest, progression for this exercise')} onClick={() => exerciseSettingsSheet(idx)} />
           {!entry.note && <DetailRow icon="note" title={t('Add note')} onClick={() => exerciseNoteSheet(idx)} />}
           {mode !== 'cardio' && <DetailRow icon="sunrise" title={t('Add a warm-up set')} onClick={then(() => addWarmupAt(idx))} />}
           {!routineKeepsOut(S, entry) && <Switch checked={entry.noProg === true} onChange={on => setNoProgAt(idx, on)}
             label={t('Don’t count for progression')} description={t('This exercise, this session only')} />}
           <DetailRow icon="history" title={t('History')} sub={lastTime ? t('Last time') + ' ' + fmtDate(lastTime.d) : undefined}
             onClick={() => exerciseHistorySheet(entry.id)} />
-          {update && <DetailRow icon="clipboard" title={t('Update {0}', update.routine.name)} sub={update.sub} onClick={then(update.run)} />}
+          {update && <DetailRow icon="clipboard" title={t('Update {0}', update.routine.name)} sub={update.sub} onClick={update.run} />}
           {!busy && <DetailRow icon="trash" danger title={t('Remove from this workout')} sub={t('Undo for 8 s')} onClick={then(() => removeExerciseWithUndo(idx))} />}
         </div>
       </div>

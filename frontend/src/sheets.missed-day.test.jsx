@@ -187,7 +187,10 @@ describe('badges on a workout logged into the past', () => {
     // The summary (W2.0, read from the saved record) names it among the new bests.
     const logged = S().workouts.find(w => w.d === '2026-09-14')
     // The day is Push + Pull together, a pairing never logged before: its summary is the first
-    // time (W2.2) and lists no bests, while the record keeps the badges asserted above.
-    expect(summaryOf(S(), logged.id)).toMatchObject({ first: true, bests: [] })
+    // time (W2.2), and it still lists the bests its record carries.
+    const model = summaryOf(S(), logged.id)
+    expect(model.first).toBe(true)
+    expect(model.bests.map(b => b.id)).toEqual(expect.arrayContaining(logged.prs))
+    expect(logged.prs).toContain(BENCH)
   })
 })

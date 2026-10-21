@@ -28,6 +28,14 @@ describe('SetStepper', () => {
     expect(input().getAttribute('aria-label')).toBe('kg')
   })
 
+  it('shows an empty field when blank, and a tap counts from the value', () => {
+    const onChange = vi.fn()
+    view.render(stepper({ value: 0, blank: true, step: 0.5, onChange }))
+    expect(input().value).toBe('')
+    click(more())
+    expect(onChange).toHaveBeenCalledWith(0.5)
+  })
+
   it('takes the spoken names from the caller, whatever the language', () => {
     view.render(stepper({ label: 'Reps', lessLabel: 'Moins de répétitions', moreLabel: 'Plus de répétitions' }))
     expect(view.host.querySelector('.g-sst-b').getAttribute('aria-label')).toBe('Moins de répétitions')
