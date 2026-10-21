@@ -4,7 +4,8 @@ import { EXIDX, figureOf, imgSrc } from '../lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, exerciseNameText } from '../lib/format.js'
 import { effectiveRoutineIds, workoutDay, workoutDuration, workoutVolume, workSetsDone, sessionSections, setLabel, NOTE_MAX } from '../lib/history.js'
 import { t, tn, exerciseNameFor } from '../lib/i18n.js'
-import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
+import { nav, closeThen, closeThenNav } from '../lib/nav.js'
+import { drawerFlow } from '../store/useUI.js'
 import { dayTargetOf, firstLogDay, navToDay } from '../lib/day-route.js'
 import { diaryIndexDays } from '../lib/nutrition/diary-index.js'
 import WorkoutMediaSection, { workoutMediaCount } from '../components/WorkoutMedia.jsx'
@@ -19,7 +20,7 @@ import { MOBILE, shareExportBlob } from '../lib/mobile.js'
 import { speedUnitOf } from '../lib/speed.js'
 import { hasCompletedWork } from '../lib/workout-model.js'
 import { saveSessionAsRoutine } from '../lib/session-routines.js'
-import { useSheetKeyboard, tappable } from '../lib/use-sheet-keyboard.js'
+import { tappable } from '../lib/use-sheet-keyboard.js'
 import { workoutFit, fitFileName } from '../lib/fit-export.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
@@ -132,8 +133,6 @@ const shownName = e => (EXIDX[e.id] ? exerciseNameText(EXIDX[e.id]) : (e.n || e.
 // their sets and new bests, each opening its history; the photos and videos; the session note;
 // then what can be done with it.
 function WorkoutDetail({ w, close }) {
-  const noteRef = useRef(null)
-  const onNoteFocus = useSheetKeyboard(noteRef)
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   // The session note is editable here rather than only at the finish sheet: what you want to
@@ -219,8 +218,7 @@ function WorkoutDetail({ w, close }) {
   const shareAsImage = () => {
     const rec = withNote()
     flush()
-    close()
-    shareWorkoutSheet(rec, nameOf)
+    drawerFlow(() => shareWorkoutSheet(rec, nameOf))
   }
   // The routine is named after the session and its day, as the row says it will be.
   const routineName = t('{0}, {1}', workoutLabel(w), day ? fmtDate(day) : '')
@@ -280,9 +278,9 @@ function WorkoutDetail({ w, close }) {
       <WorkoutMediaSection w={w} />
       <label className="g-wd-note">
         <b>{t('Session note')}</b>
-        <textarea ref={noteRef} rows={2} maxLength={NOTE_MAX} value={note}
+        <textarea rows={2} maxLength={NOTE_MAX} value={note}
           placeholder={t('How the session went as a whole.')}
-          onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
+          onChange={e => setNote(e.target.value)} onBlur={saveNote} />
       </label>
       <div className="g-wd-rows">
         {/* The same exercises again, today, as a new session (#58): the rows read what was logged
@@ -292,7 +290,7 @@ function WorkoutDetail({ w, close }) {
         <DetailRow icon="plus" title={t('Save as routine')} sub={t('Becomes “{0}”', routineName)} onClick={saveAsRoutine} />
         <DetailRow icon="share" title={t('Share as image')} sub={t('A card with the map and your bests')} onClick={shareAsImage} />
         <DetailRow icon="pencil" title={t('Edit workout')} sub={t('Sets, date and time, duration')}
-          onClick={() => { flush(); close(); editWorkoutSheet(w) }} />
+          onClick={() => { flush(); drawerFlow(() => editWorkoutSheet(w)) }} />
         <DetailRow icon="download" title={t('Export as .fit file')} sub={t('Garmin Connect can take it from there')} onClick={exportFit} />
         <DetailRow icon="copy" title={t('Copy as text')} onClick={copyAsText} />
         <DetailRow icon="trash" title={t('Delete workout')} sub={t('Undo for 8 s')} danger
@@ -315,8 +313,8 @@ function EditWorkoutMenu({ w, close }) {
         catch (error) { toast(t(error.message)) }
       },
     },
-    { key: 'date', icon: 'calendar', label: t('Change date & time'), onClick: () => { close(); workoutDateSheet(w) } },
-    { key: 'duration', icon: 'stopwatch', label: t('Change duration'), onClick: () => { close(); workoutDurationSheet(w) } },
+    { key: 'date', icon: 'calendar', label: t('Change date & time'), onClick: () => drawerFlow(() => workoutDateSheet(w)) },
+    { key: 'duration', icon: 'stopwatch', label: t('Change duration'), onClick: () => drawerFlow(() => workoutDurationSheet(w)) },
   ]
   return (
     <BottomSheet title={t('Edit workout')}>
@@ -370,20 +368,18 @@ const opensDayPage = (st, iso) => {
  */
 export function openDay(iso, close) {
   if (opensDayPage(S(), iso)) {
-    const replace = onSheetEntry()
-    close?.()
-    navToDay(iso, undefined, { replace })
+    closeThen(close, replace => navToDay(iso, undefined, { replace }))
     return
   }
-  close?.()
-  if ((S().workouts || []).some(w => workoutDay(w) === iso)) dayWorkoutsSheet(iso)
-  else dayOverrideSheet(iso)
+  // Another drawer: it slides in over the one this was opened from.
+  if ((S().workouts || []).some(w => workoutDay(w) === iso)) drawerFlow(() => dayWorkoutsSheet(iso))
+  else drawerFlow(() => dayOverrideSheet(iso))
 }
 
 // The workouts of one day, newest last, each opening its drawer.
 export const dayWorkoutsSheet = iso => {
   const ws = (S().workouts || []).filter(w => workoutDay(w) === iso)
-  ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
+  ui().openSheet(() => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => drawerFlow(() => workoutDetailSheet(w))} />)}</div></>)
 }
 
 // The .fit file goes out the way a backup does: the share sheet in the phone app (Files, Drive,
@@ -449,9 +445,9 @@ function Calendar({ start, close, onPick, onFuture }) {
       title={note ? dayNoteLine(note, t) : undefined} disabled={!!onPick && !onFuture && iso > todayISO()} onClick={() => {
       if (onPick) { close(); if (onFuture && iso > todayISO()) onFuture(iso); else onPick(iso); return }
       if (opensDayPage(st, iso)) { openDay(iso, close); return }
-      if (!ws) { close(); dayOverrideSheet(iso); return }
-      if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
-      close(); dayWorkoutsSheet(iso)
+      if (!ws) { drawerFlow(() => dayOverrideSheet(iso)); return }
+      if (ws.length === 1) { drawerFlow(() => workoutDetailSheet(ws[0])); return }
+      drawerFlow(() => dayWorkoutsSheet(iso))
     }}><span>{d}</span><i className={dotCls} /></button>)
   }
   return <>

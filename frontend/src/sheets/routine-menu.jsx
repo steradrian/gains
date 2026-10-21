@@ -14,6 +14,7 @@ import { rotationIds, scheduleModeOf } from '../lib/rotation.js'
 import { buildRoutineBundle } from '../lib/routine-share.js'
 import { copyNameOf, deleteRoutineWithUndo, duplicateRoutine, routineDaysOf, saveRoutineDays, weekdayShort } from '../views/routines/routine-actions.js'
 import RoutineSettings from '../views/routines/routine-settings.jsx'
+import { drawerFlow } from '../store/useUI.js'
 import { S, toast, ui } from './shared.js'
 import { readyOrStart } from './workout-flow.jsx'
 
@@ -63,11 +64,11 @@ function RoutineMenu({ id, close }) {
     { key: 'start', icon: 'play', label: t('Start {0}', r.name), onClick: start },
     { key: 'days', icon: 'calendar', label: t('Plan days'),
       detail: days.length ? days.map(weekdayShort).join(', ') : inLoop(st, id) ? t('In your loop') : t('Not in your Plan'),
-      onClick: () => { close(); planDaysSheet(id) } },
+      onClick: () => drawerFlow(() => planDaysSheet(id)) },
     { key: 'copy', icon: 'copy', label: t('Duplicate'), detail: t('Makes “{0}”', copyNameOf(r)),
       onClick: () => duplicateRoutine(id, { open: true, go: to => closeThenNav(close, to) }) },
-    { key: 'share', icon: 'share', label: t('Share routine'), detail: t('As a plan file, or on paper'), onClick: () => { close(); shareRoutineSheet(id) } },
-    { key: 'settings', icon: 'gear', label: t('Routine settings'), detail: t('Icon, progression and deload'), onClick: () => { close(); routineSettingsSheet(id) } },
+    { key: 'share', icon: 'share', label: t('Share routine'), detail: t('As a plan file, or on paper'), onClick: () => drawerFlow(() => shareRoutineSheet(id)) },
+    { key: 'settings', icon: 'gear', label: t('Routine settings'), detail: t('Icon, progression and deload'), onClick: () => drawerFlow(() => routineSettingsSheet(id)) },
     // The menu's entry is walked off first and the routine goes after: deleted under the open
     // menu, the editor's missing-routine redirect wrote the address in the same commit as the
     // close, and the menu's history entry stayed behind (Back landed on the deleted routine, again

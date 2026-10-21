@@ -23,7 +23,7 @@ import { exercisesForMuscle } from '../lib/muscle-explore.js'
 import { dbLoadFor, withMeaning, historyAs, ownedWeightsFor } from '../lib/dumbbells.js'
 import { defaultIncrement, weightIncrement } from '../lib/progression.js'
 import { swapActiveExercise } from '../lib/active-exercise-swap.js'
-import { useSheetKeyboard, useRevealActiveGroupChip } from '../lib/use-sheet-keyboard.js'
+import { useRevealActiveGroupChip } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import { isFav, sortFavouritesFirst, sortYoursFirst } from '../lib/favourites.js'
 import { buildPlannedEntry, builtOutOfProgression } from '../lib/session-start.js'
@@ -72,7 +72,6 @@ function ExercisePicker({ onPick, title, close, like, multi, routine, workout })
   const [picked, setPicked] = useState([])  // multi: the exercises ticked, in order
   const searchRef = useRef(null)
   const bpStrip = useRef(null), eqStrip = useRef(null), catStrip = useRef(null)
-  const onSearchFocus = useSheetKeyboard(searchRef)
   const moreRef = useAutoMore(() => setShown(s => s + 50))
   const all = allExercises(st)
   const profile = activeProfile(st)
@@ -148,7 +147,7 @@ function ExercisePicker({ onPick, title, close, like, multi, routine, workout })
     <label className="g-lf-search">
       <Icon name="magnifier" className="g-icon" />
       <input ref={searchRef} type="search" value={q} placeholder={t('Search {0} exercises…', all.length)} aria-label={t('Search {0} exercises…', all.length)}
-        enterKeyHint="search" onFocus={onSearchFocus} onChange={e => { setQ(e.target.value); setShown(50) }} />
+        enterKeyHint="search" onChange={e => { setQ(e.target.value); setShown(50) }} />
       {narrowed && <span className="g-pk-count" role="status" aria-label={exCount(f.length)}>{fmtNum(f.length)}</span>}
       {q && <button type="button" className="g-lf-clear" onClick={() => { setQ(''); setShown(50); searchRef.current?.focus() }} aria-label={t('Clear')}><Icon name="xmark" className="g-icon" /></button>}
     </label>

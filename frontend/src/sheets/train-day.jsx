@@ -19,8 +19,8 @@ import Tag from '../ds/Tag.jsx'
 import { addRoutine } from '../views/routines/routine-actions.js'
 import { dayNoteSheet, dayOverrideSheet, importPlanFile, PLAN_FILE_ACCEPT } from './plan.jsx'
 import { restDayWithUndo, routineSub } from './plan-day.jsx'
-import { starterPlanSheet } from './starter.jsx'
 import { readyOrStart, repeatWorkout } from './workout-flow.jsx'
+import { drawerFlow } from '../store/useUI.js'
 import { S, ui } from './shared.js'
 
 // The stack of exercise stills on a routine row (board T2.1 draws three).
@@ -108,7 +108,7 @@ function StartChooserDrawer({ close }) {
   const pickFile = ev => { const f = ev.target.files[0]; ev.target.value = ''; importPlanFile(f, close) }
   const actions = [
     ...(noPlan ? [
-      { key: 'plans', icon: 'clipboard', title: t('Pick a ready-made plan'), onClick: () => { close(); starterPlanSheet() } },
+      { key: 'plans', icon: 'clipboard', title: t('Pick a ready-made plan'), onClick: () => closeThenNav(close, '/train/plans') },
       { key: 'new', icon: 'plus', title: t('Create a routine'), onClick: () => addRoutine(to => closeThenNav(close, to)) },
       { key: 'import', icon: 'download', title: t('Import a plan file'), onClick: () => fileRef.current?.click() },
     ] : []),
@@ -126,7 +126,7 @@ function StartChooserDrawer({ close }) {
       {noPlan && <input ref={fileRef} type="file" accept={PLAN_FILE_ACCEPT} onChange={pickFile} hidden />}
       {!noPlan && (
         <div className="g-tr-more">
-          <Button variant="secondary" block onClick={() => { close(); starterPlanSheet() }}>{t('Browse ready-made plans')}</Button>
+          <Button variant="secondary" block onClick={() => closeThenNav(close, '/train/plans')}>{t('Browse ready-made plans')}</Button>
         </div>
       )}
     </BottomSheet>
@@ -162,10 +162,10 @@ function DayOptionsDrawer({ iso, close }) {
         : t('No workout this day')
   const restIt = () => { close(); restDayWithUndo(iso, today) }
   const items = [
-    { key: 'change', icon: 'calendar', label: t('Change this day'), detail: t('Pick another routine for {0}', date), onClick: () => { close(); dayOverrideSheet(iso) } },
-    iso === today && !st.active && { key: 'choose', icon: 'swap', label: t('Choose a different workout'), detail: t('Just for today'), onClick: () => { close(); startChooserSheet() } },
+    { key: 'change', icon: 'calendar', label: t('Change this day'), detail: t('Pick another routine for {0}', date), onClick: () => drawerFlow(() => dayOverrideSheet(iso)) },
+    iso === today && !st.active && { key: 'choose', icon: 'swap', label: t('Choose a different workout'), detail: t('Just for today'), onClick: () => drawerFlow(startChooserSheet) },
     rest && { key: 'rest', icon: 'moon', label: t('Rest / skip this day'), detail: restLine, onClick: restIt },
-    canNote && { key: 'note', icon: 'note', label: t('Add a note for this day'), detail: note?.text || (note?.tag ? t(DAY_NOTE_LABEL[note.tag]) : null), onClick: () => { close(); dayNoteSheet(iso) } },
+    canNote && { key: 'note', icon: 'note', label: t('Add a note for this day'), detail: note?.text || (note?.tag ? t(DAY_NOTE_LABEL[note.tag]) : null), onClick: () => drawerFlow(() => dayNoteSheet(iso)) },
   ].filter(Boolean)
   return (
     <BottomSheet title={name ? date + ' · ' + name : date}>

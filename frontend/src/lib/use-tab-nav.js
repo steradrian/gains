@@ -12,6 +12,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { emptyNav, deadSteps, onVisitPage, planSwitch, record, settle } from './tab-history.js'
 import { TABS, parentOf, tabOf } from './tab-route.js'
 import { onSheetEntry, sheetEntriesLive } from './nav.js'
+import { sheetEntryCount } from './sheet-nav.js'
 import { useUI } from '../store/useUI.js'
 
 const NAV_KEY = 'gym_tab_nav'   // this tab's mirror: survives a reload, as its history does
@@ -73,7 +74,7 @@ const SHEET_MS = 400
 let waiting = null
 const afterSheet = fn => {
   if (waiting) { window.removeEventListener('popstate', waiting.listener); clearTimeout(waiting.timer); waiting = null }
-  const closing = onSheetEntry() && sheetEntriesLive() > useUI.getState().sheets.length
+  const closing = onSheetEntry() && sheetEntriesLive() > sheetEntryCount(useUI.getState().sheets)
   if (!closing) { fn(); return }
   const go = () => {
     if (!waiting) return

@@ -11,11 +11,12 @@ import { instrFor } from './lib/i18n.js'
 import { _setLangState } from './lib/i18n-core.js'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { detailTags, exerciseDetailSheet } from './sheets.jsx'
 
 const mounted = []
 function renderTop() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -79,7 +80,9 @@ describe('How to', () => {
     // Rendered outside the click's act: a render nested in it would not flush before the query.
     const add = row(renderTop(), 'Add to my plan')
     act(() => add.click())
-    expect(useUI.getState().sheets).toHaveLength(2)
+    // one drawer, the routine list slid in as its panel
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
     expect(renderTop().textContent).toContain('Pick a routine. Sets, reps and weight come next.')
   })
 
@@ -105,7 +108,8 @@ describe('Your setup', () => {
     const plates = row(host, 'Plate loading')
     expect(plates.querySelector('.g-drow-val').textContent).toMatch(/^(Bar .+|No bar)$/)
     act(() => plates.click())
-    expect(useUI.getState().sheets).toHaveLength(2)
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
     expect(renderTop().querySelector('h3').textContent).toBe('Plate loading')
   })
 

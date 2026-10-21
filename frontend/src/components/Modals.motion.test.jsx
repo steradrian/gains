@@ -129,16 +129,18 @@ describe('a bottom sheet\'s way in and out', () => {
   it('closes every sheet at once on closeAll, each history entry walked back, each leaving where it stands', async () => {
     const go = vi.spyOn(history, 'go').mockImplementation(() => {})
     open(c => <Plain title="First" close={c} />)
-    open(c => <Plain title="Second" close={c} />)
-    const sheets = all('.sheet')
+    open(c => <Plain title="Second" close={c} />, { kind: 'center' })
+    const sheets = all('.sheet, .center')
     expect(sheets).toHaveLength(2)
 
     await act(async () => { useUI.getState().closeAll() })
     await flushMicrotasks()
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(go).toHaveBeenCalledWith(-2)
-    expect(all('.sheet')).toEqual(sheets)
-    for (const sheet of sheets) expect(sheet.parentElement.hasAttribute('inert')).toBe(true)
+    // the drawer plays its way out where it stands; the centred dialog goes at once
+    const drawers = sheets.filter(el => el.matches('.sheet'))
+    expect(all('.sheet, .center')).toEqual(drawers)
+    for (const sheet of drawers) expect(sheet.parentElement.hasAttribute('inert')).toBe(true)
     expect(document.activeElement).toBe(document.getElementById('opener'))
     expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
 

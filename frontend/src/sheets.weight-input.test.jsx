@@ -6,6 +6,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { bwSheet, goalSheet } from './sheets.jsx'
 import { fmtDate, todayISO } from './lib/format.js'
+import { applySheetKeyboard } from './lib/sheet-keyboard.js'
 
 // The big weight read-out (the weigh-in drawer, board T1.7, and the goal sheet) used to be text:
 // the only ways to a number were the slider, ±0.1 and the ±0.5/±1 chips, so 72.3 → 85.7 was a
@@ -155,7 +156,7 @@ describe('the weigh-in drawer', () => {
     expect(useStore.getState().S.bodyweight.at(-1).w).toBe(18.4)
   })
 
-  it('lifts the drawer over the keyboard the read-out raises, Save in reach', () => {
+  it('stands on the keyboard the read-out raises without being resized by it, Save in reach', () => {
     const before = Object.getOwnPropertyDescriptor(window, 'visualViewport')
     const height = Object.getOwnPropertyDescriptor(window, 'innerHeight')
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
@@ -163,11 +164,15 @@ describe('the weigh-in drawer', () => {
     try {
       const { host } = renderBw()
       const drawer = host.querySelector('.g-bs')
-      expect(drawer.style.getPropertyValue('--picker-keyboard-bottom')).toBe('300px')
-      expect(drawer.style.getPropertyValue('--picker-visual-height')).toBe('600px')
+      // The lift is the page's (lib/sheet-keyboard.js, on <html>), not a variable on the drawer.
+      applySheetKeyboard(window)
+      expect(document.documentElement.style.getPropertyValue('--kb')).toBe('300px')
+      expect(document.documentElement.style.getPropertyValue('--vvh')).toBe('600px')
+      expect(drawer.getAttribute('style')).toBeNull()
     } finally {
       if (before) Object.defineProperty(window, 'visualViewport', before); else delete window.visualViewport
       if (height) Object.defineProperty(window, 'innerHeight', height); else delete window.innerHeight
+      applySheetKeyboard(window)
     }
   })
 

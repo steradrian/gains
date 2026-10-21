@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
+import { drawerFlow, useUI } from '../store/useUI.js'
 import { EXIDX, exOr, beatsWeight, isCustomEx } from '../lib/exercises.js'
 import { fmtDate, todayISO, isoOf, uid, exCount } from '../lib/format.js'
 import { effectiveRoutineIds, bestWeightForEntry, workoutVolume, setsDoneActive, setUnitsTotal, NOTE_MAX } from '../lib/history.js'
@@ -19,7 +19,7 @@ import { exerciseMuscleSnapshot } from '../lib/muscles.js'
 import { buildCompletedWorkout, sessionEnd } from '../lib/finish-workout.js'
 import { refillAfter } from '../lib/rotation.js'
 import { repeatSessionEntries } from '../lib/session-repeat.js'
-import { useSheetKeyboard, tappable }from '../lib/use-sheet-keyboard.js'
+import { tappable } from '../lib/use-sheet-keyboard.js'
 import { buildSessionEntries } from '../lib/session-start.js'
 import { joinSessionNoProg } from '../lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from '../lib/session-merge.js'
@@ -153,8 +153,7 @@ export function repeatWorkout(w, close) {
   if (st.weighIn === false) { go(null); return }
   const weighed = weighedToday()
   if (weighed) { go(weighed.w); return }
-  if (close) close()
-  bwSheet({ required: true, onDone: go })
+  drawerFlow(() => bwSheet({ required: true, onDone: go }))
 }
 
 /* ============================ log a past workout ============================ */
@@ -339,8 +338,6 @@ export function addRoutineToSessionSheet() {
    A routine's own `note` (a plan's instruction for this exercise) is edited in the config sheet
    and is deliberately not here: it belongs to the plan, not to the day or to the movement. */
 function ExerciseNote({ entryIdx, close }) {
-  const noteRef = useRef(null)
-  const onNoteFocus = useSheetKeyboard(noteRef)
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   const A = st.active
@@ -374,9 +371,9 @@ function ExerciseNote({ entryIdx, close }) {
   return <>
     <h3 className={exerciseNameClass(ex)}>{exerciseNameFor(ex)}</h3>
     <div className="small muted" style={{ marginBottom: 6 }}>{t('This session')}</div>
-    <textarea ref={noteRef} className="input" rows={3} maxLength={NOTE_MAX} value={note}
+    <textarea className="input" rows={3} maxLength={NOTE_MAX} value={note}
       placeholder={t('How it went, what to change. Saved with today’s workout.')}
-      onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
+      onChange={e => setNote(e.target.value)} />
     <div style={{ height: 10 }} />
     <div className="sect-b">
       <Row icon="pin" iconTint="var(--yellow)" title={t('Show this next time')}
@@ -398,8 +395,6 @@ function ExerciseNote({ entryIdx, close }) {
 export const exerciseNoteSheet = entryIdx => ui().openSheet(close => <ExerciseNote entryIdx={entryIdx} close={close} />)
 
 function SetNote({ entryIdx, setIdx, close }) {
-  const noteRef = useRef(null)
-  const onNoteFocus = useSheetKeyboard(noteRef)
   const row = useStore(s => s.S.active?.entries?.[entryIdx]?.sets?.[setIdx])
   const update = useStore(s => s.update)
   const [note, setNote] = useState(row?.note || '')
@@ -420,9 +415,9 @@ function SetNote({ entryIdx, setIdx, close }) {
 
   return <>
     <h3>{t('Set note')}</h3>
-    <textarea ref={noteRef} className="input" rows={4} maxLength={NOTE_MAX} value={note}
+    <textarea className="input" rows={4} maxLength={NOTE_MAX} value={note}
       placeholder={t('Anything specific to remember about this set.')}
-      onFocus={onNoteFocus} onChange={event => setNote(event.target.value)} />
+      onChange={event => setNote(event.target.value)} />
     <div style={{ height: 18 }} />
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
   </>
@@ -437,8 +432,6 @@ export const setNoteSheet = (entryIdx, setIdx) =>
    fact because "notes you can write during a workout" is the point; a note you can only add
    once the session is filed is a different, smaller feature. */
 function SessionNote({ close }) {
-  const noteRef = useRef(null)
-  const onNoteFocus = useSheetKeyboard(noteRef)
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   const A = st.active
@@ -454,9 +447,9 @@ function SessionNote({ close }) {
 
   return <>
     <h3>{t('Session note')}</h3>
-    <textarea ref={noteRef} className="input" rows={4} maxLength={NOTE_MAX} value={note}
+    <textarea className="input" rows={4} maxLength={NOTE_MAX} value={note}
       placeholder={t('How the session went as a whole.')}
-      onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
+      onChange={e => setNote(e.target.value)} />
     <div style={{ height: 18 }} />
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
   </>
@@ -464,8 +457,6 @@ function SessionNote({ close }) {
 export const sessionNoteSheet = () => ui().openSheet(close => <SessionNote close={close} />)
 
 function RenameWorkout({ close }) {
-  const inputRef = useRef(null)
-  const onFocus = useSheetKeyboard(inputRef)
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   const A = st.active
@@ -488,9 +479,9 @@ function RenameWorkout({ close }) {
 
   return <>
     <h3>{t('Rename workout')}</h3>
-    <input ref={inputRef} className="input" type="text" autoFocus maxLength={60} value={name}
+    <input className="input" type="text" autoFocus maxLength={60} value={name}
       placeholder={t('Workout title')}
-      onFocus={onFocus} onChange={e => setName(e.target.value)}
+      onChange={e => setName(e.target.value)}
       onKeyDown={e => { if (e.key === 'Enter' && canSave) save() }} />
     <div style={{ height: 18 }} />
     <Button variant="primary" disabled={!canSave} onClick={save}>{t('Save')}</Button>
@@ -500,15 +491,13 @@ export const renameWorkoutSheet = () => ui().openSheet(close => <RenameWorkout c
 
 // A superset's own name and rest between rounds (#292), from the routine editor.
 function SupersetSettings({ meta, onSave, close }) {
-  const inputRef = useRef(null)
-  const onFocus = useSheetKeyboard(inputRef)
   const [name, setName] = useState(meta.name || '')
   const [rest, setRest] = useState(meta.rest || 0)
   const save = () => { onSave({ name: name.trim().slice(0, SG_NAME_MAX), rest }); close() }
   return <>
     <h3>{t('Superset')}</h3>
-    <input ref={inputRef} className="input" type="text" maxLength={SG_NAME_MAX} value={name}
-      placeholder={t('Name, e.g. Arm finisher')} onFocus={onFocus} onChange={e => setName(e.target.value)}
+    <input className="input" type="text" maxLength={SG_NAME_MAX} value={name}
+      placeholder={t('Name, e.g. Arm finisher')} onChange={e => setName(e.target.value)}
       onKeyDown={e => { if (e.key === 'Enter') save() }} />
     <div style={{ height: 12 }} />
     <div className="list">

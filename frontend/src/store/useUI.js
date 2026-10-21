@@ -217,6 +217,17 @@ function endTone(enabled, kind) {
   toneNative(kind === true ? 'classic' : kind).then(ok => { if (!ok) chime(enabled, kind) })
 }
 
+// The next sheet opened inside `open` (synchronously) is a step of a flow its drawer launches, not
+// a detail of it: a menu's action (Log food, Weigh-in) that used to close the menu and open the
+// sheet. As a sub-panel it slides in over the menu and back returns to it, but the sheet's own
+// `close` (Save, Done, Cancel) ends the flow, closing the whole drawer as it did when the menu
+// had closed first. Without a drawer under it, it is just a sheet. Returns what `open` returns.
+let flowNext = false
+export function drawerFlow(open) {
+  flowNext = true
+  try { return open() } finally { flowNext = false }
+}
+
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
   toastMsg: '',
@@ -241,13 +252,40 @@ export const useUI = create((set, get) => ({
   // Escape, Android back (components/Modals.jsx). A sheet whose Cancel does something passes the
   // same handler, so every way out behaves like Cancel.
   // `variant: 'ds'` draws it as the design system's drawer: `render` returns a ds/BottomSheet.
+  //
+  // A drawer is never opened on top of a drawer. A `kind: 'sheet'` opened while the top of the stack
+  // is a drawer joins it as a sub-panel (`panels`, components/sheet-panes.jsx): it slides in inside
+  // the same drawer, one history entry each, and its close (and `lock`) act on that panel alone.
+  // Centred dialogs and viewers still stack, over a drawer and its panels alike.
   openSheet(render, { kind = 'sheet', locked = false, onDismiss, variant } = {}) {
     const id = uid()
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, variant }] }))
+    const flow = flowNext
+    flowNext = false
+    const host = kind === 'sheet' ? get().sheets.at(-1) : null
+    if (host?.kind === 'sheet') {
+      set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: [...(x.panels || []), { id, render, locked, onDismiss, variant, flow }] } : x) }))
+      return {
+        id,
+        close: () => get().closeSheet(id),
+        lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: (x.panels || []).map(p => p.id === id ? { ...p, locked: v } : p) } : x) })),
+      }
+    }
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, variant, panels: [] }] }))
     const close = () => get().closeSheet(id)
     return { id, close, lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) })) }
   },
-  closeSheet(id) { set(s => ({ sheets: s.sheets.filter(x => x.id !== id) })) },
+  // A drawer, or a sub-panel of one: a panel takes the panels pushed after it along.
+  closeSheet(id) {
+    set(s => {
+      if (s.sheets.some(x => x.id === id)) return { sheets: s.sheets.filter(x => x.id !== id) }
+      return {
+        sheets: s.sheets.map(x => {
+          const at = (x.panels || []).findIndex(p => p.id === id)
+          return at < 0 ? x : { ...x, panels: x.panels.slice(0, at) }
+        }),
+      }
+    })
+  },
   closeAll() { set({ sheets: [] }) },
 
   // A toast is 2.2 s of text. With an action (`{ action: 'Undo', onAction }`) it stays 8 s (the

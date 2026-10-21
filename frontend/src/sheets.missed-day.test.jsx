@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { dayOverrideSheet, logPastWorkoutSheet, finishWorkout } from './sheets.jsx'
 import { markAllSetsDone } from './lib/backfill.js'
 import { EXDB } from './lib/exercises-data.js'
@@ -19,7 +20,7 @@ const S = () => useStore.getState().S
 const mounted = []
 
 function mountTopSheet() {
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -146,7 +147,9 @@ describe('logging a missed planned day', () => {
     dayOverrideSheet('2026-09-14')
     tapInTopSheet('Log this workout')
     expect(toast).toHaveBeenCalledWith('Finish the current workout first.')
-    expect(useUI.getState().sheets).toHaveLength(0)
+    // nothing was opened, so the day drawer is still under the toast
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toEqual([])
   })
 
   it('treats a click event from the History button as no day at all', () => {
