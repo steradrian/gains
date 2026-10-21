@@ -40,6 +40,8 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+// The stage frame (nav bar, background) is the app's and has its own test; the rows are the point.
+vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: (...a) => mocks.nav(...a) }))
 vi.mock('../lib/api.js', () => ({
   api: (...a) => mocks.api(...a), webauthnOK: () => mocks.webauthn, passkeyLogin: (...a) => mocks.passkeyLogin(...a), passkeyRegister: vi.fn(), IS_ANDROID: false,
@@ -66,9 +68,9 @@ function mount(el) {
   return host
 }
 const settle = () => act(() => new Promise(r => setTimeout(r, 0)))
-const section = (page, title) => [...page.querySelectorAll('.sect')].find(s => s.querySelector('.sect-t')?.textContent === title)
-const titles = el => [...el.querySelectorAll('.lrow-t')].map(t => t.textContent)
-const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
+// The account page's rows are the stage's (.g-glist-row); the Password row is still the old one.
+const titles = el => [...el.querySelectorAll('.g-glist-row b, .lrow-t')].map(t => t.textContent)
+const rowByTitle = (el, title) => [...el.querySelectorAll('.g-glist-row, .lrow')].find(r => r.querySelector('b, .lrow-t')?.textContent === title)
 
 beforeEach(() => {
   stubHubOffline()
@@ -86,14 +88,13 @@ describe('Settings with password sign-in', () => {
   it('a signed-in browser gets a Password row in Account — and none on an instance without it', async () => {
     const page = mount(<Settings page="account" />)
     await settle()
-    const account = section(page, 'Account')
-    expect(titles(account)).toContain('Password')
-    expect(rowByTitle(account, 'Password').textContent).toContain('Not set. Handy for signing in where passkeys don’t work.')
+    expect(titles(page)).toContain('Password')
+    expect(rowByTitle(page, 'Password').textContent).toContain('Not set. Handy for signing in where passkeys don’t work.')
 
     mocks.config = null
     const off = mount(<Settings page="account" />)
     await settle()
-    expect(titles(section(off, 'Account'))).not.toContain('Password')
+    expect(titles(off)).not.toContain('Password')
   })
 
   it('a guest in a browser without passkeys can create a profile and sign in with a password', () => {
@@ -101,15 +102,14 @@ describe('Settings with password sign-in', () => {
     mocks.sync = null
     mocks.webauthn = false
     const page = mount(<Settings page="account" />)
-    const account = section(page, 'Account')
-    expect(titles(account)).toEqual(['Create new profile', 'Sign in with password'])
-    act(() => rowByTitle(account, 'Sign in with password').click())
+    expect(titles(page)).toEqual(['Create new profile', 'Sign in with password'])
+    act(() => rowByTitle(page, 'Sign in with password').click())
     const sheet = mount(mocks.sheets.at(-1).render(() => {}))
     expect(sheet.querySelector('h3').textContent).toBe('Sign in with password')
 
     mocks.config = null
     const off = mount(<Settings page="account" />)
-    expect(titles(section(off, 'Account'))).toEqual(['Passkeys not supported in this browser.'])
+    expect(titles(off)).toEqual(['Passkeys not supported in this browser.'])
   })
 
   // A guest who chose "Continue without account" in a browser that can make passkeys only had
@@ -118,25 +118,24 @@ describe('Settings with password sign-in', () => {
     mocks.user = null
     mocks.sync = null
     const page = mount(<Settings page="account" />)
-    const account = section(page, 'Account')
-    expect(titles(account)).toEqual(['Create passkey profile', 'Sign in with passkey', 'Create profile with a password', 'Sign in with password', 'Use a code from your other device'])
-    act(() => rowByTitle(account, 'Create profile with a password').click())
+    expect(titles(page)).toEqual(['Create passkey profile', 'Sign in with passkey', 'Create profile with a password', 'Sign in with password', 'Use a code from your other device'])
+    act(() => rowByTitle(page, 'Create profile with a password').click())
     const sheet = mount(mocks.sheets.at(-1).render(() => {}))
     expect(sheet.querySelector('h3').textContent).toBe('Create your profile')
     expect(sheet.querySelector('input[name="new-password"]')).toBeTruthy()
     // The code is redeemed on a screen of its own now (views/AddDevice.jsx), not in a sheet.
-    act(() => rowByTitle(account, 'Use a code from your other device').click())
+    act(() => rowByTitle(page, 'Use a code from your other device').click())
     expect(mocks.nav).toHaveBeenCalledWith('/add-device', undefined)
 
     mocks.config = null
     const off = mount(<Settings page="account" />)
-    expect(titles(section(off, 'Account'))).toEqual(['Create passkey profile', 'Sign in with passkey', 'Use a code from your other device'])
+    expect(titles(off)).toEqual(['Create passkey profile', 'Sign in with passkey', 'Use a code from your other device'])
   })
 
   it('"Sign in" after the server ended the session asks which way; the passkey is one tap on it', async () => {
     mocks.sync = { status: 'auth', offline: false, pending: true, auth: true, lastError: { status: 401 }, lastSynced: 0, server: null }
     const page = mount(<Settings page="account" />)
-    const row = rowByTitle(section(page, 'Server & sync'), 'Sign in')
+    const row = rowByTitle(page, 'Sign in')
     expect(row).toBeTruthy()
     act(() => row.click())
     expect(mocks.passkeyLogin).not.toHaveBeenCalled()

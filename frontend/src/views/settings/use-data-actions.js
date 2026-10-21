@@ -18,37 +18,38 @@ export function useDataActions() {
 
   // Reads the store at the moment of the tap: the sheet that asks before a sign-out offers it too,
   // and the copy it exports is the one that has not reached the server.
-  const doExport = async () => {
-    const json = JSON.stringify(useStore.getState().S, null, 2)
-    const name = 'gains-backup-' + todayISO() + '.json'
-    // WKWebView can't download blob URLs — the native build hands the file to the share sheet.
-    if (MOBILE) {
-      try { await shareExport(json, name); toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
-      return
-    }
-    const blob = new Blob([json], { type: 'application/json' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
-    toast(t('Backup exported'))
-  }
+  // The file is built apart from being handed over: "Download my data" builds it, then saves it
+  // on a tap of its own (a download started after a long await is not a user gesture, and Safari
+  // refuses it). `file` is { name, json } or { name, blob, missing }.
+  const buildJson = () => ({ name: 'gains-backup-' + todayISO() + '.json', json: JSON.stringify(useStore.getState().S, null, 2) })
   // "Export with photos & videos": the same JSON plus every file the state refers to, in a zip
   // (lib/backup-media.js). Signed in, a file this device never downloaded is fetched for it; one
   // nobody has is left out and counted. The sign-out sheet offers it while media are waiting.
-  const doExportZip = async () => {
+  const buildZip = async () => {
     const { exportBackupZip } = await import('../../lib/backup-media.js')
     const st = useStore.getState()
     const signedIn = !!(st.user && st.config?.media)
     let out
     try { out = await exportBackupZip(st.S, { fetchOne: signedIn ? fetchToStore : null }) }
-    catch { toast(t('Something went wrong')); return }
-    const name = 'gains-backup-' + todayISO() + '.zip'
+    catch { toast(t('Something went wrong')); return null }
     if (out.missing) toast(tn('{0} file could not be included', '{0} files could not be included', out.missing))
+    return { name: 'gains-backup-' + todayISO() + '.zip', blob: out.blob, missing: out.missing }
+  }
+  // True once it is saved; false when the share sheet was dismissed.
+  const saveFile = async file => {
+    // WKWebView can't download blob URLs — the native build hands the file to the share sheet.
     if (MOBILE) {
-      try { await shareExportBlob(out.blob, name); if (!out.missing) toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
-      return
+      try { await (file.blob ? shareExportBlob(file.blob, file.name) : shareExport(file.json, file.name)); return true } catch (e) { return false /* share sheet dismissed */ }
     }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = name; a.click()
+    const blob = file.blob || new Blob([file.json], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click()
     setTimeout(() => URL.revokeObjectURL(a.href), 60000)
-    if (!out.missing) toast(t('Backup exported'))
+    return true
+  }
+  const doExport = async () => { if (await saveFile(buildJson())) toast(t('Backup exported')) }
+  const doExportZip = async () => {
+    const file = await buildZip()
+    if (file && await saveFile(file) && !file.missing) toast(t('Backup exported'))
   }
   // Import takes the JSON backup and the zip alike, told apart by their first bytes. A zip's
   // files go into the local store only once the import is confirmed, each checked against its
@@ -100,5 +101,5 @@ export function useDataActions() {
     })
   }
 
-  return { doExport, doExportZip, doImport, importFromApp, importFromHevy }
+  return { doExport, doExportZip, buildJson, buildZip, saveFile, doImport, importFromApp, importFromHevy }
 }
