@@ -348,7 +348,7 @@ describe('G4 and G7', () => {
     const views = routeViewsWithoutPage()
     expect(views).toContain('Workout')
     expect(views).not.toContain('SettingsRoute')
-    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'CreateExercise', 'FocusView', 'Home', 'Login', 'MobileOnboarding', 'PlanImportPage', 'PlanScreen', 'TrainHub', 'Workout'])
+    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'CreateExercise', 'FocusView', 'History', 'Home', 'Login', 'MobileOnboarding', 'MuscleScreen', 'PlanImportPage', 'PlanScreen', 'TrainHub', 'TrainingLoad', 'Workout'])
     expect(now.G4).not.toContain('Workout')
   })
 

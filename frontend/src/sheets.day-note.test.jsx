@@ -15,7 +15,6 @@ import { activityOf } from './views/train/load/use-training-load.js'
 import History from './views/History.jsx'
 import { historyRows } from './views/train/history/use-history.js'
 import { withDayNote, dayNoteOf } from './lib/day-notes.js'
-import { fmtDate } from './lib/format.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const S = () => useStore.getState().S
