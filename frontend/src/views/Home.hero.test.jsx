@@ -1,16 +1,22 @@
 // @vitest-environment happy-dom
-// Home's hero and the action row's first slot in each training state (ux-redesign-tabs §1.1):
-// planned (Start), done (Workout), rest (Workout), running (Resume), an open edit (Edit), a past
-// day (Log workout); and the hero's ⋯ with "Choose a different workout" — the way to the Start
-// screen when a plan already owns today, since Start goes straight into it — and "Change this
-// day".
+// Today's Up next in each training state (board T10Today, PR01 variants): planned (play), done
+// (trophy), rest (Recover, the next session), running (Resume), an open edit, no plan; and the
+// training profile's ring and week. Then Training's hero and its action row's first slot, on the
+// day every tab shares (ux-redesign-tabs §1.1): planned (Start), done (Workout), rest (Workout),
+// running (Resume), an open edit (Edit), a past day (Log workout); and the hero's ⋯ with "Choose a
+// different workout" — the way to the Start screen when a plan already owns today, since Start goes
+// straight into it — and "Change this day". Last, the week card Today replaced (HomeWeek, swept
+// with the old Home parts in M6).
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
-import { useDiarySelection } from '../lib/nutrition/selection.js'
+import { useDiarySelection, useDiaryTarget } from '../lib/nutrition/selection.js'
 import { fmtDate, isoOf, todayISO } from '../lib/format.js'
 import { dayOverrideSheet, logPastWorkoutSheet, menuSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
+import HomeWeek from '../components/HomeWeek.jsx'
+import TrainingHero from '../components/TrainingHero.jsx'
+import TrainingSlot from '../components/TrainingSlot.jsx'
 import Home from './Home.jsx'
 
 const nav = vi.fn()
@@ -42,7 +48,14 @@ const setS = (over = {}) => useStore.setState(s => ({
   S: { ...s.S, routines, dayPlan: {}, workouts: [], active: null, weighIn: false, queue: null, scheduleMode: null, week: EVERY_DAY, ...over },
   user: null,
 }))
-const mount = () => act(() => root.render(<Home />))
+function TrainingDay() {
+  const { date } = useDiaryTarget(null)
+  return <><TrainingHero date={date} /><TrainingSlot date={date} /><HomeWeek /></>
+}
+const mount = () => act(() => root.render(<TrainingDay />))
+const mountToday = () => act(() => root.render(<Home />))
+const upNext = () => [...host.querySelectorAll('.g-grow-body > *')].map(e => e.textContent)
+const row = () => host.querySelector('.g-grow')
 const hero = () => ({
   eyebrow: host.querySelector('.hero-e')?.textContent ?? null,
   title: host.querySelector('.hero-t').textContent,
@@ -56,7 +69,80 @@ const menu = () => {
   return menuSheet.mock.calls.at(-1)[0].items.filter(Boolean)
 }
 
-describe('Home — the hero and the first action', () => {
+describe('Today — Up next', () => {
+  it('a planned day: training today, the routine and its exercises; the play starts it', () => {
+    setS(); mountToday()
+    expect(upNext()).toEqual(['Training today', 'Push', '2 exercises'])
+    expect(row().querySelector('.g-trail-solid')).toBeTruthy()
+    tap(row())
+    expect(startFlow).toHaveBeenCalledWith(['r1'])
+  })
+
+  it('a day changed in the plan says so', () => {
+    setS({ week: {}, dayPlan: { [TODAY]: 'r1' } }); mountToday()
+    expect(upNext()[2]).toBe('2 exercises · rescheduled')
+  })
+
+  it('a rest day: recover, and the next session; it opens the plan', () => {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+    setS({ week: { [tomorrow.getDay()]: ['r1'] } }); mountToday()
+    expect(upNext()[0]).toBe('Rest day')
+    expect(upNext()[1]).toBe('Recover')
+    expect(upNext()[2]).toMatch(/^Next: Push, \w+$/)
+    tap(row())
+    expect(nav).toHaveBeenCalledWith('/train/schedule')
+    expect(startFlow).not.toHaveBeenCalled()
+  })
+
+  it('done: the session with its time and PRs, opening it', () => {
+    const start = Date.now() - 60 * 60000
+    const w = { id: 'w1', d: TODAY, start, end: start + 52 * 60000, routineIds: ['r1'], routineId: 'r1', name: 'Push', prs: ['a', 'b'], entries: [] }
+    setS({ workouts: [w] }); mountToday()
+    expect(upNext()).toEqual(['Done today', 'Push', '52 min · 2 PRs'])
+    tap(row())
+    expect(workoutDetailSheet).toHaveBeenCalledWith(w)
+  })
+
+  it('running: Resume goes back to it', () => {
+    setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } }); mountToday()
+    expect(upNext()).toEqual(['Workout running', 'Push'])
+    expect(row().querySelector('.g-trail-pill').textContent).toBe('Resume')
+    tap(row())
+    expect(nav).toHaveBeenCalledWith('/train/workout')
+  })
+
+  it('an open editor on a saved workout reads as an edit and goes back to it', () => {
+    setS({ active: { id: 'w', name: 'Push', start: 1000, cur: 0, entries: [], editingWorkoutId: 'w' } }); mountToday()
+    expect(upNext()).toEqual(['Editing a saved workout', 'Push'])
+    tap(row())
+    expect(nav).toHaveBeenCalledWith('/train/workout')
+  })
+
+  it('no plan yet: the way to one in Training', () => {
+    setS({ routines: [], week: {} }); mountToday()
+    expect(upNext()).toEqual(['No plan yet', 'Choose a plan any time in Train'])
+    tap(row())
+    expect(nav).toHaveBeenCalledWith('/train')
+  })
+
+  it('the training profile: the week\'s workouts as one ring, today\'s session on its pill, each day marked', () => {
+    const now = Date.now()
+    setS({ workouts: [{ id: 'w', d: TODAY, start: now - 3600000, end: now, routineIds: ['r1'], routineId: 'r1', name: 'Push', entries: [] }] }); mountToday()
+    expect(host.querySelector('.g-rc-slide').getAttribute('aria-label')).toBe('Workouts: 1 of 7 workouts. Open details')
+    expect([...host.querySelectorAll('.g-ssec')].map(s => s.textContent)).toContain('This week1 of 7 done')
+    const cells = [...host.querySelectorAll('.g-wk-cell')]
+    expect(cells).toHaveLength(7)
+    const todayCell = cells.find(c => c.querySelector('.g-wk-done') && c.getAttribute('aria-label').endsWith('Done'))
+    expect(todayCell).toBeTruthy()
+  })
+
+  it('the pill names the session planned today', () => {
+    setS(); mountToday()
+    expect(host.querySelector('.g-rc-pill').textContent).toBe('Push today')
+  })
+})
+
+describe('Training — the hero and the first action', () => {
   it('a planned day: the routine and its exercises; Start starts it', () => {
     setS(); mount()
     expect(hero()).toEqual({ eyebrow: null, title: 'Push', caption: '2 exercises' })
@@ -176,7 +262,7 @@ describe('Home — the hero and the first action', () => {
   })
 })
 
-describe('Home — This week', () => {
+describe('This week card', () => {
   it('with no routines, welcomes with a starter plan or your own', () => {
     setS({ routines: [], week: {} }); mount()
     expect(host.textContent).toContain('Welcome!')

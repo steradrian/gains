@@ -1,0 +1,41 @@
+/* Today on the stage (TodayScreen.jsx). The stage is full bleed (index.css #app:has(> .g-screen));
+   the screen pads itself under the status bar and keeps the boards' 150px of air above the
+   floating tab bar. The kit's parts carry their own gutters. */
+.today{padding-top:var(--sat);padding-bottom:calc(150px + var(--sab))}
+.today-alert{padding:12px 16px 0}
+/* T11Loading: Up next and the meal tiles as glass blocks. */
+.today-sk-row{display:block;height:84px;margin:70px 16px 0;border-radius:28px}
+.today-sk-tiles{display:flex;gap:10px;padding:70px 16px 0;overflow:hidden}
+.today-sk-tiles i{display:block;flex:none;width:138px;height:154px;border-radius:28px}
+.today-sk-tiles i:last-child{width:80px}
+
+/* Today's first visit, straight from the onboarding Summary (lib/onboarding/handover.js,
+   motion-onboarding-summary-v2 §3): the sections come in once in reading order, transform and
+   opacity only, ms from the View Transition's start. Never on a tab visit; input is never held. */
+html.home-first .today .g-shdr{animation:home-in 160ms linear both}
+html.home-first .today .g-sring-in,html.home-first .today .g-rc-pill,html.home-first .today .g-rc-dots{animation:home-in 160ms linear 160ms both}
+html.home-first .today .g-gact{animation:home-disc 240ms var(--ease) both}
+html.home-first .today .g-gact:nth-child(1){animation-delay:300ms}
+html.home-first .today .g-gact:nth-child(2){animation-delay:340ms}
+html.home-first .today .g-gact:nth-child(3){animation-delay:380ms}
+html.home-first .today .g-gact:nth-child(4){animation-delay:420ms}
+html.home-first .today .g-ssec,html.home-first .today .g-grow{animation:home-up 200ms var(--ease) 360ms both}
+html.home-first .today .g-tiles,html.home-first .today .g-wk{animation:home-up 240ms var(--ease) 420ms both}
+html.home-first .today .g-water{animation:home-up 240ms var(--ease) 480ms both}
+html.home-first #tabbar{animation:home-bar 320ms var(--ease) 120ms both}
+@keyframes home-in{from{opacity:0}}
+@keyframes home-up{from{opacity:0;transform:translateY(6px)}}
+@keyframes home-disc{from{opacity:0;transform:scale(.92)}}
+@keyframes home-bar{from{transform:translateY(100%)}}
+/* Reduced motion: Today replaces the Summary with one 120ms fade, nothing else moves. */
+html.home-fade.home-fade #app{animation:home-in 120ms linear both!important}
+/* The Summary's thread lands on the hero ring's edge: a vertical line (stage A closed the ring
+   into the target) on the 9 o'clock tangent, a horizontal one (vt-flat: the ghost arc) on the
+   12 o'clock tangent, so a snapshot is never stretched into the other shape. The first page of
+   the rings is there in every profile and while loading, so the name is never orphaned; one
+   element holds it in each case. */
+html.vt-handover:not(.vt-flat) .today .g-rc-slide:first-child .g-sring-land-v,html.vt-handover.vt-flat .today .g-rc-slide:first-child .g-sring-land-h{view-transition-name:thread}
+::view-transition-group(thread){animation-duration:400ms;animation-timing-function:cubic-bezier(.2,0,0,1)}
+html.vt-handover::view-transition-old(root){animation:home-out 140ms linear both}
+html.vt-handover::view-transition-new(root){animation:home-in 200ms linear 60ms both}
+@keyframes home-out{to{opacity:0}}

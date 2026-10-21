@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // The plan chosen at onboarding that openGym could not set up (the hub's state: plan refused, the
-// rest of the write in): Home's This week (components/HomeWeek.jsx) says so in place of the
-// welcome, with Training to pick one, until a plan exists.
+// rest of the write in): Today's Up next says so in place of "No plan yet", with Training to pick
+// one, until a plan exists.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -16,7 +16,7 @@ vi.mock('../sheets.jsx', () => ({
   calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(), workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
 }))
 // The diary's cards read NutriTrace; this is about the plan only.
-vi.mock('../lib/nutrition/use-diary-day.js', () => ({ useDiaryDay: () => ({ on: false }) }))
+vi.mock('../lib/nutrition/use-diary-day.js', () => ({ useDiaryDay: () => ({ on: false, status: 'idle', settings: null, water: { total: 0, goal: 0 } }) }))
 const hub = vi.hoisted(() => ({ loadOnboarding: vi.fn() }))
 vi.mock('../lib/onboarding/api.js', async original => ({ ...(await original()), ...hub }))
 
@@ -44,21 +44,16 @@ const setS = (over = {}) => useStore.setState(s => ({
 const mount = async () => { await act(async () => { root.render(<Home />) }); await act(async () => { await Promise.resolve() }) }
 const text = () => host.textContent
 
-describe('Home — a plan the onboarding could not set up', () => {
-  it('says so, in place of the welcome, and opens Training to pick one', async () => {
+describe('Today — a plan the onboarding could not set up', () => {
+  it('says so in Up next, in place of "No plan yet", and opens Training to pick one', async () => {
     hub.loadOnboarding.mockResolvedValue(REFUSED)
     setS()
     await mount()
     expect(text()).toContain('Your plan couldn’t be set up')
     expect(text()).toContain('Pick one in Training.')
-    expect(text()).not.toContain('Welcome!')
-    const empty = host.querySelector('.empty[data-surface=page]')
-    expect(empty.querySelector('.lineart[data-scene=routine]')).not.toBeNull()
-    expect(empty.closest('.card')).toBeNull()
     // The read is for the signed-in person, named to the hub.
     expect(hub.loadOnboarding).toHaveBeenCalledWith('u1')
-    const open = [...host.querySelectorAll('button')].find(b => b.textContent.includes('Open Training'))
-    act(() => { open.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+    act(() => { host.querySelector('.g-grow').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
     expect(nav).toHaveBeenCalledWith('/train')
   })
 
@@ -70,17 +65,17 @@ describe('Home — a plan the onboarding could not set up', () => {
     expect(hub.loadOnboarding).not.toHaveBeenCalled()
   })
 
-  it('shows the welcome as before when no plan was refused, or the hub cannot be asked', async () => {
+  it('says "No plan yet" as before when no plan was refused, or the hub cannot be asked', async () => {
     hub.loadOnboarding.mockResolvedValue({ completedAt: 1, delivery: { opengym: 'done', nutritrace: 'done' }, plan: null })
     setS()
     await mount()
-    expect(text()).toContain('Welcome!')
+    expect(text()).toContain('No plan yet')
     expect(text()).not.toContain('Your plan couldn’t be set up')
     act(() => root.unmount())
     root = createRoot(host)
     _forgetPlanRefused()
     hub.loadOnboarding.mockRejectedValue(Object.assign(new Error('x'), { code: 'offline' }))
     await mount()
-    expect(text()).toContain('Welcome!')
+    expect(text()).toContain('No plan yet')
   })
 })

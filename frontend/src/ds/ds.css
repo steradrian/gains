@@ -513,6 +513,26 @@ button.g-bs-chip { cursor: pointer; }
   .g-tab-ind, .g-tab-ind-ready, .g-gtabbar .g-tab, .g-gtabbar .g-plus { transition: none; }
 }
 
+/* === StageWeekMarks: the week with a mark a day (bundle.js StageWeekStrip marks, board T1ETraining) === */
+.g-wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; margin: 0 16px; padding: 16px 8px; border-radius: 28px; color: var(--on-stage); }
+.g-wk-cell { appearance: none; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; color: inherit; font: inherit; text-decoration: none; border-radius: 18px; }
+a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
+.g-wk-dow { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-wk-m { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+.g-wk-m .g-icon { width: 16px; height: 16px; stroke-width: 3; }
+.g-wk-done { background: var(--on-stage); color: var(--accent-stage-end); }
+.g-wk-today { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-wk-planned { box-shadow: inset 0 0 0 1.5px var(--glass-line); background: var(--glass); }
+.g-wk-missed { box-shadow: inset 0 0 0 1.5px var(--g-ring-over); color: var(--g-ring-over); }
+.g-wk-rest i { width: 6px; height: 6px; border-radius: 50%; background: var(--glass-track); }
+
+/* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
+   vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
+   never painted: the line arrives on the ring's own edge and is gone. */
+.g-sring-land { position: absolute; pointer-events: none; }
+.g-sring-land-v { width: 1px; height: 64px; }
+.g-sring-land-h { width: 64px; height: 1px; }
+
 /* Accent presets. The design system selects them by data-accent on any ancestor (it expects
    <html>); the app's <html data-accent> holds its own accents (sky, lime…), so here they are read
    from the .g-root itself (StageScreen). Cobalt is the default. */

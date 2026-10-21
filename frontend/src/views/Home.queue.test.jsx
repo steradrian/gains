@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// A coach week (S.queue) runs by order, not by weekday, so Home's This week card carries its
-// progress row. Covered here: one chip per session in slot order with its state word, a tap on
+// A coach week (S.queue) runs by order, not by weekday, so the This week card (HomeWeek, which
+// Today replaced; swept in M6) carries its progress row, beside Training's hero and first action. Covered here: one chip per session in slot order with its state word, a tap on
 // an undone chip starting that routine alone, a done chip staying inert, the status line's
 // states, the hero and the action row answering through the same helper, and a session pinned to
 // a day (S.dayPlan[iso] = queue routine id) wearing its day on the chip and yielding the light.
@@ -10,8 +10,10 @@ import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { startFlow } from '../sheets.jsx'
 import { todayISO, isoOf, fmtDate } from '../lib/format.js'
-import Home from './Home.jsx'
 import { setLang } from '../lib/i18n.js'
+import HomeWeek from '../components/HomeWeek.jsx'
+import TrainingHero from '../components/TrainingHero.jsx'
+import TrainingSlot from '../components/TrainingSlot.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {}, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
@@ -51,7 +53,8 @@ afterEach(() => {
 const setS = (over = {}) => useStore.setState(s => ({
   S: { ...s.S, routines, week: {}, dayPlan: {}, workouts: [], active: null, queue: queue(), rotation: null, scheduleMode: null, ...over }, user: null,
 }))
-const mount = () => act(() => root.render(<Home />))
+const TODAY = todayISO()
+const mount = () => act(() => root.render(<><TrainingHero date={TODAY} /><TrainingSlot date={TODAY} /><HomeWeek /></>))
 const chips = () => [...host.querySelectorAll('.queue .chip')]
 const chipTexts = () => chips().map(c => c.textContent)
 const status = () => host.querySelector('.queue .queue-status')?.textContent

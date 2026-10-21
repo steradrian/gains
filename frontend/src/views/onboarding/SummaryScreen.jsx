@@ -18,7 +18,6 @@ import { useCount } from '../../lib/onboarding/use-count.js'
 import { useFinish } from '../../lib/onboarding/use-finish.js'
 import { COUNT, GHOST, RING, useSummaryMotion } from '../../lib/onboarding/use-summary-motion.js'
 import { TARGET_SETTINGS, kcalText, useTarget } from '../../lib/onboarding/use-target.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -32,7 +31,7 @@ import { useUI } from '../../store/useUI.js'
 // or Adjust.
 //
 // Go to Today finishes the onboarding (lib/onboarding/use-finish.js) and hands over: the ring
-// unwinds into the line that lands on Home's hero (lib/onboarding/handover.js). What could not be
+// unwinds into the line that lands on Today's hero ring (lib/onboarding/handover.js). What could not be
 // set up stays here, with where to put it right.
 const MACROS = () => [
   { key: 'proteinG', label: t('Protein') },
@@ -69,9 +68,9 @@ export default function SummaryScreen() {
   const kind = full ? 'ring' : 'ghost'
   const starter = answers.plan?.kind === 'starter' && answers.trainingDays > 0 ? answers.plan : null
   const motion = useSummaryMotion(screen, kind, { zeroDays: answers.trainingDays === 0, lit: starter?.weekdays.length ?? 0 })
-  // Home's hero has its 1×64 split (the thread's vertical end) only with nutrition, and the ring
-  // only turns into that line where there is a target; otherwise the line is a horizontal one.
-  const vertical = !!targets && nutritionAvailable(user)
+  // The ring only turns into a vertical line where there is a target; otherwise the line is a
+  // horizontal one. Today's hero ring takes either, on the tangent of its own shape.
+  const vertical = !!targets
   const { finish, status, setbacks, leave } = useFinish({
     home: () => handOver({ unwind: motion.unwind, go: () => leave('/home'), flat: !vertical }),
   })

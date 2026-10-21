@@ -130,6 +130,23 @@ describe('the screens gallery', () => {
     sessionStorage.clear()
   })
 
+  it('has Today T1.0 to T1.2 and its two profiles', async () => {
+    const ids = screenAreas().find(a => a.name === 'Today').entries.map(e => e.id)
+    expect(ids).toEqual(['T1.0', 'T1.1', 'T1.2', 'T1.E-food', 'T1.E-training'])
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('T1.0', h => {
+      expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(4)
+      expect([...h.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Up next', 'Food', 'Water'])
+    })
+    await check('T1.1', h => expect(h.querySelector('.g-rcb[aria-busy="true"]')).toBeTruthy())
+    await check('T1.E-food', h => expect(h.querySelector('.g-grow')).toBeNull())
+    await check('T1.E-training', h => {
+      expect(h.querySelectorAll('.g-rc-slide')).toHaveLength(1)
+      expect(h.querySelectorAll('.g-wk-cell')).toHaveLength(7)
+      expect(h.querySelector('.g-tiles')).toBeNull()
+    })
+  })
+
   it('has a unique id and a title for every state', () => {
     expect(new Set(states.map(e => e.id)).size).toBe(states.length)
     for (const e of states) { expect(e.title, e.id).toBeTruthy(); expect(screenById(e.id)).toBe(e) }

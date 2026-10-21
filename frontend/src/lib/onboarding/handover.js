@@ -2,16 +2,16 @@ import { useLayoutEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { onReducedMotion, reducedMotion } from '../reduced-motion.js'
 
-// The Summary's hand-over into Home (fitness-eval motion-onboarding-summary-v2 §3, §4). Stage A,
+// The Summary's hand-over into Today (fitness-eval motion-onboarding-summary-v2 §3, §4). Stage A,
 // the unwind, runs on the Summary (the ring turns back into a line); stage B is a View Transition
-// in which Home mounts and the line, named `thread`, moves onto Home's hero hairline (a vertical
-// line) or the MonthBar's (a horizontal one: the ghost arc, or where Home's hero has none). The
-// names live in CSS under html.vt-handover, so they exist only from just before the transition
-// starts until it has finished; html.vt-flat says the line is horizontal, and the orphan guard
-// (no hero hairline on the DOM Home mounts) is decided in tab-kit.css.
+// in which Today mounts and the line, named `thread`, moves onto the edge of Today's first hero
+// ring: its 9 o'clock tangent for a vertical line, its 12 o'clock one for a horizontal line (the
+// ghost arc). The names live in CSS under html.vt-handover (views/today/today.css), so they exist
+// only from just before the transition starts until it has finished; html.vt-flat says the line
+// is horizontal.
 //
-// kcal-value and water-value are not named: Home reads the diary after it mounts, so on the frame
-// the transition captures its hero may still show dashes, not the target (the spec's fallback:
+// kcal-value and water-value are not named: Today reads the diary after it mounts, so on the frame
+// the transition captures its ring may still be the skeleton, not the target (the spec's fallback:
 // those parts crossfade with the page).
 //
 // Home's first visit plays its cascade once (firstHome): the flag is taken by the first Home that

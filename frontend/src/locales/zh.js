@@ -1,5 +1,24 @@
 // Simplified Chinese UI strings. Keys are the English source strings (see lib/i18n.js).
 export default {
+  // --- Today screen: English until the translation pass ---
+  'Left today': 'Left today',
+  'Over today': 'Over today',
+  'Protein left': 'Protein left',
+  'Carbs left': 'Carbs left',
+  'Fat left': 'Fat left',
+  '{0} of {1}': '{0} of {1}',
+  '{0} over {1}': '{0} over {1}',
+  '{0} burned': '{0} burned',
+  '{0} today': '{0} today',
+  '{0} of {1} done': '{0} of {1} done',
+  'Training today': 'Training today',
+  'Workout running': 'Workout running',
+  'Done today': 'Done today',
+  'Recover': 'Recover',
+  'Next: {0}, {1}': 'Next: {0}, {1}',
+  'See day': 'See day',
+  'Add now': 'Add now',
+  'Weigh-in': 'Weigh-in',
   // --- App chrome (GlassTabBar): English until the translation pass ---
   'Train': 'Train',
   'Eat': 'Eat',

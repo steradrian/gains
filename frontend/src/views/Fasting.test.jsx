@@ -15,6 +15,7 @@ import { useFasting } from '../lib/nutrition/use-fasting.js'
 import { createFakeNutriTrace, fixtureDay, fixtureFast, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import Fasting from './Fasting.jsx'
 import Home from './Home.jsx'
+import TodayFastRow from '../components/TodayFastRow.jsx'
 import { openPlusSheet } from '../components/PlusSheet.jsx'
 
 const navigate = vi.fn()
@@ -268,10 +269,12 @@ describe('the Fasting page', () => {
   })
 })
 
-describe('fasting on Home and in the + sheet', () => {
-  it('Home shows the running fast on the Today card and opens the page', async () => {
+// The running fast is Nutrition's today row (TodayFastRow, on FoodHub); Today has no slot for it.
+describe('fasting on Nutrition, not on Today, and in the + sheet', () => {
+  it('the today row shows the running fast and opens the page', async () => {
     useFake({ fasts: [running(3.5 * H)] })
-    await mount(<Home />)
+    await useNutrition.getState().loadSettings()
+    await mount(<TodayFastRow />)
     const row = host.querySelector('.today-fast')
     expect(row.textContent).toContain('Fasting for 3h 30m')
     expect(row.textContent).toContain('12h 30m to go')
@@ -279,14 +282,22 @@ describe('fasting on Home and in the + sheet', () => {
     expect(navigate).toHaveBeenCalledWith('/food/fasting')
   })
 
+  it('Today shows no fast, even a running one', async () => {
+    useFake({ fasts: [running(3.5 * H)] })
+    await mount(<Home />)
+    expect(host.querySelector('.today-fast')).toBeNull()
+  })
+
   it('shows nothing about fasting while it is off, or while no fast runs', async () => {
     useFake({ settings: fixtureSettings(), fasts: [running(3 * H)] })
-    await mount(<Home />)
+    await useNutrition.getState().loadSettings()
+    await mount(<TodayFastRow />)
     expect(host.querySelector('.today-fast')).toBeNull()
     expect(nt.requests.some(r => r.path.includes('/fasts'))).toBe(false)
     useFasting.getState().reset()
     useFake({ fasts: [] })
-    await mount(<Home key="idle" />)
+    await useNutrition.getState().loadSettings({ force: true })
+    await mount(<TodayFastRow key="idle" />)
     expect(host.querySelector('.today-fast')).toBeNull()
   })
 

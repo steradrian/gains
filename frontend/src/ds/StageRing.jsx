@@ -1,3 +1,6 @@
+// The onboarding Summary's thread is a 1×64 line (motion-onboarding-summary-v2 §3)
+const LAND = 64
+
 // A single hero ring on the stage (bundle.js `StageRing`): `value` of `max` in white, three lines
 // inside (`top`, the number `big`, `unit`). `over` (0-1, how far past the target as a share of
 // it) adds an amber arc on top of the closed ring; amber is the whole message, so there is no red
@@ -30,6 +33,8 @@ export default function StageRing({ value = 0, max = 1, over = 0, top, big, unit
         {!loading && filled > 0 && arc(filled, 'g-sring-val')}
         {!loading && over > 0 && arc(Math.min(over, 1), 'g-sring-over')}
       </svg>
+      <i className="g-sring-land g-sring-land-v" aria-hidden="true" style={{ left: c - r, top: c - LAND / 2 }} />
+      <i className="g-sring-land g-sring-land-h" aria-hidden="true" style={{ left: c - LAND / 2, top: c - r }} />
       <span className="g-sring-in">
         {loading
           ? <><i className="g-skel g-sring-sk-n" /><i className="g-skel g-sring-sk-l" /></>

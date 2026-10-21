@@ -477,56 +477,6 @@
 .lineart.rm-fade{animation:il-fade 120ms var(--ease) both}
 @keyframes il-fade{from{opacity:0}}
 
-/* Home's first visit, straight from the onboarding Summary (lib/onboarding/handover.js,
-   motion-onboarding-summary-v2 §3): the sections come in once in reading order, transform and
-   opacity only, ms from the View Transition's start. Never on a tab visit; input is never held. */
-html.home-first .tab-hdr{animation:home-in 160ms linear both}
-html.home-first .month-bar-l,html.home-first .month-bar-today{animation:home-up 200ms var(--ease) 60ms both}
-html.home-first .wk-d{animation:home-up 200ms var(--ease) both}
-html.home-first .wk-dot.plan{animation:home-pop 160ms var(--ease) both}
-html.home-first .wk-d:nth-child(1){animation-delay:100ms}
-html.home-first .wk-d:nth-child(2){animation-delay:124ms}
-html.home-first .wk-d:nth-child(3){animation-delay:148ms}
-html.home-first .wk-d:nth-child(4){animation-delay:172ms}
-html.home-first .wk-d:nth-child(5){animation-delay:196ms}
-html.home-first .wk-d:nth-child(6){animation-delay:220ms}
-html.home-first .wk-d:nth-child(7){animation-delay:244ms}
-html.home-first .wk-d:nth-child(1) .wk-dot.plan{animation-delay:268ms}
-html.home-first .wk-d:nth-child(2) .wk-dot.plan{animation-delay:308ms}
-html.home-first .wk-d:nth-child(3) .wk-dot.plan{animation-delay:348ms}
-html.home-first .wk-d:nth-child(4) .wk-dot.plan{animation-delay:388ms}
-html.home-first .wk-d:nth-child(5) .wk-dot.plan{animation-delay:428ms}
-html.home-first .wk-d:nth-child(6) .wk-dot.plan{animation-delay:468ms}
-html.home-first .wk-d:nth-child(7) .wk-dot.plan{animation-delay:508ms}
-html.home-first .hero-g,html.home-first .hero-e{animation:home-in 160ms linear 160ms both}
-html.home-first .act-b{animation:home-disc 240ms var(--ease) both}
-html.home-first .act-b:nth-child(1){animation-delay:300ms}
-html.home-first .act-b:nth-child(2){animation-delay:340ms}
-html.home-first .act-b:nth-child(3){animation-delay:380ms}
-html.home-first .act-b:nth-child(4){animation-delay:420ms}
-html.home-first .hero .hero-c{animation:home-in 200ms linear 360ms both}
-html.home-first .home-meals{animation:home-up 200ms var(--ease) 360ms both}
-html.home-first .home-week{animation:home-up 240ms var(--ease) 420ms both}
-html.home-first .home-body{animation:home-up 240ms var(--ease) 480ms both}
-html.home-first #tabbar{animation:home-bar 320ms var(--ease) 120ms both}
-@keyframes home-in{from{opacity:0}}
-@keyframes home-up{from{opacity:0;transform:translateY(6px)}}
-@keyframes home-pop{from{opacity:0;transform:scale(.4)}}
-@keyframes home-disc{from{opacity:0;transform:scale(.92)}}
-@keyframes home-bar{from{transform:translateY(100%)}}
-/* Reduced motion: Home replaces the Summary with one 120ms fade, nothing else moves. */
-html.home-fade.home-fade #app{animation:home-in 120ms linear both!important}
-/* The Summary's thread lands on the hero's hairline when stage A left a vertical line, and on the
-   MonthBar's when it left a horizontal one (vt-flat: the ghost arc, never closed into a number), so
-   a snapshot is never stretched into the other shape. Where Home's hero has no hairline (no
-   nutrition) the MonthBar's takes the name whatever the shape: picked on the DOM Home mounts, so
-   it can never be orphaned. One element holds the name in each case. */
-html.vt-handover:not(.vt-flat) .hero-hair,html.vt-handover.vt-flat .month-bar-hair,html.vt-handover:not(:has(.hero-hair)) .month-bar-hair{view-transition-name:thread}
-::view-transition-group(thread){animation-duration:400ms;animation-timing-function:cubic-bezier(.2,0,0,1)}
-html.vt-handover::view-transition-old(root){animation:home-out 140ms linear both}
-html.vt-handover::view-transition-new(root){animation:home-in 200ms linear 60ms both}
-@keyframes home-out{to{opacity:0}}
-
 /* Reduced motion (ui-redesign-components §1): a press dims to .6 instead of scaling. The two
    blocks are the same rules, since a media query and an attribute selector cannot share one;
    tab-kit.reduced-motion.test.js keeps them whole. */
