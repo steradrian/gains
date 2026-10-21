@@ -31,9 +31,8 @@ export default function DevKitShared() {
         <StageNavBar title="From a link" backHref={SELF} />
       </Section>
 
-      <Section title="StageSection variants" note="line: a status with a glass pill (2 new, Mark all read), then the read state as plain text; label: the small heading over a group.">
+      <Section title="StageSection variants" note="line: a status with a glass pill (2 new, Mark all read), shown only while something is unread; label: the small heading over a group.">
         <StageSection variant="line" title="2 new" action="Mark all read" onAction={NOOP} />
-        <StageSection variant="line" title="All read" action="Nothing unread" />
         <StageSection variant="label" title="New" />
       </Section>
 
@@ -67,7 +66,7 @@ export default function DevKitShared() {
       </Section>
 
       <Section title="StageNote" note="The fine print at the foot of a pushed page.">
-        <StageNote>Kept for 30 days. The reminders you set live in Me › Reminders.</StageNote>
+        <StageNote>Kept for 30 days.</StageNote>
       </Section>
     </>
   )
