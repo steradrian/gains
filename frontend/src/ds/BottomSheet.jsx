@@ -18,7 +18,9 @@ const TYPES = ['auto', 'half', 'full']
 // scrim and drag to dismiss, the page lock and the keyboard. The drawer only draws, on the refs
 // the frame gives it. The × runs `onClose`, else the frame's dismiss (the scrim's, so a sheet's
 // onDismiss runs either way). Outside the frame it draws itself open and still.
-export default function BottomSheet({ title, chip, onChip, type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
+// `chipLabel` names a tappable chip that goes somewhere rather than says where it logs (a past
+// workout's date, which opens that day).
+export default function BottomSheet({ title, chip, onChip, chipLabel, type = 'auto', onClose, closeHref, scrim = true, head, footer, children }) {
   oneOf('BottomSheet', 'type', type, TYPES)
   const frame = useContext(SheetFrameContext)
   const accent = useStore(s => dsAccentFor(s.S))
@@ -34,7 +36,7 @@ export default function BottomSheet({ title, chip, onChip, type = 'auto', onClos
       <div className="g-bs-head">
         <h2 id={titleId}>{title}</h2>
         {chip && (onChip
-          ? <button type="button" className="g-bs-chip" onClick={onChip} aria-label={t('Logging to {0}', chip)}><Icon name="calendar" className="g-icon" />{chip}</button>
+          ? <button type="button" className="g-bs-chip" onClick={onChip} aria-label={chipLabel || t('Logging to {0}', chip)}><Icon name="calendar" className="g-icon" />{chip}</button>
           : <span className="g-bs-chip"><Icon name="calendar" className="g-icon" />{chip}</span>)}
         {hasClose && (closeHref
           ? <a href={closeHref} onClick={onClose} className="g-bs-x" aria-label={t('Close')}><Icon name="xmark" className="g-icon" /></a>

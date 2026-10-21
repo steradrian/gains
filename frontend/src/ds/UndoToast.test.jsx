@@ -25,6 +25,13 @@ describe('UndoToast, drawn', () => {
     click(q('.g-utoast-undo'))
     expect(onUndo).toHaveBeenCalledTimes(1)
     expect(q('.g-utoast-undo').textContent).toBe('Undo')
+    expect(q('.g-utoast-body')).toBeNull()
+  })
+
+  it('carries a second line under the message when given a body', () => {
+    view.render(<UndoToast message="Deleted Push A from Mon 12 Oct" body="Its 2 photos or videos are deleted with it." onUndo={() => {}} />)
+    expect(q('.g-utoast-body').textContent).toBe('Its 2 photos or videos are deleted with it.')
+    expect(q('.g-utoast-msg').textContent).toBe('Deleted Push A from Mon 12 OctIts 2 photos or videos are deleted with it.')
   })
 
   it('names another action, as a link with an href', () => {

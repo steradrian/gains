@@ -587,6 +587,7 @@ button.g-bs-chip { cursor: pointer; }
 .g-utoast-ic { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--g-toast-fill); }
 .g-utoast-ic .g-icon { width: 16px; height: 16px; stroke-width: 2.6; }
 .g-utoast-msg { flex: 1; min-width: 0; font: 500 15px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-utoast-body { display: block; margin-top: 2px; font: 500 13px/18px var(--font-sans); opacity: .72; }
 .g-utoast-undo { appearance: none; border: 0; flex: none; height: 40px; padding: 0 14px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; background: var(--g-toast-fill); color: var(--g-white); font: 700 15px/20px var(--font-sans); cursor: pointer; text-decoration: none; }
 .g-utoast-undo:focus-visible { outline-color: var(--g-white); }
 .g-utoast-drain { display: block; height: 3px; background: var(--g-toast-drain); transform-origin: left; animation: g-drain var(--dur, 8s) linear both; }
