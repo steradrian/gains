@@ -58,7 +58,11 @@ describe('DevKit', () => {
   it('renders the shared pages entries', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
-    expect(titles).toEqual(expect.arrayContaining(['Shared: pages', 'StageNavBar']))
+    expect(titles).toEqual(expect.arrayContaining(['Shared: pages', 'StageNavBar', 'StageSection variants', 'NotificationRow']))
     expect(view.host.querySelectorAll('.g-snav')).toHaveLength(7)
+    expect(view.host.querySelectorAll('.g-ssec-line')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ngroup')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-nrow')).toHaveLength(9)
+    expect(view.host.querySelectorAll('.g-nrow-new')).toHaveLength(3)
   })
 })
