@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import ExerciseStillImg from './ExerciseStillImg.jsx'
 import RoutineTiles from '../ds/RoutineTiles.jsx'
+import StageTrainCard from '../ds/StageTrainCard.jsx'
 import { registerCustom } from '../lib/exercises.js'
 import { createMediaStore, memoryBackend, _setMediaStore } from '../lib/media-store.js'
 
@@ -62,6 +63,31 @@ describe('ExerciseStillImg', () => {
     await mount(<ExerciseStillImg id="c2" size="40" fallback={<b data-testid="fb" />} />)
     expect(host.querySelector('[data-testid="fb"]')).not.toBeNull()
     expect(host.querySelector('i')).toBeNull()
+  })
+})
+
+describe('StageTrainCard and its rows with exercise ids', () => {
+  it('draws the day card\'s stack from ids: a custom exercise with a poster shows it, one without a dumbbell', async () => {
+    const store = createMediaStore(memoryBackend(), { objectURL: { createObjectURL: () => 'blob:t/poster', revokeObjectURL: () => {} } })
+    _setMediaStore(store)
+    await store.put(POSTER, new Blob(['x']), { mime: 'image/webp', pending: false })
+    await mount(<StageTrainCard eyebrow="Workout done" title="Push A" stills={['0025', 'c1', 'c2']} />)
+    const slots = [...host.querySelectorAll('.g-tcard-stack > span')]
+    expect(slots).toHaveLength(3)
+    expect(slots[1].querySelector('img').getAttribute('src')).toBe('blob:t/poster')
+    expect(slots[2].querySelector('img')).toBeNull()
+    expect(slots[2].querySelector('i svg')).not.toBeNull()
+  })
+
+  it('draws a read-only day\'s rows from ids, a custom exercise with its poster', async () => {
+    const store = createMediaStore(memoryBackend(), { objectURL: { createObjectURL: () => 'blob:t/poster', revokeObjectURL: () => {} } })
+    _setMediaStore(store)
+    await store.put(POSTER, new Blob(['x']), { mime: 'image/webp', pending: false })
+    await mount(<StageTrainCard eyebrow="Sat 24 Oct" title="Legs" exercises={[{ id: 'c1', name: 'Sandbag carry', sub: '3 × 10' }, { id: 'c2', name: 'Plain custom' }]} />)
+    const rows = [...host.querySelectorAll('.g-xrow')]
+    expect(rows[0].querySelector('img').getAttribute('src')).toBe('blob:t/poster')
+    expect(rows[1].querySelector('img')).toBeNull()
+    expect(rows[1].querySelector('.g-xrow-ph')).not.toBeNull()
   })
 })
 

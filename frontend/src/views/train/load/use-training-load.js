@@ -2,7 +2,7 @@
 // what they say, worked out from the store's state. Everything but useNow is pure, so it can be
 // tested on its own; the screens only lay it out.
 import { useEffect, useState } from 'react'
-import { dateLocale, t, tn, tnf } from '../../../lib/i18n.js'
+import { dateLocale, t, tn, tnShown } from '../../../lib/i18n.js'
 import { durPart, fmtDate, fmtNum, weekKey, weekStartOf } from '../../../lib/format.js'
 import { activityGrid } from '../../../lib/activity-heatmap.js'
 import { dayNoteLine, dayNoteOf } from '../../../lib/day-notes.js'
@@ -42,7 +42,7 @@ export function useNow() {
 export const recoveryOpts = S => ({ bodyweightKg: bodyweightKgOf(S), unit: S.unit })
 
 /** "1 set", "6.6 sets": a set count that may carry a decimal (secondaries count in part). */
-export const setsText = n => tnf('{0} set', '{0} sets', n, fmtNum(n))
+export const setsText = n => tnShown('{0} set', '{0} sets', n, fmtNum(n))
 
 /* -------------------------------------------------------------- the page -- */
 

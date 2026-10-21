@@ -16,7 +16,7 @@ export { workoutDateSheet, workoutDurationSheet, workoutDetailSheet, calendarShe
 export { editWorkoutSheet, deleteWorkoutWithUndo, openDay, dayWorkoutsSheet } from './sheets/workout-detail.jsx'
 export { shareWorkoutSheet } from './sheets/workout-share.jsx'
 export {
-  startOrResume, startFlow, beginWorkout, repeatWorkout, logPastWorkoutSheet, addRoutineToSessionSheet,
+  startOrResume, startFlow, beginWorkout, repeatWorkout, logPastWorkoutSheet, submitPastWorkout, addRoutineToSessionSheet,
   exerciseNoteSheet, setNoteSheet, sessionNoteSheet, renameWorkoutSheet, supersetSheet, workoutCompleteSheet,
   saveWorkoutEdits, exitWorkoutEdit, setsLine, finishWorkout, finishWorkoutSheet,
 } from './sheets/workout-flow.jsx'

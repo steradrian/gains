@@ -109,17 +109,15 @@ describe('T5.8 the routine menu', () => {
     expect(useUI.getState().toastMsg).toBe('Copied as “Push A (Copy)”.')
   })
 
-  it('Delete routine leaves the editor for the list first, then deletes, and Undo puts it back', () => {
+  it('Delete routine closes the menu, deletes after its entry is gone and leaves the leaving to the editor; Undo puts it back', () => {
     const before = clone(S())
-    // What the store holds as the editor is left: the routine is still there (root cause A,
-    // docs/audits/gains-train-review.md #2). Deleted first, the editor's own redirect wrote the
-    // address in the same commit as the menu's close.
-    let routinesAtNav = null
-    setNav((to, opts) => { navigated = to; how = opts; routinesAtNav = S().routines.map(r => r.id) })
+    // The menu writes no address itself: the editor, on seeing its routine gone, steps back off its
+    // page (use-routine-editor; RoutineEditor.delete-history.test.jsx has the real history). Deleted
+    // while the menu's entry was still open, that step collided with the close (root cause A,
+    // docs/audits/gains-train-review.md #2).
     tap(openMenu(), 'Delete routine')
-    expect(navigated).toBe('/train/routines')
-    expect(how).toEqual({ replace: true })
-    expect(routinesAtNav).toEqual(['push', 'pull', 'empty'])
+    expect(navigated).toBeNull()
+    expect(useUI.getState().sheets).toHaveLength(0)
     expect(S().routines.map(r => r.id)).toEqual(['pull', 'empty'])
     expect(S().week).toEqual({ 1: ['pull'] })
     expect(useUI.getState().toastMsg).toBe('Deleted Push A. Sun and Thu are now rest days')

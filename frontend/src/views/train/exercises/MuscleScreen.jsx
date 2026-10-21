@@ -8,7 +8,7 @@ import StageSearchField from '../../../ds/StageSearchField.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
 import { BODYPARTS } from '../../../lib/exercises.js'
 import { exCount, fmtNum, todayISO } from '../../../lib/format.js'
-import { t, tnf } from '../../../lib/i18n.js'
+import { t, tnShown } from '../../../lib/i18n.js'
 import { MUSCLES, MUSCLE_NAME } from '../../../lib/muscles.js'
 import { useStore } from '../../../store/useStore.js'
 import { exerciseDetailSheet } from '../../../sheets.jsx'
@@ -60,7 +60,7 @@ export default function MuscleScreen() {
           {muscle && (
             <div className="g-xs-mcap">
               <b>{name}</b>
-              <span>{exCount(f.muscleTotal)} · {tnf('{0} set this week', '{0} sets this week', sets, fmtNum(sets))}</span>
+              <span>{exCount(f.muscleTotal)} · {tnShown('{0} set this week', '{0} sets this week', sets, fmtNum(sets))}</span>
             </div>
           )}
         </div>

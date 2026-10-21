@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
-import { t, tn, tnf } from '../../lib/i18n.js'
+import { t, tn, tnShown } from '../../lib/i18n.js'
 import { DAYN, fmtDate, fmtNum, isoOf, startOfWeek, weekOrder, weekStartOf } from '../../lib/format.js'
 import { glyphOf } from '../../lib/glyphs.js'
 import { effectiveRoutineIds, workoutDay } from '../../lib/history.js'
@@ -138,7 +138,7 @@ export function volumeOf(S) {
   const load = loadOfWeeklyPlan(S)
   const rows = rankOf(load).worked.map(m => {
     const sets = Math.round(load[m] * 10) / 10
-    return { key: m, name: t(MUSCLE_NAME[m]), sets, value: tnf('{0} set', '{0} sets', sets, fmtNum(sets)) }
+    return { key: m, name: t(MUSCLE_NAME[m]), sets, value: tnShown('{0} set', '{0} sets', sets, fmtNum(sets)) }
   })
   return rows.length ? { rows, target: VOLUME_TARGET } : null
 }

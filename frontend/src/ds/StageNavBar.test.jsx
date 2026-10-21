@@ -59,6 +59,14 @@ describe('StageNavBar', () => {
     expect(ends().map(e => [e.tagName, e.getAttribute('aria-label')])).toEqual([['A', 'Previous week'], ['BUTTON', 'Next week']])
   })
 
+  it('keys each action by its place too: two with the same name both draw, with no key clash', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    view.render(<StageNavBar title="x" onBack={() => {}} actions={[{ icon: 'gear', label: 'Same' }, { icon: 'bell', label: 'Same' }]} />)
+    expect(ends()).toHaveLength(2)
+    expect(error.mock.calls.flat().join(' ')).not.toMatch(/same key/i)
+    error.mockRestore()
+  })
+
   it('has no actions by default', () => {
     view.render(<StageNavBar title="x" onBack={() => {}} />)
     expect(ends()).toHaveLength(0)

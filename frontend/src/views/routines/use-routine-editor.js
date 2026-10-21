@@ -12,6 +12,7 @@ import { replaceSlotExercise } from '../../lib/routines.js'
 import { speedUnitOf } from '../../lib/speed.js'
 import { setSupersetMeta, supersetMeta } from '../../lib/superset-meta.js'
 import { usualDuration } from '../../lib/train-stats.js'
+import { leaveTo } from '../../lib/use-tab-nav.js'
 import { workoutControls } from '../../lib/workout-controls.js'
 import { exConfigSheet, exercisePicker, replaceExerciseSheet, routineMenuSheet, startFlow, supersetSheet } from '../../sheets.jsx'
 import { useStore } from '../../store/useStore.js'
@@ -202,9 +203,10 @@ export function useRoutineEditor() {
   const update = useStore(s => s.update)
   const toast = useUI(s => s.toast)
   const r = S.routines.find(x => x.id === id)
-  // A routine that is not there (deleted on another device, an old link): its page is replaced
-  // by the list, never stacked on it.
-  useEffect(() => { if (!r) nav('/train/routines', { replace: true }) }, [!!r])
+  // A routine that is not there (deleted from its own menu or on another device, an old link): its
+  // page steps off the history back to the list when that is under it, else the list takes its
+  // place; never stacked on it.
+  useEffect(() => { if (!r) leaveTo('/train/routines') }, [!!r])
   // No sheet is open as the editor mounts, so this replace takes the editor's own entry.
   useEffect(() => {
     if (params.get('new') !== '1') return

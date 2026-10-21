@@ -33,17 +33,14 @@ warns in development). Make the child the control and drop the row's onClick, or
 
 ## Headers (`tab-kit.css`; a page never builds or styles its own, ui-guards G8)
 
-- **Tab root** (`RootHeader.jsx`, from `<Page root>`): one pinned 56px row in the gutter,
-  `[SearchPill] [context button] [AvatarButton]`, no visible title (the tab bar names the tab; the
-  `title` is a `.sr-only` h1). A hairline fades in after 4px of scroll. It sits under the
-  connection row (z 44); the search overlay lifts it to `--z-tab-hdr`.
-- **SearchPill** (`scope` home|train|food|progress, `value`, `onChange(text)`, `onOpen`,
-  `expanded`, `controls`): the real input (`role=combobox`, bearmenu's attributes), the tab's long
-  placeholder where it fits the field and its short one where not (`lib/text-fit.js`, measured;
-  re-measured on resize and locale change), a clear button, Escape clears. Focus calls `onOpen`
-  for the overlay; with none it is a plain field. RootHeader reads the scope from the address.
-- **AvatarButton** `mode="profile"|"close"` (`onClose`): 40px, the pill's surface, 44px to tap;
-  close mode is the search overlay's close in the same spot, dot hidden.
+- **Tab root** (`RootHeader.jsx`, from `<Page root>`; PR-07): the stage's header,
+  `ds/StageHeader` `pinned` on a `.g-root`: `[avatar] [search field] [context readout] [bell]`, fixed
+  to the top with the status bar and the connection row inside it (z 44), no line under it, a
+  spacer (`.root-hdr-space`) keeping the page clear of it. No visible title (the `title` is a
+  `.sr-only` h1). Its props come from `components/use-root-header.js` (Today's too): the pill is
+  the global search's one input (`role=combobox`, bearmenu's attributes), focus opens the overlay,
+  Escape clears then closes, the bell turns into the search's ×, a scope is a chip in the field,
+  and nothing else in it moves while searching. The scope is the tab read from the address.
 - **Sub-page** (`SubHeader.jsx`, from `<Page>`): back · centred title (`--fs-title2` bold, two
   balanced lines) · at most two actions (a third throws). The title is centred while it fits and
   otherwise takes the room between back and the actions; where a word would break it steps down to
@@ -72,9 +69,6 @@ class throws in development, as everywhere in the kit.
 | `LineArt` (line-art) | `scene state` | `routine {days,next,scheduled}`, `mobility {minutes}`, `scale {kg}`, `equipment {eq}` (`equipmentOf(ex.eq)`), `plate` (Nutrition without nutrition), plus one fixed drawing per empty-state illustration (`chart`, `calendar`, `week`…: render those through `EmptyState`). Two strokes, three inks (`--acc-graphic` for data), no figures, ≤8 paths; draws in once a session (`useDrawIn`), fades under reduced motion; `aria-hidden` |
 | `EmptyState` (blocks) | `illustration title body action secondary` | The one empty state. `illustration` is a name in `ILLUSTRATIONS` (line-art): `scale routine plate barbell dumbbell chart calendar week envelope key coach search rotation favourites photo tape pantry fasting recovery`; `action`/`secondary` are `{label, onClick, icon}` pills (`action` also `disabled`). Deprecated until the call sites have moved: with no `illustration` it renders the old `icon art className children` markup (G9 baselines each such call) |
 | `InlineNote`, `Skeleton` (blocks) | `icon children` / `w h r` | A quiet centred status line; a hidden loading block at its size (numbers are px) |
-| `Kbd` (blocks) | `children` | A key cap as a hint ("⌘ K", "esc"), never a control |
-| `Chip` (blocks) | + `size="lg" icon` | The 36px destination chip with a leading glyph (the search's shortcuts); neutral, never `.on` |
-| `AvatarButton` | `mode="close" onClose` | The same button turns into search's close; its content swaps (motion, lazily loaded), the chrome stays |
 | `Button` (ui) | + `shape="pill"` | 44px, `--r-pill`, sized to its label (`.btn-pill`) |
 | `Segmented` (ui) | + `tone="strong"` `size="lg"` | The selection fill for page sub-views and the Progress range; 36px buttons. The subtle default stays for in-card ranges |
 | `Row` (ui) | + `glyph`, `accessory="add"` with `onOpen onAdd addLabel` | A bare 24px lead icon; a + disc of its own ("Add to {title}") with the text opening the row, the row itself no button |
@@ -88,8 +82,9 @@ class throws in development, as everywhere in the kit.
   `-title2` 22, `-tile` 26, `-big` 30, `-large` 34, `-display` 48; `--fw-regular|medium|semibold|bold`;
   tracking `--ls-display`, `--ls-title`.
 - Sizes `--hdr-h` 56 and `--hdr-btn` 40 (the headers), `--disc` 56 and `--disc-sm` 36 (action and
-  add discs), `--glyph` 24, `--art-w`×`--art-h` 96×72 (a media row's art), `--thumb-lg` 56,
-  `--search-panel-w`; layers `--z-search` 47, `--z-tab-hdr` 48. Line art `--il-w`, `--il-w-d`.
+  add discs), `--glyph` 24, `--art-w`×`--art-h` 96×72 (a media row's art), `--thumb-lg` 56;
+  layer `--z-search` 47 (the search's panel, under the pinned header's bottom edge; the header's
+  row is ds.css `--shdr-h`). Line art `--il-w`, `--il-w-d`.
   Motion `--ease-io`, `--hero` (640ms).
 - Colour tokens, in `index.css`'s theme blocks: `--sel-fill`/`--on-sel` (a selected day or
   segment: the label colour as a fill), `--bar-bg`, `--ring-hair`, `--gauge-track`, `--scrim`,

@@ -119,14 +119,15 @@ const pluralCategory = n => {
  * forms of the target language, falling back through `other` to the English pair.
  */
 export function tn(one, other, n, ...rest) {
-  return tnf(one, other, n, n, ...rest)
+  return tnShown(one, other, n, n, ...rest)
 }
 
 /**
- * tn() for a count that is shown formatted ("6.6", "1,200"): the form comes from `n`, and `shown`
- * fills {0}. Passing the formatted string to t() or tn() would pick no plural form at all.
+ * tn, with `{0}` filled by `shown` rather than the bare number: the count written for the reader
+ * ("1,200", from toLocaleString, "6.6"), or '' for the noun alone. `n` still picks the form.
+ * Passing the formatted string to t() or tn() would pick no plural form at all.
  */
-export function tnf(one, other, n, shown, ...rest) {
+export function tnShown(one, other, n, shown, ...rest) {
   const forms = dict[other]
   if (forms && typeof forms === 'object') {
     const form = forms[pluralCategory(n)] || forms.other || forms.many || forms.one

@@ -8,6 +8,7 @@ import { rememberDefaultLang } from '../lib/default-lang.js'
 import { guestAllowed } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
+import { setReminderLogOwner } from '../lib/notifications/reminder-log.js'
 import { refillIfComplete } from '../lib/rotation.js'
 import { liftLegacy } from '../lib/sync-legacy.js'
 import { mergeStates, localExtras, stampChange, highestStamp, stampRestore, stampReplace, inUnitOf, keepReset, resetIdsOf, mergeResetIds, entryKey } from '../lib/sync-merge.js'
@@ -130,6 +131,12 @@ export const DEF = {
   // One-time hints already shown to this profile, synced so each shows once per person rather
   // than once per device: { swipeSets: true } after the first swipe-on-sets nudge (Workout.jsx).
   hints: {},
+  // Which notifications are read (lib/notifications/read-state.js): { at, ids: { id: at } }. Mark
+  // all read sets `at`, reading one adds its id. A plain setting, so the newer copy wins whole on
+  // sync: two phones reading different items at once keep one phone's reads, which only shows a
+  // dot again. null until the inbox first looks, which then reads everything before it (an upgrade
+  // does not open on a month of "new"; use-notifications.js).
+  notifRead: null,
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and
@@ -2004,5 +2011,9 @@ export const useStore = create((set, get) => {
     }
   }
 })
+
+// The phone's reminder log is kept per profile (lib/notifications/reminder-log.js). It cannot
+// import the store itself: the store imports lib/mobile.js, which imports the log.
+setReminderLogOwner(() => useStore.getState().user)
 
 export { hasData }

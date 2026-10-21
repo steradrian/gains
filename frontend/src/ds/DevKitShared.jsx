@@ -6,14 +6,12 @@ import StageEmpty from './StageEmpty.jsx'
 import StageNavBar from './StageNavBar.jsx'
 import StageNote from './StageNote.jsx'
 import StageSection from './StageSection.jsx'
+import { STILL } from './dev-still.js'
 
 // The shared pages' part of the catalogue (DevKit.jsx): the parts the pushed pages (notifications,
 // Day, Week) are built from, on the stage with sample data.
 const SELF = '#/dev/kit'
 const NOOP = () => {}
-// A plain tile standing in for an exercise still, drawn in opacities of the default black, as
-// DevKitTrain's is, so it holds no colour literal (ui-guards G2).
-const STILL = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44"><rect width="44" height="44" fill-opacity=".08"/><path d="M8 22h28M13 15v14M31 15v14" stroke="currentColor" stroke-opacity=".67" stroke-width="3" stroke-linecap="round"/></svg>')
 
 export default function DevKitShared() {
   return (
@@ -58,7 +56,7 @@ export default function DevKitShared() {
       </Section>
 
       <Section title="StageEmpty on the notifications page" note="Nothing yet (Sh3Empty): the bell disc, the title, the line and the one white button, bare on the stage.">
-        <StageEmpty card={false} icon="bell" title="Nothing new" body="Reminders you set, streaks, new bests and Coach changes show up here." action="Set a reminder" onClick={NOOP} />
+        <StageEmpty card={false} icon="bell" title="Nothing new" body="Reminders you set, streaks and new bests show up here." action="Set a reminder" onClick={NOOP} />
       </Section>
 
       <Section title="Permission banner" note="Notifications off on this phone (Sh3PermOff): an InlineBanner on the stage with a solid Turn on and a Reminders link, in the page's gutter.">

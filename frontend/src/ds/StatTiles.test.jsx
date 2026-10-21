@@ -1,40 +1,43 @@
 // @vitest-environment happy-dom
-// StatTiles: two or three tiles of label, value and an optional line. The kit formats nothing.
+// StatTiles: a tile per item with its label, value and optional line; the stage tone; the columns.
 import { describe, expect, it } from 'vitest'
 import StatTiles from './StatTiles.jsx'
 import { useView } from './render.test-util.js'
 
 const view = useView()
+const ITEMS = [
+  { key: 'streak', label: 'Streak', value: '6 weeks', sub: 'in a row · best 8' },
+  { key: 'weight', label: 'Weight', value: '−0.3 kg', sub: '81.7 → 81.4 kg', tone: 'positive' },
+  { key: 'volume', label: 'Volume', value: '–' },
+]
 const tiles = () => [...view.host.querySelectorAll('.g-stat')]
 
 describe('StatTiles', () => {
-  it('draws a tile per item with the label, the value and the line as the caller wrote them', () => {
-    view.render(<StatTiles items={[
-      { label: 'Workouts', value: '24' },
-      { label: 'Time', value: '14 h 20', sub: '+2 h on last month', tone: 'positive' },
-    ]} />)
-    expect(tiles()).toHaveLength(2)
-    expect(tiles()[0].textContent).toBe('Workouts24')
-    expect(tiles()[1].textContent).toBe('Time14 h 20+2 h on last month')
-    expect(tiles()[1].querySelector('.g-pos').textContent).toBe('+2 h on last month')
-    expect(tiles()[0].querySelector('.g-pos')).toBeNull()
+  it('draws each tile, its line only when it has one', () => {
+    view.render(<StatTiles items={ITEMS} />)
+    expect(tiles().map(s => s.querySelector('span').textContent)).toEqual(['Streak', 'Weight', 'Volume'])
+    expect(tiles().map(s => s.querySelector('b').textContent)).toEqual(['6 weeks', '−0.3 kg', '–'])
+    expect(tiles().map(s => s.querySelectorAll('span').length)).toEqual([2, 2, 1])
+    expect(tiles()[1].querySelector('.g-pos').textContent).toBe('81.7 → 81.4 kg')
+    expect(view.host.querySelector('.g-stats').classList.contains('g-stats-c3')).toBe(true)
+    expect(view.host.querySelector('.g-stats-stage')).toBeNull()
   })
 
-  it('has as many columns as items, up to three', () => {
+  it('on the stage, in the columns asked for, by class and with no inline style', () => {
+    view.render(<StatTiles items={ITEMS} tone="stage" columns={2} />)
+    const grid = view.host.querySelector('.g-stats')
+    expect(grid.classList.contains('g-stats-stage')).toBe(true)
+    expect(grid.classList.contains('g-stats-c2')).toBe(true)
+    expect(grid.getAttribute('style')).toBeNull()
+  })
+
+  it('has as many columns as items, up to three, and refuses another tone', () => {
     const items = n => Array.from({ length: n }, (_, i) => ({ label: 'L' + i, value: String(i) }))
+    const cols = () => view.host.firstElementChild.classList
     view.render(<StatTiles items={items(2)} />)
-    expect(view.host.firstElementChild.classList.contains('g-stats-2')).toBe(true)
-    view.render(<StatTiles items={items(3)} />)
-    expect(view.host.firstElementChild.classList.contains('g-stats-3')).toBe(true)
+    expect(cols().contains('g-stats-c2')).toBe(true)
     view.render(<StatTiles items={items(5)} />)
-    expect(view.host.firstElementChild.classList.contains('g-stats-3')).toBe(true)
-  })
-
-  it('is light by default, glass on the stage, and refuses another tone', () => {
-    view.render(<StatTiles items={[{ label: 'a', value: '1' }]} />)
-    expect(view.host.firstElementChild.classList.contains('g-stats-stage')).toBe(false)
-    view.render(<StatTiles tone="stage" items={[{ label: 'a', value: '1' }]} />)
-    expect(view.host.firstElementChild.classList.contains('g-stats-stage')).toBe(true)
+    expect(cols().contains('g-stats-c3')).toBe(true)
     expect(() => view.render(<StatTiles tone="dark" items={[]} />)).toThrow(/tone="dark"/)
   })
 })

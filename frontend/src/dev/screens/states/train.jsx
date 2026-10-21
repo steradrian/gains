@@ -1,7 +1,6 @@
 import { isoOf } from '../../../lib/format.js'
 import { useUI } from '../../../store/useUI.js'
 import TrainScreen from '../../../views/train/TrainScreen.jsx'
-import { pictureOf } from '../../../views/train/use-train.js'
 import { registerScreens } from '../registry.js'
 
 // Train (PR-02, boards Tr2Train to Tr2Future). Every state is the real screen, TrainScreen, given
@@ -11,12 +10,11 @@ import { registerScreens } from '../registry.js'
 
 const NOOP = () => {}
 const TODAY = '2026-10-18'
-const pic = id => pictureOf({}, id)
 const PUSH = [['0025', 'Barbell bench press'], ['0314', 'Dumbbell incline bench press'], ['0426', 'Dumbbell standing overhead press'], ['0188', 'Cable middle fly'], ['0334', 'Dumbbell lateral raise'], ['0201', 'Cable pushdown']]
 const LEGS = [['0043', 'Barbell full squat', '4 × 5 · 100 kg'], ['0085', 'Barbell romanian deadlift', '3 × 8 · 90 kg'], ['0739', 'Sled 45° leg press', '3 × 10–12 · 160 kg'],
   ['0585', 'Lever leg extension', '3 × 12 · 45 kg'], ['0586', 'Lever lying leg curl', '3 × 12 · 40 kg'], ['0594', 'Lever seated calf raise', '4 × 15 · 35 kg']]
 const PULL = ['0861', '0652', '0027']
-const exercises = list => list.map(([id, name, line = '3 × 10']) => ({ id, name, line, image: pic(id) }))
+const exercises = list => list.map(([id, name, line = '3 × 10']) => ({ id, name, line }))
 
 /* ------------------------------------------------------------------ the rail -- */
 
@@ -44,7 +42,7 @@ const railOf = missed => ({
 
 /* ----------------------------------------------------------------- the cards -- */
 
-const CARD = { since: null, progress: null, chip: null, exercises: null, thumbs: null, primary: null, secondary: [], menu: [] }
+const CARD = { since: null, progress: null, chip: null, exercises: null, stills: null, primary: null, secondary: [], menu: [] }
 const PLANNED = {
   ...CARD, kind: 'planned', iso: TODAY, eyebrow: 'Today · planned', title: 'Push A', sub: 'Chest, shoulders, triceps · 6 exercises · about 55 min',
   exercises: exercises(PUSH), primary: { intent: 'start', label: 'Start Push A', ids: ['push'] }, menu: [{ intent: 'choose-workout' }],
@@ -55,7 +53,7 @@ const RUNNING = {
 }
 const DONE = {
   ...CARD, kind: 'done', iso: TODAY, eyebrow: 'Workout done', title: 'Push A', sub: '52 min · 18 sets · 9,600 kg · 2 new bests',
-  thumbs: PUSH.map(([id]) => pic(id)), primary: { intent: 'see-workout', label: 'See workout', workouts: [] }, menu: [{ intent: 'change-day' }],
+  stills: PUSH.map(([id]) => id), primary: { intent: 'see-workout', label: 'See workout', workouts: [] }, menu: [{ intent: 'change-day' }],
 }
 const REST = {
   ...CARD, kind: 'rest', iso: TODAY, eyebrow: 'Rest day', title: 'Recover', sub: 'Next: Legs, Mon 19 Oct',
@@ -74,7 +72,6 @@ const FUTURE = {
 
 export const base = {
   header: { initial: 'Alex', placeholder: 'Search training', onSettings: NOOP, onBell: NOOP, onSearch: NOOP },
-  searching: false,
   selected: TODAY,
   select: NOOP,
   rail: railOf(null),
@@ -95,10 +92,10 @@ export const base = {
   onPlan: NOOP,
   onDayMenu: NOOP,
   routines: [
-    { id: 'push', name: 'Push A', sub: '6 exercises · Sun', thumbs: PUSH.slice(0, 3).map(([id]) => pic(id)) },
-    { id: 'pull', name: 'Pull A', sub: '6 exercises · Wed', thumbs: PULL.map(pic) },
-    { id: 'legs', name: 'Legs', sub: '6 exercises · Mon', thumbs: LEGS.slice(0, 3).map(([id]) => pic(id)) },
-    { id: null, name: 'Freestyle', sub: 'Pick exercises as you go', thumbs: [], freestyle: true },
+    { id: 'push', name: 'Push A', sub: '6 exercises · Sun', stills: PUSH.slice(0, 3).map(([id]) => id) },
+    { id: 'pull', name: 'Pull A', sub: '6 exercises · Wed', stills: PULL },
+    { id: 'legs', name: 'Legs', sub: '6 exercises · Mon', stills: LEGS.slice(0, 3).map(([id]) => id) },
+    { id: null, name: 'Freestyle', sub: 'Pick exercises as you go', stills: [], freestyle: true },
   ],
   onRoutine: NOOP,
   onRoutineStart: NOOP,

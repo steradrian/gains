@@ -21,7 +21,8 @@ const NOW = new Date('2026-09-22T12:00:00Z').getTime()
 const day = n => new Date(NOW - n * 864e5).toISOString().slice(0, 10)
 
 // Real catalogue ids, so EXIDX lookups and the body-part search behave as they do in the app.
-const PRESS = EXDB.find(e => e.bp === 'chest').id
+// The press is a loaded lift: a bodyweight exercise has no 1RM estimate (lib/onerm.js bestSetOf).
+const PRESS = EXDB.find(e => e.bp === 'chest' && e.eq === 'barbell').id
 const ROW = EXDB.find(e => e.bp === 'back').id
 const SQUAT = EXDB.find(e => e.bp === 'upper legs').id
 const PLANK = EXDB.find(e => e.bp === 'waist').id

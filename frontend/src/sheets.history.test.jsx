@@ -81,6 +81,21 @@ describe('exercise history sheet', () => {
     expect([...host.querySelectorAll('.g-lc .g-sr li')].map(li => li.textContent).at(-1)).toContain('70 kg')
   })
 
+  // A cardio history charts the session's top speed, stored in km/h, in the profile's speed unit.
+  it.each([['kmh', ['10 km/h', '12 km/h']], ['mph', ['6.2 mph', '7.5 mph']]])('charts a cardio exercise\'s top speed in %s', (speedUnit, readouts) => {
+    const cardio = Object.keys(EXIDX).find(id => (EXIDX[id].bp || '') === 'cardio' && !EXIDX[id].custom)
+    const run = (i, speed) => ({
+      id: 'c' + i, d: iso(i), start: T0 + i * DAY, end: T0 + i * DAY + 3600000, name: 'Run', vol: 0,
+      entries: [{ id: cardio, target: { mode: 'cardio' }, sets: [{ min: 30, speed, done: true }] }],
+    })
+    useStore.setState(s => ({ S: { ...s.S, speedUnit, workouts: [run(0, 10), run(2, 12)] } }))
+    exerciseHistorySheet(cardio)
+    const host = renderTop()
+    expect(host.querySelector('.g-lc').getAttribute('aria-label')).toMatch(/Top speed$/)
+    const points = [...host.querySelectorAll('.g-lc .g-sr li')].map(li => li.textContent)
+    readouts.forEach((r, i) => expect(points[i]).toContain(r))
+  })
+
   // Inside a running workout the exercise drawer's Progress and History tabs open this sheet over it,
   // so nobody leaves the workout (owner question 2); elsewhere they open the progress page.
   it.each(['Progress', 'History'])('is what the exercise drawer\'s %s opens inside the workout, once there is history', tabName => {

@@ -15,7 +15,8 @@ import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 export const PAGES = {
   appearance: { title: 'Appearance', icon: 'palette', tint: 'var(--purple)' },
   units: { title: 'Units & language', icon: 'ruler', tint: 'var(--teal)' },
-  notifications: { title: 'Notifications', icon: 'bell', tint: 'var(--red)' },
+  // The reminders you set (PR07 decision 2): /me/notifications is the inbox now.
+  reminders: { title: 'Reminders', icon: 'bell', tint: 'var(--red)', kw: 'notifications push alerts' },
   coach: { title: 'AI Coach', icon: 'chat', tint: 'var(--green)', to: '/train/coach/setup' },
   features: { title: 'Features', icon: 'slider', tint: 'var(--indigo)' },
   health: { title: 'Connected apps & health', icon: 'heart', tint: 'var(--red)' },
@@ -50,7 +51,7 @@ const NUTRITION_PAGES = ['diary', 'water', 'foods', 'sources', 'categories', 'cu
 
 // The root, top to bottom. Whether a row shows is pageVisible's call.
 export const ROOT_GROUPS = [
-  { title: 'General', ids: ['appearance', 'units', 'notifications', 'coach', 'features', 'health'] },
+  { title: 'General', ids: ['appearance', 'units', 'reminders', 'coach', 'features', 'health'] },
   { title: 'Training', ids: ['workout', 'advanced', 'alerts', 'schedule', 'equipment'] },
   { title: 'Nutrition', ids: ['goals', 'diary', 'water', 'foods', 'sources', 'categories', 'customUnits'] },
   { title: 'Body & progress', ids: ['fields'] },
@@ -60,12 +61,12 @@ export const ROOT_GROUPS = [
 ]
 
 /**
- * Whether a page has a route on this device and profile. Notifications need a push server
+ * Whether a page has a route on this device and profile. Reminders need a push server
  * (signed in) or the phone's own notifications; Health Connect is the phone app's.
  */
 export function pageExists(page, ctx) {
   if (!(page in PAGES) || PAGES[page].to || PAGES[page].sheet) return false
-  if (page === 'notifications') return !!(ctx.user || ctx.mobile)
+  if (page === 'reminders') return !!(ctx.user || ctx.mobile)
   if (page === 'health') return !!ctx.mobile
   if (NUTRITION_PAGES.includes(page)) return !ctx.mobile && !!ctx.user
   return true
@@ -80,7 +81,7 @@ export function pageExists(page, ctx) {
 export function pageVisible(page, ctx) {
   if (page == null) return true
   if (page === 'goals' || NUTRITION_PAGES.includes(page)) return !!ctx.nutrition
-  if (page === 'notifications') return !!(ctx.user || ctx.mobile)
+  if (page === 'reminders') return !!(ctx.user || ctx.mobile)
   if (page === 'coach') return !!ctx.mobile
   if (page === 'health') return !!(ctx.mobile && ctx.android)
   if (page === 'media') return !!ctx.hasMedia
@@ -168,13 +169,13 @@ export const SEARCH = [
   { page: 'units', title: 'Weight decimals', icon: 'ruler', tint: 'var(--teal)', kw: 'decimals precision microplates rounding' },
   { page: 'units', title: 'Speed unit', icon: 'figureRun', tint: 'var(--teal)', kw: 'speed mph kmh km/h miles cardio' },
   { page: 'units', title: '1RM formula', icon: 'chart', tint: 'var(--teal)', kw: '1rm one rep max epley brzycki lombardi formula estimate' },
-  // Notifications
-  { page: 'notifications', title: PUSH, icon: 'bell', tint: 'var(--red)', kw: 'push notification alerts delivery', when: c => !c.mobile && !!c.user && c.pushOK, feature: () => null },
-  { page: 'notifications', title: 'Workout day reminder', icon: 'calendar', tint: 'var(--orange)', kw: 'reminder notification remind', when: remind, via: PUSH, feature: S => !!S.reminder?.on },
-  { page: 'notifications', title: 'Reminder time', icon: 'clock', tint: 'var(--purple)', kw: 'reminder time clock hour when', when: c => remind(c) && c.reminderOn, via: PUSH },
-  { page: 'notifications', title: 'Nudge me when I skip a planned workout', icon: 'bell', tint: 'var(--red)', kw: 'nudge skip missed motivation', when: c => remind(c) && c.reminderOn, via: PUSH, feature: S => !!S.reminder?.nudge },
-  { page: 'notifications', title: 'Nudge tone', icon: 'chat', tint: 'var(--blue)', kw: 'nudge tone friendly guilt drill sergeant', opts: ['Friendly', 'Guilt trip', 'Drill sergeant'], when: c => remind(c) && c.reminderOn && c.nudge, via: PUSH },
-  { page: 'notifications', title: 'Send test notification', icon: 'bell', tint: 'var(--red)', kw: 'test push notification try', when: c => !c.mobile && c.pushOK, via: PUSH },
+  // Reminders
+  { page: 'reminders', title: PUSH, icon: 'bell', tint: 'var(--red)', kw: 'push notification alerts delivery', when: c => !c.mobile && !!c.user && c.pushOK, feature: () => null },
+  { page: 'reminders', title: 'Workout day reminder', icon: 'calendar', tint: 'var(--orange)', kw: 'reminder notification remind', when: remind, via: PUSH, feature: S => !!S.reminder?.on },
+  { page: 'reminders', title: 'Reminder time', icon: 'clock', tint: 'var(--purple)', kw: 'reminder time clock hour when', when: c => remind(c) && c.reminderOn, via: PUSH },
+  { page: 'reminders', title: 'Nudge me when I skip a planned workout', icon: 'bell', tint: 'var(--red)', kw: 'nudge skip missed motivation', when: c => remind(c) && c.reminderOn, via: PUSH, feature: S => !!S.reminder?.nudge },
+  { page: 'reminders', title: 'Nudge tone', icon: 'chat', tint: 'var(--blue)', kw: 'nudge tone friendly guilt drill sergeant', opts: ['Friendly', 'Guilt trip', 'Drill sergeant'], when: c => remind(c) && c.reminderOn && c.nudge, via: PUSH },
+  { page: 'reminders', title: 'Send test notification', icon: 'bell', tint: 'var(--red)', kw: 'test push notification try', when: c => !c.mobile && c.pushOK, via: PUSH },
   // Workout
   { page: 'workout', title: 'Rest timer', icon: 'timer', tint: 'var(--orange)', kw: 'rest pause break seconds minutes timer countdown' },
   { page: 'workout', title: 'Rest-pause rest', icon: 'bolt', tint: 'var(--orange)', kw: 'burst cluster rest pause' },

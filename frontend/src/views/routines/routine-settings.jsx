@@ -10,7 +10,7 @@ import { useStore } from '../../store/useStore.js'
 /* A routine's own settings (owner question 8: the T5.8 menu's "Routine settings"), which the
    board's editor has no place for: its icon, the progression its exercises follow unless they set
    their own, and whether it is a deload routine. The three writes below are the editor's, moved
-   here (RoutineEdit.jsx); each is in place on a store draft. */
+   here (from the old RoutineEdit); each is in place on a store draft. */
 
 const routineIn = (s, id) => s.routines.find(x => x.id === id)
 

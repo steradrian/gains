@@ -46,16 +46,12 @@ export function whenSheetGone(fn) {
   globalThis.addEventListener('popstate', go)
 }
 
-// A sheet that swaps the page under it (Progress › Body's Add photo from Weight, a routine's
-// Delete from its editor): the page must not stay in history, or back lands on the page it
-// replaced. The sheet's entry is walked off first, then the page itself is replaced, then `then`
-// runs: an action that removes the page's subject runs there, after the page has left it.
-export function closeThenReplace(close, to, then) {
+// A sheet that swaps the page under it (Progress › Body's Add photo from Weight): the page must
+// not stay in history, or back lands on the page it replaced. The sheet's entry is walked off
+// first, then the page itself is replaced.
+export function closeThenReplace(close, to) {
   close()
-  whenSheetGone(() => {
-    nav(to, { replace: true })
-    then?.()
-  })
+  whenSheetGone(() => nav(to, { replace: true }))
 }
 
 // Into the workout screen: from the routine chooser (already #/train/workout) or from a sheet's

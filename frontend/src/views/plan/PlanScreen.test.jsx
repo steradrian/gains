@@ -102,21 +102,21 @@ describe('Plan — Loop or Fixed week', () => {
     expect(byLabel('Start the loop')).toBeUndefined()
   })
 
-  it('Loop with nothing saved holds the choice and shows an empty loop', () => {
+  it('Loop with nothing saved holds the choice and shows the empty state, whatever the fixed week holds', () => {
     mount()
     pickMode('Loop')
     expect(S().scheduleMode).toBe('rotation')
     expect(S().queue).toBe(null)
     expect(selectedMode()).toBe('Loop')
-    expect(headings()).toContain('Your loop')
-    expect($('.g-loop-empty').textContent).toBe('No rotation yet')
-    expect($('.g-loop-note').textContent).toBe('A missed day moves the loop forward; nothing is lost.')
-    expect(sub()).toBeNull()
+    expect(headings()).not.toContain('Your loop')
+    expect($('.g-sempty b').textContent).toBe('No rotation yet')
+    expect(byLabel('Add routines')).toBeTruthy()
+    expect(sub()).toBe('Nothing planned this week')
   })
 
   it('the loop card\'s top wraps, so its action never runs off a 320 px screen', async () => {
-    mount({ scheduleMode: 'rotation' })
-    expect(byLabel('Add routine to the rotation')).toBeTruthy()
+    mount({ queue: live({ rotationId: 'r1' }), rotation: saved })
+    expect(byLabel('Edit')).toBeTruthy()
     const { readFileSync } = await import('node:fs')
     const css = readFileSync(process.cwd() + '/src/ds/ds.css', 'utf8')
     expect(css).toMatch(/^\.g-loop-top \{[^}]*flex-wrap: wrap/m)
@@ -252,10 +252,10 @@ describe('Plan — the loop', () => {
     expect(S().week).toEqual({ 1: ['c'] })
     expect(useUI.getState().toastMsg).toBe('“A” is out of the loop.')
     expect(selectedMode()).toBe('Loop')
-    expect($('.g-loop-empty').textContent).toBe('No rotation yet')
+    expect($('.g-sempty b').textContent).toBe('No rotation yet')
     expect($('.plan-editor')).toBeNull()
     // swapping the only routine: add another one back in, same rotation id
-    click(byLabel('Add routine to the rotation'))
+    click(byLabel('Add routines'))
     act(() => lastMenu().items.find(i => i.label === 'B').onClick())
     expect(S().rotation).toMatchObject({ id: 'r1', sequence: ['b'] })
     expect(S().queue.ids).toEqual(['b'])
@@ -263,7 +263,7 @@ describe('Plan — the loop', () => {
 
   it('a loop built here saves no name of its own, so it follows the language on screen', () => {
     mount({ scheduleMode: 'rotation' })
-    click(byLabel('Add routine to the rotation'))
+    click(byLabel('Add routines'))
     act(() => lastMenu().items.find(i => i.label === 'A').onClick())
     expect(S().rotation.sequence).toEqual(['a'])
     expect(S().rotation.label).toBe('')

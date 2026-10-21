@@ -55,18 +55,6 @@ describe('nav', () => {
       noteSheetEntries(0)
     })
 
-    it('runs `then` after the page is replaced: the subject goes once the page has left it', () => {
-      history.pushState({ gainsSheet: true }, '')
-      noteSheetEntries(1)
-      const order = []
-      closeThenReplace(() => order.push('close'), '/train/routines', () => order.push('delete'))
-      setNav(to => order.push('nav ' + to))
-      expect(order).toEqual(['close'])
-      window.dispatchEvent(new PopStateEvent('popstate'))
-      expect(order).toEqual(['close', 'nav /train/routines', 'delete'])
-      noteSheetEntries(0)
-    })
-
     it('replaces anyway when the walk-off never comes', () => {
       vi.useFakeTimers()
       history.pushState({ gainsSheet: true }, '')

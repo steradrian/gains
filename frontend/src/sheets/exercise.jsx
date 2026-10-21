@@ -23,6 +23,7 @@ import { exerciseHistory } from '../lib/exercise-history.js'
 import { bestSetLabel } from '../lib/best-set.js'
 import { isBellEx, dbLoadFor, withDbLoad } from '../lib/dumbbells.js'
 import { isFav, toggleFav } from '../lib/favourites.js'
+import { speedLabel, speedUnitOf, toSpeed } from '../lib/speed.js'
 import BodyMap from '../ds/BodyMap.jsx'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import DetailRow from '../ds/DetailRow.jsx'
@@ -240,13 +241,16 @@ function ExerciseHistorySheet({ exId }) {
   const st = useStore(s => s.S)
   const ex = exOr(exId)
   const h = useMemo(() => exerciseHistory(st, exId, { limit: Infinity }), [st, exId])
-  const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : t('min')
+  // A cardio history is the session's top speed, stored in km/h and shown in the profile's unit.
+  const speedUnit = speedUnitOf(st)
+  const shown = h.metric === 'speed' ? y => toSpeed(y, speedUnit) : y => y
+  const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : speedLabel(speedUnit)
   const name = exerciseNameFor(ex)
   return (
     <BottomSheet type="full" title={<span className={exerciseNameClass(ex)}>{name}</span>}>
       <div className="g-xd-hist">
-        {h.points.length >= 2 && <LineChart label={name + ' · ' + t('Top set')} unit={unit}
-          values={h.points.map(p => p.y)} pointLabels={h.points.map(p => fmtDate(p.d, true) + ': ' + fmtNum(p.y) + ' ' + unit)} />}
+        {h.points.length >= 2 && <LineChart label={name + ' · ' + (h.metric === 'speed' ? t('Top speed') : t('Top set'))} unit={unit}
+          values={h.points.map(p => shown(p.y))} pointLabels={h.points.map(p => fmtDate(p.d, true) + ': ' + fmtNum(shown(p.y)) + ' ' + unit)} />}
         <PastSetsList exId={exId} history={h} tone="light" />
       </div>
     </BottomSheet>

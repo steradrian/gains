@@ -15,6 +15,7 @@ import { create } from 'zustand'
 import { uid } from '../format.js'
 import { useDiarySelection } from '../nutrition/selection.js'
 import { nav } from '../nav.js'
+import { searchTab } from './scopes.js'
 
 /** The overlay's element id. */
 export const SEARCH_OVERLAY_ID = 'gains-search'
@@ -43,7 +44,8 @@ const restoreDate = () => {
 /** Opens the overlay over the tab root on screen (`tab` the tab whose header holds the pill),
  *  synchronously: it is called from the pill's focus, inside the tap, which is what lets iOS raise
  *  the keyboard. Coming back to a live visit's overlay entry just shows it again. */
-export function openSearch(tab) {
+export function openSearch(opener) {
+  const tab = searchTab(opener)
   const s = useSearch.getState()
   const here = historyState()
   if (s.live && here?.gainsSearch === s.id) {
@@ -60,7 +62,7 @@ export function openSearch(tab) {
 
 const currentPath = () => String(globalThis.location?.hash || '').replace(/^#/, '') || '/home'
 
-/** The avatar's ×, Escape on an empty field: the overlay goes and its history entry with it. */
+/** The bell's ×, Escape on an empty field: the overlay goes and its history entry with it. */
 export function closeSearch() {
   const s = useSearch.getState()
   if (!s.live) return

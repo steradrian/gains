@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../../../store/useStore.js'
 import { t, tn } from '../../../lib/i18n.js'
 import { fmtDate } from '../../../lib/format.js'
-import { workoutDay } from '../../../lib/history.js'
 import { DAY_NOTE_ICON, DAY_NOTE_LABEL } from '../../../lib/day-notes.js'
 import { workoutLabel } from '../../../lib/training-day.js'
 import Icon from '../../../components/Icon.jsx'
@@ -11,20 +10,14 @@ import StageEmpty from '../../../ds/StageEmpty.jsx'
 import StagePage from '../../../ds/StagePage.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
 import StageSegmented from '../../../ds/StageSegmented.jsx'
-import { dayNoteSheet, logPastWorkoutSheet, openDay, startChooserSheet, workoutDetailSheet } from '../../../sheets.jsx'
+import { dayNoteSheet, logPastWorkoutSheet, startChooserSheet } from '../../../sheets.jsx'
 import { useTodayDate } from '../../today/use-today.js'
+import { tapDay, tapWorkout } from '../tap-day.js'
 import { activitiesOf, historyRows, historySub, historyWeeks, monthOf, workoutLine, workoutThumbs } from './use-history.js'
 
-// The calendar's day: one workout opens it (T8.1); several, or none, open the day (openDay).
-function tapDay(S, iso) {
-  const on = (S.workouts || []).filter(w => workoutDay(w) === iso)
-  if (on.length === 1) workoutDetailSheet(on[0])
-  else openDay(iso)
-}
-
-function WorkoutHistoryRow({ S, w }) {
+function WorkoutHistoryRow({ S, w, today }) {
   return (
-    <button type="button" className="g-glist-row g-hist-row" onClick={() => workoutDetailSheet(w)}>
+    <button type="button" className="g-glist-row g-hist-row" onClick={() => tapWorkout(w, today)}>
       <span className="g-tr-stack g-hist-stack" aria-hidden="true">
         {workoutThumbs(S, w).map((src, i) => (
           <span key={i}>{src ? <img src={src} alt="" width="40" height="40" loading="lazy" /> : <i><Icon name="dumbbell" className="g-icon" /></i>}</span>
@@ -84,7 +77,7 @@ export default function HistoryScreen() {
           )}
           <div className="g-hist-pad">
             <MonthGrid title={cal.title} weekdays={cal.weekdays} offset={cal.offset} days={cal.days} today={cal.today}
-              onDay={iso => tapDay(S, iso)} onPrev={() => turn(-1)} onNext={() => turn(1)}
+              onDay={iso => tapDay(S, iso, today)} onPrev={() => turn(-1)} onNext={() => turn(1)}
               prevLabel={t('Previous month')} nextLabel={t('Next month')} />
             <p className="g-hist-hint">{t('Tap a trained day for details · tap any other day to plan a session')}</p>
           </div>
@@ -93,7 +86,7 @@ export default function HistoryScreen() {
               <StageSection title={week.title} action={week.workouts ? tn('{0} workout', '{0} workouts', week.workouts) : undefined} />
               <div className="g-glist g-glass g-hist-list">
                 {week.rows.map(r => (r.w
-                  ? <WorkoutHistoryRow key={r.w.id ?? r.w.d + '|' + r.w.start} S={S} w={r.w} />
+                  ? <WorkoutHistoryRow key={r.w.id ?? r.w.d + '|' + r.w.start} S={S} w={r.w} today={today} />
                   : <NoteHistoryRow key={'note-' + r.d} iso={r.d} note={r.note} />))}
               </div>
             </section>

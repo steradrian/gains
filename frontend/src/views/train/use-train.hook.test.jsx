@@ -8,12 +8,15 @@ import { useStore } from '../../store/useStore.js'
 import { useTrain } from './use-train.js'
 
 const nav = vi.fn()
-vi.mock('react-router-dom', () => ({ useNavigate: () => nav }))
+vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train' }) }))
 const sheets = vi.hoisted(() => ({
   startFlow: vi.fn(), dayOverrideSheet: vi.fn(), dayNoteSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), starterPlanSheet: vi.fn(),
   menuSheet: vi.fn(), workoutDetailSheet: vi.fn(),
 }))
 vi.mock('../../sheets.jsx', () => sheets)
+// A past day opens its Day page through the app's own navigate (lib/day-route.js navToDay).
+const libNav = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: libNav }))
 
 const TODAY = '2026-10-18', FRI = '2026-10-16', TUE = '2026-10-20'
 const routine = (id, name) => ({ id, name, ex: [{ id: '0025', sets: 3, reps: 8 }] })
@@ -36,6 +39,7 @@ afterAll(() => vi.useRealTimers())
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   nav.mockClear()
+  libNav.mockClear()
   Object.values(sheets).forEach(f => f.mockClear())
   host = document.createElement('div')
   document.body.appendChild(host)
@@ -94,13 +98,17 @@ describe('useTrain', () => {
     expect(train.missed.iso).toBe(FRI)
   })
 
-  it('runs a card’s intents: Start with its ids, Change this day, Log this workout, See routine', async () => {
+  it('runs a card’s intents: Start with its ids, Change this day, Log this workout (the Day page), See routine', async () => {
     setS()
     await mount()
     act(() => train.onIntent(train.card().primary))
     expect(sheets.startFlow).toHaveBeenCalledWith(['push'])
     act(() => train.onIntent(train.card(FRI).primary))
-    expect(sheets.logPastWorkoutSheet).toHaveBeenCalledWith({ iso: FRI, routineIds: ['legs'] })
+    expect(libNav).toHaveBeenCalledWith('/train/day/' + FRI, undefined)
+    expect(sheets.logPastWorkoutSheet).not.toHaveBeenCalled()
+    act(() => train.onIntent(train.card('2026-10-14').primary))
+    expect(libNav).toHaveBeenLastCalledWith('/train/day/2026-10-14', undefined)
+    expect(sheets.workoutDetailSheet).not.toHaveBeenCalled()
     const later = train.card('2026-10-19')
     act(() => later.secondary.forEach(train.onIntent))
     expect(sheets.dayOverrideSheet).toHaveBeenCalledWith('2026-10-19')
@@ -123,5 +131,28 @@ describe('useTrain', () => {
     await act(async () => { train.onIntent(train.card().secondary[0]) })
     expect(train.selected).toBe('2026-10-19')
     expect(train.card().kind).toBe('upcoming')
+  })
+
+  it('a past day of the rail opens its Day page under Train and leaves the selection where it was', async () => {
+    setS()
+    await mount()
+    await act(async () => { train.select(FRI) })
+    expect(libNav).toHaveBeenCalledWith('/train/day/' + FRI, undefined)
+    expect(train.selected).toBe(TODAY)
+  })
+
+  it('a day before the first workout opens nothing', async () => {
+    setS()
+    await mount()
+    await act(async () => { train.select('2026-10-01') })
+    expect(libNav).not.toHaveBeenCalled()
+    expect(train.selected).toBe(TODAY)
+  })
+
+  it('the bell opens Train’s notifications', async () => {
+    setS()
+    await mount()
+    train.header.onBell()
+    expect(nav).toHaveBeenCalledWith('/train/notifications')
   })
 })

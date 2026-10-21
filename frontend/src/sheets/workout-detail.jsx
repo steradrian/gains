@@ -4,7 +4,9 @@ import { EXIDX, figureOf, imgSrc } from '../lib/exercises.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, exerciseNameText } from '../lib/format.js'
 import { effectiveRoutineIds, workoutDay, workoutDuration, workoutVolume, workSetsDone, sessionSections, setLabel, NOTE_MAX } from '../lib/history.js'
 import { t, tn, exerciseNameFor } from '../lib/i18n.js'
-import { nav, closeThenNav } from '../lib/nav.js'
+import { nav, closeThenNav, onSheetEntry } from '../lib/nav.js'
+import { dayTargetOf, firstLogDay, navToDay } from '../lib/day-route.js'
+import { diaryIndexDays } from '../lib/nutrition/diary-index.js'
 import WorkoutMediaSection, { workoutMediaCount } from '../components/WorkoutMedia.jsx'
 import { workoutMediaOf } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
@@ -351,14 +353,28 @@ export function deleteWorkoutWithUndo(w) {
   return true
 }
 
+// A past day from the first log on opens its Day page (PR07 D1), under the tab on screen. Today, a
+// day to come, a day before the first log and a day off with a note (its note is in the day sheet)
+// keep the sheets they had.
+const opensDayPage = (st, iso) => {
+  const noteOnly = !(st.workouts || []).some(w => workoutDay(w) === iso) && dayNoteOf(st, iso)
+  return !noteOnly && dayTargetOf(iso, { today: todayISO(), first: firstLogDay(st, diaryIndexDays()) }) === 'day'
+}
+
 /**
- * Opens the day `iso`, as History's calendar and a workout's date open it. The board's target is
- * the Day view (`/train/day/:date`, PR-07), which this base does not route yet, so it falls back
- * to what the calendar sheet did: the day's workouts as a list when it has any, else the day sheet
- * to plan a session there. `close` is the drawer it is opened from, closed first so that its
- * history entry goes with it.
+ * Opens the day `iso`, as History's calendar, the heatmap and a workout's date open it: the Day
+ * page (`/:tab/day/:date`) when the day opens there, else what the calendar sheet did: the day's
+ * workouts as a list when it has any, else the day sheet to plan a session there. `close` is the
+ * drawer it is opened from, closed first so that its history entry goes with it (the Day page
+ * takes that entry's place).
  */
 export function openDay(iso, close) {
+  if (opensDayPage(S(), iso)) {
+    const replace = onSheetEntry()
+    close?.()
+    navToDay(iso, undefined, { replace })
+    return
+  }
   close?.()
   if ((S().workouts || []).some(w => workoutDay(w) === iso)) dayWorkoutsSheet(iso)
   else dayOverrideSheet(iso)
@@ -432,6 +448,7 @@ function Calendar({ start, close, onPick, onFuture }) {
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (note ? ' noted' : '') + (ate ? ' logged' : '') + (iso === todayISO() ? ' today' : '')}
       title={note ? dayNoteLine(note, t) : undefined} disabled={!!onPick && !onFuture && iso > todayISO()} onClick={() => {
       if (onPick) { close(); if (onFuture && iso > todayISO()) onFuture(iso); else onPick(iso); return }
+      if (opensDayPage(st, iso)) { openDay(iso, close); return }
       if (!ws) { close(); dayOverrideSheet(iso); return }
       if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
       close(); dayWorkoutsSheet(iso)

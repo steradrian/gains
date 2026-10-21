@@ -32,7 +32,9 @@ export const PRIMITIVE_FILES = [
 // PlanScreen (its Plan page), PlanImportPage (Import a plan), CreateExercise (Create exercise),
 // PlansScreen, PlanPreview, CoachChat, History, TrainingLoad, LoadMuscleScreen (a muscle's
 // training-load page), RoutinesScreen and RoutineEditor are pushed pages on the stage (StagePage).
-export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'TrainHub', 'TrainingLoad', 'Workout']
+// Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
+// design system's StageNavBar. A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
+export const PAGE_EXEMPT = ['AddDevice', 'CoachChat', 'CreateExercise', 'DayPage', 'FocusView', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'TrainHub', 'TrainingLoad', 'WeekPage', 'Workout']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
@@ -395,10 +397,12 @@ export function routeViewsWithoutPage(src = SRC) {
 
 // A page names itself and its actions through <Page>; its header, and the spacing and width
 // around it, are the kit's and the shell's (owner rule, 2026-10-14). The header components and
-// layout.jsx are where a header is built; the full-screen views draw their own chrome.
-export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx']
+// layout.jsx are where a header is built; the full-screen views draw their own chrome. The search
+// gallery (#/dev/screens) mounts the real tab root header over the real panel, as a root does.
+export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx']
 const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
-const exemptView = file => PAGE_EXEMPT.some(name => file === `views/${name}.jsx`)
+const exemptView = file => PAGE_EXEMPT.some(name =>
+  file === `views/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
 
 // Every place a page chooses its own header: importing a header component past <Page>, building
 // a header's classes by hand, or handing <Page> a class or a style of its own. `file: what`.
