@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Icon from '../components/Icon.jsx'
-import { t } from '../lib/i18n.js'
+import { t, tn } from '../lib/i18n.js'
 import { cx } from '../lib/ui-kit.js'
 import Act from './Act.jsx'
 
@@ -9,7 +9,8 @@ import Act from './Act.jsx'
 // search is open the bell turns into its close ×. Each of the three is a link with its `*Href`
 // and a button with its handler. `placeholder` is the scoped pill text ("Search food"), already
 // translated. `searching` + `onSearch` control the open state; without `onSearch` it keeps its
-// own. Any `unread` above 0 shows the dot, the count is only in the bell's name.
+// own. Any `unread` above 0 shows the dot, the count is only in the bell's name ("Notifications,
+// 2 unread", a plural for the languages that inflect it).
 // `alert` (already translated, "Connection problem") puts a dot on the avatar and says why in its
 // name: the app's connection and hub-sync warnings live there.
 export default function StageHeader({ initial, placeholder, unread = 0, alert, searching, onSearch, settingsHref, searchHref, bellHref, onSettings, onBell }) {
@@ -17,7 +18,7 @@ export default function StageHeader({ initial, placeholder, unread = 0, alert, s
   const open = onSearch ? !!searching : own
   const set = v => { setOwn(v); onSearch?.(v) }
   const letter = ([...(initial || '')][0] || 'A').toUpperCase()
-  const bellName = open ? t('Close search') : unread > 0 ? t('Notifications, {0} new', unread) : t('Notifications')
+  const bellName = open ? t('Close search') : unread > 0 ? tn('Notifications, {0} unread', 'Notifications, {0} unread', unread) : t('Notifications')
   return (
     <header className={cx('g-shdr', open && 'g-shdr-open')}>
       <Act href={settingsHref} onClick={onSettings} ariaLabel={alert ? t('Settings') + ', ' + alert : t('Settings')} className="g-sbtn g-glass">
