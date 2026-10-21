@@ -391,8 +391,9 @@ export function routeViewsWithoutPage(src = SRC) {
 
 // A page names itself and its actions through <Page>; its header, and the spacing and width
 // around it, are the kit's and the shell's (owner rule, 2026-10-14). The header components and
-// layout.jsx are where a header is built; the full-screen views draw their own chrome.
-export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx']
+// layout.jsx are where a header is built; the full-screen views draw their own chrome. The search
+// gallery (#/dev/screens) mounts the real tab root header over the real panel, as a root does.
+export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx']
 const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
 const exemptView = file => PAGE_EXEMPT.some(name => file === `views/${name}.jsx`)
 

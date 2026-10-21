@@ -68,7 +68,7 @@ describe('G8 finds a page choosing its own chrome', () => {
       writeFileSync(join(dir, 'views', 'Workout.jsx'), `export default () => <div className="hdr whdr-bar" />`)
       writeFileSync(join(dir, 'components', 'layout.jsx'), `import RootHeader from './RootHeader.jsx'`)
       expect(pageChrome(dir)).toEqual(['views/A.jsx: imports SubHeader.jsx', 'views/B.jsx: builds .hdr', 'views/B.jsx: renders its own <h1>', 'views/C.jsx: styles <Page>'])
-      expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx'])
+      expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx'])
     } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 

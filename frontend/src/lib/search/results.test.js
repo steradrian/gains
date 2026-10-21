@@ -172,6 +172,7 @@ describe('before typing', () => {
   const now = new Date(today + 'T12:00:00')
   // Thursday 15 Oct 2026: Push day planned every Thursday, Legs every Tuesday.
   const planned = (over = {}) => ({
+    ...structuredClone(DEF),
     routines: [{ id: 'r1', name: 'Push day', ex: [{ id: bench.id }] }, { id: 'r2', name: 'Legs', ex: [{ id: bench.id }] }],
     week: { 4: ['r1'], 2: ['r2'] },
     ...over,
@@ -198,7 +199,7 @@ describe('before typing', () => {
   })
 
   it('suggests from real data only, at most three, each with its line', () => {
-    expect(suggestionsFor('home', data({ S: { routines: [], workouts: [], bodyweight: [] }, days: [] }), now)).toEqual([])
+    expect(suggestionsFor('home', data({ S: { routines: [], workouts: [], bodyweight: [], week: {}, dayPlan: {} }, days: [] }), now)).toEqual([])
   })
 
   it('Today and Me: today\'s planned session, the food logged most this week, the last weigh-in', () => {

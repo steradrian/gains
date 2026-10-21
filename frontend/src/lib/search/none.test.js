@@ -10,7 +10,8 @@ import { searchLocal } from './results.js'
 const byId = new Map(CATALOGUE.map(ex => [ex.id, ex]))
 const data = (over = {}) => ({
   S: { routines: [], workouts: [], customEx: [], dayPlan: {}, week: {} }, exercises: CATALOGUE, nameOf: id => (byId.has(id) ? exerciseNameText(byId.get(id)) : ''),
-  nutrition: true, foods: [{ id: 5, name: 'Protein bar', portion: 60, unit: 'g', nutrition: { calories: 210 } }],
+  nutrition: true, pagesCtx: { nutrition: true, checkIn: true, fastingOn: false },
+  settingsCtx: { user: { id: 1 }, mobile: false, nutrition: true, ntSettings: null, lang: 'en' }, foods: [{ id: 5, name: 'Protein bar', portion: 60, unit: 'g', nutrition: { calories: 210 } }],
   ...over,
 })
 const lateral = CATALOGUE.find(e => /lateral raise/i.test(exerciseNameText(e)))

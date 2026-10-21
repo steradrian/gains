@@ -40,7 +40,9 @@ export function useSearchResults({ query, live = query, settled, group, tab, dat
   const idx = data.index
   const daysPending = data.nutrition && !local.groups.days.length && !idx.complete && !data.days.length
   const pending = online.status === 'loading' || daysPending
-  const noResults = hasQuery && query === live && total === 0 && !pending && online.status !== 'paused'
+  // A paused or failed Open Food Facts keeps its row (the countdown, "Try again") in place of
+  // "Nothing matches": the search is not over, and a retry is the way on.
+  const noResults = hasQuery && query === live && total === 0 && !pending && online.status !== 'paused' && online.status !== 'error'
   const miss = exerciseMiss({ query, tab, group, local })
 
   const none = useMemo(() => {
