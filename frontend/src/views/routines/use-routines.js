@@ -23,6 +23,17 @@ const usedIds = S => new Set((S.workouts || []).flatMap(w => [...routineIdsOf(w)
 const loopIds = S => new Set(scheduleModeOf(S) === 'rotation' ? [...(queueOf(S)?.ids ?? []), ...rotationIds(S)] : [])
 
 /**
+ * Where routine `id` is in the Plan, as T4.0's rows and the editor's header (T5.0) say it: its
+ * weekdays ("Sun, Thu"), "in your loop" for one that is only in the loop, or null when it is not
+ * in the Plan. `loop` is the loop's ids, for a caller that asks for every routine.
+ */
+export function planWhereOf(S, id, loop = loopIds(S)) {
+  const days = routineDaysOf(S, id)
+  if (days.length) return days.map(weekdayShort).join(', ')
+  return loop.has(id) ? t('in your loop') : null
+}
+
+/**
  * T4.0's rows and groups, from the store's state `S`, each group in `S.routines` order:
  *
  *   { count, planned, sub, groups: [{ key, title, rows }], freestyle, empty }
@@ -40,15 +51,14 @@ export function routinesOf(S, { imported = null } = {}) {
   const used = usedIds(S)
   const fresh = new Set(Array.isArray(imported?.ids) ? imported.ids : [])
   const row = r => {
-    const days = routineDaysOf(S, r.id)
-    const inPlan = days.length > 0 || loop.has(r.id)
+    const planned = planWhereOf(S, r.id, loop)
+    const inPlan = planned != null
     const n = exCount(r.ex?.length || 0)
     const where = fresh.has(r.id) ? t('new')
-      : days.length ? days.map(weekdayShort).join(', ')
-        : inPlan ? t('in your loop')
-          : r.importedFrom ? t('imported from {0}', r.importedFrom)
-            : 'importedFrom' in r ? t('imported')
-              : !used.has(r.id) ? t('not done yet') : ''
+      : planned != null ? planned
+        : r.importedFrom ? t('imported from {0}', r.importedFrom)
+          : 'importedFrom' in r ? t('imported')
+            : !used.has(r.id) ? t('not done yet') : ''
     return {
       id: r.id, name: r.name, inPlan, empty: !r.ex?.length,
       sub: [n, where].filter(Boolean).join(' · '),

@@ -25,7 +25,7 @@ export function copyRoutine(routine, suffix = 'Copy') {
  * (dayPlan) naming it goes too: left behind, the day still counts as overridden and wears a
  * "rescheduled" badge for good with no way to clear it.
  *
- * Plan's swipe, RoutineEdit's button and the Coach's remove-routine all delete through here, so
+ * Plan's swipe, the routine menu's Delete and the Coach's remove-routine all delete through here, so
  * the next thing that learns to point at a routine is cleaned up in one place, not three.
  * Returns the dropped dayPlan entries ({ iso: id }), which the Coach records so a revert can put
  * them back.

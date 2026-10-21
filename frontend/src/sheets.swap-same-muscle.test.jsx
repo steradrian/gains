@@ -91,7 +91,7 @@ describe('swap picker opens on the same muscle', () => {
     expect(rows(host).every(s => s.startsWith('Triceps'))).toBe(true)
   })
 
-  // The routine editor hands its slot's exercise in (views/RoutineEdit.replace.test.jsx).
+  // The routine editor hands its slot's exercise in (views/routines/RoutineEditor.replace.test.jsx).
   it('routine editor: a picker told what it replaces opens on that muscle', () => {
     const pick = vi.fn()
     exercisePicker(pick, { title: 'Replace exercise', like: CABLE_TRI.id })

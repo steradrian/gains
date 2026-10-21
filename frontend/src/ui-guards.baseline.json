@@ -26,14 +26,13 @@
     "views/MobileOnboarding.jsx": 2,
     "views/Plan.jsx": 1,
     "views/ProgressPhotos.jsx": 2,
-    "views/RoutineEdit.jsx": 14,
     "views/Settings.jsx": 26,
     "views/StructuralBalance.jsx": 8,
     "views/Workout.jsx": 18
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 71,
+    "index.css": 70,
     "views/FocusView.css": 1
   },
   "G2js": {
@@ -66,7 +65,6 @@
     "views/FocusView.jsx": 4,
     "views/Library.jsx": 1,
     "views/Plan.jsx": 1,
-    "views/RoutineEdit.jsx": 2,
     "views/Settings.jsx": 2,
     "views/Workout.jsx": 3
   },

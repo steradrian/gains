@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { EXIDX } from '../../../lib/exercises.js'
 import { exConfigSheet, exercisePicker, replaceExerciseSheet } from '../../../sheets.jsx'
-import RoutineEdit from '../../../views/RoutineEdit.jsx'
+import RoutineEditor from '../../../views/routines/RoutineEditor.jsx'
 import { registerScreens } from '../registry.js'
 import { ROUTINES, routinesPlan } from './train-routines.jsx'
 
@@ -11,7 +11,7 @@ import { ROUTINES, routinesPlan } from './train-routines.jsx'
 // every tap in memory (mock-env.js), and none of these plays saves anything: they open a drawer,
 // tick a row, switch a tab or type in the search.
 const PATH = '/train/routines/g-push'
-const editor = () => <Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes>
+const editor = () => <Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>
 const NOOP = () => {}
 const PUSH = ROUTINES[0]
 const BENCH = EXIDX['0025']

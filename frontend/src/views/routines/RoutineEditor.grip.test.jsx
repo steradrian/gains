@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// The drag handle on pointer devices (#277, #114): a visible grip with a grab cursor, and a mouse
-// press on it picks the row up at once. The long press everywhere else is unchanged.
+// The drag handle (#277, #114), now in the editor's Reorder mode: a grip with a grab cursor, and a
+// mouse press on it picks the row up at once. The long press everywhere else is unchanged.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import React, { act } from 'react'
@@ -9,15 +9,17 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sheets = vi.hoisted(() => ({
-  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), glyphPicker: vi.fn(), confirmSheet: vi.fn(),
+  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), replaceExerciseSheet: vi.fn(), routineMenuSheet: vi.fn(), startFlow: vi.fn(), supersetSheet: vi.fn(),
+  // What the Train helpers the editor reads (use-train.js) import.
+  starterPlanSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), dayOverrideSheet: vi.fn(), importPlanFile: vi.fn(), logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
-vi.mock('../sheets.jsx', () => sheets)
-vi.mock('../components/Media.jsx', () => ({ Thumb: ({ ex }) => <span data-thumb={ex.id} /> }))
-vi.mock('../components/BodyMap.jsx', () => ({ default: () => null }))
+vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
+vi.mock('../../sheets.jsx', () => sheets)
+vi.mock('../../components/BodyMap.jsx', () => ({ default: () => null, useBodyPaths: () => null }))
 
-import RoutineEdit, { ROUTINE_LONG_PRESS_MS } from './RoutineEdit.jsx'
-import { DEF, useStore } from '../store/useStore.js'
+import RoutineEdit from './RoutineEditor.jsx'
+import { ROUTINE_LONG_PRESS_MS } from './routine-reorder.js'
+import { DEF, useStore } from '../../store/useStore.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const clone = value => JSON.parse(JSON.stringify(value))
@@ -35,7 +37,7 @@ function rect(top, height, left = 20, width = 340) {
 }
 const rows = () => [...host.querySelectorAll('[data-routine-row]')]
 function geometry(heights = rows().map(() => 70)) {
-  const list = host.querySelector('.routine-list')
+  const list = host.querySelector('.g-re-list')
   let top = 100
   const tops = [], bottoms = [], centers = []
   rows().forEach((row, i) => {
@@ -48,12 +50,14 @@ function geometry(heights = rows().map(() => 70)) {
   vi.spyOn(list, 'getBoundingClientRect').mockImplementation(() => listRect)
   return { list, tops, bottoms, centers, listRect }
 }
-function mount(entries) {
+// The grips are Reorder mode's: `ordering` false leaves the list as it opens.
+function mount(entries, ordering = true) {
   useStore.setState({ S: stateFor(entries), user: null })
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
   act(() => root.render(<MemoryRouter initialEntries={['/train/routines/r1']}><Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes></MemoryRouter>))
+  if (ordering) act(() => [...host.querySelectorAll('.g-ssec-act')].find(b => b.textContent === 'Reorder').click())
   return geometry()
 }
 function pointer(target, type, { id = 7, kind = 'touch', primary = true, button = 0, x = 120, y = 120 } = {}) {
@@ -81,29 +85,34 @@ afterEach(() => {
 })
 
 const grip = i => rows()[i].querySelector('[data-drag-handle]')
-const cssSource = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
+const cssSource = readFileSync(resolve(process.cwd(), 'src/ds/ds.css'), 'utf8')
 
 describe('routine drag handle', () => {
-  it('puts a grip on every row, out of the accessibility tree, named for what it does', () => {
+  it('puts a grip on every row in Reorder mode, out of the accessibility tree, named for what it does', () => {
     mount([configured('1001'), configured('1002')])
-    expect(rows().map(row => !!row.querySelector('.item [data-drag-handle] svg'))).toEqual([true, true])
+    expect(rows().map(row => !!row.querySelector('.g-rx [data-drag-handle] svg'))).toEqual([true, true])
     expect(grip(0).getAttribute('aria-hidden')).toBe('true')
     expect(grip(0).getAttribute('title')).toBe('Reorder exercises')
   })
 
-  it('shows the grip, with a grab cursor, only where there is a mouse or trackpad', () => {
-    const base = cssSource.match(/\.routine-grip\{[^}]*\}/)?.[0] || ''
-    expect(base).toMatch(/display:none/)
-    expect(base).toMatch(/cursor:grab/)
-    const fine = cssSource.match(/@media \(hover:hover\) and \(pointer:fine\)\{\s*\.routine-grip\{display:flex\}/)
-    expect(fine).toBeTruthy()
-    expect(cssSource).toMatch(/\.routine-list\.is-reordering,\.routine-list\.is-reordering \*\{cursor:grabbing\}/)
+  it('shows no grip until Reorder, and Done puts them away again', () => {
+    mount([configured('1001'), configured('1002')], false)
+    expect(host.querySelector('[data-drag-handle]')).toBeNull()
+    act(() => [...host.querySelectorAll('.g-ssec-act')].find(b => b.textContent === 'Reorder').click())
+    expect(host.querySelectorAll('[data-drag-handle]')).toHaveLength(2)
+    act(() => [...host.querySelectorAll('.g-ssec-act')].find(b => b.textContent === 'Done').click())
+    expect(host.querySelector('[data-drag-handle]')).toBeNull()
   })
 
-  it('keeps the list one column on a computer: no #app list is ever a grid', () => {
+  it('gives the grip a grab cursor, and the whole list a grabbing one while a row is held', () => {
+    const base = cssSource.match(/\.g-rx-handle \{[^}]*\}/)?.[0] || ''
+    expect(base).toMatch(/cursor: grab/)
+    expect(cssSource).toMatch(/\.g-re-list\.is-reordering, \.g-re-list\.is-reordering \* \{ cursor: grabbing; \}/)
+  })
+
+  it('keeps the list one column on a computer: the editor\'s list is never a grid', () => {
     // The reorder reads rows top to bottom; in two columns a drop landed in the wrong place.
-    expect(cssSource).toMatch(/\n\.list\{display:flex;flex-direction:column/)
-    expect(cssSource).not.toMatch(/#app \.list\{display:grid/)
+    expect(cssSource).not.toMatch(/\.g-re-list[^{]*\{[^}]*display: grid/)
   })
 
   it('picks the row up at once under a mouse and drops it where it is let go', () => {
@@ -131,7 +140,7 @@ describe('routine drag handle', () => {
 
   it('keeps the long press for a mouse on the rest of the row, and for a finger on the grip', () => {
     const layout = mount([configured('a'), configured('b')])
-    const item = rows()[0].querySelector('.item')
+    const item = rows()[0].querySelector('.g-rx-open')
     pointer(item, 'pointerdown', { kind: 'mouse', y: layout.centers[0] })
     expect(rows()[0].classList.contains('is-dragging')).toBe(false)
     act(() => vi.advanceTimersByTime(ROUTINE_LONG_PRESS_MS))

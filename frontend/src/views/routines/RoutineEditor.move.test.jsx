@@ -2,25 +2,27 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import React, { act } from 'react'
-import { LANGS, DERIVED_LOCALES } from '../lib/i18n-core.js'
+import { LANGS, DERIVED_LOCALES } from '../../lib/i18n-core.js'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import RoutineEdit from './RoutineEdit.jsx'
-import { DEF, useStore } from '../store/useStore.js'
-import { _setLangState } from '../lib/i18n-core.js'
-import de from '../locales/de.js'
-import { buildPlanBundle, parsePlan } from '../lib/plan-share.js'
+import RoutineEdit from './RoutineEditor.jsx'
+import { DEF, useStore } from '../../store/useStore.js'
+import { _setLangState } from '../../lib/i18n-core.js'
+import de from '../../locales/de.js'
+import { buildPlanBundle, parsePlan } from '../../lib/plan-share.js'
 
-const cssSource = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
+// The move buttons, in the editor's Reorder mode (moved from views/RoutineEdit.move.test.jsx).
+const cssSource = readFileSync(resolve(process.cwd(), 'src/ds/ds.css'), 'utf8')
 
 const mocks = vi.hoisted(() => ({ exConfigSheet: vi.fn() }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
-vi.mock('../sheets.jsx', () => ({
-  glyphPicker: vi.fn(), exercisePicker: vi.fn(), exConfigSheet: mocks.exConfigSheet, confirmSheet: vi.fn()
+vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
+vi.mock('../../sheets.jsx', () => ({
+  exercisePicker: vi.fn(), exConfigSheet: mocks.exConfigSheet, replaceExerciseSheet: vi.fn(), routineMenuSheet: vi.fn(), startFlow: vi.fn(), supersetSheet: vi.fn(),
+  // What the Train helpers the editor reads (use-train.js) import.
+  starterPlanSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), dayOverrideSheet: vi.fn(), importPlanFile: vi.fn(), logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))
-vi.mock('../components/Media.jsx', () => ({ Thumb: () => null }))
-vi.mock('../components/BodyMap.jsx', () => ({ default: () => null }))
+vi.mock('../../components/BodyMap.jsx', () => ({ default: () => null, useBodyPaths: () => null }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const clone = value => JSON.parse(JSON.stringify(value))
@@ -49,22 +51,26 @@ function renderRoutine() {
       <Routes><Route path="/routine/:id" element={<RoutineEdit />} /></Routes>
     </MemoryRouter>
   ))
+  // The move buttons are Reorder mode's.
+  act(() => [...container.querySelectorAll('.g-ssec-act')].find(b => b.textContent === 'Reorder').click())
 }
 
 function itemFor(name) {
-  return [...container.querySelectorAll('.item')].find(item => item.textContent.includes(name))
+  return [...container.querySelectorAll('.g-rx')].find(item => item.textContent.includes(name))
 }
 
+// direction is 'Move up' or 'Move down'; each button is named for its exercise ("Move c1 up").
 function moveButton(name, direction) {
-  return itemFor(name).querySelector(`button[aria-label="${direction}"]`)
+  const [up, down] = itemFor(name).querySelectorAll('.g-rx-btn')
+  return direction === 'Move up' ? up : down
 }
 
 function pointerActivateArea(button) {
   // Model browser hit-testing: pointer-events:none removes the disabled button
   // from the target chain, exposing the clickable routine row underneath.
-  const disabledRule = cssSource.match(/\.iconbtn:disabled\s*\{[^}]*\}/)?.[0] || ''
+  const disabledRule = cssSource.match(/\.g-rx-btn:disabled\s*\{[^}]*\}/)?.[0] || ''
   const target = /pointer-events\s*:\s*none/.test(disabledRule)
-    ? button.closest('.item')
+    ? button.closest('.g-rx')
     : button
   act(() => {
     target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
@@ -121,7 +127,8 @@ describe('routine move controls', () => {
     ])
     renderRoutine()
     expect(moveButton('setup-30', 'Move down').title).toBe('Move out of the superset')
-    expect(moveButton('setup-20', 'Move down').title).toBe('Move down')
+    expect(moveButton('setup-30', 'Move down').getAttribute('aria-label')).toBe('Move c3 down')
+    expect(moveButton('setup-20', 'Move down').title).toBe('Move c2 down')
 
     act(() => moveButton('setup-30', 'Move down').click())
     expect(useStore.getState().S.routines[0].ex).toEqual([
@@ -252,9 +259,10 @@ describe('routine move controls', () => {
     _setLangState('de', de, null, null)
     setRoutine([entry('c1', 10), entry('c2', 20)])
     renderRoutine()
-    const button = moveButton('c2', 'Nach oben')
+    const button = moveButton('c2', 'Move up')
 
-    expect(button.title).toBe('Nach oben')
+    expect(button.getAttribute('aria-label')).toBe(de['Move {0} up'].replace('{0}', 'c2'))
+    expect(button.title).toBe(de['Move {0} up'].replace('{0}', 'c2'))
     button.focus()
     act(() => button.click())
 
@@ -281,13 +289,13 @@ describe('routine move controls', () => {
 })
 
 describe('routine move-control locale coverage', () => {
-  const packs = import.meta.glob('../locales/*.js', { eager: true, import: 'default' })
+  const packs = import.meta.glob('../../locales/*.js', { eager: true, import: 'default' })
 
   it('defines both accessible names in every non-English locale pack', () => {
     expect(Object.keys(packs)).toHaveLength(Object.keys(LANGS).filter(c => c !== 'en' && !DERIVED_LOCALES[c]).length)
     Object.entries(packs).forEach(([path, pack]) => {
-      expect(pack, `${path} is missing Move up`).toHaveProperty('Move up')
-      expect(pack, `${path} is missing Move down`).toHaveProperty('Move down')
+      expect(pack, `${path} is missing Move {0} up`).toHaveProperty(['Move {0} up'])
+      expect(pack, `${path} is missing Move {0} down`).toHaveProperty(['Move {0} down'])
     })
   })
 })

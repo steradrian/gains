@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import { planDaysSheet, routineMenuSheet, routineSettingsSheet, shareRoutineSheet } from '../../../sheets.jsx'
-import RoutineEdit from '../../../views/RoutineEdit.jsx'
+import RoutineEditor from '../../../views/routines/RoutineEditor.jsx'
 import { registerScreens } from '../registry.js'
 import { routinesPlan } from './train-routines.jsx'
 
@@ -8,7 +8,7 @@ import { routinesPlan } from './train-routines.jsx'
 // the real one opened the way the editor's ⋯ opens it, over the routine's page: whatever App.jsx
 // routes /train/routines/:id to (the editor), imported the way App.jsx imports it.
 const PATH = '/train/routines/g-push'
-const editor = () => <Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes>
+const editor = () => <Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>
 const open = fn => async t => { fn(); await t.wait(200) }
 
 registerScreens('Train: routines drawers', [

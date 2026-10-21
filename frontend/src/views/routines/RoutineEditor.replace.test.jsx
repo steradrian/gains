@@ -1,30 +1,31 @@
 // @vitest-environment happy-dom
 // Replace exercise in the routine editor (#110): the exercise's settings sheet offers Replace,
-// the picker chooses the new exercise, and the slot keeps its place and its numbers.
+// the Replace drawer (T5.7) chooses the new exercise, and the slot keeps its place and its numbers.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sheets = vi.hoisted(() => ({
-  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), glyphPicker: vi.fn(), confirmSheet: vi.fn(),
+  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), replaceExerciseSheet: vi.fn(), routineMenuSheet: vi.fn(), startFlow: vi.fn(), supersetSheet: vi.fn(),
+  // What the Train helpers the editor reads (use-train.js) import.
+  starterPlanSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), dayOverrideSheet: vi.fn(), importPlanFile: vi.fn(), logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
-vi.mock('../sheets.jsx', () => sheets)
-vi.mock('../components/Media.jsx', () => ({ Thumb: () => null }))
-vi.mock('../components/BodyMap.jsx', () => ({ default: () => null }))
+vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
+vi.mock('../../sheets.jsx', () => sheets)
+vi.mock('../../components/BodyMap.jsx', () => ({ default: () => null, useBodyPaths: () => null }))
 
-import RoutineEdit from './RoutineEdit.jsx'
-import { DEF, useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
-import { EXIDX } from '../lib/exercises.js'
+import RoutineEdit from './RoutineEditor.jsx'
+import { DEF, useStore } from '../../store/useStore.js'
+import { useUI } from '../../store/useUI.js'
+import { EXIDX } from '../../lib/exercises.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const clone = value => JSON.parse(JSON.stringify(value))
 const BENCH = '0025', DB_BENCH = '0289', ROW = '0027'
 const benchSlot = { id: BENCH, sg: 'g1', sets: 4, mode: 'reps', reps: 6, weight: 80, prog: 'double', repsMin: 4, note: 'touch and go', restSec: 180 }
 const rowSlot = { id: ROW, sg: 'g1', sets: 3, mode: 'reps', reps: 10, weight: 50 }
-let root, host, picker
+let root, host
 
 function mount(workouts = [], routines = []) {
   const S = clone(DEF)
@@ -37,24 +38,24 @@ function mount(workouts = [], routines = []) {
   act(() => root.render(<MemoryRouter initialEntries={['/train/routines/r1']}><Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes></MemoryRouter>))
 }
 const slots = () => useStore.getState().S.routines[0].ex
-// Tap the first row, then Replace on its settings sheet: the picker it opens is returned.
+// Tap the first row, then Replace on its settings sheet: the onPick of the drawer it opens is
+// returned. The drawer closes itself (and Search all's picker) before it calls onPick.
 function openReplace() {
-  act(() => host.querySelector('[data-routine-row] .item').click())
+  act(() => host.querySelector('[data-routine-row] .g-rx-open').click())
   const onReplace = sheets.exConfigSheet.mock.calls[0][6]
   expect(onReplace).toBeTypeOf('function')
   act(() => onReplace())
-  expect(sheets.exercisePicker).toHaveBeenCalledOnce()
-  const [onPick, opts] = sheets.exercisePicker.mock.calls[0]
-  // #473: the picker is told what it replaces, so it opens on the same muscle.
-  expect(opts).toEqual({ title: 'Replace exercise', like: BENCH })
+  expect(sheets.replaceExerciseSheet).toHaveBeenCalledOnce()
+  const [exId, onPick, opts] = sheets.replaceExerciseSheet.mock.calls[0]
+  // #473: the drawer is told what it replaces, so it lists the same muscle; and the routine's name.
+  expect(exId).toBe(BENCH)
+  expect(opts).toEqual({ routine: 'Push' })
   return onPick
 }
 
 beforeEach(() => {
   localStorage.clear()
   Object.values(sheets).forEach(mock => mock.mockReset())
-  picker = { close: vi.fn() }
-  sheets.exercisePicker.mockImplementation(() => picker)
   useUI.setState({ toastMsg: '' })
 })
 afterEach(() => {
@@ -62,13 +63,24 @@ afterEach(() => {
   host.remove()
 })
 
-describe('RoutineEdit — Replace exercise', () => {
-  it('"+" on a picker row swaps the exercise in place and keeps the slot\'s numbers', () => {
+describe('RoutineEditor — Replace exercise', () => {
+  it('the settings sheet gets Replace, Remove with its Undo line, and the superset row', () => {
+    mount()
+    act(() => host.querySelectorAll('[data-routine-row] .g-rx-open')[1].click())
+    const [, existing, , onDelete, routine, , onReplace, , options] = sheets.exConfigSheet.mock.calls[0]
+    expect(existing).toEqual(rowSlot)
+    expect(onDelete).toBeTypeOf('function')
+    expect(routine.id).toBe('r1')
+    expect(onReplace).toBeTypeOf('function')
+    expect(options).toMatchObject({ removeUndo: true, superset: true })
+    expect(options.onSupersetChange).toBeTypeOf('function')
+  })
+
+  it('a row of the drawer swaps the exercise in place and keeps the slot\'s numbers', () => {
     mount()
     const onPick = openReplace()
     act(() => onPick(EXIDX[DB_BENCH], true))
     expect(slots()).toEqual([{ ...benchSlot, id: DB_BENCH }, rowSlot])
-    expect(picker.close).toHaveBeenCalledOnce()
     expect(useUI.getState().toastMsg).toBe('Replaced with “Dumbbell Bench Press”')
   })
 
@@ -88,15 +100,13 @@ describe('RoutineEdit — Replace exercise', () => {
     // Saved as the sheet left it, in the same place and the same superset.
     expect(slots()[0]).toEqual({ id: DB_BENCH, sg: 'g1', sets: 3, mode: 'reps', reps: 8, weight: 30 })
     expect(slots()[1]).toEqual(rowSlot)
-    expect(picker.close).toHaveBeenCalledOnce()
   })
 
-  it('"+" on the exercise already in the slot changes nothing and says nothing', () => {
+  it('the exercise already in the slot changes nothing and says nothing', () => {
     mount()
     const onPick = openReplace()
     act(() => onPick(EXIDX[BENCH], true))
     expect(slots()).toEqual([benchSlot, rowSlot])
-    expect(picker.close).toHaveBeenCalledOnce()
     expect(useUI.getState().toastMsg).toBe('')
   })
 
