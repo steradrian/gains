@@ -30,8 +30,11 @@ function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-const chip = (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
-const count = host => host.querySelector('.search .search-count')
+// The Library's search is the app's own field; the picker's is the drawer's (the Log food one).
+const SELECTORS = {
+  Library: { chip: '.chips .chip', input: '.search input', box: '.search', count: '.search .search-count' },
+  'exercise picker': { chip: '.g-cgroup .g-cchip', input: '.g-lf-search input', box: '.g-lf-search', count: '.g-lf-search .g-pk-count' },
+}
 
 beforeEach(() => {
   useUI.setState({ sheets: [], toastMsg: '' })
@@ -48,18 +51,21 @@ describe('exercise search result count', () => {
     ['Library', () => mount(<MemoryRouter><Library /></MemoryRouter>)],
     ['exercise picker', () => { exercisePicker(vi.fn()); return renderTopSheet() }],
   ]) {
+    const sel = SELECTORS[where]
+    const chip = (host, text) => [...host.querySelectorAll(sel.chip)].find(b => b.textContent.trim() === text)
+    const count = host => host.querySelector(sel.count)
     it(`${where}: appears with a search, follows it, and goes when the search is cleared`, () => {
       const host = open()
-      const input = host.querySelector('.search input')
+      const input = host.querySelector(sel.input)
       expect(count(host)).toBeNull()
-      expect(host.querySelector('.search').classList.contains('has-count')).toBe(false)
+      if (where === 'Library') expect(host.querySelector(sel.box).classList.contains('has-count')).toBe(false)
 
       act(() => type(input, 'bench press'))
       const n = matches('bench press')
       expect(n).toBeGreaterThan(1)
       expect(count(host).textContent).toBe(String(n))
       expect(count(host).getAttribute('aria-label')).toBe(`${n} exercises`)
-      expect(host.querySelector('.search').classList.contains('has-count')).toBe(true)
+      if (where === 'Library') expect(host.querySelector(sel.box).classList.contains('has-count')).toBe(true)
 
       act(() => type(input, 'bench press dumbbell incline'))
       expect(Number(count(host).textContent)).toBe(matches('bench press dumbbell incline'))
@@ -75,7 +81,7 @@ describe('exercise search result count', () => {
       expect(Number(count(host).textContent)).toBe(neck)
       const one = EXDB.find(e => searchExercises(EXDB, e.n).length === 1)
       act(() => chip(host, 'All').click())
-      act(() => type(host.querySelector('.search input'), one.n))
+      act(() => type(host.querySelector(sel.input), one.n))
       expect(count(host).textContent).toBe('1')
       expect(count(host).getAttribute('aria-label')).toBe('1 exercise')
     })

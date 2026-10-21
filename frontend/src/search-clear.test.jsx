@@ -30,9 +30,11 @@ function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-const chip = (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
-const clear = host => host.querySelector('.search .clear')
-const count = host => host.querySelector('.search .search-count')
+// The Library's search is the app's own field; the picker's is the drawer's (the Log food one).
+const SELECTORS = {
+  Library: { chip: '.chips .chip', input: '.search input', box: '.search', clear: '.search .clear', count: '.search .search-count' },
+  'exercise picker': { chip: '.g-cgroup .g-cchip', input: '.g-lf-search input', box: '.g-lf-search', clear: '.g-lf-search .g-lf-clear', count: '.g-lf-search .g-pk-count' },
+}
 
 beforeEach(() => {
   useUI.setState({ sheets: [], toastMsg: '' })
@@ -46,26 +48,30 @@ describe('exercise search clear button', () => {
     ['Library', () => mount(<MemoryRouter><Library /></MemoryRouter>)],
     ['exercise picker', () => { exercisePicker(vi.fn()); return renderTopSheet() }],
   ]) {
+    const sel = SELECTORS[where]
+    const chip = (host, text) => [...host.querySelectorAll(sel.chip)].find(b => b.textContent.trim() === text)
+    const clear = host => host.querySelector(sel.clear)
+    const count = host => host.querySelector(sel.count)
     it(`${where}: shows with text, and one tap empties the search`, () => {
       const host = open()
-      const input = host.querySelector('.search input')
+      const input = host.querySelector(sel.input)
       expect(clear(host)).toBeNull()
       act(() => type(input, 'bench press'))
       expect(clear(host).getAttribute('aria-label')).toBe('Clear')
-      expect(host.querySelector('.search').classList.contains('has-clear')).toBe(true)
+      if (where === 'Library') expect(host.querySelector(sel.box).classList.contains('has-clear')).toBe(true)
       act(() => clear(host).click())
       expect(input.value).toBe('')
       expect(clear(host)).toBeNull()
       expect(count(host)).toBeNull()
-      expect(host.querySelector('.search').classList.contains('has-clear')).toBe(false)
+      if (where === 'Library') expect(host.querySelector(sel.box).classList.contains('has-clear')).toBe(false)
     })
 
     it(`${where}: clears only the text; a body-part filter keeps its count`, () => {
       const host = open()
       act(() => chip(host, 'neck').click())
-      act(() => type(host.querySelector('.search input'), 'stretch'))
+      act(() => type(host.querySelector(sel.input), 'stretch'))
       act(() => clear(host).click())
-      expect(host.querySelector('.search input').value).toBe('')
+      expect(host.querySelector(sel.input).value).toBe('')
       expect(Number(count(host).textContent)).toBe(EXDB.filter(e => e.bp === 'neck').length)
     })
   }

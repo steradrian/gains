@@ -73,21 +73,15 @@ describe('exercise list or cards', () => {
     expect(first.classList.contains('ex-new')).toBe(true)
   })
 
-  it('picker: follows the same setting and switches it beside its own search, by muscle too', () => {
+  // The picker (T5.1) is a drawer of rows and has no cards view; the setting is the Library's and the
+  // Muscles page's alone.
+  it('picker: the drawer keeps to rows and offers no cards button, whatever the setting says', () => {
+    setView('cards')
     exercisePicker(vi.fn())
     const host = renderTop()
-    expect(isCards(host)).toBe(false)
-    expect(besideSearch(toggle(host))).toBe(true)
-    act(() => toggle(host).click())
-    expect(view()).toBe('cards')
-    expect(isCards(host)).toBe(true)
-    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'By muscle').click())
-    pickMuscle(host)
-    expect(isCards(host)).toBe(true)
-    expect(besideSearch(toggle(host))).toBe(true)
-    expect(toggle(host).getAttribute('aria-pressed')).toBe('true')
-    act(() => toggle(host).click())
-    expect(isCards(host)).toBe(false)
+    expect(toggle(host)).toBeNull()
+    expect(host.querySelector('.ex-grid')).toBeNull()
+    expect(host.querySelectorAll('.g-pk-item').length).toBeGreaterThan(0)
   })
 
   it('Muscles page: the results follow the setting, with the button beside their search', () => {
