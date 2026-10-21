@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
 import { useUI } from '../store/useUI.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
+import { openNewFood } from '../lib/nutrition/editor-routes.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
 import { asksQuantity } from '../lib/nutrition/log-serving.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -11,7 +12,6 @@ import { useUnits } from '../lib/nutrition/use-units.js'
 import BottomSheet from '../ds/BottomSheet.jsx'
 import Button from '../ds/Button.jsx'
 import SegmentedControl from '../ds/SegmentedControl.jsx'
-import { foodEditSheet } from './FoodEditSheet.jsx'
 import Icon from './Icon.jsx'
 import { Loading } from './Loader.jsx'
 import LogFoodRow from './LogFoodRow.jsx'
@@ -127,7 +127,7 @@ export default function FoodPickerSheet({ close, date: day = null, meal: slot = 
     </>}
     footer={<div className="g-lf-foot">
       <Button variant={firstRun ? 'primary' : 'secondary'} icon="scanBarcode" onClick={() => scanSheet(log)}>{t('Scan')}</Button>
-      <Button variant="secondary" onClick={() => foodEditSheet({ food: { name: q }, settings, onSaved: pick })}>{t('Create a food')}</Button>
+      <Button variant="secondary" onClick={() => openNewFood({ name: q }, close)}>{t('Create a food')}</Button>
     </div>}>
     <div className="g-lf-body">
       <div className="vh" role="status" aria-live="polite">{announcement}</div>

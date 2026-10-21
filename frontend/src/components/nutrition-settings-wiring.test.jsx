@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 // Profile's Nutrition settings change the Gains screens they name. Each test sets one setting on the
 // fake NutriTrace and checks the screen: Home's water card and meals, the food picker, the
-// portion sheet, the food search, Foods, Saved meals and Recipes, Trends, the scanner.
+// portion sheet, the food search, Trends, the scanner. (My foods' settings are in
+// views/MyFoods.test.jsx.)
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,13 +11,11 @@ import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
-import { createFakeNutriTrace, fixtureFoods, fixtureMeals, fixtureOffSearch, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
+import { createFakeNutriTrace, fixtureFoods, fixtureOffSearch, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { mealRows } from '../lib/nutrition/meal-rows.js'
 import { offResults } from '../lib/nutrition/off.js'
 import { metricFrom, nutrientOptions } from '../lib/nutrition/trends.js'
 import { unitsFor } from '../lib/nutrition/diary.js'
-import Foods from '../views/Foods.jsx'
-import MealCatalog from '../views/MealCatalog.jsx'
 import { bindUI } from './ui.jsx'
 import FoodPicker from './FoodPicker.jsx'
 import FoodSearch from './FoodSearch.jsx'
@@ -290,67 +289,5 @@ describe('food sources', () => {
     await mount(<ScanSheet close={() => {}} />, { barcodeBeep: false })
     await click(buttonSaying(host, 'camera sees a code'))
     expect(beep).toHaveBeenLastCalledWith(false, 1040, 0.12)
-  })
-})
-
-describe('Foods', () => {
-  const foods = () => [
-    { ...fixtureFoods()[0], category: 'Pantry', notes: 'Weekday', usage_count: 1 },
-    { ...fixtureFoods()[1], category: 'Bakery', usage_count: 9 },
-    fixtureFoods()[2],
-  ]
-  const settings = { foodCategories: ['Pantry', { name: 'Bakery', label: '🥖' }, 'Dairy'] }
-
-  it('foodsSort: the page opens in that order', async () => {
-    await mount(<Foods />, { ...settings, foodsSort: 'most' }, { foods: foods() })
-    await settle()
-    expect(rowNames()).toEqual(['Wholemeal bread', 'Rolled oats', 'Crème fraîche'])
-  })
-
-  it('foodsShowCategories, foodsShowLabels and foodsShowNotes: what each row says, and the chips', async () => {
-    await mount(<Foods />, settings, { foods: foods() })
-    await settle()
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).toContain('🥖 Bakery')
-    expect(rowOf('Rolled oats').querySelector('.ss').textContent).toContain('Weekday')
-    await mount(<Foods />, { ...settings, foodsShowLabels: false, foodsShowNotes: false, foodsShowCategories: true }, { foods: foods() })
-    await settle()
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).toContain('Bakery')
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).not.toContain('🥖')
-    expect(rowOf('Rolled oats').querySelector('.ss').textContent).not.toContain('Weekday')
-    await mount(<Foods />, { ...settings, foodsShowCategories: false }, { foods: foods() })
-    await settle()
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).not.toContain('Bakery')
-  })
-
-  it('foodCategories: Profile\'s categories are filters even before a food uses them', async () => {
-    await mount(<Foods />, settings, { foods: foods() })
-    await settle()
-    const chips = [...host.querySelectorAll('.chip')].map(c => c.textContent)
-    expect(chips).toEqual(expect.arrayContaining(['All', 'Pantry', '🥖 Bakery', 'Dairy']))
-  })
-
-  it('offEnabled: off, the Online tab is gone; foodsDefaultSource off opens on it', async () => {
-    await mount(<Foods />, { offEnabled: false, foodsDefaultSource: 'off' }, { foods: foods() })
-    await settle()
-    expect(buttonSaying(host, 'Online')).toBeUndefined()
-    expect(rowNames()).toContain('Rolled oats')
-    await mount(<Foods />, { offEnabled: true, foodsDefaultSource: 'off' }, { foods: foods() })
-    await settle()
-    expect(host.textContent).toContain('Type a food to search Open Food Facts.')
-  })
-
-  it('mealsSort and recipesSort: Saved meals and Recipes open in that order', async () => {
-    const meals = [
-      { ...fixtureMeals()[0], name: 'Alpha', usage_count: 1 }, { ...fixtureMeals()[0], id: 23, name: 'Zulu', usage_count: 7 },
-    ]
-    await mount(<MealCatalog recipes={false} />, { mealsSort: 'most' }, { meals })
-    await settle()
-    expect(rowNames()).toEqual(['Zulu', 'Alpha'])
-    const recipes = [
-      { ...fixtureMeals()[1], name: 'Soup', usage_count: 1 }, { ...fixtureMeals()[1], id: 24, name: 'Stew', usage_count: 7 },
-    ]
-    await mount(<MealCatalog recipes />, { recipesSort: 'most' }, { meals: recipes })
-    await settle()
-    expect(rowNames()).toEqual(['Stew', 'Soup'])
   })
 })

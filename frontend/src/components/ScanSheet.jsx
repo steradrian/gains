@@ -4,13 +4,13 @@ import { useUI } from '../store/useUI.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { findByBarcode, normalizeBarcode } from '../lib/nutrition/barcode.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
+import { openNewFood } from '../lib/nutrition/editor-routes.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { asksQuantity, logServing } from '../lib/nutrition/log-serving.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { beep } from '../lib/sound.js'
 import CameraScan from './CameraScan.jsx'
-import { foodEditSheet } from './FoodEditSheet.jsx'
 import { portionSheet } from './PortionSheet.jsx'
 import { quickKcalSheet } from './QuickKcalSheet.jsx'
 import { SheetHeader } from './sheet-layout.jsx'
@@ -84,8 +84,8 @@ export default function ScanSheet({ date, meal, mealName, onLogged, onSearch, on
   }
   const search = () => { close(); if (onSearch) onSearch() }
   const quick = () => { close(); quickKcalSheet({ date, meal, mealName, onLogged }) }
-  // Foods' create flow, with the scanned code in its Barcode field (no id, so it creates).
-  const create = code => { close(); foodEditSheet({ food: { barcode: code }, settings: useNutrition.getState().settings.data, onSaved: onPick }) }
+  // The new-food editor with the scanned code in its Barcode field; every sheet under the scanner closes with it.
+  const create = code => openNewFood({ barcode: code }, () => useUI.getState().closeAll())
   const save = async food => {
     if (busy) return
     setBusy(true)

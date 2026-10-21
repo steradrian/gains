@@ -29,9 +29,7 @@ export const PAGE_INDEX = [
   { path: '/train/coach', tab: 'train', title: 'Coach', glyph: 'chat', kw: 'ai coach chat assistant advice', gate: c => (c.coach ? 'on' : 'hidden') },
   // Nutrition
   { path: TAB_ROOT.food, tab: 'food', title: 'Nutrition', glyph: 'utensils', kw: 'food diary calories eat', gate: nutrition },
-  { path: '/food/foods', tab: 'food', title: 'Foods', glyph: 'apple', kw: 'my foods ingredients products', gate: nutrition },
-  { path: '/food/meals', tab: 'food', title: 'Saved meals', glyph: 'utensils', kw: 'meals combos favourites', gate: nutrition },
-  { path: '/food/recipes', tab: 'food', title: 'Recipes', glyph: 'cookingPot', kw: 'recipe cooking servings', gate: nutrition },
+  { path: '/food/my-foods', tab: 'food', title: 'My foods', glyph: 'apple', kw: 'foods ingredients products saved meals combos favourites recipes cooking servings', gate: nutrition },
   { path: '/food/goals', tab: 'food', title: 'Goals', glyph: 'target', kw: 'calorie goal macros protein target water', gate: nutrition },
   { path: '/food/fasting', tab: 'food', title: 'Fasting', glyph: 'timer', kw: 'fast intermittent 16:8 omad',
     gate: c => (!c.nutrition ? 'hidden' : c.fastingOn ? 'on' : { off: { page: 'features', find: 'Fasting' } }) },

@@ -84,6 +84,10 @@ import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
 import FoodRedirect from './views/eat/FoodRedirect.jsx'
+import MyFoods from './views/MyFoods.jsx'
+import FoodEditor from './views/my-foods/FoodEditor.jsx'
+import MealEditor from './views/my-foods/MealEditor.jsx'
+import RecipeEditor from './views/my-foods/RecipeEditor.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
@@ -408,6 +412,15 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/food/trends" element={<TrendsPage />} />
       {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
       <Route path="/food/burned" element={<BurnedPage />} />
+      {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
+          /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
+      <Route path="/food/my-foods" element={<MyFoods />} />
+      {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
+          keeps its form when the address takes the real id. */}
+      <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
+      <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
+      {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
+      <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
       <Route path="/progress/body" element={<Body segment="weight" />} />
