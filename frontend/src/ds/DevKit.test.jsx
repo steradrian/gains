@@ -48,6 +48,21 @@ describe('DevKit', () => {
     expect(view.host.querySelectorAll('.g-gtabbar')).toHaveLength(4)
   })
 
+  it('renders the Train charts kit, and a day opens from the heatmap and the month', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StatTiles', 'LineChart', 'BarChart', 'Heatmap', 'MonthGrid']))
+    expect(view.host.querySelectorAll('.g-stats')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-lc')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-bars-card')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-heat')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-mg')).toHaveLength(2)
+    act(() => { view.host.querySelector('.g-heat button.g-heat-c').click() })
+    expect(view.host.textContent).toMatch(/Opened: 2026-w\d+-d\d/)
+    act(() => { view.host.querySelector('.g-mg button.g-mg-cell').click() })
+    expect(view.host.textContent).toContain('Opened: 2026-10-01')
+  })
+
   it('renders the StageWeekMarks entry', () => {
     view.render(<DevKit />)
     const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
@@ -61,10 +76,40 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining(['StageDayRail', 'RingCarousel (Train)', 'StageTrainCard', 'ExerciseThumbRow', 'StageEmpty', 'RoutineTiles', 'MusclesCard']))
     expect(view.host.querySelectorAll('.g-rail')).toHaveLength(2)
     expect(view.host.querySelectorAll('.g-tcard')).toHaveLength(6)
-    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-sempty')).toHaveLength(4)
     const title = () => view.host.querySelector('.g-rail-title').textContent
     expect(title()).toBe('This week')
     act(() => { view.host.querySelector('.g-rail-btn[aria-label="Next week"]').click() })
     expect(title()).toBe('Next week')
+  })
+
+  it('renders the shared pages entries', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining([
+      'Shared: pages', 'StageNavBar', 'StageSection variants', 'NotificationRow', 'StageEmpty on the notifications page', 'Permission banner', 'StageNote',
+    ]))
+    expect([...view.host.querySelectorAll('.g-sempty-btn')].at(-1).textContent).toBe('Set a reminder')
+    expect(view.host.querySelectorAll('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
+    expect(view.host.querySelector('.g-snote').textContent).toContain('Kept for 30 days')
+    expect([...view.host.querySelectorAll('.g-snav')].filter(n => !n.closest('.g-kit-page'))).toHaveLength(7)
+    expect(view.host.querySelectorAll('.g-ssec-line')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-ngroup')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-nrow')).toHaveLength(9)
+    expect(view.host.querySelectorAll('.g-nrow-new')).toHaveLength(3)
+  })
+
+  it('renders the Train pushed-page kit', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['StagePage', 'GlassValueRow', 'StageSegmented', 'RadioRow', 'ChipGroup']))
+    expect(view.host.querySelectorAll('.g-kit-page .g-screen-pushed')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-kit-page .g-spage-title')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-gvr')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-gvr-static')).toHaveLength(1)
+    expect(view.host.querySelectorAll('.g-sseg[role="radiogroup"]')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-radio')).toHaveLength(6)
+    expect(view.host.querySelectorAll('.g-cgroup')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-cgroup-stage')).toHaveLength(2)
   })
 })

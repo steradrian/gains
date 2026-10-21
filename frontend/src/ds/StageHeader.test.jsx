@@ -58,7 +58,13 @@ describe('StageHeader', () => {
   it('shows the dot and counts the unread in the bell name', () => {
     view.render(<StageHeader unread={3} />)
     expect(q('.g-sdot')).not.toBeNull()
-    expect(bell().getAttribute('aria-label')).toBe('Notifications, 3 new')
+    expect(bell().getAttribute('aria-label')).toBe('Notifications, 3 unread')
+  })
+
+  it('counts one unread in the bell name, and hides the dot from a screen reader', () => {
+    view.render(<StageHeader unread={1} />)
+    expect(bell().getAttribute('aria-label')).toBe('Notifications, 1 unread')
+    expect(bell().querySelector('.g-sdot').getAttribute('aria-hidden')).toBe('true')
   })
 
   it('has no dot when nothing is unread', () => {
@@ -84,6 +90,6 @@ describe('StageHeader', () => {
     click(pill())
     expect(bell().getAttribute('aria-label')).toBe('Close search')
     click(bell())
-    expect(bell().getAttribute('aria-label')).toBe('Notifications, 1 new')
+    expect(bell().getAttribute('aria-label')).toBe('Notifications, 1 unread')
   })
 })
