@@ -13,12 +13,19 @@ export default function SearchFeatureCard({ title, ranges, line, icon, pageTitle
       <div className="g-sfeat-top">
         <span className="g-sfeat-ic" aria-hidden="true"><Icon name={icon || 'slider'} className="g-icon" /></span>
         <span className="g-sfeat-body">
-          <span className="g-sfeat-name"><b><Hl text={title} ranges={ranges} /></b><span className="g-sfeat-off">{t('Off')}</span></span>
+          {/* The name is read once, whole: the highlight's pieces would each be a VoiceOver stop. */}
+          <span className="g-sfeat-name">
+            <b><span className="sr-only">{title}</span><span aria-hidden="true"><Hl text={title} ranges={ranges} /></span></b>
+            <span className="g-sfeat-off">{t('Off')}</span>
+          </span>
           {line && <span className="g-sfeat-line">{line}</span>}
         </span>
       </div>
       <div className="g-sfeat-acts">
-        <button type="button" className="g-sfeat-on" onClick={onTurnOn} disabled={busy} aria-busy={busy || undefined}>{t('Turn on {0}', title)}</button>
+        {/* Held with aria-disabled while busy, not disabled, so the focus stays on it. */}
+        <button type="button" className="g-sfeat-on" onClick={busy ? undefined : onTurnOn} aria-disabled={busy || undefined} aria-busy={busy || undefined}>
+          {t('Turn on {0}', title)}
+        </button>
         <button type="button" className="g-sfeat-page g-glass" onClick={onOpenPage}>{pageTitle || t('Features')}</button>
       </div>
     </div>
