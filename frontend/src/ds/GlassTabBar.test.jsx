@@ -27,7 +27,7 @@ describe('GlassTabBar', () => {
     view.render(<GlassTabBar />)
     expect(q('nav').getAttribute('aria-label')).toBe('Main navigation')
     expect(tabs().map(b => b.textContent)).toEqual(['Today', 'Train', 'Eat', 'Me'])
-    expect(tabs().map(b => b.querySelector('[data-icon]').getAttribute('data-icon'))).toEqual(['house', 'dumbbell', 'eat', 'user'])
+    expect(tabs().map(b => b.querySelector('[data-icon]').getAttribute('data-icon'))).toEqual(['lucideHouse', 'lucideDumbbell', 'eat', 'user'])
     const kids = [...q('nav').children].filter(el => el !== ind())
     expect(kids.indexOf(plus())).toBe(2)
     expect(plus().getAttribute('aria-label')).toBe('Add to Today')

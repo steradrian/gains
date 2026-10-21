@@ -13,7 +13,7 @@
 //   · geometry snapped to .5 so it lands on pixel edges at 24px
 //
 // The nutrition glyphs (droplet, utensils, apple, cookingPot, scanBarcode, bookOpen, calendarCheck) and the
-// onboarding's (scanFace … hammer), the welcome-back card's (hand) and the tab bar's Me (user) are copied from Lucide (https://lucide.dev), ISC License, Copyright (c) 2022 Lucide Contributors, with
+// onboarding's (scanFace … hammer), the welcome-back card's (hand) and the tab bar's (lucideHouse, lucideDumbbell, user) are copied from Lucide (https://lucide.dev), ISC License, Copyright (c) 2022 Lucide Contributors, with
 // portions (c) 2013-2022 Cole Bemis (Feather, MIT). Full text: NOTICE.md.
 
 // Lucide draws to the edge of a 24 box (2…22); this set lives in 3…21. Scaling by .9 around the
@@ -80,8 +80,11 @@ const P = {
   footprints: lucide(<><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z" /><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z" /><path d="M16 17h4" /><path d="M4 13h4" /></>),
   hammer: lucide(<><path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9" /><path d="m18 15 4-4" /><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" /></>),
   hand: lucide(<path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 1 1 3 0m-3 6a1.5 1.5 0 0 0-3 0v2a7.5 7.5 0 0 0 15 0v-5a1.5 1.5 0 0 0-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 0 1 3 0v1m0 0V11m0-5.5a1.5 1.5 0 0 1 3 0v3m0 0V11" />),
-  // The tab bar's Eat and Me (ds/GlassTabBar.jsx). Eat is the design system's own bowl with a
-  // leaf, drawn on Lucide's grid; Me is Lucide's user.
+  // The tab bar's four (ds/GlassTabBar.jsx), as the board draws them: Lucide's house (with its
+  // door) and dumbbell, beside the app's own `house` and `dumbbell` that other screens keep; Eat
+  // is the design system's own bowl with a leaf, drawn on Lucide's grid; Me is Lucide's user.
+  lucideHouse: lucide(<><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></>),
+  lucideDumbbell: lucide(<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7" />),
   eat: lucide(<path d="M3 11h18a9 9 0 0 1-18 0ZM8 20.5h8M12 11c0-4 2.4-6.7 6.5-7-.1 4-2.6 6.8-6.5 7ZM12 11c-.4-2.6-2.2-4.3-5-4.5.1 2.7 1.9 4.4 5 4.5Z" />),
   user: lucide(<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
   lightbulb: <><path d="M9.2 16.4a5.6 5.6 0 1 1 5.6 0v1.8H9.2Z" /><path d="M10 20.6h4" /></>,

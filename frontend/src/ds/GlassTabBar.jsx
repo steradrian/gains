@@ -5,7 +5,7 @@ import { cx } from '../lib/ui-kit.js'
 
 // Today · Train · + · Eat · Me on frosted chrome glass (bundle.js `GlassTabBar`, board PartTabBar).
 // Slot 2 is the +, which is never a tab and never lit.
-const TABS = [['today', () => t('Today'), 'house'], ['train', () => t('Train'), 'dumbbell'], null, ['eat', () => t('Eat'), 'eat'], ['me', () => t('Me'), 'user']]
+const TABS = [['today', () => t('Today'), 'lucideHouse'], ['train', () => t('Train'), 'lucideDumbbell'], null, ['eat', () => t('Eat'), 'eat'], ['me', () => t('Me'), 'user']]
 const slotOf = key => TABS.findIndex(tab => tab?.[0] === key)
 
 // The pill glides only once its first paint is two frames behind it, so it never slides in on a
