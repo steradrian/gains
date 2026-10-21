@@ -21,11 +21,11 @@ function renderTop() {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-const chips = host => [...host.querySelectorAll('.chips .chip')]
+const chips = host => [...host.querySelectorAll('.g-cgroup .g-cchip')]
 const chipByText = (host, text) => chips(host).find(b => b.textContent.trim() === text)
 const sameChip = host => chips(host).find(b => b.textContent.trim().startsWith('Same muscle'))
-const isOn = el => el.className.split(/\s+/).includes('on')
-const rows = host => [...host.querySelectorAll('.list .item:not(.ex-new)')].map(r => r.querySelector('.ss').textContent)
+const isOn = el => el.classList.contains('on')
+const rows = host => [...host.querySelectorAll('.g-pk-item')].map(r => r.querySelector('.g-xrow-b > span').textContent)
 
 // A cable triceps exercise: the catalogue has plenty of other triceps work, on cables and off.
 const CABLE_TRI = EXDB.find(e => e.tg === 'triceps' && e.eq === 'cable')
@@ -81,7 +81,7 @@ describe('swap picker opens on the same muscle', () => {
     expect(listed[0].endsWith('cable')).toBe(true)
     if (firstOther > 0) expect(listed.slice(firstOther).some(s => s.endsWith('cable'))).toBe(false)
     // The exercise being swapped away is not offered as its own replacement.
-    expect([...host.querySelectorAll('.list .item .tt')].map(x => x.textContent)).not.toContain(CABLE_TRI.n)
+    expect([...host.querySelectorAll('.g-pk-item .g-xrow-b b')].map(x => x.textContent)).not.toContain(CABLE_TRI.n)
 
     act(() => chipByText(host, 'All').click())
     expect(isOn(chipByText(host, 'All'))).toBe(true)
@@ -91,7 +91,7 @@ describe('swap picker opens on the same muscle', () => {
     expect(rows(host).every(s => s.startsWith('Triceps'))).toBe(true)
   })
 
-  // The routine editor hands its slot's exercise in (views/RoutineEdit.replace.test.jsx).
+  // The routine editor hands its slot's exercise in (views/routines/RoutineEditor.replace.test.jsx).
   it('routine editor: a picker told what it replaces opens on that muscle', () => {
     const pick = vi.fn()
     exercisePicker(pick, { title: 'Replace exercise', like: CABLE_TRI.id })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { exerciseHistory, HISTORY_SESSIONS, bestSetFor } from './exercise-history.js'
+import { exerciseHistory, HISTORY_SESSIONS, bestSetFor, bestSetIndex, trendDelta } from './exercise-history.js'
 import { EXDB } from './exercises-data.js'
 import { estimate1RM, e1rmSeries } from './onerm.js'
 import { lastEntryFor } from './history.js'
@@ -57,6 +57,24 @@ describe('exerciseHistory', () => {
     expect(h.sessions.filter(s => s.pr).map(s => s.id)).toEqual(['w1'])
   })
 
+  it('marks every session that beat the best before it, never the first one or a match of the best', () => {
+    const S = { workouts: [
+      session(0, [work(60, 5)]), session(1, [work(70, 5)]), session(2, [work(70, 6)]), session(3, [work(75, 5)]), session(4, [work(72, 5)]),
+    ] }
+    const h = exerciseHistory(S, 'bench')
+    expect(h.prId).toBe('w3')
+    expect(h.sessions.filter(s => s.pr).map(s => s.id)).toEqual(['w3', 'w1'])
+    expect(exerciseHistory({ workouts: [session(0, [work(60, 5)])] }, 'bench').sessions.some(s => s.pr)).toBe(false)
+  })
+
+  it('carries the workout name, and every session when the limit is lifted', () => {
+    const S = { workouts: Array.from({ length: 14 }, (_, i) => ({ ...session(i, [work(50 + i, 5)]), name: i === 13 ? 'Push A' : undefined })) }
+    const all = exerciseHistory(S, 'bench', { limit: Infinity })
+    expect(all.sessions).toHaveLength(14)
+    expect(all.sessions[0].name).toBe('Push A')
+    expect(all.sessions[1].name).toBeNull()
+  })
+
   it('keeps the last ten sessions in the list but every session on the chart', () => {
     const S = { workouts: Array.from({ length: 14 }, (_, i) => session(i, [work(50 + i, 5)])) }
     const h = exerciseHistory(S, 'bench')
@@ -66,7 +84,7 @@ describe('exerciseHistory', () => {
     expect(h.sessions.at(-1).d).toBe(iso(4))
     expect(h.points).toHaveLength(14)
     expect(h.e1rmPoints).toHaveLength(14)
-    // the record lives outside the listed window, so no listed session carries the marker
+    // the session holding the best now is the last one, and it is listed
     expect(h.prId).toBe('w13')
     expect(exerciseHistory(S, 'bench', { limit: 3 }).sessions).toHaveLength(3)
   })
@@ -88,7 +106,7 @@ describe('exerciseHistory', () => {
     expect(h.prId).toBe('w1')
   })
 
-  it('plots the longest hold for timed work and the minutes for cardio', () => {
+  it('plots the longest hold for timed work and the top speed for cardio', () => {
     const hold = i => ({ id: 'h' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'plank', target: { mode: 'time' }, sets: [{ sec: 40 + i * 10, done: true }, { sec: 30, done: true }] }] })
     const run = i => ({ id: 'r' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'run', target: { mode: 'cardio' }, sets: [{ min: 20, speed: 10, done: true }, { min: 5, speed: 12, done: true }] }] })
     const S = { workouts: [hold(0), hold(1), run(0)] }
@@ -98,8 +116,31 @@ describe('exerciseHistory', () => {
     expect(plank.sessions[0].volume).toBeNull()
     expect(plank.e1rmPoints).toEqual([])
     const cardio = exerciseHistory(S, 'run')
-    expect(cardio).toMatchObject({ mode: 'cardio', metric: 'min', best: 25 })
-    expect(cardio.points[0].y).toBe(25)
+    expect(cardio).toMatchObject({ mode: 'cardio', metric: 'speed', best: 12 })
+    expect(cardio.points[0].y).toBe(12)
+  })
+
+  // The Progress hero ranks cardio by top speed, so a long slow run is not a New best under it.
+  it('marks a faster cardio session as the record, not a longer one', () => {
+    const run = (i, min, speed) => ({ id: 'r' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'run', target: { mode: 'cardio' }, sets: [{ min, speed, done: true }] }] })
+    const h = exerciseHistory({ workouts: [run(0, 20, 10), run(1, 60, 8), run(2, 15, 11)] }, 'run', { limit: Infinity })
+    expect(h.sessions.map(s => [s.id, s.pr])).toEqual([['r2', true], ['r1', false], ['r0', false]])
+    expect(h.prId).toBe('r2')
+  })
+
+  // On an assistance machine less help is the better set, as the Progress hero reads it.
+  it('marks the session that needed least help on an assistance machine', () => {
+    const help = (i, w) => ({ id: 'a' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: '0017', target: { mode: 'reps' }, sets: [work(w, 8)] }] })
+    const h = exerciseHistory({ workouts: [help(0, 30), help(1, 40), help(2, 20)] }, '0017', { limit: Infinity })
+    expect(h.sessions.map(s => [s.id, s.pr])).toEqual([['a2', true], ['a1', false], ['a0', false]])
+    expect(h.prId).toBe('a2')
+    expect(h.best).toBe(20)
+  })
+
+  it('estimates each session\'s 1RM with the profile\'s formula', () => {
+    const S = { oneRmFormula: 'brzycki', workouts: [session(0, [work(100, 8)])] }
+    expect(exerciseHistory(S, 'bench').sessions[0].e1rm).toBe(estimate1RM(100, 8, 'brzycki'))
+    expect(exerciseHistory({ workouts: S.workouts }, 'bench').sessions[0].e1rm).toBe(estimate1RM(100, 8, 'epley'))
   })
 
   it('gives a session logged in another mode no point, but keeps it in the list', () => {
@@ -150,7 +191,7 @@ describe('exerciseHistory', () => {
       { id: 'run', target: { mode: 'cardio' }, sets: [{ min: 5, speed: 10, done: true }] },
     ] }
     expect(exerciseHistory({ workouts: [hold] }, 'plank').sessions[0]).toMatchObject({ value: 45, volume: null })
-    expect(exerciseHistory({ workouts: [run] }, 'run').sessions[0]).toMatchObject({ value: 25, volume: null })
+    expect(exerciseHistory({ workouts: [run] }, 'run').sessions[0]).toMatchObject({ value: 10, volume: null })
   })
 
   // The history sheet and Stats speak for the exercise, so a combined day that trains it in two
@@ -174,6 +215,15 @@ describe('exerciseHistory', () => {
     expect(lastEntryFor(S, 'bench', 'B').sets).toEqual(light.sets)
     expect(nextPrescription(S, S.routines[0].ex[0], S.routines[0]).weight).toBe(102.5)
     expect(nextPrescription(S, S.routines[1].ex[0], S.routines[1]).weight).toBe(62.5)
+  })
+
+  it('counts a legacy record that kept its load only in topW as a session, valued at that load', () => {
+    const S = { workouts: [session(0, [], { topW: 70 }), session(2, [work(72.5, 5)])] }
+    const h = exerciseHistory(S, 'bench')
+    expect(h.total).toBe(2)
+    expect(h.sessions[1]).toMatchObject({ id: 'w0', value: 70, sets: [], volume: 0 })
+    expect(h.sessions[0].pr).toBe(true)
+    expect(h.points.map(p => p.y)).toEqual([70, 72.5])
   })
 })
 
@@ -226,5 +276,50 @@ describe('bestSetFor', () => {
     expect(bestSetFor(S, id, 'reps').set).toMatchObject({ w: 20, r: 8 })
     expect(bestSetFor({ workouts: [] }, 'bench', 'reps')).toBeNull()
     expect(bestSetFor({}, 'bench')).toBeNull()
+  })
+})
+
+// The "New best" mark sits on a set, not on the day.
+describe('bestSetIndex', () => {
+  it('is the first set that matches the session\'s number, in each metric', () => {
+    expect(bestSetIndex({ value: 80, sets: [work(75, 8), work(80, 6), work(80, 6)] }, 'weight')).toBe(1)
+    expect(bestSetIndex({ value: 12, sets: [work(0, 8), work(0, 12)] }, 'reps')).toBe(1)
+    expect(bestSetIndex({ value: 90, sets: [{ sec: 60 }, { sec: 90 }] }, 'sec')).toBe(1)
+    expect(bestSetIndex({ value: 12, sets: [{ min: 30, speed: 10 }, { min: 10, speed: 12 }] }, 'speed')).toBe(1)
+  })
+
+  it('is -1 for a legacy record with no sets, so the caller marks its top-set line instead', () => {
+    expect(bestSetIndex({ value: 70, sets: [] }, 'weight')).toBe(-1)
+  })
+
+  it('falls back to the first set when no set matches, for minutes and for a session with no value', () => {
+    expect(bestSetIndex({ value: 30, sets: [{ min: 10 }, { min: 20 }] }, 'min')).toBe(0)
+    expect(bestSetIndex({ value: 80, sets: [work(75, 8)] }, 'weight')).toBe(0)
+    expect(bestSetIndex({ value: null, sets: [work(75, 8), work(80, 8)] }, 'weight')).toBe(0)
+  })
+})
+
+// The hero line: "up 6 kg in 3 months" is only said when the window holds two points.
+describe('trendDelta', () => {
+  const pts = [{ t: 1000, y: 90 }, { t: 2000, y: 93 }, { t: 3000, y: 96 }]
+
+  it('is the last point against the first one inside the window', () => {
+    expect(trendDelta(pts)).toEqual({ delta: 6, from: 90, to: 96 })
+    expect(trendDelta(pts, 1500)).toEqual({ delta: 3, from: 93, to: 96 })
+  })
+
+  it('goes negative for a drop and rounds away float noise', () => {
+    expect(trendDelta([{ t: 1, y: 96 }, { t: 2, y: 92.5 }]).delta).toBe(-3.5)
+    expect(trendDelta([{ t: 1, y: 0.1 }, { t: 2, y: 0.3 }]).delta).toBe(0.2)
+  })
+
+  it('reads an unsorted series oldest to newest', () => {
+    expect(trendDelta([pts[2], pts[0], pts[1]])).toEqual({ delta: 6, from: 90, to: 96 })
+  })
+
+  it('is null with fewer than two points in the window, so the line is left out', () => {
+    expect(trendDelta([])).toBeNull()
+    expect(trendDelta([pts[0]])).toBeNull()
+    expect(trendDelta(pts, 2500)).toBeNull()
   })
 })

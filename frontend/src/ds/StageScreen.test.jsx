@@ -38,6 +38,18 @@ describe('StageScreen', () => {
     expect(ds.match(/\n\.g-stage \{([^}]*)\}/)[1]).toMatch(/--focus: var\(--on-stage\);/)
   })
 
+  // A pushed page draws the stage at half the roots' intensity; the roots (the default) are as ever.
+  it('marks a pushed page, and only that, with the half-intensity class the stylesheet dims', () => {
+    view.render(<StageScreen />)
+    expect(screen().classList.contains('g-screen-pushed')).toBe(false)
+    view.render(<StageScreen pushed />)
+    expect(screen().classList.contains('g-screen-pushed')).toBe(true)
+    expect(screen().classList.contains('g-screen')).toBe(true)
+    const ds = readFileSync(process.cwd() + '/src/ds/ds.css', 'utf8')
+    expect(ds).toMatch(/\.g-screen-pushed \.g-stage-glow-a \{ opacity: \.25; \}/)
+    expect(ds).toMatch(/\.g-screen-pushed \.g-stage-rings \{ opacity: \.5; \}/)
+  })
+
   it('refuses an accent the design system has no preset for, in development', () => {
     expect(() => view.render(<StageScreen accent="sky" />)).toThrow(/accent="sky"/)
   })

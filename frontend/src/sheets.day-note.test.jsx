@@ -9,8 +9,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { dayOverrideSheet, dayNoteSheet, calendarSheet } from './sheets.jsx'
-import Heatmap from './components/Heatmap.jsx'
-import History, { historyRows } from './views/History.jsx'
+import { fmtDate } from './lib/format.js'
+import ActivityCard from './views/train/load/ActivityCard.jsx'
+import { activityOf } from './views/train/load/use-training-load.js'
+import History from './views/History.jsx'
+import { historyRows } from './views/train/history/use-history.js'
 import { withDayNote, dayNoteOf } from './lib/day-notes.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
@@ -81,9 +84,12 @@ describe('the day sheet offers a note', () => {
     expect(host.textContent).toContain('Sick')
     expect(host.textContent).toContain('Flu')
     expect(host.textContent).not.toContain('Add a note for this day')
-    act(() => { host.querySelector('.day-note-row').click() })
-    expect(useUI.getState().sheets).toHaveLength(2)
+    // The day drawer gives way to the note drawer (T3.1 → T3.4).
+    act(() => { [...host.querySelectorAll('.g-menuitem')].find(b => b.textContent.startsWith('Sick')).click() })
+    expect(useUI.getState().sheets).toHaveLength(1)
     const note = mountTopSheet()
+    expect(note.querySelector('h2').textContent).toBe('Day note')
+    expect(note.querySelector('.g-bs-chip').textContent).toBe(fmtDate('2026-09-14', true))
     expect(note.querySelector('textarea').value).toBe('Flu')
     expect(button(note, 'Sick').getAttribute('aria-pressed')).toBe('true')
   })
@@ -147,15 +153,14 @@ describe('where a noted day shows', () => {
     expect(mountTopSheet().querySelector('.cal-legend').textContent).not.toContain('Day note')
   })
 
-  it('the heatmap outlines it and lets you tap it', () => {
+  it('the heatmap outlines it, says the note, and lets you tap it', () => {
     install({ dayNotes: notes })
-    const onDay = vi.fn()
-    const host = mount(<Heatmap S={S()} onDay={onDay} />)
-    const cell = [...host.querySelectorAll('.hm-c')].find(c => c.getAttribute('title')?.startsWith('2026-09-14'))
-    expect(cell.className).toContain('noted')
-    expect(cell.getAttribute('title')).toBe('2026-09-14 · Sick · Flu')
-    act(() => { cell.click() })
-    expect(onDay).toHaveBeenCalledWith('2026-09-14')
+    const said = fmtDate('2026-09-14', true) + ', Sick · Flu'
+    const grid = activityOf(S(), 'time', new Date('2026-09-16T12:00:00'))
+    expect(grid.days.find(d => d.label === said)).toMatchObject({ iso: '2026-09-14', noted: true })
+    const host = mount(<MemoryRouter><ActivityCard S={S()} today="2026-09-16" /></MemoryRouter>)
+    const cell = host.querySelector(`button[aria-label="${said}"]`)
+    expect(cell.className).toContain('g-heat-noted')
   })
 
   it('History lists it between the workouts, newest first; a trained day keeps only its workout', () => {
@@ -166,7 +171,8 @@ describe('where a noted day shows', () => {
     })
     expect(historyRows(S()).map(r => r.w ? r.w.id : 'note ' + r.d)).toEqual(['c', 'b', 'note 2026-09-14', 'a'])
     const host = mount(<MemoryRouter><History /></MemoryRouter>)
-    const row = host.querySelector('.day-note-row')
+    // T8.0: a glass row in its week, between the workouts
+    const row = [...host.querySelectorAll('.g-hist-row')].find(r => r.querySelector('b').textContent === 'Sick')
     expect(row.textContent).toContain('Sick')
     expect(row.textContent).toContain('Flu')
     act(() => { row.click() })

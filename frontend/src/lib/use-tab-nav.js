@@ -57,7 +57,7 @@ function crossesTab(nav, location, navType) {
 export const TAB_SWITCH = { tabSwitch: true }
 
 // For code outside the shell (the bar, the + sheet, a page's back button), like lib/nav.js's nav().
-let api = { switchTab: () => {}, popToRoot: () => {}, back: () => {} }
+let api = { switchTab: () => {}, popToRoot: () => {}, back: () => {}, leaveTo: () => {} }
 let switching = false
 // While a switch rebuilds the history, nothing else may walk it: the bar, the +, Android back.
 export const isSwitching = () => switching
@@ -102,6 +102,14 @@ export const back = parent => {
   if (switching) return
   const up = typeof parent === 'string' ? parent : undefined
   afterSheet(() => api.back(up))
+}
+
+// A page that has to go (its subject is gone) leaving for `path`: one step down when `path` is the
+// page under it in this tab's stack, so it does not sit in history twice, else it is replaced by
+// `path` (a deep link, a page reached from somewhere else).
+export const leaveTo = path => {
+  if (switching) return
+  afterSheet(() => api.leaveTo(path))
 }
 
 export function useTabNav({ navigate, location, navType }) {
@@ -286,9 +294,17 @@ export function useTabNav({ navigate, location, navType }) {
     else navigate(parent || parentOf(location.pathname), { replace: true })
   }, [navigate, location])
 
+  const doLeaveTo = useCallback(path => {
+    if (pending.current) return
+    const { entries, idx } = navRef.current
+    const under = idx > 0 ? entries[idx - 1] : null
+    if (under && under.split(/[?#]/)[0] === path) navigate(-1)
+    else navigate(path, { replace: true })
+  }, [navigate])
+
   useLayoutEffect(() => {
-    api = { switchTab: doSwitch, popToRoot: doPopToRoot, back: doBack }
-  }, [doSwitch, doPopToRoot, doBack])
+    api = { switchTab: doSwitch, popToRoot: doPopToRoot, back: doBack, leaveTo: doLeaveTo }
+  }, [doSwitch, doPopToRoot, doBack, doLeaveTo])
   useLayoutEffect(() => () => { switching = false; clearTimeout(pending.current?.timer) }, [])
 
   if (frozen) return { tab: frozen.tab, shown: frozen.location, switching: true }

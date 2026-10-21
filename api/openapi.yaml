@@ -2639,8 +2639,30 @@ paths:
                   description: |
                     The language the app is showing, which the Coach writes in. Absent or not a
                     language tag, the profile's stored `lang` is used.
+                checkIn:
+                  type: object
+                  description: |
+                    The latest weekly check-in the Coach has not read yet, which the review
+                    reads beside the training data. At least one of `feel`, `sleep` and `note`.
+                  required: [week]
+                  properties:
+                    week:
+                      type: string
+                      format: date
+                      description: The first day of the week it is about.
+                    feel:
+                      type: [string, 'null']
+                      enum: [easy, right, hard, much, null]
+                    sleep:
+                      type: [string, 'null']
+                      enum: [poor, ok, good, null]
+                    note:
+                      type: [string, 'null']
+                      maxLength: 500
       responses:
         '202': { $ref: '#/components/responses/CoachJobQueued' }
+        '400':
+          description: '`checkIn` is malformed: an unknown `feel` or `sleep`, a `note` over 500 characters, no `week`, or nothing answered. Nothing is queued.'
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/CoachRefused' }
         '409': { $ref: '#/components/responses/CoachRefused' }
@@ -2688,7 +2710,8 @@ paths:
       description: |
         The client applies the accepted changes to its own state and syncs them through
         `PUT /api/data`; this only records the decision and clears the proposal. Sending
-        it when nothing is waiting is a no-op, not an error.
+        it when nothing is waiting is a no-op, not an error, and so is sending it with a
+        `proposalId` that is not the waiting proposal's: a late Dismiss cannot clear a newer one.
       requestBody:
         required: false
         content:
@@ -2696,6 +2719,12 @@ paths:
             schema:
               type: object
               properties:
+                proposalId:
+                  type: string
+                  maxLength: 64
+                  description: |
+                    The id of the proposal decided (the `pending.id` from `GET /api/coach/status`).
+                    Every current client sends it. Left out, whatever is waiting is resolved.
                 accepted:
                   type: array
                   items: { type: string }

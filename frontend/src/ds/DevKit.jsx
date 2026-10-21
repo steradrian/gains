@@ -4,10 +4,16 @@ import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
 import DevKitDay from './DevKitDay.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
+import DevKitPlan from './DevKitPlan.jsx'
+import DevKitPushed from './DevKitPushed.jsx'
+import DevKitRoutines from './DevKitRoutines.jsx'
 import DevKitSearch from './DevKitSearch.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
+import DevKitTrainCoach from './DevKitTrainCoach.jsx'
+import DevKitTrainExercises from './DevKitTrainExercises.jsx'
+import DevKitTrainLoad from './DevKitTrainLoad.jsx'
 import DevKitWeek from './DevKitWeek.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
@@ -205,6 +211,11 @@ export default function DevKit() {
 
         <DevKitToday />
         <DevKitTrain />
+        <DevKitTrainLoad />
+        {/* Train coach and gym kit (slice 6) */}
+        <DevKitTrainCoach />
+        {/* Train exercises kit (slice 4) */}
+        <DevKitTrainExercises />
         <DevKitDrawers />
         {/* Shared: search */}
         <DevKitSearch />
@@ -274,6 +285,9 @@ export default function DevKit() {
           </StageFooter>
         </Section>
 
+        <DevKitPushed />
+        <DevKitPlan />
+        <DevKitRoutines />
         <DevKitShared />
         {/* Shared: week */}
         <DevKitWeek />

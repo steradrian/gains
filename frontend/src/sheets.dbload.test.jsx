@@ -35,10 +35,12 @@ describe('weight means', () => {
   })
   afterEach(() => { act(() => { mounted.splice(0).forEach(([root, host]) => { root.unmount(); host.remove() }) }) })
 
-  it('the detail sheet sets the exercise default, stamped, and shows As entered until then', () => {
+  it('the exercise drawer\'s Your setup sets the exercise default, stamped, and shows As entered until then', () => {
     exerciseDetailSheet(BENCH)
     const host = render(useUI.getState().sheets.at(-1))
-    expect(host.textContent).toContain('Weight means')
+    const setup = host.querySelector('.g-xd-setup')
+    expect(setup.querySelector('h3').textContent).toBe('Your setup')
+    expect(setup.textContent).toContain('Weight means')
     expect(segButton(host, 'As entered').classList.contains('on')).toBe(true)
     expect(host.textContent).toContain('Counted as you type it, the way it always was.')
     act(() => segButton(host, 'Each').click())
@@ -58,13 +60,13 @@ describe('weight means', () => {
     const onSave = vi.fn()
     exConfigSheet(BENCH, { sets: 3, reps: 10, weight: 20, mode: 'reps' }, onSave)
     let host = render(useUI.getState().sheets.at(-1))
-    act(() => button(host, 'Save').click())
+    act(() => button(host, 'Done').click())
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('dbLoad')
 
     exConfigSheet(BENCH, { sets: 3, reps: 10, weight: 20, mode: 'reps' }, onSave)
     host = render(useUI.getState().sheets.at(-1))
     act(() => segButton(host, 'Both').click())
-    act(() => button(host, 'Save').click())
+    act(() => button(host, 'Done').click())
     expect(onSave.mock.calls[1][0].dbLoad).toBe('total')
   })
 
@@ -75,13 +77,13 @@ describe('weight means', () => {
     exConfigSheet(BENCH, { sets: 3, reps: 10, weight: 20, mode: 'reps', dbLoad: 'each' }, onSave)
     let host = render(useUI.getState().sheets.at(-1))
     expect(segButton(host, 'Each').classList.contains('on')).toBe(true)
-    act(() => button(host, 'Save').click())
+    act(() => button(host, 'Done').click())
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('dbLoad')
 
     exConfigSheet(BENCH, { sets: 3, reps: 10, weight: 20, mode: 'reps' }, onSave)
     host = render(useUI.getState().sheets.at(-1))
     act(() => segButton(host, 'As entered').click())
-    act(() => button(host, 'Save').click())
+    act(() => button(host, 'Done').click())
     expect(onSave.mock.calls[1][0].dbLoad).toBe('as')
   })
 })

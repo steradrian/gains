@@ -22,11 +22,11 @@ function renderTop() {
   return host
 }
 
-// The two chip strips render in order: body parts first, then equipment. Grab a chip by its
+// The chip rows render in order: body parts first, then type, then equipment. Grab a chip by its
 // visible label out of the whole picker.
 const chipByText = (host, text) =>
-  [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
-const isOn = el => el.className.split(/\s+/).includes('on')
+  [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text)
+const isOn = el => el.classList.contains('on')
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true

@@ -395,7 +395,7 @@ describe('the shared day picker', () => {
     expect(day(tomorrow).disabled).toBe(false)
     await click(day(tomorrow))
     expect(useDiarySelection.getState().day()).toBe(TODAY)
-    expect(lastSheet().querySelector('h3').textContent).toBe(fmtDate(tomorrow, true))
+    expect(lastSheet().querySelector('h2').textContent).toBe(fmtDate(tomorrow, true))
     // A screen reader is told which day it opened.
     expect(host.querySelector('[role="status"].sr-only').textContent).toBe('Change this day, ' + fmtDate(tomorrow, true))
   })
@@ -417,7 +417,7 @@ describe('the shared day picker', () => {
     expect(calendarDay(tomorrow).disabled).toBe(false)
     await click(calendarDay(tomorrow))
     expect(useDiarySelection.getState().day()).toBe(TODAY)
-    expect(lastSheet().querySelector('h3').textContent).toBe(fmtDate(tomorrow, true))
+    expect(lastSheet().querySelector('h2').textContent).toBe(fmtDate(tomorrow, true))
     expect(host.querySelector('[role="status"].sr-only').textContent).toBe('Change this day, ' + fmtDate(tomorrow, true))
     // Days up to today still pick the date.
     await act(async () => { useUI.setState({ sheets: [] }) })

@@ -108,7 +108,7 @@ function Sheet({ sheet, covered }) {
   // a gesture that begins on a slider (or opted-out control) belongs to that control, not to
   // the sheet's swipe-to-dismiss — so it keeps working while you drag. Horizontal strips are
   // opted out too: a sideways scroll must never wobble or pull down the sheet.
-  const NODRAG = 'input[type=range], [data-nodrag], .chips, .hm-wrap'
+  const NODRAG = 'input[type=range], [data-nodrag], .chips'
   const begin = (target, x, y) => {
     if (target.closest && target.closest(NODRAG)) { drag.current = idle(); return }
     if (scrolled()) { drag.current = idle(); return }

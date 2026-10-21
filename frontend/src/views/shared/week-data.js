@@ -15,7 +15,7 @@ import { totalsOf, waterTotal } from '../../lib/nutrition/diary.js'
 import { pinState, queueOf, weekTally } from '../../lib/queue.js'
 import { bestStreakWeeks, weekVolume } from '../../lib/train-stats.js'
 import { trainingDay, workoutsByDay } from '../../lib/training-day.js'
-import { regionList } from '../train/use-train.js'
+import { regionList } from '../train/region-names.js'
 import { missedPlanOf, ON_TARGET_KCAL } from './day-data.js'
 import { dayTargetsOf, waterGoalSet } from './food-target.js'
 

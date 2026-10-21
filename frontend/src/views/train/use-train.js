@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { useRootHeader } from '../../components/use-root-header.js'
-import { addRoutine } from '../Plan.jsx'
+import { addRoutine } from '../routines/routine-actions.js'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { coachAvailable } from '../../lib/coach.js'
 import { canNoteDay, dayNoteOf } from '../../lib/day-notes.js'
@@ -24,6 +24,7 @@ import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../li
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, starterPlanSheet, startChooserSheet, startFlow } from '../../sheets.jsx'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
+import { regionList } from './region-names.js'
 import { workoutsSheet } from './workouts-sheet.js'
 
 // T2.14: the rail reaches eight weeks past this one, and back no further than eight weeks before
@@ -39,14 +40,6 @@ const routinesOf = (S, ids) => ids.map(id => S.routines.find(r => r.id === id)).
 const plannedOn = (S, iso, today) => routinesOf(S, effectiveRoutineIds(S, iso, today))
 const exercisesIn = routines => routines.reduce((n, r) => n + (r.ex?.length || 0), 0)
 const longDay = iso => dateOf(iso).toLocaleDateString(dateLocale(), { weekday: 'long' })
-const andList = names => {
-  try { return new Intl.ListFormat(dateLocale(), { type: 'conjunction' }).format(names) } catch { return names.join(', ') }
-}
-// Literal calls, so check-source-strings sees each key (lib/muscles.js REGIONS holds the English).
-// 'Back' alone is already the packs' back button, so the body part has a key of its own.
-const REGION_NAME = { Chest: () => t('Chest'), Back: () => t('Back muscles'), Shoulders: () => t('Shoulders'), Arms: () => t('Arms'), Core: () => t('Core'), Legs: () => t('Legs') }
-/** Body parts (lib/muscles.js REGIONS names) as one translated list: "Legs and core". */
-export const regionList = names => andList(names.map(n => REGION_NAME[n]()))
 
 /* ---------------------------------------------------------------- the rail -- */
 
@@ -179,13 +172,14 @@ export function pictureOf(S, id) {
   return ex?.img && !isCustomEx(ex) ? imgSrc(ex, figureOf(S)) : null
 }
 
-/** A planned exercise as a read-only row: "Barbell full squat", "4 × 5 · 100 kg", its still. */
+/** A planned exercise as a read-only row: "Barbell full squat", "4 × 5 · 100 kg". The card draws
+ *  its still from the id (ds/StageTrainCard), so a custom exercise shows its own picture. */
 const exerciseRows = (S, routines) => routines.flatMap(r => (r.ex || []).map(cfg => ({
-  id: cfg.id, name: exerciseNameText(exOr(cfg.id)), line: exLine(cfg, S.unit, S.speedUnit), image: pictureOf(S, cfg.id),
+  id: cfg.id, name: exerciseNameText(exOr(cfg.id)), line: exLine(cfg, S.unit, S.speedUnit),
 })))
 
-// A logged workout's exercises as stills, for the card's stack.
-const stillsOf = (S, w) => (w.entries || []).map(e => pictureOf(S, e.id))
+// A logged workout's exercises, as the ids the card's stack draws.
+const stillsOf = w => (w.entries || []).map(e => e.id)
 
 // How far a session is: the exercises with every set ticked, of all of them (0–1), or null.
 const progressOf = active => {
@@ -240,7 +234,7 @@ export function finishedLine(w, unit) {
  * intent, `secondary` and `menu` (the ⋯) lists of them.
  */
 export function cardOf(S, iso, today) {
-  const card = { iso, eyebrow: null, title: '', sub: null, since: null, progress: null, chip: null, exercises: null, thumbs: null, primary: null, secondary: [], menu: [] }
+  const card = { iso, eyebrow: null, title: '', sub: null, since: null, progress: null, chip: null, exercises: null, stills: null, primary: null, secondary: [], menu: [] }
   const noteable = canNoteDay(iso, today) && !dayNoteOf(S, iso) && !S.workouts.some(w => workoutDay(w) === iso)
   const dayMenu = [intent.changeDay(iso), noteable && intent.note(iso)].filter(Boolean)
 
@@ -274,7 +268,7 @@ export function cardOf(S, iso, today) {
     }
     case 'done': return {
       ...card, kind: day.kind, eyebrow: t('Workout done'), title: workoutLabel(day.workout), sub: finishedLine(day.workout, S.unit),
-      thumbs: stillsOf(S, day.workout), primary: intent.seeWorkout([day.workout], t('Today')), menu: [intent.choose(), intent.changeDay(iso)],
+      stills: stillsOf(day.workout), primary: intent.seeWorkout([day.workout], t('Today')), menu: [intent.choose(), intent.changeDay(iso)],
     }
     case 'planned': return {
       ...card, kind: day.kind, eyebrow: t('Today · planned'), title: day.name,
@@ -292,7 +286,7 @@ export function cardOf(S, iso, today) {
       return {
         ...card, kind: day.kind, eyebrow: date,
         title: one ? workoutLabel(one) : tn('{0} workout', '{0} workouts', day.workouts.length),
-        sub: one ? finishedLine(one, S.unit) : null, thumbs: one ? stillsOf(S, one) : null,
+        sub: one ? finishedLine(one, S.unit) : null, stills: one ? stillsOf(one) : null,
         primary: intent.seeWorkout(day.workouts, date, iso), menu: [intent.changeDay(iso)],
       }
     }
@@ -313,8 +307,10 @@ const scheduledIds = S => (scheduleModeOf(S) === 'rotation'
   : Object.values(S.week || {}).flat())
 
 /**
- * Routines: those in the Plan first, then the rest, each `{ id, name, sub, inPlan, today, empty }`
- * ("6 exercises · Sun", the weekdays it holds in a week plan), then Freestyle (`freestyle: true`).
+ * Routines: those in the Plan first, then the rest, each `{ id, name, sub, stills, inPlan, today,
+ * empty }` ("6 exercises · Sun", the weekdays it holds in a week plan; `stills` the ids of its first
+ * three exercises, which RoutineTiles draws, a custom one with its own picture), then Freestyle
+ * (`freestyle: true`).
  */
 export function routineRows(S, today) {
   const scheduled = new Set(scheduledIds(S))
@@ -325,14 +321,25 @@ export function routineRows(S, today) {
   const days = id => (week ? weekOrder(weekStartOf(S)).filter(wd => [].concat(S.week?.[wd] || []).includes(id)).map(short).join(', ') : '')
   const row = r => ({
     id: r.id, name: r.name, inPlan: scheduled.has(r.id), today: todays.has(r.id), empty: !r.ex?.length,
-    thumbs: (r.ex || []).slice(0, 3).map(cfg => pictureOf(S, cfg.id)),
+    stills: (r.ex || []).slice(0, 3).map(cfg => cfg.id),
     sub: [exCount(r.ex?.length || 0), days(r.id)].filter(Boolean).join(' · '),
   })
   const rows = S.routines.map(row)
   return [
     ...rows.filter(r => r.inPlan), ...rows.filter(r => !r.inPlan),
-    { id: null, name: t('Freestyle'), sub: t('Pick exercises as you go'), thumbs: [], freestyle: true, inPlan: false, today: false, empty: false },
+    { id: null, name: t('Freestyle'), sub: t('Pick exercises as you go'), stills: [], freestyle: true, inPlan: false, today: false, empty: false },
   ]
+}
+
+/**
+ * Effective sets per muscle this week, `{ slug: n }`: the sets ticked in the week (a session in
+ * progress included), each weighted by how much its exercise works the muscle. The By muscle page
+ * reads one muscle's number off it.
+ */
+export function muscleLoadThisWeek(S, today, now = Date.now()) {
+  const load = loadOfWorkouts(muscleBalanceWindow(S.workouts, 7, now, today, weekStartOf(S)))
+  if (S.active && !S.active.editingWorkoutId) for (const [m, v] of Object.entries(loadOfActive(S.active))) load[m] = (load[m] || 0) + v
+  return load
 }
 
 /**
@@ -342,8 +349,7 @@ export function routineRows(S, today) {
  */
 export function musclesThisWeekOf(S, today, now = Date.now()) {
   const ws = weekStartOf(S)
-  const load = loadOfWorkouts(muscleBalanceWindow(S.workouts, 7, now, today, ws))
-  if (S.active && !S.active.editingWorkoutId) for (const [m, v] of Object.entries(loadOfActive(S.active))) load[m] = (load[m] || 0) + v
+  const load = muscleLoadThisWeek(S, today, now)
   const missing = untrainedRegions(load)
   return {
     title: t('Week of {0}', fmtDate(isoOf(startOfWeek(today, ws)))),
@@ -359,7 +365,8 @@ export function musclesThisWeekOf(S, today, now = Date.now()) {
 /**
  * The Your training rows, `{ key, title, sub, to | action }`: History, Training load, Coach (when
  * it is available; `suggestions` is its count this week, when known), Ready-made plans, Gym setup,
- * and Check in when Coach is off and check-in is on (owner decision 3).
+ * and the gym card ("Gym card", route /train/checkin) when Coach is off and check-in is on (owner
+ * decision 3, renamed by owner question 7).
  */
 export function moreOf(S, { coach, suggestions = null }) {
   const days = S.workouts.map(workoutDay).filter(Boolean).sort()
@@ -373,7 +380,7 @@ export function moreOf(S, { coach, suggestions = null }) {
     coach && { key: 'coach', title: t('Coach'), sub: suggestions > 0 ? tn('{0} suggestion this week', '{0} suggestions this week', suggestions) : null, to: '/train/coach' },
     { key: 'plans', title: t('Ready-made plans'), sub: [t('Full Body'), t('Push / Pull / Legs'), t('Upper / Lower'), t('5×5')].join(', '), action: 'plans' },
     { key: 'gym', title: t('Gym setup'), sub: gym?.name || null, to: '/me/equipment' },
-    !coach && S.checkIn !== false && { key: 'checkin', title: t('Check in'), sub: null, to: '/train/checkin' },
+    !coach && S.checkIn !== false && { key: 'checkin', title: t('Gym card'), sub: null, to: '/train/checkin' },
   ].filter(Boolean)
 }
 

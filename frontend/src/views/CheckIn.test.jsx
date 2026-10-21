@@ -219,6 +219,12 @@ describe('CheckIn — the rail reopens where you left it', () => {
     expect(host.querySelector('.ci-value').textContent).toBe('MEMBER-9931')
   })
 
+  it('is titled Gym card, not Check in, which is the Coach’s weekly check-in now (owner question 7)', () => {
+    mount()
+    expect(host.querySelector('h1').textContent).toBe('Gym card')
+    expect(host.textContent).not.toContain('Check in')
+  })
+
   it('the back button steps back through the tab', async () => {
     mount()
     await tap(byLabel(host, 'Back')[0])

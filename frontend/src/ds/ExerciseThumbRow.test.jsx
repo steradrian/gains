@@ -38,6 +38,15 @@ describe('ExerciseThumbRow', () => {
     expect(row().querySelector('em').textContent).toBe('Swap')
   })
 
+  it('a button row can be a toggle: pressed says whether it is chosen', () => {
+    view.render(<ExerciseThumbRow title="Plank" onClick={() => {}} pressed />)
+    expect(row().getAttribute('aria-pressed')).toBe('true')
+    view.render(<ExerciseThumbRow title="Plank" onClick={() => {}} pressed={false} />)
+    expect(row().getAttribute('aria-pressed')).toBe('false')
+    view.render(<ExerciseThumbRow title="Plank" onClick={() => {}} />)
+    expect(row().hasAttribute('aria-pressed')).toBe(false)
+  })
+
   it('tone, first and a small size choose the classes', () => {
     view.render(<ExerciseThumbRow title="Plank" tone="stage" first={false} size={40} />)
     expect([...row().classList]).toEqual(['g-xrow', 'g-xrow-stage', 'g-xrow-sm', 'g-xrow-line'])

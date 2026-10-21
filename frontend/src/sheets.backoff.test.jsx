@@ -21,9 +21,11 @@ function render(sheet) {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-const backoffRow = host => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Back-off sets')
-const toggle = host => backoffRow(host).querySelector('button, [role=switch], input[type=checkbox]').click()
-const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Save').click()
+// Back-off sets is one of the Intensifier chips, lit while it is on.
+const backoffChip = host => [...host.querySelectorAll('.g-cchip')].find(c => c.textContent.trim() === 'Back-off sets')
+const noneChip = host => [...host.querySelectorAll('.g-cchip')].find(c => c.textContent.trim() === 'None')
+const isOn = host => backoffChip(host).getAttribute('aria-pressed') === 'true'
+const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done').click()
 const open = (cfg, onSave) => {
   exConfigSheet(ex, { sets: 3, reps: 6, weight: 26, mode: 'reps', inc: 2, ...cfg }, onSave)
   return render(useUI.getState().sheets.at(-1))
@@ -41,16 +43,17 @@ describe('exercise settings: back-off sets', () => {
   it('is off by default and saves no field, so the plan keeps its shape', () => {
     const onSave = vi.fn()
     const host = open({}, onSave)
-    expect(backoffRow(host)).toBeTruthy()
-    expect(host.textContent).toContain('All sets at the same weight.')
+    expect(backoffChip(host)).toBeTruthy()
+    expect(isOn(host)).toBe(false)
     act(() => save(host))
     expect('backoff' in onSave.mock.calls[0][0]).toBe(false)
   })
 
-  it('switched on, previews the sets and saves the flag', () => {
+  it('chosen, previews the sets and saves the flag', () => {
     const onSave = vi.fn()
     const host = open({}, onSave)
-    act(() => toggle(host))
+    act(() => backoffChip(host).click())
+    expect(isOn(host)).toBe(true)
     expect(host.textContent).toContain('Sets open at 26 → 24 → 22 kg.')
     act(() => save(host))
     const saved = onSave.mock.calls[0][0]
@@ -59,21 +62,28 @@ describe('exercise settings: back-off sets', () => {
     expect(exLine({ id: ex.id, ...saved }, 'kg')).toBe('3 × 6 · 26 → 24 → 22 kg')
   })
 
-  it('switched off again, drops the flag', () => {
+  it('chosen and then None, drops the flag', () => {
     const onSave = vi.fn()
     const host = open({ backoff: true }, onSave)
-    act(() => toggle(host))
+    expect(isOn(host)).toBe(true)
+    act(() => noneChip(host).click())
     act(() => save(host))
     expect('backoff' in onSave.mock.calls[0][0]).toBe(false)
   })
 
   it('is not offered on an assistance machine', () => {
     exConfigSheet(assisted, { sets: 3, reps: 6, weight: 30, mode: 'reps' }, vi.fn())
-    expect(backoffRow(render(useUI.getState().sheets.at(-1)))).toBeUndefined()
+    expect(backoffChip(render(useUI.getState().sheets.at(-1)))).toBeUndefined()
   })
 
-  it('is not offered for pyramid sets', () => {
-    const host = open({ pyramid: [12, 10, 8] }, vi.fn())
-    expect(backoffRow(host)).toBeUndefined()
+  it('is not combined with pyramid sets: choosing it leaves the pyramid', () => {
+    const onSave = vi.fn()
+    const host = open({ pyramid: [12, 10, 8] }, onSave)
+    expect(isOn(host)).toBe(false)
+    act(() => backoffChip(host).click())
+    act(() => save(host))
+    const saved = onSave.mock.calls[0][0]
+    expect(saved.backoff).toBe(true)
+    expect(saved).not.toHaveProperty('pyramid')
   })
 })

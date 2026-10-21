@@ -13,14 +13,14 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { dateLocale } from '../lib/i18n.js'
 import { fmtDate, isoOf, todayISO } from '../lib/format.js'
 import { dayOptionsSheet, dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startChooserSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
-import { addRoutine } from './Plan.jsx'
+import { addRoutine } from './routines/routine-actions.js'
 import TrainHub from './TrainHub.jsx'
 
 const nav = vi.fn()
 const coach = vi.hoisted(() => ({ on: false }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train' }) }))
 vi.mock('../lib/coach.js', () => ({ coachAvailable: () => coach.on }))
-vi.mock('./Plan.jsx', () => ({ addRoutine: vi.fn() }))
+vi.mock('./routines/routine-actions.js', () => ({ addRoutine: vi.fn() }))
 // A past day opens its Day page through the app's own navigate (lib/day-route.js navToDay).
 const libNav = vi.hoisted(() => vi.fn())
 vi.mock('../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: libNav }))
@@ -355,9 +355,9 @@ describe('Train — Your training', () => {
     expect(nav).toHaveBeenCalledWith('/progress/load')
   })
 
-  it('History, Training load, Ready-made plans and Gym setup; Check in with Coach off and check-in on', () => {
+  it('History, Training load, Ready-made plans and Gym setup; Gym card with Coach off and check-in on', () => {
     setS({ checkIn: true }); mount()
-    expect($$('.g-glist-row b').map(b => b.textContent)).toEqual(['History', 'Training load', 'Ready-made plans', 'Gym setup', 'Check in'])
+    expect($$('.g-glist-row b').map(b => b.textContent)).toEqual(['History', 'Training load', 'Ready-made plans', 'Gym setup', 'Gym card'])
     tap(row('History'))
     expect(nav).toHaveBeenCalledWith('/train/history')
     tap(row('Training load'))
@@ -366,16 +366,17 @@ describe('Train — Your training', () => {
     expect(starterPlanSheet).toHaveBeenCalled()
     tap(row('Gym setup'))
     expect(nav).toHaveBeenCalledWith('/me/equipment')
-    tap(row('Check in'))
+    tap(row('Gym card'))
     expect(nav).toHaveBeenCalledWith('/train/checkin')
+    expect(row('Check in')).toBeUndefined()
   })
 
-  it('Coach on: its row, and no Check in', () => {
+  it('Coach on: its row, and no Gym card', () => {
     coach.on = true
     setS({ checkIn: true }); mount()
     tap(row('Coach'))
     expect(nav).toHaveBeenCalledWith('/train/coach')
-    expect(row('Check in')).toBeUndefined()
+    expect(row('Gym card')).toBeUndefined()
   })
 
   it('the Exercises and Routines actions open their pages', () => {
