@@ -3669,5 +3669,12 @@ export default {
   'Cocoa': 'Cocoa',
   'Slate': 'Slate',
   'Ink': 'Ink',
+  // Settings themes m2
+  'Classic': 'Classic',
+  'Linen': 'Linen',
+  'Lines': 'Lines',
+  'Florals': 'Florals',
+  'Silk': 'Silk',
+  'Bloom': 'Bloom',
   'You’ve missed Mondays three weeks running': '3주 연속 월요일을 놓쳤어요',
 }
