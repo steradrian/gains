@@ -20,9 +20,9 @@ const TOP_INSET = /var\(--sat\b|safe-area-inset-top/
 const insets = decls => decls.match(new RegExp(TOP_INSET.source, 'g')) || []
 // Every box in flow between the window's top and a tab root's content (ds/StageScreen.jsx).
 const CHAIN = [
-  ':root #app:has(> .g-root.g-screen)',
+  ':root #app:has(> .g-root.g-screen)', ':root .app-out:has(> .g-root.g-screen)',
   '.g-root', '.g-screen', '.g-screen > .g-stage', '.g-stage', '.g-stage-body', '.g-screen > .g-stage > .g-stage-body',
-  '#app > .g-screen > .g-stage > .g-stage-body', '.today', '.train',
+  '#app > .g-screen > .g-stage > .g-stage-body', '.app-out > .g-screen > .g-stage > .g-stage-body', '.today', '.train',
 ]
 
 describe('the stage\'s top inset', () => {

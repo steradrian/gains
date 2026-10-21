@@ -42,7 +42,7 @@ describe('page slide CSS', () => {
       for (const r of rules(read(file))) {
         if (!/padding|max-width|margin/.test(r.body)) continue
         for (const s of r.selectors) {
-          if (/(^|[\s>])#app(?![\w-])/.test(s.replace(/:is\(#app,\.app-out\)/g, '')) && !/\.vfade|:has\(> \.g-screen\)/.test(s)) {
+          if (/(^|[\s>])#app(?![\w-])/.test(s.replace(/:is\(#app,\.app-out\)/g, '')) && !/\.vfade/.test(s) && !r.selectors.some(o => o.includes('.app-out'))) {
             throw new Error(file + ': ' + s + ' lays out #app but not the page being left')
           }
         }

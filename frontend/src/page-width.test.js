@@ -24,12 +24,12 @@ describe('page width belongs to the shell', () => {
   it('reads --page-w for max-width only in the #app, stage column and .conn-row shell rules', () => {
     const rules = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), decls: m[2] }))
     const readers = rules.filter(r => /max-width:\s*var\(--page-w\)/.test(r.decls)).map(r => r.selector)
-    expect(readers.sort()).toEqual(['#app', '#app > .g-screen > .g-stage > .g-stage-body', '.conn-row'])
+    expect(readers.sort()).toEqual(['#app > .g-screen > .g-stage > .g-stage-body,.app-out > .g-screen > .g-stage > .g-stage-body', '.conn-row', ':is(#app,.app-out)'])
   })
 
   it('lets a stage screen fill the window: #app drops its side padding and width around one', () => {
     const rules = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map(m => ({ selector: m[1].trim(), decls: m[2] }))
-    const stage = rules.find(r => r.selector === ':root #app:has(> .g-root.g-screen)')
+    const stage = rules.find(r => r.selector.startsWith(':root #app:has(> .g-root.g-screen)'))
     expect(stage?.decls).toMatch(/padding:\s*var\(--conn\) 0 0/)
     expect(stage?.decls).toMatch(/max-width:\s*none/)
   })
