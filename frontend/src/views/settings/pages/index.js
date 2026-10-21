@@ -5,6 +5,7 @@ import { lazy } from 'react'
 // nothing else in Settings changes. `equipment` is Gym setup, which SettingsRoute renders itself.
 const LOADERS = {
   appearance: () => import('./AppearancePage.jsx'),
+  background: () => import('./BackgroundPage.jsx'),
   units: () => import('./UnitsPage.jsx'),
   reminders: () => import('./RemindersPage.jsx'),
   features: () => import('./FeaturesPage.jsx'),
@@ -27,6 +28,10 @@ const LOADERS = {
   licences: () => import('./LicencesPage.jsx'),
   account: () => import('./AccountPage.jsx'),
 }
+
+// Pages that draw their own frame (SettingsPage: nav bar, large title), so SettingsPageHost adds
+// no old header over them. A page milestone adds its id here when it moves to SettingsPage.
+export const OWN_FRAME = new Set(['appearance', 'background'])
 
 export const PAGE_COMPONENTS = Object.fromEntries(Object.entries(LOADERS).map(([id, load]) => [id, lazy(load)]))
 

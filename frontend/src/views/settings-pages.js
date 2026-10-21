@@ -14,6 +14,8 @@ import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 
 export const PAGES = {
   appearance: { title: 'Appearance', icon: 'palette', tint: 'var(--purple)' },
+  // Opened from Appearance's Background row; no root row of its own.
+  background: { title: 'Background', icon: 'image', tint: 'var(--purple)', kw: 'background look texture silk linen intensity classic' },
   units: { title: 'Units & language', icon: 'ruler', tint: 'var(--teal)' },
   // The reminders you set (PR07 decision 2): /me/notifications is the inbox now.
   reminders: { title: 'Reminders', icon: 'bell', tint: 'var(--red)', kw: 'notifications push alerts' },
@@ -121,12 +123,15 @@ export const SEARCH = [
   // Appearance
   { page: 'appearance', title: 'Theme', icon: 'moon', tint: 'var(--indigo)', kw: 'dark mode light mode theme appearance night look', opts: ['Dark', 'Light', 'System'] },
   { page: 'appearance', title: 'Accent color', icon: 'palette', tint: 'var(--purple)', kw: 'color colour accent tint theme', opts: THEMES.map(p => p.name) },
+  { page: 'appearance', title: 'Ready-made', icon: 'palette', tint: 'var(--purple)', kw: 'preset set accent look princess', opts: ['Princess', 'Watermelon', 'Peach cream', 'Snow', 'Cream', 'Mist'] },
   { page: 'appearance', title: 'Body diagram', icon: 'figureStrength', tint: 'var(--teal)', kw: 'muscle map body male female', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Exercise drawings', icon: 'figureStrength', tint: 'var(--teal)', kw: 'figure male female woman man picture', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Reduce motion', icon: 'minimize', tint: 'var(--blue)', kw: 'animation motion transitions accessibility calm', feature: (S, c) => !!c.systemMotion || S.reduceMotion === true },
   { page: 'appearance', title: 'Haptics', icon: 'vibrate', tint: 'var(--indigo)', kw: 'haptic haptics tick tap vibrate vibration feedback buzz', when: c => c.canHaptic },
   { page: 'appearance', title: 'Gym check-in', icon: 'qr', tint: 'var(--blue)', kw: 'qr code membership card check in barcode' },
   { page: 'appearance', title: 'Show connection status', icon: 'cloud', tint: 'var(--blue)', kw: 'sync offline banner bar connection', when: c => !c.demo },
+  // Background (its own page; the page hit and this row are how search reaches it)
+  { page: 'background', title: 'Intensity', icon: 'image', tint: 'var(--purple)', kw: 'background look strength quiet bold slider texture', opts: ['Classic', 'Linen', 'Lines', 'Florals', 'Silk', 'Bloom'] },
   // Features (the NutriTrace switches whose only home is here)
   { page: 'features', title: 'Fasting', icon: 'timer', tint: 'var(--indigo)', kw: 'fast fasting intermittent 16:8 omad', when: c => !!c.nutrition, feature: (S, c) => !!c.fastingOn },
   // Diary & meals

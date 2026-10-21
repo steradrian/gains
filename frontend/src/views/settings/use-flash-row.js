@@ -13,7 +13,10 @@ export function useFlashRow(body, find, via) {
   useEffect(() => {
     if (!find || !body.current) return
     const el = body.current
+    // The old rows, and the stage's: a glass row (title in its `b`) or a section heading.
     const named = label => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
+      || [...el.querySelectorAll('.g-glist-row')].find(r => r.querySelector('.g-glist-body > b')?.textContent === label)
+      || [...el.querySelectorAll('.g-ssec')].find(r => r.querySelector('h2')?.textContent === label)
       || [...el.querySelectorAll('.btn')].find(b => b.textContent.trim() === label)
     let tm = null
     const flash = row => {
