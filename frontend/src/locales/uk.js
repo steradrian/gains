@@ -3370,11 +3370,11 @@ export default {
   'Good': 'Good',
   'Noted. See you next session.': 'Noted. See you next session.',
   'Dismissed {0} suggestion. Your Plan stays as it is': 'Dismissed {0} suggestion. Your Plan stays as it is',
-  'Dismissed {0} suggestions. Your Plan stays as it is': 'Dismissed {0} suggestions. Your Plan stays as it is',
+  'Dismissed {0} suggestions. Your Plan stays as it is': { one: 'Dismissed {0} suggestion. Your Plan stays as it is', few: 'Dismissed {0} suggestions. Your Plan stays as it is', many: 'Dismissed {0} suggestions. Your Plan stays as it is', other: 'Dismissed {0} suggestions. Your Plan stays as it is' },
   'Plan discarded. Your Plan stays as it is': 'Plan discarded. Your Plan stays as it is',
   'Already dismissed. Ask for a fresh review to see them again.': 'Already dismissed. Ask for a fresh review to see them again.',
   'Coach suggests {0} change': 'Coach suggests {0} change',
-  'Coach suggests {0} changes': 'Coach suggests {0} changes',
+  'Coach suggests {0} changes': { one: 'Coach suggests {0} change', few: 'Coach suggests {0} changes', many: 'Coach suggests {0} changes', other: 'Coach suggests {0} changes' },
   'Nothing moves until you apply.': 'Nothing moves until you apply.',
   // --- Shared pages: English until the translation pass ---
   'Notifications, {0} unread': { one: 'Notifications, {0} unread', few: 'Notifications, {0} unread', many: 'Notifications, {0} unread', other: 'Notifications, {0} unread' },

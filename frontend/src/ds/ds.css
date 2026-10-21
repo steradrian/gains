@@ -1129,7 +1129,7 @@ a.g-mg-cell, button.g-mg-cell { cursor: pointer; }
 .g-bstep-stage .g-bstep-row button:focus-visible { outline-color: var(--on-stage); }
 @media (prefers-reduced-motion: reduce) { .g-bstep-row button { transition: none; } }
 /* ChatBubble (board T11.0): logical sides, so RTL mirrors the thread */
-.g-bubble { max-width: min(300px, 86%); box-sizing: border-box; padding: 12px 16px; font: 500 16px/22px var(--font-sans); display: flex; flex-direction: column; gap: 4px; text-align: start; overflow-wrap: anywhere; }
+.g-bubble { width: min(300px, 86%, max-content); box-sizing: border-box; padding: 12px 16px; font: 500 16px/22px var(--font-sans); display: flex; flex-direction: column; gap: 4px; text-align: start; overflow-wrap: anywhere; }
 .g-bubble small { font: 500 12px/14px var(--font-sans); opacity: .7; }
 .g-bubble ul { margin: 4px 0 0; padding-inline-start: 18px; }
 .g-bubble-them { align-self: flex-start; border-radius: 22px 22px 22px 6px; color: var(--on-stage); }
