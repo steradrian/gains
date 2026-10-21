@@ -362,8 +362,11 @@ describe('G4 and G7', () => {
         `const D = lazy(() => import('./views/D.jsx'))`,
         `const E = React.lazy(() => import("./views/E.jsx").then(m => ({ default: m.ERoute })))`,
         `<Route path="/a" element={<A />} /><Route path="/b" element={<BRoute />} /><Route path="/c" element={ok ? <C /> : <Navigate to="/" />} />`,
-        `<Route path="/d" element={<D />} /><Route path="/e" element={<E />} />`,
+        `<Route path="/d" element={<D />} /><Route path="/e" element={<E />} /><Route path="/f" element={<F />} />`,
+        `import F from "./views/F.jsx"`,
       ].join('\n'))
+      // A pushed page on the stage is built on <StagePage>, which counts as a page.
+      writeFileSync(join(dir, 'views', 'F.jsx'), `export default function F() { return <StagePage title="F">x</StagePage> }`)
       writeFileSync(join(dir, 'views', 'A.jsx'), `export default function A() { return <Page title="A">x</Page> }`)
       // The file renders <Page>, but not in the routed component.
       writeFileSync(join(dir, 'views', 'B.jsx'), `export function BRoute() { return <div /> }\nexport function Other() { return <Inner /> }\nfunction Inner() { return <Page title="C" /> }`)
