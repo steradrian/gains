@@ -45,7 +45,7 @@ export default function RoutineEditor() {
   const editor = useRoutineEditor()
   const figure = useStore(s => figureOf(s.S))
   const body = useStore(s => s.S.body)
-  const [ordering, setOrdering] = useState(false)
+  const [orderingOn, setOrdering] = useState(false)
   const nameRef = useRef(null)
   useEffect(() => {
     if (!editor.fresh) return
@@ -55,6 +55,8 @@ export default function RoutineEditor() {
   const r = editor.routine
   if (!r) return null
   const empty = !r.ex.length
+  // Reorder mode needs two exercises; it ends by itself when a removal leaves one.
+  const ordering = orderingOn && r.ex.length > 1
   const drag = editor.reorder.drag
   const dragging = i => !!drag && i >= drag.first && i <= drag.last
   const moved = drag ? { transform: `translate3d(0, ${drag.deltaY}px, 0)` } : undefined
@@ -104,7 +106,7 @@ export default function RoutineEditor() {
           : (
             <section className="g-re-sec">
               <StageSection title={ordering ? t('Drag to reorder') : t('Exercises')}
-                {...(r.ex.length > 1 ? { action: ordering ? t('Done') : t('Reorder'), onAction: () => setOrdering(o => !o) } : null)} />
+                {...(r.ex.length > 1 ? { action: ordering ? t('Done') : t('Reorder'), onAction: () => setOrdering(!ordering) } : null)} />
               <div ref={editor.reorder.listRef} onClickCapture={editor.reorder.onClickCapture}
                 className={cx('g-re-list', drag && 'is-reordering', ordering && 'is-ordering')}>
                 {editor.units.map(unit => (unit.superset

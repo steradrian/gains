@@ -159,7 +159,6 @@ export function editorOf(S, r) {
         note: e.note || null,
         badge: pos.has(i) ? { text: pos.get(i), label: t('Superset position {0}', pos.get(i)) } : null,
         warning: profile && !exAvailable(S, item) ? t('Needs {0}, which isn’t in your active profile', t(item.eq)) : null,
-        linkedPrev,
         up: !!moveRoutineEntry(ex, i, -1),
         down: !!moveRoutineEntry(ex, i, 1),
         // At a superset's edge an arrow takes the exercise out of it rather than past a neighbour.
