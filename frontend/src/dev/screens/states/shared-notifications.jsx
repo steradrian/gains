@@ -16,9 +16,13 @@ const RECAP = { id: 'recap:2026-10-05', kind: 'recap', at: at(2026, 10, 11, 23, 
 const REMINDER = { id: 'reminder:workout:2026-10-05', kind: 'reminder', at: at(2026, 10, 5, 18), title: 'Workout today: Push A', body: 'Your 18:00 reminder.' }
 const MILESTONE = { id: 'milestone:50', kind: 'milestone', at: at(2026, 10, 2, 19), title: '50 workouts', body: 'Since you started on 3 Jun.' }
 const READ = { new: [], thisWeek: [BEST, STREAK, RECAP], earlier: [REMINDER, MILESTONE] }
+// The web app: its reminders are server pushes the inbox never sees, so no reminder row.
+const READ_WEB = { new: [], thisWeek: [BEST, STREAK, RECAP], earlier: [MILESTONE] }
+const NONE = { new: [], thisWeek: [], earlier: [] }
 
+// The phone app, unless a state says otherwise.
 const base = {
-  now: NOW, permission: 'on', homeScreen: false,
+  now: NOW, permission: 'on', homeScreen: false, hasReminders: true,
   onOpen: NOOP, onMarkAllRead: NOOP, onTurnOn: NOOP, onReminders: NOOP, onBack: NOOP,
 }
 const unread = ids => item => ids.includes(item.id)
@@ -27,10 +31,12 @@ registerScreens('Shared: notifications', [
   { id: 'N1.0', title: 'Notifications', note: 'Two new (lit, with dots), then This week and Earlier; Mark all read.',
     render: () => <NotificationsScreen {...base} sections={{ new: [BEST, STREAK], thisWeek: [RECAP], earlier: [REMINDER, MILESTONE] }}
       unreadCount={2} isUnread={unread([BEST.id, STREAK.id])} /> },
-  { id: 'N1.1', title: 'Nothing yet', note: 'No item in 30 days: the bell scene and Set a reminder.',
-    render: () => <NotificationsScreen {...base} sections={{ new: [], thisWeek: [], earlier: [] }} unreadCount={0} isUnread={() => false} /> },
+  { id: 'N1.1', title: 'Nothing yet', note: 'Phone app, no item in 30 days: the bell scene and Set a reminder.',
+    render: () => <NotificationsScreen {...base} sections={NONE} unreadCount={0} isUnread={() => false} /> },
+  { id: 'N1.1w', title: 'Nothing yet (web)', note: 'Web app, no item in 30 days: the bell scene with no button, and no word of reminders.',
+    render: () => <NotificationsScreen {...base} hasReminders={false} sections={NONE} unreadCount={0} isUnread={() => false} /> },
   { id: 'N1.2', title: 'All read', note: 'After Mark all read: the dots cleared, nothing deleted.',
     render: () => <NotificationsScreen {...base} sections={READ} unreadCount={0} isUnread={() => false} /> },
-  { id: 'N1.3', title: 'Off on this phone', note: 'An iPhone browser tab: the banner with Turn on and Reminders; the list still fills.',
-    render: () => <NotificationsScreen {...base} permission="off" homeScreen sections={READ} unreadCount={0} isUnread={() => false} /> },
+  { id: 'N1.3', title: 'Off on this phone', note: 'An iPhone browser tab: the banner with Turn on and Reminders; the list still fills, with no reminder rows.',
+    render: () => <NotificationsScreen {...base} hasReminders={false} permission="off" homeScreen sections={READ_WEB} unreadCount={0} isUnread={() => false} /> },
 ])

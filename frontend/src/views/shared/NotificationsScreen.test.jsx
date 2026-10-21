@@ -18,7 +18,7 @@ const NONE = { new: [], thisWeek: [], earlier: [] }
 
 const show = (over = {}) => {
   const props = {
-    sections: SECTIONS, unreadCount: 1, isUnread: i => i.id === BEST.id, now: NOW, permission: 'on', homeScreen: false,
+    sections: SECTIONS, unreadCount: 1, isUnread: i => i.id === BEST.id, now: NOW, permission: 'on', homeScreen: false, hasReminders: true,
     onOpen: vi.fn(), onMarkAllRead: vi.fn(), onTurnOn: vi.fn(), onReminders: vi.fn(), onBack: vi.fn(), ...over,
   }
   view.render(<NotificationsScreen {...props} />)
@@ -32,10 +32,11 @@ const rows = () => [...view.host.querySelectorAll('.g-nrow')]
 describe('NotificationsScreen', () => {
   it('N1.0: the heading, its line, and New, This week and Earlier with their rows', () => {
     show()
-    expect(view.host.querySelector('.notif-head h2').textContent).toBe('Notifications')
+    expect([...view.host.querySelectorAll('h1')].map(h => h.textContent)).toEqual(['Notifications'])
+    expect(view.host.querySelector('.notif-head h1').textContent).toBe('Notifications')
     expect(text()).toContain('Reminders you set, streaks and new bests')
     expect(groupTitles()).toEqual(['New', 'This week', 'Earlier'])
-    expect(rows().map(r => r.querySelector('b').textContent)).toEqual(['New: New best: Bench press', '6 weeks on plan', '50 workouts'])
+    expect(rows().map(r => (r.querySelector('b .g-sr') || r.querySelector('b')).textContent)).toEqual(['New: New best: Bench press', '6 weeks on plan', '50 workouts'])
     expect(rows()[0].classList.contains('g-nrow-new')).toBe(true)
     expect(rows()[1].classList.contains('g-nrow-new')).toBe(false)
     expect(rows()[1].querySelector('small').textContent).toMatch(/^Streak · /)
@@ -52,7 +53,7 @@ describe('NotificationsScreen', () => {
     expect(view.host.querySelector('.g-ssec-line .g-ssec-t').textContent).toBe('1 new')
     click(button('Mark all read'))
     expect(onMarkAllRead).toHaveBeenCalledTimes(1)
-    expect(document.activeElement).toBe(view.host.querySelector('.notif-head h2'))
+    expect(document.activeElement).toBe(view.host.querySelector('.notif-head h1'))
   })
 
   it('N1.2: all read says so, with no pill, and keeps every row', () => {
@@ -86,6 +87,17 @@ describe('NotificationsScreen', () => {
     expect(view.host.querySelector('.g-snote')).toBeNull()
     click(button('Set a reminder'))
     expect(onReminders).toHaveBeenCalledTimes(1)
+  })
+
+  it('off the phone app, where no reminder lands here, it never promises one', () => {
+    show({ hasReminders: false })
+    expect(text()).toContain('Streaks and new bests')
+    expect(text()).not.toContain('Reminders you set')
+    show({ sections: NONE, unreadCount: 0, hasReminders: false })
+    expect(text()).toContain('Streaks and new bests show up here.')
+    expect(text()).not.toContain('Reminders you set')
+    expect(button('Set a reminder')).toBeUndefined()
+    expect(view.host.querySelector('.g-sempty-btn')).toBeNull()
   })
 
   it('N1.3: off on this phone is a banner with Turn on and Reminders, over a list that still fills', () => {

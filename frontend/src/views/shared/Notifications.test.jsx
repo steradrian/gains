@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // The inbox route against the real store: a row's tap reads it and opens its target, Mark all read
 // clears every dot and deletes nothing, and the bells' count (useUnreadCount) is the unread items.
+import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { click, useView } from '../../ds/render.test-util.js'
 import { isoOf } from '../../lib/format.js'
@@ -48,7 +49,7 @@ describe('Notifications (the route)', () => {
   it('a row\'s tap marks it read and opens its target', () => {
     view.render(<Notifications />)
     click(rowOf('New best'))
-    expect(useStore.getState().S.notifRead.ids).toEqual([BEST_ID])
+    expect(Object.keys(useStore.getState().S.notifRead.ids)).toEqual([BEST_ID])
     expect(navigate).toHaveBeenCalledWith(`/progress/strength?ex=${BENCH}`, undefined)
     expect(rowOf('New best').classList.contains('g-nrow-new')).toBe(false)
   })
@@ -63,16 +64,47 @@ describe('Notifications (the route)', () => {
     expect(view.host.querySelector('.g-ssec-line').textContent).toBe('All readNothing unread')
   })
 
-  it('nothing logged: the empty scene, and Set a reminder opens Me › Reminders', () => {
+  it('nothing logged on the web: the empty scene, with no reminder it could never show', () => {
     useStore.setState(s => ({ S: { ...s.S, workouts: [] } }))
     view.render(<Notifications />)
     expect(rows()).toHaveLength(0)
-    click(button('Set a reminder'))
-    expect(navigate).toHaveBeenCalledWith('/me/reminders')
+    expect(view.host.querySelector('.g-sempty')).toBeTruthy()
+    expect(view.host.textContent).not.toContain('Reminders you set')
+    expect(button('Set a reminder')).toBeUndefined()
+  })
+})
+
+describe('the first look (no notifRead yet)', () => {
+  afterEach(() => { useStore.setState({ ready: false }) })
+
+  it('once the profile is loaded, reads everything before now, so an upgrade does not open on a month of new', () => {
+    useStore.setState(s => ({ ready: true, S: { ...s.S, notifRead: null } }))
+    view.render(<Bell />)
+    expect(useStore.getState().S.notifRead.at).toBeGreaterThan(0)
+    expect(view.host.textContent).toBe('0')
+  })
+
+  it('waits for the profile to load: the copy in hand may not be the account\'s', () => {
+    useStore.setState(s => ({ ready: false, S: { ...s.S, notifRead: null } }))
+    view.render(<Bell />)
+    expect(useStore.getState().S.notifRead).toBeNull()
   })
 })
 
 describe('useUnreadCount (the bells)', () => {
+  it('works the feed out again only when what it reads changes, not on every profile change', () => {
+    let renders = 0
+    function Counted() { renders += 1; return <output>{useUnreadCount()}</output> }
+    view.render(<Counted />)
+    const first = renders
+    // The store clones the whole profile on every change: a setting flipped is a new object.
+    act(() => useStore.setState(s => ({ S: JSON.parse(JSON.stringify({ ...s.S, restSec: 75, active: { started: 1 } })) })))
+    expect(renders).toBe(first)
+    act(() => useStore.setState(s => ({ S: { ...s.S, workouts: [...s.S.workouts, workout('w3', 1, 100)] } })))
+    expect(renders).toBeGreaterThan(first)
+    expect(view.host.textContent).toBe(String(feedOf(useStore.getState().S).length))
+  })
+
   it('counts the unread items, one less for each read, none after Mark all read', () => {
     view.render(<Bell />)
     const n = feedOf(useStore.getState().S).length

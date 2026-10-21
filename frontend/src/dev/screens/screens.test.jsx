@@ -160,20 +160,24 @@ describe('the screens gallery', () => {
 
   it('has the Notifications page N1.0 to N1.3', async () => {
     const ids = screenAreas().find(a => a.name === 'Shared: notifications').entries.map(e => e.id)
-    expect(ids).toEqual(['N1.0', 'N1.1', 'N1.2', 'N1.3'])
+    expect(ids).toEqual(['N1.0', 'N1.1', 'N1.1w', 'N1.2', 'N1.3'])
     const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
     await check('N1.0', h => {
       expect([...h.querySelectorAll('.g-ngroup h2')].map(e => e.textContent)).toEqual(['New', 'This week', 'Earlier'])
       expect(h.querySelectorAll('.g-nrow-dot')).toHaveLength(2)
     })
     await check('N1.1', h => expect(h.querySelector('.g-sempty').textContent).toContain('Set a reminder'))
+    await check('N1.1w', h => {
+      expect(h.querySelector('.g-sempty').textContent).not.toMatch(/reminder/i)
+      expect(h.querySelector('.g-sempty-btn')).toBeNull()
+    })
     await check('N1.2', h => {
       expect(h.querySelector('.g-ssec-line').textContent).toBe('All readNothing unread')
       expect(h.querySelector('.g-nrow-dot')).toBeNull()
     })
     await check('N1.3', h => {
       expect(h.querySelector('.g-sbanner').textContent).toContain('Notifications are off on this phone')
-      expect(h.querySelectorAll('.g-nrow')).toHaveLength(5)
+      expect(h.querySelectorAll('.g-nrow')).toHaveLength(4)
     })
   })
 
