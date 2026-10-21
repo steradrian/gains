@@ -51,9 +51,9 @@ describe('RootHeader (the tab-root header)', () => {
     expect(hdr.classList.contains('g-shdr-pin')).toBe(true)
     expect($('.g-root').getAttribute('data-accent')).toBeTruthy()
     const part = c => (c.tagName === 'H1' ? 'h1' : c.classList.contains('g-bell') ? 'bell' : c.classList.contains('g-spill') ? 'field'
-      : c.classList.contains('g-shdr-act') ? 'action' : c.classList.contains('g-sbtn') ? 'avatar' : c.classList.contains('g-shdr-bg') ? 'ground' : c.className)
-    // Its ground first: the stage's art, under the row.
-    expect([...hdr.children].map(part)).toEqual(['ground', 'h1', 'avatar', 'field', 'action', 'bell'])
+      : c.classList.contains('g-shdr-act') ? 'action' : c.classList.contains('g-sbtn') ? 'avatar' : c.className)
+    // No ground of its own: the shared stage is behind it.
+    expect([...hdr.children].map(part)).toEqual(['h1', 'avatar', 'field', 'action', 'bell'])
     expect($('h1').className).toBe('sr-only')
     expect($('h1').textContent).toBe('Nutrition')
     // A spacer keeps the page's first block clear of it; there is no line under it.

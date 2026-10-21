@@ -55,7 +55,7 @@ export default function PlanScreen(over) {
 
         {plan.empty
           ? (
-            <StageEmpty icon="calendar" title={loopMode ? t('No rotation yet') : t('No fixed days yet')}
+            <StageEmpty illustration="calendar" title={loopMode ? t('No rotation yet') : t('No fixed days yet')}
               body={loopMode ? t('Add routines to your Plan and they repeat in a loop, one per training day.') : t('Tap a day below to plan it, or add routines first.')}
               action={t('Add routines')} onClick={plan.addRoutines} actions={[{ label: t('Pick a ready-made plan'), onClick: plan.pickPlan }]} />
           )

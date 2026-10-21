@@ -9,7 +9,7 @@
 //           query or fragment, and the very first page
 import { routeDepth, tabOf } from './tab-route.js'
 
-export const SLIDE_MS = 300
+export const SLIDE_MS = 400
 // Reduced motion: no transform at all, the two pages cross-fade.
 export const FADE_MS = 150
 

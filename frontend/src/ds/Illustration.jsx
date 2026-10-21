@@ -2,7 +2,12 @@ import { useId, useLayoutEffect, useMemo, useRef } from 'react'
 import { useDrawIn } from '../lib/use-draw-in.js'
 import { reducedMotion } from '../lib/reduced-motion.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
-import { SCENES, SCENE_NAMES } from './illustration-scenes.js'
+import { EMPTY_SCENES } from './empty-scenes.js'
+import { SCENES } from './illustration-scenes.js'
+
+// The onboarding's eight scenes and the empty states' six (empty-scenes.js), all drawn the same way.
+const ALL_SCENES = { ...SCENES, ...EMPTY_SCENES }
+const ALL_NAMES = Object.keys(ALL_SCENES)
 
 // The draw-in, as bundle.js prepares it: every stroke gets pathLength 1 and a delay 60ms after the
 // one before it, in document order (floor, structure, detail, the accent last); the dashed parts,
@@ -37,10 +42,10 @@ const ANCHORS = { floor: '.il-floor', accent: '.il-acc', shaft: '.kshaft' }
 // `anchorRef` gets that element before the screen's own layout effects run (the onboarding's
 // thread anchor).
 export default function Illustration({ name, draw, replayKey, width, tone, className, style, anchor, anchorRef, overlay, children }) {
-  oneOf('Illustration', 'name', name, SCENE_NAMES)
+  oneOf('Illustration', 'name', name, ALL_NAMES)
   oneOf('Illustration', 'tone', tone, ['light', 'stage'])
   oneOf('Illustration', 'anchor', anchor, Object.keys(ANCHORS))
-  const scene = SCENES[name] || SCENES.plan
+  const scene = ALL_SCENES[name] || SCENES.plan
   const id = 'g' + useId().replace(/[^\w-]/g, '')
   const once = useDrawIn(draw === 'once' ? 'g-ill:' + name : 'g-ill')
   const mode = draw === 'once' ? once : draw === true ? (reducedMotion() ? 'rm-fade' : 'il-draw') : null

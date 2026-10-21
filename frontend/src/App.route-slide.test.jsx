@@ -120,6 +120,27 @@ describe('page slides', () => {
     expect(scrolls.at(-1)).toBe(300)
   })
 
+  it('the stage is the app\'s: one ground behind the layers, the same element through a push and a Back', async () => {
+    await launch('#/train')
+    const stage = document.querySelector('.g-app-stage')
+    expect(document.querySelectorAll('.g-app-stage')).toHaveLength(1)
+    expect(stage.hasAttribute('data-pushed')).toBe(false)
+    await click(exercises())
+    // two layers slide, but neither carries a ground of its own, and the shared one never remounts
+    expect(layers()).toHaveLength(2)
+    expect(document.querySelector('.g-app-stage')).toBe(stage)
+    expect(document.querySelectorAll('.g-app-stage')).toHaveLength(1)
+    expect(layers().every(l => l.hasAttribute('data-shared'))).toBe(true)
+    expect(layers().some(l => l.contains(stage))).toBe(false)
+    expect(stage.hasAttribute('data-pushed')).toBe(true)
+    await finish()
+    await back()
+    expect(document.querySelector('.g-app-stage')).toBe(stage)
+    await finish()
+    expect(document.querySelector('.g-app-stage')).toBe(stage)
+    expect(stage.hasAttribute('data-pushed')).toBe(false)
+  })
+
   it('does not slide between root tabs', async () => {
     await launch('#/train')
     await click(tab('Me'))

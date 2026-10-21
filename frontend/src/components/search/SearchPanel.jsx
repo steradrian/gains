@@ -184,7 +184,7 @@ export default function SearchPanel({ data }) {
 
   // Says what is missing; the ways on are options, in the listbox with whatever else matched.
   const noneHeading = none && <m.div variants={LIST_ITEM}>
-    <StageEmpty card={false} icon={none.mode === 'exercise' ? 'dumbbell' : 'magnifier'} title={none.heading.title} body={none.heading.body} />
+    <StageEmpty card={false} illustration={none.mode === 'exercise' ? 'dumbbell' : 'search'} title={none.heading.title} body={none.heading.body} />
   </m.div>
   // `lead` goes first: Open Food Facts' own row when nothing local matched and it is still out,
   // failed or paused (its ask-on-a-tap is one of the actions already).

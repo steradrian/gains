@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 // StageEmpty (board T2.9): an icon or a scene, a title, a line and the buttons the page offers.
 import { describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import StageEmpty from './StageEmpty.jsx'
+import { EMPTY_SCENE_NAMES } from './empty-scenes.js'
 import { click, useView } from './render.test-util.js'
 
 const view = useView()
@@ -27,6 +30,33 @@ describe('StageEmpty', () => {
     view.render(<StageEmpty illustration="plan" title="Add training" />)
     expect(view.host.querySelector('.g-sempty-ic')).toBeNull()
     expect(view.host.querySelector('.g-ill-stage')).not.toBeNull()
+  })
+
+  it('stacks the scene, then the title, then the line, centred', () => {
+    view.render(<StageEmpty card={false} illustration="bell" title="Nothing new" body="Streaks and new bests show up here." />)
+    const root = view.host.querySelector('.g-sempty')
+    expect([...root.children].map(c => c.tagName + (c.classList.contains('g-ill') ? '.ill' : ''))).toEqual(['DIV.ill', 'B', 'SPAN'])
+    const css = readFileSync(join(process.cwd(), 'src/ds/ds.css'), 'utf8')
+    expect(css).toMatch(/\.g-sempty \{ display: flex; flex-direction: column; align-items: center; text-align: center;/)
+  })
+
+  it('draws every one of its line-art scenes in, and holds the finished drawing under reduced motion', () => {
+    for (const name of EMPTY_SCENE_NAMES) {
+      view.render(<StageEmpty illustration={name} title="t" />)
+      const art = view.host.querySelector('.g-ill-stage')
+      expect(art.classList.contains('g-ill-draw'), name).toBe(true)
+      expect(art.querySelectorAll('[pathLength="1"].dr').length, name).toBeGreaterThan(0)
+    }
+    document.documentElement.dataset.motion = 'reduce'
+    try {
+      view.render(<StageEmpty illustration="bell" title="t" />)
+      const art = view.host.querySelector('.g-ill-stage')
+      expect(art.classList.contains('g-ill-draw')).toBe(false)
+      expect(art.querySelectorAll('.dr, .fd')).toHaveLength(0)
+      expect(art.querySelectorAll('path').length).toBeGreaterThan(0)
+    } finally {
+      delete document.documentElement.dataset.motion
+    }
   })
 
   it('action is the one white button, a link with an href', () => {

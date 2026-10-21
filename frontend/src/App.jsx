@@ -17,6 +17,7 @@ import { isTabRoot, launchPath, legacyPath, tabOf, workoutRunning } from './lib/
 import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
+import AppStage from './ds/AppStage.jsx'
 import { reducedMotion } from './lib/reduced-motion.js'
 import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
@@ -303,6 +304,7 @@ function Shell() {
   const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchPath(workoutRunning(S))
 
   const authed = user || isGuest
+  const sharedStage = !!authed && !inFlow && !onAddDevice && !needsMobileOnboarding
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
@@ -319,8 +321,12 @@ function Shell() {
           replaces (lib/use-route-transition.js). A layer is `display: contents` at rest and lifted
           out of the document while a slide runs (ds.css "Native motion and haptics"). The page left
           is the same element it was, no longer #app, held still and out of reach. */}
+      {/* The stage is the app's, drawn once behind every layer; the layers are transparent over it.
+          The flows that bring their own ground (onboarding, sign-in, Add this device, the first
+          launch) paint it themselves. */}
+      {sharedStage && <AppStage pushed={!isTabRoot(shown.pathname)} />}
       {trans.layers.map(layer => (
-        <div key={layer.key} className="g-route" data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
+        <div key={layer.key} className="g-route" data-shared={sharedStage || undefined} data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
           style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}
           onAnimationEnd={layer.role === 'in' && trans.active ? e => { if (e.target === e.currentTarget) trans.settle() } : undefined}>
           <div id={layer.role === 'in' ? 'app' : undefined} className={layer.fade && !inFlow ? 'vfade' : undefined}

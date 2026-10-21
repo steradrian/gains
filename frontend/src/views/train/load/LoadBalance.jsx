@@ -25,7 +25,7 @@ export default function LoadBalance({ S, now, today, onMuscle }) {
   const [expanded, setExpanded] = useState(false)
 
   if (!S.workouts.length && !Object.keys(loadOfWeeklyPlan(S)).length) {
-    return <StageEmpty icon="calendar" title={t('No workouts yet')} body={t('Log a workout and the muscles it worked light up here.')} />
+    return <StageEmpty illustration="dumbbell" title={t('No workouts yet')} body={t('Log a workout and the muscles it worked light up here.')} />
   }
 
   const b = balanceOf(S, { win, weekOffset, hard, now, today })
@@ -62,7 +62,7 @@ export default function LoadBalance({ S, now, today, onMuscle }) {
         <BodyMap levels={b.levels} body={S.body} onMuscle={onMuscle} />
         <LoadLegend less={t('Less')} more={t('More')} />
       </div>
-      {b.empty ? <StageEmpty icon="calendar" title={t('No workouts in this period yet.')} /> : (
+      {b.empty ? <StageEmpty illustration="calendar" title={t('No workouts in this period yet.')} /> : (
         <>
           <div className="g-glist g-glass g-load-list">
             {shown.map(r => {
