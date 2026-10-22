@@ -2521,3 +2521,25 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-fgroups { display: flex; flex-direction: column; gap: 12px; }
 .g-jsheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; font-family: var(--font-sans); }
 .g-mring-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
+
+/* Friends group m1: the group's week block (ring, lines, legend) and MomentRow. Glass is the kit's
+   `.g-glass`; nothing here draws its own material. */
+.g-gweek { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 20px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-gweek-cap { font: 600 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-gweek-num { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-gweek-unit { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-gweek-lines { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; font: 600 15px/20px var(--font-sans); }
+.g-gline { display: inline-flex; align-items: center; gap: 6px; }
+.g-gline .g-icon { width: 16px; height: 16px; flex: none; }
+.g-glegend { list-style: none; margin: 0; padding: 20px 24px 8px; display: flex; flex-direction: column; gap: 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-glegend li { display: flex; align-items: center; gap: 12px; font: 600 16px/22px var(--font-sans); }
+.g-glegend-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.g-glegend-n { flex: none; color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-mlist { list-style: none; margin: 0 16px; padding: 0; border-radius: 24px; }
+.g-mrow { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-mrow + .g-mrow::before { content: ""; position: absolute; top: 0; inset-inline-start: 16px; inset-inline-end: 16px; border-top: 1px solid var(--glass-line); }
+.g-mrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: start; }
+.g-mrow-body b { font: 600 16px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-mrow-sub { font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); overflow-wrap: anywhere; }
+.g-mrow-end { display: flex; align-items: center; gap: 2px; flex: none; }
+.g-mrow-on { pointer-events: none; cursor: default; }
