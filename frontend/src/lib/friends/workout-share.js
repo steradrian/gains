@@ -3,8 +3,8 @@
 //
 //   share = { off?: true, best?: [exerciseId], together?: false }
 //
-// `off` is "Don't share this one": the workout still counts as a number in the group's ring, it just
-// is not shown as a moment. `best` lists the new-best exercises the person chose to show; the
+// `off` keeps the whole workout to yourself (the summary's "<Workout> done" switched off): it still
+// counts as a number in the group's ring, it just is not shown as a moment. `best` lists the new-best exercises the person chose to show; the
 // exercise only, never the weight (a record never gains a copy of one). `together: false` leaves
 // this workout out of any Trained together moment, for this person only: the others keep theirs,
 // and switching it on again brings it back (api/friends/moments.js). Absent means "follow my
