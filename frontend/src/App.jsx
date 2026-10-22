@@ -91,6 +91,9 @@ import CheersScreen from './views/friends/CheersScreen.jsx'
 import GroupScreen from './views/friends/GroupScreen.jsx'
 import MemberScreen from './views/friends/MemberScreen.jsx'
 import ChallengeScreen from './views/friends/ChallengeScreen.jsx'
+// Friends core m2
+import GroupLinkRedirect from './views/friends/GroupLinkRedirect.jsx'
+import { groupCodeOf, rememberPendingGroup, takePendingGroup } from './lib/friends/pending-group.js'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -350,6 +353,16 @@ function Shell() {
     syncThemeColor(chrome)
     if (MOBILE) setSystemBarsLight(isLightColor(chrome))
   }, [chrome])
+  // Friends core m2: a group link (/g/<code>) opened while signed out is remembered for this tab;
+  // once signed in, and past any onboarding, the person is taken to it. The route itself
+  // (GroupLinkRedirect) sends /g/<code> on to the join page.
+  useEffect(() => {
+    const code = groupCodeOf(shown.pathname)
+    if (!authed) { if (code) rememberPendingGroup(code); return }
+    if (inFlow || needsMobileOnboarding || onAddDevice) return
+    const pending = takePendingGroup()
+    if (pending && !code) navigate('/g/' + encodeURIComponent(pending), { replace: true })
+  }, [authed, shown.pathname, inFlow, needsMobileOnboarding, onAddDevice, navigate])
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
@@ -505,6 +518,8 @@ function AppRoutes({ location, fallback, S, user }) {
         <Route path="/me/groups/:id/challenge/:cid" element={<ChallengeScreen />} />
       </Route>
       <Route path="/me/:page" element={<SettingsRoute />} />
+      {/* Friends core m2: the group link <base>/g/<code> (web/nginx.conf.template sends /g/<code> to /#/g/<code>). */}
+      <Route path="/g/:code" element={<GroupLinkRedirect />} />
       <Route path="*" element={<Navigate to={fallback} replace />} />
     </Routes>
   )

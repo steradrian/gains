@@ -52,7 +52,16 @@ export const isOffline = e => e instanceof FriendsError && e.code === 'offline'
 export const isMissing = e => e instanceof FriendsError && (MISSING.has(e.code) || e.status === 404 || e.status === 401)
 
 /** The one line a failed write is toasted as (shared decision 6): never the server's wording. */
-export const friendsErrorText = () => t("Couldn't do that. Try again when you're online.")
+export const friendsErrorText = e => {
+  switch (e?.code) {
+    case 'friends-off': return t('Turn on Friends first.')
+    case 'deletion-scheduled': return t("Your account is set to be deleted, so you can't share right now.")
+    case 'group-limit': return t("You're in as many groups as Gains allows. Leave one to make room.")
+    case 'group-full': return t('That group is full.')
+    case 'rate-limited': return t('Too many tries. Wait a moment and try again.')
+    default: return t("Couldn't do that. Try again when you're online.")
+  }
+}
 
 let serverMissing = false
 let override = null
@@ -102,10 +111,10 @@ export const setMute = (id, uid, muted) => call('PUT', '/groups/' + seg(id) + '/
 export const setGroupPrefs = (id, prefs) => call('PUT', '/groups/' + seg(id) + '/prefs', { body: prefs })
 /** @returns {Promise<{ code: string, url: string, expiresAt: string }>} */
 export const createInvite = id => call('POST', '/groups/' + seg(id) + '/invites')
-/** @returns {Promise<{ uid: string, name: string, since: string }[]>} */
-export const findPeople = q => call('GET', '/people', { params: { q } })
+/** @returns {Promise<{ uid: string, name: string, since: string }[]>} `since` is YYYY-MM; `group` leaves out that group's members. */
+export const findPeople = (q, group) => call('GET', '/people', { params: { q, group } })
 export const inviteUser = (id, uid) => call('POST', '/groups/' + seg(id) + '/invites/user', { body: { uid } })
-/** @returns {Promise<{ status: 'valid'|'used'|'expired'|'revoked'|'member', group: { id: string, name: string, memberCount: number, initials: string[] }, from: { name: string } }>} */
+/** @returns {Promise<{ status: 'valid'|'used'|'expired'|'revoked'|'member', group?: { id: string, name: string, memberCount: number, initials: string[] }, from?: { name: string } }>} `group` only for valid and member. */
 export const getJoinPreview = code => call('GET', '/join/' + seg(code))
 export const joinGroup = code => call('POST', '/join/' + seg(code))
 export const getMember = (id, uid) => read('/groups/' + seg(id) + '/members/' + seg(uid))
