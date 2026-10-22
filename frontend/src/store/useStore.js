@@ -50,7 +50,7 @@ const DIRTY_KEY = 'gym_dirty'          // the saved copy owes the server a chang
 // (lib/sync-legacy.js), holding the fingerprint that app last agreed on with the server.
 const LEGACY_KEY = 'gym_legacy_owed'
 const SYNCED_AT_KEY = 'gym_synced_at'  // when this device and the server last held the same copy
-const SYNCED_FP_KEY = 'gym_synced_fp'  // a fingerprint of that copy (lib/sync-changes.js)
+export const SYNCED_FP_KEY = 'gym_synced_fp'  // a fingerprint of that copy (lib/sync-changes.js)
 // Changes a forced sign-out or disconnect kept on this device, by server and account, until it
 // reaches that server as that account again. On a phone also a file beside the state mirror.
 const STASH_KEY = 'gym_stash'

@@ -10,3 +10,6 @@ setStateReader(() => useStore.getState().S)
 import './me/routine-changes.js'
 import './me/workout-changes.js'
 import './me/set-changes.js'
+
+// Me body M1
+import './me/weigh-in-changes.js'

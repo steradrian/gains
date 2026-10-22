@@ -15,6 +15,8 @@ import DevKitTrainCoach from './DevKitTrainCoach.jsx'
 import DevKitTrainExercises from './DevKitTrainExercises.jsx'
 import DevKitTrainLoad from './DevKitTrainLoad.jsx'
 import DevKitWeek from './DevKitWeek.jsx'
+// Me body M1
+import DevKitMeBody from './DevKitMeBody.jsx'
 // Workout drawer kit (drawers-M1)
 import DevKitWorkoutDrawers from './DevKitWorkoutDrawers.jsx'
 import GlassActions from './GlassActions.jsx'
@@ -301,6 +303,8 @@ export default function DevKit() {
         <DevKitWeek />
         {/* Shared: day */}
         <DevKitDay />
+        {/* Me body M1 */}
+        <DevKitMeBody />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>
