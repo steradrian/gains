@@ -58,3 +58,26 @@ describe('workoutsByDay', () => {
     expect(trainingDay(state, WED, THU).kind).toBe('past-logged')
   })
 })
+
+describe('trainingDay today', () => {
+  const at = iso => new Date(iso + 'T17:20:00').getTime()
+  // MON 2026-10-12 has Push planned.
+  const test5 = (d, extra = {}) => ({ id: 't', d, start: at(MON), end: at(MON) + 5 * 60000, name: 'Test', routineIds: [], entries: [{ id: '0025', sets: [{ done: true }] }], ...extra })
+
+  it('a session logged today reads as done only when today holds nothing else to do', () => {
+    // Push is planned and a freestyle "Test" does not cover it: the day still offers Push.
+    expect(trainingDay(S({ workouts: [test5(MON)] }), MON, MON).kind).toBe('planned')
+    // A rest day: the session logged on it is today's, "Done today".
+    expect(trainingDay(S({ workouts: [test5(TUE)] }), TUE, TUE)).toMatchObject({ kind: 'done', workout: { name: 'Test' } })
+  })
+
+  it('a session from another day is not done today', () => {
+    expect(trainingDay(S({ workouts: [test5(MON)] }), TUE, TUE).kind).toBe('rest')
+  })
+
+  it('a record with no valid d is placed by its start, as the week strip does', () => {
+    const state = S({ workouts: [test5(undefined, { d: undefined, start: at(TUE), end: at(TUE) + 300000 })] })
+    expect(dayMark(state, TUE)).toBe('done')
+    expect(trainingDay(state, TUE, TUE).kind).toBe('done')
+  })
+})

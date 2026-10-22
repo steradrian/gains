@@ -56,7 +56,9 @@ export function trainingDay(S, date = todayISO(), today = todayISO()) {
   // planned day, or the rotation's first session done when its next one is today's too, leaves the
   // day offering what is still to do. A queue session is never "covered" by an earlier workout:
   // the queue only names one it does not count as done yet.
-  const loggedToday = S.workouts.filter(w => w.d === today)
+  // The same day reading as the week strip and the past days (workoutDay): a record with no valid
+  // `d` still lands on the day it started, so the strip's "done" dot and this card agree.
+  const loggedToday = workoutsByDay(S.workouts).get(today) || []
   const queueIds = queueOf(S)?.ids || []
   const covered = id => !queueIds.includes(id) && loggedToday.some(w => (Array.isArray(w.routineIds) ? w.routineIds : [w.routineId]).includes(id))
   const done = routines.every(r => covered(r.id)) ? loggedToday.at(-1) : null
