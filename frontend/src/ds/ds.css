@@ -2418,14 +2418,6 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
   .g-landscape-cover .g-ill { width: 120px; height: auto; }
 }
 
-/* Settings train m1: LayoutTile, a drawn workout layout you can choose */
-.g-ltile { appearance: none; border: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px 10px; border-radius: 20px; color: var(--on-stage-2); font: 600 13px/16px var(--font-sans); cursor: pointer; transition: color 200ms, background-color 200ms; }
-.g-ltile svg { width: min(100%, 56px); height: auto; }
-.g-ltile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: min(100%, 360px); }
-.g-ltile.on { background: var(--on-stage); color: var(--accent-text); }
-.g-ltile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .g-ltile { transition: none; } }
-
 /* Settings prefs m1: a card of rows in a Settings page's gutter (pages/prefs-rows.jsx), a segmented
    control or a switch at the end of a row, the disabled switch, and the search-hit flash on glass rows. */
 .g-sp-card { padding: 0 16px; }
@@ -2461,7 +2453,7 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-apick-item:active .g-apick-sw { transform: scale(.94); }
 
 .g-lgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 4px 16px 0; }
-.g-ltile { appearance: none; border: 0; background: none; padding: 0; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 8px; color: var(--on-stage-2); font-family: var(--font-sans); cursor: pointer; }
+.g-ltile { appearance: none; border: 0; margin: 0; background: none; padding: 0; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 8px; color: var(--on-stage-2); font-family: var(--font-sans); cursor: pointer; }
 .g-ltile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 3px; border-radius: 22px; }
 .g-ltile-pv { position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden; border-radius: 20px; background: linear-gradient(170deg, var(--accent-stage), var(--accent-stage-end)); box-shadow: inset 0 0 0 1px var(--glass-line); transition: transform 220ms cubic-bezier(.34,1.22,.64,1); }
 .g-ltile-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -2557,7 +2549,6 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
    tokens (--glass-lift, -rim, -spec, -shade, -label-shadow) are in tokens.css; the light stages map their
    own beside --X-ink-glass. */
 .gl-layer { position: fixed; inset: 0; pointer-events: none; }
-.gl-layer-under { z-index: -1; }
 /* Under #tabbar (z 50) and #timer, over the pages. The dev page sets --gl-over-z lower, for its own bar. */
 .gl-layer-over { z-index: var(--gl-over-z, 49); inset: auto 0 0 0; }
 .gl-layer canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -2580,7 +2571,9 @@ html[data-lg="gl"] .g-gtabbar .g-tab[aria-current="page"] { color: var(--on-stag
 html[data-lg="gl"] .g-gtabbar .g-plus[data-lg-on] { box-shadow: none; }
 /* The dock's text is dark on its surface fill; drawn, it sits on the stage. Its hold ring (an inset box-shadow) stays. */
 html[data-lg="gl"] .g-dock[data-lg-on] { color: var(--on-stage); }
-html[data-lg="gl"] .g-dock[data-lg-on] .g-dock-meta { color: var(--on-stage-2); }
+/* The clock, the count and the meta line sit on the bare stage (the bar is clear), so all three take the full ink:
+   --on-stage-2 reads only 4.2:1 there on the blossom and watermelon stages. */
+html[data-lg="gl"] .g-dock[data-lg-on] :is(.g-dock-clock, .g-dock-count, .g-dock-meta) { color: var(--on-stage); }
 html[data-lg="gl"] .g-dock[data-lg-on]:not(.g-dock-hold) { box-shadow: none; }
 
 /* Reduce Transparency: nearly solid, a heavier blur. */
@@ -2593,7 +2586,7 @@ html[data-lg="reduced"] :is(.g-glass, .g-btn-glass):not([data-glass="flat"]) { b
    1. A scroll edge under the stage header: while <html data-scrolled> (scrollTop > 0) a band behind
       the header's controls blurs what scrolls under it and fades out downward (a masked
       backdrop-filter, the way Apple's headers do). The blur and saturate match the bar's frost
-      (presenter-fixed `.gl-frost`, 14px). At rest the band has no opacity, so it clips no focus
+      (presenter-chrome `.gl-frost`, 14px). At rest the band has no opacity, so it clips no focus
       ring and touches no first row. The stage is smooth, so the same blur leaves it unchanged.
    2. The scroller of the search overlay fades its top 18px while it is scrolled
       (.search-scroll[data-scrolled]).
@@ -2619,14 +2612,13 @@ html[data-lg="reduced"] { --lg-edge-blur: blur(24px); }
 @media (prefers-reduced-motion: reduce) { .g-shdr-pin::before, .g-snav::before { transition: none; } }
 :root[data-motion="reduce"] .g-shdr-pin::before, :root[data-motion="reduce"] .g-snav::before { transition: none; }
 
-/* === Liquid glass: sprites (glass/presenter-sprite.js; GlassHost sets html[data-lg-presenter]) ===
-   Under the sprite presenter each drawn in-flow element holds its own glass: a canvas.g-lg-sprite appended
+/* === Liquid glass: sprites (glass/presenter-sprite.js) ===
+   Each drawn in-flow element holds its own glass: a canvas.g-lg-sprite appended
    as its last child, which the presenter marks the element for with data-lg-sprite="control | card"
    (data-lg-static when it was position: static, data-lg-edge when its contact shadow is CSS). The sprite
    sits --lg-m px outside the border box (its margin holds the swell and the drawn shadow), at z-index -1
    inside an isolated element: over the element's own background, under its text and icons, and never over a
-   focus ring (outline). The rules are keyed on data-lg-sprite rather than on the presenter, so the dev
-   page's side-by-side check can hold a sprite under the fixed presenter. A sprite shows only while its
+   focus ring (outline). A sprite shows only while its
    element is drawn ([data-lg-on]); in css or reduced mode it is hidden and the CSS material is back.
    The selector out-ranks every `> *` rule on glass children (scale, margins, position). */
 .g-lg-sprite { display: none; }

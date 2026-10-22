@@ -136,7 +136,7 @@ function shape(el, { x = 100, y = 100, hw = 60, hh = 30, kind = 'card', press = 
 }
 
 function makePresenter(opts = {}) {
-  const hooks = { onReady: vi.fn(), onRelease: vi.fn(), onLost: vi.fn(), onRestored: vi.fn(), onCopy: vi.fn() }
+  const hooks = { onReady: vi.fn(), onRelease: vi.fn(), onLost: vi.fn(), onRestored: vi.fn() }
   atlasCanvas = document.createElement('canvas')
   gl.canvas = atlasCanvas
   const p = createSpritePresenter({
@@ -189,7 +189,7 @@ describe('createSpritePresenter', () => {
     expect(drawn.shapes[0].margin).toBe(shadowMargin('card', 60, 30))
   })
 
-  it('sizes the sprite from the element box and its margin at the fixed presenter\'s pixel ratio, or the cards\' cap', () => {
+  it('sizes the sprite from the element box and its margin at the device pixel ratio, or the cards\' cap', () => {
     vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(3)
     const a = document.createElement('div')
     const b = document.createElement('div')
@@ -316,31 +316,55 @@ describe('createSpritePresenter', () => {
     expect(p.isReady(el)).toBe(true)
   })
 
-  it('copies through createImageBitmap and bitmaprenderer, marking ready when the bitmap lands', async () => {
-    const renderer = { transferFromImageBitmap: vi.fn() }
-    HTMLCanvasElement.prototype.getContext.mockImplementation(type => (type === 'bitmaprenderer' ? renderer : type === '2d' ? ctx2d : null))
-    const bmp = { close: vi.fn() }
-    vi.stubGlobal('createImageBitmap', vi.fn(() => Promise.resolve(bmp)))
-    const el = document.createElement('div')
-    ground.appendChild(el)
-    const { p, hooks } = makePresenter({ copy: 'bitmap' })
-    frame(p, [shape(el)])
-    expect(createImageBitmap).toHaveBeenCalledWith(atlasCanvas, expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number))
-    expect(hooks.onReady).not.toHaveBeenCalled()
-    await vi.waitFor(() => expect(renderer.transferFromImageBitmap).toHaveBeenCalledWith(bmp))
-    expect(hooks.onReady).toHaveBeenCalledWith(el)
-    expect(hooks.onCopy).toHaveBeenCalled()
-    expect(p.stats().copy).toBe('bitmap')
-  })
+  describe('the memory budget', () => {
+    const spriteBytes = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 3)
+      const m = shadowMargin('card', 60, 30)
+      return Math.round((120 + 2 * m) * dpr) * Math.round((60 + 2 * m) * dpr) * 4
+    }
+    const three = () => [0, 1, 2].map(() => {
+      const el = document.createElement('div')
+      ground.appendChild(el)
+      return el
+    })
 
-  it('falls back to drawImage where bitmaprenderer is missing', () => {
-    vi.stubGlobal('createImageBitmap', vi.fn())
-    const el = document.createElement('div')
-    ground.appendChild(el)
-    const { p } = makePresenter({ copy: 'bitmap' })
-    frame(p, [shape(el)])
-    expect(ctx2d.drawImage).toHaveBeenCalled()
-    expect(p.stats().copy).toBe('draw2d')
+    it('leaves the elements that would not fit on the CSS material, and still draws the others', () => {
+      const els = three()
+      const probe = makePresenter().p
+      const { p, hooks } = makePresenter({ budget: probe.bytes() + spriteBytes() * 1.5 })
+      const out = frame(p, els.map(el => shape(el)), () => true)
+      expect(out.drew).toBe(true)
+      expect(spriteOf(els[0])).not.toBeNull()
+      expect(p.isReady(els[0])).toBe(true)
+      expect(spriteOf(els[1])).toBeNull()
+      expect(spriteOf(els[2])).toBeNull()
+      expect(p.isReady(els[1])).toBe(false)
+      expect(hooks.onReady).toHaveBeenCalledTimes(1)
+      expect(p.stats()).toMatchObject({ over: 2, budget: probe.bytes() + spriteBytes() * 1.5 })
+    })
+
+    it('gives a waiting element its sprite once memory is freed, and asks for another draw', () => {
+      const els = three()
+      const probe = makePresenter().p
+      const { p } = makePresenter({ budget: probe.bytes() + spriteBytes() * 1.5 })
+      frame(p, els.map(el => shape(el)), () => true)
+      // The first element scrolls far away and gives its sprite back.
+      const out = frame(p, [shape(els[1]), shape(els[2])], () => false)
+      expect(spriteOf(els[0])).toBeNull()
+      expect(out.pending).toBe(true)
+      frame(p, [shape(els[1]), shape(els[2])])
+      expect(spriteOf(els[1])).not.toBeNull()
+      expect(spriteOf(els[2])).toBeNull()
+      expect(p.stats().over).toBe(1)
+    })
+
+    it('never counts the default budget against a normal screen', () => {
+      const els = three()
+      const { p } = makePresenter()
+      frame(p, els.map(el => shape(el)), () => true)
+      expect(p.stats().over).toBe(0)
+      expect(els.every(el => spriteOf(el))).toBe(true)
+    })
   })
 
   it('removes every sprite and gives the atlas renderer back on dispose', () => {

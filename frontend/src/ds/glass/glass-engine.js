@@ -10,33 +10,29 @@ import { createScheduler } from './glass-scheduler.js'
 import { createStats } from './glass-stats.js'
 import { createWatchdog, glassIsOff } from './glass-watchdog.js'
 import { createMaterialProbe } from './material-probe.js'
-import { createFixedPresenter } from './presenter-fixed.js'
+import { createChromePresenter } from './presenter-chrome.js'
 import { createSpritePresenter } from './presenter-sprite.js'
 
 // Liquid glass engine: the registry, scheduler and presenters wired together for one ground. GlassHost.jsx
 // owns its lifetime. Everything here is plain JS so the frame is easy to reason about:
 //   read every rect (registry) -> step the springs -> write --lg-press -> draw (presenters).
-// Chrome always draws on the fixed presenter's over strip. In-flow glass draws on its under canvas
-// (presenter 'fixed') or in per-element sprites (presenter 'sprite', presenter-sprite.js); `compare`
-// mounts both, for #/dev/glass's side-by-side check ([data-lg-compare="fixed" | "sprite"] picks one).
+// Chrome draws on the chrome presenter's strip (presenter-chrome.js). In-flow glass draws in per-element
+// sprites (presenter-sprite.js). The fallback for either is the CSS material, never another canvas.
 
 const CLASSIC_INTENSITY = 0.45 // the design's Classic stage; there is no setting for it
 const CLASSIC_EASE_S = 0.1 // time constant of the ease to half on a pushed page (about 400 ms to settle)
 const LENS_STRETCH_PX = 10
-const FIXED_BAND = 80 // px outside the viewport the fixed presenter still draws (the registry's default)
+const PANE_BAND = 80 // px outside the viewport an in-flow pane the chrome bends still counts
 const MAX_DPR = 3
 const LOOK_MAX_DPR = 2
 const RUN_GAP_MS = 250 // frames further apart than this are a new run, not a slow frame
 
-export const PRESENTER = Object.freeze({ FIXED: 'fixed', SPRITE: 'sprite' })
-
 /**
  * @param {{ ground: Element, host: Element, getInputs: () => { look: string, accent: string, pushed: boolean,
  *   intensity: number, motion: boolean, mode?: string, stageOnly?: boolean }, onStatus: (s: 'webgl' | 'fallback' | 'reduced') => void,
- *   include?: string, onDom?: () => void, presenter?: 'fixed' | 'sprite', sprite?: object, compare?: boolean,
- *   watchdog?: boolean }} opts
+ *   include?: string, onDom?: () => void, sprite?: object, watchdog?: boolean }} opts
  *   `include`: the registry only takes shapes inside this selector. `onDom`: called on every DOM change under the ground.
- *   `presenter`: where in-flow glass draws. `sprite`: presenter-sprite.js options (copy, cardDpr, shadow).
+ *   `sprite`: presenter-sprite.js options (cardDpr, shadow).
  *   `watchdog: false` (the dev page) never switches the session to CSS, so slow numbers stay readable on the HUD.
  * @returns {{ wake(reason: string): void, setFrozen(flag: boolean): void, stats: object, dispose(): void } | null}
  *   null when the page keeps the CSS material. `stats` (glass-stats.js) feeds the dev HUD.
@@ -47,8 +43,7 @@ export const PRESENTER = Object.freeze({ FIXED: 'fixed', SPRITE: 'sprite' })
  * 'fallback' at once and unmarks every shape.
  */
 export function createGlassEngine({
-  ground, host, getInputs, onStatus, include = '', onDom = () => {},
-  presenter: mode = PRESENTER.FIXED, sprite: spriteOpts = {}, compare = false, watchdog: watch = true,
+  ground, host, getInputs, onStatus, include = '', onDom = () => {}, sprite: spriteOpts = {}, watchdog: watch = true,
 }) {
   if (window.matchMedia?.('(prefers-reduced-transparency: reduce)')?.matches) { onStatus('reduced'); return null }
   if (watch && glassIsOff()) { onStatus('fallback'); return null }
@@ -67,48 +62,33 @@ export function createGlassEngine({
   const restore = who => { lostFrom.delete(who); applyPause() }
 
   const stats = createStats()
-  const useSprites = mode === PRESENTER.SPRITE || compare
-  const useUnder = mode === PRESENTER.FIXED || compare
-  const presenter = createFixedPresenter({ under: useUnder })
-  const sprites = useSprites ? createSpritePresenter(spriteOpts) : null
-  if (!presenter.mount(host, { onLost: () => lose('fixed'), onRestored: () => restore('fixed') })) { onStatus('fallback'); return null }
-  const spritesOk = !sprites || sprites.mount({
+  const chromeGl = createChromePresenter()
+  const sprites = createSpritePresenter(spriteOpts)
+  if (!chromeGl.mount(host, { onLost: () => lose('chrome'), onRestored: () => restore('chrome') })) { onStatus('fallback'); return null }
+  const spritesOk = sprites.mount({
     onReady: el => { if (live) registry?.mark(el, true) },
     onRelease: el => registry?.mark(el, false),
     onLost: () => lose('sprite'),
     onRestored: () => restore('sprite'),
-    onCopy: (transferMs, latencyMs) => {
-      const t = performance.now()
-      stats.push('transfer', transferMs, t)
-      stats.push('latency', latencyMs, t)
-    },
   })
-  if (!spritesOk) { presenter.dispose(); onStatus('fallback'); return null }
-
-  // Which presenter draws an in-flow shape. The compare group an element sits in never changes, so it is cached.
-  const groups = new WeakMap()
-  const groupOf = el => {
-    if (!compare) return null
-    if (!groups.has(el)) groups.set(el, el.closest('[data-lg-compare]')?.getAttribute('data-lg-compare') || null)
-    return groups.get(el)
-  }
-  const viaSprite = s => !!sprites && !isChrome(s.kind) && (groupOf(s.el) === PRESENTER.SPRITE || (groupOf(s.el) !== PRESENTER.FIXED && mode === PRESENTER.SPRITE))
+  if (!spritesOk) { chromeGl.dispose(); onStatus('fallback'); return null }
 
   const probe = createMaterialProbe(host)
   const watchdog = watch ? createWatchdog({
     onTrip() {
       lose('watchdog')
-      presenter.dispose()
-      sprites?.dispose()
+      chromeGl.dispose()
+      sprites.dispose()
     },
   }) : null
   registry = createRegistry(ground, {
     include,
     onChange: reason => { scheduler?.wake(reason); if (reason === 'dom') onDom() },
     // A sprite's element keeps its CSS material until its sprite has content (R7).
-    defer: s => viaSprite(s) && !sprites.isReady(s.el),
-    nearMargin: sprites ? '100%' : '50%',
-    onSpriteRemoved: (hostEl, canvas) => sprites?.restore(hostEl, canvas),
+    defer: s => !isChrome(s.kind) && !sprites.isReady(s.el),
+    // A sprite is kept until its shape is more than a viewport away.
+    nearMargin: '100%',
+    onSpriteRemoved: (hostEl, canvas) => sprites.restore(hostEl, canvas),
   })
   const lensMotion = new Map() // lens element -> { x, stretch }
   const themes = new Map() // accent -> theme at the base intensity
@@ -177,20 +157,8 @@ export function createGlassEngine({
     return changed.any
   }
 
-  // In-flow shapes the fixed presenter would draw: its own band and no faded ones, as before sprites.
-  const fixedVisible = s => s.opacity >= 0.01 && s.y + s.hh > -FIXED_BAND && s.y - s.hh < window.innerHeight + FIXED_BAND
-
-  // How far in-flow glass moved since the last frame (px): the fixed presenter's rim trails by at least this.
-  const lastPos = new WeakMap()
-  function movement(shapes) {
-    let most = 0
-    for (const s of shapes) {
-      const p = lastPos.get(s.el)
-      if (p) most = Math.max(most, Math.hypot(s.box.x - p.x, s.box.y - p.y))
-      lastPos.set(s.el, { x: s.box.x, y: s.box.y })
-    }
-    return most
-  }
+  // The in-flow panes the chrome bends: on screen (with a band) and not faded out.
+  const paneVisible = s => s.opacity >= 0.01 && s.y + s.hh > -PANE_BAND && s.y - s.hh < window.innerHeight + PANE_BAND
 
   let stage = null // the "stage only" check: { layer, canvas, gl, key }
   const dropStage = () => {
@@ -208,7 +176,7 @@ export function createGlassEngine({
       layer.className = 'gl-layer gl-layer-stage'
       layer.setAttribute('aria-hidden', 'true')
       layer.appendChild(gl.canvas)
-      host.prepend(layer) // under the under canvas: it stands in for the real stage, nothing more
+      host.prepend(layer) // under the chrome strip: it stands in for the real stage, nothing more
       stage = { layer, canvas: gl.canvas, gl, key: '' }
     }
     const vw = window.innerWidth
@@ -228,7 +196,7 @@ export function createGlassEngine({
     const inp = getInputs()
     const vh = window.innerHeight
     // Sprites are made half a viewport ahead, so on iOS's async scroll a shape has its glass before it shows.
-    const raw = registry.read(sprites ? { band: vh / 2, faded: true } : undefined)
+    const raw = registry.read({ band: vh / 2, faded: true })
     const moving = scheduler.springs.step(dt)
     const shapes = raw.map(s => compose(s, dt))
     scheduler.springs.flush()
@@ -242,61 +210,52 @@ export function createGlassEngine({
       calm: !inp.pushed,
     }
     const chrome = []
-    const inFixed = []
-    const inSprite = []
+    const inFlow = []
     for (const s of shapes) {
-      if (isChrome(s.kind)) { if (s.opacity >= 0.01) chrome.push(s) } else if (viaSprite(s)) inSprite.push(s)
-      else if (fixedVisible(s)) inFixed.push(s)
+      if (!isChrome(s.kind)) inFlow.push(s)
+      else if (s.opacity >= 0.01) chrome.push(s)
     }
-    // Over-only (sprites, no compare): the in-flow glass is still passed, as the panes the chrome bends.
-    const toFixed = useUnder ? chrome.concat(inFixed) : chrome.concat(inSprite.filter(fixedVisible))
     const t0 = performance.now()
-    const drewFixed = presenter.draw(toFixed, material, look)
+    const drewChrome = chromeGl.draw(chrome, inFlow.filter(paneVisible), material, look)
     const t1 = performance.now()
-    const sp = sprites ? sprites.draw(inSprite, material, look, {
+    const sp = sprites.draw(inFlow, material, look, {
       lookId: `${inp.look}|${inp.accent}|${inp.pushed}|${inp.intensity}|${inp.motion}|${inp.mode}`,
       keep: el => {
         const s = registry.shapes.get(el)
-        return !!s && s.near && el.isConnected && viaSprite(s)
+        return !!s && s.near && el.isConnected && !isChrome(s.kind)
       },
-    }) : null
+    })
     drawStage(inp, look, material)
-    const drew = drewFixed || !!sp?.drew
+    const drew = drewChrome || sp.drew
     if (drew && !live && lostFrom.size === 0) {
       live = true
       registry.setMarked(true)
       onStatus('webgl')
     }
-    record(t0, t1, drewFixed, sp, chrome, inFixed, inSprite)
-    return { drew, any: moving || easing || drew || !!sp?.pending }
+    record(t0, t1, drewChrome, sp, chrome, inFlow)
+    return { drew, any: moving || easing || drew || sp.pending }
   }
 
-  function record(t0, t1, drewFixed, sp, chrome, inFixed, inSprite) {
-    const st = sprites?.stats()
-    const move = movement(inFixed.concat(inSprite))
-    if (move > 0.05) stats.push('move', move, t0)
-    let drawMs = drewFixed ? t1 - t0 : 0
-    if (sp?.drew) {
+  function record(t0, t1, drewChrome, sp, chrome, inFlow) {
+    const st = sprites.stats()
+    let drawMs = drewChrome ? t1 - t0 : 0
+    if (sp.drew) {
       drawMs += st.drawMs
       stats.push('copy', st.copyMs, t0)
       stats.push('refresh', st.drawMs + st.copyMs, t0)
     }
     if (drawMs > 0) stats.push('draw', drawMs, t0)
-    if (st && st.contentLag > 0.05) stats.push('contentLag', st.contentLag, t0)
-    stats.set('presenter', mode)
-    stats.set('compare', compare)
+    if (st.contentLag > 0.05) stats.push('contentLag', st.contentLag, t0)
     stats.set('chrome', chrome.length)
-    stats.set('inFixed', inFixed.length)
-    stats.set('inSprite', inSprite.length)
-    stats.set('bytes', presenter.bytes() + (sprites?.bytes() || 0) + (stage ? stage.canvas.width * stage.canvas.height * 4 : 0))
-    if (st) {
-      stats.set('sprites', st.sprites)
-      stats.set('refreshed', st.refreshed)
-      stats.set('atlas', `${st.atlasW}x${st.atlasH}`)
-      stats.set('pages', st.pages)
-      stats.set('skipped', st.skipped)
-      stats.set('copy', st.copy)
-    }
+    stats.set('inFlow', inFlow.length)
+    stats.set('bytes', chromeGl.bytes() + sprites.bytes() + (stage ? stage.canvas.width * stage.canvas.height * 4 : 0))
+    stats.set('sprites', st.sprites)
+    stats.set('refreshed', st.refreshed)
+    stats.set('atlas', `${st.atlasW}x${st.atlasH}`)
+    stats.set('pages', st.pages)
+    stats.set('skipped', st.skipped)
+    stats.set('over', st.over)
+    stats.set('budget', st.budget)
   }
 
   scheduler = createScheduler({
@@ -316,9 +275,9 @@ export function createGlassEngine({
     stats,
     dispose() {
       scheduler.dispose()
-      sprites?.dispose()
+      sprites.dispose()
       registry.dispose()
-      presenter.dispose()
+      chromeGl.dispose()
       probe.dispose()
       dropStage()
       lensMotion.clear()

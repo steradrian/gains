@@ -16,13 +16,12 @@ import Icon from './Icon.jsx'
 // `onBack` replaces the tab's back for a page whose back is not a trip down the stack: a settings
 // sub-page names its own parent, the Coach intake steps back through its questions. `false` is a
 // tab's root that keeps this header (Profile, Me's root): nothing to go back to, so no back.
-// `sticky` pins it under the system bars.
-export default function SubHeader({ title, sub, action, onBack, sticky = false, children }) {
+export default function SubHeader({ title, sub, action, onBack, children }) {
   if (import.meta.env.DEV && actionCount(action) > 2) throw new Error('SubHeader: at most two actions')
   const h1 = useRef(null)
   const step = useTitleFit(h1, children ? null : title)
   return (
-    <div className={cx('hdr sub-hdr', children && 'sub-hdr-field', sticky && 'sticky')}>
+    <div className={cx('hdr sub-hdr', children && 'sub-hdr-field')}>
       {onBack === false
         ? <span className="hdr-btn" aria-hidden="true" />
         : <button type="button" className="iconbtn hdr-btn" onClick={onBack || back} aria-label={t('Back')}><Icon name="chevronLeft" /></button>}

@@ -199,6 +199,20 @@ describe('the tokens', () => {
     }
   })
 
+  // In GL mode the tab bar's labels and the dock's text sit on the clear bar, so on the bare stage (the
+  // frost under it only softens). They read --on-stage, which a light stage sets to ink. --on-stage-2 is not
+  // enough there (4.2:1 on blossom and watermelon), so nothing on the bare stage uses it.
+  it.each(THEMES.filter(p => p.ink).map(p => [p.id, p]))('%s: labels drawn straight on the stage in GL mode read at 4.5:1', (id, p) => {
+    for (const stop of [p.stage.stage, p.stage.end]) {
+      expect(contrast(p.ink.on, stop), `${id}: on-stage on ${stop}`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('the GL tab labels and the dock text (clock, count and meta) use the full stage ink, not the accent text or on-stage-2', () => {
+    expect(dsCss).toMatch(/html\[data-lg="gl"\] \.g-gtabbar \.g-tab \{ color: var\(--on-stage\);/)
+    expect(dsCss).toMatch(/html\[data-lg="gl"\] \.g-dock\[data-lg-on\] :is\(\.g-dock-clock, \.g-dock-count, \.g-dock-meta\) \{ color: var\(--on-stage\); \}/)
+  })
+
   it('the stage roles default to today\'s white, and only the light stages override them', () => {
     for (const role of ['stage-mark', 'stage-cta', 'stage-decor']) expect(light).toContain(`--${role}: #FFFFFF;`)
     expect(light).toContain('--stage-decor-k: 1;')

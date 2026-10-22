@@ -2,7 +2,7 @@ import { applyLookUniforms, UNIFORMS } from '../../lib/stage-look/renderer.js'
 import { LOOK_GLSL } from '../../lib/stage-look/shader.js'
 import { STRENGTH } from './glass-kinds.js'
 
-// Liquid glass, the WebGL half (presenter-fixed.js drives it, one renderer per canvas). Every glass
+// Liquid glass, the WebGL half (presenter-chrome.js and presenter-sprite.js drive it, one renderer per canvas). Every glass
 // shape is a quad whose fragments shade a rounded-rect SDF that looks through a thick convex slab at
 // what is behind it, all in one draw call. WebGL cannot read the DOM, so what is behind is the stage
 // itself: the look shader's own lookColor() (lib/stage-look/shader.js), evaluated at the bent
@@ -22,7 +22,7 @@ import { STRENGTH } from './glass-kinds.js'
 // canvas instead of at its viewport position. The fragment still runs in viewport coordinates (v_p),
 // so lookColor() is sampled where the element really is on screen and the optics are the same code;
 // only the vertex placement (a_place: offset and device-pixel scale per shape) and the per-shape
-// shadow switch (a_touch.w) differ. The fixed presenter's path stays bit-identical (u_atlas = 0).
+// shadow switch (a_touch.w) differ. The chrome presenter's path stays bit-identical (u_atlas = 0).
 const FLOATS = 23 // per vertex: pos 2, rect 4, shape 4, touch 4, extra 2, clip 4, place 3
 const MAX_PANES = 12
 const NO_CLIP = [0, 0, 1e5, 1e5]
