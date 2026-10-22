@@ -43,14 +43,23 @@ describe('MeasurementsTab', () => {
     expect(host.querySelector('.g-tc-target')).toBeNull()
   })
 
-  it('picks another measurement from the chips or from its row in Latest', () => {
+  it('picks another measurement from the chips', () => {
     mount()
     tap(button('Chest'))
     expect(text('.bd-big')).toBe('102.5cm')
     expect(text('.bd-lines')).toContain('+1.5 cm since previous')
     expect(host.querySelector('.bd-lines').textContent).not.toMatch(/since \d|since [A-Z]/)
-    tap([...host.querySelectorAll('.g-gvr')].find(r => r.textContent.startsWith('Waist')))
-    expect(text('.bd-big')).toBe('84cm')
+  })
+
+  it('a row of Latest with a reading opens its day for editing; one without picks its chip', () => {
+    const onOpen = vi.fn()
+    mount(S({ measurementEnabled: ['waist', 'chest', 'hips'] }), { onOpen })
+    const row = name => [...host.querySelectorAll('.g-gvr')].find(r => r.textContent.startsWith(name))
+    tap(row('Chest'))
+    expect(onOpen).toHaveBeenCalledWith('2026-10-17')
+    tap(row('Hips'))
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(text('.bd-eyebrow')).toBe('Hips')
   })
 
   it('lists the latest of each tracked measurement with its date, change and value', () => {

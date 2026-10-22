@@ -16,7 +16,8 @@ import { signed } from './WeighInsTab.jsx'
 // The Measurements tab of the Body page (board Me2Measure): the tracked measurements as chips, the
 // picked one's latest value and change, its curve, then the latest of each. It draws what measureOf
 // (measure-data.js) gives it and holds only which chip is picked; the page owns the range and opens
-// the drawers.
+// the drawers. A row of Latest with a reading opens that day for editing (`onOpen(day)`); one without
+// picks its chip. The chart takes no taps.
 
 // "84 cm" and the like.
 const valueText = (v, unit) => fmtNum(v) + ' ' + unit
@@ -32,7 +33,7 @@ export function measureSub(data) {
 
 const changeText = (change, unit) => signed(change) + ' ' + unit + ' ' + t('since previous')
 
-export default function MeasurementsTab({ data, range, onRange, onLog, onChoose }) {
+export default function MeasurementsTab({ data, range, onRange, onLog, onChoose, onOpen }) {
   const [picked, setPicked] = useState(null)
 
   if (data.empty) {
@@ -89,7 +90,7 @@ export default function MeasurementsTab({ data, range, onRange, onLog, onChoose 
       <div className="bd-pad">
         <div className="g-glist g-glass">
           {data.fields.map(f => (
-            <GlassValueRow key={f.key} title={nameOf(f)} chevron={false} onClick={() => setPicked(f.key)}
+            <GlassValueRow key={f.key} title={nameOf(f)} chevron={false} onClick={() => (f.latest ? onOpen(f.latest.d) : setPicked(f.key))}
               sub={f.latest ? fmtDate(f.latest.d, true) + (f.change != null ? ' · ' + changeText(f.change, f.unit) : '') : t('No measurements yet')}
               value={f.latest ? valueText(f.latest.v, f.unit) : undefined} />
           ))}

@@ -14,6 +14,6 @@ export default function BodyRoute() {
       tab={body.tab} onTab={body.pickTab} data={body.data} range={body.range} onRange={body.pickRange}
       waiting={body.waiting} asks={body.asks} pill={pill}
       onLog={logWeightSheet} onOpen={editWeighInSheet}
-      measure={body.measure} onLogMeasure={() => measurementLogSheet()} onChooseMeasure={manageMeasurementsSheet} />
+      measure={body.measure} onLogMeasure={() => measurementLogSheet()} onOpenMeasure={measurementLogSheet} onChooseMeasure={manageMeasurementsSheet} />
   )
 }

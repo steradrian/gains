@@ -1153,7 +1153,7 @@ describe('the screens gallery: Me > Body > Measurements', () => {
   it('has M2.5 to M2.7 and the edge states under their board ids, in Me: body', () => {
     const ids = screenAreas().find(a => a.name === 'Me: body').entries.map(e => e.id)
     expect(ids.filter(id => id.startsWith('M2.5') || id.startsWith('M2.6') || id === 'M2.7'))
-      .toEqual(['M2.5', 'M2.5a', 'M2.5b', 'M2.5c', 'M2.6', 'M2.6a', 'M2.6b', 'M2.7'])
+      .toEqual(['M2.5', 'M2.5a', 'M2.5b', 'M2.5c', 'M2.6', 'M2.6a', 'M2.6b', 'M2.6c', 'M2.6d', 'M2.7'])
   })
 
   it('shows the tab, both drawers, the sub-panel and the empty states, and writes nothing real', async () => {
@@ -1193,6 +1193,14 @@ describe('the screens gallery: Me > Body > Measurements', () => {
     await check('M2.6b', h => {
       expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Choose measurements')
       expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M2.6c', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Edit measurements')
+      expect(h.querySelector('.g-bs .g-danger').textContent).toBe('Delete measurements')
+    })
+    await check('M2.6d', h => {
+      expect(h.querySelector('.g-bs')).toBeNull()
+      expect(h.querySelector('.g-utoast-msg').textContent).toMatch(/^Deleted \d+ measurements? from /)
     })
     await check('M2.7', h => {
       const pane = h.querySelector('.g-bs-pane[data-pos="active"]')

@@ -77,6 +77,7 @@ export function entryTitle(entry, ctx = {}) {
     case 'weighin-edit': return t('Changed a weigh-in')
     case 'weighin-delete': return t('Deleted a weigh-in')
     case 'photo-delete': return t('Deleted a photo')
+    case 'measure-delete': return t('Deleted measurements')
     case 'goal-change': {
       switch (facts.what) {
         case 'target': return num(facts.to) === null ? t('Target weight changed') : t('Target weight changed to {0}', amount(facts.to, facts.unit || ctx.unit))
@@ -120,6 +121,7 @@ export function entryDetail(entry, ctx = {}) {
       return joinParts([dateOf(day), amount(facts.weight, unit), time])
     }
     case 'photo-delete': return joinParts([dateOf(day), time])
+    case 'measure-delete': return joinParts([dateOf(day), num(facts.count) === null ? '' : tn('{0} measurement', '{0} measurements', facts.count), time])
     case 'goal-change': return joinParts([goalDetail(facts, ctx), time])
     case 'routine-delete': return joinParts([num(facts.exercises) === null ? '' : exCount(facts.exercises), time])
     case 'workout-delete': return joinParts([dateOf(facts.day || day), num(facts.sets) === null ? '' : tn('{0} set', '{0} sets', facts.sets), time])
@@ -168,8 +170,9 @@ export function groupByDay(entries, now = Date.now()) {
 /** A restore that answered `replaced` or `restored`: it is already back, not an error. */
 export function isAlready(entry, reason) {
   if (!ALREADY.includes(reason)) return false
-  // One weigh-in a day: "replaced" there means the day now holds another reading.
-  return !(reason === 'replaced' && entry.kind.startsWith('weighin-'))
+  // One weigh-in, and one check-in of measurements, a day: "replaced" there means the day now holds
+  // other readings.
+  return !(reason === 'replaced' && (entry.kind.startsWith('weighin-') || entry.kind === 'measure-delete'))
 }
 
 /** The toast after a successful restore. */
@@ -192,6 +195,7 @@ export function restoredMessage(entry, result = {}) {
     case 'weighin-edit':
     case 'weighin-delete': return dateOf(entry.day) ? t('Restored the weigh-in on {0}', dateOf(entry.day)) : t('Restored the weigh-in')
     case 'photo-delete': return t('Restored the photo')
+    case 'measure-delete': return dateOf(entry.day) ? t('Restored the measurements on {0}', dateOf(entry.day)) : t('Restored the measurements')
     case 'goal-change': return t('Restored your previous goal settings')
     case 'coach-move': return t('Plan restored')
     default: return t('Restored')
@@ -203,7 +207,7 @@ export function failureMessage(entry, reason) {
   if (isUndo(entry)) return reason === 'gone' ? t('Couldn’t undo: there’s nothing to undo') : t('Couldn’t undo. Try again.')
   switch (reason) {
     case 'gone': return entry.kind === 'photo-delete' ? t('Couldn’t restore that photo') : /^(workout|set)-/.test(entry.kind) ? t('Couldn’t restore: the workout is gone') : t('Couldn’t restore: it’s gone')
-    case 'replaced': return t('Couldn’t restore: that day already has a weigh-in')
+    case 'replaced': return entry.kind === 'measure-delete' ? t('Couldn’t restore: that day already has measurements') : t('Couldn’t restore: that day already has a weigh-in')
     case 'changed': return t('Couldn’t restore: it changed since')
     case 'unsupported': return t('Couldn’t restore: this version can’t put that back')
     default: return t('Couldn’t restore. Check your connection and try again.')

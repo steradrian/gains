@@ -13,8 +13,8 @@ import './body.css'
 // connection says something, three tabs, and the tab's body. The bar's action logs what the tab is
 // about. Weigh-ins and Measurements are drawn here; Photos is views/me/photos/PhotosTab.jsx.
 // `pill`: { state, waiting } for ds/SavedIndicator, or null. `measure`: measureOf's data;
-// `onLogMeasure` and `onChooseMeasure` open the Measurements drawers.
-export default function BodyScreen({ tab = 'weigh-ins', onTab, data, range, onRange, waiting, asks = true, pill, onLog, onOpen, measure, onLogMeasure, onChooseMeasure }) {
+// `onLogMeasure`, `onOpenMeasure(day)` and `onChooseMeasure` open the Measurements drawers.
+export default function BodyScreen({ tab = 'weigh-ins', onTab, data, range, onRange, waiting, asks = true, pill, onLog, onOpen, measure, onLogMeasure, onOpenMeasure, onChooseMeasure }) {
   const photosSub = usePhotosSub(tab === 'photos')
   const measuring = tab === 'measurements' && !!measure
   const sub = tab === 'photos' ? photosSub : measuring ? measureSub(measure) : bodySub(data)
@@ -30,7 +30,7 @@ export default function BodyScreen({ tab = 'weigh-ins', onTab, data, range, onRa
             options={[{ value: 'weigh-ins', label: t('Weigh-ins') }, { value: 'measurements', label: t('Measurements') }, { value: 'photos', label: t('Photos') }]} />
         </div>
         <div id="bd-panel" role="tabpanel">
-          {tab === 'measurements' ? (measure && <MeasurementsTab data={measure} range={range} onRange={onRange} onLog={onLogMeasure} onChoose={onChooseMeasure} />)
+          {tab === 'measurements' ? (measure && <MeasurementsTab data={measure} range={range} onRange={onRange} onLog={onLogMeasure} onOpen={onOpenMeasure} onChoose={onChooseMeasure} />)
             : tab === 'photos' ? <PhotosTab />
               : <WeighInsTab data={data} range={range} onRange={onRange} waiting={waiting} asks={asks} onLog={onLog} onOpen={onOpen} />}
         </div>

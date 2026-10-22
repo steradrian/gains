@@ -5,12 +5,13 @@ import DetailRow from '../../../ds/DetailRow.jsx'
 import StageEmpty from '../../../ds/StageEmpty.jsx'
 import Switch from '../../../ds/Switch.jsx'
 import TextField from '../../../ds/TextField.jsx'
-import { todayISO } from '../../../lib/format.js'
-import { t } from '../../../lib/i18n.js'
+import { fmtDate, todayISO } from '../../../lib/format.js'
+import { t, tn } from '../../../lib/i18n.js'
 import { dayName } from '../../../lib/nutrition/log-feedback.js'
+import { readingsOf, recordMeasureDelete, restoreMeasureDelete } from '../../../lib/me/measure-changes.js'
 import {
-  addCustomField, buildEntry, fieldUnit, logFields, measurementOn, saveMeasurementEntry,
-  setBuiltinTracked, setCustomTracked, startTexts,
+  addCustomField, buildEntry, deleteMeasurementDay, fieldUnit, logFields, measurementOn, saveMeasurementEntry,
+  setBuiltinTracked, setCustomTracked, startTexts, undoMeasurementEdit,
 } from '../../../lib/me/measure-log.js'
 import { MEASUREMENT_FIELDS, enabledMeasurementFields } from '../../../lib/measurements.js'
 import { useStore } from '../../../store/useStore.js'
@@ -59,9 +60,25 @@ function LogMeasurements({ sourceDate: first, close }) {
   const save = () => {
     const built = buildEntry({ S, sourceDate, date, texts, fields })
     if (!built.ok) { toast(SAVE_ERRORS[built.reason]()); return }
+    const before = source && JSON.parse(JSON.stringify(source))
     saveMeasurementEntry(built.entry, sourceDate)
     close()
-    toast(t('Measurements saved'))
+    // An edit can be taken back for 8 s; a new check-in is simply saved.
+    if (!before) { toast(t('Measurements saved')); return }
+    useUI.getState().toast(t('Measurements saved'), { action: t('Undo'), onAction: () => undoMeasurementEdit(before, built.entry) })
+  }
+
+  // No second question: the toast is the way back (board Me2Deleted), for 8 s, and Recent changes
+  // after that (measure-delete).
+  const remove = () => {
+    close()
+    const removed = deleteMeasurementDay(sourceDate)
+    if (!removed) return
+    recordMeasureDelete(removed)
+    const what = tn('{0} measurement', '{0} measurements', Object.keys(readingsOf(removed)).length)
+    useUI.getState().toast(t('Deleted {0} from {1}', what, fmtDate(removed.d, true)), {
+      action: t('Undo'), onAction: () => restoreMeasureDelete({ before: removed }),
+    })
   }
 
   const openDate = () => useUI.getState().openSheet(back => <DatePanel date={date} onPick={pickDate} close={back} />, { variant: 'ds' })
@@ -85,6 +102,7 @@ function LogMeasurements({ sourceDate: first, close }) {
         <StageEmpty tone="light" illustration="chart" card={false} title={t('Choose at least one measurement first.')}
           action={t('Choose measurements')} onClick={manageMeasurementsSheet} />
       )}
+      {source && <DetailRow icon="trash" danger chevron={false} title={t('Delete measurements')} onClick={remove} />}
     </BottomSheet>
   )
 }

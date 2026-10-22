@@ -20,3 +20,5 @@ import './me/goal-changes.js'
 import './me/weigh-in-changes.js'
 // Me photos M3
 import './me/photo-changes.js'
+// Me fix measure
+import './me/measure-changes.js'

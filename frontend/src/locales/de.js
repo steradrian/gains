@@ -4762,4 +4762,10 @@ export default {
   'Your target follows your burn, workouts included.': 'Your target follows your burn, workouts included.',
   // Me fix round
   'Not undone, this day has a newer weigh-in': 'Not undone, this day has a newer weigh-in',
+  // Me fix measure
+  'Delete measurements': 'Delete measurements',
+  'Deleted measurements': 'Deleted measurements',
+  'Restored the measurements on {0}': 'Restored the measurements on {0}',
+  'Restored the measurements': 'Restored the measurements',
+  'Couldn’t restore: that day already has measurements': 'Couldn’t restore: that day already has measurements',
 }
