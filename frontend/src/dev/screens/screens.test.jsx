@@ -1218,3 +1218,43 @@ describe('the screens gallery: Me > Invite a friend', () => {
     await check('M5.0k', s => expect(s.text).toContain('Invite E5F6…'))
   }, 60000)
 })
+
+describe('the screens gallery: Me root', () => {
+  it('has M1.0 to M1.2 and the edge states under their board ids, in Me', () => {
+    const ids = screenAreas().find(a => a.name === 'Me').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M1.0', 'M1.1', 'M1.2', 'M1.0t', 'M1.0n', 'M1.0f', 'M1.0x', 'M1.0l', 'M1.0m', 'M1.0s']))
+  })
+
+  it('shows the full root, the new account, the Groups slot, target reached, no target, food off and no NutriTrace', async () => {
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('M1.0', host => {
+      expect(host.textContent).toContain('81.4')
+      expect(host.textContent).toContain('3.4 kg to 78')
+      expect(host.textContent).toContain('4 of 6')
+      expect(host.textContent).toContain('2 joined · 1 waiting')
+      expect(host.querySelector('.g-mcard')).not.toBeNull()
+    })
+    await check('M1.1', host => {
+      expect(host.textContent).toContain('Log your first weigh-in')
+      expect(host.textContent).toContain('Set your target weight')
+      expect(host.querySelector('.g-mcard')).toBeNull()
+    })
+    await check('M1.2', host => {
+      const rows = [...host.querySelectorAll('.g-glist-row')]
+      expect(rows.at(-1).querySelector('b').textContent).toBe('Groups')
+      expect(rows.at(-1).querySelector('.g-tag').textContent).toBe('New')
+    })
+    await check('M1.0t', host => {
+      expect(host.textContent).toContain('Target reached')
+      expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Keep my weight')).toBe(true)
+    })
+    await check('M1.0n', host => expect(host.textContent).toContain('Set a target weight'))
+    await check('M1.0f', host => expect(host.querySelectorAll('.g-rc-slide')).toHaveLength(2))
+    await check('M1.0x', host => {
+      expect(host.textContent).toContain('78 kg target')
+      expect(host.textContent).not.toContain('kcal a day')
+    })
+    await check('M1.0l', host => expect(host.querySelector('.me-goal-sk')).not.toBeNull())
+    await check('M1.0s', host => expect([...host.querySelectorAll('.g-gact')].map(b => b.textContent)).toEqual(['Log weight', 'Measure', 'Photo']))
+  }, 60000)
+})
