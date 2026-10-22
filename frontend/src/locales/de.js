@@ -4760,4 +4760,10 @@ export default {
   'Your changes to Daily targets have not been saved.': 'Your changes to Daily targets have not been saved.',
   'Your Daily targets are set to {0} a day.': 'Your Daily targets are set to {0} a day.',
   'Your target follows your burn, workouts included.': 'Your target follows your burn, workouts included.',
+  // Me fix measure
+  'Delete measurements': 'Delete measurements',
+  'Deleted measurements': 'Deleted measurements',
+  'Restored the measurements on {0}': 'Restored the measurements on {0}',
+  'Restored the measurements': 'Restored the measurements',
+  'Couldn’t restore: that day already has measurements': 'Couldn’t restore: that day already has measurements',
 }
