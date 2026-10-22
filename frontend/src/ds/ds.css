@@ -2532,6 +2532,12 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-ipeople-body span { font: 400 14px/20px var(--font-sans); color: var(--text-3); }
 .g-ipeople-done { font: 600 14px/20px var(--font-sans); color: var(--text-3); }
 
+/* Friends group m2: the Member page's header (avatar, name and since line, Cheer pill). Layout only;
+   the pill is a ds/Button and the rest of the page is kit components. */
+.g-mhead { display: flex; align-items: center; gap: 14px; }
+.g-mhead-text { flex: 1; min-width: 0; text-align: start; }
+.g-mhead-text .g-spage-title { overflow-wrap: anywhere; }
+.g-mhead > .g-btn { flex: none; }
 /* Friends group m1: the group's week block (ring, lines, legend) and MomentRow. Glass is the kit's
    `.g-glass`; nothing here draws its own material. */
 .g-gweek { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 20px 0; color: var(--on-stage); font-family: var(--font-sans); }

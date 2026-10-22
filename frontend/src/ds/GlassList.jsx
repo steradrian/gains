@@ -6,7 +6,8 @@ import Act from './Act.jsx'
 // Rows in one rounded card (bundle.js `GlassList`): an icon disc, a title, a line under it and a
 // chevron. `tone="light"` is the same card on a light surface (a drawer), glass is for the stage.
 // A row with `href` or `onClick` is a link or a button with a chevron; one with neither is just
-// said, and has none, so nothing looks tappable that is not.
+// said, and has none, so nothing looks tappable that is not. A row is keyed by its `key`, else its
+// `title` (two rows can share a title, like two Pull A sessions).
 export default function GlassList({ items, tone = 'glass', tall }) {
   oneOf('GlassList', 'tone', tone, ['glass', 'light'])
   return (
@@ -22,8 +23,8 @@ export default function GlassList({ items, tone = 'glass', tall }) {
           </Fragment>
         )
         return tappable
-          ? <Act key={it.title} href={it.href} onClick={it.onClick} className={cls}>{kids}</Act>
-          : <div key={it.title} className={cls}>{kids}</div>
+          ? <Act key={it.key ?? it.title} href={it.href} onClick={it.onClick} className={cls}>{kids}</Act>
+          : <div key={it.key ?? it.title} className={cls}>{kids}</div>
       })}
     </div>
   )

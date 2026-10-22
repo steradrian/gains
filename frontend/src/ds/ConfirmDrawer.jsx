@@ -10,7 +10,8 @@ import HapticSwitch from './HapticSwitch.jsx'
 // W1.46 "Discard 14 sets?"): `body` leads, `items` list what goes (a danger mark each), `note` is
 // the quiet line after ("You can still undo for 8 s on Today."), then the danger `confirmLabel`
 // and the plain `cancelLabel`, each a button with its handler or a link with its href. `icon` is
-// the danger button's (a warning triangle by default).
+// the danger button's (a warning triangle by default). `haptic` ticks the danger button when
+// tapped, for a confirm whose tap itself commits (Remove from group); never on a link.
 // With a `title` it is its own drawer (`BottomSheet`; the × is a Cancel like the scrim, Escape and
 // Back; opened with `confirmDrawer()` in views/settings/confirm-drawer.js). Without one it is only
 // the content, for a drawer that already has its title and ×.
