@@ -12,6 +12,9 @@ import { mealItems, timeOf } from '../lib/nutrition/diary.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay } from '../lib/nutrition/fake-nutritrace.js'
+import { listChanges, restoreChange } from '../lib/recent-changes.js'
+import { removeEntries } from '../lib/recent-changes-store.js'
+import '../lib/me/food-changes.js'
 import { diaryItemSheet } from './DiaryItemSheet.jsx'
 import MealRow from './MealRow.jsx'
 import { bindUI } from './ui.jsx'
@@ -66,6 +69,7 @@ const serverItem = uuid => nt.state.days[TODAY].items.find(i => i.uuid === uuid)
 const toast = () => useUI.getState().toastMsg
 
 beforeEach(async () => {
+  removeEntries()
   nt = createFakeNutriTrace({ days: { [TODAY]: fixtureDay(TODAY) } })
   vi.stubGlobal('fetch', nt.fetch)
   useStore.setState({ user: { id: 3, name: 'Ana' }, pushState: vi.fn(async () => {}) })
@@ -280,5 +284,26 @@ describe('removing', () => {
     await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
     expect(lastSheet().querySelector('[role=alert]').textContent).toBe('Not saved: no connection. Try again when you are back online.')
     expect(serverItem('it-oats')).toBeDefined()
+    expect(listChanges()).toEqual([])   // a remove that failed is not a change
+  })
+
+  it('journals the remove for Recent changes; a Restore after the toast\'s Undo finds the entry back and adds nothing', async () => {
+    await click(itemButton('Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
+    const [row, ...rest] = listChanges()
+    expect(rest).toEqual([])
+    expect(row).toMatchObject({ kind: 'food-delete', subject: 'Rolled oats', day: TODAY, facts: { meal: 'Breakfast', day: TODAY, kcal: 228 } })
+    await act(async () => { useUI.getState().runToastAction() })
+    await settle()
+    expect(listChanges()).toHaveLength(1)   // the in-place Undo is not journalled either
+    expect(await restoreChange(row.id)).toEqual({ ok: false, reason: 'replaced' })
+    expect(nt.state.days[TODAY].items.filter(i => i.name === 'Rolled oats')).toHaveLength(1)
+  })
+
+  it('a Restore from Recent changes puts the removed entry back', async () => {
+    await click(itemButton('Rolled oats'))
+    await click(named(lastSheet(), 'Remove Rolled oats from Breakfast'))
+    expect(await restoreChange(listChanges()[0].id)).toEqual({ ok: true, where: { day: TODAY, meal: 'Breakfast' } })
+    expect(nt.state.days[TODAY].items.map(i => i.name)).toEqual(['Rolled oats', 'Quick Calories'])
   })
 })

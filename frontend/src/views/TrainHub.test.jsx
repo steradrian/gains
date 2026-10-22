@@ -101,10 +101,10 @@ describe('Train — the screen', () => {
     expect($('h1.sr-only').textContent).toBe('Training')
   })
 
-  it('the header: the avatar opens Me, the bell Train\'s own notifications', () => {
+  it('the header: the avatar opens Profile pushed, the bell Train\'s own notifications', () => {
     setS(); mount()
     tap($('.g-shdr .g-sbtn:not(.g-bell)'))
-    expect(nav).toHaveBeenCalledWith('/me')
+    expect(nav).toHaveBeenCalledWith('/me', { state: { pushed: true, from: expect.any(String) } })
     tap($('.g-bell'))
     expect(nav).toHaveBeenCalledWith('/train/notifications')
     expect(nav).not.toHaveBeenCalledWith('/me/notifications')

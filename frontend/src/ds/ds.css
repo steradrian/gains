@@ -2519,6 +2519,65 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-nc-undo:active { background: var(--glass); }
 .g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 
+/* === Me body M1 === */
+.g-tc-target { stroke: var(--on-stage-2); stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.g-tc-cap { position: absolute; inset-inline-start: 0; transform: translateY(-120%); font: 600 12px/14px var(--font-sans); color: var(--on-stage-2); pointer-events: none; }
+.g-tc-x { position: relative; height: 22px; margin-top: 4px; font: 500 12px/14px var(--font-sans); color: var(--text-3); }
+.g-lc.g-chart-stage .g-tc-x { color: var(--on-stage-2); }
+.g-tc-x > span { position: absolute; top: 8px; inset-inline-start: var(--x); transform: translateX(-50%); white-space: nowrap; }
+.g-tc-x > .g-tc-first { transform: none; }
+.g-tc-x > .g-tc-last { transform: translateX(-100%); }
+.g-wir-tags { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+
+/* === Me photos M2 === */
+.g-pgrid { list-style: none; margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; }
+.g-pgrid > li { min-width: 0; }
+.g-ptile { appearance: none; border: 0; background: none; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 2px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; cursor: pointer; border-radius: 14px; }
+.g-ptile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+.g-ptile-img { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }
+.g-ptile-img > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.g-ptile-gone { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px; text-align: center; font: 600 12px/15px var(--font-sans); color: var(--on-stage-2); }
+.g-ptile-gone .g-icon { width: 22px; height: 22px; }
+.g-ptile-date { margin-top: 4px; font: 600 13px/17px var(--font-sans); }
+.g-ptile-cap { font: 500 12px/15px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+
+/* === Me photos M3 === */
+/* The photo overlays (PhotoStage, CompareView). Near-black in every theme (--ink-stage-end): a photo is judged on black, like the camera roll. */
+.g-pstage { position: absolute; inset: 0; display: flex; flex-direction: column; padding: var(--sat) 0 var(--sab); background: var(--ink-stage-end); color: var(--on-stage); font-family: var(--font-sans); }
+.g-pstage:focus { outline: none; }
+.g-pstage-bar { flex: none; display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; padding: 6px 8px 6px 8px; }
+.g-pstage-title { margin: 0; font: 600 17px/22px var(--font-sans); text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-pstage-count { padding-inline-end: 8px; font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-pstage-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.g-pstage-pic { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; touch-action: pan-y; }
+.g-pstage-pic > img { width: 100%; height: 100%; object-fit: contain; }
+.g-pstage-gone { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; text-align: center; font: 600 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-pstage-nav { position: absolute; top: 50%; transform: translateY(-50%); }
+.g-pstage-nav-prev { inset-inline-start: 4px; }
+.g-pstage-nav-next { inset-inline-end: 4px; }
+[dir="rtl"] .g-pstage-nav .g-icon { transform: scaleX(-1); }
+.g-pstage-cap { flex: none; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px 0; text-align: center; font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-pstage-cap > b { font: 600 17px/22px var(--font-sans); color: var(--on-stage); }
+.g-pstage-acts { flex: none; display: flex; gap: 8px; padding: 12px 16px 16px; }
+.g-pstage-acts > * { flex: 1; }
+.g-cmp { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 0; overflow-y: auto; }
+.g-cmp-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.g-cmp-side { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.g-cmp-img { position: relative; aspect-ratio: 3 / 4; border-radius: 14px; overflow: hidden; }
+.g-cmp-img > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.g-cmp-cap { display: flex; flex-direction: column; gap: 2px; text-align: center; font: 500 13px/17px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-cmp-cap > b { font-weight: 600; color: var(--on-stage); }
+.g-cmp-line { margin: 0; text-align: center; font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
+
+/* === Me body M2 === */
+/* The Log measurements and Choose measurements drawers (views/me/body/measure-drawers.jsx), on the light drawer. */
+.bd-hint { margin: 0 0 16px; font: 500 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.bd-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.bd-group { margin-bottom: 20px; }
+.bd-group-title { margin: 0 0 4px; font: 600 13px/18px var(--font-sans); color: var(--text-3); text-align: start; }
+.bd-add { display: flex; align-items: flex-end; gap: 10px; padding-top: 8px; }
+.bd-add > .g-tfield { flex: 1; min-width: 0; }
+
 /* Friends core m1: MemberAvatar (an initial in a circle), MemberRing (a segment per member).
    Per-person colours are the app's calm palette, never red; `glass` is the stage's own glass. The
    tone ids are not CSS colour names, so the colour guards read them as ids and not as colours. */

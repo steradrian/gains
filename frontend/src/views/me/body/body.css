@@ -1,0 +1,15 @@
+/* Me body M1: the Body page (boards Me2Body to Me2Empty), pushed on the stage at /me/body. */
+.bd { display: flex; flex-direction: column; gap: 16px; padding-top: 4px; color: var(--on-stage); font-family: var(--font-sans); }
+.bd-pill { padding-inline: 20px; }
+.bd-tabs { padding-inline: 16px; }
+.bd-pad { padding-inline: 16px; }
+
+.bd-hero { display: flex; flex-direction: column; gap: 2px; padding-inline: 20px; text-align: start; }
+.bd-eyebrow { font: 600 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.bd-big { font: 700 52px/56px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.bd-big small { margin-inline-start: 6px; font: 600 22px/28px var(--font-sans); letter-spacing: 0; color: var(--on-stage-2); }
+.bd-lines { display: flex; flex-direction: column; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+
+/* The rows are glass rows with their own 16px inset (ds GlassRow). */
+.bd-list { display: flex; flex-direction: column; gap: 8px; }
+.bd-logged { margin: 12px 0 0; font: 500 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }

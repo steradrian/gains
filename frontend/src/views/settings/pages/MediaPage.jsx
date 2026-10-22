@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { useStore } from '../../../store/useStore.js'
 import { t } from '../../../lib/i18n.js'
 import { syncMedia } from '../../../lib/media-sync.js'
-import { getMediaStatus, subscribeMediaStatus, pendingRefCount } from '../../../lib/media-owed.js'
+import { getMediaStatus, subscribeMediaStatus, waitingRefCount } from '../../../lib/media-owed.js'
 import { fmtMB, MB } from '../../../lib/media-limits.js'
 import { Section, Row } from '../../../components/ui.jsx'
 
@@ -21,7 +21,7 @@ function MediaRow() {
   // local-only as a guest's files are.
   const remote = !!user && (config == null || !!config.media)
   useEffect(() => { if (remote) syncMedia() }, [remote])
-  const pending = remote ? pendingRefCount(S) : 0
+  const pending = remote ? waitingRefCount(S) : 0
   const u = status.usage
   const usage = remote && u && u.quotaBytes > 0
     ? t('{0} of {1} MB used on your server', fmtMB((u.bytes || 0) / MB), fmtMB(Math.round(u.quotaBytes / MB)))

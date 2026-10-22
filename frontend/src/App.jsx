@@ -68,7 +68,8 @@ import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 // Workout finish M2: the summary after a save (W2.0) and the check for a session left open (W1.27).
 import SummaryScreen from './views/workout/SummaryScreen.jsx'
 import StaleWorkoutCheck from './components/StaleWorkoutCheck.jsx'
-import Body from './views/Body.jsx'
+// Me body M1: the Body page (weigh-ins; measurements and photos are its other tabs)
+import BodyRoute from './views/me/body/BodyRoute.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
 // Train slice 5
@@ -120,6 +121,13 @@ import Recovery from './views/Recovery.jsx'
 import DayPage from './views/shared/DayPage.jsx'
 import WeekPage from './views/shared/WeekPage.jsx'
 import Notifications from './views/shared/Notifications.jsx'
+import ChangesRoute from './views/me/changes/ChangesRoute.jsx'
+// Me invite M2
+import InviteRoute from './views/me/invite/InviteRoute.jsx'
+// Me goal M2: My goal
+import GoalRoute from './views/me/goal/GoalRoute.jsx'
+// Me root M2
+import MeRoute from './views/me/MeRoute.jsx'
 // Eat root m2: Month and Food trends
 import MonthPage from './views/eat/MonthPage.jsx'
 import TrendsPage from './views/eat/TrendsPage.jsx'
@@ -482,9 +490,10 @@ function AppRoutes({ location, fallback, S, user }) {
       </Route>
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
-      <Route path="/progress/body" element={<Body segment="weight" />} />
-      <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
-      <Route path="/progress/body/photos" element={<Body segment="photos" />} />
+      {/* Me body M1: Body moved to /me/body; the old addresses redirect, keeping ?range= */}
+      <Route path="/progress/body" element={<FoodRedirect to="/me/body" />} />
+      <Route path="/progress/body/measurements" element={<FoodRedirect to="/me/body/measurements" />} />
+      <Route path="/progress/body/photos" element={<FoodRedirect to="/me/body/photos" />} />
       <Route path="/progress/strength" element={<ExerciseProgress />} />
       <Route path="/progress/strength/balance" element={<StructuralBalance />} />
       <Route path="/progress/load" element={<TrainingLoad />} />
@@ -505,8 +514,19 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/notifications" element={<Notifications />} />
       <Route path="/food/notifications" element={<Notifications />} />
       <Route path="/me/notifications" element={<Notifications />} />
-      {/* Me: Profile */}
-      <Route path="/me" element={<SettingsRoute />} />
+      <Route path="/me/changes" element={<ChangesRoute />} />
+      {/* Me invite M2: the admin's Invite a friend; a member gets the ask (invite-M3). The push tap lands here (api/push-messages.js). */}
+      <Route path="/me/invite" element={<InviteRoute />} />
+      {/* Me root M1/M2: Profile is /me (MeRoute); Settings is /me/settings, its pages stay
+          /me/<page>. Before /me/:page. The Progress hub stays at /progress. */}
+      <Route path="/me" element={<MeRoute />} />
+      <Route path="/me/settings" element={<SettingsRoute root />} />
+      {/* Me body M1: before /me/:page */}
+      <Route path="/me/body" element={<BodyRoute />} />
+      <Route path="/me/body/measurements" element={<BodyRoute />} />
+      <Route path="/me/body/photos" element={<BodyRoute />} />
+      {/* Me goal M2: My goal, before /me/:page */}
+      <Route path="/me/goal" element={<GoalRoute />} />
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
       <Route path="/me/account/started-over" element={<StartedOverScreen />} />

@@ -14,17 +14,13 @@ import { useGoalsForm } from '../lib/nutrition/use-goals-form.js'
 import { EmptyState, LoadError } from '../components/blocks.jsx'
 import { Page } from '../components/layout.jsx'
 import { Button, Row, Section, Segmented, SelectRow, Stepper, Switch, TextField } from '../components/ui.jsx'
-import { confirmSheet, goalSheet } from '../sheets.jsx'
+import { confirmSheet } from '../sheets.jsx'
+import { targetWeightSheet } from './me/goal/goal-drawers.jsx'
+import { macroLabel, modeNote } from './me/goal/targets-data.js'
 import { Loading } from '../components/Loader.jsx'
 
 const toast = message => useUI.getState().toast(message)
 
-const modeNote = mode => {
-  if (mode === 'adaptive') return t('Learns your real daily burn from 35 days of weight and diary, then sets the target from it. Until there is enough data it uses your fixed target.')
-  if (mode === 'dynamic') return t('Uses yesterday’s total burn from your wearable. Falls back to your fixed target when there is no data.')
-  return t('The same calorie target every day.')
-}
-const macroLabel = id => (id === 'proteins' ? t('Protein') : id === 'carbohydrates' ? t('Carbs') : t('Fat'))
 
 const modeOptions = () => [
   { value: 'fixed', label: t('Fixed') },
@@ -198,7 +194,7 @@ function GoalsForm({ form }) {
     </Section>
 
     <Section title={t('Body')}>
-      <Row icon="scale" iconTint="var(--teal)" title={t('Target weight')} accessory="chevron" onClick={goalSheet}
+      <Row icon="scale" iconTint="var(--teal)" title={t('Target weight')} accessory="chevron" onClick={targetWeightSheet}
         value={S.targetW ? `${fmtNum(S.targetW)} ${S.unit}` : t('Not set')} />
     </Section>
 

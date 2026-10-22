@@ -16,8 +16,8 @@ import Home from './Home.jsx'
 const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(), menuSheet: vi.fn(),
-  calendarSheet: vi.fn(), readyOrStart: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
+  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), dayOverrideSheet: vi.fn(), menuSheet: vi.fn(),
+  calendarSheet: vi.fn(), readyOrStart: vi.fn(), weighInsSheet: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
 }))
 // The Week page opens through the app's own navigate (lib/day-route.js navToWeek).

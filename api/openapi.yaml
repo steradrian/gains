@@ -375,7 +375,8 @@ paths:
         and, only while it can, the display name of whoever made it and the name they typed for the
         person invited. A used, revoked or expired code names nobody. Nothing else: never the note,
         who used it, when, or an id. It
-        never uses the invite up. An invite works once and for 14 days after it was made.
+        never uses the invite up. An invite works once and for 7 days after it was made (14 for
+        one made before the lifetime changed: each keeps the `expiresAt` it was made with).
 
         No session needed. Counted per address (30 a minute) and for everyone together (600 a
         minute); behind a proxy the address is the one TRUST_PROXY makes the server believe.
@@ -407,6 +408,120 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "too many invite checks, try again shortly", code: "rate-limited", retryAfter: 12 }
+
+  /api/invites/request:
+    post:
+      tags: [auth]
+      operationId: inviteRequest
+      summary: Ask the admins for an invite
+      description: |
+        Only admins make invites; a member asks for one here. The ask is stored, listed to admins
+        in GET /api/admin/invites `requests`, and every admin's subscriptions get a push that names
+        nobody and carries no note ("Someone asked for an invite"). When an admin makes an invite
+        with this `requestId`, the asker gets a push ("Your invite is ready") with no code and no name.
+
+        Any signed-in profile (session cookie or paired Bearer) except an admin: an admin is
+        answered 400 `code: admin`, since they make invites themselves. Per person: at most 3 open
+        requests at once, and at most 3 made in any 24 hours, however they ended (withdrawn ones
+        count). The same note while an identical open request of theirs exists answers that
+        request's id and counts as nothing. Audited as `invite.request` with the id, never the note.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 120
+                  description: 'Who the invite is for, in the member''s words. Control and invisible characters are dropped, whitespace folded, and it is cut at 120. Optional.'
+      responses:
+        '200':
+          description: Asked (or the identical open ask already there).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, id]
+                properties:
+                  ok: { type: boolean, const: true }
+                  id: { type: string, description: 'The request id (16 hex chars).' }
+              example: { ok: true, id: "3f9a0c1d2e4b5a6c" }
+        '400':
+          description: The caller is an admin, or the body is not a JSON object.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "admins make invites themselves", code: "admin" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429':
+          description: |
+            Over a cap. `reason: daily` (3 asks in 24 hours; `retryAfter` is when the oldest of them
+            leaves the window) or `reason: open` (3 asks waiting; it lifts when one is answered or
+            withdrawn, not at a time, so `retryAfter` is a whole day and the copy should not promise one).
+          headers:
+            Retry-After:
+              description: Seconds, as `retryAfter`.
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "too many invite requests, try again later", code: "rate-limited", reason: "daily", retryAfter: 41230 }
+
+  /api/invites/requests/mine:
+    get:
+      tags: [auth]
+      operationId: inviteRequestsMine
+      summary: My open invite requests
+      description: The caller's own open requests, oldest first. Never anyone else's.
+      responses:
+        '200':
+          description: Open requests of the caller.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requests]
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, note, at]
+                      properties:
+                        id: { type: string }
+                        note: { type: string }
+                        at: { type: string, description: ISO timestamp of the ask. }
+              example: { requests: [{ id: "3f9a0c1d2e4b5a6c", note: "My sister Ana", at: "2026-10-22T09:12:00.000Z" }] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/invites/request/cancel:
+    post:
+      tags: [auth]
+      operationId: inviteRequestCancel
+      summary: Withdraw my invite request
+      description: >-
+        Withdraws one of the caller's own open requests (the Undo on "Asked"); admins stop seeing it.
+        An id that is someone else's, unknown, already answered or already withdrawn changes nothing
+        and is answered the same `{ ok: true }`, so the answer says nothing about other members'
+        requests. A withdrawn request still counts toward the 3 a day. Audited as `invite.request.cancel`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+      responses:
+        '200':
+          description: Withdrawn, or nothing of the caller's to withdraw.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/register/options:
     post:
@@ -2474,10 +2589,13 @@ paths:
       tags: [admin]
       operationId: adminInvites
       summary: 'Admin: list invite codes'
-      description: All invite codes, with the redeeming user's name resolved for display.
+      description: >-
+        All invite codes, with the redeeming user's name resolved for display, and members' open
+        asks for an invite (POST /api/invites/request), oldest first. An ask whose asker is
+        disabled is left out.
       responses:
         '200':
-          description: All invites.
+          description: All invites and open requests.
           content:
             application/json:
               schema:
@@ -2486,6 +2604,9 @@ paths:
                   invites:
                     type: array
                     items: { $ref: '#/components/schemas/Invite' }
+                  requests:
+                    type: array
+                    items: { $ref: '#/components/schemas/InviteRequest' }
                   invite_only: { type: boolean }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -2498,7 +2619,10 @@ paths:
       description: >-
         Creates a fresh single-use invite code (16 hex chars = 64 bits; the code
         itself is the thing that isn't worth guessing; rate limiting is the reverse
-        proxy's job). It works once, for 14 days. Audited.
+        proxy's job). It works once, for 7 days. With `requestId` naming an open
+        invite request, that request is marked done and its asker gets a push
+        ("Your invite is ready", no code, no name); a `requestId` that is unknown,
+        answered or withdrawn is ignored and the invite is made anyway. Audited.
       requestBody:
         required: false
         content:
@@ -2514,6 +2638,9 @@ paths:
                   type: string
                   maxLength: 40
                   description: 'The invitee''s name, which the invite landing page prefills (GET /api/invites/{code} `suggestedName`).'
+                requestId:
+                  type: string
+                  description: 'The id of the open invite request (GET /api/admin/invites `requests`) this invite answers. Optional.'
       responses:
         '200':
           description: The new invite.
@@ -5462,7 +5589,7 @@ components:
         name: { type: string, description: 'The name the invite landing page prefills for the new profile (optional).' }
         createdBy: { type: string, description: Admin user id. }
         created: { type: string, description: ISO timestamp. }
-        expiresAt: { type: string, description: 'ISO timestamp, 14 days after `created`. Invites from before expiry was kept got 14 days from the first boot that kept it.' }
+        expiresAt: { type: string, description: 'ISO timestamp, 7 days after `created` (14 for invites made before the lifetime changed; each keeps its own). Invites from before expiry was kept got one lifetime from the first boot that kept it.' }
         status:
           type: string
           enum: [valid, used, expired]
@@ -5475,6 +5602,17 @@ components:
           oneOf: [{ type: string }, { type: 'null' }]
           description: Resolved display name (only in GET /api/admin/invites).
       additionalProperties: true
+
+    InviteRequest:
+      type: object
+      description: A member's open ask for an invite, as GET /api/admin/invites lists it.
+      required: [id, name, note, at, by]
+      properties:
+        id: { type: string, description: 'Pass as `requestId` to POST /api/admin/invites/new.' }
+        name: { oneOf: [{ type: string }, { type: 'null' }], description: The asker's display name. }
+        note: { type: string, description: 'The asker''s note (who the invite is for); may be empty.' }
+        at: { type: string, description: ISO timestamp of the ask. }
+        by: { type: string, description: The asker's user id. }
 
     AuditEvent:
       type: object

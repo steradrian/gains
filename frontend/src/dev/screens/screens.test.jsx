@@ -11,6 +11,7 @@ import { todayISO } from '../../lib/format.js'
 import { _setMediaStore, createMediaStore, memoryBackend } from '../../lib/media-store.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
+import { useProfileWrites } from '../../lib/me/goal-writes.js'
 
 /* The screens gallery: every registered state renders its real screen, in its frame, with its
    taps played, without throwing; and putting the mocks away leaves the app as it was. The states
@@ -953,4 +954,558 @@ describe('the screens gallery: Workout progression', () => {
     expect(useStore.getState().S).toBe(own)
     expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
   }, 30000)
+})
+
+describe('the screens gallery: Me > Body', () => {
+  it('has M2.0 to M2.4 and the edge states under their board ids, in Me: body', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: body').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M2.0', 'M2.1', 'M2.2', 'M2.3', 'M2.4']))
+    expect(ids.filter(id => !id.startsWith('M2.5') && !id.startsWith('M2.6') && id !== 'M2.7'))
+      .toEqual(['M2.0', 'M2.0a', 'M2.0b', 'M2.0c', 'M2.0d', 'M2.0e', 'M2.1', 'M2.1a', 'M2.1b', 'M2.2', 'M2.3', 'M2.4', 'M2.4a'])
+  })
+
+  it('shows the page, its drawers, the held toast and the empty states, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const footer = h => h.querySelector('.g-snote').textContent
+    await check('M2.0', h => {
+      expect(h.querySelector('.g-spage-title').textContent).toBe('Body')
+      expect(h.querySelector('.g-spage-sub').textContent).toContain('81.4 kg today · −0.3 kg in 7 days')
+      expect(h.querySelectorAll('.g-grow')).toHaveLength(7)
+      expect(h.querySelector('.g-ssec-act').textContent).toBe('7 shown')
+      expect(h.querySelector('.g-tc-cap').textContent).toBe('Target 78 kg')
+      expect(footer(h)).toContain('Gains also asks for a weigh-in before your first workout of the week.')
+    })
+    await check('M2.0c', h => {
+      expect(footer(h)).toBe('Same time, before breakfast, gives the cleanest trend.')
+    })
+    await check('M2.0e', h => {
+      expect(h.querySelector('.g-saved-offline').textContent).toContain('1 change waiting')
+      expect(h.querySelectorAll('.g-wir-tags .g-tag')).toHaveLength(7)
+      expect(h.textContent).toContain('Waiting to sync')
+    })
+    await check('M2.1a', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Log weight')
+      expect(h.querySelector('.g-wi-again').textContent).toContain('You weighed in today at 81.4 kg. Saving replaces it; Undo follows.')
+    })
+    await check('M2.1b', h => expect(h.querySelector('.g-wi-far').textContent).toContain('10.2 kg from your last weigh-in'))
+    await check('M2.2', h => {
+      const drawer = h.querySelector('.g-bs')
+      expect(drawer.querySelector('h2').textContent).toBe('Edit weigh-in')
+      expect(drawer.textContent).toContain('Logged ')
+      expect([...drawer.querySelectorAll('.g-bs-foot button')].map(b => b.textContent)).toEqual(['Save weigh-in', 'Delete weigh-in'])
+    })
+    await check('M2.3', h => {
+      expect(h.querySelector('.g-utoast-msg').textContent).toMatch(/^Deleted 81\.7 kg from /)
+      expect(h.querySelector('.g-ssec-act').textContent).toBe('6 shown')
+      expect(h.querySelector('.g-bs')).toBeNull()
+    })
+    await check('M2.4', h => {
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+      expect(h.querySelector('.g-sempty').textContent).toContain('No weigh-ins yet')
+      expect(h.querySelector('.g-sempty').textContent).toContain('Gains also asks before your first workout of the week.')
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('Nothing logged yet')
+    })
+    await check('M2.4a', h => expect(h.querySelector('.g-sempty').textContent).not.toContain('Gains also asks'))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
+
+// Me changes M3
+describe('the screens gallery: Me, recent changes', () => {
+  it('has M4.0 to M4.2 under their board ids, in Me: changes', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: changes').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M4.0', 'M4.1', 'M4.2', 'M4.1s', 'M4.1x', 'M4.1o', 'M4.0k']))
+  })
+
+  it('shows the rows, the held toast, Snacks, a refusal and the empty scene, and writes nothing real', async () => {
+    localStorage.setItem('gains_recent_changes:guest', '[]')
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('M4.0', s => {
+      expect(s.text).toContain('Recent changes')
+      expect(s.text).toContain('Deleted Oats with milk')
+      expect(s.text).toContain('Coach moved Legs')
+      expect(s.host.querySelectorAll('.g-grow')).toHaveLength(5)
+    })
+    await check('M4.1', s => {
+      expect(s.host.querySelector('.g-tag').textContent).toBe('Restored')
+      expect(useUI.getState().toastMsg).toMatch(/^Restored Oats with milk to .+, Breakfast$/)
+    })
+    await check('M4.1s', () => expect(useUI.getState().toastMsg).toMatch(/Snacks\. Breakfast was deleted\.$/))
+    await check('M4.1x', () => expect(useUI.getState().toastMsg).toContain('that day already has a weigh-in'))
+    await check('M4.1o', () => expect(useUI.getState().toastMsg).toContain('Check your connection'))
+    await check('M4.2', s => {
+      expect(s.text).toContain('Nothing in the last 7 days')
+      expect(s.host.querySelector('.g-sempty button')).toBeNull()
+    })
+    await check('M4.0k', s => {
+      expect(s.text).toContain('Target weight changed to 77 kg')
+      expect(s.text).toContain('Deleted workout Pull A')
+      expect(s.text).toContain('Deleted a weigh-in')
+    })
+    expect(localStorage.getItem('gains_recent_changes:guest')).toBe('[]')
+  }, 30000)
+})
+
+// Me photos M2
+describe('the screens gallery: Me > Photos', () => {
+  it('has M2.8, M2.9, M2.12 and M2.13 and the edge states under their board ids, in Me: photos', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: photos').entries.map(e => e.id).filter(id => !/^M2\.1[01]/.test(id))
+    expect(ids).toEqual(['M2.8', 'M2.8a', 'M2.8b', 'M2.8c', 'M2.8d', 'M2.8e', 'M2.9', 'M2.12', 'M2.13'])
+  })
+
+  it('shows the tab, the drawer, the held toast and the empty state, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('M2.8', h => {
+      expect(h.querySelector('.g-spage-title').textContent).toBe('Body')
+      expect(h.querySelector('.g-spage-sub').textContent).toMatch(/^6 photos on this phone · since /)
+      expect(h.querySelectorAll('.g-ptile')).toHaveLength(6)
+      expect(h.querySelector('.g-ptile-cap').textContent).toBe('81.4 kg')
+      expect(h.querySelector('.g-ssec h2').textContent).toBe('On this phone')
+      expect(h.querySelector('.g-snote').textContent).toBe('Stored on this phone only. Only you see them; Friends never do.')
+      expect(h.textContent).not.toMatch(/encrypt/i)
+    })
+    await check('M2.8a', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('6 photos · backed up')
+      expect(h.querySelector('.g-ssec h2').textContent).toBe('In your account')
+      expect(h.querySelector('.g-snote').textContent).toContain('Backed up to your account.')
+    })
+    await check('M2.8b', h => {
+      expect([...h.querySelectorAll('button')].find(b => b.textContent === 'Compare').disabled).toBe(true)
+      expect(h.querySelector('.ph-line').textContent).toBe('Add one more photo to compare.')
+    })
+    await check('M2.8c', h => expect(h.querySelectorAll('.g-ptile-gone')).toHaveLength(1))
+    await check('M2.8d', h => expect(h.querySelector('.g-ptile-cap').textContent).toBe('179.5 lb'))
+    await check('M2.8e', h => expect(h.querySelector('.g-ptile-cap')).toBeNull())
+    await check('M2.9', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Add photo')
+      expect(h.querySelector('.g-bs-chip').textContent).toBe('Today')
+      expect(h.querySelector('.g-bs').textContent).toContain('Choose from library')
+    })
+    await check('M2.12', h => {
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+      expect(h.querySelector('.g-sempty b').textContent).toBe('No photos yet')
+      expect(h.querySelector('.g-spage-sub')).toBeNull()
+    })
+    await check('M2.13', h => {
+      expect(h.querySelector('.g-utoast-msg').textContent).toBe('Backing up 6 photos to your account')
+      expect(h.querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
+      expect(h.querySelector('.g-snote').textContent).toContain('Backed up to your account.')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
+
+// Me photos M3
+describe('the screens gallery: Me > Photos > viewer and Compare', () => {
+  it('has M2.10 and M2.11 and their edge states under their board ids, in Me: photos', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: photos').entries.map(e => e.id).filter(id => /^M2\.1[01]/.test(id))
+    expect(ids).toEqual(['M2.10', 'M2.10a', 'M2.10b', 'M2.10c', 'M2.11', 'M2.11a', 'M2.11b'])
+  })
+
+  it('shows the viewer, its delete confirm, Compare and its picker, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll(); useUI.getState().closeAll() }
+    await check('M2.10', h => {
+      expect(h.querySelector('.g-pstage-count').textContent).toBe('3 of 6')
+      expect(h.querySelector('.g-pstage-pic img')).not.toBeNull()
+      expect(h.querySelector('.g-pstage-cap span').textContent).toBe('83 kg that day')
+      expect([...h.querySelectorAll('.g-pstage-acts button')].map(b => b.textContent)).toEqual(['Compare', 'Delete'])
+    })
+    await check('M2.10a', h => {
+      expect(h.querySelector('.g-pstage-count').textContent).toBe('6 of 6')
+      expect(h.querySelector('.g-pstage-nav-next')).toBeNull()
+    })
+    await check('M2.10b', h => expect(h.querySelector('.g-pstage-count').textContent).toMatch(/ of 6$/))
+    await check('M2.10c', h => {
+      expect(h.textContent).toContain('Delete this photo?')
+      expect(h.querySelector('.g-confirm').textContent).toContain('This photo goes from your photos.')
+    })
+    await check('M2.11', h => {
+      expect(h.querySelector('.g-cmp-line').textContent).toBe('77 days apart · -3.6 kg · waist -4 cm')
+      expect(h.querySelectorAll('.g-cmp-side')).toHaveLength(2)
+    })
+    await check('M2.11a', h => expect(h.querySelector('.g-cmp-line').textContent).toBe('77 days apart'))
+    await check('M2.11b', h => {
+      expect(h.querySelector('.g-pstage-title').textContent).toBe('Choose the before photo')
+      expect(h.querySelectorAll('.g-pstage .g-ptile')).toHaveLength(5)
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
+
+// Me body M2
+describe('the screens gallery: Me > Body > Measurements', () => {
+  it('has M2.5 to M2.7 and the edge states under their board ids, in Me: body', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: body').entries.map(e => e.id)
+    expect(ids.filter(id => id.startsWith('M2.5') || id.startsWith('M2.6') || id === 'M2.7'))
+      .toEqual(['M2.5', 'M2.5a', 'M2.5b', 'M2.5c', 'M2.6', 'M2.6a', 'M2.6b', 'M2.6c', 'M2.6d', 'M2.7'])
+  })
+
+  it('shows the tab, both drawers, the sub-panel and the empty states, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('M2.5', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toMatch(/^5 tracked · last on /)
+      expect([...h.querySelectorAll('.g-cchip')].map(c => c.textContent)).toEqual(['Chest', 'Waist', 'Hips', 'Left upper arm', 'Right thigh'])
+      expect(h.querySelector('.bd-eyebrow').textContent).toMatch(/^Waist · /)
+      expect(h.querySelector('.bd-big').textContent).toBe('84cm')
+      expect(h.querySelector('.bd-lines').textContent).toContain('−1.5 cm since previous')
+      expect(h.querySelector('.bd-lines').textContent).toMatch(/−4 cm since /)
+      expect(h.querySelectorAll('.g-gvr')).toHaveLength(5)
+      expect(h.querySelector('.g-tc-target')).toBeNull()
+    })
+    await check('M2.5a', h => {
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+      expect(h.querySelector('.g-sempty').textContent).toContain('Nothing to chart yet')
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('Nothing tracked yet')
+    })
+    await check('M2.5b', h => expect(h.querySelector('.g-sempty').textContent).toContain('No measurements yet'))
+    await check('M2.5c', h => expect(h.querySelector('.bd-big').textContent).toBe('33.1in'))
+    await check('M2.6', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Log measurements')
+      expect(h.querySelector('.g-bs-chip').textContent).toBe('Today')
+      expect(h.querySelectorAll('.g-bs .g-tfield')).toHaveLength(5)
+      const waist = [...h.querySelectorAll('.g-bs .g-tfield')].find(f => f.querySelector('.g-tfield-label').textContent === 'Waist')
+      expect(waist.querySelector('input').value).toBe('83.5')
+      expect(waist.querySelector('.g-tfield-unit').textContent).toBe('cm')
+      expect(h.querySelector('.g-bs-foot button').textContent).toBe('Save measurements')
+    })
+    await check('M2.6a', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Edit measurements')
+      expect(h.querySelector('.g-utoast-msg').textContent).toBe('That date already has measurements. Edit it instead.')
+    })
+    await check('M2.6b', h => {
+      expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Choose measurements')
+      expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M2.6c', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Edit measurements')
+      expect(h.querySelector('.g-bs .g-danger').textContent).toBe('Delete measurements')
+    })
+    await check('M2.6d', h => {
+      expect(h.querySelector('.g-bs')).toBeNull()
+      expect(h.querySelector('.g-utoast-msg').textContent).toMatch(/^Deleted \d+ measurements? from /)
+    })
+    await check('M2.7', h => {
+      const pane = h.querySelector('.g-bs-pane[data-pos="active"]')
+      expect(pane.querySelector('h2').textContent).toBe('Choose measurements')
+      expect([...pane.querySelectorAll('.bd-group-title')].map(g => g.textContent)).toEqual(['Torso', 'Arms', 'Legs', 'Other', 'Your own'])
+      expect(pane.querySelectorAll('[role="switch"]')).toHaveLength(19)
+      expect(pane.querySelectorAll('[role="switch"][aria-checked="true"]')).toHaveLength(5)
+      expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
+
+// Me invite M2
+describe('the screens gallery: Me > Invite a friend', () => {
+  it('has M5.0 to M5.3 under their board ids, in Me: invite', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: invite').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M5.0', 'M5.1', 'M5.2', 'M5.3', 'M5.0a', 'M5.0m', 'M5.0r', 'M5.0o', 'M5.0l', 'M5.1u']))
+  })
+
+  it('shows the list, the drawer, the held toast, the error, the asks, the menu and its confirm, and persists nothing', async () => {
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('M5.0', s => {
+      expect(s.text).toContain('Bring a friend in')
+      expect(s.text).toContain('lasts 7 days')
+      expect(s.host.querySelectorAll('.g-grow')).toHaveLength(5)
+    })
+    await check('M5.1', s => {
+      expect(s.host.querySelector('.g-bs h2').textContent).toBe('New invite')
+      expect([...s.host.querySelectorAll('.g-bs-foot button')].map(b => b.textContent)).toEqual(['Create and copy link', 'Create and share'])
+    })
+    await check('M5.2', s => {
+      expect(s.host.querySelector('.inv-group .g-grow b').textContent).toBe('Andrei')
+      expect(useUI.getState().toastMsg).toBe('Invite for Andrei created and link copied')
+      expect(useUI.getState().toastAction.label).toBe('Revoke')
+    })
+    await check('M5.2c', () => expect(useUI.getState().toastMsg).toBe('Invite created. Copy its invite link from the list.'))
+    await check('M5.1e', s => expect(s.host.querySelector('.g-bs [role="alert"]').textContent).toContain('Too many invites'))
+    await check('M5.1n', s => expect(s.host.querySelector('.g-bs input').value).toBe('Vlad'))
+    await check('M5.1u', s => expect([...s.host.querySelectorAll('.g-bs-foot button')].map(b => b.textContent)).toEqual(['Create and copy link']))
+    await check('M5.3', s => {
+      expect(s.text).toContain('Couldn’t load invites')
+      expect(s.host.querySelector('.g-sempty button').textContent).toBe('Try again')
+    })
+    await check('M5.3r', s => {
+      expect(s.host.querySelector('.g-sempty')).toBeNull()
+      expect(s.text).toContain('Mara')
+    })
+    await check('M5.0a', s => expect([...s.host.querySelectorAll('.g-ssec h2')].map(h => h.textContent)[0]).toBe('Asked'))
+    await check('M5.0q', s => expect(s.host.querySelector('.g-bs .inv-ask').textContent).toContain('Dana'))
+    await check('M5.0m', s => expect([...s.host.querySelectorAll('.g-menuitem')].map(b => b.textContent)).toEqual(['Copy link', 'Share link', 'Revoke']))
+    await check('M5.0r', s => {
+      expect(s.host.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Revoke this invite?')
+      expect(s.host.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M5.0o', s => expect(s.text).toContain('Sign-up is open'))
+    await check('M5.0l', s => expect(s.host.querySelectorAll('.inv-sk')).toHaveLength(3))
+    await check('M5.0e', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
+    await check('M5.0k', s => expect(s.text).toContain('Invite E5F6…'))
+  }, 60000)
+})
+
+// Me goal M2
+describe('the screens gallery: Me > My goal', () => {
+  it('has M3.0 to M3.4 and M3.7 and the edge states under their board ids, in Me: goal', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: goal').entries.map(e => e.id).filter(id => !/^M3\.[56]/.test(id))
+    expect(ids).toEqual([
+      'M3.0', 'M3.0r', 'M3.0w', 'M3.0n', 'M3.0e', 'M3.0l', 'M3.0p', 'M3.0x', 'M3.1', 'M3.1e', 'M3.2', 'M3.3', 'M3.3g', 'M3.3w', 'M3.3p', 'M3.3s', 'M3.4', 'M3.4g', 'M3.7',
+    ])
+  })
+
+  it('shows the page, the four drawers, the gated pair, the saved toast and the edge states, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const live = useProfileWrites.getState().live
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const ring = h => h.querySelector('.g-sring').getAttribute('aria-label')
+    const values = h => Object.fromEntries([...h.querySelectorAll('.g-gvr')].map(r => [r.querySelector('b').textContent, r.querySelector('.g-gvr-val')?.textContent ?? null]))
+    await check('M3.0', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('Lose weight · 78 kg · 2,100 kcal a day')
+      expect(ring(h)).toBe('Target weight 78.0 kg · 3.4 kg to go')
+      expect(h.querySelector('.mg-started').textContent).toMatch(/^Started at 85\.0 kg on /)
+      expect(h.querySelectorAll('.g-gvr')).toHaveLength(12)
+      expect(values(h)).toMatchObject({ Goal: 'Lose weight', 'Target weight': '78.0 kg', Height: '182 cm', Sex: 'Male', Calories: '2,100 kcal', Water: '2,500 ml' })
+      expect(h.querySelector('.g-btn')).toBeNull()
+    })
+    await check('M3.0r', h => {
+      expect(ring(h)).toBe('Target weight 78.0 kg · Target reached')
+      expect(h.querySelector('.g-btn').textContent).toBe('Keep my weight')
+    })
+    await check('M3.0w', h => {
+      expect(ring(h)).toBe('Target weight 78.0 kg · Log your first weigh-in')
+      expect(h.querySelector('.mg-started')).toBeNull()
+    })
+    await check('M3.0n', h => {
+      expect(Object.keys(values(h))).toEqual(['Target weight'])
+    })
+    await check('M3.0e', h => {
+      expect(h.querySelector('.g-sempty b').textContent).toBe('Goals did not load.')
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+    })
+    await check('M3.0l', h => expect(h.querySelector('[aria-busy="true"]')).toBeTruthy())
+    await check('M3.0p', h => expect(values(h)).toMatchObject({ Height: '6 ft 0 in', 'Target weight': '172.0 lb' }))
+    await check('M3.0x', h => expect(values(h)).toMatchObject({ Goal: 'Add', Height: 'Add', 'Birth year': 'Add', 'Daily movement': 'Add', Calories: 'Not set' }))
+    await check('M3.1', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Goal')
+      expect([...h.querySelectorAll('.g-bs [role="radio"]')].map(r => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false'])
+    })
+    await check('M3.1e', h => {
+      expect(h.querySelector('.g-bs [role="alert"]').textContent).toBe('Check your connection and try again.')
+      expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M3.2', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Target weight')
+      expect(h.querySelector('.g-bs input').value).toBe('78.0')
+      expect(h.querySelector('.g-bs .g-tfield-hint').textContent).toMatch(/^3\.4 kg to go from 81\.4 kg\./)
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Save target weight')
+    })
+    await check('M3.3', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Body details')
+      expect([...h.querySelectorAll('.g-bs input')].map(i => i.value)).toEqual(['182', '1994'])
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Save body details')
+    })
+    await check('M3.3g', h => {
+      expect(h.querySelector('.g-bs input')).toBeNull()
+      expect(h.querySelector('.g-bs-foot')).toBeNull()
+      expect(h.querySelector('.g-bs .mg-foot').textContent).toBe('Changing this arrives soon')
+    })
+    await check('M3.3w', h => {
+      expect(h.querySelector('.g-bs').textContent).toContain('Your burn estimate needs a weigh-in.')
+      expect([...h.querySelectorAll('.g-bs button')].some(b => b.textContent === 'Log weight')).toBe(true)
+    })
+    await check('M3.3p', h => expect([...h.querySelectorAll('.g-bs input')].map(i => i.value)).toEqual(['6', '0', '1994']))
+    await check('M3.3s', h => expect(h.querySelector('.g-bs .g-seg [aria-pressed="true"]').textContent).toBe('Prefer not to say'))
+    await check('M3.4', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Daily movement')
+      expect([...h.querySelectorAll('.g-bs [role="radio"]')].map(r => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false'])
+    })
+    await check('M3.4g', h => {
+      expect(h.querySelector('.g-bs [role="radio"]')).toBeNull()
+      expect(h.querySelector('.g-bs').textContent).toContain('Changing this arrives soon')
+    })
+    await check('M3.7', h => {
+      expect(values(h)['Target weight']).toBe('77.0 kg')
+      expect(useUI.getState().toastMsg).toBe('Target weight changed to 77.0 kg')
+      expect(useUI.getState().toastAction.label).toBe('Undo')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(useProfileWrites.getState().live).toBe(live)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    expect(Object.keys(localStorage).filter(k => k.startsWith('gains_recent_changes') && k.includes('u1'))).toEqual([])
+  }, 60000)
+})
+
+// Me invite M3
+describe('the screens gallery: Me > Invite a friend, the member\'s view', () => {
+  it('has M5.4 and M5.5 and the edge states in Me: invite', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: invite').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M5.4', 'M5.5', 'M5.5u', 'M5.4o', 'M5.4x', 'M5.4c', 'M5.4d', 'M5.4q', 'M5.4f', 'M5.4g', 'M5.0n']))
+  })
+
+  it('shows the ask, the held toast, the open asks, the cap, the refusals, Groups and the guest redirect', async () => {
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('M5.4', s => {
+      expect(s.text).toContain('Only admins invite people to Gains')
+      expect([...s.host.querySelectorAll('button')].find(b => b.textContent === 'Ask an admin').disabled).toBe(true)
+    })
+    await check('M5.4w', s => expect([...s.host.querySelectorAll('button')].find(b => b.textContent === 'Ask an admin').disabled).toBe(false))
+    await check('M5.5', s => {
+      expect(useUI.getState().toastMsg).toBe('Asked an admin. You’ll hear when the invite is sent.')
+      expect(useUI.getState().toastAction.label).toBe('Undo')
+      expect(s.host.querySelector('input').value).toBe('')
+      expect(s.text).toContain('My training partner Andrei')
+    })
+    await check('M5.5u', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
+    await check('M5.4o', s => expect(s.text).toContain('My training partner Andrei'))
+    await check('M5.4x', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
+    await check('M5.4c', s => expect(s.text).toContain('You have 3 open asks. Withdraw one to ask again.'))
+    await check('M5.4d', s => expect(s.host.querySelector('[role="alert"]').textContent).toBe('You’ve asked 3 times today. Try again in 4h 0m.'))
+    await check('M5.4q', s => expect(s.host.querySelector('[role="alert"]').textContent).toBe('You have 3 open asks. Withdraw one to ask again.'))
+    await check('M5.4f', s => expect(s.host.querySelector('[role="alert"]').textContent).toContain('Check your connection'))
+    await check('M5.4g', s => expect(s.text).toContain('Already on Gains? Add them to a group from Friends instead'))
+    await check('M5.0n', s => expect(s.text).toContain('Redirected to the Me root'))
+  }, 60000)
+})
+
+// Me root M2
+describe('the screens gallery: Me root', () => {
+  it('has M1.0 to M1.2 and the edge states under their board ids, in Me', () => {
+    const ids = screenAreas().find(a => a.name === 'Me').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M1.0', 'M1.1', 'M1.2', 'M1.0t', 'M1.0n', 'M1.0f', 'M1.0x', 'M1.0l', 'M1.0m', 'M1.0s']))
+  })
+
+  it('shows the full root, the new account, the Groups slot, target reached, no target, food off and no NutriTrace', async () => {
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('M1.0', host => {
+      expect(host.textContent).toContain('81.4')
+      expect(host.textContent).toContain('3.4 kg to 78')
+      expect(host.textContent).toContain('4 of 6')
+      expect(host.textContent).toContain('2 joined · 1 waiting')
+      expect(host.querySelector('.g-mcard')).not.toBeNull()
+    })
+    await check('M1.1', host => {
+      expect(host.textContent).toContain('Log your first weigh-in')
+      expect(host.textContent).toContain('Set your target weight')
+      expect(host.querySelector('.g-mcard')).toBeNull()
+    })
+    await check('M1.2', host => {
+      const rows = [...host.querySelectorAll('.g-glist-row')]
+      expect(rows.at(-1).querySelector('b').textContent).toBe('Groups')
+      expect(rows.at(-1).querySelector('.g-tag').textContent).toBe('New')
+    })
+    await check('M1.0t', host => {
+      expect(host.textContent).toContain('Target reached')
+      expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Keep my weight')).toBe(true)
+    })
+    await check('M1.0n', host => expect(host.textContent).toContain('Set a target weight'))
+    await check('M1.0f', host => expect(host.querySelectorAll('.g-rc-slide')).toHaveLength(2))
+    await check('M1.0x', host => {
+      expect(host.textContent).toContain('78 kg target')
+      expect(host.textContent).not.toContain('kcal a day')
+    })
+    await check('M1.0l', host => expect(host.querySelector('.me-goal-sk')).not.toBeNull())
+    await check('M1.0s', host => expect([...host.querySelectorAll('.g-gact')].map(b => b.textContent)).toEqual(['Log weight', 'Measure', 'Photo']))
+  }, 60000)
+})
+
+// Me goal M3
+describe('the screens gallery: Me > Daily targets and How this is worked out', () => {
+  it('has M3.5 and M3.6 and their edge states, in Me: goal', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: goal').entries.map(e => e.id).filter(id => /^M3\.[56]/.test(id))
+    expect(ids).toEqual(['M3.5', 'M3.5m', 'M3.5l', 'M3.5d', 'M3.5w', 'M3.5g', 'M3.6', 'M3.6a', 'M3.6r', 'M3.6e', 'M3.6d', 'M3.6n', 'M3.6t'])
+  })
+
+  it('shows each state it names and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const title = h => h.querySelector('.g-bs h2').textContent
+    const fields = h => [...h.querySelectorAll('.g-bs .g-tfield')].map(f => [f.querySelector('.g-tfield-label').textContent, f.querySelector('input').value])
+    const banner = h => h.querySelector('.g-bs .g-ibanner')?.textContent ?? null
+    await check('M3.5', h => {
+      expect(title(h)).toBe('Daily targets')
+      expect(fields(h)).toEqual([['Calories', '2100'], ['Protein', '150'], ['Carbs', '230'], ['Fat', '70'], ['Water', '2500']])
+      expect(h.querySelector('.g-bs .g-seg [aria-pressed="true"]').textContent).toBe('Fixed')
+      expect(banner(h)).toBeNull()
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Save daily targets')
+    })
+    await check('M3.5m', h => {
+      expect(banner(h)).toContain('The macros add up to 1,630 kcal, the calorie target is 2,100 kcal.')
+      expect(banner(h)).toContain('Set carbs to 218 g')
+    })
+    await check('M3.5l', h => expect(banner(h)).toContain('Most guidelines suggest at least 1,200 kcal.'))
+    await check('M3.5d', h => {
+      expect(h.querySelector('.g-bs .g-seg [aria-pressed="true"]').textContent).toBe('Fixed')
+      expect(h.querySelector('.g-bs .mg-foot').textContent).toContain('Dynamic needs a connected wearable.')
+    })
+    await check('M3.5w', h => {
+      expect(fields(h).map(f => f[0])).toEqual(['Calories', 'Protein', 'Carbs', 'Water'])
+      expect(h.querySelector('.g-bs').textContent).toContain('Varies by weekday')
+    })
+    await check('M3.5g', h => {
+      expect(h.querySelectorAll('.g-bs-pane')).toHaveLength(2)
+      expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Discard changes?')
+      expect(h.querySelector('.g-bs-pane[data-pos="active"]').textContent).toContain('Keep editing')
+    })
+    await check('M3.6', h => {
+      expect(title(h)).toBe('How this is worked out')
+      expect([...h.querySelectorAll('.g-bs .mg-figs dt')].map(d => d.textContent)).toEqual(['Your burn', 'Goal factor', 'Target'])
+      // The board's man stores 2,100 kcal; his goal works out to a little less, so the drawer says what his targets are set to.
+      expect(h.querySelectorAll('.g-bs .mg-para')).toHaveLength(5)
+      expect(h.querySelector('.g-bs').textContent).toContain('Your Daily targets are set to 2,100 kcal a day.')
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Edit daily targets')
+    })
+    await check('M3.6a', h => expect(h.querySelector('.g-bs .mg-adapt-head').textContent).toBe('Adaptive is learning12 of 21 so far'))
+    await check('M3.6r', h => {
+      expect(h.querySelector('.g-bs .mg-adapt-head').textContent).toBe('Adaptive is readyEstimated burn 2,650 kcal a day')
+      expect(h.querySelector('.g-bs .g-tag')).toBeNull()
+    })
+    await check('M3.6e', h => {
+      expect(h.querySelector('.g-bs .g-tag').textContent).toBe('Early')
+      expect(h.querySelector('.g-bs .mg-adapt').textContent).toContain('Firms up at 35 days')
+    })
+    await check('M3.6d', h => expect(h.querySelector('.g-bs').textContent).toContain('Your target follows your burn, workouts included.'))
+    await check('M3.6n', h => {
+      expect(h.querySelector('.g-bs .mg-figs')).toBeNull()
+      expect([...h.querySelectorAll('.g-bs button')].some(b => b.textContent === 'Body details')).toBe(true)
+    })
+    await check('M3.6t', h => {
+      expect(h.querySelectorAll('.g-bs-pane')).toHaveLength(2)
+      expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Daily targets')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 60000)
 })

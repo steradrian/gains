@@ -1,7 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dayReminderPush, nudgePush, PUSH_URL, restTimerPush, testPush } from '../push-messages.js';
+import { dayReminderPush, inviteReadyPush, inviteRequestPush, nudgePush, PUSH_URL, restTimerPush, testPush } from '../push-messages.js';
+
+test('the invite pushes are generic: nobody named, no note, no code, in every language', () => {
+  assert.deepEqual(inviteRequestPush('en'), {
+    title: 'Someone asked for an invite',
+    body: 'Answer it from Invite a friend.',
+    tag: 'invite-request',
+    url: '#/me/invite',
+  });
+  assert.deepEqual(inviteReadyPush('en'), {
+    title: 'Your invite is ready',
+    body: 'An admin made the invite you asked for.',
+    tag: 'invite-ready',
+    url: '#/me/invite',
+  });
+  assert.equal(inviteRequestPush('pt-BR').title, 'Alguém pediu um convite');
+  assert.equal(inviteReadyPush('pt-BR').title, 'Seu convite está pronto');
+  for (const lang of ['fr', 'xx', undefined]) {
+    assert.deepEqual(inviteRequestPush(lang), inviteRequestPush('en'), String(lang));
+    assert.deepEqual(inviteReadyPush(lang), inviteReadyPush('en'), String(lang));
+  }
+  // A lock screen shows them to whoever holds the phone: only fixed copy, nothing from a request.
+  for (const p of [inviteRequestPush('en'), inviteReadyPush('en')]) {
+    assert.deepEqual(Object.keys(p).sort(), ['body', 'tag', 'title', 'url']);
+  }
+});
 
 test('localizes every server-generated notification in pt-BR', () => {
   assert.deepEqual(restTimerPush('pt-BR'), {

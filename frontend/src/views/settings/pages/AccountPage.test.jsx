@@ -178,7 +178,7 @@ describe('A2.0 the signed-in browser', () => {
     await settle()
     expect(row(page, 'Delete account').textContent).toMatch(/Scheduled for .*25/)
     act(() => row(page, 'Delete account').click())
-    expect(mocks.navs).toEqual(['/me'])
+    expect(mocks.navs).toEqual(['/me/settings'])
   })
 
   it('Account ID copies, as it always did, and the pairing row opens its drawer', async () => {

@@ -349,7 +349,7 @@ describe('G4 and G7', () => {
     expect(views).toContain('WorkoutRoute')
     // The route hands its page to Settings.jsx, which draws the chrome: exempt, not a miss.
     expect(views).toContain('SettingsRoute')
-    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute'])
+    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'BodyRoute', 'BurnedPage', 'ChangesRoute', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GoalRoute', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'InviteRoute', 'LoadMuscleScreen', 'Login', 'MeRoute', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute'])
     expect(now.G4).not.toContain('WorkoutRoute')
   })
 

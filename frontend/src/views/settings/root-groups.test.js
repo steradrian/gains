@@ -53,9 +53,8 @@ describe('rootGroups', () => {
     expect(groups.map(g => g.key)).not.toContain('track-empty')
   })
 
-  it('Friends core m1: the Groups row sits in Keep you on track, goes to /me/groups and is hidden where Friends does not exist', () => {
-    expect(ROOT_ROW_SLOTS.track.map(r => r.id)).toEqual(['groups'])
-    expect(rowPath(ROOT_ROW_SLOTS.track[0])).toBe('/me/groups')
+  it('has no Groups row: Friends puts it on the Me root', () => {
+    expect(ROOT_ROW_SLOTS.track).toEqual([])
     expect(ids({ user: null })).not.toContain('groups')
   })
 })

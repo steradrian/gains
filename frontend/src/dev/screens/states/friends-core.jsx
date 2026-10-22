@@ -41,11 +41,12 @@ function LeftRoute() {
 // The Me root's "Keep you on track" group with the real Groups row (its definition and its value).
 function MeRoot() {
   const value = groupsRowValue()
+  const line = groupsRow.line()
   const groups = [{
     key: 'track', title: 'Keep you on track', rows: [
       { key: 'reminders', icon: 'bell', title: 'Reminders', sub: 'The notifications you set yourself', value: '4 on', onClick: NOOP },
       { key: 'features', icon: 'slider', title: 'Features', sub: 'What Gains tracks for you', value: 'Fasting off', onClick: NOOP },
-      { key: groupsRow.id, icon: groupsRow.icon, title: t(groupsRow.title), sub: value.sub, value: value.value, onClick: NOOP },
+      { key: groupsRow.id, icon: groupsRow.icon, title: line.title, sub: value.sub, value: value.value, onClick: NOOP },
     ],
   }]
   return <SettingsRootScreen

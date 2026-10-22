@@ -19,6 +19,13 @@ export const TABS = ['home', 'train', 'food', 'me']
 export const TAB_ROOT = { home: '/home', train: '/train', food: '/food', me: '/me' }
 export const PROGRESS_ROOT = '/progress'
 
+// Me root M1: Profile is the Me tab's root. Its own pages sit one level under it; Settings is
+// /me/settings and its pages keep /me/<page>, so everything else under /me goes back to Settings.
+export const ME_ROOT = TAB_ROOT.me
+export const ME_PAGES = ['body', 'goal', 'changes', 'invite', 'groups', 'notifications']
+export const mePath = page => ME_ROOT + '/' + page
+const SETTINGS_PATH = mePath('settings')   // views/settings/paths.js SETTINGS_ROOT; that file imports this one
+
 // What each tab owns: its root and everything under it.
 const OWNS = { home: ['/home'], train: ['/train'], food: ['/food'], me: ['/me', PROGRESS_ROOT] }
 
@@ -45,9 +52,17 @@ export function parentOf(pathname = '') {
   if (under(pathname, '/train/workout')) return TAB_ROOT.home
   if (pathname === PROGRESS_ROOT) return TAB_ROOT.me
   if (under(pathname, PROGRESS_ROOT + '/body')) return PROGRESS_ROOT
+  // Me root M1: a page of Profile (the Body page's three tabs are one page) goes to Profile;
+  // Settings too. A Settings page with nothing under it (/me/equipment, /me/admin) goes to Settings.
+  const meSegments = under(pathname, ME_ROOT) ? pathname.slice(ME_ROOT.length + 1).split('/') : []
+  // Groups has pages below it (a group, What you share, Cheers): those go to Groups, below.
+  const belowGroups = meSegments[0] === 'groups' && meSegments.length > 1
+  if (ME_PAGES.includes(meSegments[0]) && !belowGroups) return ME_ROOT
+  if (pathname === SETTINGS_PATH) return ME_ROOT
   const tab = tabOf(pathname)
   // A Day or Week page (lib/day-route.js) has no page above it but its tab's root.
   if (tab && /^\/[a-z]+\/(day|week)\/[^/]+$/.test(pathname)) return TAB_ROOT[tab]
+  if (meSegments.length === 1 && meSegments[0]) return SETTINGS_PATH
   // An editor in My foods (/food/my-foods/foods/12, also /new) goes back to its tab of the list.
   const editor = pathname.match(/^\/food\/my-foods\/(foods|meals|recipes)\/[^/]+$/)
   if (editor) return '/food/my-foods?tab=' + editor[1]
@@ -116,6 +131,8 @@ const LEGACY = [
 // volume" link (/stats?focus=weekly-volume) opens the Plan page, where the weekly volume moved.
 export function legacyPath(pathname = '', search = '', hash = '') {
   if (pathname === '/stats' && /[?&]focus=weekly-volume\b/.test(search)) return '/train/schedule' + hash
+  // The old Settings root: /me is Profile now, Settings is under it. (/settings/<page> is /me/<page>.)
+  if (pathname === '/settings') return SETTINGS_PATH + search + hash
   for (const [from, to] of LEGACY) if (under(pathname, from)) return to + pathname.slice(from.length) + search + hash
   return null
 }

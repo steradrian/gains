@@ -18,8 +18,9 @@
  * It also keeps the local store tidy (localMediaGc) and makes the plan's custom media local ahead
  * of time (startCustomMediaPrefetch), so a workout opened without a network still shows them.
  */
-import { referencedHashes, referencedFiles, MEDIA_MIMES } from './media-refs.js'
+import { referencedHashes, referencedFiles, heldBackHashes, bodyPhotoRefs, MEDIA_MIMES } from './media-refs.js'
 import { sniffKind } from './media-sniff.js'
+import { journalMediaHashes } from './recent-changes.js'
 import { sha256Hex } from './sha256.js'
 import { mediaStore as sharedStore } from './media-store.js'
 import { api, apiBlob, apiUpload } from './api.js'
@@ -44,6 +45,12 @@ const REJECTED = new Set(['media-too-large', 'media-type', 'media-invalid', 'med
 const PERSISTED_KEY = 'gym_state_v1'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
+// Me photos M1: how many progress photos are kept on this device by choice (a photo, not a file:
+// its poster is the same photo).
+const localOnlyPhotos = S => {
+  const held = heldBackHashes(S)
+  return held.size ? bodyPhotoRefs(S).filter(r => held.has(r.hash) || held.has(r.poster?.hash)).length : 0
+}
 const isNetwork = e => !e || e.status == null || e.code === 'timeout' || e.code === 'network'
 
 /**
@@ -68,6 +75,8 @@ export function createMediaSync(deps = {}) {
     // phone it is the durable copy and can be newer than localStorage (evicted WebView storage,
     // a write refused for room), so what it refers to is kept even if memory does not know it yet.
     nativeLoad: MOBILE ? () => nativeLoad() : null,
+    // What Me > Recent changes can still restore (a deleted workout's files), kept for its 7 days.
+    journalHashes: () => journalMediaHashes(),
     ...deps
   }
   let store = d.store || null
@@ -92,7 +101,7 @@ export function createMediaSync(deps = {}) {
 
   const publishPending = async extra => {
     const S = store?.getState().S
-    publishMediaStatus({ pending: S ? pendingRefCount(S) : 0, ...extra })
+    publishMediaStatus({ pending: S ? pendingRefCount(S) : 0, localOnly: S ? localOnlyPhotos(S) : 0, ...extra })
   }
 
   async function run({ force = false, retryRejected = false } = {}) {
@@ -106,7 +115,11 @@ export function createMediaSync(deps = {}) {
     // A scheduled deletion pauses sync (useStore pauseForDeletion): the files wait on this device,
     // still pending, and go once it is cancelled (start() schedules a run when the pause lifts).
     if (st.sync?.paused) { await publishPending(); return }
-    const files = referencedFiles(st.S)
+    // Me photos M1: the files of progress photos kept on this device by choice (Back up photos
+    // off, heldBackHashes) are neither asked about nor sent, forced run or not. Turned on, they
+    // are simply part of the next ask: what the server lacks goes up.
+    const held = heldBackHashes(st.S)
+    const files = referencedFiles(st.S).filter(f => !held.has(f.hash))
     const refs = files.map(f => f.hash)
     // Nothing referenced (a reset, everything deleted) forgets the last run: the same files coming
     // back from a backup within ten minutes are new to the server again, not a repeat of that run.
@@ -308,6 +321,8 @@ export function createMediaSync(deps = {}) {
       try {
         if (d.nativeLoad) { const saved = await d.nativeLoad(); if (saved) for (const h of referencedHashes(saved)) live.add(h) }
       } catch { return }   // the mirror could not be read: delete nothing rather than guess
+      // So is a file a live journal entry could restore (a workout deleted in the last 7 days).
+      try { for (const h of d.journalHashes()) live.add(h) } catch { return }   // unreadable: delete nothing
       // A file an open editor holds as its draft is live too, however long the editor has been open.
       const held = r => typeof d.media.isHeld === 'function' && d.media.isHeld(r.hash)
       const cutoff = d.now() - LOCAL_GC_GRACE_MS
@@ -320,8 +335,17 @@ export function createMediaSync(deps = {}) {
       const refs = referencedFiles(st.S)
       const posters = new Set(refs.filter(f => f.poster).map(f => f.hash))
       const inState = new Set(refs.map(f => f.hash))
+      // Me photos M1: a progress photo kept on this device by choice is never evicted, whatever
+      // its flag says. The sync no longer asks the server about it, so "synced" is a claim
+      // nobody re-checks, and this may be the only copy. Read from memory and from the saved
+      // copy, like `live`.
+      const ownOnly = heldBackHashes(st.S)
+      try {
+        const raw = d.storage?.getItem(PERSISTED_KEY)
+        if (raw) for (const h of heldBackHashes(JSON.parse(raw))) ownOnly.add(h)
+      } catch { return }   // the saved copy could not be read: evict nothing rather than guess
       const candidates = left
-        .filter(r => !r.pending && !posters.has(r.hash) && !held(r) && (r.putAt || 0) < cutoff)
+        .filter(r => !r.pending && !posters.has(r.hash) && !ownOnly.has(r.hash) && !held(r) && (r.putAt || 0) < cutoff)
         .sort((a, b) => (inState.has(a.hash) - inState.has(b.hash)) || ((a.shownAt || 0) - (b.shownAt || 0)))
       for (const r of candidates) {
         if (bytes <= LOCAL_CACHE_MAX_MB * MB) break
@@ -399,7 +423,8 @@ export function createMediaSync(deps = {}) {
     }
     let gcTimer = null
     const scheduleGc = ms => { clearTimeout(gcTimer); gcTimer = setTimeout(() => { gcTimer = null; localMediaGc().catch(() => {}) }, ms) }
-    const refsKey = S => [...referencedHashes(S)].sort().join(',')
+    // Back up photos turned on changes what may go up without changing a reference: part of the key.
+    const refsKey = S => [...referencedHashes(S)].sort().join(',') + (S?.photoBackup === true ? '|backup' : '')
     let prev = store.getState()
     let prevRefs = refsKey(prev.S)
     const unsub = store.subscribe(s => {

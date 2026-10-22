@@ -4,10 +4,11 @@ import { drawerFlow, useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { todayISO } from '../lib/format.js'
 import { workoutRunning } from '../lib/tab-route.js'
-import { closeThen, closeThenNav, closeThenReplace } from '../lib/nav.js'
+import { closeThen, closeThenNav } from '../lib/nav.js'
 import { bwSheet, customExSheet, exerciseDetailSheet, logPastWorkoutSheet, startOrResume } from '../sheets.jsx'
 import { addRoutine } from '../views/routines/routine-actions.js'
-import { measurementLogSheet } from '../views/Measurements.jsx'
+import { measurementLogSheet } from '../views/me/body/measure-drawers.jsx'
+import { openAddPhoto } from '../views/me/photos/photo-drawers.jsx'
 import { pastWorkoutSheet } from '../views/shared/PastWorkoutSheet.jsx'
 import { useFoodOn } from '../lib/nutrition/food-on.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
@@ -32,10 +33,9 @@ const under = (pathname, base) => pathname === base || pathname.startsWith(base 
 function hereItems(pathname) {
   if (pathname === '/train/routines') return [{ icon: 'clipboard', label: t('New routine'), act: close => addRoutine(to => closeThenNav(close, to)) }]
   if (under(pathname, '/train/exercises')) return [{ icon: 'dumbbell', label: t('New exercise'), act: () => drawerFlow(() => customExSheet(null, ex => exerciseDetailSheet(ex))) }]
-  if (under(pathname, '/progress/body')) return [
+  if (under(pathname, '/me/body')) return [
     { icon: 'ruler', label: t('Log measurements'), act: () => drawerFlow(() => measurementLogSheet()) },
-    // Photos is a segment of the page the sheet is over: it takes that page's place, so back goes to Progress.
-    { icon: 'camera', label: t('Add photo'), act: close => closeThenReplace(close, '/progress/body/photos') },
+    { icon: 'camera', label: t('Add photo'), act: () => drawerFlow(() => openAddPhoto()) },
   ]
   return []
 }

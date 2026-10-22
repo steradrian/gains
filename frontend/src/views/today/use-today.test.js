@@ -139,7 +139,7 @@ describe('firstStepsOf (T1.9)', () => {
     const { steps, label } = firstStepsOf({ food: true, goalSet: false, nav, onMeal, onWeigh })
     expect(label).toBe('0 of 4')
     steps[0].onClick()
-    expect(nav).toHaveBeenCalledWith('/food/goals')
+    expect(nav).toHaveBeenCalledWith('/me/goal?targets=1')
   })
 })
 

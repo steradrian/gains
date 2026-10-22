@@ -6,6 +6,7 @@ import { DAYN, durPart, exCount, fmtNum, isoOf, startOfWeek, todayISO, weekStart
 import { doneUnits, setUnits, setsDone, workoutDuration } from '../../lib/history.js'
 import { isoWeekOf, navToWeek } from '../../lib/day-route.js'
 import { weekTally } from '../../lib/queue.js'
+import { mePath } from '../../lib/tab-route.js'
 import { dayMark, nameOf, trainingDay } from '../../lib/training-day.js'
 import { mealItems, resolveGoalFor, totalsOf } from '../../lib/nutrition/diary.js'
 import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
@@ -191,7 +192,7 @@ export function firstStepsOf({ food, training = true, goalSet, planRefused, nav,
   const steps = [
     food && (goalSet
       ? { title: t('Set your goal'), sub: t('Done in onboarding'), done: true }
-      : { title: t('Set your goal'), sub: t('Open Food goals'), onClick: () => nav('/food/goals') }),
+      : { title: t('Set your goal'), sub: t('Open Food goals'), onClick: () => nav(mePath('goal') + '?targets=1') }),
     food && { title: t('Log your first meal'), sub: t('Takes about 20 seconds'), onClick: onMeal },
     training && { title: t('Plan your training week'), sub: planRefused ? t('Your plan couldn’t be set up') : t('Pick your days in Plan'), onClick: () => nav('/train/schedule') },
     { title: t('Weigh in'), sub: t('Starts your trend'), onClick: onWeigh },

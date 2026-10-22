@@ -17,8 +17,16 @@ import DevKitTrainCoach from './DevKitTrainCoach.jsx'
 import DevKitTrainExercises from './DevKitTrainExercises.jsx'
 import DevKitTrainLoad from './DevKitTrainLoad.jsx'
 import DevKitWeek from './DevKitWeek.jsx'
+// Me body M1
+import DevKitMeBody from './DevKitMeBody.jsx'
+// Me photos M2
+import DevKitMePhotos from './DevKitMePhotos.jsx'
 // Workout drawer kit (drawers-M1)
 import DevKitWorkoutDrawers from './DevKitWorkoutDrawers.jsx'
+// Me changes M3
+import DevKitMeChanges from './DevKitMeChanges.jsx'
+// Me invite M2
+import DevKitMeInvite from './DevKitMeInvite.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
 import GlassTabBar from './GlassTabBar.jsx'
@@ -305,6 +313,14 @@ export default function DevKit() {
         <DevKitWeek />
         {/* Shared: day */}
         <DevKitDay />
+        {/* Me body M1 */}
+        <DevKitMeBody />
+        {/* Me: changes */}
+        <DevKitMeChanges />
+        {/* Me photos M2 */}
+        <DevKitMePhotos />
+        {/* Me invite M2 */}
+        <DevKitMeInvite />
         {/* Friends core m1 */}
         <DevKitFriends />
       </div>

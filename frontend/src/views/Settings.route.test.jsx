@@ -24,7 +24,7 @@ const open = path => act(() => root.render(
   <MemoryRouter initialEntries={[path]}>
     <Where />
     <Routes>
-      <Route path="/me" element={<SettingsRoute />} />
+      <Route path="/me/settings" element={<SettingsRoute root />} />
       <Route path="/me/:page" element={<SettingsRoute />} />
     </Routes>
   </MemoryRouter>,
@@ -37,14 +37,14 @@ describe('renamed Profile pages', () => {
   })
 
   // Reminders need a push server: a guest in a browser has none, so the page itself sends it on.
-  it('/me/reminders, which a guest in a browser does not have, goes to Profile', () => {
+  it('/me/reminders, which a guest in a browser does not have, goes to the Settings root', () => {
     open('/me/reminders')
-    expect(seen).toBe('/me')
+    expect(seen).toBe('/me/settings')
   })
 
-  it('an unknown page still goes to Profile', () => {
+  it('an unknown page still goes to the Settings root', () => {
     open('/me/nope')
-    expect(seen).toBe('/me')
+    expect(seen).toBe('/me/settings')
   })
 })
 

@@ -39,10 +39,15 @@ export const PAGE_INDEX = [
   { path: '/food/month', tab: 'food', title: 'Month', glyph: 'calendar', kw: 'calendar days rings on target over under', gate: nutrition },
   // Me: Profile (its own pages are the settings source's) and Progress under it
   { path: TAB_ROOT.me, tab: 'me', title: 'Profile', glyph: 'person', kw: 'me account you settings preferences' },
+  { path: '/me/settings', tab: 'me', title: 'Settings', glyph: 'gear', kw: 'settings preferences options account' },
   { path: PROGRESS_ROOT, tab: 'me', title: 'Progress', glyph: 'chart', kw: 'stats statistics charts' },
-  { path: '/progress/body', tab: 'me', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
-  { path: '/progress/body/measurements', tab: 'me', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },
-  { path: '/progress/body/photos', tab: 'me', title: 'Progress photos', glyph: 'image', kw: 'photos pictures compare before after' },
+  { path: '/me/body', tab: 'me', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
+  { path: '/me/body/measurements', tab: 'me', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },
+  { path: '/me/body/photos', tab: 'me', title: 'Progress photos', glyph: 'image', kw: 'photos pictures compare before after' },
+  // Me root M3
+  { path: '/me/goal', tab: 'me', title: 'My goal', glyph: 'target', kw: 'target weight calories burn daily targets goal movement' },
+  { path: '/me/changes', tab: 'me', title: 'Recent changes', glyph: 'history', kw: 'restore undo deleted removed changes' },
+  { path: '/me/invite', tab: 'me', title: 'Invite a friend', glyph: 'envelope', kw: 'invite link friend share join', gate: c => (c.canInvite ? 'on' : 'hidden') },
   { path: '/progress/strength', tab: 'me', title: 'Strength', glyph: 'chartLine', kw: 'records pr personal best 1rm one rep max lifts' },
   { path: '/progress/strength/balance', tab: 'me', title: 'Structural balance', glyph: 'gauge', kw: 'ratios weak link balance' },
   { path: '/progress/load', tab: 'me', title: 'Training load', glyph: 'flame', kw: 'volume sets muscles activity weekly' },

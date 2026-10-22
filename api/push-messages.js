@@ -9,6 +9,10 @@ const COPY = {
     dayFallbackTitle: 'Workout planned today',
     dayRoutineSuffix: 'today',
     dayBody: "It's on your plan. Let's go 💪",
+    inviteRequestTitle: 'Someone asked for an invite',
+    inviteRequestBody: 'Answer it from Invite a friend.',
+    inviteReadyTitle: 'Your invite is ready',
+    inviteReadyBody: 'An admin made the invite you asked for.',
     // Friends api m3: the evening cheer digest
     cheerOne: '{0} cheered you',
     cheerOther: '{0} and {1} other cheered you',
@@ -21,6 +25,10 @@ const COPY = {
     dayFallbackTitle: 'Treino planejado para hoje',
     dayRoutineSuffix: 'hoje',
     dayBody: 'Está no seu plano. Bora treinar 💪',
+    inviteRequestTitle: 'Alguém pediu um convite',
+    inviteRequestBody: 'Responda em Convidar um amigo.',
+    inviteReadyTitle: 'Seu convite está pronto',
+    inviteReadyBody: 'Um admin criou o convite que você pediu.',
     cheerOne: '{0} torceu por você',
     cheerOther: '{0} e mais {1} pessoa torceram por você',
     cheerOthers: '{0} e mais {1} pessoas torceram por você',
@@ -37,6 +45,7 @@ export const PUSH_URL = {
   rest: '#/train/workout',
   day: '#/home',
   nudge: '#/train/schedule',
+  invite: '#/me/invite',
   // Friends api m3: Cheers for you
   cheers: '#/me/groups/cheers',
 };
@@ -68,6 +77,19 @@ export function dayReminderPush(lang, routine) {
     tag: 'day-reminder',
     url: PUSH_URL.day,
   };
+}
+
+// Invite requests (invites.js). Both are seen on a lock screen, so neither names anyone nor carries
+// the note or a code: the admins' says only that someone asked, the asker's only that it is done.
+// A tap opens the Invite page (/me/invite): the admins' list of asks, or the asker's own.
+export function inviteRequestPush(lang) {
+  const copy = copyFor(lang);
+  return { title: copy.inviteRequestTitle, body: copy.inviteRequestBody, tag: 'invite-request', url: PUSH_URL.invite };
+}
+
+export function inviteReadyPush(lang) {
+  const copy = copyFor(lang);
+  return { title: copy.inviteReadyTitle, body: copy.inviteReadyBody, tag: 'invite-ready', url: PUSH_URL.invite };
 }
 
 // The missed-workout nudge (nudge.js). Its copy is translated in the frontend packs and generated

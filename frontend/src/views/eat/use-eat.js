@@ -41,7 +41,7 @@ const PATHS = {
 
 /** The diary days (and what their targets need) of `loadDays`, loaded once each, as week-data.js
  *  dayFoodOf reads them. */
-function useFoodDays(on, loadDays) {
+export function useFoodDays(on, loadDays) {
   const settingsState = useNutrition(s => s.settings)
   const days = useNutrition(s => s.days)
   const goalInputs = useNutrition(s => s.goalInputs)

@@ -9,6 +9,7 @@ import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { nav } from './lib/nav.js'
+import { back as tabBack } from './lib/use-tab-nav.js'
 import { dsAccentFor } from './lib/ds-accent.js'
 import { SLIDE_MS } from './lib/route-transition.js'
 
@@ -182,6 +183,21 @@ describe('page slides', () => {
     await back()
     expect(hash()).toBe('#/train')
     expect(sliding()).toEqual([])
+    expect(layers()).toHaveLength(1)
+  })
+
+  // Profile sits at the first history entry, with the origin tab put aside: Back is the shell's back
+  // (lib/back.js sends a pushed page there), not history.back(), which would leave the app's own entries.
+  it('the avatar pushes Profile with a push slide; the shell back returns to the origin tab with a pop', async () => {
+    await launch('#/train')
+    await click(document.querySelector('.g-shdr .g-sbtn:not(.g-bell)'))
+    expect(sliding()).toEqual(['push', 'push'])
+    await finish()
+    expect(hash()).toBe('#/me')
+    await go(() => tabBack())
+    expect(hash()).toBe('#/train')
+    expect(sliding()).toEqual(['pop', 'pop'])
+    await finish()
     expect(layers()).toHaveLength(1)
   })
 

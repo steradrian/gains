@@ -27,6 +27,7 @@ import { foodOnNow } from '../lib/nutrition/food-on.js'
 import { levelsOf, loadOfWorkouts } from '../lib/muscles.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, MAX_DURATION_MIN, endsInFuture } from '../lib/workout-date.js'
 import { putBackWorkout, takeWorkout, takenMediaHashes } from '../lib/workout-delete.js'
+import { recordWorkoutDelete } from '../lib/me/workout-changes.js'
 import { editCompletedSession } from '../lib/session-edit.js'
 import { markUndone, stampWorkout, undoMarks } from '../lib/sync-merge.js'
 import { workoutText } from '../lib/workout-text.js'
@@ -338,6 +339,7 @@ export function deleteWorkoutWithUndo(w) {
   update(s => { snap = takeWorkout(s, w) })
   if (!snap) return false
   const marks = undoMarks(before, S())
+  recordWorkoutDelete(snap, before, marks)
   const rec = snap.taken[0].rec
   const release = mediaStore.hold(takenMediaHashes(snap))
   const files = workoutMediaOf(rec, Infinity).length
