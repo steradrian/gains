@@ -1,6 +1,7 @@
 import MemberAvatar, { MEMBER_TONES, memberTone } from './MemberAvatar.jsx'
 import MemberRing from './MemberRing.jsx'
 import MomentRow from './MomentRow.jsx'
+import SharedBar from './SharedBar.jsx'
 import Section from './DevKitSection.jsx'
 
 // Friends' part of the catalogue (DevKit.jsx): the parts the Groups pages are built from, on the
@@ -56,6 +57,16 @@ export default function DevKitFriends() {
           <MomentRow people={[{ uid: 'r', initial: 'R', tone: 'purple' }]} kind="NEW BEST" title="Radu set a new best" detail="Deadlift" time="yesterday" cheerLabel="Cheer Radu set a new best" />
           <MomentRow people={[{ uid: 'a', initial: 'A', tone: 'mint' }]} title="You finished Pull A" detail="48 min" time="Fri" mine />
         </ul>
+      </Section>
+
+      {/* Friends challenge m1 */}
+      <Section title="SharedBar" note="One bar a group fills together: a segment per person in join order, each as long as their own count of the goal, in their own colour. Never sorted, never red; past the goal it is full and never says over. The fill grows in and stands still under reduced motion.">
+        <SharedBar goal={15} label="12 of 15 workouts" segments={[
+          { value: 3, tone: 'mint' }, { value: 3, tone: 'blue' }, { value: 2, tone: 'purple' }, { value: 3, tone: 'orange' }, { value: 1, tone: 'green' },
+        ]} />
+        <SharedBar goal={9} label="Three people, 6 of 9" segments={[{ value: 3, tone: 'mint' }, { value: 2, tone: 'blue' }, { value: 1, tone: 'purple' }]} />
+        <SharedBar goal={9} label="Nothing counted yet" segments={[]} />
+        <SharedBar goal={6} label="Goal reached" segments={[{ value: 3, tone: 'mint' }, { value: 3, tone: 'blue' }]} />
       </Section>
     </>
   )
