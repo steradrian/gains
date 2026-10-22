@@ -7,7 +7,7 @@ import { isChrome, KIND, swollen } from './glass-kinds.js'
 import { createRegistry } from './glass-registry.js'
 import { createScheduler } from './glass-scheduler.js'
 import { createStats } from './glass-stats.js'
-import { createWatchdog, glassIsOff } from './glass-watchdog.js'
+import { clearFallback, createWatchdog, glassIsOff, recordFallback } from './glass-watchdog.js'
 import { createMaterialProbe } from './material-probe.js'
 import { createChromePresenter } from './presenter-chrome.js'
 import { createSpritePresenter } from './presenter-sprite.js'
@@ -44,7 +44,7 @@ const RUN_GAP_MS = 250 // frames further apart than this are a new run, not a sl
 export function createGlassEngine({
   ground, host, getInputs, onStatus, include = '', onDom = () => {}, sprite: spriteOpts = {}, watchdog: watch = true,
 }) {
-  if (window.matchMedia?.('(prefers-reduced-transparency: reduce)')?.matches) { onStatus('reduced'); return null }
+  if (window.matchMedia?.('(prefers-reduced-transparency: reduce)')?.matches) { recordFallback('reduced-transparency'); onStatus('reduced'); return null }
   if (watch && glassIsOff()) { onStatus('fallback'); return null }
   let scheduler = null
   let registry = null
@@ -57,20 +57,29 @@ export function createGlassEngine({
     registry?.setMarked(false)
     onStatus('fallback')
   }
-  const lose = who => { lostFrom.add(who); applyPause(); goCss() }
+  const lose = who => {
+    if (who !== 'watchdog') recordFallback(who === 'error' ? 'error' : `context-lost:${who}`)
+    lostFrom.add(who)
+    applyPause()
+    goCss()
+  }
   const restore = who => { lostFrom.delete(who); applyPause() }
 
   const stats = createStats()
   const chromeGl = createChromePresenter()
   const sprites = createSpritePresenter(spriteOpts)
-  if (!chromeGl.mount(host, { onLost: () => lose('chrome'), onRestored: () => restore('chrome') })) { onStatus('fallback'); return null }
+  if (!chromeGl.mount(host, { onLost: () => lose('chrome'), onRestored: () => restore('chrome') })) {
+    recordFallback('mount-failed:chrome')
+    onStatus('fallback')
+    return null
+  }
   const spritesOk = sprites.mount({
     onReady: el => { if (live) registry?.mark(el, true) },
     onRelease: el => registry?.mark(el, false),
     onLost: () => lose('sprite'),
     onRestored: () => restore('sprite'),
   })
-  if (!spritesOk) { chromeGl.dispose(); onStatus('fallback'); return null }
+  if (!spritesOk) { chromeGl.dispose(); recordFallback('mount-failed:sprite'); onStatus('fallback'); return null }
 
   const probe = createMaterialProbe(host)
   // A loss that will not be restored (a trip, a throwing frame) frees the canvases and sprite memory now:
@@ -235,6 +244,7 @@ export function createGlassEngine({
     const drew = drewChrome || sp.drew
     if (drew && !live && lostFrom.size === 0) {
       live = true
+      clearFallback()
       registry.setMarked(true)
       onStatus('webgl')
     }

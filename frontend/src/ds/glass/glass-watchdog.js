@@ -19,6 +19,23 @@ const median = list => {
   return sorted[Math.floor(sorted.length / 2)]
 }
 
+// Why the glass is on the CSS material, for the owner to read when it happens on a device (the dev HUD, or
+// sessionStorage `lg-off-reason`): 'watchdog:cpu 7.2ms', 'watchdog:interval 41ms', 'context-lost:chrome',
+// 'mount-failed:chrome', 'no-webgl', 'reduced-transparency', 'error'. Cleared when the glass draws again.
+export const REASON_KEY = 'lg-off-reason'
+
+export function recordFallback(reason) {
+  try { sessionStorage.setItem(REASON_KEY, reason) } catch { /* storage is a convenience */ }
+}
+
+export function clearFallback() {
+  try { sessionStorage.removeItem(REASON_KEY) } catch { /* see above */ }
+}
+
+export function fallbackReason() {
+  try { return sessionStorage.getItem(REASON_KEY) || '' } catch { return '' }
+}
+
 /** True when an earlier trip in this session switched the glass off. Storage can throw (private mode). */
 export function glassIsOff() {
   try { return sessionStorage.getItem(OFF_KEY) === '1' } catch { return false }
@@ -41,6 +58,7 @@ export function createWatchdog({ onTrip }) {
   let bad = 0
   let last = 0
   let tripped = false
+  let why = ''
 
   const restart = () => { cpu = []; gaps = []; started = 0; bad = 0 }
 
@@ -52,13 +70,17 @@ export function createWatchdog({ onTrip }) {
     if (drew) cpu.push(cpuMs)
     gaps.push(intervalMs)
     if (nowMs - started < WINDOW_MS) return
-    const slow = (cpu.length >= MIN_DRAWN && median(cpu) > CPU_MS) || (gaps.length >= MIN_SAMPLES && median(gaps) > INTERVAL_MS)
+    const cpuMed = cpu.length >= MIN_DRAWN ? median(cpu) : 0
+    const gapMed = gaps.length >= MIN_SAMPLES ? median(gaps) : 0
+    const slow = cpuMed > CPU_MS || gapMed > INTERVAL_MS
+    if (slow) why = cpuMed > CPU_MS ? `watchdog:cpu ${cpuMed.toFixed(1)}ms` : `watchdog:interval ${gapMed.toFixed(1)}ms`
     cpu = []
     gaps = []
     started = nowMs
     bad = slow ? bad + 1 : 0
     if (bad >= BAD_WINDOWS) {
       tripped = true
+      recordFallback(why)
       remember()
       onTrip()
     }

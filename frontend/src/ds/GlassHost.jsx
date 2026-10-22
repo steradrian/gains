@@ -8,6 +8,7 @@ import { useStageLook } from '../lib/use-stage-look.js'
 import { useUI } from '../store/useUI.js'
 import { createGlassEngine } from './glass/glass-engine.js'
 import { readPrefs } from './glass/glass-prefs.js'
+import { recordFallback } from './glass/glass-watchdog.js'
 
 // Liquid glass host: one per stage ground. It draws every glass shape under the ground into WebGL
 // canvases that refract the real stage (the look engine's own shader), and tells the page what to paint
@@ -73,6 +74,7 @@ export default function GlassHost({
   const sync = () => {
     const s = stateRef.current
     const lg = s.reduced ? 'reduced' : s.engine === 'webgl' && !s.noStage ? 'gl' : 'css'
+    if (lg === 'css' && s.engine === 'webgl' && s.noStage) recordFallback('no-stage')
     if (document.documentElement.dataset.lg !== lg) document.documentElement.dataset.lg = lg
     engineRef.current?.setFrozen(s.reduced || s.noStage || s.sheet || s.search || s.hidden)
   }
