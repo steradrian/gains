@@ -345,6 +345,8 @@ function Shell() {
     if (MOBILE) setSystemBarsLight(isLightColor(chrome))
   }, [chrome])
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
+  // Liquid glass: the tuning page draws its own stage and GlassHost, so it returns before the app shell's.
+  if (import.meta.env.DEV && shown.pathname === '/dev/glass') return <Suspense fallback={null}><DevGlass /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
   )

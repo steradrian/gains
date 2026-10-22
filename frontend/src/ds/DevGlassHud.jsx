@@ -3,15 +3,16 @@ import { createPortal } from 'react-dom'
 
 // The liquid-glass HUD on #/dev/glass (M3's device gate): the engine's own numbers, read four times a
 // second from GlassHost's statsRef, and the presenter switch, one tap. It renders into <body>, outside the
-// glass ground, so its updates never wake the glass. Every timing is the median / 95th percentile over the
-// last 2 s of samples, so after a fling stops it keeps showing that fling. English only, like #/dev/kit.
+// glass ground, so its updates never wake the glass. Every timing is the mean / 95th percentile over the
+// last 2 s of samples (the mean, because WebKit rounds performance.now() to 1 ms), so after a fling stops
+// it keeps showing that fling. English only, like #/dev/kit.
 
 const POLL_MS = 250
 export const REFRESH_BUDGET_MS = 4 // plan 2.8: a throttled sprite refresh may cost this much main thread
 const CPU_BUDGET_MS = 6 // the watchdog's limits (glass-watchdog.js)
 const INTERVAL_BUDGET_MS = 24
 
-const ms = s => (s ? `${s.p50.toFixed(1)} / ${s.p95.toFixed(1)} ms` : '-')
+const ms = s => (s ? `${s.mean.toFixed(2)} / ${s.p95.toFixed(1)} ms` : '-')
 const px = s => (s ? `${s.p95.toFixed(0)} px (max ${s.max.toFixed(0)})` : '0 px')
 const mb = n => `${((n || 0) / 1048576).toFixed(1)} MB`
 
@@ -21,6 +22,7 @@ export function hudRows(snap, presenter) {
   const sprite = presenter === 'sprite'
   const wouldTrip = (snap.frame?.p50 ?? 0) > CPU_BUDGET_MS || (snap.interval?.p50 ?? 0) > INTERVAL_BUDGET_MS
   const rows = [
+    { key: 'unit', label: 'Timings', value: 'avg / p95, last 2 s' },
     { key: 'frame', label: 'Frame CPU', value: ms(snap.frame), bad: (snap.frame?.p50 ?? 0) > CPU_BUDGET_MS },
     { key: 'interval', label: 'rAF interval', value: ms(snap.interval), bad: (snap.interval?.p50 ?? 0) > INTERVAL_BUDGET_MS },
     { key: 'draw', label: 'GL draw', value: ms(snap.draw) },
@@ -31,7 +33,7 @@ export function hudRows(snap, presenter) {
     rows.push({ key: 'latency', label: 'Bitmap latency', value: ms(snap.latency) })
   }
   rows.push(
-    { key: 'refresh', label: `Refresh (gate ${REFRESH_BUDGET_MS} ms)`, value: g.sprites !== undefined ? ms(snap.refresh) : '-', bad: (snap.refresh?.p95 ?? 0) > REFRESH_BUDGET_MS },
+    { key: 'refresh', label: `Refresh (gate ${REFRESH_BUDGET_MS})`, value: g.sprites !== undefined ? ms(snap.refresh) : '-', bad: (snap.refresh?.p95 ?? 0) > REFRESH_BUDGET_MS },
     // The fixed presenter draws where the element was when the frame began; on iOS the page has moved at
     // least one frame further by the time it shows, so its rim trails by at least the per-frame movement.
     { key: 'rim', label: 'Rim lag', value: sprite && !g.compare ? '0 px (in element)' : `≥ ${px(snap.move)}` },

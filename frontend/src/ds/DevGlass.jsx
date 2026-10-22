@@ -107,7 +107,7 @@ export default function DevGlass() {
   const rootRef = useRef(null)
   const statsRef = useRef(null)
   const gl = mode === 'gl'
-  const stored = (name, set) => value => { set(value); writePref(name, value); setStatus(null) }
+  const stored = (name, set) => value => { set(value); writePref(name, value) }
   const options = `${presenter}, ${copy === 'bitmap' ? 'bitmap' : 'drawImage'}, cards ${cardDpr}x, shadow ${shadow === 'css' ? 'CSS' : 'GL'}${compare ? ', compare on (numbers include both)' : ''}`
 
   const pick = key => { setMode(key); setStatus(null) }

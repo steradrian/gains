@@ -7,7 +7,7 @@ import StageNavBar from './StageNavBar.jsx'
 // presenter the rims trail the content on iOS; with sprites they ride with it. English only.
 
 const NOOP = () => {}
-const ICONS = ['utensils', 'droplet', 'scale', 'flame', 'sunrise', 'moon', 'scanBarcode', 'search']
+const ICONS = ['utensils', 'droplet', 'scale', 'flame', 'sunrise', 'moon', 'scanBarcode', 'magnifier']
 const RAIL = Array.from({ length: 12 }, (_, i) => i)
 // 30 cards, with a row of two discs after every third card from the second on: 20 discs.
 const ROWS = Array.from({ length: 30 }, (_, i) => ({ card: i, discs: i % 3 === 1 ? [(i - 1) / 3 * 2, (i - 1) / 3 * 2 + 1] : null }))
@@ -23,7 +23,7 @@ function Disc({ n }) {
 export default function DevGlassScroll() {
   return (
     <section className="gl-scroll" aria-label="Scroll test">
-      <StageNavBar title="Scroll test" onBack={NOOP} actions={[{ icon: 'search', label: 'Search', onClick: NOOP }]} />
+      <StageNavBar title="Scroll test" onBack={NOOP} actions={[{ icon: 'magnifier', label: 'Search', onClick: NOOP }]} />
       <div className="gl-rail" aria-label="Rail">
         {RAIL.map(i => <Disc key={i} n={i} />)}
       </div>
