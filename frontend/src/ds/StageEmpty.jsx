@@ -1,7 +1,9 @@
 import Icon from '../components/Icon.jsx'
 import { reducedMotion } from '../lib/reduced-motion.js'
 import { cx } from '../lib/ui-kit.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import Act from './Act.jsx'
+import HapticSwitch from './HapticSwitch.jsx'
 import Illustration from './Illustration.jsx'
 
 // The empty state of a stage page (bundle.js `StageEmpty`, boards T2.9 and later empties): a glass
@@ -10,7 +12,8 @@ import Illustration from './Illustration.jsx'
 // every time the page shows, and is simply there under reduced motion), a title, a
 // line, then buttons. `action` with `href` / `onClick` is the one white button; `actions` adds
 // more under it, [{ label, icon, href, onClick, solid }], glass unless `solid`, as T2.9 draws
-// three (the bundle allows one). With `card={false}` it sits on the stage bare (search,
+// three (the bundle allows one); `haptic: true` makes a button tick when tapped, for a one-tap
+// commit and never a navigation (ds/Button's rule). With `card={false}` it sits on the stage bare (search,
 // notifications). `tone="light"` is for a light drawer (the Log food sheet), where white on the
 // white surface would vanish. Strings come from the caller.
 export default function StageEmpty({ icon = 'info', illustration, title, body, action, href, onClick, actions = [], card = true, tone = 'stage' }) {
@@ -25,9 +28,10 @@ export default function StageEmpty({ icon = 'info', illustration, title, body, a
       {buttons.length > 0 && (
         <div className="g-sempty-acts">
           {buttons.map(a => (
-            <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-sempty-btn', a.solid && 'solid')}>
+            <Act key={a.label} href={a.href} onClick={a.haptic ? e => { buzz('light'); a.onClick?.(e) } : a.onClick} className={cx('g-sempty-btn', a.solid && 'solid', a.haptic && !a.href && 'g-haptic')}>
               {a.icon && <Icon name={a.icon} className="g-icon" />}
               {a.label}
+              {a.haptic && !a.href && <HapticSwitch />}
             </Act>
           ))}
         </div>

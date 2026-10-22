@@ -27,7 +27,9 @@ function NavBinder() {
 
 // What a state's `play` has to bring a screen to a state only input reaches.
 function tools(host) {
+  // A button, or a row (GlassList, a menu row) whose bold title is the text, with a line under it.
   const find = (selector, text) => [...host.querySelectorAll(selector)].find(el => el.textContent === text)
+    || [...host.querySelectorAll(selector)].find(el => [...el.querySelectorAll('b')].some(b => b.textContent === text))
   const field = label => {
     const wrapped = [...host.querySelectorAll('.g-tfield')].find(f => f.querySelector('.g-tfield-label')?.textContent === label)?.querySelector('input')
     return wrapped || host.querySelector(`input[aria-label="${label}"]`)

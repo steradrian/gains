@@ -66,9 +66,11 @@ export function whenSheetGone(fn) {
 // A sheet that swaps the page under it (Progress › Body's Add photo from Weight): the page must
 // not stay in history, or back lands on the page it replaced. The sheet's entry is walked off
 // first, then the page itself is replaced.
-export function closeThenReplace(close, to) {
+// `state` is route state for the new page (Leave group tells Groups who was left; Remove from group
+// tells the group page who was removed).
+export function closeThenReplace(close, to, state) {
   wholeDrawer(close)()
-  whenSheetGone(() => nav(to, { replace: true }))
+  whenSheetGone(() => nav(to, state ? { replace: true, state } : { replace: true }))
 }
 
 // Into the workout screen: from the routine chooser (already #/train/workout) or from a sheet's

@@ -2,7 +2,7 @@
 // Which rows the Settings root shows on which device (root-groups.js), where each goes, and the slots.
 import { describe, expect, it } from 'vitest'
 import { PAGES } from '../settings-pages.js'
-import { ROOT_GROUPS, rootGroups, rowPath } from './root-groups.js'
+import { ROOT_GROUPS, ROOT_ROW_SLOTS, rootGroups, rowPath } from './root-groups.js'
 
 const ids = (ctx, slots) => rootGroups(ctx, slots).flatMap(g => g.rows.map(r => r.id))
 const titles = ctx => rootGroups(ctx).map(g => g.title)
@@ -51,5 +51,11 @@ describe('rootGroups', () => {
     const groups = rootGroups({ user: null }, { yours: [{ id: 'groups', title: 'Groups', to: '/me/groups', visible: () => true }], track: [] })
     expect(groups[0].rows.map(r => r.id)).toEqual(['appearance', 'units', 'groups'])
     expect(groups.map(g => g.key)).not.toContain('track-empty')
+  })
+
+  it('Friends core m1: the Groups row sits in Keep you on track, goes to /me/groups and is hidden where Friends does not exist', () => {
+    expect(ROOT_ROW_SLOTS.track.map(r => r.id)).toEqual(['groups'])
+    expect(rowPath(ROOT_ROW_SLOTS.track[0])).toBe('/me/groups')
+    expect(ids({ user: null })).not.toContain('groups')
   })
 })

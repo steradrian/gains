@@ -9,6 +9,7 @@ import { copyText } from '../lib/clipboard.js'
 import { nav } from '../lib/nav.js'
 import { openInBrowserLabel } from '../lib/open-in-browser.js'
 import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { pendingGroupCode } from '../lib/friends/pending-group.js'
 import { useState, useRef, useEffect } from 'react'
 import { Button as AppButton, Segmented } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
@@ -92,7 +93,8 @@ const dismissed = e => e?.name === 'NotAllowedError' || e?.name === 'AbortError'
 // one is a new alert, which shakes and takes focus again. "Add this device" (S0.4–S0.6) is a route
 // of its own (views/AddDevice.jsx); the password drawers (S0.7–S0.9) are sheets (components/PasswordAuth.jsx).
 // `demo` is the build's (lib/demo.js); the screens gallery passes it to show the demo's variant.
-export default function Login({ demo = DEMO }) {
+// `pendingGroup` is whether a group link is waiting (Friends core m2): the note then says the link still works once in.
+export default function Login({ demo = DEMO, pendingGroup = !!pendingGroupCode() }) {
   const { setUser, adoptProfile, setGuest } = useStore()
   const config = useStore(s => s.config)
   const canGuest = guestAllowed(config)
@@ -196,7 +198,8 @@ export default function Login({ demo = DEMO }) {
   const failedNow = at.kind === 'failed'
   return screen(<>
     {head}
-    {inviteOnly && !failedNow && <p className="si-note">{t('Gains is invite-only. New here? Open the invite link a friend sent you.')}</p>}
+    {inviteOnly && !failedNow && !pendingGroup && <p className="si-note">{t('Gains is invite-only. New here? Open the invite link a friend sent you.')}</p>}
+    {pendingGroup && !failedNow && <p className="si-note">{t('Gains is invite-only. Ask an admin for an app invite; this group link still works once you are in.')}</p>}
   </>, <>
     {failedNow && <StageAlert key={at.n} action={t('Having trouble?')} onAction={trouble}>{at.message}</StageAlert>}
     <Button block icon="scanFace" onClick={signIn}>{failedNow ? t('Try again') : t('Sign in with passkey')}</Button>

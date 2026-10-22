@@ -8,6 +8,7 @@
 // for it still opens at that switch (the settings `find` contract, views/Settings.jsx). Titles and
 // keywords are English keys, translated when shown. results.test.js holds every path here to a
 // route in App.jsx. `tab` is the tab that owns the page: Progress is Me's.
+import { friendsAvailable } from '../friends/api.js'
 import { PROGRESS_ROOT, TAB_ROOT } from '../tab-route.js'
 
 const nutrition = c => (c.nutrition ? 'on' : 'hidden')
@@ -47,6 +48,8 @@ export const PAGE_INDEX = [
   { path: '/progress/load', tab: 'me', title: 'Training load', glyph: 'flame', kw: 'volume sets muscles activity weekly' },
   { path: '/progress/trends', tab: 'me', title: 'Nutrition trends', glyph: 'chart', kw: 'calories protein macros over time', gate: nutrition },
   { path: '/progress/recovery', tab: 'me', title: 'Recovery', glyph: 'heart', kw: 'sleep hrv resting heart rate wearable', gate: nutrition },
+  // Friends core m1: only where Friends exists (a signed-in person on a server that has it)
+  { path: '/me/groups', tab: 'me', title: 'Groups', glyph: 'users', kw: 'friends group cheers challenges together share invite', gate: () => (friendsAvailable() ? 'on' : 'hidden') },
 ]
 
 export const TAB_TITLE = { home: 'Home', train: 'Training', food: 'Nutrition', me: 'Me' }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { highestStamp, stampChange, keepReset, localExtras, mergeDeletions, stampDeletions, stampEdits, mergeBodyweight, mergeResetIds, mergeStampedMap, mergeStates, newerOf, resetIdsOf, RESET_ID_MAX, sinceReset, stampCustomEx, stampRoutines, stampWorkout, unionById } from './sync-merge.js'
+import { highestStamp, stampChange, keepReset, localExtras, mergeDeletions, stampDeletions, stampEdits, stampEntry, mergeBodyweight, mergeResetIds, mergeStampedMap, mergeStates, newerOf, resetIdsOf, RESET_ID_MAX, sinceReset, stampCustomEx, stampRoutines, stampWorkout, unionById } from './sync-merge.js'
 import { mergeImport } from './import-csv.js'
 import { convertBodyWeight, convertStateUnit, convertWeight } from './units.js'
 import { retimeWorkout } from './workout-date.js'
@@ -1132,5 +1132,53 @@ describe('a routine entry\'s part merges like any routine field', () => {
     const phone = base({ _ts: 100, routines: [r('push', 'cooldown', 10)] })
     const desk = base({ _ts: 200, routines: [r('push', null, 150)] })
     expect(mergeStates(phone, desk).routines.find(x => x.id === 'push').ex[0].part).toBeUndefined()
+  })
+})
+
+// Friends surfaces m2: `workout.share` rides with the workout copy edited last (stampWorkout), and
+// `S.targetsReached` is a plain setting stamped as a whole (stampEdits), so the device that
+// recomputed it last decides, an empty map (Friends turned off) included.
+describe('workout.share and targetsReached merge', () => {
+  const w = (over = {}) => ({ id: 'w1', d: '2026-10-18', start: 5, end: 9, entries: [], ...over })
+
+  it('a share set on one device survives the other\'s older copy, both ways round', () => {
+    const phone = base({ _ts: 200, workouts: [w({ share: { off: true }, _ts: 200 })] })
+    const desk = base({ _ts: 100, workouts: [w()] })
+    expect(mergeStates(phone, desk).workouts[0].share).toEqual({ off: true })
+    expect(mergeStates(desk, phone).workouts[0].share).toEqual({ off: true })
+  })
+
+  it('a share chosen on one device and a note written on the other are both kept', () => {
+    const old = w({ _ts: 50 })
+    const phone = base({ _ts: 200, workouts: [stampEntry(old, w({ share: { off: true } }), 200)] })
+    const desk = base({ _ts: 300, workouts: [stampEntry(old, w({ note: 'Felt strong' }), 300)] })
+    for (const m of [mergeStates(phone, desk), mergeStates(desk, phone)]) {
+      expect(m.workouts[0].share).toEqual({ off: true })
+      expect(m.workouts[0].note).toBe('Felt strong')
+    }
+  })
+
+  it('a share removed later is gone after the merge', () => {
+    const phone = base({ _ts: 100, workouts: [w({ share: { best: ['0227'] }, _ts: 100 })] })
+    const desk = base({ _ts: 300, workouts: [w({ _ts: 300 })] })
+    expect('share' in mergeStates(phone, desk).workouts[0]).toBe(false)
+    expect('share' in mergeStates(desk, phone).workouts[0]).toBe(false)
+  })
+
+  it('targetsReached recomputed on one device wins over the other\'s older map, even when that copy is newer overall', () => {
+    const prev = base({ _ts: 1 })
+    const phone = stampEdits(prev, base({ _ts: 10, targetsReached: { '2026-10-16': { all: true, protein: true } } }), 10)
+    const desk = stampEdits(prev, base({ _ts: 20, restSec: 60 }), 20)
+    for (const m of [mergeStates(phone, desk), mergeStates(desk, phone)]) {
+      expect(m.targetsReached).toEqual({ '2026-10-16': { all: true, protein: true } })
+      expect(m.restSec).toBe(60)
+    }
+  })
+
+  it('clearing the map later wins over an earlier map', () => {
+    const prev = base({ _ts: 1, targetsReached: { '2026-10-16': { all: false, protein: true } } })
+    const earlier = stampEdits(prev, base({ _ts: 10, targetsReached: { '2026-10-16': { all: true, protein: true } } }), 10)
+    const cleared = stampEdits(prev, base({ _ts: 30, targetsReached: {} }), 30)
+    for (const m of [mergeStates(earlier, cleared), mergeStates(cleared, earlier)]) expect(m.targetsReached).toEqual({})
   })
 })

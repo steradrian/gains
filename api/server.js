@@ -41,6 +41,13 @@ import { hubKeysFromEnv } from './hub-token.js';
 import { syncRoutes } from './sync-routes.js';
 import { coachCadenceOn } from './reminder-context.js';
 import { createAggregator } from './audit-aggregate.js';
+// Friends api m1
+import { friendsRoutes, friendsRouteKey } from './friends/routes.js';
+import { purgeUser as purgeFriends } from './friends/purge.js';
+// Friends api m2
+import { invalidateMember as invalidateFriendsMember } from './friends/cache.js';
+// Friends api m3
+import { runDigest as runFriendsDigest } from './friends/digest.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -634,6 +641,17 @@ if (!PUSH_SCHEDULER_EXTERNAL) setInterval(() => {
     } catch (e) {
       console.error('reminder tick', user.id, e);
     }
+  }
+  // Friends api m3: the evening cheer digest, on each person's own S.reminder.tz. Unlike the
+  // reminder above, no tz means no push, never UTC (friends/digest.js).
+  try {
+    runFriendsDigest({
+      users: db.users, stateOf: readStateCached, nowIn: userNow, deletionScheduled,
+      hasSub: uid => db.subs.some(s => s.userId === uid),
+      send: (uid, payload) => { sendPush(uid, payload); }
+    });
+  } catch (e) {
+    console.error('friends digest', e);
   }
 // Checked every 10s (not 60s) — ticks aren't aligned to the top of the minute, so a 60s
 // interval could sit on your target minute for up to 59s before noticing. 10s caps that at ~9s.
@@ -2083,6 +2101,10 @@ function deleteUserData(u, { req = null, actor = null, auditKind }) {
   db.subs = (db.subs || []).filter(x => x.userId !== u.id);
   dropDeviceLinks(db, u.id);
   presence.delete(u.id);
+  // Friends api m1: out of every group, invite and invitation (friends/purge.js, its own file).
+  // A failure is logged and the delete goes on: a member whose account is gone is skipped on
+  // every Friends read anyway.
+  try { purgeFriends(u.id); } catch (e) { console.error('friends purge failed for', u.id, e.message); }
   saveDb();
   // Logged with the name, because the id is about to mean nothing to anyone reading this back.
   audit(req, auditKind, actor ? { user: actor, msg: name } : { uid: u.id, msg: name });
@@ -2602,6 +2624,7 @@ const routes = {
     // the old revision until some later write happened to land on a different tick. The writers of
     // a state file are this route and commitState below (the sync hub's weigh-ins), and each evicts.
     stateCache.delete(user.id);
+    invalidateFriendsMember(user.id);  // Friends api m2: their group projections are of the old state
     // Starts (or stops) the grace clock of every stored file this write stopped (or started)
     // referencing. Bookkeeping only: the state is already saved, so nothing here may turn a
     // successful write into an error.
@@ -2891,6 +2914,11 @@ const routes = {
   // a cycle. Every one of them is inert while the feature is unconfigured.
   ...coachRoutes({ json, readBody, readSession, requireAdmin }),
 
+  /* ---------- Friends api m1 ---------- */
+  // Groups, invites and sharing live in friends/routes.js, handed the helpers like the Coach's.
+  // Its paths with parameters reach it through friendsRouteKey in the dispatcher below.
+  ...friendsRoutes({ json, readBody, readSession, limitAddress, users: () => db.users, deletionScheduled }),
+
   /* ---------- photos & videos ---------- */
   // Absent, not refusing, when MEDIA_UPLOADS=0: a 404 is what a server from before the feature
   // answers, and the client already treats that as "this server does not store them".
@@ -3013,6 +3041,9 @@ const server = http.createServer(async (req, res) => {
   if (sd) { key = req.method + ' /api/sync/bodyweight/{date}'; req.syncDate = sd[1]; }
   const ic = /^\/api\/invites\/([^/]+)$/.exec(url.pathname);
   if (ic) { key = req.method + ' /api/invites/{code}'; req.inviteCode = ic[1]; }
+  // Friends api m1: /api/friends/groups/{id}/..., /api/friends/join/{code}.
+  const fk = friendsRouteKey(url.pathname);
+  if (fk) { key = req.method + ' ' + fk.template; req.friendsParams = fk.params; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
   if (!csrfOk(req, key)) {

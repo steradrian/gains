@@ -6,6 +6,8 @@
 // find its row on the page by the same text and flash it (settings/use-flash-row.js).
 // settings-pages.test.jsx renders every page and checks that each entry below really is a row there.
 import { t } from '../lib/i18n.js'
+import { friendsAvailable } from '../lib/friends/api.js'
+import { getFriends } from '../lib/friends/store.js'
 import { THEMES } from '../lib/themes.js'
 import { MEAL_NAMES_MAX } from '../lib/nutrition/settings-lists.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
@@ -121,6 +123,7 @@ export const SEARCH = [
   { page: 'background', title: 'Intensity', icon: 'image', tint: 'var(--purple)', kw: 'background look strength quiet bold slider texture', opts: ['Classic', 'Linen', 'Lines', 'Florals', 'Silk', 'Bloom'] },
   // Features (the NutriTrace switches whose only home is here)
   { page: 'features', title: 'Fasting', icon: 'timer', tint: 'var(--indigo)', kw: 'fast fasting intermittent 16:8 omad', when: c => !!c.nutrition, feature: (S, c) => !!c.fastingOn },
+  { page: 'features', title: 'Friends', icon: 'users', tint: 'var(--teal)', kw: 'friends groups share social challenge invite cheer', when: () => friendsAvailable(), feature: () => !!getFriends().me?.on },
   // Diary & meals
   { page: 'diary', title: 'Show macro summary', icon: 'chart', tint: 'var(--teal)', kw: 'protein carbs fat bar meal card diary home', when: ntOn },
   { page: 'diary', title: 'Show brand names', icon: 'apple', tint: 'var(--green)', kw: 'brand diary food row home', when: ntOn },
