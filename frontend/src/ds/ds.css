@@ -2568,3 +2568,23 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-crow-body b { font: 600 17px/22px var(--font-sans); }
 .g-crow-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-crow-body small { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); opacity: .85; }
+
+/* Friends challenge m1: SharedBar (one bar a group fills, a colour per person) and the challenge page's
+   count, caption and Who's in rows. Glass is the kit's `.g-glass`; nothing here draws its own material. */
+.g-sbar { display: block; height: 22px; border-radius: 11px; background: var(--glass-track); overflow: hidden; }
+.g-sbar-fill { display: flex; height: 100%; animation: g-sbar-in 600ms cubic-bezier(.32,.72,0,1) both; }
+.g-sbar-seg { display: block; flex: 0 1 0; height: 100%; background: var(--mtone-bg); transition: flex-basis 480ms cubic-bezier(.32,.72,0,1); }
+.g-sbar-seg + .g-sbar-seg { margin-inline-start: 2px; }
+@keyframes g-sbar-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+[dir="rtl"] .g-sbar-fill { animation-name: g-sbar-in-rtl; }
+@keyframes g-sbar-in-rtl { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .g-sbar-fill { animation: none; } .g-sbar-seg { transition: none; } }
+.g-cprog { display: flex; flex-direction: column; gap: 14px; padding: 8px 20px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-ccount { display: flex; flex-direction: column; gap: 2px; text-align: start; }
+.g-ccount b { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-ccount span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-cnote { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-cstreak { display: block; margin-top: 10px; font: 600 15px/20px var(--font-sans); color: var(--on-stage); }
+.g-cend { font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-stage-2); }
+.g-mrow-dim { opacity: 0.55; }
+.g-jsheet-h { margin: 8px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
