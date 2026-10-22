@@ -1,6 +1,6 @@
 import { previewRows } from '../../../lib/friends/share-copy.js'
 import { __setMockFriends } from '../../../lib/friends/store.js'
-import { todayISO } from '../../../lib/format.js'
+import { todayISO, weekKey } from '../../../lib/format.js'
 import { plusDays } from '../../../lib/missed-day.js'
 
 // The Friends gallery's shared mock (PR-09): the group "Iron Sunday", the person's switches and
@@ -79,3 +79,92 @@ export const PREVIEW = previewRows(SHARE, PREVIEW_STATE, TODAY)
  * component that mounts with the screen (FriendsMock in friends-core.jsx).
  */
 export const mockFriends = ({ me, groups }) => __setMockFriends({ me, groups })
+
+// Friends challenge m1: the challenge pages' mock (GET /groups/{id}/challenges/{cid}). Dates are
+// built from today so a state never shows a stale week; a variant spreads one, nothing is mutated.
+const MONDAY = weekKey(TODAY)
+const PEOPLE = [['u-adrian', 'Adrian'], ['u-mara', 'Mara'], ['u-radu', 'Radu'], ['u-ioana', 'Ioana'], ['u-vlad', 'Vlad']]
+const joinedOf = (counts, planned = 3, people = PEOPLE) => people.map(([uid, name], i) => ({ uid, name, count: counts[i], planned }))
+
+/** Everyone trains 3x this week, running, the viewer in: 12 of 15, Radu started it. */
+export const CHALLENGE_ACTIVE = {
+  id: 'c-trains-3',
+  template: 'workouts',
+  title: 'Everyone trains 3× this week',
+  detail: 'Counts finished workouts',
+  span: 'week',
+  state: 'active',
+  start: MONDAY,
+  end: plusDays(MONDAY, 6),
+  total: 12,
+  goal: 15,
+  joined: joinedOf([2, 3, 3, 3, 1]),
+  invited: [],
+  you: { in: true },
+  startedBy: { uid: 'u-radu', name: 'Radu' },
+}
+
+/** The same challenge before the viewer says yes: four are in, the viewer is invited. */
+export const CHALLENGE_NOT_JOINED = {
+  ...CHALLENGE_ACTIVE,
+  total: 9,
+  goal: 12,
+  joined: joinedOf([3, 2, 3, 1], 3, PEOPLE.slice(1)),
+  invited: ['u-adrian'],
+  you: { in: false },
+}
+
+/** Protein target, three of five in so far: two invited and not joined, shown dimmed. */
+export const CHALLENGE_THREE = {
+  ...CHALLENGE_ACTIVE,
+  id: 'c-protein',
+  template: 'protein',
+  title: 'Protein target 5 of 7 days',
+  detail: 'Counts days each of you reached it',
+  total: 8,
+  goal: 15,
+  joined: joinedOf([3, 2, 3], 5, PEOPLE.slice(0, 3)),
+  invited: ['u-ioana', 'u-vlad'],
+}
+
+/** Finished last week with the goal hit: 15 of 15, the goal hit five weeks in a row. */
+export const CHALLENGE_DONE = {
+  ...CHALLENGE_ACTIVE,
+  state: 'done',
+  start: plusDays(MONDAY, -7),
+  end: plusDays(MONDAY, -1),
+  total: 15,
+  goal: 15,
+  joined: joinedOf([3, 3, 3, 3, 3]),
+  streak: 5,
+}
+
+/** Done for the first time: no run of weeks to say. */
+export const CHALLENGE_DONE_NO_STREAK = { ...CHALLENGE_DONE, streak: 0 }
+
+/** Ended short of the goal: 11 of 15, said as how far the group got and nothing else. */
+export const CHALLENGE_MISSED = {
+  ...CHALLENGE_DONE,
+  state: 'missed',
+  total: 11,
+  joined: joinedOf([3, 3, 2, 2, 1]),
+  streak: 0,
+}
+
+const trainingState = week => ({
+  unit: 'kg',
+  routines: [{ id: 'r-push', name: 'Push A', ex: [{ id: 'bench' }] }],
+  week,
+  dayPlan: {},
+  dayNotes: {},
+  missedSeen: {},
+  queue: null,
+  active: null,
+  workouts: [],
+})
+
+/** `mock.S` with Push A planned for today: the Start action shows. */
+export const PLANNED_TODAY_STATE = trainingState({ [new Date(TODAY + 'T12:00:00').getDay()]: ['r-push'] })
+
+/** `mock.S` with nothing planned today: no Start action. */
+export const REST_TODAY_STATE = trainingState({})
