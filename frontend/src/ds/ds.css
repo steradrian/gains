@@ -499,7 +499,12 @@ button.g-bs-chip { cursor: pointer; }
 .g-bs-x { appearance: none; border: 0; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }
 .g-bs-x .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
 .g-bs-pin { flex: none; }
-.g-bs-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+/* The body scrolls down, never sideways. A scroller in one axis is one in both, so content a few px
+   wider than the body (a menu list's 8px bleed) let iOS scroll it sideways (a field's focus reveal)
+   and leave it there, the body's left edge cut off under the clip. The body takes the kit's widest
+   bleed (8px) as room on both sides, where its content stays put, and does not scroll sideways
+   (components/sheet-panes.jsx puts back any sideways scroll something still makes). */
+.g-bs-body { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); }
 .g-bs-foot { flex: none; padding-top: 14px; display: grid; gap: 10px; }
 
 /* SegmentedControl: the chosen option's thumb slides (320ms, a slight overshoot); labels only change colour */
@@ -2368,7 +2373,7 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-bs-pane { flex: 1 1 auto; min-height: 0; padding-inline: 20px; background: inherit; }
 .sheet .g-bs-pane { padding-inline: 18px; }
 .g-bs-pane-ds { display: flex; flex-direction: column; overflow: hidden; }
-.g-bs-pane-legacy { overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(20px + var(--sab, 0px)); }
+.g-bs-pane-legacy { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(20px + var(--sab, 0px)); }
 :root[data-kb] .g-bs-pane-legacy { scroll-padding-bottom: 20px; }
 .g-bs-pane-sub, .g-bs-panes[data-deep] > .g-bs-pane-root { position: absolute; inset: 0; }
 .g-bs-pane-sub { z-index: 1; }
