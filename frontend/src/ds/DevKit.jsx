@@ -18,6 +18,8 @@ import DevKitTrainLoad from './DevKitTrainLoad.jsx'
 import DevKitWeek from './DevKitWeek.jsx'
 // Me body M1
 import DevKitMeBody from './DevKitMeBody.jsx'
+// Me photos M2
+import DevKitMePhotos from './DevKitMePhotos.jsx'
 // Workout drawer kit (drawers-M1)
 import DevKitWorkoutDrawers from './DevKitWorkoutDrawers.jsx'
 // Me changes M3
@@ -312,6 +314,8 @@ export default function DevKit() {
         <DevKitMeBody />
         {/* Me: changes */}
         <DevKitMeChanges />
+        {/* Me photos M2 */}
+        <DevKitMePhotos />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

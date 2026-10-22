@@ -9,7 +9,7 @@ import BodyRoute from './BodyRoute.jsx'
 
 // The other two tabs are the pages they were; this page only mounts them.
 vi.mock('../../Measurements.jsx', () => ({ default: () => <div data-testid="measurements" /> }))
-vi.mock('../../ProgressPhotos.jsx', () => ({ default: () => <div data-testid="photos" /> }))
+vi.mock('../photos/PhotosTab.jsx', () => ({ default: () => <div data-testid="photos" /> }))
 vi.mock('../../../lib/nutrition/sync.js', () => ({ syncNow: vi.fn(() => Promise.resolve()) }))
 vi.mock('../../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
 
