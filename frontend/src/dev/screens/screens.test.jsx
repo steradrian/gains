@@ -8,6 +8,7 @@ vi.mock('../../lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import { Stage } from './DevScreens.jsx'
 import { allScreens, screenAreas, screenById } from './registry.js'
 import { todayISO } from '../../lib/format.js'
+import { _setMediaStore, createMediaStore, memoryBackend } from '../../lib/media-store.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 
@@ -606,5 +607,39 @@ describe('the screens gallery', () => {
     expect(useStore.getState().setUser).toBe(before.setUser)
     expect(useStore.getState().config).toBe(before.config)
     expect(useStore.getState().user).toBe(before.user)
+  })
+
+  it('a Start over confirmed in the mocked Account page leaves this browser’s profile, media and storage alone', async () => {
+    const own = createMediaStore(memoryBackend())
+    await own.put('real-photo', new Blob(['x'], { type: 'image/jpeg' }), { mime: 'image/jpeg', pending: false })
+    _setMediaStore(own)
+    localStorage.setItem('gallery-test-marker', 'keep')
+    const resetEverything = vi.fn()
+    useStore.setState({ resetEverything })
+    await new Promise(resolve => setTimeout(resolve, 20))
+
+    const entry = {
+      ...screenById('A2.0'),
+      play: async t0 => {
+        await t0.wait(250)
+        const row = [...document.querySelectorAll('.g-danger-row')].find(r => r.querySelector('b')?.textContent === 'Start over')
+        if (!row) throw new Error('Start over row not found')
+        row.click()
+        await t0.click('Start over')
+        await t0.wait(400)
+      },
+    }
+    try {
+      await show(entry)
+      unmountAll()
+      await new Promise(resolve => setTimeout(resolve, 100))
+      expect(resetEverything).not.toHaveBeenCalled()
+      expect((await own.list()).map(r => r.hash)).toEqual(['real-photo'])
+      expect(localStorage.getItem('gallery-test-marker')).toBe('keep')
+      expect(useStore.getState().resetEverything).toBe(resetEverything)
+    } finally {
+      localStorage.removeItem('gallery-test-marker')
+      _setMediaStore(null)
+    }
   })
 })

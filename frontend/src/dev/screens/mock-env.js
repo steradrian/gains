@@ -4,12 +4,14 @@
 // the onboarding kept for this tab. The screens are the real ones; only what they call is
 // replaced, and everything is put back when the state is left.
 import { STORE_KEY } from '../../lib/onboarding/session.js'
+import { _setMediaStore, createMediaStore, getMediaStore, mediaStoreInUse, memoryBackend } from '../../lib/media-store.js'
 import { keepRecentsThroughUserSwap } from '../../lib/search/recents.js'
 import { useStore } from '../../store/useStore.js'
 
 // `sync` is saved and put back too, so a state that shows another sync status leaves none behind.
 // `resetEverything` (Start over, reachable from the Account states) does nothing here: the real one
-// would write a wiped copy over this browser's own.
+// would write a wiped copy over this browser's own. Start over's media wipe (retainOnly) goes to the
+// in-memory media store installed below, so no tap in the gallery can reach this browser's files.
 const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync', 'resetEverything']
 
 /** A passkey prompt the person closed. */
@@ -72,6 +74,12 @@ export function installMocks({ config = null, user = null, linkCode = null, weba
     pushState: async () => {}, pullState: async () => {}, resetEverything: async () => {},
   })
   undo.push(() => useStore.setState(saved))
+
+  // Photos and videos: the app's store is swapped for an empty in-memory one while a state shows,
+  // so the media wipe after Start over (and any other write to it) never touches this browser's.
+  const ownMedia = mediaStoreInUse() ? getMediaStore() : null
+  _setMediaStore(createMediaStore(memoryBackend()))
+  undo.push(() => _setMediaStore(ownMedia))
 
   const realFetch = globalThis.fetch
   globalThis.fetch = async (input, init = {}) => {
