@@ -5574,7 +5574,7 @@ components:
             planned: { type: integer }
         streak: { type: integer, description: 'Weeks in a row the goal was hit.' }
         goalLine: { $ref: '#/components/schemas/GroupGoal' }
-        challengeLine: { description: 'The running challenge, in words the client builds (api-m3). Absent until then.' }
+        challengeLine: { description: 'The running challenge, as data the client words (api-m3). Absent until then.' }
 
     GroupBrief:
       description: What creating or joining a group answers. The whole view is `Group`.
