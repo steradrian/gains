@@ -5,10 +5,12 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SettingsRoute } from './Settings.jsx'
+import { SettingsRoute } from './settings/SettingsRoute.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { useStore } from '../store/useStore.js'
 import { createFakeNutriTrace } from '../lib/nutrition/fake-nutritrace.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 globalThis.__APP_VERSION__ ??= 'test'
 

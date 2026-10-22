@@ -9,7 +9,7 @@ import { bwSheet, customExSheet, exerciseDetailSheet, logPastWorkoutSheet, start
 import { addRoutine } from '../views/routines/routine-actions.js'
 import { measurementLogSheet } from '../views/Measurements.jsx'
 import { pastWorkoutSheet } from '../views/shared/PastWorkoutSheet.jsx'
-import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { useFoodOn } from '../lib/nutrition/food-on.js'
 import { dayName } from '../lib/nutrition/log-feedback.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
@@ -54,10 +54,9 @@ export const dayOfPath = pathname => DAY_PAGE.exec(pathname || '')?.[1] || null
 // happens now (a fast, a gym check-in) is left out.
 function PlusSheet({ close, pathname, day }) {
   const S = useStore(s => s.S)
-  const user = useStore(s => s.user)
   const live = workoutRunning(S)
-  // Nutrition only where NutriTrace is reachable (the web app, signed in).
-  const food = nutritionAvailable(user)
+  // Nutrition only where NutriTrace is reachable (the web app, signed in) and Food is not off.
+  const food = useFoodOn()
   const target = useSheetTarget({ date: day })
   const [watering, setWatering] = useState(false)
   const units = useUnits()

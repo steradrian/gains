@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 //
-// The gym check-in screen itself. `moveGymCard` (the pure reorder helper) is already covered by
-// CheckIn.reorder.test.jsx, and the shape of the stored data by store/useStore.gymcards.test.jsx
-// — what was untested is the view: the rail's "reopen where you were" state machine, the remove
-// confirmation, and the add/edit sheet, which is the only thing in the app that turns a photo of
-// a membership card into synced profile data.
+// The gym card's add/edit drawer. `moveGymCard` (the pure reorder helper) is covered by
+// CheckIn.reorder.test.jsx, the shape of the stored data by store/useStore.gymcards.test.jsx, and
+// the page (the rail, remove with Undo, the rows) by settings/pages/GymPassPage.test.jsx. This
+// file is the drawer, the only thing in the app that turns a photo of a membership card into
+// synced profile data.
 //
 // These tests assert what reaches the store (and with which push flag), and what the sheet
 // refuses, rather than that anything rendered.
@@ -12,8 +12,6 @@
 // Traps this file is written around:
 //   · globalThis.IS_REACT_ACT_ENVIRONMENT = true is required.
 //   · el.value = x does NOT reach React — every value goes through the native prototype setter.
-//   · happy-dom reports clientWidth 0 for everything, and the rail divides by it, so the tests
-//     that touch scrolling install a width on HTMLElement.prototype for their duration.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -27,9 +25,6 @@ const mocks = vi.hoisted(() => ({
   sheets: [],          // every openSheet render fn, in order
   camera: null,        // the props the browser CameraScan sheet was handed
   toast: vi.fn(),
-  nav: vi.fn(),
-  back: vi.fn(),
-  confirmSheet: vi.fn(),
   scanCode: vi.fn(),
   importCodeFromImage: vi.fn(),
 }))
@@ -56,9 +51,6 @@ vi.mock('../store/useUI.js', () => {
   useUI.getState = snap
   return { useUI }
 })
-vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
-vi.mock('../lib/use-tab-nav.js', () => ({ back: (...a) => mocks.back(...a), isSwitching: () => false, switchTab: vi.fn(), popToRoot: vi.fn() }))
-vi.mock('../sheets.jsx', () => ({ confirmSheet: (...a) => mocks.confirmSheet(...a) }))
 vi.mock('../lib/scan.js', () => ({
   scanCode: (...a) => mocks.scanCode(...a),
   importCodeFromImage: (...a) => mocks.importCodeFromImage(...a),
@@ -71,13 +63,13 @@ vi.mock('../components/CameraScan.jsx', () => ({ default: props => { mocks.camer
 // draw is the part that matters here, so the stub simply reflects it back into the DOM.
 vi.mock('../components/QrCanvas.jsx', () => ({ default: ({ value }) => <i data-qr={value} /> }))
 
-import CheckIn, { openAddCard, openEditCard } from './CheckIn.jsx'
+import { openAddCard, openEditCard } from './CheckIn.jsx'
 
 /* ------------------------------- harness ------------------------------- */
 
 const card = (id, over = {}) => ({ id, label: id.toUpperCase(), value: 'code-' + id, fmt: 'qrcode', ...over })
 
-let host, root, sheetHost, sheetRoot, camHost, camRoot, widthSpy
+let sheetHost, sheetRoot, camHost, camRoot
 
 beforeEach(() => {
   mocks.S = { gymCards: [], lastGymCardId: null }
@@ -85,43 +77,20 @@ beforeEach(() => {
   mocks.writes.length = 0
   mocks.sheets.length = 0
   mocks.camera = null
-  mocks.toast.mockClear(); mocks.nav.mockClear(); mocks.confirmSheet.mockClear()
+  mocks.toast.mockClear()
   mocks.scanCode.mockReset(); mocks.importCodeFromImage.mockReset()
   update.mockClear()
-  host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
   sheetHost = document.createElement('div'); document.body.appendChild(sheetHost); sheetRoot = createRoot(sheetHost)
   camHost = document.createElement('div'); document.body.appendChild(camHost); camRoot = createRoot(camHost)
 })
 afterEach(() => {
   act(() => camRoot.unmount()); camHost.remove()
   act(() => sheetRoot.unmount()); sheetHost.remove()
-  act(() => root.unmount()); host.remove()
-  if (widthSpy) { delete HTMLElement.prototype.clientWidth; widthSpy = null }
 })
 
-// happy-dom has no layout: clientWidth is 0 everywhere and the rail divides by it. Give every
-// element the same slide width for the tests that care.
-const withRailWidth = w => {
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => w })
-  widthSpy = true
-}
-
-const mount = () => act(() => { root.render(<CheckIn />) })
-const rerender = () => act(() => { root.render(<CheckIn />) })
 const settle = () => act(async () => { await new Promise(r => setTimeout(r, 0)) })
 
-const rail = () => host.querySelector('.ci-rail')
-const faces = () => [...host.querySelectorAll('.ci-card')]
-const dots = () => [...host.querySelectorAll('.ci-dot')]
-const litDots = () => dots().map(d => d.className.includes('on'))
-const byLabel = (scope, label) => [...scope.querySelectorAll('[aria-label="' + label + '"]')]
-
-const scrollTo = px => act(() => {
-  rail().scrollLeft = px
-  rail().dispatchEvent(new Event('scroll', { bubbles: true }))
-})
-
-// Opens the sheet the view last asked for into its own root.
+// Renders the sheet the last openAddCard/openEditCard asked for into its own root.
 const openSheet = async () => {
   expect(mocks.sheets.length).toBeGreaterThan(0)
   const close = vi.fn()
@@ -130,7 +99,8 @@ const openSheet = async () => {
   return { close }
 }
 const sheetBtn = label => [...sheetHost.querySelectorAll('button')].find(b => b.textContent === label)
-const labelField = () => sheetHost.querySelector('input.field')
+const labelField = () => sheetHost.querySelector('.g-tfield input')
+const numberField = () => [...sheetHost.querySelectorAll('.g-tfield')].find(f => f.querySelector('.g-tfield-label')?.textContent === 'Card number')?.querySelector('input')
 const fileInput = () => sheetHost.querySelector('input[type="file"]')
 const tap = async el => { await act(async () => { el.click(); await new Promise(r => setTimeout(r, 0)) }) }
 const typeInto = (el, value) => act(() => {
@@ -140,192 +110,19 @@ const typeInto = (el, value) => act(() => {
 
 /* ================================ tests ================================ */
 
-describe('CheckIn — the rail reopens where you left it', () => {
-  it('opens on the last-used card rather than the first', () => {
-    withRailWidth(300)
-    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'c' }
-    mount()
-    expect(rail().scrollLeft).toBe(600)
-    expect(litDots()).toEqual([false, false, true, false])
-  })
+describe('the card drawer — adding a card', () => {
+  const openAdd = async (opts) => { openAddCard(opts); return openSheet() }
 
-  it('an id whose card was removed elsewhere falls back to the first card, not to nothing', () => {
-    withRailWidth(300)
-    mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'gone' }
-    mount()
-    expect(rail().scrollLeft).toBe(0)
-    expect(litDots()).toEqual([true, false, false])
-  })
-
-  it('settling on another card remembers it WITHOUT pushing a sync — a swipe is not a data change', () => {
-    withRailWidth(300)
-    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'a' }
-    mount()
-    mocks.writes.length = 0
-    scrollTo(600)
-    expect(mocks.S.lastGymCardId).toBe('c')
-    expect(mocks.writes).toEqual([{ push: false }])
-  })
-
-  it('a nudge that settles back on the same card writes nothing — only a real swipe counts', () => {
-    withRailWidth(300)
-    mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'a' }
-    mount()
-    scrollTo(320)
-    expect(mocks.S.lastGymCardId).toBe('b')
-    mocks.writes.length = 0
-    scrollTo(290)
-    scrollTo(312)
-    expect(mocks.writes).toEqual([])
-  })
-
-  it('swiping onto the trailing "+" slide lights its own dot and leaves the remembered card alone', () => {
-    withRailWidth(300)
-    mocks.S = { gymCards: [card('a'), card('b')], lastGymCardId: 'b' }
-    mount()
-    mocks.writes.length = 0
-    scrollTo(600)                                     // the add slide
-    expect(litDots()).toEqual([false, false, true])
-    expect(mocks.S.lastGymCardId).toBe('b')
-    expect(mocks.writes).toEqual([])
-  })
-
-  it('a profile saved before gym cards existed opens empty and can still be given one', async () => {
+  it('a profile saved before gym cards existed can still be given one', async () => {
     mocks.MOBILE = true
     mocks.S = {}                                    // no gymCards key at all
     mocks.scanCode.mockResolvedValue({ value: 'FIRST-EVER', fmt: 'qrcode' })
-    mount()
-    expect(dots()).toHaveLength(0)
-    await tap(host.querySelector('.ci-add'))
-    await openSheet()
+    await openAdd()
     await tap(sheetBtn('Scan'))
     await tap(sheetBtn('Save card'))
     expect(mocks.S.gymCards).toHaveLength(1)
     expect(mocks.S.gymCards[0].value).toBe('FIRST-EVER')
   })
-
-  it('with no cards there are no dots, and the screen says how to get one', () => {
-    mount()
-    expect(dots()).toHaveLength(0)
-    expect(faces()).toHaveLength(0)
-    expect(host.textContent).toContain('Import a photo of your membership card')
-    expect(host.textContent).toContain('Add your gym card')
-  })
-
-  it('the QR is regenerated from the stored value — the value is what is kept, never a picture', () => {
-    mocks.S = { gymCards: [card('a', { value: 'MEMBER-9931' })], lastGymCardId: 'a' }
-    mount()
-    expect(host.querySelector('[data-qr]').getAttribute('data-qr')).toBe('MEMBER-9931')
-    expect(host.querySelector('.ci-value').textContent).toBe('MEMBER-9931')
-  })
-
-  it('is titled Gym card, not Check in, which is the Coach’s weekly check-in now (owner question 7)', () => {
-    mount()
-    expect(host.querySelector('h1').textContent).toBe('Gym card')
-    expect(host.textContent).not.toContain('Check in')
-  })
-
-  it('the back button steps back through the tab', async () => {
-    mount()
-    await tap(byLabel(host, 'Back')[0])
-    expect(mocks.back).toHaveBeenCalled()
-  })
-})
-
-describe('CheckIn — removing a card (the only destructive action on this screen)', () => {
-  const remove = async (cards, id, lastGymCardId = cards[0].id) => {
-    mocks.S = { gymCards: cards, lastGymCardId }
-    mount()
-    const i = cards.findIndex(c => c.id === id)
-    await tap(byLabel(faces()[i], 'Remove')[0])
-    expect(mocks.confirmSheet).toHaveBeenCalledTimes(1)
-    return mocks.confirmSheet.mock.calls[0][0]
-  }
-
-  it('asks first, in red, naming the card — and writes nothing until the answer is yes', async () => {
-    const dialog = await remove([card('a'), card('b')], 'b')
-    expect(dialog.danger).toBe(true)
-    expect(dialog.title).toBe('Remove this card?')
-    expect(dialog.message).toBe('B')
-    expect(dialog.confirmText).toBe('Remove')
-    expect(update).not.toHaveBeenCalled()
-  })
-
-  it('on confirm it drops that card and only that card', async () => {
-    const dialog = await remove([card('a'), card('b'), card('c')], 'b')
-    act(() => { dialog.onConfirm() })
-    expect(mocks.S.gymCards.map(c => c.id)).toEqual(['a', 'c'])
-  })
-
-  it('removing the remembered card repoints the memory at the first survivor', async () => {
-    const dialog = await remove([card('a'), card('b')], 'a', 'a')
-    act(() => { dialog.onConfirm() })
-    expect(mocks.S.lastGymCardId).toBe('b')
-  })
-
-  it('removing some other card leaves the memory pointing where it was', async () => {
-    const dialog = await remove([card('a'), card('b')], 'b', 'a')
-    act(() => { dialog.onConfirm() })
-    expect(mocks.S.lastGymCardId).toBe('a')
-  })
-
-  it('removing the last card clears the memory to null, not to undefined', async () => {
-    const dialog = await remove([card('a')], 'a', 'a')
-    act(() => { dialog.onConfirm() })
-    expect(mocks.S.gymCards).toEqual([])
-    expect(mocks.S.lastGymCardId).toBeNull()
-    // null survives JSON; undefined would vanish on the next sync and read as "never set".
-    expect(JSON.parse(JSON.stringify(mocks.S))).toHaveProperty('lastGymCardId', null)
-  })
-
-  it('a removal is pushed to the other devices, unlike a swipe', async () => {
-    const dialog = await remove([card('a'), card('b')], 'b')
-    mocks.writes.length = 0
-    act(() => { dialog.onConfirm() })
-    expect(mocks.writes).toEqual([{ push: true }])
-  })
-})
-
-describe('CheckIn — reordering the rail', () => {
-  it('a single card carries no reorder row — there is nowhere to move it', () => {
-    mocks.S = { gymCards: [card('a')], lastGymCardId: 'a' }
-    mount()
-    expect(host.querySelector('.ci-reorder')).toBeFalsy()
-  })
-
-  it('the ends are inert: ◀ on the first card and ▶ on the last are disabled', () => {
-    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'a' }
-    mount()
-    expect(byLabel(faces()[0], 'Move left')[0].disabled).toBe(true)
-    expect(byLabel(faces()[0], 'Move right')[0].disabled).toBe(false)
-    expect(byLabel(faces()[2], 'Move left')[0].disabled).toBe(false)
-    expect(byLabel(faces()[2], 'Move right')[0].disabled).toBe(true)
-    expect(faces().map(f => f.querySelector('.ci-pos').textContent)).toEqual(['1 / 3', '2 / 3', '3 / 3'])
-  })
-
-  it('▶ writes the new order and keeps every card', async () => {
-    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'a' }
-    mount()
-    await tap(byLabel(faces()[0], 'Move right')[0])
-    expect(mocks.S.gymCards.map(c => c.id)).toEqual(['b', 'a', 'c'])
-    rerender()
-    expect(faces().map(f => f.querySelector('.ci-label').textContent)).toEqual(['B', 'A', 'C'])
-  })
-
-  it('◀ moves a card back one slot', async () => {
-    mocks.S = { gymCards: [card('a'), card('b'), card('c')], lastGymCardId: 'a' }
-    mount()
-    await tap(byLabel(faces()[2], 'Move left')[0])
-    expect(mocks.S.gymCards.map(c => c.id)).toEqual(['a', 'c', 'b'])
-  })
-})
-
-describe('CheckIn — adding a card', () => {
-  const openAdd = async () => {
-    mount()
-    await tap(host.querySelector('.ci-add'))
-    return openSheet()
-  }
 
   it('a label alone cannot create a card — Save stays refused until a code has been captured', async () => {
     await openAdd()
@@ -352,6 +149,29 @@ describe('CheckIn — adding a card', () => {
     expect(mocks.writes).toEqual([{ push: true }])
     expect(mocks.toast).toHaveBeenCalledWith('Card added')
     expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('"Scan a new card" opens the drawer already scanning', async () => {
+    mocks.MOBILE = true
+    mocks.scanCode.mockResolvedValue({ value: 'AUTO-1', fmt: 'qrcode' })
+    await openAdd({ scan: true })
+    expect(mocks.scanCode).toHaveBeenCalledTimes(1)
+    expect(sheetHost.querySelector('[data-qr]').getAttribute('data-qr')).toBe('AUTO-1')
+  })
+
+  it('"Type the number" shows the number field, and a typed number draws its QR and saves', async () => {
+    await openAdd({ typing: true })
+    expect(numberField()).toBeTruthy()
+    expect(sheetBtn('Save card').disabled).toBe(true)
+    typeInto(numberField(), '  2041 7788 0193 ')
+    expect(sheetHost.querySelector('[data-qr]').getAttribute('data-qr')).toBe('2041 7788 0193')
+    await tap(sheetBtn('Save card'))
+    expect(mocks.S.gymCards[0]).toMatchObject({ value: '2041 7788 0193', fmt: 'qrcode' })
+  })
+
+  it('the number field is not offered unless asked for', async () => {
+    await openAdd()
+    expect(numberField()).toBeUndefined()
   })
 
   it('an unnamed card gets a name, and a code with stray whitespace is stored trimmed', async () => {
@@ -440,7 +260,7 @@ describe('CheckIn — adding a card', () => {
   })
 })
 
-describe('CheckIn — importing a photo', () => {
+describe('the card drawer — importing a photo', () => {
   const pickFile = async (name = 'card.jpg') => {
     const input = fileInput()
     const file = new File(['bytes'], name, { type: 'image/jpeg' })
@@ -451,7 +271,7 @@ describe('CheckIn — importing a photo', () => {
     })
     return file
   }
-  const openAdd = async () => { mount(); await tap(host.querySelector('.ci-add')); return openSheet() }
+  const openAdd = async () => { openAddCard(); return openSheet() }
 
   it('"Import photo" opens the hidden file picker rather than a second sheet', async () => {
     await openAdd()
@@ -520,18 +340,17 @@ describe('CheckIn — importing a photo', () => {
   })
 })
 
-describe('CheckIn — editing a card', () => {
+describe('the card drawer — editing a card', () => {
   const openEdit = async (id, cards = [card('a'), card('b')]) => {
     mocks.S = { gymCards: cards, lastGymCardId: cards[0].id }
-    mount()
-    const i = cards.findIndex(c => c.id === id)
-    await tap(byLabel(faces()[i], 'Edit')[0])
+    openEditCard(cards.find(c => c.id === id))
     return openSheet()
   }
 
   it('opens pre-filled with the card it was asked about', async () => {
     await openEdit('b')
     expect(labelField().value).toBe('B')
+    expect(numberField().value).toBe('code-b')
     expect(sheetHost.querySelector('[data-qr]').getAttribute('data-qr')).toBe('code-b')
     expect(sheetBtn('Re-scan')).toBeTruthy()
     expect(sheetBtn('Scan')).toBeFalsy()
@@ -546,6 +365,13 @@ describe('CheckIn — editing a card', () => {
     expect(mocks.S.gymCards[1]).toMatchObject({ id: 'b', label: 'FitZone North', value: 'code-b', fmt: 'qrcode' })
     expect(mocks.toast).toHaveBeenCalledWith('Card updated')
     expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('retyping the number replaces the code and keeps the name', async () => {
+    await openEdit('b')
+    typeInto(numberField(), 'RETYPED-77')
+    await tap(sheetBtn('Save card'))
+    expect(mocks.S.gymCards[1]).toMatchObject({ id: 'b', label: 'B', value: 'RETYPED-77' })
   })
 
   it('a re-scan replaces the code and keeps the name', async () => {
@@ -593,20 +419,20 @@ describe('CheckIn — editing a card', () => {
   })
 })
 
-describe('CheckIn — the sheet openers', () => {
-  it('openAddCard opens an empty sheet with nothing captured yet', async () => {
+describe('the card drawer — the openers', () => {
+  it('openAddCard opens an empty drawer with nothing captured yet', async () => {
     openAddCard()
     const { close } = await openSheet()
-    expect(sheetHost.querySelector('h3').textContent).toBe('Add a card')
+    expect(sheetHost.querySelector('h2').textContent).toBe('Add a card')
     expect(labelField().value).toBe('')
     expect(sheetHost.querySelector('[data-qr]')).toBeFalsy()
     expect(close).not.toHaveBeenCalled()
   })
 
-  it('openEditCard opens the sheet on the card it was handed, without going through the rail', async () => {
+  it('openEditCard opens the drawer on the card it was handed', async () => {
     openEditCard(card('z', { label: 'Zenith', value: 'Z-1' }))
     await openSheet()
-    expect(sheetHost.querySelector('h3').textContent).toBe('Edit card')
+    expect(sheetHost.querySelector('h2').textContent).toBe('Edit card')
     expect(labelField().value).toBe('Zenith')
     expect(sheetHost.querySelector('[data-qr]').getAttribute('data-qr')).toBe('Z-1')
   })

@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
+import { useFoodOn } from '../../lib/nutrition/food-on.js'
 import { startDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { isSwitching, onTabSwitch, popToRoot } from '../../lib/use-tab-nav.js'
 import { PROGRESS_ROOT, inProgress, tabOf } from '../../lib/tab-route.js'
@@ -26,7 +25,6 @@ export default function SearchHost() {
   const loc = useLocation()
   const live = useSearch(s => s.live)
   const open = useSearch(s => s.open)
-  const user = useStore(s => s.user)
   const accent = useDsAccent()
   const [loaded, setLoaded] = useState(false)
 
@@ -39,7 +37,8 @@ export default function SearchHost() {
   useEffect(() => { if (live) setLoaded(true) }, [live])
 
   // Days from the diary index: the first sync in idle time, for the signed-in web app.
-  useEffect(() => { if (nutritionAvailable(user)) startDiaryIndex() }, [user])
+  const food = useFoodOn()
+  useEffect(() => { if (food) startDiaryIndex() }, [food])
 
   // Back onto the overlay's entry shows it; a pop below it ends the visit; a pop the overlay made
   // itself (closing) is its own. A tab switch rewrites the history, and ends the visit.

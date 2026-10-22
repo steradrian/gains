@@ -31,9 +31,9 @@ export function useAgain({ settings, meal, on = true }) {
     useNutrition.getState().loadDay(today)
   }, [on, yesterday, today])
 
-  const items = againItems(entry, meal)
-  if (!items) return null
   const names = mealLabels(settings)
+  const items = againItems(entry, meal, names.length)
+  if (!items) return null
   const label = names[meal] ?? names[0]
   const copy = { from: yesterday, to: today, target: target?.entry }
   // Which attempt is free depends on today's tombstones: nothing is sent before today is read.

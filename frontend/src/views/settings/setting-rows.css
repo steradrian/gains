@@ -1,0 +1,83 @@
+/* The rows of a Settings page on the stage (SettingRow.jsx): glass cards of rows with a switch, a
+   value or a segmented control, in a column with the boards' 16px gutters. Only tokens here. */
+.set-body { display: flex; flex-direction: column; gap: 4px; padding: 4px 16px 0; }
+.set-body > .g-ssec { padding-inline: 4px; }
+.set-body > .g-snote { padding-inline: 4px; }
+.set-body > .g-glist { margin-bottom: 4px; }
+
+/* A row that holds a control under its text (a segmented control, the layout tiles): the text on
+   top, the control the full width below it. */
+.set-row-stack { flex-wrap: wrap; row-gap: 12px; padding-bottom: 14px; }
+.set-row-below { flex: 1 0 100%; min-width: 0; }
+
+/* A setting this device can not do: shown, with the reason, and out of reach. */
+.set-row-dim { opacity: .55; }
+.set-row-dim .g-glist-body span { color: var(--on-stage-2); }
+
+/* The (i) beside a title: a plain icon button, 44px to hit */
+.set-help { appearance: none; border: 0; background: none; flex: none; width: 44px; height: 44px; margin: -8px -8px -8px 0; display: grid; place-items: center; color: var(--on-stage-2); cursor: pointer; border-radius: 50%; }
+[dir="rtl"] .set-help { margin: -8px 0 -8px -8px; }
+.set-help .g-icon { width: 20px; height: 20px; }
+.set-help:focus-visible { outline: 2px solid var(--on-stage); outline-offset: -4px; }
+
+/* The Layout tiles: four to a row, radio group */
+.set-tiles.sp-flash { animation: spflash 1.8s ease; }
+.set-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0 4px; }
+
+/* The rest timer drawer: the time in the middle, a step each side, the presets under it */
+.set-rest { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.set-rest-dial { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+.set-rest-dial .g-btn { width: 100%; padding: 0 8px; }
+.set-rest-time { min-width: 6ch; text-align: center; font: 700 44px/48px var(--font-sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.set-rest-note { margin: 0; font: 500 14px/19px var(--font-sans); color: var(--text-3); }
+
+/* The effort scales drawer */
+.set-eff { display: flex; flex-direction: column; gap: 12px; }
+.set-eff p { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-2); }
+.set-eff table { width: 100%; border-collapse: collapse; font: 500 15px/20px var(--font-sans); color: var(--text); }
+.set-eff th { text-align: start; font: 700 12px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); padding: 0 8px 6px 0; }
+.set-eff td { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.set-eff tr.on td { font-weight: 700; }
+
+/* Settings food m1: the meal, container and choice drawers (light BottomSheet bodies) */
+.set-sheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; }
+.set-sheet-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.set-sheet-pair .g-btn { width: 100%; }
+.set-sheet-none { margin: 0; padding: 16px 0; text-align: center; font: 500 15px/21px var(--font-sans); color: var(--text-3); }
+
+/* Settings food m2: category dots, the drawers' forms, Help answers, About and Licences */
+.set-dot { display: block; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--cat-ring); }
+.set-dot-red { background: var(--cat-red); }
+.set-dot-orange { background: var(--cat-orange); }
+.set-dot-yellow { background: var(--cat-yellow); }
+.set-dot-green { background: var(--cat-green); }
+.set-dot-blue { background: var(--cat-blue); }
+.set-dot-purple { background: var(--cat-purple); }
+.set-dot-brown { background: var(--cat-brown); }
+.set-dot-black { background: var(--cat-black); }
+
+.set-form { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; }
+.set-note { margin: 0; font: 500 14px/19px var(--font-sans); color: var(--text-3); }
+.set-err { margin: 0; font: 600 14px/19px var(--font-sans); color: var(--danger); }
+.set-swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.set-swatch { appearance: none; border: 0; background: none; height: 48px; display: grid; place-items: center; cursor: pointer; border-radius: 12px; }
+.set-swatch .set-dot { width: 28px; height: 28px; }
+.set-swatch[aria-checked="true"] .set-dot { outline: 2px solid var(--text); outline-offset: 3px; }
+.set-swatch:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: -2px; }
+
+.set-help-answer { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.set-help-answer p { margin: 0; font: 500 17px/24px var(--font-sans); color: var(--text); }
+
+.set-about-logo { display: flex; justify-content: center; padding: 8px 0 20px; color: var(--on-stage); }
+
+.set-lic { padding: 16px; color: var(--on-stage); font: 500 14px/20px var(--font-sans); overflow-wrap: anywhere; }
+.set-lic b { display: block; font: 700 15px/20px var(--font-sans); margin-bottom: 4px; }
+.set-lic p { margin: 0; color: var(--on-stage-2); }
+.set-lic + .g-glist-row { border-top: 1px solid var(--glass-line); }
+
+.set-dl { padding: 8px 0; }
+.set-dl-bar { display: block; width: 100%; height: 6px; margin: 16px 0; border-radius: 3px; appearance: none; border: 0; background: var(--fill-3); overflow: hidden; }
+/* The progress sheet is the app's own sheet, not a design-system drawer: the app's tokens. */
+.set-dl-bar::-webkit-progress-bar { background: var(--fill-3); }
+.set-dl-bar::-webkit-progress-value { background: var(--acc); border-radius: 3px; transition: width .2s; }
+.set-dl-bar::-moz-progress-bar { background: var(--acc); border-radius: 3px; }

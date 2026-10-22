@@ -1,28 +1,29 @@
-// Profile (ia-proposal §5): which page each row lives on, and the index the search field reads.
+// Settings (ia-proposal §5): which pages exist, and the index the search field reads. The root's
+// own layout (its groups and rows) is settings/root-groups.js.
 //
-// The root holds the account card, the sync status, then one group per domain (General, Training,
-// Data, Admin, About) and Log out; each row opens a page at /me/<page>, or a page that lives in a
-// tab (`to`). Every page goes back to Profile (§6). Titles here are the English keys the pages
-// render with t(), so a search hit can find its row on the page by the same text and flash it
-// (views/Settings.jsx). settings-pages.test.jsx renders every page and checks that each entry
-// below really is a row there.
+// Each page opens at /me/<page>, or is a page that lives in a tab (`to`). Every page goes back to
+// the root (§6). Titles here are the English keys the pages render with t(), so a search hit can
+// find its row on the page by the same text and flash it (settings/use-flash-row.js).
+// settings-pages.test.jsx renders every page and checks that each entry below really is a row there.
 import { t } from '../lib/i18n.js'
-import { ACCENT_NAMES } from '../lib/format.js'
+import { THEMES } from '../lib/themes.js'
 import { MEAL_NAMES_MAX } from '../lib/nutrition/settings-lists.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
+import { HELP_TOPICS } from './settings/help-topics.js'
 
 export const PAGES = {
   appearance: { title: 'Appearance', icon: 'palette', tint: 'var(--purple)' },
+  // Opened from Appearance's Background row; no root row of its own.
+  background: { title: 'Background', icon: 'image', tint: 'var(--purple)', kw: 'background look texture silk linen intensity classic' },
   units: { title: 'Units & language', icon: 'ruler', tint: 'var(--teal)' },
   // The reminders you set (PR07 decision 2): /me/notifications is the inbox now.
   reminders: { title: 'Reminders', icon: 'bell', tint: 'var(--red)', kw: 'notifications push alerts' },
   coach: { title: 'AI Coach', icon: 'chat', tint: 'var(--green)', to: '/train/coach/setup' },
   features: { title: 'Features', icon: 'slider', tint: 'var(--indigo)' },
   health: { title: 'Connected apps & health', icon: 'heart', tint: 'var(--red)' },
-  workout: { title: 'Workout', icon: 'play', tint: 'var(--green)' },
+  workout: { title: 'Workout screen', icon: 'play', tint: 'var(--green)' },
   advanced: { title: 'Fine-tuning', icon: 'wrench', tint: 'var(--grey)' },
-  alerts: { title: 'Timer alerts', icon: 'speaker', tint: 'var(--pink)' },
-  schedule: { title: 'Schedule defaults', icon: 'calendar', tint: 'var(--orange)' },
+  schedule: { title: 'Schedule', icon: 'calendar', tint: 'var(--orange)' },
   equipment: { title: 'Equipment', icon: 'kettlebell', tint: 'var(--indigo)' },
   // The calorie goal mode, macros and water goal live on Nutrition › Goals (§5): linked, not copied.
   goals: { title: 'Goals', icon: 'target', tint: 'var(--red)', to: '/food/goals', kw: 'calorie goal mode fixed adaptive dynamic factor macros protein target water' },
@@ -33,11 +34,11 @@ export const PAGES = {
   categories: { title: 'Categories', icon: 'list', tint: 'var(--indigo)', kw: 'food categories emoji label groups' },
   customUnits: { title: 'Custom units', icon: 'ruler', tint: 'var(--purple)', kw: 'custom units serving shot scoop stick abbreviation' },
   fields: { title: 'Measurement fields', icon: 'ruler', tint: 'var(--purple)', sheet: true },
-  backup: { title: 'Backup', icon: 'folder', tint: 'var(--blue)' },
+  backup: { title: 'Sync and backup', icon: 'folder', tint: 'var(--blue)' },
   import: { title: 'Import', icon: 'download', tint: 'var(--teal)' },
   media: { title: 'Photos & videos', icon: 'image', tint: 'var(--teal)' },
-  danger: { title: 'Danger zone', icon: 'trash', tint: 'var(--red)' },
   admin: { title: 'Admin dashboard', icon: 'crown', tint: 'var(--indigo)', to: '/me/admin' },
+  help: { title: 'Help', icon: 'circleHelp', tint: 'var(--blue)', kw: 'help faq questions answers support how does' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
   licences: { title: 'Licences', icon: 'shield', tint: 'var(--grey)' },
   account: { title: 'Account', icon: 'personCircle', tint: 'var(--grey)' },
@@ -47,17 +48,6 @@ export const PAGE_IDS = Object.keys(PAGES)
 // The pages that are NutriTrace's settings, read and written through the hub (lib/nutrition):
 // the web app, signed in. Goals is one too, but lives in the Nutrition tab.
 const NUTRITION_PAGES = ['diary', 'water', 'foods', 'sources', 'categories', 'customUnits']
-
-// The root, top to bottom. Whether a row shows is pageVisible's call.
-export const ROOT_GROUPS = [
-  { title: 'General', ids: ['appearance', 'units', 'reminders', 'coach', 'features', 'health'] },
-  { title: 'Training', ids: ['workout', 'advanced', 'alerts', 'schedule', 'equipment'] },
-  { title: 'Nutrition', ids: ['goals', 'diary', 'water', 'foods', 'sources', 'categories', 'customUnits'] },
-  { title: 'Body & progress', ids: ['fields'] },
-  { title: 'Data', ids: ['backup', 'import', 'media', 'danger'] },
-  { title: 'Admin', ids: ['admin'] },
-  { title: 'About', ids: ['about', 'licences'] },
-]
 
 /**
  * Whether a page has a route on this device and profile. Reminders need a push server
@@ -113,19 +103,22 @@ const ntOn = c => !!c.nutrition
 const ntValue = (c, key) => settingOf(c.ntSettings, key)
 const ntFeature = key => (S, c) => (c.ntSettings ? c.ntSettings[key] === true : null)
 export const SEARCH = [
-  // Root
-  { page: null, title: 'Sync now', icon: 'reset', tint: 'var(--acc)', kw: 'server sync upload refresh status connection nutrition', when: c => !!c.user && !c.demo && c.synced },
+  // Root. Sync now is on Sync and backup (the root's pill opens it).
+  { page: 'backup', title: 'Sync now', icon: 'reset', tint: 'var(--acc)', kw: 'server sync upload refresh status connection nutrition', when: c => !!c.user && !c.demo && c.synced },
   { page: null, title: 'Sign out', icon: 'signOut', tint: 'var(--red)', kw: 'log out logout sign out', when: signedInWeb },
   { page: null, title: 'Disconnect', icon: 'signOut', tint: 'var(--red)', kw: 'disconnect server local log out', when: c => c.mobile && !!c.user },
   // Appearance
   { page: 'appearance', title: 'Theme', icon: 'moon', tint: 'var(--indigo)', kw: 'dark mode light mode theme appearance night look', opts: ['Dark', 'Light', 'System'] },
-  { page: 'appearance', title: 'Accent color', icon: 'palette', tint: 'var(--purple)', kw: 'color colour accent tint custom own picker hex rgb', opts: [...Object.values(ACCENT_NAMES), 'Your own color'], tkw: () => t('custom color picker') },
+  { page: 'appearance', title: 'Accent color', icon: 'palette', tint: 'var(--purple)', kw: 'color colour accent tint theme', opts: THEMES.map(p => p.name) },
+  { page: 'appearance', title: 'Ready-made', icon: 'palette', tint: 'var(--purple)', kw: 'preset set accent look princess', opts: ['Princess', 'Watermelon', 'Peach cream', 'Snow', 'Cream', 'Mist'] },
   { page: 'appearance', title: 'Body diagram', icon: 'figureStrength', tint: 'var(--teal)', kw: 'muscle map body male female', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Exercise drawings', icon: 'figureStrength', tint: 'var(--teal)', kw: 'figure male female woman man picture', opts: ['Male', 'Female'] },
   { page: 'appearance', title: 'Reduce motion', icon: 'minimize', tint: 'var(--blue)', kw: 'animation motion transitions accessibility calm', feature: (S, c) => !!c.systemMotion || S.reduceMotion === true },
   { page: 'appearance', title: 'Haptics', icon: 'vibrate', tint: 'var(--indigo)', kw: 'haptic haptics tick tap vibrate vibration feedback buzz', when: c => c.canHaptic },
   { page: 'appearance', title: 'Gym check-in', icon: 'qr', tint: 'var(--blue)', kw: 'qr code membership card check in barcode' },
   { page: 'appearance', title: 'Show connection status', icon: 'cloud', tint: 'var(--blue)', kw: 'sync offline banner bar connection', when: c => !c.demo },
+  // Background (its own page; the page hit and this row are how search reaches it)
+  { page: 'background', title: 'Intensity', icon: 'image', tint: 'var(--purple)', kw: 'background look strength quiet bold slider texture', opts: ['Classic', 'Linen', 'Lines', 'Florals', 'Silk', 'Bloom'] },
   // Features (the NutriTrace switches whose only home is here)
   { page: 'features', title: 'Fasting', icon: 'timer', tint: 'var(--indigo)', kw: 'fast fasting intermittent 16:8 omad', when: c => !!c.nutrition, feature: (S, c) => !!c.fastingOn },
   // Diary & meals
@@ -188,13 +181,13 @@ export const SEARCH = [
   { page: 'advanced', title: 'Planned sessions start from', icon: 'clipboard', tint: 'var(--green)', kw: 'start from plan last session reps carry over', opts: ['Your plan', 'Your last session'] },
   { page: 'advanced', title: 'Keep timing after target', icon: 'stopwatch', tint: 'var(--orange)', kw: 'timed set overtime hold duration', feature: S => !!S.timedSetOvertime },
   { page: 'advanced', title: 'Swipe actions', icon: 'swap', tint: 'var(--indigo)', kw: 'swipe gesture slide delete remove copy duplicate set routine loop plan workout controls', tkw: () => t('swipe gesture') },
-  // Timer alerts
-  { page: 'alerts', title: 'Play a sound', icon: 'speaker', tint: 'var(--pink)', kw: 'sound sounds audio beep chime volume' },
-  { page: 'alerts', title: 'Sound', icon: 'bell', tint: 'var(--pink)', kw: 'classic timer sound beep chime tone bell whistle soft ringtone custom rest end', opts: ['Chime (louder)', 'Classic beeps', 'Bell', 'Beep-beep', 'Whistle', 'Soft'], when: c => c.sound },
-  { page: 'alerts', title: 'Play even on silent', icon: 'speaker', tint: 'var(--orange)', kw: 'silent mute ring switch iphone music', when: c => c.sound && c.playOnSilent, feature: S => !!S.soundOnSilent },
-  { page: 'alerts', title: 'Vibrate', icon: 'vibrate', tint: 'var(--indigo)', kw: 'vibrate vibration haptic haptics buzz' },
-  { page: 'alerts', title: 'Vibrate on silent too', icon: 'vibrate', tint: 'var(--indigo)', kw: 'alarm silent vibrate android', when: c => c.mobile && c.android && c.canVibrate && c.vibrate, feature: S => !!S.vibrateOnSilent },
-  { page: 'alerts', title: 'Flash the screen', icon: 'sun', tint: 'var(--yellow)', kw: 'flash light blink screen', feature: S => !!S.timerFlash },
+  // When a rest ends (was the Timer alerts page)
+  { page: 'workout', title: 'Play a sound', icon: 'speaker', tint: 'var(--pink)', kw: 'sound sounds audio beep chime volume' },
+  { page: 'workout', title: 'Sound', icon: 'bell', tint: 'var(--pink)', kw: 'classic timer sound beep chime tone bell whistle soft ringtone custom rest end', opts: ['Chime (louder)', 'Classic beeps', 'Bell', 'Beep-beep', 'Whistle', 'Soft'], when: c => c.sound },
+  { page: 'workout', title: 'Play even on silent', icon: 'speaker', tint: 'var(--orange)', kw: 'silent mute ring switch iphone music', when: c => c.sound && c.playOnSilent, feature: S => !!S.soundOnSilent },
+  { page: 'workout', title: 'Vibrate', icon: 'vibrate', tint: 'var(--indigo)', kw: 'vibrate vibration haptic haptics buzz' },
+  { page: 'workout', title: 'Vibrate on silent too', icon: 'vibrate', tint: 'var(--indigo)', kw: 'alarm silent vibrate android', when: c => c.mobile && c.android && c.canVibrate && c.vibrate, feature: S => !!S.vibrateOnSilent },
+  { page: 'workout', title: 'Flash the screen', icon: 'sun', tint: 'var(--yellow)', kw: 'flash light blink screen', feature: S => !!S.timerFlash },
   // Schedule defaults
   { page: 'schedule', title: 'How you train', icon: 'repeat', tint: 'var(--orange)', kw: 'scheduling schedule rotation fixed week split loop round cycle plan', opts: ['Fixed Week', 'Rotation'] },
   { page: 'schedule', title: 'Week starts on', icon: 'calendar', tint: 'var(--orange)', kw: 'monday sunday first day week', opts: ['Monday', 'Sunday'], tkw: () => t('week start') },
@@ -206,23 +199,30 @@ export const SEARCH = [
   { page: 'equipment', title: 'Active profile', icon: 'house', tint: 'var(--blue)', kw: 'equipment profile home gym', when: c => c.profiles },
   { page: 'equipment', title: 'Add equipment profile', icon: 'plusCircle', tint: 'var(--green)', kw: 'equipment profile home gym hotel' },
   // Backup
-  { page: 'backup', title: 'Export backup (JSON)', icon: 'share', tint: 'var(--blue)', kw: 'export backup json download save data' },
-  { page: 'backup', title: 'Export with photos & videos (.zip)', icon: 'share', tint: 'var(--blue)', kw: 'zip media export backup', when: c => c.hasMedia },
+  { page: 'backup', title: 'Export backup', icon: 'share', tint: 'var(--blue)', kw: 'export backup json download save data' },
+  { page: 'backup', title: 'Export with photos and videos', icon: 'share', tint: 'var(--blue)', kw: 'zip media export backup', when: c => c.hasMedia },
   { page: 'backup', title: 'Auto-backup on changes', icon: 'folder', tint: 'var(--blue)', kw: 'auto backup automatic', when: c => c.mobile, feature: S => !!S.autoBackup },
   { page: 'backup', title: 'Backup folder', icon: 'folder', tint: 'var(--blue)', kw: 'auto backup folder location directory', when: c => c.mobile && c.android && c.autoBackup },
   { page: 'backup', title: 'Import backup', icon: 'download', tint: 'var(--teal)', kw: 'import restore backup json zip' },
   // Import
-  { page: 'import', title: 'Import from another app', icon: 'download', tint: 'var(--teal)', kw: 'strong hevy fitnotes apple health csv import' },
+  { page: 'import', title: 'Strong', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv export history workouts' },
+  { page: 'import', title: 'Hevy', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv export history workouts' },
+  { page: 'import', title: 'FitNotes', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv spreadsheet export history workouts' },
+  { page: 'import', title: 'Gravl', icon: 'download', tint: 'var(--teal)', kw: 'import another app csv export history workouts' },
+  { page: 'import', title: 'Apple Health', icon: 'heart', tint: 'var(--teal)', kw: 'import xml body weight weigh-ins health export' },
+  { page: 'import', title: 'Your own CSV', icon: 'download', tint: 'var(--teal)', kw: 'import csv spreadsheet file own date exercise' },
   { page: 'import', title: 'Import from Hevy', icon: 'key', tint: 'var(--teal)', kw: 'hevy api import' },
   // Connected apps & health
   { page: 'health', title: 'Write to Health Connect', icon: 'heart', tint: 'var(--red)', kw: 'health connect android google fit share workouts weigh-ins', feature: () => null },
-  // Danger zone
-  { page: 'danger', title: 'Reset training data', icon: 'trash', tint: 'var(--red)', kw: 'delete wipe reset erase clear everything' },
   // About & updates
   { page: 'about', title: 'Check for updates', icon: 'download', tint: 'var(--green)', kw: 'update apk android version', when: c => c.mobile && c.android },
   { page: 'about', title: 'Version', icon: 'info', tint: 'var(--grey)', kw: 'version about licence license source code open source' },
-  { page: 'about', title: 'In Chrome: ⋮ menu → Add to Home screen', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen tip pwa', when: c => c.installTip && c.androidWeb },
-  { page: 'about', title: 'In Safari: Share → Add to Home Screen', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen tip pwa', when: c => c.installTip && !c.androidWeb },
+  // Settings food m2: one Install row, which says Chrome's or Safari's steps (or that it is installed).
+  // Searchable only where there is something to do (a browser, not yet installed).
+  { page: 'about', title: 'Install', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen add to home screen safari chrome share pwa', when: c => c.installTip },
+  // Settings food m2: Help, one entry per answer (its words are searchable) and the report row.
+  ...HELP_TOPICS.map(h => ({ page: 'help', title: h.title, icon: h.icon, tint: 'var(--blue)', kw: h.answer, tkw: () => t(h.answer) })),
+  { page: 'help', title: 'Report a problem', icon: 'flag', tint: 'var(--blue)', kw: 'bug issue feedback contact support email mail' },
   // Licences
   { page: 'licences', title: 'Full licence text', icon: 'bookOpen', tint: 'var(--grey)', kw: 'licence license agpl copyright warranty notices open source credits' },
   // Account
@@ -231,6 +231,9 @@ export const SEARCH = [
   { page: 'account', title: 'Pair the mobile app', icon: 'qr', tint: 'var(--blue)', kw: 'pair phone app android iphone', when: signedInWeb },
   { page: 'account', title: 'Password', icon: 'key', tint: 'var(--orange)', kw: 'password login', when: c => signedInWeb(c) && c.pwOn },
   { page: 'account', title: 'Sign out everywhere', icon: 'shield', tint: 'var(--red)', kw: 'log out all devices sessions', when: signedInWeb },
+  { page: 'account', title: 'Download my data', icon: 'download', tint: 'var(--blue)', kw: 'export json zip photos backup save copy', when: signedInWeb },
+  { page: 'account', title: 'Start over', icon: 'reset', tint: 'var(--red)', kw: 'delete wipe reset erase clear everything training body data danger zone' },
+  { page: 'account', title: 'Delete account', icon: 'trash', tint: 'var(--red)', kw: 'remove close erase profile everything', when: signedInWeb },
   { page: 'account', title: 'Account ID', icon: 'personCircle', tint: 'var(--grey)', kw: 'id uid admin account', when: c => !!c.user && !c.demo },
   { page: 'account', title: 'Connect to my server', icon: 'cloud', tint: 'var(--indigo)', kw: 'server sync self-hosted connect', when: c => c.mobile && !c.user },
   { page: 'account', title: 'Sign in with passkey', icon: 'fingerprint', tint: 'var(--blue)', kw: 'login sign in log in passkey', when: c => !c.mobile && !c.demo && !c.user && c.webauthn },

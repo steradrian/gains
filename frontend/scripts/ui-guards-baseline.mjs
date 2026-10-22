@@ -35,7 +35,11 @@ export const PRIMITIVE_FILES = [
 // Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
 // design system's StageNavBar. WorkoutRoute and SummaryScreen are the workout's full screens
 // (StageScreen, no tab bar). A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
-export const PAGE_EXEMPT = ['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodHub', 'FoodRedirect', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
+// FoodGate is the layout of the Eat routes: it renders the page or the Food-off state (FoodOffScreen
+// draws its own stage chrome). SettingsRoute (PR-06) only picks the page: the chrome is in views/Settings.jsx and settings/SettingsPageHost.jsx,
+// in other files than the route, which this guard cannot follow. GymPassPage (Gym check-in, route
+// /train/checkin) draws its chrome through settings/SettingsPage.jsx, a StagePage in another file.
+export const PAGE_EXEMPT = ['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
