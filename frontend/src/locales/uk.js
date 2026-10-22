@@ -4607,4 +4607,17 @@ export default {
   "Couldn't open this invite": "Couldn't open this invite",
   "Can't reach the server. Try again when you're online.": "Can't reach the server. Try again when you're online.",
   'Gains is invite-only. Ask an admin for an app invite; this group link still works once you are in.': 'Gains is invite-only. Ask an admin for an app invite; this group link still works once you are in.',
+  // Friends surfaces m2
+  'Friends will see': 'Friends will see',
+  '{0} · no weights, no sets': '{0} · no weights, no sets',
+  'No weights, no sets': 'No weights, no sets',
+  'Trained together with {0}': 'Trained together with {0}',
+  '{0} logged {1} the same day': '{0} logged {1} the same day',
+  'Trained together with {0} and {1} more': 'Trained together with {0} and {1} more',
+  'They logged {0} the same day': 'They logged {0} the same day',
+  'Not shown in the group': 'Not shown in the group',
+  'Shows the exercise, not the weight': 'Shows the exercise, not the weight',
+  "Don't share this one": "Don't share this one",
+  'Keeps the whole workout to yourself': 'Keeps the whole workout to yourself',
+  'Each line is one choice for this workout only. Your defaults are in What you share.': 'Each line is one choice for this workout only. Your defaults are in What you share.',
 }
