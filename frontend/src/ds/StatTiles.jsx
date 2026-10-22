@@ -8,10 +8,11 @@ import { cx, oneOf } from '../lib/ui-kit.js'
 export default function StatTiles({ items, tone = 'light', columns }) {
   oneOf('StatTiles', 'tone', tone, ['light', 'stage'])
   const n = Math.min(Math.max(columns || items.length, 1), 3)
+  const stage = tone === 'stage'
   return (
-    <div className={cx('g-stats', 'g-stats-c' + n, tone === 'stage' && 'g-stats-stage')}>
+    <div className={cx('g-stats', 'g-stats-c' + n, stage && 'g-stats-stage')}>
       {items.map(s => (
-        <div key={s.key || s.label} className="g-stat">
+        <div key={s.key || s.label} className={cx('g-stat', stage && 'g-glass')}>
           <span>{s.label}</span>
           <b>{s.value}</b>
           {s.sub && <span className={s.tone === 'positive' ? 'g-pos' : undefined}>{s.sub}</span>}

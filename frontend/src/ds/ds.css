@@ -319,7 +319,7 @@ button.g-fstep-row, a.g-fstep-row { cursor: pointer; }
 .g-away-body b { font: 700 19px/24px var(--font-sans); }
 .g-away-body span { font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); }
 .g-away-acts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }
-.g-away-btn { appearance: none; border: 0; height: 46px; padding: 0 12px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; background: var(--glass); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-away-btn { appearance: none; border: 0; height: 46px; padding: 0 12px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; /* Liquid glass: fill from .g-glass; it never had the line or blur */ }
 .g-away-solid { background: var(--stage-cta); color: var(--on-stage-cta); }
 
 /* SavedIndicator: a small tag beside the date (light), a glass pill under the stage header (T1.14) */
@@ -1049,10 +1049,10 @@ a.g-xrow-stage:focus-visible, button.g-xrow-stage:focus-visible { outline-color:
 .g-tcard-rows .g-xrow-stage { padding-left: 0; padding-right: 0; }
 .g-tcard-acts { display: flex; gap: 10px; padding-top: 16px; }
 .g-tcard-acts.tight { padding-top: 14px; }
-.g-tcard-btn { appearance: none; border: 0; flex: 1 1 0; min-width: 0; min-height: 50px; box-sizing: border-box; padding: 8px 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-align: center; text-decoration: none; cursor: pointer; }
-.g-tcard-btn.solid { background: var(--stage-cta); box-shadow: none; color: var(--on-stage-cta); }
+.g-tcard-btn { appearance: none; border: 0; flex: 1 1 0; min-width: 0; min-height: 50px; box-sizing: border-box; padding: 8px 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-align: center; text-decoration: none; cursor: pointer; -webkit-backdrop-filter: none; backdrop-filter: none; /* Liquid glass: fill and line from .g-glass; it never had the blur */ }
+.g-tcard-btn.solid { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-tcard-btn .g-icon { width: 20px; height: 20px; }
-.g-tcard-menu { appearance: none; border: 0; padding: 0; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); text-decoration: none; cursor: pointer; }
+.g-tcard-menu { appearance: none; border: 0; padding: 0; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); text-decoration: none; cursor: pointer; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .g-tcard-btn:focus-visible, .g-tcard-menu:focus-visible, .g-tcard .g-xrow:focus-visible { outline-color: var(--on-stage); }
 
 /* === Train screen kit (RoutineTiles, MusclesCard; board T2.0) === */
@@ -1076,7 +1076,7 @@ a.g-xrow-stage:focus-visible, button.g-xrow-stage:focus-visible { outline-color:
 .g-rtile-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; width: 100%; }
 .g-rtile-body b { font: 700 17px/22px var(--font-sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-rtile-body span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-rtile-play { position: absolute; top: 12px; inset-inline-end: 12px; appearance: none; border: 0; padding: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); color: var(--on-stage); cursor: pointer; }
+.g-rtile-play { position: absolute; top: 12px; inset-inline-end: 12px; appearance: none; border: 0; padding: 0; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; /* Liquid glass: fill from .g-glass; it never had the line or blur */ }
 .g-rtile-play .g-icon { width: 18px; height: 18px; }
 .g-rtile-open:focus-visible, .g-rtile-play:focus-visible { outline-color: var(--on-stage); }
 
@@ -1251,11 +1251,13 @@ button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
 .g-stats-c1 { grid-template-columns: minmax(0, 1fr); }
 .g-stats-c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .g-stats-c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.g-stat { min-width: 0; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; text-align: start; font-family: var(--font-sans); }
+.g-stat { min-width: 0; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; text-align: start; font-family: var(--font-sans); }
+/* Liquid glass: the white fill steps aside for .g-glass (the :where keeps the rule at one class, so any override of .g-stat still wins) */
+.g-stat:where(:not(.g-glass)) { background: var(--surface); box-shadow: var(--shadow-card); }
 .g-stat > span { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
 .g-stat b { font: 700 22px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); overflow-wrap: anywhere; }
 .g-stat .g-pos { color: var(--positive); font-size: 13px; line-height: 16px; }
-.g-stats-stage .g-stat { border-radius: 18px; padding: 12px 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-stats-stage .g-stat { border-radius: 18px; padding: 12px 14px; }
 .g-stats-stage .g-stat > span { color: var(--on-stage-2); }
 .g-stats-stage .g-stat > span + b + span { font-size: 13px; line-height: 16px; }
 .g-stats-stage .g-stat b { color: var(--on-stage); }
@@ -1282,7 +1284,7 @@ button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
 .g-dstat-stack img, .g-dstat-stack i { width: 44px; height: 44px; border-radius: 12px; background: var(--g-white); object-fit: cover; }
 .g-dstat-stack i { display: grid; place-items: center; color: var(--accent-stage-end); }
 .g-dstat-acts { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 14px; }
-.g-dstat-btn { appearance: none; border: 0; min-height: 40px; box-sizing: border-box; padding: 0 16px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; background: var(--glass); color: var(--on-stage); font: 700 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-dstat-btn { appearance: none; border: 0; min-height: 40px; box-sizing: border-box; padding: 0 16px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; color: var(--on-stage); font: 700 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; /* Liquid glass: fill from .g-glass; it never had the line or blur */ }
 .g-dstat-btn.solid { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-dstat-btn:focus-visible { outline-color: var(--on-stage); }
 
@@ -1532,8 +1534,8 @@ button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
 /* === Train charts (LineChart, BarChart, Heatmap, MonthGrid; boards T7.0, T8.0, T9.0 to T9.6) === */
 
 /* The chart card LineChart and BarChart share: white, or glass on the stage */
-.g-chart { position: relative; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 18px 16px 14px; }
-.g-chart-stage { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-chart { position: relative; border-radius: 22px; padding: 18px 16px 14px; }
+.g-chart:where(:not(.g-glass)) { background: var(--surface); box-shadow: var(--shadow-card); }
 
 /* LineChart: the line and its area are svg stretched to the card; the dots are boxes, so they stay round */
 .g-lc { --g-lc: var(--accent-fill); }
@@ -1568,8 +1570,9 @@ button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
 
 /* Heatmap: days shaded by how much happened. 3 shades (n3) or 5 (n5); a card, or glass on the stage. A year
    (weeks) is a column a week, scrolls sideways, and follows the page's direction. */
-.g-heat { --heat-cell: 11px; --heat-gap: 3px; --g-heat-ring: var(--text-3); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); padding: 16px; }
-.g-heat-stage { --g-heat-ring: var(--on-stage); background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-heat { --heat-cell: 11px; --heat-gap: 3px; --g-heat-ring: var(--text-3); border-radius: 22px; padding: 16px; }
+.g-heat:where(:not(.g-glass)) { background: var(--surface); box-shadow: var(--shadow-card); }
+.g-heat-stage { --g-heat-ring: var(--on-stage); }
 /* The padding is the focus ring's room: a scroll box clips whatever sticks out of it */
 .g-heat-scroll { overflow-x: auto; padding-block: 4px; padding-inline: 2px; margin-inline: -2px; }
 .g-heat-grid { display: grid; gap: var(--heat-gap); }
@@ -1612,7 +1615,7 @@ button.g-heat-c:focus-visible { outline: 2px solid var(--accent-fill); outline-o
 .g-mg-top { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 10px; }
 .g-mg-top b { font: 700 18px/24px var(--font-sans); }
 .g-mg-top > span { display: flex; gap: 6px; }
-.g-mg-nav { appearance: none; border: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--glass); color: inherit; cursor: pointer; }
+.g-mg-nav { appearance: none; border: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--glass); color: inherit; cursor: pointer; /* Liquid glass: a control by data-glass, with its own fill so css mode is unchanged */ }
 .g-mg-nav:disabled { opacity: 0.4; cursor: default; }
 .g-mg-nav .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
 [dir="rtl"] .g-mg-nav .g-icon { transform: scaleX(-1); }
@@ -1670,7 +1673,7 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 /* Room above and below the map, so nothing about it is cut off. */
 .g-re-map { display: flex; justify-content: center; padding-block: 8px; }
 .g-re-sec .g-ssec { padding: 8px 4px 12px; }
-.g-re-list { position: relative; padding-block: 4px; border-radius: 24px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.g-re-list { position: relative; padding-block: 4px; border-radius: 24px; }
 .g-re-slot { position: relative; touch-action: pan-y; -webkit-touch-callout: none; transition: transform 200ms cubic-bezier(.32,.72,0,1); }
 .g-re-slot + .g-re-slot, .g-re-list > .g-ssg + .g-re-slot, .g-re-list > .g-re-slot + .g-ssg, .g-re-list > .g-ssg + .g-ssg { border-top: 1px solid var(--glass-line); }
 .g-re-list .swrow { border-radius: 0; }

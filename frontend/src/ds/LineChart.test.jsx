@@ -138,6 +138,7 @@ describe('LineChart', () => {
     expect(view.host.firstElementChild.classList.contains('g-chart-stage')).toBe(false)
     view.render(<LineChart tone="stage" values={[1, 2]} label="x" />)
     expect(view.host.firstElementChild.classList.contains('g-chart-stage')).toBe(true)
+    expect(view.host.firstElementChild.classList.contains('g-glass')).toBe(true)
     expect(() => view.render(<LineChart tone="dark" values={[1]} label="x" />)).toThrow(/tone="dark"/)
   })
 })
