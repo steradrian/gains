@@ -21,7 +21,7 @@ const mintSession = uid => {
 };
 const ADMIN = 'u_adm_1', ADMIN2 = 'u_adm_2', VICTIM = 'u_vic_1';
 const as = uid => ({ Cookie: `gymsid=${mintSession(uid)}`, 'Content-Type': 'application/json' });
-async function startServer(t, { twoAdmins = false } = {}) {
+async function startServer(t, { twoAdmins = false, inviteRequests = [] } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-del-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
   const users = [
@@ -34,6 +34,7 @@ async function startServer(t, { twoAdmins = false } = {}) {
     creds: [{ id: 'c-victim', userId: VICTIM, publicKey: 'x' }, { id: 'c-admin', userId: ADMIN, publicKey: 'y' }],
     subs: [{ endpoint: 'https://push/victim', userId: VICTIM }, { endpoint: 'https://push/admin', userId: ADMIN }],
     invites: [{ code: 'CODE1', usedBy: VICTIM, usedAt: new Date().toISOString() }],
+    inviteRequests,
   }));
   fs.writeFileSync(path.join(dataDir, `state-${VICTIM}.json`), JSON.stringify({ unit: 'kg', workouts: [], _rev: 3 }));
   const child = spawn(process.execPath, ['server.js'], {
@@ -92,6 +93,19 @@ test('refuses the two deletions that cannot be undone', async t => {
   const last = await h.del(ADMIN, ADMIN);   // ADMIN is also the only admin
   assert.equal(last.status, 400);
   assert.equal(h.db().users.length, 2, 'nothing was removed');
+});
+
+test('their asks for an invite go with them, and nobody else\'s', async t => {
+  const at = new Date().toISOString();
+  const h = await startServer(t, {
+    inviteRequests: [
+      { id: 'open1', by: VICTIM, note: 'for my brother', at, status: 'open' },
+      { id: 'done1', by: VICTIM, note: 'answered', at, status: 'done', doneAt: at, doneBy: ADMIN, inviteCode: 'CODE…' },
+      { id: 'keep1', by: 'u_other', note: 'not theirs', at, status: 'open' }
+    ]
+  });
+  assert.equal((await h.del(VICTIM)).status, 200);
+  assert.deepEqual(h.db().inviteRequests.map(r => r.id), ['keep1'], 'open and answered asks of theirs are gone, another person\'s stays');
 });
 
 test('another admin can be deleted while one remains', async t => {

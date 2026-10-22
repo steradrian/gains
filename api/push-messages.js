@@ -9,6 +9,10 @@ const COPY = {
     dayFallbackTitle: 'Workout planned today',
     dayRoutineSuffix: 'today',
     dayBody: "It's on your plan. Let's go 💪",
+    inviteRequestTitle: 'Someone asked for an invite',
+    inviteRequestBody: 'Answer it from Invite a friend.',
+    inviteReadyTitle: 'Your invite is ready',
+    inviteReadyBody: 'An admin made the invite you asked for.',
   },
   'pt-BR': {
     restTitle: 'Descanso terminado 💪',
@@ -17,6 +21,10 @@ const COPY = {
     dayFallbackTitle: 'Treino planejado para hoje',
     dayRoutineSuffix: 'hoje',
     dayBody: 'Está no seu plano. Bora treinar 💪',
+    inviteRequestTitle: 'Alguém pediu um convite',
+    inviteRequestBody: 'Responda em Convidar um amigo.',
+    inviteReadyTitle: 'Seu convite está pronto',
+    inviteReadyBody: 'Um admin criou o convite que você pediu.',
   },
 };
 
@@ -51,6 +59,20 @@ export function dayReminderPush(lang, routine) {
     tag: 'day-reminder',
     url: PUSH_URL.day,
   };
+}
+
+// Invite requests (invites.js). Both are seen on a lock screen, so neither names anyone nor carries
+// the note or a code: the admins' says only that someone asked, the asker's only that it is done.
+// No `url` yet: the Invite page (/me/invite) is not a route until the Me redesign ships it, and
+// PUSH_URL lists only routes App.jsx has (push-messages.test.js); until then a tap opens the app.
+export function inviteRequestPush(lang) {
+  const copy = copyFor(lang);
+  return { title: copy.inviteRequestTitle, body: copy.inviteRequestBody, tag: 'invite-request' };
+}
+
+export function inviteReadyPush(lang) {
+  const copy = copyFor(lang);
+  return { title: copy.inviteReadyTitle, body: copy.inviteReadyBody, tag: 'invite-ready' };
 }
 
 // The missed-workout nudge (nudge.js). Its copy is translated in the frontend packs and generated

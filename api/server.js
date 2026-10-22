@@ -18,7 +18,7 @@ import * as coachJobs from './coach/jobs.js';
 import { coachRoutes } from './coach/routes.js';
 import { startCadence } from './coach/cadence.js';
 import { startWarmup } from './coach/warmup.js';
-import { dayReminderPush, nudgePush, restTimerPush, testPush } from './push-messages.js';
+import { dayReminderPush, inviteReadyPush, inviteRequestPush, nudgePush, restTimerPush, testPush } from './push-messages.js';
 import { verifyError } from './verify-error.js';
 import {
   hashPassword, verifyPassword, needsRehash, passwordProblem, passwordLength, nameKey, BusyError,
@@ -30,7 +30,10 @@ import {
   listPasskeys, addPasskeyRecord, renamePasskeyRecord, removePasskeyRecord, passkeyRemovalRefused, MAX_PASSKEYS,
   backupFlagsOf, notePasskeyFlags, passkeysSynced
 } from './passkeys-store.js';
-import { usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteStatus, codeHint } from './invites.js';
+import {
+  usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteStatus, codeHint,
+  askForInvite, myRequests, cancelRequest, openRequests, fulfilRequest, pruneRequests
+} from './invites.js';
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { effectiveRoutineId } from './queue.js';
@@ -141,7 +144,7 @@ const dbFile = path.join(DATA, 'db.json');
 function loadDb() {
   let raw;
   try { raw = fs.readFileSync(dbFile, 'utf8'); }
-  catch (e) { if (e.code === 'ENOENT') return { users: [], creds: [], subs: [], invites: [] }; throw e; }
+  catch (e) { if (e.code === 'ENOENT') return { users: [], creds: [], subs: [], invites: [], inviteRequests: [] }; throw e; }
   const parse = text => { const v = JSON.parse(text); if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('not an object'); return v; };
   try { return parse(raw); } catch (err) {
     const aside = `${dbFile}.unreadable-${Date.now()}`;
@@ -162,9 +165,10 @@ db.users = db.users || [];
 db.creds = db.creds || [];
 db.subs = db.subs || [];
 db.invites = db.invites || [];
+db.inviteRequests = db.inviteRequests || [];   // members' asks for an invite (invites.js)
 db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
 db.gone = db.gone || [];                 // { id, at } of deleted profiles, for the sync hub's listing
-// Invites from before they expired get the full fourteen days from now (invites.js).
+// Invites from before they expired get the full lifetime from now (invites.js).
 if (migrateInvites(db.invites)) {
   try { saveDb(); } catch (e) { console.error('db save failed (invite expiry)', e.message); }
 }
@@ -473,6 +477,14 @@ async function sendPush(userId, payload, deviceId) {
   // memory, so only the copy on disk lags: the next saveDb() that succeeds, from any route,
   // writes it out, and a restart re-reads the old file and prunes it again on the next send.
   if (dirty) { try { saveDb(); } catch (e) { console.error('push: could not save db.json', e.message); } }
+}
+
+// The invite-request pushes (push-messages.js), in the recipient's language. Never awaited and
+// never thrown: a person without a subscription hears nothing, and a send or a state read that
+// fails is logged, never the failure of the ask or the invite that caused it.
+function invitePush(userId, make) {
+  const fail = e => console.error('invite push failed', userId, e?.message);
+  try { sendPush(userId, make(readStateCached(userId)?.lang)).catch(fail); } catch (e) { fail(e); }
 }
 
 // Rest-timer alerts: client schedules on start/extend, cancels on skip or on-screen completion —
@@ -2119,6 +2131,54 @@ const routes = {
     json(res, 200, found);
   },
 
+  // A member asks the admins for an invite (invites.js). Any signed-in profile except an admin,
+  // who makes invites instead (a clear 400, not a request on their own list). Capped per person;
+  // an identical open ask answers the one already there and tells nobody again. Every admin gets a
+  // push that names nobody. Nothing here reads or answers anyone else's data.
+  'POST /api/invites/request': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    if (isAdmin(user)) return json(res, 400, { error: 'admins make invites themselves', code: 'admin' });
+    const body = await readBody(req);
+    pruneRequests(db.inviteRequests);
+    let id;
+    do { id = crypto.randomBytes(8).toString('hex'); } while (db.inviteRequests.some(r => r.id === id));
+    const asked = askForInvite(db.inviteRequests, { id, by: user.id, note: body.note });
+    if (!asked.ok) {
+      return json(res, 429, { error: 'too many invite requests, try again later', code: 'rate-limited', reason: asked.reason, retryAfter: asked.retryAfter },
+        { 'Retry-After': String(asked.retryAfter) });
+    }
+    if (asked.created) {
+      saveDb();
+      // The id only: the note is the member's own words.
+      audit(req, 'invite.request', { user, msg: asked.request.id });
+      for (const a of db.users) if (isAdmin(a) && !a.disabled) invitePush(a.id, inviteRequestPush);
+    }
+    json(res, 200, { ok: true, id: asked.request.id });
+  },
+
+  // The asker's own open requests, and only theirs (the "Asked" state of the Invite page).
+  'GET /api/invites/requests/mine': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    json(res, 200, { requests: myRequests(db.inviteRequests, user.id) });
+  },
+
+  // The asker withdraws one of their own open requests (Undo on "Asked"). An id that is someone
+  // else's, unknown, answered or already withdrawn changes nothing and is answered exactly the
+  // same, so the answer says nothing about any other member's asks.
+  'POST /api/invites/request/cancel': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    const id = text(body.id);
+    if (cancelRequest(db.inviteRequests, { id, by: user.id })) {
+      saveDb();
+      audit(req, 'invite.request.cancel', { user, msg: id });
+    }
+    json(res, 200, { ok: true });
+  },
+
   'POST /api/register/options': async (req, res) => {
     const body = await readBody(req);
     const name = text(body.name).trim().slice(0, 40);
@@ -2649,6 +2709,8 @@ const routes = {
     db.creds = (db.creds || []).filter(c => c.userId !== u.id);
     db.subs = (db.subs || []).filter(x => x.userId !== u.id);
     dropDeviceLinks(db, u.id);
+    // Their asks for an invite, open or not: the note is theirs, and nobody is left to invite.
+    db.inviteRequests = db.inviteRequests.filter(r => r.by !== u.id);
     presence.delete(u.id);
     // The training history and any Coach credential of theirs, both outside db.json.
     try { fs.unlinkSync(stateFile(u.id)); } catch { /* already gone */ }
@@ -2669,7 +2731,9 @@ const routes = {
       ...i, status: inviteStatus(i),
       usedByName: i.usedBy ? (db.users.find(u => u.id === i.usedBy) || {}).name || null : null
     }));
-    json(res, 200, { invites, invite_only: INVITE_ONLY });
+    // Members' open asks for an invite, with the asker's display name (invites.js openRequests).
+    const requests = openRequests(db.inviteRequests, db.users);
+    json(res, 200, { invites, requests, invite_only: INVITE_ONLY });
   },
 
   'POST /api/admin/invites/new': async (req, res) => {
@@ -2685,9 +2749,14 @@ const routes = {
     // inviter's own label and is never shown to the person invited.
     const invite = newInvite({ code, note: text(body.note).slice(0, 60), name: body.name, createdBy: admin.id });
     db.invites.push(invite);
+    // `requestId`: the member's ask this invite answers. It is marked done and its asker told by
+    // push. One that is unknown, already answered or withdrawn is ignored: the invite is made anyway.
+    const answered = fulfilRequest(db.inviteRequests, body.requestId, { code, adminId: admin.id });
     saveDb();
     // A hint, never the code: the audit log outlives the invite and is read by more than its maker.
     audit(req, 'admin.invite.create', { user: admin, msg: codeHint(code) });
+    const asker = answered && db.users.find(u => u.id === answered.by);
+    if (asker && !asker.disabled) invitePush(asker.id, inviteReadyPush);
     json(res, 200, { invite });
   },
 
@@ -2863,7 +2932,8 @@ const server = http.createServer(async (req, res) => {
   if (mm) { key = req.method + ' /api/media/{hash}'; req.mediaHash = mm[1]; }
   const sd = /^\/api\/sync\/bodyweight\/([^/]+)$/.exec(url.pathname);
   if (sd) { key = req.method + ' /api/sync/bodyweight/{date}'; req.syncDate = sd[1]; }
-  const ic = /^\/api\/invites\/([^/]+)$/.exec(url.pathname);
+  // A route of its own under /api/invites/ (POST /api/invites/request) is not a code.
+  const ic = !routes[key] && /^\/api\/invites\/([^/]+)$/.exec(url.pathname);
   if (ic) { key = req.method + ' /api/invites/{code}'; req.inviteCode = ic[1]; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
