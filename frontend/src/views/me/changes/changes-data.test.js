@@ -29,7 +29,7 @@ describe('entryTitle and entryDetail, one formatter per kind', () => {
   })
 
   it('weighin-delete: the day and the weight', () => {
-    const e = entry('weighin-delete', { day: '2026-10-16', facts: { w: 82.1, unit: 'kg' } })
+    const e = entry('weighin-delete', { day: '2026-10-16', facts: { weight: 82.1, unit: 'kg' } })
     expect(entryTitle(e)).toBe('Deleted a weigh-in')
     expect(entryDetail(e)).toBe(`${D('2026-10-16')} · 82.1 kg · 09:12`)
   })
@@ -43,7 +43,19 @@ describe('entryTitle and entryDetail, one formatter per kind', () => {
     expect(entryTitle(goal('movement'))).toBe('Daily movement changed')
     expect(entryTitle(goal('targets'))).toBe('Daily targets changed')
     expect(entryTitle(entry('goal-change'))).toBe('Goal settings changed')
-    expect(entryDetail(goal('body'))).toBe('09:12')
+  })
+
+  it('goal-change: the line says what moved, from the recorder’s facts', () => {
+    const line = facts => entryDetail(entry('goal-change', { facts }))
+    expect(line({ what: 'goal', from: 'lose', to: 'keep' })).toBe('Lose → Keep · 09:12')
+    expect(line({ what: 'goal', from: null, to: 'build' })).toBe('Build · 09:12')
+    expect(line({ what: 'target', from: 80, to: 77, unit: 'kg' })).toBe('80 kg → 77 kg · 09:12')
+    expect(line({ what: 'target', from: 80, to: null, unit: 'kg' })).toBe('09:12')
+    expect(line({ what: 'body', from: { heightCm: 170, birthYear: 1990, sex: 'male' }, to: { heightCm: 172, birthYear: 1990, sex: 'male' } })).toBe('170 cm → 172 cm · 09:12')
+    expect(line({ what: 'body', from: { heightCm: 170, birthYear: 1990, sex: 'male' }, to: { heightCm: 170, birthYear: 1991, sex: 'female' } })).toBe('1990 → 1991 · Male → Female · 09:12')
+    expect(line({ what: 'targets', from: { calories: 2400 }, to: { calories: 2300 } })).toMatch(/^2,?400 kcal → 2,?300 kcal · 09:12$/)
+    expect(line({ what: 'movement', from: 'light', to: 'active' })).toBe('09:12')
+    expect(line({})).toBe('09:12')
   })
 
   it('routine-delete: the name and how many exercises', () => {

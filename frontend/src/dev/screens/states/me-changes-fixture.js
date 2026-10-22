@@ -27,7 +27,7 @@ export const BOARD = [OATS, WEIGH_EDIT, COACH, ROUTINE, SET]
 // The kinds the board does not draw.
 export const GOAL = entry('g1', 'goal-change', 0, 7, 40, { facts: { what: 'target', from: 80, to: 77, unit: 'kg' } })
 export const WORKOUT = entry('k1', 'workout-delete', 1, 20, 15, { subject: 'Pull A', day: dayOf(4), facts: { day: dayOf(4), sets: 18 } })
-export const WEIGH_DELETE = entry('w2', 'weighin-delete', 2, 7, 55, { day: dayOf(5), facts: { w: 82.1, unit: 'kg' } })
+export const WEIGH_DELETE = entry('w2', 'weighin-delete', 2, 7, 55, { day: dayOf(5), facts: { weight: 82.1, unit: 'kg' } })
 export const OTHER_KINDS = [GOAL, WORKOUT, WEIGH_DELETE, OATS]
 
 /**

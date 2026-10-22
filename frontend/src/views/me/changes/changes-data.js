@@ -40,6 +40,34 @@ function goalName(v) {
   }
 }
 
+const sexName = v => (v === 'male' ? t('Male') : v === 'female' ? t('Female') : '')
+const plainYear = v => (num(v) === null ? '' : String(v))
+const kcal = v => (num(v) === null ? '' : t('{0} kcal', fmtNum(v)))
+const moved = (from, to) => arrow(from, to) || to
+
+// What a goal-change moved, from its facts { what, from, to, unit? }: the old and new value, or the
+// new one alone. Movement levels have no wording yet, so that kind keeps to the time.
+function goalDetail(facts, ctx) {
+  const { what } = facts
+  const unit = facts.unit || ctx.unit
+  const from = facts.from ?? null, to = facts.to ?? null
+  switch (what) {
+    case 'goal': return moved(goalName(from), goalName(to))
+    case 'target': return moved(amount(from, unit), amount(to, unit))
+    case 'body': {
+      const a = from || {}, b = to || {}
+      const cm = v => (num(v) === null ? '' : joinUnit(fmtNum(v), t('cm')))
+      return joinParts([
+        a.heightCm !== b.heightCm ? moved(cm(a.heightCm), cm(b.heightCm)) : '',
+        a.birthYear !== b.birthYear ? moved(plainYear(a.birthYear), plainYear(b.birthYear)) : '',
+        a.sex !== b.sex ? moved(sexName(a.sex), sexName(b.sex)) : '',
+      ])
+    }
+    case 'targets': return moved(kcal(from?.calories), kcal(to?.calories))
+    default: return ''
+  }
+}
+
 /** What happened, as a sentence ("Deleted Oats with milk"). `ctx.unit` is the person's weight unit. */
 export function entryTitle(entry, ctx = {}) {
   const { kind, subject = '', facts = {} } = entry
@@ -86,9 +114,9 @@ export function entryDetail(entry, ctx = {}) {
     }
     case 'weighin-delete': {
       const unit = facts.unit || ctx.unit
-      return joinParts([dateOf(day), amount(facts.w ?? facts.weight ?? facts.from, unit), time])
+      return joinParts([dateOf(day), amount(facts.weight, unit), time])
     }
-    case 'goal-change': return time
+    case 'goal-change': return joinParts([goalDetail(facts, ctx), time])
     case 'routine-delete': return joinParts([num(facts.exercises) === null ? '' : exCount(facts.exercises), time])
     case 'workout-delete': return joinParts([dateOf(facts.day || day), num(facts.sets) === null ? '' : tn('{0} set', '{0} sets', facts.sets), time])
     case 'set-delete': {
