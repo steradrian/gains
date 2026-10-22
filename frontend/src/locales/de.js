@@ -4125,4 +4125,16 @@ export default {
   'Weight over time': 'Weight over time',
   'You weighed in today at {0}. Saving replaces it; Undo follows.': 'You weighed in today at {0}. Saving replaces it; Undo follows.',
   'You weighed in on {0} at {1}. Saving replaces it; Undo follows.': 'You weighed in on {0} at {1}. Saving replaces it; Undo follows.',
+  // Me body M2
+  'Nothing tracked yet': 'Nothing tracked yet',
+  '{0} tracked': '{0} tracked',
+  'last on {0}': 'last on {0}',
+  'Measurement range': 'Measurement range',
+  '{0} over time': '{0} over time',
+  'Choose': 'Choose',
+  'Log your first measurements to start the curve.': 'Log your first measurements to start the curve.',
+  'Save measurements': 'Save measurements',
+  'Change date': 'Change date',
+  'Log measurements shows only the ones you track.': 'Log measurements shows only the ones you track.',
+  'Your own': 'Your own',
 }
