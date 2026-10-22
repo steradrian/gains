@@ -757,7 +757,11 @@ html:not([data-lg="gl"]) .g-gtabbar { background: var(--chrome-glass); -webkit-b
 .g-tab-ind-ready { transition: transform 380ms cubic-bezier(.34,1.18,.64,1), opacity 140ms; }
 .g-tab-ind-off { opacity: 0; }
 .g-tab-ind::before { content: ""; position: absolute; inset: 0 2px; border-radius: 24px; }
-html:not([data-lg="gl"]) .g-tab-ind::before { background: var(--accent-tint); }
+/* The marker shows in every mode (css, gl, reduced). --accent-tint is nearly the chrome's own colour on a dark
+   bar, so it is a veil of the stage's ink: legible on both. In gl the glass lens (data-glass="lens", drawn
+   under it) bends the stage and this veil keeps the slot readable where the lens is faint. */
+.g-tab-ind::before { background: color-mix(in srgb, var(--on-stage, var(--accent-text)) 20%, transparent); }
+html[data-lg="gl"] .g-tab-ind::before { background: color-mix(in srgb, var(--on-stage, var(--accent-text)) 13%, transparent); }
 .g-gtabbar .g-tab { position: relative; z-index: 1; appearance: none; border: 0; background: none; padding: 0; min-width: 0; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font: 600 12px/14px var(--font-sans); color: var(--text-3); text-decoration: none; white-space: nowrap; cursor: pointer; transition: transform 180ms cubic-bezier(.34,1.4,.64,1), color 200ms; }
 .g-gtabbar .g-tab .g-icon { stroke-width: 1.9; }
 .g-gtabbar .g-tab[aria-current="page"] { color: var(--accent-text); font-weight: 700; }
@@ -765,7 +769,7 @@ html:not([data-lg="gl"]) .g-tab-ind::before { background: var(--accent-tint); }
 .g-tab-dot { position: absolute; top: 9px; left: calc(50% + 7px); width: 8px; height: 8px; border-radius: 50%; background: var(--accent-fill); }
 .g-gtabbar .g-plus { position: relative; z-index: 1; appearance: none; border: 0; padding: 0; justify-self: center; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); box-shadow: var(--shadow-accent); text-decoration: none; cursor: pointer; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
 .g-gtabbar .g-plus .g-icon { width: 26px; height: 26px; stroke-width: 2.4; }
-html:not([data-lg="gl"]) .g-gtabbar .g-tab:active, html:not([data-lg="gl"]) .g-gtabbar .g-plus:active { transform: scale(.94); }
+.g-gtabbar .g-tab:active, html:not([data-lg="gl"]) .g-gtabbar .g-plus:active { transform: scale(.94); } /* a tab is never drawn on its own, so it keeps its press in gl too */
 @media (prefers-reduced-motion: reduce) {
   .g-tab-ind, .g-tab-ind-ready, .g-gtabbar .g-tab, .g-gtabbar .g-plus { transition: none; }
 }
@@ -2703,7 +2707,11 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .gl-layer-over { z-index: var(--gl-over-z, 49); inset: auto 0 0 0; }
 /* Only a live GL host owns the strip. Any other state (css, reduced, no stage, context loss) and the
    search overlay (the engine is frozen, so its last frame would float over the results at z 49 > 47) hide it. */
-html:not([data-lg="gl"]) .gl-layer-over, body.search-open .gl-layer-over { display: none; }
+html:not([data-lg="gl"], [data-lg-fade]) .gl-layer-over, body.search-open .gl-layer-over { display: none; }
+/* A watchdog trip (GlassHost, glass-engine tripToCss): data-lg is already css, so the CSS material is under
+   the canvases, which fade out for 300 ms and are then freed. Keep the duration in step with FADE_MS. */
+@keyframes lg-out { from { opacity: 1; } to { opacity: 0; } }
+html[data-lg-fade] .gl-layer-over, html[data-lg-fade] canvas.g-lg-sprite { animation: lg-out .3s ease-out both; }
 .gl-layer canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* The hidden element the host reads the material tokens from (glass/material-probe.js). */
 .gl-probe { position: absolute; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
@@ -2781,9 +2789,9 @@ html[data-lg="reduced"] { --lg-edge-blur: blur(24px); }
    element is drawn ([data-lg-on]); in css or reduced mode it is hidden and the CSS material is back.
    The selector out-ranks every `> *` rule on glass children (scale, margins, position). */
 .g-lg-sprite { display: none; }
-html[data-lg="gl"] [data-lg-on][data-lg-sprite] { isolation: isolate; }
-html[data-lg="gl"] [data-lg-on][data-lg-sprite][data-lg-static] { position: relative; }
-html[data-lg="gl"] [data-lg-on][data-lg-sprite] > canvas.g-lg-sprite {
+:is(html[data-lg="gl"], html[data-lg-fade]) [data-lg-on][data-lg-sprite] { isolation: isolate; }
+:is(html[data-lg="gl"], html[data-lg-fade]) [data-lg-on][data-lg-sprite][data-lg-static] { position: relative; }
+:is(html[data-lg="gl"], html[data-lg-fade]) [data-lg-on][data-lg-sprite] > canvas.g-lg-sprite {
   display: block; position: absolute; z-index: -1; pointer-events: none;
   inset: auto; left: calc(-1 * (var(--lg-m, 4px) + var(--lg-bl, 0px))); top: calc(-1 * (var(--lg-m, 4px) + var(--lg-bt, 0px)));
   width: calc(100% + 2 * var(--lg-m, 4px) + var(--lg-bl, 0px) + var(--lg-br, 0px));
