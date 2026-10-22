@@ -47,6 +47,12 @@ export function plausibleDate(date, now = Date.now()) {
   return Math.abs(t - now) <= PLAUSIBLE_MS;
 }
 
+/** The server's UTC date. */
+export const serverDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+/** The client's `date` when it can be someone's today, else the server's UTC date. */
+export const clientDay = (date, now = Date.now()) => (plausibleDate(date, now) ? date : serverDay(now));
+
 /** The goal as the client words it: structured, never a sentence. */
 export const goalLineOf = goal => (goal?.kind === 'number' ? { kind: 'number', n: goal.n } : { kind: goal?.kind === 'targets' ? 'targets' : 'planned' });
 

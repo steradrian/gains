@@ -142,6 +142,35 @@ test('at most three running challenges per group', async t => {
   assert.equal((await create(h, other.body.id, 'u_ana', { template: 'bests', span: 'week' })).status, 200);
 });
 
+test('a far-future date counts as the server’s today: no challenge years out, no full cap, no other group swept', async t => {
+  const { h, gid } = await start(t, { u_ana: state(), u_bea: state(), u_cy: state(), u_dan: state(), u_eve: state() });
+  const g2 = await h.crew(['u_dan', 'u_eve'], { name: 'Elsewhere' });
+  const theirs = (await create(h, g2, 'u_dan', { template: 'workouts', span: 'week' })).body;
+  const ours = (await create(h, gid, 'u_ana', { template: 'workouts', span: 'week' })).body;
+
+  const future = await create(h, gid, 'u_bea', { template: 'protein', span: 'week' }, '2099-12-31');
+  assert.equal(future.status, 200, future.text);
+  assert.deepEqual([future.body.start, future.body.end, future.body.state], [MONDAY, '2026-10-18', 'active'], 'started this week, not in 2099');
+  assert.ok(h.friends().challenges[theirs.id], 'another group’s challenge survives');
+  assert.ok(h.friends().challenges[ours.id], 'this group’s running challenge survives');
+  const joined = await act(h, g2, theirs.id, 'join', 'u_eve', '2099-12-31');
+  assert.deepEqual([joined.status, joined.body.state], [200, 'active'], 'a far-future join does not see it ended');
+
+  // The cap fills with this week's challenges only, and frees up when they end.
+  assert.equal((await create(h, gid, 'u_cy', { template: 'weekend', span: 'week' }, '2099-12-31')).status, 200);
+  assert.equal((await create(h, gid, 'u_ana', { template: 'bests', span: 'week' }, '2099-12-31')).body.code, 'challenge-limit');
+  await h.at(Date.parse('2026-10-19T12:00:00.000Z'));
+  const next = await create(h, gid, 'u_ana', { template: 'bests', span: 'week' }, '2026-10-19');
+  assert.deepEqual([next.status, next.body.start], [200, '2026-10-19']);
+
+  // Retention by the server's clock, in the group written to only.
+  await h.at(Date.parse('2026-12-28T12:00:00.000Z'));
+  assert.equal((await create(h, gid, 'u_ana', { template: 'bests', span: 'week' }, '2026-12-28')).status, 200);
+  const left = h.friends().challenges;
+  assert.ok(!left[ours.id] && !left[future.body.id], 'this group’s challenges over 60 days old are dropped');
+  assert.ok(left[theirs.id], 'the other group’s are left to its own writes');
+});
+
 test('only members: 404 for a stranger, an unknown challenge or another group’s challenge; bodies are validated', async t => {
   const { h, gid } = await start(t, { u_ana: state(), u_bea: state(), u_cy: state() });
   await h.on('u_dan');
