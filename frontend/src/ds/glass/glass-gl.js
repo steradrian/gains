@@ -18,9 +18,15 @@ import { STRENGTH } from './glass-kinds.js'
 // blue shift by slightly different amounts (dispersion). The rim takes a thin specular from one light
 // direction, strongest on the lit arc and weaker on the opposite one; a soft contact shadow sits under it.
 
-const FLOATS = 20 // per vertex: pos 2, rect 4, shape 4, touch 4, extra 2, clip 4
+// Atlas mode (presenter-sprite.js): each shape is drawn into its own packed region of an offscreen
+// canvas instead of at its viewport position. The fragment still runs in viewport coordinates (v_p),
+// so lookColor() is sampled where the element really is on screen and the optics are the same code;
+// only the vertex placement (a_place: offset and device-pixel scale per shape) and the per-shape
+// shadow switch (a_touch.w) differ. The fixed presenter's path stays bit-identical (u_atlas = 0).
+const FLOATS = 23 // per vertex: pos 2, rect 4, shape 4, touch 4, extra 2, clip 4, place 3
 const MAX_PANES = 12
 const NO_CLIP = [0, 0, 1e5, 1e5]
+const NO_PLACE = [0, 0, 1]
 
 /** The material's defaults: the approved prototype's white lift, rim and specular, and its shadow tint. */
 export const DEFAULT_MATERIAL = Object.freeze({
@@ -45,17 +51,21 @@ attribute vec4 a_shape;
 attribute vec4 a_touch;
 attribute vec2 a_extra;
 attribute vec4 a_clip;
+attribute vec3 a_place; // atlas: device px = a_pos * z + xy
 uniform vec2 u_view;    // canvas size, CSS px
 uniform vec2 u_origin;  // the canvas's top-left in viewport px
+uniform vec2 u_viewPx;  // atlas: canvas size, device px
+uniform float u_atlas;
 varying vec2 v_p;
 varying vec4 v_rect;
 varying vec4 v_shape;
 varying vec4 v_touch;
 varying vec2 v_extra;
 varying vec4 v_clip;
+varying float v_dpr;
 void main() {
-  v_p = a_pos; v_rect = a_rect; v_shape = a_shape; v_touch = a_touch; v_extra = a_extra; v_clip = a_clip;
-  vec2 ndc = (a_pos - u_origin) / u_view * 2.0 - 1.0;
+  v_p = a_pos; v_rect = a_rect; v_shape = a_shape; v_touch = a_touch; v_extra = a_extra; v_clip = a_clip; v_dpr = a_place.z;
+  vec2 ndc = u_atlas > 0.5 ? (a_pos * a_place.z + a_place.xy) / u_viewPx * 2.0 - 1.0 : (a_pos - u_origin) / u_view * 2.0 - 1.0;
   gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0);
 }`
 
@@ -63,6 +73,9 @@ const FRAG = `precision highp float;
 ${LOOK_GLSL}
 uniform vec2 u_stage;   // the stage's size, CSS px (the viewport)
 uniform float u_dpr;
+uniform float u_atlas;      // 1: atlas mode, the device-pixel scale is per shape (v_dpr)
+uniform float u_stageOnly;  // 1: draw the stage itself, unbent (the dev page's side-by-side check, plan R8)
+varying float v_dpr;
 uniform vec4 u_lift;    // body colour and alpha over a clear middle
 uniform vec3 u_rim;     // bezel light
 uniform vec3 u_spec;    // lit-arc specular
@@ -86,8 +99,10 @@ float sdBox(vec2 p, vec2 b, float r) {
 // The stage with the panes under this canvas drawn in as they look (a faint lift and a lit edge), by
 // weight w: only the bezel draws them, since the bar's clear middle shows the real ones through the
 // frost layer, and drawing them there too would double their outlines.
+float dprOf() { return u_atlas > 0.5 ? v_dpr : u_dpr; }
+
 vec3 scene(vec2 p, float w) {
-  vec3 col = lookColor(p, u_stage, p * u_dpr);
+  vec3 col = lookColor(p, u_stage, p * dprOf());
   if (w <= 0.0) return col;
   for (int i = 0; i < ${MAX_PANES}; i++) {
     if (i >= u_paneN) break;
@@ -101,6 +116,7 @@ vec3 scene(vec2 p, float w) {
 
 void main() {
   if (v_p.x < v_clip.x || v_p.y < v_clip.y || v_p.x > v_clip.z || v_p.y > v_clip.w) discard;
+  if (u_stageOnly > 0.5) { gl_FragColor = vec4(lookColor(v_p, u_stage, v_p * dprOf()), 1.0); return; }
   vec2 c = v_rect.xy;
   vec2 hs = v_rect.zw;
   float rad = v_shape.x;
@@ -109,7 +125,7 @@ void main() {
   float centreA = v_shape.w;
   vec2 lp = v_p - c;
   float d = sdBox(lp, hs, rad);
-  float px = 1.0 / u_dpr;
+  float px = 1.0 / dprOf();
   bool isBar = kind > 0.5 && kind < 1.5;
   bool isLens = kind > 1.5 && kind < 2.5;
   bool isTint = kind > 2.5 && kind < 3.5;
@@ -119,7 +135,7 @@ void main() {
   // Contact shadow: soft and low, outside the shape only. The lens casts none.
   float shOff = isBar ? 7.0 : (isCard ? 5.0 : 3.0 + 2.0 * press);
   float shBlur = isBar ? 22.0 : (isCard ? 18.0 : 9.0 + minSide * 0.25);
-  float shA = ${byKind('shadow')} * u_shade.a;
+  float shA = ${byKind('shadow')} * u_shade.a * (u_atlas > 0.5 ? v_touch.w : 1.0);
   float ds = sdBox(lp - vec2(0.0, shOff), hs - vec2(2.0), max(rad - 2.0, 0.0));
   float sh = shA * (1.0 - smoothstep(-shBlur * 0.6, shBlur, ds));
   float cov = clamp(0.5 - d / px, 0.0, 1.0);
@@ -218,6 +234,11 @@ function compile(gl, type, src) {
  *   shapes: [{ x, y, hw, hh, radius, press, kind, centreA, opacity, touch: [x, y] | null,
  *              clip: [left, top, right, bottom] | null }];
  *   panes: [{ x, y, hw, hh, radius }] (glass under this canvas, drawn into what it bends).
+ *   atlas: { width, height } in device px: atlas mode. Each shape then also carries `place`
+ *     ([offsetX, offsetY, scale]: its device-px position in the canvas is pos * scale + offset), `margin`
+ *     (CSS px of room around it; give a clip of the same rect so nothing spills into a neighbour) and
+ *     `shadow` (draw its contact shadow). `width`/`height`/`dpr` are then only the look's inputs.
+ *   stageOnly: draw the unbent stage inside each shape's clip (a check, not glass).
  * Sizes are CSS px in viewport coordinates.
  */
 export function createGlassGL(canvas) {
@@ -243,7 +264,7 @@ export function createGlassGL(canvas) {
   const buf = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, buf)
   const stride = FLOATS * 4
-  const attrs = [['a_pos', 2, 0], ['a_rect', 4, 2], ['a_shape', 4, 6], ['a_touch', 4, 10], ['a_extra', 2, 14], ['a_clip', 4, 16]]
+  const attrs = [['a_pos', 2, 0], ['a_rect', 4, 2], ['a_shape', 4, 6], ['a_touch', 4, 10], ['a_extra', 2, 14], ['a_clip', 4, 16], ['a_place', 3, 20]]
   for (const [name, size, off] of attrs) {
     const loc = gl.getAttribLocation(prog, name)
     gl.enableVertexAttribArray(loc)
@@ -253,6 +274,7 @@ export function createGlassGL(canvas) {
   const U = {
     view: u('u_view'), origin: u('u_origin'), stage: u('u_stage'), dpr: u('u_dpr'), lift: u('u_lift'), rim: u('u_rim'),
     spec: u('u_spec'), shade: u('u_shade'), tint: u('u_tint'), panes: u('u_panes'), paneR: u('u_paneR'), paneN: u('u_paneN'),
+    atlas: u('u_atlas'), viewPx: u('u_viewPx'), stageOnly: u('u_stageOnly'),
   }
   const LU = {}
   UNIFORMS.forEach(n => { LU[n] = u(n) })
@@ -262,14 +284,17 @@ export function createGlassGL(canvas) {
   const paneRect = new Float32Array(MAX_PANES * 4)
   const paneR = new Float32Array(MAX_PANES)
 
-  function draw({ width, height, dpr, origin = [0, 0], stage = [width, height], look, material = DEFAULT_MATERIAL, shapes, panes = [] }) {
-    const w = Math.round(width * dpr)
-    const h = Math.round(height * dpr)
+  function draw({ width, height, dpr, origin = [0, 0], stage = [width, height], look, material = DEFAULT_MATERIAL, shapes, panes = [], atlas = null, stageOnly = false }) {
+    const w = atlas ? atlas.width : Math.round(width * dpr)
+    const h = atlas ? atlas.height : Math.round(height * dpr)
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h }
     gl.viewport(0, 0, w, h)
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT)
     if (!shapes.length) return
+    gl.uniform1f(U.atlas, atlas ? 1 : 0)
+    gl.uniform2f(U.viewPx, w, h)
+    gl.uniform1f(U.stageOnly, stageOnly ? 1 : 0)
     gl.uniform2f(U.view, width, height)
     gl.uniform2f(U.origin, origin[0], origin[1])
     gl.uniform2f(U.stage, stage[0], stage[1])
@@ -293,17 +318,21 @@ export function createGlassGL(canvas) {
     if (data.length < need) data = new Float32Array(need)
     let o = 0
     for (const s of shapes) {
-      const m = 34 // room for the shadow and the press swell
-      const x0 = s.x - s.hw - m, x1 = s.x + s.hw + m, y0 = s.y - s.hh - m, y1 = s.y + s.hh + m + 8
+      // Room for the shadow and the press swell; an atlas region is exactly the sprite's margin.
+      const m = atlas ? s.margin : 34
+      const x0 = s.x - s.hw - m, x1 = s.x + s.hw + m, y0 = s.y - s.hh - m, y1 = s.y + s.hh + m + (atlas ? 0 : 8)
       const t = s.touch
       const clip = s.clip || NO_CLIP
+      const place = atlas ? s.place : NO_PLACE
+      const shadow = atlas && s.shadow ? 1 : 0
       for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x0, y1], [x1, y0], [x1, y1]]) {
         data[o++] = px; data[o++] = py
         data[o++] = s.x; data[o++] = s.y; data[o++] = s.hw; data[o++] = s.hh
         data[o++] = s.radius; data[o++] = s.press; data[o++] = STRENGTH[s.kind]?.id ?? 0; data[o++] = s.centreA
-        data[o++] = t ? t[0] : 0; data[o++] = t ? t[1] : 0; data[o++] = t ? 1 : 0; data[o++] = 0
+        data[o++] = t ? t[0] : 0; data[o++] = t ? t[1] : 0; data[o++] = t ? 1 : 0; data[o++] = shadow
         data[o++] = s.opacity; data[o++] = 0
         data[o++] = clip[0]; data[o++] = clip[1]; data[o++] = clip[2]; data[o++] = clip[3]
+        data[o++] = place[0]; data[o++] = place[1]; data[o++] = atlas ? place[2] : dpr
       }
     }
     gl.bufferData(gl.ARRAY_BUFFER, data.subarray(0, o), gl.DYNAMIC_DRAW)
