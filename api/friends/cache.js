@@ -54,12 +54,15 @@ export function invalidateMember(uid) {
  * for MEMO_MS like a projection and dropped by invalidateMember. */
 const factsMemo = new Map();
 
-export function memberFacts(uid, from, to, now = Date.now()) {
-  const key = `${uid}|${from}|${to}`;
+/** `share` is the person's switches: protein days count only with targets shared, and the switch
+ *  is part of the key, as it is for a projection. */
+export function memberFacts(uid, from, to, share, now = Date.now()) {
+  const opts = { targets: share?.targets === true };
+  const key = `${uid}|${from}|${to}|${opts.targets ? 1 : 0}`;
   const hit = factsMemo.get(key);
   if (hit && now - hit.at >= 0 && now - hit.at < MEMO_MS) return hit.value;
   let value;
-  try { value = challengeFacts(readMemberState(uid), from, to); }
+  try { value = challengeFacts(readMemberState(uid), from, to, opts); }
   catch (e) {
     console.error('friends challenge facts failed for', uid, e.message);
     value = challengeFacts(null, from, to);

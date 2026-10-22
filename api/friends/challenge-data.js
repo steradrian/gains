@@ -8,7 +8,9 @@
  *
  * Counting, per person, capped at `perPerson` (bar goal = perPerson x people in):
  *   workouts   finished workouts in the span; perPerson 3 for each week of the span
- *   protein    days the protein target was reached (S.targetsReached[day].protein); 5 per week
+ *   protein    days the protein target was reached (S.targetsReached[day].protein); 5 per week.
+ *              Someone in who does not share targets is not counted: planned 0, count 0, and
+ *              no part of the goal
  *   weekend    Saturdays and Sundays with at least one workout, one per day; 2 per week
  *   bests      different exercises with a new best, shared or not, only the number; 1, whatever the span
  * Spans run from the Monday of the week the client's date is in: week 7 days, twoWeeks 14, month 28.
@@ -17,7 +19,7 @@
  * leave does not take it back), missed once the client's date is past `end` and it was not hit,
  * active otherwise. Only visible members (rules.js visibleMember: an active account with Friends
  * on, and the viewer) appear in joined and invited, and only they are counted. */
-import { addDays, isMember, membersOf, nameOf, visibleMember, groupsOf } from './rules.js';
+import { addDays, isMember, membersOf, nameOf, shareOf, visibleMember, groupsOf } from './rules.js';
 import { memberFacts } from './cache.js';
 
 export const TEMPLATES = ['workouts', 'protein', 'weekend', 'bests'];
@@ -73,12 +75,18 @@ function weeklyStreak(data, ch) {
 export function challengeView({ data, active, viewer, group, ch, date, now = Date.now() }) {
   const perPerson = perPersonOf(ch.template, ch.span);
   const seen = (ch.joined || []).map(j => j.uid).filter(uid => isMember(group, uid) && visibleMember(data, uid, viewer, active));
-  const joined = seen.map(uid => ({
-    uid, name: nameOf(active.get(uid)), planned: perPerson,
-    count: countOf(ch.template, memberFacts(uid, ch.start, ch.end, now), perPerson)
-  }));
+  const joined = seen.map(uid => {
+    const share = shareOf(data.people[uid]);
+    // Protein needs targets shared; without, the person is in but not counted: 0 planned, no part
+    // of the goal, so the bar never waits on days nobody may see.
+    if (ch.template === 'protein' && !share.targets) return { uid, name: nameOf(active.get(uid)), planned: 0, count: 0 };
+    return {
+      uid, name: nameOf(active.get(uid)), planned: perPerson,
+      count: countOf(ch.template, memberFacts(uid, ch.start, ch.end, share, now), perPerson)
+    };
+  });
   const total = sum(joined, j => j.count);
-  const goal = perPerson * joined.length;
+  const goal = sum(joined, j => j.planned);
   const hit = typeof ch.hitAt === 'string' || (goal > 0 && total >= goal);
   const state = hit ? 'done' : date > ch.end ? 'missed' : 'active';
   const streak = hit ? weeklyStreak(data, ch) : 0;

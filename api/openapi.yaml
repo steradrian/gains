@@ -6074,9 +6074,11 @@ components:
       description: |
         A group challenge. Counts are computed on every read from each joined person's own state,
         allow-listed numbers only (never an exercise, weight or food), each person capped at
-        `perPerson`; `goal` = `perPerson` x people joined; `total` is the sum.
+        `perPerson`; `goal` is the sum of the joined rows' `planned`; `total` is the sum of counts.
         - `workouts`: finished workouts in the span, 3 per week of the span.
         - `protein`: days the protein target was reached (`targetsReached[day].protein`), 5 per week.
+          A joined person who does not share targets is not counted: `planned` 0, `count` 0, and
+          no part of `goal`.
         - `weekend`: Saturdays and Sundays with a workout, one per day, 2 per week (the synced state
           has no separate activity log, so only workouts count).
         - `bests`: different exercises with a new best, shared or not, counted as a number; 1 per
@@ -6097,7 +6099,7 @@ components:
         end: { type: string, format: date }
         total: { type: integer }
         goal: { type: integer }
-        perPerson: { type: integer, description: 'The cap per person (each joined row''s `planned`).' }
+        perPerson: { type: integer, description: 'The cap per person (each counted joined row''s `planned`).' }
         startedBy:
           description: 'The creator; null when they have left the group or are hidden.'
           oneOf:

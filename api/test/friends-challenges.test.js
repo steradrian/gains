@@ -77,6 +77,27 @@ test('protein: days the protein target was reached, inside the span only', async
   assert.deepEqual([twoWeeks.perPerson, twoWeeks.end], [10, '2026-10-25']);
 });
 
+test('protein: someone in with Food targets off is not counted, whatever their synced state holds', async t => {
+  const reached = (...ds) => Object.fromEntries(ds.map(d => [d, { all: true, protein: true }]));
+  const { h, gid } = await start(t, {
+    u_ana: state({ targetsReached: reached(MONDAY) }),
+    u_bea: state({ targetsReached: reached(MONDAY, '2026-10-13', TODAY) }),
+    u_cy: state()
+  });
+  const c = (await create(h, gid, 'u_ana', { template: 'protein', span: 'week' })).body;
+  await h.share('u_bea', { training: true, consistency: true, targets: false, bests: true });
+  const j = (await act(h, gid, c.id, 'join', 'u_bea')).body;
+  assert.deepEqual(row(j, 'u_bea'), { uid: 'u_bea', name: 'Bea', count: 0, planned: 0 }, 'in, not counted');
+  assert.deepEqual([j.total, j.goal, j.state, j.you], [1, 5, 'active', { in: true }], 'the goal does not wait on Bea');
+  await h.share('u_bea', { training: true, consistency: true, targets: true, bests: true });
+  const back = (await get(h, gid, c.id, 'u_ana')).body;
+  assert.deepEqual([row(back, 'u_bea').count, row(back, 'u_bea').planned, back.total, back.goal], [3, 5, 4, 10], 'switching targets on counts the days again');
+  // Other templates ignore the targets switch.
+  await h.share('u_bea', { training: true, consistency: true, targets: false, bests: true });
+  const w = (await create(h, gid, 'u_bea', { template: 'workouts', span: 'week' })).body;
+  assert.equal(row(w, 'u_bea').planned, 3);
+});
+
 test('weekend: a workout on a Saturday or Sunday, one per person per day', async t => {
   const { h, gid } = await start(t, {
     u_ana: state({ workouts: [w('2026-10-17', 'sat1'), w('2026-10-17', 'sat2'), w(MONDAY)] }),
