@@ -2605,15 +2605,15 @@ html[data-lg="reduced"] :is(.g-glass, .g-btn-glass):not([data-glass="flat"]) { b
   pointer-events: none; opacity: 0; transition: opacity 160ms ease-out;
   background: color-mix(in srgb, var(--accent-stage-end) 55%, transparent);
   -webkit-backdrop-filter: var(--lg-edge-blur); backdrop-filter: var(--lg-edge-blur);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 60%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0, #000 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, currentcolor 0, currentcolor 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, currentcolor 0, currentcolor 60%, transparent 100%);
 }
 /* The sticky bar sits below the status bar (top: --sat), so its band reaches up to the window's edge. */
 .g-snav::before { top: calc(-1 * var(--sat, 0px)); }
 html[data-scrolled] :is(.g-shdr-pin, .g-snav)::before { opacity: 1; }
 .search-scroll[data-scrolled] {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, currentcolor 18px);
+  mask-image: linear-gradient(to bottom, transparent 0, currentcolor 18px);
 }
 html[data-lg="reduced"] { --lg-edge-blur: blur(24px); }
 @media (prefers-reduced-motion: reduce) { .g-shdr-pin::before, .g-snav::before { transition: none; } }
