@@ -189,7 +189,7 @@ describe('0 Invite', () => {
     // No "Settings › Account" in the notice: the way to sign out is a button.
     expect(page.querySelector('.ob-notice').textContent).not.toContain('›')
     click(button(page, 'Open Settings'))
-    expect(where(page)).toBe('/me')
+    expect(where(page)).toBe('/me/settings')
   })
 
   it('and Go to Today leaves it too', async () => {

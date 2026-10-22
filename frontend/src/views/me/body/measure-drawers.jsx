@@ -122,7 +122,7 @@ function ChooseMeasurements({ close }) {
       <p className="bd-hint">{t('Log measurements shows only the ones you track.')}</p>
       {GROUPS.map(group => (
         <section key={group} className="bd-group" aria-label={t(group)}>
-          <h3>{t(group)}</h3>
+          <p className="bd-group-title" aria-hidden="true">{t(group)}</p>
           {MEASUREMENT_FIELDS.filter(f => f.group === group).map(f => (
             <DetailRow key={f.key} title={t(f.label)}
               trailing={<Switch checked={enabled.has(f.key)} onChange={on => setBuiltinTracked(f.key, on)} ariaLabel={t(f.label)} />} />
@@ -130,7 +130,7 @@ function ChooseMeasurements({ close }) {
         </section>
       ))}
       <section className="bd-group" aria-label={t('Your own')}>
-        <h3>{t('Your own')}</h3>
+        <p className="bd-group-title" aria-hidden="true">{t('Your own')}</p>
         {(S.customMeasurements || []).map(c => (
           <DetailRow key={c.id} title={c.name}
             trailing={<Switch checked={c.enabled !== false} onChange={on => setCustomTracked(c.id, on)} ariaLabel={c.name} />} />

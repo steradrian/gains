@@ -2,7 +2,6 @@
   "G1": {
     "components/DurationWheel.jsx": 1,
     "components/ServerSync.jsx": 2,
-    "sheets/body-weight.jsx": 8,
     "sheets/confirm-menu.jsx": 1,
     "sheets/exercise-config.jsx": 7,
     "sheets/exercise.jsx": 1,

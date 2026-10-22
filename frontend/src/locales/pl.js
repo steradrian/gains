@@ -4567,7 +4567,7 @@ export default {
   'Restoring puts it back where it was: the same day, the same meal, the same workout.': 'Restoring puts it back where it was: the same day, the same meal, the same workout.',
   // Me photos M2
   '{0} photo on this phone': '{0} photo on this phone',
-  '{0} photos on this phone': '{0} photos on this phone',
+  '{0} photos on this phone': { one: '{0} zdjęcie na tym telefonie', few: '{0} zdjęcia na tym telefonie', many: '{0} zdjęć na tym telefonie' },
   'backed up': 'backed up',
   'On · kept across your devices': 'On · kept across your devices',
   'Off · turn on to keep them across devices': 'Off · turn on to keep them across devices',

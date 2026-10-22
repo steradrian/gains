@@ -14,7 +14,7 @@ import { NOOP, bodyState, editEntry, emptyState, measureState } from './me-body-
 // Me > Body (PR-05 boards Me2Body, Me2LogWeight, Me2EditWeigh, Me2Deleted, Me2Empty and the edge rows
 // M2.0, M2.1, M2.4): the real BodyScreen reading a mocked store (nothing persists), so a drawer's save
 // or delete shows on the page behind it. The drawers are the real ones, opened by `play`.
-function Page({ range = 0, asks, pill, waiting }) {
+function BodyStage({ range = 0, asks, pill, waiting }) {
   const S = useStore(s => s.S)
   const data = bodyOf(S, { from: rangeStart(range), today: todayISO() })
   return (
@@ -22,7 +22,7 @@ function Page({ range = 0, asks, pill, waiting }) {
       waiting={waiting} asks={asks ?? S.weighIn !== false} pill={pill} onLog={logWeightSheet} onOpen={editWeighInSheet} />
   )
 }
-const page = props => () => <Page {...props} />
+const page = props => () => <BodyStage {...props} />
 
 // The state a mock lays over the store.
 const withS = S => ({ S })

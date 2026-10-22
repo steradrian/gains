@@ -16,7 +16,7 @@ import { NOOP, emptyState, photosState, sourceOf, viewerState } from './me-photo
 // M2.8, M2.12, M2.9, M2.13): the real BodyScreen on its Photos tab reading a mocked store (nothing
 // persists), the drawer and the toast the real ones, opened by `play`. The pictures are a stand-in
 // still, never a file.
-function Page({ gone }) {
+function PhotosStage({ gone }) {
   const S = useStore(s => s.S)
   const data = bodyOf(S, { from: rangeStart(0), today: todayISO() })
   return (
@@ -25,7 +25,7 @@ function Page({ gone }) {
     </PhotoSourceContext.Provider>
   )
 }
-const page = props => () => <Page {...props} />
+const page = props => () => <PhotosStage {...props} />
 const withS = S => ({ S })
 
 // Switch Back up photos on: the real write and the real toast, held open.
