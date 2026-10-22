@@ -79,7 +79,7 @@ describe('refreshMember', () => {
 
   it('gives the person the colour their join order gives them, and you the page of your own', async () => {
     await withProbe()
-    expect(last().tone).toBe('blue')
+    expect(last().tone).toBe('sky')
     mocks.getMember.mockResolvedValue({ ...MARA, uid: 'u-adrian', name: 'Adrian' })
     await act(async () => { await refreshMember('g1', 'u-adrian') })
     view.render(<Probe uid="u-adrian" />)

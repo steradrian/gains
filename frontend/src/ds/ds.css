@@ -2520,13 +2520,14 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 
 /* Friends core m1: MemberAvatar (an initial in a circle), MemberRing (a segment per member).
-   Per-person colours are the app's calm palette, never red; `white` is the stage's own glass. */
-.g-mtone-white { --mtone: var(--on-stage); --mtone-bg: var(--glass); --mtone-ink: var(--on-stage); }
-.g-mtone-mint { --mtone: var(--mint); --mtone-bg: var(--mint); --mtone-ink: #111111; }
-.g-mtone-blue { --mtone: var(--blue); --mtone-bg: var(--blue); --mtone-ink: #FFFFFF; }
-.g-mtone-purple { --mtone: var(--purple); --mtone-bg: var(--purple); --mtone-ink: #FFFFFF; }
-.g-mtone-orange { --mtone: var(--orange); --mtone-bg: var(--orange); --mtone-ink: #111111; }
-.g-mtone-green { --mtone: var(--green); --mtone-bg: var(--green); --mtone-ink: #111111; }
+   Per-person colours are the app's calm palette, never red; `glass` is the stage's own glass. The
+   tone ids are not CSS colour names, so the colour guards read them as ids and not as colours. */
+.g-mtone-glass { --mtone: var(--on-stage); --mtone-bg: var(--glass); --mtone-ink: var(--on-stage); }
+.g-mtone-mint { --mtone: var(--mint); --mtone-bg: var(--mint); --mtone-ink: var(--on-acc); }
+.g-mtone-sky { --mtone: var(--blue); --mtone-bg: var(--blue); --mtone-ink: var(--on-stage); }
+.g-mtone-iris { --mtone: var(--purple); --mtone-bg: var(--purple); --mtone-ink: var(--on-stage); }
+.g-mtone-amber { --mtone: var(--orange); --mtone-bg: var(--orange); --mtone-ink: var(--on-acc); }
+.g-mtone-sage { --mtone: var(--green); --mtone-bg: var(--green); --mtone-ink: var(--on-acc); }
 .g-mavatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: var(--mtone-bg); color: var(--mtone-ink); font: 700 14px/1 var(--font-sans); }
 .g-mavatar-sm { width: 24px; height: 24px; font-size: 12px; }
 .g-mavatar-md { width: 32px; height: 32px; }

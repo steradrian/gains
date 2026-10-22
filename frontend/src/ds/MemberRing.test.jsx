@@ -10,7 +10,7 @@ const dash = c => c.getAttribute('stroke-dasharray').split(' ').map(Number)
 
 describe('MemberRing', () => {
   it('draws one track per member and a fill only for a member who has done something', () => {
-    view.render(<MemberRing segments={[{ value: 2, of: 4, tone: 'mint' }, { value: 0, of: 4, tone: 'blue' }, { value: 4, of: 4, tone: 'purple' }]} />)
+    view.render(<MemberRing segments={[{ value: 2, of: 4, tone: 'mint' }, { value: 0, of: 4, tone: 'sky' }, { value: 4, of: 4, tone: 'iris' }]} />)
     expect(q('.g-mring-track')).toHaveLength(3)
     expect(q('.g-mring-val')).toHaveLength(2)
   })
@@ -32,7 +32,7 @@ describe('MemberRing', () => {
   })
 
   it('a member with no plan is an empty segment of the same length, not a warning', () => {
-    view.render(<MemberRing segments={[{ value: 0, of: 0, tone: 'mint' }, { value: 3, of: 3, tone: 'blue' }]} />)
+    view.render(<MemberRing segments={[{ value: 0, of: 0, tone: 'mint' }, { value: 3, of: 3, tone: 'sky' }]} />)
     const [a, b] = q('.g-mring-track').map(dash)
     expect(a[0]).toBe(b[0])
     expect(q('.g-mring-val')).toHaveLength(1)
@@ -42,7 +42,7 @@ describe('MemberRing', () => {
   it('caps a share at the whole segment and ignores an unknown tone', () => {
     view.render(<MemberRing segments={[{ value: 9, of: 4, tone: 'red' }]} />)
     expect(dash(q('.g-mring-val')[0])[0]).toBeCloseTo(dash(q('.g-mring-track')[0])[0], 1)
-    expect(q('g')[0].classList.contains('g-mtone-white')).toBe(true)
+    expect(q('g')[0].classList.contains('g-mtone-glass')).toBe(true)
   })
 
   it('with one member it is a whole ring, with none only the track', () => {

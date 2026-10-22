@@ -28,7 +28,7 @@ export default function MemberRing({ segments = [], size = 240, stroke = 16, lab
         {segments.map((seg, i) => {
           const start = i * (span + gap)
           const share = seg.of > 0 ? Math.max(0, Math.min(1, seg.value / seg.of)) : 0
-          const tone = MEMBER_TONES.includes(seg.tone) ? seg.tone : 'white'
+          const tone = MEMBER_TONES.includes(seg.tone) ? seg.tone : 'glass'
           return (
             <g key={i} className={cx('g-mtone-' + tone)}>
               {arc('t' + i, span, start, 'g-mring-track')}

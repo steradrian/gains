@@ -242,7 +242,7 @@ export function useMemberState(groupId, uid) {
     you: !!row?.you,
     muted: !!row?.muted,
     isCreator: !!snap.group?.isCreator,
-    tone: at >= 0 ? memberTone(at) : 'white',
+    tone: at >= 0 ? memberTone(at) : 'glass',
   }
 }
 

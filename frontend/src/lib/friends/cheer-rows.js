@@ -86,7 +86,7 @@ export function cheerRows(cheers, groups = []) {
     const at = Math.max(...list.map(c => c.at))
     if (others >= 2 && senders.size >= others) {
       rows.push({
-        key: 'week:' + key, initial: g.name, tone: 'white', text: t('Everyone cheered the week'),
+        key: 'week:' + key, initial: g.name, tone: 'glass', text: t('Everyone cheered the week'),
         detail: withGroup(list[0], weekDetail(streak)), at,
       })
     } else {

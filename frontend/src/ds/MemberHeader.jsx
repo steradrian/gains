@@ -1,7 +1,7 @@
-import { t } from '../../lib/i18n.js'
-import { sinceLine } from '../../lib/friends/member-view.js'
-import Button from '../../ds/Button.jsx'
-import MemberAvatar from '../../ds/MemberAvatar.jsx'
+import { t } from '../lib/i18n.js'
+import { sinceLine } from '../lib/friends/member-view.js'
+import Button from './Button.jsx'
+import MemberAvatar from './MemberAvatar.jsx'
 
 /**
  * The top of the Member page (board Fr2Member): the person's initial, name and "In Iron Sunday

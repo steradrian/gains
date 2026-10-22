@@ -56,7 +56,7 @@ function NewChallenge({ groupId, close }) {
             <RadioRow key={x.id} title={x.title} sub={x.counts} selected={template === x.id} onClick={() => setTemplate(x.id)} />
           ))}
         </div>
-        <h3 className="g-jsheet-h">{t('How long')}</h3>
+        <p role="heading" aria-level={3} className="g-jsheet-h">{t('How long')}</p>
         <SegmentedControl label={t('How long')} options={spans()} value={span} onChange={setSpan} />
         <p className="g-jsheet-note">{t('Everyone gets an invite to join. Nobody is added without saying yes, and there are no winners: you all fill one bar.')}</p>
       </div>

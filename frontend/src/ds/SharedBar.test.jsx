@@ -12,31 +12,31 @@ const basis = el => parseFloat(el.style.flexBasis)
 describe('SharedBar', () => {
   it('draws the segments in the order given, one per person with something counted', () => {
     view.render(<SharedBar goal={15} segments={[
-      { value: 3, tone: 'mint' }, { value: 2, tone: 'blue' }, { value: 0, tone: 'purple' }, { value: 4, tone: 'orange' },
+      { value: 3, tone: 'mint' }, { value: 2, tone: 'sky' }, { value: 0, tone: 'iris' }, { value: 4, tone: 'amber' },
     ]} />)
     expect(segs()).toHaveLength(3)
-    expect(segs().map(s => s.className.match(/g-mtone-(\w+)/)[1])).toEqual(['mint', 'blue', 'orange'])
+    expect(segs().map(s => s.className.match(/g-mtone-(\w+)/)[1])).toEqual(['mint', 'sky', 'amber'])
   })
 
   it('sizes each segment by its own value of the goal, so the segments add up to the count', () => {
-    view.render(<SharedBar goal={20} segments={[{ value: 5, tone: 'mint' }, { value: 3, tone: 'blue' }, { value: 2, tone: 'green' }]} />)
+    view.render(<SharedBar goal={20} segments={[{ value: 5, tone: 'mint' }, { value: 3, tone: 'sky' }, { value: 2, tone: 'sage' }]} />)
     expect(segs().map(basis)).toEqual([25, 15, 10])
     expect(segs().map(basis).reduce((a, b) => a + b, 0)).toBe(50)
   })
 
   it('is full and shares the bar past the goal, never longer than the bar', () => {
-    view.render(<SharedBar goal={4} segments={[{ value: 4, tone: 'mint' }, { value: 4, tone: 'blue' }]} />)
+    view.render(<SharedBar goal={4} segments={[{ value: 4, tone: 'mint' }, { value: 4, tone: 'sky' }]} />)
     expect(segs().map(basis)).toEqual([50, 50])
   })
 
   it('does not rank: a smaller segment stays where the order puts it', () => {
-    view.render(<SharedBar goal={10} segments={[{ value: 1, tone: 'mint' }, { value: 6, tone: 'blue' }]} />)
+    view.render(<SharedBar goal={10} segments={[{ value: 1, tone: 'mint' }, { value: 6, tone: 'sky' }]} />)
     expect(segs().map(basis)).toEqual([10, 60])
   })
 
   it('falls back to the stage glass for an unknown tone, and never to a red one', () => {
     view.render(<SharedBar goal={5} segments={[{ value: 1, tone: 'red' }]} />)
-    expect(segs()[0].className).toContain('g-mtone-white')
+    expect(segs()[0].className).toContain('g-mtone-glass')
   })
 
   it('draws an empty track with nothing counted or no goal', () => {
@@ -48,7 +48,7 @@ describe('SharedBar', () => {
   it('is one image: the label when given, else the segments\' own spoken labels', () => {
     view.render(<SharedBar goal={15} label="12 of 15 workouts" segments={[{ value: 3, tone: 'mint', label: 'Adrian: 3' }]} />)
     expect(view.host.querySelector('.g-sbar').getAttribute('aria-label')).toBe('12 of 15 workouts')
-    view.render(<SharedBar goal={15} segments={[{ value: 3, tone: 'mint', label: 'Adrian: 3' }, { value: 2, tone: 'blue', label: 'Mara: 2' }]} />)
+    view.render(<SharedBar goal={15} segments={[{ value: 3, tone: 'mint', label: 'Adrian: 3' }, { value: 2, tone: 'sky', label: 'Mara: 2' }]} />)
     expect(view.host.querySelector('.g-sbar').getAttribute('aria-label')).toBe('Adrian: 3, Mara: 2')
     expect(view.host.querySelector('.g-sbar').getAttribute('role')).toBe('img')
   })

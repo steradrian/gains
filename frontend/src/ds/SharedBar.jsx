@@ -19,7 +19,7 @@ export default function SharedBar({ segments = [], goal = 0, label }) {
         {whole > 0 && segments.map((s, i) => {
           const value = Math.max(0, Number(s.value) || 0)
           if (!value) return null
-          const tone = MEMBER_TONES.includes(s.tone) ? s.tone : 'white'
+          const tone = MEMBER_TONES.includes(s.tone) ? s.tone : 'glass'
           return <i key={i} className={cx('g-sbar-seg', 'g-mtone-' + tone)} style={{ flexBasis: (value / whole * 100).toFixed(2) + '%' }} />
         })}
       </span>

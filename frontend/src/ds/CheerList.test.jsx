@@ -8,8 +8,8 @@ import CheerList from './CheerList.jsx'
 
 const view = useView()
 const ROWS = [
-  { key: 'a', initial: 'Mara', tone: 'blue', text: 'Mara cheered your Push A', detail: 'Sunday evening', when: '2 h ago' },
-  { key: 'b', initial: 'Radu', tone: 'purple', text: 'Radu cheered your week', when: 'Yesterday' },
+  { key: 'a', initial: 'Mara', tone: 'sky', text: 'Mara cheered your Push A', detail: 'Sunday evening', when: '2 h ago' },
+  { key: 'b', initial: 'Radu', tone: 'iris', text: 'Radu cheered your week', when: 'Yesterday' },
 ]
 
 describe('CheerList', () => {
@@ -25,7 +25,7 @@ describe('CheerList', () => {
     view.render(<CheerList label="x" rows={ROWS} />)
     const [first] = view.host.querySelectorAll('.g-crow')
     expect(first.querySelector('.g-mavatar').textContent).toBe('M')
-    expect(first.querySelector('.g-mavatar').classList.contains('g-mtone-blue')).toBe(true)
+    expect(first.querySelector('.g-mavatar').classList.contains('g-mtone-sky')).toBe(true)
     expect(first.querySelector('b').textContent).toBe('Mara cheered your Push A')
     expect(first.querySelector('.g-crow-body > span').textContent).toBe('Sunday evening')
     expect(first.querySelector('small').textContent).toBe('2 h ago')

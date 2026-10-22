@@ -103,7 +103,7 @@ function InviteSheet({ groupId, groupName }) {
         <p className="g-jsheet-note">{t('Works once · 7 days')}</p>
         {canShareLink() && <Button block variant="secondary" icon="share" onClick={share}>{t('Share link')}</Button>}
 
-        <h3 className="g-ipeople-h">{t('Already on Gains')}</h3>
+        <p role="heading" aria-level={3} className="g-ipeople-h">{t('Already on Gains')}</p>
         <TextField tone="light" wide label={t('Search people')} placeholder={t('Search by name')} value={query} onChange={setQuery}
           inputProps={{ type: 'search', autoCapitalize: 'off', autoCorrect: 'off', spellCheck: false }} />
         {empty

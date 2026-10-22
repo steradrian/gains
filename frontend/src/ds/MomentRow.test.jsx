@@ -4,7 +4,7 @@ import MomentRow from './MomentRow.jsx'
 import { click, useView } from './render.test-util.js'
 
 const view = useView()
-const row = props => view.render(<ul><MomentRow people={[{ uid: 'm', initial: 'M', tone: 'blue' }]} title="Mara finished Legs" detail="54 min" time="2 hours ago" {...props} /></ul>)
+const row = props => view.render(<ul><MomentRow people={[{ uid: 'm', initial: 'M', tone: 'sky' }]} title="Mara finished Legs" detail="54 min" time="2 hours ago" {...props} /></ul>)
 const pill = () => view.host.querySelector('button.g-btn')
 
 describe('MomentRow', () => {
@@ -50,7 +50,7 @@ describe('MomentRow', () => {
   })
 
   it('stacks several initials for a moment two people share', () => {
-    view.render(<ul><MomentRow people={[{ uid: 'a', initial: 'A', tone: 'mint' }, { uid: 'i', initial: 'I', tone: 'orange' }]} title="You and Ioana trained together" /></ul>)
+    view.render(<ul><MomentRow people={[{ uid: 'a', initial: 'A', tone: 'mint' }, { uid: 'i', initial: 'I', tone: 'amber' }]} title="You and Ioana trained together" /></ul>)
     expect(view.host.querySelectorAll('.g-mavatar')).toHaveLength(2)
   })
 })

@@ -23,14 +23,14 @@ describe('MemberAvatar', () => {
   })
 
   it('takes a size and a tone as classes', () => {
-    view.render(<MemberAvatar initial="R" size="lg" tone="purple" />)
+    view.render(<MemberAvatar initial="R" size="lg" tone="iris" />)
     expect(el().classList.contains('g-mavatar-lg')).toBe(true)
-    expect(el().classList.contains('g-mtone-purple')).toBe(true)
+    expect(el().classList.contains('g-mtone-iris')).toBe(true)
   })
 
   it('has no red among its tones, and gives each joined position the same colour every time', () => {
     expect(MEMBER_TONES.some(tone => /red|pink|danger/.test(tone))).toBe(false)
-    expect([0, 1, 2, 3, 4, 5].map(memberTone)).toEqual(['mint', 'blue', 'purple', 'orange', 'green', 'mint'])
+    expect([0, 1, 2, 3, 4, 5].map(memberTone)).toEqual(['mint', 'sky', 'iris', 'amber', 'sage', 'mint'])
     expect(memberTone(2)).toBe(memberTone(2))
   })
 

@@ -75,7 +75,7 @@ describe('cheerRows', () => {
 
   it('gives each person the colour they have in the group', () => {
     const [row] = rowsOf([raw('c1', 'u-radu', 'Radu', 'moment', 1)])
-    expect(row.tone).toBe('purple')
+    expect(row.tone).toBe('iris')
   })
 
   it('names the group on each row only when there are several', () => {

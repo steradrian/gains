@@ -10,7 +10,7 @@ import TodayScreen from './TodayScreen.jsx'
 
 const view = useView()
 const friends = (over = {}) => ({
-  avatars: [{ initial: 'Mara', tone: 'blue' }, { initial: 'Radu', tone: 'purple' }],
+  avatars: [{ initial: 'Mara', tone: 'sky' }, { initial: 'Radu', tone: 'iris' }],
   line: 'Mara finished Legs · Radu set a new best',
   groupLine: 'Iron Sunday · 17 of 22 this week',
   cheered: false,
