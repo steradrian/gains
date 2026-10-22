@@ -32,7 +32,7 @@ const clone = v => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)))
 const pad = n => String(n).padStart(2, '0')
 const isoOf = at => { const d = new Date(at); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
 const fresh = (list, now) => list.filter(e => e.at > now - KEEP_DAYS * DAY_MS)
-const publicOf = ({ snapshot: _snapshot, result: _result, ...rest }) => rest
+const publicOf = ({ snapshot: _snapshot, result: _result, media: _media, ...rest }) => rest
 
 /**
  * Keeps the last 7 days. Writes only when something went. Returns what is left, newest first.
@@ -46,9 +46,11 @@ export function pruneChanges(now = Date.now()) {
 
 /**
  * Journals one change; returns its id, or null when it could not be kept (nothing throws).
- * `action` is what the screen offers: 'restore' (default) or 'undo'.
+ * `action` is what the screen offers: 'restore' (default) or 'undo'. `media` lists the blob
+ * hashes the snapshot refers to: the local media clean-up keeps them while the entry lives
+ * (journalMediaHashes).
  */
-export function recordChange({ kind, day, subject, facts, snapshot, action = 'restore' } = {}) {
+export function recordChange({ kind, day, subject, facts, snapshot, action = 'restore', media } = {}) {
   try {
     if (typeof kind !== 'string' || !kind) return null
     const at = Date.now()
@@ -58,6 +60,8 @@ export function recordChange({ kind, day, subject, facts, snapshot, action = 're
       subject: typeof subject === 'string' ? subject : '', facts: clone(facts) ?? {},
       snapshot: clone(snapshot) ?? null, action: action === 'undo' ? 'undo' : 'restore', state: 'open',
     }
+    const hashes = Array.isArray(media) ? [...new Set(media.filter(h => typeof h === 'string' && h))] : []
+    if (hashes.length) entry.media = hashes
     writeEntries([entry, ...pruneChanges(at)])
     return entry.id
   } catch { return null }
@@ -65,7 +69,10 @@ export function recordChange({ kind, day, subject, facts, snapshot, action = 're
 
 /** The last 7 days, newest first, without their snapshots. */
 export function listChanges(now = Date.now()) {
-  try { return pruneChanges(now).map(publicOf) } catch { return [] }
+  let own = []
+  try { own = pruneChanges(now).map(publicOf) } catch { /* an unreadable journal lists nothing of its own */ }
+  const read = sourceEntries(now)
+  return read.length ? [...own, ...read].sort((a, b) => b.at - a.at) : own
 }
 
 function replaceEntry(id, patch) {
@@ -80,7 +87,7 @@ function replaceEntry(id, patch) {
  */
 export async function restoreChange(id) {
   const entry = pruneChanges().find(e => e.id === id)
-  if (!entry) return { ok: false, reason: 'gone' }
+  if (!entry) return restoreFromSource(id)
   if (entry.state === 'restored' || busy.has(id)) return { ok: false, reason: 'restored' }
   const restorer = restorers.get(entry.kind)
   if (!restorer?.restore) return { ok: false, reason: 'unsupported' }
@@ -107,6 +114,63 @@ export async function undoRestore(id) {
     replaceEntry(id, { state: 'open', result: null })
     return { ok: true }
   } catch { return { ok: false, reason: 'error' } } finally { busy.delete(id) }
+}
+
+/* ------------------------------------------------------------------ sources ----------------- */
+// A source is a log that something else owns (the Coach's plan changes): the journal lists its
+// entries but never copies them, so they cannot go stale, and clearChanges leaves them alone.
+
+const sources = new Map()
+
+/**
+ * `read(S, now)` -> entries { id, at, day, subject, facts, action? } (the journal adds `kind`,
+ * defaults `state: 'open'` and keeps only the last 7 days); `restore(entry, S)` runs the entry's
+ * action -> { ok, where?, reason? }. A source has no undo of its restore: undoRestore answers
+ * 'unsupported' for its entries.
+ */
+export const registerSource = (kind, read, { restore } = {}) => { sources.set(kind, { read, restore }) }
+
+function readSource(kind, src, now) {
+  try {
+    const list = src.read(readState(), now)
+    const from = now - KEEP_DAYS * DAY_MS
+    return (Array.isArray(list) ? list : [])
+      .filter(e => e && typeof e.id === 'string' && Number.isFinite(e.at) && e.at > from && e.at <= now)
+      .map(e => ({ action: 'undo', subject: '', facts: {}, state: 'open', ...e, kind, day: e.day || isoOf(e.at) }))
+  } catch { return [] }
+}
+
+function sourceEntries(now) {
+  const out = []
+  for (const [kind, src] of sources) out.push(...readSource(kind, src, now))
+  return out
+}
+
+async function restoreFromSource(id) {
+  const now = Date.now()
+  for (const [kind, src] of sources) {
+    const entry = readSource(kind, src, now).find(e => e.id === id)
+    if (!entry) continue
+    if (!src.restore) return { ok: false, reason: 'unsupported' }
+    if (busy.has(id)) return { ok: false, reason: 'restored' }
+    busy.add(id)
+    try {
+      const res = await src.restore(clone(entry), readState())
+      if (!res?.ok) return { ok: false, reason: res?.reason || 'error' }
+      const { where, fellBack } = res
+      return { ok: true, ...(where !== undefined ? { where } : {}), ...(fellBack !== undefined ? { fellBack } : {}) }
+    } catch { return { ok: false, reason: 'error' } } finally { busy.delete(id) }
+  }
+  return { ok: false, reason: 'gone' }
+}
+
+/** Every blob hash a live entry's snapshot refers to: what the local media clean-up must keep. */
+export function journalMediaHashes(now = Date.now()) {
+  const out = new Set()
+  try {
+    for (const e of pruneChanges(now)) for (const h of Array.isArray(e.media) ? e.media : []) out.add(h)
+  } catch { /* nothing kept */ }
+  return out
 }
 
 /**

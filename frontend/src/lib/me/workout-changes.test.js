@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { deleteWorkoutWithUndo } from '../../sheets.jsx'
-import { listChanges, restoreChange, undoRestore } from '../recent-changes.js'
+import { clearChanges, listChanges, restoreChange, undoRestore } from '../recent-changes.js'
 import { removeEntries } from '../recent-changes-store.js'
-import { createMediaStore, memoryBackend, _setMediaStore } from '../media-store.js'
+import { createMediaStore, memoryBackend, mediaStore, _setMediaStore } from '../media-store.js'
+import { createMediaSync } from '../media-sync.js'
 import { mergeStates } from '../sync-merge.js'
 import { recordEditedWorkoutDelete, restoreWorkoutChange, WORKOUT_DELETE } from './workout-changes.js'
 
@@ -135,5 +136,67 @@ describe('against the sync (sync-merge)', () => {
     for (const m of [mergeStates(deletedAgain, offline), mergeStates(offline, deletedAgain)]) {
       expect(m.workouts.map(w => w.id)).toEqual(['w0', 'w2'])
     }
+  })
+})
+
+describe('a deleted workout\'s photos and videos (local media clean-up)', () => {
+  const HOUR = 3600e3
+  const DAY = 24 * HOUR
+  const main = 'a'.repeat(64)
+  const poster = 'b'.repeat(64)
+  const other = 'c'.repeat(64)
+  const file = hash => mediaStore.put(hash, new Blob(['x']), { mime: 'image/webp', pending: false })
+
+  // The clean-up as the app runs it, two hours on: nothing is inside its one-hour grace.
+  const cleanUp = async () => {
+    const store = { getState: () => ({ ready: true, user: null, S: S(), stashedMediaHashes: async () => new Set() }), subscribe: () => () => {} }
+    await createMediaSync({ store, now: () => Date.now() + 2 * HOUR, locks: null, storage: null }).localMediaGc()
+  }
+  const held = async () => [await mediaStore.has(main), await mediaStore.has(poster), await mediaStore.has(other)]
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    useStore.setState({ S: { ...S(), workouts: S().workouts.map(w => (w.id === 'w1'
+      ? { ...w, media: [{ kind: 'image', hash: main, mime: 'image/webp', size: 1, poster: { hash: poster, mime: 'image/webp', size: 1 } }] }
+      : w)) } })
+    await Promise.all([main, poster, other].map(file))
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('are kept after the 8 s Undo is gone, while the journal entry is live; a file nothing refers to is not', async () => {
+    deleteWorkoutWithUndo(S().workouts[1])
+    toast.mock.calls.at(-1)[1].onClose()   // the 8 s hold ends
+    await cleanUp()
+    expect(await held()).toEqual([true, true, false])
+    vi.setSystemTime(Date.now() + 6 * DAY)
+    await cleanUp()
+    expect(await held()).toEqual([true, true, false])
+  })
+
+  it('are freed once the entry is pruned after 7 days', async () => {
+    deleteWorkoutWithUndo(S().workouts[1])
+    toast.mock.calls.at(-1)[1].onClose()
+    vi.setSystemTime(Date.now() + 8 * DAY)
+    await cleanUp()
+    expect(await held()).toEqual([false, false, false])
+    expect(listChanges()).toEqual([])
+  })
+
+  it('are freed when the journal is cleared (sign-out, Start over)', async () => {
+    deleteWorkoutWithUndo(S().workouts[1])
+    toast.mock.calls.at(-1)[1].onClose()
+    clearChanges()
+    await cleanUp()
+    expect(await held()).toEqual([false, false, false])
+  })
+
+  it('come back with a Restore days later: the record names files that are still there', async () => {
+    deleteWorkoutWithUndo(S().workouts[1])
+    toast.mock.calls.at(-1)[1].onClose()
+    vi.setSystemTime(Date.now() + 3 * DAY)
+    await cleanUp()
+    expect((await restoreChange(listChanges()[0].id)).ok).toBe(true)
+    expect(S().workouts[1].media[0].hash).toBe(main)
+    expect(await held()).toEqual([true, true, false])
   })
 })

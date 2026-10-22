@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  clearChanges, listChanges, pruneChanges, recordChange, registerRestorer, restoreChange, setStateReader, undoRestore,
+  clearChanges, journalMediaHashes, listChanges, pruneChanges, recordChange, registerRestorer, registerSource, restoreChange,
+  setStateReader, undoRestore,
 } from './recent-changes.js'
 import { changesKey, readEntries, removeEntries, setChangesOwner } from './recent-changes-store.js'
 
@@ -194,5 +195,76 @@ describe('clearChanges', () => {
     clearChanges(null)
     setChangesOwner(() => null)
     expect(listChanges(NOW)).toEqual([])
+  })
+})
+
+describe('sources (a log something else owns)', () => {
+  let log, restore
+  const entry = (id, at, over = {}) => ({ id, at, subject: id, facts: { n: 1 }, ...over })
+  beforeEach(() => {
+    log = [entry('src:a', NOW - 1000), entry('src:b', NOW - 3 * DAY)]
+    restore = vi.fn(async e => { log = log.filter(x => x.id !== e.id); return { ok: true, where: { day: '2026-10-22' } } })
+    registerSource('test-source', () => log, { restore })
+  })
+  afterEach(() => { registerSource('test-source', () => []) })
+
+  it('lists source entries beside the journal\'s own, newest first, with the kind, an undo action and the day', () => {
+    const own = add({ day: '2026-10-21' })
+    const rows = listChanges(NOW)
+    expect(rows.map(r => r.id)).toEqual([own, 'src:a', 'src:b'])
+    expect(rows.find(r => r.id === 'src:a')).toMatchObject({ kind: 'test-source', action: 'undo', state: 'open', day: '2026-10-22', subject: 'src:a', facts: { n: 1 } })
+  })
+
+  it('keeps only the last 7 days, whatever the source returns, and ignores malformed entries', () => {
+    log.push(entry('src:old', NOW - 8 * DAY), entry('src:future', NOW + 5000), { at: NOW }, null, { id: 3, at: NOW })
+    expect(listChanges(NOW).map(r => r.id)).toEqual(['src:a', 'src:b'])
+  })
+
+  it('a source that throws lists nothing and breaks nothing else', () => {
+    registerSource('test-source', () => { throw new Error('boom') })
+    add()
+    expect(listChanges(NOW)).toHaveLength(1)
+  })
+
+  it('restoreChange runs the source\'s restore with the entry and the state; it is not stored', async () => {
+    expect(await restoreChange('src:a')).toEqual({ ok: true, where: { day: '2026-10-22' } })
+    expect(restore).toHaveBeenCalledWith(expect.objectContaining({ id: 'src:a', kind: 'test-source' }), { marker: 'S' })
+    expect(readEntries()).toEqual([])
+    expect(await restoreChange('src:a')).toEqual({ ok: false, reason: 'gone' })
+  })
+
+  it('answers unsupported when the source has no restore, and the source\'s own reason when it fails', async () => {
+    registerSource('test-source', () => log)
+    expect(await restoreChange('src:a')).toEqual({ ok: false, reason: 'unsupported' })
+    registerSource('test-source', () => log, { restore: async () => ({ ok: false, reason: 'changed' }) })
+    expect(await restoreChange('src:a')).toEqual({ ok: false, reason: 'changed' })
+    registerSource('test-source', () => log, { restore: async () => { throw new Error('x') } })
+    expect(await restoreChange('src:a')).toEqual({ ok: false, reason: 'error' })
+  })
+
+  it('clearChanges does not touch a source', () => {
+    add()
+    clearChanges()
+    expect(listChanges(NOW).map(r => r.id)).toEqual(['src:a', 'src:b'])
+    expect(readEntries()).toEqual([])
+  })
+
+  it('has no undo of a restore', async () => {
+    await restoreChange('src:a')
+    expect(await undoRestore('src:a')).toEqual({ ok: false })
+  })
+})
+
+describe('journalMediaHashes', () => {
+  it('names the files of live entries, never lists them, and drops them with the entry', () => {
+    add({ media: ['a'.repeat(64), 'b'.repeat(64), 'a'.repeat(64), '', 7] })
+    add({ subject: 'no files' })
+    expect([...journalMediaHashes(NOW)].sort()).toEqual(['a'.repeat(64), 'b'.repeat(64)])
+    expect(JSON.stringify(listChanges(NOW))).not.toContain('a'.repeat(64))
+    expect(journalMediaHashes(NOW + 8 * DAY).size).toBe(0)
+    expect(readEntries()).toEqual([])
+    add({ media: ['c'.repeat(64)] })
+    clearChanges()
+    expect(journalMediaHashes(NOW).size).toBe(0)
   })
 })

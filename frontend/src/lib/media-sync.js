@@ -20,6 +20,7 @@
  */
 import { referencedHashes, referencedFiles, MEDIA_MIMES } from './media-refs.js'
 import { sniffKind } from './media-sniff.js'
+import { journalMediaHashes } from './recent-changes.js'
 import { sha256Hex } from './sha256.js'
 import { mediaStore as sharedStore } from './media-store.js'
 import { api, apiBlob, apiUpload } from './api.js'
@@ -68,6 +69,8 @@ export function createMediaSync(deps = {}) {
     // phone it is the durable copy and can be newer than localStorage (evicted WebView storage,
     // a write refused for room), so what it refers to is kept even if memory does not know it yet.
     nativeLoad: MOBILE ? () => nativeLoad() : null,
+    // What Me > Recent changes can still restore (a deleted workout's files), kept for its 7 days.
+    journalHashes: () => journalMediaHashes(),
     ...deps
   }
   let store = d.store || null
@@ -298,6 +301,8 @@ export function createMediaSync(deps = {}) {
       try {
         if (d.nativeLoad) { const saved = await d.nativeLoad(); if (saved) for (const h of referencedHashes(saved)) live.add(h) }
       } catch { return }   // the mirror could not be read: delete nothing rather than guess
+      // So is a file a live journal entry could restore (a workout deleted in the last 7 days).
+      try { for (const h of d.journalHashes()) live.add(h) } catch { return }   // unreadable: delete nothing
       // A file an open editor holds as its draft is live too, however long the editor has been open.
       const held = r => typeof d.media.isHeld === 'function' && d.media.isHeld(r.hash)
       const cutoff = d.now() - LOCAL_GC_GRACE_MS

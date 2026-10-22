@@ -11,9 +11,10 @@
 // brings it back on its next merge. The kept weights are written back only where nothing has
 // been confirmed since (the way the reopen puts them back, but never over a newer value).
 //
-// A workout's photos and videos are not held after the 8 s: a restore days later brings back the
-// record, and the files only if the local clean-up has not taken them yet.
-import { putBackWorkout, takeWorkout } from '../workout-delete.js'
+// A workout's photos and videos outlive the 8 s hold of the in-place Undo: the entry records their
+// hashes (`media`), and the local media clean-up (media-sync.js localMediaGc) keeps every hash of a
+// live entry until the entry is pruned (7 days) or cleared.
+import { putBackWorkout, takeWorkout, takenMediaHashes } from '../workout-delete.js'
 import { markUndone } from '../sync-merge.js'
 import { workoutDay } from '../history.js'
 import { sameWorkout } from '../workout-date.js'
@@ -40,6 +41,7 @@ export function recordWorkoutDelete(snap, before, marks) {
     kind: WORKOUT_DELETE, day: workoutDay(rec) || undefined, subject: rec.name || '',
     facts: { day: workoutDay(rec) || '', sets: setsOf(rec) },
     snapshot: { taken: snap.taken, exWeights, marks: marks || null },
+    media: takenMediaHashes(snap),
   })
 }
 
