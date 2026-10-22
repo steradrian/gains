@@ -94,6 +94,20 @@ describe('goalViewOf', () => {
     expect(v.height.value).toBe('6 ft 0 in')
   })
 
+  it('an lb weigh-in on the target reads as reached, not 0.1 lb off (no lb -> kg -> lb round trip)', () => {
+    const start = { w: 190, weightKg: 86.2, d: '2026-08-02' }
+    const current = { weightKg: 81.6, w: 180, date: '2026-10-20', fromOnboarding: false }
+    const v = goalViewOf(man({ startWeight: start }, { unit: 'lb', goal: 'keep', start, target: 180, current }), fmt)
+    expect(v.reached).toBe(true)
+    expect(v.ring.unit).toBe('lb · Target reached')
+    expect(v.target.sub).toBeNull()
+  })
+
+  it('a kg weigh-in on the target still reads as reached', () => {
+    const v = goalViewOf(man({}, { goal: 'keep', target: 81.4 }), fmt)
+    expect(v.reached).toBe(true)
+  })
+
   it('prefer not to say', () => {
     expect(goalViewOf(man({}, { sex: 'unspecified' }), fmt).sex.value).toBe('Prefer not to say')
   })

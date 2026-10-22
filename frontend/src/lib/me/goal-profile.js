@@ -45,7 +45,7 @@ const weighIns = S => (Array.isArray(S?.bodyweight) ? S.bodyweight : []).filter(
 
 /**
  * The profile. `settings` may be null (no NutriTrace); `S` is the store state.
- *   current  the latest weigh-in, else the weight given at onboarding (`fromOnboarding`, no date)
+ *   current  the latest weigh-in ({ weightKg for the maths, w as entered in the display unit }), else the weight given at onboarding (`fromOnboarding`, no date)
  *   start    the earliest weigh-in { w (display unit), weightKg, d }, null with none
  *   target   `S.targetW` in the display unit; `targetKg` the same in kg
  *   macros   grams a day, a percentage target converted against the calories; null when unset or per weekday
@@ -63,8 +63,8 @@ export function profileOf(settings, S) {
   const first = sorted[0]
   const onboarded = Number(settings?.weight_kg) > 0 ? Number(settings.weight_kg) : null
   const current = last
-    ? { weightKg: toKg(Number(last.w), unit), date: last.d, fromOnboarding: false }
-    : onboarded ? { weightKg: onboarded, date: null, fromOnboarding: true } : null
+    ? { weightKg: toKg(Number(last.w), unit), w: Number(last.w), date: last.d, fromOnboarding: false }
+    : onboarded ? { weightKg: onboarded, w: unit === 'lb' ? convertBodyWeight(onboarded, 'kg', 'lb') : onboarded, date: null, fromOnboarding: true } : null
   const target = Number(S?.targetW) > 0 ? Number(S.targetW) : null
   const height = Number(settings?.height_cm)
   const factor = Number(settings?.calorieGoalFactor)

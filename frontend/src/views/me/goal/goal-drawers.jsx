@@ -9,7 +9,7 @@ import { t } from '../../../lib/i18n.js'
 import { useUI } from '../../../store/useUI.js'
 import { bwSheet, bwTooHeavy } from '../../../sheets.jsx'
 import {
-  BIRTH_YEAR, GOAL_IDS, HEIGHT_CM, SEX_IDS, birthYearMax, cmOfFeet, feetOf, goalLabel, goalSub, heightText, inUnit, movementLabel,
+  BIRTH_YEAR, GOAL_IDS, HEIGHT_CM, SEX_IDS, birthYearMax, cmOfFeet, currentIn, feetOf, goalLabel, goalSub, heightText, movementLabel,
   movementOptions, parseWeight, sexLabel, targetPreview, weightText,
 } from './goal-data.js'
 import { announceSaved, failureText } from './goal-feedback.js'
@@ -83,7 +83,7 @@ function TargetDrawer({ close }) {
 function TargetForm({ g, close }) {
   const { profile, targets } = g
   const unit = profile.unit
-  const start = profile.target ?? (profile.current ? inUnit(profile.current.weightKg, unit) : null)
+  const start = profile.target ?? currentIn(profile.current, unit)
   const [text, setText] = useState(start != null ? weightText(start) : '')
   const { busy, error, save } = useSave(close)
   const preview = targetPreview({ text, profile, targets })

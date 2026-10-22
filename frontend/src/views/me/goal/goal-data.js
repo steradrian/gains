@@ -15,6 +15,11 @@ const shortWeight = n => digits(round1(n))
 
 /** kg in the person's unit, to a tenth. */
 export const inUnit = (kg, unit) => round1(unit === 'lb' ? convertBodyWeight(kg, 'kg', 'lb') : kg)
+/**
+ * The latest weight as the person entered it. `profileOf` carries it in the display unit (`w`), so an
+ * lb weigh-in is never round-tripped lb -> kg -> lb (180.0 lb would read 179.9). Falls back to the kg value.
+ */
+export const currentIn = (current, unit) => (current ? (Number.isFinite(current.w) ? current.w : inUnit(current.weightKg, unit)) : null)
 const toKg = (w, unit) => (unit === 'lb' ? convertBodyWeight(w, 'lb', 'kg') : w)
 
 /** What a typed weight reads as: a tenth, '' and nonsense are 0. */
@@ -91,7 +96,7 @@ const modeSub = mode => (mode === 'adaptive' ? t('Adaptive') : mode === 'dynamic
 export function goalViewOf(g, fmt) {
   const { profile: p, targets } = g
   const unit = p.unit
-  const current = p.current ? inUnit(p.current.weightKg, unit) : null
+  const current = currentIn(p.current, unit)
   const target = p.target
   const start = g.startWeight ? g.startWeight.w : null
   const { value, reached } = progressOf({ current, start, target, goal: p.goal })
@@ -146,7 +151,7 @@ export function targetPreview({ text, profile, targets }) {
   const typed = parseWeight(text)
   if (!(typed > 0) || !profile.current) return null
   const unit = profile.unit
-  const current = inUnit(profile.current.weightKg, unit)
+  const current = currentIn(profile.current, unit)
   const gap = round1(Math.abs(typed - current))
   if (gap === 0) return t('That is your weight now ({0}).', weightText(current) + ' ' + unit)
   const head = t('{0} to go from {1}', weightText(gap) + ' ' + unit, weightText(current) + ' ' + unit) + '.'

@@ -40,7 +40,7 @@ describe('profileOf', () => {
 
   it('with no weigh-ins current is the onboarding weight, flagged, and there is no start', () => {
     const p = profileOf(settings(), S({ bodyweight: [] }))
-    expect(p.current).toEqual({ weightKg: 90, date: null, fromOnboarding: true })
+    expect(p.current).toEqual({ weightKg: 90, w: 90, date: null, fromOnboarding: true })
     expect(p.start).toBeNull()
   })
 
@@ -52,6 +52,7 @@ describe('profileOf', () => {
     const p = profileOf(settings(), S({ unit: 'lb', targetW: 172, bodyweight: [{ d: '2026-08-02', w: 187.4 }, { d: '2026-10-20', w: 179.4 }] }))
     expect(p.unit).toBe('lb')
     expect(p.current.weightKg).toBeCloseTo(81.4, 1)
+    expect(p.current.w).toBe(179.4)
     expect(p.start).toMatchObject({ w: 187.4, d: '2026-08-02' })
     expect(p.start.weightKg).toBeCloseTo(85, 1)
     expect(p.target).toBe(172)
