@@ -295,7 +295,7 @@ export function createGlassEngine({
   })
   scheduler.wake('mount')
   // At rest no frame runs, so a timer asks for the one that reveals the glass once it is proven.
-  const revealTimer = watchdog ? setTimeout(() => scheduler.wake('reveal'), REVEAL_MS + 100) : 0
+  const revealTimer = watchdog ? setTimeout(() => { watchdog.provenAtRest(performance.now()); scheduler.wake('reveal') }, REVEAL_MS + 100) : 0
 
   return {
     wake: reason => {

@@ -179,3 +179,21 @@ describe('parseRgba', () => {
     expect(parseRgba('color(srgb 1 1 1)')).toBeNull()
   })
 })
+
+describe('glass watchdog reveal at rest', () => {
+  it('a page at rest is proven by the idle check, an animating one is not', () => {
+    const dog = createWatchdog({ onTrip: vi.fn() })
+    const t = run(dog, 20, { cpu: 2 }) // a few frames, then the loop goes idle
+    expect(dog.provenAtRest(t + 50)).toBe(false) // too early
+    expect(dog.provenAtRest(t - 16 + 2700)).toBe(true)
+    const busy = createWatchdog({ onTrip: vi.fn() })
+    const u = run(busy, 20, { cpu: 2 })
+    expect(busy.provenAtRest(u)).toBe(false)
+  })
+
+  it('slow windows seen while unproven keep the glass hidden even at rest', () => {
+    const dog = createWatchdog({ onTrip: vi.fn() })
+    const t = run(dog, 250, { cpu: 9 })
+    expect(dog.provenAtRest(t + 3000)).toBe(false)
+  })
+})

@@ -66,7 +66,7 @@ export function glassIsOff() {
 /**
  * @param {{ onTrip: () => void }} opts
  * @returns {{ frame(drew: boolean, cpuMs: number, intervalMs: number, nowMs: number): void,
- *   grace(nowMs: number): void, proven(nowMs: number): boolean }}
+ *   grace(nowMs: number): void, proven(nowMs: number): boolean, provenAtRest(nowMs: number): boolean }}
  * `frame` is called after every scheduler frame: whether it drew, what it cost on the main thread, the time
  * since the previous frame and the current time. `grace` ignores the next GRACE_MS (a resume, a route change,
  * a rebuilt presenter). `proven` is true once the glass may be shown.
@@ -83,6 +83,7 @@ export function createWatchdog({ onTrip }) {
   let ignoreUntil = 0
   let prevDrew = true
   let revealed = false
+  let good = 0 // consecutive good windows (an idle gap does not clear it)
   const idleGaps = [] // intervals of frames that followed a frame that drew nothing
   const allGaps = []
 
@@ -122,6 +123,7 @@ export function createWatchdog({ onTrip }) {
     gaps = []
     started = nowMs
     bad = slow ? bad + 1 : 0
+    good = slow ? 0 : good + 1
     const probing = !revealed && nowMs - begun < PROBE_MAX_MS
     if (bad >= BAD_WINDOWS && !probing) {
       tripped = true
@@ -134,10 +136,20 @@ export function createWatchdog({ onTrip }) {
   return {
     frame,
     grace(nowMs) { ignoreUntil = Math.max(ignoreUntil, nowMs + GRACE_MS); restart() },
+    // Proof is a whole window judged good after the settle (and none bad since).
     proven(nowMs) {
       if (tripped) return false
       if (revealed) return true
-      if (!begun || nowMs - begun < REVEAL_MS || bad > 0) return false
+      if (!begun || nowMs - begun < REVEAL_MS || bad > 0 || good < 1) return false
+      revealed = true
+      return true
+    },
+    // The engine's reveal timer, asked while the loop is idle: nothing is running, so nothing is slow, and a
+    // page at rest has no window to judge. Never proves a loop that is still animating.
+    provenAtRest(nowMs) {
+      if (tripped) return false
+      if (revealed) return true
+      if (!begun || nowMs - begun < REVEAL_MS || bad > 0 || nowMs - last <= GAP_MS) return false
       revealed = true
       return true
     },
