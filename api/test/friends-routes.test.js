@@ -4,8 +4,8 @@
    leave and succession, mutes and prefs, invite links (single use under two redemptions at once,
    seven days to the millisecond, revoked), in-app invitations, the people list, the join preview
    and its rate limit, and the purge of an account through deleteUserData (admin delete and the
-   scheduled self-deletion) and on disable. No answer may carry `usedBy`, an e-mail, or the id of
-   someone outside the caller's group. */
+   scheduled self-deletion); disable hides and never purges (Friends api m2). No answer may carry
+   `usedBy`, an e-mail, or the id of someone outside the caller's group. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
@@ -524,12 +524,21 @@ test('the scheduled self-deletion purges the account from Friends (the same dele
   assertPurged(h);
 });
 
-test('disabling an account purges it from Friends too', async t => {
+// Friends api m2: disabling is reversible, so it hides the account and purges nothing
+// (friends-group-view.test.js covers the round trip in full).
+test('disabling an account keeps its Friends data and only hides it; enabling shows it again', async t => {
   const users = [...USERS, user('u_vic', 'Vic')];
   const h = await startServer(t, { users, friends: purgeFixture() });
+  const before = JSON.stringify(h.friends());
   const r = await h.req('POST', '/api/admin/user/disable', { as: 'u_root', body: { id: 'u_vic', disabled: true } });
   assert.equal(r.status, 200, r.text);
-  assertPurged(h);
+  assert.equal(JSON.stringify(h.friends()), before, 'nothing purged');
+  const ana = await h.req('GET', `/api/friends/groups?date=${TODAY}`, { as: 'u_ana' });
+  assert.deepEqual(ana.body.map(g => [g.id, g.memberCount, g.members.map(m => m.uid)]), [['g1', 1, ['u_ana']]]);
+  assertClean(ana, ['u_vic']);
+  await h.req('POST', '/api/admin/user/disable', { as: 'u_root', body: { id: 'u_vic', disabled: false } });
+  const back = await h.req('GET', `/api/friends/groups?date=${TODAY}`, { as: 'u_ana' });
+  assert.deepEqual(back.body.map(g => [g.id, g.memberCount]), [['g1', 2]]);
 });
 
 test('a member whose account is gone without a purge is skipped on every read', async t => {

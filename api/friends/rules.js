@@ -204,3 +204,37 @@ export function weekOf(date) {
 export const nameOf = user => (user && typeof user.name === 'string' ? user.name : '');
 /** First letter of a name, upper-cased; '' for no name. */
 export const initialOf = name => (Array.from(String(name || '').trim())[0] || '').toLocaleUpperCase();
+
+/* ---------- Friends api m2: who shows, who counts ---------- */
+
+/** An account Friends may show: in db.users with an id, and not disabled. Disabling is
+ *  reversible, so a disabled account keeps every membership, mute, invite and high-water mark
+ *  and is only hidden meanwhile, as a person with Friends off is. Every Friends read (api-m3's
+ *  cheers too) goes through this. */
+export const isActiveUser = u => !!u && isId(u.id) && !u.disabled;
+
+/** db.users as two maps by id. `accounts` holds every account that exists, a disabled one too:
+ *  it keeps its place in a group (against the cap of 12, and as creator). `active` holds the
+ *  ones Friends shows. */
+export function accountMaps(users) {
+  const accounts = new Map(), active = new Map();
+  for (const u of users || []) {
+    if (!u || !isId(u.id)) continue;
+    accounts.set(u.id, u);
+    if (isActiveUser(u)) active.set(u.id, u);
+  }
+  return { accounts, active };
+}
+
+/** Whether `uid` counts toward a group's week, whoever asks: an active account with Friends on. */
+export const countsIn = (data, uid, active) => active.has(uid) && data?.people?.[uid]?.on === true;
+
+/** Whether `viewer` sees `uid` in a group: someone who counts, or the viewer themselves. */
+export const visibleMember = (data, uid, viewer, active) => active.has(uid) && (uid === viewer || countsIn(data, uid, active));
+
+/** The date `n` days after `date` (before, for a negative n), on the string alone. */
+export function addDays(date, n) {
+  const [y, m, d] = date.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+}

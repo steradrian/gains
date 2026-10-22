@@ -4285,6 +4285,88 @@ paths:
         '423': { $ref: '#/components/responses/FriendsDeletionScheduled' }
         '429': { $ref: '#/components/responses/FriendsRateLimited' }
 
+  # Friends api m2
+  /api/friends/groups/{id}:
+    get:
+      tags: [friends]
+      operationId: friendsGroup
+      summary: The group page
+      description: |
+        The summary plus the ring per member, the week's days, targets, the last seven days'
+        moments and the viewer's own notification switch. Everything a member shows comes out of
+        the share projection: never weight, foods, intake, photos, notes or set data. Members are
+        the active accounts with Friends on (a disabled account and someone with Friends off are
+        hidden and count for nothing), and the viewer, who always sees their own row. Reading
+        settles the week when `date` is within two days of the server's clock: each member's
+        high-water mark of done sessions (done never goes back within a week; planned is the
+        schedule as it is now) and the result of every week that ended since the last read, from
+        which `streak` is counted. A non-member gets the same 404 as an unknown id.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { $ref: '#/components/parameters/FriendsDate' }
+      responses:
+        '200':
+          description: The group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Group' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+  /api/friends/groups/{id}/members/{uid}:
+    get:
+      tags: [friends]
+      operationId: friendsMember
+      summary: One member, only what they share
+      description: |
+        Their switches (`shares`) decide every field: `recent` and `week.days` with training,
+        `consistency`, `targets`, and `bests` with bests or a best they shared from one workout.
+        A week with no scheduled day is `{ noPlan: true }`. The caller and the member must both be
+        in the group, and the member must be visible (an active account with Friends on, or the
+        caller); anything else is the same 404 as an unknown id.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { name: uid, in: path, required: true, schema: { type: string }, description: 'A member''s uid.' }
+        - { $ref: '#/components/parameters/FriendsDate' }
+      responses:
+        '200':
+          description: The member.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+  /api/friends/groups/{id}/moments/{mid}/remove:
+    post:
+      tags: [friends]
+      operationId: friendsMomentRemove
+      summary: Hide a moment from everyone in the group
+      description: |
+        Only someone the moment names may remove it: either participant of a Trained together,
+        the owner of any other. The moment must be there to remove (within seven days of `date`,
+        or of the moment's own date when `date` is left out); removing one already removed is
+        `{ ok: true }`. Anything else, and a non-member, is the same 404 as an unknown id. Ids are
+        `<kind>:<date>:<uids sorted, joined by +>:<ref>`, sent URI-encoded.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { name: mid, in: path, required: true, schema: { type: string }, description: 'A moment id from `Group.moments`.' }
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, const: true } } }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+
 components:
   headers:
     SyncETag:
@@ -5607,22 +5689,32 @@ components:
           properties:
             name: { oneOf: [{ type: string }, { type: 'null' }] }
 
+    # Friends api m2: Group, Member, ChallengeSummary as served. Every key below is the whole
+    # allow-list; test/friends-privacy.test.js walks the answers against it.
     Group:
-      description: '`GET /api/friends/groups/{id}` (api-m2). Muted members'' moments are left out for that viewer; they still count.'
+      description: |
+        `GET /api/friends/groups/{id}`. `members` here is every visible member (not the summary's
+        first five). The ring: `week.done` of `week.planned`; with the `planned` goal, done counts
+        only members who have a plan this week. A member's `done` never goes back within a week
+        (high-water mark). Muted members' moments are left out for that viewer; they still count.
+        With nobody but the viewer counting, `moments` is empty (the client shows Invite).
       allOf:
         - { $ref: '#/components/schemas/GroupSummary' }
         - type: object
+          required: [goal, creator, isCreator, targets, weekDays, members, challenges, moments, cheersForMe, quiet, muteNotifications]
           properties:
             goal: { $ref: '#/components/schemas/GroupGoal' }
-            creator: { type: string }
+            creator: { oneOf: [{ type: string }, { type: 'null' }], description: 'null while the creator is hidden (Friends off, disabled). A disabled creator stays creator: nobody else can remove members until they are back.' }
             isCreator: { type: boolean }
             targets:
               type: object
+              description: 'This week: days with the food targets reached, and days known, summed over the members who share targets. A day the client did not judge counts nowhere.'
               properties:
                 hit: { type: integer }
                 of: { type: integer }
             weekDays:
               type: array
+              description: Monday to Sunday. Workouts logged that day by members who share training (a workout marked off is not a dot).
               items:
                 type: object
                 properties:
@@ -5638,53 +5730,83 @@ components:
                   initial: { type: string }
                   done: { type: integer }
                   planned: { type: integer }
+                  noPlan: { type: boolean, description: 'No scheduled day this week: "No plan this week", out of the planned goal.' }
                   muted: { type: boolean }
                   you: { type: boolean }
-            challenges: { type: array, items: { type: object } }
+            challenges:
+              type: array
+              description: 'api-m3 fills it (friends/stats-hook.js challengeSummaries); [] until then.'
+              items: { $ref: '#/components/schemas/ChallengeSummary' }
             moments:
               type: array
+              maxItems: 30
+              description: The last seven days, newest first.
               items:
                 type: object
                 properties:
-                  id: { type: string }
+                  id: { type: string, description: '`<kind>:<date>:<uids sorted, joined by +>:<ref>`, stable across reads.' }
                   kind: { type: string, enum: [workout, together, best, target] }
-                  who: { type: array, items: { type: string } }
-                  title: { type: string }
-                  detail: { type: string }
-                  at: { type: string }
-                  cheered: { type: boolean }
+                  who: { type: array, items: { type: string }, description: 'In join order.' }
+                  title: { oneOf: [{ type: string }, { type: 'null' }], description: 'The workout name (workout, together) or the catalogue exercise (best); null for target.' }
+                  detail:
+                    type: object
+                    description: 'workout `{ minutes, exercises }`; best `{ exercise }` (catalogue id); target `{ target: protein, days, of: 7 }`; together `{}`. Data the client words.'
+                    properties:
+                      minutes: { oneOf: [{ type: integer }, { type: 'null' }] }
+                      exercises: { type: integer }
+                      exercise: { type: string }
+                      target: { type: string, enum: [protein] }
+                      days: { type: integer }
+                      of: { type: integer }
+                  date: { type: string, format: date }
+                  at: { oneOf: [{ type: string, format: date-time }, { type: 'null' }], description: 'When the workout ended, for ordering and "2 h ago"; null for best and target.' }
+                  label:
+                    type: object
+                    description: 'The short thing a cheer names ("Cheered Mara''s Legs"): the workout or exercise name; null for target.'
+                    properties:
+                      title: { oneOf: [{ type: string }, { type: 'null' }] }
+                  cheered: { type: boolean, description: 'api-m3 (stats-hook.js cheerState); false until then.' }
                   mine: { type: boolean }
-            cheersForMe: { type: integer }
-            quiet: { type: boolean }
+            cheersForMe: { type: integer, description: 'api-m3 (stats-hook.js cheerCounts); 0 until then.' }
+            quiet: { type: boolean, description: 'No done work this week: "Quiet so far".' }
+            muteNotifications: { type: boolean, description: 'The viewer''s own switch (PUT /groups/{id}/prefs).' }
 
     Member:
       type: object
-      description: '`GET /api/friends/groups/{id}/members/{uid}` (api-m2): only what that person shares.'
+      description: |
+        `GET /api/friends/groups/{id}/members/{uid}`: only what that person shares. A key is
+        absent when its switch is off. `since` is when they joined the group.
+      required: [uid, name, since, cheered, week, shares]
       properties:
         uid: { type: string }
         name: { type: string }
-        since: { type: string }
-        cheered: { type: boolean }
+        since: { oneOf: [{ type: string, format: date-time }, { type: 'null' }] }
+        cheered: { type: boolean, description: 'Whether the caller cheered their week (api-m3).' }
         week:
           oneOf:
             - type: object
+              required: [done, planned]
               properties:
                 done: { type: integer }
                 planned: { type: integer }
-                days: { type: array, items: { type: boolean } }
+                days: { type: array, minItems: 7, maxItems: 7, items: { type: boolean }, description: 'Monday to Sunday; training shared only.' }
             - type: object
+              required: [noPlan]
               properties:
                 noPlan: { type: boolean, const: true }
         recent:
           type: array
+          maxItems: 5
+          description: Training shared. Workouts marked off are left out.
           items:
             type: object
             properties:
               title: { type: string }
               date: { type: string, format: date }
-              minutes: { type: integer }
+              minutes: { oneOf: [{ type: integer }, { type: 'null' }] }
         consistency:
           type: array
+          description: '8 weeks, oldest first: planned done, 0 to 1; a week with no plan is null, never 0.'
           items:
             type: object
             properties:
@@ -5692,18 +5814,45 @@ components:
               share: { oneOf: [{ type: number }, { type: 'null' }] }
         targets:
           type: object
+          description: 'This week, Monday to Sunday: each day reached, missed, or null (unknown, or not yet).'
           properties:
             reached: { type: integer }
-            of: { type: integer }
-            days: { type: array, items: { type: boolean } }
+            of: { type: integer, description: 'Days known.' }
+            days: { type: array, minItems: 7, maxItems: 7, items: { oneOf: [{ type: boolean }, { type: 'null' }] } }
         bests:
+          type: array
+          maxItems: 5
+          description: 'The last 28 days, newest first, catalogue exercises only: by the bests switch, or one shared from that workout. Never the weight or the set.'
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              exercise: { type: string }
+              date: { type: string, format: date }
+        shares: { $ref: '#/components/schemas/FriendsShare' }
+
+    ChallengeSummary:
+      type: object
+      description: 'A challenge row on the group page (api-m3 fills it; the shape group-m1 reads). Only visible members in `joined` and `invited`.'
+      properties:
+        id: { type: string }
+        template: { type: string, enum: [workouts, protein, weekend, bests] }
+        title: { type: string }
+        start: { type: string, format: date }
+        end: { type: string, format: date }
+        total: { type: integer }
+        goal: { type: integer }
+        you:
+          type: object
+          properties:
+            in: { type: boolean }
+        joined:
           type: array
           items:
             type: object
             properties:
-              exercise: { type: string }
-              date: { type: string, format: date }
-        shares: { $ref: '#/components/schemas/FriendsShare' }
+              uid: { type: string }
+        invited: { type: array, items: { type: string } }
 
     Challenge:
       type: object

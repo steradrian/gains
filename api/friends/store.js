@@ -17,7 +17,8 @@
  *   people:      { [uid]: { on, share?: { training, consistency, targets, bests },
  *                           mutes: { [groupId]: [uid] }, groupPrefs: { [groupId]: { muteNotifications } }, seen? } }
  *   groups:      { [id]: { id, name, goal: { kind, n? }, created, creator, members: [{ uid, joined }],
- *                          highWater: { [week]: { [uid]: n } }, removedMoments: [mid] } }
+ *                          highWater: { [week]: { [uid]: n } }, removedMoments: [mid],
+ *                          results?: { [week]: true | false | null }, lastWeek? } }   (results, lastWeek: Friends api m2, week.js)
  *   invites:     { [code]: { group, by, created, expiresAt, to?, usedBy?, usedAt?, revoked?, revokedAt? } }
  *   invitations: [{ code, group, from, to }]
  *   challenges:  {}   (api-m3)
