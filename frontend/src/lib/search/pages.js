@@ -29,12 +29,13 @@ export const PAGE_INDEX = [
   { path: '/train/coach', tab: 'train', title: 'Coach', glyph: 'chat', kw: 'ai coach chat assistant advice', gate: c => (c.coach ? 'on' : 'hidden') },
   // Nutrition
   { path: TAB_ROOT.food, tab: 'food', title: 'Nutrition', glyph: 'utensils', kw: 'food diary calories eat', gate: nutrition },
-  { path: '/food/foods', tab: 'food', title: 'Foods', glyph: 'apple', kw: 'my foods ingredients products', gate: nutrition },
-  { path: '/food/meals', tab: 'food', title: 'Saved meals', glyph: 'utensils', kw: 'meals combos favourites', gate: nutrition },
-  { path: '/food/recipes', tab: 'food', title: 'Recipes', glyph: 'cookingPot', kw: 'recipe cooking servings', gate: nutrition },
+  { path: '/food/my-foods', tab: 'food', title: 'My foods', glyph: 'apple', kw: 'foods ingredients products saved meals combos favourites recipes cooking servings', gate: nutrition },
   { path: '/food/goals', tab: 'food', title: 'Goals', glyph: 'target', kw: 'calorie goal macros protein target water', gate: nutrition },
   { path: '/food/fasting', tab: 'food', title: 'Fasting', glyph: 'timer', kw: 'fast intermittent 16:8 omad',
     gate: c => (!c.nutrition ? 'hidden' : c.fastingOn ? 'on' : { off: { page: 'features', find: 'Fasting' } }) },
+  // Eat root m2
+  { path: '/food/trends', tab: 'food', title: 'Food trends', glyph: 'chart', kw: 'calories protein macros averages on target over time', gate: nutrition },
+  { path: '/food/month', tab: 'food', title: 'Month', glyph: 'calendar', kw: 'calendar days rings on target over under', gate: nutrition },
   // Me: Profile (its own pages are the settings source's) and Progress under it
   { path: TAB_ROOT.me, tab: 'me', title: 'Profile', glyph: 'person', kw: 'me account you settings preferences' },
   { path: PROGRESS_ROOT, tab: 'me', title: 'Progress', glyph: 'chart', kw: 'stats statistics charts' },

@@ -208,7 +208,7 @@ describe('before typing', () => {
     const src = readApp()
     for (const tab of ['home', 'train', 'food']) {
       for (const c of shortcutsFor(tab, true).filter(x => x.target.kind === 'route')) {
-        const path = c.target.path.startsWith('/me/') ? '/me/:page' : c.target.path
+        const path = c.target.path.startsWith('/me/') ? '/me/:page' : c.target.path.split('?')[0]
         expect(src, c.target.path).toContain(`path="${path}"`)
       }
     }

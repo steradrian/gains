@@ -157,6 +157,20 @@
   --g-heat-stage-48: rgba(255,255,255,0.48);
   --g-heat-stage-72: rgba(255,255,255,0.72);
   --g-mg-on-stage: rgba(255,255,255,0.16);
+  /* The barcode scanner's camera view: dark in every theme, it is a camera (Eat logging m1) */
+  --g-scan-ground: #0F0F0E;
+  --g-scan-denied: #121110;
+  --g-scan-glow-1: #4A4741;
+  --g-scan-glow-2: #262422;
+  --g-scan-ink: #FFFFFF;
+  --g-scan-ink-on-solid: #111111;
+  --g-scan-glass: rgba(255,255,255,0.16);
+  --g-scan-dim: rgba(0,0,0,0.45);
+  --g-scan-line: #FF6B4A;
+  --g-scan-notice: #FFB4A4;
+  --g-scan-still-1: #EDEBE6;
+  --g-scan-still-2: #CFCBC2;
+  --g-scan-still-bar: #1A1A1A;
 }
 :root[data-theme="dark"] .g-root {
   --canvas: #0B0B0A;

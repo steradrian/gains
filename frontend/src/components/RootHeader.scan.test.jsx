@@ -13,12 +13,10 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay } from '../lib/nutrition/fake-nutritrace.js'
 import { endSearch } from '../lib/search/session.js'
+import { resetCamera, seeCode } from '../lib/use-camera-scan.fake.js'
 import RootHeader from './RootHeader.jsx'
 
-const camera = { hit: null }
-vi.mock('./CameraScan.jsx', () => ({
-  default: ({ onFound }) => <button type="button" onClick={() => onFound(camera.hit)}>camera sees a code</button>,
-}))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const TODAY = todayISO()
@@ -45,6 +43,7 @@ beforeEach(() => {
   useNutrition.getState().reset()
   useDiarySelection.getState().reset()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
+  resetCamera()
   history.replaceState({ idx: 0 }, '')
   vi.spyOn(history, 'back').mockImplementation(() => {})
   host = document.createElement('div')
@@ -69,11 +68,11 @@ describe('the search pill\'s barcode button', () => {
     await act(async () => { root.render(<MemoryRouter initialEntries={['/food']}><RootHeader title="Nutrition" /><Sheets /></MemoryRouter>) })
     await act(async () => { host.querySelector('.g-spill-field input').focus() })
     await click(button('Scan barcode'))
-    camera.hit = { value: '5000000000001', fmt: 'ean13' }
-    await click(button('camera sees a code', lastSheet()))
+    await act(async () => { seeCode('5000000000001') })
+    await settle()
+    // One of your own foods goes straight to Amount.
     expect(lastSheet().textContent).toContain('Wholemeal bread')
-    await click(button('Log', lastSheet()))
-    await click(button('Log', lastSheet()))
+    await click(button('Add to Dinner', lastSheet()))
     const put = nt.writes().find(r => r.method === 'PUT')
     expect(put.path).toBe(`/nt/api/diary/${yesterday}`)
     expect(put.body.items.at(-1)).toMatchObject({ name: 'Wholemeal bread', meal: 2 })

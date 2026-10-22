@@ -67,6 +67,8 @@ export default function DevKitTrainLoad() {
       <Section title="BarChart" note="Twelve weeks, this week at full strength and the others dimmed, with a dashed target line. Without per-bar text it is one image named by the caller; with it, a group with a hidden list.">
         <BarChart tone="stage" values={WEEKS} labels={WEEK_LABELS} highlight={11} target={16} barLabels={WEEKS.map((v, i) => `Week ${i + 1}: ${v} t`)} label="Weekly volume, last 12 weeks, target 16 t" />
         <BarChart tone="stage" values={[3, 5, 0, 4]} labels={['M', 'T', 'W', 'T']} height={90} label="Four days: 3, 5, none and 4 sets" />
+        {/* Eat root m2: `targets`, a goal that differs per bar (Food trends' Calories); the third bar has none */}
+        <BarChart tone="stage" values={[1800, 2100, 1500, 2300]} targets={[2100, 2100, null, 2400]} labels={['M', 'T', 'W', 'T']} height={90} label="Four days against their own targets" />
         <div className="g-kit-light">
           <BarChart values={WEEKS} labels={WEEK_LABELS} highlight={11} label="Weekly volume, last 12 weeks" />
         </div>

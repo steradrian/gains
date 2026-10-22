@@ -1,55 +1,68 @@
 import { useState } from 'react'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import Button from '../ds/Button.jsx'
+import ChipGroup from '../ds/ChipGroup.jsx'
+import TextField from '../ds/TextField.jsx'
 import { t } from '../lib/i18n.js'
+import { START_BACKDATE_MS, endsAt, planLabelOf, startProblem, validGoal } from '../lib/nutrition/fasting.js'
+import { useNow } from '../lib/nutrition/use-fasting.js'
 import { useUI } from '../store/useUI.js'
-import { EDIT_BACKDATE_MS } from '../lib/nutrition/fasting.js'
-import { useFasting } from '../lib/nutrition/use-fasting.js'
-import { writeErrorText } from '../lib/nutrition/log-feedback.js'
-import { SheetHeader } from './sheet-layout.jsx'
-import { Button, TextField } from './ui.jsx'
+import FastPlanChips from '../views/fasting/FastPlanChips.jsx'
+import { dayTimeText, localInputValue, timeText } from '../views/fasting/fast-format.js'
 
-const pad = n => String(n).padStart(2, '0')
-// A datetime-local field's value ("2026-10-14T21:30") is the person's own clock.
-const localValue = ms => {
-  const d = new Date(ms)
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+const HOUR = 3600 * 1000
 
-// Moves the start of the running fast: the person forgot to start it on time (FastingWidget.svelte
-// _saveEditStart). Not in the future, at most 7 days back.
-export default function FastStartSheet({ startAt, close }) {
-  const [value, setValue] = useState(() => localValue(Date.parse(startAt)))
+// Start a fast (board Ea6Start), the light drawer over the Fasting page: the plan, when it
+// started (now, or earlier within the last 24 hours, never ahead) and when it would end. A start
+// or goal the hub would refuse disables Start and says why. `onStart(hours, startAtIso|undefined)`
+// resolves to null once started, else the sentence for why not. `now` is for the gallery, which
+// freezes the clock; the app leaves it out and the drawer reads the time itself.
+export default function FastStartSheet({ now: fixedNow, hour12, initialHours, onStart }) {
+  const ticking = useNow(fixedNow === undefined, 30000)
+  const now = fixedNow ?? ticking
+  const [hours, setHours] = useState(initialHours)
+  const [custom, setCustom] = useState(() => planLabelOf(initialHours) === null)
+  const [when, setWhen] = useState('now')
+  const [earlier, setEarlier] = useState(() => localInputValue(now - HOUR))
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
+  const [failed, setFailed] = useState(null)
 
-  const save = async () => {
-    const at = new Date(value)
-    if (!value || isNaN(at.getTime())) { setError(t('Enter a date and time.')); return }
-    if (at.getTime() > Date.now()) { setError(t('The start cannot be in the future.')); return }
-    // A minute inside the hub's 7-day line, so the request in flight does not cross it.
-    if (at.getTime() < Date.now() - EDIT_BACKDATE_MS + 60_000) { setError(t('The start can be at most 7 days back.')); return }
+  const goal = Number(hours)
+  const startMs = when === 'now' ? now : Date.parse(earlier)
+  const problem = when === 'now' ? null : startProblem(startMs, now, START_BACKDATE_MS)
+  const reason = !validGoal(goal) ? t('Enter a goal between 1 and 168 hours.')
+    : problem === 'invalid' ? t('Enter a date and time.')
+    : problem === 'future' ? t('The start cannot be in the future.')
+    : problem === 'old' ? t('A fast can be started at most 24 hours back.')
+    : null
+
+  const start = async () => {
     setBusy(true)
-    setError(null)
-    try {
-      await useFasting.getState().editStart(at.toISOString())
-      close()
-      useUI.getState().toast(t('Start time updated'))
-    } catch (e) {
-      setError(writeErrorText(e))
-      setBusy(false)
-    }
+    setFailed(null)
+    const error = await onStart(goal, when === 'now' ? undefined : new Date(startMs).toISOString())
+    if (error) { setFailed(error); setBusy(false) }
   }
 
-  return <div className="fast-start-sheet">
-    <SheetHeader title={t('When did you start?')} />
-    <label className="portion-f">
-      <span className="small muted">{t('Start time')}</span>
-      <TextField type="datetime-local" value={value} max={localValue(Date.now())} onChange={e => setValue(e.target.value)} aria-label={t('Start time')} />
-    </label>
-    {error && <div className="nt-error small" role="alert">{error}</div>}
-    <Button variant="primary" onClick={save} disabled={busy}>{busy ? t('Saving…') : t('Save')}</Button>
-  </div>
+  return (
+    <BottomSheet title={t('Start a fast')} type="auto"
+      footer={<Button block busy={busy} disabled={!!reason} onClick={start}>{t('Start {0} h fast', validGoal(goal) ? goal : '')}</Button>}>
+      <div className="g-fast-sheet">
+        <FastPlanChips tone="light" hours={goal} custom isCustom={custom}
+          onPick={h => { setCustom(false); setHours(h) }} onCustom={() => setCustom(true)} />
+        {custom && <TextField label={t('Goal in hours')} inputMode="numeric" value={String(hours)} onChange={setHours} />}
+        <ChipGroup tone="light" label={t('Start time')} options={[{ value: 'now', label: t('Now') }, { value: 'earlier', label: t('Earlier') }]} value={when} onChange={setWhen} />
+        {when === 'earlier' && <TextField label={t('Start time')} value={earlier} onChange={setEarlier}
+          inputProps={{ type: 'datetime-local', min: localInputValue(now - START_BACKDATE_MS), max: localInputValue(now) }} />}
+        <dl className="g-fast-sum">
+          <div><dt>{t('Start time')}</dt><dd>{when === 'now' ? t('Now, {0}', timeText(now, hour12)) : Number.isFinite(startMs) ? dayTimeText(startMs, hour12) : '–'}</dd></div>
+          <div><dt>{t('Ends')}</dt><dd>{Number.isFinite(startMs) && validGoal(goal) ? dayTimeText(endsAt(startMs, goal), hour12) : '–'}</dd></div>
+        </dl>
+        {(reason || failed) && <p className="g-bs-note g-fast-why" role="alert">{reason || failed}</p>}
+      </div>
+    </BottomSheet>
+  )
 }
 
 export function fastStartSheet(props) {
-  useUI.getState().openSheet(close => <FastStartSheet {...props} close={close} />)
+  return useUI.getState().openSheet(() => <FastStartSheet {...props} />, { variant: 'ds' })
 }
