@@ -143,8 +143,8 @@ export function createGlassEngine({
     return { ...s, ...swollen(s, p.v, { reduced: stillNow(), stretch, bar: s.bar }), press: p.v, touch: p.touch, box }
   }
 
-  let lastFrameAt = 0
-  function frame(dt) {
+  // `rafMs`: the display's frame interval (a scroll runs glass frames only every other rAF, so `dt` is not it).
+  function frame(dt, rafMs) {
     const t0 = performance.now()
     let changed
     try {
@@ -156,10 +156,8 @@ export function createGlassEngine({
       return false
     }
     const t1 = performance.now()
-    watchdog?.frame(changed.drew, t1 - t0, dt * 1000, t0)
-    const gap = t0 - lastFrameAt
-    if (lastFrameAt && gap < RUN_GAP_MS) stats.push('interval', gap, t0)
-    lastFrameAt = t0
+    watchdog?.frame(changed.drew, t1 - t0, rafMs, t0)
+    if (rafMs > 0 && rafMs < RUN_GAP_MS) stats.push('interval', rafMs, t0)
     if (changed.drew) stats.push('frame', t1 - t0, t0)
     return changed.any
   }

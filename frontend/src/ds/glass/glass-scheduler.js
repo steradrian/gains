@@ -1,4 +1,4 @@
-import { cancelFrame, currentPhase, requestFrame, REST_PHASE, subscribePhase } from '../../lib/stage-look/clock.js'
+import { cancelFrame, currentPhase, phaseFrame, requestFrame, REST_PHASE, subscribePhase } from '../../lib/stage-look/clock.js'
 import { SELECTOR } from './glass-registry.js'
 
 // Liquid glass scheduler: nothing runs at rest. A wake trigger starts a loop on the shared frame clock
@@ -54,6 +54,11 @@ export function createSprings({ reduced = () => false } = {}) {
       return held
     },
     release() { for (const p of map.values()) p.target = 0 },
+    /** True while a spring is held or still moving. */
+    busy() {
+      for (const p of map.values()) if (p.v !== p.target || p.vel !== 0) return true
+      return false
+    },
     /** { v, touch } for a shape; v is 0 for one that was never pressed. */
     get(el) {
       const p = map.get(el)
@@ -90,11 +95,30 @@ export function createSprings({ reduced = () => false } = {}) {
 }
 
 /**
- * @param {{ frame: (dt: number) => boolean, root?: Element, pressable?: (el: Element) => boolean,
+ * Whether a glass frame runs on this rAF (pure). While only a scroll drives the glass (no press spring
+ * moving, no announced transition, no other wake since the last frame), glass frames run at most every
+ * SCROLL_FRAME_MS: every other frame at 60 Hz, and on the frames the look (30 fps) does not draw in
+ * (`lookThisFrame`), unless that would wait past SCROLL_MAX_MS. So a scroll's frames alternate between the
+ * look's GPU work and the glass's instead of stacking both in one. Sprites move with their elements
+ * natively, so only the refraction's content and the bent panes in the chrome strip update at 30 Hz.
+ */
+export function runsThisFrame({ t, lastRun, lastScroll, holdUntil, other, springsBusy, lookThisFrame = false }) {
+  const scrollOnly = !other && !springsBusy && t >= holdUntil && t - lastScroll < SCROLL_QUIET_MS
+  if (!scrollOnly) return true
+  const since = t - lastRun
+  return since >= SCROLL_MAX_MS || (since >= SCROLL_FRAME_MS && !lookThisFrame)
+}
+export const SCROLL_FRAME_MS = 1000 / 30 - 4 // a 60 Hz frame landing a little early still counts
+export const SCROLL_MAX_MS = 1000 / 20 - 4 // never wait past the third frame for the look to step aside
+const SCROLL_QUIET_MS = 100 // no scroll event for this long: the scroll is over, frames run at full rate
+
+/**
+ * @param {{ frame: (dt: number, rafMs: number) => boolean, root?: Element, pressable?: (el: Element) => boolean,
  *   reduced?: () => boolean, raf?: (cb: (ts: number) => void) => number, caf?: (id: number) => void,
  *   now?: () => number }} opts
- * `frame` draws and returns whether anything changed. `root` is where shapes live: the pointer
- * handlers press the glass under a finger there. `pressable` filters which shapes spring.
+ * `frame` draws and returns whether anything changed; `dt` is seconds since the last glass frame and
+ * `rafMs` the interval of the display's own frames (what the watchdog judges). `root` is where shapes
+ * live: the pointer handlers press the glass under a finger there. `pressable` filters which shapes spring.
  * `raf`/`caf` default to the shared frame clock. `look` (returned) is the look gate the frame draws with.
  */
 export function createScheduler({
@@ -105,26 +129,42 @@ export function createScheduler({
   const look = createLookGate({ now })
   let id = 0
   let idle = 0
-  let last = 0
+  let last = 0 // ts of the last glass frame
+  let lastTs = 0 // ts of the last rAF, run or skipped
+  let lastRun = -Infinity
+  let lastScroll = -Infinity
+  let other = false // a wake other than a scroll since the last glass frame
   let holdUntil = 0
   let paused = false
   let disposed = false
 
   const tick = ts => {
     id = 0
+    const rafMs = ts - lastTs
+    lastTs = ts
+    const t = now()
+    if (!runsThisFrame({ t, lastRun, lastScroll, holdUntil, other, springsBusy: springs.busy(), lookThisFrame: phaseFrame() === ts })) {
+      if (!paused && !disposed) id = raf(tick) // skipped, not idle: the scroll still wants a frame
+      return
+    }
+    other = false
+    lastRun = t
     const dt = Math.min(MAX_DT, Math.max(0.001, (ts - last) / 1000))
     last = ts
-    idle = frame(dt) ? 0 : idle + 1
+    idle = frame(dt, rafMs) ? 0 : idle + 1
     if (!paused && !disposed && (idle < IDLE_FRAMES || now() < holdUntil)) id = raf(tick)
   }
 
   /** Starts the loop if it is idle. `holdMs`: keep it going at least that long (a transition began). */
-  function wake(_reason, holdMs = 0) {
+  function wake(reason, holdMs = 0) {
     if (disposed) return
+    if (reason === 'scroll') lastScroll = now()
+    else if (reason !== 'look') other = true // a look tick mid-scroll waits for the next glass frame
     if (holdMs > 0) holdUntil = Math.max(holdUntil, now() + holdMs)
     idle = 0
     if (paused || id) return
     last = now()
+    lastTs = last
     id = raf(tick)
   }
 

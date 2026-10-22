@@ -4,7 +4,7 @@
 // under reduce motion.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { publishPhase, REST_PHASE } from '../../lib/stage-look/clock.js'
-import { createLookGate, createScheduler, createSprings, LOOK_MS } from './glass-scheduler.js'
+import { createLookGate, createScheduler, createSprings, runsThisFrame, SCROLL_FRAME_MS, SCROLL_MAX_MS } from './glass-scheduler.js'
 
 function fakeRaf() {
   let queue = []
@@ -188,6 +188,64 @@ describe('createLookGate', () => {
   })
 })
 
+describe('runsThisFrame', () => {
+  const base = { t: 1000, lastRun: 990, lastScroll: 995, holdUntil: 0, other: false, springsBusy: false }
+
+  it('runs a scroll-only glass frame at most every other 60 Hz frame', () => {
+    expect(runsThisFrame({ ...base, lastRun: 1000 - 16.7 })).toBe(false)
+    expect(runsThisFrame({ ...base, lastRun: 1000 - 33.4 })).toBe(true)
+    expect(runsThisFrame({ ...base, lastRun: 1000 - SCROLL_FRAME_MS })).toBe(true)
+  })
+
+  it('steps aside for a frame the look draws in, but not past the third frame', () => {
+    expect(runsThisFrame({ ...base, lastRun: 1000 - 33.4, lookThisFrame: true })).toBe(false)
+    expect(runsThisFrame({ ...base, lastRun: 1000 - 50.1, lookThisFrame: true })).toBe(true)
+    expect(runsThisFrame({ ...base, lastRun: 1000 - SCROLL_MAX_MS, lookThisFrame: true })).toBe(true)
+  })
+
+  it('runs every frame for a press, a transition, another wake, or once the scroll is over', () => {
+    expect(runsThisFrame({ ...base, springsBusy: true })).toBe(true)
+    expect(runsThisFrame({ ...base, holdUntil: 1200 })).toBe(true)
+    expect(runsThisFrame({ ...base, other: true })).toBe(true)
+    expect(runsThisFrame({ ...base, lastScroll: 800 })).toBe(true)
+  })
+})
+
+describe('a scroll-driven loop', () => {
+  it('runs the glass every other rAF while only a scroll drives it, and hands the frame the display interval', () => {
+    const calls = []
+    const r = make((dt, rafMs) => { calls.push([dt, rafMs]); return true })
+    document.dispatchEvent(new Event('scroll'))
+    for (let i = 1; i <= 6; i++) {
+      clock.t = 1000 + i * 16.7
+      document.dispatchEvent(new Event('scroll'))
+      r.flush(clock.t)
+    }
+    expect(calls).toHaveLength(3)
+    expect(calls[1][0]).toBeCloseTo(0.0334, 3) // dt spans the skipped frame
+    expect(calls[1][1]).toBeCloseTo(16.7, 1)
+    expect(r.pending()).toBe(1)
+  })
+
+  it('runs every frame while a press springs, even mid-scroll', () => {
+    const root = document.createElement('div')
+    const btn = document.createElement('button')
+    btn.className = 'g-glass'
+    root.appendChild(btn)
+    document.body.appendChild(root)
+    const frame = vi.fn(() => { scheduler.springs.step(0.016); return true })
+    const r = make(frame, { root })
+    btn.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    for (let i = 1; i <= 4; i++) {
+      clock.t = 1000 + i * 16.7
+      document.dispatchEvent(new Event('scroll'))
+      r.flush(clock.t)
+    }
+    expect(frame).toHaveBeenCalledTimes(4)
+    root.remove()
+  })
+})
+
 describe('the look clock and the shared frame', () => {
   it('wakes on a 30 Hz look at 15 Hz once the frame takes each tick', () => {
     const r = make(() => {
@@ -204,6 +262,23 @@ describe('the look clock and the shared frame', () => {
     }
     expect(wakes).toBeGreaterThanOrEqual(14)
     expect(wakes).toBeLessThanOrEqual(16)
+  })
+
+  it('knows the frame the look drew in', async () => {
+    const { phaseFrame, requestFrame } = await import('../../lib/stage-look/clock.js')
+    const frames = []
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => { frames.push(cb); return frames.length })
+    try {
+      requestFrame(() => publishPhase(0.5))
+      frames.shift()(4242)
+      expect(phaseFrame()).toBe(4242)
+      publishPhase(0.6) // a still frame drawn outside the clock belongs to no frame to come
+      requestFrame(() => {})
+      frames.shift()(4259)
+      expect(phaseFrame()).not.toBe(4259)
+    } finally {
+      raf.mockRestore()
+    }
   })
 
   it('runs on the shared clock by default: a look loop and the glass take one rAF per frame', async () => {
