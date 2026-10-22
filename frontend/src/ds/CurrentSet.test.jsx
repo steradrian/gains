@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 // CurrentSet (boards W1.2, W1.32, W1.35, W1.28): the set's line with the last time, the fields in
 // one row (a body weight tile in the weight's place the first time) and whatever else under it.
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import CurrentSet from './CurrentSet.jsx'
 import SetStepper from './SetStepper.jsx'
@@ -52,6 +54,33 @@ describe('CurrentSet', () => {
   it('the body weight tile is a link with loadHref', () => {
     view.render(<CurrentSet setLine="x" bodyweight loadLabel="Load" bodyweightLabel="Body weight" loadHint="h" loadHref="#/load" />)
     expect(view.host.querySelector('.g-cs-bw').tagName).toBe('A')
+  })
+
+  // jsdom has no layout, so this pins the structure the container query lays out: per tile a label,
+  // then the row of − value +, and the stylesheet's stacked rules keyed to the tile's own width.
+  it('draws three cardio tiles as − value + rows that stack by their own width', () => {
+    view.render(
+      <CurrentSet
+        setLine="Set 1 of 1"
+        fields={(
+          <>
+            <SetStepper label="min" defaultValue={20} lessLabel="Less min" moreLabel="More min" />
+            <SetStepper label="km/h" defaultValue={5} step={0.5} lessLabel="Less km/h" moreLabel="More km/h" />
+            <SetStepper label="%" defaultValue={4} step={0.5} lessLabel="Less %" moreLabel="More %" />
+          </>
+        )}
+      />,
+    )
+    const tiles = [...view.host.querySelectorAll('.g-cs-row > .g-sst')]
+    expect(tiles).toHaveLength(3)
+    for (const tile of tiles) {
+      const row = tile.querySelector('.g-sst-row')
+      expect([...row.children].map(c => c.className)).toEqual(['g-sst-b', 'g-sst-v', 'g-sst-b'])
+      expect(row.querySelector('.g-sst-v').getAttribute('aria-label')).toBeTruthy()
+    }
+    const css = readFileSync(join(process.cwd(), 'src/ds/ds.css'), 'utf8')
+    expect(css).toMatch(/\.g-sst \{ container-type: inline-size; \}/)
+    expect(css).toMatch(/@container \(width < 180px\) \{\s*\.g-sst-row \{ display: grid;/)
   })
 
   it('has no body weight tile otherwise', () => {
