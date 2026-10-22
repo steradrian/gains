@@ -2338,3 +2338,12 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-tc-x > .g-tc-first { transform: none; }
 .g-tc-x > .g-tc-last { transform: translateX(-100%); }
 .g-wir-tags { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+
+/* === Me body M2 === */
+/* The Log measurements and Choose measurements drawers (views/me/body/measure-drawers.jsx), on the light drawer. */
+.bd-hint { margin: 0 0 16px; font: 500 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.bd-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.bd-group { margin-bottom: 20px; }
+.bd-group h3 { margin: 0 0 4px; font: 600 13px/18px var(--font-sans); color: var(--text-3); text-align: start; }
+.bd-add { display: flex; align-items: flex-end; gap: 10px; padding-top: 8px; }
+.bd-add > .g-tfield { flex: 1; min-width: 0; }

@@ -7,8 +7,7 @@ import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import BodyRoute from './BodyRoute.jsx'
 
-// The other two tabs are the pages they were; this page only mounts them.
-vi.mock('../../Measurements.jsx', () => ({ default: () => <div data-testid="measurements" /> }))
+// Photos is the page it was; this page only mounts it.
 vi.mock('../../ProgressPhotos.jsx', () => ({ default: () => <div data-testid="photos" /> }))
 vi.mock('../../../lib/nutrition/sync.js', () => ({ syncNow: vi.fn(() => Promise.resolve()) }))
 vi.mock('../../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
@@ -35,7 +34,7 @@ const click = async el => { await act(async () => { el.click() }) }
 beforeEach(() => {
   localStorage.clear()
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
-  useStore.setState(s => ({ user: null, S: { ...s.S, unit: 'kg', targetW: 78, weighIn: undefined,
+  useStore.setState(s => ({ user: null, S: { ...s.S, unit: 'kg', targetW: 78, weighIn: undefined, measurements: [], measurementEnabled: [],
     bodyweight: [{ d: isoOf(14), w: 82.1, t: 1 }, { d: isoOf(7), w: 81.7, t: 2 }, { d: isoOf(0), w: 81.4, t: 3 }] } }))
   host = document.createElement('div')
   document.body.appendChild(host)
@@ -59,7 +58,8 @@ describe('the Body page', () => {
     expect(tab('Weigh-ins').getAttribute('aria-selected')).toBe('true')
     await click(tab('Measurements'))
     expect(where()).toBe('/me/body/measurements?range=365')
-    expect(host.querySelector('[data-testid="measurements"]')).not.toBeNull()
+    expect(tab('Measurements').getAttribute('aria-selected')).toBe('true')
+    expect(host.querySelector('.g-sempty').textContent).toContain('Nothing to chart yet')
     expect(host.querySelector('.g-grow')).toBeNull()
     await click(tab('Photos'))
     expect(where()).toBe('/me/body/photos?range=365')

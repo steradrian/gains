@@ -4,6 +4,7 @@ import { todayISO } from '../../../lib/format.js'
 import { rangeFrom, rangeStart, rememberRange, storedRange } from '../../../lib/progress-range.js'
 import { SYNCED_FP_KEY, useStore } from '../../../store/useStore.js'
 import { bodyOf, waitingDays } from './body-data.js'
+import { measureOf } from './measure-data.js'
 
 // The Body page's three tabs and the address each keeps (/me/body, /me/body/measurements,
 // /me/body/photos): one page, switched in place (replace), so Back leaves the page whichever tab it
@@ -34,6 +35,7 @@ export function useBody({ offline = false } = {}) {
   const from = useMemo(() => rangeStart(range), [range])
   const today = todayISO()
   const data = useMemo(() => bodyOf(S, { from, today }), [S, from, today])
+  const measure = useMemo(() => measureOf(S, { from }), [S, from])
   const waiting = useMemo(() => new Set(offline ? waitingDays(S, syncedFingerprint()) : []), [S, offline])
 
   const pickRange = value => {
@@ -44,5 +46,5 @@ export function useBody({ offline = false } = {}) {
   }
   const pickTab = value => nav(BODY_TABS.find(t => t.value === value).path + search, { replace: true })
 
-  return { tab, range, data, waiting, asks: S.weighIn !== false, pickRange, pickTab }
+  return { tab, range, data, measure, waiting, asks: S.weighIn !== false, pickRange, pickTab }
 }
