@@ -132,6 +132,13 @@ export function dropMember(data, gid, uid, now = Date.now()) {
     }
   }
   data.invitations = data.invitations.filter(x => !(x && x.group === gid && x.from === uid));
+  // Friends api m3: out of this group's challenges, and the cheers they sent or got here.
+  for (const ch of Object.values(data.challenges || {})) {
+    if (!ch || ch.group !== gid) continue;
+    if (Array.isArray(ch.joined)) ch.joined = ch.joined.filter(j => j && j.uid !== uid);
+    if (ch.creator === uid) ch.creator = null;
+  }
+  if (Array.isArray(data.cheers)) data.cheers = data.cheers.filter(c => !(c && c.group === gid && (c.from === uid || c.to === uid)));
   if (group.members.length) return { removed: true, deleted: false };
   deleteGroup(data, gid);
   return { removed: true, deleted: true };
@@ -142,6 +149,8 @@ export function deleteGroup(data, gid) {
   delete data.groups[gid];
   for (const [code, inv] of Object.entries(data.invites)) if (!inv || inv.group === gid) delete data.invites[code];
   data.invitations = data.invitations.filter(x => x && x.group !== gid);
+  for (const [id, ch] of Object.entries(data.challenges || {})) if (!ch || ch.group === gid) delete data.challenges[id];
+  if (Array.isArray(data.cheers)) data.cheers = data.cheers.filter(c => c && c.group !== gid);
   for (const person of Object.values(data.people)) {
     if (person?.mutes) delete person.mutes[gid];
     if (person?.groupPrefs) delete person.groupPrefs[gid];
@@ -152,7 +161,8 @@ export function deleteGroup(data, gid) {
  * Removes every trace of `uid` from `data`: every membership (with creator handover and empty
  * groups deleted, as dropMember does), their person record, every invitation to or from them,
  * every invite they minted (revoked, with their id taken off) or were the target of, the id on an
- * invite they used, and the cheers they sent or got. The account is gone; nothing of it stays.
+ * invite they used, the cheers they sent or got, and their place in every challenge. The account
+ * is gone; nothing of it stays.
  */
 export function purgeFromData(data, uid, now = Date.now()) {
   for (const gid of Object.keys(data.groups)) dropMember(data, gid, uid, now);
@@ -168,6 +178,12 @@ export function purgeFromData(data, uid, now = Date.now()) {
     if (inv.usedBy === uid) delete inv.usedBy;
   }
   if (Array.isArray(data.cheers)) data.cheers = data.cheers.filter(c => c && c.from !== uid && c.to !== uid);
+  // Friends api m3: their challenge participation, in groups that are gone too.
+  for (const ch of Object.values(data.challenges || {})) {
+    if (!ch) continue;
+    if (Array.isArray(ch.joined)) ch.joined = ch.joined.filter(j => j && j.uid !== uid);
+    if (ch.creator === uid) ch.creator = null;
+  }
 }
 
 /** The groups `uid` is in, in the order they joined them. */

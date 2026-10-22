@@ -33,6 +33,11 @@ import { invalidateMember } from './cache.js';
 import { groupDetail, memberDetail, groupMoments } from './group-view.js';
 import { parseMomentId } from './moments.js';
 import { MOMENT_DAYS } from './stats.js';
+// Friends api m3
+import { Refusal, refuse, NOT_FOUND, isObj, onlyKeys, routeWith } from './refusal.js';
+import { meExtras } from './me-extras.js';
+import { cheerRoutes } from './cheers.js';
+import { challengeRoutes } from './challenges.js';
 
 export const PEOPLE_MAX = 20;
 export const SUMMARY_MEMBERS_MAX = 5;
@@ -69,20 +74,6 @@ export function friendsRouteKey(pathname) {
   return { template: base + parts.join('/'), params };
 }
 
-/* ---------- refusals ---------- */
-class Refusal extends Error {
-  constructor(status, body) { super(body.error); this.status = status; this.body = body; }
-}
-const refuse = (status, code, error, extra) => { throw new Refusal(status, { error, ...(code ? { code } : {}), ...(extra || {}) }); };
-const NOT_FOUND = () => refuse(404, 'not-found', 'not found');
-
-const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
-
-/** Refuses a body with any field outside `keys`. */
-function onlyKeys(body, keys) {
-  for (const k of Object.keys(body)) if (!keys.includes(k)) refuse(400, 'bad-body', `unexpected field ${String(k).slice(0, 40)}`);
-}
-
 export function friendsRoutes({ json, readBody, readSession, limitAddress, users, deletionScheduled = () => false, store = friendsStore }) {
   // GET and POST /join/{code}: 30 a minute per address and 600 for everyone together, the budget
   // GET /api/invites/{code} has. Counted only once the caller is signed in, so a flood from
@@ -91,13 +82,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
   const JOIN_CHECKS_ALL = createWindow({ max: 600, windowMs: 60000, maxKeys: 1 });
   setInterval(() => { JOIN_CHECKS.sweep(); JOIN_CHECKS_ALL.sweep(); }, 60000).unref();
 
-  const route = fn => async (req, res) => {
-    try { await fn(req, res); }
-    catch (e) {
-      if (e instanceof Refusal) { if (!res.headersSent) json(res, e.status, e.body, e.headers); return; }
-      throw e;
-    }
-  };
+  const route = routeWith(json);
   const needUser = req => {
     const user = readSession(req);
     if (!user) refuse(401, null, 'not signed in');
@@ -205,8 +190,8 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       share: shareOf(person),
       groups: groupsOf(d, viewer).map(g => groupSummary(d, g.id, g, viewer, date, maps)),
       invitations: invitationsFor(d, viewer, maps.active),
-      // Cheers and moments arrive with api-m3; nothing is new until then.
-      newCount: 0
+      // Friends api m3: newCount, newest (omitted when nothing is new), challengeInvites.
+      ...meExtras(viewer, date, { data: d, active: maps.active })
     };
   }
 
@@ -500,6 +485,10 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         g.removedMoments = [...new Set([...list, mid])].filter(x => (parseMomentId(x)?.date || '') >= keep);
       });
       json(res, 200, { ok: true });
-    })
+    }),
+
+    /* ---------- Friends api m3 ---------- */
+    ...cheerRoutes({ json, readBody, readSession, users, store, route }),
+    ...challengeRoutes({ json, readBody, readSession, users, store, route })
   };
 }

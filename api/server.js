@@ -46,6 +46,8 @@ import { friendsRoutes, friendsRouteKey } from './friends/routes.js';
 import { purgeUser as purgeFriends } from './friends/purge.js';
 // Friends api m2
 import { invalidateMember as invalidateFriendsMember } from './friends/cache.js';
+// Friends api m3
+import { runDigest as runFriendsDigest } from './friends/digest.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -639,6 +641,17 @@ if (!PUSH_SCHEDULER_EXTERNAL) setInterval(() => {
     } catch (e) {
       console.error('reminder tick', user.id, e);
     }
+  }
+  // Friends api m3: the evening cheer digest, on each person's own S.reminder.tz. Unlike the
+  // reminder above, no tz means no push, never UTC (friends/digest.js).
+  try {
+    runFriendsDigest({
+      users: db.users, stateOf: readStateCached, nowIn: userNow, deletionScheduled,
+      hasSub: uid => db.subs.some(s => s.userId === uid),
+      send: (uid, payload) => { sendPush(uid, payload); }
+    });
+  } catch (e) {
+    console.error('friends digest', e);
   }
 // Checked every 10s (not 60s) — ticks aren't aligned to the top of the minute, so a 60s
 // interval could sit on your target minute for up to 59s before noticing. 10s caps that at ~9s.
