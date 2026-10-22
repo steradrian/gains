@@ -132,6 +132,8 @@ registerScreens('Workout', [
     render: screen({ offline: { waiting: null } }), mock: { S: pushA({ cur: 6, done: { ...MAIN_DONE, 6: 1 } }) } },
   { id: 'W1.30', title: 'Empty workout', note: 'Pick as you go: Add exercise, Bring a routine in, and Discard in the top bar.',
     render: screen(), mock: { S: pushA({ cur: 0, list: [], over: { name: 'Empty workout', routineIds: [] } }) } },
+  { id: 'W1.53', title: 'Cardio, three fields', note: 'Walking on an incline treadmill: min, km/h and % tiles are narrow, so each stacks its label, the value and one split − | + capsule.',
+    render: screen(), mock: { S: pushA({ cur: 0, list: [{ id: '2259', target: { mode: 'cardio', sets: 1, min: 20, speed: 5, incline: 4 }, sets: [{ min: 20, speed: 5, incline: 4, done: false }] }], over: { name: 'Treadmill', routineIds: [] } }) } },
   { id: 'W1.44', title: '20 exercises', note: 'Legs and core: only the current phase is drawn open.',
     render: screen(), mock: { S: pushA({ cur: 9, list: LONG(), done: { ...WARM_DONE, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3, 8: 3, 9: 1 }, over: { name: 'Legs and core' } }) } },
 ])

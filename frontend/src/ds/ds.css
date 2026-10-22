@@ -2512,3 +2512,17 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-nc-undo { appearance: none; flex: none; min-height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: transparent; color: var(--on-stage); font: 700 14px/18px var(--font-sans); text-decoration: none; cursor: pointer; }
 .g-nc-undo:active { background: var(--glass); }
 .g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+
+/* === Workout stepper tile (SetStepper; owner bug: three-field cardio rows at 390pt) === */
+/* The tile lays itself out by its own width, not the viewport or the field count. A container query
+   measures the content box: 200px tile − 20px side padding = 180px, the least that holds two 48px
+   buttons and a 38px value ("12.5") with no overlap. Below that the label, the value on its own
+   line and one split capsule (− | +, 48px tall) stack, like UIStepper. */
+.g-sst { container-type: inline-size; }
+@container (width < 180px) {
+  .g-sst-row { display: grid; grid-template-columns: 1fr 1fr; row-gap: 4px; }
+  .g-sst-v { grid-column: 1 / -1; grid-row: 1; width: 100%; font-size: clamp(24px, 26cqi, 34px); line-height: 44px; }
+  .g-sst-b { width: auto; height: 48px; border-radius: 0; }
+  .g-sst-b:first-of-type { grid-column: 1; grid-row: 2; border-start-start-radius: 24px; border-end-start-radius: 24px; }
+  .g-sst-v ~ .g-sst-b { grid-column: 2; grid-row: 2; border-start-end-radius: 24px; border-end-end-radius: 24px; border-inline-start: 1px solid var(--glass-line); }
+}
