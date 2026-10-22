@@ -3990,7 +3990,8 @@ paths:
         1 to 40 characters after that (`bad-name`). `goal.kind` is `planned` (everyone's planned
         sessions), `number` with `n` 1 to 200, or `targets`; `n` on any other kind, or any other
         field, is refused (`bad-goal`). Friends must be on (`friends-off`). At most 20 groups per
-        person (`group-limit`).
+        person (`group-limit`). A plausible `date` is kept as the creator's local join date
+        (the targets goal counts a mid-week joiner from it); without one, the server's UTC date.
       parameters:
         - { $ref: '#/components/parameters/FriendsDateOptional' }
       requestBody:
@@ -4255,7 +4256,9 @@ paths:
         in-app invitation of mine into that group is cleared. Refusals, in the order checked:
         `404 not-found`; `409 already-member` (with `group.id`, so the client opens it);
         `410 invite-used`; `410 invite-expired` (expired or revoked); `423 deletion-scheduled`;
-        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups).
+        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups). A plausible `date`
+        is kept as my local join date (the targets goal counts a mid-week joiner from it); without
+        one, the server's UTC date.
       parameters:
         - { $ref: '#/components/parameters/FriendsInviteCode' }
         - { $ref: '#/components/parameters/FriendsDateOptional' }
@@ -5914,14 +5917,14 @@ components:
       allOf:
         - { $ref: '#/components/schemas/GroupSummary' }
         - type: object
-          required: [goal, creator, isCreator, targets, weekDays, members, challenges, moments, cheersForMe, quiet, muteNotifications]
+          required: [goal, creator, isCreator, targets, weekDays, members, challenges, moments, togetherOff, cheersForMe, quiet, muteNotifications]
           properties:
             goal: { $ref: '#/components/schemas/GroupGoal' }
             creator: { oneOf: [{ type: string }, { type: 'null' }], description: 'null while the creator is hidden (Friends off, disabled). A disabled creator stays creator: nobody else can remove members until they are back.' }
             isCreator: { type: boolean }
             targets:
               type: object
-              description: 'This week: days with the food targets reached, and days known, summed over the members who share targets. A day the client did not judge counts nowhere.'
+              description: 'This week, over the members who share targets: `of` sums the days each needs (5 in a full week, ceil(5/7 x days in the group) for someone who joined during it), `hit` the days each reached since joining, capped at their need. A day without data is not reached. The `targets` goal is hit when hit equals of, that is when every one of them hit their week.'
               properties:
                 hit: { type: integer }
                 of: { type: integer }
@@ -5980,6 +5983,22 @@ components:
                       title: { oneOf: [{ type: string }, { type: 'null' }] }
                   cheered: { type: boolean, description: 'api-m3 (stats-hook.js cheerState); false until then.' }
                   mine: { type: boolean }
+            togetherOff:
+              type: array
+              description: |
+                The viewer's own: Trained together moments of the last seven days they left a
+                workout out of (`workout.share.together: false`), which would show with that
+                workout switched on again. `id` is the moment's id then and `who` (join order)
+                includes the viewer. Nobody else sees these; muted members' and removed moments
+                are left out.
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  who: { type: array, items: { type: string } }
+                  title: { oneOf: [{ type: string }, { type: 'null' }] }
+                  date: { type: string, format: date }
+                  at: { oneOf: [{ type: string, format: date-time }, { type: 'null' }] }
             cheersForMe: { type: integer, description: 'api-m3 (stats-hook.js cheerCounts); 0 until then.' }
             quiet: { type: boolean, description: 'No done work this week: "Quiet so far".' }
             muteNotifications: { type: boolean, description: 'The viewer''s own switch (PUT /groups/{id}/prefs).' }
@@ -6074,9 +6093,11 @@ components:
       description: |
         A group challenge. Counts are computed on every read from each joined person's own state,
         allow-listed numbers only (never an exercise, weight or food), each person capped at
-        `perPerson`; `goal` = `perPerson` x people joined; `total` is the sum.
+        `perPerson`; `goal` is the sum of the joined rows' `planned`; `total` is the sum of counts.
         - `workouts`: finished workouts in the span, 3 per week of the span.
         - `protein`: days the protein target was reached (`targetsReached[day].protein`), 5 per week.
+          A joined person who does not share targets is not counted: `planned` 0, `count` 0, and
+          no part of `goal`.
         - `weekend`: Saturdays and Sundays with a workout, one per day, 2 per week (the synced state
           has no separate activity log, so only workouts count).
         - `bests`: different exercises with a new best, shared or not, counted as a number; 1 per
@@ -6097,7 +6118,7 @@ components:
         end: { type: string, format: date }
         total: { type: integer }
         goal: { type: integer }
-        perPerson: { type: integer, description: 'The cap per person (each joined row''s `planned`).' }
+        perPerson: { type: integer, description: 'The cap per person (each counted joined row''s `planned`).' }
         startedBy:
           description: 'The creator; null when they have left the group or are hidden.'
           oneOf:

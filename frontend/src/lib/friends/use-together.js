@@ -6,7 +6,9 @@ import { friendsAvailable, getGroup } from './api.js'
 // `moments` of kind `together` whose `who` includes the viewer, on the workout's day. The server
 // makes the moment (same routine, same day, automatic), so when it is not there yet the answer is
 // an empty list and nothing is promised: it shows up in the group view later. A failed read is the
-// same empty list (no spinner, no error for a row that is only a bonus).
+// same empty list (no spinner, no error for a row that is only a bonus). A moment the viewer left
+// this workout out of (`workout.share.together: false`) is not in `moments` but in the viewer's own
+// `togetherOff`, so the row stays and can be switched on again.
 
 let mock = null
 
@@ -24,13 +26,14 @@ const dayOf = at => {
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
 }
 
-/** The together moments of `group` for the viewer's workout on `day`: `[{ gid, mid, names }]`. */
+/** The together moments of `group` for the viewer's workout on `day`, shown or left out: `[{ gid, mid, names }]`. */
 export function togetherOf(group, day) {
   const me = (group?.members || []).find(m => m.you)
   if (!me || !day) return []
   const nameOf = uid => (group.members || []).find(m => m.uid === uid)?.name
-  return (group.moments || [])
-    .filter(m => m.kind === 'together' && (m.who || []).includes(me.uid) && dayOf(m.at) === day)
+  const shown = (group.moments || []).filter(m => m.kind === 'together')
+  return [...shown, ...(group.togetherOff || [])]
+    .filter(m => (m.who || []).includes(me.uid) && dayOf(m.at) === day)
     .map(m => ({
       gid: group.id, mid: m.id,
       names: (m.who || []).filter(uid => uid !== me.uid).map(nameOf).filter(Boolean),

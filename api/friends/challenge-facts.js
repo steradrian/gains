@@ -5,13 +5,14 @@
  *
  *   workouts   finished workouts per date in the range (a workout marked "Don't share this one"
  *              still counts as a session, as it does in the ring)
- *   protein    the dates in the range whose S.targetsReached[date].protein is true
+ *   protein    the dates in the range whose S.targetsReached[date].protein is true, and none at
+ *              all unless the person shares targets (`targets`), whatever the state still holds
  *   bests      how many different catalogue exercises had a new best in the range */
 import { isDate } from './rules.js';
 
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 
-export function challengeFacts(S, from, to) {
+export function challengeFacts(S, from, to, { targets = false } = {}) {
   const workouts = {};
   const bests = new Set();
   for (const w of Array.isArray(S?.workouts) ? S.workouts : []) {
@@ -20,7 +21,7 @@ export function challengeFacts(S, from, to) {
     for (const id of Array.isArray(w.prs) ? w.prs : []) if (typeof id === 'string' && id.length <= 64) bests.add(id);
   }
   const protein = [];
-  const reached = isObj(S?.targetsReached) ? S.targetsReached : {};
+  const reached = targets === true && isObj(S?.targetsReached) ? S.targetsReached : {};
   for (const [day, v] of Object.entries(reached)) {
     if (isDate(day) && day >= from && day <= to && isObj(v) && v.protein === true) protein.push(day);
   }

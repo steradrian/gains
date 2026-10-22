@@ -17,7 +17,7 @@ const ALLOWED_KEYS = new Set([
   'id', 'name', 'since', 'memberCount', 'members', 'uid', 'initial', 'week', 'done', 'planned', 'noPlan', 'streak',
   'goalLine', 'kind', 'n', 'goal', 'creator', 'isCreator', 'targets', 'hit', 'of', 'weekDays', 'date', 'workouts',
   'muted', 'you', 'challenges', 'moments', 'who', 'title', 'detail', 'minutes', 'exercises', 'exercise', 'target',
-  'days', 'at', 'label', 'cheered', 'mine', 'cheersForMe', 'quiet', 'muteNotifications',
+  'days', 'at', 'label', 'cheered', 'mine', 'cheersForMe', 'quiet', 'muteNotifications', 'togetherOff',
   // Member
   'recent', 'consistency', 'share', 'reached', 'bests', 'shares', 'training',
   // FriendsMe
@@ -129,7 +129,9 @@ test('every combination of the four switches: nothing forbidden leaves, and each
 
     // targets: yes or no per day, nothing else of the day.
     assert.equal('targets' in member, share.targets, `targets ${tag}`);
-    assert.deepEqual(group.targets, share.targets ? { hit: 2, of: 3 } : { hit: 0, of: 0 }, `group targets ${tag}`);
+    // Both joined on Wednesday, so each needs 4 of their 5 days (week.js targetsWeek); Ana shares
+    // targets with no day reached, Bea's Monday is before she joined.
+    assert.deepEqual(group.targets, share.targets ? { hit: 1, of: 8 } : { hit: 0, of: 4 }, `group targets ${tag}`);
     if (share.targets) assert.deepEqual(member.targets, { reached: 2, of: 3, days: [true, false, true, null, null, null, null] });
 
     // bests: the catalogue exercise and the date. Her per-workout share of 0001 holds with the switch

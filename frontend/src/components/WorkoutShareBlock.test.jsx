@@ -1,13 +1,14 @@
 // @vitest-environment happy-dom
 // "Friends will see" on the summary: absent unless Friends is on, there is a group and training is
-// shared; each switch writes exactly its field on the saved workout; Don't share this one turns the
-// other rows off and removes nothing; a new best shares the exercise id only; the Trained together
-// row exists only when the server has the moment.
+// shared; each switch writes exactly its field on the saved workout; "Push A done" is the one switch
+// for share.off, and off turns the other rows off and removes nothing (there is no second switch
+// for the same field); a new best shares the exercise id only; the Trained together
+// row exists only when the server has the moment, and switching it writes this workout's
+// share.together, never a removal for the group.
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { click, useView } from '../ds/render.test-util.js'
 import { DEF, useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -18,7 +19,6 @@ vi.mock('../lib/friends/api.js', async importActual => ({
   removeMoment: (...a) => mocks.removeMoment(...a),
 }))
 
-import { FriendsError } from '../lib/friends/api.js'
 import { __setMockTogether } from '../lib/friends/use-together.js'
 import WorkoutShareBlock from './WorkoutShareBlock.jsx'
 
@@ -68,7 +68,7 @@ describe('when it shows', () => {
 
   it('lists the rows in order and the caption verbatim', async () => {
     await show()
-    expect(titles()).toEqual(['Push A done', 'Trained together with Ioana', 'New best: Cable fly', 'Don\'t share this one'])
+    expect(titles()).toEqual(['Push A done', 'Trained together with Ioana', 'New best: Cable fly'])
     expect(view.host.textContent).toContain('Each line is one choice for this workout only. Your defaults are in What you share.')
   })
 
@@ -76,22 +76,21 @@ describe('when it shows', () => {
     undo()
     undo = __setMockTogether([])
     await show()
-    expect(titles()).toEqual(['Push A done', 'New best: Cable fly', 'Don\'t share this one'])
+    expect(titles()).toEqual(['Push A done', 'New best: Cable fly'])
   })
 
   it('has a row for each new best, and none when there is none', async () => {
     await show({ bests: [] })
-    expect(titles()).toEqual(['Push A done', 'Trained together with Ioana', 'Don\'t share this one'])
+    expect(titles()).toEqual(['Push A done', 'Trained together with Ioana'])
   })
 })
 
 describe('the defaults', () => {
-  it('Push A done and Trained together are on, the new best and Don\'t share are off, and nothing is stored', async () => {
+  it('Push A done and Trained together are on, the new best is off, and nothing is stored', async () => {
     await show()
     expect(switchOf('Push A done').getAttribute('aria-checked')).toBe('true')
     expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('true')
     expect(switchOf('New best: Cable fly').getAttribute('aria-checked')).toBe('false')
-    expect(switchOf('Don\'t share this one').getAttribute('aria-checked')).toBe('false')
     expect('share' in rec()).toBe(false)
   })
 })
@@ -107,46 +106,61 @@ describe('each choice writes exactly its field', () => {
     expect('share' in rec()).toBe(false)
   })
 
-  it('Don\'t share this one writes off: true, disables the other rows and removes nothing', async () => {
+  it('Push A done off writes off: true, keeps the whole workout to yourself, disables the other rows and removes nothing', async () => {
     await show()
     click(switchOf('New best: Cable fly'))
-    click(switchOf('Don\'t share this one'))
+    click(switchOf('Push A done'))
     expect(rec().share).toEqual({ off: true, best: ['0227'] })
+    expect(view.host.textContent).toContain('Keeps the whole workout to yourself')
     expect(switchOf('New best: Cable fly').disabled).toBe(true)
     expect(switchOf('Trained together with Ioana').disabled).toBe(true)
-    expect(switchOf('Push A done').getAttribute('aria-checked')).toBe('false')
+    expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('false')
     expect(useStore.getState().S.workouts).toHaveLength(1)
     expect(rec().entries).toEqual(W.entries)
-    click(switchOf('Don\'t share this one'))
+    click(switchOf('Push A done'))
     expect(rec().share).toEqual({ best: ['0227'] })
     expect(switchOf('New best: Cable fly').disabled).toBe(false)
+    expect(view.host.textContent).toContain('52 min · no weights, no sets')
   })
 
-  it('Push A done off is the same field as Don\'t share this one', async () => {
+  it('no two switches drive the same field', async () => {
     await show()
-    click(switchOf('Push A done'))
-    expect(rec().share).toEqual({ off: true })
-    expect(switchOf('Don\'t share this one').getAttribute('aria-checked')).toBe('true')
+    const before = titles().map(l => switchOf(l).getAttribute('aria-checked'))
+    for (const label of titles()) {
+      click(switchOf(label))
+      const after = titles().map(l => switchOf(l).getAttribute('aria-checked'))
+      const flipped = titles().filter((l, i) => after[i] !== before[i])
+      // Push A done off also greys Trained together (it covers the whole workout); nothing else moves.
+      expect(flipped).toEqual(label === 'Push A done' ? ['Push A done', 'Trained together with Ioana'] : [label])
+      click(switchOf(label))
+    }
   })
 })
 
 describe('Trained together', () => {
-  it('switching it off takes the moment down for the group and writes nothing on the workout', async () => {
+  it('switching it off writes together: false on this workout only and removes nothing for the group', async () => {
     await show()
-    await act(async () => { switchOf('Trained together with Ioana').click() })
-    expect(mocks.removeMoment).toHaveBeenCalledWith('g1', 'm1')
-    expect('share' in rec()).toBe(false)
-    expect(switchOf('Trained together with Ioana').disabled).toBe(true)
+    click(switchOf('Trained together with Ioana'))
+    expect(rec().share).toEqual({ together: false })
+    expect(mocks.removeMoment).not.toHaveBeenCalled()
+    expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('false')
+    expect(switchOf('Trained together with Ioana').disabled).toBe(false)
     expect(view.host.textContent).toContain('Not shown in the group')
   })
 
-  it('a failed removal puts the switch back and toasts the error', async () => {
-    mocks.removeMoment.mockRejectedValue(new FriendsError('x', { code: 'offline' }))
-    const toast = vi.spyOn(useUI.getState(), 'toast').mockImplementation(() => {})
+  it('can be switched on again, which removes the field', async () => {
     await show()
-    await act(async () => { switchOf('Trained together with Ioana').click() })
+    click(switchOf('Trained together with Ioana'))
+    click(switchOf('Trained together with Ioana'))
+    expect('share' in rec()).toBe(false)
     expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('true')
-    expect(toast).toHaveBeenCalledWith("Couldn't do that. Try again when you're online.")
-    toast.mockRestore()
+    expect(view.host.textContent).toContain('Ioana logged Push A the same day')
+  })
+
+  it('a workout already left out shows the row off, ready to switch back on', async () => {
+    useStore.setState({ S: { ...clone(DEF), workouts: [{ ...clone(W), share: { together: false } }] } })
+    await show()
+    expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('false')
+    expect(switchOf('Trained together with Ioana').disabled).toBe(false)
   })
 })

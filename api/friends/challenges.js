@@ -8,12 +8,15 @@
  *
  * Only members of the group, and a non-member gets the same 404 as an unknown id. At most three
  * running (not over, not reached) challenges per group (409 `challenge-limit`). `date` is the
- * client's local today; a write without one uses the server's UTC date. */
+ * client's local today; a write takes it only when it can be someone's today (week.js
+ * plausibleDate), else, or without one, the server's UTC date. A far-future date therefore cannot
+ * start a challenge years out, fill the cap or end anything early. Finished challenges are dropped
+ * KEEP_DAYS after their end, by the server's clock and only in the group being written to. */
 import { randomBytes } from 'node:crypto';
 import { refuse, NOT_FOUND, onlyKeys } from './refusal.js';
 import { friendsStore } from './store.js';
 import { accountMaps, addDays, isDate, isId, isMember, weekOf } from './rules.js';
-import { plausibleDate } from './week.js';
+import { clientDay, plausibleDate, serverDay } from './week.js';
 import { ACTIVE_MAX, KEEP_DAYS, SPANS, TEMPLATES, activeIn, challengeView, endOf, settleHits } from './challenge-data.js';
 
 export function challengeRoutes({ json, readBody, readSession, users, store = friendsStore, route }) {
@@ -28,7 +31,16 @@ export function challengeRoutes({ json, readBody, readSession, users, store = fr
     if (!isDate(d)) refuse(400, 'bad-date', 'date must be a YYYY-MM-DD date');
     return d;
   };
-  const dayOf = (q, now = Date.now()) => (q.has('date') ? needDate(q) : new Date(now).toISOString().slice(0, 10));
+  // A write's day: the client's date when plausible, else the server's.
+  const dayOf = (q, now = Date.now()) => (q.has('date') ? clientDay(needDate(q), now) : serverDay(now));
+  // Retention runs off the server clock and only over `gid`, so no request can reach another group.
+  const sweep = (d, gid, now = Date.now()) => {
+    const cutoff = addDays(serverDay(now), -KEEP_DAYS);
+    for (const [cid, c] of Object.entries(d.challenges)) {
+      if (!c) delete d.challenges[cid];
+      else if (c.group === gid && c.end < cutoff) delete d.challenges[cid];
+    }
+  };
   const groupFor = (d, req, uid) => {
     const gid = req.friendsParams?.id;
     const group = isId(gid) && Object.hasOwn(d.groups, gid) ? d.groups[gid] : null;
@@ -63,7 +75,7 @@ export function challengeRoutes({ json, readBody, readSession, users, store = fr
       const id = store.mutate(d => {
         const group = groupFor(d, req, user.id);
         needOn(d, user.id);
-        for (const [cid, c] of Object.entries(d.challenges)) if (!c || c.end < addDays(day, -KEEP_DAYS)) delete d.challenges[cid];
+        sweep(d, group.id);
         if (activeIn(d, group.id, day).length >= ACTIVE_MAX) refuse(409, 'challenge-limit', `at most ${ACTIVE_MAX} running challenges`);
         let cid;
         do { cid = randomBytes(9).toString('base64url'); } while (Object.hasOwn(d.challenges, cid));

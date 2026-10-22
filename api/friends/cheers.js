@@ -20,7 +20,7 @@ import { accountMaps, isDate, isId, isMember, nameOf, visibleMember, weekOf } fr
 import { parseMomentId } from './moments.js';
 import { groupMoments } from './group-view.js';
 import { readMemberState } from './cache.js';
-import { plausibleDate, streakOf } from './week.js';
+import { clientDay, streakOf } from './week.js';
 import { textOf } from './challenge-data.js';
 import { CHEER_KEEP_MS, CHEER_KINDS, REF_MAX, atMs, cheerId, cheeredBy, liveCheersTo, sameCheer } from './cheer-data.js';
 
@@ -128,7 +128,7 @@ export function cheerRoutes({ json, readBody, readSession, users, store = friend
         d.cheers = d.cheers.filter(c => c && now - atMs(c) < CHEER_KEEP_MS);
         if (cheeredBy(d, user.id, gid, kind, ref)) return;
         const to = recipientsOf(d, accountMaps(users()).active, group, user, kind, ref);
-        const day = date && plausibleDate(date, now) ? date : new Date(now).toISOString().slice(0, 10);
+        const day = clientDay(date, now);
         const at = new Date(now).toISOString();
         for (const uid of to) d.cheers.push({ from: user.id, to: uid, group: gid, kind, ref, week: weekOf(day), at });
       });

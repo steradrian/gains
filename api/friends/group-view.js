@@ -11,7 +11,7 @@ import { membersOf, isMember, shareOf, visibleMember, nameOf, initialOf } from '
 import { daysOf } from './stats.js';
 import { goalLineOf, groupWeek } from './week.js';
 import { memberProjection } from './cache.js';
-import { momentsOf } from './moments.js';
+import { heldTogetherOf, momentsOf } from './moments.js';
 import { cheerCounts, cheerState, challengeSummaries } from './stats-hook.js';
 
 export const MOMENTS_MAX = 30;
@@ -69,6 +69,13 @@ export function groupDetail({ data, gid, group, viewer, date, active, store }) {
         };
       })
     : [];
+  // The viewer's own: Trained together moments they left a workout out of (WorkoutShareBlock
+  // offers them back). Nobody else is told.
+  const togetherOff = others
+    ? heldTogetherOf({ rows: w.rows, date, viewer, removed: removedIn(group) })
+      .filter(m => !m.who.some(uid => muted.has(uid)))
+      .map(m => ({ id: m.id, who: [...m.who], title: m.title, date: m.date, at: m.at }))
+    : [];
   return {
     summary: { week: { done: w.totals.done, planned: w.totals.planned }, streak: w.streak, goalLine: goalLineOf(group.goal) },
     view: {
@@ -77,6 +84,7 @@ export function groupDetail({ data, gid, group, viewer, date, active, store }) {
       members,
       challenges: challengeSummaries(viewer, group, date, { data, active, store }),
       moments,
+      togetherOff,
       cheersForMe: cheerCounts(viewer, group, w.week, { data, active }),
       quiet: w.rows.every(r => r.done === 0),
       // The viewer's own notification switch for this group (PUT /groups/{id}/prefs).

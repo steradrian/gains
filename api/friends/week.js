@@ -10,12 +10,16 @@
  *   planned   the sessions done by members with a plan, against the sum of their planned; a week
  *             nobody planned is neither hit nor missed
  *   number    every counting member's sessions done, against the group's number
- *   targets   days with the food targets reached, summed over the members who share targets,
- *             against the days known for them (a day the client did not judge counts nowhere); a
- *             week with no known day is neither hit nor missed
+ *   targets   every member who shares targets hit their week (targetsWeek): TARGET_DAYS days with
+ *             the food targets reached in the Monday-to-Sunday week, counted absolutely (a day
+ *             without data is not reached, never a share of the days known); someone who joined
+ *             during the week needs ceil(TARGET_DAYS / 7 x their days in it). `targets: { hit,
+ *             of }` sums each member's days reached, capped at their need, against the needs, so
+ *             hit >= of exactly when everyone hit. A week nobody shares targets in is neither
+ *             hit nor missed
  *
- * Reading writes, in one store.mutate and only when the client's date is plausible (within two
- * days of the server's clock, so a made-up date cannot settle weeks that have not happened):
+ * Reading writes, in one store.mutate and only when the client's date is plausible (the server's
+ * UTC date, give or take a day, so a made-up date cannot settle weeks that have not happened):
  *   highWater[week][uid]   the most done this member was seen with in that week; done is
  *                          max(high-water, now), so deleting a workout never takes the ring back,
  *                          while planned is recomputed on every read
@@ -28,7 +32,7 @@
  * Streak: weeks in a row whose result is true, back from last week, the current week added once
  * it is hit. A week that is neither is skipped; a missed or unjudged one ends the run. */
 import { membersOf, countsIn, shareOf, isDate, weekOf, addDays } from './rules.js';
-import { CONSISTENCY_WEEKS } from './stats.js';
+import { CONSISTENCY_WEEKS, daysOf } from './stats.js';
 import { memberProjection } from './cache.js';
 
 // Weeks that ended while nobody looked are judged from the projection's history, which reaches
@@ -36,16 +40,25 @@ import { memberProjection } from './cache.js';
 export const SETTLE_WEEKS = CONSISTENCY_WEEKS;
 export const RESULTS_KEEP_WEEKS = 260;
 export const HIGH_WATER_KEEP_WEEKS = 9;
-export const PLAUSIBLE_MS = 2 * 86400000;
+// Days with the food targets reached that make a member's full week hit.
+export const TARGET_DAYS = 5;
 
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** Whether `date` can be someone's today by the server's clock, in any time zone. */
+/** The server's UTC date. */
+export const serverDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+/** Whether `date` can be someone's today by the server's clock: the server's UTC date or the day
+ *  either side of it, which covers every time zone (UTC-12 to UTC+14) and nothing more, so a
+ *  Saturday client cannot read the next Monday and close the running week early. */
 export function plausibleDate(date, now = Date.now()) {
   if (!isDate(date)) return false;
-  const t = Date.parse(date + 'T12:00:00Z');
-  return Math.abs(t - now) <= PLAUSIBLE_MS;
+  const today = serverDay(now);
+  return date >= addDays(today, -1) && date <= addDays(today, 1);
 }
+
+/** The client's `date` when it can be someone's today, else the server's UTC date. */
+export const clientDay = (date, now = Date.now()) => (plausibleDate(date, now) ? date : serverDay(now));
 
 /** The goal as the client words it: structured, never a sentence. */
 export const goalLineOf = goal => (goal?.kind === 'number' ? { kind: 'number', n: goal.n } : { kind: goal?.kind === 'targets' ? 'targets' : 'planned' });
@@ -56,8 +69,35 @@ export const countingMembers = (data, group, active) =>
 
 const sum = (rows, f) => rows.reduce((n, r) => n + f(r), 0);
 
-/** A week's totals by the goal: `rows` are `{ done, planned, noPlan, targets: { hit, of } | null }`.
- *  `hit` is true, false, or null for a week that is neither. */
+/** The local date `uid` joined `group` on: `joinedOn`, else (members from before it was kept) the
+ *  date of the `joined` instant. Null when neither is there. */
+export function joinedOnOf(group, uid) {
+  const m = membersOf(group).find(x => x.uid === uid);
+  if (isDate(m?.joinedOn)) return m.joinedOn;
+  const d = typeof m?.joined === 'string' ? m.joined.slice(0, 10) : null;
+  return isDate(d) ? d : null;
+}
+
+/**
+ * A member's food targets in `week` as the goal counts them: `{ hit, of }`, `of` the days they
+ * need (TARGET_DAYS, or ceil(TARGET_DAYS / 7 x days in the group) for a week they joined in) and
+ * `hit` the days reached since they joined, capped at `of`. `targets` is the projection's week
+ * (stats.js: `days`, seven of true, false or null); null when they do not share targets, and when
+ * they joined after the week.
+ */
+export function targetsWeek(targets, week, joinedOn) {
+  if (!targets || !Array.isArray(targets.days)) return null;
+  const from = isDate(joinedOn) && joinedOn > week ? joinedOn : week;
+  const days = daysOf(week);
+  const inGroup = days.filter(d => d >= from).length;
+  if (inGroup === 0) return null;
+  const of = inGroup >= 7 ? TARGET_DAYS : Math.ceil((TARGET_DAYS * inGroup) / 7);
+  const reached = days.filter((d, i) => d >= from && targets.days[i] === true).length;
+  return { hit: Math.min(reached, of), of };
+}
+
+/** A week's totals by the goal: `rows` are `{ done, planned, noPlan, targets: { hit, of } | null }`,
+ *  `targets` from targetsWeek. `hit` is true, false, or null for a week that is neither. */
 export function goalOf(goal, rows) {
   const planned = sum(rows, r => r.planned);
   const targets = { hit: sum(rows, r => r.targets?.hit || 0), of: sum(rows, r => r.targets?.of || 0) };
@@ -66,7 +106,8 @@ export function goalOf(goal, rows) {
     return { done, planned, targets, hit: Number.isInteger(goal.n) && goal.n > 0 ? done >= goal.n : null };
   }
   if (goal?.kind === 'targets') {
-    return { done: sum(rows, r => r.done), planned, targets, hit: targets.of > 0 ? targets.hit >= targets.of : null };
+    const sharing = rows.filter(r => r.targets && r.targets.of > 0);
+    return { done: sum(rows, r => r.done), planned, targets, hit: sharing.length ? sharing.every(r => r.targets.hit >= r.targets.of) : null };
   }
   const done = sum(rows.filter(r => !r.noPlan), r => r.done);
   return { done, planned, targets, hit: planned > 0 ? done >= planned : null };
@@ -109,7 +150,7 @@ function settle(store, gid, week, rows) {
           g.results[wk] = goalOf(g.goal, rows.map(r => {
             const h = r.p.history.find(x => x.week === wk);
             const planned = h?.planned || 0;
-            return { done: Math.max(h?.done || 0, highWaterOf(g, wk, r.uid)), planned, noPlan: planned === 0, targets: h?.targets || null };
+            return { done: Math.max(h?.done || 0, highWaterOf(g, wk, r.uid)), planned, noPlan: planned === 0, targets: targetsWeek(h?.targets, wk, joinedOnOf(g, r.uid)) };
           })).hit;
         }
       }
@@ -140,6 +181,8 @@ export function groupWeek({ data, gid, group, date, active, store = null, now = 
     // settle wrote into the store's document; the group read from it is that same object.
     for (const r of rows) r.done = Math.max(r.done, highWaterOf(group, week, r.uid));
   }
-  const totals = goalOf(group.goal, rows.map(r => ({ done: r.done, planned: r.planned, noPlan: r.noPlan, targets: r.p.history.at(-1)?.targets || null })));
+  const totals = goalOf(group.goal, rows.map(r => ({
+    done: r.done, planned: r.planned, noPlan: r.noPlan, targets: targetsWeek(r.p.history.at(-1)?.targets, week, joinedOnOf(group, r.uid))
+  })));
   return { week, rows, totals, streak: streakOf(group, week, totals.hit) };
 }

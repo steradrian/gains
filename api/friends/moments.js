@@ -4,7 +4,9 @@
  *
  *   workout    a finished workout: its name, minutes and exercise count (training shared, the
  *              workout not marked "Don't share this one")
- *   together   two or more members, the same routine (by name, else id), the same date; automatic
+ *   together   two or more members, the same routine (by name, else id), the same date; automatic.
+ *              A workout marked `share.together: false` is left out of it (two people, one out:
+ *              no moment); its owner gets it back by switching that workout on again
  *   best       a new best, the catalogue exercise only (shared by the switch or for that workout)
  *   target     the protein target reached on TARGET_MOMENT_DAYS days of this week (targets shared)
  *
@@ -31,26 +33,64 @@ export function parseMomentId(mid) {
 const newestFirst = (a, b) =>
   (a.date < b.date ? 1 : a.date > b.date ? -1 : (a.at || '') < (b.at || '') ? 1 : (a.at || '') > (b.at || '') ? -1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
+const windowOf = date => {
+  const from = addDays(date, -(MOMENT_DAYS - 1));
+  return d => typeof d === 'string' && d >= from && d <= date;
+};
+const later = (a, b) => (b && (!a || b > a) ? b : a);
+
+// The Trained together sets of `rows` in the window, by date and routine: `who` the members whose
+// workout is in, `off` those who left theirs out (share.together false) and have none in.
+function togetherSets(rows, inWindow) {
+  const sets = new Map();
+  for (const { uid, p } of rows) {
+    for (const w of p.workouts || []) {
+      if (!inWindow(w.date) || !w.together) continue;
+      const key = `${w.date}|${w.together}`;
+      const t = sets.get(key) || { date: w.date, ref: w.together, title: w.title, at: null, offAt: null, who: [], off: [] };
+      if (w.togetherOff) {
+        if (!t.off.includes(uid)) t.off.push(uid);
+        t.offAt = later(t.offAt, w.at);
+      } else {
+        if (!t.who.includes(uid)) t.who.push(uid);
+        t.at = later(t.at, w.at);
+      }
+      sets.set(key, t);
+    }
+  }
+  const out = [...sets.values()];
+  for (const t of out) t.off = t.off.filter(uid => !t.who.includes(uid));
+  return out;
+}
+
+/**
+ * The Trained together moments `viewer` left their workout out of and would be back in with it
+ * switched on: `[{ id, who, title, date, at }]`, `who` in join order with the viewer, `id` the
+ * moment's id then. A removed moment is not offered.
+ */
+export function heldTogetherOf({ rows, date, viewer, removed = new Set() }) {
+  const order = rows.map(r => r.uid);
+  return togetherSets(rows, windowOf(date))
+    .filter(t => t.off.includes(viewer) && t.who.length >= 1)
+    .map(t => {
+      const who = order.filter(uid => uid === viewer || t.who.includes(uid));
+      return { id: momentId('together', t.date, who, t.ref), who, title: t.title, date: t.date, at: later(t.at, t.offAt) };
+    })
+    .filter(m => !removed.has(m.id));
+}
+
 /**
  * Every moment of `rows` (`[{ uid, p }]`, members in join order, `p` their projection on `date`)
  * from the seven days up to `date`, newest first, without the ids in `removed`. Each is
  * `{ id, kind, who, title, detail, date, at }`; the caller drops muted members and adds cheers.
  */
 export function momentsOf({ rows, date, removed = new Set() }) {
-  const from = addDays(date, -(MOMENT_DAYS - 1));
-  const inWindow = d => typeof d === 'string' && d >= from && d <= date;
+  const inWindow = windowOf(date);
   const out = [];
-  const together = new Map();
   for (const { uid, p } of rows) {
     for (const w of p.workouts || []) {
       if (!inWindow(w.date)) continue;
       out.push({ id: momentId('workout', w.date, [uid], w.ref), kind: 'workout', who: [uid], title: w.title, detail: { minutes: w.minutes, exercises: w.exercises }, date: w.date, at: w.at });
-      if (!w.together) continue;
-      const key = `${w.date}|${w.together}`;
-      const t = together.get(key) || { date: w.date, ref: w.together, title: w.title, at: null, who: [] };
-      if (!t.who.includes(uid)) t.who.push(uid);
-      if (w.at && (!t.at || w.at > t.at)) t.at = w.at;
-      together.set(key, t);
     }
     for (const b of p.bestMoments || []) {
       if (!inWindow(b.date)) continue;
@@ -61,7 +101,7 @@ export function momentsOf({ rows, date, removed = new Set() }) {
       out.push({ id: momentId('target', pr.reachedOn, [uid], `protein-${pr.week}`), kind: 'target', who: [uid], title: null, detail: { target: 'protein', days: pr.days, of: 7 }, date: pr.reachedOn, at: null });
     }
   }
-  for (const t of together.values()) {
+  for (const t of togetherSets(rows, inWindow)) {
     if (t.who.length < 2) continue;
     out.push({ id: momentId('together', t.date, t.who, t.ref), kind: 'together', who: [...t.who], title: t.title, detail: {}, date: t.date, at: t.at });
   }

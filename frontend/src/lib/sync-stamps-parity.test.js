@@ -133,7 +133,7 @@ describe('workout.share and targetsReached on the server', () => {
   const T = 1_800_000_000_000
   const doc = () => ({
     _ts: T, restSec: 90, edited: { restSec: T },
-    routines: [], workouts: [{ id: 'w1', d: '2026-10-01', start: T - 2e6, end: T - 1e6, share: { off: true, best: ['0227'] } }],
+    routines: [], workouts: [{ id: 'w1', d: '2026-10-01', start: T - 2e6, end: T - 1e6, share: { off: true, best: ['0227'], together: false } }],
     targetsReached: { '2026-10-16': { all: true, protein: false } },
   })
 
@@ -143,7 +143,7 @@ describe('workout.share and targetsReached on the server', () => {
     delete old.workouts[0].share; delete old.targetsReached
     old.restSec = 60; old._ts = T + 9000
     S.stampPut(cur, old, { overRead: true, now: T + 9000 })
-    expect(old.workouts[0].share).toEqual({ off: true, best: ['0227'] })
+    expect(old.workouts[0].share).toEqual({ off: true, best: ['0227'], together: false })
     expect(old.targetsReached).toEqual({ '2026-10-16': { all: true, protein: false } })
     expect(old.restSec).toBe(60)
   })

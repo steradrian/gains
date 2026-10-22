@@ -100,6 +100,45 @@ test('a made-up date is answered but settles nothing', async t => {
   assert.equal(JSON.stringify(h.friends()), before, 'no high-water, no results, no lastWeek from the future');
 });
 
+test('a Saturday read dated the next Monday cannot close the running week early', async t => {
+  const plan = workouts => state({ ...ONE_DAY_PLAN, workouts });
+  const h = await startServer(t, { states: { u_ana: plan([]), u_bea: plan([]) } });
+  const gid = await h.crew(['u_ana', 'u_bea']);
+  await h.at(Date.parse('2026-10-17T12:00:00.000Z'));
+  await h.view('u_ana', gid, '2026-10-17');
+  const before = JSON.stringify(h.friends().groups[gid]);
+  await h.view('u_ana', gid, '2026-10-19');
+  assert.equal(JSON.stringify(h.friends().groups[gid]), before, 'server date + 2 settles nothing');
+  assert.ok(!Object.hasOwn(h.friends().groups[gid].results || {}, MONDAY), 'the week of the 12th is still open');
+});
+
+test('targets goal: each member needs 5 days reached, absolutely; a Friday joiner needs 3', async t => {
+  const reached = (...ds) => ({ targetsReached: Object.fromEntries(ds.map(d => [d, { all: true, protein: true }])) });
+  const MON_TO = n => Array.from({ length: n }, (_, i) => `2026-10-1${2 + i}`);
+  const h = await startServer(t, { now: at(MONDAY), states: { u_ana: state(reached(...MON_TO(5))), u_bea: state(reached(...MON_TO(4))) } });
+  const gid = await h.crew(['u_ana', 'u_bea'], { goal: { kind: 'targets' } });
+  await h.at(at('2026-10-16'));
+  await h.on('u_cy');
+  const link = await h.req('POST', `/api/friends/groups/${gid}/invites`, { as: 'u_ana', body: {} });
+  assert.equal((await h.req('POST', `/api/friends/join/${link.body.code}?date=2026-10-16`, { as: 'u_cy', body: {} })).status, 200);
+  assert.equal(h.friends().groups[gid].members.find(m => m.uid === 'u_cy').joinedOn, '2026-10-16', 'the joiner’s local date is kept');
+  await h.state('u_cy', state(reached('2026-10-12', '2026-10-16', '2026-10-17', '2026-10-18')));
+
+  await h.at(at('2026-10-18'));
+  let v = await h.view('u_bea', gid, '2026-10-18');
+  assert.deepEqual(v.targets, { hit: 12, of: 13 }, 'Ana 5 of 5, Bea 4 of 5, Cy 3 of 3 (her Monday was before she joined)');
+  assert.equal(v.streak, 0, 'Bea at 4 is not a hit');
+
+  await h.state('u_bea', state(reached(...MON_TO(4), '2026-10-18')));
+  v = await h.view('u_bea', gid, '2026-10-18');
+  assert.deepEqual([v.targets, v.streak], [{ hit: 13, of: 13 }, 1], 'everyone hit: the week counts');
+
+  await h.at(at('2026-10-19'));
+  v = await h.view('u_ana', gid, '2026-10-19');
+  assert.equal(h.friends().groups[gid].results[MONDAY], true);
+  assert.deepEqual(v.targets, { hit: 0, of: 15 }, 'a new week: nothing reached yet, every day of it counts');
+});
+
 test('a muted member’s moments are left out for that viewer only, and they still count', async t => {
   const h = await startServer(t, { states: {
     u_ana: state(), u_bea: state({ workouts: [workout({ d: MONDAY, name: 'Legs' })] }), u_cy: state()
@@ -162,6 +201,33 @@ test('Trained together: two members, same routine, same day; either removes it, 
   assert.equal((await h.req('POST', `/api/friends/groups/${gid}/moments/${ownMid}/remove`, { as: 'u_bea', body: {} })).status, 200, 'her own');
   const gone = encodeURIComponent(`workout:${MONDAY}:u_bea:nothingHere1`);
   assert.equal((await h.req('POST', `/api/friends/groups/${gid}/moments/${gone}/remove`, { as: 'u_bea', body: {} })).status, 404, 'a moment that is not there');
+});
+
+test('Trained together off on one workout: that workout is left out, for that person only, and back when switched on', async t => {
+  const push = (id, extra) => state({ workouts: [workout({ id, d: MONDAY, name: 'Push A', ...extra })] });
+  const OFF = { share: { together: false } };
+  const h = await startServer(t, { states: { u_ana: push('a1'), u_bea: push('b1', OFF), u_cy: push('c1') } });
+  const gid = await h.crew(['u_ana', 'u_bea', 'u_cy']);
+
+  let ana = await h.view('u_ana', gid);
+  assert.deepEqual(ofKind(ana, 'together').map(m => m.who), [['u_ana', 'u_cy']], 'Bea’s workout is out of it');
+  assert.ok(ofKind(ana, 'workout').some(m => m.who[0] === 'u_bea'), 'her workout still shows on its own');
+  assert.deepEqual(ana.togetherOff, [], 'nobody else is told');
+  let bea = await h.view('u_bea', gid);
+  assert.deepEqual(bea.togetherOff.map(m => [m.who, m.title, m.date]), [[['u_ana', 'u_bea', 'u_cy'], 'Push A', MONDAY]]);
+  assert.match(bea.togetherOff[0].id, /^together:2026-10-12:u_ana\+u_bea\+u_cy:/);
+
+  // Two people, one out: no moment for anyone; the one who is out can still bring it back.
+  await h.state('u_cy', push('c1', OFF));
+  for (const u of ['u_ana', 'u_bea', 'u_cy']) assert.deepEqual(ofKind(await h.view(u, gid), 'together'), [], u);
+  bea = await h.view('u_bea', gid);
+  assert.deepEqual(bea.togetherOff.map(m => m.who), [['u_ana', 'u_bea']], 'Cy is out too, so it would be Ana and Bea');
+
+  await h.state('u_bea', push('b1'));
+  ana = await h.view('u_ana', gid);
+  assert.deepEqual(ofKind(ana, 'together').map(m => m.who), [['u_ana', 'u_bea']]);
+  assert.deepEqual((await h.view('u_bea', gid)).togetherOff, []);
+  assert.equal(h.friends().groups[gid].removedMoments.length, 0, 'nothing was removed for the group');
 });
 
 test('a non-member gets exactly what an unknown id gets on the three routes, and nothing changes', async t => {
