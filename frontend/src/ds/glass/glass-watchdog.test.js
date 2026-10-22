@@ -42,13 +42,36 @@ describe('glass watchdog', () => {
     expect(onTrip).not.toHaveBeenCalled()
   })
 
-  it('starts over after a gap or a frame that drew nothing', () => {
+  it('starts over after the loop went idle (a gap over 100 ms)', () => {
     const onTrip = vi.fn()
     const dog = createWatchdog({ onTrip })
     let t = run(dog, 70, { cpu: 9 })
-    dog.frame(false, 0, 16, t)
-    t = run(dog, 70, { cpu: 9, start: t + 16 })
+    t = run(dog, 70, { cpu: 9, start: t + 200 })
     expect(onTrip).not.toHaveBeenCalled()
+  })
+
+  it('trips on slow drawn frames at the 15 Hz look cadence (draw, then idle frames)', () => {
+    const onTrip = vi.fn()
+    const dog = createWatchdog({ onTrip })
+    let t = 1000
+    for (let i = 0; i < 160; i++) { dog.frame(i % 4 === 0, i % 4 === 0 ? 20 : 0.2, 16, t); t += 16 }
+    expect(onTrip).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not trip on cheap drawn frames between idle frames', () => {
+    const onTrip = vi.fn()
+    const dog = createWatchdog({ onTrip })
+    let t = 1000
+    for (let i = 0; i < 400; i++) { dog.frame(i % 4 === 0, i % 4 === 0 ? 2 : 0.2, 16, t); t += 16 }
+    expect(onTrip).not.toHaveBeenCalled()
+  })
+
+  it('keeps a window going across idle frames under a scroll refresh, and trips on its slow rAF interval', () => {
+    const onTrip = vi.fn()
+    const dog = createWatchdog({ onTrip })
+    let t = 1000
+    for (let i = 0; i < 100; i++) { dog.frame(i % 5 === 0, 1, 30, t); t += 30 }
+    expect(onTrip).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -1,13 +1,16 @@
 // Liquid glass watchdog (plan 2.7): a device that cannot keep the glass at speed gets the CSS material
 // for the rest of the session. It trips when, over two consecutive one-second windows of active glass
 // animation, the median CPU cost of a drawn frame is above 6 ms or the median rAF interval above 24 ms.
-// A window only counts frames that drew back to back; a gap (the loop went idle) starts it again.
+// The glass rarely draws on every frame (look ticks at 15 Hz, sprite refreshes spread over frames), so a
+// frame that drew nothing keeps the window going: it adds its interval, and only drawn frames add a CPU
+// cost. Only a gap longer than GAP_MS (the loop went idle) starts the window again.
 
 export const OFF_KEY = 'lg-off'
 const WINDOW_MS = 1000
 const CPU_MS = 6
 const INTERVAL_MS = 24
-const MIN_SAMPLES = 20
+const MIN_SAMPLES = 20 // frames in a window before its rAF interval counts
+const MIN_DRAWN = 10 // drawn frames in a window before its CPU cost counts (a 15 Hz look gives 15)
 const GAP_MS = 100
 const BAD_WINDOWS = 2
 
@@ -43,14 +46,13 @@ export function createWatchdog({ onTrip }) {
 
   function frame(drew, cpuMs, intervalMs, nowMs) {
     if (tripped) return
-    if (!drew || nowMs - last > GAP_MS) restart()
+    if (nowMs - last > GAP_MS) restart()
     last = nowMs
-    if (!drew) return
     if (!started) started = nowMs
-    cpu.push(cpuMs)
+    if (drew) cpu.push(cpuMs)
     gaps.push(intervalMs)
     if (nowMs - started < WINDOW_MS) return
-    const slow = cpu.length >= MIN_SAMPLES && (median(cpu) > CPU_MS || median(gaps) > INTERVAL_MS)
+    const slow = (cpu.length >= MIN_DRAWN && median(cpu) > CPU_MS) || (gaps.length >= MIN_SAMPLES && median(gaps) > INTERVAL_MS)
     cpu = []
     gaps = []
     started = nowMs
