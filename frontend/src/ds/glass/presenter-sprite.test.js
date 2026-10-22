@@ -9,8 +9,8 @@ import { deriveTheme } from '../../lib/stage-look/color.js'
 import { themeOf } from '../../lib/themes.js'
 import { createRegistry, sortRecords, SPRITE_CLASS } from './glass-registry.js'
 import {
-  ATLAS_MAX_HEIGHT, ATLAS_WIDTH, canHost, createSpritePresenter, LOOK_MS, packShelves, planRefresh, SCROLL_MS, SETTLE_MS,
-  shadowMargin, SPRITE_MARGIN,
+  ATLAS_MAX_BYTES, ATLAS_MAX_HEIGHT, ATLAS_WIDTH, canHost, createSpritePresenter, FRAME_PX, offscreen, packShelves, planRefresh,
+  SCROLL_MS, SETTLE_MS, shadowMargin, SHRINK_MS, SPRITE_MARGIN,
 } from './presenter-sprite.js'
 
 const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
@@ -48,44 +48,61 @@ describe('packShelves', () => {
 })
 
 describe('planRefresh', () => {
-  const idle = { lastScroll: 0, lastLook: 0, lastMove: 0 }
+  const px = 1000
 
-  it('refreshes a changed or pressed sprite at once', () => {
-    const plan = planRefresh([{ hard: true }, { pressed: true }, {}], { ...idle, lastMove: 1000 }, 1001)
+  it('refreshes an urgent or pressed sprite at once, whatever the budget', () => {
+    const plan = planRefresh([{ urgent: true, px: 5e6 }, { pressed: true, px: 5e6 }, { px }], 1000, { budgetPx: 10 })
     expect(plan.refresh).toEqual([0, 1])
     expect(plan.pending).toBe(false)
   })
 
-  it('throttles moved sprites to 12 Hz while the movement goes on, and keeps the loop going', () => {
-    const clock = { lastScroll: 1000, lastLook: 0, lastMove: 1000 + SCROLL_MS - 10 }
-    const early = planRefresh([{ moved: true }], clock, 1000 + SCROLL_MS - 5)
-    expect(early.refresh).toEqual([])
-    expect(early.pending).toBe(true)
-    const due = planRefresh([{ moved: true }, { moved: true }], clock, 1000 + SCROLL_MS + 1)
-    expect(due.refresh).toEqual([0, 1])
-    expect(due.scroll).toBe(true)
-  })
-
-  it('does not restart the scroll throttle for a sprite refreshed at once (one coming on screen mid-fling)', () => {
-    const clock = { lastScroll: 0, lastLook: 0, lastMove: 1000 }
-    const plan = planRefresh([{ hard: true, moved: true }, { moved: true }], clock, 1000)
-    expect(plan.refresh).toEqual([0, 1])
-    expect(plan.scroll).toBe(true)
-    expect(planRefresh([{ hard: true, moved: true }, { pressed: true, look: true }], clock, 1000)).toMatchObject({ scroll: false, look: false })
-  })
-
-  it('refreshes exactly once the movement has been still for 120 ms', () => {
-    const clock = { lastScroll: 5000, lastLook: 0, lastMove: 4950 }
-    expect(planRefresh([{ moved: true }], clock, 4950 + SETTLE_MS - 1).refresh).toEqual([])
-    expect(planRefresh([{ moved: true }], { ...clock, lastScroll: 4950 + SETTLE_MS - 1 }, 4950 + SETTLE_MS).refresh).toEqual([0])
-  })
-
-  it('throttles look ticks to 15 Hz', () => {
-    const clock = { lastScroll: 0, lastLook: 1000, lastMove: 0 }
-    expect(planRefresh([{ look: true }], clock, 1000 + LOOK_MS - 1).refresh).toEqual([])
-    const due = planRefresh([{ look: true }], clock, 1000 + LOOK_MS)
+  it('holds each moved sprite to 12 Hz on its own clock, and keeps the loop going meanwhile', () => {
+    const early = planRefresh([{ moved: true, at: 1000, px }], 1000 + SCROLL_MS - 5)
+    expect(early).toEqual({ refresh: [], pending: true })
+    const due = planRefresh([{ moved: true, at: 1000, px }, { moved: true, at: 1010, px }], 1000 + SCROLL_MS + 1)
     expect(due.refresh).toEqual([0])
-    expect(due.look).toBe(true)
+    expect(due.pending).toBe(true)
+  })
+
+  it('refreshes every moved sprite once the movement has settled', () => {
+    expect(planRefresh([{ moved: true, at: 1000, px }], 1010, { settled: true }).refresh).toEqual([0])
+  })
+
+  it('takes a look tick at once (the engine already gates the look to 15 Hz)', () => {
+    expect(planRefresh([{ look: true, at: 1000, px }], 1001).refresh).toEqual([0])
+  })
+
+  it('spreads due sprites over frames within the pixel budget, oldest copy first', () => {
+    const cands = [{ moved: true, at: 300, px: 400 }, { moved: true, at: 100, px: 400 }, { moved: true, at: 200, px: 400 }]
+    const plan = planRefresh(cands, 1000, { budgetPx: 900 })
+    expect(plan.refresh).toEqual([1, 2])
+    expect(plan.pending).toBe(true)
+  })
+
+  it('puts a stale sprite coming on screen ahead of the others', () => {
+    const cands = [{ moved: true, at: 0, px: 600 }, { soon: true, at: 900, px: 600 }]
+    expect(planRefresh(cands, 1000, { budgetPx: 1000 }).refresh).toEqual([1])
+  })
+
+  it('always takes one sprite larger than the budget when nothing else draws, but not beside urgent work', () => {
+    expect(planRefresh([{ moved: true, at: 0, px: 5000 }], 1000, { budgetPx: 1000 }).refresh).toEqual([0])
+    const busy = planRefresh([{ urgent: true, px: 900 }, { moved: true, at: 0, px: 5000 }], 1000, { budgetPx: 1000 })
+    expect(busy).toEqual({ refresh: [0], pending: true })
+  })
+
+  it('caps a frame at about one full-width card at 3x by default', () => {
+    const card = 1218 * 414
+    const plan = planRefresh([0, 1, 2].map(i => ({ moved: true, at: i, px: card })), 1000)
+    expect(plan.refresh).toHaveLength(1)
+    expect(FRAME_PX).toBeGreaterThanOrEqual(card)
+  })
+})
+
+describe('offscreen', () => {
+  it('is 0 inside the viewport and its band, and the distance past it outside', () => {
+    expect(offscreen({ x: 100, y: 100, hw: 50, hh: 50 }, 390, 844)).toBe(0)
+    expect(offscreen({ x: 100, y: 844 + 80 + 50 + 30, hw: 50, hh: 50 }, 390, 844)).toBe(30)
+    expect(offscreen({ x: 100, y: -80 - 50 - 200, hw: 50, hh: 50 }, 390, 844)).toBe(200)
   })
 })
 
@@ -225,12 +242,12 @@ describe('createSpritePresenter', () => {
     expect(gl.draw).toHaveBeenCalledTimes(3)
   })
 
-  it('holds a moved sprite to the scroll throttle and says the loop must keep going', () => {
+  it('holds a moved sprite to its own 12 Hz clock and says the loop must keep going', () => {
     const el = document.createElement('div')
     ground.appendChild(el)
     const { p } = makePresenter()
     frame(p, [shape(el, { y: 100 })])
-    clockMs += 16
+    clockMs += SCROLL_MS + 1
     const moved = frame(p, [shape(el, { y: 140 })])
     expect(moved.drew).toBe(true) // the first movement after a quiet spell refreshes at once
     clockMs += 16
@@ -330,8 +347,7 @@ describe('createSpritePresenter', () => {
 
     it('leaves the elements that would not fit on the CSS material, and still draws the others', () => {
       const els = three()
-      const probe = makePresenter().p
-      const { p, hooks } = makePresenter({ budget: probe.bytes() + spriteBytes() * 1.5 })
+      const { p, hooks } = makePresenter({ budget: ATLAS_MAX_BYTES + spriteBytes() * 1.5 })
       const out = frame(p, els.map(el => shape(el)), () => true)
       expect(out.drew).toBe(true)
       expect(spriteOf(els[0])).not.toBeNull()
@@ -340,13 +356,44 @@ describe('createSpritePresenter', () => {
       expect(spriteOf(els[2])).toBeNull()
       expect(p.isReady(els[1])).toBe(false)
       expect(hooks.onReady).toHaveBeenCalledTimes(1)
-      expect(p.stats()).toMatchObject({ over: 2, budget: probe.bytes() + spriteBytes() * 1.5 })
+      expect(p.stats()).toMatchObject({ over: 2, budget: ATLAS_MAX_BYTES + spriteBytes() * 1.5 })
+    })
+
+    it('counts the atlas at its cap, since it can grow after the check', () => {
+      const els = three()
+      const { p } = makePresenter({ budget: ATLAS_MAX_BYTES + spriteBytes() * 0.5 })
+      frame(p, els.map(el => shape(el)), () => true)
+      expect(els.some(el => spriteOf(el))).toBe(false)
+      expect(p.stats().over).toBe(3)
+    })
+
+    it('gives an element on screen the room of a sprite off screen, and leaves that one on the CSS material', () => {
+      const [near, onScreen] = three()
+      const { p, hooks } = makePresenter({ budget: ATLAS_MAX_BYTES + spriteBytes() * 1.5 })
+      const below = window.innerHeight + 300
+      frame(p, [shape(near, { y: below })], () => true)
+      expect(spriteOf(near)).not.toBeNull()
+      clockMs += 16
+      frame(p, [shape(near, { y: below }), shape(onScreen, { y: 100 })], () => true)
+      expect(spriteOf(onScreen)).not.toBeNull()
+      expect(spriteOf(near)).toBeNull()
+      expect(hooks.onRelease).toHaveBeenCalledWith(near)
+      expect(p.stats().over).toBe(1)
+    })
+
+    it('never lets an element off screen take the room of one on screen', () => {
+      const [onScreen, near] = three()
+      const { p } = makePresenter({ budget: ATLAS_MAX_BYTES + spriteBytes() * 1.5 })
+      frame(p, [shape(onScreen, { y: 100 })], () => true)
+      clockMs += 16
+      frame(p, [shape(onScreen, { y: 100 }), shape(near, { y: window.innerHeight + 300 })], () => true)
+      expect(spriteOf(onScreen)).not.toBeNull()
+      expect(spriteOf(near)).toBeNull()
     })
 
     it('gives a waiting element its sprite once memory is freed, and asks for another draw', () => {
       const els = three()
-      const probe = makePresenter().p
-      const { p } = makePresenter({ budget: probe.bytes() + spriteBytes() * 1.5 })
+      const { p } = makePresenter({ budget: ATLAS_MAX_BYTES + spriteBytes() * 1.5 })
       frame(p, els.map(el => shape(el)), () => true)
       // The first element scrolls far away and gives its sprite back.
       const out = frame(p, [shape(els[1]), shape(els[2])], () => false)
@@ -365,6 +412,85 @@ describe('createSpritePresenter', () => {
       expect(p.stats().over).toBe(0)
       expect(els.every(el => spriteOf(el))).toBe(true)
     })
+  })
+
+  it('keeps an element whose 2D context is refused on the CSS material, and does not ask again at the same size', () => {
+    const el = document.createElement('div')
+    const other = document.createElement('div')
+    ground.append(el, other)
+    const { p, hooks } = makePresenter()
+    const getContext = HTMLCanvasElement.prototype.getContext
+    let refuse = true
+    getContext.mockImplementation(type => {
+      if (type !== '2d') return null
+      if (refuse) { refuse = false; return null }
+      return ctx2d
+    })
+    const out = frame(p, [shape(el), shape(other, { y: 300 })])
+    expect(out.drew).toBe(true) // the other element still draws
+    expect(spriteOf(el)).toBeNull()
+    expect(el.childElementCount).toBe(0)
+    expect(p.isReady(el)).toBe(false)
+    expect(spriteOf(other)).not.toBeNull()
+    expect(hooks.onReady).toHaveBeenCalledTimes(1)
+    const calls = getContext.mock.calls.length
+    clockMs += 16
+    frame(p, [shape(el), shape(other, { y: 300 })])
+    expect(getContext.mock.calls.length).toBe(calls)
+    expect(spriteOf(el)).toBeNull()
+  })
+
+  it('spreads a screen of moved sprites over frames, one atlas render of at most the frame budget each', () => {
+    const els = [0, 1, 2].map(() => { const el = document.createElement('div'); ground.appendChild(el); return el })
+    const { p } = makePresenter()
+    const big = (el, y) => shape(el, { x: 200, y, hw: 400, hh: 300 })
+    frame(p, els.map((el, i) => big(el, 300 + i * 10))) // first draw: all at once (no content yet)
+    expect(gl.draw.mock.calls.flatMap(c => c[0].shapes)).toHaveLength(3)
+    gl.draw.mockClear()
+    clockMs += SCROLL_MS + 1
+    const first = frame(p, els.map((el, i) => big(el, 280 + i * 10)))
+    expect(first).toEqual({ drew: true, pending: true })
+    expect(gl.draw.mock.calls[0][0].shapes).toHaveLength(1)
+    clockMs += 16
+    frame(p, els.map((el, i) => big(el, 280 + i * 10)))
+    clockMs += 16
+    const third = frame(p, els.map((el, i) => big(el, 280 + i * 10)))
+    expect(gl.draw).toHaveBeenCalledTimes(3)
+    expect(gl.draw.mock.calls.map(c => c[0].shapes.length)).toEqual([1, 1, 1])
+    expect(third.pending).toBe(false)
+  })
+
+  it('refreshes every sprite of a look tick in one batch at rest, then has nothing pending', () => {
+    const els = [0, 1, 2].map(() => { const el = document.createElement('div'); ground.appendChild(el); return el })
+    const { p } = makePresenter()
+    const big = (el, i) => shape(el, { x: 200, y: 300 + i * 10, hw: 400, hh: 300 })
+    frame(p, els.map(big))
+    gl.draw.mockClear()
+    clockMs += 500
+    const tick = p.draw(els.map(big), MATERIAL, { ...LOOK, phase: 0.5 }, { lookId: 'plain', keep: () => false })
+    expect(tick).toEqual({ drew: true, pending: false })
+    expect(gl.draw.mock.calls.flatMap(c => c[0].shapes)).toHaveLength(3)
+  })
+
+  it('shrinks the atlas once a whole second needed less than half of it', () => {
+    const el = document.createElement('div')
+    const small = document.createElement('button')
+    ground.append(el, small)
+    const { p } = makePresenter()
+    gl.draw.mockImplementation(f => { atlasCanvas.width = f.atlas.width; atlasCanvas.height = f.atlas.height })
+    frame(p, [shape(el, { hw: 400, hh: 300 }), shape(small, { kind: 'control', hw: 20, hh: 20, y: 700 })])
+    const big = gl.draw.mock.calls.at(-1)[0].atlas
+    let press = 0
+    const pressSmall = () => {
+      press += 0.1
+      clockMs += 100
+      frame(p, [shape(el, { hw: 400, hh: 300 }), shape(small, { kind: 'control', hw: 20, hh: 20, y: 700, press })])
+    }
+    pressSmall()
+    expect(gl.draw.mock.calls.at(-1)[0].atlas).toEqual(big) // a press never reallocates it
+    for (let i = 0; i < (2 * SHRINK_MS) / 100 + 1; i++) pressSmall()
+    const after = gl.draw.mock.calls.at(-1)[0].atlas
+    expect(after.width * after.height * 2).toBeLessThanOrEqual(big.width * big.height)
   })
 
   it('removes every sprite and gives the atlas renderer back on dispose', () => {
