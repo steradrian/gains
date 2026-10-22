@@ -284,3 +284,69 @@ test('a photo taken off a workout is marked by the next state push and swept aft
   assert.deepEqual(h.store.sweep('u1'), { removed: 1, freedBytes: 2000, skipped: false });
   assert.deepEqual(h.files('u1'), [`${a}.jpg`]);
 });
+
+/* === Me photos M1 === */
+// A progress photo that is not a workout (bodyPhotos[].ref, frontend lib/me/photos.js) is a
+// reference like any other: a state holding nothing else keeps its file, whatever Back up photos
+// says, and deleting the photo starts the grace.
+const pref = (photoBackup, ...hashes) => ({
+  photoBackup,
+  bodyPhotos: hashes.map((h, i) => ({ id: 'p' + i, d: '2026-10-20', addedAt: T0 - HOUR + i, ref: { kind: 'image', hash: h, mime: 'image/jpeg', size: 1, width: 1, height: 1, at: 1 } }))
+});
+
+test('Me photos M1: a file referenced only by a progress photo is never swept, with Back up photos on or off', t => {
+  for (const on of [true, false]) {
+    const h = setup(t);
+    const photo = h.place('u1', M.jpeg()), gone = h.place('u1', M.jpeg(3000));
+    h.S.set('u1', pref(on, photo));
+    assert.equal(h.store.noteState('u1', pref(on, photo)), true, 'the other file gets its mark');
+    assert.deepEqual(Object.keys(h.marks('u1')), [gone]);
+    h.clock.t += 365 * DAY;
+    assert.deepEqual(h.store.sweep('u1'), { removed: 1, freedBytes: 3000, skipped: false });
+    assert.deepEqual(h.store.sweep('u1', { graceMs: 0 }), { removed: 0, freedBytes: 0, skipped: false }, 'not even an explicit sweep');
+    assert.deepEqual(h.files('u1'), [`${photo}.jpg`]);
+  }
+});
+
+test('Me photos M1: a progress photo poster keeps its file on its own', t => {
+  const h = setup(t);
+  const main = h.place('u1', M.jpeg()), poster = h.place('u1', M.jpeg(2000));
+  const S = pref(false, main);
+  S.bodyPhotos[0].ref.poster = { hash: poster, mime: 'image/jpeg', size: 1, width: 1, height: 1 };
+  h.S.set('u1', S);
+  h.store.noteState('u1', S);
+  assert.equal(h.store.sweep('u1', { graceMs: 0 }).removed, 0);
+  assert.deepEqual(h.files('u1'), [`${main}.jpg`, `${poster}.jpg`].sort());
+});
+
+test('Me photos M1: a deleted progress photo is marked by the next push and swept only after the grace', t => {
+  const h = setup(t);
+  const a = h.place('u1', M.jpeg()), b = h.place('u1', M.jpeg(2000));
+  h.S.set('u1', pref(true, a, b));
+  assert.equal(h.store.noteState('u1', pref(true, a, b)), false);
+  // The owner deletes the photo of b; the push lands with its tombstone.
+  const after = { ...pref(true, a), deleted: { bodyPhotos: { p1: T0 } } };
+  h.S.set('u1', after);
+  assert.equal(h.store.noteState('u1', after), true);
+  assert.deepEqual(h.marks('u1'), { [b]: h.clock.t });
+  h.clock.t += 14 * DAY - 1;
+  assert.equal(h.store.sweep('u1').removed, 0, 'inside the grace an Undo on another device can still bring it back');
+  h.clock.t += 1;
+  assert.deepEqual(h.store.sweep('u1'), { removed: 1, freedBytes: 2000, skipped: false });
+  assert.deepEqual(h.files('u1'), [`${a}.jpg`]);
+});
+
+test('Me photos M1: a photo put back inside the grace loses its mark and stays', t => {
+  const h = setup(t);
+  const a = h.place('u1', M.jpeg());
+  h.S.set('u1', pref(true));
+  h.store.noteState('u1', pref(true));
+  assert.deepEqual(Object.keys(h.marks('u1')), [a]);
+  h.clock.t += 13 * DAY;
+  h.S.set('u1', pref(true, a));
+  assert.equal(h.store.noteState('u1', pref(true, a)), true);
+  assert.deepEqual(h.marks('u1'), {});
+  h.clock.t += 30 * DAY;
+  assert.equal(h.store.sweep('u1').removed, 0);
+  assert.deepEqual(h.files('u1'), [`${a}.jpg`]);
+});
