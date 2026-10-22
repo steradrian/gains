@@ -64,6 +64,7 @@ describe('MonthGrid', () => {
     view.render(<MonthGrid title="x" days={[]} onPrev={onPrev} prevLabel="Previous month" nextLabel="Next month" />)
     const [prev, next] = view.host.querySelectorAll('.g-mg-nav')
     expect(prev.getAttribute('aria-label')).toBe('Previous month')
+    expect([prev, next].map(b => [b.getAttribute('data-glass'), b.classList.contains('g-glass')])).toEqual([['control', false], ['control', false]])
     expect(next.getAttribute('aria-label')).toBe('Next month')
     expect(prev.disabled).toBe(false)
     expect(next.disabled).toBe(true)

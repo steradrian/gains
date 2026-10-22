@@ -54,13 +54,13 @@ export default function StageTrainCard({ eyebrow, chip, title, meta, progress, s
       {(actions.length > 0 || onMenu || menuHref) && (
         <div className={cx('g-tcard-acts', exercises?.length > 0 && 'tight')}>
           {actions.map(a => (
-            <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-tcard-btn', a.solid && 'solid')}>
+            <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-tcard-btn', a.solid ? 'solid' : 'g-glass')}>
               {a.icon && <Icon name={a.icon} className="g-icon" />}
               {a.label}
             </Act>
           ))}
           {(onMenu || menuHref) && (
-            <Act href={menuHref} onClick={onMenu} ariaLabel={menuLabel || t('Day options')} className="g-tcard-menu">
+            <Act href={menuHref} onClick={onMenu} ariaLabel={menuLabel || t('Day options')} className="g-tcard-menu g-glass">
               <Icon name="more" className="g-icon" />
             </Act>
           )}

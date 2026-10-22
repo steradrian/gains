@@ -15,7 +15,7 @@ export default function AwayCard({ icon = 'hand', title, body, actions = [] }) {
       </div>
       {actions.length > 0 && (
         <div className="g-away-acts">
-          {actions.map(a => <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-away-btn', a.solid && 'g-away-solid')}>{a.label}</Act>)}
+          {actions.map(a => <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-away-btn', a.solid ? 'g-away-solid' : 'g-glass')}>{a.label}</Act>)}
         </div>
       )}
     </div>
