@@ -7,12 +7,13 @@ import Settings from '../Settings.jsx'
 import { PAGES, pageExists, pageVisible } from '../settings-pages.js'
 import { SETTINGS_ROOT, settingsPath } from './paths.js'
 
-// The route: /me and /me/<page>. A page renamed by the §5 merge goes to its new name (tab-route.js);
+// The route: /me/settings (`root`) and /me/<page>. A page renamed by the §5 merge goes to its new name (tab-route.js);
 // a page that lives in a tab (the phone's Coach setup) goes there; an unknown page, or one this
 // device does not have, goes back to the root. Keyed on the history entry too, so a search hit for
 // a row on the root itself, which lands on the same path, flashes it every time.
-export function SettingsRoute() {
-  const { page } = useParams()
+export function SettingsRoute({ root = false }) {
+  const params = useParams()
+  const page = root ? undefined : params.page
   const loc = useLocation()
   const ctx = { user: useStore(s => s.user), mobile: MOBILE }
   if (page && PROFILE_RENAMED[page]) return <Navigate to={settingsPath(PROFILE_RENAMED[page])} replace state={loc.state} />

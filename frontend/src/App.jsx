@@ -481,8 +481,10 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/notifications" element={<Notifications />} />
       <Route path="/food/notifications" element={<Notifications />} />
       <Route path="/me/notifications" element={<Notifications />} />
-      {/* Me: Profile */}
-      <Route path="/me" element={<SettingsRoute />} />
+      {/* Me root M1: Profile is /me (ProgressHub until root-M2 replaces it); Settings is /me/settings,
+          its pages stay /me/<page>. Before /me/:page. */}
+      <Route path="/me" element={<ProgressHub />} />
+      <Route path="/me/settings" element={<SettingsRoute root />} />
       {/* Me body M1: before /me/:page */}
       <Route path="/me/body" element={<BodyRoute />} />
       <Route path="/me/body/measurements" element={<BodyRoute />} />

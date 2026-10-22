@@ -38,6 +38,7 @@ export const PAGE_INDEX = [
   { path: '/food/month', tab: 'food', title: 'Month', glyph: 'calendar', kw: 'calendar days rings on target over under', gate: nutrition },
   // Me: Profile (its own pages are the settings source's) and Progress under it
   { path: TAB_ROOT.me, tab: 'me', title: 'Profile', glyph: 'person', kw: 'me account you settings preferences' },
+  { path: '/me/settings', tab: 'me', title: 'Settings', glyph: 'gear', kw: 'settings preferences options account' },
   { path: PROGRESS_ROOT, tab: 'me', title: 'Progress', glyph: 'chart', kw: 'stats statistics charts' },
   { path: '/me/body', tab: 'me', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
   { path: '/me/body/measurements', tab: 'me', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },

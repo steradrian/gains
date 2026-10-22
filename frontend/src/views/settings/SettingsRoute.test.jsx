@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SettingsRoute: /me and /me/<page>. Redirects, an unknown page, the search hit handed on, and
+// SettingsRoute: /me/settings and /me/<page>. Redirects, an unknown page, the search hit handed on, and
 // /me/account/delete, which resolves ahead of /me/:page the way App.jsx orders the routes.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -27,7 +27,7 @@ const open = entry => act(() => root.render(
   <MemoryRouter key={JSON.stringify(entry)} initialEntries={[entry]}>
     <Where />
     <Routes>
-      <Route path="/me" element={<SettingsRoute />} />
+      <Route path="/me/settings" element={<SettingsRoute root />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
       <Route path="/me/account/started-over" element={<StartedOverScreen />} />
       <Route path="/me/:page" element={<SettingsRoute />} />
@@ -37,7 +37,7 @@ const open = entry => act(() => root.render(
 
 describe('SettingsRoute', () => {
   it('the root draws Settings with no page', () => {
-    open('/me')
+    open('/me/settings')
     expect(host.textContent).toBe('settings:root')
     expect(seenProps.last).toMatchObject({ page: null, find: null, via: null })
   })
@@ -57,7 +57,7 @@ describe('SettingsRoute', () => {
     open('/me/look')
     expect(seen).toBe('/me/appearance')
     open('/me/nope')
-    expect(seen).toBe('/me')
+    expect(seen).toBe('/me/settings')
   })
 
   it('hands on the row a search hit asked for, and the row to flash if it is missing', () => {
