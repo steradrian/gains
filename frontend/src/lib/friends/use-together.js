@@ -16,7 +16,9 @@ export function __setMockTogether(list) {
   return () => { mock = null }
 }
 
+// A moment's `at` is a timestamp (read in the device's day) or a bare date (taken as it is).
 const dayOf = at => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(at))) return String(at)
   const d = new Date(at)
   if (Number.isNaN(d.getTime())) return String(at || '').slice(0, 10)
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
