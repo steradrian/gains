@@ -1,14 +1,16 @@
-// Liquid glass presenter choice until the M3 device gate (M7 deletes the loser and this file's switch):
-// localStorage 'lg-presenter' ('fixed' | 'sprite'), plus the sprite options #/dev/glass tunes. The app's
-// GlassHost reads them at mount, so a choice made on the dev page holds in the app too. Storage can throw
-// (private mode, blocked site data): reads fall back to the defaults and writes are best effort.
+// Liquid glass tuning choices for the sprite presenter, which #/dev/glass switches: the cards' pixel ratio
+// and where the contact shadow is drawn. The app's GlassHost reads them at mount, so a choice made on the
+// dev page holds in the app too. The defaults are the approved look (cards 3x, drawn shadow). Storage can
+// throw (private mode, blocked site data): reads fall back to the defaults and writes are best effort.
 
 export const PREFS = Object.freeze({
-  presenter: { key: 'lg-presenter', values: ['fixed', 'sprite'], fallback: 'fixed' },
-  copy: { key: 'lg-copy', values: ['draw2d', 'bitmap'], fallback: 'draw2d' },
   cardDpr: { key: 'lg-card-dpr', values: ['3', '2'], fallback: '3' },
   shadow: { key: 'lg-shadow', values: ['shader', 'css'], fallback: 'shader' },
 })
+
+// Keys of the M3 device-gate experiment. The gate picked sprites, so a stored 'fixed' pick is dropped (the
+// app always draws sprites now) and so is the copy-path choice.
+const RETIRED = ['lg-presenter', 'lg-copy']
 
 /** One pref's stored value, or its default when it is missing, unknown or storage throws. */
 export function readPref(name) {
@@ -27,11 +29,17 @@ export function writePref(name, value) {
   try { localStorage.setItem(p.key, String(value)) } catch { /* this page keeps the choice in state */ }
 }
 
+/** Removes the retired device-gate keys (a stored "fixed" presenter included). */
+export function migratePrefs() {
+  try {
+    for (const key of RETIRED) localStorage.removeItem(key)
+  } catch { /* nothing stored to migrate */ }
+}
+
 /** Every pref, as GlassHost passes them to the engine. */
 export function readPrefs() {
+  migratePrefs()
   return {
-    presenter: readPref('presenter'),
-    copy: readPref('copy'),
     cardDpr: Number(readPref('cardDpr')),
     shadow: readPref('shadow'),
   }

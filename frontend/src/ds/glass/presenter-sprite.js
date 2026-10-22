@@ -6,15 +6,15 @@ import { SPRITE_CLASS } from './glass-registry.js'
 // Liquid glass, the sprite presenter (plan 2.3, M3): in-flow glass is drawn into canvases that live inside
 // their own elements, so scrolling (WKWebView's async scroll included), sticky headers, route slides,
 // presence fades, nested scrollers and overflow clips move and cut the glass exactly, because the browser
-// composites it with the element. Chrome stays on the fixed presenter's over strip.
+// composites it with the element. Chrome stays on the chrome presenter's strip.
 //
 // One hidden WebGL "atlas" (glass-gl.js in atlas mode) draws every shape that needs a refresh into a packed
 // region, evaluated at the element's real viewport position, so the refraction samples the stage that is
 // really behind it. Each region is then copied into the element's sprite: `<canvas class="g-lg-sprite">`,
 // appended last, aria-hidden, absolutely placed `--lg-m` px outside the element's border box at z-index -1
-// (ds.css "Liquid glass: sprites"). The material is the fixed presenter's, shape for shape: same shader,
-// same per-kind optics, the press swell and the contact shadow drawn in the sprite (its margin holds the
-// shadow), at the fixed presenter's device-pixel ratio unless `cardDpr` lowers the cards'.
+// (ds.css "Liquid glass: sprites"). The approved material: the glass shader with the same per-kind
+// optics for chrome and sprites, the press swell and the contact shadow drawn in the sprite (its margin
+// holds the shadow), at the device-pixel ratio (cards 3x) unless `cardDpr` lowers the cards'.
 //
 // Only the refraction's content can lag, and only when the element moves: a scroll refreshes the sprites
 // on screen at most 12 times a second plus once exactly 120 ms after it stops, a look tick at most 15
@@ -23,15 +23,14 @@ import { SPRITE_CLASS } from './glass-registry.js'
 // half a viewport away (the engine's read band) and a shape more than a viewport away (the registry's
 // `near`) gives its sprite back (`width = height = 0`, removed) and returns to the CSS material.
 //
-// Copy paths, both kept until M7 (the dev HUD measures them):
-//   draw2d: a 2D context per sprite, `drawImage(atlas, sx, sy, sw, sh, 0, 0, sw, sh)`;
-//   bitmap: `createImageBitmap(atlas, sx, sy, sw, sh)` then `bitmaprenderer.transferFromImageBitmap`.
+// The copy is a 2D context per sprite and `drawImage(atlas, sx, sy, sw, sh, 0, 0, sw, sh)`: synchronous,
+// so a sprite has content in the task that marks its element (R7) and a resize can't blank it.
 
 export const SPRITE_MARGIN = 4 // CSS px: room for the press swell when the shadow is CSS
 export const ATLAS_WIDTH = 2048
+export const SPRITE_BUDGET_BYTES = 30 * 1024 * 1024 // sprites plus the atlas; the worst real screen (Train) uses about 20 MB
 export const ATLAS_MAX_BYTES = 8 * 1024 * 1024
 export const ATLAS_MAX_HEIGHT = Math.floor(ATLAS_MAX_BYTES / 4 / ATLAS_WIDTH)
-export const COPY = Object.freeze({ DRAW: 'draw2d', BITMAP: 'bitmap' })
 export const SHADOW = Object.freeze({ SHADER: 'shader', CSS: 'css' })
 export const SCROLL_MS = 1000 / 12
 export const SETTLE_MS = 120
@@ -39,7 +38,7 @@ export const LOOK_MS = 1000 / 15
 const PAD = 2 // px between atlas regions
 const ROUND = 64 // atlas sizes step, so a slightly larger set doesn't reallocate
 const MAX_DPR = 3
-const LOOK_MAX_DPR = 2 // StageLook's own cap, as in presenter-fixed.js
+const LOOK_MAX_DPR = 2 // StageLook's own cap, as in presenter-chrome.js
 const MOVE_EPS = 0.1
 const VISIBLE_BAND = 80 // px outside the viewport that still counts as on screen (the registry's own band)
 
@@ -132,15 +131,16 @@ export function planRefresh(cands, clock, now) {
 const roundUp = n => Math.max(ROUND, Math.ceil(n / ROUND) * ROUND)
 
 /**
- * @param {{ copy?: 'draw2d' | 'bitmap', cardDpr?: number, shadow?: 'shader' | 'css', now?: () => number,
+ * @param {{ cardDpr?: number, shadow?: 'shader' | 'css', budget?: number, now?: () => number,
  *   renderers?: { acquire(): object | null, release(r: object): void, renew(canvas: HTMLCanvasElement): object | null } }} opts
- *   `cardDpr`: the cards' device-pixel cap (3 = the fixed presenter's, so the same material; 2 halves their memory).
- *   `shadow`: 'shader' draws the contact shadow in the sprite (the fixed presenter's); 'css' gives it to the
+ *   `cardDpr`: the cards' device-pixel cap (3 = the approved look; 2 halves their memory).
+ *   `shadow`: 'shader' draws the contact shadow in the sprite (the approved look); 'css' gives it to the
  *   element's box-shadow through --glass-edge, which is approximate but keeps sprites small.
+ *   `budget`: bytes sprites plus the atlas may hold. An element that would exceed it keeps the CSS material
+ *   (per element, like an atlas-skipped one) and is asked again on every draw; the stage is never touched.
  *   `renderers`: glass-gl.js's pool (the atlas renderer and its canvas), and a new renderer on the same canvas
  *   after a lost context is restored; tests inject fakes.
- * @returns {{ mount(hooks: { onReady(el: Element): void, onRelease(el: Element): void, onLost(): void, onRestored(): void,
- *     onCopy?(transferMs: number, latencyMs: number): void }): boolean,
+ * @returns {{ mount(hooks: { onReady(el: Element): void, onRelease(el: Element): void, onLost(): void, onRestored(): void }): boolean,
  *   draw(shapes: object[], material: object, look: object, ctx: { lookId: string, keep(el: Element): boolean }): { drew: boolean, pending: boolean },
  *   restore(host: Element, canvas: Element): void, isReady(el: Element): boolean, stats(): object, bytes(): number, dispose(): void }}
  * `draw` takes this frame's in-flow shapes, each with its swollen silhouette (x, y, hw, hh, radius) and its
@@ -148,17 +148,17 @@ const roundUp = n => Math.max(ROUND, Math.ceil(n / ROUND) * ROUND)
  * sprite missing from this frame's list is kept rather than released.
  */
 export function createSpritePresenter({
-  copy = COPY.DRAW, cardDpr = MAX_DPR, shadow = SHADOW.SHADER, now = () => performance.now(),
+  cardDpr = MAX_DPR, shadow = SHADOW.SHADER, budget = SPRITE_BUDGET_BYTES, now = () => performance.now(),
   renderers = { acquire: acquireGlassGL, release: releaseGlassGL, renew: createGlassGL },
 } = {}) {
   /** @type {Map<Element, object>} */
   const sprites = new Map()
   const clock = { lastScroll: -Infinity, lastLook: -Infinity, lastMove: -Infinity }
-  const last = { drawMs: 0, copyMs: 0, refreshed: 0, pages: 0, skipped: 0, contentLag: 0 }
+  const last = { drawMs: 0, copyMs: 0, refreshed: 0, pages: 0, skipped: 0, contentLag: 0, over: 0 }
+  let released = 0 // sprites given back so far: a rise means memory was freed
   let atlas = null
   let gl = null
   let hooks = null
-  let copyMode = copy
   let matRef = null
   let matKey = ''
   const cleanups = []
@@ -171,7 +171,7 @@ export function createSpritePresenter({
     const onLost = e => {
       e.preventDefault() // without it the browser never restores the context
       gl = null
-      for (const sp of sprites.values()) { sp.drawn = null; sp.ready = false; sp.gen++ }
+      for (const sp of sprites.values()) { sp.drawn = null; sp.ready = false }
       hooks.onLost()
     }
     const onRestored = () => {
@@ -184,7 +184,6 @@ export function createSpritePresenter({
       atlas.removeEventListener('webglcontextlost', onLost)
       atlas.removeEventListener('webglcontextrestored', onRestored)
     })
-    if (copyMode === COPY.BITMAP && typeof createImageBitmap !== 'function') copyMode = COPY.DRAW
     return true
   }
 
@@ -217,23 +216,16 @@ export function createSpritePresenter({
     }
     if (facts.static) el.setAttribute('data-lg-static', '')
     el.appendChild(canvas)
-    let ctx = copyMode === COPY.BITMAP ? canvas.getContext('bitmaprenderer') : null
-    if (!ctx) {
-      if (copyMode === COPY.BITMAP) copyMode = COPY.DRAW // no bitmaprenderer here: every sprite copies with drawImage
-      ctx = canvas.getContext('2d')
-    }
     sp.canvas = canvas
-    sp.ctx = ctx
-    sp.mode = copyMode
+    sp.ctx = canvas.getContext('2d')
   }
 
   function release(el) {
     const sp = sprites.get(el)
     if (!sp) return
     sprites.delete(el)
-    sp.gen++
+    released++
     if (sp.canvas) {
-      if (sp.mode === COPY.BITMAP) try { sp.ctx?.transferFromImageBitmap(null) } catch { /* already empty */ }
       sp.canvas.width = 0
       sp.canvas.height = 0
       sp.canvas.remove()
@@ -258,21 +250,6 @@ export function createSpritePresenter({
 
   function copyInto(sp, r) {
     const { canvas, ctx } = sp
-    if (sp.mode === COPY.BITMAP) {
-      // The snapshot is taken now, in this task (the atlas's buffer is not preserved past it); the transfer
-      // lands later, and the resize waits for it, since resizing would blank the sprite in between.
-      const gen = ++sp.gen
-      const asked = now()
-      createImageBitmap(atlas, r.x, r.y, r.w, r.h).then(bmp => {
-        if (gen !== sp.gen || !sprites.has(sp.el)) { bmp.close?.(); return }
-        const t0 = now()
-        if (canvas.width !== r.w || canvas.height !== r.h) { canvas.width = r.w; canvas.height = r.h }
-        ctx.transferFromImageBitmap(bmp)
-        ready(sp)
-        hooks.onCopy?.(now() - t0, now() - asked)
-      }, () => {})
-      return
-    }
     if (canvas.width !== r.w || canvas.height !== r.h) { canvas.width = r.w; canvas.height = r.h }
     ctx.globalCompositeOperation = 'copy' // the region replaces the sprite, transparent pixels included
     ctx.drawImage(atlas, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h)
@@ -301,7 +278,7 @@ export function createSpritePresenter({
       seen.add(s.el)
       let sp = sprites.get(s.el)
       if (!sp) {
-        sp = { el: s.el, canvas: null, ctx: null, mode: copyMode, drawn: null, prev: null, ready: false, gen: 0, facts: null, sizeKey: '' }
+        sp = { el: s.el, canvas: null, ctx: null, drawn: null, prev: null, ready: false, facts: null, sizeKey: '' }
         sprites.set(s.el, sp)
         fresh.push(sp)
       }
@@ -311,6 +288,9 @@ export function createSpritePresenter({
     for (const sp of fresh) sp.facts = hostFacts(sp.el)
 
     let moving = false
+    let over = 0
+    let used = bytes()
+    const releasedBefore = released
     const kept = []
     for (const { s, sp } of live) {
       const kind = s.kind === KIND.CARD ? KIND.CARD : KIND.CONTROL
@@ -329,6 +309,18 @@ export function createSpritePresenter({
       const d = sp.drawn
       const touch = s.touch ? `${s.touch[0].toFixed(1)},${s.touch[1].toFixed(1)}` : ''
       if (sp.skip === sizeKey) continue // larger than the atlas: it keeps the CSS material
+      // Over the memory budget: this element alone keeps (or goes back to) the CSS material; it is asked
+      // again on every draw, so it gets its sprite as soon as others are released.
+      if (!sp.canvas || sp.sizeKey !== sizeKey) {
+        const own = sp.canvas ? sp.canvas.width * sp.canvas.height * 4 : 0
+        const need = w * h * 4
+        if (used - own + need > budget) {
+          over++
+          if (sp.canvas) { release(s.el); used -= own }
+          continue
+        }
+        used += need - own
+      }
       // Scroll and look refreshes are for sprites on screen; one that comes on screen stale refreshes at
       // once, VISIBLE_BAND px before it shows.
       const visible = s.box.y + s.box.hh > -VISIBLE_BAND && s.box.y - s.box.hh < vh + VISIBLE_BAND
@@ -352,7 +344,10 @@ export function createSpritePresenter({
 
     for (const el of [...sprites.keys()]) if (!seen.has(el) && !ctx.keep(el)) release(el)
 
+    last.over = over
     const plan = planRefresh(cands, clock, t)
+    // Memory was freed while an element waits: draw once more so it can take the room.
+    if (over > 0 && released !== releasedBefore) plan.pending = true
     if (plan.scroll) clock.lastScroll = t
     if (plan.look) clock.lastLook = t
     // What the refraction is off by after this frame: how far each sprite left un-refreshed has moved.
@@ -416,7 +411,7 @@ export function createSpritePresenter({
     return n
   }
 
-  const stats = () => ({ ...last, sprites: sprites.size, atlasW: atlas?.width || 0, atlasH: atlas?.height || 0, copy: copyMode })
+  const stats = () => ({ ...last, sprites: sprites.size, atlasW: atlas?.width || 0, atlasH: atlas?.height || 0, budget })
 
   function dispose() {
     for (const el of [...sprites.keys()]) release(el)

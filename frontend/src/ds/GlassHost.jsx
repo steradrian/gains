@@ -26,16 +26,16 @@ const STAGE = '.g-route[data-shared] .g-stage'
 /**
  * @param {{ groundRef?: { current: Element | null }, look?: string, accent?: string, pushed?: boolean,
  *   intensity?: number, motion?: boolean, onStatus?: (s: 'webgl' | 'fallback' | 'reduced') => void,
- *   presenter?: 'fixed' | 'sprite', copy?: 'draw2d' | 'bitmap', cardDpr?: number, shadow?: 'shader' | 'css',
- *   compare?: boolean, stageOnly?: boolean, watchdog?: boolean, statsRef?: { current: object | null } }} props
+ *   cardDpr?: number, shadow?: 'shader' | 'css', stageOnly?: boolean, watchdog?: boolean,
+ *   statsRef?: { current: object | null } }} props
  * `pushed`: the page on top is a pushed one (AppStage's half-intensity stage).
- * Liquid glass presenters (M3, until the device gate): `presenter` and the sprite options default to the
- * stored choice (glass/glass-prefs.js); the dev page passes them, plus `compare` (both presenters, for its
- * side-by-side check), `stageOnly`, `watchdog={false}` and `statsRef` (the engine's numbers, for its HUD).
+ * Liquid glass tuning: the sprite options `cardDpr` and `shadow` default to the stored choice
+ * (glass/glass-prefs.js); the dev page passes them, plus `stageOnly`, `watchdog={false}` and `statsRef`
+ * (the engine's numbers, for its HUD).
  */
 export default function GlassHost({
   groundRef, look, accent, pushed = false, intensity, motion, onStatus,
-  presenter, copy, cardDpr, shadow, compare = false, stageOnly = false, watchdog = true, statsRef,
+  cardDpr, shadow, stageOnly = false, watchdog = true, statsRef,
 }) {
   const stored = useStageLook()
   const storedAccent = useDsAccent()
@@ -60,12 +60,10 @@ export default function GlassHost({
     stageOnly,
   }
 
-  // Liquid glass presenter: the props win, else the stored choice, read once per mount.
+  // Liquid glass tuning: the props win, else the stored choice, read once per mount.
   const prefsRef = useRef(null)
   if (!prefsRef.current) prefsRef.current = readPrefs()
   const prefs = prefsRef.current
-  const presenterIn = presenter ?? prefs.presenter
-  const copyIn = copy ?? prefs.copy
   const cardDprIn = cardDpr ?? prefs.cardDpr
   const shadowIn = shadow ?? prefs.shadow
 
@@ -116,9 +114,7 @@ export default function GlassHost({
       host: hostRef.current,
       getInputs: () => inputsRef.current,
       onDom: scheduleStage,
-      presenter: presenterIn,
-      sprite: { copy: copyIn, cardDpr: cardDprIn, shadow: shadowIn },
-      compare,
+      sprite: { cardDpr: cardDprIn, shadow: shadowIn },
       watchdog,
       onStatus: s => {
         state.engine = s
@@ -128,21 +124,19 @@ export default function GlassHost({
       },
     })
     engineRef.current = engine
-    document.documentElement.dataset.lgPresenter = presenterIn
     if (statsRef) statsRef.current = engine?.stats ?? null
     sync()
     return () => {
       engine?.dispose()
       engineRef.current = null
       if (statsRef) statsRef.current = null
-      delete document.documentElement.dataset.lgPresenter
       if (checking) cancelAnimationFrame(checking)
       stopReduced()
       document.removeEventListener('visibilitychange', onVisible)
       state.engine = 'css'
       document.documentElement.dataset.lg = 'css'
     }
-  }, [groundRef, presenterIn, copyIn, cardDprIn, shadowIn, compare, watchdog, statsRef])
+  }, [groundRef, cardDprIn, shadowIn, watchdog, statsRef])
 
   return <div ref={hostRef} className="gl-host" aria-hidden="true" />
 }
