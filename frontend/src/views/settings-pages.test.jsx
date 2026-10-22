@@ -244,6 +244,39 @@ describe('the pages', () => {
     }
   })
 
+  // The stage frame is one structure: Back is the first thing in the page, with nothing above it
+  // (no old header, no spacer, no second inset), and the same wrappers around it on every page.
+  it('every page draws the same top structure', async () => {
+    const shape = () => {
+      const nav = host.querySelector('.g-snav')
+      if (!nav) return null
+      const path = []
+      for (let el = nav; el && el !== host; el = el.parentElement) {
+        const sibs = [...el.parentElement.children]
+        path.push([el.className, sibs.slice(0, sibs.indexOf(el)).map(s => s.className || s.tagName)])
+      }
+      return JSON.stringify(path)
+    }
+    const shapes = new Map()
+    // Reminders draws four faces; each is a Settings page like the rest.
+    for (const [face, set] of [['', () => {}], ['/push', () => { mocks.push = true }]]) {
+      set()
+      for (const page of PAGE_IDS) {
+        if (!pageExists(page, { ...guestWeb, mobile: mocks.MOBILE, pushOK: mocks.push }) || PAGES[page].to || PAGES[page].sheet || page === 'equipment') continue
+        mount(page)
+        await act(async () => {})
+        const s = shape()
+        // #app's direct child, or its own top inset is added to #app's (index.css `#app:has(> .g-root.g-screen)`).
+        if (s) expect(host.querySelector('.g-root.g-screen')?.parentElement, page).toBe(host)
+        if (s) shapes.set(page + face, s)
+      }
+      act(() => root.unmount()); root = createRoot(host)
+    }
+    expect(shapes.size).toBeGreaterThan(10)
+    const first = [...shapes.values()][0]
+    expect([...shapes].filter(([, s]) => s !== first).map(([p]) => p)).toEqual([])
+  })
+
   it('Licences is on the stage frame too, and Back goes to About, where it is opened from', () => {
     mount('licences')
     expect(host.querySelector('.sub-hdr')).toBeNull()
