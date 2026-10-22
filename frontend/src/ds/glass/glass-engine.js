@@ -7,7 +7,7 @@ import { isChrome, KIND, swollen } from './glass-kinds.js'
 import { createRegistry } from './glass-registry.js'
 import { createScheduler } from './glass-scheduler.js'
 import { createStats } from './glass-stats.js'
-import { createWatchdog, glassIsOff } from './glass-watchdog.js'
+import { clearFallback, createWatchdog, glassIsOff, recordFallback } from './glass-watchdog.js'
 import { createMaterialProbe } from './material-probe.js'
 import { createChromePresenter } from './presenter-chrome.js'
 import { createSpritePresenter } from './presenter-sprite.js'
@@ -24,6 +24,7 @@ const LENS_STRETCH_PX = 10
 const PANE_BAND = 80 // px outside the viewport an in-flow pane the chrome bends still counts
 const MAX_DPR = 3
 const LOOK_MAX_DPR = 2
+const FADE_OUT_MS = 300 // keep in step with GlassHost FADE_MS and ds.css lg-out
 const RUN_GAP_MS = 250 // frames further apart than this are a new run, not a slow frame
 
 /**
@@ -44,11 +45,12 @@ const RUN_GAP_MS = 250 // frames further apart than this are a new run, not a sl
 export function createGlassEngine({
   ground, host, getInputs, onStatus, include = '', onDom = () => {}, sprite: spriteOpts = {}, watchdog: watch = true,
 }) {
-  if (window.matchMedia?.('(prefers-reduced-transparency: reduce)')?.matches) { onStatus('reduced'); return null }
+  if (window.matchMedia?.('(prefers-reduced-transparency: reduce)')?.matches) { recordFallback('reduced-transparency'); onStatus('reduced'); return null }
   if (watch && glassIsOff()) { onStatus('fallback'); return null }
   let scheduler = null
   let registry = null
   let live = false // 'webgl' reported: the shapes are marked and the CSS fill is off
+  let hasDrawn = false // a frame has put glass on a canvas
   let frozen = false // the host's pause: a sheet, the search overlay, a hidden document
   const lostFrom = new Set() // presenters whose context is gone, or 'watchdog'
   const applyPause = () => scheduler?.setPaused(frozen || lostFrom.size > 0)
@@ -57,20 +59,33 @@ export function createGlassEngine({
     registry?.setMarked(false)
     onStatus('fallback')
   }
-  const lose = who => { lostFrom.add(who); applyPause(); goCss() }
-  const restore = who => { lostFrom.delete(who); applyPause() }
+  const lose = who => {
+    if (who !== 'watchdog') recordFallback(who === 'error' ? 'error' : `context-lost:${who}`)
+    lostFrom.add(who)
+    applyPause()
+    goCss()
+  }
+  const restore = who => {
+    lostFrom.delete(who)
+    watchdog?.grace(performance.now()) // the presenter was rebuilt: its first frames are slow
+    applyPause()
+  }
 
   const stats = createStats()
   const chromeGl = createChromePresenter()
   const sprites = createSpritePresenter(spriteOpts)
-  if (!chromeGl.mount(host, { onLost: () => lose('chrome'), onRestored: () => restore('chrome') })) { onStatus('fallback'); return null }
+  if (!chromeGl.mount(host, { onLost: () => lose('chrome'), onRestored: () => restore('chrome') })) {
+    recordFallback('mount-failed:chrome')
+    onStatus('fallback')
+    return null
+  }
   const spritesOk = sprites.mount({
     onReady: el => { if (live) registry?.mark(el, true) },
     onRelease: el => registry?.mark(el, false),
     onLost: () => lose('sprite'),
     onRestored: () => restore('sprite'),
   })
-  if (!spritesOk) { chromeGl.dispose(); onStatus('fallback'); return null }
+  if (!spritesOk) { chromeGl.dispose(); recordFallback('mount-failed:sprite'); onStatus('fallback'); return null }
 
   const probe = createMaterialProbe(host)
   // A loss that will not be restored (a trip, a throwing frame) frees the canvases and sprite memory now:
@@ -80,7 +95,21 @@ export function createGlassEngine({
     chromeGl.dispose()
     sprites.dispose()
   }
-  const watchdog = watch ? createWatchdog({ onTrip: () => loseForGood('watchdog') }) : null
+  // A trip after the grace fades to CSS once: the host shows the CSS material under the canvases for FADE_OUT_MS
+  // while they fade out (ds.css lg-out), and only then are the shapes unmarked and the canvases freed.
+  let teardown = 0
+  const tripToCss = () => {
+    lostFrom.add('watchdog')
+    applyPause()
+    live = false
+    onStatus('fallback', { fade: true })
+    teardown = setTimeout(() => {
+      registry.setMarked(false)
+      chromeGl.dispose()
+      sprites.dispose()
+    }, FADE_OUT_MS)
+  }
+  const watchdog = watch ? createWatchdog({ onTrip: tripToCss }) : null
   registry = createRegistry(ground, {
     include,
     onChange: reason => { scheduler?.wake(reason); if (reason === 'dom') onDom() },
@@ -144,6 +173,15 @@ export function createGlassEngine({
     return { ...s, ...swollen(s, p.v, { reduced: stillNow(), stretch, bar: s.bar }), press: p.v, touch: p.touch, box }
   }
 
+  // The glass shows from the first frame that drew it (the watchdog's grace keeps a slow start from tripping).
+  function reveal() {
+    if (live || !hasDrawn || lostFrom.size > 0) return
+    live = true
+    clearFallback()
+    registry.setMarked(true)
+    onStatus('webgl')
+  }
+
   // `rafMs`: the display's frame interval (a scroll runs glass frames only every other rAF, so `dt` is not it).
   function frame(dt, rafMs) {
     const t0 = performance.now()
@@ -157,6 +195,7 @@ export function createGlassEngine({
       return false
     }
     const t1 = performance.now()
+    reveal()
     watchdog?.frame(changed.drew, t1 - t0, rafMs, t0)
     if (rafMs > 0 && rafMs < RUN_GAP_MS) stats.push('interval', rafMs, t0)
     if (changed.drew) stats.push('frame', t1 - t0, t0)
@@ -233,11 +272,7 @@ export function createGlassEngine({
     })
     drawStage(inp, look, material)
     const drew = drewChrome || sp.drew
-    if (drew && !live && lostFrom.size === 0) {
-      live = true
-      registry.setMarked(true)
-      onStatus('webgl')
-    }
+    if (drew) hasDrawn = true
     record(t0, t1, drewChrome, sp, chrome, inFlow)
     return { drew, any: moving || easing || drew || sp.pending }
   }
@@ -273,13 +308,19 @@ export function createGlassEngine({
   scheduler.wake('mount')
 
   return {
-    wake: reason => scheduler.wake(reason),
+    wake: reason => {
+      // A new look, accent or route (the inputs) restarts the settling of a page: slow frames there are not the glass's.
+      if (reason === 'inputs') watchdog?.grace(performance.now())
+      scheduler.wake(reason)
+    },
     setFrozen(flag) {
+      if (frozen && !flag) watchdog?.grace(performance.now())
       frozen = flag
       applyPause()
     },
     stats,
     dispose() {
+      clearTimeout(teardown)
       scheduler.dispose()
       sprites.dispose()
       registry.dispose()
