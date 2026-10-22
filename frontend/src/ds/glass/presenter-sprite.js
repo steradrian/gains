@@ -16,25 +16,37 @@ import { SPRITE_CLASS } from './glass-registry.js'
 // optics for chrome and sprites, the press swell and the contact shadow drawn in the sprite (its margin
 // holds the shadow), at the device-pixel ratio (cards 3x) unless `cardDpr` lowers the cards'.
 //
-// Only the refraction's content can lag, and only when the element moves: a scroll refreshes the sprites
-// on screen at most 12 times a second plus once exactly 120 ms after it stops, a look tick at most 15
-// times a second, a press every frame for the pressed element. A size, kind, material, look or pushed
-// change refreshes at once, and so does a stale sprite coming on screen. Sprites are made for shapes up to
-// half a viewport away (the engine's read band) and a shape more than a viewport away (the registry's
-// `near`) gives its sprite back (`width = height = 0`, removed) and returns to the CSS material.
+// Only the refraction's content can lag, and only when the element moves: each sprite on screen refreshes
+// for a scroll at most 12 times a second plus once exactly 120 ms after the movement stops, for a look tick
+// (the engine's look gate, at most 15 Hz) and for a press every frame. A size, kind, material, look or
+// pushed change on screen refreshes at once, and a stale sprite coming on screen comes first in the queue.
+// Sprites are made for shapes up to half a viewport away (the engine's read band) and a shape more than a
+// viewport away (the registry's `near`) gives its sprite back (`width = height = 0`, removed) and returns to
+// the CSS material.
+//
+// The GPU cost is an atlas render plus a copy of its result into each sprite (measured in WebKit: about
+// 1-2 ms of GPU per atlas page of two cards at 3x, growing with the atlas size). So while the page scrolls,
+// refreshes that can wait are spread over frames: each frame takes the most overdue sprites up to FRAME_PX
+// device pixels (always at least one), and the rest stay pending for the next frame. Each sprite keeps its
+// own 12 Hz clock, so a screen of sprites refreshes in a steady trickle, not in one heavy frame every 83 ms.
+// At rest a look tick refreshes its sprites in one batch, which costs least in total and lets the loop go
+// idle until the next tick. The atlas grows to what a frame needs and shrinks back after a second of not
+// needing its size.
 //
 // The copy is a 2D context per sprite and `drawImage(atlas, sx, sy, sw, sh, 0, 0, sw, sh)`: synchronous,
-// so a sprite has content in the task that marks its element (R7) and a resize can't blank it.
+// so a sprite has content in the task that marks its element (R7) and a resize can't blank it. An element
+// whose 2D context the browser refuses keeps the CSS material.
 
 export const SPRITE_MARGIN = 4 // CSS px: room for the press swell when the shadow is CSS
 export const ATLAS_WIDTH = 2048
-export const SPRITE_BUDGET_BYTES = 30 * 1024 * 1024 // sprites plus the atlas; the worst real screen (Train) uses about 20 MB
+export const SPRITE_BUDGET_BYTES = 30 * 1024 * 1024 // sprites plus the atlas at its cap; the worst real screen (Train) uses about 22 MB
 export const ATLAS_MAX_BYTES = 8 * 1024 * 1024
 export const ATLAS_MAX_HEIGHT = Math.floor(ATLAS_MAX_BYTES / 4 / ATLAS_WIDTH)
 export const SHADOW = Object.freeze({ SHADER: 'shader', CSS: 'css' })
 export const SCROLL_MS = 1000 / 12
 export const SETTLE_MS = 120
-export const LOOK_MS = 1000 / 15
+export const FRAME_PX = 640 * 1024 // device px of refreshes that can wait, per frame: about one full-width card at 3x
+export const SHRINK_MS = 1000
 const PAD = 2 // px between atlas regions
 const ROUND = 64 // atlas sizes step, so a slightly larger set doesn't reallocate
 const MAX_DPR = 3
@@ -96,39 +108,46 @@ export function packShelves(items, { width = ATLAS_WIDTH, maxHeight = ATLAS_MAX_
 }
 
 /**
- * Which sprites refresh this frame (pure). `cands`: [{ hard, pressed, moved, look }]: a change that refreshes
- * at once, a press in flight, the element moved since its last copy, the look ticked since. `clock`:
- * { lastScroll, lastLook, lastMove } in ms. Moved sprites refresh together at most every SCROLL_MS, and all
- * of them once the movement has been still for SETTLE_MS; look-stale ones together at most every LOOK_MS.
- * @returns {{ refresh: number[], scroll: boolean, look: boolean, pending: boolean }} `pending`: a stale sprite
- *   waits for its throttle, so the caller must keep its loop running.
+ * Which sprites refresh this frame (pure). `cands`: [{ urgent, pressed, soon, moved, look, at, px }]:
+ *   `urgent`: on screen with no content yet, or its size, kind, material or look settings changed;
+ *   `pressed`: a press in flight; `soon`: stale and about to show (coming on screen, or a new or resized
+ *   sprite in the band ahead); `moved` / `look`: on screen and stale by movement / by a look tick;
+ *   `at`: when it was last copied (ms); `px`: its device-pixel area.
+ * Urgent and pressed sprites refresh this frame whatever they cost. The rest are due when `soon`, when a
+ * look tick made them stale, or when they moved and either SCROLL_MS has passed since their own last copy or
+ * the movement has `settled` (still for SETTLE_MS). Due sprites share a budget of `budgetPx` device pixels,
+ * most urgent first (`soon`, then the oldest copy); a frame with no other work always takes the first, so
+ * a sprite larger than the budget still gets its turn and none starves.
+ * @returns {{ refresh: number[], pending: boolean }} `pending`: a stale sprite waits (for its own clock or
+ *   for room in a later frame), so the caller must keep its loop running.
  */
-export function planRefresh(cands, clock, now) {
-  const scrollDue = now - clock.lastScroll >= SCROLL_MS || now - clock.lastMove >= SETTLE_MS
-  const lookDue = now - clock.lastLook >= LOOK_MS
+export function planRefresh(cands, now, { settled = false, budgetPx = FRAME_PX } = {}) {
   const refresh = []
-  let scroll = false
-  let look = false
+  const queue = []
+  let used = 0
   let pending = false
   cands.forEach((c, i) => {
-    // Only a throttled refresh restarts its throttle: during a fling a sprite comes on screen (a refresh at
-    // once) nearly every frame, and if that counted, the sprites already on screen would never refresh.
-    const byScroll = c.moved && scrollDue
-    const byLook = c.look && lookDue
-    if (c.hard || c.pressed || byScroll || byLook) {
-      refresh.push(i)
-      if (!c.hard && !c.pressed) {
-        if (byScroll) scroll = true
-        if (byLook) look = true
-      }
-    } else if (c.moved || c.look) {
-      pending = true
-    }
+    if (c.urgent || c.pressed) { refresh.push(i); used += c.px || 0; return }
+    const due = c.soon || c.look || (c.moved && (settled || now - (c.at ?? -Infinity) >= SCROLL_MS))
+    if (due) queue.push(i)
+    else if (c.moved) pending = true
   })
-  return { refresh, scroll, look, pending }
+  queue.sort((a, b) => (cands[b].soon ? 1 : 0) - (cands[a].soon ? 1 : 0) || (cands[a].at ?? 0) - (cands[b].at ?? 0))
+  for (const i of queue) {
+    const px = cands[i].px || 0
+    if (used === 0 || used + px <= budgetPx) { refresh.push(i); used += px } else pending = true
+  }
+  return { refresh, pending }
 }
 
 const roundUp = n => Math.max(ROUND, Math.ceil(n / ROUND) * ROUND)
+
+/** CSS px a box (centre and half size) lies outside the viewport grown by VISIBLE_BAND; 0 when it counts as on screen. */
+export function offscreen(box, vw, vh) {
+  const dx = Math.max(0, -VISIBLE_BAND - (box.x + box.hw), box.x - box.hw - (vw + VISIBLE_BAND))
+  const dy = Math.max(0, -VISIBLE_BAND - (box.y + box.hh), box.y - box.hh - (vh + VISIBLE_BAND))
+  return Math.max(dx, dy)
+}
 
 /**
  * @param {{ cardDpr?: number, shadow?: 'shader' | 'css', budget?: number, now?: () => number,
@@ -153,7 +172,8 @@ export function createSpritePresenter({
 } = {}) {
   /** @type {Map<Element, object>} */
   const sprites = new Map()
-  const clock = { lastScroll: -Infinity, lastLook: -Infinity, lastMove: -Infinity }
+  let lastMove = -Infinity // when any sprite last moved
+  const peak = { w: 0, h: 0, since: -Infinity } // the largest atlas a frame needed since `since` (the shrink window)
   const last = { drawMs: 0, copyMs: 0, refreshed: 0, pages: 0, skipped: 0, contentLag: 0, over: 0 }
   let released = 0 // sprites given back so far: a rise means memory was freed
   let atlas = null
@@ -202,9 +222,13 @@ export function createSpritePresenter({
     }
   }
 
+  // A sprite canvas for `sp`, appended to its element; false (nothing appended) when the browser refuses a 2D
+  // context, which iOS does under canvas memory pressure: that element keeps the CSS material.
   function attach(sp) {
     const { el, facts } = sp
     const canvas = document.createElement('canvas')
+    const ctx2d = canvas.getContext('2d')
+    if (!ctx2d) return false
     canvas.className = SPRITE_CLASS
     canvas.setAttribute('aria-hidden', 'true')
     const [bl, bt, br, bb] = facts.borders
@@ -214,10 +238,12 @@ export function createSpritePresenter({
       canvas.style.setProperty('--lg-br', `${br}px`)
       canvas.style.setProperty('--lg-bb', `${bb}px`)
     }
+    canvas.style.setProperty('--lg-m', `${sp.margin}px`)
     if (facts.static) el.setAttribute('data-lg-static', '')
     el.appendChild(canvas)
     sp.canvas = canvas
-    sp.ctx = canvas.getContext('2d')
+    sp.ctx = ctx2d
+    return true
   }
 
   function release(el) {
@@ -256,6 +282,42 @@ export function createSpritePresenter({
     ready(sp)
   }
 
+  // Frees at least `bytes` for an element on screen: sprites outside this frame's list first (they are past
+  // the read band), then this frame's off-screen ones, farthest first. Those in `live` are marked `evicted`
+  // so the draw leaves them on the CSS material this frame. @returns {number} the bytes freed
+  function evict(bytes, live) {
+    const listed = new Set(live.map(e => e.sp))
+    const victims = [
+      ...[...sprites.values()].filter(sp => sp.canvas && !listed.has(sp)).map(sp => ({ sp, e: null })),
+      ...live.filter(e => e.dist > 0 && e.sp.canvas && !e.evicted).sort((a, b) => b.dist - a.dist).map(e => ({ sp: e.sp, e })),
+    ]
+    let freed = 0
+    for (const { sp, e } of victims) {
+      if (freed >= bytes) break
+      freed += sp.canvas.width * sp.canvas.height * 4
+      if (e) e.evicted = true
+      release(sp.el)
+    }
+    return freed
+  }
+
+  // One atlas size for the frame: it grows to fit at once, and shrinks to the largest size a frame needed
+  // once a whole SHRINK_MS window needed less than half of it (the copy's cost grows with the atlas size,
+  // and a press or a single refresh must never reallocate it).
+  function atlasSize(pages, t) {
+    const needW = Math.min(ATLAS_WIDTH, roundUp(Math.max(0, ...pages.map(p => p.width))))
+    const needH = Math.min(ATLAS_MAX_HEIGHT, roundUp(Math.max(0, ...pages.map(p => p.height))))
+    let W = Math.max(needW, atlas.width)
+    let H = Math.max(needH, atlas.height)
+    peak.w = Math.max(peak.w, needW)
+    peak.h = Math.max(peak.h, needH)
+    if (t - peak.since >= SHRINK_MS) {
+      if (peak.w * peak.h * 2 <= W * H) { W = peak.w; H = peak.h }
+      Object.assign(peak, { w: needW, h: needH, since: t })
+    }
+    return { W, H }
+  }
+
   function draw(shapes, material, look, ctx) {
     const t = now()
     const seen = new Set()
@@ -271,14 +333,13 @@ export function createSpritePresenter({
     const dyn = JSON.stringify(lv)
 
     const live = []
-    const cands = []
     const fresh = []
     for (const s of shapes) {
       if (!canHost(s.el)) continue
       seen.add(s.el)
       let sp = sprites.get(s.el)
       if (!sp) {
-        sp = { el: s.el, canvas: null, ctx: null, drawn: null, prev: null, ready: false, facts: null, sizeKey: '' }
+        sp = { el: s.el, canvas: null, ctx: null, drawn: null, prev: null, ready: false, facts: null, sizeKey: '', at: -Infinity }
         sprites.set(s.el, sp)
         fresh.push(sp)
       }
@@ -286,34 +347,53 @@ export function createSpritePresenter({
     }
     // Reads for new hosts first, then every write.
     for (const sp of fresh) sp.facts = hostFacts(sp.el)
+    const releasedBefore = released
+    // Far sprites go first, so the memory budget below already has their room.
+    for (const el of [...sprites.keys()]) if (!seen.has(el) && !ctx.keep(el)) release(el)
+
+    // Each element's sprite geometry and how far off screen it is; on-screen elements claim memory first.
+    for (const e of live) {
+      const { s, sp } = e
+      e.kind = s.kind === KIND.CARD ? KIND.CARD : KIND.CONTROL
+      e.edge = shadow === SHADOW.CSS || sp.facts.clips
+      e.margin = e.edge ? SPRITE_MARGIN : shadowMargin(e.kind, s.box.hw, s.box.hh)
+      e.dpr = dprFor(e.kind)
+      e.w = Math.max(1, Math.round((s.box.hw * 2 + e.margin * 2) * e.dpr))
+      e.h = Math.max(1, Math.round((s.box.hh * 2 + e.margin * 2) * e.dpr))
+      e.sizeKey = `${e.kind}|${e.edge}|${e.margin}|${e.dpr}|${e.w}|${e.h}|${s.box.hw.toFixed(2)}|${s.box.hh.toFixed(2)}|${s.radius.toFixed(2)}`
+      e.dist = offscreen(s.box, vw, vh)
+    }
+    live.sort((a, b) => a.dist - b.dist)
 
     let moving = false
     let over = 0
-    let used = bytes()
-    const releasedBefore = released
+    // The atlas is reserved at its cap: it can grow after this check, within the same frame.
+    let used = spriteBytes() + ATLAS_MAX_BYTES
     const kept = []
-    for (const { s, sp } of live) {
-      const kind = s.kind === KIND.CARD ? KIND.CARD : KIND.CONTROL
-      const edge = shadow === SHADOW.CSS || sp.facts.clips
-      const margin = edge ? SPRITE_MARGIN : shadowMargin(kind, s.box.hw, s.box.hh)
-      const dpr = dprFor(kind)
-      const w = Math.max(1, Math.round((s.box.hw * 2 + margin * 2) * dpr))
-      const h = Math.max(1, Math.round((s.box.hh * 2 + margin * 2) * dpr))
-      const sizeKey = `${kind}|${edge}|${margin}|${dpr}|${w}|${h}|${s.box.hw.toFixed(2)}|${s.box.hh.toFixed(2)}|${s.radius.toFixed(2)}`
+    const cands = []
+    for (const e of live) {
+      const { s, sp } = e
+      if (e.evicted) { over++; continue } // gave its room to an element on screen this frame
+      const { kind, edge, margin, w, h, sizeKey } = e
       if (sp.kind !== kind) { sp.kind = kind; s.el.setAttribute('data-lg-sprite', kind) }
       if (sp.edge !== edge) { sp.edge = edge; if (edge) s.el.setAttribute('data-lg-edge', ''); else s.el.removeAttribute('data-lg-edge') }
       if (sp.margin !== margin) { sp.margin = margin; if (sp.canvas) sp.canvas.style.setProperty('--lg-m', `${margin}px`) }
-      Object.assign(sp, { dpr, w, h })
+      Object.assign(sp, { dpr: e.dpr, w, h })
       if (sp.prev && (Math.abs(sp.prev.x - s.box.x) > MOVE_EPS || Math.abs(sp.prev.y - s.box.y) > MOVE_EPS)) moving = true
       sp.prev = { x: s.box.x, y: s.box.y }
       const d = sp.drawn
       const touch = s.touch ? `${s.touch[0].toFixed(1)},${s.touch[1].toFixed(1)}` : ''
-      if (sp.skip === sizeKey) continue // larger than the atlas: it keeps the CSS material
-      // Over the memory budget: this element alone keeps (or goes back to) the CSS material; it is asked
-      // again on every draw, so it gets its sprite as soon as others are released.
+      // Larger than the atlas, or no 2D context for its size: it keeps the CSS material.
+      if (sp.skip === sizeKey) continue
+      if (w + PAD > ATLAS_WIDTH || h + PAD > ATLAS_MAX_HEIGHT) { sp.skip = sizeKey; continue }
+      const visible = e.dist === 0
+      // Over the memory budget: an element on screen first takes the room of sprites off screen, farthest
+      // first; otherwise this element alone keeps (or goes back to) the CSS material. It is asked again on
+      // every draw, so it gets its sprite as soon as others are released.
       if (!sp.canvas || sp.sizeKey !== sizeKey) {
         const own = sp.canvas ? sp.canvas.width * sp.canvas.height * 4 : 0
         const need = w * h * 4
+        if (visible && used - own + need > budget) used -= evict(used - own + need - budget, live)
         if (used - own + need > budget) {
           over++
           if (sp.canvas) { release(s.el); used -= own }
@@ -321,57 +401,49 @@ export function createSpritePresenter({
         }
         used += need - own
       }
-      // Scroll and look refreshes are for sprites on screen; one that comes on screen stale refreshes at
-      // once, VISIBLE_BAND px before it shows.
-      const visible = s.box.y + s.box.hh > -VISIBLE_BAND && s.box.y - s.box.hh < vh + VISIBLE_BAND
-        && s.box.x + s.box.hw > -VISIBLE_BAND && s.box.x - s.box.hw < vw + VISIBLE_BAND
+      // Scroll and look refreshes are for sprites on screen (VISIBLE_BAND px early); one that comes on
+      // screen stale is first in the queue.
       const entering = visible && !sp.visible
       sp.visible = visible
       const moved = !!d && (Math.abs(d.x - s.box.x) > MOVE_EPS || Math.abs(d.y - s.box.y) > MOVE_EPS)
       const lookStale = !!d && d.dyn !== dyn
-      kept.push({ s, sp })
+      const changed = !d || sp.sizeKey !== sizeKey || d.stat !== ctx.lookId || d.mat !== matKey
+      kept.push(e)
       cands.push({
-        hard: !d || sp.sizeKey !== sizeKey || d.stat !== ctx.lookId || d.mat !== matKey || (entering && (moved || lookStale)),
+        urgent: changed && visible,
         pressed: !!d && (d.press !== s.press || d.touch !== touch),
+        soon: (changed && !visible) || (entering && (moved || lookStale)),
         moved: visible && moved,
         look: visible && lookStale,
+        at: sp.at,
+        px: w * h,
         lag: visible && d ? Math.hypot(d.x - s.box.x, d.y - s.box.y) : 0,
-        sizeKey,
         touch,
       })
     }
-    if (moving) clock.lastMove = t
-
-    for (const el of [...sprites.keys()]) if (!seen.has(el) && !ctx.keep(el)) release(el)
+    if (moving) lastMove = t
 
     last.over = over
-    const plan = planRefresh(cands, clock, t)
+    // The frame budget is for scrolling, where a heavy frame shows as a hitch. At rest (look ticks, the
+    // settle refresh) one batch costs least: one atlas render and one copy of it per tick, then idle.
+    const settled = t - lastMove >= SETTLE_MS
+    const plan = planRefresh(cands, t, { settled, budgetPx: settled ? Infinity : FRAME_PX })
     // Memory was freed while an element waits: draw once more so it can take the room.
     if (over > 0 && released !== releasedBefore) plan.pending = true
-    if (plan.scroll) clock.lastScroll = t
-    if (plan.look) clock.lastLook = t
     // What the refraction is off by after this frame: how far each sprite left un-refreshed has moved.
     const refreshed = new Set(plan.refresh)
     last.contentLag = cands.reduce((m, c, i) => (refreshed.has(i) ? m : Math.max(m, c.lag)), 0)
-    if (!plan.refresh.length) { last.refreshed = 0; return { drew: false, pending: plan.pending } }
 
-    const jobs = plan.refresh.map(i => ({ ...kept[i], c: cands[i] }))
-    const { pages, skipped } = packShelves(jobs.map(j => ({ key: j, w: j.sp.w, h: j.sp.h })))
-    for (const j of skipped) j.sp.skip = j.c.sizeKey
-    for (const page of pages) {
-      for (const { key: j } of page.placed) {
-        if (j.sp.canvas) continue
-        attach(j.sp)
-        j.sp.canvas.style.setProperty('--lg-m', `${j.sp.margin}px`)
-      }
+    const jobs = []
+    for (const i of plan.refresh) {
+      const e = kept[i]
+      if (!e.sp.canvas && !attach(e.sp)) { e.sp.skip = e.sizeKey; continue }
+      jobs.push({ ...e, c: cands[i] })
     }
-    // One atlas size for the whole refresh: grow to fit; shrink only when a refresh of every sprite needs
-    // less than half, so a press never reallocates it.
-    const needW = Math.min(ATLAS_WIDTH, roundUp(Math.max(0, ...pages.map(p => p.width))))
-    const needH = Math.min(ATLAS_MAX_HEIGHT, roundUp(Math.max(0, ...pages.map(p => p.height))))
-    const shrink = jobs.length === kept.length && needW * needH * 2 < atlas.width * atlas.height
-    const W = shrink ? needW : Math.max(needW, atlas.width)
-    const H = shrink ? needH : Math.max(needH, atlas.height)
+    if (!jobs.length) { last.refreshed = 0; return { drew: false, pending: plan.pending } }
+    const { pages, skipped } = packShelves(jobs.map(j => ({ key: j, w: j.w, h: j.h })))
+    for (const j of skipped) j.sp.skip = j.sizeKey
+    const { W, H } = atlasSize(pages, t)
 
     let drawMs = 0
     let copyMs = 0
@@ -392,7 +464,8 @@ export function createSpritePresenter({
       const t1 = now()
       for (const { key: j, x, y, w, h } of page.placed) {
         copyInto(j.sp, { x, y, w, h })
-        j.sp.sizeKey = j.c.sizeKey
+        j.sp.sizeKey = j.sizeKey
+        j.sp.at = t
         j.sp.drawn = { x: j.s.box.x, y: j.s.box.y, press: j.s.press, touch: j.c.touch, dyn, stat: ctx.lookId, mat: matKey }
       }
       drawMs += t1 - t0
@@ -405,11 +478,12 @@ export function createSpritePresenter({
 
   const isReady = el => !!sprites.get(el)?.ready
 
-  const bytes = () => {
-    let n = atlas ? atlas.width * atlas.height * 4 : 0
+  const spriteBytes = () => {
+    let n = 0
     for (const sp of sprites.values()) if (sp.canvas) n += sp.canvas.width * sp.canvas.height * 4
     return n
   }
+  const bytes = () => (atlas ? atlas.width * atlas.height * 4 : 0) + spriteBytes()
 
   const stats = () => ({ ...last, sprites: sprites.size, atlasW: atlas?.width || 0, atlasH: atlas?.height || 0, budget })
 
