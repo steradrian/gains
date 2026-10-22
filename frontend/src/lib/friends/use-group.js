@@ -108,7 +108,13 @@ let focusBound = false
 export function watchGroup(id) {
   const e = entryOf(id)
   e.watchers++
-  if (e.watchers === 1) e.timer = setInterval(() => load(id), REFRESH_MS)
+  if (e.watchers === 1) {
+    // `left` is our own leave, set while the screen was still up. A screen mounting later wants the
+    // group again (a rejoin by a new invite), so the old group and the mark go, and an answer that
+    // was in flight at the leave (dropped by the epoch) must not stand in for a fresh fetch.
+    if (e.snap.status === 'left') { e.inflight = null; put(id, { ...EMPTY }) }
+    e.timer = setInterval(() => load(id), REFRESH_MS)
+  }
   if (!focusBound) {
     focusBound = true
     document.addEventListener('visibilitychange', onFocus)

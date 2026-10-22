@@ -192,6 +192,23 @@ describe('the group going away', () => {
     expect(groupSnapshot(ID).status).toBe('left')
   })
 
+  it('leave, then rejoin with a new invite: the old group is gone and fresh data lands', async () => {
+    await show()
+    await leaveThisGroup(ID)
+    stop()
+    stop = null
+    expect(groupSnapshot(ID).status).toBe('left')
+    const fresh = { ...structuredClone(GROUP_FULL), name: 'Iron Sunday again' }
+    api.getGroup.mockReset()
+    api.getGroup.mockResolvedValueOnce(fresh)
+    api.getGroup.mockReturnValue(new Promise(() => {}))
+    stop = watchGroup(ID)
+    expect(groupSnapshot(ID).group).toBeNull()
+    await flush()
+    expect(groupSnapshot(ID)).toMatchObject({ status: 'ready' })
+    expect(groupSnapshot(ID).group.name).toBe('Iron Sunday again')
+  })
+
   it('a refused leave throws and leaves the group as it was', async () => {
     await show()
     api.leaveGroup.mockRejectedValueOnce(refused())
