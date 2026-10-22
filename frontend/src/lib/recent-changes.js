@@ -21,6 +21,8 @@ let readState = () => null
 let counter = 0
 // Entries being restored or un-restored right now: a second tap meets the first.
 const busy = new Set()
+const listeners = new Set()
+function emit() { for (const fn of [...listeners]) { try { fn() } catch { /* a listener never breaks a write */ } } }
 
 /** How a restorer reads the current state `S`; set once by recent-changes-kinds.js. */
 export const setStateReader = fn => { readState = fn }
@@ -63,6 +65,7 @@ export function recordChange({ kind, day, subject, facts, snapshot, action = 're
     const hashes = Array.isArray(media) ? [...new Set(media.filter(h => typeof h === 'string' && h))] : []
     if (hashes.length) entry.media = hashes
     writeEntries([entry, ...pruneChanges(at)])
+    emit()
     return entry.id
   } catch { return null }
 }
@@ -77,6 +80,7 @@ export function listChanges(now = Date.now()) {
 
 function replaceEntry(id, patch) {
   writeEntries(readEntries().map(e => (e.id === id ? { ...e, ...patch } : e)))
+  emit()
 }
 
 /**
@@ -179,4 +183,13 @@ export function journalMediaHashes(now = Date.now()) {
  */
 export function clearChanges(user) {
   try { removeEntries(user) } catch { /* nothing to clear */ }
+  emit()
+}
+
+/* ------------------------------------------------------------------ listeners (Me changes M3) -- */
+
+/** `fn()` runs after the journal gained, changed or lost an entry; returns the unsubscribe. */
+export function subscribeChanges(fn) {
+  listeners.add(fn)
+  return () => { listeners.delete(fn) }
 }

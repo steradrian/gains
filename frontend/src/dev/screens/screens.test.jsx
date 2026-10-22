@@ -890,3 +890,43 @@ describe('the screens gallery: Workout progression', () => {
     expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
   }, 30000)
 })
+
+// Me changes M3
+describe('the screens gallery: Me, recent changes', () => {
+  it('has M4.0 to M4.2 under their board ids, in Me: changes', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: changes').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M4.0', 'M4.1', 'M4.2', 'M4.1s', 'M4.1x', 'M4.1o', 'M4.0k']))
+  })
+
+  it('shows the rows, the held toast, Snacks, a refusal and the empty scene, and writes nothing real', async () => {
+    localStorage.setItem('gains_recent_changes:guest', '[]')
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('M4.0', s => {
+      expect(s.text).toContain('Recent changes')
+      expect(s.text).toContain('Deleted Oats with milk')
+      expect(s.text).toContain('Coach moved Legs')
+      expect(s.host.querySelectorAll('.g-grow')).toHaveLength(5)
+    })
+    await check('M4.1', s => {
+      expect(s.host.querySelector('.g-tag').textContent).toBe('Restored')
+      expect(useUI.getState().toastMsg).toMatch(/^Restored Oats with milk to .+, Breakfast$/)
+    })
+    await check('M4.1s', () => expect(useUI.getState().toastMsg).toMatch(/Snacks\. Breakfast was deleted\.$/))
+    await check('M4.1x', () => expect(useUI.getState().toastMsg).toContain('that day already has a weigh-in'))
+    await check('M4.1o', () => expect(useUI.getState().toastMsg).toContain('Check your connection'))
+    await check('M4.2', s => {
+      expect(s.text).toContain('Nothing in the last 7 days')
+      expect(s.host.querySelector('.g-sempty button')).toBeNull()
+    })
+    await check('M4.0k', s => {
+      expect(s.text).toContain('Target weight changed to 77 kg')
+      expect(s.text).toContain('Deleted workout Pull A')
+      expect(s.text).toContain('Deleted a weigh-in')
+    })
+    expect(localStorage.getItem('gains_recent_changes:guest')).toBe('[]')
+  }, 30000)
+})
