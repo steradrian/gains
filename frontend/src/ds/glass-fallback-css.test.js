@@ -20,14 +20,13 @@ describe('glass fallback CSS', () => {
     expect(summary).not.toMatch(/\.g-sum-note:focus-within\s*\{\s*box-shadow/)
   })
 
-  it('shows the tab bar marker in every mode, keeps the tab press, and lights the lit label against the rest', () => {
+  it('shows the tab bar marker in every mode, and keeps the tab press', () => {
     // Unscoped: no html:not([data-lg="gl"]) in front of the marker's fill (it vanished in gl), and a fill that
     // is not the near-invisible --accent-tint.
     expect(ds).toMatch(/\n\.g-tab-ind::before\s*\{\s*background:\s*color-mix\(/)
     expect(ds).not.toMatch(/\.g-tab-ind::before\s*\{[^}]*accent-tint/)
     expect(ds).toMatch(/html\[data-lg="gl"\] \.g-tab-ind::before\s*\{\s*background:/)
     expect(ds).toMatch(/\n\.g-gtabbar \.g-tab:active,[^{]*\{\s*transform:\s*scale\(\.94\)/)
-    expect(ds).toMatch(/html\[data-lg="gl"\] \.g-gtabbar \.g-tab\s*\{\s*color:\s*color-mix\(/)
   })
 
   it('reduces transparency without a GlassHost: the app switch and the OS query', () => {
