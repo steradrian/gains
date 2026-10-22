@@ -21,7 +21,10 @@ const ALLOWED_KEYS = new Set([
   // Member
   'recent', 'consistency', 'share', 'reached', 'bests', 'shares', 'training',
   // FriendsMe
-  'on', 'groups', 'invitations', 'newCount', 'code', 'from'
+  'on', 'groups', 'invitations', 'newCount', 'code', 'from',
+  // Friends api m3: ids, names and titles only (me-extras.js, challenge-data.js, cheers.js)
+  'challengeInvites', 'cid', 'newest', 'names', 'perPerson', 'state', 'invited', 'count', 'total', 'start', 'end',
+  'template', 'span', 'startedBy', 'ref', 'moment', 'group'
 ]);
 
 // Bea's whole life, of which only the shared parts may leave.

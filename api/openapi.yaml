@@ -4367,6 +4367,185 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/FriendsNotFound' }
 
+  # Friends api m3
+  /api/friends/cheers:
+    post:
+      tags: [friends]
+      operationId: friendsCheer
+      summary: Cheer a moment, a week or a challenge
+      description: |
+        `ref` is a moment id from `Group.moments`, `<uid>:<monday>` for "Cheer her week", or a
+        challenge id. Both people must be in the group and the target visible (an active account
+        with Friends on); anything else, including a moment that is not there, is 404. Cheering
+        yourself is `400 self`. Idempotent per (caller, group, kind, ref): repeating it changes
+        nothing. A cheer for a Trained together moment or a challenge reaches every other person
+        it names. A recipient who muted the caller (or the group's notifications) still gets it,
+        silently: no push, not counted in `newCount`. Cheers older than 14 days are dropped on
+        every write. `date` (optional) is the caller's today and decides which week it belongs to.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheerBody' }
+      responses:
+        '200':
+          description: Stored (or already there).
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, const: true } } }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+    delete:
+      tags: [friends]
+      operationId: friendsCheerUndo
+      summary: Undo a cheer
+      description: Removes exactly the records the same body stored, and nothing else. Nothing to remove is still `{ ok: true }`. Not a member is 404.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheerBody' }
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema: { type: object, properties: { ok: { type: boolean, const: true } } }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+    get:
+      tags: [friends]
+      operationId: friendsCheers
+      summary: This week's cheers for me, newest first
+      description: |
+        Cheers given in the week of `date` to the caller, by people the caller can see, in groups
+        they are still in (a group left or removed from, and a disabled sender, are not listed).
+        `label` is built for the caller: a new best carries the caller's own weight and reps, read
+        from their own data, never another person's. `streak` is on a week cheer when the group
+        has weeks in a row behind it. `seen=1` moves the "seen" marker (the unread count in
+        `GET /me` and the evening push); without it nothing is marked, so a background poll
+        marks nothing. Friends off answers `[]`.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsDate' }
+        - { name: seen, in: query, required: false, schema: { type: string, enum: ['0', '1'] }, description: '`1` marks everything listed as seen.' }
+      responses:
+        '200':
+          description: The cheers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Cheer' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/friends/groups/{id}/challenges:
+    post:
+      tags: [friends]
+      operationId: friendsChallengeCreate
+      summary: Start a challenge
+      description: |
+        The caller is in; everyone else is invited and joins with `.../join` (nobody is added).
+        The span starts on the Monday of the week of `date` (the server's UTC date without one).
+        Counting rules are on the `Challenge` schema. At most three running challenges per group
+        (`409 challenge-limit`); Friends must be on (`409 friends-off`).
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [template, span]
+              properties:
+                template: { type: string, enum: [workouts, protein, weekend, bests] }
+                span: { type: string, enum: [week, twoWeeks, month] }
+      responses:
+        '200':
+          description: The new challenge.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Challenge' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+  /api/friends/groups/{id}/challenges/{cid}:
+    get:
+      tags: [friends]
+      operationId: friendsChallenge
+      summary: One challenge
+      description: Counts are computed on read from the members' own state. A non-member of the group, or an unknown challenge, is 404.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { $ref: '#/components/parameters/FriendsChallengeId' }
+        - { $ref: '#/components/parameters/FriendsDate' }
+      responses:
+        '200':
+          description: The challenge.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Challenge' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+  /api/friends/groups/{id}/challenges/{cid}/join:
+    post:
+      tags: [friends]
+      operationId: friendsChallengeJoin
+      summary: Count me in
+      description: Joining twice changes nothing. A challenge that is over is `409 challenge-ended`.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { $ref: '#/components/parameters/FriendsChallengeId' }
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: The challenge with the caller in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Challenge' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+  /api/friends/groups/{id}/challenges/{cid}/leave:
+    post:
+      tags: [friends]
+      operationId: friendsChallengeLeave
+      summary: Leave a challenge
+      description: Takes only the caller's counted work off the bar. No confirm; joining again brings the same work back (the Undo).
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { $ref: '#/components/parameters/FriendsChallengeId' }
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: The challenge without the caller.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Challenge' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+
 components:
   headers:
     SyncETag:
@@ -4666,7 +4845,8 @@ components:
       description: >-
         A field that is missing, of the wrong type or unknown: `bad-body` (a field the route does
         not take), `bad-date`, `bad-on`, `bad-share`, `bad-name`, `bad-goal`, `bad-uid`,
-        `bad-muted`, `bad-prefs`, `self`.
+        `bad-muted`, `bad-prefs`, `self`, `bad-group`, `bad-kind`, `bad-ref`, `bad-seen`,
+        `bad-template`, `bad-span`.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -4674,7 +4854,7 @@ components:
     FriendsConflict:
       description: >-
         `friends-off` (the caller has Friends off), `group-full` (12 people), `group-limit` (the
-        caller is in 20 groups).
+        caller is in 20 groups), `challenge-limit` (three running challenges), `challenge-ended`.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -5618,8 +5798,41 @@ components:
                 type: object
                 properties:
                   name: { type: string }
-        newCount: { type: integer, minimum: 0 }
-        newest: { description: 'The newest thing to show on Today (api-m3). Absent until then.' }
+        newCount: { type: integer, minimum: 0, description: 'Unread cheers plus moments of others newer than the `seen` marker (moved only by `GET /cheers?seen=1`).' }
+        newest:
+          type: object
+          description: 'The group with the newest moment since the last look, at most two moments. Absent when nothing is new.'
+          properties:
+            group: { type: string }
+            at: { type: string, format: date-time }
+            moments:
+              type: array
+              maxItems: 2
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  kind: { type: string, enum: [workout, together, best, target] }
+                  names: { type: array, items: { type: string } }
+                  title: { type: string }
+                  cheered: { type: boolean }
+        challengeInvites:
+          type: array
+          description: 'Running challenges in my groups that I have not joined. Hidden members are never the sender.'
+          items:
+            type: object
+            properties:
+              cid: { type: string }
+              group:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+              from:
+                type: object
+                properties:
+                  name: { type: string }
+              at: { type: string, format: date-time }
 
     GroupGoal:
       type: object
@@ -5833,7 +6046,7 @@ components:
 
     ChallengeSummary:
       type: object
-      description: 'A challenge row on the group page (api-m3 fills it; the shape group-m1 reads). Only visible members in `joined` and `invited`.'
+      description: 'A challenge row on the group page: the running ones and those that ended in the last 7 days. Only visible members (active accounts with Friends on) in `joined` and `invited`.'
       properties:
         id: { type: string }
         template: { type: string, enum: [workouts, protein, weekend, bests] }
@@ -5842,6 +6055,8 @@ components:
         end: { type: string, format: date }
         total: { type: integer }
         goal: { type: integer }
+        perPerson: { type: integer }
+        state: { type: string, enum: [active, done, missed] }
         you:
           type: object
           properties:
@@ -5856,17 +6071,41 @@ components:
 
     Challenge:
       type: object
-      description: 'A group challenge (api-m3).'
+      description: |
+        A group challenge. Counts are computed on every read from each joined person's own state,
+        allow-listed numbers only (never an exercise, weight or food), each person capped at
+        `perPerson`; `goal` = `perPerson` x people joined; `total` is the sum.
+        - `workouts`: finished workouts in the span, 3 per week of the span.
+        - `protein`: days the protein target was reached (`targetsReached[day].protein`), 5 per week.
+        - `weekend`: Saturdays and Sundays with a workout, one per day, 2 per week (the synced state
+          has no separate activity log, so only workouts count).
+        - `bests`: different exercises with a new best, shared or not, counted as a number; 1 per
+          person whatever the span.
+        The span starts on the Monday of the week of the creator's date: `week` 7 days, `twoWeeks`
+        14, `month` 28. `state` is `done` once total >= goal (kept once seen, so a later leave does
+        not undo it), `missed` once `date` is past `end` unmet, else `active`. `streak` (weekly
+        spans, 2 or more) is weeks in a row the group reached the same template. Only visible
+        members appear in `joined` and `invited`. Disabled accounts are hidden, never removed.
       properties:
         id: { type: string }
+        group: { type: string }
         template: { type: string, enum: [workouts, protein, weekend, bests] }
-        title: { type: string }
+        title: { type: string, description: 'English fallback; the client words the template.' }
         detail: { type: string }
         span: { type: string, enum: [week, twoWeeks, month] }
         start: { type: string, format: date }
         end: { type: string, format: date }
         total: { type: integer }
         goal: { type: integer }
+        perPerson: { type: integer, description: 'The cap per person (each joined row''s `planned`).' }
+        startedBy:
+          description: 'The creator; null when they have left the group or are hidden.'
+          oneOf:
+            - type: 'null'
+            - type: object
+              properties:
+                uid: { type: string }
+                name: { type: string }
         joined:
           type: array
           items:
@@ -5884,9 +6123,45 @@ components:
             in: { type: boolean }
         streak: { type: integer }
 
+    CheerBody:
+      type: object
+      additionalProperties: false
+      required: [group, kind, ref]
+      properties:
+        group: { type: string }
+        kind: { type: string, enum: [moment, week, challenge] }
+        ref: { type: string, maxLength: 400, description: 'A moment id, `<uid>:<monday>`, or a challenge id.' }
+
+    Cheer:
+      type: object
+      properties:
+        id: { type: string }
+        from:
+          type: object
+          properties:
+            uid: { type: string }
+            name: { type: string }
+        group:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+        kind: { type: string, enum: [moment, week, challenge] }
+        ref: { type: string }
+        moment: { type: string, enum: [workout, together, best, target], description: 'The moment''s kind, on a moment cheer.' }
+        label:
+          type: object
+          properties:
+            kind: { type: string, enum: [workout, together, best, target, week, challenge] }
+            title: { type: string }
+            detail: { type: string, description: 'A best: the caller''s own weight x reps.' }
+        streak: { type: integer, description: 'On a week cheer: weeks in a row the group hit its goal.' }
+        at: { type: string, format: date-time }
+
   # Friends api m1
   parameters:
     FriendsDate: { name: date, in: query, required: true, schema: { type: string, format: date }, description: 'The client''s local today, `YYYY-MM-DD` (`400 bad-date` otherwise).' }
     FriendsDateOptional: { name: date, in: query, required: false, schema: { type: string, format: date }, description: 'The client''s local today, for the summary in the answer (`400 bad-date` when present and not a date).' }
     FriendsGroupId: { name: id, in: path, required: true, schema: { type: string }, description: 'An opaque group id.' }
+    FriendsChallengeId: { name: cid, in: path, required: true, schema: { type: string }, description: 'An opaque challenge id.' }
     FriendsInviteCode: { name: code, in: path, required: true, schema: { type: string }, description: 'A group invite code, any case.' }

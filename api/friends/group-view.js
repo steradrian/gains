@@ -59,7 +59,7 @@ export function groupDetail({ data, gid, group, viewer, date, active, store }) {
       .filter(m => !m.who.some(uid => muted.has(uid)))
       .slice(0, MOMENTS_MAX)
       .map(m => {
-        const c = cheerState(viewer, group, { kind: 'moment', ref: m.id, who: m.who });
+        const c = cheerState(viewer, group, { kind: 'moment', ref: m.id, who: m.who }, { data });
         return {
           id: m.id, kind: m.kind, who: [...m.who], title: m.title, detail: momentDetail(m), date: m.date, at: m.at,
           // The short thing a cheer names ("Cheered Mara's Legs"): the workout or the exercise; a
@@ -75,9 +75,9 @@ export function groupDetail({ data, gid, group, viewer, date, active, store }) {
       targets: { hit: w.totals.targets.hit, of: w.totals.targets.of },
       weekDays,
       members,
-      challenges: challengeSummaries(viewer, group, date),
+      challenges: challengeSummaries(viewer, group, date, { data, active, store }),
       moments,
-      cheersForMe: cheerCounts(viewer, group, w.week),
+      cheersForMe: cheerCounts(viewer, group, w.week, { data, active }),
       quiet: w.rows.every(r => r.done === 0),
       // The viewer's own notification switch for this group (PUT /groups/{id}/prefs).
       muteNotifications: data.people[viewer]?.groupPrefs?.[gid]?.muteNotifications === true
@@ -110,7 +110,7 @@ export function memberDetail({ data, gid, group, viewer, target, date, active, s
     uid: target,
     name: nameOf(active.get(target)),
     since: typeof joined === 'string' ? joined : null,
-    cheered: target !== viewer && cheerState(viewer, group, { kind: 'week', ref: `${w.week}:${target}`, who: [target] }).cheered === true,
+    cheered: target !== viewer && cheerState(viewer, group, { kind: 'week', ref: `${target}:${w.week}`, who: [target] }, { data }).cheered === true,
     week: r.noPlan ? { noPlan: true } : { done: r.done, planned: r.planned, ...(share.training && Array.isArray(p.days) ? { days: [...p.days] } : {}) }
   };
   if (share.training && Array.isArray(p.recent)) out.recent = p.recent.map(x => ({ title: x.title, date: x.date, minutes: x.minutes }));

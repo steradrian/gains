@@ -111,7 +111,7 @@ test('signed in only, and the reads need the client’s date', async t => {
     assert.deepEqual([r.status, r.body.code], [400, 'bad-date'], q);
   }
   const me = await h.req('GET', `/api/friends/me?date=${TODAY}`, { as: 'u_ana' });
-  assert.deepEqual(me.body, { on: false, share: { training: false, consistency: false, targets: false, bests: false }, groups: [], invitations: [], newCount: 0 });
+  assert.deepEqual(me.body, { on: false, share: { training: false, consistency: false, targets: false, bests: false }, groups: [], invitations: [], newCount: 0, challengeInvites: [] });
   assert.equal(h.friends(), null, 'reading writes nothing');
 });
 
