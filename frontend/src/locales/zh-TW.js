@@ -5057,4 +5057,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': '視埠',
+  'Live screen measurements for a bug report. Only admins see this.': '即時螢幕量測數據，用於回報錯誤。只有管理員看得到。',
 }

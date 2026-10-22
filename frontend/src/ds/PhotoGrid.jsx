@@ -4,7 +4,7 @@ import { Children } from 'react'
 // widens, in the order given. A list, named by the caller (`label`). Tiles are its children.
 export default function PhotoGrid({ label, children }) {
   return (
-    <ul className="g-pgrid" aria-label={label}>
+    <ul className="g-phgrid" aria-label={label}>
       {Children.toArray(children).map((child, i) => <li key={child.key ?? i}>{child}</li>)}
     </ul>
   )

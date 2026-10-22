@@ -87,11 +87,18 @@ const runToast = (set, get) => {
   toastPaused = false
   toastT0 = Date.now()
   clearTimeout(toastTm)
-  toastTm = setTimeout(() => {
-    const act = get().toastAction
-    set({ toastMsg: '', toastAction: null })
-    act?.onClose?.()
-  }, toastLeft)
+  toastTm = setTimeout(() => endToast(set, get), toastLeft)
+}
+// The one way a toast ends without its action: the timer, a swipe, a tap, Escape. An action's Undo
+// is not taken, what it would have undone stays done, and `onClose` runs. A second call finds no
+// toast and does nothing, so a timer and a gesture that land together commit once.
+const endToast = (set, get) => {
+  clearTimeout(toastTm)
+  toastPaused = false
+  if (!get().toastMsg) return
+  const act = get().toastAction
+  set({ toastMsg: '', toastAction: null, toastPaused: false })
+  act?.onClose?.()
 }
 let timerInt = null
 let timerTick = null
@@ -234,7 +241,8 @@ let panelClosedIn = null
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
   toastMsg: '',
-  toastAction: null,   // { label, run, id, icon, ms, body, onClose } while the toast offers an action (Undo)
+  toastId: 0,          // which toast is showing, for a swipe or tap that may land after it was replaced
+  toastAction: null,  // { label, run, id, icon, ms, body, onClose } while the toast offers an action (Undo)
   toastPaused: false,  // held still under a finger: its drain bar stops with it
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }
@@ -315,7 +323,7 @@ export const useUI = create((set, get) => ({
     toastLeft = ms || (withAction ? TOAST_ACTION_MS : TOAST_MS)
     toastSeq += 1
     set({
-      toastMsg: msg, toastPaused: false,
+      toastMsg: msg, toastPaused: false, toastId: toastSeq,
       toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'check', ms: toastLeft, body: body || null, onClose } : null,
     })
     before?.onClose?.()
@@ -328,6 +336,12 @@ export const useUI = create((set, get) => ({
     set({ toastMsg: '', toastAction: null, toastPaused: false })
     act.run()
     act.onClose?.()
+  },
+  // Puts the toast away by hand. `id` is the toast the person saw; one that has since been replaced
+  // by a newer toast is left alone.
+  dismissToast(id) {
+    if (id != null && id !== get().toastId) return
+    endToast(set, get)
   },
   pauseToast() {
     if (!get().toastAction || toastPaused) return

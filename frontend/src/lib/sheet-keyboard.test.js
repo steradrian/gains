@@ -4,7 +4,7 @@
 // height, stands on the keyboard and is capped to what is left above it.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { applySheetKeyboard, KEYBOARD_MIN_PX, sheetKeyboardInsets, startSheetKeyboard } from './sheet-keyboard.js'
+import { applySheetKeyboard, KEYBOARD_MIN_PX, sheetKeyboardInsets, startSheetKeyboard, viewportShortfall } from './sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from './native-keyboard.js'
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
@@ -101,6 +101,70 @@ describe('applySheetKeyboard', () => {
   })
 })
 
+// The band under every drawer on an installed iPhone app (2026-10-22, 15 Pro Max, 430 x 932): once a
+// keyboard has been up, WebKit leaves innerHeight, the visual viewport and 100dvh at 873, so the
+// fixed #modal-root ends 59px above the screen's edge and the strip below is filled with the page's
+// background. The visual viewport is no keyboard there (--kb 0); what is short is the viewport.
+describe('viewportShortfall', () => {
+  const iphone = ({ innerHeight = 932, innerWidth = 430, standalone = true, screen = { width: 430, height: 932 } } = {}) =>
+    ({ innerHeight, innerWidth, screen, navigator: { standalone }, visualViewport: { height: innerHeight, offsetTop: 0 }, document })
+
+  it('is what an installed iOS app lost at the bottom: 932 - 873 = 59', () => {
+    expect(viewportShortfall(iphone({ innerHeight: 873 }))).toBe(59)
+  })
+
+  it('is nothing while the viewport is the whole screen', () => {
+    expect(viewportShortfall(iphone())).toBe(0)
+  })
+
+  it('is nothing outside an installed iOS app, where the window is less than the screen anyway', () => {
+    // Safari with its bars, Android, the native shells: navigator.standalone is not true there
+    expect(viewportShortfall(iphone({ innerHeight: 739, standalone: false }))).toBe(0)
+    expect(viewportShortfall(iphone({ innerHeight: 739, standalone: undefined }))).toBe(0)
+    expect(viewportShortfall({ innerHeight: 873, innerWidth: 430, navigator: { standalone: true } })).toBe(0)
+  })
+
+  it('reads the screen held the way the window is: landscape measures against its short side', () => {
+    expect(viewportShortfall(iphone({ innerWidth: 932, innerHeight: 430 }))).toBe(0)
+    expect(viewportShortfall(iphone({ innerWidth: 932, innerHeight: 400 }))).toBe(30)
+  })
+
+  it('is not a keyboard, nor a window much smaller than the screen (an iPad in Split View)', () => {
+    expect(viewportShortfall(iphone({ innerHeight: 932 - KEYBOARD_MIN_PX }))).toBe(0)
+    expect(viewportShortfall(iphone({ innerHeight: 500 }))).toBe(0)
+  })
+
+  it('writes --vp-short while the viewport is short and takes it away when it is whole again; --kb stays 0', () => {
+    applySheetKeyboard(iphone({ innerHeight: 873 }))
+    expect(root().style.getPropertyValue('--vp-short')).toBe('59px')
+    expect(root().style.getPropertyValue('--kb')).toBe('0px')
+    expect(root().hasAttribute('data-kb')).toBe(false)
+    applySheetKeyboard(iphone())
+    expect(root().style.getPropertyValue('--vp-short')).toBe('')
+  })
+
+  it('still stands the drawer on a keyboard raised in the short viewport, flush with it', () => {
+    const win = iphone({ innerHeight: 873 })
+    win.visualViewport = { height: 873 - 336, offsetTop: 0 }
+    expect(applySheetKeyboard(win)).toEqual({ bottomInset: 336, visualHeight: 537, short: 59 })
+  })
+
+  it('is followed as the viewport is cut short and given back (window resize)', () => {
+    const win = iphone()
+    const added = {}
+    win.addEventListener = (type, fn) => { added[type] = fn }
+    win.removeEventListener = () => {}
+    win.visualViewport.addEventListener = () => {}
+    win.visualViewport.removeEventListener = () => {}
+    startSheetKeyboard(win)
+    expect(root().style.getPropertyValue('--vp-short')).toBe('')
+    win.innerHeight = 873
+    win.visualViewport.height = 873
+    added.resize()
+    expect(root().style.getPropertyValue('--vp-short')).toBe('59px')
+  })
+})
+
 describe('startSheetKeyboard', () => {
   it('follows the visual viewport as the keyboard opens, iOS scrolls the page and the keyboard closes', () => {
     const { win, viewport, listeners } = fakeWindow()
@@ -163,6 +227,15 @@ describe('the stylesheets', () => {
   it('cover everything behind the drawer with the scrim, and the strip under it with its own colour', () => {
     expect(ds).toMatch(/\.g-bs-scrim, #modal-root \.mback \{ inset: -50vh 0; \}/)
     expect(ds).toMatch(/box-shadow: var\(--shadow-sheet\), 0 120px 0 0 var\(--surface\);/)
+  })
+
+  it('leave out of the foot\'s safe-area padding what falls below a viewport iOS cut short', () => {
+    expect(ds).toContain('padding: 8px 20px max(30px, calc(20px + var(--sab, 0px) - var(--vp-short, 0px)));')
+    expect(css).toContain('padding:8px 18px calc(20px + max(0px,var(--sab) - var(--vp-short,0px)));')
+  })
+
+  it('give the page the drawer\'s colour while one is up, for the strip WebKit fills with it', () => {
+    expect(css).toContain(':root[data-sheet-up]{background:var(--under-sheet)}')
   })
 
   it('drop the safe-area padding at the foot while the keyboard covers the home indicator', () => {

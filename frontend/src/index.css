@@ -1292,6 +1292,9 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 /* ---------------------------------------------------------------- modal -- */
 #modal-root{position:fixed;inset:0;z-index:100;display:none}
 #modal-root.open{display:block}
+/* A drawer up (Modals.jsx): the page's background is the drawer's, for the strip under a layout
+   viewport iOS has cut short, which WebKit fills with it and no box can reach. */
+:root[data-sheet-up]{background:var(--under-sheet)}
 /* A sheet on its way out is closed: the page under it takes taps again (components/presence.jsx).
    !important because a leaving toast with an action still has the class that made it tappable. */
 #modal-root:not(.live),[data-leaving]{pointer-events:none!important}
@@ -1310,7 +1313,8 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
      lib/sheet-keyboard.js. The sheet keeps its height; the cap is what the keyboard leaves. */
   bottom:var(--kb,0px);
   border-radius:var(--r-xl) var(--r-xl) 0 0;
-  padding:8px 18px calc(20px + var(--sab));
+  /* less any of the safe-area inset that falls below a viewport iOS cut short (--vp-short) */
+  padding:8px 18px calc(20px + max(0px,var(--sab) - var(--vp-short,0px)));
   /* A tall sheet stops short of the status bar / Dynamic Island: every cap carries the top
      safe-area inset, which the layout viewport does not (viewport-fit=cover). */
   max-height:90vh;max-height:min(90vh,calc(var(--vvh,100%) - var(--sat) - 8px));
@@ -1435,8 +1439,8 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   position:fixed;inset-inline:16px;margin-inline:auto;max-width:520px;
   bottom:calc(96px + var(--sab));z-index:200;pointer-events:none;
 }
-/* With an action (Undo) the toast takes taps; text alone lets them through to the page. */
-#toast .has-action{pointer-events:auto}
+/* Every toast takes taps and swipes: a tap on its body, or a swipe down, puts it away. */
+#toast .g-utoast{pointer-events:auto}
 body.no-tabbar #toast{bottom:calc(24px + var(--sab))}
 body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 

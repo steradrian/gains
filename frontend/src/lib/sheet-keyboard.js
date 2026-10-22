@@ -25,7 +25,8 @@ import { nativeKeyboardHeight, NATIVE_KEYBOARD_EVENT } from './native-keyboard.j
 
 /* Nothing shorter than this is a keyboard. An installed iOS PWA can report a visual viewport a
    status bar's height (~59px) shorter than `innerHeight` with no keyboard up; read as a keyboard
-   it lifted every drawer off the bottom edge, with the page showing in the gap. */
+   it lifted every drawer off the bottom edge, with the page showing in the gap. (The band seen on
+   device is the viewport itself ending short: viewportShortfall, below.) */
 export const KEYBOARD_MIN_PX = 120
 
 /* The keyboard's reach up the layout viewport, and the height left above it. */
@@ -40,9 +41,28 @@ export function sheetKeyboardInsets(win) {
   return { bottomInset, visualHeight }
 }
 
-/* Writes the two variables (and data-kb) when they changed. Returns the insets it applied. */
+/* How far short of the screen the layout viewport ends, in an installed iOS app (WebKit bug 301994
+   and its kin). Once a keyboard has been up, innerHeight, the visual viewport and 100dvh can all
+   stay a status bar's height short (932 → 873 on a 15 Pro Max) for the rest of the session: every
+   fixed box ends that far above the screen's edge and WebKit fills the strip below with the page's
+   background. In an installed app the window is the whole screen, so the screen's height (its long
+   side, held upright) is what innerHeight should be. 0 anywhere else: in Safari, Android and the
+   native shells the screen is more than the window. A shortfall a keyboard's size is not this. */
+export function viewportShortfall(win) {
+  if (win.navigator?.standalone !== true || !win.screen) return 0
+  const { width, height } = win.screen
+  const full = win.innerHeight >= win.innerWidth ? Math.max(width, height) : Math.min(width, height)
+  const short = Math.round(full - win.innerHeight)
+  return short > 0 && short < KEYBOARD_MIN_PX ? short : 0
+}
+
+/* Writes the variables (and data-kb) when they changed. Returns what it applied.
+   --vp-short is viewportShortfall: a drawer's foot leaves out that much of the bottom safe-area
+   inset, which then sits in the strip below the viewport, out of the drawer's way (ds.css .g-bs,
+   index.css .sheet). The strip itself takes the drawer's colour (components/Modals.jsx). */
 export function applySheetKeyboard(win, root = win.document.documentElement) {
   const { bottomInset, visualHeight } = sheetKeyboardInsets(win)
+  const short = viewportShortfall(win)
   root.style.setProperty('--kb', `${bottomInset}px`)
   if (bottomInset > 0) {
     root.style.setProperty('--vvh', `${visualHeight}px`)
@@ -51,7 +71,9 @@ export function applySheetKeyboard(win, root = win.document.documentElement) {
     root.style.removeProperty('--vvh')
     root.removeAttribute('data-kb')
   }
-  return { bottomInset, visualHeight }
+  if (short > 0) root.style.setProperty('--vp-short', `${short}px`)
+  else root.style.removeProperty('--vp-short')
+  return { bottomInset, visualHeight, short }
 }
 
 /* Installed once at start-up (main.jsx). Follows the visual viewport (resize: the keyboard opening,
@@ -64,7 +86,7 @@ export function startSheetKeyboard(win = typeof window !== 'undefined' ? window 
   let last = ''
   const sync = () => {
     const { bottomInset, visualHeight } = sheetKeyboardInsets(win)
-    const key = `${bottomInset}/${visualHeight}`
+    const key = `${bottomInset}/${visualHeight}/${viewportShortfall(win)}`
     if (key === last) return
     last = key
     applySheetKeyboard(win)

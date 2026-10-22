@@ -35,6 +35,17 @@ const naturalHeight = pane => {
   if (body) body.style.flex = flex
   return height
 }
+// The drawer's own boxes never rest scrolled sideways. They clip (the drawer, to keep a sliding
+// pane inside it) or scroll down (a body, a legacy pane), and either kind can still be scrolled
+// sideways by script or by iOS revealing a focused field, with nothing on screen to scroll it
+// back: the pane's content then sits cut off at its left edge. A strip of chips that scrolls
+// sideways on purpose is none of these and is left alone.
+const FRAME = '.g-bs, .sheet, .g-bs-panes, .g-bs-pane, .g-bs-body'
+const level = el => { if (el?.scrollLeft && el.matches?.(FRAME)) el.scrollLeft = 0 }
+const levelAll = panes => {
+  const panel = panes.parentElement
+  for (const el of [panel, panes, ...panes.querySelectorAll('.g-bs-pane, .g-bs-body')]) level(el)
+}
 // Only a drawer as tall as its content changes height with the panel; half and full ones are not.
 const hugsContent = panes => !!panes.parentElement?.matches('.sheet, .g-bs-auto')
 const livePanes = panes => [...panes.children].filter(n => n.classList.contains('g-bs-pane') && !n.hasAttribute('data-leaving'))
@@ -114,6 +125,18 @@ export default function SheetPanes({ kind, panels, closeOf, back, dismiss, hostL
     return () => watch.disconnect()
   }, [])
 
+  // Scroll does not bubble, so the drawer listens in the capture phase: one listener sees its
+  // own scroll and every pane's and body's.
+  useLayoutEffect(() => {
+    const panes = panesRef.current
+    const panel = panes?.parentElement
+    if (!panel) return
+    levelAll(panes)
+    const onScroll = e => level(e.target)
+    panel.addEventListener('scroll', onScroll, true)
+    return () => panel.removeEventListener('scroll', onScroll, true)
+  }, [])
+
   // A panel pushed or popped: the pane under it moves 30% (or comes back) and the drawer's height
   // goes from what it was to what the active pane needs, over the same 260 ms.
   useLayoutEffect(() => {
@@ -121,6 +144,7 @@ export default function SheetPanes({ kind, panels, closeOf, back, dismiss, hostL
     prevDepth.current = depth
     const panes = panesRef.current
     if (was === depth || !panes) return
+    levelAll(panes)
     const nodes = livePanes(panes)
     const under = nodes[depth > was ? was : depth]
     if (under) play(under, depth > was ? PRESETS.panelDeepen : PRESETS.panelSurface, 'enter')
@@ -140,6 +164,7 @@ export default function SheetPanes({ kind, panels, closeOf, back, dismiss, hostL
       running.current = null
       lastHeight.current = panes.offsetHeight
       if (!depthNow.current) panes.style.height = ''
+      levelAll(panes)
     }
     running.current = anim
     if (anim) anim.finished.then(settle, settle)
@@ -157,6 +182,7 @@ export default function SheetPanes({ kind, panels, closeOf, back, dismiss, hostL
       if (running.current) return
       const to = naturalHeight(active)
       if (to && Math.abs(to - panes.offsetHeight) > 1) panes.style.height = `${to}px`
+      levelAll(panes)
     }
     // What is in the body changes without any box the observer holds resizing (a skeleton swapped
     // for the loaded list, a tab showing another list), so the DOM is watched as well as the sizes.

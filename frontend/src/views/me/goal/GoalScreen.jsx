@@ -28,7 +28,7 @@ export default function GoalScreen({ status, view, keeping, onGoal, onTarget, on
   if (status === 'loading' || !view) {
     return (
       <StagePage largeTitle={t('My goal')} parent="/me">
-        <div className="mg" aria-busy="true">
+        <div className="mg-page" aria-busy="true">
           <div className="mg-ring"><StageRing loading /></div>
           <i className="g-skel mg-sk" />
           <i className="g-skel mg-sk" />
@@ -42,7 +42,7 @@ export default function GoalScreen({ status, view, keeping, onGoal, onTarget, on
   const row = (r, onClick, extra) => <GlassValueRow title={r.title} sub={r.sub} value={r.value} onClick={onClick} {...extra} />
   return (
     <StagePage largeTitle={t('My goal')} sub={view.summary || undefined} parent="/me">
-      <div className="mg">
+      <div className="mg-page">
         <div className="mg-ring"><StageRing {...view.ring} /></div>
         {view.started && <p className="mg-started">{view.started}</p>}
 

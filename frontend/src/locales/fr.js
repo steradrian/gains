@@ -5063,4 +5063,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': 'Viewport',
+  'Live screen measurements for a bug report. Only admins see this.': 'Mesures de l’écran en direct, pour un rapport de bug. Seuls les admins les voient.',
 }

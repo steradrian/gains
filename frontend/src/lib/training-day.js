@@ -1,6 +1,6 @@
 import { effectiveRoutineIds, effectiveRoutines, nextTrainingDay, workoutDay } from './history.js'
 import { todayISO } from './format.js'
-import { queueOf, pinState, queueView } from './queue.js'
+import { queueOf, queueDone, pinState, queueView } from './queue.js'
 import { scheduleModeOf } from './rotation.js'
 import { workoutRunning } from './tab-route.js'
 import { dayNoteOf } from './day-notes.js'
@@ -32,10 +32,11 @@ export function workoutsByDay(workouts) {
  *   - 'editing'  an open editor on a saved workout (S.active with editingWorkoutId): not a session
  *                in progress, the way back to it is an edit;
  *   - 'running'  a session in progress (`live` once its clock runs; a backfill has none);
- *   - 'done'     today's plan is covered by what was logged today (`workout`, the last one);
+ *   - 'done'     today had a plan and what was logged today covers it (`workout`, the last one);
  *   - 'planned'  today has routines to start (`routines`, `ids`, `name`, `rescheduled`);
  *   - 'rest'     nothing planned today (`next`: nextTrainingDay, or null where the schedule has no
- *                weekday to name);
+ *                weekday to name; `logged`: the last ad-hoc workout logged anyway, or null: Train's
+ *                card shows it, Up next does not);
  *   - 'past-logged' / 'past-missed' / 'past-rest'  a day before today: its workouts, what was
  *                planned and not logged, or rest.
  * A session in progress wins on today only; a past day reads as that day.
@@ -56,17 +57,27 @@ export function trainingDay(S, date = todayISO(), today = todayISO()) {
   // planned day, or the rotation's first session done when its next one is today's too, leaves the
   // day offering what is still to do. A queue session is never "covered" by an earlier workout:
   // the queue only names one it does not count as done yet.
-  const loggedToday = S.workouts.filter(w => w.d === today)
+  // The same day reading as the week strip and the past days (workoutDay): a record with no valid
+  // `d` still lands on the day it started, so the strip's "done" dot and this card agree.
+  const loggedToday = workoutsByDay(S.workouts).get(today) || []
   const queueIds = queueOf(S)?.ids || []
   const covered = id => !queueIds.includes(id) && loggedToday.some(w => (Array.isArray(w.routineIds) ? w.routineIds : [w.routineId]).includes(id))
-  const done = routines.every(r => covered(r.id)) ? loggedToday.at(-1) : null
+  // 'done' needs a plan. With nothing planned `every` is vacuously true, so any ad-hoc session
+  // would read as "today's plan is done"; such a day stays 'rest' and carries what was logged
+  // (`logged`). A coach-queue session done today is a plan met, though it no longer lists in
+  // `routines`: the day's workout on a done queue routine is today's plan done.
+  const idsOf = w => (Array.isArray(w.routineIds) ? w.routineIds : [w.routineId])
+  const queueDoneIds = queueDone(S)
+  const fulfilled = loggedToday.filter(w => idsOf(w).some(id => queueDoneIds.includes(id)))
+  const planDone = routines.length ? routines.every(r => covered(r.id)) : fulfilled.length > 0
+  const done = planDone ? loggedToday.at(-1) : null
   if (done) return { kind: 'done', workout: done }
   if (routines.length) {
     // A fulfilled pin (a coach session pinned to today and since done) reads as no override.
     const rescheduled = S.dayPlan[today] !== undefined && pinState(S, S.dayPlan[today]) !== 'done'
     return { kind: 'planned', routines, ids: effectiveRoutineIds(S, today), name: nameOf(routines), rescheduled }
   }
-  return { kind: 'rest', next: nextSession(S, today) }
+  return { kind: 'rest', next: nextSession(S, today), logged: loggedToday.at(-1) ?? null }
 }
 
 /** The next day after `today` with something to train (nextTrainingDay), or null where the

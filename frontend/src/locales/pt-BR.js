@@ -1888,6 +1888,8 @@ export const PT_BR_OVERRIDES = {
   'Reduce transparency': 'Reduce transparency',
   'Solid surfaces instead of glass.': 'Solid surfaces instead of glass.',
   'Follows your phone.': 'Follows your phone.',
+  'Viewport': 'Viewport',
+  'Live screen measurements for a bug report. Only admins see this.': 'Medidas da tela em tempo real para relatar um erro. Só os administradores as veem.',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

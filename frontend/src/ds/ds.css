@@ -487,7 +487,8 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
   position: absolute; left: 0; right: 0;
   display: flex; flex-direction: column; background: var(--surface); color: var(--text);
   border-radius: 28px 28px 0 0;
-  padding: 8px 20px max(30px, calc(20px + var(--sab, 0px)));
+  /* The safe-area inset at the foot, less any of it that falls below a viewport iOS cut short (--vp-short, lib/sheet-keyboard.js). */
+  padding: 8px 20px max(30px, calc(20px + var(--sab, 0px) - var(--vp-short, 0px)));
   overflow: hidden; overscroll-behavior: contain; touch-action: pan-y; will-change: transform; font-family: var(--font-sans);
 }
 .g-bs-grab { flex: none; align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--line-strong); }
@@ -499,7 +500,12 @@ button.g-bs-chip { cursor: pointer; }
 .g-bs-x { appearance: none; border: 0; width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }
 .g-bs-x .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
 .g-bs-pin { flex: none; }
-.g-bs-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+/* The body scrolls down, never sideways. A scroller in one axis is one in both, so content a few px
+   wider than the body (a menu list's 8px bleed) let iOS scroll it sideways (a field's focus reveal)
+   and leave it there, the body's left edge cut off under the clip. The body takes the kit's widest
+   bleed (8px) as room on both sides, where its content stays put, and does not scroll sideways
+   (components/sheet-panes.jsx puts back any sideways scroll something still makes). */
+.g-bs-body { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); }
 .g-bs-foot { flex: none; padding-top: 14px; display: grid; gap: 10px; }
 
 /* SegmentedControl: the chosen option's thumb slides (320ms, a slight overshoot); labels only change colour */
@@ -729,7 +735,7 @@ button.g-lf-add[aria-disabled="true"] { opacity: .6; cursor: default; }
   #modal-root .g-bs { left: 50%; right: auto; margin-left: -320px; width: 640px; }
 }
 
-.g-utoast { overflow: hidden; border-radius: 20px; background: var(--g-toast); color: var(--g-white); box-shadow: var(--g-toast-shadow); font-family: var(--font-sans); }
+.g-utoast { position: relative; touch-action: none; overflow: hidden; border-radius: 20px; background: var(--g-toast); color: var(--g-white); box-shadow: var(--g-toast-shadow); font-family: var(--font-sans); }
 .g-utoast-row { display: flex; align-items: center; gap: 12px; padding: 14px 10px 14px 16px; min-height: 52px; }
 .g-utoast-ic { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--g-toast-fill); }
 .g-utoast-ic .g-icon { width: 16px; height: 16px; stroke-width: 2.6; }
@@ -1910,7 +1916,9 @@ html:not([data-lg="gl"]) .g-wf-bar { background: var(--chrome-glass); -webkit-ba
 .g-wf-rt span { font: 600 12px/14px var(--font-sans); color: var(--text-3); }
 
 /* BarToast: a line over the footer; "footer" sits above the bar, "rest" above its rest row too */
-.g-btoast { display: flex; align-items: center; gap: 12px; padding-block: 12px; padding-inline: 14px 10px; border-radius: 20px; background: var(--g-toast); color: var(--g-white); box-shadow: var(--g-toast-shadow); animation: g-wk-rise 300ms cubic-bezier(.32,.72,0,1) both; }
+.g-btoast { position: relative; touch-action: none; display: flex; align-items: center; gap: 12px; padding-block: 12px; padding-inline: 14px 10px; border-radius: 20px; background: var(--g-toast); color: var(--g-white); box-shadow: var(--g-toast-shadow); }
+/* The close button of a toast: there for a screen reader and the keyboard, never drawn. */
+.g-btoast-x, .g-utoast-x { appearance: none; position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .g-btoast-footer, .g-btoast-rest { position: absolute; inset-inline: 16px; }
 .g-btoast-footer { bottom: 112px; }
 .g-btoast-rest { bottom: 170px; }
@@ -1923,8 +1931,8 @@ html:not([data-lg="gl"]) .g-wf-bar { background: var(--chrome-glass); -webkit-ba
    dark text on the light bar say theirs again, a class deeper, for when they are links */
 .g-wtop .g-wtop-finish, .g-xh-b .g-xh-new, .g-th-btns .g-th-main, .g-wf-restrow .g-wf-skip, .g-wf-restrow .g-wf-go { color: var(--on-stage-cta); }
 .g-wf-bar .g-wf-nb, .g-wf-bar .g-wf-c { color: var(--text); }
-@media (prefers-reduced-motion: reduce) { .g-wf-restrow, .g-btoast { animation: none; } .g-wf-arc, .g-th-arc, .g-ssw-s, .g-sst-b { transition: none; } }
-:root[data-motion="reduce"] .g-wf-restrow, :root[data-motion="reduce"] .g-btoast { animation: none; }
+@media (prefers-reduced-motion: reduce) { .g-wf-restrow { animation: none; } .g-wf-arc, .g-th-arc, .g-ssw-s, .g-sst-b { transition: none; } }
+:root[data-motion="reduce"] .g-wf-restrow { animation: none; }
 :root[data-motion="reduce"] .g-wf-arc, :root[data-motion="reduce"] .g-th-arc, :root[data-motion="reduce"] .g-ssw-s, :root[data-motion="reduce"] .g-sst-b { transition: none; }
 
 /* === Workout drawer kit (MapDrawer, MapRow, PhaseOfferSheet, ConfirmDrawer, EffortChips, PlateBar, Switch, Dock; boards W1.4, W1.12, W1.20–W1.25, W1.31, W1.37, W1.40, W1.45, W1.46) === */
@@ -2372,7 +2380,7 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-bs-pane { flex: 1 1 auto; min-height: 0; padding-inline: 20px; background: inherit; }
 .sheet .g-bs-pane { padding-inline: 18px; }
 .g-bs-pane-ds { display: flex; flex-direction: column; overflow: hidden; }
-.g-bs-pane-legacy { overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(20px + var(--sab, 0px)); }
+.g-bs-pane-legacy { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: calc(20px + var(--sab, 0px)); }
 :root[data-kb] .g-bs-pane-legacy { scroll-padding-bottom: 20px; }
 .g-bs-pane-sub, .g-bs-panes[data-deep] > .g-bs-pane-root { position: absolute; inset: 0; }
 .g-bs-pane-sub { z-index: 1; }
@@ -2541,8 +2549,8 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-wir-tags { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 
 /* === Me photos M2 === */
-.g-pgrid { list-style: none; margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; }
-.g-pgrid > li { min-width: 0; }
+.g-phgrid { list-style: none; margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; }
+.g-phgrid > li { min-width: 0; }
 .g-ptile { appearance: none; border: 0; background: none; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 2px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; cursor: pointer; border-radius: 14px; }
 .g-ptile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 .g-ptile-img { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }

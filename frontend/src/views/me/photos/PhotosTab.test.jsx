@@ -45,7 +45,7 @@ describe('the Photos tab', () => {
   it('lists the photos newest first, each with its day and that day\'s weight, and opens one on tap', () => {
     setS(two)
     mount()
-    const tiles = [...host.querySelectorAll('.g-pgrid .g-ptile')]
+    const tiles = [...host.querySelectorAll('.g-phgrid .g-ptile')]
     expect(tiles.map(t => t.querySelector('.g-ptile-date').textContent)).toEqual([fmtDate('2026-10-18', true), fmtDate('2026-10-04', true)])
     expect(tiles[0].querySelector('.g-ptile-cap').textContent).toBe('81.4 kg')
     expect(tiles[1].querySelector('.g-ptile-cap')).toBeNull()
@@ -133,7 +133,7 @@ describe('the Photos tab', () => {
     expect(empty.querySelector('b').textContent).toBe('No photos yet')
     expect(empty.textContent).toContain('Take one every two weeks, same light and pose. Compare lines up any two by date. They stay on this phone unless you turn on backup.')
     expect(button('Compare')).toBeUndefined()
-    expect(host.querySelector('.g-pgrid')).toBeNull()
+    expect(host.querySelector('.g-phgrid')).toBeNull()
     act(() => button('Add photo').click())
     expect(useUI.getState().sheets.at(-1).variant).toBe('ds')
   })
