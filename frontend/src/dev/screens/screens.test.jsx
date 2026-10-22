@@ -947,3 +947,56 @@ describe('the screens gallery: Me > Body', () => {
     expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
   }, 30000)
 })
+
+// Me photos M2
+describe('the screens gallery: Me > Photos', () => {
+  it('has M2.8, M2.9, M2.12 and M2.13 and the edge states under their board ids, in Me: photos', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: photos').entries.map(e => e.id)
+    expect(ids).toEqual(['M2.8', 'M2.8a', 'M2.8b', 'M2.8c', 'M2.8d', 'M2.8e', 'M2.9', 'M2.12', 'M2.13'])
+  })
+
+  it('shows the tab, the drawer, the held toast and the empty state, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('M2.8', h => {
+      expect(h.querySelector('.g-spage-title').textContent).toBe('Body')
+      expect(h.querySelector('.g-spage-sub').textContent).toMatch(/^6 photos on this phone · since /)
+      expect(h.querySelectorAll('.g-ptile')).toHaveLength(6)
+      expect(h.querySelector('.g-ptile-cap').textContent).toBe('81.4 kg')
+      expect(h.querySelector('.g-ssec h2').textContent).toBe('On this phone')
+      expect(h.querySelector('.g-snote').textContent).toBe('Stored on this phone only. Only you see them; Friends never do.')
+      expect(h.textContent).not.toMatch(/encrypt/i)
+    })
+    await check('M2.8a', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('6 photos · backed up')
+      expect(h.querySelector('.g-ssec h2').textContent).toBe('In your account')
+      expect(h.querySelector('.g-snote').textContent).toContain('Backed up to your account.')
+    })
+    await check('M2.8b', h => {
+      expect([...h.querySelectorAll('button')].find(b => b.textContent === 'Compare').disabled).toBe(true)
+      expect(h.querySelector('.ph-line').textContent).toBe('Add one more photo to compare.')
+    })
+    await check('M2.8c', h => expect(h.querySelectorAll('.g-ptile-gone')).toHaveLength(1))
+    await check('M2.8d', h => expect(h.querySelector('.g-ptile-cap').textContent).toBe('179.5 lb'))
+    await check('M2.8e', h => expect(h.querySelector('.g-ptile-cap')).toBeNull())
+    await check('M2.9', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Add photo')
+      expect(h.querySelector('.g-bs-chip').textContent).toBe('Today')
+      expect(h.querySelector('.g-bs').textContent).toContain('Choose from library')
+    })
+    await check('M2.12', h => {
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+      expect(h.querySelector('.g-sempty b').textContent).toBe('No photos yet')
+      expect(h.querySelector('.g-spage-sub')).toBeNull()
+    })
+    await check('M2.13', h => {
+      expect(h.querySelector('.g-utoast-msg').textContent).toBe('Backing up 6 photos to your account')
+      expect(h.querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
+      expect(h.querySelector('.g-snote').textContent).toContain('Backed up to your account.')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
