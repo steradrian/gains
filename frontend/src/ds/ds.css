@@ -1838,10 +1838,12 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-danger-row > .g-icon { width: 18px; height: 18px; }
 [dir="rtl"] .g-danger-row > .g-icon { transform: scaleX(-1); }
 
-/* LandscapeCover: a phone held sideways (landscape, short, touch) gets the stage and one line over
-   the app. The z-index sits above the sheets and toasts, which are the highest layers. */
+/* LandscapeCover: a phone held sideways gets the stage and one line over the app. LandscapeCover.jsx
+   renders it only when the device is landscape (not the viewport: the keyboard makes a portrait
+   viewport wider than tall); this keeps it to short, touch screens. The z-index sits above the
+   sheets and toasts, which are the highest layers. */
 .g-landscape-cover { display: none; }
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+@media (max-height: 500px) and (pointer: coarse) {
   .g-landscape-cover { display: block; position: fixed; inset: 0; z-index: 2000; }
   .g-landscape-cover .g-stage, .g-landscape-cover .g-stage-body { height: 100%; }
   .g-landscape-cover .g-stage-body { display: grid; place-items: center; }
