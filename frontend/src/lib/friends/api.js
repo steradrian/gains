@@ -63,6 +63,7 @@ export const friendsErrorText = e => {
     case 'group-full': return t('That group is full.')
     case 'challenge-limit': return t('This group already has 3 challenges running. Wait for one to finish.')
     case 'rate-limited': return t('Too many tries. Wait a moment and try again.')
+    case 'bad-date': return t("Your device's date looks off. Check it and try again.")
     default: return t("Couldn't do that. Try again when you're online.")
   }
 }
@@ -100,6 +101,8 @@ async function call(method, path, { params = {}, body } = {}) {
 }
 
 const read = (path, params = {}) => call('GET', path, { params: { date: todayISO(), ...params } })
+// Friends never falls back to the server's clock for a person's dates: these writes carry the local today.
+const dated = (method, path, body) => call(method, path, { params: { date: todayISO() }, ...(body !== undefined && { body }) })
 
 /** @returns {Promise<FriendsMe>} */
 export const getMe = () => read('/me')
@@ -107,7 +110,7 @@ export const getMe = () => read('/me')
 export const putMe = patch => call('PUT', '/me', { body: patch })
 /** @returns {Promise<GroupSummary[]>} */
 export const getGroups = () => read('/groups')
-export const createGroup = ({ name, goal }) => call('POST', '/groups', { body: { name, goal } })
+export const createGroup = ({ name, goal }) => dated('POST', '/groups', { name, goal })
 export const getGroup = id => read('/groups/' + seg(id))
 export const leaveGroup = id => call('POST', '/groups/' + seg(id) + '/leave')
 export const removeMember = (id, uid) => call('POST', '/groups/' + seg(id) + '/members/' + seg(uid) + '/remove')
@@ -120,11 +123,11 @@ export const findPeople = (q, group) => call('GET', '/people', { params: { q, gr
 export const inviteUser = (id, uid) => call('POST', '/groups/' + seg(id) + '/invites/user', { body: { uid } })
 /** @returns {Promise<{ status: 'valid'|'used'|'expired'|'revoked'|'member', group?: { id: string, name: string, memberCount: number, initials: string[] }, from?: { name: string } }>} `group` only for valid and member. */
 export const getJoinPreview = code => call('GET', '/join/' + seg(code))
-export const joinGroup = code => call('POST', '/join/' + seg(code))
+export const joinGroup = code => dated('POST', '/join/' + seg(code))
 export const getMember = (id, uid) => read('/groups/' + seg(id) + '/members/' + seg(uid))
 export const removeMoment = (id, mid) => call('POST', '/groups/' + seg(id) + '/moments/' + seg(mid) + '/remove')
 /** @param {{ group: string, kind: 'moment'|'week'|'challenge', ref: string }} body */
-export const sendCheer = body => call('POST', '/cheers', { body })
+export const sendCheer = body => dated('POST', '/cheers', body)
 export const undoCheer = body => call('DELETE', '/cheers', { body })
 /**
  * This week's cheers for the person, newest first. `seen: true` is the Cheers for you page being
@@ -133,7 +136,7 @@ export const undoCheer = body => call('DELETE', '/cheers', { body })
  * @param {{ seen?: boolean }} [opts]
  */
 export const getCheers = ({ seen = false } = {}) => read('/cheers', seen ? { seen: 1 } : {})
-export const createChallenge = (id, body) => call('POST', '/groups/' + seg(id) + '/challenges', { body })
+export const createChallenge = (id, body) => dated('POST', '/groups/' + seg(id) + '/challenges', body)
 export const getChallenge = (id, cid) => read('/groups/' + seg(id) + '/challenges/' + seg(cid))
-export const joinChallenge = (id, cid) => call('POST', '/groups/' + seg(id) + '/challenges/' + seg(cid) + '/join')
-export const leaveChallenge = (id, cid) => call('POST', '/groups/' + seg(id) + '/challenges/' + seg(cid) + '/leave')
+export const joinChallenge = (id, cid) => dated('POST', '/groups/' + seg(id) + '/challenges/' + seg(cid) + '/join')
+export const leaveChallenge = (id, cid) => dated('POST', '/groups/' + seg(id) + '/challenges/' + seg(cid) + '/leave')

@@ -4813,7 +4813,7 @@ export default {
   'They logged {0} the same day': 'They logged {0} the same day',
   'Not shown in the group': 'Not shown in the group',
   'Shows the exercise, not the weight': 'Shows the exercise, not the weight',
-  "Don't share this one": "Don't share this one",
+  "Your device's date looks off. Check it and try again.": "Your device's date looks off. Check it and try again.",
   'Keeps the whole workout to yourself': 'Keeps the whole workout to yourself',
   'Each line is one choice for this workout only. Your defaults are in What you share.': 'Each line is one choice for this workout only. Your defaults are in What you share.',
   // Friends surfaces m1
