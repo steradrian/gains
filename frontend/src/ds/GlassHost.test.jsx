@@ -28,6 +28,13 @@ describe('GlassHost', () => {
     expect(view.host.querySelector('canvas')).toBeNull()
   })
 
+  it('leaves the page on the CSS material: data-lg is css, with no throw and no canvas', async () => {
+    document.documentElement.dataset.lg = 'gl'
+    await view.render(<Page />)
+    expect(document.documentElement.dataset.lg).toBe('css')
+    expect(document.querySelector('canvas')).toBeNull()
+  })
+
   it('reports reduced when the device asks for reduced transparency', async () => {
     const mq = vi.spyOn(window, 'matchMedia').mockImplementation(q => ({ matches: q.includes('reduced-transparency'), addEventListener() {}, removeEventListener() {} }))
     const onStatus = vi.fn()

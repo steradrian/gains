@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { THEMES } from '../lib/themes.js'
 import { DEFAULT_INTENSITY, LOOKS, lookLabel } from '../lib/stage-look/index.js'
 import { useDsAccent } from '../lib/use-ds-accent.js'
@@ -42,17 +42,6 @@ const MEALS = [
   { icon: 'sunrise', name: 'Breakfast', sub: '420 kcal', state: 'done' },
   { icon: 'moon', name: 'Dinner', sub: 'Nothing yet', state: 'empty' },
 ]
-// The shapes the host draws, by selector. The shared components stay untouched here; the rollout
-// puts these attributes on them (M2 removes this map).
-const GLASS = [
-  ['.g-shdr .g-glass', 'control'],
-  ['.g-gact > .g-glass', 'control'],
-  ['.gl-content .g-glass', 'card'],
-  ['.gl-content .g-trail', 'control'],
-  ['.g-gtabbar', 'bar'],
-  ['.g-gtabbar .g-tab-ind', 'lens', '2'],
-  ['.g-gtabbar .g-plus', 'tint'],
-]
 const FLAT = 'flat' // the page's own controls keep their CSS fill
 
 function Toggle({ label, on, onClick }) {
@@ -72,21 +61,12 @@ export default function DevGlass() {
   const rootRef = useRef(null)
   const gl = mode === 'gl'
 
-  useLayoutEffect(() => {
-    for (const [sel, kind, inset] of GLASS) {
-      for (const el of rootRef.current.querySelectorAll(sel)) {
-        if (el.dataset.glass !== kind) el.dataset.glass = kind
-        if (inset && el.dataset.glassInset !== inset) el.dataset.glassInset = inset
-      }
-    }
-  })
-
   const pick = key => { setMode(key); setStatus(null) }
   const fallback = mode === 'reduced' || status === 'reduced' ? 'gl-liquid gl-fallback gl-frostier' : 'gl-liquid gl-fallback'
   const material = gl ? (status === 'webgl' ? 'gl-liquid gl-webgl' : status ? fallback : 'gl-liquid') : fallback
   const note = NOTES[gl ? (status === 'webgl' || !status ? 'gl' : status === 'reduced' ? 'reduced' : 'fallback') : mode]
   return (
-    <div className="g-root" data-accent={accent} ref={rootRef}>
+    <div className="g-root gl-dev" data-accent={accent} ref={rootRef}>
       {/* AppStage, with the stage's inputs taken from this page instead of the store. */}
       <div className="g-root g-app-stage" data-accent={accent} data-pushed={pushed || undefined} aria-hidden="true">
         <StageArt />

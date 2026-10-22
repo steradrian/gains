@@ -15,8 +15,6 @@
 .plan-editor-list [data-reorder-row] { transition: transform 160ms ease; }
 .plan-erow { cursor: default; gap: 10px; }
 .plan-erow-minus, .plan-erow-btn { appearance: none; border: 0; flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; }
-/* Liquid glass: the old fill had no line and no blur; .g-glass adds both, so they are switched off to stay as it was. */
-.plan-erow-minus.g-glass, .plan-erow-btn.g-glass { box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .plan-erow-minus .g-icon, .plan-erow-btn .g-icon { width: 18px; height: 18px; stroke-width: 2.4; }
 .plan-erow-btn:disabled { opacity: .35; cursor: default; }
 .plan-erow-moves { display: inline-flex; gap: 4px; }

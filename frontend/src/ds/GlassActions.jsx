@@ -17,7 +17,7 @@ export default function GlassActions({ items = [], loading }) {
         : items.map((a, i) => (
           <Act key={i} href={a.href} className={a.haptic && !a.href ? 'g-gact g-haptic' : 'g-gact'}
             onClick={a.haptic ? (e => { buzz('light'); a.onClick?.(e) }) : a.onClick}>
-            <span className="g-glass"><Icon name={a.icon} className="g-icon" /></span>
+            <span className="g-glass" data-glass="control"><Icon name={a.icon} className="g-icon" /></span>
             {a.label}
             {a.haptic && !a.href && <HapticSwitch />}
           </Act>

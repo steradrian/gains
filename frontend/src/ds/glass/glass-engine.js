@@ -2,10 +2,11 @@ import { deriveTheme, hexToRgb } from '../../lib/stage-look/color.js'
 import { currentPhase, REST_PHASE } from '../../lib/stage-look/clock.js'
 import { reducedMotion } from '../../lib/reduced-motion.js'
 import { themeOf } from '../../lib/themes.js'
-import { DEFAULT_MATERIAL } from './glass-gl.js'
 import { KIND, swollen } from './glass-kinds.js'
 import { createRegistry } from './glass-registry.js'
 import { createScheduler } from './glass-scheduler.js'
+import { createWatchdog, glassIsOff } from './glass-watchdog.js'
+import { createMaterialProbe } from './material-probe.js'
 import { createFixedPresenter } from './presenter-fixed.js'
 
 // Liquid glass engine: the registry, scheduler and presenter wired together for one ground. GlassHost.jsx
@@ -18,25 +19,54 @@ const LENS_STRETCH_PX = 10
 
 /**
  * @param {{ ground: Element, host: Element, getInputs: () => { look: string, accent: string, pushed: boolean,
- *   intensity: number, motion: boolean }, onStatus: (s: 'webgl' | 'fallback' | 'reduced') => void }} opts
- * @returns {{ wake(reason: string): void, dispose(): void } | null} null when the page keeps the CSS material
+ *   intensity: number, motion: boolean }, onStatus: (s: 'webgl' | 'fallback' | 'reduced') => void,
+ *   include?: string, onDom?: () => void }} opts
+ *   `include`: the registry only takes shapes inside this selector. `onDom`: called on every DOM change under the ground.
+ * @returns {{ wake(reason: string): void, setFrozen(flag: boolean): void, dispose(): void } | null} null when the page keeps the CSS material
+ *
+ * The page never goes blank: the CSS material stays until the first frame is drawn, and 'webgl' (with the
+ * data-lg-on marks that clear the CSS fill) is reported in that same frame. A lost context, a trip of the
+ * watchdog or a failed mount reports 'fallback' at once and unmarks every shape.
  */
-export function createGlassEngine({ ground, host, getInputs, onStatus }) {
+export function createGlassEngine({ ground, host, getInputs, onStatus, include = '', onDom = () => {} }) {
   if (window.matchMedia?.('(prefers-reduced-transparency: reduce)')?.matches) { onStatus('reduced'); return null }
+  if (glassIsOff()) { onStatus('fallback'); return null }
   let scheduler = null
+  let registry = null
+  let live = false // 'webgl' reported: the shapes are marked and the CSS fill is off
+  let frozen = false // the host's pause: a sheet, the search overlay, a hidden document
+  let lost = false // the context is gone, or the watchdog tripped
+  const applyPause = () => scheduler?.setPaused(frozen || lost)
+  const goCss = () => {
+    live = false
+    registry?.setMarked(false)
+    onStatus('fallback')
+  }
   const presenter = createFixedPresenter()
   const ok = presenter.mount(host, {
-    onLost() { scheduler?.setPaused(true); onStatus('fallback') },
-    onRestored() { scheduler?.setPaused(false); onStatus('webgl') },
+    onLost() { lost = true; applyPause(); goCss() },
+    onRestored() { lost = false; applyPause() },
   })
   if (!ok) { onStatus('fallback'); return null }
 
-  const registry = createRegistry(ground, { onChange: reason => scheduler?.wake(reason) })
+  const probe = createMaterialProbe(host)
+  const watchdog = createWatchdog({
+    onTrip() {
+      lost = true
+      applyPause()
+      goCss()
+      presenter.dispose()
+    },
+  })
+  registry = createRegistry(ground, {
+    include,
+    onChange: reason => { scheduler?.wake(reason); if (reason === 'dom') onDom() },
+  })
   const lensMotion = new Map() // lens element -> { x, stretch }
   const themes = new Map() // accent -> theme at the base intensity
   let classic = null // Classic's eased intensity
   let materialKey = ''
-  let material = DEFAULT_MATERIAL
+  let material = null
 
   const stillNow = () => !getInputs().motion || reducedMotion()
 
@@ -65,7 +95,7 @@ export function createGlassEngine({ ground, host, getInputs, onStatus }) {
     if (key !== materialKey) {
       materialKey = key
       const preset = themeOf(inp.accent)
-      material = { ...DEFAULT_MATERIAL, tint: hexToRgb(mode === 'light' ? preset.fill : preset.dark.fill) }
+      material = { ...probe.read(inp.accent), tint: hexToRgb(mode === 'light' ? preset.fill : preset.dark.fill) }
     }
     return material
   }
@@ -86,6 +116,13 @@ export function createGlassEngine({ ground, host, getInputs, onStatus }) {
   }
 
   function frame(dt) {
+    const t0 = performance.now()
+    const changed = draw(dt)
+    watchdog.frame(changed.drew, performance.now() - t0, dt * 1000, t0)
+    return changed.any
+  }
+
+  function draw(dt) {
     const inp = getInputs()
     const raw = registry.read()
     const moving = scheduler.springs.step(dt)
@@ -99,7 +136,12 @@ export function createGlassEngine({ ground, host, getInputs, onStatus }) {
       phase: animating ? currentPhase() : REST_PHASE,
       calm: !inp.pushed,
     })
-    return moving || easing || drew
+    if (drew && !live && !lost) {
+      live = true
+      registry.setMarked(true)
+      onStatus('webgl')
+    }
+    return { drew, any: moving || easing || drew }
   }
 
   scheduler = createScheduler({
@@ -108,15 +150,19 @@ export function createGlassEngine({ ground, host, getInputs, onStatus }) {
     reduced: stillNow,
     pressable: el => registry.shapes.get(el)?.pressable ?? false,
   })
-  onStatus('webgl')
   scheduler.wake('mount')
 
   return {
     wake: reason => scheduler.wake(reason),
+    setFrozen(flag) {
+      frozen = flag
+      applyPause()
+    },
     dispose() {
       scheduler.dispose()
       registry.dispose()
       presenter.dispose()
+      probe.dispose()
       lensMotion.clear()
     },
   }

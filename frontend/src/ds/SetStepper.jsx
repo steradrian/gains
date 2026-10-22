@@ -37,7 +37,7 @@ export default function SetStepper({ label, value, defaultValue = 0, step = 1, d
     <div className="g-sst g-glass" role="group" aria-label={label}>
       <span className="g-sst-l">{label}</span>
       <div className="g-sst-row">
-        <button type="button" className="g-sst-b" aria-label={lessLabel} onClick={() => set(current - step)}>
+        <button type="button" className="g-sst-b g-glass" aria-label={lessLabel} onClick={() => set(current - step)}>
           <Icon name="minus" className="g-icon" />
         </button>
         <input
@@ -51,7 +51,7 @@ export default function SetStepper({ label, value, defaultValue = 0, step = 1, d
           onFocus={e => e.target.select()}
           onBlur={() => setDraft(null)}
         />
-        <button type="button" className="g-sst-b" aria-label={moreLabel} onClick={() => set(current + step)}>
+        <button type="button" className="g-sst-b g-glass" aria-label={moreLabel} onClick={() => set(current + step)}>
           <Icon name="plus" className="g-icon" />
         </button>
       </div>

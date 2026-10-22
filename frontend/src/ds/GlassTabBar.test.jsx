@@ -119,4 +119,18 @@ describe('the pill', () => {
     view.render(<GlassTabBar />)
     expect(ind().getAttribute('aria-hidden')).toBe('true')
   })
+
+  it('names its liquid-glass shapes: the bar, the lit-tab lens (inset 2) and the + as a tint', () => {
+    view.render(<GlassTabBar />)
+    expect(q('nav').getAttribute('data-glass')).toBe('bar')
+    expect(ind().getAttribute('data-glass')).toBe('lens')
+    expect(ind().getAttribute('data-glass-inset')).toBe('2')
+    expect(plus().getAttribute('data-glass')).toBe('tint')
+  })
+
+  it('names the + as a tint when it is a link too', () => {
+    view.render(<GlassTabBar hrefs={{ plus: '#/add' }} />)
+    expect(plus().tagName).toBe('A')
+    expect(plus().getAttribute('data-glass')).toBe('tint')
+  })
 })

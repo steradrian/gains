@@ -35,6 +35,17 @@
   --glass-line: rgba(255,255,255,0.20);
   --glass-track: rgba(255,255,255,0.18);
   --glass-new: rgba(255,255,255,0.12);
+  /* Liquid glass material (ds.css "Liquid glass"), dark-stage values. The six light stages override
+     lift, rim, shade and label-shadow beside their --X-ink-glass tokens (M6). lift/rim/spec/shade are
+     read by the WebGL host (glass/material-probe.js); the shade alpha scales each kind's contact shadow.
+     edge and frost are the CSS material: the line and the blur a glass element has when GL is off. */
+  --glass-lift: rgba(255,255,255,0.018);
+  --glass-rim: #FFFFFF;
+  --glass-spec: #FFFFFF;
+  --glass-shade: rgba(5,10,41,1);
+  --glass-label-shadow: 0 1px 2px rgba(8,18,70,0.22);
+  --glass-edge: inset 0 0 0 1px var(--glass-line);
+  --glass-frost: blur(16px);
   /* What is drawn straight on the stage: the ring arc and checks, the round do-now buttons, the
      plate rings. White on the 22 dark stages; the six light stages override them (ds.css). */
   --stage-mark: #FFFFFF;
@@ -470,6 +481,14 @@
   --glass: rgba(255,255,255,0.10);
   --glass-line: rgba(255,255,255,0.14);
   --glass-track: rgba(255,255,255,0.14);
+  /* Liquid glass material, as in the light set above (the stage decides it, not the mode). */
+  --glass-lift: rgba(255,255,255,0.018);
+  --glass-rim: #FFFFFF;
+  --glass-spec: #FFFFFF;
+  --glass-shade: rgba(5,10,41,1);
+  --glass-label-shadow: 0 1px 2px rgba(8,18,70,0.22);
+  --glass-edge: inset 0 0 0 1px var(--glass-line);
+  --glass-frost: blur(16px);
   --chrome-glass: rgba(22,22,21,0.86);
   --ink-fill: #F4F2EE;
   --ink-fill-end: #D8D5CF;

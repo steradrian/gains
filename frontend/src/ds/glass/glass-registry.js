@@ -9,6 +9,7 @@ export const SELECTOR = '.g-glass, .g-btn-glass, [data-glass]'
 const ATTRS = ['class', 'data-glass', 'data-glass-inset', 'hidden', 'open', 'inert']
 const OFFSCREEN = 80
 const NO_BAR = null
+const MARK = 'data-lg-on'
 
 // The element's corner radius in px (a % or a pill radius clamps to a capsule).
 function cornerOf(el, hw, hh) {
@@ -32,10 +33,14 @@ function clipAncestor(el, ground) {
  * @param {Element} ground the root the glass lives under (the stage's .g-root)
  * @param {{ onChange?: (reason: string) => void, exclude?: string }} opts
  *   `exclude`: a selector for subtrees that are never lensed (sheets, the search overlay); they keep the CSS material.
+ *   `include`: when set, only shapes inside a match of this selector are taken (the app's ground is the body).
+ * Shapes that are drawn carry `data-lg-on` once `setMarked(true)` is called (the host does it with the first
+ * draw), which is what ds.css "Liquid glass" keys the transparent fill on.
  */
-export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-root, .search-ov' } = {}) {
+export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-root, .search-ov', include = '' } = {}) {
   /** @type {Map<Element, object>} */
   const shapes = new Map()
+  let marked = false
   const hasIO = typeof IntersectionObserver === 'function'
   const hasRO = typeof ResizeObserver === 'function'
 
@@ -82,6 +87,7 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
 
   function drop(el) {
     shapes.delete(el)
+    el.removeAttribute(MARK)
     io?.unobserve(el)
     ro?.unobserve(el)
   }
@@ -90,6 +96,7 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
     const next = new Map()
     for (const el of ground.querySelectorAll(SELECTOR)) {
       if (exclude && el.closest(exclude)) continue
+      if (include && !el.closest(include)) continue
       if (el.closest('[hidden]')) continue
       const parent = el.parentElement?.closest(SELECTOR)
       const parentKind = (parent && next.get(parent)?.kind) || null
@@ -105,6 +112,7 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
     for (const [el, s] of next) {
       if (shapes.has(el)) continue
       shapes.set(el, s)
+      if (marked) el.setAttribute(MARK, '')
       io?.observe(el)
       ro?.observe(el)
     }
@@ -166,12 +174,22 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
     return out
   }
 
+  /** Marks (or unmarks) every shape as drawn; shapes found later follow the flag. */
+  function setMarked(flag) {
+    marked = flag
+    for (const el of shapes.keys()) {
+      if (flag) el.setAttribute(MARK, '')
+      else el.removeAttribute(MARK)
+    }
+  }
+
   function dispose() {
+    setMarked(false)
     mo.disconnect()
     io?.disconnect()
     ro?.disconnect()
     shapes.clear()
   }
 
-  return { shapes, read, scan, dispose }
+  return { shapes, read, scan, setMarked, dispose }
 }

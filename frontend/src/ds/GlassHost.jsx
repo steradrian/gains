@@ -1,42 +1,119 @@
 import { useEffect, useRef } from 'react'
+import { useColorMode } from '../lib/color-mode.js'
+import { useSearch } from '../lib/search/session.js'
 import { DEFAULT_INTENSITY } from '../lib/stage-look/index.js'
+import { useDsAccent } from '../lib/use-ds-accent.js'
+import { useStageLook } from '../lib/use-stage-look.js'
+import { useUI } from '../store/useUI.js'
 import { createGlassEngine } from './glass/glass-engine.js'
 
-// Liquid glass host: one per stage ground. It draws every glass shape under `groundRef` into WebGL
-// canvases that refract the real stage (the look engine's own shader), and reports what the page should
-// paint through `onStatus`: 'webgl', 'fallback' (no usable WebGL, or the context was lost) or 'reduced'
-// (Reduce Transparency). Nothing runs at rest; scrolling, pointer presses, DOM changes and the look's
-// clock wake it. The app's inputs (store look, accent, pushed page) come in M2; for now the caller
-// passes them.
+// Liquid glass host: one per stage ground. It draws every glass shape under the ground into WebGL
+// canvases that refract the real stage (the look engine's own shader), and tells the page what to paint
+// through <html data-lg>: "gl" (the canvases draw; drawn elements carry data-lg-on), "css" (the frosted
+// material: no WebGL, a failure, a page with no stage) or "reduced" (Reduce Transparency). ds.css
+// "Liquid glass" is the contract. It starts on "css" and only moves to "gl" with the first drawn frame, so
+// a surface is never blank. Nothing runs at rest; scrolling, presses, DOM changes and the look's clock
+// wake it, and it freezes under a sheet, the search overlay, a hidden document and a page with no stage.
+//
+// In the app (App.jsx) it takes no ground: the ground is the body, narrowed to the pages on the shared
+// stage, #tabbar and #timer; the look, accent and intensity come from the store. The dev page passes its
+// own ground and stage inputs. `onStatus` also reports 'webgl' | 'fallback' | 'reduced' to that caller.
+const APP_GROUND = '.g-route[data-shared], #tabbar, #timer'
+const STAGE = '.g-route[data-shared] .g-stage'
+const REDUCED_TRANSPARENCY = '(prefers-reduced-transparency: reduce)'
+
 /**
- * @param {{ groundRef: { current: Element | null }, look: string, accent: string, pushed?: boolean,
+ * @param {{ groundRef?: { current: Element | null }, look?: string, accent?: string, pushed?: boolean,
  *   intensity?: number, motion?: boolean, onStatus?: (s: 'webgl' | 'fallback' | 'reduced') => void }} props
- * `look`, `accent`, `pushed`, `intensity` and `motion` are what AppStage gives StageLook.
+ * `pushed`: the page on top is a pushed one (AppStage's half-intensity stage).
  */
-export default function GlassHost({ groundRef, look, accent, pushed = false, intensity = DEFAULT_INTENSITY, motion = true, onStatus }) {
+export default function GlassHost({ groundRef, look, accent, pushed = false, intensity, motion, onStatus }) {
+  const stored = useStageLook()
+  const storedAccent = useDsAccent()
+  const mode = useColorMode()
+  const sheetOpen = useUI(s => s.sheets.length > 0)
+  const searchOpen = useSearch(s => s.open)
+
   const hostRef = useRef(null)
-  const inputsRef = useRef({ look, accent, pushed, intensity, motion })
   const engineRef = useRef(null)
   const statusRef = useRef(onStatus)
+  const inputsRef = useRef(null)
+  // What decides data-lg and the freeze. Plain refs: the page is repainted from here, not by a render.
+  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false })
+
+  inputsRef.current = {
+    look: look ?? stored.look,
+    accent: accent ?? storedAccent,
+    pushed,
+    intensity: intensity ?? stored.intensity ?? DEFAULT_INTENSITY,
+    motion: motion ?? stored.motion,
+    mode,
+  }
+
+  const sync = () => {
+    const s = stateRef.current
+    const lg = s.reduced ? 'reduced' : s.engine === 'webgl' && !s.noStage ? 'gl' : 'css'
+    if (document.documentElement.dataset.lg !== lg) document.documentElement.dataset.lg = lg
+    engineRef.current?.setFrozen(s.reduced || s.noStage || s.sheet || s.search || s.hidden)
+  }
 
   useEffect(() => { statusRef.current = onStatus })
 
   useEffect(() => {
-    inputsRef.current = { look, accent, pushed, intensity, motion }
+    stateRef.current.sheet = sheetOpen
+    stateRef.current.search = searchOpen
+    sync()
+  }, [sheetOpen, searchOpen])
+
+  const { look: lookIn, accent: accentIn, intensity: intensityIn, motion: motionIn } = inputsRef.current
+  useEffect(() => {
     engineRef.current?.wake('inputs')
-  }, [look, accent, pushed, intensity, motion])
+  }, [lookIn, accentIn, pushed, intensityIn, motionIn, mode])
 
   useEffect(() => {
+    const state = stateRef.current
+    const mql = window.matchMedia?.(REDUCED_TRANSPARENCY)
+    const onReduced = () => { state.reduced = !!mql?.matches; sync() }
+    state.reduced = !!mql?.matches
+    mql?.addEventListener?.('change', onReduced)
+
+    const onVisible = () => { state.hidden = document.hidden; sync() }
+    state.hidden = document.hidden
+    document.addEventListener('visibilitychange', onVisible)
+
+    // A page with no stage on it (the stage is display: none there) leaves the chrome on the CSS material.
+    let checking = 0
+    const checkStage = () => {
+      checking = 0
+      const none = !document.querySelector(STAGE)
+      if (none !== state.noStage) { state.noStage = none; sync() }
+    }
+    const scheduleStage = () => { if (!checking) checking = requestAnimationFrame(checkStage) }
+    state.noStage = !document.querySelector(STAGE)
+
     const engine = createGlassEngine({
-      ground: groundRef.current,
+      ground: groundRef ? groundRef.current : document.body,
+      include: groundRef ? '' : APP_GROUND,
       host: hostRef.current,
       getInputs: () => inputsRef.current,
-      onStatus: s => statusRef.current?.(s),
+      onDom: scheduleStage,
+      onStatus: s => {
+        state.engine = s
+        if (s === 'reduced') state.reduced = true
+        sync()
+        statusRef.current?.(s)
+      },
     })
     engineRef.current = engine
+    sync()
     return () => {
       engine?.dispose()
       engineRef.current = null
+      if (checking) cancelAnimationFrame(checking)
+      mql?.removeEventListener?.('change', onReduced)
+      document.removeEventListener('visibilitychange', onVisible)
+      state.engine = 'css'
+      document.documentElement.dataset.lg = 'css'
     }
   }, [groundRef])
 

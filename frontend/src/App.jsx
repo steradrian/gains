@@ -19,6 +19,7 @@ import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
 import AppStage from './ds/AppStage.jsx'
+import GlassHost from './ds/GlassHost.jsx'
 import LandscapeCover from './ds/LandscapeCover.jsx'
 import { reducedMotion } from './lib/reduced-motion.js'
 import { setHapticsEnabled } from './lib/use-haptic.js'
@@ -363,6 +364,9 @@ function Shell() {
           The flows that bring their own ground (onboarding, sign-in, Add this device, the first
           launch) paint it themselves. */}
       {sharedStage && <AppStage pushed={!isTabRoot(shown.pathname)} />}
+      {/* Liquid glass. Keep it right after the stage: both are fixed at z-index -1, so DOM order decides
+          that the glass under-canvas paints over the stage and under every page layer after it. */}
+      {sharedStage && <GlassHost pushed={!isTabRoot(shown.pathname)} />}
       {trans.layers.map(layer => (
         <div key={layer.key} className="g-route" data-shared={sharedStage || undefined} data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
           style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}
