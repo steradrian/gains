@@ -4482,5 +4482,9 @@ export default {
   'See your plan': 'See your plan',
   'Could not load this week': 'Could not load this week',
   'Logging activity arrives soon': 'Logging activity arrives soon',
+  // Eat with Food off
+  'Food is off': 'Food is off',
+  'Turn it on to log meals, water and fasting.': 'Turn it on to log meals, water and fasting.',
+  'Turn Food back on': 'Turn Food back on',
   "This country can't be saved yet": "This country can't be saved yet",
 }

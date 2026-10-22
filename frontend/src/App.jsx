@@ -92,6 +92,7 @@ import TrainHub from './views/TrainHub.jsx'
 import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
+import FoodGate from './views/eat/FoodGate.jsx'
 import FoodRedirect from './views/eat/FoodRedirect.jsx'
 import MyFoods from './views/MyFoods.jsx'
 import FoodEditor from './views/my-foods/FoodEditor.jsx'
@@ -428,28 +429,31 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/plans" element={<PlansScreen />} />
       <Route path="/train/plans/:id" element={<PlanPreview />} />
       {/* Nutrition */}
-      <Route path="/food" element={<FoodHub />} />
-      {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
-      <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
-      <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
-      <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
-      {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
-      <Route path="/food/goals" element={<NutritionGoals />} />
-      <Route path="/food/fasting" element={<Fasting />} />
-      {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
-      <Route path="/food/month" element={<MonthPage />} />
-      <Route path="/food/trends" element={<TrendsPage />} />
-      {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
-      <Route path="/food/burned" element={<BurnedPage />} />
-      {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
-          /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
-      <Route path="/food/my-foods" element={<MyFoods />} />
-      {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
-          keeps its form when the address takes the real id. */}
-      <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
-      <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
-      {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
-      <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
+      {/* With Food off the tab root and every page under it show "Food is off" (FoodGate) */}
+      <Route element={<FoodGate />}>
+        <Route path="/food" element={<FoodHub />} />
+        {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
+        <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
+        <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
+        <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
+        {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
+        <Route path="/food/goals" element={<NutritionGoals />} />
+        <Route path="/food/fasting" element={<Fasting />} />
+        {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
+        <Route path="/food/month" element={<MonthPage />} />
+        <Route path="/food/trends" element={<TrendsPage />} />
+        {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
+        <Route path="/food/burned" element={<BurnedPage />} />
+        {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
+            /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
+        <Route path="/food/my-foods" element={<MyFoods />} />
+        {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
+            keeps its form when the address takes the real id. */}
+        <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
+        <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
+        {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
+        <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
+      </Route>
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
       <Route path="/progress/body" element={<Body segment="weight" />} />
