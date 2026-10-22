@@ -24,6 +24,8 @@ import DevKitMePhotos from './DevKitMePhotos.jsx'
 import DevKitWorkoutDrawers from './DevKitWorkoutDrawers.jsx'
 // Me changes M3
 import DevKitMeChanges from './DevKitMeChanges.jsx'
+// Me invite M2
+import DevKitMeInvite from './DevKitMeInvite.jsx'
 import GlassActions from './GlassActions.jsx'
 import GlassList from './GlassList.jsx'
 import GlassTabBar from './GlassTabBar.jsx'
@@ -316,6 +318,8 @@ export default function DevKit() {
         <DevKitMeChanges />
         {/* Me photos M2 */}
         <DevKitMePhotos />
+        {/* Me invite M2 */}
+        <DevKitMeInvite />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

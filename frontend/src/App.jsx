@@ -108,6 +108,8 @@ import DayPage from './views/shared/DayPage.jsx'
 import WeekPage from './views/shared/WeekPage.jsx'
 import Notifications from './views/shared/Notifications.jsx'
 import ChangesRoute from './views/me/changes/ChangesRoute.jsx'
+// Me invite M2
+import InviteRoute from './views/me/invite/InviteRoute.jsx'
 // Eat root m2: Month and Food trends
 import MonthPage from './views/eat/MonthPage.jsx'
 import TrendsPage from './views/eat/TrendsPage.jsx'
@@ -483,6 +485,8 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/food/notifications" element={<Notifications />} />
       <Route path="/me/notifications" element={<Notifications />} />
       <Route path="/me/changes" element={<ChangesRoute />} />
+      {/* Me invite M2: the admin's Invite a friend; a member gets the ask (invite-M3). The push tap lands here (api/push-messages.js). */}
+      <Route path="/me/invite" element={<InviteRoute />} />
       {/* Me root M1: Profile is /me (ProgressHub until root-M2 replaces it); Settings is /me/settings,
           its pages stay /me/<page>. Before /me/:page. */}
       <Route path="/me" element={<ProgressHub />} />

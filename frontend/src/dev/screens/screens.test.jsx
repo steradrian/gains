@@ -1165,3 +1165,56 @@ describe('the screens gallery: Me > Body > Measurements', () => {
     expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
   }, 30000)
 })
+
+// Me invite M2
+describe('the screens gallery: Me > Invite a friend', () => {
+  it('has M5.0 to M5.3 under their board ids, in Me: invite', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: invite').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M5.0', 'M5.1', 'M5.2', 'M5.3', 'M5.0a', 'M5.0m', 'M5.0r', 'M5.0o', 'M5.0l', 'M5.1u']))
+  })
+
+  it('shows the list, the drawer, the held toast, the error, the asks, the menu and its confirm, and persists nothing', async () => {
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('M5.0', s => {
+      expect(s.text).toContain('Bring a friend in')
+      expect(s.text).toContain('lasts 7 days')
+      expect(s.host.querySelectorAll('.g-grow')).toHaveLength(5)
+    })
+    await check('M5.1', s => {
+      expect(s.host.querySelector('.g-bs h2').textContent).toBe('New invite')
+      expect([...s.host.querySelectorAll('.g-bs-foot button')].map(b => b.textContent)).toEqual(['Create and copy link', 'Create and share'])
+    })
+    await check('M5.2', s => {
+      expect(s.host.querySelector('.inv-group .g-grow b').textContent).toBe('Andrei')
+      expect(useUI.getState().toastMsg).toBe('Invite for Andrei created and link copied')
+      expect(useUI.getState().toastAction.label).toBe('Revoke')
+    })
+    await check('M5.2c', () => expect(useUI.getState().toastMsg).toBe('Invite created. Copy its invite link from the list.'))
+    await check('M5.1e', s => expect(s.host.querySelector('.g-bs [role="alert"]').textContent).toContain('Too many invites'))
+    await check('M5.1n', s => expect(s.host.querySelector('.g-bs input').value).toBe('Vlad'))
+    await check('M5.1u', s => expect([...s.host.querySelectorAll('.g-bs-foot button')].map(b => b.textContent)).toEqual(['Create and copy link']))
+    await check('M5.3', s => {
+      expect(s.text).toContain('Couldn’t load invites')
+      expect(s.host.querySelector('.g-sempty button').textContent).toBe('Try again')
+    })
+    await check('M5.3r', s => {
+      expect(s.host.querySelector('.g-sempty')).toBeNull()
+      expect(s.text).toContain('Mara')
+    })
+    await check('M5.0a', s => expect([...s.host.querySelectorAll('.g-ssec h2')].map(h => h.textContent)[0]).toBe('Asked'))
+    await check('M5.0q', s => expect(s.host.querySelector('.g-bs .inv-ask').textContent).toContain('Dana'))
+    await check('M5.0m', s => expect([...s.host.querySelectorAll('.g-menuitem')].map(b => b.textContent)).toEqual(['Copy link', 'Share link', 'Revoke']))
+    await check('M5.0r', s => {
+      expect(s.host.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Revoke this invite?')
+      expect(s.host.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M5.0o', s => expect(s.text).toContain('Sign-up is open'))
+    await check('M5.0l', s => expect(s.host.querySelectorAll('.inv-sk')).toHaveLength(3))
+    await check('M5.0e', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
+    await check('M5.0k', s => expect(s.text).toContain('Invite E5F6…'))
+  }, 60000)
+})
