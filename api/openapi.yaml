@@ -180,6 +180,17 @@ tags:
     description: >-
       Background sync by a separate hub service (`HUB_JWKS`), one profile per call, with a
       hub token instead of a session. Every route here is a 404 while `HUB_JWKS` is unset.
+  # Friends api m1
+  - name: friends
+    description: |
+      Groups of people who see each other's training, never ranked: one weekly goal, members in
+      join order. Signed in only. A group id the caller is not a member of answers exactly what an
+      unknown id answers (`404 not-found`), so ids never tell which groups exist. Names are read
+      from the accounts at answer time; a member with Friends off is left out of what the others
+      see. Reads take the client's local `?date=YYYY-MM-DD` (the server never guesses a time zone);
+      the week is Monday to Sunday. Errors are `{ error, code }`. A profile awaiting deletion can
+      still leave, remove, mute and switch things off, but gets `423 deletion-scheduled` for
+      anything that shares more (turn on, a switch on, create, invite, join).
 
 security:
   - cookieAuth: []
@@ -3897,6 +3908,383 @@ paths:
               example: { error: "body too large" }
         '503': { $ref: '#/components/responses/SyncStateUnreadable' }
 
+  # Friends api m1
+  /api/friends/me:
+    get:
+      tags: [friends]
+      operationId: friendsMe
+      summary: Friends on or off, the share switches, my groups and open invitations
+      parameters:
+        - { $ref: '#/components/parameters/FriendsDate' }
+      responses:
+        '200':
+          description: The caller's Friends state. `newCount` is 0 and `newest` absent until cheers exist.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FriendsMe' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [friends]
+      operationId: friendsMeUpdate
+      summary: Turn Friends on or off, set what is shared
+      description: |
+        `share` may name any of the four switches; the others keep their stored value (off when
+        never set). `on: true` when no switches were ever stored and the body brings none is
+        refused `409 needs-share`: the client opens What you share first. `on: false` keeps the
+        switches and every membership; while off the person is hidden from the other members,
+        is not listed by `GET /people`, and cannot join, create or invite (`friends-off`).
+        Fields other than `on` and `share` are refused (`bad-body`).
+      parameters:
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                on: { type: boolean }
+                share: { $ref: '#/components/schemas/FriendsShare' }
+            example: { on: true, share: { training: true, consistency: true, targets: false, bests: false } }
+      responses:
+        '200':
+          description: The same shape as the GET.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FriendsMe' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: '`needs-share`: turning on before anything to share was chosen.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "choose what to share first", code: "needs-share" }
+        '423': { $ref: '#/components/responses/FriendsDeletionScheduled' }
+
+  /api/friends/groups:
+    get:
+      tags: [friends]
+      operationId: friendsGroups
+      summary: My groups, in the order I joined them
+      parameters:
+        - { $ref: '#/components/parameters/FriendsDate' }
+      responses:
+        '200':
+          description: One summary per group.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GroupSummary' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [friends]
+      operationId: friendsGroupCreate
+      summary: Create a group, with me as its creator and first member
+      description: |
+        `name` is cleaned (control and invisible characters out, whitespace folded) and must be
+        1 to 40 characters after that (`bad-name`). `goal.kind` is `planned` (everyone's planned
+        sessions), `number` with `n` 1 to 200, or `targets`; `n` on any other kind, or any other
+        field, is refused (`bad-goal`). Friends must be on (`friends-off`). At most 20 groups per
+        person (`group-limit`).
+      parameters:
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, goal]
+              properties:
+                name: { type: string, maxLength: 40 }
+                goal: { $ref: '#/components/schemas/GroupGoal' }
+            example: { name: "Iron Sunday", goal: { kind: planned } }
+      responses:
+        '200':
+          description: The new group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GroupBrief' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+        '423': { $ref: '#/components/responses/FriendsDeletionScheduled' }
+
+  /api/friends/groups/{id}/leave:
+    post:
+      tags: [friends]
+      operationId: friendsGroupLeave
+      summary: Leave a group
+      description: |
+        No undo. The last member out deletes the group with its invites. A creator who leaves
+        hands the group to the longest-standing member. The links I minted for it stop working
+        (`revoked`), my mutes and notification prefs for it go, and my numbers leave its view.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+      responses:
+        '200':
+          description: Left.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+
+  /api/friends/groups/{id}/members/{uid}/remove:
+    post:
+      tags: [friends]
+      operationId: friendsGroupRemove
+      summary: Remove a member (creator only)
+      description: |
+        Only the creator (`403 forbidden` for any other member), never oneself (`400 self`: leave
+        instead). A uid that is not a member is `404 not-found`. The removed person's next read
+        no longer lists the group, and any `{id}` route answers them 404. No undo.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+        - { name: uid, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: '`forbidden`: only the creator removes.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "only the creator can remove a member", code: "forbidden" }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+
+  /api/friends/groups/{id}/mutes:
+    put:
+      tags: [friends]
+      operationId: friendsGroupMute
+      summary: Mute or unmute a member, for me only
+      description: |
+        Hides that member's moments from me. They still count, and are never told. `uid` must be
+        another member (`400 bad-uid`, `400 self`). Idempotent.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [uid, muted]
+              properties:
+                uid: { type: string }
+                muted: { type: boolean }
+      responses:
+        '200':
+          description: Stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+
+  /api/friends/groups/{id}/prefs:
+    put:
+      tags: [friends]
+      operationId: friendsGroupPrefs
+      summary: My notification preference for one group
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [muteNotifications]
+              properties:
+                muteNotifications: { type: boolean }
+      responses:
+        '200':
+          description: Stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+
+  /api/friends/groups/{id}/invites:
+    post:
+      tags: [friends]
+      operationId: friendsInviteLink
+      summary: Mint a one-time group link (7 days)
+      description: |
+        Any member with Friends on (`friends-off`), while the group has room (`group-full`, 12).
+        `url` is the path `g/<code>`; the client puts its own base in front. A member may hold
+        several; minting a 20th live one for the same group revokes that member's oldest. The code
+        is 10 characters from `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, any case when typed.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+      responses:
+        '200':
+          description: The code.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code, url, expiresAt]
+                properties:
+                  code: { type: string, pattern: '^[A-HJKMNP-Z2-9]{10}$' }
+                  url: { type: string, description: '`g/<code>`' }
+                  expiresAt: { type: string, format: date-time }
+              example: { code: "K7QX2MZP4R", url: "g/K7QX2MZP4R", expiresAt: "2026-10-29T18:00:00.000Z" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+        '423': { $ref: '#/components/responses/FriendsDeletionScheduled' }
+
+  /api/friends/groups/{id}/invites/user:
+    post:
+      tags: [friends]
+      operationId: friendsInviteUser
+      summary: Invite someone already on Gains, in the app
+      description: |
+        Mints a code bound to that person (to anyone else it does not exist) and lists it in their
+        `GET /me` `invitations`. Answers the same `{ ok: true }` whether `uid` is an account with
+        Friends on, an account without, or nobody, so it never confirms another account exists;
+        nothing is created for a uid that cannot be invited (Friends off, already a member, an
+        open invitation into this group already, deletion scheduled, oneself). The caller must be a
+        member with Friends on, and the group must have room.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsGroupId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [uid]
+              properties:
+                uid: { type: string }
+      responses:
+        '200':
+          description: Done, or nothing to do.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/FriendsBadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+        '423': { $ref: '#/components/responses/FriendsDeletionScheduled' }
+
+  /api/friends/people:
+    get:
+      tags: [friends]
+      operationId: friendsPeople
+      summary: People I can invite in the app
+      description: |
+        Only accounts that turned Friends on, never me, never anyone awaiting deletion; with
+        `group`, never that group's members (I must be one, else 404). Name and the month they
+        joined Gains, nothing else. Filtered by `q` (a case-insensitive part of the name), sorted by
+        name, at most 20. Friends must be on for the caller (`friends-off`).
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string, maxLength: 40 } }
+        - { name: group, in: query, required: false, schema: { type: string }, description: 'Leave out the members of this group.' }
+      responses:
+        '200':
+          description: Up to 20 people.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 20
+                items:
+                  type: object
+                  required: [uid, name, since]
+                  properties:
+                    uid: { type: string }
+                    name: { type: string }
+                    since: { oneOf: [{ type: string, pattern: '^\d{4}-\d{2}$' }, { type: 'null' }], description: 'The month the account was made, `YYYY-MM`.' }
+              example: [{ uid: "Qm9vZ3lXb29neQ", name: "Andrei", since: "2026-10" }]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409': { $ref: '#/components/responses/FriendsConflict' }
+
+  /api/friends/join/{code}:
+    get:
+      tags: [friends]
+      operationId: friendsJoinPreview
+      summary: What a group link opens, without using it
+      description: |
+        `member` when I am in the group already, whatever the code's own state. An unknown or
+        malformed code, a code whose group is gone, and an in-app code meant for someone else all
+        answer the same 404. Names nobody in the group: `memberCount`, up to four initials in join
+        order, and the inviter's name (null when that account is gone). `group` is present only
+        for `valid` and `member`. Counted per address (30 a minute) and for everyone together (600
+        a minute), signed-in callers only; the POST spends the same budget.
+      parameters:
+        - { $ref: '#/components/parameters/FriendsInviteCode' }
+      responses:
+        '200':
+          description: The preview.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GroupInvitePreview' }
+              example: { status: valid, group: { id: "x3Kq9VbN1aZc", name: "Iron Sunday", memberCount: 5, initials: [A, M, R, I] }, from: { name: "Mara" } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '429': { $ref: '#/components/responses/FriendsRateLimited' }
+    post:
+      tags: [friends]
+      operationId: friendsJoin
+      summary: Join a group with its link
+      description: |
+        The status check, using the code up and the new membership happen together: of two
+        requests for one code, exactly one gets in. I am added at the end of join order and any
+        in-app invitation of mine into that group is cleared. Refusals, in the order checked:
+        `404 not-found`; `409 already-member` (with `group.id`, so the client opens it);
+        `410 invite-used`; `410 invite-expired` (expired or revoked); `423 deletion-scheduled`;
+        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups).
+      parameters:
+        - { $ref: '#/components/parameters/FriendsInviteCode' }
+        - { $ref: '#/components/parameters/FriendsDateOptional' }
+      responses:
+        '200':
+          description: In.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GroupBrief' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/FriendsNotFound' }
+        '409':
+          description: '`already-member` (carries `group.id`), `friends-off`, `group-full`, `group-limit`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                member: { value: { error: "already in this group", code: "already-member", group: { id: "x3Kq9VbN1aZc" } } }
+                off: { value: { error: "Friends is off", code: "friends-off" } }
+                full: { value: { error: "a group has at most 12 people", code: "group-full" } }
+        '410':
+          description: '`invite-used`, or `invite-expired` (past its 7 days, or revoked).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "this invite has expired", code: "invite-expired" }
+        '423': { $ref: '#/components/responses/FriendsDeletionScheduled' }
+        '429': { $ref: '#/components/responses/FriendsRateLimited' }
+
 components:
   headers:
     SyncETag:
@@ -4183,6 +4571,47 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
           example: { error: "that code is wrong, used or expired", code: "link-invalid" }
+    # Friends api m1
+    FriendsNotFound:
+      description: >-
+        No such group, a group the caller is not a member of, or no such code: one answer for all
+        of them, so an id never tells whether a group exists.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "not found", code: "not-found" }
+    FriendsBadRequest:
+      description: >-
+        A field that is missing, of the wrong type or unknown: `bad-body` (a field the route does
+        not take), `bad-date`, `bad-on`, `bad-share`, `bad-name`, `bad-goal`, `bad-uid`,
+        `bad-muted`, `bad-prefs`, `self`.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "date must be a YYYY-MM-DD date", code: "bad-date" }
+    FriendsConflict:
+      description: >-
+        `friends-off` (the caller has Friends off), `group-full` (12 people), `group-limit` (the
+        caller is in 20 groups).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "Friends is off", code: "friends-off" }
+    FriendsDeletionScheduled:
+      description: The caller's account is awaiting deletion; nothing that shares more is taken.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "deletion scheduled", code: "deletion-scheduled" }
+    FriendsRateLimited:
+      description: Too many invite checks from this address, or from everyone.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "too many invite checks, try again shortly", code: "rate-limited", retryAfter: 12 }
 
   schemas:
     Error:
@@ -5066,3 +5495,249 @@ components:
               outcome: { type: string }
               errorClass: { oneOf: [{ type: string }, { type: 'null' }] }
               ms: { type: integer }
+
+    # Friends api m1. Group, Member and Challenge are served from api-m2/m3; their shapes are the
+    # contract the client builds against, documented once here.
+    FriendsShare:
+      type: object
+      additionalProperties: false
+      description: What the other members see. Off by default. Never weight, foods, intake, photos, notes or set data.
+      properties:
+        training: { type: boolean, description: 'Which workout, when, how long.' }
+        consistency: { type: boolean, description: 'Planned sessions done, week by week.' }
+        targets: { type: boolean, description: 'Food targets reached, yes or no per day.' }
+        bests: { type: boolean, description: 'New bests, as the exercise only.' }
+
+    FriendsMe:
+      type: object
+      required: [on, share, groups, invitations, newCount]
+      properties:
+        on: { type: boolean }
+        share:
+          allOf: [{ $ref: '#/components/schemas/FriendsShare' }]
+          required: [training, consistency, targets, bests]
+        groups:
+          type: array
+          items: { $ref: '#/components/schemas/GroupSummary' }
+        invitations:
+          type: array
+          description: Open in-app invitations to me, one per group. Redeemed with `POST /api/friends/join/{code}`.
+          items:
+            type: object
+            required: [code, group, from]
+            properties:
+              code: { type: string }
+              group:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+              from:
+                type: object
+                properties:
+                  name: { type: string }
+        newCount: { type: integer, minimum: 0 }
+        newest: { description: 'The newest thing to show on Today (api-m3). Absent until then.' }
+
+    GroupGoal:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [planned, number, targets] }
+        n: { type: integer, minimum: 1, maximum: 200, description: '`number` only.' }
+
+    GroupSummary:
+      type: object
+      required: [id, name, since, memberCount, members, week, streak, goalLine]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        since: { type: string, format: date-time, description: 'When the group was created.' }
+        memberCount: { type: integer, description: 'Members the caller sees (Friends on, account present), the caller included.' }
+        members:
+          type: array
+          maxItems: 5
+          description: The first five of them, in join order.
+          items:
+            type: object
+            required: [uid, name, initial]
+            properties:
+              uid: { type: string }
+              name: { type: string }
+              initial: { type: string }
+        week:
+          type: object
+          required: [done, planned]
+          properties:
+            done: { type: integer }
+            planned: { type: integer }
+        streak: { type: integer, description: 'Weeks in a row the goal was hit.' }
+        goalLine: { $ref: '#/components/schemas/GroupGoal' }
+        challengeLine: { description: 'The running challenge, as data the client words (api-m3). Absent until then.' }
+
+    GroupBrief:
+      description: What creating or joining a group answers. The whole view is `Group`.
+      allOf:
+        - { $ref: '#/components/schemas/GroupSummary' }
+        - type: object
+          required: [goal, creator, isCreator]
+          properties:
+            goal: { $ref: '#/components/schemas/GroupGoal' }
+            creator: { oneOf: [{ type: string }, { type: 'null' }], description: 'The creator''s uid; null while the creator is hidden (Friends off).' }
+            isCreator: { type: boolean }
+
+    GroupInvitePreview:
+      type: object
+      required: [status, from]
+      properties:
+        status: { type: string, enum: [valid, used, expired, revoked, member] }
+        group:
+          type: object
+          description: '`valid` and `member` only.'
+          required: [id, name, memberCount, initials]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            memberCount: { type: integer }
+            initials: { type: array, maxItems: 4, items: { type: string } }
+        from:
+          type: object
+          required: [name]
+          properties:
+            name: { oneOf: [{ type: string }, { type: 'null' }] }
+
+    Group:
+      description: '`GET /api/friends/groups/{id}` (api-m2). Muted members'' moments are left out for that viewer; they still count.'
+      allOf:
+        - { $ref: '#/components/schemas/GroupSummary' }
+        - type: object
+          properties:
+            goal: { $ref: '#/components/schemas/GroupGoal' }
+            creator: { type: string }
+            isCreator: { type: boolean }
+            targets:
+              type: object
+              properties:
+                hit: { type: integer }
+                of: { type: integer }
+            weekDays:
+              type: array
+              items:
+                type: object
+                properties:
+                  date: { type: string, format: date }
+                  workouts: { type: integer }
+            members:
+              type: array
+              items:
+                type: object
+                properties:
+                  uid: { type: string }
+                  name: { type: string }
+                  initial: { type: string }
+                  done: { type: integer }
+                  planned: { type: integer }
+                  muted: { type: boolean }
+                  you: { type: boolean }
+            challenges: { type: array, items: { type: object } }
+            moments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  kind: { type: string, enum: [workout, together, best, target] }
+                  who: { type: array, items: { type: string } }
+                  title: { type: string }
+                  detail: { type: string }
+                  at: { type: string }
+                  cheered: { type: boolean }
+                  mine: { type: boolean }
+            cheersForMe: { type: integer }
+            quiet: { type: boolean }
+
+    Member:
+      type: object
+      description: '`GET /api/friends/groups/{id}/members/{uid}` (api-m2): only what that person shares.'
+      properties:
+        uid: { type: string }
+        name: { type: string }
+        since: { type: string }
+        cheered: { type: boolean }
+        week:
+          oneOf:
+            - type: object
+              properties:
+                done: { type: integer }
+                planned: { type: integer }
+                days: { type: array, items: { type: boolean } }
+            - type: object
+              properties:
+                noPlan: { type: boolean, const: true }
+        recent:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              date: { type: string, format: date }
+              minutes: { type: integer }
+        consistency:
+          type: array
+          items:
+            type: object
+            properties:
+              week: { type: string, format: date }
+              share: { oneOf: [{ type: number }, { type: 'null' }] }
+        targets:
+          type: object
+          properties:
+            reached: { type: integer }
+            of: { type: integer }
+            days: { type: array, items: { type: boolean } }
+        bests:
+          type: array
+          items:
+            type: object
+            properties:
+              exercise: { type: string }
+              date: { type: string, format: date }
+        shares: { $ref: '#/components/schemas/FriendsShare' }
+
+    Challenge:
+      type: object
+      description: 'A group challenge (api-m3).'
+      properties:
+        id: { type: string }
+        template: { type: string, enum: [workouts, protein, weekend, bests] }
+        title: { type: string }
+        detail: { type: string }
+        span: { type: string, enum: [week, twoWeeks, month] }
+        start: { type: string, format: date }
+        end: { type: string, format: date }
+        total: { type: integer }
+        goal: { type: integer }
+        joined:
+          type: array
+          items:
+            type: object
+            properties:
+              uid: { type: string }
+              name: { type: string }
+              count: { type: integer }
+              planned: { type: integer }
+        invited: { type: array, items: { type: string } }
+        state: { type: string, enum: [active, done, missed] }
+        you:
+          type: object
+          properties:
+            in: { type: boolean }
+        streak: { type: integer }
+
+  # Friends api m1
+  parameters:
+    FriendsDate: { name: date, in: query, required: true, schema: { type: string, format: date }, description: 'The client''s local today, `YYYY-MM-DD` (`400 bad-date` otherwise).' }
+    FriendsDateOptional: { name: date, in: query, required: false, schema: { type: string, format: date }, description: 'The client''s local today, for the summary in the answer (`400 bad-date` when present and not a date).' }
+    FriendsGroupId: { name: id, in: path, required: true, schema: { type: string }, description: 'An opaque group id.' }
+    FriendsInviteCode: { name: code, in: path, required: true, schema: { type: string }, description: 'A group invite code, any case.' }
