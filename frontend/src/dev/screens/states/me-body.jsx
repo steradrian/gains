@@ -73,12 +73,14 @@ function MeasurePage({ range = 0 }) {
   return (
     <BodyScreen tab="measurements" onTab={NOOP} data={data} range={range} onRange={NOOP}
       onLog={logWeightSheet} onOpen={editWeighInSheet}
-      measure={measure} onLogMeasure={() => measurementLogSheet()} onChooseMeasure={manageMeasurementsSheet} />
+      measure={measure} onLogMeasure={() => measurementLogSheet()} onOpenMeasure={measurementLogSheet} onChooseMeasure={manageMeasurementsSheet} />
   )
 }
 const measurePage = props => () => <MeasurePage {...props} />
 const logMeasures = async t => { measurementLogSheet(); await t.wait(300) }
 const heldToast = async t => { await logMeasures(t); useUI.getState().pauseToast(); await t.wait(100) }
+// What a tap on a Latest row does: the day of the last check-in, opened for editing.
+const editLatest = async t => { measurementLogSheet(useStore.getState().S.measurements.at(-1).d); await t.wait(300) }
 
 registerScreens('Me: body', [
   { id: 'M2.5', title: 'Measurements', note: 'Five tracked: the chips, the waist with its change since the previous and since the first, its curve, the latest of each, and Log measurements. The board\'s dashed "Your mark" line is left out: no per-measurement goal exists.',
@@ -96,6 +98,11 @@ registerScreens('Me: body', [
     render: measurePage(), mock: withS(measureState({ today: true })), play: heldToast },
   { id: 'M2.6b', title: 'Log measurements, nothing tracked', note: 'Nothing tracked: the drawer opens with Choose measurements pushed over it.',
     render: measurePage(), mock: withS(measureState({ tracked: [] })), play: logMeasures },
+  { id: 'M2.6c', title: 'Edit measurements', note: 'A row of Latest opens its day for editing: titled Edit measurements, the day\'s values filled in, and Delete measurements at the end.',
+    render: measurePage(), mock: withS(measureState()), play: editLatest },
+  { id: 'M2.6d', title: 'Measurements deleted', note: 'Delete measurements takes the day out at once; the toast offers Undo for 8 s (held here) and Recent changes keeps it after that.',
+    render: measurePage(), mock: withS(measureState()),
+    play: async t => { await editLatest(t); await t.click('Delete measurements'); useUI.getState().pauseToast(); await t.wait(100) } },
   { id: 'M2.7', title: 'Choose measurements', note: 'A sub-panel over Log measurements (opened from inside the drawer): Torso, Arms, Legs, Other and Your own, one switch each, Custom measurement, Done.',
     render: measurePage(), mock: withS(measureState()),
     play: async t => { await logMeasures(t); await t.click('Choose measurements'); await t.wait(500) } },

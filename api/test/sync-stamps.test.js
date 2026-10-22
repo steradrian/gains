@@ -411,3 +411,52 @@ test('PUT /api/data: an older app\'s two changes of one setting in a row both la
   assert.ok(onDisk._unstamped?.ed?.restSec > 0);
   assert.equal(onDisk._prior?.restSec?.length, 2);   // 100, then 120
 });
+
+// Me fix measure: a day's measurements deleted on the Body page is a tombstone in
+// deleted.measurements, keyed by the day (DEL_LISTS, as in the app's sync-merge.js).
+const MDAY = '2026-10-11';
+const mday = (t, waist = 84) => ({ d: MDAY, t, waist, chest: 101.5, other: [] });
+
+test('a deleted day of measurements: the tombstone is kept through a push that does not send it, and an Undo\'s add-back wins', () => {
+  const cur = { _ts: NOW - 50, _rev: 2, measurements: [], deleted: { measurements: { [MDAY]: NOW - 100 } } };
+  const next = { _ts: NOW, measurements: [], restSec: 60 };
+  stampPut(clone(cur), next, { overRead: true, stamped: true, now: NOW });
+  assert.deepEqual(next.deleted.measurements, { [MDAY]: NOW - 100 });
+  const undone = { _ts: NOW, measurements: [mday(NOW - 10)], deleted: { measurements: { [MDAY]: -(NOW - 10) } } };
+  stampPut(clone(cur), undone, { overRead: true, stamped: true, now: NOW });
+  assert.equal(undone.deleted.measurements[MDAY], -(NOW - 10));
+  assert.deepEqual(undone.measurements.map(e => e.waist), [84]);
+});
+
+test('PUT /api/data: a stale push from a device still holding a deleted day is refused, and the day stays deleted', async t => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-stamps-'));
+  fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
+  fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users: [{ id: 'u1', name: 'One', created: new Date().toISOString() }], creds: [], subs: [], invites: [] }));
+  const child = spawn(process.execPath, ['server.js'], { cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN: 'http://localhost:8080', RP_ID: 'localhost' } });
+  let log = '';
+  child.stdout.on('data', d => log += d); child.stderr.on('data', d => log += d);
+  t.after(() => { child.kill('SIGKILL'); fs.rmSync(dataDir, { recursive: true, force: true }); });
+  const base = `http://127.0.0.1:${await boundPort(child, () => log)}`;
+  const headers = { Cookie: `gymsid=${mintSession('u1')}`, 'Content-Type': 'application/json' };
+  const put = async body => { const r = await fetch(`${base}/api/data`, { method: 'PUT', headers, body: JSON.stringify(body) }); return { status: r.status, body: await r.json() }; };
+  const get = async () => (await (await fetch(`${base}/api/data`, { headers })).json());
+  const T0 = Date.now() - 60000;
+
+  // Both devices hold the day at rev 1.
+  let r = await put({ state: { _ts: T0, workouts: [], routines: [], measurements: [mday(T0)] }, stamped: true });
+  assert.equal(r.status, 200);
+  const read = r.body.rev;
+  // The desk deletes it, with the tombstone the app writes.
+  r = await put({ state: { _ts: T0 + 10, workouts: [], routines: [], measurements: [], deleted: { measurements: { [MDAY]: T0 + 10 } } }, baseRev: read, stamped: true });
+  assert.equal(r.status, 200);
+  // The phone, still on rev 1, pushes its copy with the day and another change: refused, with the
+  // stored copy (and its tombstone) to merge.
+  r = await put({ state: { _ts: T0 + 20, restSec: 60, workouts: [], routines: [], measurements: [mday(T0)] }, baseRev: read, stamped: true });
+  assert.equal(r.status, 409);
+  assert.deepEqual(r.body.state.measurements, []);
+  assert.equal(r.body.state.deleted.measurements[MDAY], T0 + 10);
+  const doc = (await get()).state;
+  assert.deepEqual(doc.measurements, []);
+  assert.equal(doc.deleted.measurements[MDAY], T0 + 10);
+});

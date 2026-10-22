@@ -12,7 +12,9 @@ import {
   normalizeMeasurementsState, toMeasurementDisplay,
 } from '../measurements.js'
 import { useStore } from '../../store/useStore.js'
+import { syncNow } from '../nutrition/sync.js'
 
+const clone = v => JSON.parse(JSON.stringify(v))
 const write = (fn, ...rest) => useStore.getState().update(s => { fn(s); normalizeMeasurementsState(s) }, ...rest)
 
 /** The unit a field is typed in: % for body fat, else cm (kg profiles) or in (lb profiles). */
@@ -96,6 +98,49 @@ export function saveMeasurementEntry(entry, sourceDate = null) {
     if (sourceDate) state.measurements = state.measurements.filter(e => e.d !== sourceDate)
     state.measurements.push(entry)
   })
+}
+
+/**
+ * Takes `day`'s check-in out. Returns a copy of the entry removed, or null. The store's change
+ * records the removal in `deleted.measurements` (stampDeletions), so the sync drops the day on every
+ * device whose copy of it is older than the delete.
+ */
+export function deleteMeasurementDay(day) {
+  let removed = null
+  write(state => {
+    const entry = state.measurements.find(e => e.d === day)
+    if (!entry) return
+    removed = clone(entry)
+    state.measurements = state.measurements.filter(e => e.d !== day)
+  })
+  if (removed) void syncNow()
+  return removed
+}
+
+/**
+ * Puts `entry` back as its day's check-in, stamped now so the sync takes it over any older copy of the
+ * day; the store's change marks the day added back (`-now`) over its removal on record. `clear` lists
+ * days to empty in the same change (the day an edit moved the check-in to).
+ */
+export function setMeasurementsBack(entry, { clear = [] } = {}, now = Date.now()) {
+  const days = new Set([entry.d, ...clear])
+  write(state => {
+    state.measurements = state.measurements.filter(e => !days.has(e.d))
+    state.measurements.push({ ...clone(entry), t: now })
+  })
+  void syncNow()
+}
+
+/**
+ * The Undo of an edit: `before` (the day as it was) goes back, and `saved` (what the edit wrote, on
+ * its own day if the edit moved it) comes out. Only while `saved` is still its day's entry: a newer
+ * one (another device's, merged in meanwhile) is left alone. Returns whether it went back.
+ */
+export function undoMeasurementEdit(before, saved) {
+  if (!before?.d || !saved?.d) return false
+  if (measurementOn(useStore.getState().S, saved.d)?.t !== saved.t) return false
+  setMeasurementsBack(before, { clear: [saved.d] })
+  return true
 }
 
 /** Switches a built-in field on or off. Its readings stay in the history either way. */

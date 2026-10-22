@@ -34,6 +34,19 @@ describe('entryTitle and entryDetail, one formatter per kind', () => {
     expect(entryDetail(e)).toBe(`${D('2026-10-16')} · 82.1 kg · 09:12`)
   })
 
+  it('measure-delete: the day, how many readings, the time; restored, and why not', () => {
+    const e = entry('measure-delete', { day: '2026-10-16', facts: { count: 3 } })
+    expect(entryTitle(e)).toBe('Deleted measurements')
+    expect(entryDetail(e)).toBe(`${D('2026-10-16')} · 3 measurements · 09:12`)
+    expect(entryDetail(entry('measure-delete', { day: '2026-10-16', facts: { count: 1 } }))).toBe(`${D('2026-10-16')} · 1 measurement · 09:12`)
+    expect(entryDetail(entry('measure-delete', { day: '2026-10-16' }))).toBe(`${D('2026-10-16')} · 09:12`)
+    expect(restoredMessage(e, { ok: true, where: { day: '2026-10-16' } })).toBe(`Restored the measurements on ${D('2026-10-16')}`)
+    expect(restoredMessage(entry('measure-delete', { day: null }))).toBe('Restored the measurements')
+    expect(failureMessage(e, 'replaced')).toBe('Couldn’t restore: that day already has measurements')
+    expect(isAlready(e, 'replaced')).toBe(false)
+    expect(isAlready(e, 'restored')).toBe(true)
+  })
+
   it('goal-change: each thing that changed, with the new value where there is one', () => {
     const goal = what => entry('goal-change', { facts: { what, from: 80, to: 77, unit: 'kg' } })
     expect(entryTitle(goal('target'))).toBe('Target weight changed to 77 kg')

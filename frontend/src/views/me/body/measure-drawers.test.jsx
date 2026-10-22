@@ -4,7 +4,9 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
-import { todayISO } from '../../../lib/format.js'
+import { fmtDate, todayISO } from '../../../lib/format.js'
+import { listChanges } from '../../../lib/recent-changes.js'
+import { removeEntries } from '../../../lib/recent-changes-store.js'
 import { manageMeasurementsSheet, measurementLogSheet } from './measure-drawers.jsx'
 
 vi.mock('../../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
@@ -239,5 +241,107 @@ describe('Choose measurements', () => {
     const log = renderTop()
     expect(log.host.querySelector('.g-sempty').textContent).toContain('Choose at least one measurement first.')
     expect(log.host.querySelector('.g-bs-foot button').disabled).toBe(true)
+  })
+})
+
+describe('Edit measurements: Delete and Undo', () => {
+  const DAY_ENTRY = { d: PAST, t: 1000, waist: 85, chest: 100 }
+  const day = (d = PAST) => S().measurements.find(e => e.d === d) || null
+  const values = e => e && { waist: e.waist, chest: e.chest }
+  const openEdit = () => { measurementLogSheet(PAST); return renderTop() }
+  const runUndo = () => act(() => { useUI.getState().runToastAction() })
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    removeEntries()
+    useStore.setState({ S: state({ measurements: [{ ...DAY_ENTRY }] }) })
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('offers Delete measurements only when editing a day', () => {
+    expect(openEdit().button('Delete measurements')).toBeDefined()
+    useUI.setState({ sheets: [] })
+    measurementLogSheet()
+    expect(renderTop().button('Delete measurements')).toBeUndefined()
+  })
+
+  it('deletes the day at once, with its tombstone, journals it and offers Undo', () => {
+    tap(openEdit().button('Delete measurements'))
+    expect(day()).toBeNull()
+    expect(S().deleted.measurements[PAST]).toBeGreaterThan(1000)
+    expect(useUI.getState().sheets).toHaveLength(0)
+    expect(toastText()).toBe(`Deleted 2 measurements from ${fmtDate(PAST, true)}`)
+    expect(useUI.getState().toastAction.label).toBe('Undo')
+    expect(listChanges()).toMatchObject([{ kind: 'measure-delete', day: PAST, facts: { count: 2 }, state: 'open' }])
+  })
+
+  it('Undo at 7.9 s puts back the exact readings and marks the day added back', () => {
+    tap(openEdit().button('Delete measurements'))
+    vi.advanceTimersByTime(7900)
+    expect(useUI.getState().toastAction).not.toBeNull()
+    runUndo()
+    expect(values(day())).toEqual({ waist: 85, chest: 100 })
+    expect(S().measurements.filter(e => e.d === PAST)).toHaveLength(1)
+    expect(S().deleted.measurements[PAST]).toBeLessThan(0)
+  })
+
+  it('after the 8 s window the Undo is gone and the day stays deleted', () => {
+    tap(openEdit().button('Delete measurements'))
+    vi.advanceTimersByTime(9000)
+    expect(useUI.getState().toastAction).toBeNull()
+    runUndo()
+    expect(day()).toBeNull()
+    expect(S().deleted.measurements[PAST]).toBeGreaterThan(0)
+  })
+
+  it('Undo never overwrites the day logged again meanwhile', () => {
+    tap(openEdit().button('Delete measurements'))
+    useStore.getState().update(s => { s.measurements.push({ d: PAST, t: Date.now() + 1, waist: 80, chest: null, other: [] }) })
+    runUndo()
+    expect(values(day())).toEqual({ waist: 80, chest: null })
+  })
+
+  it('an edit can be undone at 7.9 s: the old readings come back', () => {
+    const { field, button } = openEdit()
+    act(() => type(field('Waist'), '84'))
+    tap(button('Save measurements'))
+    expect(day().waist).toBe(84)
+    expect(toastText()).toBe('Measurements saved')
+    vi.advanceTimersByTime(7900)
+    runUndo()
+    expect(values(day())).toEqual({ waist: 85, chest: 100 })
+    expect(S().measurements).toHaveLength(1)
+  })
+
+  it('an edit that moved the day is undone back onto its own day', () => {
+    const MOVED = '2026-09-02'
+    const log = openEdit()
+    act(() => type(log.field('Waist'), '84'))
+    tap(log.button('Change date'))
+    const panel = renderTop({ panel: true })
+    act(() => type(panel.host.querySelector('input[type="date"]'), MOVED))
+    tap(panel.button('Done'))
+    tap(log.button('Save measurements'))
+    expect(day(PAST)).toBeNull()
+    expect(day(MOVED).waist).toBe(84)
+    runUndo()
+    expect(values(day(PAST))).toEqual({ waist: 85, chest: 100 })
+    expect(day(MOVED)).toBeNull()
+    expect(S().deleted.measurements[PAST]).toBeLessThan(0)
+    expect(S().deleted.measurements[MOVED]).toBeGreaterThan(0)
+  })
+
+  it('after the window an edit stays, and a new check-in offers no Undo', () => {
+    const { field, button } = openEdit()
+    act(() => type(field('Waist'), '84'))
+    tap(button('Save measurements'))
+    vi.advanceTimersByTime(9000)
+    runUndo()
+    expect(day().waist).toBe(84)
+    measurementLogSheet()
+    const log = renderTop()
+    act(() => type(log.field('Waist'), '83'))
+    tap(log.button('Save measurements'))
+    expect(useUI.getState().toastAction).toBeNull()
   })
 })
