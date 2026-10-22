@@ -29,18 +29,19 @@ export default function BigStepper({ label, value, step = 1, decimals, min = 0, 
   }
   const atMin = current <= min
   const atMax = max != null && current >= max
+  const glass = tone === 'stage' ? 'g-glass' : undefined
   return (
     <div className={cx('g-bstep', tone === 'stage' && 'g-bstep-stage')} role="group" aria-labelledby={label ? id : undefined}>
       {label && <span id={id} className="g-bstep-l">{label}</span>}
       <div className="g-bstep-row">
-        <button type="button" aria-label={lessLabel} aria-disabled={atMin || undefined} onClick={() => set(current - step)}>
+        <button type="button" className={glass} aria-label={lessLabel} aria-disabled={atMin || undefined} onClick={() => set(current - step)}>
           <Icon name="minus" className="g-icon" />
         </button>
         <span className="g-bstep-v" aria-live="polite">
           <b>{current.toFixed(places)}</b>
           {unit && <span>{unit}</span>}
         </span>
-        <button type="button" aria-label={moreLabel} aria-disabled={atMax || undefined} onClick={() => set(current + step)}>
+        <button type="button" className={glass} aria-label={moreLabel} aria-disabled={atMax || undefined} onClick={() => set(current + step)}>
           <Icon name="plus" className="g-icon" />
         </button>
       </div>

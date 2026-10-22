@@ -105,6 +105,11 @@ describe('Dock', () => {
     expect(dock().classList.contains('g-dock-hold')).toBe(false)
   })
 
+  it('is a bar on the glass material', () => {
+    view.render(<Dock state="running" routine="Push A" clock="23:10" />)
+    expect(dock().getAttribute('data-glass')).toBe('bar')
+  })
+
   it('is a landmark only when the caller names it', () => {
     view.render(<Dock state="running" routine="Push A" clock="23:10" label="Running workout" />)
     expect(dock().getAttribute('role')).toBe('region')

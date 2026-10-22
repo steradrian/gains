@@ -19,7 +19,7 @@ export default function InlineBanner({ icon = 'info', title, body, actions, stag
       </div>
       {actions?.length > 0 && (
         <div className="g-ibanner-acts">
-          {actions.map(a => <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-ibanner-btn', a.solid && 'g-ibanner-solid')}>{a.label}</Act>)}
+          {actions.map(a => <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-ibanner-btn', a.solid && 'g-ibanner-solid', stage && !a.solid && 'g-glass')}>{a.label}</Act>)}
         </div>
       )}
     </div>

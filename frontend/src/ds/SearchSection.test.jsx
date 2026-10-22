@@ -43,6 +43,7 @@ describe('GoToChips', () => {
     const chips = [...view.host.querySelectorAll('.g-goto-chip')]
     expect(chips.map(c => [c.tagName, c.textContent])).toEqual([['BUTTON', 'History'], ['A', 'Body']])
     expect(chips[0].querySelector('svg')).not.toBeNull()
+    expect(chips.map(c => c.getAttribute('data-glass'))).toEqual(['flat', 'flat'])
     click(chips[0])
     expect(onClick).toHaveBeenCalledTimes(1)
   })

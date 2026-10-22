@@ -28,6 +28,15 @@ describe('InlineBanner', () => {
     expect(banner().querySelector('.g-ibanner-body span')).toBeNull()
   })
 
+  it('on the stage its buttons are glass, except the solid one', () => {
+    view.render(<InlineBanner stage title="Offline" actions={[{ label: 'Retry', onClick: () => {} }, { label: 'Sign in', solid: true, onClick: () => {} }]} />)
+    const [retry, solid] = [...view.host.querySelectorAll('.g-ibanner-btn')]
+    expect(retry.classList.contains('g-glass')).toBe(true)
+    expect(solid.classList.contains('g-glass')).toBe(false)
+    view.render(<InlineBanner title="Offline" actions={[{ label: 'Retry', onClick: () => {} }]} />)
+    expect(view.host.querySelector('.g-ibanner-btn').classList.contains('g-glass')).toBe(false)
+  })
+
   it('on the stage it is glass, not a tone', () => {
     view.render(<InlineBanner stage title="That code didn’t work" />)
     expect(banner().classList.contains('g-glass')).toBe(true)

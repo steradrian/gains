@@ -217,9 +217,13 @@
 .g-ibanner-body span { font: 500 15px/20px var(--font-sans); color: var(--text-2); }
 .g-ibanner-stage .g-ibanner-body span { color: var(--on-stage-2); }
 .g-ibanner-acts { display: flex; gap: 8px; flex-wrap: wrap; }
-.g-ibanner-btn { appearance: none; border: 0; display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border-radius: var(--radius-pill); font: 700 15px/20px var(--font-sans); background: var(--surface); color: var(--accent-text); text-decoration: none; cursor: pointer; }
+.g-ibanner-btn { appearance: none; border: 0; display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border-radius: var(--radius-pill); font: 700 15px/20px var(--font-sans); color: var(--accent-text); text-decoration: none; cursor: pointer; }
+/* Liquid glass: the stage banner's buttons are .g-glass and take their fill from it, so the plain fill must not out-rank it. */
+.g-ibanner-btn:where(:not(.g-glass)) { background: var(--surface); }
 .g-ibanner-solid { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
-.g-ibanner-stage .g-ibanner-btn { background: var(--glass); color: var(--on-stage); }
+.g-ibanner-stage .g-ibanner-btn { color: var(--on-stage); }
+/* The old fill had no line and no blur; .g-glass adds both, so they are switched off to stay as it was. */
+.g-ibanner-stage .g-ibanner-btn.g-glass { box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .g-ibanner-stage .g-ibanner-solid { background: var(--stage-cta); color: var(--on-stage-cta); }
 
 /* GlassList (bundle.js): rows in one rounded card, on the stage or (light) in a drawer */
@@ -778,7 +782,7 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 /* Go to: glass chips scrolling sideways (the padding keeps their focus rings inside the scroller) */
 .g-goto-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 6px; scrollbar-width: none; }
 .g-goto-row::-webkit-scrollbar { display: none; }
-.g-goto-chip { appearance: none; border: 0; flex: none; height: 40px; padding-inline: 12px 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; color: var(--on-stage); font: 600 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-goto-chip { appearance: none; border: 0; flex: none; height: 40px; padding-inline: 12px 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; background: var(--glass); color: var(--on-stage); font: 600 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
 .g-goto-chip .g-icon { width: 18px; height: 18px; stroke-width: 2.1; }
 /* Rows on the stage; a card clips them, so their focus ring is drawn inside */
 .g-srow { appearance: none; border: 0; background: none; width: 100%; display: flex; align-items: center; text-align: start; font: inherit; color: inherit; cursor: pointer; text-decoration: none; }
@@ -860,13 +864,13 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sempty b { font: 700 24px/30px var(--font-sans); letter-spacing: -0.02em; }
 .g-sempty > span:not(.g-sempty-ic) { font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
 .g-sempty-acts { width: 100%; margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
-.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
-.g-sempty-btn.solid { background: var(--stage-cta); box-shadow: none; color: var(--on-stage-cta); }
+.g-sempty-btn { appearance: none; border: 0; width: 100%; min-height: 50px; box-sizing: border-box; padding: 8px 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--on-stage); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-sempty-btn.solid { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-sempty-btn .g-icon { width: 20px; height: 20px; }
 .g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
 .g-sempty-light { color: var(--text); }
 .g-sempty-light > span:not(.g-sempty-ic) { color: var(--text-3); }
-.g-sempty-light .g-sempty-btn { background: var(--surface-sunken); box-shadow: none; color: var(--text); }
+.g-sempty-light .g-sempty-btn { background: var(--surface-sunken); color: var(--text); }
 .g-sempty-light .g-sempty-btn.solid { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
 .g-sempty-light .g-sempty-btn:focus-visible { outline-color: var(--accent-text); }
 
@@ -984,7 +988,7 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-rail-nav { display: inline-flex; align-items: center; gap: 12px; }
 .g-rail-act { appearance: none; border: 0; padding: 0; background: none; display: inline-flex; align-items: center; gap: 2px; color: var(--on-stage-2); font: 600 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
 .g-rail-act .g-icon { width: 14px; height: 14px; stroke-width: 2.4; }
-.g-rail-btn { appearance: none; border: 0; padding: 0; width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); cursor: pointer; }
+.g-rail-btn { appearance: none; border: 0; padding: 0; width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); cursor: pointer; }
 .g-rail-btn .g-icon { width: 16px; height: 16px; stroke-width: 2.4; }
 /* ‹ is not drawn on this week (the board has only ›), but a keyboard still reaches earlier weeks */
 .g-rail-quiet:not(:focus-visible) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -1175,8 +1179,8 @@ a.g-drow:active, button.g-drow:active { background: var(--surface-press); }
 /* Chip: the stage filter chip. The look is 26px high; the tap area is padded out to 44px. */
 .g-fchip { appearance: none; border: 0; position: relative; flex: none; display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 10px; border-radius: 999px; font: 700 13px/16px var(--font-sans); white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
 .g-fchip::after { content: ""; position: absolute; inset: -9px -4px; }
-.g-fchip-stage { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); }
-.g-fchip-stage.on { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-fchip-stage { background: var(--glass); color: var(--on-stage); }
+.g-fchip-stage.on { background: var(--on-stage); color: var(--accent-text); }
 .g-fchip-stage:focus-visible { outline-color: var(--on-stage); }
 .g-fchip-n { font-variant-numeric: tabular-nums; }
 .g-fchip-caret { width: 14px; height: 14px; stroke-width: 2.4; margin-inline-start: 2px; }
@@ -1334,8 +1338,8 @@ button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
 .g-cgroup-scroll::-webkit-scrollbar { display: none; }
 .g-cchip { appearance: none; border: 0; flex: none; height: 38px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; font: 600 15px/20px var(--font-sans); background: var(--surface-sunken); color: var(--text); text-decoration: none; cursor: pointer; transition: background .2s, color .2s; }
 .g-cchip.on { background: var(--accent-fill); color: var(--on-accent); }
-.g-cgroup-stage .g-cchip { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); }
-.g-cgroup-stage .g-cchip.on { background: var(--on-stage); box-shadow: none; color: var(--accent-text); }
+.g-cgroup-stage .g-cchip { background: var(--glass); color: var(--on-stage); }
+.g-cgroup-stage .g-cchip.on { background: var(--on-stage); color: var(--accent-text); }
 @media (prefers-reduced-motion: reduce) { .g-sseg-thumb, .g-radio-mark, .g-cchip { transition: none; } }
 
 /* === Train routines list (T4.0–T4.4, T5.8) === */
@@ -1696,7 +1700,9 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-bstep { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; font-family: var(--font-sans); color: var(--text); }
 .g-bstep-l { font: 600 14px/18px var(--font-sans); color: var(--text-2); }
 .g-bstep-row { display: flex; align-items: center; justify-content: space-between; }
-.g-bstep-row button { appearance: none; border: 0; padding: 0; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1); }
+.g-bstep-row button { appearance: none; border: 0; padding: 0; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; transition: transform 140ms cubic-bezier(.32,.72,0,1); }
+/* Liquid glass: the stage tone's buttons are .g-glass and take their fill from it, so the plain fill must not out-rank it. */
+.g-bstep-row button:where(:not(.g-glass)) { background: var(--surface-sunken); }
 .g-bstep-row button:active { transform: scale(.92); }
 .g-bstep-row button[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 .g-bstep-row button[aria-disabled="true"]:active { transform: none; }
@@ -1707,7 +1713,7 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-bstep-h { text-align: center; font: 500 13px/16px var(--font-sans); color: var(--text-3); }
 .g-bstep-stage { color: var(--on-stage); }
 .g-bstep-stage .g-bstep-l, .g-bstep-stage .g-bstep-v span, .g-bstep-stage .g-bstep-h { color: var(--on-stage-2); }
-.g-bstep-stage .g-bstep-row button { background: var(--glass); color: var(--on-stage); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.g-bstep-stage .g-bstep-row button { color: var(--on-stage); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .g-bstep-stage .g-bstep-row button:focus-visible { outline-color: var(--on-stage); }
 @media (prefers-reduced-motion: reduce) { .g-bstep-row button { transition: none; } }
 /* ChatBubble (board T11.0): logical sides, so RTL mirrors the thread */
@@ -1852,7 +1858,9 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-wf-rb .g-icon { width: 16px; height: 16px; stroke-width: 2.8; flex: none; }
 .g-wf-skip { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-wf-go { flex: 2.4; background: var(--stage-cta); color: var(--on-stage-cta); }
-.g-wf-bar { --focus: var(--text); height: 84px; padding: 0 12px; border-radius: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--chrome-glass); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); box-shadow: var(--g-tabbar-shadow); }
+.g-wf-bar { --focus: var(--text); height: 84px; padding: 0 12px; border-radius: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; box-shadow: var(--g-tabbar-shadow); }
+/* Liquid glass: the bar is data-glass="bar"; the frosted chrome fill is only the fallback when the lens isn't drawing. */
+html:not([data-lg="gl"]) .g-wf-bar { background: var(--chrome-glass); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); }
 .g-wf-nb { appearance: none; width: 92px; height: 60px; flex: none; padding: 0; border: 0; border-radius: 30px; display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--text); background: var(--surface-sunken); text-decoration: none; cursor: pointer; }
 .g-wf-nb .g-icon { width: 20px; height: 20px; stroke-width: 2.6; }
 [dir="rtl"] .g-wf-chev { transform: scaleX(-1); }
@@ -2017,7 +2025,9 @@ a.g-mr-main:active, button.g-mr-main:active { background: var(--surface-press); 
 /* Dock: LiveDock's #timer host keeps the position (bottom, insets, the desktop column) and drops
    its old card, so the .g-dock is the only surface. */
 #timer.dock.g-dock-host { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; border-radius: 0; overflow: visible; box-shadow: none; display: block; }
-.g-dock { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); min-height: var(--dock-h); padding-block: 6px; padding-inline: var(--space-4) 6px; border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); overflow: hidden; font-family: var(--font-sans); }
+.g-dock { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); min-height: var(--dock-h); padding-block: 6px; padding-inline: var(--space-4) 6px; border-radius: var(--radius-lg); color: var(--text); box-shadow: var(--shadow-float); overflow: hidden; font-family: var(--font-sans); }
+/* Liquid glass: the dock is data-glass="bar"; the plain surface fill is only the fallback when the lens isn't drawing. */
+html:not([data-lg="gl"]) .g-dock { background: var(--surface); }
 .g-dock-hold { box-shadow: inset 0 0 0 2px var(--accent-fill), var(--shadow-float); }
 .g-dock-bar { position: absolute; top: 0; inset-inline: 0; height: 3px; background: var(--line); pointer-events: none; }
 .g-dock-bar i { display: block; height: 100%; background: var(--accent-fill); transform-origin: left center; transition: transform 1s linear; }
@@ -2450,8 +2460,8 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-sslider-input:disabled { opacity: .5; cursor: default; }
 
 .g-rmchips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 16px 0; }
-.g-rmchip { appearance: none; border: 0; height: 40px; padding: 0 14px 0 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; }
-.g-rmchip[aria-pressed="true"] { background: var(--stage-cta); box-shadow: none; color: var(--on-stage-cta); }
+.g-rmchip { appearance: none; border: 0; height: 40px; padding: 0 14px 0 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px; background: var(--glass); color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.g-rmchip[aria-pressed="true"] { background: var(--stage-cta); color: var(--on-stage-cta); }
 .g-rmchip:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 .g-rmchip-sw { width: 24px; height: 24px; flex: none; border-radius: 50%; background: var(--sw); box-shadow: inset 0 0 0 1px var(--glass-line); }
 .g-sswitch:disabled { opacity: .55; cursor: default; }

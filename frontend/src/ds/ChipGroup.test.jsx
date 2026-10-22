@@ -67,6 +67,13 @@ describe('ChipGroup', () => {
     expect(() => view.render(<ChipGroup label="Muscle" options={['a']} tone="dark" />)).toThrow(/tone="dark"/)
   })
 
+  it('stage chips are flat glass; light chips carry no glass attribute', () => {
+    view.render(<ChipGroup label="Muscle" options={['a', { value: 'b', href: '#/b' }]} tone="stage" />)
+    expect(chips().map(c => c.getAttribute('data-glass'))).toEqual(['flat', 'flat'])
+    view.render(<ChipGroup label="Muscle" options={['a']} />)
+    expect(chips()[0].hasAttribute('data-glass')).toBe(false)
+  })
+
   it('multi takes several: each tap toggles its chip and hands over the list it leaves', () => {
     const onChange = vi.fn()
     view.render(<ChipGroup multi label="Intensifier" options={['a', 'b', 'c']} onChange={onChange} />)

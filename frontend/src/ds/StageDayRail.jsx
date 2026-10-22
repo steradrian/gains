@@ -134,7 +134,7 @@ export default function StageDayRail({
   const arrow = (dir, label, can) => (
     <button
       type="button"
-      className={cx('g-rail-btn', dir < 0 && at === home && 'g-rail-quiet')}
+      className={cx('g-rail-btn g-glass', dir < 0 && at === home && 'g-rail-quiet')}
       aria-label={label}
       aria-disabled={can ? undefined : 'true'}
       onClick={() => { if (can) go(at + dir) }}
