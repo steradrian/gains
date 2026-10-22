@@ -1,0 +1,26 @@
+/* The running workout's exercise drawers (exercise-drawers.jsx): light DS drawers. Tokens only;
+   logical properties; nothing here clips with overflow, so the steppers', chips' and rows' focus
+   rings stay whole (the chip row scrolls inside its own padding). */
+.wkd-body { display: flex; flex-direction: column; gap: 16px; padding-block-end: 8px; text-align: start; }
+.wkd-group { display: flex; flex-direction: column; gap: 12px; }
+.wkd-h, .wkd-extra-h { margin: 0; font: 700 15px/20px var(--font-sans); color: var(--text-2); text-align: start; }
+.wkd-extra-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wkd-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding-block-start: 12px; }
+.wkd-foot .g-btn { height: 54px; }
+
+.wkd-note { display: flex; flex-direction: column; gap: 8px; font: 600 15px/20px var(--font-sans); color: var(--text-2); }
+.wkd-note textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 0; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text); font: 500 16px/22px var(--font-sans); text-align: start; resize: vertical; }
+.wkd-note textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.wkd-intro { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-sunken); }
+.wkd-intro p, .wkd-line, .wkd-sub { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-2); text-align: start; }
+.wkd-sub { color: var(--text-3); padding-block-end: 6px; }
+.wkd-pinned { display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 14px; border-radius: var(--radius-md); background: var(--surface-sunken); }
+.wkd-pinned p { flex: 1; min-width: 0; margin: 0; font: 600 15px/21px var(--font-sans); color: var(--text); text-align: start; }
+.wkd-facts { margin: 0; display: flex; flex-direction: column; gap: 2px; font: 500 15px/21px var(--font-sans); color: var(--text-2); text-align: start; }
+.wkd-facts b { color: var(--text); }
+
+.wkd-chips { padding: 10px 2px 4px; }
+.wkd-swap { display: flex; flex-direction: column; padding-block: 4px 8px; }
+.wkd-swap .wkd-line { padding-block-end: 8px; }
+.wkd-scope { display: flex; flex-direction: column; gap: 4px; padding-block-start: 8px; }

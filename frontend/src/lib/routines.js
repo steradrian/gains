@@ -4,6 +4,7 @@ import { isAssisted, isBodyweightEq, isCardio } from './exercises.js'
 import { loggedModeOf } from './custom-exercise.js'
 import { sessionsFor } from './progression.js'
 import { isWarmupRow } from './workout-model.js'
+import { partOf } from './workout-parts.js'
 
 /**
  * Create a deep copy of a routine with a new id and a "(Copy)" suffix.
@@ -199,7 +200,8 @@ function setupOf(entry) {
 /**
  * What a running session's exercise would change in its routine, or null when there is nothing
  * to change: the exercise has no routine slot, or the slot already says what the session did.
- * `changes` are `{ key, from, to }` for `warmupSets`, `restSec` and `note`.
+ * `changes` are `{ key, from, to }` for `warmupSets`, `restSec`, `note` and `part` (the part of
+ * the workout, 'warmup' | 'main' | 'cooldown').
  *
  * Warm-ups added in a session used to last that session only, and so did anything edited on the
  * exercise's settings sheet from inside it (Progression settings opens the same sheet the routine
@@ -217,6 +219,9 @@ export function routineChangesFromEntry(routine, entries, idx) {
     const from = key === 'note' ? String(slot.note || '').trim() : Math.max(0, Math.round(Number(slot[key])) || 0)
     if (from !== now[key]) changes.push({ key, from, to: now[key] })
   }
+  // The part of the workout (lib/workout-parts.js), moved in the session's exercise settings.
+  const fromPart = partOf(slot), toPart = partOf(entries[idx])
+  if (fromPart !== toPart) changes.push({ key: 'part', from: fromPart, to: toPart })
   return changes.length ? { at, changes } : null
 }
 
@@ -230,7 +235,8 @@ export function updateRoutineFromEntry(routine, entries, idx) {
   if (!found) return null
   const slot = routine.ex[found.at]
   for (const { key, to } of found.changes) {
-    if (to) slot[key] = to
+    if (key === 'part' && to === 'main') delete slot.part
+    else if (to) slot[key] = to
     else delete slot[key]
   }
   return found.changes

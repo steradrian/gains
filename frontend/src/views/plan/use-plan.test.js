@@ -11,7 +11,7 @@ import { alsoFixedOf, isEmpty, loopOf, loopState, planWeeks, subOf, volumeOf, we
 
 vi.mock('../../sheets.jsx', () => ({
   confirmSheet: vi.fn(), menuSheet: vi.fn(), dayOverrideSheet: vi.fn(), planToolsSheet: vi.fn(), starterPlanSheet: vi.fn(),
-  workoutDetailSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), startFlow: vi.fn(),
+  workoutDetailSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), readyOrStart: vi.fn(),
   logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(),
 }))
 

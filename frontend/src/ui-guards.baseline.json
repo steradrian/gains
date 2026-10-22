@@ -8,20 +8,18 @@
     "sheets/exercise.jsx": 1,
     "sheets/import.jsx": 18,
     "sheets/workout-detail.jsx": 21,
-    "sheets/workout-flow.jsx": 67,
+    "sheets/workout-flow.jsx": 26,
     "views/Admin.jsx": 29,
     "views/AdminCoach.jsx": 6,
     "views/CoachIntake.jsx": 2,
     "views/CoachSetup.jsx": 9,
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
-    "views/StructuralBalance.jsx": 8,
-    "views/Workout.jsx": 18
+    "views/StructuralBalance.jsx": 8
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 58,
-    "views/FocusView.css": 1
+    "index.css": 56
   },
   "G2js": {
     "brand.js": 2,
@@ -36,18 +34,14 @@
   "G3": {
     "components/DurationWheel.jsx": 1,
     "components/ServerSync.jsx": 1,
-    "components/WorkoutChips.jsx": 1,
-    "components/WorkoutSettingsSheet.jsx": 1,
     "sheets/confirm-menu.jsx": 3,
     "sheets/exercise-config.jsx": 10,
     "sheets/exercise.jsx": 2,
     "sheets/import.jsx": 10,
     "sheets/workout-detail.jsx": 7,
-    "sheets/workout-flow.jsx": 28,
+    "sheets/workout-flow.jsx": 11,
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
-    "views/FocusView.jsx": 4,
-    "views/Workout.jsx": 3,
     "views/train/load/LoadBalance.jsx": 1,
     "views/train/load/LoadEffort.jsx": 2
   },

@@ -8,7 +8,6 @@ import { restSoundOf } from '../../../lib/rest-sounds.js'
 import { REST_PAUSE_MIN, REST_PAUSE_MAX, fmtRest, fmtDuration } from '../../../lib/duration.js'
 import { durationSheet } from '../../../components/DurationWheel.jsx'
 import Icon from '../../../components/Icon.jsx'
-import LayoutTile from '../../../ds/LayoutTile.jsx'
 import StageNote from '../../../ds/StageNote.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
 import StageSegmented from '../../../ds/StageSegmented.jsx'
@@ -21,7 +20,6 @@ import { openEffortHelpSheet } from './effort-help-sheet.jsx'
 import { openRestSoundSheet, REST_SOUND_LABEL } from './rest-sound-sheet.jsx'
 import { openRestTimerSheet } from './rest-timer-sheet.jsx'
 
-const LAYOUTS = [['cards', 'Cards'], ['list', 'List'], ['compact', 'Compact'], ['focus', 'Focus']]
 const EFFORT_LABEL = { none: 'Off', rir: 'RIR', rpe: 'RPE' }
 
 // Workout screen (board St1Workout, A1.14): how the workout looks, what a rest does when it ends,
@@ -33,11 +31,9 @@ export default function WorkoutPage() {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const { wakeOK, canVibrate, android } = useSettingsCtx()
-  const layout = LAYOUTS.some(([v]) => v === S.workoutView) ? S.workoutView : 'cards'
   const effort = effortOf(S)
   const iPhone = appleTouchDevice()
   const line = [
-    t(LAYOUTS.find(([v]) => v === layout)[1]),
     t(EFFORT_LABEL[effort] || 'Off'),
     S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer'),
   ].join(' · ')
@@ -46,13 +42,6 @@ export default function WorkoutPage() {
   return (
     <SettingsPage title={t('Workout screen')} line={line}>
       <div className="set-body">
-        <StageSection variant="label" title={t('Layout')} />
-        <div className="set-tiles" role="radiogroup" aria-label={t('Layout')}>
-          {LAYOUTS.map(([v, label]) => (
-            <LayoutTile key={v} layout={v} label={t(label)} selected={layout === v} tabIndex={layout === v ? 0 : -1} onClick={() => set('workoutView', v)} />
-          ))}
-        </div>
-
         <StageSection variant="label" title={t('On each exercise')} />
         <div className="g-glist g-glass">
           <SettingRow icon="gauge" title={t('Effort per set')} sub={t('RIR: reps left in the tank. RPE: 1 to 10')}
@@ -107,11 +96,6 @@ export default function WorkoutPage() {
 
         <StageSection variant="label" title={t('During a workout')} />
         <div className="g-glist g-glass">
-          {/* On: every session starts with it; setting it here also drops a running session's own
-              choice, so the switch does what it says right away (#241). */}
-          <SettingRow icon="minimize" title={t('Collapse completed exercises')} sub={t('Done exercises fold to one line')}
-            trailing={<StageSwitch label={t('Collapse completed exercises')} checked={!!S.collapseCompleted}
-              onChange={v => update(s => { s.collapseCompleted = v; if (s.active) delete s.active.collapseCompleted })} />} />
           <SettingRow icon="scale" title={t('Weigh in before workouts')} sub={t('Asks for your body weight when a workout starts. Off starts the session straight away.')}
             trailing={<StageSwitch label={t('Weigh in before workouts')} checked={S.weighIn !== false} onChange={v => set('weighIn', v)} />} />
           {(wakeOK || !MOBILE) && (wakeOK
@@ -121,7 +105,7 @@ export default function WorkoutPage() {
         </div>
 
         <div className="g-glist g-glass">
-          <SettingRow icon="wrench" title={t('Fine-tuning')} sub={t('Steppers, swipe actions, chips, shortcuts')} onClick={() => nav(settingsPath('advanced'))} />
+          <SettingRow icon="wrench" title={t('Fine-tuning')} sub={t('Swipe actions')} onClick={() => nav(settingsPath('advanced'))} />
         </div>
       </div>
     </SettingsPage>

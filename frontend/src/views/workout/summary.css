@@ -1,0 +1,27 @@
+/* === Workout finish M2: summary === */
+/* W2.0 Wk2Summary and W2.2 Wk2First: the eyebrow and × on the kit's top row (.g-wtop), the title
+   and date, the tiles, then the sections (.g-ssec) over glass cards, and the white Done. */
+.g-sum { padding-block-end: calc(32px + var(--sab, 0px)); color: var(--on-stage); font-family: var(--font-sans); text-align: start; }
+.g-sum-empty { display: flex; min-height: 70vh; align-items: center; justify-content: center; }
+.g-sum-eyebrow { flex: 1; min-width: 0; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-sum-head { padding: 18px 20px 16px; }
+.g-sum-title { margin: 0; font: 700 34px/40px var(--font-sans); letter-spacing: -0.03em; }
+.g-sum-date { margin: 6px 0 0; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-sum-pad { padding-inline: 16px; }
+.g-sum-first { margin: 0 16px; padding: 14px 16px; border-radius: 24px; font: 500 16px/22px var(--font-sans); }
+.g-sum-down { background: var(--phase-warm); color: var(--phase-ink); }
+.g-sum .g-glist-row:focus-visible, .g-sum .g-xrow:focus-visible { outline-offset: -3px; outline-color: var(--on-stage); }
+.g-sum-note { border-radius: 28px; padding: 12px 16px; }
+.g-sum-note textarea { display: block; inline-size: 100%; min-block-size: 88px; box-sizing: border-box; resize: vertical; border: 0; padding: 0; background: none; color: var(--on-stage); font: 500 16px/22px var(--font-sans); text-align: start; }
+.g-sum-note textarea::placeholder { color: var(--on-stage-2); }
+.g-sum-note textarea:focus-visible { outline: none; }
+.g-sum-note:focus-within { box-shadow: inset 0 0 0 2px var(--on-stage); }
+/* WorkoutMediaSection is drawn for a light surface: it gets one here, and its own small heading
+   gives way to the section's. When it renders nothing, the section goes with it. */
+.g-sum-media { border-radius: 28px; padding: 16px; background: var(--surface); color: var(--text); }
+.g-sum-media .wmedia { margin: 0; }
+.g-sum-media .wmedia-h { display: none; }
+.g-sum-mediasec:has(.g-sum-media:empty) { display: none; }
+.g-sum-done { padding: 28px 16px 0; }
+.g-sum-done .g-btn { block-size: 60px; background: var(--on-stage); color: var(--accent-text); font: 800 18px/22px var(--font-sans); }
+.g-sum .g-sempty-card { margin-block-start: 48px; }

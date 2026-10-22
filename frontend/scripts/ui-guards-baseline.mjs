@@ -17,7 +17,7 @@ export const BASELINE = join(SRC, 'ui-guards.baseline.json')
 export const LOWER = 'lower the baseline: run scripts/ui-guards-baseline.mjs'
 
 // The CSS that predates the kit. Every other stylesheet is new and held to G7.
-export const LEGACY_CSS = ['admin.css', 'coach.css', 'index.css', 'tab-shell.css', 'views/FocusView.css']
+export const LEGACY_CSS = ['admin.css', 'coach.css', 'index.css', 'tab-shell.css']
 // The only stylesheets whose :root rules may define colour tokens: the theme, the kit's tokens and
 // the design system's (src/ds), whose root is .g-root rather than :root.
 export const THEME_FILES = ['index.css', 'ui-kit.css', 'ds/tokens.css']
@@ -33,11 +33,12 @@ export const PRIMITIVE_FILES = [
 // PlansScreen, PlanPreview, CoachChat, History, TrainingLoad, LoadMuscleScreen (a muscle's
 // training-load page), RoutinesScreen and RoutineEditor are pushed pages on the stage (StagePage).
 // Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
-// design system's StageNavBar. A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
+// design system's StageNavBar. WorkoutRoute and SummaryScreen are the workout's full screens
+// (StageScreen, no tab bar). A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
 // SettingsRoute (PR-06) only picks the page: the chrome is in views/Settings.jsx and settings/SettingsPageHost.jsx,
 // in other files than the route, which this guard cannot follow. GymPassPage (Gym check-in, route
 // /train/checkin) draws its chrome through settings/SettingsPage.jsx, a StagePage in another file.
-export const PAGE_EXEMPT = ['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FocusView', 'FoodHub', 'FoodRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'Workout']
+export const PAGE_EXEMPT = ['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodHub', 'FoodRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
@@ -405,7 +406,7 @@ export function routeViewsWithoutPage(src = SRC) {
 export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx']
 const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
 const exemptView = file => PAGE_EXEMPT.some(name =>
-  file === `views/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
+  file === `views/${name}.jsx` || file === `views/workout/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
 
 // Every place a page chooses its own header: importing a header component past <Page>, building
 // a header's classes by hand, or handing <Page> a class or a style of its own. `file: what`.

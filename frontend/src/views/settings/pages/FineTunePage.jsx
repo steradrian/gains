@@ -31,13 +31,8 @@ export default function FineTunePage() {
             trailing={<StageSwitch label={t('Keep timing after target')} checked={!!S.timedSetOvertime} onChange={v => update(s => { s.timedSetOvertime = v })} />} />
         </div>
         <div className="g-glist g-glass">
-          {wcRow('steppers', 'plusCircle', t('Weight and reps buttons'), t('− and + next to every number'))}
-          {wcRow('setShortcuts', 'bolt', t('Drop and burst shortcuts'), t('On every set row'))}
           {/* One switch covers Plan's lists too; the stored key keeps its old name, swipeSets. */}
           {wcRow('swipeSets', 'swap', t('Swipe actions'), t('Sets, routines and the loop: left removes, right copies'))}
-          {wcRow('exerciseChips', 'more', t('Exercise chips at the top'), t('A numbered dot per exercise, filled as you go. Tap one to jump there.'))}
-          {wcRow('pairButtons', 'link', t('Superset buttons in the header'), t('Pair two exercises'))}
-          {wcRow('exerciseButtons', 'swap', t('Move, swap and remove buttons'), t('Below each exercise'))}
         </div>
         <StageNote>{t('For people who want it exactly their way. The defaults are what most of the group uses.')}</StageNote>
       </div>

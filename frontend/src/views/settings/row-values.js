@@ -3,6 +3,7 @@ import { COACH_COMING_SOON } from '../../lib/coach-availability.js'
 import { defaultBarWeight } from '../../lib/bar.js'
 import { fmtAgo } from '../../lib/format.js'
 import { effortOf } from '../../lib/history.js'
+import { fmtRest } from '../../lib/duration.js'
 import { draftOf } from '../../lib/nutrition/goals.js'
 import { settingOf } from '../../lib/nutrition/use-nt-settings.js'
 import { accentLabel } from '../../lib/themes.js'
@@ -64,8 +65,6 @@ const countOf = (ctx, key) => (ctx.ntSettings ? String((settingOf(ctx.ntSettings
  */
 export function rowValues({ S, ctx, lang, coachLocal = null, host = null, synced = null }) {
   const nt = ctx.ntSettings
-  const layout = ['list', 'compact'].includes(S.workoutView) ? S.workoutView : 'cards'
-  const layoutLabel = { cards: t('Cards'), list: t('List'), compact: t('Compact') }[layout]
   const effort = EFFORT_LABEL[effortOf(S)]
   const g = goals(ctx)
   const reminders = remindersOn(S, ctx)
@@ -75,7 +74,7 @@ export function rowValues({ S, ctx, lang, coachLocal = null, host = null, synced
     units: { value: (S.unit || 'kg') + ' · ' + (LANGS[lang] || lang) },
     reminders: { value: reminders ? t('{0} on', reminders) : t('Off') },
     features: { value: featuresValue(S, ctx) },
-    workout: { value: effort ? layoutLabel + ' · ' + effort : layoutLabel },
+    workout: { value: [effort, S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')].filter(Boolean).join(' · ') },
     schedule: { value: scheduleModeOf(S) === 'rotation' ? t('Rotation') : t('Fixed Week') },
     equipment: { value: equipmentValue(S) },
     coach: { value: COACH_COMING_SOON ? t('Coming soon') : coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off') },

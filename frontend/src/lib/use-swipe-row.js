@@ -6,12 +6,11 @@ import { vibrate } from './sound.js'
 // toward the start of the line (left in a left-to-right language, right in Arabic) deletes, toward
 // the end copies. A short swipe leaves the row open on a button; a long one, or a flick, acts on
 // release. Everything below is in that logical sense: a negative offset is toward the start and
-// is turned into pixels only when painted, the way SwipeCards does it.
+// is turned into pixels only when painted.
 //
 // The row is almost all controls (the set number, the steppers, the value fields, the tick), so a
 // swipe may start on any of them, and a tap must still be a tap. Nothing is captured until the
-// touch has gone 8 px and clearly sideways (1.5 times more x than y, the same lock SwipeCards
-// uses); a touch that goes vertical first is the page's scroll for the rest of its life. Once
+// touch has gone 8 px and clearly sideways (1.5 times more x than y); a touch that goes vertical first is the page's scroll for the rest of its life. Once
 // locked, the pointer is captured, the next click is swallowed, so the ± or tick under the finger
 // does not fire after the swipe, and a field that took focus on the way in lets it go again.
 //

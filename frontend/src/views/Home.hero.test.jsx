@@ -10,14 +10,14 @@ import { useStore } from '../store/useStore.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { isoOf, todayISO } from '../lib/format.js'
 import { isoWeekOf } from '../lib/day-route.js'
-import { startFlow, workoutDetailSheet } from '../sheets.jsx'
+import { readyOrStart, workoutDetailSheet } from '../sheets.jsx'
 import Home from './Home.jsx'
 
 const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/home' }) }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(), menuSheet: vi.fn(),
-  calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
+  calendarSheet: vi.fn(), readyOrStart: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
 }))
 // The Week page opens through the app's own navigate (lib/day-route.js navToWeek).
@@ -51,12 +51,12 @@ const row = () => host.querySelector('.g-grow')
 const tap = el => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
 
 describe('Today — Up next', () => {
-  it('a planned day: training today, the routine and its exercises; the play starts it', () => {
+  it('a planned day: training today, the routine and its exercises; the play opens its Ready', () => {
     setS(); mountToday()
     expect(upNext()).toEqual(['Training today', 'Push', '2 exercises'])
     expect(row().querySelector('.g-trail-solid')).toBeTruthy()
     tap(row())
-    expect(startFlow).toHaveBeenCalledWith(['r1'])
+    expect(readyOrStart).toHaveBeenCalledWith(['r1'])
   })
 
   it('a day changed in the plan says so', () => {
@@ -72,7 +72,7 @@ describe('Today — Up next', () => {
     expect(upNext()[2]).toMatch(/^Next: Push, \w+$/)
     tap(row())
     expect(nav).toHaveBeenCalledWith('/train/schedule')
-    expect(startFlow).not.toHaveBeenCalled()
+    expect(readyOrStart).not.toHaveBeenCalled()
   })
 
   it('a rest day before a session tomorrow says tomorrow (T1.13)', () => {

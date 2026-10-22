@@ -87,10 +87,10 @@ describe('T5.8 the routine menu', () => {
     expect(items(openMenu('empty'))[1]).toEqual(['Plan days', 'Not in your Plan'])
   })
 
-  it('Start starts it; an empty routine opens its editor; a running workout is gone back to', () => {
+  it('Start opens Ready for it; an empty routine opens its editor; a running workout is gone back to', () => {
     tap(openMenu(), 'Start Push A')
-    expect(S().active).toBeTruthy()
-    expect(S().active.entries.length).toBe(1)
+    expect(S().active).toBeFalsy()
+    expect(navigated).toBe('/train/workout?start=push')
 
     install()
     tap(openMenu('empty'), 'Start Empty')

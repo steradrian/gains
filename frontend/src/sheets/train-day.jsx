@@ -19,7 +19,7 @@ import Tag from '../ds/Tag.jsx'
 import { addRoutine } from '../views/routines/routine-actions.js'
 import { dayNoteSheet, dayOverrideSheet, importPlanFile, PLAN_FILE_ACCEPT } from './plan.jsx'
 import { restDayWithUndo, routineSub } from './plan-day.jsx'
-import { repeatWorkout, startFlow } from './workout-flow.jsx'
+import { readyOrStart, repeatWorkout } from './workout-flow.jsx'
 import { drawerFlow } from '../store/useUI.js'
 import { S, ui } from './shared.js'
 
@@ -76,7 +76,8 @@ function ActionRow({ icon, title, sub, first, onClick }) {
 
 // T2.1 Start a workout: today's planned session first, the other routines, a missed day's routine
 // last (named, as the missed-day banner names it), then Freestyle and the latest workout again.
-// Every start goes through startFlow, which asks the weigh-in first unless it is off. A routine
+// A routine opens Ready (readyOrStart), whose Start workout asks the weigh-in; Freestyle starts at
+// once, after the weigh-in unless it is off. A routine
 // with no exercises opens its editor instead, as the routine tile's ▶ does. A coach week's or
 // rotation's sessions wear their state: a done one is inert (starting it again earns no credit),
 // the next one is "Up next"; the week's name and progress sit under the title. With no routines
@@ -85,7 +86,7 @@ function StartChooserDrawer({ close }) {
   const st = useStore(s => s.S)
   const { today, others, missed, last } = useStartChoices()
   const fileRef = useRef(null)
-  const start = ids => { close(); startFlow(ids) }
+  const start = ids => { close(); readyOrStart(ids) }
   const open = r => (r.routines.every(x => !x.ex?.length) ? closeThenNav(close, '/train/routines/' + r.routines[0].id) : start(r.ids))
   const qv = queueView(st, todayISO())
   const stateOf = id => qv?.items.find(i => i.id === id)?.state

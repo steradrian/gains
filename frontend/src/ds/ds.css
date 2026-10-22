@@ -1720,6 +1720,342 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 [dir="rtl"] .g-bubble-me { border-radius: 22px 22px 22px 6px; }
 .g-bubble-error { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--danger) 70%, transparent); }
 
+/* === Workout screen kit (WorkoutTopBar, PhaseProgress, SupersetSwitch, ExerciseHero, DoneSetRows, CurrentSet, SetStepper, PlateLine, TimedHold, WorkoutFooter, BarToast; boards W1.*) === */
+/* On the stage, white on the accent gradient. Phase tones (--phase-warm, --phase-cool, --phase-ink)
+   are in tokens.css and are for this screen only. The stage already sets --focus to white; the
+   footer bar is light glass, so it sets its own. */
+.g-wkimg { display: block; flex: none; background: var(--g-white); object-fit: cover; }
+.g-wkimg-lg { width: 96px; height: 96px; border-radius: 24px; }
+.g-wkimg-md { width: 44px; height: 44px; border-radius: 14px; }
+.g-wkimg-sm { width: 36px; height: 36px; border-radius: 10px; }
+
+/* WorkoutTopBar */
+.g-wtop { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-wtop-btn { appearance: none; border: 0; width: 44px; height: 44px; flex: none; padding: 0; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); text-decoration: none; cursor: pointer; }
+.g-wtop-btn .g-icon { width: 22px; height: 22px; }
+.g-wtop-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch; text-align: center; }
+.g-wtop-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-wtop-clock { font: 500 24px/28px var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.g-wtop-status { display: flex; align-items: center; justify-content: center; gap: 4px; font: 600 12px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-wtop-status .g-icon { width: 12px; height: 12px; flex: none; }
+.g-wtop-finish { appearance: none; border: 0; height: 44px; padding: 0 18px; flex: none; border-radius: var(--radius-pill); display: inline-flex; align-items: center; background: var(--stage-cta); color: var(--on-stage-cta); font: 700 16px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+
+/* PhaseProgress: the open phase is a row of segments, the others fold into pills. The current
+   segment's ring is drawn outside it, so the bar keeps its padding and its focus ring goes inside. */
+.g-pp { appearance: none; background: none; border: 0; width: 100%; display: flex; align-items: center; gap: 8px; padding: 16px 20px 0; color: var(--on-stage); text-align: start; text-decoration: none; cursor: pointer; }
+.g-pp:focus-visible { outline-offset: -4px; }
+.g-pp-warm { --pc: var(--phase-warm); }
+.g-pp-main { --pc: var(--on-stage); }
+.g-pp-cool { --pc: var(--phase-cool); }
+.g-pp-run { flex: 1; min-width: 0; display: flex; gap: 4px; align-items: center; }
+.g-pp-long { gap: 3px; }
+.g-pp-seg { flex: 1; min-width: 4px; height: 6px; border-radius: 3px; background: var(--glass-track); }
+.g-pp-cur { background: linear-gradient(to right, var(--pc) var(--fill, 0%), var(--glass-track) var(--fill, 0%)); box-shadow: 0 0 0 2px var(--accent-stage), 0 0 0 3.5px var(--pc); }
+[dir="rtl"] .g-pp-cur { background: linear-gradient(to left, var(--pc) var(--fill, 0%), var(--glass-track) var(--fill, 0%)); }
+.g-pp-seg-done { background: var(--pc); }
+.g-pp-pill { flex: none; width: 34px; height: 18px; border-radius: 9px; display: grid; place-items: center; color: var(--pc); font: 800 11px/1 var(--font-sans); box-shadow: inset 0 0 0 1.5px var(--pc); }
+.g-pp-pill .g-icon { width: 12px; height: 12px; stroke-width: 3.4; }
+.g-pp-done { background: var(--pc); color: var(--phase-ink); box-shadow: none; }
+
+/* SupersetSwitch */
+.g-ssw-wrap { margin: 16px 16px 0; }
+.g-ssw { padding: 4px; border-radius: var(--radius-pill); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g-ssw-s { appearance: none; border: 0; min-width: 0; height: 44px; padding: 0 8px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; gap: 6px; background: none; color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; transition: background-color 320ms cubic-bezier(.34,1.22,.64,1); }
+.g-ssw-s span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-ssw-s.on { background: var(--stage-cta); color: var(--on-stage-cta); font-weight: 700; }
+.g-ssw-note { margin: 8px 4px 0; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+
+/* ExerciseHero */
+.g-xh { color: var(--on-stage); }
+.g-xh-swipe { touch-action: pan-y; }
+.g-xh-part { margin: 0; padding: 10px 20px 0; font: 700 13px/16px var(--font-sans); letter-spacing: 0.02em; }
+.g-xh-row { display: flex; gap: 16px; align-items: center; padding: 18px 20px 0; }
+.g-xh-pic { appearance: none; position: relative; flex: none; display: block; padding: 0; border: 0; border-radius: 24px; background: none; color: inherit; cursor: pointer; }
+.g-xh-play { position: absolute; inset-inline-end: -4px; bottom: -4px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--g-toast); color: var(--g-white); box-shadow: 0 0 0 3px var(--accent-stage); }
+.g-xh-play .g-icon { width: 13px; height: 13px; stroke-width: 2.6; }
+[dir="rtl"] .g-xh-play .g-icon { transform: scaleX(-1); }
+.g-xh-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-xh-name { font: 700 25px/30px var(--font-sans); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.g-xh-long { font-size: 21px; line-height: 26px; }
+.g-xh-meta { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-xh-dots { display: flex; gap: 5px; margin-top: 8px; }
+.g-xh-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--glass-track); }
+.g-xh-done { background: var(--on-stage); opacity: .6; }
+.g-xh-now { width: 18px; background: var(--on-stage); }
+.g-xh-new { appearance: none; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 30px; margin-top: 8px; padding: 6px 12px; border: 0; border-radius: 15px; background: var(--stage-cta); color: var(--on-stage-cta); font: 700 13px/16px var(--font-sans); text-align: start; text-decoration: none; cursor: pointer; }
+.g-xh-new .g-icon { width: 14px; height: 14px; flex: none; }
+.g-xh-more { appearance: none; width: 44px; height: 44px; flex: none; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); text-decoration: none; cursor: pointer; }
+.g-xh-more .g-icon { width: 22px; height: 22px; }
+.g-xh-note { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 22px 0; font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-xh-note .g-icon { width: 15px; height: 15px; flex: none; }
+
+/* DoneSetRows: a row is the card's whole width, so its focus ring goes inside */
+.g-dsr { margin: 16px 16px 0; border-radius: 22px; }
+.g-dsr-row { appearance: none; width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 0; border-radius: 22px; background: none; color: var(--on-stage); text-align: start; text-decoration: none; font: 600 16px/20px var(--font-sans); cursor: pointer; }
+.g-dsr-row:focus-visible { outline-offset: -3px; }
+.g-dsr-tick { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--stage-cta); color: var(--on-stage-cta); }
+.g-dsr-tick .g-icon { width: 14px; height: 14px; stroke-width: 3.2; }
+.g-dsr-warm .g-dsr-tick { background: none; color: var(--on-stage); box-shadow: inset 0 0 0 1.5px var(--glass-line); }
+.g-dsr-n { flex: 1; min-width: 0; }
+.g-dsr-best { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: var(--radius-pill); background: var(--g-best-fill); color: var(--g-best-ink); font: 800 11px/14px var(--font-sans); white-space: nowrap; }
+.g-dsr-best .g-icon { width: 12px; height: 12px; stroke-width: 2.6; }
+.g-dsr-v { font-variant-numeric: tabular-nums; }
+
+/* SetStepper */
+.g-sst { flex: 1; min-width: 0; border-radius: 24px; padding: 12px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--on-stage); }
+.g-sst-l { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.g-sst-row { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+.g-sst-b { appearance: none; border: 0; width: 48px; height: 48px; flex: none; padding: 0; border-radius: 50%; display: grid; place-items: center; color: var(--on-stage); background: var(--g-wk-btn); cursor: pointer; touch-action: manipulation; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
+.g-sst-b:active { transform: scale(.92); }
+.g-sst-b .g-icon { width: 22px; height: 22px; stroke-width: 2.6; }
+.g-sst-v { appearance: none; flex: 1; width: 0; min-width: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--on-stage); text-align: center; font: 700 38px/44px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-sst-h { font: 500 12px/16px var(--font-sans); color: var(--on-stage-2); text-align: center; }
+
+/* CurrentSet and PlateLine */
+.g-cs { color: var(--on-stage); }
+.g-cs-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 20px 20px 10px; }
+.g-cs-head b { font: 700 19px/24px var(--font-sans); }
+.g-cs-head span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); text-align: end; }
+.g-cs-row { display: flex; gap: 10px; padding: 0 16px; }
+.g-cs-bw { appearance: none; flex: 1; min-width: 0; padding: 12px; border: 0; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--on-stage); text-decoration: none; cursor: pointer; }
+.g-cs-bw b { font: 700 22px/26px var(--font-sans); }
+.g-plline { appearance: none; width: calc(100% - 32px); margin: 10px 16px 0; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-radius: 16px; color: var(--on-stage); text-align: start; text-decoration: none; font: 600 14px/18px var(--font-sans); cursor: pointer; }
+.g-plline span { flex: 1; min-width: 0; }
+.g-plline .g-icon { width: 16px; height: 16px; flex: none; }
+[dir="rtl"] .g-plline-chev { transform: scaleX(-1); }
+
+/* TimedHold */
+.g-th { color: var(--on-stage); --th-ring: var(--on-stage); }
+.g-th-warm { --th-ring: var(--phase-warm); }
+.g-th-cool { --th-ring: var(--phase-cool); }
+.g-th-ring { position: relative; width: 210px; height: 210px; margin: 22px auto 0; }
+.g-th-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.g-th-trk { fill: none; stroke: var(--glass-track); stroke-width: 14; }
+.g-th-arc { fill: none; stroke: var(--th-ring); stroke-width: 14; stroke-linecap: round; stroke-dasharray: var(--c); stroke-dashoffset: var(--o); transition: stroke-dashoffset 1s linear; }
+.g-th-c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.g-th-c > span { font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-th-c b { font: 500 52px/56px var(--font-mono); font-variant-numeric: tabular-nums; }
+.g-th-c small { width: min(160px, 100%); font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-th-btns { display: flex; gap: 10px; padding: 22px 16px 0; }
+.g-th-b { appearance: none; border: 0; flex: 1; min-width: 0; height: 56px; padding: 0 12px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: var(--on-stage); font: 700 17px/22px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-th-b .g-icon { width: 18px; height: 18px; flex: none; }
+.g-th-main { flex: 1.4; background: var(--stage-cta); color: var(--on-stage-cta); font-weight: 800; }
+.g-th-note { margin: 14px 20px 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+
+/* WorkoutFooter: the bar is light glass over the stage; the box lets taps through to the page under
+   its gradient, and its controls take them. The ‹ › mirror in rtl. */
+.g-wf { position: absolute; inset-inline: 0; bottom: 0; padding: 40px 12px calc(14px + var(--sab, 0px)); background: linear-gradient(to bottom, var(--g-black-clear), var(--accent-stage-end) 45%); pointer-events: none; }
+.g-wf > * { pointer-events: auto; }
+.g-wf-restrow { display: flex; gap: 8px; margin-bottom: 12px; animation: g-wk-rise 300ms cubic-bezier(.32,.72,0,1) both; }
+@keyframes g-wk-rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.g-wf-rb { appearance: none; border: 0; flex: 1; min-width: 0; height: 48px; padding: 0 8px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; gap: 4px; color: var(--on-stage); font: 700 15px/20px var(--font-sans); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.g-wf-rb .g-icon { width: 16px; height: 16px; stroke-width: 2.8; flex: none; }
+.g-wf-skip { background: var(--stage-cta); color: var(--on-stage-cta); }
+.g-wf-go { flex: 2.4; background: var(--stage-cta); color: var(--on-stage-cta); }
+.g-wf-bar { --focus: var(--text); height: 84px; padding: 0 12px; border-radius: 42px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--chrome-glass); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); box-shadow: var(--g-tabbar-shadow); }
+.g-wf-nb { appearance: none; width: 92px; height: 60px; flex: none; padding: 0; border: 0; border-radius: 30px; display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--text); background: var(--surface-sunken); text-decoration: none; cursor: pointer; }
+.g-wf-nb .g-icon { width: 20px; height: 20px; stroke-width: 2.6; }
+[dir="rtl"] .g-wf-chev { transform: scaleX(-1); }
+.g-wf-empty { background: none; }
+.g-wf-c { appearance: none; flex: 1; min-width: 0; height: 60px; padding: 0; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; color: var(--text); text-decoration: none; cursor: pointer; }
+.g-wf-c b { font: 800 18px/22px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-wf-ph { display: inline-flex; align-items: center; gap: 2px; font: 600 12px/14px var(--font-sans); color: var(--text-3); }
+.g-wf-ph .g-icon { width: 12px; height: 12px; stroke-width: 2.6; }
+.g-wf-rest, .g-wf-ready { flex-direction: row; gap: 8px; }
+.g-wf-ready { cursor: default; }
+.g-wf-rest svg { transform: rotate(-90deg); flex: none; }
+.g-wf-trk { fill: none; stroke: var(--line); stroke-width: 5; }
+.g-wf-arc { fill: none; stroke: var(--accent-fill); stroke-width: 5; stroke-linecap: round; stroke-dasharray: var(--c); stroke-dashoffset: var(--o); transition: stroke-dashoffset 1s linear; }
+.g-wf-ok { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-fill); color: var(--on-accent); }
+.g-wf-ok .g-icon { width: 22px; height: 22px; stroke-width: 3; }
+.g-wf-rt { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.g-wf-rt b { font: 500 22px/26px var(--font-mono); }
+.g-wf-ready .g-wf-rt b { font: 800 18px/22px var(--font-sans); }
+.g-wf-rt span { font: 600 12px/14px var(--font-sans); color: var(--text-3); }
+
+/* BarToast: a line over the footer; "footer" sits above the bar, "rest" above its rest row too */
+.g-btoast { display: flex; align-items: center; gap: 12px; padding-block: 12px; padding-inline: 14px 10px; border-radius: 20px; background: var(--g-toast); color: var(--g-white); box-shadow: var(--g-toast-shadow); animation: g-wk-rise 300ms cubic-bezier(.32,.72,0,1) both; }
+.g-btoast-footer, .g-btoast-rest { position: absolute; inset-inline: 16px; }
+.g-btoast-footer { bottom: 112px; }
+.g-btoast-rest { bottom: 170px; }
+.g-btoast-ic { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--g-toast-fill); }
+.g-btoast-ic .g-icon { width: 16px; height: 16px; stroke-width: 2.6; }
+.g-btoast-m { flex: 1; min-width: 0; font: 500 15px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-btoast-a { appearance: none; flex: none; height: 38px; padding: 0 14px; border: 0; border-radius: var(--radius-pill); display: inline-flex; align-items: center; background: var(--g-toast-fill); color: var(--g-white); font: 700 15px/20px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-btoast-a:focus-visible { outline-color: var(--g-white); }
+/* Inside the stage a link takes its colour from the page (.g-stage a); the dark-on-white pills and the
+   dark text on the light bar say theirs again, a class deeper, for when they are links */
+.g-wtop .g-wtop-finish, .g-xh-b .g-xh-new, .g-th-btns .g-th-main, .g-wf-restrow .g-wf-skip, .g-wf-restrow .g-wf-go { color: var(--on-stage-cta); }
+.g-wf-bar .g-wf-nb, .g-wf-bar .g-wf-c { color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .g-wf-restrow, .g-btoast { animation: none; } .g-wf-arc, .g-th-arc, .g-ssw-s, .g-sst-b { transition: none; } }
+:root[data-motion="reduce"] .g-wf-restrow, :root[data-motion="reduce"] .g-btoast { animation: none; }
+:root[data-motion="reduce"] .g-wf-arc, :root[data-motion="reduce"] .g-th-arc, :root[data-motion="reduce"] .g-ssw-s, :root[data-motion="reduce"] .g-sst-b { transition: none; }
+
+/* === Workout drawer kit (MapDrawer, MapRow, PhaseOfferSheet, ConfirmDrawer, EffortChips, PlateBar, Switch, Dock; boards W1.4, W1.12, W1.20–W1.25, W1.31, W1.37, W1.40, W1.45, W1.46) === */
+/* The phase colours (--phase-warm, --phase-cool, --phase-ink) are core-M2's, in tokens.css. */
+
+/* BottomSheet `meta`: a plain figure after the title (the map's clock) */
+.g-bs-meta { flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text-2); font: 500 15px/20px var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Switch: the light drawer's, 52 x 32; the hit area reaches 6px past the track */
+.g-switch { appearance: none; border: 0; padding: 0; margin: 0; width: 52px; height: 32px; border-radius: var(--radius-pill); background: var(--line-strong); position: relative; cursor: pointer; flex: none; transition: background-color 220ms; }
+.g-switch::before { content: ""; position: absolute; inset: -6px -4px; }
+.g-switch::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-card); transition: transform 220ms cubic-bezier(.32, .72, 0, 1); }
+.g-switch[aria-checked="true"] { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); }
+.g-switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--on-accent); }
+[dir="rtl"] .g-switch[aria-checked="true"]::after { transform: translateX(-20px); }
+.g-switch[disabled] { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .g-switch, .g-switch::after { transition: none; } }
+:root[data-motion="reduce"] .g-switch, :root[data-motion="reduce"] .g-switch::after { transition: none; }
+.g-switchrow { display: flex; gap: var(--space-4); align-items: center; min-height: 64px; padding: 10px 16px; color: var(--text); }
+.g-switchrow > div:first-child { flex: 1; min-width: 0; text-align: start; }
+.g-switch-title { font: 600 17px/22px var(--font-sans); }
+.g-switch-sub { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+
+/* EffortChips: wrapping pills, the answer in the accent. The row has 2px of room so a ring is not clipped by the drawer's scroll. */
+.g-effort { display: flex; flex-direction: column; gap: 8px; font-family: var(--font-sans); }
+.g-effort-l { font: 600 14px/18px var(--font-sans); color: var(--text-2); }
+.g-effort-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px; }
+.g-effort-row button { appearance: none; border: 0; flex: none; min-width: 44px; height: 38px; padding: 0 14px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; justify-content: center; background: var(--surface-sunken); color: var(--text); font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; cursor: pointer; transition: background-color 220ms, color 220ms; }
+.g-effort-row button[aria-checked="true"] { background: var(--accent-fill); color: var(--on-accent); }
+.g-effort-h { font: 500 13px/16px var(--font-sans); color: var(--text-3); }
+.g-effort-stage .g-effort-l, .g-effort-stage .g-effort-h { color: var(--on-stage-2); }
+.g-effort-stage .g-effort-row button { background: var(--glass); color: var(--on-stage); }
+.g-effort-stage .g-effort-row button[aria-checked="true"] { background: var(--on-stage); color: var(--accent-text); }
+.g-effort-stage .g-effort-row button:focus-visible { outline-color: var(--on-stage); }
+/* The pills sit at the edge of the drawer's scrolling body, which would clip a ring drawn outside them */
+.g-effort-row button:focus-visible { outline-offset: -2px; }
+/* So do the full-width buttons of the offer, the confirm and the map's foot */
+.g-offer-foot .g-btn:focus-visible, .g-confirm .g-btn:focus-visible, .g-md-foot .g-btn:focus-visible { outline-offset: -4px; }
+@media (prefers-reduced-motion: reduce) { .g-effort-row button { transition: none; } }
+
+/* PlateBar: the loaded bar on a sunken panel */
+.g-plates { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 8px; border-radius: 22px; background: var(--surface-sunken); font-family: var(--font-sans); }
+.g-plates svg { display: block; width: min(100%, 320px); height: auto; }
+.g-plate-bar { fill: var(--line-strong); }
+.g-plate { fill: var(--accent-fill); }
+.g-plate-2 { fill: var(--accent-fill-end); }
+.g-plates figcaption { font: 500 15px/20px var(--font-sans); color: var(--text-3); text-align: center; }
+
+/* ConfirmDrawer */
+.g-confirm { display: flex; flex-direction: column; gap: 10px; font-family: var(--font-sans); }
+.g-confirm p { margin: 0; font: 500 16px/23px var(--font-sans); color: var(--text-2); }
+.g-confirm ul { margin: 0; padding: 0; list-style: none; }
+.g-confirm li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; font: 500 16px/22px var(--font-sans); color: var(--text-2); }
+.g-confirm li .g-icon { width: 16px; height: 16px; stroke-width: 2.4; color: var(--danger); margin-top: 3px; flex: none; }
+.g-confirm .g-confirm-note { margin-top: 2px; font-size: 14px; line-height: 20px; color: var(--text-3); }
+.g-confirm-danger { display: flex; width: 100%; margin-top: 8px; background: var(--danger-tint); color: var(--danger); font-weight: 700; }
+
+/* PhaseOfferSheet: the tag in the phase's light tint: the phase pastel thinned into the surface,
+   its text the pastel pulled toward --phase-ink; in the dark drawer a faint wash with the pastel
+   as the text. (No colour literals in this file: the UI guards, G7.) */
+.g-offer { --g-offer-warm-bg: color-mix(in srgb, var(--phase-warm) 35%, var(--surface)); --g-offer-warm-ink: color-mix(in srgb, var(--phase-warm) 30%, var(--phase-ink)); --g-offer-cool-bg: color-mix(in srgb, var(--phase-cool) 40%, var(--surface)); --g-offer-cool-ink: color-mix(in srgb, var(--phase-cool) 30%, var(--phase-ink)); display: flex; flex-direction: column; font-family: var(--font-sans); color: var(--text); }
+:root[data-theme="dark"] .g-offer { --g-offer-warm-bg: color-mix(in srgb, var(--phase-warm) 16%, var(--surface)); --g-offer-warm-ink: var(--phase-warm); --g-offer-cool-bg: color-mix(in srgb, var(--phase-cool) 16%, var(--surface)); --g-offer-cool-ink: var(--phase-cool); }
+.g-offer-tag { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: var(--radius-pill); font: 700 13px/16px var(--font-sans); }
+.g-offer-warm { background: var(--g-offer-warm-bg); color: var(--g-offer-warm-ink); }
+.g-offer-cool { background: var(--g-offer-cool-bg); color: var(--g-offer-cool-ink); }
+.g-offer p { margin: 10px 0 8px; font: 500 16px/22px var(--font-sans); color: var(--text-2); }
+.g-offer-list { margin: 0; padding: 0; list-style: none; }
+.g-offer-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.g-offer-row + .g-offer-row { border-top: 1px solid var(--line); }
+.g-offer-row img, .g-offer-ph { width: 48px; height: 48px; flex: none; border-radius: 14px; }
+.g-offer-row img { background: var(--g-white); object-fit: cover; }
+.g-offer-ph { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-3); }
+.g-offer-t { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-offer-t b { font: 600 16px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-offer-t small { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-offer-foot { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; }
+.g-offer-foot .g-btn { height: 54px; font: 700 17px/22px var(--font-sans); }
+
+/* MapDrawer and MapRow. The hint and the foot are sticky in the sheet's scrolling body, so the
+   list is all that moves. Rows are as wide as that body, so their rings sit inside them. */
+.g-md { position: relative; color: var(--text); font-family: var(--font-sans); }
+.g-md-hint { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; margin: 2px 0 0; padding: 8px 12px; border-radius: 14px; background: var(--surface-sunken); box-shadow: 0 4px 0 var(--surface); color: var(--text-2); font: 600 14px/18px var(--font-sans); text-align: start; }
+.g-md-hint .g-icon { width: 16px; height: 16px; flex: none; color: var(--text-3); }
+.g-md-sec { margin-bottom: 4px; }
+.g-md-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 4px 6px; }
+.g-md-t { margin: 0; display: inline-flex; align-items: center; gap: 8px; font: 700 13px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.g-md-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.g-md-dot-warm, .g-mr-dot-warm { background: var(--phase-warm); }
+.g-md-dot-cool, .g-mr-dot-cool { background: var(--phase-cool); }
+.g-md-a { appearance: none; border: 0; background: none; margin: -6px -4px; padding: 6px 4px; color: var(--accent-text); font: 700 14px/18px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-md-rows { position: relative; }
+.g-md-item { position: relative; z-index: 1; }
+.g-md-hold .g-md-item { transition: transform 180ms cubic-bezier(.32, .72, 0, 1); }
+.g-md-hold .g-md-held { transition: none; z-index: 4; }
+.g-md-slot { position: absolute; inset-inline: 0; z-index: 0; border-radius: 16px; box-shadow: inset 0 0 0 2px var(--accent-tint); background: repeating-linear-gradient(135deg, transparent 0 8px, var(--accent-tint) 8px 10px); }
+.g-md-pin { position: sticky; bottom: 0; z-index: 3; margin-top: 8px; padding-top: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+.g-md-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.g-md-foot .g-btn { height: 54px; font: 700 17px/22px var(--font-sans); }
+.g-md-more { display: flex; justify-content: center; }
+.g-mr { position: relative; display: flex; align-items: center; min-height: 64px; border-radius: 16px; color: var(--text); }
+.g-mr-cur { background: var(--accent-tint); }
+.g-mr-main { appearance: none; border: 0; background: none; margin: 0; font: inherit; color: inherit; text-align: start; text-decoration: none; flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; gap: 12px; padding-block: 8px; padding-inline: 16px 6px; border-radius: 16px; }
+a.g-mr-main, button.g-mr-main { cursor: pointer; }
+a.g-mr-main:active, button.g-mr-main:active { background: var(--surface-press); }
+.g-mr-main:focus-visible, .g-mr-grip:focus-visible { outline-offset: -2px; }
+.g-mr-br { position: absolute; inset-inline-start: 6px; width: 3px; border-radius: 2px; background: var(--accent-fill); pointer-events: none; }
+.g-mr-ss-a .g-mr-br { top: 50%; bottom: 0; }
+.g-mr-ss-b .g-mr-br { top: 0; bottom: 50%; }
+.g-mr-dot { position: absolute; inset-inline-start: 4px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line-strong); pointer-events: none; }
+.g-mr-img, .g-mr-ph { width: 48px; height: 48px; flex: none; border-radius: 14px; }
+.g-mr-img { background: var(--g-white); object-fit: cover; }
+.g-mr-ph { display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-3); }
+.g-mr-b { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-mr-b b { font: 600 16px/20px var(--font-sans); overflow-wrap: anywhere; }
+.g-mr-b span { font: 500 13px/18px var(--font-sans); color: var(--text-3); }
+.g-mr-done { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-fill); color: var(--on-accent); }
+.g-mr-done .g-icon { width: 16px; height: 16px; stroke-width: 3; }
+.g-mr-now { flex: none; height: 26px; padding: 0 10px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; background: var(--accent-fill); color: var(--on-accent); font: 700 12px/14px var(--font-sans); white-space: nowrap; }
+.g-mr-todo { display: block; width: 30px; height: 30px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--line-strong); }
+.g-mr-grip { appearance: none; border: 0; background: none; padding: 0; flex: none; width: 44px; height: 44px; margin-inline-end: 4px; border-radius: 14px; display: grid; place-items: center; color: var(--text-3); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.g-mr-grip:active { cursor: grabbing; color: var(--accent-text); }
+.g-mr-grip .g-icon { width: 18px; height: 18px; }
+.g-mr-lifted { background: var(--surface); box-shadow: var(--shadow-float), 0 0 0 1px var(--line); transform: rotate(-1.5deg) scale(1.03); }
+.g-mr-lifted .g-mr-grip { color: var(--accent-text); }
+
+/* Dock: LiveDock's #timer host keeps the position (bottom, insets, the desktop column) and drops
+   its old card, so the .g-dock is the only surface. */
+#timer.dock.g-dock-host { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; border-radius: 0; overflow: visible; box-shadow: none; display: block; }
+.g-dock { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--space-3); min-height: var(--dock-h); padding-block: 6px; padding-inline: var(--space-4) 6px; border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow-float); overflow: hidden; font-family: var(--font-sans); }
+.g-dock-hold { box-shadow: inset 0 0 0 2px var(--accent-fill), var(--shadow-float); }
+.g-dock-bar { position: absolute; top: 0; inset-inline: 0; height: 3px; background: var(--line); pointer-events: none; }
+.g-dock-bar i { display: block; height: 100%; background: var(--accent-fill); transform-origin: left center; transition: transform 1s linear; }
+[dir="rtl"] .g-dock-bar i { transform-origin: right center; }
+.g-dock-main { appearance: none; border: 0; background: none; margin: 0; padding: 2px 0; font: inherit; color: inherit; text-align: start; text-decoration: none; flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 10px; overflow: hidden; }
+a.g-dock-main, button.g-dock-main { cursor: pointer; }
+.g-dock-main:focus-visible { outline-offset: -2px; }
+.g-dock-live { width: 8px; height: 8px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); animation: g-pulse 1.6s ease-in-out infinite; }
+.g-dock-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.g-dock-text b { font: 600 16px/22px var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-dock-meta { font: 500 14px/18px var(--font-sans); color: var(--text-2); white-space: nowrap; }
+.g-dock-clock { font: 500 14px/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent-text); white-space: nowrap; }
+.g-dock-count { flex: none; font: 500 20px/24px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent-text); white-space: nowrap; }
+.g-dock-acts { flex: none; display: flex; align-items: center; gap: 6px; }
+.g-dock .g-btn { flex: none; height: 44px; padding: 0 var(--space-5); font-size: 15px; }
+.g-dock-acts .g-btn { padding: 0 14px; }
+@media (prefers-reduced-motion: reduce) { .g-dock-live { animation: none; } .g-dock-bar i { transition: none; } }
+:root[data-motion="reduce"] .g-dock-live { animation: none; }
+:root[data-motion="reduce"] .g-dock-bar i { transition: none; }
+
+/* DurationWheel variant="ds": the wheel in a DS drawer (board W1.4). Same rows and band as the
+   default look (WHEEL_ITEM is 40px in both), in the DS tokens. */
+.dw.dw-ds { margin: 0 auto; border-radius: 22px; background: var(--surface-sunken); }
+.dw-ds .dw-band { inset-inline: 12px; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-card); }
+.dw-ds .dw-col:focus-visible::after { inset-inline: 12px; border-radius: 14px; box-shadow: 0 0 0 2px var(--focus); }
+.dw-ds .dw-it { font-family: var(--font-mono); font-size: 22px; color: var(--text-3); }
+.dw-ds .dw-it.on { color: var(--text); font-weight: 700; }
+.dw-ds .dw-it.out { color: var(--text-disabled); }
+.dw-ds .dw-unit { color: var(--text); font: 600 15px/1 var(--font-sans); }
+@media (hover: hover) { .dw-ds .dw-it:hover { color: var(--text); } }
+
+/* The kit page's (#/dev/kit, DevKitWorkoutDrawers) phone-sized frame for a drawer, with the rest
+   wheel's hint and buttons. Its own class, so the older drawers' frame counts are not touched. */
+.g-wd-frame { position: relative; height: 640px; overflow: hidden; border-radius: var(--radius-lg); background: var(--canvas); }
+.g-wd-hint { margin: 0; padding: 10px 4px 0; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
+.g-wd-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding-top: 14px; }
+.g-wd-foot .g-btn { height: 54px; font: 700 17px/22px var(--font-sans); }
+
 /* === Train history (boards T8.0 History, T8.1 Workout, T8.3 Share; slice 5) === */
 .g-hist-pad { padding: 8px 16px 0; }
 .g-hist-hint { margin: 8px 4px 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
@@ -2147,3 +2483,19 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 
 /* Settings acct m2: Delete account (St3Delete) */
 .g-acct-del { margin-top: 24px; }
+
+/* === Workout guard-M2d === */
+.g-xh-plan { font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); opacity: .8; }
+
+/* === Workout progression === */
+.g-prog { appearance: none; width: calc(100% - 32px); margin: 10px 16px 0; display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; border: 0; border-radius: 16px; background: var(--glass); color: var(--on-stage); text-align: start; text-decoration: none; font: 500 14px/19px var(--font-sans); cursor: pointer; }
+.g-prog .g-icon { width: 16px; height: 16px; flex: none; margin-top: 1.5px; }
+.g-prog-text { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.g-prog-text b { font-weight: 700; }
+.g-prog-warning, .g-prog-warning .g-prog-text b { color: var(--warning); }
+.g-nc { width: calc(100% - 32px); margin: 10px 16px 0; display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-inline: 14px 8px; border: 1.5px dashed var(--glass-line); border-radius: 16px; color: var(--on-stage-2); font: 500 14px/19px var(--font-sans); }
+.g-nc .g-icon { width: 16px; height: 16px; flex: none; }
+.g-nc-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.g-nc-undo { appearance: none; flex: none; min-height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: transparent; color: var(--on-stage); font: 700 14px/18px var(--font-sans); text-decoration: none; cursor: pointer; }
+.g-nc-undo:active { background: var(--glass); }
+.g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }

@@ -62,9 +62,12 @@ const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScr
 import GymPassPage from './views/settings/pages/GymPassPage.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
 import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
+import WorkoutRoute from './views/workout/WorkoutRoute.jsx'
 import RoutineEditor from './views/routines/RoutineEditor.jsx'
 import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
-import Workout from './views/Workout.jsx'
+// Workout finish M2: the summary after a save (W2.0) and the check for a session left open (W1.27).
+import SummaryScreen from './views/workout/SummaryScreen.jsx'
+import StaleWorkoutCheck from './components/StaleWorkoutCheck.jsx'
 import Body from './views/Body.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
@@ -307,7 +310,11 @@ function Shell() {
   // bottom edge in its place. Its header's ⌄ goes back to where it was opened from, where the
   // live dock brings it back.
   const onWorkout = shown.pathname === '/train/workout'
-  const inWorkout = onWorkout && !!S.active
+  // Workout finish M2: the whole screen on /train/workout whether or not a session runs (Ready,
+  // W1.1, draws no tab bar; nor does the moment a finish or discard leaves it), and on the summary
+  // after a save (W2.0, /train/workout/summary/:id), which has nothing running and no dock.
+  const onSummary = shown.pathname.startsWith('/train/workout/summary/')
+  const inWorkout = onWorkout || onSummary
   // Not while "Passkey added" is on screen: it asks again once the person has left that screen.
   useOnboardingResume({ user, ready: ready && !onAddDevice, pathname: shown.pathname, navigate })
   useEffect(() => {
@@ -373,12 +380,15 @@ function Shell() {
       <SyncBanner onToday={shown.pathname === '/home'} />
       {/* The dock before the bar: it sits above the bar on screen, so it comes first in the
           reading and tab order too. */}
-      {docked ? <LiveDock /> : <RestTimer />}
+      {/* Workout core-M3: on the running workout its footer owns the rest (WorkoutScreen). */}
+      {docked ? <LiveDock /> : inWorkout ? null : <RestTimer />}
       {!noTabs && <TabBar tab={tab} lit={tabOf(shown.pathname) === tab} onPlus={() => openPlusSheet(shown.pathname)} />}
       {/* The global search's overlay and the history it lives in (lib/search/session.js). */}
       {authed && !needsMobileOnboarding && <SearchHost />}
       <Modals />
       <Toast />
+      {/* Workout finish M2: asks about a session left open for hours (W1.27). */}
+      <StaleWorkoutCheck />
       <TimerFlash />
       <LandscapeCover />
     </>
@@ -453,7 +463,9 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/progress/trends" element={<Trends />} />
       <Route path="/progress/recovery" element={<Recovery />} />
       {/* Opened from any tab, on top of it: the workout. */}
-      <Route path="/train/workout" element={<Workout />} />
+      <Route path="/train/workout" element={<WorkoutRoute />} />
+      {/* Workout finish M2: the summary, in the finished workout's place (replace). */}
+      <Route path="/train/workout/summary/:id" element={<SummaryScreen />} />
       {/* A past day and a week, pushed under the tab they were opened from (lib/day-route.js). */}
       <Route path="/:tab/day/:date" element={<DayPage />} />
       <Route path="/:tab/week/:week" element={<WeekPage />} />

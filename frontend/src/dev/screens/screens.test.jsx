@@ -770,3 +770,187 @@ describe('the screens gallery', () => {
     }
   })
 })
+
+// Workout core-M3
+describe('the screens gallery: the running workout', () => {
+  const IDS = ['W1.0', 'W1.2', 'W1.6', 'W1.35', 'W1.32', 'W1.3', 'W1.5', 'W1.7', 'W1.8', 'W1.36', 'W1.24', 'W1.38', 'W1.39',
+    'W1.41', 'W1.42', 'W1.9', 'W1.28', 'W1.28b', 'W1.29', 'W1.29b', 'W1.30', 'W1.44']
+
+  it('has every running-workout state under its board id', () => {
+    // The area is shared with the progression states (W1.47 to W1.51, tested below).
+    expect(screenAreas().find(a => a.name === 'Workout').entries.map(e => e.id).filter(id => IDS.includes(id))).toEqual(IDS)
+  })
+
+  it('shows each state it names and leaves no rest, hold or session behind', async () => {
+    const own = useStore.getState().S.active
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('W1.0', s => { expect(s.text).toContain('Cable Middle Fly'); expect(s.text).toContain('Done set'); expect(s.text).toContain('Trained so far') })
+    await check('W1.2', s => expect(s.text).toContain('Warm-up done'))
+    await check('W1.3', s => expect(s.host.querySelector('.g-wf-rest')).not.toBeNull())
+    await check('W1.5', s => expect(s.text).toContain('Go · set'))
+    await check('W1.8', s => { expect(s.text).toContain('NEW BEST'); expect(s.text).toContain('Trend') })
+    await check('W1.36', s => expect(s.text).toContain('Back to Cable Middle Fly · set 2'))
+    await check('W1.24', s => expect(s.text).toContain('Done · go to A2'))
+    await check('W1.41', s => expect(s.text).toContain('Switch side'))
+    await check('W1.9', s => expect(s.text).toContain('Every set done'))
+    await check('W1.28', s => { expect(s.text).toContain('Save changes'); expect(s.host.querySelector('.g-wf-rest')).toBeNull() })
+    await check('W1.29', s => expect(s.text).toContain('Offline · 6 waiting'))
+    await check('W1.29b', s => { expect(s.text).toContain('Offline'); expect(s.text).not.toContain('waiting') })
+    await check('W1.30', s => { expect(s.text).toContain('Pick as you go'); expect(s.text).toContain('Discard') })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useUI.getState().timer).toBeNull()
+    expect(useUI.getState().work).toBeNull()
+    expect(useStore.getState().S.active).toBe(own)
+  }, 20000)
+})
+
+// Workout finish M2
+describe('the screens gallery: Workout, start and finish', () => {
+  it('has Ready, the drawers over it and the running workout, the toasts and the summary, all in memory', async () => {
+    const ids = screenAreas().find(a => a.name === 'Workout: start and finish').entries.map(e => e.id)
+    expect(ids).toEqual(['W1.1', 'W1.31', 'W1.40', 'W1.10', 'W1.11', 'W1.46', 'W1.26', 'W1.27', 'W2.0', 'W2.1', 'W2.2'])
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    const sheetTitle = s => s.drawer.querySelector('.g-bs-head h2').textContent
+    await check('W1.1', s => {
+      expect(s.host.querySelector('.g-ready-title').textContent).toBe('Push A')
+      expect(s.host.querySelectorAll('.g-ready-gh')).toHaveLength(3)
+      expect([...s.host.querySelectorAll('button')].some(b => b.textContent.trim() === 'Start workout')).toBe(true)
+    })
+    await check('W1.31', s => {
+      expect(s.host.querySelector('.g-ready-title').textContent).toBe('Push A')
+      expect(sheetTitle(s)).toBe('Start with your warm-up')
+    })
+    await check('W1.40', s => expect(sheetTitle(s)).toBe('Cool-down'))
+    await check('W1.10', s => expect(sheetTitle(s)).toBe('Finish Push A?'))
+    await check('W1.11', s => expect(sheetTitle(s)).toBe('Finish early?'))
+    await check('W1.46', s => expect(sheetTitle(s)).toMatch(/^Discard \d+ sets?\?$/))
+    await check('W1.26', s => {
+      expect(s.host.querySelectorAll('.g-rc-slide')).toHaveLength(4)
+      expect(s.host.textContent).toContain('Discarded Push A. The sets go unless you undo.')
+    })
+    await check('W1.27', s => expect(sheetTitle(s)).toBe('Push A is still open'))
+    await check('W2.0', s => {
+      expect(s.host.querySelector('h1').textContent).toBe('Push A, done')
+      expect([...s.host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(expect.arrayContaining(['New bests', 'Muscles worked', 'What you just trained']))
+      expect(s.host.textContent).not.toContain('Your first time')
+    })
+    await check('W2.1', s => {
+      expect(s.host.querySelectorAll('.g-rc-slide')).toHaveLength(4)
+      expect(s.host.textContent).toContain('Saved Push A')
+    })
+    await check('W2.2', s => {
+      // The first time shows no Next time; the bests its record carries still show.
+      expect(s.host.textContent).toContain('Your first time')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    localStorage.removeItem('gym_state_v1')
+  }, 30000)
+})
+
+// Workout drawers-M2
+describe('the screens gallery: the workout\'s exercise drawers', () => {
+  const IDS = ['W1.4', 'W1.12', 'W1.13', 'W1.14', 'W1.15', 'W1.16', 'W1.17', 'W1.25', 'W1.33', 'W1.34', 'W1.43']
+
+  it('has every exercise drawer under its board id', () => {
+    // The area is shared with drawers-M3's map and options states (below).
+    expect(screenAreas().find(a => a.name === 'Workout: drawers').entries.map(e => e.id).filter(id => IDS.includes(id))).toEqual(IDS)
+  })
+
+  it('opens each drawer over the workout and leaves no rest, toast or session behind', async () => {
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('W1.4', s => { expect(s.drawer).toBeTruthy(); expect(s.text).toContain('Scroll to 0:00 to end the rest now.') })
+    await check('W1.12', s => { expect(s.text).toContain('Set 1 ·'); expect(s.text).toContain('How hard was that set?'); expect(s.text).toContain('Save set 1') })
+    await check('W1.13', s => expect(s.text).toContain('Set 3 gone.'))
+    await check('W1.14', s => { expect(s.text).toContain('Exercise settings'); expect(s.text).toContain('Back to set') })
+    await check('W1.15', s => { expect(s.text).toContain('Same muscle'); expect(s.text).toContain('Also in Push A') })
+    await check('W1.16', s => expect(s.text).toMatch(/Swapped Cable middle fly for /i))
+    await check('W1.17', s => expect(s.text).toMatch(/Removed Cable middle fly/i))
+    await check('W1.25', s => { expect(s.text).toContain('Load 80 kg'); expect(s.text).toContain('Each side') })
+    await check('W1.33', s => expect(s.text).toContain('First time with this one.'))
+    await check('W1.34', s => expect(s.text).toContain('Best: '))
+    await check('W1.43', s => expect(s.text).toContain('Held 2 × 30 s each side'))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useUI.getState().timer).toBeNull()
+    expect(useStore.getState().S).toBe(own)
+  }, 30000)
+})
+
+describe('the screens gallery: the workout\'s map, Add exercise and options', () => {
+  const IDS = ['W1.37', 'W1.23', 'W1.45', 'W1.18', 'W1.19', 'W1.20', 'W1.21']
+
+  it('has every state under its board id', () => {
+    expect(screenAreas().find(a => a.name === 'Workout: drawers').entries.map(e => e.id).filter(id => IDS.includes(id))).toEqual(IDS)
+  })
+
+  it('opens each drawer over the workout and leaves no session or timer behind', async () => {
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('W1.37', s => { expect(s.text).toContain('Drag to reorder within a phase'); expect(s.text).toContain('Skip cool-down'); expect(s.text).toContain('Workout options') })
+    await check('W1.23', s => expect(s.drawer).toBeTruthy())
+    await check('W1.45', s => expect(s.text).toContain('20 exercises'))
+    await check('W1.18', s => { expect(s.text).toContain('This workout'); expect(s.text).toContain('Add routine') })
+    await check('W1.19', s => expect(s.text).toMatch(/Added .* · \d+ of 13/))
+    await check('W1.20', s => { expect(s.text).toContain('Reorder exercises'); expect(s.text).toContain('Discard workout') })
+    await check('W1.21', s => { expect(s.text).toContain('Next exercise on its own'); expect(s.text).toContain('Plate loading') })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useUI.getState().timer).toBeNull()
+    expect(useStore.getState().S).toBe(own)
+  }, 30000)
+})
+
+// Workout progression
+describe('the screens gallery: Workout progression', () => {
+  it('has W1.47 to W1.52 under their board ids, in the Workout areas', () => {
+    const ids = name => screenAreas().find(a => a.name === name).entries.map(e => e.id)
+    expect(ids('Workout').filter(id => ['W1.47', 'W1.49', 'W1.50', 'W1.51'].includes(id))).toEqual(['W1.47', 'W1.49', 'W1.50', 'W1.51'])
+    expect(ids('Workout: drawers').filter(id => ['W1.48', 'W1.52'].includes(id))).toEqual(['W1.48', 'W1.52'])
+  })
+
+  it('shows the line, the dashed lines and the settings, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host, drawer: host.querySelector('.g-bs') })
+      unmountAll()
+    }
+    await check('W1.47', s => {
+      expect(s.host.querySelector('.g-prog-warning')).not.toBeNull()
+      expect(s.text).toContain('Deload to 22 kg')
+      expect(s.text).toContain('22 kg each')
+    })
+    await check('W1.49', s => {
+      const line = s.host.querySelector('.g-prog')
+      expect(line.textContent).toContain('Target goes up by 5s.')
+      expect(s.host.querySelector('.g-xh').compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+    await check('W1.50', s => { expect(s.host.querySelector('.g-prog')).toBeNull(); expect(s.host.querySelector('.g-nc-undo')).not.toBeNull() })
+    await check('W1.51', s => { expect(s.text).toContain('The whole workout is left out of progression'); expect(s.host.querySelector('.g-wtop-status')).not.toBeNull() })
+    await check('W1.48', s => { expect(s.text).toContain('Don’t count today'); expect(s.text).toContain('Today: ') })
+    await check('W1.52', s => { expect(s.text).toContain('Weight means'); expect(s.text).toContain('Each') })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})

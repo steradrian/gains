@@ -200,16 +200,14 @@ describe('the pages', () => {
     }
   })
 
-  it('every old row has a home: Workout screen holds layout, the rest, the end-of-rest rows and the during rows', () => {
+  it('every old row has a home: Workout screen holds the rest, the end-of-rest rows and the during rows', () => {
     mount('workout')
-    expect([...host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['Layout', 'On each exercise', 'Rest', 'When a rest ends', 'During a workout'])
-    // The rows and the layout tiles, not the section headings above them.
-    expect([...host.querySelectorAll('.g-glist-row b, .set-tiles')].map(e => e.getAttribute('aria-label') ?? e.textContent)).toEqual(['Layout', 'Effort per set', 'Shown under each exercise', 'Exercise animations', 'Rest timer', 'Rest-pause rest',
-      'Play a sound', 'Sound', 'Vibrate', 'Flash the screen', 'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Fine-tuning'])
+    expect([...host.querySelectorAll('.g-ssec h2')].map(e => e.textContent)).toEqual(['On each exercise', 'Rest', 'When a rest ends', 'During a workout'])
+    expect([...host.querySelectorAll('.g-glist-row b')].map(e => e.textContent)).toEqual(['Effort per set', 'Shown under each exercise', 'Exercise animations', 'Rest timer', 'Rest-pause rest',
+      'Play a sound', 'Sound', 'Vibrate', 'Flash the screen', 'Weigh in before workouts', 'Keep screen awake', 'Fine-tuning'])
     expect(host.querySelector('h1').textContent).toBe('Workout screen')
     mount('advanced')
-    expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Weight and reps buttons',
-      'Drop and burst shortcuts', 'Swipe actions', 'Exercise chips at the top', 'Superset buttons in the header', 'Move, swap and remove buttons'])
+    expect(titles()).toEqual(['Planned sessions start from', 'Keep timing after target', 'Swipe actions'])
   })
 
   it('the Fine-tuning row on Workout screen opens Fine-tuning', () => {
@@ -218,25 +216,12 @@ describe('the pages', () => {
     expect(mocks.navs.at(-1)).toEqual(['/me/advanced'])
   })
 
-  it('Collapse completed exercises is saved for every session and drops a running session\'s own choice', () => {
-    mount('workout')
-    mocks.S.active = { collapseCompleted: false, entries: [] }
-    const sw = rowTitled('Collapse completed exercises').querySelector('[role="switch"]')
-    expect(sw.getAttribute('aria-checked')).toBe('false')
-    act(() => sw.click())
-    expect(mocks.S.collapseCompleted).toBe(true)
-    expect('collapseCompleted' in mocks.S.active).toBe(false)
-  })
-
-  it('the Fine-tuning switches write S.wc as the old Workout controls sheet did', () => {
+  it('the Swipe actions switch writes S.wc.swipeSets', () => {
     mount('advanced')
-    act(() => rowTitled('Superset buttons in the header').querySelector('[role="switch"]').click())
-    expect(mocks.S.wc.pairButtons).toBe(true)
-    // the chip row at the top of a workout (#323) is on by default; its switch turns it off
-    const chips = rowTitled('Exercise chips at the top').querySelector('[role="switch"]')
-    expect(chips.getAttribute('aria-checked')).toBe('true')
-    act(() => chips.click())
-    expect(mocks.S.wc.exerciseChips).toBe(false)
+    const sw = rowTitled('Swipe actions').querySelector('[role="switch"]')
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+    act(() => sw.click())
+    expect(mocks.S.wc.swipeSets).toBe(false)
   })
 
   it('a page on the stage frame has its own title and Back, and no old header over it', () => {
@@ -354,7 +339,6 @@ describe('searchSettings', () => {
       expect(first('Dunkel')).toBe('Theme')
       expect(first('Feste Woche')).toBe('How you train')
       expect(first('Wochenstart')).toBe('Week starts on')
-      expect(first('kompakt')).toBe('Layout')
       expect(first('wischen')).toBe('Swipe actions')
       expect(first('Geste')).toBe('Swipe actions')
       await setLang('ar')
@@ -362,14 +346,7 @@ describe('searchSettings', () => {
     } finally { await setLang('en') }
   })
 
-  it('English words match from the start of a word only, so "ton" never finds "buttons"', async () => {
-    const { setLang, t } = await import('../lib/i18n.js')
-    try {
-      await setLang('de')
-      const titles = searchSettings('ton', guestWeb, t).map(h => h.title)
-      expect(titles).not.toContain('Weight and reps buttons')
-      expect(titles).not.toContain('Superset buttons in the header')
-    } finally { await setLang('en') }
+  it('finds a tone and a JSON export by their English words', () => {
     expect(searchSettings('tone', { ...guestWeb, user: { id: 'u' }, pushOK: true, reminderOn: true, nudge: true }, s => s).map(h => h.title)).toContain('Nudge tone')
     expect(searchSettings('json', guestWeb, s => s).map(h => h.title)).toContain('Export backup')
   })

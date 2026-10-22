@@ -620,3 +620,16 @@
 .g-root .tab { font-family: var(--font-sans); font-size: 12px; line-height: 14px; font-weight: 600; }
 .g-root .number { font-family: var(--font-sans); font-size: 20px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; }
 .g-root .timer { font-family: var(--font-mono); font-size: 20px; line-height: 24px; font-weight: 500; }
+
+/* Workout phases (design system tokens.json: phase-warm, phase-cool, phase-ink; the same in light and dark).
+   They are the light tints themselves: peach for the warm-up, mint for the cool-down, ink for the text on
+   them. For the running workout on the stage only, never text on a light ground. The three after them are
+   the workout kit's own: the stepper button's disc, and the NEW BEST tag. */
+.g-root {
+  --phase-warm: #FFD2AD;
+  --phase-cool: #B5EFD6;
+  --phase-ink: #1A1A1A;
+  --g-wk-btn: rgba(255,255,255,0.16);
+  --g-best-fill: #FFC56B;
+  --g-best-ink: #3A2A00;
+}

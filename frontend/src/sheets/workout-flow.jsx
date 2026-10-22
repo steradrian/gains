@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { drawerFlow, useUI } from '../store/useUI.js'
-import { EXIDX, exOr, betterWeight, beatsWeight, isCustomEx } from '../lib/exercises.js'
-import { fmtDate, fmtNum, fmtVol, fmtDur, todayISO, isoOf, uid, exCount, setsWorkCount } from '../lib/format.js'
-import { effectiveRoutineIds, bestWeightFor, bestWeightForEntry, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, setLabel, workSetsDone, NOTE_MAX } from '../lib/history.js'
+import { EXIDX, exOr, beatsWeight, isCustomEx } from '../lib/exercises.js'
+import { fmtDate, todayISO, isoOf, uid, exCount } from '../lib/format.js'
+import { effectiveRoutineIds, bestWeightForEntry, workoutVolume, setsDoneActive, setUnitsTotal, NOTE_MAX } from '../lib/history.js'
 import { beep } from '../lib/sound.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from '../lib/nav.js'
-import { back } from '../lib/use-tab-nav.js'
-import WorkoutMediaSection from '../components/WorkoutMedia.jsx'
 import { workoutMediaOf } from '../lib/media-refs.js'
 import Stepper from '../components/Stepper.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
@@ -17,18 +15,12 @@ import { REST_MAX, fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Switch, SelectRow, Row } from '../components/ui.jsx'
 import { glyphOf } from '../lib/glyphs.js'
-import BodyMap from '../components/BodyMap.jsx'
-import { exerciseMuscleSnapshot, loadOfWorkouts } from '../lib/muscles.js'
-import { is1RMRecord } from '../lib/onerm.js'
-import { entryDbLoad } from '../lib/dumbbells.js'
-import { speedUnitOf } from '../lib/speed.js'
+import { exerciseMuscleSnapshot } from '../lib/muscles.js'
 import { buildCompletedWorkout, sessionEnd } from '../lib/finish-workout.js'
 import { refillAfter } from '../lib/rotation.js'
-import { isWarmupRow } from '../lib/workout-model.js'
 import { repeatSessionEntries } from '../lib/session-repeat.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { buildSessionEntries } from '../lib/session-start.js'
-import { finishCompare, finishCardio } from '../lib/finish-compare.js'
 import { joinSessionNoProg } from '../lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from '../lib/session-merge.js'
 import { syncNow } from '../lib/nutrition/sync.js'
@@ -38,9 +30,15 @@ import { rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from '../lib/workout
 import { editLeftEmpty, editedRecord, editChangesNothing } from '../lib/session-edit.js'
 import { stampWorkout } from '../lib/sync-merge.js'
 import { S, update, ui, toast, snd } from './shared.js'
-import { confirmSheet, menuSheet } from './confirm-menu.jsx'
+import { confirmSheet } from './confirm-menu.jsx'
 import { bwSheet } from './body-weight.jsx'
 import { mediaGoesToo } from './workout-detail.jsx'
+// Workout finish M1
+import { onSheetEntry, whenSheetGone } from '../lib/nav.js'
+import { sessionBests } from '../lib/workout-finish.js'
+import { countsForRecords, normaliseParts, partOf } from '../lib/workout-parts.js'
+import { warmupOfferSheet, holdReopen, markLeaving } from '../views/workout/finish-drawers.js'
+import { closeThenReplace } from '../lib/nav.js'
 
 /* ============================ workout lifecycle ============================ */
 // Start / Resume from anywhere (the + sheet, the Training hub): back to the session that is on,
@@ -49,7 +47,8 @@ export function startOrResume() {
   const st = S()
   if (st.active) { navToWorkout(); return }
   const ids = effectiveRoutineIds(st, todayISO())
-  if (ids.some(id => st.routines.find(r => r.id === id)?.ex.length)) { startFlow(ids); return }
+  // A planned day goes through Ready and the warm-up offer like every other Start of a plan.
+  if (ids.some(id => st.routines.find(r => r.id === id)?.ex.length)) { readyOrStart(ids); return }
   navToWorkout()
 }
 
@@ -66,9 +65,15 @@ export function startFlow(routineIds) {
   if (weighed) { beginWorkout(routineIds, weighed.w); return }
   bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
 }
-export function beginWorkout(routineIds, bw) {
+// `skipWarmup`: Skip warm-up on the warm-up offer (W1.31). The session starts at its first
+// working exercise and the offer is not made again.
+export function beginWorkout(routineIds, bw, { skipWarmup = false } = {}) {
   const st = S()
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  const { entries: built, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  // Warm-ups first and cool-downs last across combined routines too (lib/workout-parts.js); a
+  // session without parts keeps its order.
+  const entries = normaliseParts(built)
+  const firstWork = skipWarmup ? entries.findIndex(e => partOf(e) !== 'warmup') : 0
   update(s => {
     s.active = {
       id: uid(), d: todayISO(), start: Date.now(),
@@ -76,14 +81,52 @@ export function beginWorkout(routineIds, bw) {
       // exercise came from. No top-level `excludeFromProgression` — per-entry `noProg` does it.
       routineIds: rids,
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
-      bw: bw || null, cur: 0, entries,
-      // Snapshot the layout at start so the header ⋮ can change it for this session only —
-      // changing the saved default (Settings → Workout view) mid-session leaves it alone.
-      workoutView: st.workoutView || 'cards',
+      bw: bw || null, cur: firstWork > 0 ? firstWork : 0, entries,
+      ...(skipWarmup ? { skipped: { warmup: true }, offered: { warmup: true } } : {}),
     }
   })
   useUI.getState().stopRest()
   navToWorkout()
+}
+
+/* ============================ Workout finish M1: Ready ============================ */
+// Ready (W1.1) for `ids`: the workout route with `?start=`, which shows the session before it
+// runs. Already on the workout route (or leaving a sheet), Ready takes that entry, as
+// navToWorkout does, so one back leaves it.
+export function openReady(ids) {
+  const list = [].concat(ids ?? []).filter(Boolean)
+  const here = String(globalThis.location?.hash || '').startsWith('#/train/workout')
+  nav('/train/workout?start=' + list.map(encodeURIComponent).join(','), here || onSheetEntry() ? { replace: true } : undefined)
+}
+
+// The weigh-in exactly as startFlow asks it: off in Settings, or already logged today, it is not asked.
+function weighInThen(go) {
+  if (S().weighIn === false) { go(null); return }
+  const weighed = weighedToday()
+  if (weighed) { go(weighed.w); return }
+  // The weigh-in drawer's history entry is walked off first, so the start takes Ready's entry
+  // and one back from the session leaves it, as the warm-up offer's Start does.
+  bwSheet({ required: true, onDone: bw => whenSheetGone(() => go(bw)) })
+}
+
+// Ready's Start workout: the weigh-in, then the warm-up offer (W1.31) when the session has
+// warm-ups, else the session starts.
+export function startFromReady(ids) {
+  weighInThen(bw => {
+    const { entries } = buildCombinedEntries(S(), ids)
+    if (entries.some(e => partOf(e) === 'warmup')) warmupOfferSheet(ids, bw)
+    else beginWorkout(ids, bw)
+  })
+}
+
+/* ============================ Workout finish M2: the way in ============================ */
+// Every Start of a plan (Today's ▶, Train, the chooser) goes through Ready first (owner question
+// 3); Freestyle has nothing to show there and starts at once, after the weigh-in. Repeat today,
+// Resume and a past workout keep starting directly.
+export function readyOrStart(ids) {
+  const list = [].concat(ids ?? []).filter(Boolean)
+  if (list.length) openReady(list)
+  else startFlow([])
 }
 
 // "Repeat today" (#58): a saved workout's exercises as a new freestyle session dated today, each
@@ -100,7 +143,6 @@ export function repeatWorkout(w, close) {
       s.active = {
         id: uid(), d: todayISO(), start: Date.now(), routineIds: [],
         name: w.name || t('Freestyle'), bw: bw || null, cur: 0, entries,
-        workoutView: s.workoutView || 'cards',
       }
     })
     useUI.getState().stopRest()
@@ -223,8 +265,6 @@ function beginBackfill({ iso, time, durationMin, routineIds, replaceId }) {
       name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
       bw: null, cur: 0, entries,
       backfill: { durationMin, replaceId: replaceId || null },
-      // Same layout snapshot as a live session (see beginWorkout).
-      workoutView: st.workoutView || 'cards',
     }
   })
   useUI.getState().stopRest()
@@ -247,7 +287,11 @@ function AddRoutineToSession({ close }) {
       if (!s.active) return
       // A session kept out of progression as a whole (the header ⋮) keeps the routine's
       // exercises out too, the same as an exercise added on its own.
-      s.active.entries.push(...entries.map(e => joinSessionNoProg(s.active, e)))
+      // Warm-ups stay first and cool-downs last (lib/workout-parts.js); the exercise you are on
+      // stays the one you are on.
+      const current = s.active.entries[s.active.cur]
+      s.active.entries = normaliseParts([...s.active.entries, ...entries.map(e => joinSessionNoProg(s.active, e))])
+      if (current) s.active.cur = Math.max(0, s.active.entries.indexOf(current))
       s.active.routineIds = [...[].concat(s.active.routineIds || []), r.id]
       if (!s.active.customName) {
         s.active.name = deriveSessionName(s.active.routineIds.map(id => s.routines.find(x => x.id === id)?.name).filter(Boolean))
@@ -347,38 +391,6 @@ function ExerciseNote({ entryIdx, close }) {
 }
 export const exerciseNoteSheet = entryIdx => ui().openSheet(close => <ExerciseNote entryIdx={entryIdx} close={close} />)
 
-function SetNote({ entryIdx, setIdx, close }) {
-  const row = useStore(s => s.S.active?.entries?.[entryIdx]?.sets?.[setIdx])
-  const update = useStore(s => s.update)
-  const [note, setNote] = useState(row?.note || '')
-
-  useEffect(() => { if (!row) close() }, [!row])
-  if (!row) return null
-
-  const save = () => {
-    const text = note.trim().slice(0, NOTE_MAX)
-    update(s => {
-      const set = s.active?.entries?.[entryIdx]?.sets?.[setIdx]
-      if (!set) return
-      if (text) set.note = text
-      else delete set.note
-    }, true)
-    close()
-  }
-
-  return <>
-    <h3>{t('Set note')}</h3>
-    <textarea className="input" rows={4} maxLength={NOTE_MAX} value={note}
-      placeholder={t('Anything specific to remember about this set.')}
-      onChange={event => setNote(event.target.value)} />
-    <div style={{ height: 18 }} />
-    <Button variant="primary" onClick={save}>{t('Save')}</Button>
-  </>
-}
-
-export const setNoteSheet = (entryIdx, setIdx) =>
-  ui().openSheet(close => <SetNote entryIdx={entryIdx} setIdx={setIdx} close={close} />)
-
 /* The session note: how the whole workout went, as opposed to how one exercise went. It lives
    on the active session, so buildCompletedWorkout carries it onto the finished workout and it
    shows up again in history — where it stays editable. Written here rather than only after the
@@ -470,19 +482,6 @@ export const supersetSheet = (meta, onSave) => ui().openSheet(close => <Superset
    already computed via applyIntensifierPlan; an unplanned straight set can still grow one live
    by tapping "+ Drop"/"+ Burst", which appends with the same suggested-next-value math. */
 
-// Shown when the last exercise's last set is checked — finish, or keep going.
-function WorkoutComplete({ close }) {
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="checkCircle" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t("That's the whole workout!")}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('All exercises done. Nice work! Finish up, or add another one if you’ve got more in you.')}</div>
-    <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); useUI.getState().toast(t('Keep going: tap “+ Add exercise” below')) }}>{t('Continue workout')}</Button>
-  </div>
-}
-export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
-
 export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
   // A save decision left open after the editor already closed (a second prompt from a route
   // exit that raced the first save) has nothing to save or delete: it only finishes leaving.
@@ -550,86 +549,6 @@ export function exitWorkoutEdit(onExit = () => nav('/train/history')) {
   savePrompt = prompt
 }
 
-// "60 kg × 5, 5, 4", or "60×5 · 62.5×5" when the weight changed between sets; a bodyweight lift
-// without load is just its reps. A set taken to failure keeps its "F", as it does in the history.
-export function setsLine(sets, unit) {
-  const ws = new Set(sets.map(s => s.w))
-  const reps = s => s.r + (s.f ? ' ' + t('F') : '')
-  if (ws.size === 1) {
-    const w0 = sets[0].w
-    return (w0 > 0 ? fmtNum(w0) + ' ' + unit + ' × ' : '') + sets.map(reps).join(', ')
-  }
-  return sets.map(s => (s.w > 0 ? fmtNum(s.w) + '×' : '') + reps(s)).join(' · ')
-}
-const TREND = { 1: ['arrowUp', 'var(--green-ink)'], 0: ['minus', 'var(--text-2)'], [-1]: ['arrowDown', 'var(--orange-ink)'] }
-function LastAndNext({ st, w }) {
-  const rows = finishCompare(st, w)
-  if (!rows.length) return null
-  const nextWord = { up: t('step up'), hold: t('same again'), down: t('lighter'), deload: t('deload') }
-  return <div style={{ textAlign: 'start', marginBottom: 14 }}>
-    <h4 className="sec">{t('Last time and next time')}</h4>
-    <div className="list">{rows.map(row => {
-      const ex = EXIDX[row.id]
-      const tr = row.trend == null ? null : TREND[row.trend]
-      return <div key={row.id} className="item" style={{ display: 'block' }}>
-        <div className="row between" style={{ gap: 8 }}>
-          <span className={'tt ' + exerciseNameClass(ex)} style={{ fontWeight: 600 }}>{ex ? exerciseNameFor(ex) : row.id}</span>
-          {tr ? <span style={{ color: tr[1], display: 'inline-flex' }} aria-label={row.trend > 0 ? t('Up on last time') : row.trend < 0 ? t('Down on last time') : t('Same as last time')}><Icon name={tr[0]} /></span>
-            : <span className="tag nocap">{t('First time')}</span>}
-        </div>
-        <div className="small">{t('Today')}: {setsLine(row.today, st.unit)}</div>
-        {row.last && <div className="small dim">{t('Last time')}: {setsLine(row.last, st.unit)}</div>}
-        {row.next && <div className="small accent">{t('Next time')}: {row.next.w != null ? fmtNum(row.next.w) + ' ' + st.unit : ''}{row.next.w != null && row.next.r != null ? ' × ' : ''}{row.next.r != null ? row.next.r : ''} · {nextWord[row.next.kind]}</div>}
-      </div>
-    })}</div>
-  </div>
-}
-
-// The cardio of the session, which "Last time and next time" leaves out: minutes, speed and the
-// treadmill's incline as they were logged.
-function CardioDone({ st, w }) {
-  const rows = finishCardio(w)
-  if (!rows.length) return null
-  return <div style={{ textAlign: 'start', marginBottom: 14 }}>
-    <h4 className="sec">{t('Cardio')}</h4>
-    <div className="list">{rows.map((row, i) => {
-      const ex = EXIDX[row.id]
-      return <div key={i} className="item" style={{ display: 'block' }}>
-        <span className={'tt ' + exerciseNameClass(ex)} style={{ fontWeight: 600 }}>{ex ? exerciseNameFor(ex) : row.id}</span>
-        <div className="small">{row.sets.map(x => setLabel(row.id, x, row.target, speedUnitOf(st))).join('  ·  ')}</div>
-      </div>
-    })}</div>
-  </div>
-}
-
-function FinishSummary({ w, prs, e1prs = [], close }) {
-  const st = useStore(s => s.S)
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc-ink)' }}><Icon name="trophy" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
-    <div className="tiles" style={{ textAlign: 'start' }}>
-      <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>
-      <div className="tile"><div className="l">{t('Volume')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtVol(w.vol, st.unit)}</div></div>
-      <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{setsWorkCount(setsDone(w), workSetsDone(w))}</div></div>
-      <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '–'}</div></div>
-    </div>
-    {(prs.length > 0 || e1prs.length > 0) && <div style={{ textAlign: 'start', marginBottom: 12 }}>
-      {prs.map(id => <div key={id} className="small accent row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} <span className={exerciseNameClass(EXIDX[id])}>{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span></div>)}
-      {e1prs.map(p => <div key={p.id} className="small accent row" style={{ gap: 5 }}><Icon name="chartLine" style={{ fontSize: 13 }} />{t('Best estimated 1RM:')} <span className={exerciseNameClass(EXIDX[p.id])}>{EXIDX[p.id] ? exerciseNameFor(EXIDX[p.id]) : p.id}</span> · {fmtNum(p.est)} {st.unit}</div>)}
-    </div>}
-    <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>
-    <BodyMap load={loadOfWorkouts([w])} body={st.body} />
-    <div style={{ height: 14 }} />
-    <LastAndNext st={st} w={w} />
-    <CardioDone st={st} w={w} />
-    {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
-        what is added here goes straight onto its record. */}
-    <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    {/* Back where the workout was opened from, its page taken off the tab's stack: going on to
-        Home left the Start screen under it, one back press away (lib/use-tab-nav.js back). */}
-    <Button variant="primary" onClick={() => { close(); back() }}>{t('Nice!')}</Button>
-  </div>
-}
 export function finishWorkout() {
   if (S().active?.editingWorkoutId) { saveWorkoutEdits(); return }
   const A = S().active
@@ -640,54 +559,54 @@ export function finishWorkout() {
   if (done < total) { confirmSheet({ title: t('Finish early?'), message: tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done), confirmText: t('Finish workout'), haptic: true, onConfirm: doFinishWorkout }); return }
   doFinishWorkout()
 }
-// The workout screen's Finish pill (v1.3.11): one sheet with both ways out, Finish and save or
-// Discard. It says what finishWorkout's confirm would have said about sets still unchecked, so
-// the save needs no second question. `onDiscard` is the screen's own discard, with its confirm.
-// The editor of a saved workout still saves at once.
-export function finishWorkoutSheet({ onDiscard } = {}) {
-  if (S().active?.editingWorkoutId) { saveWorkoutEdits(); return }
-  const A = S().active
-  if (!A) return
-  const done = setsDoneActive(A)
-  const total = setUnitsTotal(A.entries)
-  menuSheet({
-    title: !done ? t('Nothing logged yet') : done < total ? t('Finish early?') : t('Finish workout?'),
-    subtitle: !done ? t('You haven’t checked off any sets. Finish the workout anyway?')
-      : done < total ? tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done) : null,
-    sections: [
-      { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), haptic: true, onClick: doFinishWorkout }] },
-      { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
-    ],
-  })
+function doFinishWorkout() { finishToSummary() }
+
+/* ============================ Workout finish M2: to the summary ============================ */
+// Finish and save, then the summary (W2.0, /train/workout/summary/:id) in the workout's place:
+// replaced, so Back never returns to a finished session. `close` is the drawer that asked; a
+// sheet that closed itself first (confirmSheet, menuSheet) is waited for the same way
+// (closeThenReplace), so its history entry goes before the replace. What Reopen needs is held in
+// memory for the summary's Done (views/workout/finish-drawers.js). Returns finishAndSave's result.
+export function finishToSummary(close) {
+  // A saved workout open in the editor is updated in place, never saved again as a new record.
+  if (S().active?.editingWorkoutId) { close?.(); saveWorkoutEdits(); return null }
+  markLeaving()
+  const saved = finishAndSave()
+  if (!saved) return null
+  holdReopen(saved.snapshot, saved.w.id)
+  closeThenReplace(close || (() => {}), '/train/workout/summary/' + encodeURIComponent(saved.w.id))
+  return saved
 }
-function doFinishWorkout() {
+
+/* ============================ Workout finish M1: the save ============================ */
+// Clones what Reopen (lib/workout-reopen.js) needs back: plain data, so JSON is enough.
+const cloneData = v => (v == null ? v : JSON.parse(JSON.stringify(v)))
+
+// The save of the running session: the workout into history, the confirmed weights, the
+// rotation's refill, the backup, the sync and kcal report, the timers off and the chime.
+// Returns `{ w, prs, e1prs, snapshot }` (null with nothing running): `w` the saved record,
+// `snapshot` what Reopen (W2.1) puts back for 10 s, kept in memory only, never in S; null for a
+// workout logged into the past, which has no Reopen. `end` overrides when the session ended (the
+// left-open save, lib/stale-workout.js).
+export function finishAndSave({ end } = {}) {
   const st = S()
   const A = st.active
-  if (!A) return
+  if (!A || A.editingWorkoutId) return null
   const past = !!A.backfill
-  const prs = []
-  const e1prs = []
   // A workout logged into the past is held against the history before it, the way an edit of a
   // saved one is (rebuildPrHistory, below): it gains a badge it leads with, and a later session
   // it outdoes loses its own. It used to report none at all while the editor's Save awarded them
-  // (QA 1.3.9). The confirmed weights are left alone either way.
-  if (!past) A.entries.forEach(e => {
-    const loads = e.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w).filter(w => w > 0)
-    const mx = loads.length ? loads.reduce((a, b) => betterWeight(e.id, a, b)) : 0
-    // Held against history read the way this session logged a dumbbell weight (lib/dumbbells.js).
-    if (beatsWeight(e.id, mx, bestWeightFor(st, e.id, entryDbLoad(e)))) prs.push(e.id)
-    // A heavier estimate without a heavier top set is its own kind of progress —
-    // same weight for more reps. Reported separately so it can't be read as a load PR.
-    const rec = is1RMRecord(st, e.id, e)
-    if (rec && !prs.includes(e.id)) e1prs.push({ id: e.id, ...rec })
-  })
+  // (QA 1.3.9). The confirmed weights are left alone either way. The rule is lib/workout-finish.js
+  // sessionBests, which the Finish drawer and the live NEW BEST read too.
+  const { prs, e1prs } = past ? { prs: [], e1prs: [] } : sessionBests(st, A)
   const w = buildCompletedWorkout(A, {
-    end: past ? backfillEnd(A) : sessionEnd(A),
+    end: end ?? (past ? backfillEnd(A) : sessionEnd(A)),
     prs,
     snapshotFor: e => isCustomEx(EXIDX[e.id]) ? exerciseMuscleSnapshot(EXIDX[e.id]) : null,
   })
   w.vol = workoutVolume(w)
   let shown = w
+  const snapshot = past ? null : { at: Date.now(), workoutId: w.id, active: cloneData(A), exWeights: {}, rotation: null }
   update(s => {
     if (past) {
       // Its start and end are in the past; the stamp says when it was logged, which is what a
@@ -700,15 +619,25 @@ function doFinishWorkout() {
       prs.push(...[...(shown.prs || [])])
     } else {
       w.entries.forEach(e => {
+        // A warm-up or cool-down exercise never sets the weight the next session opens at.
+        if (!countsForRecords(e)) return
         const mx = bestWeightForEntry(e)
-        if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
+        if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) {
+          if (!Object.hasOwn(snapshot.exWeights, e.id)) snapshot.exWeights[e.id] = Object.hasOwn(s.exWeights, e.id) ? cloneData(s.exWeights[e.id]) : null
+          s.exWeights[e.id] = { w: mx, d: w.d }
+        }
       })
       s.workouts.push(w)
     }
     s.active = null
+    const queue = snapshot ? cloneData(s.queue ?? null) : null
+    const dayPlan = snapshot ? { ...(s.dayPlan || {}) } : null
     // A rotation pass this app manages starts its next pass the moment the last session lands
     // (lib/rotation.js). A planner's queue is left alone: it completes and waits for its writer.
-    refillAfter(s, w)
+    if (refillAfter(s, w) && snapshot) {
+      const pins = Object.fromEntries(Object.entries(dayPlan).filter(([iso]) => !Object.hasOwn(s.dayPlan || {}, iso)))
+      snapshot.rotation = { queue, pins }
+    }
   })
   useStore.getState().autoBackupNow()
   // Its kcal entry reaches the day's diary now rather than at the hub's next poll.
@@ -719,5 +648,5 @@ function doFinishWorkout() {
   // into s.active, which is gone. What it held is not logged, like any set left unchecked.
   useUI.getState().stopWork()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+  return { w: shown, prs, e1prs, snapshot }
 }

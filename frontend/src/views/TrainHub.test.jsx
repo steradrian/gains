@@ -15,7 +15,7 @@ import { useUI } from '../store/useUI.js'
 import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { dateLocale } from '../lib/i18n.js'
 import { fmtDate, isoOf, todayISO } from '../lib/format.js'
-import { dayOptionsSheet, dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startChooserSheet, startFlow, workoutDetailSheet } from '../sheets.jsx'
+import { dayOptionsSheet, dayOverrideSheet, logPastWorkoutSheet, menuSheet, starterPlanSheet, startChooserSheet, readyOrStart, workoutDetailSheet } from '../sheets.jsx'
 import { addRoutine } from './routines/routine-actions.js'
 import TrainHub from './TrainHub.jsx'
 
@@ -28,7 +28,7 @@ vi.mock('./routines/routine-actions.js', () => ({ addRoutine: vi.fn() }))
 const libNav = vi.hoisted(() => vi.fn())
 vi.mock('../lib/nav.js', async importOriginal => ({ ...(await importOriginal()), nav: libNav }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), dayOverrideSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), dayNoteSheet: vi.fn(), menuSheet: vi.fn(), startFlow: vi.fn(),
+  starterPlanSheet: vi.fn(), dayOverrideSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), dayNoteSheet: vi.fn(), menuSheet: vi.fn(), readyOrStart: vi.fn(),
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(),
 }))
 
@@ -131,14 +131,14 @@ describe('Train — the screen', () => {
 })
 
 describe('Train — the card and Start', () => {
-  it('planned: the routine and its size; Start Push starts it, and so does the Start action', () => {
+  it('planned: the routine and its size; Start Push opens its Ready, and so does the Start action', () => {
     setS(); mount()
     expect(card()).toMatchObject({ eyebrow: 'Today · planned', title: 'Push', buttons: ['Start Push'] })
     expect(card().meta).toContain('2 exercises')
     tap(cardButton('Start Push'))
-    expect(startFlow).toHaveBeenCalledWith(['r1'])
+    expect(readyOrStart).toHaveBeenCalledWith(['r1'])
     tap(action('Start'))
-    expect(startFlow).toHaveBeenCalledTimes(2)
+    expect(readyOrStart).toHaveBeenCalledTimes(2)
   })
 
   it('the ⋯ opens the day\'s options for today, and starts nothing', () => {
@@ -146,7 +146,7 @@ describe('Train — the card and Start', () => {
     tap($('.g-tcard-menu'))
     expect(dayOptionsSheet).toHaveBeenCalledWith(TODAY)
     expect(dayOverrideSheet).not.toHaveBeenCalled()
-    expect(startFlow).not.toHaveBeenCalled()
+    expect(readyOrStart).not.toHaveBeenCalled()
   })
 
   it('the ⋯ comes after the heading in reading order', () => {
@@ -173,7 +173,7 @@ describe('Train — the card and Start', () => {
     tap(action('Start'))
     expect(startChooserSheet).toHaveBeenCalledTimes(2)
     expect(nav).not.toHaveBeenCalled()
-    expect(startFlow).not.toHaveBeenCalled()
+    expect(readyOrStart).not.toHaveBeenCalled()
   })
 
   it('rest: the next session names every routine, and See that day selects it', () => {
@@ -194,7 +194,7 @@ describe('Train — the card and Start', () => {
     expect(nav).toHaveBeenCalledWith('/train/workout')
     tap(action('Start'))
     expect(nav).toHaveBeenCalledTimes(2)
-    expect(startFlow).not.toHaveBeenCalled()
+    expect(readyOrStart).not.toHaveBeenCalled()
   })
 
   it('an open editor on a saved workout reads as an edit, with Resume', () => {
@@ -202,11 +202,11 @@ describe('Train — the card and Start', () => {
     expect(card()).toMatchObject({ eyebrow: 'Editing a saved workout', title: 'Push', buttons: ['Resume'] })
   })
 
-  it('a coach week\'s session is today\'s: Start starts it', () => {
+  it('a coach week\'s session is today\'s: Start opens its Ready', () => {
     setS({ week: {}, queue: { ids: ['r2'], since: Date.now() - 86400000, startsOn: TODAY, label: 'US W1' } }); mount()
     expect(card().title).toBe('Pull')
     tap(action('Start'))
-    expect(startFlow).toHaveBeenCalledWith(['r2'])
+    expect(readyOrStart).toHaveBeenCalledWith(['r2'])
   })
 })
 
@@ -313,9 +313,9 @@ describe('Train — Routines', () => {
     const play = tiles()[1].querySelector('.g-rtile-play')
     expect(play.getAttribute('aria-label')).toBe('Start Pull')
     tap(play)
-    expect(startFlow).toHaveBeenCalledWith(['r2'])
+    expect(readyOrStart).toHaveBeenCalledWith(['r2'])
     tap(tiles()[3].querySelector('.g-rtile-open'))
-    expect(startFlow).toHaveBeenLastCalledWith([])
+    expect(readyOrStart).toHaveBeenLastCalledWith([])
     tap(section('Routines').querySelector('.g-ssec-act'))
     expect(nav).toHaveBeenCalledWith('/train/routines')
   })
@@ -336,14 +336,14 @@ describe('Train — Routines', () => {
     const play = tiles()[0].querySelector('.g-rtile-play')
     expect(play.getAttribute('aria-label')).toBe('Add exercise, Empty')
     tap(play)
-    expect(startFlow).not.toHaveBeenCalled()
+    expect(readyOrStart).not.toHaveBeenCalled()
     expect(nav).toHaveBeenCalledWith('/train/routines/e1')
   })
 
   it('with a session in progress, ▶ goes back to it instead of starting another', () => {
     setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } }); mount()
     tap(tiles()[0].querySelector('.g-rtile-play'))
-    expect(startFlow).not.toHaveBeenCalled()
+    expect(readyOrStart).not.toHaveBeenCalled()
     expect(nav).toHaveBeenCalledWith('/train/workout')
   })
 })

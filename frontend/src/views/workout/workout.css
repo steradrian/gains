@@ -1,0 +1,55 @@
+/* The running workout on the stage (WorkoutScreen.jsx). Full screen: StageScreen clears the status
+   bar, the footer and the bar toast are fixed to the foot of the viewport, and the page scrolls
+   under them with room left for the footer and its rest row. The kit's parts carry their own
+   gutters; what this file adds keeps a 16px one. Nothing here clips with overflow, so the focus
+   rings of the steppers, the hero picture and the footer row stay whole. */
+.wk { min-height: 100vh; min-height: 100dvh; color: var(--on-stage); font-family: var(--font-sans); }
+.wk-body { padding-bottom: calc(220px + var(--sab, 0px)); }
+.wk .g-wf { position: fixed; z-index: 3; }
+.wk .g-btoast-footer, .wk .g-btoast-rest { position: fixed; z-index: 4; bottom: calc(112px + var(--sab, 0px)); }
+.wk .g-btoast-rest { bottom: calc(170px + var(--sab, 0px)); }
+.wk-gut { padding: 12px 16px 0; }
+.wk-gut-empty { display: flex; min-height: 60vh; align-items: center; justify-content: center; }
+
+.wk-phase { display: flex; align-items: center; gap: 8px; }
+.wk-phase .g-pp { flex: 1; min-width: 0; }
+.wk-back { appearance: none; border: 0; flex: none; margin-block-start: 16px; margin-inline: 0 16px; height: 36px; padding: 0 14px; border-radius: var(--radius-pill); color: var(--on-stage); font: 600 14px/18px var(--font-sans); cursor: pointer; }
+.wk-back-all { margin: 12px 16px 0; }
+
+.wk-focus { display: flex; flex-direction: column; gap: 12px; padding-block-start: 16px; }
+.wk-focus > .g-effort { margin-inline: 16px; }
+.wk-focus > .g-dsr, .wk-focus > .g-ssw-wrap { margin-block-start: 0; }
+
+.wk-done { appearance: none; border: 0; margin-inline: 16px; min-height: 56px; padding: 0 20px; border-radius: var(--radius-pill); background: var(--stage-cta); color: var(--on-stage-cta); font: 700 17px/22px var(--font-sans); text-align: center; cursor: pointer; touch-action: manipulation; }
+.wk-max { margin: 0; text-align: center; color: var(--on-stage-2); font: 600 14px/19px var(--font-sans); }
+
+.wk-todo { margin: 0 16px; border-radius: 22px; }
+.wk-todo-row { appearance: none; border: 0; width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 22px; background: none; color: var(--on-stage-2); text-align: start; font: 600 16px/20px var(--font-sans); cursor: pointer; }
+.wk-todo-dot { width: 22px; height: 22px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--glass-line); }
+.wk-todo-n { flex: 1; min-width: 0; }
+.wk-todo-v { font-variant-numeric: tabular-nums; }
+
+.wk-review { display: flex; flex-direction: column; gap: 12px; }
+.wk-review-line { margin: 0 16px; display: flex; flex-direction: column; gap: 4px; font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.wk-review-line b { color: var(--on-stage); font-weight: 700; font-size: 17px; }
+
+.wk-acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px; }
+.wk-act { appearance: none; border: 0; height: 44px; padding: 0 16px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 8px; color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.wk-act .g-icon { width: 18px; height: 18px; }
+.wk-act-wide { margin-inline: 16px; justify-content: center; }
+
+.wk-below, .wk-alldone { display: flex; flex-direction: column; gap: 4px; padding-block-start: 24px; }
+.wk-sec { display: flex; flex-direction: column; }
+.wk-card { margin: 8px 16px 0; padding: 14px 16px; border-radius: 22px; display: flex; flex-direction: column; gap: 10px; }
+.wk-card-line { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.wk-row { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.wk-row b { color: var(--on-stage); font-weight: 600; font-variant-numeric: tabular-nums; }
+.wk-row-btn { appearance: none; border: 0; background: none; width: 100%; padding: 4px 0; cursor: pointer; }
+.wk-best { flex-direction: column; align-items: flex-start; gap: 2px; padding-block-start: 6px; box-shadow: 0 -1px 0 var(--glass-line); }
+.wk-legend { margin: 0; display: flex; align-items: center; gap: 8px; font: 500 13px/16px var(--font-sans); color: var(--on-stage-2); }
+.wk-legend-bar { flex: 1; height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--glass-track), var(--on-stage)); }
+[dir="rtl"] .wk-legend-bar { background: linear-gradient(to left, var(--glass-track), var(--on-stage)); }
+
+.wk-alldone { gap: 12px; padding-block-start: 20px; }
+.wk-alldone-t { margin: 0 16px; font: 700 28px/34px var(--font-sans); text-align: start; }
+.wk-alldone-l { margin: 0 16px; font: 500 15px/21px var(--font-sans); color: var(--on-stage-2); text-align: start; }

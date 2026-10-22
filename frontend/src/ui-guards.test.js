@@ -65,7 +65,7 @@ describe('G8 finds a page choosing its own chrome', () => {
       writeFileSync(join(dir, 'views', 'B.jsx'), `export default () => <div className={cx('hdr', on && 'x')}><h1>B</h1></div>`)
       writeFileSync(join(dir, 'views', 'C.jsx'), `export default () => <Page title="C" className="wide">x</Page>`)
       writeFileSync(join(dir, 'views', 'D.jsx'), `export default () => <Page title={t('D')} action={<i style={{ x: 1 }} className="y" />}>x</Page>`)
-      writeFileSync(join(dir, 'views', 'Workout.jsx'), `export default () => <div className="hdr whdr-bar" />`)
+      writeFileSync(join(dir, 'views', 'WorkoutRoute.jsx'), `export default () => <div className="hdr whdr-bar" />`)
       writeFileSync(join(dir, 'components', 'layout.jsx'), `import RootHeader from './RootHeader.jsx'`)
       expect(pageChrome(dir)).toEqual(['views/A.jsx: imports SubHeader.jsx', 'views/B.jsx: builds .hdr', 'views/B.jsx: renders its own <h1>', 'views/C.jsx: styles <Page>'])
       expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx'])
@@ -346,11 +346,11 @@ describe('G3 counts hand-built primitive markup', () => {
 describe('G4 and G7', () => {
   it('finds the routed components and exempts the full-screen ones', () => {
     const views = routeViewsWithoutPage()
-    expect(views).toContain('Workout')
+    expect(views).toContain('WorkoutRoute')
     // The route hands its page to Settings.jsx, which draws the chrome: exempt, not a miss.
     expect(views).toContain('SettingsRoute')
-    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FocusView', 'FoodHub', 'FoodRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'Workout'])
-    expect(now.G4).not.toContain('Workout')
+    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodHub', 'FoodRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute'])
+    expect(now.G4).not.toContain('WorkoutRoute')
   })
 
   it('checks the routed component itself, through double-quoted, named and lazy imports', () => {

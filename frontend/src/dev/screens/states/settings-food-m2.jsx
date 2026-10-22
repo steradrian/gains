@@ -62,7 +62,7 @@ registerScreens('Settings', [
   { id: 'A1.27', title: 'New unit (drawer)', note: 'Name and abbreviation; no Weighs field.',
     path: '/me/customUnits', render: () => <Fresh><CustomUnitsPage /></Fresh>, mock: units,
     play: async t => { await tap(t, 'Add a custom unit') } },
-  { id: 'A1.35', title: 'Help', note: 'Six short answers, each in a drawer, and Report a problem (opens GitHub).',
+  { id: 'A1.35', title: 'Help', note: 'Six short answers, each in a drawer, and Report a problem (opens an email).',
     path: '/me/help', render: () => <HelpPage />, mock: nt({}) },
   { id: 'A1.36', title: 'About', note: 'Logo, version and build date, Install, Credits. The Android update row is on the phone build only.',
     path: '/me/about', render: () => <AboutPage />, mock: nt({}) },

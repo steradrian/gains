@@ -242,7 +242,6 @@ body.no-tabbar.resting :is(#app,.app-out){padding-bottom:calc(96px + var(--sab))
    and below; the native keyboard's room (:root[data-native-kb]) still wins. */
 :root #app:has(> .g-root.g-screen),:root .app-out:has(> .g-root.g-screen){padding:var(--conn) 0 0;max-width:none}
 #app > .g-screen > .g-stage > .g-stage-body,.app-out > .g-screen > .g-stage > .g-stage-body{max-width:var(--page-w);margin-inline:auto}
-.workout-end-spacer{height:0}
 /* Opacity only: a transform on #app, even mid-animation, makes it the containing block of every
    fixed child, so the pinned tab-root header (ds.css .g-shdr-pin) would ride the fade on each
    navigation. */
@@ -753,44 +752,7 @@ body.chips-dragging *{cursor:inherit}
 .ck.on svg{stroke:var(--on-acc)}
 
 /* ------------------------------------------------------------- workout --- */
-/* Workout header. In list mode it is pinned: pulled up over #app's top padding so it sits flush
-   with the screen edge from the first pixel, and given the page's own ground plus a light blur so
-   the rows scrolling underneath read as underneath. The connection indicator, when there is
-   one, sits over its top (--conn) and its content starts below it. */
-.whdr.stick{
-  position:sticky;top:0;z-index:20;
-  margin:calc(-1 * (var(--sat) + var(--conn) + 8px)) calc(-1 * var(--pad)) 6px;
-  padding:calc(var(--sat) + var(--conn) + 8px) var(--pad) 0;
-  background:color-mix(in srgb,var(--bg) 94%,transparent);
-  -webkit-backdrop-filter:saturate(180%) blur(10px);backdrop-filter:saturate(180%) blur(10px);
-}
-.whdr.stick .hdr{margin-bottom:12px}
-.whdr.stick .wprog{margin-bottom:10px}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .whdr.stick{background:var(--bg)}
-}
-/* The workout's own header (v1.3.11): ⌄ (or the editor's ✕), the name with the clock and set
-   count, ⋯, and a labelled Finish pill. The name block takes what is left and truncates; the pill
-   never shrinks. */
-.hdr.whdr-bar{align-items:center;gap:8px;margin:4px 0 12px}
-.whdr-mid{flex:1;min-width:0;text-align:center}
-.whdr-name{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* The clock and set count may take a second line: in ru/uk the count is the long half and a
-   one-line ellipsis cut exactly the 0/19 the line is there for. */
-.whdr-mid .sub{font-size:13px;margin-top:1px;font-variant-numeric:tabular-nums;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere;text-wrap:balance}
-.btn.pill.whdr-finish{width:auto;flex:none;padding:8px 16px;border-radius:99px;font-size:15px;max-width:40%}
-/* Animations set to Small: the picture beside the exercise name, with an expand badge. */
-.wthumb{position:relative;flex:none;width:48px;height:48px;border-radius:10px;overflow:hidden;padding:0}
-.wthumb .thumb{width:48px;height:48px;border-radius:10px}
-.wthumb .thumb-x{background:var(--surface-3)}
-.wthumb-x{
-  position:absolute;inset-inline-end:3px;bottom:3px;width:16px;height:16px;border-radius:5px;
-  display:flex;align-items:center;justify-content:center;font-size:10px;
-  background:rgba(0,0,0,.55);color:#fff;--icon-stroke:2.4;
-}
 .exhd{align-items:center}
-.wprog{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:16px}
-.wprog i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width var(--med) var(--ease)}
 .exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:#fff;margin-bottom:12px}
 .exmedia img{width:100%;height:320px;object-fit:contain;display:block}
 .exmedia .gifhint,.exmedia .giftoggle{
@@ -1119,7 +1081,7 @@ body.chips-dragging *{cursor:inherit}
 .setrow-side .setrow.side.eff3 .stp.w button,.setrow-side .setrow.side.eff3 .stp.r button{width:20px}
 /* The header is laid out like a straight row, but in front of an L/R row's weight cell sit the
    set number, its gap AND the side badge, so over per-side rows the labels stood 17–23 px left
-   of their cells (QA C5). `.per-side` (set by Workout.jsx) widens the number slot by the badge
+   of their cells (QA C5). `.per-side` widens the number slot by the badge
    and takes the badge's gap as its own, so header and rows share one column track; with an
    effort column it also mirrors the side rows' own shares (reps 1.4, effort .6). */
 .sethead.per-side .n-sp{width:56px}
@@ -1152,30 +1114,11 @@ body.chips-dragging *{cursor:inherit}
    cell sheds first, a pixel further down they go altogether — and the row keeps everything that
    carries meaning: the rating stays a 28 px tap target, the weight and reps columns keep their
    numbers, their buttons and their floors, and the header keeps its single line ("WEIGHT (KG)"
-   has 1.5 px to spare in a 77 px column and would wrap if the weight column paid instead).
-   An L/R row in a superset in the list view has no −/+ to shrink below 430 px; the rule for it
-   below is more specific and keeps the cell at 34 px. */
+   has 1.5 px to spare in a 77 px column and would wrap if the weight column paid instead). */
 @media (min-width:360px) and (max-width:365px){
   .setrow.side .effcell,.setrow.side .effcell-stp,.sethead.per-side .eff-sp{min-width:56px}
   .setrow.side .effcell-stp>button[aria-label="Decrease"],
   .setrow.side .effcell-stp>button[aria-label="Increase"]{min-width:12px}
-}
-/* An L/R row with an effort column inside a superset in the list view sits behind three insets
-   (unit, superset card, sets card). It used to drop the RIR −/+ here and hand the width to an
-   oversized weight cell — but the rating is the field you reach for most on a unilateral set, so
-   it keeps the same −/+ stepper a normal row has, just shrunk, and the weight cell pays for it
-   instead. The effort cell reserves its 28 px value plus two 12 px button floors (≈54 px); the
-   weight column gives up the matching width (a per-side weight is one limb's load, so its 48 px
-   reserve was generous), so the row's total is unchanged and everything still fits at 412 px. */
-@media (max-width:429px){
-  .wl-unit .ss-card .setrow.side .effcell-stp>button[aria-label="Decrease"],
-  .wl-unit .ss-card .setrow.side .effcell-stp>button[aria-label="Increase"]{min-width:12px}
-  .wl-unit .ss-card .setrow.side .effcell,.wl-unit .ss-card .setrow.side .effcell-stp,.wl-unit .ss-card .sethead.per-side .eff-sp{min-width:54px}
-  /* reclaim the +/-'s room from the weight column: a slimmer number reserve and tighter button
-     floors, the same shape the 320 px step-down below already gives weight on these rows */
-  .wl-unit .ss-card .setrow.side.eff3 .stp.w:not(.plain),.wl-unit .ss-card .sethead.per-side.eff3:not(.plain) .w-sp{--btn-floor:12px}
-  .wl-unit .ss-card .setrow.side.eff3 .stp.w,.wl-unit .ss-card .sethead.per-side.eff3 .w-sp{--num:33px}
-  .wl-unit .ss-card .setrow.side.eff3 .stp.w button{width:18px}
 }
 /* Below 360 px a row with an effort column cannot hold three numbers and six buttons: with the
    set number, tick and gaps gone a card leaves ~178 px, and 102.5 / 12 / 8.5 at their floors need
@@ -1184,8 +1127,7 @@ body.chips-dragging *{cursor:inherit}
    weight and reps keep their buttons. */
 @media (max-width:359px){
   .setrow .effcell-stp>button[aria-label="Decrease"],.setrow .effcell-stp>button[aria-label="Increase"]{display:none}
-  .setrow .effcell,.setrow .effcell-stp,.setrow.eff3 .effcell-stp,.sethead .eff-sp,
-  .wl-unit .ss-card .setrow.side .effcell,.wl-unit .ss-card .setrow.side .effcell-stp,.wl-unit .ss-card .sethead.per-side .eff-sp{min-width:29px}
+  .setrow .effcell,.setrow .effcell-stp,.setrow.eff3 .effcell-stp,.sethead .eff-sp{min-width:29px}
   .setrow .effcell-stp .val{min-width:26px}
   /* an L/R row with an effort column is still over by 14 px in a card at 320 px (badge 20, 77 + 66 +
      29 for the three cells, tick 30, four gaps): one notch further there — 16 px button floors
@@ -1227,7 +1169,7 @@ body.chips-dragging *{cursor:inherit}
 @media (max-width:359px){
   .subrow,.plateline{padding-inline-start:24px}
 }
-/* Plate line under a set row (Workout.jsx loadLine): the stack for this row's weight, what is
+/* Plate line under a set row: the stack for this row's weight, what is
    missing from the inventory, and what to strip/add from the row above. */
 .plateline{display:flex;align-items:center;gap:6px;padding-block:0 5px;padding-inline:32px 0;font-size:12px;color:var(--dim);line-height:1.3}
 .plateline .icn{font-size:12px;flex:none;opacity:.8}
@@ -1265,13 +1207,6 @@ body.chips-dragging *{cursor:inherit}
 .setextra .chip.add{display:inline-flex;align-items:center;gap:4px;color:var(--acc-ink)}
 .setextra .chip.add svg{width:13px;height:13px}
 .setextra .chip.add:disabled{opacity:.35}
-/* why the next target is what it is (issue #17) */
-.progline{
-  width:100%;display:flex;align-items:flex-start;gap:7px;margin:6px 0 2px;padding:0;
-  text-align: start;font-size:13px;line-height:1.38;color:var(--acc-ink);
-}
-.progline.warn{color:var(--yellow-ink)}
-.progline svg{flex:none;margin-top:2px}
 /* "Last time" / "Best set" under the plan line (#173): a button that switches between the two,
    looking like the plain line it replaced, with a small icon to say it can be tapped. */
 .refline{width:100%;display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;padding:0;text-align:start}
@@ -1587,84 +1522,7 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .cal-legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-inline-end:5px}
 
 /* --- supersets --- */
-.ss-label{
-  font-size:12px;font-weight:600;letter-spacing:-.004em;text-transform:none;
-  color:var(--acc-ink);margin-block:8px 5px;margin-inline-start:4px;display:flex;align-items:center;gap:5px;
-}
-.ss-label .icn{font-size:13px}
-/* The routine editor's label opens the superset's name and rest (#292). */
-.ss-label-btn{background:none;border:0;padding:4px 6px;margin-inline-start:-2px;border-radius:8px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;min-height:28px;max-width:100%}
-.ss-label-btn:active{background:var(--surface-2)}
-.ss-label-btn .ss-label-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ss-label-btn .dim{font-weight:500;white-space:nowrap}
-/* A1, A2…: a member's place in the round (#293). */
-.ss-pos{flex:none;min-width:26px;height:22px;padding:0 5px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--acc-ink);background:var(--acc-soft, var(--surface-2))}
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
-/* A past workout's detail: each exercise opens its history, and a superset's exercises sit under
-   one label and bar. */
-.wd-ex{margin-bottom:12px;cursor:pointer;border-radius:10px}
-.wd-ex>.grow{flex:1;min-width:0}
-.wd-ex:active{background:var(--surface-2)}
-.wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
-.wd-ss .ss-label{margin:0 0 8px}
-.wd-ss .wd-ex:last-child{margin-bottom:0}
-.ss-card{
-  border-radius:var(--r-lg);padding:14px;
-  background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);
-}
-.workout-swipe-surface{touch-action:pan-y}
-.workout-swipe-stack{position:relative;isolation:isolate;overflow:hidden}
-.workout-swipe-stack>.workout-swipe-card,.workout-swipe-stack>.workout-swipe-preview{min-width:0}
-.workout-swipe-card{position:relative;z-index:2;background:var(--bg)}
-.workout-swipe-preview{position:absolute;z-index:1;top:0;inset-inline-start:0;width:100%;pointer-events:none;background:var(--bg)}
-/* A superset nests a card inside the page's own gutter, so its inset is paid twice. On a
-   narrow phone that left the weight and reps steppers too tight to show a three-digit
-   number — reported as "the reps textbox becomes too small when superset on mobile". The
-   card only gives up its own padding; the rows inside keep their spacing.
-   The give-back runs to 404 px rather than 400, because it may not end before the full insets
-   fit: at 401 px they snapped back to 16 + 14 + 14 per side and took 48 px off the row while the
-   screen had gained one, so a plain row with an effort column in a superset in the list view —
-   285 px of cells in a 281 px card — was 4, 3, 2 and 1 px wider than its card's content box at
-   401–404 px and its done tick sat in the card's side padding. 405 px is the width where those
-   285 px and the three full insets first add up to the screen, so that is where it ends. */
-@media (max-width:404px){
-  .ss-card{padding:10px 8px}
-  /* The sets card nested in a superset card or a list unit pays a second inset, and in a superset
-     in the list view a third; with an L/R row's set number, badge, two steppers, effort and tick
-     it is the line that decides whether the numbers fit. 8 px each, and the superset card inside
-     a unit keeps 4 (none below 360), so every set row has the same 256 px at 320 as in a plain
-     card, and 296–304 at 368. */
-  .wl-unit .card,.ss-card .card{padding-inline:8px}
-  .wl-unit .ss-card{padding-inline:4px}
-}
-@media (max-width:359px){
-  .wl-unit .ss-card{padding-inline:0}
-}
-.ss-hd{
-  font-size:12px;font-weight:600;color:var(--acc-ink);margin-bottom:12px;
-  text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;
-}
-.ss-ex{position:relative}
-.ss-amp{text-align:center;font-size:15px;font-weight:600;color:var(--acc-ink);margin:14px 0 8px}
-
-/* --- workout list view: every unit stacked, the current one outlined --- */
-/* minmax(0, …): a grid's default `auto` track is at least as wide as its widest content, so a set
-   row whose cells have floors (see .setrow .stp) would widen the whole unit past the screen and
-   push the ticks off it. Capped, a row that does not fit overflows its own card instead. */
-.workout-list{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
-.wl-unit{
-  border-radius:var(--r-lg);padding:14px 14px 4px;
-  background:var(--surface-2);
-}
-/* scrolled to when the list opens (#224): clear the sticky header above it. Workout.jsx
-   measures the header (--whdr-h on .workout-list, safe area included) because it grows when
-   the session name wraps; the fallback is the height of a one-line header. */
-.wl-unit{scroll-margin-top:calc(var(--whdr-h, var(--sat) + var(--conn) + 80px) + 16px)}
-.wl-unit.cur{box-shadow:inset 0 0 0 1.5px var(--acc-line)}
-.wl-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-.wl-summary{display:grid;gap:8px;padding-bottom:10px}
-/* the folded unit is a button (a tap opens it again): full width, text where it always sat */
-button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var(--r-sm)}
 
 /* --- the chip per exercise at the top of a running workout (#323) --- */
 /* One numbered chip per unit, filled as far as it is done: an outline waiting, half full started,
@@ -1684,10 +1542,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .wchip.done{background:color-mix(in srgb,var(--green) 70%,var(--surface));box-shadow:none;color:var(--label)}
 .wchip.cur{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--acc);color:var(--label)}
 .wchip.partial.cur{box-shadow:inset 0 0 0 1.5px var(--orange),0 0 0 2px var(--bg),0 0 0 3.5px var(--acc)}
-/* part of the give-back above — one edge for all three insets of a row in the list view */
-@media (max-width:404px){
-  .wl-unit{padding:10px 8px 2px}
-}
 
 /* --------------------------------------------------- desktop (≥1000px) --- */
 @media (min-width:1000px){
@@ -1696,7 +1550,6 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   body.resting :is(#app,.app-out){padding-bottom:calc(220px + var(--sab))}
   body.no-tabbar :is(#app,.app-out){padding-bottom:calc(40px + var(--sab))}
   body.no-tabbar.resting :is(#app,.app-out){padding-bottom:calc(130px + var(--sab))}
-  .workout-end-spacer{height:40px}
   .tiles{grid-template-columns:repeat(4,1fr)}
   .center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
   .sheet{left:50%;right:auto;margin-left:-320px;width:640px;border-radius:var(--r-xl) var(--r-xl) 0 0}

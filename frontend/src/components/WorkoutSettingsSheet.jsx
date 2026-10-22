@@ -1,90 +1,88 @@
+import { useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { effortOf } from '../lib/history.js'
-import { workoutControls } from '../lib/workout-controls.js'
-import { unlock, vibrateSupported, appleTouchDevice } from '../lib/sound.js'
+import { unlock } from '../lib/sound.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { MOBILE } from '../lib/mobile.js'
-import { closeThenNav } from '../lib/nav.js'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
-import { durationSheet } from './DurationWheel.jsx'
-import { Section, Row, Switch, Segmented, Button } from './ui.jsx'
-import { Inline } from './layout.jsx'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import Button from '../ds/Button.jsx'
+import DetailRow from '../ds/DetailRow.jsx'
+import Switch from '../ds/Switch.jsx'
+import DurationWheel from './DurationWheel.jsx'
+import '../views/workout/map-drawers.css'
 
-// The settings people touch at the gym, without leaving the workout (v1.3.11, opened from the
-// workout's ⋯ → Workout settings). Every row writes the same S.* field as Settings → Workout screen,
-// so a change here sticks for the next session too; nothing in it is
-// for this session only. The one exception to "same as Settings" is Layout: the running session
-// may carry its own layout from the ⋯ menu (S.active.workoutView), and choosing one here clears
-// that, or the saved choice would not show until the next workout.
-export function WorkoutSettings({ close }) {
+// The settings people touch at the gym, without leaving the workout (Workout options > Workout
+// settings, board W1.21). Every row writes the same S.* field as Settings > Workout, so a change
+// sticks for the next session too. Vibrate, Flash the screen, Swipe actions and Exercise animations
+// stay in Settings > Workout; Layout and All settings are not in the workout any more.
+
+/** A duration wheel as a step inside a drawer: a back button at the top, the wheel, Done. `onDone(sec)` runs, then `onBack`. */
+export function RestStep({ back, value, off, hint, onDone, onBack }) {
+  const [v, setV] = useState(value)
+  const read = useRef(null)
+  const done = () => { onDone(read.current ? read.current() : v); onBack() }
+  return <div className="g-ws-step">
+    <Button variant="ghost" size="sm" icon="chevronLeft" onClick={onBack}>{back}</Button>
+    <DurationWheel variant="ds" value={v} onChange={setV} max={REST_MAX} off={off} readRef={read} />
+    {hint && <p className="g-ws-hint">{hint}</p>}
+    <Button block onClick={done}>{t('Done')}</Button>
+  </div>
+}
+
+/** The six rows and the footer note. `onRest` opens the rest wheel step in the caller's drawer. */
+export function WorkoutSettingsBody({ onRest }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
-  const canVibrate = vibrateSupported()
-  const iPhone = appleTouchDevice()
   const wakeOK = wakeLockSupported()
-  const layout = ['list', 'compact'].includes(S.active?.workoutView || S.workoutView) ? (S.active?.workoutView || S.workoutView) : 'cards'
-  const gif = S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'
-  const allSettings = () => closeThenNav(close, '/me/workout')
-  return <div className="ws-sheet">
-    {/* Not SheetHeader: its row is 14px under, its sub line 10px; this header keeps 2px and 12px. */}
-    <Inline justify="between" className="mb-1">
-      <h3 className="m-0">{t('Workout settings')}</h3>
-      <Button size="sm" variant="ghost" onClick={close}>{t('Done')}</Button>
-    </Inline>
-    <div className="muted small mb-6">{t('Changes stick for your next workouts too.')}</div>
-    <Section>
-      <Row icon="timer" iconTint="var(--orange)" title={t('Rest timer')} value={fmtRest(S.restSec)} accessory="chevron"
-        onClick={() => durationSheet({
-          title: t('Rest timer'), value: S.restSec, max: REST_MAX, off: t('Off'),
-          footer: t('Scroll to 0:00 to turn the rest timer off.'),
-          onDone: v => update(s => { s.restSec = v }),
-        })} />
-      <Row icon="speaker" iconTint="var(--pink)" title={t('Play a sound')}>
-        {/* A tap: unlock the audio now so a rest ending before the next tick can sound (iOS, #152). */}
-        <Switch checked={!!S.sound} onChange={v => { if (v) unlock(true); update(s => { s.sound = v }) }} />
-      </Row>
-      <Row icon="vibrate" iconTint="var(--indigo)" title={t('Vibrate')} className={canVibrate ? '' : 'dis'}
-        subtitle={canVibrate ? null : iPhone ? t('Not on iPhone') : t('Not supported in this browser.')}>
-        <Switch checked={canVibrate && S.vibrate !== false} disabled={!canVibrate} onChange={v => update(s => { s.vibrate = v })} />
-      </Row>
-      <Row icon="sun" iconTint="var(--yellow)" title={t('Flash the screen')}>
-        <Switch checked={!!S.timerFlash} onChange={v => update(s => { s.timerFlash = v })} />
-      </Row>
-      {(wakeOK || !MOBILE) && <Row icon="phoneScreen" iconTint="var(--yellow)" title={t('Keep screen awake')}
-        subtitle={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : t('Not supported in this browser.')}>
-        <Switch checked={wakeOK && S.keepAwake !== false} disabled={!wakeOK} onChange={v => update(s => { s.keepAwake = v })} />
-      </Row>}
-    </Section>
-    <Section>
-      <Row icon="layout" iconTint="var(--blue)" title={t('Layout')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }]}
-          value={layout} onChange={v => update(s => { s.workoutView = v; if (s.active) delete s.active.workoutView })} />
-      </Row>
-      <Row icon="gauge" iconTint="var(--purple)" title={t('Effort per set')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
-          value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })} />
-      </Row>
-      <Row icon="swap" iconTint="var(--indigo)" title={t('Swipe actions')} subtitle={t('Sets, routines and the loop: left removes, right copies')}>
-        <Switch aria-label={t('Swipe actions')} checked={workoutControls(S).swipeSets}
-          onChange={v => update(s => { s.wc = { ...workoutControls(s), swipeSets: v } })} />
-      </Row>
-      <Row icon="image" iconTint="var(--teal)" title={t('Exercise animations')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]}
-          value={gif} onChange={v => update(s => { s.gifSize = v })} />
-      </Row>
-    </Section>
-    <Section>
-      <Row icon="gear" iconTint="var(--grey)" title={t('All settings')} accessory="chevron" onClick={allSettings} />
-    </Section>
+  const effort = effortOf(S)
+  // Off is `none`; the choice before it is kept, so On brings back RIR or RPE, RIR when there was none.
+  const setEffort = on => update(s => {
+    const now = effortOf(s)
+    if (on) s.effort = s.effortLast === 'rpe' ? 'rpe' : 'rir'
+    else { if (now !== 'none') s.effortLast = now; s.effort = 'none' }
+    delete s.showRir
+  })
+  return <div className="g-ws-body">
+    <Switch label={t('Next exercise on its own')} description={t('After the last set, with Back')}
+      checked={S.autoNext !== false} onChange={v => update(s => { s.autoNext = v })} />
+    <DetailRow icon="timer" title={t('Rest timer')} sub={t('After every set; a superset rests after the round')}
+      value={fmtRest(S.restSec)} onClick={onRest} />
+    {/* A tap: unlock the audio now so a rest ending before the next tick can sound (iOS, #152). */}
+    <Switch label={t('Sound')} description={t('Chime when rest or a hold ends')}
+      checked={!!S.sound} onChange={v => { if (v) unlock(true); update(s => { s.sound = v }) }} />
+    <Switch label={t('Plate loading')} description={t('Shows the plates under barbell sets')}
+      checked={S.showPlates !== false} onChange={v => update(s => { s.showPlates = v })} />
+    <Switch label={t('Effort per set')} description={effort === 'none' ? t('Asks reps in the tank after each set') : effort === 'rpe' ? t('RPE') : t('RIR')}
+      checked={effort !== 'none'} onChange={setEffort} />
+    {(wakeOK || !MOBILE) && <Switch label={t('Keep screen on')}
+      description={wakeOK ? t('While the workout runs') : t('Not supported in this browser.')}
+      checked={wakeOK && S.keepAwake !== false} disabled={!wakeOK} onChange={v => update(s => { s.keepAwake = v })} />}
+    <p className="g-ws-hint">{t('Warm-ups and cool-downs come from the routine. Skip either one in the map.')}</p>
   </div>
+}
+
+/** The default rest on the wheel (0:00 turns the timer off), as a step. */
+export function RestTimerStep({ back, onBack }) {
+  const S = useStore(s => s.S)
+  const update = useStore(s => s.update)
+  return <RestStep back={back} value={S.restSec} off={t('Off')} hint={t('Scroll to 0:00 to turn the rest timer off.')}
+    onBack={onBack} onDone={v => update(s => { s.restSec = v })} />
+}
+
+/** Standalone Workout settings (the old screen's header menu): the rows, with the rest wheel as a step. */
+export function WorkoutSettings() {
+  const [step, setStep] = useState('rows')
+  return <BottomSheet type="auto" title={t('Workout settings')}>
+    {step === 'rest'
+      ? <RestTimerStep back={t('Workout settings')} onBack={() => setStep('rows')} />
+      : <WorkoutSettingsBody onRest={() => setStep('rest')} />}
+  </BottomSheet>
 }
 
 /** Opens the in-workout settings sheet. */
 export function workoutSettingsSheet() {
-  return useUI.getState().openSheet(close => <WorkoutSettings close={close} />)
+  return useUI.getState().openSheet(() => <WorkoutSettings />, { variant: 'ds' })
 }

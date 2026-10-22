@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { accountLine, deletionDate, deviceOnly, deviceWord, rowValues, syncPill, syncRowWord } from './row-values.js'
 
-const S = { unit: 'kg', theme: 'dark', accent: 'cobalt', workoutView: 'cards', effort: 'rir', reminder: { on: true, nudge: true }, equipProfiles: [] }
+const S = { unit: 'kg', theme: 'dark', accent: 'cobalt', restSec: 90, effort: 'rir', reminder: { on: true, nudge: true }, equipProfiles: [] }
 const base = { user: { id: 'u' }, mobile: false, nutrition: false }
 
 describe('rowValues', () => {
@@ -11,15 +11,15 @@ describe('rowValues', () => {
     const v = rowValues({ S, ctx: base, lang: 'en' })
     expect(v.appearance.value).toBe('Cobalt')
     expect(v.units.value).toBe('kg · English')
-    expect(v.workout.value).toBe('Cards · RIR')
+    expect(v.workout.value).toBe('RIR · 1:30 rest')
     expect(v.schedule.value).toBe('Fixed Week')
     expect(v.equipment.value).toBe('20 kg bar')
     expect(v.coach.value).toBe('Coming soon')
   })
 
-  it('layouts, no effort scale, lb and an active equipment profile', () => {
-    const v = rowValues({ S: { ...S, workoutView: 'list', effort: 'none', unit: 'lb', equipFilterOn: true, activeEquipId: 'p', equipProfiles: [{ id: 'p', name: 'Home' }] }, ctx: base, lang: 'en' })
-    expect(v.workout.value).toBe('List')
+  it('no effort scale or rest timer, lb and an active equipment profile', () => {
+    const v = rowValues({ S: { ...S, restSec: 0, effort: 'none', unit: 'lb', equipFilterOn: true, activeEquipId: 'p', equipProfiles: [{ id: 'p', name: 'Home' }] }, ctx: base, lang: 'en' })
+    expect(v.workout.value).toBe('No rest timer')
     expect(v.equipment.value).toBe('Home')
     expect(rowValues({ S: { ...S, unit: 'lb' }, ctx: base, lang: 'en' }).equipment.value).toBe('45 lb bar')
   })

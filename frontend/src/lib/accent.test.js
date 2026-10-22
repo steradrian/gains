@@ -41,8 +41,6 @@ describe('--live-ink (index.css)', () => {
     for (const ink of ['#a35800', '#c42d25']) for (const bg of PAGE.light.bgs) expect(contrast(ink, bg), `${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5)
     expect(CSS).toContain('--live-ink:#a35800')
     expect(CSS).toContain('--live-ink:#c42d25')
-    // The running workout's text now lives in the live dock (tab-shell.css), no longer on the +.
-    expect(readFileSync('src/tab-shell.css', 'utf8')).toMatch(/#timer\.dock \.dock-sub\{[^}]*color:var\(--live-ink\)/)
   })
 })
 
