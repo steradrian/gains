@@ -1264,7 +1264,7 @@ describe('the screens gallery: Me > Invite a friend', () => {
 // Me goal M2
 describe('the screens gallery: Me > My goal', () => {
   it('has M3.0 to M3.4 and M3.7 and the edge states under their board ids, in Me: goal', () => {
-    const ids = screenAreas().find(a => a.name === 'Me: goal').entries.map(e => e.id)
+    const ids = screenAreas().find(a => a.name === 'Me: goal').entries.map(e => e.id).filter(id => !/^M3\.[56]/.test(id))
     expect(ids).toEqual([
       'M3.0', 'M3.0r', 'M3.0w', 'M3.0n', 'M3.0e', 'M3.0l', 'M3.0p', 'M3.0x', 'M3.1', 'M3.1e', 'M3.2', 'M3.3', 'M3.3g', 'M3.3w', 'M3.3p', 'M3.3s', 'M3.4', 'M3.4g', 'M3.7',
     ])
@@ -1428,5 +1428,76 @@ describe('the screens gallery: Me root', () => {
     })
     await check('M1.0l', host => expect(host.querySelector('.me-goal-sk')).not.toBeNull())
     await check('M1.0s', host => expect([...host.querySelectorAll('.g-gact')].map(b => b.textContent)).toEqual(['Log weight', 'Measure', 'Photo']))
+  }, 60000)
+})
+
+// Me goal M3
+describe('the screens gallery: Me > Daily targets and How this is worked out', () => {
+  it('has M3.5 and M3.6 and their edge states, in Me: goal', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: goal').entries.map(e => e.id).filter(id => /^M3\.[56]/.test(id))
+    expect(ids).toEqual(['M3.5', 'M3.5m', 'M3.5l', 'M3.5d', 'M3.5w', 'M3.5g', 'M3.6', 'M3.6a', 'M3.6r', 'M3.6e', 'M3.6d', 'M3.6n', 'M3.6t'])
+  })
+
+  it('shows each state it names and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const title = h => h.querySelector('.g-bs h2').textContent
+    const fields = h => [...h.querySelectorAll('.g-bs .g-tfield')].map(f => [f.querySelector('.g-tfield-label').textContent, f.querySelector('input').value])
+    const banner = h => h.querySelector('.g-bs .g-ibanner')?.textContent ?? null
+    await check('M3.5', h => {
+      expect(title(h)).toBe('Daily targets')
+      expect(fields(h)).toEqual([['Calories', '2100'], ['Protein', '150'], ['Carbs', '230'], ['Fat', '70'], ['Water', '2500']])
+      expect(h.querySelector('.g-bs .g-seg [aria-pressed="true"]').textContent).toBe('Fixed')
+      expect(banner(h)).toBeNull()
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Save daily targets')
+    })
+    await check('M3.5m', h => {
+      expect(banner(h)).toContain('The macros add up to 1,630 kcal, the calorie target is 2,100 kcal.')
+      expect(banner(h)).toContain('Set carbs to 218 g')
+    })
+    await check('M3.5l', h => expect(banner(h)).toContain('Most guidelines suggest at least 1,200 kcal.'))
+    await check('M3.5d', h => {
+      expect(h.querySelector('.g-bs .g-seg [aria-pressed="true"]').textContent).toBe('Fixed')
+      expect(h.querySelector('.g-bs .mg-foot').textContent).toContain('Dynamic needs a connected wearable.')
+    })
+    await check('M3.5w', h => {
+      expect(fields(h).map(f => f[0])).toEqual(['Calories', 'Protein', 'Carbs', 'Water'])
+      expect(h.querySelector('.g-bs').textContent).toContain('Varies by weekday')
+    })
+    await check('M3.5g', h => {
+      expect(h.querySelectorAll('.g-bs-pane')).toHaveLength(2)
+      expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Discard changes?')
+      expect(h.querySelector('.g-bs-pane[data-pos="active"]').textContent).toContain('Keep editing')
+    })
+    await check('M3.6', h => {
+      expect(title(h)).toBe('How this is worked out')
+      expect([...h.querySelectorAll('.g-bs .mg-figs dt')].map(d => d.textContent)).toEqual(['Your burn', 'Goal factor', 'Target'])
+      // The board's man stores 2,100 kcal; his goal works out to a little less, so the drawer says what his targets are set to.
+      expect(h.querySelectorAll('.g-bs .mg-para')).toHaveLength(5)
+      expect(h.querySelector('.g-bs').textContent).toContain('Your Daily targets are set to 2,100 kcal a day.')
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Edit daily targets')
+    })
+    await check('M3.6a', h => expect(h.querySelector('.g-bs .mg-adapt-head').textContent).toBe('Adaptive is learning12 of 21 so far'))
+    await check('M3.6r', h => {
+      expect(h.querySelector('.g-bs .mg-adapt-head').textContent).toBe('Adaptive is readyEstimated burn 2,650 kcal a day')
+      expect(h.querySelector('.g-bs .g-tag')).toBeNull()
+    })
+    await check('M3.6e', h => {
+      expect(h.querySelector('.g-bs .g-tag').textContent).toBe('Early')
+      expect(h.querySelector('.g-bs .mg-adapt').textContent).toContain('Firms up at 35 days')
+    })
+    await check('M3.6d', h => expect(h.querySelector('.g-bs').textContent).toContain('Your target follows your burn, workouts included.'))
+    await check('M3.6n', h => {
+      expect(h.querySelector('.g-bs .mg-figs')).toBeNull()
+      expect([...h.querySelectorAll('.g-bs button')].some(b => b.textContent === 'Body details')).toBe(true)
+    })
+    await check('M3.6t', h => {
+      expect(h.querySelectorAll('.g-bs-pane')).toHaveLength(2)
+      expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Daily targets')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
   }, 60000)
 })

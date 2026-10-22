@@ -54,7 +54,9 @@ describe('entryTitle and entryDetail, one formatter per kind', () => {
     expect(line({ what: 'body', from: { heightCm: 170, birthYear: 1990, sex: 'male' }, to: { heightCm: 172, birthYear: 1990, sex: 'male' } })).toBe('170 cm → 172 cm · 09:12')
     expect(line({ what: 'body', from: { heightCm: 170, birthYear: 1990, sex: 'male' }, to: { heightCm: 170, birthYear: 1991, sex: 'female' } })).toBe('1990 → 1991 · Male → Female · 09:12')
     expect(line({ what: 'targets', from: { calories: 2400 }, to: { calories: 2300 } })).toMatch(/^2,?400 kcal → 2,?300 kcal · 09:12$/)
-    expect(line({ what: 'movement', from: 'light', to: 'active' })).toBe('09:12')
+    expect(line({ what: 'movement', from: 'light', to: 'active' })).toBe('On my feet some of the day → Physical work · 09:12')
+    expect(line({ what: 'movement', from: null, to: 'sedentary' })).toBe('Mostly sitting · 09:12')
+    expect(line({ what: 'movement', from: 'light', to: 'nonsense' })).toBe('09:12')
     expect(line({})).toBe('09:12')
   })
 
