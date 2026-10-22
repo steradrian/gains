@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { t } from '../../lib/i18n.js'
-import { parseInviteInput } from '../../lib/friends/invite-code.js'
+import { parseGroupLink } from '../../lib/friends/group-link.js'
 import { closeThenNav } from '../../lib/nav.js'
 import { useUI } from '../../store/useUI.js'
 import BottomSheet from '../../ds/BottomSheet.jsx'
@@ -17,7 +17,7 @@ function JoinLinkSheet({ close }) {
 
   const submit = e => {
     e.preventDefault()
-    const code = parseInviteInput(text)
+    const code = parseGroupLink(text)
     if (!code) { setBad(true); return }
     closeThenNav(close, '/me/groups/join/' + encodeURIComponent(code))
   }
