@@ -230,7 +230,7 @@ export const SEARCH = [
   { page: 'about', title: 'Install', icon: 'share', tint: 'var(--blue)', kw: 'install app home screen add to home screen safari chrome share pwa', when: c => c.installTip },
   // Settings food m2: Help, one entry per answer (its words are searchable) and the report row.
   ...HELP_TOPICS.map(h => ({ page: 'help', title: h.title, icon: h.icon, tint: 'var(--blue)', kw: h.answer, tkw: () => t(h.answer) })),
-  { page: 'help', title: 'Report a problem', icon: 'flag', tint: 'var(--blue)', kw: 'bug issue feedback contact support github' },
+  { page: 'help', title: 'Report a problem', icon: 'flag', tint: 'var(--blue)', kw: 'bug issue feedback contact support email mail' },
   // Licences
   { page: 'licences', title: 'Full licence text', icon: 'bookOpen', tint: 'var(--grey)', kw: 'licence license agpl copyright warranty notices open source credits' },
   // Account

@@ -61,15 +61,27 @@ describe('Help page', () => {
     box.remove()
   })
 
-  it('Report a problem opens a new bug report on GitHub with the app version filled in', () => {
+  it('Report a problem writes to Adrian, with the subject, app version and platform filled in', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null)
     act(() => root.render(<HelpPage />))
     act(() => rowTitled('Report a problem').click())
     expect(open).toHaveBeenCalledTimes(1)
+    expect(open.mock.calls[0][1]).toBe('_self')
     const url = new URL(open.mock.calls[0][0])
-    expect(url.origin + url.pathname).toBe(BRAND.url + '/issues/new')
-    expect(url.searchParams.get('environment')).toBe('Gains v' + BRAND.version)
-    expect(reportUrl('9.9.9')).toContain(encodeURIComponent('Gains v9.9.9'))
+    expect(url.protocol).toBe('mailto:')
+    expect(decodeURIComponent(url.pathname)).toBe('steradrian5@gmail.com')
+    expect(url.searchParams.get('subject')).toBe('Gains ' + BRAND.version + ' problem')
+    const body = url.searchParams.get('body')
+    expect(body).toContain('App version: ' + BRAND.version)
+    expect(body).toContain('Platform: Browser;')
+    open.mockRestore()
+  })
+
+  it('the report names the version and platform it is given, and links nowhere else', () => {
+    const url = new URL(reportUrl({ version: '9.9.9', platform: 'Phone app; Pixel' }))
+    expect(url.searchParams.get('subject')).toBe('Gains 9.9.9 problem')
+    expect(url.searchParams.get('body')).toBe('App version: 9.9.9\nPlatform: Phone app; Pixel\n\n')
+    expect(JSON.stringify(SEARCH.filter(e => e.page === 'help'))).not.toMatch(/github/i)
   })
 })
 
