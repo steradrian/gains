@@ -45,7 +45,8 @@ export function weightOf(S) {
   const start = Number(first.w)
   const reached = start > target ? w <= target : start < target ? w >= target : w === target
   if (reached) return { kind: 'reached', unit, latest, target, change, toGo: 0, progress: 1 }
-  const progress = Math.min(1, Math.max(0, (start - w) / (start - target)))
+  // Started on the target (a keep goal) and drifted off it: no span to measure progress over.
+  const progress = start === target ? 0 : Math.min(1, Math.max(0, (start - w) / (start - target)))
   return { kind: 'toward', unit, latest, target, change, toGo: Math.abs(w - target), progress }
 }
 

@@ -30,6 +30,14 @@ describe('weightOf', () => {
     expect(weightOf({ unit: 'kg', targetW: 80, bodyweight: [{ d: '2026-09-01', w: 74 }, { d: '2026-10-17', w: 76 }] }).kind).toBe('toward')
   })
 
+  it('a first weigh-in on the target with a different latest gives progress 0, not NaN', () => {
+    for (const latest of [81.4, 78.6]) {
+      const w = weightOf({ unit: 'kg', targetW: 80, bodyweight: [{ d: '2026-09-01', w: 80 }, { d: '2026-10-17', w: latest }] })
+      expect(w.kind).toBe('toward')
+      expect(w.progress).toBe(0)
+    }
+  })
+
   it('never lets progress go below zero when the weight moved away', () => {
     expect(weightOf({ unit: 'kg', targetW: 78, bodyweight: [{ d: '2026-09-01', w: 82 }, { d: '2026-10-17', w: 83 }] }).progress).toBe(0)
   })
