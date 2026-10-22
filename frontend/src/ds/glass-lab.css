@@ -1,0 +1,62 @@
+/* ==========================================================================================
+   Liquid glass (dev page)
+   Material for #/dev/glass (DevGlass.jsx). Nothing here touches .g-glass or any shipped rule: every
+   selector is scoped under .gl-liquid.
+
+   .gl-webgl: GlassHost.jsx (presenter-fixed.js) draws the glass in two WebGL canvases: .gl-layer-under
+   (z-index -1, after the stage, so under the page content) for what scrolls, .gl-layer-over (z-index 4,
+   under the dock's 5) for the tab bar; it is a strip, placed with `top` by the presenter. Every
+   [data-glass] element but a flat one loses its own fill, rim and shadow: only its icons and text stay
+   HTML.
+   .gl-fallback: no WebGL, or Reduce Transparency (.gl-frostier): a plain frosted fill, no rim ring.
+   ========================================================================================== */
+
+.gl-layer { position: fixed; inset: 0; pointer-events: none; }
+.gl-layer-under { z-index: -1; }
+.gl-layer-over { z-index: 4; inset: auto 0 0 0; }
+.gl-layer canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Under the bar's clear middle: content scrolling under it is softened, never bent (WebGL cannot
+   read the DOM; the bar's rim bends the cards' and tiles' silhouettes, which it does know). */
+.gl-frost { position: absolute; left: 0; top: 0; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); will-change: transform; }
+
+/* ---- WebGL: the HTML keeps only the glyphs ---------------------------------------------- */
+.gl-webgl [data-glass]:not([data-glass="flat"]) { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gl-webgl .g-gtabbar[data-glass], .gl-webgl .g-gtabbar .g-plus[data-glass] { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gl-webgl .g-tab-ind::before { background: none; }
+.gl-webgl [data-glass]:not([data-glass="flat"]) { text-shadow: 0 1px 2px rgba(8,18,70,.22); }
+.gl-webgl .g-gtabbar .g-tab { color: rgba(255,255,255,.88); text-shadow: 0 1px 2px rgba(8,18,70,.3); }
+.gl-webgl .g-gtabbar .g-tab[aria-current="page"] { color: #fff; }
+.gl-webgl .g-gtabbar .g-plus { color: #fff; }
+
+/* Pressing: the glass swells in the canvas, so the HTML must not shrink under the finger; the glyph
+   rides the same spring (--lg-press, set by the layer). */
+.gl-webgl .g-gact:active, .gl-webgl .g-sbtn:active, .gl-webgl .g-spill:active, .gl-webgl .g-gtabbar .g-plus:active,
+.gl-webgl button.g-grow:active, .gl-webgl a.g-grow:active, .gl-webgl .g-tile:active { transform: none; }
+.gl-webgl .g-gact > [data-glass] > .g-icon, .gl-webgl .g-sbtn[data-glass] > *, .gl-webgl .g-spill[data-glass] > *, .gl-webgl .g-plus[data-glass] > .g-icon { scale: calc(1 + var(--lg-press, 0) * .08); }
+.gl-webgl .g-grow[data-glass] > *, .gl-webgl .g-tile[data-glass] > * { scale: calc(1 + var(--lg-press, 0) * .02); }
+
+/* ---- Fallback: frosted, no rim -------------------------------------------------------- */
+.gl-fallback [data-glass], .gl-fallback .g-gtabbar[data-glass] {
+  background: rgba(255,255,255,.16);
+  box-shadow: 0 10px 24px -14px rgba(6,14,60,.45);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+}
+.gl-fallback .g-gtabbar .g-plus[data-glass] { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gl-fallback .g-tab-ind::before { background: rgba(255,255,255,.22); }
+.gl-fallback .g-gtabbar .g-tab { color: rgba(255,255,255,.88); }
+.gl-fallback .g-gtabbar .g-tab[aria-current="page"] { color: #fff; }
+.gl-frostier [data-glass], .gl-frostier .g-gtabbar[data-glass] { background: rgba(26,47,134,.82); }
+
+/* ---- the page itself ------------------------------------------------------------------- */
+.gl-page { display: flex; flex-direction: column; gap: 18px; padding: 0 0 24px; min-height: 100vh; }
+.gl-bar { position: relative; z-index: 5; display: flex; gap: 6px; padding: 12px 16px; }
+.gl-bar button { flex: 1; padding-inline: 6px; }
+.gl-select { flex: 1; min-width: 0; height: 36px; padding-inline: 10px; border: 0; border-radius: 18px; background: rgba(255,255,255,.16); color: var(--on-stage); font: 600 14px/18px var(--font-sans); }
+.gl-bar [aria-pressed="true"] { background: var(--on-stage); color: var(--accent-stage-end); text-shadow: none; }
+.gl-note { margin: 0 16px; min-height: 38px; font: 500 14px/19px var(--font-sans); color: var(--on-stage); opacity: .92; }
+/* At rest the food tiles run under the docked bar, so its rim has something to bend. */
+.gl-content { display: flex; flex-direction: column; gap: 12px; padding-top: 22px; }
+.gl-dock { position: sticky; bottom: 16px; z-index: 5; margin: 0 16px; }
+.gl-dock-raised { position: fixed; inset-inline: 16px; top: 334px; bottom: auto; margin: 0; }
+.gl-spacer { height: 340px; }

@@ -57,6 +57,8 @@ const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 // The design system's catalogue (#/dev/kit), on the dev server only: a production build replaces
 // import.meta.env.DEV with false and drops it, chunk and all.
 const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
+// The liquid-glass tuning page (#/dev/glass), the same way.
+const DevGlass = import.meta.env.DEV ? lazy(() => import('./ds/DevGlass.jsx')) : null
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import GymPassPage from './views/settings/pages/GymPassPage.jsx'
