@@ -5,10 +5,12 @@ import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import BodyScreen from '../../../views/me/body/BodyScreen.jsx'
 import { bodyOf } from '../../../views/me/body/body-data.js'
+import { allPhotos } from '../../../lib/me/photos.js'
 import { openAddPhoto } from '../../../views/me/photos/photo-drawers.jsx'
+import { openCompare, openViewer } from '../../../views/me/photos/photo-overlays.jsx'
 import { PhotoSourceContext } from '../../../views/me/photos/PhotoThumb.jsx'
 import { registerScreens } from '../registry.js'
-import { NOOP, emptyState, photosState, sourceOf } from './me-photos-fixture.js'
+import { NOOP, emptyState, photosState, sourceOf, viewerState } from './me-photos-fixture.js'
 
 // Me > Photos (PR-05 boards Me2Photos, Me2PhotosEmpty, Me2AddPhoto, Me2PhotosSync and the edge rows
 // M2.8, M2.12, M2.9, M2.13): the real BodyScreen on its Photos tab reading a mocked store (nothing
@@ -34,6 +36,25 @@ const heldBackup = async t => {
   await t.wait(60)
 }
 
+// Me photos M3: the overlays open over the tab, their pictures from the same stand-in still (the
+// overlays are drawn by the sheet host, outside the page's provider, so they take the source directly).
+const source = sourceOf(STILL)
+const photosNow = () => allPhotos(useStore.getState().S)
+const showViewer = (pick, then) => async t => {
+  openViewer(pick(photosNow()), { source })
+  await t.wait(200)
+  then?.()
+  await t.wait(200)
+}
+const showCompare = then => async t => {
+  openCompare(photosNow(), { source })
+  await t.wait(200)
+  then?.()
+  await t.wait(200)
+}
+const click = selector => () => document.querySelector(selector).click()
+const named = label => () => [...document.querySelectorAll('.g-pstage button')].find(b => b.textContent.trim() === label).click()
+
 registerScreens('Me: photos', [
   { id: 'M2.8', title: 'Photos, six on this phone', note: 'Six photos newest first with each day’s weigh-in, Back up photos off: "on this phone", "Stored on this phone only" and who sees them. Nothing says encrypted.',
     render: page(), mock: withS(photosState()) },
@@ -53,4 +74,20 @@ registerScreens('Me: photos', [
     render: page(), mock: withS(emptyState()) },
   { id: 'M2.13', title: 'Photos, backed up (toast)', note: 'Back up photos switched on: the toast "Backing up 6 photos to your account" with Undo (held open here, 8 s in the app); Undo turns it off.',
     render: page(), mock: withS(photosState()), play: heldBackup },
+
+  // Me photos M3
+  { id: 'M2.10', title: 'Photo viewer, middle of six', note: 'The photo full screen on black: close, the day, "3 of 6", the picture, its day and weigh-in under it, Compare and Delete; arrows or a swipe move between photos.',
+    render: page(), mock: withS(viewerState()), play: showViewer(p => p[2]) },
+  { id: 'M2.10a', title: 'Photo viewer, the last photo', note: 'The oldest of six: "6 of 6" with no Next button (the newest has no Previous).',
+    render: page(), mock: withS(viewerState()), play: showViewer(p => p[p.length - 1]) },
+  { id: 'M2.10b', title: 'Photo viewer, a workout photo', note: 'A photo taken in a workout looks the same; Delete there says it also leaves the workout.',
+    render: page(), mock: withS(viewerState({ workout: true })), play: showViewer(p => p.find(x => x.source === 'workout')) },
+  { id: 'M2.10c', title: 'Delete photo, confirm', note: 'Delete asks first and says what goes ("This photo goes from your photos."); the one drawer over the viewer. Delete then closes the viewer and offers Undo for 8 s.',
+    render: page(), mock: withS(viewerState()), play: showViewer(p => p[2], named('Delete')) },
+  { id: 'M2.11', title: 'Compare, two dates apart', note: 'The oldest and the newest side by side with their days and weights, and "77 days apart · -3.6 kg · waist -4 cm".',
+    render: page(), mock: withS(viewerState()), play: showCompare() },
+  { id: 'M2.11a', title: 'Compare, no weights', note: 'No weigh-ins or waist readings: the captions are the days only and the line is "77 days apart".',
+    render: page(), mock: withS(viewerState({ weights: false })), play: showCompare() },
+  { id: 'M2.11b', title: 'Compare, choosing a photo', note: 'Change before opens the other photos inside the overlay (no second drawer); the pick goes back in date order.',
+    render: page(), mock: withS(viewerState()), play: showCompare(click('.g-cmp-side button')) },
 ])

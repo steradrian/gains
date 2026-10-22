@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { allPhotos, addPhoto, removePhoto, restorePhoto, setPhotoBackup, localOnlyCount, photoState } from './photos.js'
+import { allPhotos, addPhoto, removePhoto, restorePhoto, setPhotoBackup, localOnlyCount, photoState, progressPhotosOf, daysBetween } from './photos.js'
 import { referencedHashes } from '../media-refs.js'
 import { stampChange, mergeStates } from '../sync-merge.js'
 
@@ -161,5 +161,45 @@ describe('photoState', () => {
     expect(photoState({ backup: true })).toBe('remote')
     expect(photoState({ backup: true }, { fetch: 'missing' })).toBe('missing')
     expect(photoState({ backup: false })).toBe('missing')
+  })
+})
+
+// Me photos M3: the cases of the deleted views/ProgressPhotos.test.js for the helpers that stayed.
+describe('progressPhotosOf', () => {
+  const clip = c => ({ kind: 'video', hash: hex(c), mime: 'video/mp4', size: 1000, width: 10, height: 10, dur: 5 })
+  const anim = c => ({ kind: 'gif', hash: hex(c), mime: 'image/gif', size: 1000, width: 10, height: 10 })
+  const hashesOf = list => list.map(p => p.m.hash[0])
+
+  it('collects every still across every workout, newest first', () => {
+    const S = { workouts: [workout('w1', '2026-01-01', 100, img('a')), workout('w2', '2026-02-01', 100, img('b'), img('c'))] }
+    const out = progressPhotosOf(S)
+    expect(hashesOf(out)).toEqual(['b', 'c', 'a'])
+    expect(out[0].d).toBe('2026-02-01')
+  })
+
+  it('leaves videos out and keeps a gif', () => {
+    expect(hashesOf(progressPhotosOf({ workouts: [workout('w', '2026-01-01', 0, img('3'), clip('4'))] }))).toEqual(['3'])
+    expect(hashesOf(progressPhotosOf({ workouts: [workout('w', '2026-01-01', 0, anim('6'))] }))).toEqual(['6'])
+  })
+
+  it('breaks a same-day tie by the later workout, and is empty without media', () => {
+    const S = { workouts: [workout('w1', '2026-01-01', 100, img('1')), workout('w2', '2026-01-01', 200, img('2'))] }
+    expect(hashesOf(progressPhotosOf(S))).toEqual(['2', '1'])
+    expect(progressPhotosOf({ workouts: [{ d: '2026-01-01', start: 0 }] })).toEqual([])
+    expect(progressPhotosOf(null)).toEqual([])
+  })
+
+  it('keeps one file on two workouts as two photos', () => {
+    const m = img('5')
+    const keys = progressPhotosOf({ workouts: [workout('w1', '2026-09-01', 1, m), workout('w2', '2026-09-08', 2, m)] }).map(p => p.key)
+    expect(new Set(keys).size).toBe(2)
+  })
+})
+
+describe('daysBetween', () => {
+  it('counts whole days whichever date comes first, and is zero for the same day', () => {
+    expect(daysBetween('2026-01-01', '2026-01-15')).toBe(14)
+    expect(daysBetween('2026-01-15', '2026-01-01')).toBe(14)
+    expect(daysBetween('2026-01-01', '2026-01-01')).toBe(0)
   })
 })

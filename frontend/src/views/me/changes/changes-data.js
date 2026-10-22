@@ -74,6 +74,7 @@ export function entryTitle(entry, ctx = {}) {
   switch (kind) {
     case 'weighin-edit': return t('Changed a weigh-in')
     case 'weighin-delete': return t('Deleted a weigh-in')
+    case 'photo-delete': return t('Deleted a photo')
     case 'goal-change': {
       switch (facts.what) {
         case 'target': return num(facts.to) === null ? t('Target weight changed') : t('Target weight changed to {0}', amount(facts.to, facts.unit || ctx.unit))
@@ -116,6 +117,7 @@ export function entryDetail(entry, ctx = {}) {
       const unit = facts.unit || ctx.unit
       return joinParts([dateOf(day), amount(facts.weight, unit), time])
     }
+    case 'photo-delete': return joinParts([dateOf(day), time])
     case 'goal-change': return joinParts([goalDetail(facts, ctx), time])
     case 'routine-delete': return joinParts([num(facts.exercises) === null ? '' : exCount(facts.exercises), time])
     case 'workout-delete': return joinParts([dateOf(facts.day || day), num(facts.sets) === null ? '' : tn('{0} set', '{0} sets', facts.sets), time])
@@ -187,6 +189,7 @@ export function restoredMessage(entry, result = {}) {
     case 'set-delete': return t('Restored the set')
     case 'weighin-edit':
     case 'weighin-delete': return dateOf(entry.day) ? t('Restored the weigh-in on {0}', dateOf(entry.day)) : t('Restored the weigh-in')
+    case 'photo-delete': return t('Restored the photo')
     case 'goal-change': return t('Restored your previous goal settings')
     case 'coach-move': return t('Plan restored')
     default: return t('Restored')
@@ -197,7 +200,7 @@ export function restoredMessage(entry, result = {}) {
 export function failureMessage(entry, reason) {
   if (isUndo(entry)) return reason === 'gone' ? t('Couldn’t undo: there’s nothing to undo') : t('Couldn’t undo. Try again.')
   switch (reason) {
-    case 'gone': return /^(workout|set)-/.test(entry.kind) ? t('Couldn’t restore: the workout is gone') : t('Couldn’t restore: it’s gone')
+    case 'gone': return entry.kind === 'photo-delete' ? t('Couldn’t restore that photo') : /^(workout|set)-/.test(entry.kind) ? t('Couldn’t restore: the workout is gone') : t('Couldn’t restore: it’s gone')
     case 'replaced': return t('Couldn’t restore: that day already has a weigh-in')
     case 'changed': return t('Couldn’t restore: it changed since')
     case 'unsupported': return t('Couldn’t restore: this version can’t put that back')

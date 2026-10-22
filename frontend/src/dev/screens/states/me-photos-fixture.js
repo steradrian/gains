@@ -37,6 +37,23 @@ export function photosState({ count = SIX.length, backup = false, unit = 'kg', w
 /** Nothing yet. */
 export const emptyState = () => photosState({ count: 0 })
 
+// Me photos M3
+/**
+ * The state the viewer and Compare read: the six photos, a waist reading at each end (92 cm 77 days
+ * ago, 88 cm today) so Compare has its third number, and `workout` turns the second photo into one
+ * taken in a workout. `weights: false` drops the weigh-ins and the waist readings.
+ */
+export function viewerState({ workout = false, weights = true } = {}) {
+  const S = photosState({ weights })
+  S.measurements = weights ? [{ d: daysAgo(77), waist: 92 }, { d: daysAgo(0), waist: 88 }] : []
+  if (workout) {
+    const gone = S.bodyPhotos.find(p => p.d === daysAgo(14))
+    S.bodyPhotos = S.bodyPhotos.filter(p => p !== gone)
+    S.workouts = [{ id: 'w1', d: gone.d, start: Date.now() - 14 * 864e5, end: Date.now() - 14 * 864e5 + 36e5, entries: [], media: [gone.ref] }]
+  }
+  return S
+}
+
 /** The picture source for the gallery: a still for every photo, "not here" for the one `gone` names. */
 export const sourceOf = (STILL, { gone = false } = {}) => photo =>
   gone && photo.ref.hash === GONE_HASH ? { url: null, status: 'missing' } : { url: STILL, status: 'ready' }
