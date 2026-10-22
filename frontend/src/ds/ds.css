@@ -1731,6 +1731,7 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 /* Settings themes m2: the chosen look (ds/StageLook.jsx), drawn over the Classic stage. Strength is a
    prop (half on pushed pages), so the pushed state needs no rule here. */
 .g-stage-look { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.g-stage-look[hidden] { display: none; }
 .g-route[data-shared] .g-stage { background: transparent; }
 .g-route[data-shared] .g-stage-art { display: none; }
 /* Reduced motion, the device's or Profile's: no transform at all, the page arriving fades in over

@@ -6,7 +6,8 @@ import { createRenderer } from '../lib/stage-look/renderer.js'
 // The look drawn behind the app's pages (AppStage). Classic is the CSS stage StageArt paints, so it
 // renders nothing; the other looks are one WebGL canvas. A still frame at the resting phase unless
 // `motion` is on and the page is not `pushed`; then a slow loop, about 30 fps, stopped while the
-// document is hidden. No WebGL (or a lost context) leaves no canvas and Classic shows.
+// document is hidden. No WebGL leaves no canvas and Classic shows; a lost context hides it until
+// the browser restores the context, then the renderer is rebuilt and the look comes back.
 const REST_PHASE = 0.12
 const LOOP_MS = 40000
 const FRAME_MS = 33
@@ -24,7 +25,10 @@ export default function StageLook({ look, intensity, pushed = false, motion = fa
 function LookCanvas({ look, intensity, pushed, motion, accent }) {
   const canvasRef = useRef(null)
   const rendererRef = useRef(null)
-  const [failed, setFailed] = useState(false)
+  // 'ok' draws; 'lost' is a context the browser took away (iOS does when the app is backgrounded
+  // or short of memory) and may give back: the canvas stays, hidden, so Classic shows meanwhile;
+  // 'none' is no WebGL at all (or a shader that will not compile), which no event fixes.
+  const [status, setStatus] = useState('ok')
   const strength = pushed ? intensity * 0.5 : intensity
   const theme = useMemo(() => deriveTheme(themeOf(accent), strength), [accent, strength])
   const frameRef = useRef(null)
@@ -32,25 +36,36 @@ function LookCanvas({ look, intensity, pushed, motion, accent }) {
   // The renderer lives as long as the canvas.
   useEffect(() => {
     const canvas = canvasRef.current
-    let renderer = null
-    try { renderer = createRenderer(canvas) } catch { renderer = null }
-    if (!renderer) { setFailed(true); return undefined }
+    const build = () => { try { return createRenderer(canvas) } catch { return null } }
+    let renderer = build()
+    if (!renderer) { setStatus('none'); return undefined }
     rendererRef.current = renderer
     const onLost = e => {
-      e.preventDefault()
+      e.preventDefault()   // without it the browser never restores the context
       rendererRef.current = null
-      setFailed(true)
+      setStatus('lost')
+    }
+    // The old renderer's buffers and programs died with the context: a new one is built on it.
+    const onRestored = () => {
+      renderer.dispose()
+      renderer = build()   // null when WebGL is gone for good: the cleanup copes
+      if (!renderer) { setStatus('none'); return }
+      rendererRef.current = renderer
+      setStatus('ok')
     }
     canvas.addEventListener('webglcontextlost', onLost)
+    canvas.addEventListener('webglcontextrestored', onRestored)
     return () => {
       canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
       rendererRef.current = null
-      renderer.dispose()
+      renderer?.dispose()
     }
   }, [])
 
   // Draws for the current props, once, or as a loop.
   useEffect(() => {
+    if (status !== 'ok') { frameRef.current = null; return undefined }
     const canvas = canvasRef.current
     const draw = phase => {
       const renderer = rendererRef.current
@@ -90,7 +105,7 @@ function LookCanvas({ look, intensity, pushed, motion, accent }) {
       document.removeEventListener('visibilitychange', onVisibility)
       stop()
     }
-  }, [look, theme, pushed, motion])
+  }, [look, theme, pushed, motion, status])
 
   // A resized or rotated screen redraws the still frame; the loop redraws by itself.
   useEffect(() => {
@@ -101,6 +116,6 @@ function LookCanvas({ look, intensity, pushed, motion, accent }) {
     return () => ro.disconnect()
   }, [])
 
-  if (failed) return null
-  return <canvas ref={canvasRef} className="g-stage-look" aria-hidden="true" />
+  if (status === 'none') return null
+  return <canvas ref={canvasRef} className="g-stage-look" aria-hidden="true" hidden={status === 'lost'} />
 }

@@ -136,9 +136,44 @@ describe('StageLook', () => {
     expect(canvas()).toBeNull()
   })
 
-  it('leaves no canvas when the context is lost', () => {
+  it('hides the canvas (Classic shows) while the context is lost, and keeps it to listen on', () => {
+    view.render(<StageLook {...props} />)
+    const lost = new Event('webglcontextlost', { cancelable: true })
+    act(() => { canvas().dispatchEvent(lost) })
+    expect(lost.defaultPrevented).toBe(true)
+    expect(canvas().hidden).toBe(true)
+    renderer.draw.mockClear()
+    act(() => { window.dispatchEvent(new Event('resize')) })
+    expect(renderer.draw).not.toHaveBeenCalled()
+  })
+
+  it('rebuilds the renderer when the context comes back, and draws the look again', () => {
+    const second = { draw: vi.fn(), dispose: vi.fn() }
     view.render(<StageLook {...props} />)
     act(() => { canvas().dispatchEvent(new Event('webglcontextlost', { cancelable: true })) })
+    createRenderer.mockReturnValue(second)
+    act(() => { canvas().dispatchEvent(new Event('webglcontextrestored')) })
+    expect(renderer.dispose).toHaveBeenCalled()
+    expect(createRenderer).toHaveBeenCalledTimes(2)
+    expect(canvas().hidden).toBe(false)
+    expect(second.draw).toHaveBeenCalledTimes(1)
+    expect(second.draw.mock.calls[0][0]).toMatchObject({ look: 'silk', phase: 0.12 })
+  })
+
+  it('a context that comes back to a broken WebGL leaves no canvas', () => {
+    view.render(<StageLook {...props} />)
+    act(() => { canvas().dispatchEvent(new Event('webglcontextlost', { cancelable: true })) })
+    createRenderer.mockReturnValue(null)
+    act(() => { canvas().dispatchEvent(new Event('webglcontextrestored')) })
     expect(canvas()).toBeNull()
+  })
+
+  it('the loop picks up again after a restore', () => {
+    view.render(<StageLook {...props} motion />)
+    act(() => { canvas().dispatchEvent(new Event('webglcontextlost', { cancelable: true })) })
+    expect(caf).toHaveBeenCalled()
+    raf.mockClear()
+    act(() => { canvas().dispatchEvent(new Event('webglcontextrestored')) })
+    expect(raf).toHaveBeenCalledTimes(1)
   })
 })
