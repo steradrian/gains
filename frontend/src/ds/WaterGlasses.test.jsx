@@ -65,6 +65,66 @@ describe('WaterGlasses', () => {
     expect(filled()).toBe(10)
   })
 
+  describe('fill animation', () => {
+    const animating = (cls) => glasses().map((g, k) => (g.classList.contains(cls) ? k : -1)).filter(k => k >= 0)
+    const controlled = (value) => <WaterGlasses value={value} target={2.5} onAdd={() => {}} />
+
+    it('draws each glass as an svg with water clipped to its interior', () => {
+      view.render(<WaterGlasses value={0.5} target={1} />)
+      expect(glasses()).toHaveLength(4)
+      for (const g of glasses()) {
+        expect(g.querySelector('svg clipPath path')).not.toBeNull()
+        expect(g.querySelector('g[clip-path] .g-wg-water')).not.toBeNull()
+      }
+    })
+
+    it('animates nothing on mount, or on a re-render with the same value', () => {
+      view.render(controlled(1))
+      expect(animating('fill')).toEqual([])
+      expect(animating('drain')).toEqual([])
+      view.render(controlled(1))
+      expect(animating('fill')).toEqual([])
+    })
+
+    it('animates only the glass that just filled, and keeps it through a re-render', () => {
+      view.render(controlled(1))
+      view.render(controlled(1.25))
+      expect(filled()).toBe(5)
+      expect(animating('fill')).toEqual([4])
+      expect(animating('drain')).toEqual([])
+      view.render(controlled(1.25))
+      expect(animating('fill')).toEqual([4])
+    })
+
+    it('fills the glass on tap when it counts for itself', () => {
+      view.render(<WaterGlasses target={1} />)
+      click(add())
+      expect(animating('fill')).toEqual([0])
+    })
+
+    it('drains the glass that emptied, with no fill', () => {
+      view.render(controlled(1.25))
+      view.render(controlled(1))
+      expect(filled()).toBe(4)
+      expect(animating('drain')).toEqual([4])
+      expect(animating('fill')).toEqual([])
+    })
+
+    it('changes instantly under reduced motion: no fill or drain state', () => {
+      document.documentElement.dataset.motion = 'reduce'
+      try {
+        view.render(controlled(1))
+        view.render(controlled(1.25))
+        expect(filled()).toBe(5)
+        expect(animating('fill')).toEqual([])
+        view.render(controlled(0.5))
+        expect(animating('drain')).toEqual([])
+      } finally {
+        delete document.documentElement.dataset.motion
+      }
+    })
+  })
+
   it('is a link when it has an href', () => {
     view.render(<WaterGlasses href="#/water" />)
     expect(add().tagName).toBe('A')
