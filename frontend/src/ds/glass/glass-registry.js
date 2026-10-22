@@ -6,10 +6,33 @@ import { glassKind, isInteractive, KIND } from './glass-kinds.js'
 // `read()` is the per-frame call: rects first, batched, no writes in between.
 
 export const SELECTOR = '.g-glass, .g-btn-glass, [data-glass]'
+/** The sprite presenter's canvases (presenter-sprite.js): foreign nodes the registry never treats as page DOM. */
+export const SPRITE_CLASS = 'g-lg-sprite'
 const ATTRS = ['class', 'data-glass', 'data-glass-inset', 'hidden', 'open', 'inert']
 const OFFSCREEN = 80
 const NO_BAR = null
 const MARK = 'data-lg-on'
+
+export const isSprite = node => node?.nodeType === 1 && node.classList.contains(SPRITE_CLASS)
+
+/**
+ * Sorts one MutationObserver batch (R5). A record that only added or removed sprites is the presenter's
+ * own doing and is not a DOM change. A sprite that something else removed (React's `textContent` on an
+ * update wipes every child) comes back as [host, canvas] in `removed`, for the presenter to re-append.
+ */
+export function sortRecords(records) {
+  let dom = false
+  const dirty = new Set()
+  const removed = []
+  for (const r of records) {
+    if (r.type === 'attributes') { dirty.add(r.target); dom = true; continue }
+    const added = [...r.addedNodes]
+    const gone = [...r.removedNodes]
+    for (const n of gone) if (isSprite(n)) removed.push([r.target, n])
+    if (added.some(n => !isSprite(n)) || gone.some(n => !isSprite(n))) dom = true
+  }
+  return { dom, dirty, removed }
+}
 
 // The element's corner radius in px (a % or a pill radius clamps to a capsule).
 function cornerOf(el, hw, hh) {
@@ -43,8 +66,17 @@ function clipAncestor(el, ground) {
  *   `include`: when set, only shapes inside a match of this selector are taken (the app's ground is the body).
  * Shapes that are drawn carry `data-lg-on` once `setMarked(true)` is called (the host does it with the first
  * draw), which is what ds.css "Liquid glass" keys the transparent fill on.
+ *   `defer(shape)`: true for a shape that is not ready to lose its CSS material yet (a sprite with no
+ *   content); setMarked and discovery skip it, and the presenter marks it with `mark(el, true)` in the task
+ *   of its first copy (R7).
+ *   `nearMargin`: the IntersectionObserver's rootMargin for `near` ('50%'; the sprite presenter keeps a
+ *   sprite until its shape is more than one viewport away, '100%').
+ *   `onSpriteRemoved(host, canvas)`: a sprite was removed by someone else (R5).
  */
-export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-root, .search-ov', include = '' } = {}) {
+export function createRegistry(ground, {
+  onChange = () => {}, exclude = '#modal-root, .search-ov', include = '', defer = () => false, nearMargin = '50%',
+  onSpriteRemoved = () => {},
+} = {}) {
   /** @type {Map<Element, object>} */
   const shapes = new Map()
   let marked = false
@@ -58,7 +90,7 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
       if (s && s.near !== e.isIntersecting) { s.near = e.isIntersecting; moved = true }
     }
     if (moved) onChange('near')
-  }, { rootMargin: '50%' }) : null
+  }, { rootMargin: nearMargin }) : null
 
   const facts = (el, parentKind) => {
     const kind = glassKind(el, parentKind)
@@ -119,15 +151,16 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
     for (const [el, s] of next) {
       if (shapes.has(el)) continue
       shapes.set(el, s)
-      if (marked) el.setAttribute(MARK, '')
+      if (marked && !defer(s)) el.setAttribute(MARK, '')
       io?.observe(el)
       ro?.observe(el)
     }
   }
 
   const mo = new MutationObserver(records => {
-    const dirty = new Set()
-    for (const r of records) if (r.type === 'attributes') dirty.add(r.target)
+    const { dom, dirty, removed } = sortRecords(records)
+    for (const [host, canvas] of removed) onSpriteRemoved(host, canvas)
+    if (!dom) return
     scan(dirty)
     onChange('dom')
   })
@@ -138,8 +171,10 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
    * The shapes to draw this frame, as plain data: centre and half size (the inset trimmed off each side),
    * corner radius, opacity (the element's times its route layer's), the clip rect of its clipping ancestor
    * and, for a lens, its bar's rect. Shapes far outside the viewport and invisible ones are left out.
+   * `band`: how far outside the viewport a shape still counts (px); `faded`: keep shapes whose opacity is
+   * about 0 (a sprite fades natively with its element, so it must not be dropped mid-fade).
    */
-  function read() {
+  function read({ band = OFFSCREEN, faded = false } = {}) {
     const rects = new Map()
     const rectOf = el => {
       let r = rects.get(el)
@@ -154,14 +189,14 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
     for (const s of shapes.values()) {
       if (!s.near) continue
       const r = rectOf(s.el)
-      if (r.width < 1 || r.height < 1 || r.bottom < -OFFSCREEN || r.top > vh + OFFSCREEN || r.right < -OFFSCREEN || r.left > vw + OFFSCREEN) continue
+      if (r.width < 1 || r.height < 1 || r.bottom < -band || r.top > vh + band || r.right < -band || r.left > vw + band) continue
       let opacity = opacityOf(s.el)
       if (s.layerEl) {
         let lo = layerOpacity.get(s.layerEl)
         if (lo === undefined) { lo = opacityOf(s.layerEl); layerOpacity.set(s.layerEl, lo) }
         opacity *= lo
       }
-      if (opacity < 0.01) continue
+      if (opacity < 0.01 && !faded) continue
       const c = s.clipEl && rectOf(s.clipEl)
       const b = s.barEl ? rectOf(s.barEl) : NO_BAR
       out.push({
@@ -184,10 +219,17 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
   /** Marks (or unmarks) every shape as drawn; shapes found later follow the flag. */
   function setMarked(flag) {
     marked = flag
-    for (const el of shapes.keys()) {
-      if (flag) el.setAttribute(MARK, '')
+    for (const [el, s] of shapes) {
+      if (flag && !defer(s)) el.setAttribute(MARK, '')
       else el.removeAttribute(MARK)
     }
+  }
+
+  /** Marks or unmarks one shape (a deferred one, once its presenter has drawn it). Marking needs setMarked(true). */
+  function mark(el, flag) {
+    if (!shapes.has(el)) return
+    if (flag && marked) el.setAttribute(MARK, '')
+    else if (!flag) el.removeAttribute(MARK)
   }
 
   function dispose() {
@@ -198,5 +240,5 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
     shapes.clear()
   }
 
-  return { shapes, read, scan, setMarked, dispose }
+  return { shapes, read, scan, setMarked, mark, dispose }
 }

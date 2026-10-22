@@ -1,5 +1,5 @@
 import { lookUniformValues } from '../../lib/stage-look/renderer.js'
-import { createGlassGL } from './glass-gl.js'
+import { acquireGlassGL, createGlassGL, releaseGlassGL } from './glass-gl.js'
 import { isChrome, KIND } from './glass-kinds.js'
 
 // Liquid glass, the fixed presenter: two canvases that stay put while the page scrolls under them.
@@ -27,13 +27,16 @@ const lookKey = v => [v.phase, v.comp, v.intensity, v.seed, v.calm, v.fade, v.gr
 const glShape = s => ({ ...s, centreA: s.kind === KIND.BAR || s.kind === KIND.LENS ? BAR_CENTRE_ALPHA : 1 })
 
 /**
+ * @param {{ under?: boolean }} opts `under: false` mounts the over strip only: the sprite presenter draws the
+ *   in-flow glass, and in-flow shapes passed to `draw` are only the panes the chrome bends.
  * @returns {{ mount(host: Element, hooks?: { onLost?: () => void, onRestored?: () => void }): boolean,
- *   draw(shapes: object[], material: object, look: object): boolean, dispose(): void }}
+ *   draw(shapes: object[], material: object, look: object): boolean, bytes(): number, dispose(): void }}
  * `mount` is false when WebGL is not usable here. `draw` takes this frame's shapes (centre, half size, radius,
  * press, touch, opacity, clip, kind), the material (glass-gl.js DEFAULT_MATERIAL's shape) and the look inputs
- * for lib/stage-look/renderer.js lookUniformValues (without the size); it is true when it drew.
+ * for lib/stage-look/renderer.js lookUniformValues (without the size); it is true when it drew. `bytes` is the
+ * canvases' backing store, for the dev HUD.
  */
-export function createFixedPresenter() {
+export function createFixedPresenter({ under: withUnder = true } = {}) {
   let underLayer = null
   let overLayer = null
   let underCanvas = null
@@ -49,9 +52,10 @@ export function createFixedPresenter() {
   const lost = new Set()
   const cleanups = []
 
-  function build() {
-    glUnder = createGlassGL(underCanvas)
-    glOver = glUnder && createGlassGL(overCanvas)
+  // After a loss and its restore: new renderers on the same canvases.
+  function rebuild() {
+    glUnder = withUnder ? createGlassGL(underCanvas) : null
+    glOver = (glUnder || !withUnder) && createGlassGL(overCanvas)
     if (!glOver) {
       glUnder?.destroy()
       glUnder = glOver = null
@@ -63,6 +67,14 @@ export function createFixedPresenter() {
 
   function mount(host, h = {}) {
     hooks = h
+    // Pooled renderers (glass-gl.js): a rebuild of the engine must not make new WebGL contexts.
+    glUnder = withUnder ? acquireGlassGL() : null
+    glOver = glUnder || !withUnder ? acquireGlassGL() : null
+    if (!glOver) {
+      releaseGlassGL(glUnder)
+      glUnder = null
+      return false
+    }
     const make = (cls, ...kids) => {
       const el = document.createElement('div')
       el.className = `gl-layer ${cls}`
@@ -70,18 +82,13 @@ export function createFixedPresenter() {
       el.append(...kids)
       return el
     }
-    underCanvas = document.createElement('canvas')
-    overCanvas = document.createElement('canvas')
+    underCanvas = glUnder?.canvas ?? null
+    overCanvas = glOver.canvas
     frostHost = document.createElement('div')
-    underLayer = make('gl-layer-under', underCanvas)
+    underLayer = withUnder ? make('gl-layer-under', underCanvas) : null
     overLayer = make('gl-layer-over', frostHost, overCanvas)
-    host.append(underLayer, overLayer)
-    if (!build()) {
-      underLayer.remove()
-      overLayer.remove()
-      return false
-    }
-    for (const canvas of [underCanvas, overCanvas]) {
+    host.append(...(underLayer ? [underLayer, overLayer] : [overLayer]))
+    for (const canvas of withUnder ? [underCanvas, overCanvas] : [overCanvas]) {
       const onLost = e => {
         e.preventDefault() // without it the browser never restores the context
         lost.add(canvas)
@@ -90,7 +97,7 @@ export function createFixedPresenter() {
       }
       const onRestored = () => {
         lost.delete(canvas)
-        if (lost.size === 0 && build()) hooks.onRestored?.()
+        if (lost.size === 0 && rebuild()) hooks.onRestored?.()
       }
       canvas.addEventListener('webglcontextlost', onLost)
       canvas.addEventListener('webglcontextrestored', onRestored)
@@ -121,7 +128,7 @@ export function createFixedPresenter() {
   }
 
   function draw(shapes, material, look) {
-    if (!glUnder || !glOver) return false
+    if (!glOver || (withUnder && !glUnder)) return false
     const vw = window.innerWidth
     const vh = window.innerHeight
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR)
@@ -149,11 +156,11 @@ export function createFixedPresenter() {
     layFrost(over.filter(s => s.kind === KIND.BAR), top)
 
     const base = `${vw}|${vh}|${dpr}|${lookKey(lv)}|${JSON.stringify(material)}|`
-    const kUnder = base + keyOf(under)
+    const kUnder = glUnder ? base + keyOf(under) : ''
     const panes = under.filter(s => s.y + s.hh > top).slice(0, MAX_PANES)
     const kOver = `${base}${keyOf(panes)}#${keyOf(over)}#${extent}`
     let drew = false
-    if (kUnder !== prevUnder) {
+    if (glUnder && kUnder !== prevUnder) {
       prevUnder = kUnder
       glUnder.draw({ width: vw, height: vh, dpr, look: lv, material, shapes: under })
       drew = true
@@ -171,13 +178,15 @@ export function createFixedPresenter() {
   function dispose() {
     cleanups.forEach(fn => fn())
     cleanups.length = 0
-    glUnder?.destroy()
-    glOver?.destroy()
+    releaseGlassGL(glUnder)
+    releaseGlassGL(glOver)
     glUnder = glOver = null
     underLayer?.remove()
     overLayer?.remove()
     frosts.length = 0
   }
 
-  return { mount, draw, dispose }
+  const bytes = () => [withUnder ? underCanvas : null, overCanvas].reduce((n, c) => n + (c ? c.width * c.height * 4 : 0), 0)
+
+  return { mount, draw, bytes, dispose }
 }

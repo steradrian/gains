@@ -454,7 +454,7 @@ button.g-wcard-ex, a.g-wcard-ex { cursor: pointer; }
 .g-rcb > .g-rc-slide { cursor: default; }
 .g-rc-pill { display: inline-flex; align-items: center; gap: 6px; height: 34px; margin-top: 14px; padding: 0 12px 0 14px; border-radius: var(--radius-pill); font: 600 14px/18px var(--font-sans); }
 .g-rc-pill .g-icon { width: 16px; height: 16px; stroke-width: 2.2; }
-.g-rc-pill .g-icon:last-child { width: 14px; height: 14px; stroke-width: 2.4; }
+.g-rc-pill .g-icon:last-of-type { width: 14px; height: 14px; stroke-width: 2.4; } /* Liquid glass: of-type, so the pill's sprite canvas (presenter-sprite.js) never takes the trailing chevron's :last-child */
 .g-rc-sk-pill { width: 190px; height: 34px; margin-top: 14px; border-radius: var(--radius-pill); }
 .g-rc-dots { display: flex; justify-content: center; margin: -1px 0 -15px; }
 .g-rc-dot { appearance: none; border: 0; background: none; padding: 15px 3px; display: block; cursor: pointer; }
@@ -1330,7 +1330,7 @@ button.g-w4-cell:active, a.g-w4-cell:active { transform: scale(.95); }
 .g-dfood-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); border-radius: 3px; background: var(--on-stage); }
 .g-dfood-meal { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; background: none; border-top: 1px solid var(--glass-line); color: inherit; font: inherit; text-align: start; text-decoration: none; }
 button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
-.g-dfood-meal:last-child { border-end-start-radius: 24px; border-end-end-radius: 24px; }
+.g-dfood-meal:is(:last-child, :nth-last-child(1 of :not(.g-lg-sprite))) { border-end-start-radius: 24px; border-end-end-radius: 24px; } /* Liquid glass: the card's sprite canvas (presenter-sprite.js) is its last child; :is keeps :last-child where `of S` is unsupported */
 .g-dfood-meal:focus-visible { outline-color: var(--on-stage); outline-offset: -3px; }
 /* The meal holding an entry a search opened the day for: lit, then settling to a soft glass */
 .g-dfood-found { background: var(--glass-new); animation: g-dfood-found 1.8s ease; }
@@ -2618,3 +2618,28 @@ html[data-scrolled] :is(.g-shdr-pin, .g-snav)::before { opacity: 1; }
 html[data-lg="reduced"] { --lg-edge-blur: blur(24px); }
 @media (prefers-reduced-motion: reduce) { .g-shdr-pin::before, .g-snav::before { transition: none; } }
 :root[data-motion="reduce"] .g-shdr-pin::before, :root[data-motion="reduce"] .g-snav::before { transition: none; }
+
+/* === Liquid glass: sprites (glass/presenter-sprite.js; GlassHost sets html[data-lg-presenter]) ===
+   Under the sprite presenter each drawn in-flow element holds its own glass: a canvas.g-lg-sprite appended
+   as its last child, which the presenter marks the element for with data-lg-sprite="control | card"
+   (data-lg-static when it was position: static, data-lg-edge when its contact shadow is CSS). The sprite
+   sits --lg-m px outside the border box (its margin holds the swell and the drawn shadow), at z-index -1
+   inside an isolated element: over the element's own background, under its text and icons, and never over a
+   focus ring (outline). The rules are keyed on data-lg-sprite rather than on the presenter, so the dev
+   page's side-by-side check can hold a sprite under the fixed presenter. A sprite shows only while its
+   element is drawn ([data-lg-on]); in css or reduced mode it is hidden and the CSS material is back.
+   The selector out-ranks every `> *` rule on glass children (scale, margins, position). */
+.g-lg-sprite { display: none; }
+html[data-lg="gl"] [data-lg-on][data-lg-sprite] { isolation: isolate; }
+html[data-lg="gl"] [data-lg-on][data-lg-sprite][data-lg-static] { position: relative; }
+html[data-lg="gl"] [data-lg-on][data-lg-sprite] > canvas.g-lg-sprite {
+  display: block; position: absolute; z-index: -1; pointer-events: none;
+  inset: auto; left: calc(-1 * (var(--lg-m, 4px) + var(--lg-bl, 0px))); top: calc(-1 * (var(--lg-m, 4px) + var(--lg-bt, 0px)));
+  width: calc(100% + 2 * var(--lg-m, 4px) + var(--lg-bl, 0px) + var(--lg-br, 0px));
+  height: calc(100% + 2 * var(--lg-m, 4px) + var(--lg-bt, 0px) + var(--lg-bb, 0px));
+  margin: 0; padding: 0; border: 0; flex: none; scale: none; transform: none; opacity: 1;
+}
+/* The contact shadow as CSS (the dev page's "Shadow: CSS", or an element that clips its children): the
+   shader's shadow approximated per kind, with the kind's alpha taken off --glass-shade like the canvas does. */
+html[data-lg="gl"] [data-lg-on][data-lg-sprite="control"][data-lg-edge] { --glass-edge: 0 3px 12px -2px color-mix(in srgb, var(--glass-shade) 12%, transparent); }
+html[data-lg="gl"] [data-lg-on][data-lg-sprite="card"][data-lg-edge] { --glass-edge: 0 5px 18px -2px color-mix(in srgb, var(--glass-shade) 8%, transparent); }

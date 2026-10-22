@@ -14,8 +14,8 @@
 .gl-dev { --gl-over-z: 4; }
 
 /* ---- WebGL: the HTML keeps only the glyphs ---------------------------------------------- */
-.gl-webgl [data-glass]:not([data-glass="flat"]) { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
-.gl-webgl .g-gtabbar[data-glass], .gl-webgl .g-gtabbar .g-plus[data-glass] { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* The fill, edge and blur go per drawn element by ds.css "Liquid glass" ([data-lg-on]), not here: a sprite's
+   element keeps its CSS material until its sprite has content, and its CSS contact shadow is a box-shadow. */
 .gl-webgl .g-tab-ind::before { background: none; }
 .gl-webgl [data-glass]:not([data-glass="flat"]) { text-shadow: var(--glass-label-shadow); }
 .gl-webgl .g-gtabbar .g-tab { color: color-mix(in srgb, var(--on-stage) 88%, transparent); text-shadow: var(--glass-label-shadow); }
@@ -54,3 +54,34 @@
 .gl-dock { position: sticky; bottom: 16px; z-index: 5; margin: 0 16px; }
 .gl-dock-raised { position: fixed; inset-inline: 16px; top: 334px; bottom: auto; margin: 0; }
 .gl-spacer { height: 340px; }
+
+/* ---- Liquid glass presenters (M3): HUD, scroll test, compare, stage only ------------------- */
+/* The stage-only check sits with the canvases, under the under canvas. */
+.gl-layer-stage { z-index: -1; }
+
+.gl-hud { position: fixed; top: calc(var(--sat, 0px) + 6px); right: 6px; z-index: 100; width: 228px; box-sizing: border-box; padding: 6px 8px 8px; border-radius: 12px; background: color-mix(in srgb, var(--canvas) 90%, transparent); color: var(--text); font: 500 11px/14px var(--font-mono); text-align: start; pointer-events: none; }
+.gl-hud button { pointer-events: auto; min-height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: var(--surface-sunken); color: var(--text); font: 600 12px/14px var(--font-sans); }
+.gl-hud button[aria-pressed="true"] { background: var(--text); color: var(--canvas); }
+.gl-hud-bar { display: flex; gap: 4px; }
+.gl-hud-seg { display: flex; flex: 1; gap: 2px; }
+.gl-hud-seg button { flex: 1; }
+.gl-hud-opts { margin: 6px 0 4px; color: var(--text-2); }
+.gl-hud-rows { margin: 0; }
+.gl-hud-row { display: flex; justify-content: space-between; gap: 6px; }
+.gl-hud-row dt { color: var(--text-2); }
+.gl-hud-row dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+.gl-hud-bad dd { color: var(--stage-danger); font-weight: 700; }
+
+.gl-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; }
+.gl-compare-col { display: flex; flex-direction: column; gap: 10px; }
+.gl-compare-k { font: 600 13px/16px var(--font-sans); color: var(--on-stage); }
+
+.gl-scroll { display: flex; flex-direction: column; gap: 14px; padding-top: 12px; }
+.gl-rail { display: flex; gap: 12px; overflow-x: auto; padding: 8px 16px; scrollbar-width: none; }
+.gl-list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.gl-list-group { display: flex; flex-direction: column; gap: 12px; }
+.gl-card { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 72px; box-sizing: border-box; padding: 12px 16px; border-radius: 24px; color: var(--on-stage); font: 500 14px/18px var(--font-sans); }
+.gl-card b { font-weight: 600; font-size: 16px; line-height: 20px; }
+.gl-card-short { min-height: 64px; }
+.gl-disc-row { display: flex; gap: 12px; }
+.gl-disc { flex: none; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; color: var(--on-stage); font: 600 15px/18px var(--font-sans); }
