@@ -1,5 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useColorMode } from '../lib/color-mode.js'
+import { reducedMotion } from '../lib/reduced-motion.js'
 import { useSearch } from '../lib/search/session.js'
 import { reducedTransparency, onReducedTransparencyChange } from '../lib/reduced-transparency.js'
 import { DEFAULT_INTENSITY } from '../lib/stage-look/index.js'
@@ -8,6 +9,7 @@ import { useStageLook } from '../lib/use-stage-look.js'
 import { useUI } from '../store/useUI.js'
 import { createGlassEngine } from './glass/glass-engine.js'
 import { readPrefs } from './glass/glass-prefs.js'
+import { recordFallback } from './glass/glass-watchdog.js'
 
 // Liquid glass host: one per stage ground. It draws every glass shape under the ground into WebGL
 // canvases that refract the real stage (the look engine's own shader), and tells the page what to paint
@@ -22,6 +24,7 @@ import { readPrefs } from './glass/glass-prefs.js'
 // own ground and stage inputs. `onStatus` also reports 'webgl' | 'fallback' | 'reduced' to that caller.
 const APP_GROUND = '.g-route[data-shared], #tabbar, #timer'
 const STAGE = '.g-route[data-shared] .g-stage'
+const FADE_MS = 300 // keep in step with the lg-in animation in ds.css
 
 /**
  * @param {{ groundRef?: { current: Element | null }, look?: string, accent?: string, pushed?: boolean,
@@ -51,7 +54,7 @@ export default function GlassHost({
   const statusRef = useRef(onStatus)
   const inputsRef = useRef(null)
   // What decides data-lg and the freeze. Plain refs: the page is repainted from here, not by a render.
-  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false })
+  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false, fade: 0, fadeOut: false })
 
   inputsRef.current = {
     look: look ?? stored.look,
@@ -73,7 +76,16 @@ export default function GlassHost({
   const sync = () => {
     const s = stateRef.current
     const lg = s.reduced ? 'reduced' : s.engine === 'webgl' && !s.noStage ? 'gl' : 'css'
-    if (document.documentElement.dataset.lg !== lg) document.documentElement.dataset.lg = lg
+    if (lg === 'css' && s.engine === 'webgl' && s.noStage) recordFallback('no-stage')
+    const root = document.documentElement
+    // Glass shows at once. Only a watchdog trip fades out: data-lg goes to css now (the CSS material is
+    // there) while the engine keeps its canvases for FADE_MS and html[data-lg-fade] fades them out (ds.css).
+    if (lg === 'gl' && s.fade) { clearTimeout(s.fade); s.fade = 0; delete root.dataset.lgFade }
+    if (lg === 'css' && root.dataset.lg === 'gl' && s.fadeOut && !s.fade && !reducedMotion()) {
+      root.dataset.lgFade = ''
+      s.fade = setTimeout(() => { s.fade = 0; delete root.dataset.lgFade }, FADE_MS)
+    }
+    if (root.dataset.lg !== lg) root.dataset.lg = lg
     engineRef.current?.setFrozen(s.reduced || s.noStage || s.sheet || s.search || s.hidden)
   }
 
@@ -122,8 +134,9 @@ export default function GlassHost({
       onDom: scheduleStage,
       sprite: { cardDpr: cardDprIn, shadow: shadowIn },
       watchdog,
-      onStatus: s => {
+      onStatus: (s, opts) => {
         state.engine = s
+        state.fadeOut = !!opts?.fade
         if (s === 'reduced') state.reduced = true
         sync()
         statusRef.current?.(s)
@@ -139,6 +152,9 @@ export default function GlassHost({
       if (checking) cancelAnimationFrame(checking)
       document.removeEventListener('visibilitychange', onVisible)
       state.engine = 'css'
+      clearTimeout(state.fade)
+      state.fade = 0
+      delete document.documentElement.dataset.lgFade
       document.documentElement.dataset.lg = 'css'
     }
   }, [groundRef, cardDprIn, shadowIn, watchdog, statsRef, reduced])

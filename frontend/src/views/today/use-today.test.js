@@ -95,6 +95,20 @@ describe('upNextOf, the variants', () => {
     const later = { ...DEF, routines, week: { [plusDay(3).getDay()]: ['legs'] } }
     expect(upNextOf(later, today, { nav }).sub).toMatch(/^Next: Legs, [A-Z][a-z]+day$/)
   })
+
+  it('an ad-hoc session on an unplanned day is no Done card: Up next still names the next session', () => {
+    const today = todayISO()
+    const adhoc = { id: 'x', d: today, start: Date.now() - 300_000, end: Date.now(), name: 'Test', routineIds: [], entries: [{ sets: [set(true)] }] }
+    const S = { ...DEF, routines, week: { [plusDay(1).getDay()]: ['legs'] }, workouts: [adhoc] }
+    expect(upNextOf(S, today, { nav })).toMatchObject({ eyebrow: 'Rest day', title: 'Recover', sub: 'Next: Legs, tomorrow' })
+  })
+
+  it('T1.12: done only when today\'s planned routine was logged', () => {
+    const today = todayISO()
+    const w = { id: 'x', d: today, start: Date.now() - 300_000, end: Date.now(), name: 'Legs', routineIds: ['legs'], entries: [{ sets: [set(true)] }] }
+    const S = { ...DEF, routines, week: { [new Date().getDay()]: ['legs'] }, workouts: [w] }
+    expect(upNextOf(S, today, { nav })).toMatchObject({ eyebrow: 'Done today', title: 'Legs', trailing: 'check' })
+  })
 })
 
 describe('the last log and the welcome back (T1.10)', () => {

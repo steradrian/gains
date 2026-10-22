@@ -14,6 +14,7 @@ import { useDsAccent } from '../../lib/use-ds-accent.js'
 import { fmtClock } from '../../lib/duration.js'
 import { addRoutineToSessionSheet, exitWorkoutEdit, finishWorkout, workoutDetailSheet } from '../../sheets.jsx'
 import Elapsed from '../../components/Elapsed.jsx'
+import { Presence } from '../../components/presence.jsx'
 import BarToast from '../../ds/BarToast.jsx'
 import PhaseProgress from '../../ds/PhaseProgress.jsx'
 import StageEmpty from '../../ds/StageEmpty.jsx'
@@ -148,10 +149,13 @@ export default function WorkoutScreen() {
           )}
         </div>
 
-        {toast && (
-          <BarToast placement={resting || rest?.ready ? 'rest' : 'footer'} icon={toast.kind === 'newBest' ? 'trophy' : 'check'} message={toast.text}
-            actionLabel={toast.kind === 'newBest' ? t('Trend') : toast.backTo != null ? t('Back') : undefined} onAction={onToast} />
-        )}
+        <Presence>
+          {toast ? (
+            <BarToast key="toast" placement={resting || rest?.ready ? 'rest' : 'footer'} icon={toast.kind === 'newBest' ? 'trophy' : 'check'} message={toast.text}
+              actionLabel={toast.kind === 'newBest' ? t('Trend') : toast.backTo != null ? t('Back') : undefined} onAction={onToast}
+              dismissLabel={t('Dismiss')} onDismiss={() => actions.takeEvent(toast.kind)} />
+          ) : null}
+        </Presence>
         {!empty && (
           <WorkoutFooter
             prev={neighbour(footer.prev)} next={neighbour(footer.next)} position={view.position} phase={view.phaseLabel} onMap={workoutMapSheet}

@@ -57,7 +57,7 @@ describe('the toast\'s way in and out', () => {
     const el = pill()
     await set({ toastMsg: 'Saved again' })
     expect(pill()).toBe(el)
-    expect(el.textContent).toBe('Saved again')
+    expect(el.querySelector('.g-utoast-msg').textContent).toBe('Saved again')
     const [enter, nudge] = driver.on(el)
     expect(enter.keyframes).toEqual(PRESETS.toast.enter.keyframes)
     expect(nudge.keyframes).toEqual(PRESETS.nudge.enter.keyframes)
@@ -70,7 +70,7 @@ describe('the toast\'s way in and out', () => {
     const exit = driver.on(el).at(-1)
     await set({ toastMsg: 'Set restored' })
     expect(pill()).toBe(el)
-    expect(el.textContent).toBe('Set restored')
+    expect(el.querySelector('.g-utoast-msg').textContent).toBe('Set restored')
     expect(exit.playState).toBe('idle')
     // not resting on the half-faded, lowered frame the cut-short way in was stopped on
     expect(el.style.opacity).toBe('')

@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useRef, useState } from 'react'
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import { t } from '../../lib/i18n.js'
 import { back as tabBack } from '../../lib/use-tab-nav.js'
 import { Page } from '../../components/layout.jsx'
@@ -15,15 +15,21 @@ import { useFlashRow } from './use-flash-row.js'
  * the row is there. Every page goes back to Profile (§6).
  */
 export default function SettingsPageHost({ page, find = null, via = null }) {
-  const body = useRef(null)
+  // No wrapper element: index.css takes the stage page's own top inset in place of #app's with
+  // `#app:has(> .g-root.g-screen)`, which only matches a page that is #app's direct child. A
+  // wrapping <div> here left #app's padding on and doubled the inset under the status bar. The
+  // rows a search hit flashes are looked up in this marker's parent instead.
+  const marker = useRef(null)
+  const scope = useMemo(() => ({ get current() { return marker.current?.parentElement ?? null } }), [])
   const [framed, setFramed] = useState(false)
   const onFramed = useCallback(() => setFramed(true), [])
-  useFlashRow(body, find, via)
+  useFlashRow(scope, find, via)
   const PageBody = pageComponent(page)
-  return <div ref={body}>
+  return <>
+    <i ref={marker} hidden />
     {!framed && <Page title={t(PAGES[page].title)} onBack={() => tabBack(SETTINGS_ROOT)} />}
     <HostFrameContext value={onFramed}>
       <Suspense fallback={null}><PageBody /></Suspense>
     </HostFrameContext>
-  </div>
+  </>
 }

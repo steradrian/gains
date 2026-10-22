@@ -251,7 +251,10 @@ export function cardOf(S, iso, today) {
     }
   }
 
-  const day = trainingDay(S, iso, today)
+  const raw = trainingDay(S, iso, today)
+  // Train's card still shows an ad-hoc session logged on an unplanned day; only Today's Up next
+  // reads that day as rest.
+  const day = raw.kind === 'rest' && raw.logged ? { kind: 'done', workout: raw.logged } : raw
   const date = iso < today ? fmtDate(iso, true) : null
   switch (day.kind) {
     case 'editing': return {
