@@ -5063,4 +5063,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': '뷰포트',
+  'Live screen measurements for a bug report. Only admins see this.': '버그 신고용 실시간 화면 측정값이에요. 관리자만 볼 수 있어요.',
 }

@@ -98,6 +98,25 @@ function Sheet({ sheet, covered }) {
   // horizontally under it (chip strips, heatmap) and the sheet stays put.
   const idle = () => ({ startX: null, startY: null, axis: null, delta: 0, vy: 0, lastY: 0, lastT: 0 })
   const drag = useRef(idle())
+  // While this drawer is up (a dialog over it included), the page's own background is its colour. An
+  // installed iOS app can lose the bottom of its layout viewport (the status bar's height, 59px on
+  // a 15 Pro Max) once a keyboard has been up: every fixed box, #modal-root included, then ends
+  // that far above the screen's edge, and WebKit fills the strip below with the page's background.
+  // No box can draw there, not even the scrim, so the strip takes the drawer's colour instead and
+  // the drawer reads as reaching the edge (lib/sheet-keyboard.js --vp-short, index.css).
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (sheet.kind !== 'sheet' || !present || !el) return
+    const colour = el.ownerDocument?.defaultView?.getComputedStyle?.(el).backgroundColor
+    const root = el.ownerDocument?.documentElement
+    if (!colour || !root) return
+    root.style.setProperty('--under-sheet', colour)
+    root.setAttribute('data-sheet-up', '')
+    return () => {
+      root.removeAttribute('data-sheet-up')
+      root.style.removeProperty('--under-sheet')
+    }
+  }, [present])
   // What scrolls: the active pane of the sheet (an older sheet's content scrolls as a whole) or a
   // design-system drawer's body (ds/BottomSheet.jsx), whose head and foot stay put. A pull only
   // takes the sheet down while that is at its top.

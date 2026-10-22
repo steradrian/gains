@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import { t } from '../../../lib/i18n.js'
 import { IS_ANDROID } from '../../../lib/api.js'
@@ -18,6 +19,7 @@ import SettingsPage from '../SettingsPage.jsx'
 import { settingsPath } from '../paths.js'
 import { standalone } from '../use-settings-ctx.js'
 import DownloadProgress from './download-progress.jsx'
+import ViewportReadout from './viewport-readout.jsx'
 
 // About (board St1About, A1.36): the logo and version, the update check, how to install the web
 // app, and where the credits are. On Android the row checks GitHub on demand and installs a newer
@@ -27,6 +29,7 @@ import DownloadProgress from './download-progress.jsx'
 export default function AboutPage() {
   const nav = useNavigate()
   const toast = useUI(s => s.toast)
+  const user = useStore(s => s.user)
   const [android, setAndroid] = useState(false)
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
   const [checking, setChecking] = useState(false)
@@ -99,6 +102,8 @@ export default function AboutPage() {
 
   const installed = standalone()
   const showUpdate = MOBILE && android
+  // The live viewport figures are a diagnostic for whoever runs the server, never anyone else's.
+  const admin = !!user?.admin
 
   return (
     <SettingsPage title={t('About')} line={t('Made by Adrian, for a few friends')}>
@@ -132,6 +137,8 @@ export default function AboutPage() {
           <SettingRow icon="apple" title={t('Food data')} sub={t('{0}, ODbL', LINKS.openFoodFacts.name)} onClick={() => openExternal(LINKS.openFoodFacts.url)} />
           <SettingRow icon="arm" title={t('Muscle map')} sub={t('{0} by Melih Colpan, MIT', LINKS.muscleMap.name)} onClick={() => openExternal(LINKS.muscleMap.url)} />
         </div>
+
+        {admin && <ViewportReadout />}
       </div>
     </SettingsPage>
   )

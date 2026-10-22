@@ -5074,4 +5074,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': 'วิวพอร์ต',
+  'Live screen measurements for a bug report. Only admins see this.': 'ค่าการวัดหน้าจอแบบสดสำหรับรายงานบั๊ก มีแค่แอดมินที่เห็น',
 }

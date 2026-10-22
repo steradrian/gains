@@ -11,9 +11,9 @@ import AboutPage from './AboutPage.jsx'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
-  const state = { S: null, MOBILE: false, android: false, androidWeb: false, standalone: false, navs: [], opened: [] }
+  const state = { S: null, user: null, MOBILE: false, android: false, androidWeb: false, standalone: false, navs: [], opened: [] }
   state.snapshot = () => ({
-    S: state.S, user: null, sync: null, config: null,
+    S: state.S, user: state.user, sync: null, config: null,
     update: mut => { const next = structuredClone(state.S); mut(next); state.S = next },
   })
   state.checkForUpdate = vi.fn(() => Promise.resolve({ hasUpdate: true, latestVersion: '9.9.9', apkUrl: 'https://x/gains.apk', hashUrl: null }))
@@ -64,6 +64,7 @@ globalThis.__APP_VERSION__ ??= 'test'
 let host, root
 beforeEach(() => {
   mocks.S = { unit: 'kg', restSec: 90, gifSize: 'full', workouts: [], routines: [], exWeights: {} }
+  mocks.user = null
   mocks.MOBILE = false
   mocks.android = false
   mocks.androidWeb = false
@@ -141,6 +142,38 @@ describe('About, Credits', () => {
     act(() => { rowTitled('Food data').click() })
     act(() => { rowTitled('Muscle map').click() })
     expect(mocks.opened).toEqual([LINKS.media.url, LINKS.openFoodFacts.url, LINKS.muscleMap.url])
+  })
+})
+
+// The live viewport figures (the drawer band on the installed iPhone app): a diagnostic for the
+// server's admin, read-only, and nobody else's business.
+describe('About, Viewport', () => {
+  const viewport = () => [...host.querySelectorAll('.g-glist-row b')].find(b => b.textContent === 'innerHeight × innerWidth')
+
+  it('is not there for a member, nor signed out', async () => {
+    mocks.user = { id: 'u2', name: 'Maria', admin: false }
+    await mount()
+    expect(host.textContent).not.toContain('Viewport')
+    expect(viewport()).toBeUndefined()
+    expect(document.querySelector('.set-vp-probe')).toBe(null)
+    act(() => root.unmount())
+    root = createRoot(host)
+    mocks.user = null
+    await mount()
+    expect(viewport()).toBeUndefined()
+  })
+
+  it('an admin sees the figures, live, with nothing to tap', async () => {
+    mocks.user = { id: 'u1', name: 'Adrian', admin: true }
+    await mount()
+    expect(host.textContent).toContain('Viewport')
+    expect(host.textContent).toContain('Only admins see this.')
+    expect(viewport()).toBeTruthy()
+    const row = viewport().closest('.g-glist-row')
+    expect(row.tagName).toBe('DIV')
+    expect(row.querySelector('.g-gvr-val').textContent).toBe(`${window.innerHeight} × ${window.innerWidth}`)
+    const titles = [...host.querySelectorAll('.set-vp .g-glist-row b')].map(b => b.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['visualViewport.height', 'visualViewport.offsetTop', 'screen.height × screen.width', '--vvh', '--kb', '--sat / --sab', '#modal-root']))
   })
 })
 

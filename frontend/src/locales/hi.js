@@ -5063,4 +5063,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': 'व्यूपोर्ट',
+  'Live screen measurements for a bug report. Only admins see this.': 'बग रिपोर्ट के लिए स्क्रीन के लाइव माप। इसे सिर्फ़ एडमिन देखते हैं।',
 }

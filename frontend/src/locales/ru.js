@@ -5067,4 +5067,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': 'Область просмотра',
+  'Live screen measurements for a bug report. Only admins see this.': 'Текущие размеры экрана для отчёта об ошибке. Их видят только администраторы.',
 }

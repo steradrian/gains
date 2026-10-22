@@ -5142,4 +5142,6 @@ export default {
   'Cheer everyone': 'Cheer everyone',
   'You did it, together': 'You did it, together',
   "Who's in": "Who's in",
+  'Viewport': 'ভিউপোর্ট',
+  'Live screen measurements for a bug report. Only admins see this.': 'বাগ রিপোর্টের জন্য স্ক্রিনের সরাসরি মাপ। শুধু অ্যাডমিনরা এটি দেখেন।',
 }
