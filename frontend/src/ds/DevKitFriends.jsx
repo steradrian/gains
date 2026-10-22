@@ -1,3 +1,4 @@
+import CheerList from './CheerList.jsx'
 import MemberAvatar, { MEMBER_TONES, memberTone } from './MemberAvatar.jsx'
 import MemberRing from './MemberRing.jsx'
 import Section from './DevKitSection.jsx'
@@ -44,6 +45,15 @@ export default function DevKitFriends() {
         <MemberRing size={120} stroke={12} segments={[]} />
         <MemberRing size={120} stroke={12} label="A week with no plan for two members" segments={[
           { value: 0, of: 0, tone: 'mint' }, { value: 3, of: 3, tone: 'blue' }, { value: 0, of: 0, tone: 'purple' },
+        ]} />
+      </Section>
+
+      {/* Friends surfaces m1 */}
+      <Section title="CheerList" note="This week's cheers in one glass card: the sender's initial in their colour, what they cheered, a line of detail and when. Plain information, not tappable.">
+        <CheerList label="Cheers this week" rows={[
+          { key: 'a', initial: 'Mara', tone: 'blue', text: 'Mara cheered your Push A', detail: 'Sunday evening', when: '2 h ago' },
+          { key: 'b', initial: 'Radu', tone: 'purple', text: 'Radu cheered your new best Cable fly', detail: '20 kg x 12', when: 'Yesterday' },
+          { key: 'c', initial: 'Iron Sunday', tone: 'white', text: 'Everyone cheered the week', detail: 'Goal hit · 4 weeks in a row', when: '3 days ago' },
         ]} />
       </Section>
     </>

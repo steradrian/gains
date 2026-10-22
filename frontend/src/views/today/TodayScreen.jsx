@@ -16,17 +16,19 @@ import StageScreen from '../../ds/StageScreen.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import StageWeekMarks from '../../ds/StageWeekMarks.jsx'
 import WaterGlasses from '../../ds/WaterGlasses.jsx'
+import FriendsCard from './FriendsCard.jsx'
 import './today.css'
 
 // Today on the stage (boards T10Today to T115Over, T1EFood, T1ETraining): the header, the offline
-// pill, the welcome back, the rings, the four actions, Up next (or First steps on a first day),
+// pill, the welcome back, the rings, the four actions, the Friends card (T1.16, only when
+// `friends` is given: something is new), Up next (or First steps on a first day),
 // Food and Water, or the week for the training profile. It draws what useToday() gives it and
 // holds nothing; the floating tab bar is the app's (#tabbar). `ring` is the page the rings open on
 // (T12Protein opens on Protein). The header is pinned to the top and is the search's field while
 // it is open (components/use-root-header.js). `status` other than 'known' (the day loading, or
 // failed with the retry banner) draws the skeleton, never what looks like an empty day.
 export default function TodayScreen({
-  status = 'known', error, header, saved, away, firstSteps, nextPending, rings, onRing, actions, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
+  status = 'known', error, header, saved, away, firstSteps, nextPending, rings, onRing, actions, friends, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
 }) {
   const accent = useDsAccent()
   const known = status === 'known'
@@ -40,6 +42,7 @@ export default function TodayScreen({
         <RingCarousel slides={rings} start={ring} loading={!known} onOpen={onRing} />
         <GlassActions items={actions} loading={!known} />
         {!known ? <Skeleton food={!!meals} /> : <>
+          {friends && <FriendsCard {...friends} />}
           {nextPending && <i className="g-skel today-sk-row" aria-hidden="true" />}
           {firstSteps && <><StageSection title={t('First steps')} action={firstSteps.label} /><FirstSteps steps={firstSteps.steps} /></>}
           {upNext && <><StageSection title={t('Up next')} /><UpNext {...upNext} /></>}

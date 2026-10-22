@@ -46,8 +46,11 @@ export function groupsRowValue() {
   return { value: groupsSeen() ? null : t('New'), sub }
 }
 
-/** Asks first (R5), then turns Friends off: nothing is shared, memberships are kept. */
-export function confirmTurnOff() {
+/**
+ * Asks first (R5), then turns Friends off: nothing is shared, memberships are kept. `onDone` runs
+ * once it is off (the Today card's menu closes itself then), not when it failed.
+ */
+export function confirmTurnOff({ onDone } = {}) {
   confirmDrawer({
     title: t('Stop sharing everywhere?'),
     body: t('Nothing is shared and nobody sees you in a group.'),
@@ -55,7 +58,8 @@ export function confirmTurnOff() {
     confirmLabel: t('Turn off Friends'),
     cancelLabel: t('Cancel'),
     onConfirm: async () => {
-      try { await turnOff() } catch { useUI.getState().toast(friendsErrorText()) }
+      try { await turnOff() } catch { useUI.getState().toast(friendsErrorText()); return }
+      onDone?.()
     },
   })
 }
