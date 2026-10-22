@@ -7,8 +7,11 @@
  *   - Signed in, always. A group id the caller is not a member of answers exactly what an id that
  *     does not exist answers (404 `not-found`), so ids never leak which groups exist.
  *   - Names come from db.users at answer time. A member id that is no longer an account (a purge
- *     that could not write) is skipped on every read; a member with Friends off is left out of
- *     what other members see.
+ *     that could not write) is skipped on every read; a member with Friends off, and a disabled
+ *     account (Friends api m2: hidden, never purged, since enabling it brings everything back),
+ *     are left out of what other members see.
+ *   - Friends api m2: what one member shows of their training comes only out of the share
+ *     projection (stats.js), read through group-view.js.
  *   - No answer carries `usedBy`, an e-mail, or the id of anyone outside the caller's group,
  *     except GET /people, whose whole point is the ids of people who opted in to being invited.
  *   - Every change is one synchronous store.mutate, check and write together, so two requests
@@ -20,10 +23,16 @@ import { createWindow } from '../rate-limit.js';
 import { friendsStore } from './store.js';
 import {
   GROUP_CAP, GROUPS_PER_PERSON, SHARE_KEYS, cleanText, groupName, parseGoal, parseShare, shareOf, isId,
-  isMember, membersOf, newGroupId, newGroup, addMember, dropMember, groupsOf, isDate, nameOf, initialOf
+  isMember, membersOf, newGroupId, newGroup, addMember, dropMember, groupsOf, isDate, nameOf, initialOf,
+  accountMaps, visibleMember, addDays
 } from './rules.js';
 import { codeOf, newCode, newGroupInvite, lookupInvite, redeem, tidyInvites, hasOpenInvitation } from './invites.js';
 import { summaryNumbers } from './stats-hook.js';
+// Friends api m2
+import { invalidateMember } from './cache.js';
+import { groupDetail, memberDetail, groupMoments } from './group-view.js';
+import { parseMomentId } from './moments.js';
+import { MOMENT_DAYS } from './stats.js';
 
 export const PEOPLE_MAX = 20;
 export const SUMMARY_MEMBERS_MAX = 5;
@@ -115,12 +124,9 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
     }
   };
 
-  /** Accounts that can be in a group: present in db.users and not disabled. */
-  const liveUsers = () => {
-    const map = new Map();
-    for (const u of users() || []) if (u && isId(u.id) && !u.disabled) map.set(u.id, u);
-    return map;
-  };
+  // Friends api m2: `accounts` every account that exists (a disabled one keeps its place: the cap,
+  // the creator role), `active` the ones Friends shows (rules.js accountMaps).
+  const accounts = () => accountMaps(users());
   const isOn = (d, uid) => d.people[uid]?.on === true;
   const personFor = (d, uid) => {
     if (!isObj(d.people[uid])) d.people[uid] = { on: false, mutes: {}, groupPrefs: {} };
@@ -136,19 +142,21 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
     if (!isObj(group) || !isMember(group, uid)) NOT_FOUND();
     return { gid, group };
   };
-  const liveCount = (group, map) => membersOf(group).filter(m => map.has(m.uid)).length;
-  // Who other members see: accounts that still exist, with Friends on. The viewer always sees
-  // themselves.
-  const visibleMembers = (d, group, viewer, map) => membersOf(group)
-    .filter(m => map.has(m.uid) && (m.uid === viewer || isOn(d, m.uid)))
-    .map(m => map.get(m.uid));
-  // The creator, or when that account is gone, the longest-standing member who is not.
-  const creatorOf = (group, map) => (map.has(group.creator) ? group.creator : membersOf(group).find(m => map.has(m.uid))?.uid ?? null);
+  // Places taken in a group: every account that exists, a disabled one too (it comes back on enable).
+  const liveCount = (group, all) => membersOf(group).filter(m => all.has(m.uid)).length;
+  // Who the viewer sees: active accounts with Friends on, and always themselves.
+  const visibleMembers = (d, group, viewer, active) => membersOf(group)
+    .filter(m => visibleMember(d, m.uid, viewer, active))
+    .map(m => active.get(m.uid));
+  // The creator, or when that account is gone, the longest-standing member who is not. A disabled
+  // creator stays creator: nobody can remove until they are enabled again.
+  const creatorOf = (group, all) => (all.has(group.creator) ? group.creator : membersOf(group).find(m => all.has(m.uid))?.uid ?? null);
 
   /* ---------- answers, built field by field ---------- */
-  function groupSummary(d, gid, group, viewer, date, map) {
-    const visible = visibleMembers(d, group, viewer, map);
-    const nums = summaryNumbers(group, viewer, date, { members: visible.map(u => u.id) });
+  // `nums` (Friends api m2): the numbers when the caller computed them already (GET /groups/{id}).
+  function groupSummary(d, gid, group, viewer, date, maps, nums = null) {
+    const visible = visibleMembers(d, group, viewer, maps.active);
+    nums ??= summaryNumbers(group, viewer, date, { gid, data: d, active: maps.active, store });
     return {
       id: gid,
       name: typeof group.name === 'string' ? group.name : '',
@@ -162,26 +170,27 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
   }
   // What a create or a join answers: the summary plus the goal and who created it. The whole
   // Group (ring, moments, members' weeks) is GET /groups/{id}.
-  function groupAnswer(d, gid, viewer, date) {
-    const map = liveUsers();
+  function groupAnswer(d, gid, viewer, date, nums = null) {
+    const maps = accounts();
     const group = d.groups[gid];
-    const creator = creatorOf(group, map);
-    const visible = new Set(visibleMembers(d, group, viewer, map).map(u => u.id));
+    const creator = creatorOf(group, maps.accounts);
+    const visible = new Set(visibleMembers(d, group, viewer, maps.active).map(u => u.id));
     return {
-      ...groupSummary(d, gid, group, viewer, date, map),
+      ...groupSummary(d, gid, group, viewer, date, maps, nums),
       goal: group.goal?.kind === 'number' ? { kind: 'number', n: group.goal.n } : { kind: group.goal?.kind || 'planned' },
       creator: visible.has(creator) ? creator : null,
       isCreator: creator === viewer
     };
   }
-  // In-app invitations still open for `viewer`, one per group (the newest).
-  function invitationsFor(d, viewer, map) {
+  // In-app invitations still open for `viewer`, one per group (the newest). One from a disabled
+  // account does not show while it is (`active`).
+  function invitationsFor(d, viewer, active) {
     const byGroup = new Map();
     for (const x of d.invitations) {
       if (!x || x.to !== viewer) continue;
       const found = lookupInvite(d, x.code, viewer);
       if (!found || found.status !== 'valid') continue;
-      const from = map.get(x.from);
+      const from = active.get(x.from);
       if (!from || !isMember(found.group, x.from)) continue;
       byGroup.set(x.group, { code: x.code, group: { id: x.group, name: found.group.name }, from: { name: nameOf(from) } });
     }
@@ -189,13 +198,13 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
   }
   function meAnswer(viewer, date) {
     const d = store.read();
-    const map = liveUsers();
+    const maps = accounts();
     const person = d.people[viewer];
     return {
       on: person?.on === true,
       share: shareOf(person),
-      groups: groupsOf(d, viewer).map(g => groupSummary(d, g.id, g, viewer, date, map)),
-      invitations: invitationsFor(d, viewer, map),
+      groups: groupsOf(d, viewer).map(g => groupSummary(d, g.id, g, viewer, date, maps)),
+      invitations: invitationsFor(d, viewer, maps.active),
       // Cheers and moments arrive with api-m3; nothing is new until then.
       newCount: 0
     };
@@ -228,6 +237,8 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         if (share) person.share = share;
         if (body.on !== undefined) person.on = body.on;
       });
+      // Friends api m2: nothing projected under the old switches is served again.
+      invalidateMember(user.id);
       json(res, 200, meAnswer(user.id, date));
     }),
 
@@ -256,8 +267,8 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       const user = needUser(req);
       const date = needDate(query(req));
       const d = store.read();
-      const map = liveUsers();
-      json(res, 200, groupsOf(d, user.id).map(g => groupSummary(d, g.id, g, user.id, date, map)));
+      const maps = accounts();
+      json(res, 200, groupsOf(d, user.id).map(g => groupSummary(d, g.id, g, user.id, date, maps)));
     }),
 
     // The last one out deletes the group; a creator leaving hands it to the longest-standing member.
@@ -280,7 +291,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       store.mutate(d => {
         const { gid, group } = memberGroup(d, req, user.id);
         if (target === user.id) refuse(400, 'self', 'leave the group instead');
-        if (creatorOf(group, liveUsers()) !== user.id) refuse(403, 'forbidden', 'only the creator can remove a member');
+        if (creatorOf(group, accounts().accounts) !== user.id) refuse(403, 'forbidden', 'only the creator can remove a member');
         if (!isId(target) || !isMember(group, target)) NOT_FOUND();
         dropMember(d, gid, target, Date.now());
       });
@@ -328,7 +339,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       const out = store.mutate(d => {
         const { gid, group } = memberGroup(d, req, user.id);
         if (!isOn(d, user.id)) refuse(409, 'friends-off', 'Friends is off');
-        if (liveCount(group, liveUsers()) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
+        if (liveCount(group, accounts().accounts) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
         const now = Date.now();
         tidyInvites(d, gid, user.id, now);
         const code = newCode(c => Object.hasOwn(d.invites, c));
@@ -351,7 +362,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         const { group } = memberGroup(d, { friendsParams: { id: q.get('group') } }, user.id);
         for (const m of membersOf(group)) skip.add(m.uid);
       }
-      const list = [...liveUsers().values()]
+      const list = [...accounts().active.values()]
         .filter(u => !skip.has(u.id) && !deletionScheduled(u) && isOn(d, u.id) && nameOf(u)
           && (!term || nameOf(u).toLocaleLowerCase().includes(term)))
         .sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
@@ -372,10 +383,10 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       store.mutate(d => {
         const { gid, group } = memberGroup(d, req, user.id);
         if (!isOn(d, user.id)) refuse(409, 'friends-off', 'Friends is off');
-        const map = liveUsers();
-        if (liveCount(group, map) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
+        const maps = accounts();
+        if (liveCount(group, maps.accounts) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
         const to = body.uid;
-        const target = map.get(to);
+        const target = maps.active.get(to);
         const now = Date.now();
         if (to === user.id || !target || deletionScheduled(target) || !isOn(d, to) || isMember(group, to) || hasOpenInvitation(d, gid, to, now)) return;
         tidyInvites(d, gid, user.id, now);
@@ -395,11 +406,11 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       const d = store.read();
       const found = lookupInvite(d, codeOf(req.friendsParams?.code), user.id);
       if (!found) NOT_FOUND();
-      const map = liveUsers();
-      const from = map.get(found.inv.by);
+      const { active } = accounts();
+      const from = active.get(found.inv.by);
       const out = { status: found.status, from: { name: from ? nameOf(from) || null : null } };
       if (found.status === 'valid' || found.status === 'member') {
-        const visible = visibleMembers(d, found.group, user.id, map);
+        const visible = visibleMembers(d, found.group, user.id, active);
         out.group = {
           id: found.inv.group,
           name: typeof found.group.name === 'string' ? found.group.name : '',
@@ -429,7 +440,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         if (found.status !== 'valid') refuse(410, 'invite-expired', 'this invite has expired');
         notPaused(user);
         if (!isOn(d, user.id)) refuse(409, 'friends-off', 'Friends is off');
-        if (liveCount(found.group, liveUsers()) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
+        if (liveCount(found.group, accounts().accounts) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
         if (groupsOf(d, user.id).length >= GROUPS_PER_PERSON) refuse(409, 'group-limit', `at most ${GROUPS_PER_PERSON} groups`);
         redeem(found.inv, user.id, now);
         addMember(found.group, user.id, now);
@@ -437,6 +448,58 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         return id;
       });
       json(res, 200, groupAnswer(store.read(), gid, user.id, date));
+    }),
+
+    /* ---------- Friends api m2 ---------- */
+
+    // The group page: the summary, the ring per member, the week's days, targets, moments. Reading
+    // settles the week (high-water marks, finished weeks' results; week.js).
+    'GET /api/friends/groups/{id}': route(async (req, res) => {
+      const user = needUser(req);
+      const date = needDate(query(req));
+      const d = store.read();
+      const { gid, group } = memberGroup(d, req, user.id);
+      const detail = groupDetail({ data: d, gid, group, viewer: user.id, date, active: accounts().active, store });
+      json(res, 200, { ...groupAnswer(d, gid, user.id, date, detail.summary), ...detail.view });
+    }),
+
+    // One member as the caller sees them: only what that person shares. Someone the caller cannot
+    // see in the group (not in it, Friends off, a disabled account) answers like an unknown id.
+    'GET /api/friends/groups/{id}/members/{uid}': route(async (req, res) => {
+      const user = needUser(req);
+      const date = needDate(query(req));
+      const d = store.read();
+      const { gid, group } = memberGroup(d, req, user.id);
+      const target = req.friendsParams?.uid;
+      if (!isId(target)) NOT_FOUND();
+      const out = memberDetail({ data: d, gid, group, viewer: user.id, target, date, active: accounts().active, store });
+      if (!out) NOT_FOUND();
+      json(res, 200, out);
+    }),
+
+    // Hides a moment from everyone in the group. Only someone in it may (either participant of a
+    // Trained together), and only one that is there to remove: anything else answers 404. `date`
+    // is optional; without it the moment's own date is the day it is looked up on.
+    'POST /api/friends/groups/{id}/moments/{mid}/remove': route(async (req, res) => {
+      const body = await readBody(req);
+      const user = needUser(req);
+      onlyKeys(body, []);
+      const mid = req.friendsParams?.mid;
+      const parsed = parseMomentId(mid);
+      if (!parsed || !isDate(parsed.date) || !parsed.who.includes(user.id)) NOT_FOUND();
+      const date = optDate(query(req)) || parsed.date;
+      const d = store.read();
+      const { group } = memberGroup(d, req, user.id);
+      const there = groupMoments({ data: d, group, date, active: accounts().active }).some(m => m.id === mid);
+      store.mutate(doc => {
+        const { group: g } = memberGroup(doc, req, user.id);
+        const list = Array.isArray(g.removedMoments) ? g.removedMoments.filter(x => typeof x === 'string') : [];
+        if (!there && !list.includes(mid)) NOT_FOUND();
+        // Ids of moments past the window are of no use any more; the list stays short.
+        const keep = addDays(date, -(MOMENT_DAYS + 7));
+        g.removedMoments = [...new Set([...list, mid])].filter(x => (parseMomentId(x)?.date || '') >= keep);
+      });
+      json(res, 200, { ok: true });
     })
   };
 }

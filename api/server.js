@@ -44,6 +44,8 @@ import { createAggregator } from './audit-aggregate.js';
 // Friends api m1
 import { friendsRoutes, friendsRouteKey } from './friends/routes.js';
 import { purgeUser as purgeFriends } from './friends/purge.js';
+// Friends api m2
+import { invalidateMember as invalidateFriendsMember } from './friends/cache.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -2609,6 +2611,7 @@ const routes = {
     // the old revision until some later write happened to land on a different tick. The writers of
     // a state file are this route and commitState below (the sync hub's weigh-ins), and each evicts.
     stateCache.delete(user.id);
+    invalidateFriendsMember(user.id);  // Friends api m2: their group projections are of the old state
     // Starts (or stops) the grace clock of every stored file this write stopped (or started)
     // referencing. Bookkeeping only: the state is already saved, so nothing here may turn a
     // successful write into an error.
@@ -2792,9 +2795,6 @@ const routes = {
     if (u.disabled) presence.delete(u.id);   // drop them off "training now" at once
     // A device link made before the lock would otherwise still be waiting when it is lifted.
     if (u.disabled) dropDeviceLinks(db, u.id);
-    // Friends api m1: a disabled account leaves every group and invite now, as a deleted one
-    // does; enabling it again does not bring the memberships back.
-    if (u.disabled) { try { purgeFriends(u.id); } catch (e) { console.error('friends purge failed for', u.id, e.message); } }
     saveDb();
     audit(req, u.disabled ? 'admin.user.disable' : 'admin.user.enable', { user: admin, target: u });
     json(res, 200, { ok: true, id: u.id, disabled: u.disabled });
