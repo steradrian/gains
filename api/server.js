@@ -2068,17 +2068,21 @@ const NO_PROOF = { error: 'no passkey', code: 'no-passkey' };
 // `actor` is who did it (the admin), absent for the purge, which is logged under the profile's id.
 function deleteUserData(u, { req = null, actor = null, auditKind }) {
   const name = u.name;
+  // The files go first, and anything but "already gone" throws before db.users is touched, in
+  // memory or on disk. The record is the only thing the sweep finds this profile by, so dropping
+  // it over a state file or uploads that could not be removed would orphan them for good; thrown,
+  // the profile stays scheduled and the next sweep retries.
+  // The training history and any Coach credential of theirs, both outside db.json.
+  try { fs.unlinkSync(stateFile(u.id)); } catch (e) { if (e?.code !== 'ENOENT') throw e; }
+  try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
+  // Their photos and videos — the one place a profile's folder under uploads/ is removed.
+  MEDIA.removeUser(u.id);
   db.users = db.users.filter(x => x.id !== u.id);
   noteGone(u.id);
   db.creds = (db.creds || []).filter(c => c.userId !== u.id);
   db.subs = (db.subs || []).filter(x => x.userId !== u.id);
   dropDeviceLinks(db, u.id);
   presence.delete(u.id);
-  // The training history and any Coach credential of theirs, both outside db.json.
-  try { fs.unlinkSync(stateFile(u.id)); } catch { /* already gone */ }
-  try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
-  // Their photos and videos — the one place a profile's folder under uploads/ is removed.
-  try { MEDIA.removeUser(u.id); } catch (e) { console.error('media: could not remove uploads of', u.id, e.message); }
   saveDb();
   // Logged with the name, because the id is about to mean nothing to anyone reading this back.
   audit(req, auditKind, actor ? { user: actor, msg: name } : { uid: u.id, msg: name });
@@ -2147,9 +2151,9 @@ const accountDeleteRoutes = {
 // Every profile whose deadline has passed, removed. Never one without a schedule, never one
 // before its `at`. The last admin is skipped (and stays scheduled, so the owner can still cancel)
 // — the admin who made it so could not have deleted them directly either. One failure is logged
-// and the rest go on; a profile left half-done is still in db.json with its `deletion` (written
-// last, see deleteUserData) and is finished at the latest by the boot run. Run at boot for that,
-// and for a server that was down at the deadline.
+// and the rest go on; a profile left half-done (a crash, or a file that could not be removed) is
+// still in db.json with its `deletion` (written last, see deleteUserData) and the next sweep
+// finishes it. Run at boot for a server that was down at the deadline.
 function purgeDueAccounts(now = Date.now()) {
   for (const u of db.users.filter(x => deletionScheduled(x) && x.deletion.at <= now)) {
     if (lastAdmin(u)) { console.error('account purge: skipped', u.id, 'as the last admin'); continue; }

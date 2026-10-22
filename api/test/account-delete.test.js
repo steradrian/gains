@@ -33,7 +33,7 @@ before(async () => { pwHash ??= await hashPassword(GOOD); });
 const user = (id, name, extra = {}) => ({ id, name, created: new Date().toISOString(), ...extra });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function startServer(t, { env = {}, users = [], creds = [], subs = [], states = {}, uploads = [] } = {}) {
+async function startServer(t, { env = {}, users = [], creds = [], subs = [], states = {}, uploads = [], prepare } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gym-acct-del-'));
   fs.writeFileSync(path.join(dataDir, 'secret'), SECRET, { mode: 0o600 });
   fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify({ users, creds, subs, invites: [] }));
@@ -42,6 +42,7 @@ async function startServer(t, { env = {}, users = [], creds = [], subs = [], sta
     fs.mkdirSync(path.join(dataDir, 'uploads', uid), { recursive: true });
     fs.writeFileSync(path.join(dataDir, 'uploads', uid, 'a'.repeat(64) + '.jpg'), 'not really a photo');
   }
+  prepare?.(dataDir);
   const child = spawn(process.execPath, ['server.js'], {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
     env: {
@@ -52,7 +53,12 @@ async function startServer(t, { env = {}, users = [], creds = [], subs = [], sta
   const h = { log: '', dataDir };
   child.stdout.on('data', d => h.log += d);
   child.stderr.on('data', d => h.log += d);
-  t.after(() => { child.kill('SIGKILL'); fs.rmSync(dataDir, { recursive: true, force: true }); });
+  t.after(() => {
+    child.kill('SIGKILL');
+    // A test may leave an upload folder read-only on purpose.
+    try { fs.chmodSync(path.join(dataDir, 'uploads', 'u1'), 0o700); } catch { /* none */ }
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  });
   h.api = `http://127.0.0.1:${await boundPort(child, () => h.log)}`;
   h.req = async (method, p, { body, cookie, ip = '198.51.100.1', raw } = {}) => {
     const r = await fetch(`${h.api}${p}`, {
@@ -329,6 +335,49 @@ test('a running server removes a profile once its deadline passes', async t => {
   assert.ok(h.u('u2'));
   assert.equal(h.audit().filter(e => e.ev === 'account.delete.purge').length, 1);
 });
+
+// A file that cannot be removed must not cost the profile its record: the record is how the sweep
+// finds the leftovers. The failure is injected before boot; it is lifted while the server runs and
+// the next sweep has to finish the job.
+const FAILURES = {
+  'the state file cannot be unlinked': {
+    prepare: dir => { fs.mkdirSync(path.join(dir, 'state-u1.json')); fs.writeFileSync(path.join(dir, 'state-u1.json', 'x'), '1'); },
+    lift: dir => { fs.rmSync(path.join(dir, 'state-u1.json'), { recursive: true }); }
+  },
+  'the uploads cannot be removed': {
+    skip: process.getuid?.() === 0 ? 'root ignores directory permissions' : false,
+    prepare: dir => { fs.writeFileSync(path.join(dir, 'state-u1.json'), '{}'); fs.chmodSync(path.join(dir, 'uploads', 'u1'), 0o500); },
+    lift: dir => { fs.chmodSync(path.join(dir, 'uploads', 'u1'), 0o700); }
+  }
+};
+for (const [what, { prepare, lift, skip }] of Object.entries(FAILURES)) {
+  test(`when ${what}, the profile stays scheduled and the next sweep finishes it`, { skip }, async t => {
+    const ana = softPasskey();
+    const h = await startServer(t, {
+      env: { ACCOUNT_SWEEP_MS: '100' },
+      users: [user('u1', 'Ana', { deletion: { requestedAt: Date.now() - GRACE - 1000, at: Date.now() - 1000 } }), user('u2', 'Bea')],
+      creds: [ana.row('u1')],
+      states: { u2: { unit: 'kg' } },
+      uploads: ['u1'],
+      prepare
+    });
+    await sleep(500);
+    assert.ok(h.u('u1')?.deletion, 'record and schedule kept while a file is stuck');
+    assert.equal(h.db().creds.length, 1, 'passkeys kept with it');
+    assert.ok(!h.db().gone?.some(g => g.id === 'u1'));
+    assert.ok(h.log.includes('account purge failed for u1'), h.log);
+    assert.ok(!h.audit().some(e => e.ev === 'account.delete.purge'), 'not audited as done');
+    lift(h.dataDir);
+    const until = Date.now() + 9000;
+    while (h.u('u1') && Date.now() < until) await sleep(100);
+    assert.equal(h.u('u1'), undefined, 'the next sweep removed it');
+    assert.equal(h.stateExists('u1'), false);
+    assert.equal(h.uploadsExist('u1'), false);
+    assert.deepEqual(h.db().creds, []);
+    assert.equal(h.audit().filter(e => e.ev === 'account.delete.purge').length, 1);
+    assert.ok(h.stateExists('u2'));
+  });
+}
 
 test('the sweep skips the last admin and keeps the schedule', async t => {
   const h = await startServer(t, {
