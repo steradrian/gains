@@ -31,9 +31,7 @@ vi.mock('../../lib/push.js', () => ({ pushSupported: () => false }))
 vi.mock('../../lib/wakelock.js', () => ({ wakeLockSupported: () => true }))
 vi.mock('../../lib/mobile.js', () => ({ get MOBILE() { return mocks.MOBILE }, isAndroid: () => Promise.resolve(false) }))
 vi.mock('../../lib/account-deletion.js', () => ({ cancelDeletion: (...a) => mocks.cancel(...a) }))
-vi.mock('../Measurements.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
-vi.mock('../../lib/friends/api.js', () => ({ friendsAvailable: () => false, friendsErrorText: () => '' }))
-vi.mock('../../lib/friends/use-friends.js', () => ({ useFriendsMe: () => ({}), turnOff: vi.fn() }))
+vi.mock('../me/body/measure-drawers.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
 vi.mock('./use-account-actions.js', () => ({ useAccountActions: () => ({ signOutHere: mocks.signOutHere, disconnect: mocks.disconnect }) }))
 
 import SettingsRoot from './SettingsRoot.jsx'
@@ -146,7 +144,7 @@ describe('the Settings root', () => {
     openSearch()
     type('sign out')
     act(() => rowEl('Sign out').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me', { state: { find: 'Sign out' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/settings', { state: { find: 'Sign out' } }])
   })
 
   it('search: close empties it and returns the page', async () => {

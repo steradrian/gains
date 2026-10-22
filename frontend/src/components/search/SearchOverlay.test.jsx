@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../sheets.jsx', async orig => ({ ...(await orig()), exerciseDetailSheet: vi.fn(), customExSheet: vi.fn(), weighInsSheet: vi.fn() }))
+vi.mock('../../sheets.jsx', async orig => ({ ...(await orig()), exerciseDetailSheet: vi.fn(), customExSheet: vi.fn() }))
 
 const { DEF, useStore } = await import('../../store/useStore.js')
 const { useUI } = await import('../../store/useUI.js')

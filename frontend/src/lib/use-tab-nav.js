@@ -140,7 +140,7 @@ export function useTabNav({ navigate, location, navType }) {
     clearTimeout(p.timer)
     p.phase = 'build'
     p.queue = p.stack.slice(1)
-    step(p, p.stack[0], { replace: true, state: TAB_SWITCH })
+    step(p, p.stack[0], { replace: true, state: p.queue.length ? TAB_SWITCH : { ...TAB_SWITCH, ...p.pushed } })
   }, [step])
 
   // Walk back to the first entry one popstate at a time: the position the router reports where it
@@ -164,7 +164,10 @@ export function useTabNav({ navigate, location, navType }) {
     next()
   }, [navigate, build])
 
-  const run = useCallback((plan, { shownLocation, shownTab, target, retries = 0, intent = null }) => {
+  // `pushed`: { pushed: true, from } when the switch is a page pushed from another tab (the avatar
+  // opening Profile): the last page of the stack carries it, so the shell slides it in and Back
+  // returns to the tab it came from.
+  const run = useCallback((plan, { shownLocation, shownTab, target, retries = 0, intent = null, pushed = null }) => {
     if (!plan) { finish(pending.current); return }
     if (!switching) {
       setFrozen({ location: shownLocation, tab: shownTab })
@@ -173,7 +176,7 @@ export function useTabNav({ navigate, location, navType }) {
     switching = true
     navRef.current = plan.nav
     saveNav(plan.nav)
-    const p = { phase: 'unwind', stack: plan.stack, target, retries, intent }
+    const p = { phase: 'unwind', stack: plan.stack, target, retries, intent, pushed }
     pending.current = p
     if (plan.back > 0) unwind(p)
     else build(p)
@@ -203,7 +206,8 @@ export function useTabNav({ navigate, location, navType }) {
         const target = tabOf(location.pathname)
         const here = Number.isInteger(idx) ? idx : nav.idx + 1
         const plan = planSwitch({ ...nav, idx: here }, target, { path, leaving: nav.entries.slice(0, here) })
-        run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target })
+        const pushed = location.state?.pushed ? { pushed: true, from: location.state.from } : null
+        run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target, pushed })
         return
       }
       const next = record(nav, { idx, path, navType, keepTab: !!location.state?.searchVisit })
@@ -229,7 +233,7 @@ export function useTabNav({ navigate, location, navType }) {
         if (p.retries < RETRIES) { resume(p.target, p.stack, p.retries + 1, p.intent); return }
       } else if (path === p.expect) {
         navRef.current = record(navRef.current, { idx, path, navType })
-        if (p.queue.length) { step(p, p.queue.shift(), { state: TAB_SWITCH }); return }
+        if (p.queue.length) { step(p, p.queue.shift(), { state: p.queue.length ? TAB_SWITCH : { ...TAB_SWITCH, ...p.pushed } }); return }
       } else {
         // Not the switch's own step: the switch ends where it got to (the mirror is what it had
         // built), and this navigation is new intent, taken as if it came after it — on top of the
@@ -292,7 +296,8 @@ export function useTabNav({ navigate, location, navType }) {
   const doBack = useCallback(parent => {
     if (pending.current) return
     if (navRef.current.idx > 0) navigate(-1)
-    else navigate(parent || parentOf(location.pathname), { replace: true })
+    // A page pushed from another tab (the avatar opening Profile) goes back to that tab's page.
+    else navigate(parent || (location.state?.pushed && location.state.from) || parentOf(location.pathname), { replace: true })
   }, [navigate, location])
 
   const doLeaveTo = useCallback(path => {

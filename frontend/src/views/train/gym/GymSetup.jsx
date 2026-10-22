@@ -6,6 +6,7 @@ import StageNote from '../../../ds/StageNote.jsx'
 import StagePage from '../../../ds/StagePage.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
 import StageSwitch from '../../../ds/StageSwitch.jsx'
+import { SETTINGS_ROOT } from '../../settings/paths.js'
 import '../coach-pages.css'
 import { useGym } from './use-gym.js'
 
@@ -17,7 +18,7 @@ export default function GymSetup({ find = null }) {
   const gym = useGym(find)
   const { profiles, active, unit } = gym
   return (
-    <StagePage largeTitle={t('Gym setup')} sub={t('Used for plate maths and plan fitting')} parent="/me">
+    <StagePage largeTitle={t('Gym setup')} sub={t('Used for plate maths and plan fitting')} parent={SETTINGS_ROOT}>
       <div className="tcp">
         <div className="tcp-block" id="gym-profiles">
           <ChipGroup tone="stage" scroll label={t('Equipment')} options={gym.chips} value={active?.id ?? ''} onChange={gym.pick} />

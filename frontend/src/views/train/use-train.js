@@ -13,7 +13,7 @@ import { DEMO } from '../../lib/demo.js'
 import { activeProfile } from '../../lib/equipment.js'
 import { exOr, figureOf, imgSrc, isCustomEx } from '../../lib/exercises.js'
 import { durPart, exCount, exerciseNameText, fmtDate, fmtNum, isoOf, startOfWeek, weekKey, weekOrder, weekStartOf } from '../../lib/format.js'
-import { doneUnits, effectiveRoutineIds, exLine, setUnits, setsDone, setsDoneActive, streakWeeks, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
+import { doneUnits, effectiveRoutineIds, exLine, setUnits, setsDone, setsDoneActive, workoutDay, workoutDuration, workoutVolume } from '../../lib/history.js'
 import { firstWorkoutDay, missedDay, movePlan, moveToToday, plusDays, skipMissed } from '../../lib/missed-day.js'
 import { MOBILE } from '../../lib/mobile.js'
 import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
@@ -21,9 +21,10 @@ import { levelsOf, loadOfActive, loadOfRoutine, loadOfWorkouts, muscleBalanceWin
 import { queueOf } from '../../lib/queue.js'
 import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { rotationIds, scheduleModeOf } from '../../lib/rotation.js'
-import { bestStreakWeeks, usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
+import { usualDuration, volumePair, weekVolume } from '../../lib/train-stats.js'
 import { dayMark, nameOf, nextSession, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { dayNoteSheet, dayOptionsSheet, dayOverrideSheet, importPlanFile, readyOrStart, starterPlanSheet, startChooserSheet } from '../../sheets.jsx'
+import { streakSlideOf } from '../shared/streak-slide.js'
 import { trainingRing, useTodayDate } from '../today/use-today.js'
 import { regionList } from './region-names.js'
 import { workoutsSheet } from './workouts-sheet.js'
@@ -141,14 +142,8 @@ export function ringsOf(S, today) {
     value: now, max: Math.max(last, now, 1), pill: bestOfWeek(S, today),
   }
 
-  const streak = streakWeeks(S), best = Math.max(bestStreakWeeks(S), streak)
-  const run = {
-    // The streak opens the Plan (onRing), and says so as the board does.
-    key: 'streak', name: t('Streak'), icon: 'flame', top: t('On plan'), big: String(streak), hint: t('Open Plan'),
-    unit: tn('week in a row', 'weeks in a row', streak), value: streak, max: Math.max(best, 1),
-    pill: best > 0 ? t('Best: {0}', tn('{0} week', '{0} weeks', best)) : null,
-  }
-  return [workouts, volume, run]
+  // The streak opens the Plan (onRing), and says so as the board does.
+  return [workouts, volume, streakSlideOf(S, t('Open Plan'))]
 }
 
 /* ---------------------------------------------------------------- the card -- */

@@ -27,6 +27,13 @@ describe('decideBack', () => {
     expect(decideBack({ top: undefined, canGoBack: false, canGoUp: true, exitArmed: true })).toBe('up')
     expect(decideBack({ top: undefined, canGoBack: true, canGoUp: true, exitArmed: false })).toBe('history')
   })
+
+  it('a page pushed from another tab (Profile from the avatar) goes up through the shell, whatever the WebView can go back to', () => {
+    expect(decideBack({ top: undefined, canGoBack: true, canGoUp: true, pushed: true, exitArmed: false })).toBe('up')
+    expect(decideBack({ top: undefined, canGoBack: false, canGoUp: true, pushed: true, exitArmed: true })).toBe('up')
+    // a drawer over it still closes first
+    expect(decideBack({ top: { id: 'a' }, canGoBack: true, pushed: true, exitArmed: false })).toBe('sheet')
+  })
 })
 
 function harness() {

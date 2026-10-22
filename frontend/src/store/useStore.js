@@ -9,6 +9,8 @@ import { guestAllowed } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
 import { setReminderLogOwner } from '../lib/notifications/reminder-log.js'
+import { clearChanges } from '../lib/recent-changes.js'
+import { setChangesOwner } from '../lib/recent-changes-store.js'
 import { refillIfComplete } from '../lib/rotation.js'
 import { liftLegacy } from '../lib/sync-legacy.js'
 import { mergeStates, localExtras, stampChange, highestStamp, stampRestore, stampReplace, inUnitOf, keepReset, resetIdsOf, mergeResetIds, entryKey } from '../lib/sync-merge.js'
@@ -48,7 +50,7 @@ const DIRTY_KEY = 'gym_dirty'          // the saved copy owes the server a chang
 // (lib/sync-legacy.js), holding the fingerprint that app last agreed on with the server.
 const LEGACY_KEY = 'gym_legacy_owed'
 const SYNCED_AT_KEY = 'gym_synced_at'  // when this device and the server last held the same copy
-const SYNCED_FP_KEY = 'gym_synced_fp'  // a fingerprint of that copy (lib/sync-changes.js)
+export const SYNCED_FP_KEY = 'gym_synced_fp'  // a fingerprint of that copy (lib/sync-changes.js)
 // Changes a forced sign-out or disconnect kept on this device, by server and account, until it
 // reaches that server as that account again. On a phone also a file beside the state mirror.
 const STASH_KEY = 'gym_stash'
@@ -104,6 +106,10 @@ export const DEF = {
   // Body measurements (#82): one check-in per day, values in cm whatever the weight unit
   // (lib/measurements.js); merged across devices like weigh-ins (lib/sync-merge.js).
   measurements: [], measurementEnabled: null, customMeasurements: [],
+  // Me photos M1: progress photos that are not a workout's, [{ id, d, ref, addedAt }]
+  // (lib/me/photos.js), merged by id (lib/sync-merge.js). `photoBackup` false keeps their files on
+  // this device only (lib/media-sync.js); on, they go to the account like a workout's photos.
+  bodyPhotos: [], photoBackup: false,
   queue: null,   // a planner's floating week (lib/queue.js) — via the API, or by this rotation feature (below)
   // The in-app rotation's reusable definition — { id, sequence, label } (lib/rotation.js). Never
   // a live queue: it only ever feeds `queue`, and `queue.rotationId` says the pass is managed here.
@@ -301,7 +307,9 @@ function loadState() {
 // weigh-ins and custom exercises. A custom exercise is all a new guest may have made — with its
 // photo or video, which the server counts as unreferenced until the state that names it lands —
 // so a profile created from such a copy takes it at once, like one holding a workout.
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.customEx || []).length || (st.measurements || []).length)
+// Progress photos too (Me photos M1): with Back up photos off a copy holding only those is the one
+// place they are listed, so it must never be taken for an empty one and replaced.
+const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.customEx || []).length || (st.measurements || []).length || (st.bodyPhotos || []).length)
 
 // Decide whether a pulled account state may replace the local saved state. A local active workout
 // is deliberately carried forward: the server stores completed/saved state, while the in-progress
@@ -995,6 +1003,9 @@ export const useStore = create((set, get) => {
   // it sees the new copy, or it joins its own copy of the account into it (QA 2026-10-06).
   const clearLocalSession = () => {
     const hadMedia = referencedHashes(get().S).size > 0
+    // Me changes M1: the change journal goes with the session (the account's, the last owner's, a guest's).
+    clearChanges(); clearChanges(null)
+    if (localStorage.getItem('gym_owner')) clearChanges({ id: localStorage.getItem('gym_owner') })
     get().setUser(null)
     forgetOnboarding()   // signOut and signOutAll both end here, whoever was signed in
     localStorage.removeItem('gym_guest')
@@ -1442,6 +1453,7 @@ export const useStore = create((set, get) => {
     // reset loses exactly those, and keeps whatever else it holds, whatever its dates say.
     // Resolves once the server's names are in (or could not be had).
     resetEverything() {
+      clearChanges()   // Me changes M1: snapshots of the wiped profile must not be restorable
       const cur = get().S
       const S = restartedState(cur)
       // The recipes themselves live in NutriTrace and a reset does not touch them: their steps and
@@ -1605,6 +1617,7 @@ export const useStore = create((set, get) => {
         if (other) {
           keepForPrevious(owner)
           forgetSync()
+          clearChanges({ id: owner })   // Me changes M1: the previous account's journal does not stay behind
           localStorage.removeItem(KEY)
           // The new owner before the new copy, as on a sign-out: another tab still holding the
           // previous account's copy must not join it into this one (QA 2026-10-06).
@@ -2083,5 +2096,7 @@ export const useStore = create((set, get) => {
 // The phone's reminder log is kept per profile (lib/notifications/reminder-log.js). It cannot
 // import the store itself: the store imports lib/mobile.js, which imports the log.
 setReminderLogOwner(() => useStore.getState().user)
+// Me changes M1: the change journal is kept per profile too (lib/recent-changes-store.js).
+setChangesOwner(() => useStore.getState().user)
 
 export { hasData }

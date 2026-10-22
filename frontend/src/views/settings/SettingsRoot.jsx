@@ -8,11 +8,10 @@ import { DEMO } from '../../lib/demo.js'
 import { MOBILE } from '../../lib/mobile.js'
 import { remoteServer } from '../../lib/api.js'
 import { cancelDeletion } from '../../lib/account-deletion.js'
-import { useFriendsMe } from '../../lib/friends/use-friends.js'
 import { BRAND } from '../../brand.js'
 import { connectionView, useOnline } from '../../components/ServerSync.jsx'
 import { usePasskeys } from '../../components/Passkeys.jsx'
-import { manageMeasurementsSheet } from '../Measurements.jsx'
+import { manageMeasurementsSheet } from '../me/body/measure-drawers.jsx'
 import { PAGES, searchSettings } from '../settings-pages.js'
 import SettingsRootScreen from './SettingsRootScreen.jsx'
 import { settingsPath } from './paths.js'
@@ -50,7 +49,6 @@ export default function SettingsRoot({ find = null, via = null }) {
   const body = useRef(null)
   useFlashRow(body, find, via)
   const ctx = useSettingsCtx()
-  useFriendsMe()   // the Groups row (views/friends/me-rows.js) says what the cache holds: draw again when it changes
   const { disconnect, signOutHere } = useAccountActions()
   const passkeys = usePasskeys(!!user && !MOBILE && !DEMO)
   const lang = effectiveLang(S, config)

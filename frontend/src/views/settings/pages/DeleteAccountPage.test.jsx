@@ -124,7 +124,7 @@ describe('A3.0 what goes', () => {
     expect(host.querySelector('[data-redirect]').getAttribute('data-redirect')).toBe('/me/account')
     mocks.user = { id: 'u1', name: 'Adrian', deletion: { at: AT } }
     act(() => root.render(<DeleteAccountPage key="2" />))
-    expect(host.querySelector('[data-redirect]').getAttribute('data-redirect')).toBe('/me')
+    expect(host.querySelector('[data-redirect]').getAttribute('data-redirect')).toBe('/me/settings')
   })
 })
 
@@ -161,7 +161,7 @@ describe('A3.1 and A3.2: the confirm, the proof, and nothing without them', () =
     expect(mocks.assert).toHaveBeenCalledWith(OPTIONS.options, expect.anything())
     expect(deleteCalls()).toHaveLength(1)
     expect(mocks.setUser).toHaveBeenCalledWith(expect.objectContaining({ deletion: { at: AT, requestedAt: '2026-10-22T12:00:00.000Z' } }))
-    expect(mocks.popToRoot).toHaveBeenCalledWith('me')
+    expect(mocks.popToRoot).toHaveBeenCalledWith('me', '/me/settings')
   })
 
   it('the prompt cancelled: Not confirmed, Try again, and nothing was sent or changed', async () => {
@@ -211,7 +211,7 @@ describe('A3.1 and A3.2: the confirm, the proof, and nothing without them', () =
     mount()
     await tapDelete()
     expect(mocks.sheets).toHaveLength(0)
-    expect(mocks.popToRoot).toHaveBeenCalledWith('me')
+    expect(mocks.popToRoot).toHaveBeenCalledWith('me', '/me/settings')
   })
 
   it('a password-only profile gets the password confirm instead', async () => {

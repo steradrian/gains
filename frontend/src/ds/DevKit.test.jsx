@@ -73,7 +73,7 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining(['StatTiles', 'LineChart', 'BarChart', 'Heatmap', 'MonthGrid']))
     // Three here, and the Week page's two (Shared: week)
     expect(view.host.querySelectorAll('.g-stats')).toHaveLength(5)
-    expect(view.host.querySelectorAll('.g-lc')).toHaveLength(4)
+    expect(view.host.querySelectorAll('.g-lc:not(.g-tc)')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-bars-card')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-heat')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-mg')).toHaveLength(2)
@@ -260,5 +260,14 @@ describe('DevKit', () => {
     const day = sections.slice(sections.findIndex(s => s.querySelector('h2').textContent === 'StageDayRail on a Day page'))
     expect(day.flatMap(s => [...s.querySelectorAll('.g-radio')])).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-rd[disabled]')).toHaveLength(2)
+  })
+
+  it('renders the Me body kit', () => {
+    view.render(<DevKit />)
+    const titles = [...view.host.querySelectorAll('.g-kit-sec > h2')].map(h => h.textContent)
+    expect(titles).toEqual(expect.arrayContaining(['Me: body', 'TrendChart', 'WeighInRow']))
+    expect(view.host.querySelectorAll('.g-tc')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-tc-target')).toHaveLength(1)
+    expect(view.host.querySelectorAll('.g-wir-tags')).toHaveLength(2)
   })
 })

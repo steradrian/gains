@@ -41,7 +41,7 @@ export const PRIMITIVE_FILES = [
 // /train/checkin) draws its chrome through settings/SettingsPage.jsx, a StagePage in another file.
 // FriendsGate is the layout of the /me/groups routes (an Outlet or a redirect to Me) and
 // GroupLinkRedirect only forwards /g/:code: neither draws anything.
-export const PAGE_EXEMPT = ['AddDevice', 'BurnedPage', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'LoadMuscleScreen', 'Login', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
+export const PAGE_EXEMPT = ['AddDevice', 'BodyRoute', 'BurnedPage', 'ChangesRoute', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GoalRoute', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'InviteRoute', 'LoadMuscleScreen', 'Login', 'MeRoute', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 

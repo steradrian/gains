@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { webauthnOK } from '../../lib/api.js'
 import { NotConfirmedError, deletionDay, graceEnd, prepareDeletion, scheduleDeletion } from '../../lib/account-deletion.js'
 import { popToRoot } from '../../lib/use-tab-nav.js'
+import { SETTINGS_ROOT } from './paths.js'
 import { confirmDeletion, openNotConfirmed, openPasswordDelete } from './sheets/delete-account-sheets.jsx'
 
 /**
@@ -22,7 +23,7 @@ export function useDeleteAccount() {
   }, [])
 
   const day = () => deletionDay(graceEnd())
-  const scheduled = () => popToRoot('me')
+  const scheduled = () => popToRoot('me', SETTINGS_ROOT)
   const askPassword = () => openPasswordDelete({ day: day(), onScheduled: scheduled })
   const failed = (e, retry) => {
     const reason = e instanceof NotConfirmedError ? e.reason : 'error'

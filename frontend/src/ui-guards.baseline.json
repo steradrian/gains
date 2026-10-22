@@ -2,7 +2,6 @@
   "G1": {
     "components/DurationWheel.jsx": 1,
     "components/ServerSync.jsx": 2,
-    "sheets/body-weight.jsx": 8,
     "sheets/confirm-menu.jsx": 1,
     "sheets/exercise-config.jsx": 7,
     "sheets/exercise.jsx": 1,
@@ -14,12 +13,11 @@
     "views/CoachIntake.jsx": 2,
     "views/CoachSetup.jsx": 9,
     "views/MobileOnboarding.jsx": 2,
-    "views/ProgressPhotos.jsx": 2,
     "views/StructuralBalance.jsx": 8
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 56
+    "index.css": 47
   },
   "G2js": {
     "brand.js": 2,

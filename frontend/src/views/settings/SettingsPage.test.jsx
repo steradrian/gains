@@ -29,7 +29,7 @@ describe('SettingsPage', () => {
   it('Back goes to Settings by default, or to the parent it is given', () => {
     render(<SettingsPage title="Units" />)
     act(() => { host.querySelector('.g-snav-back').click() })
-    expect(back).toHaveBeenLastCalledWith('/me')
+    expect(back).toHaveBeenLastCalledWith('/me/settings')
     render(<SettingsPage title="Delete account" parent="/me/account" />)
     act(() => { host.querySelector('.g-snav-back').click() })
     expect(back).toHaveBeenLastCalledWith('/me/account')

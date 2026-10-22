@@ -29,6 +29,8 @@ import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, 
 import { rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from '../lib/workout-date.js'
 import { editLeftEmpty, editedRecord, editChangesNothing } from '../lib/session-edit.js'
 import { stampWorkout } from '../lib/sync-merge.js'
+import { recordEditedWorkoutDelete } from '../lib/me/workout-changes.js'
+import { recordSetDeletes } from '../lib/me/set-changes.js'
 import { S, update, ui, toast, snd } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 import { bwSheet } from './body-weight.jsx'
@@ -495,6 +497,7 @@ export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
       message: t('No sets are left in this workout, so there is nothing to save. Delete it from your history?') + mediaGoesToo(editedRecord(S())),
       confirmText: t('Delete workout'), cancelText: t('Keep editing'), danger: true,
       onConfirm: () => {
+        recordEditedWorkoutDelete(S(), editedRecord(S()))
         useStore.getState().deleteHistoryEdit()
         useUI.getState().stopRest()
         useUI.getState().stopWork()
@@ -506,7 +509,8 @@ export function saveWorkoutEdits(onExit = () => nav('/train/history')) {
     return
   }
   try {
-    useStore.getState().saveHistoryEdit()
+    const before = editedRecord(S())
+    recordSetDeletes(before, useStore.getState().saveHistoryEdit())
     useUI.getState().stopRest()
     useUI.getState().stopWork()
     useStore.getState().autoBackupNow()

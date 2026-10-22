@@ -74,6 +74,29 @@ describe('transitionKind', () => {
     expect(kind('/train', '/train/history', 'POP', { sheetEntry: true })).toBe('none')
   })
 
+  // Me root M2: the avatar opens Profile as a push over the tab it is on.
+  it('a cross-tab entry carrying pushed slides in, even as the tab machinery\'s replace', () => {
+    const pushed = { pushed: true, from: '/home' }
+    expect(kind('/home', at('/me', pushed), 'PUSH')).toBe('push')
+    expect(kind('/home', at('/me', { tabSwitch: true, ...pushed }), 'REPLACE')).toBe('push')
+  })
+
+  it('Back off a pushed entry slides away to the tab it came from', () => {
+    const from = at('/me', { pushed: true, from: '/train' })
+    expect(transitionKind({ from, to: at('/train'), navType: 'POP' })).toBe('pop')
+    expect(transitionKind({ from, to: at('/train'), navType: 'REPLACE' })).toBe('pop')
+  })
+
+  it('a plain tab switch stays still, also off a pushed entry', () => {
+    expect(kind('/home', at('/me', { tabSwitch: true }), 'REPLACE')).toBe('none')
+    const from = at('/me', { pushed: true, from: '/home' })
+    expect(transitionKind({ from, to: at('/food', { tabSwitch: true }), navType: 'REPLACE' })).toBe('none')
+  })
+
+  it('a page pushed within the tab from a pushed Profile is an ordinary push', () => {
+    expect(transitionKind({ from: at('/me', { pushed: true }), to: at('/me/settings'), navType: 'PUSH' })).toBe('push')
+  })
+
   it('has nothing to move from on the first page', () => {
     expect(transitionKind({ from: null, to: at('/home'), navType: 'POP' })).toBe('none')
   })

@@ -903,6 +903,79 @@
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       ]
+    },
+    {
+      "name": "Me photos M1: a progress photo and its poster count with Back up photos off, and with nothing else in the state",
+      "state": {
+        "photoBackup": false,
+        "bodyPhotos": [
+          {
+            "id": "p1",
+            "d": "2026-10-20",
+            "addedAt": 1,
+            "ref": {
+              "kind": "image",
+              "hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "mime": "image/jpeg",
+              "size": 1200,
+              "width": 800,
+              "height": 600,
+              "poster": {
+                "hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "mime": "image/jpeg",
+                "size": 300,
+                "width": 200,
+                "height": 150
+              },
+              "at": 1
+            }
+          }
+        ]
+      },
+      "expect": [
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      ]
+    },
+    {
+      "name": "Me photos M1: progress photos that are not entries or carry no ref are skipped; each field counts on its own",
+      "state": {
+        "photoBackup": true,
+        "bodyPhotos": [
+          null,
+          3,
+          [],
+          { "id": "p0", "d": "2026-10-19" },
+          { "id": "p1", "d": "2026-10-19", "ref": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" },
+          { "id": "p2", "d": "2026-10-20", "ref": { "kind": "image", "hash": "not-a-hash", "mime": "image/jpeg", "poster": { "hash": "1111111111111111111111111111111111111111111111111111111111111111" } } },
+          { "id": "p3", "d": "2026-10-21", "ref": { "kind": "video", "hash": "2222222222222222222222222222222222222222222222222222222222222222", "mime": "video/x-unknown" } }
+        ]
+      },
+      "expect": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222"
+      ]
+    },
+    {
+      "name": "Me photos M1: bodyPhotos that is not a list does not count",
+      "state": {
+        "bodyPhotos": { "p1": { "id": "p1", "ref": { "kind": "image", "hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "mime": "image/jpeg" } } }
+      },
+      "expect": []
+    },
+    {
+      "name": "Me photos M1: the same file as a progress photo and on a workout counts once",
+      "state": {
+        "workouts": [
+          { "id": "w1", "d": "2026-10-20", "media": [{ "kind": "image", "hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "mime": "image/jpeg", "size": 1200, "width": 800, "height": 600, "at": 1 }] }
+        ],
+        "bodyPhotos": [
+          { "id": "p1", "d": "2026-10-20", "addedAt": 1, "ref": { "kind": "image", "hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "mime": "image/jpeg", "size": 1200, "width": 800, "height": 600, "at": 1 } }
+        ]
+      },
+      "expect": [
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      ]
     }
   ]
 }

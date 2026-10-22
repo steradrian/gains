@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { normalizeMediaRef, referencedHashes, referencedFiles, cleanUrl, linkKind, mediaOf, fmtClip, HASH_RE } from './media-refs.js'
+import { normalizeMediaRef, referencedHashes, referencedFiles, cleanUrl, linkKind, mediaOf, fmtClip, HASH_RE, heldBackHashes, stateMediaRefs } from './media-refs.js'
 
 const A = 'a'.repeat(64)
 const B = 'b'.repeat(64)
@@ -140,6 +140,39 @@ describe('linkKind', () => {
     expect(linkKind('https://notyoutube.com/x')).toBe('link')
     expect(linkKind('https://youtube.com.evil.example/x')).toBe('link')
     expect(linkKind('javascript:alert(1)')).toBeNull()
+  })
+})
+
+/* === Me photos M1 === */
+describe('progress photos (bodyPhotos)', () => {
+  const D = 'd'.repeat(64)
+  const photo = (id, r) => ({ id, d: '2026-10-20', addedAt: 1, ref: r })
+
+  it('are walked like every other ref: the files, the sync list and the owed count all see them', () => {
+    const S = { bodyPhotos: [photo('p1', ref()), null, { id: 'p2' }] }
+    expect(stateMediaRefs(S)).toEqual([ref()])
+    expect(referencedHashes(S)).toEqual(new Set([A, B]))
+    expect(referencedFiles(S).map(f => [f.hash, f.poster])).toEqual([[B, true], [A, false]])
+  })
+
+  it('held back: their files while Back up photos is off, less any file something else refers to', () => {
+    const S = {
+      photoBackup: false,
+      bodyPhotos: [photo('p1', ref()), photo('p2', ref({ hash: C, poster: undefined }))],
+      workouts: [{ id: 'w1', d: '2026-10-20', media: [ref({ hash: C, poster: undefined })] }]
+    }
+    expect(heldBackHashes(S)).toEqual(new Set([A, B]))
+    expect(heldBackHashes({ ...S, workouts: [], customEx: [{ id: 'x', media: ref({ hash: D, poster: { hash: B, mime: 'image/webp', size: 1, width: 1, height: 1 } }) }] })).toEqual(new Set([A, C]))
+    expect(heldBackHashes({ ...S, workouts: [], recipeExtras: { 1: { photo: ref({ poster: undefined }) } } })).toEqual(new Set([B, C]))
+  })
+
+  it('held back: nothing with the switch on, and nothing without photos', () => {
+    expect(heldBackHashes({ photoBackup: true, bodyPhotos: [photo('p1', ref())] })).toEqual(new Set())
+    expect(heldBackHashes({ photoBackup: false })).toEqual(new Set())
+    expect(heldBackHashes(null)).toEqual(new Set())
+    // Off is anything but `true`: a profile saved before the setting existed keeps them here.
+    expect(heldBackHashes({ bodyPhotos: [photo('p1', ref())] })).toEqual(new Set([A, B]))
+    expect(heldBackHashes({ photoBackup: 'true', bodyPhotos: [photo('p1', ref())] })).toEqual(new Set([A, B]))
   })
 })
 

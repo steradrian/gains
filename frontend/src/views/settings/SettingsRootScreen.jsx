@@ -1,14 +1,14 @@
 import { t } from '../../lib/i18n.js'
-import { useDsAccent } from '../../lib/use-ds-accent.js'
 import Act from '../../ds/Act.jsx'
 import DangerRow from '../../ds/DangerRow.jsx'
 import Icon from '../../components/Icon.jsx'
 import InlineBanner from '../../ds/InlineBanner.jsx'
 import StagePageTitle from '../../ds/StagePageTitle.jsx'
-import StageScreen from '../../ds/StageScreen.jsx'
+import StagePage from '../../ds/StagePage.jsx'
 import StageSearchField from '../../ds/StageSearchField.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import SettingsRows from './SettingsRows.jsx'
+import { ME_ROOT } from './paths.js'
 import SettingsSearch from './SettingsSearch.jsx'
 import './settings-root.css'
 
@@ -27,12 +27,12 @@ import './settings-root.css'
 //   signOut  { title, sub, onClick } or null (a guest and the demo have nothing to leave)
 //   footer   the line at the very end
 //
-// The root is the Me tab's root: like every tab root it has no Back, the tab bar is the way out.
+// The root is a page pushed from Profile (/me), behind the avatar: the nav bar's Back is one step
+// down this tab's stack, or Profile when it was opened cold (lib/use-tab-nav.js `back`).
 // The stage behind is the app's, so the page paints no background.
 export default function SettingsRootScreen({ title = t('Settings'), banner, account, pill, onPill, groups, search, signOut, footer, bodyRef }) {
-  const accent = useDsAccent()
   return (
-    <StageScreen accent={accent}>
+    <StagePage parent={ME_ROOT}>
       <div ref={bodyRef}>
         {search.open
           ? <SettingsSearch query={search.query} onQuery={search.onQuery} rows={search.rows} onClose={search.onClose} />
@@ -84,6 +84,6 @@ export default function SettingsRootScreen({ title = t('Settings'), banner, acco
             </div>
           )}
       </div>
-    </StageScreen>
+    </StagePage>
   )
 }

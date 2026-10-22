@@ -13,13 +13,14 @@ import { useTrends, useWellness } from '../lib/nutrition/use-trends.js'
 import { headlines, presentMetrics, recoveryWindow } from '../lib/nutrition/wellness.js'
 import { rangeFrom, rangeOptions, rangeStart, rememberRange, storedRange } from '../lib/progress-range.js'
 import { LB_TO_KG } from '../lib/recovery.js'
+import { mePath } from '../lib/tab-route.js'
 import { bwSheet } from '../sheets.jsx'
 import { Page } from '../components/layout.jsx'
 import { ActionButton, ActionRow, StatSection, TabSection } from '../components/tab-kit.jsx'
 import { LineArt } from '../components/line-art.jsx'
 import LineChart from '../components/LineChart.jsx'
 import { Segmented } from '../components/ui.jsx'
-import { measurementLogSheet } from './Measurements.jsx'
+import { measurementLogSheet } from './me/body/measure-drawers.jsx'
 
 const TONE = { toward: 'acc', away: 'danger' }
 const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmtNum(Math.abs(n))
@@ -79,7 +80,7 @@ export default function ProgressHub() {
       </ActionRow>
     </TabSection>
     <TabSection>
-      <StatSection title={t('Body')} onOpen={() => open('/progress/body')}
+      <StatSection title={t('Body')} onOpen={() => open(mePath('body'))}
         art={<LineArt scene="scale" state={{ kg: last ? (S.unit === 'lb' ? last.w * LB_TO_KG : last.w) : null }} />}
         status={last ? 'ready' : 'empty'}
         values={last

@@ -18,7 +18,7 @@ import { addRecent, noteOpened } from '../../lib/search/recents.js'
 import { bwSheet, customExSheet, exerciseDetailSheet, workoutDetailSheet } from '../../sheets.jsx'
 import { foodDetailSheet } from '../FoodDetailSheet.jsx'
 import { mealDetailSheet } from '../MealDetailSheet.jsx'
-import { manageMeasurementsSheet } from '../../views/Measurements.jsx'
+import { manageMeasurementsSheet } from '../../views/me/body/measure-drawers.jsx'
 import { settingsPath } from '../../views/settings/paths.js'
 
 const settingsRoute = at => ({ kind: 'route', path: settingsPath(at.page), state: { find: at.find } })

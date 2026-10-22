@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { t } from '../lib/i18n.js'
-import { notificationsPath, tabOf } from '../lib/tab-route.js'
+import { ME_ROOT, notificationsPath } from '../lib/tab-route.js'
 import { useUnreadCount } from '../lib/notifications/use-notifications.js'
-import { popToRoot } from '../lib/use-tab-nav.js'
 import { useHubStatusRefresh, useHubTrouble } from '../lib/nutrition/sync.js'
 import { groupTitle, placeholderFor, searchTab } from '../lib/search/scopes.js'
 import {
@@ -16,7 +15,7 @@ import { useConnectionTrouble } from './SyncBanner.jsx'
 /**
  * What a tab root's header (ds/StageHeader, `pinned`) is given, for Today, Train, Eat and Me alike:
  *   initial, alert   the avatar's letter, and its dot with why (a stuck sync, the hub's sync)
- *   onSettings       Profile: from another tab it switches to Me; on Me's stack it goes back down
+ *   onSettings       the avatar: opens Profile (/me) pushed from Today, Train or Eat; on the Me tab, Settings
  *   onBell, unread   Notifications under this tab (/:tab/notifications), and how many are unread
  *   placeholder      the tab's ("Search training"); `tab` is the tab the header is on
  * and the global search's field, the bearmenu header (lib/search/session.js holds the query): the
@@ -70,9 +69,9 @@ export function useRootHeader(tab) {
   return {
     initial: (user?.name || '').trim(),
     alert: connection ? t('Connection problem') : hub ? t('Nutrition sync needs attention') : null,
-    // Profile is the Me tab's root: from Progress, on Me's stack, back down to it rather than a
-    // second Profile on top.
-    onSettings: () => { if (tabOf(pathname) === 'me') popToRoot('me'); else nav(SETTINGS_ROOT) },
+    // The avatar opens Profile, pushed over the tab it is on (lib/route-transition.js slides it in,
+    // Back slides it away to that tab). On the Me tab, Profile is where it already is, so it opens Settings.
+    onSettings: () => (tab === 'me' ? nav(SETTINGS_ROOT) : nav(ME_ROOT, { state: { pushed: true, from: pathname } })),
     // The inbox opens under the tab the bell is on (/:tab/notifications); the count is the bell's.
     onBell: () => nav(notificationsPath(pathname)),
     unread,

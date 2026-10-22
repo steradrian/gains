@@ -14,6 +14,7 @@ import { wakeLockSupported } from '../../lib/wakelock.js'
 import { playOnSilentSupported, vibrateSupported } from '../../lib/sound.js'
 import { systemReducesMotion } from '../../lib/reduced-motion.js'
 import { referencedFiles } from '../../lib/media-refs.js'
+import { canInvite } from '../../lib/me/invites.js'
 import { useFoodOn } from '../../lib/nutrition/food-on.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { diaryIndexDays, syncDiaryIndex, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
@@ -73,7 +74,7 @@ export function useSearchData(open) {
       foodsReady: foods.status === 'ready', mealsReady: meals.status === 'ready' && recipes.status === 'ready',
       days: nutrition ? diaryIndexDays() : [], daysReady: index.complete, index,
       mealNames: mealLabels(ntSettings),
-      pagesCtx: { nutrition, checkIn: S.checkIn !== false, coach: !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }), fastingOn },
+      pagesCtx: { nutrition, checkIn: S.checkIn !== false, coach: !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }), fastingOn, canInvite: canInvite(user) },
       settingsCtx,
     }
   }, [S, user, config, coachMode, sync, nutrition, ntSettings, foods, meals, recipes, index, exercises, nameOf, langV])

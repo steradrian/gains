@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { click, useView } from '../../ds/render.test-util.js'
 import SettingsRootScreen from './SettingsRootScreen.jsx'
 
+const useTabNav = vi.hoisted(() => ({ back: vi.fn() }))
+vi.mock('../../lib/use-tab-nav.js', () => ({ back: useTabNav.back }))
+
 const view = useView()
 const row = (key, title, extra = {}) => ({ key, icon: 'info', title, onClick: vi.fn(), ...extra })
 
@@ -35,7 +38,15 @@ describe('SettingsRootScreen', () => {
     expect(rowEl('Appearance').textContent).toContain('Cobalt')
     expect(view.host.querySelector('.sroot-pill').textContent).toBe('All synced · 2 min ago')
     expect(view.host.querySelector('.sroot-foot').textContent).toBe('Gains 0.1.0')
-    expect(view.host.querySelector('button[aria-label="Back"]')).toBeNull()
+  })
+
+  it('is a pushed page: a Back (to Profile when opened cold) and no tab-root chrome', () => {
+    show()
+    const back = view.host.querySelector('button[aria-label="Back"]')
+    expect(back).not.toBeNull()
+    click(back)
+    expect(useTabNav.back).toHaveBeenCalledTimes(1)
+    expect(useTabNav.back).toHaveBeenCalledWith('/me')
   })
 
   it('the card, the pill, a row and Sign out are wired', () => {
