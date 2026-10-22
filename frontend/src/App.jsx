@@ -140,7 +140,7 @@ import BurnedPage from './views/eat/BurnedPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
-// last known scrollY per tab and route, so back-navigation can put the page where it was
+// last known scrollY per tab and route, so Back within a tab can put the page where it was
 const scrollPositions = new Map()
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
@@ -314,7 +314,12 @@ function Shell() {
     // route — now, not a frame later: that frame landed on top of a scroll a view made on mount
     // (the superset card centring its row, views/Workout.jsx), and a smooth scroll cut off by a
     // scrollTo is simply gone.
-    if (action === 'top') { window.scrollTo(0, 0); return }
+    if (action === 'top') {
+      // A tab switch rebuilt the history from the root up: nothing it remembered is a page any more.
+      if (tabSwitch) scrollPositions.clear()
+      window.scrollTo(0, 0)
+      return
+    }
     // A POP that stays on the route we are on is not a back-navigation: it is the history
     // entry a sheet pushed (Modals.jsx, #63) being unwound as the sheet closes. Nothing new
     // mounted, Modals puts the page back where it was itself, and a view that scrolled on
@@ -326,8 +331,6 @@ function Shell() {
     // Back onto a page by a slide: it is drawn at y already (lib/use-route-transition.js) and is
     // put there for real when the slide ends, the document being too short to scroll until then.
     if (trans.active) { restoreY.current = y; return }
-    // Into another tab: its page goes back where it was left before it is first painted.
-    if (tabSwitch) window.scrollTo(0, y)
     // the restored view needs a layout pass before it is tall enough to scroll to y
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, y))
     return () => window.cancelAnimationFrame(frame)

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { EXIDX, allExercises } from '../lib/exercises.js'
 import { ALL_EQUIPMENT } from '../lib/equipment.js'
 import { uid } from '../lib/format.js'
@@ -8,6 +8,7 @@ import { syncMedia } from '../lib/media-sync.js'
 import { MUSCLES, MUSCLE_NAME, hasExplicitMuscleMetadata, inMuscleOrder, normalizeMuscleGroups } from '../lib/muscles.js'
 import { LOG_CHOICES, logChoiceOf, withLogChoice } from '../lib/custom-exercise.js'
 import { cx } from '../lib/ui-kit.js'
+import { useUnsavedGuard } from '../lib/unsaved-guard.js'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import Button from '../ds/Button.jsx'
@@ -131,6 +132,11 @@ export default function CustomExerciseForm({ existing, prefill, tone = 'light', 
     if (!logTouched) setLog(value === 'cardio' ? 'cardio' : 'weight')
   }
   const pickLog = value => { setLog(value); setLogTouched(true) }
+
+  // Anything typed or picked since the form opened is only in this state until Save.
+  const current = JSON.stringify([n, bp, eq, log, desc, url, primaries, secondaries, mediaTouched])
+  const opened = useRef(current)
+  useUnsavedGuard(current !== opened.current)
 
   const save = () => {
     const name = n.trim()
