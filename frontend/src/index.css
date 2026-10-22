@@ -1417,7 +1417,7 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   padding:8px 18px calc(20px + var(--sab));
   /* A tall sheet stops short of the status bar / Dynamic Island: every cap carries the top
      safe-area inset, which the layout viewport does not (viewport-fit=cover). */
-  max-height:90vh;max-height:min(90vh,calc(var(--vvh,100dvh) - var(--sat) - 8px));
+  max-height:90vh;max-height:min(90vh,calc(var(--vvh,100%) - var(--sat) - 8px));
   /* the panes inside scroll (components/sheet-panes.jsx), the grab bar and the foot stay put */
   display:flex;flex-direction:column;overflow:hidden;
   /* no CSS entrance: it rises and leaves with its scrim through the kit (Modals.jsx, lib/motion.js) */
