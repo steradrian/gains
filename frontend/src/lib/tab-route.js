@@ -51,6 +51,11 @@ export function parentOf(pathname = '') {
   // An editor in My foods (/food/my-foods/foods/12, also /new) goes back to its tab of the list.
   const editor = pathname.match(/^\/food\/my-foods\/(foods|meals|recipes)\/[^/]+$/)
   if (editor) return '/food/my-foods?tab=' + editor[1]
+  // Friends (Groups, under Me): a member's or a challenge's page goes back to its group, and the
+  // join page to Groups, not to a path segment that is no page.
+  const ofGroup = pathname.match(/^(\/me\/groups\/[^/]+)\/(?:member|challenge)\/[^/]+$/)
+  if (ofGroup) return ofGroup[1]
+  if (/^\/me\/groups\/join\/[^/]+$/.test(pathname)) return '/me/groups'
   if (!tab || pathname === TAB_ROOT[tab]) return TAB_ROOT.home
   return pathname.slice(0, pathname.lastIndexOf('/'))
 }

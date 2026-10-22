@@ -82,6 +82,15 @@ import StructuralBalance from './views/StructuralBalance.jsx'
 import { SettingsRoute } from './views/settings/SettingsRoute.jsx'
 import DeleteAccountPage from './views/settings/pages/DeleteAccountPage.jsx'
 import StartedOverScreen from './views/settings/pages/StartedOverScreen.jsx'
+// Friends core m1
+import FriendsGate from './views/friends/FriendsGate.jsx'
+import GroupsScreen from './views/friends/GroupsScreen.jsx'
+import JoinScreen from './views/friends/JoinScreen.jsx'
+import SharingScreen from './views/friends/SharingScreen.jsx'
+import CheersScreen from './views/friends/CheersScreen.jsx'
+import GroupScreen from './views/friends/GroupScreen.jsx'
+import MemberScreen from './views/friends/MemberScreen.jsx'
+import ChallengeScreen from './views/friends/ChallengeScreen.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -484,6 +493,17 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
       <Route path="/me/account/started-over" element={<StartedOverScreen />} />
+      {/* Friends core m1: every Friends route, behind one gate that sends someone without Friends to /me.
+          Each screen is its own file, so the later milestones replace a file and not this table. */}
+      <Route element={<FriendsGate />}>
+        <Route path="/me/groups" element={<GroupsScreen />} />
+        <Route path="/me/groups/join/:code" element={<JoinScreen />} />
+        <Route path="/me/groups/sharing" element={<SharingScreen />} />
+        <Route path="/me/groups/cheers" element={<CheersScreen />} />
+        <Route path="/me/groups/:id" element={<GroupScreen />} />
+        <Route path="/me/groups/:id/member/:uid" element={<MemberScreen />} />
+        <Route path="/me/groups/:id/challenge/:cid" element={<ChallengeScreen />} />
+      </Route>
       <Route path="/me/:page" element={<SettingsRoute />} />
       <Route path="*" element={<Navigate to={fallback} replace />} />
     </Routes>
