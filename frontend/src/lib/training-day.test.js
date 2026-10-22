@@ -64,11 +64,20 @@ describe('trainingDay today', () => {
   // MON 2026-10-12 has Push planned.
   const test5 = (d, extra = {}) => ({ id: 't', d, start: at(MON), end: at(MON) + 5 * 60000, name: 'Test', routineIds: [], entries: [{ id: '0025', sets: [{ done: true }] }], ...extra })
 
-  it('a session logged today reads as done only when today holds nothing else to do', () => {
-    // Push is planned and a freestyle "Test" does not cover it: the day still offers Push.
+  it('a freestyle session does not cover a planned routine: the day still offers it', () => {
     expect(trainingDay(S({ workouts: [test5(MON)] }), MON, MON).kind).toBe('planned')
-    // A rest day: the session logged on it is today's, "Done today".
-    expect(trainingDay(S({ workouts: [test5(TUE)] }), TUE, TUE)).toMatchObject({ kind: 'done', workout: { name: 'Test' } })
+  })
+
+  it('a planned day whose routine was logged is done', () => {
+    const w = test5(MON, { routineIds: ['r1'], name: 'Push' })
+    expect(trainingDay(S({ workouts: [w] }), MON, MON)).toMatchObject({ kind: 'done', workout: { name: 'Push' } })
+  })
+
+  it('an ad-hoc session on an unplanned day is not "done": the day stays rest and keeps the log', () => {
+    const state = S({ workouts: [test5(TUE)] })
+    expect(trainingDay(state, TUE, TUE)).toMatchObject({ kind: 'rest', logged: { name: 'Test' } })
+    expect(dayMark(state, TUE)).toBe('done')
+    expect(trainingDay(S(), TUE, TUE)).toMatchObject({ kind: 'rest', logged: null })
   })
 
   it('a session from another day is not done today', () => {
@@ -78,6 +87,6 @@ describe('trainingDay today', () => {
   it('a record with no valid d is placed by its start, as the week strip does', () => {
     const state = S({ workouts: [test5(undefined, { d: undefined, start: at(TUE), end: at(TUE) + 300000 })] })
     expect(dayMark(state, TUE)).toBe('done')
-    expect(trainingDay(state, TUE, TUE).kind).toBe('done')
+    expect(trainingDay(state, TUE, TUE).logged).toMatchObject({ name: 'Test' })
   })
 })
