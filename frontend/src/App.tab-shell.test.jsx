@@ -124,21 +124,30 @@ describe('switching tabs', () => {
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('each tab comes back where it was left, its own back stack under it', async () => {
+  it('each tab opens on its root: the sub-page it was left on is gone', async () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(target('History'))
     await click(tab('Me'))
     await go(() => nav('/me/body?range=90'))
     await click(tab('Train'))
-    expect(hash()).toBe('#/train/history')
-    expect(idx()).toBe(1)
-    await back()
     expect(hash()).toBe('#/train')
+    expect(lit()).toBe('Train')
+    expect(idx()).toBe(0)
     await click(tab('Me'))
-    expect(hash()).toBe('#/me/body?range=90')
-    await back()
     expect(hash()).toBe('#/me')
+    expect(idx()).toBe(0)
+    expect(await backLeavesApp()).toBe(true)
+  })
+
+  it('a sub-page opened from Today is gone when Today is tapped from another tab', async () => {
+    await launch('#/home')
+    await go(() => nav('/me/notifications'))
+    await click(tab('Train'))
+    await click(tab('Today'))
+    expect(hash()).toBe('#/home')
+    expect(lit()).toBe('Today')
+    expect(idx()).toBe(0)
     expect(await backLeavesApp()).toBe(true)
   })
 
@@ -153,16 +162,54 @@ describe('switching tabs', () => {
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('puts each tab\'s page back where it was scrolled to', async () => {
+  const scrollTo = async y => {
+    Object.defineProperty(window, 'scrollY', { value: y, configurable: true })
+    await act(async () => { window.dispatchEvent(new Event('scroll')) })
+  }
+
+  it('a tab switch starts at the top, though the tab was scrolled when it was left', async () => {
     await launch('#/home')
     await click(tab('Train'))
-    Object.defineProperty(window, 'scrollY', { value: 640, configurable: true })
-    await act(async () => { window.dispatchEvent(new Event('scroll')) })
-    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+    await scrollTo(640)
     await click(tab('Me'))
-    expect(scrolls.at(-1)).toBe(0)
+    await scrollTo(300)
+    scrolls.length = 0
     await click(tab('Train'))
+    expect(scrolls.length).toBeGreaterThan(0)
+    expect(scrolls.every(y => y === 0)).toBe(true)
+    await scrollTo(0)
+  })
+
+  it('the tab on screen tapped again scrolls to the top, on its root or from a sub-page', async () => {
+    await launch('#/home')
+    await click(tab('Train'))
+    await scrollTo(640)
+    scrolls.length = 0
+    await click(tab('Train'))
+    expect(scrolls.at(-1)).toBe(0)
+    await click(target('Routines'))
+    await scrollTo(500)
+    scrolls.length = 0
+    await click(tab('Train'))
+    expect(hash()).toBe('#/train')
+    expect(scrolls.at(-1)).toBe(0)
+    await scrollTo(0)
+  })
+
+  it('a pushed page starts at the top, and Back within the tab returns to where the page was', async () => {
+    await launch('#/home')
+    await click(tab('Train'))
+    await scrollTo(640)
+    scrolls.length = 0
+    await click(target('History'))
+    expect(scrolls.at(-1)).toBe(0)
+    await scrollTo(0)
+    scrolls.length = 0
+    await back()
+    await act(async () => { await new Promise(r => setTimeout(r, 600)) })
+    expect(hash()).toBe('#/train')
     expect(scrolls.at(-1)).toBe(640)
+    await scrollTo(0)
   })
 })
 
@@ -195,13 +242,11 @@ describe('the review repros', () => {
     expect(hash()).toBe('#/train/schedule')
     expect(lit()).toBe('Train')
     await click(tab('Eat'))
-    expect(hash()).toBe('#/food')   // Nutrition is as it was left: Settings is not on top of it
+    expect(hash()).toBe('#/food')   // Nutrition's root: Settings is not on top of it
     await click(tab('Me'))
     expect(hash()).toBe('#/me')
     await click(tab('Train'))
-    expect(hash()).toBe('#/train/schedule')
-    await back()
-    expect(hash()).toBe('#/train')
+    expect(hash()).toBe('#/train')   // the page that was opened there is not kept
     expect(await backLeavesApp()).toBe(true)
   })
 })
@@ -338,7 +383,7 @@ describe('a walk back that lands late', () => {
     expect(replaces).toBe(1)  // one build: the watchdog did not fire before the walk landed
   })
 
-  it('past the watchdog, the late landing is finished again, and the tab left keeps its stack', async () => {
+  it('past the watchdog, the late landing is finished again, and the tab left is gone but for its root', async () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(target('History'))
@@ -351,8 +396,8 @@ describe('a walk back that lands late', () => {
     expect(lit()).toBe('Me')
     window.history.go = realGo; realGo = null
     await click(tab('Train'))
-    expect(hash()).toBe('#/train/history')
-    expect(idx()).toBe(1)
+    expect(hash()).toBe('#/train')
+    expect(idx()).toBe(0)
   })
 })
 
@@ -708,7 +753,7 @@ describe('the summary after a finished workout', () => {
 })
 
 describe('a navigation in the middle of a switch', () => {
-  it('to a third tab, mid-build: that tab, with the arriving tab\'s whole stack put aside', async () => {
+  it('to a third tab, mid-build: that tab, the arriving tab left at its root', async () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(target('History'))
@@ -728,11 +773,9 @@ describe('a navigation in the middle of a switch', () => {
     expect(hash()).toBe('#/me/body')
     expect(lit()).toBe('Me')
     await click(tab('Train'))
-    expect(hash()).toBe('#/train/history')
-    // Me holds its own stack: Body over Profile, nothing of Training under it.
+    expect(hash()).toBe('#/train')
+    // Nothing of Training is under Me, nor Body kept on it.
     await click(tab('Me'))
-    expect(hash()).toBe('#/me/body')
-    await back()
     expect(hash()).toBe('#/me')
     expect(await backLeavesApp()).toBe(true)
   })
