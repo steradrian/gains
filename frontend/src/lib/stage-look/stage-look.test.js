@@ -6,8 +6,8 @@ import { THEMES } from '../themes.js'
 import { mergeStates } from '../sync-merge.js'
 import { deriveTheme, rampAt, rgbToHex } from './color.js'
 import { DEFAULT_INTENSITY, defaultLook, isLook, LOOKS, lookLabel, resolveIntensity, resolveLook, sanitizeStageLook } from './index.js'
-import { createRenderer } from './renderer.js'
-import { FRAG, LOOK_INDEX } from './shader.js'
+import { createRenderer, lookUniformValues, UNIFORMS } from './renderer.js'
+import { FRAG, LOOK_GLSL, LOOK_INDEX } from './shader.js'
 
 const preset = id => THEMES.find(p => p.id === id)
 const ramp = (id, xs) => {
@@ -55,6 +55,40 @@ describe('looks', () => {
     expect(FRAG).toContain('float dev = (lum - DARK_MID) * uInkDir;')
     expect(FRAG).not.toContain('11.5')
     expect(/^[\x00-\x7f]*$/.test(FRAG)).toBe(true)
+  })
+
+  // Liquid glass: the glass shader prepends LOOK_GLSL, so the stage it refracts is this code.
+  it('builds FRAG from LOOK_GLSL, defines lookColor once, and keeps gl_FragCoord out of the shared part', () => {
+    expect(FRAG).toContain(LOOK_GLSL)
+    expect(FRAG.split('vec3 lookColor(vec2 css, vec2 size, vec2 grainPx)').length - 1).toBe(1)
+    expect(LOOK_GLSL).not.toContain('gl_FragCoord')
+    expect(LOOK_GLSL).not.toContain('gl_FragColor')
+    expect(LOOK_GLSL).not.toContain('varying')
+    expect(FRAG).toContain('lookColor(css, size, gl_FragCoord.xy)')
+  })
+
+  it('declares every uniform the renderer sets in LOOK_GLSL', () => {
+    for (const name of UNIFORMS) expect(LOOK_GLSL).toMatch(new RegExp(`uniform \\w+ ${name}\\b`))
+  })
+})
+
+describe('lookUniformValues', () => {
+  const theme = deriveTheme(preset('cobalt'), 0.45)
+
+  it('names the look, the size and the dpr the draw is for', () => {
+    const v = lookUniformValues({ look: 'bloom', theme, phase: 0.12, w: 780, h: 1688, dpr: 2 })
+    expect(v).toMatchObject({ comp: LOOK_INDEX.bloom, res: [780, 1688], dpr: 2, phase: 0.12, calm: 1, fade: 1, grain: 3, seed: 0.7 })
+    expect(v.art).toHaveLength(4)
+  })
+
+  it('falls back to Classic for an unknown look, derives the dpr from the height and turns calm off', () => {
+    const v = lookUniformValues({ look: 'nope', theme, w: 390, h: 844, calm: false })
+    expect(v).toMatchObject({ comp: LOOK_INDEX.plain, dpr: 1, calm: 0, grain: 0 })
+  })
+
+  it('inverts the ink on a light stage', () => {
+    expect(lookUniformValues({ look: 'silk', theme: deriveTheme(preset('blossom')), w: 1, h: 1 }).inkDir).toBe(-1)
+    expect(lookUniformValues({ look: 'silk', theme, w: 1, h: 1 }).inkDir).toBe(1)
   })
 })
 
