@@ -104,12 +104,13 @@ export async function startServer(t, { users = USERS, friends, states = {}, now 
   /** A group created by the first of `uids`, the others joining in order, everyone on (`share`). */
   h.crew = async (uids, { goal = { kind: 'planned' }, share = ALL, name = 'Iron Sunday' } = {}) => {
     for (const u of uids) await h.on(u, share);
-    const r = await h.req('POST', '/api/friends/groups', { as: uids[0], body: { name, goal } });
+    const day = new Date(h.now).toISOString().slice(0, 10);
+    const r = await h.req('POST', `/api/friends/groups?date=${day}`, { as: uids[0], body: { name, goal } });
     assert.equal(r.status, 200, r.text);
     for (const u of uids.slice(1)) {
       const link = await h.req('POST', `/api/friends/groups/${r.body.id}/invites`, { as: uids[0], body: {} });
       assert.equal(link.status, 200, link.text);
-      const j = await h.req('POST', `/api/friends/join/${link.body.code}`, { as: u, body: {} });
+      const j = await h.req('POST', `/api/friends/join/${link.body.code}?date=${day}`, { as: u, body: {} });
       assert.equal(j.status, 200, j.text);
     }
     return r.body.id;

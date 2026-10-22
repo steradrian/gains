@@ -31,6 +31,7 @@
  *
  * Streak: weeks in a row whose result is true, back from last week, the current week added once
  * it is hit. A week that is neither is skipped; a missed or unjudged one ends the run. */
+import { refuse } from './refusal.js';
 import { membersOf, countsIn, shareOf, isDate, weekOf, addDays } from './rules.js';
 import { CONSISTENCY_WEEKS, daysOf } from './stats.js';
 import { memberProjection } from './cache.js';
@@ -57,8 +58,12 @@ export function plausibleDate(date, now = Date.now()) {
   return date >= addDays(today, -1) && date <= addDays(today, 1);
 }
 
-/** The client's `date` when it can be someone's today, else the server's UTC date. */
-export const clientDay = (date, now = Date.now()) => (plausibleDate(date, now) ? date : serverDay(now));
+/** The client's `date` on a write. Friends never falls back to UTC for a person's dates, so a
+ *  missing or implausible date is `400 bad-date`. */
+export function writeDay(date, now = Date.now()) {
+  if (!plausibleDate(date, now)) refuse(400, 'bad-date', 'date must be your local today, YYYY-MM-DD');
+  return date;
+}
 
 /** The goal as the client words it: structured, never a sentence. */
 export const goalLineOf = goal => (goal?.kind === 'number' ? { kind: 'number', n: goal.n } : { kind: goal?.kind === 'targets' ? 'targets' : 'planned' });

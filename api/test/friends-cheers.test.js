@@ -199,6 +199,8 @@ test('cheers older than 14 days are dropped on the next write', async t => {
   const { h, gid } = await setup(t);
   await cheer(h, 'u_ana', { group: gid, kind: 'week', ref: `u_bea:${MONDAY}` });
   await h.at(h.now + 15 * 86400000);
-  await cheer(h, 'u_cy', { group: gid, kind: 'week', ref: `u_bea:${MONDAY}` });
+  const later = new Date(h.now).toISOString().slice(0, 10);
+  const r = await h.req('POST', `${cheers}?date=${later}`, { as: 'u_cy', body: { group: gid, kind: 'week', ref: `u_bea:${MONDAY}` } });
+  assert.equal(r.status, 200, r.text);
   assert.deepEqual(h.friends().cheers.map(c => c.from), ['u_cy']);
 });

@@ -3990,10 +3990,11 @@ paths:
         1 to 40 characters after that (`bad-name`). `goal.kind` is `planned` (everyone's planned
         sessions), `number` with `n` 1 to 200, or `targets`; `n` on any other kind, or any other
         field, is refused (`bad-goal`). Friends must be on (`friends-off`). At most 20 groups per
-        person (`group-limit`). A plausible `date` is kept as the creator's local join date
-        (the targets goal counts a mid-week joiner from it); without one, the server's UTC date.
+        person (`group-limit`). `date` is required and is kept as the creator's local join date
+        (the targets goal counts a mid-week joiner from it); missing or implausible is
+        `400 bad-date`, never a UTC fallback.
       parameters:
-        - { $ref: '#/components/parameters/FriendsDateOptional' }
+        - { $ref: '#/components/parameters/FriendsWriteDate' }
       requestBody:
         required: true
         content:
@@ -4256,12 +4257,12 @@ paths:
         in-app invitation of mine into that group is cleared. Refusals, in the order checked:
         `404 not-found`; `409 already-member` (with `group.id`, so the client opens it);
         `410 invite-used`; `410 invite-expired` (expired or revoked); `423 deletion-scheduled`;
-        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups). A plausible `date`
-        is kept as my local join date (the targets goal counts a mid-week joiner from it); without
-        one, the server's UTC date.
+        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups). `date` is
+        required and is kept as my local join date (the targets goal counts a mid-week joiner from
+        it); missing or implausible is `400 bad-date`, never a UTC fallback.
       parameters:
         - { $ref: '#/components/parameters/FriendsInviteCode' }
-        - { $ref: '#/components/parameters/FriendsDateOptional' }
+        - { $ref: '#/components/parameters/FriendsWriteDate' }
       responses:
         '200':
           description: In.
@@ -4384,9 +4385,9 @@ paths:
         nothing. A cheer for a Trained together moment or a challenge reaches every other person
         it names. A recipient who muted the caller (or the group's notifications) still gets it,
         silently: no push, not counted in `newCount`. Cheers older than 14 days are dropped on
-        every write. `date` (optional) is the caller's today and decides which week it belongs to.
+        every write. `date` (required) is the caller's today and decides which week it belongs to.
       parameters:
-        - { $ref: '#/components/parameters/FriendsDateOptional' }
+        - { $ref: '#/components/parameters/FriendsWriteDate' }
       requestBody:
         required: true
         content:
@@ -4453,12 +4454,12 @@ paths:
       summary: Start a challenge
       description: |
         The caller is in; everyone else is invited and joins with `.../join` (nobody is added).
-        The span starts on the Monday of the week of `date` (the server's UTC date without one).
+        The span starts on the Monday of the week of `date` (`date` is required: `400 bad-date` when missing or implausible).
         Counting rules are on the `Challenge` schema. At most three running challenges per group
         (`409 challenge-limit`); Friends must be on (`409 friends-off`).
       parameters:
         - { $ref: '#/components/parameters/FriendsGroupId' }
-        - { $ref: '#/components/parameters/FriendsDateOptional' }
+        - { $ref: '#/components/parameters/FriendsWriteDate' }
       requestBody:
         required: true
         content:
@@ -4504,11 +4505,11 @@ paths:
       tags: [friends]
       operationId: friendsChallengeJoin
       summary: Count me in
-      description: Joining twice changes nothing. A challenge that is over is `409 challenge-ended`.
+      description: Joining twice changes nothing. A challenge that is over is `409 challenge-ended`. `date` is required (`400 bad-date`).
       parameters:
         - { $ref: '#/components/parameters/FriendsGroupId' }
         - { $ref: '#/components/parameters/FriendsChallengeId' }
-        - { $ref: '#/components/parameters/FriendsDateOptional' }
+        - { $ref: '#/components/parameters/FriendsWriteDate' }
       requestBody:
         required: false
         content:
@@ -4529,11 +4530,11 @@ paths:
       tags: [friends]
       operationId: friendsChallengeLeave
       summary: Leave a challenge
-      description: Takes only the caller's counted work off the bar. No confirm; joining again brings the same work back (the Undo).
+      description: Takes only the caller's counted work off the bar. No confirm; joining again brings the same work back (the Undo). `date` is required (`400 bad-date`).
       parameters:
         - { $ref: '#/components/parameters/FriendsGroupId' }
         - { $ref: '#/components/parameters/FriendsChallengeId' }
-        - { $ref: '#/components/parameters/FriendsDateOptional' }
+        - { $ref: '#/components/parameters/FriendsWriteDate' }
       requestBody:
         required: false
         content:
@@ -6182,6 +6183,7 @@ components:
   # Friends api m1
   parameters:
     FriendsDate: { name: date, in: query, required: true, schema: { type: string, format: date }, description: 'The client''s local today, `YYYY-MM-DD` (`400 bad-date` otherwise).' }
+    FriendsWriteDate: { name: date, in: query, required: true, schema: { type: string, format: date }, description: 'The client''s local today, `YYYY-MM-DD`, on a write. Within a day of the server''s UTC date; missing, malformed or outside that is `400 bad-date` (Friends never falls back to UTC).' }
     FriendsDateOptional: { name: date, in: query, required: false, schema: { type: string, format: date }, description: 'The client''s local today, for the summary in the answer (`400 bad-date` when present and not a date).' }
     FriendsGroupId: { name: id, in: path, required: true, schema: { type: string }, description: 'An opaque group id.' }
     FriendsChallengeId: { name: cid, in: path, required: true, schema: { type: string }, description: 'An opaque challenge id.' }

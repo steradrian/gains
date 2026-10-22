@@ -28,7 +28,7 @@ import {
 } from './rules.js';
 import { codeOf, newCode, newGroupInvite, lookupInvite, redeem, tidyInvites, hasOpenInvitation } from './invites.js';
 import { summaryNumbers } from './stats-hook.js';
-import { clientDay } from './week.js';
+import { writeDay } from './week.js';
 // Friends api m2
 import { invalidateMember } from './cache.js';
 import { groupDetail, memberDetail, groupMoments } from './group-view.js';
@@ -236,7 +236,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       if (!name) refuse(400, 'bad-name', 'a group needs a name of 1 to 40 characters');
       const goal = parseGoal(body.goal);
       if (!goal) refuse(400, 'bad-goal', "goal is { kind: 'planned' | 'targets' } or { kind: 'number', n: 1..200 }");
-      const date = optDate(query(req));
+      const date = writeDay(needDate(query(req)));
       notPaused(user);
       const gid = store.mutate(d => {
         if (!isOn(d, user.id)) refuse(409, 'friends-off', 'Friends is off');
@@ -244,7 +244,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         let id;
         do { id = newGroupId(); } while (Object.hasOwn(d.groups, id));
         const now = Date.now();
-        d.groups[id] = newGroup({ id, name, goal, creator: user.id, now, on: clientDay(date, now) });
+        d.groups[id] = newGroup({ id, name, goal, creator: user.id, now, on: date });
         return id;
       });
       json(res, 200, groupAnswer(store.read(), gid, user.id, date));
@@ -415,7 +415,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
       const user = needUser(req);
       onlyKeys(body, []);
       limitJoin(req);
-      const date = optDate(query(req));
+      const date = writeDay(needDate(query(req)));
       const code = codeOf(req.friendsParams?.code);
       const gid = store.mutate(d => {
         const now = Date.now();
@@ -430,7 +430,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         if (liveCount(found.group, accounts().accounts) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
         if (groupsOf(d, user.id).length >= GROUPS_PER_PERSON) refuse(409, 'group-limit', `at most ${GROUPS_PER_PERSON} groups`);
         redeem(found.inv, user.id, now);
-        addMember(found.group, user.id, now, clientDay(date, now));
+        addMember(found.group, user.id, now, date);
         d.invitations = d.invitations.filter(x => !(x && x.group === id && x.to === user.id));
         return id;
       });

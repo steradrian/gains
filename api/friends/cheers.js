@@ -20,7 +20,7 @@ import { accountMaps, isDate, isId, isMember, nameOf, visibleMember, weekOf } fr
 import { parseMomentId } from './moments.js';
 import { groupMoments } from './group-view.js';
 import { readMemberState } from './cache.js';
-import { clientDay, streakOf } from './week.js';
+import { streakOf, writeDay } from './week.js';
 import { textOf } from './challenge-data.js';
 import { CHEER_KEEP_MS, CHEER_KINDS, REF_MAX, atMs, cheerId, cheeredBy, liveCheersTo, sameCheer } from './cheer-data.js';
 
@@ -120,7 +120,7 @@ export function cheerRoutes({ json, readBody, readSession, users, store = friend
       const user = needUser(req);
       const { gid, kind, ref } = parseBody(body);
       const q = query(req);
-      const date = q.has('date') ? needDate(q) : null;
+      const day = writeDay(needDate(q));
       store.mutate(d => {
         const group = groupFor(d, gid, user.id);
         if (d.people[user.id]?.on !== true) refuse(409, 'friends-off', 'Friends is off');
@@ -128,7 +128,6 @@ export function cheerRoutes({ json, readBody, readSession, users, store = friend
         d.cheers = d.cheers.filter(c => c && now - atMs(c) < CHEER_KEEP_MS);
         if (cheeredBy(d, user.id, gid, kind, ref)) return;
         const to = recipientsOf(d, accountMaps(users()).active, group, user, kind, ref);
-        const day = clientDay(date, now);
         const at = new Date(now).toISOString();
         for (const uid of to) d.cheers.push({ from: user.id, to: uid, group: gid, kind, ref, week: weekOf(day), at });
       });

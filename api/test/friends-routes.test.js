@@ -81,7 +81,7 @@ async function startServer(t, { users = USERS, friends, env = {} } = {}) {
     assert.equal(r.status, 200, r.text);
     return r.body.code;
   };
-  h.join = (uid, code) => h.req('POST', `/api/friends/join/${code}?date=${TODAY}`, { as: uid, body: {} });
+  h.join = (uid, code) => h.req('POST', `/api/friends/join/${code}?date=${new Date(h.now).toISOString().slice(0, 10)}`, { as: uid, body: {} });
   // Ana's group with Bea and Cy in it, in that order, everyone on.
   h.trio = async () => {
     for (const u of ['u_ana', 'u_bea', 'u_cy']) await h.on(u);
@@ -145,7 +145,7 @@ test('turning on asks what to share first; off keeps the switches and the member
 
 test('creating a group: validated name and goal, Friends on, creator first; the list is mine only', async t => {
   const h = await startServer(t);
-  const off = await h.req('POST', '/api/friends/groups', { as: 'u_ana', body: { name: 'Iron Sunday', goal: { kind: 'planned' } } });
+  const off = await h.req('POST', `/api/friends/groups?date=${TODAY}`, { as: 'u_ana', body: { name: 'Iron Sunday', goal: { kind: 'planned' } } });
   assert.deepEqual([off.status, off.body.code], [409, 'friends-off']);
   await h.on('u_ana');
   for (const [body, code] of [
@@ -154,7 +154,7 @@ test('creating a group: validated name and goal, Friends on, creator first; the 
     [{ name: 'X', goal: { kind: 'weekly' } }, 'bad-goal'], [{ name: 'X', goal: { kind: 'planned', n: 3 } }, 'bad-goal'], [{ name: 'X' }, 'bad-goal'],
     [{ name: 'X', goal: { kind: 'planned' }, creator: 'u_bea' }, 'bad-body']
   ]) {
-    const r = await h.req('POST', '/api/friends/groups', { as: 'u_ana', body });
+    const r = await h.req('POST', `/api/friends/groups?date=${TODAY}`, { as: 'u_ana', body });
     assert.deepEqual([r.status, r.body.code], [400, code], JSON.stringify(body));
   }
   const r = await h.req('POST', `/api/friends/groups?date=${TODAY}`, { as: 'u_ana', body: { name: '  Iron\n Sunday ' + 'x'.repeat(40), goal: { kind: 'number', n: 15 } } });
@@ -169,6 +169,14 @@ test('creating a group: validated name and goal, Friends on, creator first; the 
   assert.equal(r.body.creator, 'u_ana');
   assert.equal(r.body.isCreator, true);
   assert.equal(r.body.since, new Date(T0).toISOString());
+
+  // A write needs the client's local today: missing, malformed or implausible is bad-date, never UTC.
+  for (const q of ['', '?date=nope', '?date=2099-12-31', '?date=2020-01-01']) {
+    const bad = await h.req('POST', `/api/friends/groups${q}`, { as: 'u_ana', body: { name: 'Late', goal: { kind: 'planned' } } });
+    assert.deepEqual([bad.status, bad.body.code], [400, 'bad-date'], `create ${q}`);
+    const join = await h.req('POST', `/api/friends/join/NNPE234567${q}`, { as: 'u_ana', body: {} });
+    assert.deepEqual([join.status, join.body.code], [400, 'bad-date'], `join ${q}`);
+  }
 
   const mine = await h.req('GET', `/api/friends/groups?date=${TODAY}`, { as: 'u_ana' });
   assert.deepEqual(mine.body.map(g => g.id), [r.body.id]);
@@ -323,7 +331,7 @@ test('join answers: unknown, already a member, revoked, Friends off, group full,
   // Unknown but well-formed, too short, undecodable, and a character the alphabet leaves out.
   for (const p of ['/api/friends/join/NNPE234567', '/api/friends/join/short', '/api/friends/join/%E0%A4%A', '/api/friends/join/ABCDEFGHJ0']) {
     for (const m of ['GET', 'POST']) {
-      const r = await h.req(m, p, { as: 'u_eve', body: m === 'POST' ? {} : undefined });
+      const r = await h.req(m, m === 'POST' ? `${p}?date=${TODAY}` : p, { as: 'u_eve', body: m === 'POST' ? {} : undefined });
       assert.deepEqual([r.status, r.body], [404, NOT_FOUND], `${m} ${p}`);
     }
   }
@@ -379,7 +387,7 @@ test('the preview is rate limited per address, signed-in callers only', async t 
   assert.ok(limited, 'the 31st check in a minute is refused, and the signed-out ones did not count');
   assert.equal(limited.body.code, 'rate-limited');
   assert.ok(Number(limited.headers.get('retry-after')) > 0);
-  const redeem = await h.req('POST', `/api/friends/join/${code}`, { as: 'u_bea', body: {}, ip: '198.51.100.70' });
+  const redeem = await h.req('POST', `/api/friends/join/${code}?date=${TODAY}`, { as: 'u_bea', body: {}, ip: '198.51.100.70' });
   assert.equal(redeem.status, 429, 'redeeming spends the same budget');
   assert.equal((await h.req('GET', `/api/friends/join/${code}`, { as: 'u_bea', ip: '198.51.100.71' })).status, 200, 'another address is not limited');
   await h.at(T0 + 61000);
@@ -408,7 +416,7 @@ test('in-app invitations: the same answer for anyone, listed for the invitee, bo
 
   await h.on('u_dan');
   for (const m of ['GET', 'POST']) {
-    const r = await h.req(m, `/api/friends/join/${inv.code}`, { as: 'u_dan', body: m === 'POST' ? {} : undefined });
+    const r = await h.req(m, `/api/friends/join/${inv.code}${m === 'POST' ? `?date=${TODAY}` : ''}`, { as: 'u_dan', body: m === 'POST' ? {} : undefined });
     assert.deepEqual([r.status, r.body], [404, NOT_FOUND], `${m}: someone else's in-app code does not exist`);
   }
   assert.equal((await h.join('u_eve', inv.code)).status, 200);

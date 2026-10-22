@@ -279,10 +279,10 @@ test('only you in the group: no moments; a week with nothing done is quiet; the 
   const solo = await h.crew(['u_ana']);
   const v = await h.view('u_ana', solo);
   assert.deepEqual([v.moments, v.quiet, v.members.length, v.cheersForMe, v.challenges, v.muteNotifications], [[], false, 1, 0, [], false]);
-  const r = await h.req('POST', '/api/friends/groups', { as: 'u_bea', body: { name: 'Quiet', goal: { kind: 'number', n: 5 } } });
+  const r = await h.req('POST', `/api/friends/groups?date=${TODAY}`, { as: 'u_bea', body: { name: 'Quiet', goal: { kind: 'number', n: 5 } } });
   assert.equal(r.status, 409, 'Bea is off');
   await h.on('u_bea');
-  const quiet = (await h.req('POST', '/api/friends/groups', { as: 'u_bea', body: { name: 'Quiet', goal: { kind: 'number', n: 5 } } })).body.id;
+  const quiet = (await h.req('POST', `/api/friends/groups?date=${TODAY}`, { as: 'u_bea', body: { name: 'Quiet', goal: { kind: 'number', n: 5 } } })).body.id;
   const q = await h.view('u_bea', quiet);
   assert.deepEqual([q.quiet, q.week, q.goalLine, q.goal], [true, { done: 0, planned: 0 }, { kind: 'number', n: 5 }, { kind: 'number', n: 5 }]);
   await h.req('PUT', `/api/friends/groups/${quiet}/prefs`, { as: 'u_bea', body: { muteNotifications: true } });
@@ -375,7 +375,7 @@ test('a disabled member still holds a place: the cap of 12 counts them', async t
     invites: { FVMMCGDE22: { group: 'g12', by: twelve[0], created: joined, expiresAt: new Date(T_WED + 6 * DAY).toISOString() } }
   };
   const h = await startServer(t, { users, friends });
-  const join = await h.req('POST', '/api/friends/join/FVMMCGDE22', { as: 'u_eve', body: {} });
+  const join = await h.req('POST', `/api/friends/join/FVMMCGDE22?date=${TODAY}`, { as: 'u_eve', body: {} });
   assert.deepEqual([join.status, join.body.code], [409, 'group-full']);
   const preview = await h.req('GET', '/api/friends/join/FVMMCGDE22', { as: 'u_eve' });
   assert.equal(preview.body.group.memberCount, 11, 'but the preview shows only who is visible');

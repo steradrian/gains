@@ -8,15 +8,15 @@
  *
  * Only members of the group, and a non-member gets the same 404 as an unknown id. At most three
  * running (not over, not reached) challenges per group (409 `challenge-limit`). `date` is the
- * client's local today; a write takes it only when it can be someone's today (week.js
- * plausibleDate), else, or without one, the server's UTC date. A far-future date therefore cannot
- * start a challenge years out, fill the cap or end anything early. Finished challenges are dropped
+ * client's local today, required on every write and checked with week.js plausibleDate;
+ * a missing or implausible one is 400 `bad-date` (never a UTC fallback). A far-future date
+ * therefore cannot start a challenge years out, fill the cap or end anything early. Finished challenges are dropped
  * KEEP_DAYS after their end, by the server's clock and only in the group being written to. */
 import { randomBytes } from 'node:crypto';
 import { refuse, NOT_FOUND, onlyKeys } from './refusal.js';
 import { friendsStore } from './store.js';
 import { accountMaps, addDays, isDate, isId, isMember, weekOf } from './rules.js';
-import { clientDay, plausibleDate, serverDay } from './week.js';
+import { plausibleDate, serverDay, writeDay } from './week.js';
 import { ACTIVE_MAX, KEEP_DAYS, SPANS, TEMPLATES, activeIn, challengeView, endOf, settleHits } from './challenge-data.js';
 
 export function challengeRoutes({ json, readBody, readSession, users, store = friendsStore, route }) {
@@ -31,8 +31,8 @@ export function challengeRoutes({ json, readBody, readSession, users, store = fr
     if (!isDate(d)) refuse(400, 'bad-date', 'date must be a YYYY-MM-DD date');
     return d;
   };
-  // A write's day: the client's date when plausible, else the server's.
-  const dayOf = (q, now = Date.now()) => (q.has('date') ? clientDay(needDate(q), now) : serverDay(now));
+  // A write's day: the client's local date, required and plausible (else 400 bad-date).
+  const dayOf = (q, now = Date.now()) => writeDay(needDate(q), now);
   // Retention runs off the server clock and only over `gid`, so no request can reach another group.
   const sweep = (d, gid, now = Date.now()) => {
     const cutoff = addDays(serverDay(now), -KEEP_DAYS);
