@@ -3,7 +3,7 @@
 // finished session. It reads the saved workout by id (use-summary.js), so a reload shows the same
 // page. Done (and ×) go back where the workout was opened from, and Today then says "Saved Push A"
 // with Reopen for 10 s (W2.1), counted from Done: the snapshot finishToSummary held is handed over
-// once (takeReopen) and lives only as long as that toast. No Friends section (owner question 7).
+// once (takeReopen) and lives only as long as that toast. The Friends block is Friends surfaces m2.
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
@@ -17,6 +17,7 @@ import { writeWorkoutNote } from '../../lib/workout-note.js'
 import { REOPEN_MS, reopenWorkout } from '../../lib/workout-reopen.js'
 import { NOTE_MAX } from '../../lib/history.js'
 import WorkoutMediaSection from '../../components/WorkoutMedia.jsx'
+import WorkoutShareBlock from '../../components/WorkoutShareBlock.jsx'
 import Icon from '../../components/Icon.jsx'
 import Act from '../../ds/Act.jsx'
 import BodyMap from '../../ds/BodyMap.jsx'
@@ -175,6 +176,10 @@ export default function SummaryScreen() {
             </div>
           </div>
         </section>
+
+        {/* Friends surfaces m2: "Friends will see", above what was trained (board Fr7Summary). It
+            renders nothing unless Friends is on, there is a group and training is shared. */}
+        <WorkoutShareBlock w={w} bests={m.bests} />
 
         {m.trained.length > 0 && (
           <section>
