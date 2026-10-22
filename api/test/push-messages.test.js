@@ -8,11 +8,13 @@ test('the invite pushes are generic: nobody named, no note, no code, in every la
     title: 'Someone asked for an invite',
     body: 'Answer it from Invite a friend.',
     tag: 'invite-request',
+    url: '#/me/invite',
   });
   assert.deepEqual(inviteReadyPush('en'), {
     title: 'Your invite is ready',
     body: 'An admin made the invite you asked for.',
     tag: 'invite-ready',
+    url: '#/me/invite',
   });
   assert.equal(inviteRequestPush('pt-BR').title, 'Alguém pediu um convite');
   assert.equal(inviteReadyPush('pt-BR').title, 'Seu convite está pronto');
@@ -22,7 +24,7 @@ test('the invite pushes are generic: nobody named, no note, no code, in every la
   }
   // A lock screen shows them to whoever holds the phone: only fixed copy, nothing from a request.
   for (const p of [inviteRequestPush('en'), inviteReadyPush('en')]) {
-    assert.deepEqual(Object.keys(p).sort(), ['body', 'tag', 'title']);
+    assert.deepEqual(Object.keys(p).sort(), ['body', 'tag', 'title', 'url']);
   }
 });
 

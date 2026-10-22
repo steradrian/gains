@@ -38,6 +38,7 @@ export const PUSH_URL = {
   rest: '#/train/workout',
   day: '#/home',
   nudge: '#/train/schedule',
+  invite: '#/me/invite',
 };
 
 export function restTimerPush(lang) {
@@ -63,16 +64,15 @@ export function dayReminderPush(lang, routine) {
 
 // Invite requests (invites.js). Both are seen on a lock screen, so neither names anyone nor carries
 // the note or a code: the admins' says only that someone asked, the asker's only that it is done.
-// No `url` yet: the Invite page (/me/invite) is not a route until the Me redesign ships it, and
-// PUSH_URL lists only routes App.jsx has (push-messages.test.js); until then a tap opens the app.
+// A tap opens the Invite page (/me/invite): the admins' list of asks, or the asker's own.
 export function inviteRequestPush(lang) {
   const copy = copyFor(lang);
-  return { title: copy.inviteRequestTitle, body: copy.inviteRequestBody, tag: 'invite-request' };
+  return { title: copy.inviteRequestTitle, body: copy.inviteRequestBody, tag: 'invite-request', url: PUSH_URL.invite };
 }
 
 export function inviteReadyPush(lang) {
   const copy = copyFor(lang);
-  return { title: copy.inviteReadyTitle, body: copy.inviteReadyBody, tag: 'invite-ready' };
+  return { title: copy.inviteReadyTitle, body: copy.inviteReadyBody, tag: 'invite-ready', url: PUSH_URL.invite };
 }
 
 // The missed-workout nudge (nudge.js). Its copy is translated in the frontend packs and generated
