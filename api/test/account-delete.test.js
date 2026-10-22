@@ -374,6 +374,9 @@ for (const [what, { prepare, lift, skip }] of Object.entries(FAILURES)) {
     assert.equal(h.stateExists('u1'), false);
     assert.equal(h.uploadsExist('u1'), false);
     assert.deepEqual(h.db().creds, []);
+    // The audit line follows the db write by a moment.
+    const logged = Date.now() + 3000;
+    while (!h.audit().some(e => e.ev === 'account.delete.purge') && Date.now() < logged) await sleep(50);
     assert.equal(h.audit().filter(e => e.ev === 'account.delete.purge').length, 1);
     assert.ok(h.stateExists('u2'));
   });
