@@ -58,6 +58,7 @@ export const friendsErrorText = e => {
     case 'deletion-scheduled': return t("Your account is set to be deleted, so you can't share right now.")
     case 'group-limit': return t("You're in as many groups as Gains allows. Leave one to make room.")
     case 'group-full': return t('That group is full.')
+    case 'challenge-limit': return t('This group already has 3 challenges running. Wait for one to finish.')
     case 'rate-limited': return t('Too many tries. Wait a moment and try again.')
     default: return t("Couldn't do that. Try again when you're online.")
   }

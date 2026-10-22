@@ -108,6 +108,9 @@ export function cheerToastText(group, moment) {
 
 const UNITS = { workouts: () => t('workouts'), protein: () => t('days'), weekend: () => t('days'), bests: () => t('bests') }
 
+/** What a challenge counts, in the plural ("workouts", "days", "bests"), for its progress lines. */
+export const challengeUnit = template => (UNITS[template] || UNITS.workouts)()
+
 /**
  * A challenge row's lines: the dates ("Mon 12 Oct – Sun 18 Oct", with "ends tonight" or "starts
  * today" when that is true), the progress ("Joined 12 of 15 workouts" or "Not joined 0 of 25 days")
