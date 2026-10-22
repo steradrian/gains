@@ -107,6 +107,7 @@ import Recovery from './views/Recovery.jsx'
 import DayPage from './views/shared/DayPage.jsx'
 import WeekPage from './views/shared/WeekPage.jsx'
 import Notifications from './views/shared/Notifications.jsx'
+import ChangesRoute from './views/me/changes/ChangesRoute.jsx'
 // Eat root m2: Month and Food trends
 import MonthPage from './views/eat/MonthPage.jsx'
 import TrendsPage from './views/eat/TrendsPage.jsx'
@@ -481,6 +482,7 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/notifications" element={<Notifications />} />
       <Route path="/food/notifications" element={<Notifications />} />
       <Route path="/me/notifications" element={<Notifications />} />
+      <Route path="/me/changes" element={<ChangesRoute />} />
       {/* Me: Profile */}
       <Route path="/me" element={<SettingsRoute />} />
       {/* Me body M1: before /me/:page */}
