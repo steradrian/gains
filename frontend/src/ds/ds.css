@@ -2521,3 +2521,12 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-ptile-gone .g-icon { width: 22px; height: 22px; }
 .g-ptile-date { margin-top: 4px; font: 600 13px/17px var(--font-sans); }
 .g-ptile-cap { font: 500 12px/15px var(--font-sans); color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+
+/* === Me body M2 === */
+/* The Log measurements and Choose measurements drawers (views/me/body/measure-drawers.jsx), on the light drawer. */
+.bd-hint { margin: 0 0 16px; font: 500 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.bd-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.bd-group { margin-bottom: 20px; }
+.bd-group h3 { margin: 0 0 4px; font: 600 13px/18px var(--font-sans); color: var(--text-3); text-align: start; }
+.bd-add { display: flex; align-items: flex-end; gap: 10px; padding-top: 8px; }
+.bd-add > .g-tfield { flex: 1; min-width: 0; }

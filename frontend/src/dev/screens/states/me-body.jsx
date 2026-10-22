@@ -5,9 +5,11 @@ import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import BodyScreen from '../../../views/me/body/BodyScreen.jsx'
 import { bodyOf } from '../../../views/me/body/body-data.js'
+import { measureOf } from '../../../views/me/body/measure-data.js'
+import { manageMeasurementsSheet, measurementLogSheet } from '../../../views/me/body/measure-drawers.jsx'
 import { editWeighInSheet, logWeightSheet } from '../../../views/me/body/weigh-in-drawers.jsx'
 import { registerScreens } from '../registry.js'
-import { NOOP, bodyState, editEntry, emptyState } from './me-body-fixture.js'
+import { NOOP, bodyState, editEntry, emptyState, measureState } from './me-body-fixture.js'
 
 // Me > Body (PR-05 boards Me2Body, Me2LogWeight, Me2EditWeigh, Me2Deleted, Me2Empty and the edge rows
 // M2.0, M2.1, M2.4): the real BodyScreen reading a mocked store (nothing persists), so a drawer's save
@@ -60,4 +62,41 @@ registerScreens('Me: body', [
     render: page(), mock: withS(emptyState()) },
   { id: 'M2.4a', title: 'Body, no weigh-ins, no workout ask', note: 'S.weighIn is false: the empty state drops the sentence about the ask.',
     render: page(), mock: withS(emptyState({ weighIn: false })) },
+])
+
+// Me body M2: Measurements (boards Me2Measure, Me2LogMeasure, Me2Fields and the M2.5 edge rows). The real
+// BodyScreen on its Measurements tab, the real drawers opened by `play`.
+function MeasurePage({ range = 0 }) {
+  const S = useStore(s => s.S)
+  const data = bodyOf(S, { from: rangeStart(range), today: todayISO() })
+  const measure = measureOf(S, { from: rangeStart(range) })
+  return (
+    <BodyScreen tab="measurements" onTab={NOOP} data={data} range={range} onRange={NOOP}
+      onLog={logWeightSheet} onOpen={editWeighInSheet}
+      measure={measure} onLogMeasure={() => measurementLogSheet()} onChooseMeasure={manageMeasurementsSheet} />
+  )
+}
+const measurePage = props => () => <MeasurePage {...props} />
+const logMeasures = async t => { measurementLogSheet(); await t.wait(300) }
+const heldToast = async t => { await logMeasures(t); useUI.getState().pauseToast(); await t.wait(100) }
+
+registerScreens('Me: body', [
+  { id: 'M2.5', title: 'Measurements', note: 'Five tracked: the chips, the waist with its change since the previous and since the first, its curve, the latest of each, and Log measurements. The board\'s dashed "Your mark" line is left out: no per-measurement goal exists.',
+    render: measurePage(), mock: withS(measureState()) },
+  { id: 'M2.5a', title: 'Measurements, nothing tracked', note: 'No measurement switched on: the chart scene and Log measurements, which opens on Choose measurements.',
+    render: measurePage(), mock: withS(measureState({ tracked: [] })) },
+  { id: 'M2.5b', title: 'Measurements, nothing logged yet', note: 'Five tracked, no check-in: the scene and Log measurements.',
+    render: measurePage(), mock: withS(measureState({ logged: false })) },
+  { id: 'M2.5c', title: 'Measurements, inches', note: 'A pound profile reads the same centimetres in inches.',
+    render: measurePage(), mock: withS(measureState({ unit: 'lb' })) },
+  { id: 'M2.6', title: 'Log measurements', note: 'The full drawer: today, one field per tracked measurement, Choose measurements, Save measurements. The waist is typed; the rest stay empty.',
+    render: measurePage(), mock: withS(measureState()),
+    play: async t => { await logMeasures(t); await t.type('Waist', '83.5'); await t.wait(60) } },
+  { id: 'M2.6a', title: 'Log measurements, today already measured', note: 'Today has a check-in: the drawer opens that day for editing and the toast says so (held here).',
+    render: measurePage(), mock: withS(measureState({ today: true })), play: heldToast },
+  { id: 'M2.6b', title: 'Log measurements, nothing tracked', note: 'Nothing tracked: the drawer opens with Choose measurements pushed over it.',
+    render: measurePage(), mock: withS(measureState({ tracked: [] })), play: logMeasures },
+  { id: 'M2.7', title: 'Choose measurements', note: 'A sub-panel over Log measurements (opened from inside the drawer): Torso, Arms, Legs, Other and Your own, one switch each, Custom measurement, Done.',
+    render: measurePage(), mock: withS(measureState()),
+    play: async t => { await logMeasures(t); await t.click('Choose measurements'); await t.wait(500) } },
 ])

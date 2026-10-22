@@ -959,7 +959,8 @@ describe('the screens gallery: Me > Body', () => {
   it('has M2.0 to M2.4 and the edge states under their board ids, in Me: body', () => {
     const ids = screenAreas().find(a => a.name === 'Me: body').entries.map(e => e.id)
     expect(ids).toEqual(expect.arrayContaining(['M2.0', 'M2.1', 'M2.2', 'M2.3', 'M2.4']))
-    expect(ids).toEqual(['M2.0', 'M2.0a', 'M2.0b', 'M2.0c', 'M2.0d', 'M2.0e', 'M2.1', 'M2.1a', 'M2.1b', 'M2.2', 'M2.3', 'M2.4', 'M2.4a'])
+    expect(ids.filter(id => !id.startsWith('M2.5') && !id.startsWith('M2.6') && id !== 'M2.7'))
+      .toEqual(['M2.0', 'M2.0a', 'M2.0b', 'M2.0c', 'M2.0d', 'M2.0e', 'M2.1', 'M2.1a', 'M2.1b', 'M2.2', 'M2.3', 'M2.4', 'M2.4a'])
   })
 
   it('shows the page, its drawers, the held toast and the empty states, and writes nothing real', async () => {
@@ -1098,6 +1099,66 @@ describe('the screens gallery: Me > Photos', () => {
       expect(h.querySelector('.g-utoast-msg').textContent).toBe('Backing up 6 photos to your account')
       expect(h.querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
       expect(h.querySelector('.g-snote').textContent).toContain('Backed up to your account.')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
+
+// Me body M2
+describe('the screens gallery: Me > Body > Measurements', () => {
+  it('has M2.5 to M2.7 and the edge states under their board ids, in Me: body', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: body').entries.map(e => e.id)
+    expect(ids.filter(id => id.startsWith('M2.5') || id.startsWith('M2.6') || id === 'M2.7'))
+      .toEqual(['M2.5', 'M2.5a', 'M2.5b', 'M2.5c', 'M2.6', 'M2.6a', 'M2.6b', 'M2.7'])
+  })
+
+  it('shows the tab, both drawers, the sub-panel and the empty states, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    await check('M2.5', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toMatch(/^5 tracked · last on /)
+      expect([...h.querySelectorAll('.g-cchip')].map(c => c.textContent)).toEqual(['Chest', 'Waist', 'Hips', 'Left upper arm', 'Right thigh'])
+      expect(h.querySelector('.bd-eyebrow').textContent).toMatch(/^Waist · /)
+      expect(h.querySelector('.bd-big').textContent).toBe('84cm')
+      expect(h.querySelector('.bd-lines').textContent).toContain('−1.5 cm since previous')
+      expect(h.querySelector('.bd-lines').textContent).toMatch(/−4 cm since /)
+      expect(h.querySelectorAll('.g-gvr')).toHaveLength(5)
+      expect(h.querySelector('.g-tc-target')).toBeNull()
+    })
+    await check('M2.5a', h => {
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+      expect(h.querySelector('.g-sempty').textContent).toContain('Nothing to chart yet')
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('Nothing tracked yet')
+    })
+    await check('M2.5b', h => expect(h.querySelector('.g-sempty').textContent).toContain('No measurements yet'))
+    await check('M2.5c', h => expect(h.querySelector('.bd-big').textContent).toBe('33.1in'))
+    await check('M2.6', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Log measurements')
+      expect(h.querySelector('.g-bs-chip').textContent).toBe('Today')
+      expect(h.querySelectorAll('.g-bs .g-tfield')).toHaveLength(5)
+      const waist = [...h.querySelectorAll('.g-bs .g-tfield')].find(f => f.querySelector('.g-tfield-label').textContent === 'Waist')
+      expect(waist.querySelector('input').value).toBe('83.5')
+      expect(waist.querySelector('.g-tfield-unit').textContent).toBe('cm')
+      expect(h.querySelector('.g-bs-foot button').textContent).toBe('Save measurements')
+    })
+    await check('M2.6a', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Edit measurements')
+      expect(h.querySelector('.g-utoast-msg').textContent).toBe('That date already has measurements. Edit it instead.')
+    })
+    await check('M2.6b', h => {
+      expect(h.querySelector('.g-bs-pane[data-pos="active"] h2').textContent).toBe('Choose measurements')
+      expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M2.7', h => {
+      const pane = h.querySelector('.g-bs-pane[data-pos="active"]')
+      expect(pane.querySelector('h2').textContent).toBe('Choose measurements')
+      expect([...pane.querySelectorAll('h3')].map(g => g.textContent)).toEqual(['Torso', 'Arms', 'Legs', 'Other', 'Your own'])
+      expect(pane.querySelectorAll('[role="switch"]')).toHaveLength(19)
+      expect(pane.querySelectorAll('[role="switch"][aria-checked="true"]')).toHaveLength(5)
+      expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
     })
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useStore.getState().S).toBe(own)
