@@ -17,7 +17,7 @@ const USER = { id: 'u-adrian', name: 'Adrian' }
 const mock = { user: USER, S: PREVIEW_STATE }
 
 // Lays the fixture over the Friends cache for as long as the state shows, then puts the real one back.
-function FriendsMock({ me, groups, stale = false, children }) {
+export function FriendsMock({ me, groups, stale = false, children }) {
   const [ready, setReady] = useState(false)
   useLayoutEffect(() => {
     const undo = mockFriends({ me, groups })
