@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
-// + › Add photo on Progress › Body: Photos is a segment of that page, so the sheet's link swaps
-// the page instead of stacking on it. From Weight, back returns to Progress; from Photos there is
-// no second Photos entry to step through. Real router, real history, the real sheet host.
+// + › Add photo on Me › Body: the row opens the Add photo drawer (photos-M2's openAddPhoto) and
+// leaves the page and its history where they are. Real router, real history, the real sheet host.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
@@ -11,6 +10,9 @@ import { useUI } from '../store/useUI.js'
 import { setNav } from '../lib/nav.js'
 import Modals from './Modals.jsx'
 import { openPlusSheet } from './PlusSheet.jsx'
+
+const photo = vi.hoisted(() => ({ openAddPhoto: vi.fn() }))
+vi.mock('../views/me/photos/photo-drawers.jsx', () => ({ openAddPhoto: photo.openAddPhoto }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -37,6 +39,7 @@ const addPhoto = async () => {
 beforeEach(async () => {
   useStore.setState(s => ({ user: null, S: { ...s.S, active: null, checkIn: false, unit: 'kg' } }))
   useUI.setState({ sheets: [], toastMsg: '', toastAction: null })
+  photo.openAddPhoto.mockClear()
   history.replaceState(null, '', '#/progress')
   host = document.createElement('div')
   document.body.appendChild(host)
@@ -54,22 +57,13 @@ beforeEach(async () => {
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks() })
 
 describe('Add photo from the + sheet on Body', () => {
-  it('from Weight, takes the Weight entry: back returns to Progress', async () => {
-    await go('/me/body')
-    await act(async () => { openPlusSheet('/me/body') })
+  it.each(['/me/body', '/me/body/photos'])('from %s, opens the Add photo drawer and stays on the page', async path => {
+    await go(path)
+    await act(async () => { openPlusSheet(path) })
     await settle()
     await addPhoto()
-    expect(where()).toBe('/me/body/photos')
-    await back()
-    expect(where()).toBe('/progress')
-  })
-
-  it('from Photos, leaves no second Photos entry: back returns to Progress', async () => {
-    await go('/me/body/photos')
-    await act(async () => { openPlusSheet('/me/body/photos') })
-    await settle()
-    await addPhoto()
-    expect(where()).toBe('/me/body/photos')
+    expect(photo.openAddPhoto).toHaveBeenCalledTimes(1)
+    expect(where()).toBe(path)
     await back()
     expect(where()).toBe('/progress')
   })

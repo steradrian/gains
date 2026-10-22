@@ -12,7 +12,7 @@ const fasting = vi.hoisted(() => ({ setFastingEnabled: vi.fn() }))
 vi.mock('../../sheets.jsx', () => ({ exerciseDetailSheet: sheets.exerciseDetailSheet, workoutDetailSheet: sheets.workoutDetailSheet, bwSheet: sheets.bwSheet, customExSheet: sheets.customExSheet }))
 vi.mock('../FoodDetailSheet.jsx', () => ({ foodDetailSheet: sheets.foodDetailSheet }))
 vi.mock('../MealDetailSheet.jsx', () => ({ mealDetailSheet: sheets.mealDetailSheet }))
-vi.mock('../../views/Measurements.jsx', () => ({ manageMeasurementsSheet: sheets.manageMeasurementsSheet }))
+vi.mock('../../views/me/body/measure-drawers.jsx', () => ({ manageMeasurementsSheet: sheets.manageMeasurementsSheet }))
 vi.mock('../../lib/search/session.js', () => ({ visit: session.visit, setGroup: session.setGroup, setQuery: session.setQuery }))
 vi.mock('../../lib/nutrition/use-fasting.js', () => ({ setFastingEnabled: fasting.setFastingEnabled }))
 

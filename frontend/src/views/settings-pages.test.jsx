@@ -48,7 +48,7 @@ vi.mock('../lib/health-sync.js', async importOriginal => ({
   enableHealth: vi.fn(), disableHealth: vi.fn(), openHealthConnect: vi.fn(), onHealthChange: () => () => {},
 }))
 vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
-vi.mock('./Measurements.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
+vi.mock('./me/body/measure-drawers.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), confirmSheet: vi.fn(), importFromApp: vi.fn(), importFromHevy: vi.fn(),
   menuSheet: vi.fn(),

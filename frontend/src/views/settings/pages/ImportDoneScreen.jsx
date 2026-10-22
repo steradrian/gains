@@ -1,5 +1,6 @@
 import { t, tn } from '../../../lib/i18n.js'
 import { fmtDateRange } from '../../../lib/format.js'
+import { mePath } from '../../../lib/tab-route.js'
 import Button from '../../../ds/Button.jsx'
 import StageFooter from '../../../ds/StageFooter.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
@@ -35,10 +36,10 @@ const tilesOf = o => {
 
 // Where the imported data shows: workouts in History, routines in Routines, weigh-ins in Body.
 const targetOf = o => {
-  if (o.kind === 'bodyweight') return { path: '/progress/body', label: t('See it in Body') }
+  if (o.kind === 'bodyweight') return { path: mePath('body'), label: t('See it in Body') }
   if (o.kind === 'workouts' || o.imported > 0) return { path: '/train/history', label: t('See it in History') }
   if (o.kind === 'hevy' && o.routines > 0) return { path: '/train/routines', label: t('See it in Routines') }
-  return { path: '/progress/body', label: t('See it in Body') }
+  return { path: mePath('body'), label: t('See it in Body') }
 }
 
 /**

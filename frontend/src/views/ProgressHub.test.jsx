@@ -11,7 +11,7 @@ import { resetSyncThrottle } from '../lib/nutrition/sync.js'
 import { useTrends, useWellness } from '../lib/nutrition/use-trends.js'
 import { createFakeNutriTrace, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { bwSheet } from '../sheets.jsx'
-import { measurementLogSheet } from './Measurements.jsx'
+import { measurementLogSheet } from './me/body/measure-drawers.jsx'
 import ProgressHub from './ProgressHub.jsx'
 
 const mocks = vi.hoisted(() => ({ charts: [] }))
@@ -19,7 +19,7 @@ const navigate = vi.fn()
 let search = ''
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate, useLocation: () => ({ search }) }))
 vi.mock('../sheets.jsx', () => ({ bwSheet: vi.fn() }))
-vi.mock('./Measurements.jsx', () => ({ measurementLogSheet: vi.fn() }))
+vi.mock('./me/body/measure-drawers.jsx', () => ({ measurementLogSheet: vi.fn() }))
 vi.mock('../components/LineChart.jsx', () => ({ default: props => { mocks.charts.push(props); return null } }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -332,7 +332,7 @@ describe('Progress root: opening a card', () => {
     search = '?range=365'
     await mount()
     for (const [title, path] of [
-      ['Body', '/progress/body'], ['Strength', '/progress/strength'], ['Training load', '/progress/load'],
+      ['Body', '/me/body'], ['Strength', '/progress/strength'], ['Training load', '/progress/load'],
       ['Nutrition trends', '/progress/trends'], ['Recovery', '/progress/recovery'],
     ]) {
       await click(cardButton(title))
@@ -343,7 +343,7 @@ describe('Progress root: opening a card', () => {
   it('opens at the remembered range, and 3M on a first visit', async () => {
     await mount()
     await click(cardButton('Body'))
-    expect(navigate).toHaveBeenLastCalledWith('/progress/body?range=90')
+    expect(navigate).toHaveBeenLastCalledWith('/me/body?range=90')
     localStorage.setItem(KEY, '0')
     await mount()
     await click(cardButton('Strength'))

@@ -45,7 +45,7 @@ describe('ImportDoneScreen', () => {
     expect(onOpen).toHaveBeenLastCalledWith('/train/history')
     act(() => root.render(<ImportDoneScreen outcome={{ kind: 'bodyweight', source: 'Apple Health', imported: 9, leftAlone: 0, from: '2026-01-01', to: '2026-01-09' }} onOpen={onOpen} />))
     act(() => { [...host.querySelectorAll('button')].find(b => b.textContent === 'See it in Body').click() })
-    expect(onOpen).toHaveBeenLastCalledWith('/progress/body')
+    expect(onOpen).toHaveBeenLastCalledWith('/me/body')
   })
 })
 

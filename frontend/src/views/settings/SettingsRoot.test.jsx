@@ -31,7 +31,7 @@ vi.mock('../../lib/push.js', () => ({ pushSupported: () => false }))
 vi.mock('../../lib/wakelock.js', () => ({ wakeLockSupported: () => true }))
 vi.mock('../../lib/mobile.js', () => ({ get MOBILE() { return mocks.MOBILE }, isAndroid: () => Promise.resolve(false) }))
 vi.mock('../../lib/account-deletion.js', () => ({ cancelDeletion: (...a) => mocks.cancel(...a) }))
-vi.mock('../Measurements.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
+vi.mock('../me/body/measure-drawers.jsx', () => ({ manageMeasurementsSheet: vi.fn() }))
 vi.mock('./use-account-actions.js', () => ({ useAccountActions: () => ({ signOutHere: mocks.signOutHere, disconnect: mocks.disconnect }) }))
 
 import SettingsRoot from './SettingsRoot.jsx'
