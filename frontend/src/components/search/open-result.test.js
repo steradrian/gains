@@ -40,7 +40,7 @@ describe('opening a result', () => {
     open({ type: 'setting', id: 'x', entry: { page: 'reminders', title: 'Reminder time', via: 'Push notifications', isPage: false } })
     expect(session.visit).toHaveBeenLastCalledWith('/me/reminders', { date: undefined, state: { find: 'Reminder time', via: 'Push notifications' } })
     open({ type: 'setting', id: 'y', entry: { page: null, title: 'Sync now', isPage: false } })
-    expect(session.visit).toHaveBeenLastCalledWith('/me', { date: undefined, state: { find: 'Sync now' } })
+    expect(session.visit).toHaveBeenLastCalledWith('/me/settings', { date: undefined, state: { find: 'Sync now' } })
     open({ type: 'setting', id: 'z', entry: { page: 'goals', title: 'Goals', isPage: true, to: '/food/goals' } })
     expect(session.visit).toHaveBeenLastCalledWith('/food/goals', { date: undefined, state: undefined })
     open({ type: 'setting', id: 'f', entry: { page: 'fields', title: 'Measurement fields', isPage: true, sheet: true } })

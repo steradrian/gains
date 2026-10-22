@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_RENAMED, isNotificationsPath, isTabRoot, launchPath, legacyPath, notificationsPath, parentOf, routeDepth, tabOf, workoutRunning } from './tab-route.js'
+import { ME_PAGES, PROFILE_RENAMED, isNotificationsPath, isTabRoot, launchPath, legacyPath, notificationsPath, parentOf, routeDepth, tabOf, workoutRunning } from './tab-route.js'
 
 describe('the notifications inbox', () => {
   it('opens under the tab the bell was tapped on, so that tab stays lit', () => {
@@ -85,9 +85,21 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/progress')).toBe('/me')
   })
 
+  it('Me root M1: Profile pages and Settings go to Profile, Settings pages to Settings', () => {
+    for (const page of ME_PAGES) expect(parentOf('/me/' + page), page).toBe('/me')
+    expect(parentOf('/me/settings')).toBe('/me')
+    for (const page of ['equipment', 'reminders', 'workout', 'account', 'admin']) expect(parentOf('/me/' + page), page).toBe('/me/settings')
+    expect(parentOf('/me/week/2026-W42')).toBe('/me')
+    expect(routeDepth('/me')).toBe(1)
+    expect(routeDepth('/me/settings')).toBe(2)
+    expect(routeDepth('/me/equipment')).toBe(3)
+    expect(routeDepth('/me/account/delete')).toBe(4)
+    expect(tabOf('/me/settings')).toBe('me')
+  })
+
   it('Delete account to the Account page, both on the Me tab', () => {
     expect(parentOf('/me/account/delete')).toBe('/me/account')
-    expect(parentOf('/me/account')).toBe('/me')
+    expect(parentOf('/me/account')).toBe('/me/settings')
     expect(tabOf('/me/account/delete')).toBe('me')
   })
 
@@ -105,7 +117,7 @@ describe('back on a cold entry goes to the parent', () => {
 
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {
     expect(parentOf('/train/coach/intake')).toBe('/train')
-    expect(parentOf('/me/workout')).toBe('/me')
+    expect(parentOf('/me/workout')).toBe('/me/settings')
     expect(parentOf('/me')).toBe('/home')
     expect(parentOf('/train/workout')).toBe('/home')
   })
@@ -128,8 +140,10 @@ describe('the routes from before the tabs', () => {
     expect(legacyPath('/progress-photos')).toBe('/progress/body/photos')
     expect(legacyPath('/measurements')).toBe('/progress/body/measurements')
     expect(legacyPath('/body')).toBe('/progress/body')
-    expect(legacyPath('/settings')).toBe('/me')
+    expect(legacyPath('/settings')).toBe('/me/settings')
+    expect(legacyPath('/settings', '?x=1')).toBe('/me/settings?x=1')
     expect(legacyPath('/settings/workout')).toBe('/me/workout')
+    expect(legacyPath('/me/settings')).toBeNull()
     expect(legacyPath('/admin')).toBe('/me/admin')
   })
 

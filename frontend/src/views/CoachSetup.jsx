@@ -20,6 +20,7 @@ import { getApiKey, setApiKey, clearApiKey } from '../lib/coach-secrets.js'
 import { HTTP_PROVIDERS, HTTP_PROVIDER_IDS, baseUrlFor, validateBaseUrl } from '../../../api/coach/core/providers.js'
 import { DATA_CATEGORIES } from '../../../api/coach/core/categories.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
+import { SETTINGS_ROOT } from './settings/paths.js'
 import Icon from '../components/Icon.jsx'
 import { Page, Inline } from '../components/layout.jsx'
 import { Card, Chip } from '../components/blocks.jsx'
@@ -57,7 +58,7 @@ export default function CoachSetup() {
   const [step, setStep] = useState(-1)                     // -1 idle, 0..2 running, 3 done
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => { if (!MOBILE) nav('/me', { replace: true }) }, [])
+  useEffect(() => { if (!MOBILE) nav(SETTINGS_ROOT, { replace: true }) }, [])
   useEffect(() => { getApiKey().then(k => setHasKey(!!k)) }, [])
   // Ask the paired server afresh: the admin may have switched the Coach on since this phone booted.
   useEffect(() => { if (user) refreshConfig() }, [user])

@@ -144,7 +144,7 @@ describe('the Settings root', () => {
     openSearch()
     type('sign out')
     act(() => rowEl('Sign out').click())
-    expect(mocks.navs.at(-1)).toEqual(['/me', { state: { find: 'Sign out' } }])
+    expect(mocks.navs.at(-1)).toEqual(['/me/settings', { state: { find: 'Sign out' } }])
   })
 
   it('search: close empties it and returns the page', async () => {

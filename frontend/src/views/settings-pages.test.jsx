@@ -231,7 +231,7 @@ describe('the pages', () => {
       expect(host.querySelectorAll('h1'), page).toHaveLength(1)
       expect(host.querySelector('h1').textContent).toBe(title)
       act(() => host.querySelector('.g-snav-back').click())
-      expect(mocks.backs.at(-1), page).toBe('/me')
+      expect(mocks.backs.at(-1), page).toBe('/me/settings')
     }
   })
 

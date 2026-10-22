@@ -189,15 +189,15 @@ describe('the review repros', () => {
     await launch('#/home')
     await click(tab('Eat'))
     await click(avatar())
-    expect(hash()).toBe('#/me')
-    expect(lit()).toBe('Me')   // the avatar opens Profile, which is the Me tab
+    expect(hash()).toBe('#/me/settings')
+    expect(lit()).toBe('Me')   // the avatar opens Settings, which is the Me tab
     await go(() => nav('/train/schedule'))
     expect(hash()).toBe('#/train/schedule')
     expect(lit()).toBe('Train')
     await click(tab('Eat'))
-    expect(hash()).toBe('#/food')   // Nutrition is as it was left: Profile is not on top of it
+    expect(hash()).toBe('#/food')   // Nutrition is as it was left: Settings is not on top of it
     await click(tab('Me'))
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     await click(tab('Train'))
     expect(hash()).toBe('#/train/schedule')
     await back()
@@ -473,24 +473,49 @@ describe('back on a sub-page', () => {
     expect(idx()).toBe(0)
   })
 
-  it('Profile, the Me tab\'s root, has no back, like every tab root', async () => {
+  it('Settings, behind the avatar, is a pushed page with a Back to Profile', async () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(avatar())
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
-    expect(document.querySelector('button[aria-label="Back"]')).toBeNull()
+    expect(document.querySelector('button[aria-label="Back"]')).not.toBeNull()
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/me')
   })
 
-  it('a Profile page goes back to Profile', async () => {
+  it('the avatar on Me opens Settings too', async () => {
+    await launch('#/me')
+    expect(document.querySelector('.g-sptitle')).toBeNull()
+    await click(avatar())
+    expect(hash()).toBe('#/me/settings')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/me')
+  })
+
+  it('a cold /me/settings goes back to Profile', async () => {
+    await launch('#/me/settings')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/me')
+  })
+
+  it('a Settings page goes back to Settings', async () => {
     await launch('#/home')
     await click(tab('Me'))
     // The page loads on first open; the stage frame (and its Back) is the page's own.
     await preloadPages(['units'])
+    await go(() => nav('/me/settings'))
     await go(() => nav('/me/units'))
     expect(lit()).toBe('Me')
     await click(document.querySelector('.g-snav-back'))
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
+  })
+
+  it('a Settings page opened cold, with nothing under it in the tab, still goes back to Settings', async () => {
+    await preloadPages(['units'])
+    await launch('#/me/units')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/me/settings')
   })
 })
 
@@ -502,22 +527,22 @@ describe('Me, Profile and Progress', () => {
     await launch('#/home')
     await click(tab('Me'))
     expect(hash()).toBe('#/me')
-    expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
+    expect(document.querySelector('.g-sptitle')).toBeNull()   // not Settings: that is behind the avatar
     expect(lit()).toBe('Me')
   })
 
   it('every page under Profile lights Me', async () => {
     await launch('#/me')
     expect(lit()).toBe('Me')
-    for (const path of ['/me/units', '/me/appearance']) {
+    for (const path of ['/me/settings', '/me/units', '/me/appearance']) {
       await go(() => nav(path))
       expect(hash(), path).toBe('#' + path)
       expect(lit(), path).toBe('Me')
     }
   })
 
-  it('Progress is reached from Profile, lights Me, and back returns to Profile', async () => {
-    await launch('#/me')
+  it('Progress is reached from Settings, lights Me, and back returns to Settings', async () => {
+    await launch('#/me/settings')
     await click(progressRow())
     expect(hash()).toBe('#/progress')
     expect(lit()).toBe('Me')
@@ -527,12 +552,12 @@ describe('Me, Profile and Progress', () => {
     await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/progress')
     await back()
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     expect(idx()).toBe(0)
   })
 
   it('Me tapped again from Progress goes back down to Profile', async () => {
-    await launch('#/me')
+    await launch('#/me/settings')
     await click(progressRow())
     expect(hash()).toBe('#/progress')
     await click(tab('Me'))
@@ -541,16 +566,17 @@ describe('Me, Profile and Progress', () => {
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('the avatar on Progress goes down to Profile instead of stacking another one', async () => {
-    await launch('#/me')
+  it('the avatar on Progress opens Settings, as on every tab', async () => {
+    await launch('#/me/settings')
     await click(progressRow())
+    expect(hash()).toBe('#/progress')
     await click(avatar())
-    expect(hash()).toBe('#/me')
-    expect(idx()).toBe(0)
+    expect(hash()).toBe('#/me/settings')
+    expect(lit()).toBe('Me')
   })
 
-  it('the search shortcut on a Progress page opens on Progress, Profile still under it, not on Today', async () => {
-    await launch('#/me')
+  it('the search shortcut on a Progress page opens on Progress, Settings still under it, not on Today', async () => {
+    await launch('#/me/settings')
     await click(progressRow())
     await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Strength'))
     expect(hash()).toMatch(/^#\/progress\/strength/)
@@ -560,10 +586,10 @@ describe('Me, Profile and Progress', () => {
     expect(useSearch.getState().open).toBe(true)
   })
 
-  it('the avatar on another tab opens Profile as the Me tab', async () => {
+  it('the avatar on another tab opens Settings as the Me tab', async () => {
     await launch('#/train')
     await click(avatar())
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     expect(lit()).toBe('Me')
     await click(tab('Train'))
     expect(hash()).toBe('#/train')
@@ -698,7 +724,7 @@ describe('a navigation in the middle of a switch', () => {
   it('a push while walking back is carried out once the switch is done', async () => {
     await launch('#/home')
     await click(avatar())
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     // The walk back takes a while, as it can on a device; the push lands in the middle of it.
     const realGo = window.history.go.bind(window.history)
     window.history.go = d => { setTimeout(() => realGo(d), 100) }
