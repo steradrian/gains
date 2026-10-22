@@ -7,7 +7,7 @@ import { restoreChange } from '../../../lib/recent-changes.js'
 import { targetsFor, weeksTo } from '../../../lib/me/goal-calc.js'
 import { applySnapshot, recordGoalChange, snapshotOf } from '../../../lib/me/goal-changes.js'
 import { calcInputs, profileOf } from '../../../lib/me/goal-profile.js'
-import { applyWrites, planChange } from '../../../lib/me/goal-writes.js'
+import { applyWrites, planChange, useProfileWrites } from '../../../lib/me/goal-writes.js'
 
 // My goal's state and actions (no UI). Every action resolves { ok, changed, undo, ... }:
 //   ok false   { error, rolledBack, stuck } a write failed; what was written was put back unless
@@ -20,6 +20,10 @@ import { applyWrites, planChange } from '../../../lib/me/goal-writes.js'
 
 const noUndo = async () => ({ ok: true })
 let busy = false
+
+// Body details and Daily movement write profile keys the hub refuses until it is deployed with them
+// (PROFILE_WRITES_LIVE in lib/me/goal-writes.js): refused here, before anything is sent.
+const gatedRefusal = () => ({ ok: false, changed: false, undo: null, error: Object.assign(new Error('Body details cannot be saved yet'), { code: 'profile-unsupported' }) })
 
 const gramsOf = settings => {
   const d = draftOf(settings)
@@ -67,12 +71,14 @@ const actionsFor = () => ({
   },
 
   setBodyDetails: ({ heightCm, birthYear, sex }) => {
+    if (!useProfileWrites.getState().live) return gatedRefusal()
     const p = profileOf(useNutrition.getState().settings.data, useStore.getState().S)
     const patch = Object.fromEntries(Object.entries({ heightCm, birthYear, sex }).filter(([, v]) => v !== undefined))
     return change('body', { heightCm: p.heightCm, birthYear: p.birthYear, sex: p.sex }, { heightCm: heightCm ?? p.heightCm, birthYear: birthYear ?? p.birthYear, sex: sex ?? p.sex }, { change: patch })
   },
 
   setMovement: level => {
+    if (!useProfileWrites.getState().live) return gatedRefusal()
     const from = profileOf(useNutrition.getState().settings.data, useStore.getState().S).movement
     return change('movement', from, level, { change: { activity: level } })
   },
@@ -118,6 +124,7 @@ export function useGoal() {
   const S = useStore(s => s.S)
   const settings = useNutrition(s => s.settings)
   const available = nutritionAvailable(user)
+  const profileLive = useProfileWrites(s => s.live)
 
   useEffect(() => { if (available) useNutrition.getState().loadSettings() }, [available])
 
@@ -146,6 +153,7 @@ export function useGoal() {
     startWeight: profile.start,
     current: profile.current,
     weeksLeft,
+    profileLive,
     actions,
   }
 }

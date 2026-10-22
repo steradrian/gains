@@ -11,6 +11,7 @@ import { todayISO } from '../../lib/format.js'
 import { _setMediaStore, createMediaStore, memoryBackend } from '../../lib/media-store.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
+import { useProfileWrites } from '../../lib/me/goal-writes.js'
 
 /* The screens gallery: every registered state renders its real screen, in its frame, with its
    taps played, without throwing; and putting the mocks away leaves the app as it was. The states
@@ -1257,5 +1258,98 @@ describe('the screens gallery: Me > Invite a friend', () => {
     await check('M5.0l', s => expect(s.host.querySelectorAll('.inv-sk')).toHaveLength(3))
     await check('M5.0e', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
     await check('M5.0k', s => expect(s.text).toContain('Invite E5F6…'))
+  }, 60000)
+})
+
+// Me goal M2
+describe('the screens gallery: Me > My goal', () => {
+  it('has M3.0 to M3.4 and M3.7 and the edge states under their board ids, in Me: goal', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: goal').entries.map(e => e.id)
+    expect(ids).toEqual([
+      'M3.0', 'M3.0r', 'M3.0w', 'M3.0n', 'M3.0e', 'M3.0l', 'M3.0p', 'M3.0x', 'M3.1', 'M3.1e', 'M3.2', 'M3.3', 'M3.3g', 'M3.3w', 'M3.3p', 'M3.3s', 'M3.4', 'M3.4g', 'M3.7',
+    ])
+  })
+
+  it('shows the page, the four drawers, the gated pair, the saved toast and the edge states, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const live = useProfileWrites.getState().live
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
+    const ring = h => h.querySelector('.g-sring').getAttribute('aria-label')
+    const values = h => Object.fromEntries([...h.querySelectorAll('.g-gvr')].map(r => [r.querySelector('b').textContent, r.querySelector('.g-gvr-val')?.textContent ?? null]))
+    await check('M3.0', h => {
+      expect(h.querySelector('.g-spage-sub').textContent).toBe('Lose weight · 78 kg · 2,100 kcal a day')
+      expect(ring(h)).toBe('Target weight 78.0 kg · 3.4 kg to go')
+      expect(h.querySelector('.mg-started').textContent).toMatch(/^Started at 85\.0 kg on /)
+      expect(h.querySelectorAll('.g-gvr')).toHaveLength(12)
+      expect(values(h)).toMatchObject({ Goal: 'Lose weight', 'Target weight': '78.0 kg', Height: '182 cm', Sex: 'Male', Calories: '2,100 kcal', Water: '2,500 ml' })
+      expect(h.querySelector('.g-btn')).toBeNull()
+    })
+    await check('M3.0r', h => {
+      expect(ring(h)).toBe('Target weight 78.0 kg · Target reached')
+      expect(h.querySelector('.g-btn').textContent).toBe('Keep my weight')
+    })
+    await check('M3.0w', h => {
+      expect(ring(h)).toBe('Target weight 78.0 kg · Log your first weigh-in')
+      expect(h.querySelector('.mg-started')).toBeNull()
+    })
+    await check('M3.0n', h => {
+      expect(Object.keys(values(h))).toEqual(['Target weight'])
+    })
+    await check('M3.0e', h => {
+      expect(h.querySelector('.g-sempty b').textContent).toBe('Goals did not load.')
+      expect(h.querySelector('.g-sempty').className).not.toContain('g-sempty-card')
+    })
+    await check('M3.0l', h => expect(h.querySelector('[aria-busy="true"]')).toBeTruthy())
+    await check('M3.0p', h => expect(values(h)).toMatchObject({ Height: '6 ft 0 in', 'Target weight': '172.0 lb' }))
+    await check('M3.0x', h => expect(values(h)).toMatchObject({ Goal: 'Add', Height: 'Add', 'Birth year': 'Add', 'Daily movement': 'Add', Calories: 'Not set' }))
+    await check('M3.1', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Goal')
+      expect([...h.querySelectorAll('.g-bs [role="radio"]')].map(r => r.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false'])
+    })
+    await check('M3.1e', h => {
+      expect(h.querySelector('.g-bs [role="alert"]').textContent).toBe('Check your connection and try again.')
+      expect(h.querySelectorAll('.g-bs')).toHaveLength(1)
+    })
+    await check('M3.2', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Target weight')
+      expect(h.querySelector('.g-bs input').value).toBe('78.0')
+      expect(h.querySelector('.g-bs .g-tfield-hint').textContent).toMatch(/^3\.4 kg to go from 81\.4 kg\./)
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Save target weight')
+    })
+    await check('M3.3', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Body details')
+      expect([...h.querySelectorAll('.g-bs input')].map(i => i.value)).toEqual(['182', '1994'])
+      expect(h.querySelector('.g-bs-foot .g-btn').textContent).toBe('Save body details')
+    })
+    await check('M3.3g', h => {
+      expect(h.querySelector('.g-bs input')).toBeNull()
+      expect(h.querySelector('.g-bs-foot')).toBeNull()
+      expect(h.querySelector('.g-bs .mg-foot').textContent).toBe('Changing this arrives soon')
+    })
+    await check('M3.3w', h => {
+      expect(h.querySelector('.g-bs').textContent).toContain('Your burn estimate needs a weigh-in.')
+      expect([...h.querySelectorAll('.g-bs button')].some(b => b.textContent === 'Log weight')).toBe(true)
+    })
+    await check('M3.3p', h => expect([...h.querySelectorAll('.g-bs input')].map(i => i.value)).toEqual(['6', '0', '1994']))
+    await check('M3.3s', h => expect(h.querySelector('.g-bs .g-seg [aria-pressed="true"]').textContent).toBe('Prefer not to say'))
+    await check('M3.4', h => {
+      expect(h.querySelector('.g-bs h2').textContent).toBe('Daily movement')
+      expect([...h.querySelectorAll('.g-bs [role="radio"]')].map(r => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false'])
+    })
+    await check('M3.4g', h => {
+      expect(h.querySelector('.g-bs [role="radio"]')).toBeNull()
+      expect(h.querySelector('.g-bs').textContent).toContain('Changing this arrives soon')
+    })
+    await check('M3.7', h => {
+      expect(values(h)['Target weight']).toBe('77.0 kg')
+      expect(useUI.getState().toastMsg).toBe('Target weight changed to 77.0 kg')
+      expect(useUI.getState().toastAction.label).toBe('Undo')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(useProfileWrites.getState().live).toBe(live)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+    expect(Object.keys(localStorage).filter(k => k.startsWith('gains_recent_changes') && k.includes('u1'))).toEqual([])
   }, 60000)
 })

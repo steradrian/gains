@@ -1,0 +1,15 @@
+/* Me goal M2: My goal (board Me3Goal) pushed on the stage at /me/goal, and its small drawers. */
+.mg { display: flex; flex-direction: column; gap: 16px; padding-inline: 16px; padding-top: 4px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; }
+.mg-ring { display: flex; justify-content: center; padding-block: 8px; }
+.mg-started { margin: 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+.mg-sk { display: block; height: 56px; border-radius: 16px; }
+
+/* Drawers (light). */
+.mg-radios { display: flex; flex-direction: column; }
+.mg-fields { display: flex; flex-direction: column; gap: 16px; }
+.mg-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mg-sex { display: flex; flex-direction: column; gap: 8px; }
+.mg-label { font: 600 13px/18px var(--font-sans); color: var(--text-3); }
+.mg-foot { margin: 12px 0 0; font: 500 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.mg-error { margin: 12px 0 0; font: 500 14px/20px var(--font-sans); color: var(--red-ink); text-align: start; }
+.mg-need { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 8px; }

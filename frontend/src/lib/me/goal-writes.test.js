@@ -2,7 +2,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NtApi } from '../nutrition/api.js'
 import { useNutrition } from '../nutrition/store.js'
-import { applyWrites, planChange } from './goal-writes.js'
+import { applyWrites, planChange, useProfileWrites } from './goal-writes.js'
+
+// The profile keys are gated off by default (PROFILE_WRITES_LIVE); these tests are about the live hub.
+beforeEach(() => useProfileWrites.setState({ live: true }))
 
 const NOW = Date.UTC(2026, 9, 22)
 const settings = (over = {}) => ({
@@ -175,5 +178,67 @@ describe('applyWrites', () => {
     const res = await applyWrites([['height_cm', 170], ['tdee', 2400], ['goals', {}]])
     expect(res).toMatchObject({ ok: false, rolledBack: false, stuck: ['height_cm'] })
     expect(server.tdee).toBeNull()
+  })
+
+  it('a refused profile key turns the profile writes off and says why', async () => {
+    failOn.add('height_cm')
+    const res = await applyWrites([['height_cm', 170], ['tdee', 2400]])
+    expect(res.ok).toBe(false)
+    expect(res.error.code).toBe('profile-unsupported')
+    expect(useProfileWrites.getState().live).toBe(false)
+  })
+
+  it('a refused goal write is not the profile gate', async () => {
+    failOn.add('calorieGoalFactor')
+    const res = await applyWrites([['calorieGoalFactor', 0.8]])
+    expect(res.error.code).toBeUndefined()
+    expect(useProfileWrites.getState().live).toBe(true)
+  })
+})
+
+describe('planChange, profile writes gated (PROFILE_WRITES_LIVE false)', () => {
+  beforeEach(() => useProfileWrites.setState({ live: false }))
+
+  it('ships with the gate shut', async () => {
+    const { PROFILE_WRITES_LIVE } = await import('./goal-writes.js')
+    expect(PROFILE_WRITES_LIVE).toBe(false)
+  })
+
+  it('a goal pick writes the factor and the goals, never the profile keys', () => {
+    const { writes, recomputed } = planChange(settings({ tdee: undefined }), S, { goal: 'lose' }, NOW)
+    expect(keys(writes)).toEqual(['calorieGoalFactor', 'goals'])
+    expect(recomputed).toBe(true)
+  })
+
+  it('body details and movement carry no profile key', () => {
+    const { writes } = planChange(settings(), S, { sex: 'female', birthYear: 1990, heightCm: 170, activity: 'active' }, NOW)
+    expect(keys(writes).filter(k => ['gender', 'dob', 'height_cm', 'activity', 'tdee'].includes(k))).toEqual([])
+  })
+})
+
+describe('planChange, "prefer not to say"', () => {
+  const unspecified = (over = {}) => settings({ gender: undefined, tdee: undefined, ...over })
+
+  it('a goal pick writes tdee from the averaged burn', () => {
+    const male = planChange(settings(), S, { goal: 'keep' }, NOW).targets.burn
+    const female = planChange(settings({ gender: 'female' }), S, { goal: 'keep' }, NOW).targets.burn
+    const { writes } = planChange(unspecified(), S, { goal: 'lose' }, NOW)
+    expect(Math.abs(valueOf(writes, 'tdee') - (male + female) / 2)).toBeLessThanOrEqual(1)
+  })
+
+  it('writes tdee even when the stored one already matches', () => {
+    const first = valueOf(planChange(unspecified(), S, { goal: 'lose' }, NOW).writes, 'tdee')
+    const again = planChange(unspecified({ tdee: first }), S, { goal: 'lose' }, NOW)
+    expect(valueOf(again.writes, 'tdee')).toBe(first)
+  })
+
+  it('movement and body details write it too', () => {
+    const burn = change => valueOf(planChange(unspecified(), S, change, NOW).writes, 'tdee')
+    expect(burn({ activity: 'moderate' })).toBeGreaterThan(burn({ activity: 'sedentary' }))
+    expect(burn({ heightCm: 170, birthYear: 1990 })).toEqual(expect.any(Number))
+  })
+
+  it('a male stored burn that has not changed is not rewritten', () => {
+    expect(keys(planChange(settings(), S, { goal: 'keep' }, NOW).writes)).not.toContain('tdee')
   })
 })

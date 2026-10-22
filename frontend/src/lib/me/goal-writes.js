@@ -4,10 +4,19 @@
 // Order: the profile keys first (gender, dob, height_cm, activity, tdee), then the calorie factor,
 // then `goals`. A failure part-way leaves a profile with a new body and old targets, so a failed
 // write rolls back the keys already written (best effort) and says whether that worked.
+import { create } from 'zustand'
 import { goalsFor, draftOf } from '../nutrition/goals.js'
 import { useNutrition } from '../nutrition/store.js'
 import { burnOf, targetsFor } from './goal-calc.js'
 import { FACTOR_OF_GOAL, calcInputs, dobOf, profileOf } from './goal-profile.js'
+
+// The hub refuses gender, dob, height_cm, activity and tdee writes until its allow-list takes them
+// (gains-be, fitness-eval-0c). While this is false Body details and Daily movement open read-only
+// and no plan carries those keys. Flip it to true when the hub is deployed: the one line to change.
+// A refused profile write also turns it off for the session (applyWrites).
+export const PROFILE_WRITES_LIVE = false
+export const PROFILE_KEYS = ['gender', 'dob', 'height_cm', 'activity', 'tdee']
+export const useProfileWrites = create(() => ({ live: PROFILE_WRITES_LIVE }))
 
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
 
@@ -18,8 +27,11 @@ const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
  * lose, keep, build; otherwise only the profile keys (and a picked goal's factor) are written, and
  * `recomputed` is false so the caller can say the targets were left alone.
  * `skipped` lists the goal ids that differ by weekday and so were not touched.
+ * `live`: whether the hub takes profile keys (useProfileWrites). When it does not, the plan never
+ * carries them. When it does and the sex is "prefer not to say", `tdee` is always written, from the
+ * averaged burn: NutriTrace only knows male and female and would not derive it.
  */
-export function planChange(settings, S, change, now = Date.now()) {
+export function planChange(settings, S, change, now = Date.now(), live = useProfileWrites.getState().live) {
   const profile = profileOf(settings, S)
   const next = {
     sex: change.sex ?? profile.sex,
@@ -32,14 +44,19 @@ export function planChange(settings, S, change, now = Date.now()) {
   const writes = []
   const put = (key, value) => { if (!same(settings?.[key], value)) writes.push([key, value]) }
 
-  if (change.sex !== undefined) {
-    if (change.sex === 'unspecified') { if (settings?.gender != null) writes.push(['gender', null]) } else put('gender', change.sex)
+  if (live) {
+    if (change.sex !== undefined) {
+      if (change.sex === 'unspecified') { if (settings?.gender != null) writes.push(['gender', null]) } else put('gender', change.sex)
+    }
+    if (change.birthYear !== undefined) put('dob', dobOf(change.birthYear))
+    if (change.heightCm !== undefined) put('height_cm', change.heightCm)
+    if (change.activity !== undefined) put('activity', change.activity)
+    const burn = inputs ? burnOf({ ...inputs, now }) : null
+    if (burn != null) {
+      if (next.sex === 'unspecified') writes.push(['tdee', burn])
+      else put('tdee', burn)
+    }
   }
-  if (change.birthYear !== undefined) put('dob', dobOf(change.birthYear))
-  if (change.heightCm !== undefined) put('height_cm', change.heightCm)
-  if (change.activity !== undefined) put('activity', change.activity)
-  const burn = inputs ? burnOf({ ...inputs, now }) : null
-  if (burn != null) put('tdee', burn)
 
   if (change.goal !== undefined) put('calorieGoalFactor', FACTOR_OF_GOAL[change.goal])
 
@@ -82,7 +99,11 @@ export async function applyWrites(list) {
       for (const [k, back] of [...done].reverse()) {
         try { await nt.saveSetting(k, back ?? null) } catch { stuck.push(k) }
       }
-      return { ok: false, error, rolledBack: stuck.length === 0, stuck }
+      // The hub's refusal of a profile key: the drawers go read-only for the session.
+      const refused = PROFILE_KEYS.includes(key) && (error?.status === 400 || error?.status === 422)
+      if (refused) useProfileWrites.setState({ live: false })
+      const reported = refused ? Object.assign(new Error('Body details cannot be saved yet'), { code: 'profile-unsupported', cause: error }) : error
+      return { ok: false, error: reported, rolledBack: stuck.length === 0, stuck }
     }
     done.push([key, was])
   }

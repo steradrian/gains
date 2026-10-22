@@ -110,6 +110,8 @@ import Notifications from './views/shared/Notifications.jsx'
 import ChangesRoute from './views/me/changes/ChangesRoute.jsx'
 // Me invite M2
 import InviteRoute from './views/me/invite/InviteRoute.jsx'
+// Me goal M2: My goal
+import GoalRoute from './views/me/goal/GoalRoute.jsx'
 // Eat root m2: Month and Food trends
 import MonthPage from './views/eat/MonthPage.jsx'
 import TrendsPage from './views/eat/TrendsPage.jsx'
@@ -495,6 +497,8 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me/body" element={<BodyRoute />} />
       <Route path="/me/body/measurements" element={<BodyRoute />} />
       <Route path="/me/body/photos" element={<BodyRoute />} />
+      {/* Me goal M2: My goal, before /me/:page */}
+      <Route path="/me/goal" element={<GoalRoute />} />
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
       <Route path="/me/account/started-over" element={<StartedOverScreen />} />
