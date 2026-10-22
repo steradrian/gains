@@ -45,12 +45,13 @@ async function startServer(t, { users = USERS, friends, env = {} } = {}) {
     cwd: API, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: { ...process.env, PORT: '0', DATA_DIR: dataDir, ORIGIN, RP_ID: 'localhost', TRUST_PROXY: '1', INVITE_ONLY: '', ADMIN_UIDS: '', AUDIT_LOG: '', ...env }
   });
-  const h = { log: '', dataDir };
+  const h = { log: '', dataDir, now: T0 };
   child.stdout.on('data', d => h.log += d);
   child.stderr.on('data', d => h.log += d);
   t.after(() => { child.kill('SIGKILL'); fs.rmSync(dataDir, { recursive: true, force: true }); });
   h.api = `http://127.0.0.1:${await boundPort(child, () => h.log)}`;
   h.at = now => new Promise(resolve => {
+    h.now = now;
     const done = m => { if (m && m.now === now) { child.off('message', done); resolve(); } };
     child.on('message', done);
     child.send({ now });
