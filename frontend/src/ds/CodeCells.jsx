@@ -27,7 +27,7 @@ export default function CodeCells({ length = 6, value, onChange, invalid, numeri
       <input ref={inputRef} id={id} value={v} inputMode={numeric ? 'numeric' : 'text'} autoComplete="one-time-code"
         autoCapitalize="characters" autoCorrect="off" spellCheck={false} dir="ltr" aria-label={label || t('Code')} aria-invalid={invalid ? 'true' : undefined} onChange={change} />
       {Array.from({ length }, (_, k) => (
-        <span key={k} aria-hidden="true" className={cx('g-code-cell g-glass', invalid && 'bad', k === v.length && !invalid && 'cur')}>{v[k] || ''}</span>
+        <span key={k} aria-hidden="true" data-glass="flat" className={cx('g-code-cell g-glass', invalid && 'bad', k === v.length && !invalid && 'cur')}>{v[k] || ''}</span>
       ))}
     </label>
   )

@@ -26,6 +26,11 @@ describe('StageDayCount', () => {
     expect(keys()[1].hasAttribute('aria-label')).toBe(false)
   })
 
+  it('draws every key as flat glass, the chosen one included', () => {
+    view.render(<StageDayCount values={DAYS} value={4} onPick={() => {}} />)
+    expect(keys().every(k => k.dataset.glass === 'flat')).toBe(true)
+  })
+
   it('commits a tap, and moves with an arrow without committing', () => {
     const onPick = vi.fn()
     view.render(<StageDayCount values={DAYS} value={2} onPick={onPick} />)

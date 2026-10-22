@@ -69,6 +69,11 @@ describe('CodeCells', () => {
     expect(view.host.querySelectorAll('.g-code-cell.cur')).toHaveLength(0)
   })
 
+  it('draws every cell as flat glass: the fill stays, no lens', () => {
+    view.render(<CodeCells value="AB" />)
+    expect([...view.host.querySelectorAll('.g-code-cell')].every(c => c.dataset.glass === 'flat')).toBe(true)
+  })
+
   it('keeps the cells out of the accessibility tree: the input is what is read', () => {
     view.render(<CodeCells value="AB" />)
     expect([...view.host.querySelectorAll('.g-code-cell')].every(c => c.getAttribute('aria-hidden') === 'true')).toBe(true)

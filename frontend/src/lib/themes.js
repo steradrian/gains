@@ -58,39 +58,46 @@ export const THEMES = [
     dark: { fill: '#DAA0AF', fillEnd: '#C38696', text: '#E0AEBB', tint: '#372228', on: '#1E0E13' },
     stage: { stage: '#924D62', end: '#512531', glow: '#FFC5D4' } },
   // Light stages: pastel, with deep text. `ink` replaces the stage's white for these six only.
-  // on2 is an alpha; glass, glassLine, track and decor are [hex, alpha] pairs (decor's second value
-  // multiplies the plate rings' opacity).
+  // on2 is an alpha; glass, glassLine, track, glassLift, glassRim, glassShade and decor are
+  // [hex, alpha] pairs (decor's second value multiplies the plate rings' opacity). The last three
+  // are the liquid-glass material: body lift, rim and contact shadow (--X-ink-glass-lift/-rim/-shade).
   { id: 'blossom', name: 'Blossom', fill: '#AA2B58', fillEnd: '#8C1745', text: '#8C1745', tint: '#F8E5E8', on: '#FFFFFF',
     dark: { fill: '#F68EA9', fillEnd: '#E07190', text: '#F9A0B6', tint: '#401B25', on: '#250911' },
     stage: { stage: '#FFC2D1', end: '#FA9EBC', glow: '#FFE5EC' },
     ink: { on: '#561E3C', on2: 0.80, glass: ['#FFFFFF', 0.40], glassLine: ['#FFFFFF', 0.60], track: ['#FFFFFF', 0.55],
+      glassLift: ['#FFFFFF', 0.24], glassRim: ['#561E3C', 0.18], glassShade: ['#561E3C', 0.10],
       mark: '#AA2B58', cta: '#AA2B58', ctaIcon: '#FFFFFF', decor: ['#FFFFFF', 1.6] } },
   { id: 'watermelon', name: 'Watermelon', fill: '#AF2450', fillEnd: '#910C3D', text: '#910C3D', tint: '#F9E4E7', on: '#FFFFFF',
     dark: { fill: '#FB8CA2', fillEnd: '#E56E88', text: '#FD9EAF', tint: '#421A23', on: '#26080F' },
     stage: { stage: '#FFB3C6', end: '#FB6F92', glow: '#FFE5EC' },
     ink: { on: '#48102B', on2: 0.82, glass: ['#FFFFFF', 0.40], glassLine: ['#FFFFFF', 0.60], track: ['#FFFFFF', 0.55],
+      glassLift: ['#FFFFFF', 0.24], glassRim: ['#48102B', 0.18], glassShade: ['#48102B', 0.10],
       mark: '#94204A', cta: '#94204A', ctaIcon: '#FFFFFF', decor: ['#FFFFFF', 1.5] } },
   // Neutral light stages: white, warm cream, cool mist. Dark ink, a dark accent on the ring.
   { id: 'snow', name: 'Snow', fill: '#2B2A28', fillEnd: '#1B1A19', text: '#1B1A19', tint: '#EFEEEB', on: '#FFFFFF',
     dark: { fill: '#F4F2EE', fillEnd: '#D8D5CF', text: '#F4F2EE', tint: '#2A2926', on: '#111111' },
     stage: { stage: '#FFFFFF', end: '#ECEAE6', glow: '#FFFFFF' },
     ink: { on: '#1B1A19', on2: 0.72, glass: ['#FFFFFF', 0.72], glassLine: ['#1B1A19', 0.08], track: ['#1B1A19', 0.10],
+      glassLift: ['#FFFFFF', 0.34], glassRim: ['#1B1A19', 0.14], glassShade: ['#1B1A19', 0.08],
       mark: '#1B1A19', cta: '#1B1A19', ctaIcon: '#FFFFFF', decor: ['#1B1A19', 0.5], art: ['#BDB9B1', '#DAD7D1'] } },
   { id: 'cream', name: 'Cream', fill: '#7A5A2E', fillEnd: '#5E431F', text: '#5E431F', tint: '#F4EDE0', on: '#FFFFFF',
     dark: { fill: '#D9BC8C', fillEnd: '#BFA172', text: '#E0C698', tint: '#33291A', on: '#1E1508' },
     stage: { stage: '#FCF8F0', end: '#F0E4D0', glow: '#FFFFFF' },
     ink: { on: '#3B2A14', on2: 0.76, glass: ['#FFFFFF', 0.62], glassLine: ['#7A5A2E', 0.14], track: ['#7A5A2E', 0.14],
+      glassLift: ['#FFFFFF', 0.30], glassRim: ['#7A5A2E', 0.20], glassShade: ['#7A5A2E', 0.09],
       mark: '#7A5A2E', cta: '#7A5A2E', ctaIcon: '#FFFFFF', decor: ['#7A5A2E', 0.7], art: ['#CDB48C', '#E4D2B2'] } },
   { id: 'mist', name: 'Mist', fill: '#2F4F85', fillEnd: '#223C69', text: '#223C69', tint: '#E8EEF7', on: '#FFFFFF',
     dark: { fill: '#9DB6E6', fillEnd: '#7F9BD0', text: '#ABC1EA', tint: '#1E293D', on: '#0D1524' },
     stage: { stage: '#F2F6FC', end: '#D3E0F2', glow: '#FFFFFF' },
     ink: { on: '#16284A', on2: 0.76, glass: ['#FFFFFF', 0.62], glassLine: ['#2F4F85', 0.14], track: ['#2F4F85', 0.14],
+      glassLift: ['#FFFFFF', 0.30], glassRim: ['#2F4F85', 0.20], glassShade: ['#2F4F85', 0.09],
       mark: '#2F4F85', cta: '#2F4F85', ctaIcon: '#FFFFFF', decor: ['#2F4F85', 0.7], art: ['#9FB6DA', '#BDD0EA'] } },
   { id: 'peach', name: 'Peach cream', fill: '#854B65', fillEnd: '#6C3850', text: '#6C3850', tint: '#F1E7EB', on: '#FFFFFF',
     dark: { fill: '#D5A2B7', fillEnd: '#BD889E', text: '#DBAFC1', tint: '#35232A', on: '#1D0F15' },
     stage: { stage: '#F8F3EA', end: '#FFDBD1', glow: '#FFE5EC' },
     // art: deeper ramp stops so patterns show in mauve on the pale stage
     ink: { on: '#53273C', on2: 0.80, glass: ['#FFFFFF', 0.55], glassLine: ['#B47792', 0.22], track: ['#B47792', 0.20],
+      glassLift: ['#FFFFFF', 0.30], glassRim: ['#B47792', 0.26], glassShade: ['#53273C', 0.10],
       mark: '#8E5470', cta: '#8E5470', ctaIcon: '#FFFFFF', decor: ['#B47792', 1.2], art: ['#C493A9', '#E9BCC3'] } },
   { id: 'peony', name: 'Peony', fill: '#A13566', fillEnd: '#852251', text: '#852251', tint: '#F6E5EA', on: '#FFFFFF',
     dark: { fill: '#EE92B5', fillEnd: '#D7769C', text: '#F1A3C0', tint: '#3D1D2A', on: '#230A14' },
