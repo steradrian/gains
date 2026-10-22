@@ -7,6 +7,7 @@ import { t } from '../../../lib/i18n.js'
 import { api, webauthnOK, passkeyRegister, passkeyError } from '../../../lib/api.js'
 import { DEMO, REPO } from '../../../lib/demo.js'
 import { MOBILE } from '../../../lib/mobile.js'
+import { whenSheetGone } from '../../../lib/nav.js'
 import { deletionDay } from '../../../lib/account-deletion.js'
 import { confirmSheet } from '../../../sheets.jsx'
 import { showsConnection, showsLocalLine } from '../../../components/SyncBanner.jsx'
@@ -160,7 +161,7 @@ export default function AccountPage() {
         </> : DEMO ? <>
           <GlassValueRow icon="info" static title={t('You’re in the demo')} sub={t('Example data, stored only in this browser. Go wild and change anything you like.')} />
           <GlassValueRow icon="reset" title={t('Reset demo data')}
-            onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/home'); toast(t('Demo data reset')) } })} />
+            onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); whenSheetGone(() => nav('/home')); toast(t('Demo data reset')) } })} />
           <GlassValueRow icon="rocket" title={t('Self-host Gains')} sub={t('Passkey sign-in, sync across your devices, your own data.')} onClick={() => window.open(REPO, '_blank', 'noopener')} />
         </> : webauthnOK() ? <>
           <GlassValueRow icon="plusCircle" title={t('Create passkey profile')} sub={t('Keeps your data safe and separate per person.')} onClick={registerHere} />

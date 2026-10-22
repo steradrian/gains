@@ -3,6 +3,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMediaStore, memoryBackend, _setMediaStore } from '../../../lib/media-store.js'
+import { noteSheetEntries } from '../../../lib/nav.js'
 import { useAccountActions } from '../use-account-actions.js'
 import StartedOverScreen from '../pages/StartedOverScreen.jsx'
 import { startOverItems } from './start-over.jsx'
@@ -217,6 +218,33 @@ describe('Start over: photos and videos', () => {
     await until(async () => !(await media.has(HASH)))
     expect(mocks.api).not.toHaveBeenCalled()
     expect(await media.has(HASH)).toBe(false)
+  })
+})
+
+describe('Start over: while the account is scheduled for deletion', () => {
+  it('says the server copy goes with the scheduled deletion, not that every device is wiped', () => {
+    mocks.user = { id: 'u1', name: 'Ana', deletion: { at: '2026-10-29T12:00:00.000Z', requestedAt: '2026-10-22T12:00:00.000Z' } }
+    const dialog = openConfirm()
+    expect(dialog.body).toBe('This wipes what you logged on this device. Your server copy goes when the scheduled deletion runs, and your other devices keep theirs until then. It cannot be undone.')
+    expect(dialog.body).not.toContain('every device')
+    expect(dialog.note).not.toContain('account and passkeys stay')
+  })
+})
+
+describe('Start over: the drawer\'s history entry', () => {
+  afterEach(() => { noteSheetEntries(0); history.replaceState(null, '', '#/home') })
+
+  it('the move to Started over waits for the drawer\'s entry to be walked off, so one Back leaves it', () => {
+    mocks.user = { id: 'u1', name: 'Ana' }
+    history.pushState({ gainsSheet: true }, '')
+    noteSheetEntries(1)
+    confirmed()
+    expect(mocks.resetEverything).toHaveBeenCalledTimes(1)
+    expect(mocks.navs).toEqual([])
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    expect(mocks.navs).toEqual(['/me/account/started-over'])
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    expect(mocks.navs).toHaveLength(1)
   })
 })
 

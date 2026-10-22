@@ -20,14 +20,18 @@ export function startOverItems(S) {
   ].filter(Boolean)
 }
 
-export const confirmStartOver = ({ S, signedIn, server, nutrition, onConfirm }) => confirmDrawer({
+// `deletion`: the account is scheduled for deletion. The server takes no writes then, so the empty
+// state reaches it only if the deletion is cancelled; if not, the purge removes the server copy.
+export const confirmStartOver = ({ S, signedIn, deletion, server, nutrition, onConfirm }) => confirmDrawer({
   title: t('Start over?'),
-  body: signedIn
-    ? t('This wipes what you logged, here and on every device signed in to your profile. It cannot be undone.')
-    : t('This wipes what you logged on this device. It cannot be undone.'),
+  body: signedIn && deletion
+    ? t('This wipes what you logged on this device. Your server copy goes when the scheduled deletion runs, and your other devices keep theirs until then. It cannot be undone.')
+    : signedIn
+      ? t('This wipes what you logged, here and on every device signed in to your profile. It cannot be undone.')
+      : t('This wipes what you logged on this device. It cannot be undone.'),
   items: startOverItems(S),
   note: [
-    signedIn && t('Your account and passkeys stay.'),
+    signedIn && !deletion && t('Your account and passkeys stay.'),
     nutrition && t('Your nutrition diary, foods and goals stay.'),
     server ? t('Download my data first if you might want it.') : t('Export a backup first if you might want any of it back.'),
   ].filter(Boolean).join(' '),

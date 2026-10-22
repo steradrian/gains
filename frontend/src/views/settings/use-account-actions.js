@@ -7,6 +7,7 @@ import { forgetCoach } from '../../lib/coach-api.js'
 import { DEMO } from '../../lib/demo.js'
 import { MOBILE } from '../../lib/mobile.js'
 import { mediaStore } from '../../lib/media-store.js'
+import { whenSheetGone } from '../../lib/nav.js'
 import { nutritionAvailable } from '../../lib/nutrition/api.js'
 import { confirmSheet } from '../../sheets.jsx'
 import { leaveServer } from '../../components/ServerSync.jsx'
@@ -58,7 +59,9 @@ export function useAccountActions() {
 
   // A workout running here is kept aside by the sign-out (useStore stashActive): the confirm says so.
   const running = () => S.active ? ' ' + t('You have a workout running. It waits on this device until you’re back on this account.') : ''
-  const finish = after => r => { nav('/home'); if (r.stashed) toast(keptNote()); else if (after) toast(after) }
+  // Through whenSheetGone: the confirm that led here closes in the same handler, and a page change
+  // written before its history entry is walked off leaves that entry under the new page.
+  const finish = after => r => { whenSheetGone(() => nav('/home')); if (r.stashed) toast(keptNote()); else if (after) toast(after) }
   const leave = (kind, after) => leaveServer(kind, { exportBackup: doExport, exportBackupZip: doExportZip, done: finish(after) })
   // A browser's sign-outs ask with the drawer (A2.6) when the server is missing changes; the
   // phone's Disconnect keeps the sheet that offers a retry and a backup.
@@ -92,13 +95,14 @@ export function useAccountActions() {
   const startOver = () => confirmStartOver({
     S,
     signedIn: !!user,
+    deletion: !!user?.deletion,
     server: !!user && !MOBILE && !DEMO,
     nutrition: nutritionAvailable(user),
     onConfirm: () => {
       if (user) api('/api/coach/forget', { method: 'POST', body: '{}' }).catch(() => {})
       if (coachLocal?.mode === 'byok') forgetCoach().catch(() => {})
       resetAll()
-      nav(STARTED_OVER)
+      whenSheetGone(() => nav(STARTED_OVER))
       clearMediaAfterReset(!!user).catch(() => {})
     },
   })
