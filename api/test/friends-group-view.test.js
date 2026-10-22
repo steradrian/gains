@@ -112,6 +112,33 @@ test('a Saturday read dated the next Monday cannot close the running week early'
   assert.ok(!Object.hasOwn(h.friends().groups[gid].results || {}, MONDAY), 'the week of the 12th is still open');
 });
 
+test('targets goal: each member needs 5 days reached, absolutely; a Friday joiner needs 3', async t => {
+  const reached = (...ds) => ({ targetsReached: Object.fromEntries(ds.map(d => [d, { all: true, protein: true }])) });
+  const MON_TO = n => Array.from({ length: n }, (_, i) => `2026-10-1${2 + i}`);
+  const h = await startServer(t, { now: at(MONDAY), states: { u_ana: state(reached(...MON_TO(5))), u_bea: state(reached(...MON_TO(4))) } });
+  const gid = await h.crew(['u_ana', 'u_bea'], { goal: { kind: 'targets' } });
+  await h.at(at('2026-10-16'));
+  await h.on('u_cy');
+  const link = await h.req('POST', `/api/friends/groups/${gid}/invites`, { as: 'u_ana', body: {} });
+  assert.equal((await h.req('POST', `/api/friends/join/${link.body.code}?date=2026-10-16`, { as: 'u_cy', body: {} })).status, 200);
+  assert.equal(h.friends().groups[gid].members.find(m => m.uid === 'u_cy').joinedOn, '2026-10-16', 'the joiner’s local date is kept');
+  await h.state('u_cy', state(reached('2026-10-12', '2026-10-16', '2026-10-17', '2026-10-18')));
+
+  await h.at(at('2026-10-18'));
+  let v = await h.view('u_bea', gid, '2026-10-18');
+  assert.deepEqual(v.targets, { hit: 12, of: 13 }, 'Ana 5 of 5, Bea 4 of 5, Cy 3 of 3 (her Monday was before she joined)');
+  assert.equal(v.streak, 0, 'Bea at 4 is not a hit');
+
+  await h.state('u_bea', state(reached(...MON_TO(4), '2026-10-18')));
+  v = await h.view('u_bea', gid, '2026-10-18');
+  assert.deepEqual([v.targets, v.streak], [{ hit: 13, of: 13 }, 1], 'everyone hit: the week counts');
+
+  await h.at(at('2026-10-19'));
+  v = await h.view('u_ana', gid, '2026-10-19');
+  assert.equal(h.friends().groups[gid].results[MONDAY], true);
+  assert.deepEqual(v.targets, { hit: 0, of: 15 }, 'a new week: nothing reached yet, every day of it counts');
+});
+
 test('a muted member’s moments are left out for that viewer only, and they still count', async t => {
   const h = await startServer(t, { states: {
     u_ana: state(), u_bea: state({ workouts: [workout({ d: MONDAY, name: 'Legs' })] }), u_cy: state()

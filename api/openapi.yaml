@@ -3990,7 +3990,8 @@ paths:
         1 to 40 characters after that (`bad-name`). `goal.kind` is `planned` (everyone's planned
         sessions), `number` with `n` 1 to 200, or `targets`; `n` on any other kind, or any other
         field, is refused (`bad-goal`). Friends must be on (`friends-off`). At most 20 groups per
-        person (`group-limit`).
+        person (`group-limit`). A plausible `date` is kept as the creator's local join date
+        (the targets goal counts a mid-week joiner from it); without one, the server's UTC date.
       parameters:
         - { $ref: '#/components/parameters/FriendsDateOptional' }
       requestBody:
@@ -4255,7 +4256,9 @@ paths:
         in-app invitation of mine into that group is cleared. Refusals, in the order checked:
         `404 not-found`; `409 already-member` (with `group.id`, so the client opens it);
         `410 invite-used`; `410 invite-expired` (expired or revoked); `423 deletion-scheduled`;
-        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups).
+        `409 friends-off`; `409 group-full` (12); `409 group-limit` (20 groups). A plausible `date`
+        is kept as my local join date (the targets goal counts a mid-week joiner from it); without
+        one, the server's UTC date.
       parameters:
         - { $ref: '#/components/parameters/FriendsInviteCode' }
         - { $ref: '#/components/parameters/FriendsDateOptional' }
@@ -5921,7 +5924,7 @@ components:
             isCreator: { type: boolean }
             targets:
               type: object
-              description: 'This week: days with the food targets reached, and days known, summed over the members who share targets. A day the client did not judge counts nowhere.'
+              description: 'This week, over the members who share targets: `of` sums the days each needs (5 in a full week, ceil(5/7 x days in the group) for someone who joined during it), `hit` the days each reached since joining, capped at their need. A day without data is not reached. The `targets` goal is hit when hit equals of, that is when every one of them hit their week.'
               properties:
                 hit: { type: integer }
                 of: { type: integer }

@@ -80,16 +80,20 @@ export const memberOrder = group => membersOf(group).map(m => m.uid);
 
 export const newGroupId = () => crypto.randomBytes(9).toString('base64url');
 
-/** A new group with its creator as the first member. */
-export function newGroup({ id, name, goal, creator, now = Date.now() }) {
+// A member: `joined` the instant, `joinedOn` the joiner's local date (week.js counts a mid-week
+// joiner's food targets from it), stored only when the caller has one.
+const memberOf = (uid, now, on) => ({ uid, joined: new Date(now).toISOString(), ...(isDate(on) ? { joinedOn: on } : {}) });
+
+/** A new group with its creator as the first member; `on` is the creator's local date. */
+export function newGroup({ id, name, goal, creator, now = Date.now(), on = null }) {
   const at = new Date(now).toISOString();
-  return { id, name, goal, created: at, creator, members: [{ uid: creator, joined: at }], highWater: {}, removedMoments: [] };
+  return { id, name, goal, created: at, creator, members: [memberOf(creator, now, on)], highWater: {}, removedMoments: [] };
 }
 
-/** Appends `uid` at the end of join order. */
-export function addMember(group, uid, now = Date.now()) {
+/** Appends `uid` at the end of join order; `on` is their local date. */
+export function addMember(group, uid, now = Date.now(), on = null) {
   if (!Array.isArray(group.members)) group.members = [];
-  group.members.push({ uid, joined: new Date(now).toISOString() });
+  group.members.push(memberOf(uid, now, on));
 }
 
 // A moment id names its people (api-m2: `<kind>:<date>:<uids>:<ref>`); split on anything an id

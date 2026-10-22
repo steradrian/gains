@@ -28,6 +28,7 @@ import {
 } from './rules.js';
 import { codeOf, newCode, newGroupInvite, lookupInvite, redeem, tidyInvites, hasOpenInvitation } from './invites.js';
 import { summaryNumbers } from './stats-hook.js';
+import { clientDay } from './week.js';
 // Friends api m2
 import { invalidateMember } from './cache.js';
 import { groupDetail, memberDetail, groupMoments } from './group-view.js';
@@ -242,7 +243,8 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         if (groupsOf(d, user.id).length >= GROUPS_PER_PERSON) refuse(409, 'group-limit', `at most ${GROUPS_PER_PERSON} groups`);
         let id;
         do { id = newGroupId(); } while (Object.hasOwn(d.groups, id));
-        d.groups[id] = newGroup({ id, name, goal, creator: user.id, now: Date.now() });
+        const now = Date.now();
+        d.groups[id] = newGroup({ id, name, goal, creator: user.id, now, on: clientDay(date, now) });
         return id;
       });
       json(res, 200, groupAnswer(store.read(), gid, user.id, date));
@@ -428,7 +430,7 @@ export function friendsRoutes({ json, readBody, readSession, limitAddress, users
         if (liveCount(found.group, accounts().accounts) >= GROUP_CAP) refuse(409, 'group-full', `a group has at most ${GROUP_CAP} people`);
         if (groupsOf(d, user.id).length >= GROUPS_PER_PERSON) refuse(409, 'group-limit', `at most ${GROUPS_PER_PERSON} groups`);
         redeem(found.inv, user.id, now);
-        addMember(found.group, user.id, now);
+        addMember(found.group, user.id, now, clientDay(date, now));
         d.invitations = d.invitations.filter(x => !(x && x.group === id && x.to === user.id));
         return id;
       });

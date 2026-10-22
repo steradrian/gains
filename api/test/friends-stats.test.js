@@ -15,7 +15,7 @@ import { state, workout, ALL, NONE } from './friends-server.mjs';
 // cache.js (and week.js through it) reads DATA_DIR when it loads: set it first.
 const dir = tempData();
 const { memberProjection, invalidateMember, MEMO_MS } = await import('../friends/cache.js');
-const { goalOf, streakOf, plausibleDate, goalLineOf } = await import('../friends/week.js');
+const { goalOf, streakOf, plausibleDate, goalLineOf, targetsWeek, joinedOnOf } = await import('../friends/week.js');
 
 const WED = '2026-10-14';
 
@@ -144,6 +144,32 @@ test('goals: planned leaves out who has no plan, number counts everyone, targets
   assert.equal(goalOf({ kind: 'targets' }, [rows[1]]).hit, null);
   assert.deepEqual(goalLineOf({ kind: 'number', n: 15 }), { kind: 'number', n: 15 });
   assert.deepEqual(goalLineOf(undefined), { kind: 'planned' });
+});
+
+test('targets goal: 5 days reached in the week, counted absolutely; a mid-week joiner needs their share of 5', () => {
+  const MON = '2026-10-12';
+  const wk = (...on) => ({ days: Array.from({ length: 7 }, (_, i) => (on.includes(i) ? true : on.includes(-i - 1) ? false : null)) });
+  assert.deepEqual(targetsWeek(wk(0, 1, 2, 3, 4), MON, '2026-10-01'), { hit: 5, of: 5 }, '5 hits is a hit');
+  assert.deepEqual(targetsWeek(wk(0, 1, 2, 3), MON, '2026-10-01'), { hit: 4, of: 5 }, '4 is not');
+  assert.deepEqual(targetsWeek(wk(0, 1, 2), MON, MON), { hit: 3, of: 5 }, '3 of 3 known days is not: a day without data is not reached');
+  assert.deepEqual(targetsWeek(wk(0, 1, 2, 3, 4, 5, 6), MON, MON), { hit: 5, of: 5 }, 'capped at the need');
+  // Joined on Friday: 3 days in the group, ceil(5/7 x 3) = 3; the days before joining do not count.
+  assert.deepEqual(targetsWeek(wk(0, 1, 4, 5, 6), MON, '2026-10-16'), { hit: 3, of: 3 });
+  assert.deepEqual(targetsWeek(wk(0, 1, 2, 3, 4, 5), MON, '2026-10-16'), { hit: 2, of: 3 });
+  assert.deepEqual(targetsWeek(wk(6), MON, '2026-10-18'), { hit: 1, of: 1 }, 'joined on Sunday');
+  assert.deepEqual(targetsWeek(wk(1, 2, 3, 4, 5, 6), MON, '2026-10-13'), { hit: 5, of: 5 }, 'six days still need 5');
+  assert.equal(targetsWeek(wk(0), MON, '2026-10-19'), null, 'joined after the week: not counted');
+  assert.equal(targetsWeek(null, MON, MON), null, 'not shared');
+  assert.deepEqual(targetsWeek(wk(0, 1, 2, 3, 4), MON, null), { hit: 5, of: 5 }, 'no join date: the full week');
+
+  const rows = targets => targets.map(t => ({ done: 0, planned: 0, noPlan: true, targets: t }));
+  assert.equal(goalOf({ kind: 'targets' }, rows([{ hit: 5, of: 5 }, { hit: 3, of: 3 }])).hit, true, 'everyone hit');
+  assert.deepEqual(goalOf({ kind: 'targets' }, rows([{ hit: 5, of: 5 }, { hit: 4, of: 5 }, null])).targets, { hit: 9, of: 10 });
+  assert.equal(goalOf({ kind: 'targets' }, rows([{ hit: 5, of: 5 }, { hit: 4, of: 5 }])).hit, false, 'one short is a miss');
+  assert.equal(goalOf({ kind: 'targets' }, rows([null, null])).hit, null, 'nobody shares targets: neither');
+  assert.equal(joinedOnOf({ members: [{ uid: 'a', joined: '2026-10-14T23:30:00.000Z', joinedOn: '2026-10-15' }] }, 'a'), '2026-10-15', 'the local date wins');
+  assert.equal(joinedOnOf({ members: [{ uid: 'a', joined: '2026-10-14T23:30:00.000Z' }] }, 'a'), '2026-10-14');
+  assert.equal(joinedOnOf({ members: [] }, 'a'), null);
 });
 
 test('streak: weeks in a row hit back from last week; a week that is neither is skipped; a miss ends it', () => {
