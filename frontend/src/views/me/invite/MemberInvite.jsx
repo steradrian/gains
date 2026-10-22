@@ -14,7 +14,7 @@ import StagePageTitle from '../../../ds/StagePageTitle.jsx'
 import StageScreen from '../../../ds/StageScreen.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
 import TextField from '../../../ds/TextField.jsx'
-import { friendsRow } from '../../settings/pages/features-rows.js'
+import { ME_ROW_SLOTS } from '../root-rows.js'
 import { askFailureText, askedLine, askedTitle, atOpenCap, openCapLine } from './ask-data.js'
 import { REAL_BACKEND, useAsk } from './use-ask.js'
 import './invite.css'
@@ -24,8 +24,8 @@ const toast = (msg, opts) => useUI.getState().toast(msg, opts)
 // Me > Invite a friend, the member's view (boards M5.4 Me5AskAdmin, M5.5 Me5Asked): members do not
 // make invites, they ask. The copy names no admin; any of them may answer. A member who opens
 // /me/invite from a push gets this page too. `backend` is for the screens gallery; `groupsOn`
-// shows the Groups row (Friends on, which today never is: features-rows.js friendsRow).
-export default function MemberInvite({ backend = REAL_BACKEND, groupsOn = friendsRow().length > 0 }) {
+// shows the Groups row, which exists once Friends fills the You slot (root-rows.js ME_ROW_SLOTS).
+export default function MemberInvite({ backend = REAL_BACKEND, groupsOn = ME_ROW_SLOTS.you.length > 0 }) {
   const accent = useDsAccent()
   const ask = useAsk(backend)
   const capped = atOpenCap(ask.requests)

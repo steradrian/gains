@@ -308,4 +308,15 @@ describe('the pages registry', () => {
     const src = readApp()
     for (const p of PAGE_INDEX) expect(src, p.path).toContain(`path="${p.path}"`)
   })
+
+  it('finds the Me pages by what people call them, and Invite only for someone who can invite', () => {
+    const paths = (q, canInvite) => {
+      const l = searchLocal(q, data({ pagesCtx: { nutrition: true, checkIn: true, canInvite } }), 'me')
+      return [...l.groups.pages, l.best?.result].filter(Boolean).map(r => r.path)
+    }
+    expect(paths('target weight', true)).toContain('/me/goal')
+    expect(paths('restore', true)).toContain('/me/changes')
+    expect(paths('invite link', true)).toContain('/me/invite')
+    expect(paths('invite link', false)).not.toContain('/me/invite')
+  })
 })

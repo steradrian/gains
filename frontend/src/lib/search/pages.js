@@ -43,6 +43,10 @@ export const PAGE_INDEX = [
   { path: '/me/body', tab: 'me', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
   { path: '/me/body/measurements', tab: 'me', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },
   { path: '/me/body/photos', tab: 'me', title: 'Progress photos', glyph: 'image', kw: 'photos pictures compare before after' },
+  // Me root M3
+  { path: '/me/goal', tab: 'me', title: 'My goal', glyph: 'target', kw: 'target weight calories burn daily targets goal movement' },
+  { path: '/me/changes', tab: 'me', title: 'Recent changes', glyph: 'history', kw: 'restore undo deleted removed changes' },
+  { path: '/me/invite', tab: 'me', title: 'Invite a friend', glyph: 'envelope', kw: 'invite link friend share join', gate: c => (c.canInvite ? 'on' : 'hidden') },
   { path: '/progress/strength', tab: 'me', title: 'Strength', glyph: 'chartLine', kw: 'records pr personal best 1rm one rep max lifts' },
   { path: '/progress/strength/balance', tab: 'me', title: 'Structural balance', glyph: 'gauge', kw: 'ratios weak link balance' },
   { path: '/progress/load', tab: 'me', title: 'Training load', glyph: 'flame', kw: 'volume sets muscles activity weekly' },
