@@ -1,5 +1,7 @@
 /* Me goal M2: My goal (board Me3Goal) pushed on the stage at /me/goal, and its small drawers. */
-.mg { display: flex; flex-direction: column; gap: 16px; padding-inline: 16px; padding-top: 4px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; }
+/* Not `.mg`: tab-kit.css's macro gauge owns that, and its align-items: center shrink-wrapped every card. */
+.mg-page { display: flex; flex-direction: column; gap: 16px; padding-inline: 16px; padding-top: 4px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; }
+.mg-page .g-ssec { padding-inline: 4px; }
 .mg-ring { display: flex; justify-content: center; padding-block: 8px; }
 .mg-started { margin: 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
 .mg-sk { display: block; height: 56px; border-radius: 16px; }
