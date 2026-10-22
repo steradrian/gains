@@ -110,7 +110,7 @@ export default function WorkoutFooter({
   return (
     <div className="g-wf">
       {row}
-      <nav className="g-wf-bar" aria-label={navLabel}>
+      <nav className="g-wf-bar" data-glass="bar" aria-label={navLabel}>
         <Neighbour item={prev} side="prev" label={prevLabel} />
         {centre}
         <Neighbour item={next} side="next" label={nextLabel} />

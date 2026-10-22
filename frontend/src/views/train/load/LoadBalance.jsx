@@ -53,7 +53,7 @@ export default function LoadBalance({ S, now, today, onMuscle }) {
           <span className="g-load-period"><b>{PERIOD_TITLE[win]()}</b></span>
           {b.rated && (
             <div className="g-cgroup g-cgroup-stage">
-              <button type="button" className={'g-cchip' + (b.hard ? ' on' : '')} aria-pressed={b.hard} onClick={() => setHard(h => !h)}>{t('Hard sets')}</button>
+              <button type="button" className={'g-cchip' + (b.hard ? ' on' : '')} data-glass="flat" aria-pressed={b.hard} onClick={() => setHard(h => !h)}>{t('Hard sets')}</button>
             </div>
           )}
         </div>
@@ -79,7 +79,7 @@ export default function LoadBalance({ S, now, today, onMuscle }) {
             <div className="g-load-missed">
               <h3>{b.hard ? t('No hard sets in this period') : t('Not trained in this period')}</h3>
               <div className="g-cgroup g-cgroup-stage">
-                {b.missed.map(m => <button key={m} type="button" className="g-cchip" onClick={() => onMuscle(m)}>{muscleName(m)}</button>)}
+                {b.missed.map(m => <button key={m} type="button" className="g-cchip" data-glass="flat" onClick={() => onMuscle(m)}>{muscleName(m)}</button>)}
               </div>
             </div>
           ) : b.worked.length > 0 && (

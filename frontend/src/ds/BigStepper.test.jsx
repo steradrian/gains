@@ -94,6 +94,14 @@ describe('BigStepper', () => {
     expect(shown()).toBe('20')
   })
 
+  it('the stage tone puts its buttons on the glass material, the light tone does not', () => {
+    view.render(<BigStepper value={1} tone="stage" lessLabel="Less" moreLabel="More" />)
+    expect(less().classList.contains('g-glass')).toBe(true)
+    expect(more().classList.contains('g-glass')).toBe(true)
+    view.render(<BigStepper value={1} lessLabel="Less" moreLabel="More" />)
+    expect(less().classList.contains('g-glass')).toBe(false)
+  })
+
   it('takes the stage tone', () => {
     view.render(<BigStepper value={1} tone="stage" />)
     expect(view.host.firstElementChild.classList.contains('g-bstep-stage')).toBe(true)

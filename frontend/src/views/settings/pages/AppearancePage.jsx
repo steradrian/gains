@@ -68,7 +68,7 @@ export default function AppearancePage() {
         {READY_MADE.map(c => {
           const on = accent === c.accent && look === c.look && Math.abs(intensity - c.intensity) < 0.005
           return (
-            <button key={c.id} type="button" className="g-rmchip" aria-pressed={on} onClick={() => pickReadyMade(c)}
+            <button key={c.id} type="button" className="g-rmchip" data-glass="flat" aria-pressed={on} onClick={() => pickReadyMade(c)}
               style={{ '--sw': `linear-gradient(170deg, var(--${c.accent}-stage), var(--${c.accent}-stage-end))` }}>
               <span className="g-rmchip-sw" aria-hidden="true" />
               {t(c.name)}
