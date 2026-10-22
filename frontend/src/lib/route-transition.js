@@ -25,12 +25,19 @@ export function transitionKind({ from, to, navType, sheetEntry = false }) {
   // A drawer opening or closing walks the history but leaves the page where it is; a query or a
   // fragment changing is the same page too.
   if (from.pathname === to.pathname || sheetEntry) return 'none'
+  const a = tabOf(from.pathname)
+  const b = tabOf(to.pathname)
+  // A page of another tab opened as a push (the avatar opening Profile, `state.pushed`) slides in
+  // like any pushed page, and leaving that entry (Back, an edge swipe) slides it away again,
+  // though both cross tabs. A tab-bar switch flags its entries `tabSwitch` and stays still.
+  if (a && b && a !== b) {
+    if (to.state?.pushed && navType !== 'POP') return 'push'
+    if (from.state?.pushed && !to.state?.tabSwitch) return 'pop'
+  }
   if (navType === 'REPLACE') return 'none'
   // Landing on another tab's page is a tab switch (lib/use-tab-nav.js flags the entries it builds),
   // whichever way the history was walked to get there. The workout belongs to no tab.
   if (to.state?.tabSwitch && navType !== 'POP') return 'none'
-  const a = tabOf(from.pathname)
-  const b = tabOf(to.pathname)
   if (a && b && a !== b) return 'none'
   if (navType === 'PUSH') return 'push'
   // A POP is Back unless it goes deeper (the browser's forward button).

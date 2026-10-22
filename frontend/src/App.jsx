@@ -110,6 +110,8 @@ import Notifications from './views/shared/Notifications.jsx'
 import ChangesRoute from './views/me/changes/ChangesRoute.jsx'
 // Me invite M2
 import InviteRoute from './views/me/invite/InviteRoute.jsx'
+// Me root M2
+import MeRoute from './views/me/MeRoute.jsx'
 // Eat root m2: Month and Food trends
 import MonthPage from './views/eat/MonthPage.jsx'
 import TrendsPage from './views/eat/TrendsPage.jsx'
@@ -487,9 +489,9 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me/changes" element={<ChangesRoute />} />
       {/* Me invite M2: the admin's Invite a friend; a member gets the ask (invite-M3). The push tap lands here (api/push-messages.js). */}
       <Route path="/me/invite" element={<InviteRoute />} />
-      {/* Me root M1: Profile is /me (ProgressHub until root-M2 replaces it); Settings is /me/settings,
-          its pages stay /me/<page>. Before /me/:page. */}
-      <Route path="/me" element={<ProgressHub />} />
+      {/* Me root M1/M2: Profile is /me (MeRoute); Settings is /me/settings, its pages stay
+          /me/<page>. Before /me/:page. The Progress hub stays at /progress. */}
+      <Route path="/me" element={<MeRoute />} />
       <Route path="/me/settings" element={<SettingsRoute root />} />
       {/* Me body M1: before /me/:page */}
       <Route path="/me/body" element={<BodyRoute />} />
