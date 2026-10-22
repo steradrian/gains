@@ -3,7 +3,7 @@
 // re-exports only; nothing outside this file and src/sheets/ imports src/sheets/* (guard G6).
 export { addDeviceDataMessage, addDeviceSetupMessage, askAddDeviceData, menuSheet, confirmSheet } from './sheets/confirm-menu.jsx'
 export { starterPlanSheet } from './sheets/starter.jsx'
-export { bwSheet, bwTooHeavy, bwDeltaColor } from './sheets/body-weight.jsx'
+export { bwSheet, bwTooHeavy } from './sheets/body-weight.jsx'
 export { importFromApp, showHevyPreview } from './sheets/import.jsx'
 export { barWeightSheet, plateInventorySheet, dumbbellInventorySheet, equipmentProfileSheet } from './sheets/equipment.jsx'
 export { detailTags, exerciseDetailSheet, exerciseHistorySheet, addToRoutineSheet, customExSheet, deleteCustomEx, ExerciseHowTo } from './sheets/exercise.jsx'
