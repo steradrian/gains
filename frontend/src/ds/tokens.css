@@ -288,6 +288,9 @@
   --blossom-ink-glass: rgba(255,255,255,0.40);
   --blossom-ink-glass-line: rgba(255,255,255,0.60);
   --blossom-ink-glass-track: rgba(255,255,255,0.55);
+  --blossom-ink-glass-lift: rgba(255,255,255,0.24);
+  --blossom-ink-glass-rim: rgba(86,30,60,0.18);
+  --blossom-ink-glass-shade: rgba(86,30,60,0.10);
   --blossom-ink-mark: #AA2B58;
   --blossom-ink-cta: #AA2B58;
   --blossom-ink-cta-icon: #FFFFFF;
@@ -298,6 +301,9 @@
   --watermelon-ink-glass: rgba(255,255,255,0.40);
   --watermelon-ink-glass-line: rgba(255,255,255,0.60);
   --watermelon-ink-glass-track: rgba(255,255,255,0.55);
+  --watermelon-ink-glass-lift: rgba(255,255,255,0.24);
+  --watermelon-ink-glass-rim: rgba(72,16,43,0.18);
+  --watermelon-ink-glass-shade: rgba(72,16,43,0.10);
   --watermelon-ink-mark: #94204A;
   --watermelon-ink-cta: #94204A;
   --watermelon-ink-cta-icon: #FFFFFF;
@@ -308,6 +314,9 @@
   --snow-ink-glass: rgba(255,255,255,0.72);
   --snow-ink-glass-line: rgba(27,26,25,0.08);
   --snow-ink-glass-track: rgba(27,26,25,0.10);
+  --snow-ink-glass-lift: rgba(255,255,255,0.34);
+  --snow-ink-glass-rim: rgba(27,26,25,0.14);
+  --snow-ink-glass-shade: rgba(27,26,25,0.08);
   --snow-ink-mark: #1B1A19;
   --snow-ink-cta: #1B1A19;
   --snow-ink-cta-icon: #FFFFFF;
@@ -318,6 +327,9 @@
   --cream-ink-glass: rgba(255,255,255,0.62);
   --cream-ink-glass-line: rgba(122,90,46,0.14);
   --cream-ink-glass-track: rgba(122,90,46,0.14);
+  --cream-ink-glass-lift: rgba(255,255,255,0.30);
+  --cream-ink-glass-rim: rgba(122,90,46,0.20);
+  --cream-ink-glass-shade: rgba(122,90,46,0.09);
   --cream-ink-mark: #7A5A2E;
   --cream-ink-cta: #7A5A2E;
   --cream-ink-cta-icon: #FFFFFF;
@@ -328,6 +340,9 @@
   --mist-ink-glass: rgba(255,255,255,0.62);
   --mist-ink-glass-line: rgba(47,79,133,0.14);
   --mist-ink-glass-track: rgba(47,79,133,0.14);
+  --mist-ink-glass-lift: rgba(255,255,255,0.30);
+  --mist-ink-glass-rim: rgba(47,79,133,0.20);
+  --mist-ink-glass-shade: rgba(47,79,133,0.09);
   --mist-ink-mark: #2F4F85;
   --mist-ink-cta: #2F4F85;
   --mist-ink-cta-icon: #FFFFFF;
@@ -338,6 +353,9 @@
   --peach-ink-glass: rgba(255,255,255,0.55);
   --peach-ink-glass-line: rgba(180,119,146,0.22);
   --peach-ink-glass-track: rgba(180,119,146,0.20);
+  --peach-ink-glass-lift: rgba(255,255,255,0.30);
+  --peach-ink-glass-rim: rgba(180,119,146,0.26);
+  --peach-ink-glass-shade: rgba(83,39,60,0.10);
   --peach-ink-mark: #8E5470;
   --peach-ink-cta: #8E5470;
   --peach-ink-cta-icon: #FFFFFF;
