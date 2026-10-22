@@ -9,7 +9,7 @@ import { useNutrition } from '../../../lib/nutrition/store.js'
 import { useProfileWrites } from '../../../lib/me/goal-writes.js'
 import { removeEntries } from '../../../lib/recent-changes-store.js'
 import '../../../lib/recent-changes-kinds.js'
-import { bodyDetailsSheet, goalPickSheet, movementSheet, openHow, openTargets, targetWeightSheet } from './goal-drawers.jsx'
+import { bodyDetailsSheet, goalPickSheet, movementSheet, targetWeightSheet } from './goal-drawers.jsx'
 
 vi.mock('../../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
 
@@ -435,11 +435,5 @@ describe('Daily movement (Me3Movement), live', () => {
     const tdee = calls.filter(([k]) => k === 'tdee')
     expect(tdee).toHaveLength(1)
     expect(typeof tdee[0][1]).toBe('number')
-  })
-})
-
-describe('goal-M3 stubs', () => {
-  it('Daily targets and How this is worked out exist for the page to call', () => {
-    expect(() => { openTargets(); openHow() }).not.toThrow()
   })
 })

@@ -13,11 +13,13 @@ import { removeEntries } from '../../../lib/recent-changes-store.js'
 import '../../../lib/recent-changes-kinds.js'
 import GoalRoute from './GoalRoute.jsx'
 
-// The two drawers goal-M3 builds are stubs here: the page only has to call them.
-vi.mock('./goal-drawers.jsx', async importOriginal => ({ ...(await importOriginal()), openTargets: vi.fn(), openHow: vi.fn() }))
+// The two goal-M3 drawers are stubs here: the page only has to call them.
+vi.mock('./TargetsDrawer.jsx', () => ({ openTargets: vi.fn() }))
+vi.mock('./HowDrawer.jsx', () => ({ openHow: vi.fn() }))
 vi.mock('../../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.fn(), appBase: () => '/' }))
 
-import { openHow, openTargets } from './goal-drawers.jsx'
+import { openHow } from './HowDrawer.jsx'
+import { openTargets } from './TargetsDrawer.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 

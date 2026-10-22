@@ -3,6 +3,7 @@
 // is structured, so every sentence is made here, one formatter per kind. Pure; no JSX.
 import { dateLocale, t, tn } from '../../../lib/i18n.js'
 import { exCount, fmtDate, fmtNum, isoOf } from '../../../lib/format.js'
+import { movementLabel } from '../goal/goal-data.js'
 
 const DAY_MS = 86400000
 const SEP = ' · '
@@ -46,7 +47,7 @@ const kcal = v => (num(v) === null ? '' : t('{0} kcal', fmtNum(v)))
 const moved = (from, to) => arrow(from, to) || to
 
 // What a goal-change moved, from its facts { what, from, to, unit? }: the old and new value, or the
-// new one alone. Movement levels have no wording yet, so that kind keeps to the time.
+// new one alone.
 function goalDetail(facts, ctx) {
   const { what } = facts
   const unit = facts.unit || ctx.unit
@@ -63,6 +64,7 @@ function goalDetail(facts, ctx) {
         a.sex !== b.sex ? moved(sexName(a.sex), sexName(b.sex)) : '',
       ])
     }
+    case 'movement': return moved(movementLabel(from) || '', movementLabel(to) || '')
     case 'targets': return moved(kcal(from?.calories), kcal(to?.calories))
     default: return ''
   }

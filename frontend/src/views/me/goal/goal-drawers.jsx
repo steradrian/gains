@@ -12,6 +12,7 @@ import {
   BIRTH_YEAR, GOAL_IDS, HEIGHT_CM, SEX_IDS, birthYearMax, cmOfFeet, feetOf, goalLabel, goalSub, heightText, inUnit, movementLabel,
   movementOptions, parseWeight, sexLabel, targetPreview, weightText,
 } from './goal-data.js'
+import { announceSaved, failureText } from './goal-feedback.js'
 import { useGoal } from './use-goal.js'
 import './goal.css'
 
@@ -22,24 +23,6 @@ import './goal.css'
 // drawer (Log weight from Body details) they are sub-panels by themselves.
 
 const say = message => useUI.getState().toast(message)
-
-/** Why a write failed, in words. */
-export function failureText(error) {
-  if (error?.code === 'busy') return t('Another change is still saving. Try again in a moment.')
-  if (error?.code === 'profile-unsupported') return t('Changing this arrives soon')
-  return t('Check your connection and try again.')
-}
-
-/** The toast after a save: the new value and Undo for 8 s. A failed Undo says so. */
-export function announceSaved(message, res) {
-  useUI.getState().toast(message, {
-    action: t('Undo'),
-    onAction: async () => {
-      const back = await res.undo()
-      if (!back?.ok) say(failureText(null))
-    },
-  })
-}
 
 // Runs a write, closes on success and toasts what changed; on failure keeps the drawer and says why.
 function useSave(close) {
@@ -232,9 +215,3 @@ function MovementDrawer({ close }) {
   )
 }
 export const movementSheet = () => useUI.getState().openSheet(close => <MovementDrawer close={close} />, { variant: 'ds' })
-
-/* ============================ goal-M3 ============================ */
-// Daily targets (Me3Targets) and How this is worked out (Me3How) are goal-M3's drawers. These two
-// are what the page calls until it replaces them.
-export const openTargets = () => {}
-export const openHow = () => {}
