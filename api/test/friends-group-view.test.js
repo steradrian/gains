@@ -203,6 +203,33 @@ test('Trained together: two members, same routine, same day; either removes it, 
   assert.equal((await h.req('POST', `/api/friends/groups/${gid}/moments/${gone}/remove`, { as: 'u_bea', body: {} })).status, 404, 'a moment that is not there');
 });
 
+test('Trained together off on one workout: that workout is left out, for that person only, and back when switched on', async t => {
+  const push = (id, extra) => state({ workouts: [workout({ id, d: MONDAY, name: 'Push A', ...extra })] });
+  const OFF = { share: { together: false } };
+  const h = await startServer(t, { states: { u_ana: push('a1'), u_bea: push('b1', OFF), u_cy: push('c1') } });
+  const gid = await h.crew(['u_ana', 'u_bea', 'u_cy']);
+
+  let ana = await h.view('u_ana', gid);
+  assert.deepEqual(ofKind(ana, 'together').map(m => m.who), [['u_ana', 'u_cy']], 'Bea’s workout is out of it');
+  assert.ok(ofKind(ana, 'workout').some(m => m.who[0] === 'u_bea'), 'her workout still shows on its own');
+  assert.deepEqual(ana.togetherOff, [], 'nobody else is told');
+  let bea = await h.view('u_bea', gid);
+  assert.deepEqual(bea.togetherOff.map(m => [m.who, m.title, m.date]), [[['u_ana', 'u_bea', 'u_cy'], 'Push A', MONDAY]]);
+  assert.match(bea.togetherOff[0].id, /^together:2026-10-12:u_ana\+u_bea\+u_cy:/);
+
+  // Two people, one out: no moment for anyone; the one who is out can still bring it back.
+  await h.state('u_cy', push('c1', OFF));
+  for (const u of ['u_ana', 'u_bea', 'u_cy']) assert.deepEqual(ofKind(await h.view(u, gid), 'together'), [], u);
+  bea = await h.view('u_bea', gid);
+  assert.deepEqual(bea.togetherOff.map(m => m.who), [['u_ana', 'u_bea']], 'Cy is out too, so it would be Ana and Bea');
+
+  await h.state('u_bea', push('b1'));
+  ana = await h.view('u_ana', gid);
+  assert.deepEqual(ofKind(ana, 'together').map(m => m.who), [['u_ana', 'u_bea']]);
+  assert.deepEqual((await h.view('u_bea', gid)).togetherOff, []);
+  assert.equal(h.friends().groups[gid].removedMoments.length, 0, 'nothing was removed for the group');
+});
+
 test('a non-member gets exactly what an unknown id gets on the three routes, and nothing changes', async t => {
   const h = await startServer(t, { states: { u_ana: state({ workouts: [workout({ d: MONDAY })] }) } });
   const gid = await h.crew(['u_ana', 'u_bea']);

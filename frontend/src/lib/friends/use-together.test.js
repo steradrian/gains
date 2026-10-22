@@ -24,6 +24,12 @@ describe('togetherOf', () => {
     ])
   })
 
+  it('keeps a moment the viewer left this workout out of (togetherOff), so the row can come back', () => {
+    const group = { ...GROUP, moments: [], togetherOff: [{ id: 'm6', who: ['u1', 'u2', 'u3'], date: '2026-10-18', at: '2026-10-18T19:10:00' }] }
+    expect(togetherOf(group, '2026-10-18')).toEqual([{ gid: 'g1', mid: 'm6', names: ['Ioana', 'Mara'] }])
+    expect(togetherOf(group, '2026-10-17')).toEqual([])
+  })
+
   it('is empty when there is no such moment, no day or no viewer in the group', () => {
     expect(togetherOf(GROUP, '2026-10-01')).toEqual([])
     expect(togetherOf(GROUP, null)).toEqual([])

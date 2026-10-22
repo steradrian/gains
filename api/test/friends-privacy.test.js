@@ -17,7 +17,7 @@ const ALLOWED_KEYS = new Set([
   'id', 'name', 'since', 'memberCount', 'members', 'uid', 'initial', 'week', 'done', 'planned', 'noPlan', 'streak',
   'goalLine', 'kind', 'n', 'goal', 'creator', 'isCreator', 'targets', 'hit', 'of', 'weekDays', 'date', 'workouts',
   'muted', 'you', 'challenges', 'moments', 'who', 'title', 'detail', 'minutes', 'exercises', 'exercise', 'target',
-  'days', 'at', 'label', 'cheered', 'mine', 'cheersForMe', 'quiet', 'muteNotifications',
+  'days', 'at', 'label', 'cheered', 'mine', 'cheersForMe', 'quiet', 'muteNotifications', 'togetherOff',
   // Member
   'recent', 'consistency', 'share', 'reached', 'bests', 'shares', 'training',
   // FriendsMe

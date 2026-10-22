@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
-// workout.share = { off?: true, best?: [exerciseId] }: each choice writes exactly its field, a
-// default is never stored, Don't share this one keeps the rest and the workout, and a new best is
-// the exercise id only.
+// workout.share = { off?: true, best?: [exerciseId], together?: false }: each choice writes exactly
+// its field, a default is never stored, Don't share this one keeps the rest and the workout, and a
+// new best is the exercise id only.
 import { beforeEach, describe, expect, it } from 'vitest'
 import { DEF, useStore } from '../../store/useStore.js'
-import { setShareBest, setShareOff, shareOf } from './workout-share.js'
+import { setShareBest, setShareOff, setShareTogether, shareOf } from './workout-share.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const W = {
@@ -23,6 +23,29 @@ describe('shareOf', () => {
     expect(shareOf(null)).toEqual({})
     expect(shareOf({ share: { off: false, best: [], weight: 80, x: 1 } })).toEqual({})
     expect(shareOf({ share: { off: true, best: ['0227', '0227', 5] } })).toEqual({ off: true, best: ['0227'] })
+    expect(shareOf({ share: { together: true } })).toEqual({})
+    expect(shareOf({ share: { together: false } })).toEqual({ together: false })
+  })
+})
+
+describe('Trained together', () => {
+  it('off writes together: false on the record; on again removes the field', () => {
+    expect(setShareTogether(W, false)).toBe(true)
+    expect(rec().share).toEqual({ together: false })
+    expect(rec()._f.share).toBeGreaterThan(0)
+    expect(setShareTogether(W, false)).toBe(false)
+    expect(setShareTogether(W, true)).toBe(true)
+    expect('share' in rec()).toBe(false)
+  })
+
+  it('is kept by the other choices, and keeps them', () => {
+    setShareBest(W, '0227', true)
+    setShareTogether(W, false)
+    setShareOff(W, true)
+    expect(rec().share).toEqual({ off: true, best: ['0227'], together: false })
+    setShareOff(W, false)
+    setShareBest(W, '0227', false)
+    expect(rec().share).toEqual({ together: false })
   })
 })
 

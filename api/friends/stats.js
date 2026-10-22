@@ -16,7 +16,8 @@
  *   bests         the catalogue exercise of a new best (`workout.prs`) and its date, never the set
  * A workout marked `share.off` ("Don't share this one") still counts as a session and shows as
  * nothing else, not even a best. `share.best` names exercises of that workout whose new best is
- * shared with the bests switch off.
+ * shared with the bests switch off. `share.together: false` keeps that workout out of every
+ * Trained together moment (moments.js); it still shows as its own workout.
  *
  * Planned is the schedule as it is now, re-read on every call, as the app's own week line counts
  * it (frontend lib/queue.js weekTally): each weekday with a routine that still exists, plus the
@@ -59,7 +60,7 @@ const switches = share => ({
 
 function workoutShare(w) {
   const s = isObj(w.share) ? w.share : {};
-  return { off: s.off === true, best: Array.isArray(s.best) ? s.best.filter(x => typeof x === 'string') : [] };
+  return { off: s.off === true, best: Array.isArray(s.best) ? s.best.filter(x => typeof x === 'string') : [], together: s.together !== false };
 }
 const titleOf = w => cleanText(w.name, TITLE_MAX);
 function minutesOf(w) {
@@ -164,7 +165,8 @@ export function memberWeek(S, share, date) {
       minutes: minutesOf(w),
       exercises: records(w.entries).length,
       at: atOf(w),
-      together: togetherOf(w)
+      together: togetherOf(w),
+      ...(workoutShare(w).together ? {} : { togetherOff: true })
     }));
   }
 

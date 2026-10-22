@@ -2,12 +2,12 @@
 // "Friends will see" on the summary: absent unless Friends is on, there is a group and training is
 // shared; each switch writes exactly its field on the saved workout; Don't share this one turns the
 // other rows off and removes nothing; a new best shares the exercise id only; the Trained together
-// row exists only when the server has the moment.
+// row exists only when the server has the moment, and switching it writes this workout's
+// share.together, never a removal for the group.
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { click, useView } from '../ds/render.test-util.js'
 import { DEF, useStore } from '../store/useStore.js'
-import { useUI } from '../store/useUI.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -18,7 +18,6 @@ vi.mock('../lib/friends/api.js', async importActual => ({
   removeMoment: (...a) => mocks.removeMoment(...a),
 }))
 
-import { FriendsError } from '../lib/friends/api.js'
 import { __setMockTogether } from '../lib/friends/use-together.js'
 import WorkoutShareBlock from './WorkoutShareBlock.jsx'
 
@@ -131,22 +130,29 @@ describe('each choice writes exactly its field', () => {
 })
 
 describe('Trained together', () => {
-  it('switching it off takes the moment down for the group and writes nothing on the workout', async () => {
+  it('switching it off writes together: false on this workout only and removes nothing for the group', async () => {
     await show()
-    await act(async () => { switchOf('Trained together with Ioana').click() })
-    expect(mocks.removeMoment).toHaveBeenCalledWith('g1', 'm1')
-    expect('share' in rec()).toBe(false)
-    expect(switchOf('Trained together with Ioana').disabled).toBe(true)
+    click(switchOf('Trained together with Ioana'))
+    expect(rec().share).toEqual({ together: false })
+    expect(mocks.removeMoment).not.toHaveBeenCalled()
+    expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('false')
+    expect(switchOf('Trained together with Ioana').disabled).toBe(false)
     expect(view.host.textContent).toContain('Not shown in the group')
   })
 
-  it('a failed removal puts the switch back and toasts the error', async () => {
-    mocks.removeMoment.mockRejectedValue(new FriendsError('x', { code: 'offline' }))
-    const toast = vi.spyOn(useUI.getState(), 'toast').mockImplementation(() => {})
+  it('can be switched on again, which removes the field', async () => {
     await show()
-    await act(async () => { switchOf('Trained together with Ioana').click() })
+    click(switchOf('Trained together with Ioana'))
+    click(switchOf('Trained together with Ioana'))
+    expect('share' in rec()).toBe(false)
     expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('true')
-    expect(toast).toHaveBeenCalledWith("Couldn't do that. Try again when you're online.")
-    toast.mockRestore()
+    expect(view.host.textContent).toContain('Ioana logged Push A the same day')
+  })
+
+  it('a workout already left out shows the row off, ready to switch back on', async () => {
+    useStore.setState({ S: { ...clone(DEF), workouts: [{ ...clone(W), share: { together: false } }] } })
+    await show()
+    expect(switchOf('Trained together with Ioana').getAttribute('aria-checked')).toBe('false')
+    expect(switchOf('Trained together with Ioana').disabled).toBe(false)
   })
 })

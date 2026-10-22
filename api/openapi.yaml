@@ -5917,7 +5917,7 @@ components:
       allOf:
         - { $ref: '#/components/schemas/GroupSummary' }
         - type: object
-          required: [goal, creator, isCreator, targets, weekDays, members, challenges, moments, cheersForMe, quiet, muteNotifications]
+          required: [goal, creator, isCreator, targets, weekDays, members, challenges, moments, togetherOff, cheersForMe, quiet, muteNotifications]
           properties:
             goal: { $ref: '#/components/schemas/GroupGoal' }
             creator: { oneOf: [{ type: string }, { type: 'null' }], description: 'null while the creator is hidden (Friends off, disabled). A disabled creator stays creator: nobody else can remove members until they are back.' }
@@ -5983,6 +5983,22 @@ components:
                       title: { oneOf: [{ type: string }, { type: 'null' }] }
                   cheered: { type: boolean, description: 'api-m3 (stats-hook.js cheerState); false until then.' }
                   mine: { type: boolean }
+            togetherOff:
+              type: array
+              description: |
+                The viewer's own: Trained together moments of the last seven days they left a
+                workout out of (`workout.share.together: false`), which would show with that
+                workout switched on again. `id` is the moment's id then and `who` (join order)
+                includes the viewer. Nobody else sees these; muted members' and removed moments
+                are left out.
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  who: { type: array, items: { type: string } }
+                  title: { oneOf: [{ type: string }, { type: 'null' }] }
+                  date: { type: string, format: date }
+                  at: { oneOf: [{ type: string, format: date-time }, { type: 'null' }] }
             cheersForMe: { type: integer, description: 'api-m3 (stats-hook.js cheerCounts); 0 until then.' }
             quiet: { type: boolean, description: 'No done work this week: "Quiet so far".' }
             muteNotifications: { type: boolean, description: 'The viewer''s own switch (PUT /groups/{id}/prefs).' }
