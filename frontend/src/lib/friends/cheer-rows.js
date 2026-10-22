@@ -8,6 +8,29 @@ import { memberTone } from '../../ds/MemberAvatar.jsx'
 // carries a streak.
 
 const DAY_MS = 86400000
+const text = v => (typeof v === 'string' ? v : '')
+
+/** One GET /cheers row, cleaned: a row with no sender or no time is not shown (null). `at` becomes ms. */
+export function cheerOf(raw) {
+  const at = Date.parse(raw?.at)
+  const name = text(raw?.from?.name)
+  if (!raw || !name || !Number.isFinite(at)) return null
+  const group = raw.group && typeof raw.group === 'object' ? raw.group : { id: text(raw.group) }
+  return {
+    id: text(raw.id) || `${raw.kind}:${raw.ref}:${raw.from?.uid}`,
+    uid: text(raw.from?.uid),
+    name,
+    groupId: text(group.id),
+    groupName: text(group.name),
+    kind: ['moment', 'week', 'challenge'].includes(raw.kind) ? raw.kind : 'moment',
+    moment: text(raw.moment),
+    ref: text(raw.ref),
+    label: text(raw.label),
+    detail: text(raw.detail),
+    streak: Number.isFinite(raw.streak) ? raw.streak : 0,
+    at,
+  }
+}
 
 /** "2 h ago" within a day, else the short date, in the UI language. */
 export function cheerWhen(at, now = Date.now()) {

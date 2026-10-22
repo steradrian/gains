@@ -266,3 +266,65 @@ describe('isoWeekOf and targetPath', () => {
     expect(targetPath(null)).toBeNull()
   })
 })
+
+// Friends surfaces m1: cheers and invites, from the cached Friends data.
+describe('feedOf: Friends cheers and invites', () => {
+  const cheer = (name, d, hh, mm = 0) => ({ id: `${name}-${d}-${hh}`, uid: 'u-' + name, name, at: new Date(`${d}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`).getTime() })
+  const friends = (over = {}) => ({ cheers: [], invitations: [], challengeInvites: [], ...over })
+  const inv = { code: 'K7M2X9QPA4', group: { id: 'g1', name: 'Iron Sunday' }, from: { name: 'Mara' }, at: at('2026-10-20', 9) }
+  const ch = { cid: 'c1', group: { id: 'g1', name: 'Iron Sunday' }, from: { name: 'Radu' }, at: at('2026-10-20', 10) }
+
+  it('has no cheer or invite item while Friends is off', () => {
+    const items = feedOf(profile(), { now: NOW })
+    expect(of(items, 'cheer')).toEqual([])
+    expect(of(items, 'invite')).toEqual([])
+  })
+
+  it('one cheer item per evening, naming up to two people and counting the rest', () => {
+    const items = feedOf(profile(), { now: NOW, friends: friends({
+      cheers: [cheer('Mara', '2026-10-20', 19), cheer('Radu', '2026-10-20', 20), cheer('Ioana', '2026-10-20', 21), cheer('Vlad', '2026-10-19', 20), cheer('Mara', '2026-10-19', 21)],
+    }) })
+    const found = of(items, 'cheer')
+    expect(found.map(i => i.id)).toEqual(['cheer:2026-10-20', 'cheer:2026-10-19'])
+    expect(found[0]).toMatchObject({ title: 'Cheers for you', body: 'Ioana and 2 others cheered you', at: at('2026-10-20', 21), target: { route: '/me/groups/cheers' } })
+    expect(found[1].body).toBe('Mara and Vlad cheered you')
+  })
+
+  it('names one person once, however many times they cheered', () => {
+    const [item] = of(feedOf(profile(), { now: NOW, friends: friends({ cheers: [cheer('Mara', '2026-10-20', 19), cheer('Mara', '2026-10-20', 20)] }) }), 'cheer')
+    expect(item.body).toBe('Mara cheered you')
+  })
+
+  it('the id of an evening stays the same when another cheer lands, so a read survives', () => {
+    const first = of(feedOf(profile(), { now: NOW, friends: friends({ cheers: [cheer('Mara', '2026-10-20', 19)] }) }), 'cheer')[0]
+    const later = of(feedOf(profile(), { now: NOW, friends: friends({ cheers: [cheer('Mara', '2026-10-20', 19), cheer('Radu', '2026-10-20', 20)] }) }), 'cheer')[0]
+    expect(later.id).toBe(first.id)
+  })
+
+  it('an invitation and a challenge started, with stable ids and where a tap goes', () => {
+    const items = of(feedOf(profile(), { now: NOW, friends: friends({ invitations: [inv], challengeInvites: [ch] }) }), 'invite')
+    expect(items).toEqual([
+      expect.objectContaining({ id: 'challenge:c1', title: 'Radu started a challenge in Iron Sunday', target: { route: '/me/groups/g1/challenge/c1' } }),
+      expect.objectContaining({ id: 'group-invite:K7M2X9QPA4', title: 'Mara invited you to Iron Sunday', target: { route: '/me/groups/join/K7M2X9QPA4' } }),
+    ])
+  })
+
+  it('the invitation is gone once it is joined (/me no longer lists it)', () => {
+    const joined = feedOf(profile(), { now: NOW, friends: friends({ invitations: [] }) })
+    expect(of(joined, 'invite')).toEqual([])
+  })
+
+  it('leaves out an invite with no names or no time, and anything older than the feed reaches', () => {
+    const items = of(feedOf(profile(), { now: NOW, friends: friends({
+      invitations: [{ ...inv, from: {} }, { ...inv, code: 'B', at: undefined }, { ...inv, code: 'C', at: at('2026-08-01') }],
+      challengeInvites: [{ ...ch, group: { id: 'g1' } }],
+    }) }), 'invite')
+    expect(items).toEqual([])
+  })
+
+  it('sorts among the other kinds by time like the rest', () => {
+    const S = profile({ workouts: [workout('w1', '2026-10-12', 90), workout('w2', '2026-10-19', 96)] })
+    const ids = feedOf(S, { now: NOW, friends: friends({ cheers: [cheer('Mara', '2026-10-20', 19)] }) }).map(i => i.id)
+    expect(ids.indexOf('cheer:2026-10-20')).toBeLessThan(ids.indexOf('best:0025:w2'))
+  })
+})

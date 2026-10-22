@@ -14,7 +14,7 @@ vi.mock('../settings/confirm-drawer.js', () => ({ confirmDrawer: (...a) => mocks
 import { FriendsError } from '../../lib/friends/api.js'
 import { __setMockFriends } from '../../lib/friends/store.js'
 import { GROUP, ME_OFF, ME_ON, ME_ON_NO_GROUP } from '../../dev/screens/states/friends-fixture.js'
-import { friendsFeatureRow, groupsRow, groupsRowValue, groupsSeen, markGroupsSeen } from './me-rows.js'
+import { confirmTurnOff, friendsFeatureRow, groupsRow, groupsRowValue, groupsSeen, markGroupsSeen } from './me-rows.js'
 
 let undo = null
 const mock = (me, groups) => { undo = __setMockFriends({ me, groups }) }
@@ -119,5 +119,20 @@ describe('the Friends switch in Features', () => {
     mocks.turnOff.mockRejectedValue(new FriendsError('x', { code: 'offline' }))
     await onConfirm()
     expect(mocks.toast).toHaveBeenCalledWith("Couldn't do that. Try again when you're online.")
+  })
+})
+
+// Friends surfaces m1: the Today card's menu opens this same confirm and closes itself with onDone.
+describe('confirmTurnOff from another host', () => {
+  it('runs onDone once Friends is off, and not when turning it off failed', async () => {
+    const onDone = vi.fn()
+    confirmTurnOff({ onDone })
+    const { onConfirm } = mocks.confirm.mock.calls[0][0]
+    await onConfirm()
+    expect(onDone).toHaveBeenCalledTimes(1)
+    mocks.turnOff.mockRejectedValue(new FriendsError('x', { code: 'offline' }))
+    await onConfirm()
+    expect(onDone).toHaveBeenCalledTimes(1)
+    expect(mocks.toast).toHaveBeenCalledTimes(1)
   })
 })

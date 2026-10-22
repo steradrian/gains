@@ -1,4 +1,4 @@
-import { cheerOf } from '../../../lib/friends/use-cheers.js'
+import { cheerOf } from '../../../lib/friends/cheer-rows.js'
 import { GROUP, GROUP_QUIET, ME_ON } from './friends-fixture.js'
 
 // The mock of Friends surfaces m1 (the Today card, Cheers for you, the cheer and invite

@@ -17,7 +17,7 @@ export default function FriendsCard({ avatars, line, groupLine, cheered, labels,
       <StageSection title={<>{t('Friends')} <Tag tone="glass">{t('New')}</Tag></>} />
       <div className="today-friends">
         <GlassRow
-          eyebrow={<span className="g-mavatars">{avatars.map(a => <MemberAvatar key={a.initial} initial={a.initial} tone={a.tone} />)}</span>}
+          eyebrow={<span className="g-mavatars">{avatars.map((a, i) => <MemberAvatar key={i} initial={a.initial} tone={a.tone} />)}</span>}
           title={<Act onClick={onOpen} className="today-friends-open">{line}</Act>}
           sub={groupLine}
           trailing={<span className="today-friends-acts">

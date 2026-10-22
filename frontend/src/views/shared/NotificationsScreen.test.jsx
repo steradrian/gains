@@ -134,3 +134,28 @@ describe('NotificationsScreen', () => {
     expect(view.host.querySelector('.g-sbanner')).toBeNull()
   })
 })
+
+// Friends surfaces m1: the cheer and invite rows, and a page that names Friends only while it is on.
+describe('NotificationsScreen with Friends', () => {
+  const CHEER = { id: 'cheer:2026-10-17', kind: 'cheer', at: NOW - 2 * HOUR, title: 'Cheers for you', body: 'Mara and 2 others cheered you', target: { route: '/me/groups/cheers' } }
+  const INVITE = { id: 'group-invite:K7M2X9QPA4', kind: 'invite', at: NOW - 3 * HOUR, title: 'Mara invited you to Iron Sunday', body: 'See what the group shares, then join', target: { route: '/me/groups/join/K7M2X9QPA4' } }
+
+  it('draws a cheer row and an invite row with their own meta lines, and a tap opens them', () => {
+    const props = show({ sections: { new: [CHEER, INVITE], thisWeek: [], earlier: [] }, unreadCount: 2, isUnread: () => true, friends: true })
+    expect(rows().map(r => r.querySelector('b .g-sr').textContent)).toEqual(['New: Cheers for you', 'New: Mara invited you to Iron Sunday'])
+    expect(text()).toContain('Mara and 2 others cheered you')
+    expect(text()).toContain('Cheer · 2 hours ago')
+    expect(text()).toContain('Invite · 3 hours ago')
+    click(rows()[0])
+    expect(props.onOpen).toHaveBeenCalledWith(CHEER)
+  })
+
+  it('names Friends in its line and its empty scene only while Friends is on', () => {
+    show({ friends: true })
+    expect(text()).toContain('Reminders you set, streaks, new bests, Coach changes and Friends')
+    show({ friends: false })
+    expect(text()).not.toContain('Friends')
+    show({ sections: NONE, unreadCount: 0, friends: true, hasReminders: false })
+    expect(text()).toContain('Streaks, new bests, Coach changes and Friends show up here.')
+  })
+})
