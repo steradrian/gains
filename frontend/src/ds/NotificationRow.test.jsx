@@ -78,6 +78,6 @@ describe('NotificationRow', () => {
   })
 
   it('refuses a kind it has no glyph for, in development', () => {
-    expect(() => view.render(<NotificationRow kind="cheer" title="x" />)).toThrow(/kind="cheer"/)
+    expect(() => view.render(<NotificationRow kind="shrug" title="x" />)).toThrow(/kind="shrug"/)
   })
 })

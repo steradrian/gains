@@ -15,6 +15,7 @@ import { useSettingsCtx } from '../use-settings-ctx.js'
 import { settingsPath } from '../paths.js'
 import FeaturesScreen from './FeaturesScreen.jsx'
 import { friendsRow } from './features-rows.js'
+import { useFriendsMe } from '../../../lib/friends/use-friends.js'
 
 // Settings > Features: wires the store to FeaturesScreen. Every write is one the app already had:
 // Fasting is NutriTrace's `fastingEnabled` (setFastingEnabled), Water its `waterShowInDiary`
@@ -30,6 +31,7 @@ export default function FeaturesPage() {
   const toast = useUI(s => s.toast)
   const nt = useNtSettings()
   const settingsStatus = useNutrition(s => s.settings.status)
+  useFriendsMe()   // the Friends switch (friendsRow) reads that cache: draw again when it changes
   const [switching, setSwitching] = useState(false)
   const [error, setError] = useState(null)
 
@@ -87,7 +89,7 @@ export default function FeaturesPage() {
         disabled: !ctx.ntSettings || !!nt.busy.waterShowInDiary,
         onChange: v => nt.save('waterShowInDiary', v),
       } : null}
-      extra={friendsRow({ S, ctx, update })}
+      extra={friendsRow({ S, ctx, update, nav })}
       links={featuresFor(ctx).map(e => ({
         key: e.page + ':' + e.title, icon: PAGES[e.page].icon, title: t(e.title), sub: pageTrail(e.page), value: valueOf(e),
         onClick: () => nav(settingsPath(e.page), { state: e.via ? { find: e.title, via: e.via } : { find: e.title } }),

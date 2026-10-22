@@ -2,6 +2,7 @@ import { PROGRESS_ROOT } from '../../lib/tab-route.js'
 import { COACH_COMING_SOON } from '../../lib/coach-availability.js'
 import { PAGES, pageVisible } from '../settings-pages.js'
 import { settingsPath } from './paths.js'
+import { groupsRow } from '../friends/me-rows.js'
 
 // The Settings root, top to bottom (boards St1Settings, A1.0): which rows each group holds, in
 // what words, and where a row goes. This is the one source for the root; settings-pages.js says
@@ -57,9 +58,13 @@ export const ROOT_GROUPS = [
 /**
  * Rows other boards add to a group, by group key (`yours`, `track`, ...): the Friends board's
  * Groups row goes into `yours` or `track`. A row is `{ id, title, sub, icon, to, visible }` as above;
- * `to` is its address, `visible(ctx)` its rule. Nothing is added yet.
+ * `to` is its address, `visible(ctx)` its rule.
  */
-export const ROOT_ROW_SLOTS = { yours: [], track: [] }
+export const ROOT_ROW_SLOTS = {
+  yours: [],
+  // Friends core m1: Groups (views/friends/me-rows.js). The Me board moves it to ME_ROW_SLOTS.you.
+  track: [groupsRow],
+}
 
 export const rowVisible = (row, ctx) => (row.visible ? row.visible(ctx) : pageVisible(row.id, ctx))
 

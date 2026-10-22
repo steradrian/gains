@@ -4,6 +4,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setAvailableOverride } from '../lib/friends/api.js'
 import { PAGES, PAGE_IDS, SEARCH, featuresFor, pageExists, pageVisible, searchSettings, pageTrail, fold } from './settings-pages.js'
 
 await preloadPages()
@@ -85,6 +86,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   host.remove()
+  setAvailableOverride(null)
   delete navigator.vibrate
 })
 
@@ -124,6 +126,9 @@ describe('the search lands on a row', () => {
   })
   for (const [name, setUp] of Object.entries(scenarios)) it(name, async () => {
     setUp()
+    // Friends is there when signed in; the hub stub answers /me with nothing, which would mark the
+    // routes missing mid-test.
+    setAvailableOverride(!!mocks.user)
     const ctx = ctxNow()
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, ctx) && (!e.when || e.when(ctx))) (byPage[e.page ?? 'root'] ||= []).push(e.title)
@@ -159,6 +164,10 @@ describe('the search lands on a row', () => {
     expect(searchSettings('install', { ...web, installTip: false }, tr)).toEqual([])
     expect(searchSettings('backup folder', { ...guestWeb, mobile: true, android: true, autoBackup: true }, tr).map(h => h.title)).toEqual(['Backup folder'])
     expect(searchSettings('backup folder', { ...guestWeb, mobile: true, android: true }, tr)).toEqual([])
+    setAvailableOverride(true)
+    expect(searchSettings('groups', web, tr).map(h => h.title)).toContain('Friends')
+    setAvailableOverride(false)
+    expect(searchSettings('friends', web, tr).map(h => h.title)).not.toContain('Friends')
   })
 
   it('a web reminder row waits for push to answer, and flashes Push notifications when it stays off', async () => {

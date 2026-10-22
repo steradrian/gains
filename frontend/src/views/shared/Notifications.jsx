@@ -8,10 +8,10 @@ import NotificationsScreen from './NotificationsScreen.jsx'
 // (lib/tab-route.js parentOf). Me › Reminders holds the reminder settings.
 export default function Notifications() {
   const nav = useNavigate()
-  const { sections, unreadCount, isUnread, markAllRead, open, permission, homeScreen, hasReminders, turnOn } = useNotifications()
+  const { sections, unreadCount, isUnread, markAllRead, open, permission, homeScreen, hasReminders, turnOn, friendsOn } = useNotifications()
   return (
     <NotificationsScreen
-      sections={sections} unreadCount={unreadCount} isUnread={isUnread} permission={permission} homeScreen={homeScreen} hasReminders={hasReminders}
+      sections={sections} unreadCount={unreadCount} isUnread={isUnread} permission={permission} homeScreen={homeScreen} hasReminders={hasReminders} friends={friendsOn}
       onOpen={open} onMarkAllRead={markAllRead} onTurnOn={turnOn} onReminders={() => nav('/me/reminders')} onBack={() => back()}
     />
   )

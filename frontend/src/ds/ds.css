@@ -2525,6 +2525,96 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-nc-undo:active { background: var(--glass); }
 .g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 
+/* Friends core m1: MemberAvatar (an initial in a circle), MemberRing (a segment per member).
+   Per-person colours are the app's calm palette, never red; `glass` is the stage's own glass. The
+   tone ids are not CSS colour names, so the colour guards read them as ids and not as colours. */
+.g-mtone-glass { --mtone: var(--on-stage); --mtone-bg: var(--glass); --mtone-ink: var(--on-stage); }
+.g-mtone-mint { --mtone: var(--mint); --mtone-bg: var(--mint); --mtone-ink: var(--on-acc); }
+.g-mtone-sky { --mtone: var(--blue); --mtone-bg: var(--blue); --mtone-ink: var(--on-stage); }
+.g-mtone-iris { --mtone: var(--purple); --mtone-bg: var(--purple); --mtone-ink: var(--on-stage); }
+.g-mtone-amber { --mtone: var(--orange); --mtone-bg: var(--orange); --mtone-ink: var(--on-acc); }
+.g-mtone-sage { --mtone: var(--green); --mtone-bg: var(--green); --mtone-ink: var(--on-acc); }
+.g-mavatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: var(--mtone-bg); color: var(--mtone-ink); font: 700 14px/1 var(--font-sans); }
+.g-mavatar-sm { width: 24px; height: 24px; font-size: 12px; }
+.g-mavatar-md { width: 32px; height: 32px; }
+.g-mavatar-lg { width: 48px; height: 48px; font-size: 20px; }
+.g-mavatars { display: inline-flex; align-items: center; }
+.g-mavatars .g-mavatar + .g-mavatar { margin-inline-start: -6px; }
+.g-mring { position: relative; display: block; flex: none; }
+.g-mring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.g-mring-track { stroke: var(--glass-track); }
+.g-mring-val { stroke: var(--mtone); }
+.g-fgroups { display: flex; flex-direction: column; gap: 12px; }
+.g-jsheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; font-family: var(--font-sans); }
+.g-mring-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
+
+/* Friends core m2: the drawers' fine print, and the people list of Invite (plain rows, no glass). */
+.g-jsheet-note { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-ipeople-h { margin: 8px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+.g-ipeople { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.g-ipeople-row { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.g-ipeople-body { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-ipeople-body b { font: 600 17px/22px var(--font-sans); color: var(--text); }
+.g-ipeople-body span { font: 400 14px/20px var(--font-sans); color: var(--text-3); }
+.g-ipeople-done { font: 600 14px/20px var(--font-sans); color: var(--text-3); }
+
+/* Friends group m2: the Member page's header (avatar, name and since line, Cheer pill). Layout only;
+   the pill is a ds/Button and the rest of the page is kit components. */
+.g-mhead { display: flex; align-items: center; gap: 14px; }
+.g-mhead-text { flex: 1; min-width: 0; text-align: start; }
+.g-mhead-text .g-spage-title { overflow-wrap: anywhere; }
+.g-mhead > .g-btn { flex: none; }
+/* Friends group m1: the group's week block (ring, lines, legend) and MomentRow. Glass is the kit's
+   `.g-glass`; nothing here draws its own material. */
+.g-gweek { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 20px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-gweek-cap { font: 600 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-gweek-num { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-gweek-unit { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-gweek-lines { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; font: 600 15px/20px var(--font-sans); }
+.g-gline { display: inline-flex; align-items: center; gap: 6px; }
+.g-gline .g-icon { width: 16px; height: 16px; flex: none; }
+.g-glegend { list-style: none; margin: 0; padding: 20px 24px 8px; display: flex; flex-direction: column; gap: 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-glegend li { display: flex; align-items: center; gap: 12px; font: 600 16px/22px var(--font-sans); }
+.g-glegend-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.g-glegend-n { flex: none; color: var(--on-stage-2); font-variant-numeric: tabular-nums; }
+.g-mlist { list-style: none; margin: 0 16px; padding: 0; border-radius: 24px; }
+.g-mrow { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 16px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-mrow + .g-mrow::before { content: ""; position: absolute; top: 0; inset-inline-start: 16px; inset-inline-end: 16px; border-top: 1px solid var(--glass-line); }
+.g-mrow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: start; }
+.g-mrow-body b { font: 600 16px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-mrow-sub { font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); overflow-wrap: anywhere; }
+.g-mrow-end { display: flex; align-items: center; gap: 2px; flex: none; }
+.g-mrow-on { pointer-events: none; cursor: default; }
+/* Friends surfaces m1: CheerList and CheerRow (Cheers for you). The card is NotificationGroup's
+   glass; a row is information, so it is not tappable. */
+.g-clist { list-style: none; padding: 0; }
+.g-crow { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; }
+.g-crow + .g-crow { border-top: 1px solid var(--glass-line); }
+.g-crow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: start; }
+.g-crow-body b { font: 600 17px/22px var(--font-sans); }
+.g-crow-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-crow-body small { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); opacity: .85; }
+
+/* Friends challenge m1: SharedBar (one bar a group fills, a colour per person) and the challenge page's
+   count, caption and Who's in rows. Glass is the kit's `.g-glass`; nothing here draws its own material. */
+.g-sbar { display: block; height: 22px; border-radius: 11px; background: var(--glass-track); overflow: hidden; }
+.g-sbar-fill { display: flex; height: 100%; animation: g-sbar-in 600ms cubic-bezier(.32,.72,0,1) both; }
+.g-sbar-seg { display: block; flex: 0 1 0; height: 100%; background: var(--mtone-bg); transition: flex-basis 480ms cubic-bezier(.32,.72,0,1); }
+.g-sbar-seg + .g-sbar-seg { margin-inline-start: 2px; }
+@keyframes g-sbar-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+[dir="rtl"] .g-sbar-fill { animation-name: g-sbar-in-rtl; }
+@keyframes g-sbar-in-rtl { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) { .g-sbar-fill { animation: none; } .g-sbar-seg { transition: none; } }
+.g-cprog { display: flex; flex-direction: column; gap: 14px; padding: 8px 20px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-ccount { display: flex; flex-direction: column; gap: 2px; text-align: start; }
+.g-ccount b { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-ccount span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-cnote { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-cstreak { display: block; margin-top: 10px; font: 600 15px/20px var(--font-sans); color: var(--on-stage); }
+.g-cend { font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-stage-2); }
+.g-mrow-dim { opacity: 0.55; }
+.g-jsheet-h { margin: 8px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+
 /* === Workout stepper tile (SetStepper; owner bug: three-field cardio rows at 390pt) === */
 /* The tile lays itself out by its own width, not the viewport or the field count. A container query
    measures the content box: 200px tile − 20px side padding = 180px, the least that holds two 48px

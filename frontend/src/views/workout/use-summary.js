@@ -1,7 +1,7 @@
 // The summary after Finish and save (boards W2.0 Wk2Summary and W2.2 Wk2First), read from the
 // saved workout by id, so a reload of /train/workout/summary/:id shows the same page. It holds
 // what the old finish sheet showed (tiles, bests, the muscle map, last and next time, cardio,
-// photos) and nothing the data cannot back: no Friends section (owner question 7), no delta
+// photos) and nothing the data cannot back: no delta
 // without a previous workout of the same routines.
 import { useMemo } from 'react'
 import { useStore } from '../../store/useStore.js'
