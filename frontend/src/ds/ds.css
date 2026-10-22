@@ -2521,3 +2521,13 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-fgroups { display: flex; flex-direction: column; gap: 12px; }
 .g-jsheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; font-family: var(--font-sans); }
 .g-mring-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
+
+/* Friends core m2: the drawers' fine print, and the people list of Invite (plain rows, no glass). */
+.g-jsheet-note { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.g-ipeople-h { margin: 8px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+.g-ipeople { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.g-ipeople-row { display: flex; align-items: center; gap: 12px; min-height: 56px; }
+.g-ipeople-body { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-ipeople-body b { font: 600 17px/22px var(--font-sans); color: var(--text); }
+.g-ipeople-body span { font: 400 14px/20px var(--font-sans); color: var(--text-3); }
+.g-ipeople-done { font: 600 14px/20px var(--font-sans); color: var(--text-3); }
