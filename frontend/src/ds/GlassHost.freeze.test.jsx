@@ -38,9 +38,32 @@ describe('GlassHost with an engine', () => {
   it('is gl only while the engine is live and a stage is on screen', async () => {
     await view.render(<Page stage />)
     expect(document.documentElement.dataset.lg).toBe('css')
+    vi.useFakeTimers()
+    try {
+      act(() => report('webgl'))
+      // The reveal is a 300 ms cross-fade: the canvases fade in over the CSS material, then data-lg flips.
+      expect(document.documentElement.dataset.lg).toBe('css')
+      expect(document.documentElement.dataset.lgFade).toBe('')
+      act(() => { vi.advanceTimersByTime(300) })
+      expect(document.documentElement.dataset.lg).toBe('gl')
+      expect(document.documentElement.dataset.lgFade).toBeUndefined()
+      act(() => report('fallback'))
+      expect(document.documentElement.dataset.lg).toBe('css')
+    } finally { vi.useRealTimers() }
+  })
+
+  it('reveals at once under reduce motion, and a fallback mid-fade cancels it', async () => {
+    await view.render(<Page stage />)
+    document.documentElement.dataset.motion = 'reduce'
+    try {
+      act(() => report('webgl'))
+      expect(document.documentElement.dataset.lg).toBe('gl')
+      act(() => report('fallback'))
+    } finally { delete document.documentElement.dataset.motion }
     act(() => report('webgl'))
-    expect(document.documentElement.dataset.lg).toBe('gl')
+    expect(document.documentElement.dataset.lgFade).toBe('')
     act(() => report('fallback'))
+    expect(document.documentElement.dataset.lgFade).toBeUndefined()
     expect(document.documentElement.dataset.lg).toBe('css')
   })
 

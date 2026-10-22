@@ -7,7 +7,7 @@ import { isChrome, KIND, swollen } from './glass-kinds.js'
 import { createRegistry } from './glass-registry.js'
 import { createScheduler } from './glass-scheduler.js'
 import { createStats } from './glass-stats.js'
-import { clearFallback, createWatchdog, glassIsOff, recordFallback } from './glass-watchdog.js'
+import { clearFallback, createWatchdog, glassIsOff, recordFallback, REVEAL_MS } from './glass-watchdog.js'
 import { createMaterialProbe } from './material-probe.js'
 import { createChromePresenter } from './presenter-chrome.js'
 import { createSpritePresenter } from './presenter-sprite.js'
@@ -49,6 +49,7 @@ export function createGlassEngine({
   let scheduler = null
   let registry = null
   let live = false // 'webgl' reported: the shapes are marked and the CSS fill is off
+  let hasDrawn = false // a frame has put glass on a canvas
   let frozen = false // the host's pause: a sheet, the search overlay, a hidden document
   const lostFrom = new Set() // presenters whose context is gone, or 'watchdog'
   const applyPause = () => scheduler?.setPaused(frozen || lostFrom.size > 0)
@@ -63,7 +64,11 @@ export function createGlassEngine({
     applyPause()
     goCss()
   }
-  const restore = who => { lostFrom.delete(who); applyPause() }
+  const restore = who => {
+    lostFrom.delete(who)
+    watchdog?.grace(performance.now()) // the presenter was rebuilt: its first frames are slow
+    applyPause()
+  }
 
   const stats = createStats()
   const chromeGl = createChromePresenter()
@@ -153,6 +158,18 @@ export function createGlassEngine({
     return { ...s, ...swollen(s, p.v, { reduced: stillNow(), stretch, bar: s.bar }), press: p.v, touch: p.touch, box }
   }
 
+  // The glass is drawn from the first frame but stays hidden (the CSS material, data-lg="css") until the
+  // watchdog has proven the device holds it, so a device that cannot never shows a glass that then turns
+  // frosted. The dev page (no watchdog) shows it at once.
+  function reveal(now) {
+    if (live || !hasDrawn || lostFrom.size > 0) return
+    if (watchdog && !watchdog.proven(now)) return
+    live = true
+    clearFallback()
+    registry.setMarked(true)
+    onStatus('webgl')
+  }
+
   // `rafMs`: the display's frame interval (a scroll runs glass frames only every other rAF, so `dt` is not it).
   function frame(dt, rafMs) {
     const t0 = performance.now()
@@ -167,6 +184,7 @@ export function createGlassEngine({
     }
     const t1 = performance.now()
     watchdog?.frame(changed.drew, t1 - t0, rafMs, t0)
+    reveal(t1)
     if (rafMs > 0 && rafMs < RUN_GAP_MS) stats.push('interval', rafMs, t0)
     if (changed.drew) stats.push('frame', t1 - t0, t0)
     return changed.any
@@ -242,12 +260,7 @@ export function createGlassEngine({
     })
     drawStage(inp, look, material)
     const drew = drewChrome || sp.drew
-    if (drew && !live && lostFrom.size === 0) {
-      live = true
-      clearFallback()
-      registry.setMarked(true)
-      onStatus('webgl')
-    }
+    if (drew) hasDrawn = true
     record(t0, t1, drewChrome, sp, chrome, inFlow)
     return { drew, any: moving || easing || drew || sp.pending }
   }
@@ -281,15 +294,23 @@ export function createGlassEngine({
     pressable: el => registry.shapes.get(el)?.pressable ?? false,
   })
   scheduler.wake('mount')
+  // At rest no frame runs, so a timer asks for the one that reveals the glass once it is proven.
+  const revealTimer = watchdog ? setTimeout(() => scheduler.wake('reveal'), REVEAL_MS + 100) : 0
 
   return {
-    wake: reason => scheduler.wake(reason),
+    wake: reason => {
+      // A new look, accent or route (the inputs) restarts the settling of a page: slow frames there are not the glass's.
+      if (reason === 'inputs') watchdog?.grace(performance.now())
+      scheduler.wake(reason)
+    },
     setFrozen(flag) {
+      if (frozen && !flag) watchdog?.grace(performance.now())
       frozen = flag
       applyPause()
     },
     stats,
     dispose() {
+      clearTimeout(revealTimer)
       scheduler.dispose()
       sprites.dispose()
       registry.dispose()

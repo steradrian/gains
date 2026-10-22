@@ -1,5 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useColorMode } from '../lib/color-mode.js'
+import { reducedMotion } from '../lib/reduced-motion.js'
 import { useSearch } from '../lib/search/session.js'
 import { reducedTransparency, onReducedTransparencyChange } from '../lib/reduced-transparency.js'
 import { DEFAULT_INTENSITY } from '../lib/stage-look/index.js'
@@ -23,6 +24,7 @@ import { recordFallback } from './glass/glass-watchdog.js'
 // own ground and stage inputs. `onStatus` also reports 'webgl' | 'fallback' | 'reduced' to that caller.
 const APP_GROUND = '.g-route[data-shared], #tabbar, #timer'
 const STAGE = '.g-route[data-shared] .g-stage'
+const FADE_MS = 300 // keep in step with the lg-in animation in ds.css
 
 /**
  * @param {{ groundRef?: { current: Element | null }, look?: string, accent?: string, pushed?: boolean,
@@ -52,7 +54,7 @@ export default function GlassHost({
   const statusRef = useRef(onStatus)
   const inputsRef = useRef(null)
   // What decides data-lg and the freeze. Plain refs: the page is repainted from here, not by a render.
-  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false })
+  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false, fade: 0 })
 
   inputsRef.current = {
     look: look ?? stored.look,
@@ -75,7 +77,16 @@ export default function GlassHost({
     const s = stateRef.current
     const lg = s.reduced ? 'reduced' : s.engine === 'webgl' && !s.noStage ? 'gl' : 'css'
     if (lg === 'css' && s.engine === 'webgl' && s.noStage) recordFallback('no-stage')
-    if (document.documentElement.dataset.lg !== lg) document.documentElement.dataset.lg = lg
+    const root = document.documentElement
+    if (lg !== 'gl' && s.fade) { clearTimeout(s.fade); s.fade = 0; delete root.dataset.lgFade }
+    // CSS -> GL is a cross-fade: for FADE_MS the canvases fade in over the CSS material (html[data-lg-fade],
+    // ds.css), then data-lg flips and the CSS fill goes. Reduce motion flips at once.
+    if (lg === 'gl' && root.dataset.lg !== 'gl' && !reducedMotion()) {
+      if (!s.fade) {
+        root.dataset.lgFade = ''
+        s.fade = setTimeout(() => { s.fade = 0; delete root.dataset.lgFade; root.dataset.lg = 'gl' }, FADE_MS)
+      }
+    } else if (root.dataset.lg !== lg) root.dataset.lg = lg
     engineRef.current?.setFrozen(s.reduced || s.noStage || s.sheet || s.search || s.hidden)
   }
 
@@ -141,6 +152,9 @@ export default function GlassHost({
       if (checking) cancelAnimationFrame(checking)
       document.removeEventListener('visibilitychange', onVisible)
       state.engine = 'css'
+      clearTimeout(state.fade)
+      state.fade = 0
+      delete document.documentElement.dataset.lgFade
       document.documentElement.dataset.lg = 'css'
     }
   }, [groundRef, cardDprIn, shadowIn, watchdog, statsRef, reduced])

@@ -10,7 +10,7 @@ const summary = read('views/workout/summary.css')
 
 describe('glass fallback CSS', () => {
   it('hides the chrome strip unless the host is live, and under the search overlay', () => {
-    expect(ds).toMatch(/html:not\(\[data-lg="gl"\]\) \.gl-layer-over,\s*body\.search-open \.gl-layer-over\s*\{\s*display:\s*none/)
+    expect(ds).toMatch(/html:not\(\[data-lg="gl"\], \[data-lg-fade\]\) \.gl-layer-over,\s*body\.search-open \.gl-layer-over\s*\{\s*display:\s*none/)
   })
 
   it('draws the two glass focus rings as outlines, which a sprite cannot cover', () => {
