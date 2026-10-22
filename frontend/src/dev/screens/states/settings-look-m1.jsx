@@ -13,12 +13,13 @@ const onStage = page => () => (
   </>
 )
 
-// The phone's own "reduce motion" for as long as the state shows: ctx.systemMotion reads it on render.
-function PhoneReducesMotion({ children }) {
+// The phone's own "reduce motion" (or "reduce transparency") for as long as the state shows:
+// ctx.systemMotion and ctx.systemTransparency read it on render.
+function PhoneReduces({ feature, children }) {
   const [on, setOn] = useState(false)
   useEffect(() => {
     const real = window.matchMedia
-    window.matchMedia = q => (q.includes('prefers-reduced-motion')
+    window.matchMedia = q => (q.includes(`prefers-reduced-${feature}`)
       ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }
       : real.call(window, q))
     setOn(true)
@@ -37,7 +38,9 @@ registerScreens('Settings', [
   { id: 'A1.2.auto', title: 'Appearance: nothing chosen', note: 'No accent and no look stored: the mode\'s default is lit (dark: Ink and Bloom).',
     render: onStage('appearance'), mock: mock({ theme: 'dark', accent: null, bgLook: null }) },
   { id: 'A1.2.motion', title: 'Appearance: Reduce motion locked', note: 'The phone already reduces motion: the switch is on and says why.',
-    render: () => <PhoneReducesMotion>{onStage('appearance')()}</PhoneReducesMotion>, mock: mock({ theme: 'dark', accent: 'cobalt' }) },
+    render: () => <PhoneReduces feature="motion">{onStage('appearance')()}</PhoneReduces>, mock: mock({ theme: 'dark', accent: 'cobalt' }) },
+  { id: 'A1.2.transparency', title: 'Appearance: Reduce transparency locked', note: 'The phone already reduces transparency: the switch is on and says why.',
+    render: () => <PhoneReduces feature="transparency">{onStage('appearance')()}</PhoneReduces>, mock: mock({ theme: 'dark', accent: 'cobalt' }) },
   { id: 'A1.3', title: 'Background (Classic)', note: 'Classic has no intensity: the slider is replaced by a line.',
     render: onStage('background'), mock: mock({ theme: 'dark', accent: 'cobalt', bgLook: 'plain' }) },
   { id: 'A1.37', title: 'Background with Silk', note: 'The page itself shows the look at inner-page strength; Silk carries the dramatic warning.',

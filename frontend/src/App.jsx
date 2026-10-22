@@ -178,6 +178,11 @@ function Shell() {
     if (S.reduceMotion === true) document.documentElement.dataset.motion = 'reduce'
     else delete document.documentElement.dataset.motion
   }, [S.reduceMotion])
+  // Liquid glass: Appearance › Reduce transparency. GlassHost watches the attribute.
+  useEffect(() => {
+    if (S.reduceTransparency === true) document.documentElement.dataset.transparency = 'reduce'
+    else delete document.documentElement.dataset.transparency
+  }, [S.reduceTransparency])
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.

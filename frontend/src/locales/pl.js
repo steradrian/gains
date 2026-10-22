@@ -4492,5 +4492,8 @@ export default {
   'Food is off': 'Food is off',
   'Turn it on to log meals, water and fasting.': 'Turn it on to log meals, water and fasting.',
   'Turn Food back on': 'Turn Food back on',
+  'Reduce transparency': 'Reduce transparency',
+  'Solid surfaces instead of glass.': 'Solid surfaces instead of glass.',
+  'Follows your phone.': 'Follows your phone.',
   "This country can't be saved yet": "This country can't be saved yet",
 }

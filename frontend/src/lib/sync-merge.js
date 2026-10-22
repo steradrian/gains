@@ -890,6 +890,8 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   // The accent fields end up in CSS: whatever either copy brought, only a clean value goes on.
   sanitizeAccent(out)
   sanitizeStageLook(out)
+  // Liquid glass: a switch, so only a boolean goes on; anything else reads as off (absent).
+  if ('reduceTransparency' in out && typeof out.reduceTransparency !== 'boolean') delete out.reduceTransparency
   return out
 }
 
