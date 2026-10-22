@@ -50,7 +50,7 @@ export default function StageHeader({
   return (
     <header className={cx('g-shdr', open && 'g-shdr-open', pinned && 'g-shdr-pin')}>
       {title && <h1 className="sr-only">{title}</h1>}
-      <Act href={settingsHref} onClick={onSettings} ariaLabel={alert ? t('Settings') + ', ' + alert : t('Settings')} className="g-sbtn g-glass" data-glass="control">
+      <Act href={settingsHref} onClick={onSettings} ariaLabel={alert ? t('Settings') + ', ' + alert : t('Settings')} className="g-sbtn g-glass" glass="control">
         {letter}
         {alert && <span className="g-sdot" aria-hidden="true" />}
       </Act>
@@ -70,12 +70,12 @@ export default function StageHeader({
             <Icon name="scanBarcode" className="g-icon" />
           </button>}
         </label>
-        : <Act href={open ? undefined : searchHref} onClick={() => set(true)} className="g-spill g-glass" data-glass="control">
+        : <Act href={open ? undefined : searchHref} onClick={() => set(true)} className="g-spill g-glass" glass="control">
           {glyph}
           <span>{text}</span>
         </Act>}
       {action && !open && <span className="g-shdr-act">{action}</span>}
-      <Act href={open ? undefined : bellHref} onClick={() => (open ? set(false) : onBell?.())} ariaLabel={bellName} className={cx('g-sbtn g-glass g-bell', open && 'g-bell-close')} data-glass="control">
+      <Act href={open ? undefined : bellHref} onClick={() => (open ? set(false) : onBell?.())} ariaLabel={bellName} className={cx('g-sbtn g-glass g-bell', open && 'g-bell-close')} glass="control">
         <span className="g-bell-a" aria-hidden="true"><Icon name="bell" className="g-icon" /></span>
         <span className="g-bell-b" aria-hidden="true"><Icon name="xmark" className="g-icon" /></span>
         {unread > 0 && !open && <span className="g-sdot" aria-hidden="true" />}
