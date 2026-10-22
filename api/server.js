@@ -41,6 +41,9 @@ import { hubKeysFromEnv } from './hub-token.js';
 import { syncRoutes } from './sync-routes.js';
 import { coachCadenceOn } from './reminder-context.js';
 import { createAggregator } from './audit-aggregate.js';
+// Friends api m1
+import { friendsRoutes, friendsRouteKey } from './friends/routes.js';
+import { purgeUser as purgeFriends } from './friends/purge.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -2083,6 +2086,10 @@ function deleteUserData(u, { req = null, actor = null, auditKind }) {
   db.subs = (db.subs || []).filter(x => x.userId !== u.id);
   dropDeviceLinks(db, u.id);
   presence.delete(u.id);
+  // Friends api m1: out of every group, invite and invitation (friends/purge.js, its own file).
+  // A failure is logged and the delete goes on: a member whose account is gone is skipped on
+  // every Friends read anyway.
+  try { purgeFriends(u.id); } catch (e) { console.error('friends purge failed for', u.id, e.message); }
   saveDb();
   // Logged with the name, because the id is about to mean nothing to anyone reading this back.
   audit(req, auditKind, actor ? { user: actor, msg: name } : { uid: u.id, msg: name });
@@ -2785,6 +2792,9 @@ const routes = {
     if (u.disabled) presence.delete(u.id);   // drop them off "training now" at once
     // A device link made before the lock would otherwise still be waiting when it is lifted.
     if (u.disabled) dropDeviceLinks(db, u.id);
+    // Friends api m1: a disabled account leaves every group and invite now, as a deleted one
+    // does; enabling it again does not bring the memberships back.
+    if (u.disabled) { try { purgeFriends(u.id); } catch (e) { console.error('friends purge failed for', u.id, e.message); } }
     saveDb();
     audit(req, u.disabled ? 'admin.user.disable' : 'admin.user.enable', { user: admin, target: u });
     json(res, 200, { ok: true, id: u.id, disabled: u.disabled });
@@ -2890,6 +2900,11 @@ const routes = {
   // them: they are closures over db and SECRET, and passing them in keeps that module free of
   // a cycle. Every one of them is inert while the feature is unconfigured.
   ...coachRoutes({ json, readBody, readSession, requireAdmin }),
+
+  /* ---------- Friends api m1 ---------- */
+  // Groups, invites and sharing live in friends/routes.js, handed the helpers like the Coach's.
+  // Its paths with parameters reach it through friendsRouteKey in the dispatcher below.
+  ...friendsRoutes({ json, readBody, readSession, limitAddress, users: () => db.users, deletionScheduled }),
 
   /* ---------- photos & videos ---------- */
   // Absent, not refusing, when MEDIA_UPLOADS=0: a 404 is what a server from before the feature
@@ -3013,6 +3028,9 @@ const server = http.createServer(async (req, res) => {
   if (sd) { key = req.method + ' /api/sync/bodyweight/{date}'; req.syncDate = sd[1]; }
   const ic = /^\/api\/invites\/([^/]+)$/.exec(url.pathname);
   if (ic) { key = req.method + ' /api/invites/{code}'; req.inviteCode = ic[1]; }
+  // Friends api m1: /api/friends/groups/{id}/..., /api/friends/join/{code}.
+  const fk = friendsRouteKey(url.pathname);
+  if (fk) { key = req.method + ' ' + fk.template; req.friendsParams = fk.params; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
   if (!csrfOk(req, key)) {
