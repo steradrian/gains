@@ -16,6 +16,11 @@ export const logWeightSheet = () => bwSheet({ title: t('Log weight') })
 
 const parse = text => Math.round((Number(String(text).trim().replace(',', '.')) || 0) * 10) / 10
 
+// The toast's Undo only while the day still holds what the action left; a newer reading stays.
+const undoOrSay = (day, before, left) => {
+  if (!undoWeighIn(day, before, left)) useUI.getState().toast(t('Not undone, this day has a newer weigh-in'))
+}
+
 function EditWeighIn({ entry, close }) {
   const unit = useStore(s => s.S.unit)
   const [text, setText] = useState(String(entry.w))
@@ -31,7 +36,7 @@ function EditWeighIn({ entry, close }) {
     if (n === entry.w) return
     const before = saveWeighIn(entry.d, n)
     recordWeighInEdit(before, n, unit)
-    useUI.getState().toast(t('Saved {0} to {1}', fmtNum(n) + ' ' + unit, day), { action: t('Undo'), onAction: () => undoWeighIn(entry.d, before) })
+    useUI.getState().toast(t('Saved {0} to {1}', fmtNum(n) + ' ' + unit, day), { action: t('Undo'), onAction: () => undoOrSay(entry.d, before, n) })
   }
 
   // No second question: the toast is the way back (board Me2Deleted), for 8 s.
@@ -40,7 +45,7 @@ function EditWeighIn({ entry, close }) {
     const removed = deleteWeighIn(entry.d)
     if (!removed) return
     recordWeighInDelete(removed, unit)
-    useUI.getState().toast(t('Deleted {0} from {1}', fmtNum(removed.w) + ' ' + unit, day), { action: t('Undo'), onAction: () => undoWeighIn(entry.d, removed) })
+    useUI.getState().toast(t('Deleted {0} from {1}', fmtNum(removed.w) + ' ' + unit, day), { action: t('Undo'), onAction: () => undoOrSay(entry.d, removed, null) })
   }
 
   return (

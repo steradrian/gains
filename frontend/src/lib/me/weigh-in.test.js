@@ -43,8 +43,19 @@ describe('the store writes', () => {
     const before = saveWeighIn('2026-10-11', 81.4)
     expect(before).toMatchObject({ d: '2026-10-11', w: 81.7 })
     expect(weighInOn(S(), '2026-10-11').w).toBe(81.4)
-    undoWeighIn('2026-10-11', before)
+    expect(undoWeighIn('2026-10-11', before, 81.4)).toBe(true)
     expect(weighInOn(S(), '2026-10-11').w).toBe(81.7)
+  })
+
+  it('Undo leaves the day alone when it no longer holds what the action left', () => {
+    const before = saveWeighIn('2026-10-11', 81.4)
+    saveWeighIn('2026-10-11', 80.2)
+    expect(undoWeighIn('2026-10-11', before, 81.4)).toBe(false)
+    expect(weighInOn(S(), '2026-10-11').w).toBe(80.2)
+    const removed = deleteWeighIn('2026-10-11')
+    saveWeighIn('2026-10-11', 79)
+    expect(undoWeighIn('2026-10-11', removed, null)).toBe(false)
+    expect(weighInOn(S(), '2026-10-11').w).toBe(79)
   })
 
   it('deleteWeighIn records the tombstone, and Undo brings the day back over it', () => {
@@ -52,7 +63,7 @@ describe('the store writes', () => {
     expect(removed).toMatchObject({ d: '2026-10-11', w: 81.7 })
     expect(weighInOn(S(), '2026-10-11')).toBeNull()
     expect(S().deleted.bodyweight['2026-10-11']).toBeGreaterThan(0)
-    undoWeighIn('2026-10-11', removed)
+    expect(undoWeighIn('2026-10-11', removed, null)).toBe(true)
     expect(weighInOn(S(), '2026-10-11').w).toBe(81.7)
     expect(S().deleted.bodyweight['2026-10-11']).toBeLessThan(0)
     // The sync keeps it against a copy that still has the old entry.

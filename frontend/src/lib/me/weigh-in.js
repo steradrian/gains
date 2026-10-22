@@ -55,10 +55,18 @@ export function deleteWeighIn(day) {
   return removed
 }
 
-/** Undo of a saved or deleted weigh-in: the day's entry goes, or gets back what it had. */
-export function undoWeighIn(day, before) {
+/**
+ * Undo of a saved or deleted weigh-in: the day's entry goes, or gets back what it had. `left` is what
+ * the action left on the day (the saved weight, or null after a delete). Only while the day still
+ * holds that: a newer reading (another device's sync, a second Log) is never overwritten.
+ * Returns whether it undid.
+ */
+export function undoWeighIn(day, before, left) {
+  const now = weighInOn(useStore.getState().S, day)
+  if (left == null ? now : now?.w !== left) return false
   useStore.getState().update(s => setBack(s, day, before))
   void syncNow()
+  return true
 }
 
 /**

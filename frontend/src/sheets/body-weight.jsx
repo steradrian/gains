@@ -53,7 +53,7 @@ function BwSheet({ required, onDone, close, date, title }) {
     const before = saveWeighIn(day, n)
     close()
     if (onDone) onDone(n)
-    else ui().toast(t('Saved {0} to {1}', fmtNum(n) + ' ' + unit, dayName(day)), { action: t('Undo'), onAction: () => undoWeighIn(day, before) })
+    else ui().toast(t('Saved {0} to {1}', fmtNum(n) + ' ' + unit, dayName(day)), { action: t('Undo'), onAction: () => { if (!undoWeighIn(day, before, n)) ui().toast(t('Not undone, this day has a newer weigh-in')) } })
   }
   // Locked when required (the check-in before a workout): swipe, scrim, Escape and back do nothing
   // (Modals.jsx), so a stray tap on Start is not walked back by reflex. The × still leaves it, as a

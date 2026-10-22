@@ -124,6 +124,35 @@ describe('Edit weigh-in', () => {
     act(() => useUI.getState().runToastAction())
     expect(S().bodyweight).toEqual([expect.objectContaining({ d: PAST, w: 81.7 })])
   })
+
+  it('Undo of a delete refuses, and keeps the newer reading, when the day got one meanwhile', () => {
+    const { button } = open()
+    act(() => button('Delete weigh-in').click())
+    useStore.getState().update(s => { s.bodyweight.push({ d: PAST, w: 80.5, t: Date.now() }) })
+    act(() => useUI.getState().runToastAction())
+    expect(S().bodyweight).toEqual([expect.objectContaining({ d: PAST, w: 80.5 })])
+    expect(useUI.getState().toastMsg).toBe('Not undone, this day has a newer weigh-in')
+  })
+
+  it('Undo of an edit refuses, and keeps the newer reading, when the day changed again', () => {
+    const { input, button } = open()
+    act(() => type(input, '81.2'))
+    act(() => button('Save weigh-in').click())
+    useStore.getState().update(s => { s.bodyweight[0].w = 79.9 })
+    act(() => useUI.getState().runToastAction())
+    expect(S().bodyweight[0].w).toBe(79.9)
+    expect(useUI.getState().toastMsg).toBe('Not undone, this day has a newer weigh-in')
+  })
+
+  it('Undo of an edit refuses when the day lost its weigh-in', () => {
+    const { input, button } = open()
+    act(() => type(input, '81.2'))
+    act(() => button('Save weigh-in').click())
+    useStore.getState().update(s => { s.bodyweight = [] })
+    act(() => useUI.getState().runToastAction())
+    expect(S().bodyweight).toEqual([])
+    expect(useUI.getState().toastMsg).toBe('Not undone, this day has a newer weigh-in')
+  })
 })
 
 describe('Log weight', () => {
