@@ -225,6 +225,19 @@ describe('Compare', () => {
     expect([...host.querySelectorAll('.g-cmp-cap b')].map(b => b.textContent)).toEqual([fmtDate('2026-10-04', true), fmtDate('2026-10-18', true)])
   })
 
+  it('an empty side (no device here has the file) says so, keeps its day and weight, and the other side still shows', () => {
+    const host = open({ source: p => (p.id === 'p6' ? { url: null, status: 'missing' } : source()) })
+    const sides = [...host.querySelectorAll('.g-cmp-side')]
+    expect(sides[0].querySelector('.g-pstage-gone').textContent).toBe('On another phone')
+    expect(sides[0].querySelector('.g-cmp-cap').textContent).toBe(fmtDate('2026-08-02', true) + '85 kg')
+    expect(sides[1].querySelector('img')).not.toBeNull()
+    expect(sides[1].querySelector('.g-pstage-gone')).toBeNull()
+    // The empty side can still be changed.
+    act(() => button(host, 'Change before').click())
+    act(() => host.querySelectorAll('.g-ptile')[0].click())
+    expect(host.querySelector('.g-cmp-side .g-pstage-gone')).toBeNull()
+  })
+
   it('needs two photos', () => {
     openCompare([photos()[0]])
     openCompare(undefined)

@@ -4795,4 +4795,6 @@ export default {
   'Your changes to Daily targets have not been saved.': 'Your changes to Daily targets have not been saved.',
   'Your Daily targets are set to {0} a day.': 'Your Daily targets are set to {0} a day.',
   'Your target follows your burn, workouts included.': 'Your target follows your burn, workouts included.',
+  // Me fix round
+  'Not undone, this day has a newer weigh-in': 'Not undone, this day has a newer weigh-in',
 }
