@@ -21,6 +21,7 @@ describe('StatTiles', () => {
     expect(tiles()[1].querySelector('.g-pos').textContent).toBe('81.7 → 81.4 kg')
     expect(view.host.querySelector('.g-stats').classList.contains('g-stats-c3')).toBe(true)
     expect(view.host.querySelector('.g-stats-stage')).toBeNull()
+    expect(tiles().some(s => s.classList.contains('g-glass'))).toBe(false)
   })
 
   it('on the stage, in the columns asked for, by class and with no inline style', () => {
@@ -29,6 +30,7 @@ describe('StatTiles', () => {
     expect(grid.classList.contains('g-stats-stage')).toBe(true)
     expect(grid.classList.contains('g-stats-c2')).toBe(true)
     expect(grid.getAttribute('style')).toBeNull()
+    expect(tiles().every(s => s.classList.contains('g-glass'))).toBe(true)
   })
 
   it('has as many columns as items, up to three, and refuses another tone', () => {

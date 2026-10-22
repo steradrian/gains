@@ -27,6 +27,7 @@ describe('RoutineTiles', () => {
     view.render(<RoutineTiles items={[{ title: 'Push A', thumbs: [], onClick: open, play: { label: 'Start Push A', onClick: start } }]} />)
     const play = view.host.querySelector('.g-rtile-play')
     expect(play.getAttribute('aria-label')).toBe('Start Push A')
+    expect(play.classList.contains('g-glass')).toBe(true)
     click(play)
     expect(start).toHaveBeenCalledTimes(1)
     expect(open).not.toHaveBeenCalled()

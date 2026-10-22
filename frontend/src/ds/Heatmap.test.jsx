@@ -72,6 +72,7 @@ describe('Heatmap', () => {
     expect(view.host.querySelector('.g-heat-stage')).toBeNull()
     view.render(<Heatmap tone="stage" values={[0]} label="x" />)
     expect(view.host.querySelector('.g-heat-stage')).not.toBeNull()
+    expect(view.host.querySelector('.g-heat').classList.contains('g-glass')).toBe(true)
     expect(() => view.render(<Heatmap tone="dark" values={[]} label="x" />)).toThrow(/tone="dark"/)
     expect(() => view.render(<Heatmap levels={4} values={[]} label="x" />)).toThrow(/levels=4/)
   })

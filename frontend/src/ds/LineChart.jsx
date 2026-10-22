@@ -69,7 +69,7 @@ export default function LineChart({ values, series, marks, labels, pointLabels, 
   if (rows[rows.length - 1] !== n - 1) rows.push(n - 1)
 
   return (
-    <div className={cx('g-chart', 'g-lc', tone === 'stage' && 'g-chart-stage')} dir="ltr" role="group" aria-label={label}
+    <div className={cx('g-chart', 'g-lc', tone === 'stage' && 'g-chart-stage g-glass')} dir="ltr" role="group" aria-label={label}
       style={color ? { '--g-lc': color } : undefined}>
       <div className="g-lc-plot" style={{ height }} onPointerMove={move} onPointerDown={move} onPointerLeave={() => setHover(null)} onPointerCancel={() => setHover(null)}>
         <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">

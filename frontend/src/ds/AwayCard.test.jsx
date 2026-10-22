@@ -21,6 +21,7 @@ describe('AwayCard', () => {
     view.render(<AwayCard title="Welcome back" actions={[{ label: 'Weigh in', solid: true, onClick: weigh }, { label: 'Not now', onClick: later }]} />)
     expect(buttons().map(b => b.textContent)).toEqual(['Weigh in', 'Not now'])
     expect(buttons().map(b => b.classList.contains('g-away-solid'))).toEqual([true, false])
+    expect(buttons().map(b => b.classList.contains('g-glass'))).toEqual([false, true])
     click(buttons()[1])
     expect(later).toHaveBeenCalledTimes(1)
     expect(weigh).not.toHaveBeenCalled()

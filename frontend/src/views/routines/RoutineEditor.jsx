@@ -130,7 +130,7 @@ export default function RoutineEditor() {
               <StageSection title={ordering ? t('Drag to reorder') : t('Exercises')}
                 {...(r.ex.length > 1 ? { action: ordering ? t('Done') : t('Reorder'), onAction: () => setOrdering(!ordering) } : null)} />
               <div ref={editor.reorder.listRef} onClickCapture={editor.reorder.onClickCapture}
-                className={cx('g-re-list', drag && 'is-reordering', ordering && 'is-ordering')}>
+                className={cx('g-re-list', 'g-glass', drag && 'is-reordering', ordering && 'is-ordering')}>
                 {editor.units.map(unit => (unit.superset
                   ? (
                     <SupersetGroup key={unit.key} title={unit.title} detail={unit.detail}

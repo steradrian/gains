@@ -24,8 +24,8 @@ export default function MonthGrid({ days, title, offset = 0, today, weekdays, le
       <div className="g-mg-top">
         <b aria-live="polite">{title}</b>
         <span>
-          <button type="button" className="g-mg-nav" aria-label={prevLabel} disabled={!onPrev} onClick={onPrev}><Icon name="chevronLeft" className="g-icon" /></button>
-          <button type="button" className="g-mg-nav" aria-label={nextLabel} disabled={!onNext} onClick={onNext}><Icon name="chevronRight" className="g-icon" /></button>
+          <button type="button" className="g-mg-nav" data-glass="control" aria-label={prevLabel} disabled={!onPrev} onClick={onPrev}><Icon name="chevronLeft" className="g-icon" /></button>
+          <button type="button" className="g-mg-nav" data-glass="control" aria-label={nextLabel} disabled={!onNext} onClick={onNext}><Icon name="chevronRight" className="g-icon" /></button>
         </span>
       </div>
       <div className="g-mg-grid">
