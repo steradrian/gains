@@ -134,6 +134,40 @@ describe('createRegistry', () => {
     expect(registry.read().map(s => s.el)).toEqual([near])
   })
 
+  it('takes only shapes inside the include selector', () => {
+    const route = add(ground, 'g-route')
+    route.dataset.shared = ''
+    const inside = add(route, 'g-glass')
+    add(ground, 'g-glass')
+    registry = createRegistry(ground, { include: '.g-route[data-shared]' })
+    expect([...registry.shapes.keys()]).toEqual([inside])
+  })
+
+  it('setMarked marks every shape, later shapes follow the flag, and false unmarks', async () => {
+    const a = add(ground, 'g-glass')
+    registry = createRegistry(ground)
+    expect(a.hasAttribute('data-lg-on')).toBe(false)
+    registry.setMarked(true)
+    expect(a.hasAttribute('data-lg-on')).toBe(true)
+    const b = add(ground, 'g-glass')
+    await vi.waitFor(() => expect(b.hasAttribute('data-lg-on')).toBe(true))
+    registry.setMarked(false)
+    expect(a.hasAttribute('data-lg-on')).toBe(false)
+    expect(b.hasAttribute('data-lg-on')).toBe(false)
+  })
+
+  it('unmarks a shape that is dropped and every shape on dispose', async () => {
+    const a = add(ground, 'g-glass')
+    const b = add(ground, 'g-glass')
+    registry = createRegistry(ground)
+    registry.setMarked(true)
+    a.className = 'plain'
+    await vi.waitFor(() => expect(registry.shapes.has(a)).toBe(false))
+    expect(a.hasAttribute('data-lg-on')).toBe(false)
+    registry.dispose()
+    expect(b.hasAttribute('data-lg-on')).toBe(false)
+  })
+
   it('stops observing on dispose', () => {
     add(ground, 'g-glass')
     registry = createRegistry(ground)

@@ -12,7 +12,7 @@ export default function GoToChips({ items, title }) {
     <SearchSection title={title || t('Go to')} card={false}>
       <div className="g-goto-row">
         {items.map(c => (
-          <Act key={c.id} href={c.href} onClick={c.onClick} className="g-goto-chip" data-glass="flat">
+          <Act key={c.id} href={c.href} onClick={c.onClick} className="g-goto-chip" glass="flat">
             {c.icon && <Icon name={c.icon} className="g-icon" />}
             {c.label}
           </Act>

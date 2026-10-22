@@ -17,10 +17,10 @@
 .gl-webgl [data-glass]:not([data-glass="flat"]) { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .gl-webgl .g-gtabbar[data-glass], .gl-webgl .g-gtabbar .g-plus[data-glass] { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .gl-webgl .g-tab-ind::before { background: none; }
-.gl-webgl [data-glass]:not([data-glass="flat"]) { text-shadow: 0 1px 2px rgba(8,18,70,.22); }
-.gl-webgl .g-gtabbar .g-tab { color: rgba(255,255,255,.88); text-shadow: 0 1px 2px rgba(8,18,70,.3); }
-.gl-webgl .g-gtabbar .g-tab[aria-current="page"] { color: #fff; }
-.gl-webgl .g-gtabbar .g-plus { color: #fff; }
+.gl-webgl [data-glass]:not([data-glass="flat"]) { text-shadow: var(--glass-label-shadow); }
+.gl-webgl .g-gtabbar .g-tab { color: color-mix(in srgb, var(--on-stage) 88%, transparent); text-shadow: var(--glass-label-shadow); }
+.gl-webgl .g-gtabbar .g-tab[aria-current="page"] { color: var(--on-stage); }
+.gl-webgl .g-gtabbar .g-plus { color: var(--on-stage); }
 
 /* Pressing: the glass swells in the canvas, so the HTML must not shrink under the finger; the glyph
    rides the same spring (--lg-press, set by the layer). */
@@ -31,22 +31,22 @@
 
 /* ---- Fallback: frosted, no rim -------------------------------------------------------- */
 .gl-fallback [data-glass], .gl-fallback .g-gtabbar[data-glass] {
-  background: rgba(255,255,255,.16);
-  box-shadow: 0 10px 24px -14px rgba(6,14,60,.45);
+  background: color-mix(in srgb, var(--on-stage) 16%, transparent);
+  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--glass-shade) 45%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
   backdrop-filter: blur(20px) saturate(1.6);
 }
 .gl-fallback .g-gtabbar .g-plus[data-glass] { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); -webkit-backdrop-filter: none; backdrop-filter: none; }
-.gl-fallback .g-tab-ind::before { background: rgba(255,255,255,.22); }
-.gl-fallback .g-gtabbar .g-tab { color: rgba(255,255,255,.88); }
-.gl-fallback .g-gtabbar .g-tab[aria-current="page"] { color: #fff; }
-.gl-frostier [data-glass], .gl-frostier .g-gtabbar[data-glass] { background: rgba(26,47,134,.82); }
+.gl-fallback .g-tab-ind::before { background: color-mix(in srgb, var(--on-stage) 22%, transparent); }
+.gl-fallback .g-gtabbar .g-tab { color: color-mix(in srgb, var(--on-stage) 88%, transparent); }
+.gl-fallback .g-gtabbar .g-tab[aria-current="page"] { color: var(--on-stage); }
+.gl-frostier [data-glass], .gl-frostier .g-gtabbar[data-glass] { background: color-mix(in srgb, var(--accent-stage-end) 82%, transparent); }
 
 /* ---- the page itself ------------------------------------------------------------------- */
 .gl-page { display: flex; flex-direction: column; gap: 18px; padding: 0 0 24px; min-height: 100vh; }
 .gl-bar { position: relative; z-index: 5; display: flex; gap: 6px; padding: 12px 16px; }
 .gl-bar button { flex: 1; padding-inline: 6px; }
-.gl-select { flex: 1; min-width: 0; height: 36px; padding-inline: 10px; border: 0; border-radius: 18px; background: rgba(255,255,255,.16); color: var(--on-stage); font: 600 14px/18px var(--font-sans); }
+.gl-select { flex: 1; min-width: 0; height: 36px; padding-inline: 10px; border: 0; border-radius: 18px; background: color-mix(in srgb, var(--on-stage) 16%, transparent); color: var(--on-stage); font: 600 14px/18px var(--font-sans); }
 .gl-bar [aria-pressed="true"] { background: var(--on-stage); color: var(--accent-stage-end); text-shadow: none; }
 .gl-note { margin: 0 16px; min-height: 38px; font: 500 14px/19px var(--font-sans); color: var(--on-stage); opacity: .92; }
 /* At rest the food tiles run under the docked bar, so its rim has something to bend. */

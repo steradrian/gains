@@ -20,11 +20,18 @@ function cornerOf(el, hw, hh) {
   return Number.isFinite(r) && r > 0 ? Math.min(r, cap) : cap
 }
 
+// An empty computed value (a style engine with no cascade) is the initial value: visible, opaque.
+const clips = v => !!v && v !== 'visible'
+const opacityOf = el => {
+  const o = parseFloat(getComputedStyle(el).opacity)
+  return Number.isNaN(o) ? 1 : o
+}
+
 // The nearest ancestor below the ground that clips its children (overflow other than visible).
 function clipAncestor(el, ground) {
   for (let p = el.parentElement; p && p !== ground; p = p.parentElement) {
     const cs = getComputedStyle(p)
-    if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') return p
+    if (clips(cs.overflowX) || clips(cs.overflowY)) return p
   }
   return null
 }
@@ -148,10 +155,10 @@ export function createRegistry(ground, { onChange = () => {}, exclude = '#modal-
       if (!s.near) continue
       const r = rectOf(s.el)
       if (r.width < 1 || r.height < 1 || r.bottom < -OFFSCREEN || r.top > vh + OFFSCREEN || r.right < -OFFSCREEN || r.left > vw + OFFSCREEN) continue
-      let opacity = +getComputedStyle(s.el).opacity
+      let opacity = opacityOf(s.el)
       if (s.layerEl) {
         let lo = layerOpacity.get(s.layerEl)
-        if (lo === undefined) { lo = +getComputedStyle(s.layerEl).opacity; layerOpacity.set(s.layerEl, lo) }
+        if (lo === undefined) { lo = opacityOf(s.layerEl); layerOpacity.set(s.layerEl, lo) }
         opacity *= lo
       }
       if (opacity < 0.01) continue
