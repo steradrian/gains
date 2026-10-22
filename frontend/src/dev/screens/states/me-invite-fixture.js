@@ -55,3 +55,35 @@ export function memoryBackend({ invites = BOARD, requests = [], inviteOnly = tru
     deliver: async (_url, share) => (deliver !== undefined ? deliver : share ? 'shared' : 'copied'),
   }
 }
+
+// Me invite M3: the member's side. A member's open asks, as GET /api/invites/requests/mine lists them.
+export const MINE = [
+  { id: 'mine1', note: 'My training partner Andrei', at: iso(-1) },
+  { id: 'mine2', note: 'Sara from my running club', at: iso(-2) },
+  { id: 'mine3', note: 'My brother Tudor', at: iso(0) },
+]
+
+/**
+ * An in-memory ask backend. `requests` is copied. `askFails` makes ask reject like the real api():
+ * 'daily' and 'open' are the server's 429 reasons, 'offline' is no answer at all.
+ */
+export function askMemoryBackend({ requests = [], askFails = null } = {}) {
+  let list = requests.map(r => ({ ...r }))
+  let made = 0
+  const refusal = {
+    daily: () => Object.assign(new Error('Too many asks'), { status: 429, data: { code: 'rate-limited', reason: 'daily', retryAfter: 4 * 3600 } }),
+    open: () => Object.assign(new Error('Too many asks'), { status: 429, data: { code: 'rate-limited', reason: 'open', retryAfter: 86400 } }),
+    offline: () => new Error('The server did not answer in time.'),
+  }
+  return {
+    ask: async note => {
+      if (askFails) throw refusal[askFails]()
+      made += 1
+      const id = 'new' + made
+      list = [...list, { id, note, at: Date.now() }]
+      return id
+    },
+    mine: async () => list.map(r => ({ ...r })),
+    cancel: async id => { list = list.filter(r => r.id !== id) },
+  }
+}

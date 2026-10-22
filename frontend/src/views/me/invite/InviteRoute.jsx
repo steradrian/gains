@@ -1,7 +1,10 @@
+import { Navigate } from 'react-router-dom'
 import { canShareLink, inviteLink, shareLink } from '../../../lib/invite-link.js'
 import { BRAND } from '../../../brand.js'
 import { copyText } from '../../../lib/clipboard.js'
 import { t } from '../../../lib/i18n.js'
+import { canInvite } from '../../../lib/me/invites.js'
+import { ME_ROOT } from '../../../lib/tab-route.js'
 import { back } from '../../../lib/use-tab-nav.js'
 import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
@@ -11,13 +14,15 @@ import InvitePage from './InvitePage.jsx'
 import MemberInvite from './MemberInvite.jsx'
 import { REAL_BACKEND, useInvite } from './use-invite.js'
 
-// /me/invite: the admin's page (boards M5.0 to M5.3) or, for a member, the ask (invite-M3). Back
+// /me/invite: the admin's page (boards M5.0 to M5.3) or, for a member, the ask (MemberInvite). Back
 // goes down the Me tab's stack, or on a cold entry to the Me root (lib/tab-route.js parentOf).
-// `backend` and `canShare` are for the screens gallery: an in-memory backend, and a build with or
-// without a share sheet.
-export default function InviteRoute({ backend = REAL_BACKEND, canShare = canShareLink() }) {
-  const admin = useStore(s => !!s.user?.admin)
-  return admin ? <AdminInvite backend={backend} canShare={canShare} /> : <MemberInvite />
+// A build with no signed-in account (guest, demo, phone kept local) has nobody to ask: it goes
+// back to the Me root. `backend`, `canShare`, `askBackend` and `groupsOn` are for the screens
+// gallery: in-memory backends, a build with or without a share sheet, and Friends on.
+export default function InviteRoute({ backend = REAL_BACKEND, canShare = canShareLink(), askBackend, groupsOn }) {
+  const user = useStore(s => s.user)
+  if (!canInvite(user)) return <Navigate to={ME_ROOT} replace />
+  return user.admin ? <AdminInvite backend={backend} canShare={canShare} /> : <MemberInvite backend={askBackend} groupsOn={groupsOn} />
 }
 
 const toast = (msg, opts) => useUI.getState().toast(msg, opts)

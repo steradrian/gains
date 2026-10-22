@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import { useUI } from '../../../store/useUI.js'
 import { waitingLine } from '../../../views/me/invite/invite-data.js'
 import InviteRoute from '../../../views/me/invite/InviteRoute.jsx'
 import { registerScreens } from '../registry.js'
-import { ASKS, MARA, NAMELESS, memoryBackend } from './me-invite-fixture.js'
+import { ASKS, MARA, MINE, NAMELESS, askMemoryBackend, memoryBackend } from './me-invite-fixture.js'
 
 // Me > Invite a friend (boards Me5Invite M5.0, Me5Create M5.1, Me5Created M5.2, Me5Error M5.3 and the
 // PR05Edges row "Couldn't load invites, Invite expired"): the real route over an in-memory backend,
@@ -72,4 +73,59 @@ registerScreens('Me: invite', [
     render: showing({ invites: [] }), path: '/me/invite', mock },
   { id: 'M5.0k', title: 'An invite with no name', note: 'The row reads "Invite" and the first characters of the code, never the code.',
     render: showing({ invites: [MARA, NAMELESS] }), path: '/me/invite', mock },
+])
+
+// Me invite M3: the member's view (boards Me5AskAdmin M5.4, Me5Asked M5.5, PR05Edges row M5.0 "Not an
+// admin"): the real route over an in-memory ask backend, so Ask, Undo and Withdraw run the real
+// flow and nothing reaches the network. The toast is the app's own, held open.
+const member = { user: { id: 'u_mara', name: 'Mara', admin: false } }
+
+function MemberShowing({ options, groupsOn = false }) {
+  const [backend] = useState(() => askMemoryBackend(options))
+  return <InviteRoute askBackend={backend} groupsOn={groupsOn} />
+}
+const asking = (options, groupsOn) => () => <MemberShowing options={options} groupsOn={groupsOn} />
+
+// A build with no signed-in account has no Invite page: the route sends it to the Me root.
+function GuestShowing() {
+  return (
+    <Routes>
+      <Route path="/me/invite" element={<InviteRoute />} />
+      <Route path="*" element={<p>Redirected to the Me root (/me)</p>} />
+    </Routes>
+  )
+}
+
+const writeNote = async (t, note = 'My training partner Andrei') => { await t.type('Your note', note); await t.wait(60) }
+const askNow = async t => {
+  await writeNote(t)
+  await t.click('Ask an admin')
+  await t.wait(200)
+}
+
+registerScreens('Me: invite', [
+  { id: 'M5.4', title: 'Ask an admin', note: 'A member opens Invite a friend: who can invite, the Your note field with its hint, and Ask an admin (off until there is a note).',
+    render: asking(), path: '/me/invite', mock: member },
+  { id: 'M5.4w', title: 'Ask an admin, note written', note: 'The note typed: Ask an admin is on.',
+    render: asking(), path: '/me/invite', mock: member, play: writeNote },
+  { id: 'M5.5', title: 'Asked', note: 'The toast "Asked an admin" with Undo for 8 s (held here); the field is clear and the ask is listed with Withdraw.',
+    render: asking(), path: '/me/invite', mock: member, play: async t => { await askNow(t); await hold(t) } },
+  { id: 'M5.5u', title: 'Asked, undone', note: 'Undo withdraws the ask: the row leaves.',
+    render: asking(), path: '/me/invite', mock: member, play: async t => { await askNow(t); await t.click('Undo'); await t.wait(200) } },
+  { id: 'M5.4o', title: 'Open asks', note: 'One open ask with Withdraw, under the form.',
+    render: asking({ requests: MINE.slice(0, 1) }), path: '/me/invite', mock: member },
+  { id: 'M5.4x', title: 'Withdrawn', note: 'Withdraw: the row leaves.',
+    render: asking({ requests: MINE.slice(0, 1) }), path: '/me/invite', mock: member, play: async t => { await t.click('Withdraw'); await t.wait(200) } },
+  { id: 'M5.4c', title: 'At the cap', note: '3 open asks: Ask an admin is off and a line says so; withdrawing one turns it back on.',
+    render: asking({ requests: MINE }), path: '/me/invite', mock: member, play: writeNote },
+  { id: 'M5.4d', title: 'Asked 3 times today', note: 'The server\'s daily limit (429, reason daily) with the wait it gave; the note stays.',
+    render: asking({ askFails: 'daily' }), path: '/me/invite', mock: member, play: askNow },
+  { id: 'M5.4q', title: 'Open asks limit', note: 'The server\'s open limit (429, reason open): no time promised.',
+    render: asking({ askFails: 'open' }), path: '/me/invite', mock: member, play: askNow },
+  { id: 'M5.4f', title: 'Offline', note: 'No answer from the server: the note stays and Try again is on the error.',
+    render: asking({ askFails: 'offline' }), path: '/me/invite', mock: member, play: askNow },
+  { id: 'M5.4g', title: 'Friends on', note: 'With Friends on, a Groups row points to adding people who are already in.',
+    render: asking({}, true), path: '/me/invite', mock: member },
+  { id: 'M5.0n', title: 'Not an admin, no account', note: 'A guest, demo or phone-only build has no Invite: the route goes back to the Me root.',
+    render: () => <GuestShowing />, path: '/me/invite', mock: { user: null } },
 ])
