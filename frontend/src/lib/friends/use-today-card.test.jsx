@@ -29,8 +29,8 @@ import { FriendsError } from './api.js'
 import { __resetCardSeen, markCardSeen, readCardSeen } from './card-seen.js'
 import { __setMockFriends } from './store.js'
 import { cardOf, groupLineOf, momentLine, useTodayCard } from './use-today-card.js'
-import { GROUP, ME_NEW_CHEERED, ME_NEW_ONE, ME_NEW_TWO, ME_NOTHING_NEW } from '../../dev/screens/states/friends-surfaces-fixture.js'
-import { ME_OFF, ME_ON_NO_GROUP } from '../../dev/screens/states/friends-fixture.js'
+import { ME_NEW_CHEERED, ME_NEW_ONE, ME_NEW_TWO, ME_NOTHING_NEW } from '../../dev/screens/states/friends-surfaces-fixture.js'
+import { GROUP, ME_OFF, ME_ON_NO_GROUP } from '../../dev/screens/states/friends-fixture.js'
 
 const view = useView()
 let undoMock = null

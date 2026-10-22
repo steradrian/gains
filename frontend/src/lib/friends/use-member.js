@@ -36,7 +36,7 @@ const subscribe = fn => {
   listeners.add(fn)
   return () => listeners.delete(fn)
 }
-const toast = (msg, opts) => useUI.getState().toast(msg, opts)
+const toast = (...args) => useUI.getState().toast(...args)
 
 const rowOf = (group, uid) => group?.members?.find(m => m.uid === uid) || null
 const ok = (member, group) => typeof member?.uid === 'string' && typeof member?.name === 'string' && Array.isArray(group?.members)

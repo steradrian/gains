@@ -32,7 +32,8 @@ describe('Don\'t share this one', () => {
     expect(setShareOff(W, true)).toBe(true)
     expect(rec().share).toEqual({ off: true })
     expect(rec()._ts).toBeGreaterThan(0)
-    expect({ ...rec(), share: undefined, _ts: undefined }).toEqual({ ...before, share: undefined, _ts: undefined })
+    expect(rec()._f.share).toBeGreaterThan(0)
+    expect({ ...rec(), share: undefined, _ts: undefined, _f: undefined }).toEqual({ ...before, share: undefined, _ts: undefined, _f: undefined })
   })
 
   it('turned off again, the field goes away rather than storing a default', () => {

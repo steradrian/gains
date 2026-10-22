@@ -158,7 +158,7 @@ describe('After leaving (Fr1Left)', () => {
     undo()
     undo = __setMockFriends({ me: ME_ON_NO_GROUP, groups: [] })
     mocks.toast.mockClear()
-    view.render(<MemoryRouter initialEntries={['/me/groups']}><GroupsScreen /><Probe /></MemoryRouter>)
+    view.render(<MemoryRouter key="reopened" initialEntries={['/me/groups']}><GroupsScreen /><Probe /></MemoryRouter>)
     expect(text()).toContain('Better together')
     expect(mocks.toast).not.toHaveBeenCalled()
   })

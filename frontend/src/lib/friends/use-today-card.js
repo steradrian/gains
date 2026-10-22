@@ -69,7 +69,7 @@ function avatarsOf(card) {
   })
 }
 
-const toast = (msg, opts) => useUI.getState().toast(msg, opts)
+const toast = (...args) => useUI.getState().toast(...args)
 
 /**
  * What TodayScreen's `friends` prop takes, or null: { avatars, line, groupLine, cheered, labels,
