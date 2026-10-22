@@ -9,6 +9,8 @@ import { guestAllowed } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
 import { setReminderLogOwner } from '../lib/notifications/reminder-log.js'
+import { clearChanges } from '../lib/recent-changes.js'
+import { setChangesOwner } from '../lib/recent-changes-store.js'
 import { refillIfComplete } from '../lib/rotation.js'
 import { liftLegacy } from '../lib/sync-legacy.js'
 import { mergeStates, localExtras, stampChange, highestStamp, stampRestore, stampReplace, inUnitOf, keepReset, resetIdsOf, mergeResetIds, entryKey } from '../lib/sync-merge.js'
@@ -935,6 +937,9 @@ export const useStore = create((set, get) => {
   // it sees the new copy, or it joins its own copy of the account into it (QA 2026-10-06).
   const clearLocalSession = () => {
     const hadMedia = referencedHashes(get().S).size > 0
+    // Me changes M1: the change journal goes with the session (the account's, the last owner's, a guest's).
+    clearChanges(); clearChanges(null)
+    if (localStorage.getItem('gym_owner')) clearChanges({ id: localStorage.getItem('gym_owner') })
     get().setUser(null)
     forgetOnboarding()   // signOut and signOutAll both end here, whoever was signed in
     localStorage.removeItem('gym_guest')
@@ -1382,6 +1387,7 @@ export const useStore = create((set, get) => {
     // reset loses exactly those, and keeps whatever else it holds, whatever its dates say.
     // Resolves once the server's names are in (or could not be had).
     resetEverything() {
+      clearChanges()   // Me changes M1: snapshots of the wiped profile must not be restorable
       const cur = get().S
       const S = restartedState(cur)
       // The recipes themselves live in NutriTrace and a reset does not touch them: their steps and
@@ -1545,6 +1551,7 @@ export const useStore = create((set, get) => {
         if (other) {
           keepForPrevious(owner)
           forgetSync()
+          clearChanges({ id: owner })   // Me changes M1: the previous account's journal does not stay behind
           localStorage.removeItem(KEY)
           // The new owner before the new copy, as on a sign-out: another tab still holding the
           // previous account's copy must not join it into this one (QA 2026-10-06).
@@ -2010,5 +2017,7 @@ export const useStore = create((set, get) => {
 // The phone's reminder log is kept per profile (lib/notifications/reminder-log.js). It cannot
 // import the store itself: the store imports lib/mobile.js, which imports the log.
 setReminderLogOwner(() => useStore.getState().user)
+// Me changes M1: the change journal is kept per profile too (lib/recent-changes-store.js).
+setChangesOwner(() => useStore.getState().user)
 
 export { hasData }

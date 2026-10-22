@@ -3,6 +3,7 @@ import { DEFAULT_GLYPH } from '../../lib/glyphs.js'
 import { dateLocale, t, tn } from '../../lib/i18n.js'
 import { nav as navigateTo } from '../../lib/nav.js'
 import { copyRoutine, deleteRoutine, restoreRoutine, routineSnapshot } from '../../lib/routines.js'
+import { recordRoutineDelete } from '../../lib/me/routine-changes.js'
 import { markUndone, undoMarks } from '../../lib/sync-merge.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
@@ -64,6 +65,7 @@ export function deleteRoutineWithUndo(id) {
   // What the removal moved (weekdays, reschedules, the loop), for the Undo to mark as put back:
   // a change another device made to one of them before it saw the removal then still wins.
   snap.marks = undoMarks(before, useStore.getState().S)
+  recordRoutineDelete(snap)
   useUI.getState().toast(deletedText(before, id), { action: t('Undo'), onAction: () => undoDeleteRoutine(snap) })
   return true
 }
