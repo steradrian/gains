@@ -336,10 +336,10 @@ describe('Today', () => {
     expect(bell.querySelector('.g-sdot')).toBeNull()
   })
 
-  it('the header: the avatar opens Settings, the bell Notifications, the pill the app\'s search', async () => {
+  it('the header: the avatar opens Profile pushed, the bell Notifications, the pill the app\'s search', async () => {
     await mount(<Home />)
     await click(button('Settings'))
-    expect(navigate).toHaveBeenCalledWith('/me/settings')
+    expect(navigate).toHaveBeenCalledWith('/me', { state: { pushed: true, from: expect.any(String) } })
     await click(button('Notifications'))
     expect(navigate).toHaveBeenCalledWith('/home/notifications')
     const field = host.querySelector('.g-spill-field input')
