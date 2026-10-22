@@ -4580,7 +4580,7 @@ export default {
   'Stored on this phone only.': 'Stored on this phone only.',
   'Only you see them; Friends never do.': 'Only you see them; Friends never do.',
   'Backing up {0} photo to your account': 'Backing up {0} photo to your account',
-  'Backing up {0} photos to your account': 'Backing up {0} photos to your account',
+  'Backing up {0} photos to your account': { one: 'Копируем {0} фото в ваш аккаунт', few: 'Копируем {0} фото в ваш аккаунт', many: 'Копируем {0} фото в ваш аккаунт' },
   'On this phone': 'On this phone',
   'In your account': 'In your account',
   'On another phone': 'On another phone',

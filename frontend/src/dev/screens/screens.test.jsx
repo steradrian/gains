@@ -1197,7 +1197,7 @@ describe('the screens gallery: Me > Body > Measurements', () => {
     await check('M2.7', h => {
       const pane = h.querySelector('.g-bs-pane[data-pos="active"]')
       expect(pane.querySelector('h2').textContent).toBe('Choose measurements')
-      expect([...pane.querySelectorAll('h3')].map(g => g.textContent)).toEqual(['Torso', 'Arms', 'Legs', 'Other', 'Your own'])
+      expect([...pane.querySelectorAll('.bd-group-title')].map(g => g.textContent)).toEqual(['Torso', 'Arms', 'Legs', 'Other', 'Your own'])
       expect(pane.querySelectorAll('[role="switch"]')).toHaveLength(19)
       expect(pane.querySelectorAll('[role="switch"][aria-checked="true"]')).toHaveLength(5)
       expect(h.querySelectorAll('.g-bs')).toHaveLength(1)

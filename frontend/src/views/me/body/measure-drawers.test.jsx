@@ -171,7 +171,7 @@ describe('Choose measurements', () => {
   it('lists every built-in measurement in its group with a switch, on for the tracked ones', () => {
     const { host } = open()
     expect(host.querySelector('h2').textContent).toBe('Choose measurements')
-    expect([...host.querySelectorAll('h3')].map(h => h.textContent)).toEqual(['Torso', 'Arms', 'Legs', 'Other', 'Your own'])
+    expect([...host.querySelectorAll('.bd-group-title')].map(h => h.textContent)).toEqual(['Torso', 'Arms', 'Legs', 'Other', 'Your own'])
     const on = [...host.querySelectorAll('[role="switch"][aria-checked="true"]')].map(s => s.getAttribute('aria-label'))
     expect(on).toEqual(['Chest', 'Waist'])
     expect(host.querySelectorAll('[role="switch"]')).toHaveLength(19)

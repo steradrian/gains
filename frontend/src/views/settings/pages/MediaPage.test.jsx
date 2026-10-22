@@ -10,7 +10,7 @@ import { useStore } from '../../../store/useStore.js'
 const owed = vi.hoisted(() => ({
   pendingRefCount: vi.fn(() => 5),
   waitingRefCount: vi.fn(() => 2),
-  getMediaStatus: () => ({ usage: null, pending: 0 }),
+  getMediaStatus: (status => () => status)({ usage: null, pending: 0 }),
   subscribeMediaStatus: () => () => {},
 }))
 vi.mock('../../../lib/media-owed.js', () => owed)

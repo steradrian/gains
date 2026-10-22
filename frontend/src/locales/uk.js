@@ -4574,7 +4574,7 @@ export default {
   'Stored on this phone only.': 'Stored on this phone only.',
   'Only you see them; Friends never do.': 'Only you see them; Friends never do.',
   'Backing up {0} photo to your account': 'Backing up {0} photo to your account',
-  'Backing up {0} photos to your account': 'Backing up {0} photos to your account',
+  'Backing up {0} photos to your account': { one: 'Копіюємо {0} фото у ваш акаунт', few: 'Копіюємо {0} фото у ваш акаунт', many: 'Копіюємо {0} фото у ваш акаунт' },
   'On this phone': 'On this phone',
   'In your account': 'In your account',
   'On another phone': 'On another phone',

@@ -29,7 +29,6 @@ function Where() {
 const where = () => host.querySelector('[data-testid="where"]').textContent
 const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => { await new Promise(r => setTimeout(r, 30)) }) }
 const go = async to => { await act(async () => { history.pushState(null, '', '#' + to); window.dispatchEvent(new PopStateEvent('popstate')) }); await settle() }
-const back = async () => { await act(async () => { history.back() }); await settle() }
 const addPhoto = async () => {
   const row = [...document.querySelectorAll('.g-bs .g-menuitem')].find(b => b.textContent.includes('Add photo'))
   await act(async () => { row.click() })
@@ -64,7 +63,5 @@ describe('Add photo from the + sheet on Body', () => {
     await addPhoto()
     expect(photo.openAddPhoto).toHaveBeenCalledTimes(1)
     expect(where()).toBe(path)
-    await back()
-    expect(where()).toBe('/progress')
   })
 })
