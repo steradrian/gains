@@ -38,33 +38,45 @@ describe('GlassHost with an engine', () => {
   it('is gl only while the engine is live and a stage is on screen', async () => {
     await view.render(<Page stage />)
     expect(document.documentElement.dataset.lg).toBe('css')
+    act(() => report('webgl'))
+    // The glass shows from the first drawn frame, with no fade-in and no fade mark.
+    expect(document.documentElement.dataset.lg).toBe('gl')
+    expect(document.documentElement.dataset.lgFade).toBeUndefined()
+    act(() => report('fallback'))
+    expect(document.documentElement.dataset.lg).toBe('css')
+    expect(document.documentElement.dataset.lgFade).toBeUndefined() // a context loss or a failure snaps
+  })
+
+  it('a watchdog trip fades out once over 300 ms, and not under reduce motion', async () => {
+    await view.render(<Page stage />)
     vi.useFakeTimers()
     try {
       act(() => report('webgl'))
-      // The reveal is a 300 ms cross-fade: the canvases fade in over the CSS material, then data-lg flips.
+      act(() => report('fallback', { fade: true }))
       expect(document.documentElement.dataset.lg).toBe('css')
       expect(document.documentElement.dataset.lgFade).toBe('')
       act(() => { vi.advanceTimersByTime(300) })
-      expect(document.documentElement.dataset.lg).toBe('gl')
       expect(document.documentElement.dataset.lgFade).toBeUndefined()
-      act(() => report('fallback'))
       expect(document.documentElement.dataset.lg).toBe('css')
-    } finally { vi.useRealTimers() }
+
+      document.documentElement.dataset.motion = 'reduce'
+      act(() => report('webgl'))
+      act(() => report('fallback', { fade: true }))
+      expect(document.documentElement.dataset.lgFade).toBeUndefined()
+    } finally {
+      delete document.documentElement.dataset.motion
+      vi.useRealTimers()
+    }
   })
 
-  it('reveals at once under reduce motion, and a fallback mid-fade cancels it', async () => {
+  it('a glass that comes back during the fade cancels it', async () => {
     await view.render(<Page stage />)
-    document.documentElement.dataset.motion = 'reduce'
-    try {
-      act(() => report('webgl'))
-      expect(document.documentElement.dataset.lg).toBe('gl')
-      act(() => report('fallback'))
-    } finally { delete document.documentElement.dataset.motion }
     act(() => report('webgl'))
+    act(() => report('fallback', { fade: true }))
     expect(document.documentElement.dataset.lgFade).toBe('')
-    act(() => report('fallback'))
+    act(() => report('webgl'))
     expect(document.documentElement.dataset.lgFade).toBeUndefined()
-    expect(document.documentElement.dataset.lg).toBe('css')
+    expect(document.documentElement.dataset.lg).toBe('gl')
   })
 
   it('stays on the CSS material and frozen on a page with no stage', async () => {

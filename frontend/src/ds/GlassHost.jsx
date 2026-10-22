@@ -54,7 +54,7 @@ export default function GlassHost({
   const statusRef = useRef(onStatus)
   const inputsRef = useRef(null)
   // What decides data-lg and the freeze. Plain refs: the page is repainted from here, not by a render.
-  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false, fade: 0 })
+  const stateRef = useRef({ engine: 'css', reduced: false, noStage: false, sheet: false, search: false, hidden: false, fade: 0, fadeOut: false })
 
   inputsRef.current = {
     look: look ?? stored.look,
@@ -78,15 +78,14 @@ export default function GlassHost({
     const lg = s.reduced ? 'reduced' : s.engine === 'webgl' && !s.noStage ? 'gl' : 'css'
     if (lg === 'css' && s.engine === 'webgl' && s.noStage) recordFallback('no-stage')
     const root = document.documentElement
-    if (lg !== 'gl' && s.fade) { clearTimeout(s.fade); s.fade = 0; delete root.dataset.lgFade }
-    // CSS -> GL is a cross-fade: for FADE_MS the canvases fade in over the CSS material (html[data-lg-fade],
-    // ds.css), then data-lg flips and the CSS fill goes. Reduce motion flips at once.
-    if (lg === 'gl' && root.dataset.lg !== 'gl' && !reducedMotion()) {
-      if (!s.fade) {
-        root.dataset.lgFade = ''
-        s.fade = setTimeout(() => { s.fade = 0; delete root.dataset.lgFade; root.dataset.lg = 'gl' }, FADE_MS)
-      }
-    } else if (root.dataset.lg !== lg) root.dataset.lg = lg
+    // Glass shows at once. Only a watchdog trip fades out: data-lg goes to css now (the CSS material is
+    // there) while the engine keeps its canvases for FADE_MS and html[data-lg-fade] fades them out (ds.css).
+    if (lg === 'gl' && s.fade) { clearTimeout(s.fade); s.fade = 0; delete root.dataset.lgFade }
+    if (lg === 'css' && root.dataset.lg === 'gl' && s.fadeOut && !s.fade && !reducedMotion()) {
+      root.dataset.lgFade = ''
+      s.fade = setTimeout(() => { s.fade = 0; delete root.dataset.lgFade }, FADE_MS)
+    }
+    if (root.dataset.lg !== lg) root.dataset.lg = lg
     engineRef.current?.setFrozen(s.reduced || s.noStage || s.sheet || s.search || s.hidden)
   }
 
@@ -135,8 +134,9 @@ export default function GlassHost({
       onDom: scheduleStage,
       sprite: { cardDpr: cardDprIn, shadow: shadowIn },
       watchdog,
-      onStatus: s => {
+      onStatus: (s, opts) => {
         state.engine = s
+        state.fadeOut = !!opts?.fade
         if (s === 'reduced') state.reduced = true
         sync()
         statusRef.current?.(s)

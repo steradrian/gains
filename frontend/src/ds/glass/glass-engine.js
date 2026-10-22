@@ -7,7 +7,7 @@ import { isChrome, KIND, swollen } from './glass-kinds.js'
 import { createRegistry } from './glass-registry.js'
 import { createScheduler } from './glass-scheduler.js'
 import { createStats } from './glass-stats.js'
-import { clearFallback, createWatchdog, glassIsOff, recordFallback, REVEAL_MS } from './glass-watchdog.js'
+import { clearFallback, createWatchdog, glassIsOff, recordFallback } from './glass-watchdog.js'
 import { createMaterialProbe } from './material-probe.js'
 import { createChromePresenter } from './presenter-chrome.js'
 import { createSpritePresenter } from './presenter-sprite.js'
@@ -24,6 +24,7 @@ const LENS_STRETCH_PX = 10
 const PANE_BAND = 80 // px outside the viewport an in-flow pane the chrome bends still counts
 const MAX_DPR = 3
 const LOOK_MAX_DPR = 2
+const FADE_OUT_MS = 300 // keep in step with GlassHost FADE_MS and ds.css lg-out
 const RUN_GAP_MS = 250 // frames further apart than this are a new run, not a slow frame
 
 /**
@@ -94,7 +95,21 @@ export function createGlassEngine({
     chromeGl.dispose()
     sprites.dispose()
   }
-  const watchdog = watch ? createWatchdog({ onTrip: () => loseForGood('watchdog') }) : null
+  // A trip after the grace fades to CSS once: the host shows the CSS material under the canvases for FADE_OUT_MS
+  // while they fade out (ds.css lg-out), and only then are the shapes unmarked and the canvases freed.
+  let teardown = 0
+  const tripToCss = () => {
+    lostFrom.add('watchdog')
+    applyPause()
+    live = false
+    onStatus('fallback', { fade: true })
+    teardown = setTimeout(() => {
+      registry.setMarked(false)
+      chromeGl.dispose()
+      sprites.dispose()
+    }, FADE_OUT_MS)
+  }
+  const watchdog = watch ? createWatchdog({ onTrip: tripToCss }) : null
   registry = createRegistry(ground, {
     include,
     onChange: reason => { scheduler?.wake(reason); if (reason === 'dom') onDom() },
@@ -158,12 +173,9 @@ export function createGlassEngine({
     return { ...s, ...swollen(s, p.v, { reduced: stillNow(), stretch, bar: s.bar }), press: p.v, touch: p.touch, box }
   }
 
-  // The glass is drawn from the first frame but stays hidden (the CSS material, data-lg="css") until the
-  // watchdog has proven the device holds it, so a device that cannot never shows a glass that then turns
-  // frosted. The dev page (no watchdog) shows it at once.
-  function reveal(now) {
+  // The glass shows from the first frame that drew it (the watchdog's grace keeps a slow start from tripping).
+  function reveal() {
     if (live || !hasDrawn || lostFrom.size > 0) return
-    if (watchdog && !watchdog.proven(now)) return
     live = true
     clearFallback()
     registry.setMarked(true)
@@ -183,8 +195,8 @@ export function createGlassEngine({
       return false
     }
     const t1 = performance.now()
+    reveal()
     watchdog?.frame(changed.drew, t1 - t0, rafMs, t0)
-    reveal(t1)
     if (rafMs > 0 && rafMs < RUN_GAP_MS) stats.push('interval', rafMs, t0)
     if (changed.drew) stats.push('frame', t1 - t0, t0)
     return changed.any
@@ -294,8 +306,6 @@ export function createGlassEngine({
     pressable: el => registry.shapes.get(el)?.pressable ?? false,
   })
   scheduler.wake('mount')
-  // At rest no frame runs, so a timer asks for the one that reveals the glass once it is proven.
-  const revealTimer = watchdog ? setTimeout(() => { watchdog.provenAtRest(performance.now()); scheduler.wake('reveal') }, REVEAL_MS + 100) : 0
 
   return {
     wake: reason => {
@@ -310,7 +320,7 @@ export function createGlassEngine({
     },
     stats,
     dispose() {
-      clearTimeout(revealTimer)
+      clearTimeout(teardown)
       scheduler.dispose()
       sprites.dispose()
       registry.dispose()
