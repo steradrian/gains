@@ -29,3 +29,25 @@ Checked and clean (no finding):
 5. 🟡 [owner UI rule: dead-end drawer] views/me/goal/goal-drawers.jsx:119-133 (`BodyForm` when `!g.profileLive`), :193-199 (`MovementDrawer` when `!g.profileLive`), views/me/goal/GoalRoute.jsx:43 → With `PROFILE_WRITES_LIVE = false` (the shipped value) the Height, Birth year, Sex and Daily movement rows on My goal are tappable and open a drawer made only of `GlassValueRow static` rows and "Changing this arrives soon". It is a status surface with no action, behind a row that looks like an action.
    Trigger: My goal → tap Height.
    Fix: while the profile writes are gated, render the four rows as non-interactive (`static`, no chevron) on the page and drop the two read-only drawers, or hide the rows. If the owner wants the gate visible, one note on the page covers it. Confidence 70%: the plan decided the gate, not that the drawer opens.
+
+## Fix round
+
+Branch `feat/me-fix-round` (cut from `feat/me` at d2b630bcf). Findings 1 to 5 plus the carry items that were not measurement edit and delete (those belong to a parallel agent).
+
+1. 🟡 lb rounding: fixed in d6598f258. `profileOf().current` carries `w` (the weigh-in as entered); the Goal page, the Target preview and the Target drawer read it through `currentIn`, so 180.0 lb stays 180.0 and the two pages agree. Tests: lb and kg, `goal-data.test.js`, `goal-profile.test.js`.
+2. 🟡 NaN ring: fixed in 64b43a4d2. `weightOf` returns progress 0 when the first weigh-in equals the target. Test in `me-data.test.js`.
+3. 🟡 journal restore ignores the unit: fixed in 4e2ef5209. Weigh-in snapshots store `unit` and restores/undos convert with `convertBodyWeight`. The same bug in `goal-change`'s `targetW` snapshot is fixed the same way (the snapshot now stores `unit`; a restore converts). Older entries without a unit read as the current unit. Tests with a kg to lb switch between change and restore. Caveat: Settings > Units with `convert: false` relabels without converting, and a restore after that is converted wrongly; the journal cannot tell the two apart.
+4. 🟡 blind toast Undo: fixed in e7082b8fa. `undoWeighIn(day, before, left)` writes only while the day still holds what the action left, else returns false and the callers toast "Not undone, this day has a newer weigh-in" (Edit weigh-in drawer, both Save and Delete, and `sheets/body-weight.jsx`). Tests in `weigh-in.test.js` and `weigh-in-drawers.test.jsx`.
+5. 🟡 gated read-only drawers: left as decided. Checked: Body details and Daily movement each show the current values as static rows plus "Changing this arrives soon", with no chevron or button (existing tests cover both). Not changed.
+
+Carry items: 3 (movement line uses `movementLabel`) already done by goal-M3, nothing to change. 4 (plurals) already done by root-M3 (pl, ru, uk objects present, `i18n-plural` passes). 6 fixed in ea9e0d991: Target weight and Body details wait only when no settings exist yet (the TargetsDrawer pattern); a re-read mid-save no longer unmounts the form. Test keeps the typed value through a `loading` status with data. 1 and 2 not touched (other agent).
+
+Areas the review did not reach:
+- Android back, avatar push: Profile sits at the first history entry with the origin tab put aside, so `history.back()` leaves the app's own entries (it landed on `#/home` in a test launched from `#/train`). `lib/back.js` now sends a pushed page through the shell back (`decideBack` gets `pushed`), which returns to the origin tab with a `pop` slide. Fixed in cdb220917 with a `decideBack` case and a route-slide test.
+- Photo Compare: picking, swapping, Back and the two-photo minimum were already tested. Added a test for an empty side (a file no device has): it reads "On another phone", keeps its day and weight, and can be changed. No bug found.
+- Deleted-behaviour maps:
+  - `ProgressPhotos`: add photo, Compare picking and the empty state have homes (`photo-drawers`, `CompareScreen`, `PhotosTab`). Listed design drops: the Compare slider; the per-workout photo cap and the "log today's workout to add a photo" note (photos are now independent of workouts).
+  - `goalSheet`: Target weight is `targetWeightSheet`; the chart target line is kept (`WeighInsTab`). Design drops: the slider, the "Goal set: X (Y to go)" toast (now "Target weight changed to X" with Undo), and the toward/away colouring of weight change on the Body page (neutral glass tags; Progress still colours it).
+  - Measurements: log, empty, unit and manage have homes. Edit and delete of a day: carried to the parallel agent. A switched-off measurement with readings is no longer offered in the chart: design drop.
+
+Locale: one key, "Not undone, this day has a newer weigh-in", under `// Me fix round` in the 17 packs (English copy); the pt-BR fingerprint is updated.
