@@ -5,6 +5,8 @@ import { useUI } from '../../../store/useUI.js'
 import GoalRoute from '../../../views/me/goal/GoalRoute.jsx'
 import { bodyDetailsSheet, goalPickSheet, movementSheet, targetWeightSheet } from '../../../views/me/goal/goal-drawers.jsx'
 import { announceSaved } from '../../../views/me/goal/goal-feedback.js'
+import { openHow } from '../../../views/me/goal/HowDrawer.jsx'
+import { openTargets } from '../../../views/me/goal/TargetsDrawer.jsx'
 import { pending } from '../mock-env.js'
 import { registerScreens } from '../registry.js'
 import { goalMock, goalSettings, goalState } from './me-goal-fixture.js'
@@ -44,7 +46,12 @@ const refused = async t => {
 
 const unspecified = goalSettings({ gender: null })
 const noWeighIns = () => goalMock({ state: goalState({ weighIns: false }), settings: { ...goalSettings(), weight_kg: undefined } })
-const refusing = { ...goalMock(), api: { 'GET /api/settings': goalSettings(), 'PUT /api/settings': { status: 500, body: { error: 'down' } } } }
+const weekdayFat = (() => {
+  const s = goalSettings()
+  s.goals.fat = { sharedGoal: false, days: [60, 60, 60, 60, 60, 80, 80] }
+  return s
+})()
+const refusing ={ ...goalMock(), api: { 'GET /api/settings': goalSettings(), 'PUT /api/settings': { status: 500, body: { error: 'down' } } } }
 
 registerScreens('Me: goal', [
   { id: 'M3.0', title: 'My goal', note: 'The target ring (3.4 kg to go), the summary, the started line, Goal, Target weight, Body details, Daily movement, the read-only Daily targets with Edit, How this is worked out, and the note on Undo.',
@@ -80,4 +87,38 @@ registerScreens('Me: goal', [
     render: page(false), mock: goalMock(), play: open(movementSheet) },
   { id: 'M3.7', title: 'My goal, saved', note: 'After a change the page shows the new target (77.0 kg, 4.4 kg to go) and the toast offers Undo for 8 s (held here).',
     render: page(), mock: goalMock(), play: saved },
+
+  // Me goal M3
+  { id: 'M3.5', title: 'Daily targets', note: 'Fixed / Adaptive / Dynamic with the mode in one line (and why Dynamic is off), Calories, Protein, Carbs, Fat and Water as fields in the person\'s units, Save daily targets, and More options last.',
+    render: page(), mock: goalMock(), play: open(openTargets) },
+  { id: 'M3.5m', title: 'Daily targets, macros do not add up', note: 'Carbs 100 g: the note names 1,630 kcal against 2,100 kcal and the button sets the carbs to 218 g. Save still works.',
+    render: page(), mock: goalMock(), play: async t => { await open(openTargets)(t); await t.type('Carbs', '100') } },
+  { id: 'M3.5l', title: 'Daily targets, under 1,200', note: 'A calorie target of 1,100: "Most guidelines suggest at least 1,200 kcal." Save still works.',
+    render: page(), mock: goalMock(), play: async t => { await open(openTargets)(t); await t.type('Calories', '1100') } },
+  { id: 'M3.5d', title: 'Daily targets, Dynamic without a wearable', note: 'Dynamic was tapped and stayed off: the line under the modes says it needs a connected wearable.',
+    render: page(), mock: goalMock(), play: async t => { await open(openTargets)(t); await t.click('Dynamic') } },
+  { id: 'M3.5w', title: 'Daily targets, a macro that varies by weekday', note: 'Fat differs by weekday: a read-only row "Varies by weekday" in place of the field, left alone on Save.',
+    render: page(), mock: goalMock({ settings: weekdayFat }), play: open(openTargets) },
+  { id: 'M3.5g', title: 'Daily targets, discard guard', note: 'Protein edited, then the ×: "Discard changes?" opens as a sub-panel with Keep editing and Discard.',
+    render: page(), mock: goalMock(),
+    play: async t => {
+      await open(openTargets)(t)
+      await t.type('Protein', '170')
+      document.querySelector('.g-bs-x').click()
+      await t.wait(400)
+    } },
+  { id: 'M3.6', title: 'How this is worked out', note: 'Your burn, the goal factor and the target, then the burn, goal, protein and workouts sentences from the data, and Edit daily targets.',
+    render: page(), mock: goalMock(), play: open(openHow) },
+  { id: 'M3.6a', title: 'How this is worked out, Adaptive learning', note: 'Adaptive mode with 12 of 21 days: "Adaptive is learning" and the days so far. No Early and no 35-day line, because the data has neither.',
+    render: page(), mock: goalMock({ settings: goalSettings({ mode: 'adaptive' }), adaptive: { ready: false, daysAvailable: 12, daysRequired: 21 } }), play: open(openHow) },
+  { id: 'M3.6r', title: 'How this is worked out, Adaptive ready', note: 'The estimate and its confidence; the target follows the burn, workouts included.',
+    render: page(), mock: goalMock({ settings: goalSettings({ mode: 'adaptive' }), adaptive: { ready: true, daysAvailable: 28, daysRequired: 21, tdee: 2650, confidence: 0.8 } }), play: open(openHow) },
+  { id: 'M3.6e', title: 'How this is worked out, Adaptive early', note: 'When the data carries the 35-day figure and there are fewer days: the Early mark and "Firms up at 35 days".',
+    render: page(), mock: goalMock({ settings: goalSettings({ mode: 'adaptive' }), adaptive: { ready: true, daysAvailable: 28, daysRequired: 21, daysFull: 35, tdee: 2650, confidence: 0.6 } }), play: open(openHow) },
+  { id: 'M3.6d', title: 'How this is worked out, Dynamic', note: 'Dynamic: "Your target follows your burn, workouts included."',
+    render: page(), mock: goalMock({ settings: goalSettings({ mode: 'dynamic' }) }), play: open(openHow) },
+  { id: 'M3.6n', title: 'How this is worked out, no burn', note: 'No weigh-in or body details: no figures, and a Body details button in their place.',
+    render: page(), mock: noWeighIns(), play: open(openHow) },
+  { id: 'M3.6t', title: 'How this is worked out, then Edit daily targets', note: 'Edit daily targets slides Daily targets in as a sub-panel; Back returns to this drawer.',
+    render: page(), mock: goalMock(), play: async t => { await open(openHow)(t); await t.click('Edit daily targets') } },
 ])

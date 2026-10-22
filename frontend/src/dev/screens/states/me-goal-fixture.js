@@ -38,11 +38,13 @@ export function goalSettings({ gender = 'male', empty = false, factor = 0.8, mod
 const ALEX = { id: 'u1', name: 'Alex' }
 
 /** A state's mock: a signed-in person, his settings (writes answer with nothing, so a save changes nothing real), his weigh-ins. */
-export const goalMock = ({ state = goalState(), settings = goalSettings(), signedIn = true, fail = false } = {}) => ({
+export const goalMock = ({ state = goalState(), settings = goalSettings(), signedIn = true, fail = false, adaptive = null } = {}) => ({
   user: signedIn ? ALEX : null,
   S: state,
   api: {
     'GET /api/settings': fail ? { status: 500, body: { error: 'down' } } : settings,
     'PUT /api/settings': {},
+    // Adaptive's estimate (the How drawer asks in Adaptive mode); a call with no entry is a 404, an estimate that did not load.
+    ...(adaptive ? { 'GET /api/goals/adaptive-tdee': adaptive } : null),
   },
 })
