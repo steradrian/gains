@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { friendsErrorText } from '../../lib/friends/api.js'
 import { challengeRow, cheerToastText, headerLine, weekCells } from '../../lib/friends/group-copy.js'
 import { refreshFriends } from '../../lib/friends/store.js'
@@ -22,6 +22,18 @@ import { GROUPS_PATH } from './me-rows.js'
 
 const toast = (msg, opts) => useUI.getState().toast(msg, opts)
 
+// Friends group m2: Remove from group lands here with { removed, group } route state; said once.
+function useRemovedNotice() {
+  const nav = useNavigate()
+  const loc = useLocation()
+  const [removed] = useState(() => (loc.state?.removed && loc.state?.group ? { name: String(loc.state.removed), group: String(loc.state.group) } : null))
+  useEffect(() => {
+    if (!removed) return
+    nav(loc.pathname + loc.search, { replace: true, state: null })
+    toast(t('Removed {0} from {1}', removed.name, removed.group), { action: t('OK'), onAction: () => {} })
+  }, [])
+}
+
 /**
  * /me/groups/:id (boards Fr2Group, Fr2Cheered, Fr2NoActivity, Fr2Muted): the group's week as one
  * ring, the week together, challenges and moments, with Cheer on each other person's moment and a
@@ -33,6 +45,7 @@ export default function GroupScreen() {
   const { id } = useParams()
   const nav = useNavigate()
   const { group, status, stale, cheer, uncheer, mute, removeMoment } = useGroup(id)
+  useRemovedNotice()
 
   useEffect(() => {
     if (status !== 'gone') return

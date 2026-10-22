@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { t } from '../../../lib/i18n.js'
+import { __setMockGroup } from '../../../lib/friends/use-group.js'
 import { __setMockMember } from '../../../lib/friends/use-member.js'
 import { useUI } from '../../../store/useUI.js'
 import { memberMenuSheet } from '../../../components/MemberMenuSheet.jsx'
@@ -52,9 +53,8 @@ const remove = (member, group = GROUP_FULL) => async tools => {
   await wait(tools, 300)
 }
 
-// The Group with Mara gone, as it opens after Remove: the route state carries who and from where.
-// The toast is also fired here, so the state shows it whether or not the Group page reads the route
-// state itself (a toast replaces the one before it).
+// The Group with Mara gone, as it opens after Remove: the route state carries who and from where,
+// and the Group page says it.
 function RemovedRoute() {
   const nav = useNavigate()
   const loc = useLocation()
@@ -67,9 +67,10 @@ function RemovedRoute() {
 function RemovedMock() {
   const [ready, setReady] = useState(false)
   useLayoutEffect(() => {
-    const undo = mockFriends({ me: { ...ME_ON, groups: [GROUP_WITHOUT_MARA_SUMMARY] }, groups: [GROUP_WITHOUT_MARA_SUMMARY] })
+    const undoFriends = mockFriends({ me: { ...ME_ON, groups: [GROUP_WITHOUT_MARA_SUMMARY] }, groups: [GROUP_WITHOUT_MARA_SUMMARY] })
+    const undoGroup = __setMockGroup(GROUP_WITHOUT_MARA.id, GROUP_WITHOUT_MARA)
     setReady(true)
-    return () => { setReady(false); undo() }
+    return () => { setReady(false); undoGroup(); undoFriends() }
   }, [])
   return ready ? <RemovedRoute /> : null
 }
@@ -83,23 +84,22 @@ registerScreens('Friends: group member', [
     path: PATH('u-radu'), mock, render: page(MEMBER_RADU_SOME_OFF) },
   { id: 'friends-group-member-self', title: 'M6.6 Your own page', note: 'No Cheer pill and no menu: a back button only.',
     path: PATH('u-adrian'), mock, render: page(MEMBER_SELF) },
-  { id: 'friends-group-gap', title: 'M6.7 Member, no plan this week', note: 'Vlad took the week off: a calm line, never red, and no count against the goal. Consistency and food targets stay.',
+  { id: 'friends-member-gap', title: 'M6.7 Member, no plan this week', note: 'Vlad took the week off: a calm line, never red, and no count against the goal. Consistency and food targets stay.',
     path: PATH('u-vlad'), mock, render: page(MEMBER_VLAD_GAP) },
-  { id: 'friends-group-nothing-shared', title: 'M6.7 Member shares nothing', note: 'Every switch off: one line saying so, and the footer.',
+  { id: 'friends-member-nothing-shared', title: 'M6.7 Member shares nothing', note: 'Every switch off: one line saying so, and the footer.',
     path: PATH('u-ioana'), mock, render: page(MEMBER_IOANA_NOTHING) },
-  { id: 'friends-group-menu', title: 'M6.8 Member options, creator', note: 'Mute, Cheer their week and Remove from group (you created the group), then the no-report-flow line.',
+  { id: 'friends-member-menu', title: 'M6.8 Member options, creator', note: 'Mute, Cheer their week and Remove from group (you created the group), then the no-report-flow line.',
     path: PATH('u-mara'), mock, render: page(MEMBER_MARA), play: menu(MEMBER_MARA) },
-  { id: 'friends-group-menu-member', title: 'M6.8 Member options, not the creator', note: 'Mute and Cheer only: Remove is the creator\'s.',
+  { id: 'friends-member-menu-member', title: 'M6.8 Member options, not the creator', note: 'Mute and Cheer only: Remove is the creator\'s.',
     path: PATH('u-mara'), mock, render: page(MEMBER_MARA, GROUP_NOT_CREATOR), play: menu(MEMBER_MARA, GROUP_NOT_CREATOR) },
-  { id: 'friends-group-menu-muted', title: 'M6.8 Member options, muted', note: 'Mara is muted: the first row reads Unmute and says what it brings back.',
+  { id: 'friends-member-menu-muted', title: 'M6.8 Member options, muted', note: 'Mara is muted: the first row reads Unmute and says what it brings back.',
     path: PATH('u-mara'), mock, render: page(MEMBER_MARA, groupWithMuted(GROUP_FULL, 'u-mara')), play: menu(MEMBER_MARA, groupWithMuted(GROUP_FULL, 'u-mara')) },
-  { id: 'friends-group-remove', title: 'M6.23 Remove from group?', note: 'The confirm as a sub-panel of the menu: Remove Mara on top, Cancel low, three consequences (22 becomes 18).',
+  { id: 'friends-member-remove', title: 'M6.23 Remove from group?', note: 'The confirm as a sub-panel of the menu: Remove Mara on top, Cancel low, three consequences (22 becomes 18).',
     path: PATH('u-mara'), mock, render: page(MEMBER_MARA), play: remove(MEMBER_MARA) },
-  { id: 'friends-group-removed', title: 'M6.24 Group without her', note: 'Iron Sunday with four friends and 14 of 18 planned sessions; the toast "Removed Mara from Iron Sunday" is held open.',
+  { id: 'friends-member-removed', title: 'M6.24 Group without her', note: 'Iron Sunday with four friends and 14 of 18 planned sessions; the toast "Removed Mara from Iron Sunday" is held open.',
     path: '/me/groups/' + GROUP_WITHOUT_MARA.id, mock, render: () => <RemovedMock />,
     play: async tools => {
       await tools.wait(300)
-      useUI.getState().toast(t('Removed {0} from {1}', 'Mara', 'Iron Sunday'), { action: t('OK'), onAction: () => {} })
       useUI.getState().pauseToast()
     } },
 ])
