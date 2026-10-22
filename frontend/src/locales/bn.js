@@ -4639,6 +4639,7 @@ export default {
   'Couldn’t restore: this version can’t put that back': 'Couldn’t restore: this version can’t put that back',
   'Couldn’t restore. Check your connection and try again.': 'Couldn’t restore. Check your connection and try again.',
   'Recent changes': 'Recent changes',
+  'Restore': 'পুনরুদ্ধার করুন',
   'Deletes and changes from the last 7 days': 'Deletes and changes from the last 7 days',
   'Nothing in the last 7 days': 'Nothing in the last 7 days',
   'When you delete or change something, it waits here for 7 days so you can put it back.': 'When you delete or change something, it waits here for 7 days so you can put it back.',
