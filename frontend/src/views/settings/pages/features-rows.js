@@ -6,5 +6,5 @@
 // translated. The slot is called with `{ S, ctx, update }`: the profile state, the Settings ctx
 // (use-settings-ctx.js) and the store's `update`.
 
-/** Friends core-m1 returns its row here ("Groups under Me. Nothing is shared until you join one"). */
-export const friendsRow = () => []
+// Friends core m1: the Friends switch (views/friends/me-rows.js). The slot also gets `nav`.
+export { friendsFeatureRow as friendsRow } from '../../friends/me-rows.js'
