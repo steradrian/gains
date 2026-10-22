@@ -14,7 +14,7 @@ import { wakeLockSupported } from '../../lib/wakelock.js'
 import { playOnSilentSupported, vibrateSupported } from '../../lib/sound.js'
 import { systemReducesMotion } from '../../lib/reduced-motion.js'
 import { referencedFiles } from '../../lib/media-refs.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
+import { useFoodOn } from '../../lib/nutrition/food-on.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { diaryIndexDays, syncDiaryIndex, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { mealLabels } from '../../lib/nutrition/meal-name.js'
@@ -30,7 +30,7 @@ export function useSearchData(open) {
   const coachMode = useStore(s => s.coachLocal?.mode)
   const sync = useStore(s => s.sync)
   const langV = useLang()
-  const nutrition = nutritionAvailable(user)
+  const nutrition = useFoodOn()
   const ntSettings = useNutrition(s => s.settings.data)
   const foods = useNutrition(s => s.foods)
   const meals = useNutrition(s => s.meals)

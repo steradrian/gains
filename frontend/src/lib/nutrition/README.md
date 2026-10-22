@@ -2,7 +2,9 @@
 
 Calls go through the hub on the same origin: `/nt/api/*` (only the routes allow-listed in
 fitness-hub `src/nt-routes.ts`; anything else is a 404) and `/hub/api/sync/*`. No tokens. Gate
-UI on `nutritionAvailable(user)`: phones and guests have no nutrition. A route you need that
+UI on `useFoodOn()` (`food-on.js`: `nutritionAvailable(user)` and the Features > Food switch):
+phones and guests have no nutrition, and Food off hides it. Sync and sign-in flows that only need
+the hub's reach use `nutritionAvailable(user)`. A route you need that
 is not on the list needs a hub PR first.
 
 - `api.js`: `NtApi.*` and `HubSync.*`. The typedefs at the top are NutriTrace's real shapes.

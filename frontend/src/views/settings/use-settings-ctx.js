@@ -11,8 +11,7 @@ import { referencedFiles } from '../../lib/media-refs.js'
 import { playOnSilentSupported, vibrateSupported } from '../../lib/sound.js'
 import { systemReducesMotion } from '../../lib/reduced-motion.js'
 import { hapticsSupported } from '../../lib/use-haptic.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
-import { foodTracked } from '../../lib/nutrition/food-tracked.js'
+import { foodOn } from '../../lib/nutrition/food-on.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { passwordOn } from '../../components/PasswordAuth.jsx'
 
@@ -50,7 +49,7 @@ export function useSettingsCtx() {
   const hasMedia = referencedFiles(S).length > 0
 
   // NutriTrace's settings, through the hub (lib/nutrition): the web app, signed in.
-  const nutrition = nutritionAvailable(user) && foodTracked(S)
+  const nutrition = foodOn(user, S)
   const ntSettings = useNutrition(s => s.settings.data)
   useEffect(() => { if (nutrition) useNutrition.getState().loadSettings() }, [nutrition])
 
