@@ -6,6 +6,7 @@ import { useDsAccent } from '../lib/use-ds-accent.js'
 import { useStageLook } from '../lib/use-stage-look.js'
 import { useUI } from '../store/useUI.js'
 import { createGlassEngine } from './glass/glass-engine.js'
+import { readPrefs } from './glass/glass-prefs.js'
 
 // Liquid glass host: one per stage ground. It draws every glass shape under the ground into WebGL
 // canvases that refract the real stage (the look engine's own shader), and tells the page what to paint
@@ -24,10 +25,18 @@ const REDUCED_TRANSPARENCY = '(prefers-reduced-transparency: reduce)'
 
 /**
  * @param {{ groundRef?: { current: Element | null }, look?: string, accent?: string, pushed?: boolean,
- *   intensity?: number, motion?: boolean, onStatus?: (s: 'webgl' | 'fallback' | 'reduced') => void }} props
+ *   intensity?: number, motion?: boolean, onStatus?: (s: 'webgl' | 'fallback' | 'reduced') => void,
+ *   presenter?: 'fixed' | 'sprite', copy?: 'draw2d' | 'bitmap', cardDpr?: number, shadow?: 'shader' | 'css',
+ *   compare?: boolean, stageOnly?: boolean, watchdog?: boolean, statsRef?: { current: object | null } }} props
  * `pushed`: the page on top is a pushed one (AppStage's half-intensity stage).
+ * Liquid glass presenters (M3, until the device gate): `presenter` and the sprite options default to the
+ * stored choice (glass/glass-prefs.js); the dev page passes them, plus `compare` (both presenters, for its
+ * side-by-side check), `stageOnly`, `watchdog={false}` and `statsRef` (the engine's numbers, for its HUD).
  */
-export default function GlassHost({ groundRef, look, accent, pushed = false, intensity, motion, onStatus }) {
+export default function GlassHost({
+  groundRef, look, accent, pushed = false, intensity, motion, onStatus,
+  presenter, copy, cardDpr, shadow, compare = false, stageOnly = false, watchdog = true, statsRef,
+}) {
   const stored = useStageLook()
   const storedAccent = useDsAccent()
   const mode = useColorMode()
@@ -48,7 +57,17 @@ export default function GlassHost({ groundRef, look, accent, pushed = false, int
     intensity: intensity ?? stored.intensity ?? DEFAULT_INTENSITY,
     motion: motion ?? stored.motion,
     mode,
+    stageOnly,
   }
+
+  // Liquid glass presenter: the props win, else the stored choice, read once per mount.
+  const prefsRef = useRef(null)
+  if (!prefsRef.current) prefsRef.current = readPrefs()
+  const prefs = prefsRef.current
+  const presenterIn = presenter ?? prefs.presenter
+  const copyIn = copy ?? prefs.copy
+  const cardDprIn = cardDpr ?? prefs.cardDpr
+  const shadowIn = shadow ?? prefs.shadow
 
   const sync = () => {
     const s = stateRef.current
@@ -68,7 +87,7 @@ export default function GlassHost({ groundRef, look, accent, pushed = false, int
   const { look: lookIn, accent: accentIn, intensity: intensityIn, motion: motionIn } = inputsRef.current
   useEffect(() => {
     engineRef.current?.wake('inputs')
-  }, [lookIn, accentIn, pushed, intensityIn, motionIn, mode])
+  }, [lookIn, accentIn, pushed, intensityIn, motionIn, mode, stageOnly])
 
   useEffect(() => {
     const state = stateRef.current
@@ -97,6 +116,10 @@ export default function GlassHost({ groundRef, look, accent, pushed = false, int
       host: hostRef.current,
       getInputs: () => inputsRef.current,
       onDom: scheduleStage,
+      presenter: presenterIn,
+      sprite: { copy: copyIn, cardDpr: cardDprIn, shadow: shadowIn },
+      compare,
+      watchdog,
       onStatus: s => {
         state.engine = s
         if (s === 'reduced') state.reduced = true
@@ -105,17 +128,21 @@ export default function GlassHost({ groundRef, look, accent, pushed = false, int
       },
     })
     engineRef.current = engine
+    document.documentElement.dataset.lgPresenter = presenterIn
+    if (statsRef) statsRef.current = engine?.stats ?? null
     sync()
     return () => {
       engine?.dispose()
       engineRef.current = null
+      if (statsRef) statsRef.current = null
+      delete document.documentElement.dataset.lgPresenter
       if (checking) cancelAnimationFrame(checking)
       mql?.removeEventListener?.('change', onReduced)
       document.removeEventListener('visibilitychange', onVisible)
       state.engine = 'css'
       document.documentElement.dataset.lg = 'css'
     }
-  }, [groundRef])
+  }, [groundRef, presenterIn, copyIn, cardDprIn, shadowIn, compare, watchdog, statsRef])
 
   return <div ref={hostRef} className="gl-host" aria-hidden="true" />
 }
