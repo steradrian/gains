@@ -18,3 +18,5 @@ import './me/coach-changes.js'
 import './me/goal-changes.js'
 // Me body M1
 import './me/weigh-in-changes.js'
+// Me photos M3
+import './me/photo-changes.js'

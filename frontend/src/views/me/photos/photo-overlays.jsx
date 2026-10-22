@@ -1,50 +1,29 @@
-import Icon from '../../../components/Icon.jsx'
-import { MediaView } from '../../../components/CustomMedia.jsx'
-import { fmtDate } from '../../../lib/format.js'
-import { t } from '../../../lib/i18n.js'
+import { allPhotos } from '../../../lib/me/photos.js'
+import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
+import CompareScreen from './CompareScreen.jsx'
+import PhotoViewer from './PhotoViewer.jsx'
+import { PhotoSourceContext } from './PhotoThumb.jsx'
+import { defaultPair, pairFor } from './photo-compare.js'
 
-// The two overlays over the Photos tab: the seams photos-M3 fills in (the names and arguments stay).
-// For now a full sheet showing the photo through MediaView.
-// replaced by photos-M3
+// The two full-screen overlays over the Photos tab (boards Me2Viewer and Me2Compare), opened as
+// `viewer` sheets. `source` is the gallery's way to supply pictures (dev/screens); the app leaves it out.
+const withSource = (source, node) => (source ? <PhotoSourceContext.Provider value={source}>{node}</PhotoSourceContext.Provider> : node)
 
-function Viewer({ photo, close }) {
-  return (
-    <div className="mviewer" role="dialog" aria-modal="true" aria-label={t('Photo')}>
-      <div className="mviewer-bar">
-        <button type="button" className="iconbtn" aria-label={t('Close')} onClick={close}><Icon name="xmark" /></button>
-        <span className="mviewer-count">{fmtDate(photo.d, true, true)}</span>
-        <span className="ph-bar-gap" />
-      </div>
-      <div className="mviewer-stage"><MediaView m={photo.ref} cls="exmedia viewer" /></div>
-    </div>
-  )
+/** Opens Compare on `photos` (allPhotos entries, newest first): `pair` or, by default, the oldest and the newest. */
+export function openCompare(photos, { pair, source } = {}) {
+  const start = pair || defaultPair(photos)
+  if (!start) return
+  useUI.getState().openSheet(close => withSource(source, <CompareScreen photos={photos} pair={start} close={close} />), { kind: 'viewer' })
 }
 
-function Compare({ before, after, close }) {
-  return (
-    <div className="mviewer" role="dialog" aria-modal="true" aria-label={t('Compare photos')}>
-      <div className="mviewer-bar">
-        <button type="button" className="iconbtn" aria-label={t('Close')} onClick={close}><Icon name="xmark" /></button>
-        <span className="mviewer-count">{fmtDate(before.d, true) + ' · ' + fmtDate(after.d, true)}</span>
-        <span className="ph-bar-gap" />
-      </div>
-      <div className="mviewer-stage ph-pair">
-        <MediaView m={before.ref} cls="exmedia viewer" />
-        <MediaView m={after.ref} cls="exmedia viewer" />
-      </div>
-    </div>
-  )
-}
-
-/** Opens one photo (an allPhotos entry) full screen. */
-export function openViewer(photo) {
-  useUI.getState().openSheet(close => <Viewer photo={photo} close={close} />, { kind: 'viewer' })
-}
-
-/** Opens Compare on `photos` (allPhotos entries, newest first): for now the earliest and the latest. */
-export function openCompare(photos) {
-  if (!Array.isArray(photos) || photos.length < 2) return
-  const after = photos[0], before = photos[photos.length - 1]
-  useUI.getState().openSheet(close => <Compare before={before} after={after} close={close} />, { kind: 'viewer' })
+/** Opens one photo (an allPhotos entry) full screen, with the others to swipe to. */
+export function openViewer(photo, { photos = allPhotos(useStore.getState().S), source } = {}) {
+  const found = photos.findIndex(p => p.key === photo.key)
+  const list = found < 0 ? [photo] : photos
+  const onCompare = current => {
+    const pair = pairFor(list, current)
+    if (pair) openCompare(list, { pair, source })
+  }
+  useUI.getState().openSheet(close => withSource(source, <PhotoViewer photos={list} start={Math.max(0, found)} onCompare={onCompare} close={close} />), { kind: 'viewer' })
 }

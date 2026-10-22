@@ -1056,7 +1056,7 @@ describe('the screens gallery: Me, recent changes', () => {
 // Me photos M2
 describe('the screens gallery: Me > Photos', () => {
   it('has M2.8, M2.9, M2.12 and M2.13 and the edge states under their board ids, in Me: photos', () => {
-    const ids = screenAreas().find(a => a.name === 'Me: photos').entries.map(e => e.id)
+    const ids = screenAreas().find(a => a.name === 'Me: photos').entries.map(e => e.id).filter(id => !/^M2\.1[01]/.test(id))
     expect(ids).toEqual(['M2.8', 'M2.8a', 'M2.8b', 'M2.8c', 'M2.8d', 'M2.8e', 'M2.9', 'M2.12', 'M2.13'])
   })
 
@@ -1099,6 +1099,47 @@ describe('the screens gallery: Me > Photos', () => {
       expect(h.querySelector('.g-utoast-msg').textContent).toBe('Backing up 6 photos to your account')
       expect(h.querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('true')
       expect(h.querySelector('.g-snote').textContent).toContain('Backed up to your account.')
+    })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(useStore.getState().S).toBe(own)
+    expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+  }, 30000)
+})
+
+// Me photos M3
+describe('the screens gallery: Me > Photos > viewer and Compare', () => {
+  it('has M2.10 and M2.11 and their edge states under their board ids, in Me: photos', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: photos').entries.map(e => e.id).filter(id => /^M2\.1[01]/.test(id))
+    expect(ids).toEqual(['M2.10', 'M2.10a', 'M2.10b', 'M2.10c', 'M2.11', 'M2.11a', 'M2.11b'])
+  })
+
+  it('shows the viewer, its delete confirm, Compare and its picker, and writes nothing real', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const own = useStore.getState().S
+    const check = async (id, test) => { test(await show(screenById(id))); unmountAll(); useUI.getState().closeAll() }
+    await check('M2.10', h => {
+      expect(h.querySelector('.g-pstage-count').textContent).toBe('3 of 6')
+      expect(h.querySelector('.g-pstage-pic img')).not.toBeNull()
+      expect(h.querySelector('.g-pstage-cap span').textContent).toBe('83 kg that day')
+      expect([...h.querySelectorAll('.g-pstage-acts button')].map(b => b.textContent)).toEqual(['Compare', 'Delete'])
+    })
+    await check('M2.10a', h => {
+      expect(h.querySelector('.g-pstage-count').textContent).toBe('6 of 6')
+      expect(h.querySelector('.g-pstage-nav-next')).toBeNull()
+    })
+    await check('M2.10b', h => expect(h.querySelector('.g-pstage-count').textContent).toMatch(/ of 6$/))
+    await check('M2.10c', h => {
+      expect(h.textContent).toContain('Delete this photo?')
+      expect(h.querySelector('.g-confirm').textContent).toContain('This photo goes from your photos.')
+    })
+    await check('M2.11', h => {
+      expect(h.querySelector('.g-cmp-line').textContent).toBe('77 days apart · -3.6 kg · waist -4 cm')
+      expect(h.querySelectorAll('.g-cmp-side')).toHaveLength(2)
+    })
+    await check('M2.11a', h => expect(h.querySelector('.g-cmp-line').textContent).toBe('77 days apart'))
+    await check('M2.11b', h => {
+      expect(h.querySelector('.g-pstage-title').textContent).toBe('Choose the before photo')
+      expect(h.querySelectorAll('.g-pstage .g-ptile')).toHaveLength(5)
     })
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(useStore.getState().S).toBe(own)

@@ -25,15 +25,7 @@ const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const OWN = 'own:'
 const WORKOUT = 'workout:'
 
-/* ---- Moved as they were from views/ProgressPhotos.jsx (photos-M3 deletes that file). ---- */
-
-/** Today's own logged workout, the latest one if there is more than one — where "Add photo"
- *  attaches to, same as opening that workout and using WorkoutMedia.jsx there directly. */
-export function todaysWorkout(S) {
-  const today = (S.workouts || []).filter(w => w.d === todayISO())
-  if (!today.length) return null
-  return today.reduce((a, b) => (b.start || 0) > (a.start || 0) ? b : a)
-}
+/* ---- Workout photos ---- */
 
 /**
  * Every still photo (no video — the comparison wants two stills, not two clips) across every
@@ -50,17 +42,6 @@ export function progressPhotosOf(S) {
     }
   }
   out.sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : b.start - a.start))
-  return out
-}
-
-/** Runs an already-sorted progressPhotosOf() list into { d, items }[] groups of the same date. */
-export function groupByDate(photos) {
-  const out = []
-  for (const p of photos) {
-    const last = out[out.length - 1]
-    if (last && last.d === p.d) last.items.push(p)
-    else out.push({ d: p.d, items: [p] })
-  }
   return out
 }
 
