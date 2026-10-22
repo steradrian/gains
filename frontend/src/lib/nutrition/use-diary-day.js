@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '../../store/useStore.js'
-import { nutritionAvailable } from './api.js'
+import { useFoodOn } from './food-on.js'
 import { useNutrition } from './store.js'
 import { calorieTarget, macroTarget, totalsOf, waterGoalOf, waterTotal } from './diary.js'
 
@@ -12,8 +11,7 @@ import { calorieTarget, macroTarget, totalsOf, waterGoalOf, waterTotal } from '.
 // target. Until then 'loading', so the target never shows a default that then jumps. A failed
 // day or settings read is 'error' (`error` says which), with `reload` retrying both.
 export function useDiaryDay(date) {
-  const user = useStore(s => s.user)
-  const on = nutritionAvailable(user)
+  const on = useFoodOn()
   const settingsState = useNutrition(s => s.settings)
   const day = useNutrition(s => s.days[date])
   const activity = useNutrition(s => s.activity[date])

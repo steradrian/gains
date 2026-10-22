@@ -5,6 +5,7 @@ import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
 import { accentValue, applyAccent } from './lib/accent.js'
+import { useColorMode } from './lib/color-mode.js'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
 import { setPlayOnSilent, setVibrate, setAlarmBuzzer } from './lib/sound.js'
@@ -18,6 +19,7 @@ import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
 import AppStage from './ds/AppStage.jsx'
+import LandscapeCover from './ds/LandscapeCover.jsx'
 import { reducedMotion } from './lib/reduced-motion.js'
 import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
@@ -28,7 +30,7 @@ import { editorRouteKey } from './lib/nutrition/editor-routes.js'
 import { migrateLocalExtras } from './lib/nutrition/recipe-extras.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
-import { BRAND } from './brand.js'
+import { chromeColor, isLightColor, syncThemeColor } from './lib/theme-color.js'
 import { exitWorkoutEdit } from './sheets.jsx'
 import TabBar from './components/TabBar.jsx'
 import LiveDock from './components/LiveDock.jsx'
@@ -57,7 +59,7 @@ const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
-import CheckIn from './views/CheckIn.jsx'
+import GymPassPage from './views/settings/pages/GymPassPage.jsx'
 import PlanScreen from './views/plan/PlanScreen.jsx'
 import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
 import WorkoutRoute from './views/workout/WorkoutRoute.jsx'
@@ -78,7 +80,9 @@ import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
 import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
-import { SettingsRoute } from './views/Settings.jsx'
+import { SettingsRoute } from './views/settings/SettingsRoute.jsx'
+import DeleteAccountPage from './views/settings/pages/DeleteAccountPage.jsx'
+import StartedOverScreen from './views/settings/pages/StartedOverScreen.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -89,6 +93,7 @@ import TrainHub from './views/TrainHub.jsx'
 import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
+import FoodGate from './views/eat/FoodGate.jsx'
 import FoodRedirect from './views/eat/FoodRedirect.jsx'
 import MyFoods from './views/MyFoods.jsx'
 import FoodEditor from './views/my-foods/FoodEditor.jsx'
@@ -124,9 +129,6 @@ function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = resolveTheme(theme)
   applyAccent(de, accent, de.dataset.theme)
-  const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = BRAND.themeColor[de.dataset.theme] || BRAND.themeColor.dark
-  if (MOBILE) setSystemBarsLight(de.dataset.theme === 'light')
 }
 
 function Shell() {
@@ -165,7 +167,9 @@ function Shell() {
     exitWorkoutEdit(() => navigate(destination, { replace: true }))
   }, [loc.pathname, loc.search, S.active?.editingWorkoutId, navigate])
   // A preset key, or the user's own colour as '#rrggbb' (lib/accent.js), already checked.
-  const accent = accentValue(S)
+  // An accent never picked follows the resolved mode, so a system light/dark flip recolours it.
+  const mode = useColorMode()
+  const accent = accentValue(S, mode)
   useEffect(() => { applyPrefs(S.theme, accent) }, [S.theme, accent])
   // Profile › Appearance › Reduce motion: the same rule the system setting gets (index.css).
   useEffect(() => {
@@ -330,6 +334,14 @@ function Shell() {
 
   const authed = user || isGuest
   const sharedStage = !!authed && !inFlow && !onAddDevice && !needsMobileOnboarding
+  // The browser chrome and the status bar take the colour under them: the stage's top on a tab
+  // root, the page surface on a pushed page, in a drawer and in the flows with their own ground.
+  const sheetOpen = useUI(s => s.sheets.length > 0)
+  const chrome = chromeColor({ accent, mode, onStage: sharedStage && isTabRoot(shown.pathname) && !sheetOpen })
+  useEffect(() => {
+    syncThemeColor(chrome)
+    if (MOBILE) setSystemBarsLight(isLightColor(chrome))
+  }, [chrome])
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
@@ -380,6 +392,7 @@ function Shell() {
       {/* Workout finish M2: asks about a session left open for hours (W1.27). */}
       <StaleWorkoutCheck />
       <TimerFlash />
+      <LandscapeCover />
     </>
   )
 }
@@ -405,7 +418,7 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/exercises/new" element={<CreateExercise />} />
       {/* Gym check-in — switched off in Settings, the route falls through to the
           catch-all redirect below. */}
-      {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
+      {S.checkIn !== false && <Route path="/train/checkin" element={<GymPassPage />} />}
       {/* The Coach screens gate themselves on the instance config; the routes exist
           unconditionally so a deep link from a notification lands somewhere sane
           rather than on the catch-all. */}
@@ -417,28 +430,31 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/plans" element={<PlansScreen />} />
       <Route path="/train/plans/:id" element={<PlanPreview />} />
       {/* Nutrition */}
-      <Route path="/food" element={<FoodHub />} />
-      {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
-      <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
-      <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
-      <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
-      {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
-      <Route path="/food/goals" element={<NutritionGoals />} />
-      <Route path="/food/fasting" element={<Fasting />} />
-      {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
-      <Route path="/food/month" element={<MonthPage />} />
-      <Route path="/food/trends" element={<TrendsPage />} />
-      {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
-      <Route path="/food/burned" element={<BurnedPage />} />
-      {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
-          /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
-      <Route path="/food/my-foods" element={<MyFoods />} />
-      {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
-          keeps its form when the address takes the real id. */}
-      <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
-      <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
-      {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
-      <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
+      {/* With Food off the tab root and every page under it show "Food is off" (FoodGate) */}
+      <Route element={<FoodGate />}>
+        <Route path="/food" element={<FoodHub />} />
+        {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
+        <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
+        <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
+        <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
+        {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
+        <Route path="/food/goals" element={<NutritionGoals />} />
+        <Route path="/food/fasting" element={<Fasting />} />
+        {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
+        <Route path="/food/month" element={<MonthPage />} />
+        <Route path="/food/trends" element={<TrendsPage />} />
+        {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
+        <Route path="/food/burned" element={<BurnedPage />} />
+        {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
+            /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
+        <Route path="/food/my-foods" element={<MyFoods />} />
+        {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
+            keeps its form when the address takes the real id. */}
+        <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
+        <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
+        {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
+        <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
+      </Route>
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
       {/* Me body M1: Body moved to /me/body; the old addresses redirect, keeping ?range= */}
@@ -472,6 +488,8 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me/body/measurements" element={<BodyRoute />} />
       <Route path="/me/body/photos" element={<BodyRoute />} />
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
+      <Route path="/me/account/delete" element={<DeleteAccountPage />} />
+      <Route path="/me/account/started-over" element={<StartedOverScreen />} />
       <Route path="/me/:page" element={<SettingsRoute />} />
       <Route path="*" element={<Navigate to={fallback} replace />} />
     </Routes>

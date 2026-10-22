@@ -11,7 +11,7 @@ import '../signin.css'
 export default function SigninTroubleSheet({ close, onCode, onPassword }) {
   const items = [
     { icon: 'smartphone', title: t('Use a code from your other device'), sub: t('Your other device gets you in, then this one gets its own passkey'), onClick: onCode },
-    onPassword && { icon: 'lock', title: t('Sign in with password'), sub: t('If you set one in Settings › Account'), onClick: onPassword },
+    onPassword && { icon: 'lock', title: t('Sign in with password'), sub: t('If you set one earlier'), onClick: onPassword },
   ].filter(Boolean)
   return (
     <div className="g-root">

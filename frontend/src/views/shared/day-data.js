@@ -141,8 +141,8 @@ export function foodOf(diary, targets = dayTargetsOf({ settings: diary?.settings
     band: diff == null ? null : Math.abs(diff) <= ON_TARGET_KCAL ? 'on' : diff > 0 ? 'over' : 'under',
     logged: (diary.entry?.items || []).length > 0,
     macros: MACROS.map(id => ({ id, value: round(diary.totals[id]), target: targets.macro(id) })),
-    meals: mealLabels(diary.settings).map((name, slot) => {
-      const items = mealItems(diary.entry, slot)
+    meals: mealLabels(diary.settings).map((name, slot, all) => {
+      const items = mealItems(diary.entry, slot, all.length)
       return {
         slot, name, kcal: round(totalsOf(items).calories),
         items: items.map(i => ({ uuid: i.uuid, name: i.name || '', kcal: round(nutritionOf(i).calories) })),

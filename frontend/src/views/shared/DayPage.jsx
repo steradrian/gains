@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { dayTargetOf, firstLogDay } from '../../lib/day-route.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
+import { useFoodOn } from '../../lib/nutrition/food-on.js'
 import { diaryIndexDays, startDiaryIndex, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { TABS, TAB_ROOT } from '../../lib/tab-route.js'
 import { back } from '../../lib/use-tab-nav.js'
@@ -23,7 +23,7 @@ export default function DayPage() {
   const { tab, date } = useParams()
   const S = useStore(s => s.S)
   const ready = useStore(s => s.ready)
-  const food = nutritionAvailable(useStore(s => s.user))
+  const food = useFoodOn()
   const indexIn = useDiaryIndex(s => s.synced || (s.status === 'ready' && s.complete))
   useDiaryIndex(s => s.version)
   const today = useTodayDate()

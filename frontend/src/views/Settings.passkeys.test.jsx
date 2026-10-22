@@ -3,8 +3,10 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Settings → Account with more than one passkey (#95): the Passkeys row and the code for another
@@ -39,6 +41,8 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+// The stage frame (nav bar, background) is the app's and has its own test; the rows are the point.
+vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/api.js', () => ({
   api: (...a) => mocks.api(...a), webauthnOK: () => mocks.webauthn, passkeyLogin: (...a) => mocks.passkeyLogin(...a), passkeyRegister: vi.fn(), IS_ANDROID: false,
   passkeyAssertion: vi.fn(), passwordLogin: vi.fn(), passwordRegister: vi.fn(), passwordResetRedeem: vi.fn(), createPasskey: vi.fn(),
@@ -64,9 +68,10 @@ function mount(el) {
   return host
 }
 const settle = () => act(() => new Promise(r => setTimeout(r, 0)))
-const section = (page, title) => [...page.querySelectorAll('.sect')].find(s => s.querySelector('.sect-t')?.textContent === title)
-const titles = el => [...el.querySelectorAll('.lrow-t')].map(t => t.textContent)
-const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
+// The account page's rows are the stage's (.g-glist-row); the Password row is still the old one.
+const titles = el => [...el.querySelectorAll('.g-glist-row b, .lrow-t')].map(t => t.textContent)
+const rowByTitle = (el, title) => [...el.querySelectorAll('.g-glist-row, .lrow')].find(r => r.querySelector('b, .lrow-t')?.textContent === title)
+const headings = el => [...el.querySelectorAll('.g-ssec h2')].map(h => h.textContent)
 
 beforeEach(() => {
   stubHubOffline()
@@ -84,36 +89,50 @@ afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { ro
 const asked = path => mocks.api.mock.calls.filter(([p]) => p === path).length
 
 describe('Settings: passkeys and another device', () => {
-  it('a signed-in browser lists its passkeys and offers a code for another device, in Account', async () => {
+  it('a signed-in browser lists each passkey and offers a code for another device', async () => {
     const page = mount(<Settings page="account" />)
     await settle()
-    const account = section(page, 'Account')
-    expect(titles(account)).toEqual(expect.arrayContaining(['Passkeys', 'Add another device']))
-    expect(rowByTitle(account, 'Passkeys').textContent).toContain('2 passkeys')
-    // Above pairing and the password, which are about other ways in.
-    const order = titles(account)
-    expect(order.indexOf('Passkeys')).toBeLessThan(order.indexOf('Pair the mobile app'))
-    expect(order.indexOf('Add another device')).toBeLessThan(order.indexOf('Password'))
+    expect(headings(page)).toContain('Passkeys')
+    expect(titles(page)).toEqual(expect.arrayContaining(['Laptop', 'Passkey 2', 'Add a passkey', 'Add another device']))
+    // The passkeys come first, then the ways to add a device, then the password.
+    const order = titles(page)
+    expect(order.indexOf('Laptop')).toBeLessThan(order.indexOf('Add another device'))
+    expect(order.indexOf('Add another device')).toBeLessThan(order.indexOf('Pair the mobile app'))
+    expect(order.indexOf('Pair the mobile app')).toBeLessThan(order.indexOf('Password'))
   })
 
-  it('a guest gets neither, and nothing is asked', async () => {
+  it('tapping a passkey opens its drawer; Add a passkey and Add another device open theirs', async () => {
+    const page = mount(<Settings page="account" />)
+    await settle()
+    act(() => rowByTitle(page, 'Laptop').click())
+    expect(mocks.sheets.at(-1).opts).toEqual({ variant: 'ds' })
+    expect(mount(mocks.sheets.at(-1).render(() => {})).querySelector('h2').textContent).toBe('Passkey')
+    act(() => rowByTitle(page, 'Add a passkey').click())
+    expect(mount(mocks.sheets.at(-1).render(() => {})).querySelector('h2').textContent).toBe('Add a passkey')
+    act(() => rowByTitle(page, 'Add another device').click())
+    expect(mount(mocks.sheets.at(-1).render(() => {})).querySelector('h2').textContent).toBe('Add another device')
+  })
+
+  it('a guest gets none of it, and nothing is asked', async () => {
     mocks.user = null
     const page = mount(<Settings page="account" />)
     await settle()
-    expect(titles(page)).not.toContain('Passkeys')
+    expect(headings(page)).not.toContain('Passkeys')
+    expect(titles(page)).not.toContain('Laptop')
     expect(titles(page)).not.toContain('Add another device')
     expect(asked('/api/account/passkeys')).toBe(0)
   })
 
-  it('a server without the list shows neither row', async () => {
+  it('a server without the list shows no passkey rows and no code for another device', async () => {
     const list = mocks.list
     mocks.list = {}
     try {
       const page = mount(<Settings page="account" />)
       await settle()
-      expect(titles(page)).not.toContain('Passkeys')
+      expect(headings(page)).not.toContain('Passkeys')
+      expect(titles(page)).not.toContain('Add a passkey')
       expect(titles(page)).not.toContain('Add another device')
-      expect(titles(section(page, 'Account'))).toContain('Password')
+      expect(titles(page)).toContain('Password')
     } finally { mocks.list = list }
   })
 
@@ -127,14 +146,14 @@ describe('Settings: passkeys and another device', () => {
     })
     const page = mount(<Settings page="account" />)
     await settle()
-    expect(titles(section(page, 'Account'))).not.toEqual(expect.arrayContaining(['Passkeys']))
-    expect(titles(section(page, 'Account'))).not.toContain('Password')
+    expect(titles(page)).not.toEqual(expect.arrayContaining(['Laptop']))
+    expect(titles(page)).not.toContain('Password')
 
     mocks.api.mockImplementation(answer)
     mocks.sync = { ...mocks.sync, lastSynced: mocks.sync.lastSynced + 30000 }   // a check that found both sides in step
     act(() => mounted.at(-1).root.render(<Settings page="account" />))
     await settle()
-    expect(titles(section(page, 'Account'))).toEqual(expect.arrayContaining(['Passkeys', 'Add another device', 'Password']))
+    expect(titles(page)).toEqual(expect.arrayContaining(['Laptop', 'Add another device', 'Password']))
     expect(asked('/api/account/passkeys')).toBe(2)
     expect(asked('/api/account/password')).toBe(2)
 
@@ -157,7 +176,7 @@ describe('Settings: passkeys and another device', () => {
       mocks.sync = { ...mocks.sync, lastSynced: mocks.sync.lastSynced + 30000 }
       act(() => mounted.at(-1).root.render(<Settings page="account" />))
       await settle()
-      expect(titles(page)).not.toContain('Passkeys')
+      expect(titles(page)).not.toContain('Laptop')
       expect(asked('/api/account/passkeys')).toBe(1)
     } finally { mocks.api.mockImplementation(answer) }
   })
@@ -167,15 +186,12 @@ describe('Settings: passkeys and another device', () => {
     await settle()
     expect(asked('/api/account/passkeys')).toBe(1)
     expect(asked('/api/account/password')).toBe(1)
-    act(() => rowByTitle(section(page, 'Account'), 'Passkeys').click())
-    const list = mount(mocks.sheets.at(-1).render(() => {}))
-    await settle()
-    act(() => rowByTitle(list, 'Laptop').click())
+    act(() => rowByTitle(page, 'Laptop').click())
     const edit = mount(mocks.sheets.at(-1).render(() => {}))
     await act(async () => { edit.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     await settle()
     expect(asked('/api/account/passkeys/rename')).toBe(1)
-    expect(asked('/api/account/passkeys')).toBe(3)   // Settings, the sheet, and Settings again
+    expect(asked('/api/account/passkeys')).toBe(2)   // the page, and the page again once they changed
     expect(asked('/api/account/password')).toBe(2)
   })
 })

@@ -16,6 +16,8 @@ export const BRAND = {
 }
 
 export const LINKS = {
+  // Where Help's Report a problem writes to, until Gains has a tracker of its own.
+  contact: 'steradrian5@gmail.com',
   // Legal wording, so it is not translated.
   copyright: ['Copyright © 2026 Duarte Santos (openGym)', 'Modifications © 2026 steradrian'],
   // AGPL-3.0 section 13: where the corresponding source of this build is.
@@ -33,4 +35,5 @@ export const LINKS = {
   muscleMap: { name: 'MuscleMap', url: 'https://github.com/melihcolpan/MuscleMap' },
   exerciseDb: { name: 'ExerciseDB v1', url: 'https://exercisedb.dev/' },
   lucide: { name: 'Lucide', url: 'https://lucide.dev/license' },
+  openFoodFacts: { name: 'Open Food Facts', url: 'https://world.openfoodfacts.org/' },
 }

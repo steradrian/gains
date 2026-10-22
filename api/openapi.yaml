@@ -142,6 +142,12 @@ tags:
     description: >-
       More than one passkey on a profile: list, add, rename, remove, plus one-time device
       links, which let another device of the same person add a passkey of its own.
+  - name: account
+    description: >-
+      Deleting your own account, after a 7-day grace. Scheduling takes the same proof as adding
+      a passkey; until the deadline the account works read-only (signing in, reading and
+      downloading everything, cancelling), then a sweep removes it exactly as an admin's delete
+      does.
   - name: data
     description: Per-user state sync (the whole app state as one JSON blob)
   - name: push
@@ -343,6 +349,7 @@ paths:
                               when one is, false when every one is known not to be, null while any is
                               unknown (made before the flag was kept, and not used since) or there is
                               none. What the app's second-passkey reminder is decided on.
+                          deletion: { $ref: '#/components/schemas/AccountDeletion' }
                   token: { type: string, description: 'Bearer sessions past half their lifetime only: the renewed token.' }
               example: { user: { id: "Zk3q9XyPbA2LmN0v", name: "Ada", admin: false, synced: true } }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -1506,6 +1513,115 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/Busy' }
 
+  /api/account/delete/options:
+    post:
+      tags: [account]
+      operationId: deleteAccountOptions
+      summary: 'Delete my account (step 1): how to prove it is me'
+      description: |
+        With at least one passkey: assertion options listing this profile's passkeys in
+        `allowCredentials`, and `cid`, a challenge good for 5 minutes, for this profile, and
+        only while the session version is unchanged. `password` says whether the current
+        password is accepted instead (only while `PASSWORD_LOGIN` is on). A profile with no
+        passkey but a password that counts gets `{ password: true }` and no options. The body
+        is ignored. Spends the sign-in burst budget.
+      responses:
+        '200':
+          description: What step 2 accepts as proof.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [password]
+                properties:
+                  cid: { type: string, description: 'One-shot challenge id for POST /api/account/delete. Absent without a passkey.' }
+                  options:
+                    type: object
+                    description: >-
+                      PublicKeyCredentialRequestOptionsJSON for `startAuthentication()`, with
+                      `allowCredentials` set to this profile's passkeys. Absent without a passkey.
+                    additionalProperties: true
+                  password: { type: boolean }
+              example: { cid: "q4T1x0bW2c3d4e5f6g7h8i", options: { challenge: "c2lnbi1tZQ", rpId: "gains.example", userVerification: "preferred", allowCredentials: [{ id: "AbC123", type: "public-key", transports: ["internal"] }] }, password: false }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: >-
+            `deletion-scheduled` (one is pending already; `at` says when), `last-admin` (the only
+            admin cannot delete themselves) or `no-passkey` (no passkey and no password that
+            counts, so nothing can prove it is the owner).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                scheduled: { value: { error: "deletion scheduled", code: "deletion-scheduled", at: "2026-10-29T09:00:00.000Z" } }
+                lastAdmin: { value: { error: "cannot delete the last admin", code: "last-admin" } }
+                noProof: { value: { error: "no passkey", code: "no-passkey" } }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/account/delete:
+    post:
+      tags: [account]
+      operationId: deleteAccount
+      summary: 'Delete my account (step 2): prove it, schedule the deletion'
+      description: |
+        Takes the same proof as adding a passkey (`OwnerProof`): `cid` from step 1 (or from
+        `POST /api/login/options`) with `credential` signed by one of *this* profile's
+        passkeys, or `current`, the password, only while `PASSWORD_LOGIN` is on. A refused
+        proof changes nothing.
+
+        On success the account is deleted 7 days from now (`at`). Until then signing in works,
+        every session stays valid, `GET /api/data`, `GET /api/data/rev` and the media reads
+        work, `PUT /api/data` and uploads answer 423, scheduled pushes stop, and
+        `GET /api/me` carries `user.deletion`. Asked again while one is pending, it answers
+        the schedule that stands without asking for proof; the deadline never moves. At `at`
+        a sweep (every 10 minutes, and at boot) removes the profile exactly as
+        `POST /api/admin/user/delete` does. Audited as `account.delete.schedule` (with the proof
+        used) and, at the end, `account.delete.purge`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OwnerProof' }
+      responses:
+        '200':
+          description: Scheduled (or already scheduled).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AccountDeletion'
+                  - type: object
+                    properties:
+                      ok: { type: boolean, const: true }
+              example: { ok: true, at: "2026-10-29T09:00:00.000Z", requestedAt: "2026-10-22T09:00:00.000Z" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/ProofRefused' }
+        '409':
+          description: '`last-admin` or `no-passkey`, as in step 1.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { error: "cannot delete the last admin", code: "last-admin" }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Busy' }
+
+  /api/account/delete/cancel:
+    post:
+      tags: [account]
+      operationId: cancelAccountDeletion
+      summary: Cancel a scheduled deletion
+      description: >-
+        Clears the schedule; writes work again at once. A session is enough. Answers the same
+        with nothing pending. Audited as `account.delete.cancel` when there was one.
+      responses:
+        '200':
+          description: Nothing is scheduled any more.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /api/device-link/options:
     post:
       tags: [passkeys]
@@ -1744,6 +1860,7 @@ paths:
                 missing: { value: { error: "state required" } }
                 invalid: { value: { error: "invalid state" } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '423': { $ref: '#/components/responses/DeletionScheduled' }
 
   /api/data/rev:
     get:
@@ -1905,6 +2022,7 @@ paths:
               examples:
                 type: { value: { error: "that file type is not accepted", code: "media-type" } }
                 invalid: { value: { error: "that video could not be read", code: "media-invalid" } }
+        '423': { $ref: '#/components/responses/DeletionScheduled' }
         '429':
           description: >-
             `locked`: more than `MEDIA_UPLOADS_PER_HOUR` uploads this hour; `busy`: two
@@ -4169,6 +4287,15 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
           example: { error: "confirm with your passkey first", code: "passkey-required" }
+    DeletionScheduled:
+      description: >-
+        `deletion-scheduled`: the account is scheduled for deletion (POST /api/account/delete),
+        so nothing of it changes until the owner cancels; `at` says when it goes. Reads keep
+        working.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: "deletion scheduled", code: "deletion-scheduled", at: "2026-10-29T09:00:00.000Z" }
     PasskeyLimit:
       description: The profile already has the most passkeys it can have (20).
       content:
@@ -4205,6 +4332,10 @@ components:
         field:
           oneOf: [{ type: string }, { type: 'null' }]
           description: The onboarding seed's 400 only. The top-level field refused, or null for the body as a whole.
+        at:
+          type: string
+          format: date-time
+          description: '`deletion-scheduled` only: when the account is deleted.'
 
     Ok:
       type: object
@@ -4250,7 +4381,7 @@ components:
         profile's current password (`current`), which counts only while `PASSWORD_LOGIN`
         is on. Each assertion is good for one request: its challenge is spent by it.
       properties:
-        cid: { type: string, description: 'From POST /api/login/options.' }
+        cid: { type: string, description: 'From POST /api/login/options (or, for POST /api/account/delete, from POST /api/account/delete/options).' }
         credential: { $ref: '#/components/schemas/WebAuthnAuthenticationCredential' }
         current: { type: string }
 
@@ -4262,6 +4393,17 @@ components:
         name: { type: string }
         admin: { type: boolean }
       example: { id: "Zk3q9XyPbA2LmN0v", name: "Ada", admin: false }
+
+    AccountDeletion:
+      type: object
+      description: >-
+        A scheduled deletion of the caller's own account (POST /api/account/delete). On
+        `GET /api/me` only while one is pending.
+      required: [at, requestedAt]
+      properties:
+        at: { type: string, format: date-time, description: 'When the account and everything in it are removed: 7 days after requestedAt.' }
+        requestedAt: { type: string, format: date-time }
+      example: { at: "2026-10-29T09:00:00.000Z", requestedAt: "2026-10-22T09:00:00.000Z" }
 
     # ------------------------------------------------------------------ WebAuthn
     # These mirror @simplewebauthn/server v13's JSON shapes (themselves the W3C

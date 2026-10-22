@@ -4,11 +4,18 @@
 // the onboarding kept for this tab. The screens are the real ones; only what they call is
 // replaced, and everything is put back when the state is left.
 import { STORE_KEY } from '../../lib/onboarding/session.js'
+import { _setMediaStore, createMediaStore, getMediaStore, mediaStoreInUse, memoryBackend } from '../../lib/media-store.js'
 import { keepRecentsThroughUserSwap } from '../../lib/search/recents.js'
 import { useStore } from '../../store/useStore.js'
 
 // `sync` is saved and put back too, so a state that shows another sync status leaves none behind.
-const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync']
+// `resetEverything` (Start over, reachable from the Account states) does nothing here: the real one
+// would write a wiped copy over this browser's own. Start over's media wipe (retainOnly) goes to the
+// in-memory media store installed below, so no tap in the gallery can reach this browser's files.
+// `setUnit` (Units, "Convert the numbers") would convert the real routines and logs and save them
+// under gym_state_v1; here it only flips the unit in the laid-over copy. `resetDemo` is the demo
+// build's reset, which writes the example data over the saved copy.
+const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync', 'resetEverything', 'setUnit', 'resetDemo']
 
 /** A passkey prompt the person closed. */
 export const denied = () => Promise.reject(Object.assign(new Error('The operation either timed out or was not allowed.'), { name: 'NotAllowedError' }))
@@ -67,9 +74,16 @@ export function installMocks({ config = null, user = null, linkCode = null, weba
   useStore.setState({
     config, user, linkCode,
     setUser: () => {}, adoptProfile: async () => ({}), setGuest: () => {}, loadConfig: async () => config,
-    pushState: async () => {}, pullState: async () => {},
+    pushState: async () => {}, pullState: async () => {}, resetEverything: async () => {}, resetDemo: async () => {},
+    setUnit: to => { if (S) useStore.setState(st => ({ S: { ...st.S, unit: to } })) },
   })
   undo.push(() => useStore.setState(saved))
+
+  // Photos and videos: the app's store is swapped for an empty in-memory one while a state shows,
+  // so the media wipe after Start over (and any other write to it) never touches this browser's.
+  const ownMedia = mediaStoreInUse() ? getMediaStore() : null
+  _setMediaStore(createMediaStore(memoryBackend()))
+  undo.push(() => _setMediaStore(ownMedia))
 
   const realFetch = globalThis.fetch
   globalThis.fetch = async (input, init = {}) => {

@@ -43,12 +43,11 @@
   --purple:#bf5af2; --mint:#63e6e2; --brown:#ac8e68; --grey:#8e8e93;
 
   /* accent (per-account, synced) */
-  --acc:  var(--green);
-  --acc-2:#248a3d;
-  --on-acc:#000000;
-  /* The accent as text or an icon on --bg / --surface, at least 4.5:1. The dark accents already
-     clear it (lowest: blue 4.72:1), so dark reads the accent itself; light sets a darker shade
-     per accent below. A user's own colour gets its own in lib/accent.js customAccentVars. */
+  /* Before the first paint's JS: the dark default theme (ink). lib/themes.js applyAccent sets all
+     four inline from the chosen theme; light mode defaults below. */
+  --acc:  #f4f2ee;
+  --acc-2:#d8d5cf;
+  --on-acc:#111111;
   --acc-ink: var(--acc);
   --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
   --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
@@ -150,53 +149,18 @@
   --blue:#007aff; --green:#34c759; --red:#ff3b30; --orange:#ff9500;
   --yellow:#ffcc00; --teal:#30b0c7; --indigo:#5856d6; --pink:#ff2d55;
   --purple:#af52de; --mint:#00c7be; --brown:#a2845e; --grey:#8e8e93;
-  --acc-2:#248a3d;
+  --acc:#3157c6;        /* the light default theme (cobalt) until applyAccent runs */
+  --acc-2:#2342a6;
   --on-acc:#ffffff;
-  --acc-ink:#1c6f2f;
+  --acc-ink:#2342a6;
   --live-ink:#a35800;   /* the running-workout label as text: --live is 3.8:1 as a dot only */
 }
 
-/* accents — Apple's system colours, so a recolour never looks off-system */
-:root[data-accent="lime"]  { --acc:var(--green);  --acc-2:#248a3d; --on-acc:#000 }
-:root[data-accent="sky"]   { --acc:var(--blue);   --acc-2:#0060df; --on-acc:#fff }
-:root[data-accent="orange"]{ --acc:var(--orange); --acc-2:#c76b00; --on-acc:#000 }
-:root[data-accent="violet"]{ --acc:var(--purple); --acc-2:#8944ab; --on-acc:#fff }
-:root[data-accent="pink"]  { --acc:var(--pink);   --acc-2:#d70036; --on-acc:#fff }
-:root[data-accent="red"]   { --acc:var(--red);    --acc-2:#d70015; --on-acc:#fff }
-:root[data-accent="teal"]  { --acc:var(--teal);   --acc-2:#0071a4; --on-acc:#000 }
-:root[data-accent="gold"]  { --acc:var(--yellow); --acc-2:#b25000; --on-acc:#000; --knob-ring:rgba(0,0,0,.28) }
-/* Label colour on a filled accent button is picked per accent by measured contrast,
-   not by taste. Button text is 17px/600, so the AA bar is 3:1 (large text). White on
-   the light-theme green is 2.22:1 and on teal 2.57:1 — both fail, and green is the
-   DEFAULT accent, so every primary button in light mode was failing. Black scores
-   9.46 / 8.16 there. Blue, purple, pink and red keep white (3.5–4.1:1), which both
-   passes and matches the platform convention. */
-:root[data-theme="light"][data-accent="lime"],
-:root[data-theme="light"][data-accent="teal"]  { --on-acc:#000 }
-:root[data-theme="light"][data-accent="sky"],
-:root[data-theme="light"][data-accent="violet"],
-:root[data-theme="light"][data-accent="pink"],
-:root[data-theme="light"][data-accent="red"]   { --on-acc:#fff }
-
-/* --acc-ink: the accent as text or an icon, >= 4.5:1 on --bg, --surface and on the --acc-soft tint
-   over --surface-2 (a tinted button or tag on a pressed or nested fill); accent.test.js measures
-   every value. Dark accents already clear --bg and --surface; the four that fell short on the tint
-   are lifted. Light darkens each accent just far enough. */
-:root[data-accent="sky"]    { --acc-ink:#47a3ff }
-:root[data-accent="violet"] { --acc-ink:#ce80f5 }
-:root[data-accent="pink"]   { --acc-ink:#ff6a88 }
-:root[data-accent="red"]    { --acc-ink:#ff7068 }
-:root[data-theme="light"][data-accent="lime"]   { --acc-ink:#1c6f2f }
-:root[data-theme="light"][data-accent="sky"]    { --acc-ink:#005bc0 }
-:root[data-theme="light"][data-accent="orange"] { --acc-ink:#8f5300 }
-:root[data-theme="light"][data-accent="violet"] { --acc-ink:#843ea7 }
-:root[data-theme="light"][data-accent="pink"]   { --acc-ink:#b3203c }
-:root[data-theme="light"][data-accent="red"]    { --acc-ink:#af2821 }
-:root[data-theme="light"][data-accent="teal"]   { --acc-ink:#1d6b79 }
-:root[data-theme="light"][data-accent="gold"]   { --acc-ink:#7a6200 }
-/* An orange or gold accent would make the running-workout dot look like the accent. */
-:root[data-accent="orange"], :root[data-accent="gold"] { --live:var(--red) }
-:root[data-theme="light"][data-accent="orange"], :root[data-theme="light"][data-accent="gold"] { --live-ink:#c42d25 }
+/* The accent tokens (--acc, --acc-2, --on-acc, --acc-ink) are set inline on <html> from the chosen
+   theme (lib/themes.js applyAccent), which measures its own contrast (themes.test.js). What stays
+   keyed on data-accent: an orange-hued accent would make the running-workout dot look like it. */
+:root[data-accent="amber"], :root[data-accent="ember"] { --live:var(--red) }
+:root[data-theme="light"][data-accent="amber"], :root[data-theme="light"][data-accent="ember"] { --live-ink:#c42d25 }
 
 /* ---------------------------------------------------------------- reset -- */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -218,14 +182,14 @@ input,select,textarea{font:inherit;color:var(--label);letter-spacing:inherit}
 img{max-width:100%}
 a{color:var(--acc-ink);text-decoration:none}
 /* A link inside running text is told apart by more than its colour. */
-p a,.small a,.dim a,.sect-f a,.sp-version a,.sp-lic a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+p a,.small a,.dim a,.sect-f a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
 :focus{outline:none}
 /* --acc-ink, not --acc: >= 4.5:1 on every fill the ring lands on, so also >= 3:1 as a ring */
 :focus-visible{outline:2.5px solid var(--acc-ink);outline-offset:2px;border-radius:6px}
 /* A sheet takes the focus itself when it opens (lib/use-sheet-dialog.js): the dialog is where you
    are, not a control, so no ring around the whole sheet. Its controls keep theirs. */
 [role="dialog"][tabindex="-1"]:focus-visible{outline:none}
-button,.chip,.tile,.item,.cal-d,.swatch,.lrow,.seg button,.stp button,.sld
+button,.chip,.tile,.item,.cal-d,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
 /* icons inherit colour and optical size from their context */
@@ -442,8 +406,6 @@ h4.sec{
 .lrow-c{color:var(--label);font-size:15px;flex:none;--icon-stroke:2.4}
 .lrow-k{color:var(--acc-ink);font-size:17px;flex:none;--icon-stroke:2.4}
 .lrow.danger,.lrow.danger .lrow-t{color:var(--red-ink)}
-/* A warning under a settings row reads at subtitle size: a sentence, not a row title. */
-.lrow.backup-lost .lrow-t{font-size:13px;line-height:1.3;color:var(--label-2);letter-spacing:0}
 /* an (i) before a row's control: painted small and dim so the control stays the loud thing,
    but with a finger-sized target like everything else — the padding is the hit area and the
    vertical negative margin keeps it from making the row taller. The horizontal ones pull the
@@ -1422,32 +1384,6 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 }
 @keyframes pop{from{transform:translate(-50%,-50%) scale(.94);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 
-/* --- RIR/RPE conversion table (effort help sheet) ---
-   The two scales only click when you see them side by side, so the numbers get fixed-width
-   tabular columns you can read straight down, and the words take whatever is left. Built out
-   of the same grouped-list parts as the rest of the app (surface fill, inset hairlines) rather
-   than a real <table>, so it inherits the card look and wraps properly on a narrow phone. */
-.efftbl{background:var(--surface);border-radius:var(--r-lg);overflow:hidden;margin:14px 0 12px}
-.efftbl .r{display:flex;align-items:center;gap:10px;padding:10px 14px;position:relative}
-.efftbl .r+.r::before{
-  content:'';position:absolute;inset-inline-start:14px;inset-inline-end:0;top:0;height:var(--hair);background:var(--sep);
-}
-.efftbl .n{
-  width:36px;flex:none;text-align:center;font-size:17px;font-weight:600;
-  letter-spacing:-.02em;font-variant-numeric:tabular-nums;
-}
-.efftbl .f{flex:1;min-width:0;font-size:15px;color:var(--label-2);line-height:1.3}
-/* the header names the columns without competing with them */
-.efftbl .hd{background:var(--surface-2);padding-top:8px;padding-bottom:8px}
-.efftbl .hd .n,.efftbl .hd .f{
-  font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--label-3);
-}
-/* the row a working set usually lands on — the anchor the others are read against */
-.efftbl .r.on{background:var(--acc-soft)}
-.efftbl .r.on .n{color:var(--acc-ink)}
-.efftbl .r.on .f{color:var(--label)}
-
 /* --- glyph picker (replaces the emoji grid) --- */
 .glyph-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
 .glyph-cell{
@@ -1585,23 +1521,6 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .cal-legend{display:flex;gap:14px;justify-content:center;margin-top:12px;font-size:12px;color:var(--label-3)}
 .cal-legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-inline-end:5px}
 
-/* --- accent swatches --- */
-.swatches{display:flex;gap:12px;flex-wrap:wrap}
-.swatch{width:32px;height:32px;border-radius:50%;flex:none;position:relative;transition:transform var(--fast)}
-.swatch:active{transform:scale(.9)}
-/* The ring takes no taps: over the own colour it lay on the colour input, so the picker never opened. */
-.swatch.on::after{content:'';position:absolute;inset:-4px;border-radius:50%;box-shadow:0 0 0 2px var(--label);pointer-events:none}
-/* The user's own colour (Settings → Accent color): a rainbow ring until there is one, then filled
-   with it. The native colour input lies over it, invisible, so the tap lands on the input itself. */
-.swatch-own{display:inline-flex;align-items:center;justify-content:center;font-size:15px;--icon-stroke:2.4}
-.swatch-own.unset{
-  background:radial-gradient(circle,var(--surface) 0 52%,transparent 54%),
-    conic-gradient(#ff453a,#ff9f0a,#ffd60a,#30d158,#40c8e0,#0a84ff,#bf5af2,#ff375f,#ff453a);
-  color:var(--label-2);
-}
-.swatch-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;border-radius:50%;cursor:pointer;-webkit-appearance:none;appearance:none}
-.swatch-note{margin-top:-4px}
-
 /* --- supersets --- */
 .item.in-ss{box-shadow:inset 3px 0 0 var(--acc)}
 
@@ -1641,9 +1560,9 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 }
 
 /* ------------------------------------------------------- gym check-in -- */
-/* Mobile-only feature (views/CheckIn.jsx): saved membership codes shown as QR, swiped
-   through horizontally. The rail is a scroll-snap track — one card per viewport, no JS
-   carousel — with a trailing "+" card to add another. */
+/* views/settings/pages/GymPassPage.jsx: saved membership codes shown as QR, swiped
+   through horizontally on the stage. The rail is a scroll-snap track — one card per viewport, no
+   JS carousel. */
 .ci-rail{
   display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;scrollbar-width:none;
@@ -1652,40 +1571,30 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .ci-rail::-webkit-scrollbar{display:none}
 .ci-card{
   scroll-snap-align:center;flex:0 0 100%;box-sizing:border-box;
-  background:var(--surface);border-radius:var(--r-xl);padding:22px 18px;
+  padding:12px 18px;color:var(--on-stage);
   display:flex;flex-direction:column;align-items:center;gap:14px;
-  transition:transform var(--fast),box-shadow var(--fast),opacity var(--fast);
 }
-/* header row: edit — title — trash. The two icon buttons are equal fixed widths so the title,
-   flexed between them, stays optically centered on the card no matter how long it is. */
-.ci-card-hd{display:flex;align-items:center;gap:8px;width:100%}
-.ci-card-btn{width:30px;height:30px;font-size:14px;flex:none}
-.ci-card .ci-label{flex:1;min-width:0;font-size:19px;font-weight:600;letter-spacing:-.014em;text-align:center;overflow-wrap:anywhere}
-.ci-card .ci-value{font-size:14px;color:var(--label-2);word-break:break-all;text-align:center;font-variant-numeric:tabular-nums}
+.ci-card .ci-label{margin:0;max-width:100%;font-size:22px;font-weight:700;letter-spacing:-.02em;text-align:center;overflow-wrap:anywhere}
+.ci-card .ci-value{font-size:15px;color:var(--on-stage-2);word-break:break-all;text-align:center;font-variant-numeric:tabular-nums}
 /* reorder row under a card (only shown with >1 card): ◀ position ▶ to nudge the card one slot
    along the rail. A plain, reliable control — no drag gesture to fight the horizontal scroll. */
 .ci-reorder{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:2px}
-.ci-reorder .ci-pos{font-size:13px;color:var(--label-2);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
-.ci-reorder .iconbtn:disabled{opacity:.3;pointer-events:none}
+.ci-reorder .ci-pos{font-size:13px;color:var(--on-stage-2);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}
+.ci-reorder .g-iconbtn:disabled{opacity:.3;pointer-events:none}
 /* The QR itself: lean-qr paints 1 module per pixel, so scale it up with the browser's
    nearest-neighbour so every module stays a crisp square instead of a blurred blob. White
    quiet-zone padding is baked in by the renderer; the plate underneath just frames it. */
 .ci-qr-plate{background:#fff;border-radius:var(--r-lg);padding:16px}
 .qr-canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;transition:opacity var(--fast)}
-/* the trailing add card — a big + on a dashed outline, same footprint as a real card */
-.ci-add{
-  scroll-snap-align:center;flex:0 0 100%;box-sizing:border-box;
-  min-height:280px;border-radius:var(--r-xl);
-  border:2px dashed var(--surface-3);background:none;color:var(--label-2);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-}
-.ci-add:active{background:var(--surface);transform:scale(.99)}
-.ci-add .icn{font-size:40px;--icon-stroke:1.8}
-.ci-add .ci-add-t{font-size:16px;font-weight:500}
 /* dots under the rail — which card you're on. Purely a hint; the rail itself is the control. */
 .ci-dots{display:flex;justify-content:center;gap:7px;margin-top:4px}
-.ci-dot{width:7px;height:7px;border-radius:50%;background:var(--surface-3);transition:background var(--fast),transform var(--fast)}
-.ci-dot.on{background:var(--acc);transform:scale(1.15)}
+.ci-dot{width:7px;height:7px;border-radius:50%;background:var(--glass-track);transition:background var(--fast),transform var(--fast)}
+.ci-dot.on{background:var(--on-stage);transform:scale(1.15)}
+/* the add/edit drawer (views/CheckIn.jsx) */
+.ci-sheet{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+.ci-sheet-acts{display:flex;gap:8px}
+.ci-sheet-acts .g-btn{flex:1}
+.ci-sheet-qr{align-self:center}
 /* browser camera sheet (components/CameraScan.jsx): the video fills a portrait plate, a dashed
    square in the middle says "put the code here" — decoding reads the whole frame regardless. */
 .cam-wrap{position:relative;width:100%;aspect-ratio:3/4;max-height:58vh;border-radius:var(--r-lg);overflow:hidden;background:#000}
@@ -1724,36 +1633,15 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 @media (hover:hover){.dw-it:hover{color:var(--text,var(--label))}}
 
 /* ------------------------------------------------------- Settings (v1.3.11) -- */
-.sp-search{margin-bottom:18px}
-/* the account card on top of the root: a big round avatar, the name, one line under it */
-.lrow.sp-acct{padding-block:12px;gap:14px}
-.sp-avatar{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:30px;
-  background:linear-gradient(160deg,var(--surface-3),var(--surface-2));color:var(--label-2)}
-.sp-acct .lrow-t{font-size:19px;font-weight:600}
-.sp-avatar.on{background:var(--acc-soft);color:var(--acc-ink);font-size:24px;font-weight:700}
-.sp-version{text-align:center;margin-top:4px;line-height:1.6}
 .icn g[data-lucide] *{vector-effect:non-scaling-stroke}
-.sp-lic-title{display:block;margin-bottom:6px;font-size:17px;font-weight:600;color:var(--label)}
-.sp-lic{padding:12px 16px;font-size:13px;line-height:1.45;color:var(--label-2)}
-.sp-lic b{color:var(--label);font-weight:600}
-.sp-lic a{color:var(--acc-ink)}
-/* The root rows' previews ("2:00 de descanso · Tarjetas", "Som · Vibração") are two or three facts, and a
-   one-line ellipsis cut all but the first. They wrap instead, up to three lines, and never below
-   their longest word (min-content, since overflow:hidden would make auto mean 0). On the narrowest phones there is no room beside
-   the title at all, so the preview moves under it, like a subtitle. */
-.lrow.sp-root-row .lrow-v{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
-  min-width:min-content;max-width:62%;line-height:1.25;text-wrap:balance}
-@media (max-width:360px){
-  .lrow.sp-root-row:has(.lrow-v){display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:12px;row-gap:1px}
-  .lrow.sp-root-row:has(.lrow-v) .lrow-i{grid-column:1;grid-row:1 / span 2}
-  .lrow.sp-root-row:has(.lrow-v) .lrow-m{grid-column:2;grid-row:1}
-  .lrow.sp-root-row .lrow-v{grid-column:2;grid-row:2;min-width:0;max-width:none;text-align:start;font-size:15px;-webkit-line-clamp:2;line-clamp:2}
-  .lrow.sp-root-row:has(.lrow-v) .lrow-c{grid-column:3;grid-row:1 / span 2}
-}
 .lrow.dis .lrow-i,.lrow.dis .lrow-t,.lrow.dis .sw{opacity:.45}
 /* a row a search result jumped to: a short accent wash that fades out */
 .lrow.sp-flash,.btn.sp-flash{animation:spflash 1.8s ease}
 @keyframes spflash{0%,45%{background:var(--acc-soft)}100%{background:transparent}}
+/* the same wash on a row or section heading of the stage (GlassValueRow, DangerRow, drawer rows) */
+.g-glist-row.sp-flash,.g-danger-row.sp-flash,.g-drow.sp-flash,.g-ssec.sp-flash{animation:spflash-glass 1.8s ease}
+@keyframes spflash-glass{0%,45%{background:var(--glass)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.g-glist-row.sp-flash,.g-danger-row.sp-flash,.g-drow.sp-flash,.g-ssec.sp-flash{animation:none;background:var(--glass)}}
 
 /* ----------------------------------------------------------- RTL (Arabic) -- */
 /* Directional icons flip: back chevrons point right, trailing chevrons point left. */

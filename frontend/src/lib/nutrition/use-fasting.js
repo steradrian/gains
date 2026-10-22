@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
-import { NtApi, nutritionAvailable } from './api.js'
+import { NtApi } from './api.js'
+import { useFoodOn } from './food-on.js'
 import { useNutrition } from './store.js'
 import { useStore } from '../../store/useStore.js'
 
@@ -152,9 +153,9 @@ export async function setFastingEnabled(on) {
 /** Whether the fasting tracker is on: nutrition reachable and the setting on. False until the
  *  settings are read; Home's diary and the + sheet, which use this, load them already. */
 export function useFastingOn() {
-  const user = useStore(s => s.user)
+  const food = useFoodOn()
   const on = useNutrition(s => s.settings.data?.fastingEnabled === true)
-  return nutritionAvailable(user) && on
+  return food && on
 }
 
 /** The clock, re-read every `ms` while `running`, for a fast's elapsed time. */

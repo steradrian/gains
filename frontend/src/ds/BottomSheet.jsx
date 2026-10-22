@@ -2,9 +2,8 @@ import { useContext, useId } from 'react'
 import Icon from '../components/Icon.jsx'
 import SheetPanes from '../components/sheet-panes.jsx'
 import { SheetFrameContext, SheetPaneContext } from '../components/sheet-frame.js'
-import { dsAccentFor } from '../lib/ds-accent.js'
 import { t } from '../lib/i18n.js'
-import { useStore } from '../store/useStore.js'
+import { useDsAccent } from '../lib/use-ds-accent.js'
 import { oneOf } from '../lib/ui-kit.js'
 
 const TYPES = ['auto', 'half', 'full']
@@ -32,7 +31,7 @@ export default function BottomSheet({ title, chip, onChip, chipLabel, chipIcon =
   // header, with the back chevron, pin, body and foot. The shell, grab bar and scrim are the
   // drawer's, and its × is still the whole drawer's.
   const pane = useContext(SheetPaneContext)
-  const accent = useStore(s => dsAccentFor(s.S))
+  const accent = useDsAccent()
   const titleId = useId()
   const close = onClose || (pane ? pane.dismiss : frame?.dismiss)
   const hasClose = !!(onClose || closeHref || (pane ? !pane.hostLocked : (frame && !frame.locked)))

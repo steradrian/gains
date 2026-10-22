@@ -12,6 +12,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import App from './App.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { preloadPages } from './views/settings/pages/index.js'
 import { finishWorkout } from './sheets.jsx'
 import { loadStarterPlanWithUndo } from './lib/starter-load.js'
 import { nav } from './lib/nav.js'
@@ -477,29 +478,31 @@ describe('back on a sub-page', () => {
     await click(tab('Train'))
     await click(avatar())
     expect(hash()).toBe('#/me')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Profile')
-    expect(document.querySelector('.sub-hdr button[aria-label="Back"]')).toBeNull()
+    expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
+    expect(document.querySelector('button[aria-label="Back"]')).toBeNull()
   })
 
   it('a Profile page goes back to Profile', async () => {
     await launch('#/home')
     await click(tab('Me'))
+    // The page loads on first open; the stage frame (and its Back) is the page's own.
+    await preloadPages(['units'])
     await go(() => nav('/me/units'))
     expect(lit()).toBe('Me')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/me')
   })
 })
 
 // Me is Profile; Progress lives under it, entered from Profile's Progress row.
 describe('Me, Profile and Progress', () => {
-  const progressRow = () => [...document.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Progress')
+  const progressRow = () => [...document.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Progress')
 
   it('the Me tab opens Profile, not Progress', async () => {
     await launch('#/home')
     await click(tab('Me'))
     expect(hash()).toBe('#/me')
-    expect(document.querySelector('.sub-hdr h1').textContent).toBe('Profile')
+    expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
     expect(lit()).toBe('Me')
   })
 

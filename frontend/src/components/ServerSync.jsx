@@ -67,6 +67,11 @@ export function connectionView(sync, { mobile = MOBILE, online = isOnline() } = 
       return { tone: 'ok', icon: 'cloud', line: t('All synced'), banner: null, action: null }
     case 'pending':   // the sentence already says "tap to retry": no second word for it
       return { tone: 'wait', icon: 'reset', line: t('Waiting to sync'), banner: t('Not synced yet. Tap to retry.'), action: 'retry', label: null }
+    // The account is scheduled for deletion (useStore pauseForDeletion): the server takes no
+    // changes until it is cancelled. Deliberate, not a fault: the Settings root's banner says it
+    // and offers Cancel deletion, so no app-wide banner and nothing to retry.
+    case 'paused':
+      return { tone: 'quiet', icon: 'cloudSlash', line: t('Sync paused · deletion scheduled'), banner: null, action: null }
     // A sign-in's question about this device's workouts is still open (useStore adoptProfile):
     // nothing syncs until it is answered, and "retry" — Sync now — asks it again.
     case 'held':
@@ -161,10 +166,15 @@ async function attempt(kind, opts) {
     return null
   }
 }
-export async function leaveServer(kind, { exportBackup, exportBackupZip, done }) {
-  const r = await attempt(kind)
+// `onOwed(result)` takes the question over from the sheet below, when the caller has its own
+// (Settings' sign-out drawer, views/settings/sheets/sign-out-sheets.js). `force` is that drawer's
+// "Sign out anyway": the changes are kept aside on this device, as the sheet's own button does.
+export async function leaveServer(kind, { exportBackup, exportBackupZip, done, onOwed, force = false }) {
+  const r = await attempt(kind, force ? { force: true } : undefined)
   if (!r) return
   if (r.owed && !r.stashed) {
+    if (force) { toast(t('Couldn’t keep a copy of the changes on this device. Nothing was removed.')); return }
+    if (onOwed) { onOwed(r); return }
     ui().openSheet(close => <OwedSheet kind={kind} count={r.count} media={r.media || 0} exportBackup={exportBackup} exportBackupZip={exportBackupZip} done={done} close={close} />, { kind: 'center', locked: true })
     return
   }
@@ -240,7 +250,7 @@ export const TONE_TINT = { ok: 'var(--green)', wait: 'var(--orange)', off: 'var(
 
 // Profile › Account → "Server & sync", for a device signed in or paired: which server, which
 // account, how things stand, since when, and what is still waiting. "Sync now" is on Profile
-// itself (SyncStatusCard). `children` are the account's own rows (the phone's account id), which
+// the Sync and backup page (views/settings/pages/SyncPage.jsx). `children` are the account's own rows (the phone's account id), which
 // belong in the same block.
 export function ServerSyncSection({ children }) {
   const user = useStore(s => s.user)
@@ -281,6 +291,17 @@ export function ServerSyncSection({ children }) {
 // The changes a forced sign-out or disconnect kept on this device, waiting for their server and
 // account — so a device that went ahead anyway still says what it holds and for whom.
 export function KeptChangesRows() {
+  const rows = useKeptChanges()
+  if (DEMO) return null
+  return rows.map(k => <Row key={(k.server || '') + '|' + k.uid} icon="history" iconTint="var(--orange)"
+    title={t('Changes kept for {0}', k.name || k.uid)}
+    subtitle={(k.server ? hostOf(k.server) + ' · ' : '') + t('Added back when this device connects as that account again.')}
+    accessory="chevron"
+    onClick={() => keptChangesSheet(k)} />)
+}
+
+/** The changes kept on this device for other accounts: `[{ server, uid, name, at }]`. */
+export function useKeptChanges() {
   const kept = useStore(s => s.keptChanges)
   const rev = useStore(s => s.keptRev)
   const user = useStore(s => s.user)
@@ -292,22 +313,20 @@ export function KeptChangesRows() {
     if (typeof kept === 'function') kept().then(r => { if (!gone) setRows(r || []) }).catch(() => {})
     return () => { gone = true }
   }, [kept, user?.id, rev])
-  if (DEMO) return null
-  // A copy kept for an account that may never come back here (its server lost it, or it was
-  // deleted) is saved as a backup file, to import into another profile with "Merge them in".
-  const save = async k => {
-    const state = await useStore.getState().keptState(k.server, k.uid)
-    if (!state) return
-    const json = JSON.stringify(state, null, 2)
-    const name = 'gains-kept-' + String(k.name || k.uid).replace(/[^\w-]+/g, '_') + '-' + new Date().toISOString().slice(0, 10) + '.json'
-    if (MOBILE) { try { await shareExport(json, name); useUI.getState().toast(t('Backup exported')) } catch { /* share sheet dismissed */ } return }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name; a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 60000)
-    useUI.getState().toast(t('Backup exported'))
-  }
-  return rows.map(k => <Row key={(k.server || '') + '|' + k.uid} icon="history" iconTint="var(--orange)"
-    title={t('Changes kept for {0}', k.name || k.uid)}
-    subtitle={(k.server ? hostOf(k.server) + ' · ' : '') + t('Added back when this device connects as that account again.')}
-    accessory="chevron"
-    onClick={() => menuSheet({ title: t('Changes kept for {0}', k.name || k.uid), items: [{ icon: 'download', label: t('Save as a backup file'), onClick: () => save(k) }] })} />)
+  return rows
 }
+
+// A copy kept for an account that may never come back here (its server lost it, or it was
+// deleted) is saved as a backup file, to import into another profile with "Merge them in".
+async function saveKeptChanges(k) {
+  const state = await useStore.getState().keptState(k.server, k.uid)
+  if (!state) return
+  const json = JSON.stringify(state, null, 2)
+  const name = 'gains-kept-' + String(k.name || k.uid).replace(/[^\w-]+/g, '_') + '-' + new Date().toISOString().slice(0, 10) + '.json'
+  if (MOBILE) { try { await shareExport(json, name); useUI.getState().toast(t('Backup exported')) } catch { /* share sheet dismissed */ } return }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name; a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000)
+  useUI.getState().toast(t('Backup exported'))
+}
+/** What a kept-changes row opens: the one way out, saving the copy as a backup file. */
+export const keptChangesSheet = k => menuSheet({ title: t('Changes kept for {0}', k.name || k.uid), items: [{ icon: 'download', label: t('Save as a backup file'), onClick: () => saveKeptChanges(k) }] })

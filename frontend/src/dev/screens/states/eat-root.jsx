@@ -6,6 +6,7 @@ import { useNutrition } from '../../../lib/nutrition/store.js'
 import { useUI } from '../../../store/useUI.js'
 import { dailyTargetsSheet } from '../../../views/eat/DailyTargetsSheet.jsx'
 import EatScreen from '../../../views/eat/EatScreen.jsx'
+import FoodOffScreen from '../../../views/eat/FoodOffScreen.jsx'
 import { registerScreens } from '../registry.js'
 import { FEW, OVER, base, hero, rail } from './eat-root-fixture.js'
 
@@ -46,6 +47,7 @@ registerScreens('Eat: root', [
   { id: 'E1.0l', title: 'Eat, loading', note: 'The ring and the actions as skeletons.', render: eat({ status: 'loading' }) },
   { id: 'E1.0u', title: 'Eat, no nutrition here', note: 'A build or sign-in with no nutrition behind it.', render: eat({ status: 'unavailable' }) },
   { id: 'E1.2', title: 'Food tracking off', note: 'An invitation, never a blank tab.', render: eat({ status: 'off' }) },
+  { id: 'E1.2s', title: 'Food switched off in Settings', note: 'The tab stays: Food is off, with the plate scene and a button that turns Food back on. Deep links under Eat land here too.', render: () => <FoodOffScreen /> },
   { id: 'E1.3', title: 'Daily targets', note: 'Half drawer over the invitation, prefilled; Start tracking food saves.', render: eat({ status: 'off' }), mock: targetsMock,
     play: async t => { useNutrition.getState().reset(); dailyTargetsSheet(); await t.wait(300) } },
 ])

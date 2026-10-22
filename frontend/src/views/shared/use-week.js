@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store/useStore.js'
 import { dayTargetOf, firstLogDay, navToDay, navToWeek, weekStartOfId } from '../../lib/day-route.js'
 import { weekStartOf } from '../../lib/format.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
+import { useFoodOn } from '../../lib/nutrition/food-on.js'
 import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { useTodayDate } from '../today/use-today.js'
@@ -25,9 +25,8 @@ import { foodDaysOf, weekOf } from './week-data.js'
  */
 export function useWeek(isoWeek, tab) {
   const S = useStore(s => s.S)
-  const user = useStore(s => s.user)
   const today = useTodayDate()
-  const on = nutritionAvailable(user)
+  const on = useFoodOn()
   const settingsState = useNutrition(s => s.settings)
   const days = useNutrition(s => s.days)
   const goalInputs = useNutrition(s => s.goalInputs)

@@ -10,6 +10,7 @@ import {
   SEARCH_LIST_ID, closeSearch, openSearch, overlayKey, registerPill, releasePill, setGroup, setQuery, takeFocusOnMount, useSearch,
 } from '../lib/search/session.js'
 import { useStore } from '../store/useStore.js'
+import { SETTINGS_ROOT } from '../views/settings/paths.js'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 
 /**
@@ -71,7 +72,7 @@ export function useRootHeader(tab) {
     alert: connection ? t('Connection problem') : hub ? t('Nutrition sync needs attention') : null,
     // Profile is the Me tab's root: from Progress, on Me's stack, back down to it rather than a
     // second Profile on top.
-    onSettings: () => { if (tabOf(pathname) === 'me') popToRoot('me'); else nav('/me') },
+    onSettings: () => { if (tabOf(pathname) === 'me') popToRoot('me'); else nav(SETTINGS_ROOT) },
     // The inbox opens under the tab the bell is on (/:tab/notifications); the count is the bell's.
     onBell: () => nav(notificationsPath(pathname)),
     unread,

@@ -20,8 +20,8 @@ export function StageArt() {
       <span className="g-stage-glow g-stage-glow-a" />
       <span className="g-stage-glow g-stage-glow-b" />
       <svg className="g-stage-rings" width="640" height="640" viewBox="0 0 640 640">
-        <circle cx="320" cy="320" r="300" strokeOpacity="0.07" strokeWidth="56" />
-        <circle cx="320" cy="320" r="256" strokeOpacity="0.12" strokeWidth="1.5" />
+        <circle className="g-stage-ring-a" cx="320" cy="320" r="300" strokeOpacity="0.07" strokeWidth="56" />
+        <circle className="g-stage-ring-b" cx="320" cy="320" r="256" strokeOpacity="0.12" strokeWidth="1.5" />
       </svg>
     </div>
   )

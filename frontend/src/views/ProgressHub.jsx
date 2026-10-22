@@ -5,7 +5,7 @@ import { doneUnits, setsDone, streakWeeks, workoutDay } from '../lib/history.js'
 import { fmtNum } from '../lib/format.js'
 import { deltaTone, weighInTime } from '../lib/bodyweight.js'
 import { t, tn } from '../lib/i18n.js'
-import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { useFoodOn } from '../lib/nutrition/food-on.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { seriesOf, summaryOf, unitOf, windowOf } from '../lib/nutrition/trends.js'
 import { useFresh, useToday } from '../lib/nutrition/use-freshness.js'
@@ -33,8 +33,7 @@ export default function ProgressHub() {
   const nav = useNavigate()
   const { search } = useLocation()
   const S = useStore(s => s.S)
-  const user = useStore(s => s.user)
-  const nutrition = nutritionAvailable(user)
+  const nutrition = useFoodOn()
   const settings = useNutrition(s => s.settings.data)
   const trends = useTrends()
   const wellness = useWellness()

@@ -60,7 +60,7 @@ describe('the bar', () => {
     act(() => { root.render(bar()) })
     expect(host.querySelector('#tabbar').dataset.accent).toBe('cobalt')
     act(() => { useStore.getState().update(s => { s.accent = 'red' }, false) })
-    expect(host.querySelector('#tabbar').dataset.accent).toBe('ember')
+    expect(host.querySelector('#tabbar').dataset.accent).toBe('garnet')
   })
 
   it('keeps the very same buttons across a store write', () => {

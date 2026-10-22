@@ -5,8 +5,10 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import PlanScreen from './plan/PlanScreen.jsx'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
@@ -66,7 +68,7 @@ afterEach(() => {
   host.remove()
 })
 
-const segButton = label => [...host.querySelectorAll('.seg button')].find(b => b.textContent === label)
+const segButton = label => [...host.querySelectorAll('[role="radiogroup"][aria-label="Week starts on"] [role="radio"]')].find(b => b.textContent === label)
 const dayRows = () => [...host.querySelectorAll('.item .tt')].map(e => e.textContent)
 
 describe('Settings — week starts on', () => {
@@ -74,11 +76,11 @@ describe('Settings — week starts on', () => {
 
   it('offers Monday and Sunday and writes the getDay() index', () => {
     mount()
-    expect(segButton('Monday').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('Monday').getAttribute('aria-checked')).toBe('true')
     act(() => { segButton('Sunday').click() })
     expect(mocks.S.weekStart).toBe(0)
     mount()
-    expect(segButton('Sunday').getAttribute('aria-pressed')).toBe('true')
+    expect(segButton('Sunday').getAttribute('aria-checked')).toBe('true')
     act(() => { segButton('Monday').click() })
     expect(mocks.S.weekStart).toBe(1)
   })
@@ -86,8 +88,8 @@ describe('Settings — week starts on', () => {
   it('shows a profile written before the setting existed as Monday', () => {
     delete mocks.S.weekStart
     mount()
-    expect(segButton('Monday').getAttribute('aria-pressed')).toBe('true')
-    expect(segButton('Sunday').getAttribute('aria-pressed')).toBe('false')
+    expect(segButton('Monday').getAttribute('aria-checked')).toBe('true')
+    expect(segButton('Sunday').getAttribute('aria-checked')).toBe('false')
   })
 })
 

@@ -112,6 +112,9 @@ export function createMediaSync(deps = {}) {
     let cfg = st.config
     if (!cfg && typeof st.loadConfig === 'function') cfg = await st.loadConfig()
     if (!cfg?.media) { await publishPending({ usage: null }); return }
+    // A scheduled deletion pauses sync (useStore pauseForDeletion): the files wait on this device,
+    // still pending, and go once it is cancelled (start() schedules a run when the pause lifts).
+    if (st.sync?.paused) { await publishPending(); return }
     // Me photos M1: the files of progress photos kept on this device by choice (Back up photos
     // off, heldBackHashes) are neither asked about nor sent, forced run or not. Turned on, they
     // are simply part of the next ask: what the server lacks goes up.
@@ -187,6 +190,13 @@ export function createMediaSync(deps = {}) {
         }
         if (e?.status === 429) {
           retryNotBefore = d.now() + (Number(e.retryAfter) || 60) * 1000
+          stopped = true
+          break
+        }
+        // The account is scheduled for deletion: not this file's fault, so no backoff and no
+        // refusal on it. The store pauses sync, and the run after the cancel sends it.
+        if (e?.status === 423) {
+          store.getState().pauseSync?.(e.data?.at)
           stopped = true
           break
         }
@@ -420,7 +430,8 @@ export function createMediaSync(deps = {}) {
     const unsub = store.subscribe(s => {
       const refs = s.S === prev.S ? prevRefs : refsKey(s.S)
       const moved = refs !== prevRefs
-      if (moved || s.sync?.lastSynced !== prev.sync?.lastSynced || s.user?.id !== prev.user?.id) schedule(2000)
+      const resumed = !s.sync?.paused && !!prev.sync?.paused
+      if (moved || resumed || s.sync?.lastSynced !== prev.sync?.lastSynced || s.user?.id !== prev.user?.id) schedule(2000)
       if (moved) scheduleGc(10000)
       // Boot has restored the state: a clean-up that was asked for before now sees the real copy.
       if (s.ready && !prev.ready && gcWaiting) scheduleGc(2000)

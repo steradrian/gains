@@ -23,7 +23,7 @@ import { saveSessionAsRoutine } from '../lib/session-routines.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { workoutFit, fitFileName } from '../lib/fit-export.js'
 import { useNutrition } from '../lib/nutrition/store.js'
-import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { foodOnNow } from '../lib/nutrition/food-on.js'
 import { levelsOf, loadOfWorkouts } from '../lib/muscles.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, MAX_DURATION_MIN, endsInFuture } from '../lib/workout-date.js'
 import { putBackWorkout, takeWorkout, takenMediaHashes } from '../lib/workout-delete.js'
@@ -415,7 +415,7 @@ function Calendar({ start, close, onPick, onFuture }) {
   // The shown month only (NutriTrace has no range read: one request per day not cached yet),
   // never past today; another month or closing the sheet cancels what is still loading.
   useEffect(() => {
-    if (!onPick || !nutritionAvailable(useStore.getState().user)) return undefined
+    if (!onPick || !foodOnNow()) return undefined
     const ctl = new AbortController()
     useNutrition.getState().loadLogged(isoOf(new Date(y, mo, 1)), isoOf(new Date(y, mo + 1, 0)), { signal: ctl.signal })
     return () => ctl.abort()

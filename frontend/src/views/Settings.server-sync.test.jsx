@@ -3,8 +3,10 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Profile › Account → "Server & sync": which server, which account, how things stand, when this
@@ -43,6 +45,8 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => to => mocks.navs.push(to) }))
+// The stage frame (nav bar, background) is the app's and has its own test; the rows are the point.
+vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/api.js', () => ({
   api: vi.fn(() => Promise.resolve({})), webauthnOK: () => true, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
 }))
@@ -89,7 +93,8 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { root.unmount(); host.remove() }) }) })
 
 const block = (page, title = 'Server & sync') => [...page.querySelectorAll('.sect')].find(s => s.querySelector('.sect-t')?.textContent === title)
-const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
+// Old rows (.lrow) and the stage's (.g-glist-row, the Account page's own; .g-danger-row, the root's Sign out).
+const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow, .g-glist-row, .g-danger-row')].find(r => r.querySelector('.lrow-t, b')?.textContent === title)
 const buttonByText = (el, text) => [...el.querySelectorAll('button')].find(b => b.textContent === text)
 const openSheet = (i = -1) => mount(mocks.sheets.at(i).render(() => {}))
 
@@ -100,17 +105,12 @@ describe('Server & sync', () => {
     expect(b).toBeTruthy()
     expect(rowByTitle(b, 'gym.example.com').textContent).toContain('Signed in as andi')
     expect(rowByTitle(b, 'All synced').textContent).toContain('Last synced: 5 minutes ago')
-    expect(rowByTitle(b, 'Account ID')).toBeTruthy()          // the phone's own rows sit in the block
+    expect(rowByTitle(page, 'Account ID')).toBeTruthy()       // the phone's account id sits under the block
     expect(rowByTitle(b, 'Pair again')).toBeUndefined()       // nothing to fix
-    expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Profile, once
+    expect(rowByTitle(page, 'Sync now')).toBeUndefined()      // on Sync and backup, once (SyncPage.test.jsx)
 
-    const profile = mount(<Settings />)
-    const card = block(profile, 'Sync')
-    expect(rowByTitle(card, 'Training and body').textContent).toContain('All synced · Last synced: 5 minutes ago')
-    expect(rowByTitle(card, 'Nutrition')).toBeUndefined()     // the phone app has no nutrition
-    await act(async () => { rowByTitle(card, 'Sync now').click() })
-    expect(mocks.syncNow).toHaveBeenCalledTimes(1)
-    expect(mocks.toast).toHaveBeenCalledWith('All synced')
+    // The root says it in its pill; Sync now and its outcome are SyncPage.test.jsx's.
+    expect(mount(<Settings />).querySelector('.sroot-pill').textContent).toBe('All synced · 5 minutes ago')
   })
 
   it('refused by the server: says so, how much is waiting, and offers "Pair again" with the address filled in', async () => {
@@ -125,11 +125,6 @@ describe('Server & sync', () => {
     const sheet = openSheet().querySelector('.connect')
     expect(sheet.dataset.url).toBe(BASE)
     expect(sheet.dataset.again).toBe('true')
-
-    // Sync now reports the outcome, whatever it is.
-    const card = block(mount(<Settings />), 'Sync')
-    await act(async () => { rowByTitle(card, 'Sync now').click() })
-    expect(mocks.toast).toHaveBeenCalledWith('The server refuses this phone')
   })
 
   // A v1.3.8 phone that lost its pairing, upgraded: both rows said "This phone is not connected to a
@@ -143,18 +138,26 @@ describe('Server & sync', () => {
     expect(rowByTitle(b, 'Pair again')).toBeTruthy()
   })
 
-  it('a browser with a server error shows the HTTP code; one that never synced here says so', () => {
+  // A browser's connection block is the Sync and backup page's now; Account says where it stands in one row.
+  it('a browser with a server error shows the HTTP code on its Sync and backup row, and has no connection block of its own', () => {
     mocks.MOBILE = false
     mocks.sync = sync('error', { pending: true, lastError: { status: 502, code: 'http' } })
     mocks.unsynced = { owed: true, count: 1 }
     const page = mount(<Settings page="account" />)
-    const status = rowByTitle(block(page), 'Server error (HTTP 502)')
-    expect(status.textContent).toContain('Not synced with this server yet')
-    expect(status.textContent).toContain('Not on your server yet: 1 change')
-    // The browser's account rows follow in their own section; Sign out is on Profile.
+    expect(block(page)).toBeUndefined()
+    expect(rowByTitle(page, 'Sync and backup').textContent).toContain('Server error (HTTP 502)')
+    // The browser's account rows; Sign out is on Profile.
     expect(rowByTitle(page, 'Sign out everywhere')).toBeTruthy()
     expect(rowByTitle(page, 'Sign out')).toBeUndefined()
     expect(rowByTitle(mount(<Settings />), 'Sign out')).toBeTruthy()
+  })
+
+  it('a browser the server refuses gets the way back in on Account: Sign in with passkey', () => {
+    mocks.MOBILE = false
+    mocks.sync = sync('auth', { auth: true, pending: true, lastError: { status: 401, code: 'auth' } })
+    const page = mount(<Settings page="account" />)
+    expect(rowByTitle(page, 'Sync and backup').textContent).toContain('The server refuses this browser')
+    expect(rowByTitle(page, 'Sign in with passkey')).toBeTruthy()
   })
 
   it('while everything is fine, a change still in its debounce is not counted as waiting', () => {
@@ -175,13 +178,13 @@ describe('Server & sync', () => {
     expect(kept.textContent).toContain('Added back when this device connects as that account again.')
   })
 
-  it('signed in as another account, the changes kept for the first are listed in the block', async () => {
+  it('signed in as another account, the changes kept for the first are listed on Account', async () => {
     mocks.MOBILE = false
     mocks.user = { id: 'u2', name: 'bea' }
     mocks.kept = [{ server: BASE, uid: 'u1', name: 'andi', at: 1 }]
     const page = mount(<Settings page="account" />)
     await settle()
-    expect(rowByTitle(block(page), 'Changes kept for andi')).toBeTruthy()
+    expect(rowByTitle(page, 'Changes kept for andi')).toBeTruthy()
   })
 })
 
@@ -258,7 +261,7 @@ describe('leaving the server', () => {
     expect(openSheet().querySelector('.connect').dataset.again).toBe('true')
   })
 
-  it('a browser the server refuses is told to sign in again, next to the button that does', async () => {
+  it('a browser the server refuses still gets the drawer that names the waiting changes; going ahead keeps them', async () => {
     mocks.MOBILE = false
     mocks.sync = sync('auth', { auth: true, pending: true, lastError: { status: 401, code: 'auth' } })
     mocks.signOut.mockResolvedValueOnce({ owed: true, count: 2 })
@@ -266,9 +269,22 @@ describe('leaving the server', () => {
     act(() => rowByTitle(page, 'Sign out').click())
     await act(async () => { await confirm().onConfirm() })
     const sheet = openSheet()
-    expect(sheet.textContent).toContain('Sign in again, or export a backup first.')
-    expect(sheet.textContent).not.toContain('Try again')
-    expect(buttonByText(sheet, 'Sign in with passkey')).toBeTruthy()
+    expect(sheet.querySelector('h2').textContent).toBe('2 changes not synced')
+    expect(mocks.sheets.at(-1).opts.kind).toBeUndefined()   // a drawer, not the centred sheet
+    expect(mocks.navs).toEqual([])                          // nothing left, nothing wiped
+    expect(buttonByText(sheet, 'Try again')).toBeUndefined()
+  })
+
+  it('Cancel on the drawer stays signed in and asks nothing more of the store', async () => {
+    mocks.MOBILE = false
+    mocks.signOut.mockResolvedValueOnce({ owed: true, count: 2 })
+    const page = mount(<Settings />)
+    act(() => rowByTitle(page, 'Sign out').click())
+    await act(async () => { await confirm().onConfirm() })
+    const sheet = openSheet()
+    act(() => buttonByText(sheet, 'Cancel').click())
+    expect(mocks.signOut).toHaveBeenCalledTimes(1)
+    expect(mocks.navs).toEqual([])
   })
 
   it('a server that is only out of reach still offers Try again, and says so', async () => {
@@ -301,17 +317,36 @@ describe('leaving the server', () => {
     expect(confirm().message).not.toMatch(/synced to your profile first/)
     await act(async () => { await confirm().onConfirm() })
     const sheet = openSheet()
-    expect(sheet.textContent).toContain('Not on your server yet: 4 changes')
+    expect(sheet.querySelector('h2').textContent).toBe('4 changes not synced')
     mocks.signOut.mockResolvedValueOnce({ owed: true, count: 4, stashed: true })
     await act(async () => { buttonByText(sheet, 'Sign out anyway').click() })
     expect(mocks.signOut).toHaveBeenLastCalledWith({ force: true })
     expect(mocks.navs).toEqual(['/home'])
+    expect(mocks.toast).toHaveBeenLastCalledWith('The changes your server has not seen are kept on this device, and added back when it connects as this account again.')
 
+    // Sign out everywhere is a drawer of its own, and says paired phones have to be paired again.
     const account = mount(<Settings page="account" />)
     act(() => rowByTitle(account, 'Sign out everywhere').click())
-    expect(confirm().message).toContain('Phones paired with it are disconnected and have to be paired again.')
+    const drawer = openSheet()
+    expect(drawer.textContent).toContain('Phones paired with it are disconnected and have to be paired again.')
     mocks.signOutAll.mockRejectedValueOnce(new Error('HTTP 502'))
-    await act(async () => { await confirm().onConfirm() })
+    await act(async () => { buttonByText(drawer, 'Sign out everywhere').click() })
+    expect(mocks.signOutAll).toHaveBeenCalledTimes(1)
     expect(mocks.toast).toHaveBeenLastCalledWith('Couldn’t sign out everywhere. You’re still signed in.')
+  })
+
+  it('Sign out everywhere with changes waiting asks with the same drawer, and going ahead keeps them', async () => {
+    mocks.MOBILE = false
+    mocks.signOutAll.mockResolvedValueOnce({ owed: true, count: 2 })
+    const account = mount(<Settings page="account" />)
+    act(() => rowByTitle(account, 'Sign out everywhere').click())
+    const confirmDrawer = openSheet()
+    await act(async () => { buttonByText(confirmDrawer, 'Sign out everywhere').click() })
+    const waiting = openSheet()
+    expect(waiting.querySelector('h2').textContent).toBe('2 changes not synced')
+    mocks.signOutAll.mockResolvedValueOnce({ owed: true, count: 2, stashed: true })
+    await act(async () => { buttonByText(waiting, 'Sign out anyway').click() })
+    expect(mocks.signOutAll).toHaveBeenLastCalledWith({ force: true })
+    expect(mocks.navs).toEqual(['/home'])
   })
 })

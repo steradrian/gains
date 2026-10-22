@@ -20,7 +20,7 @@
 .wk-focus > .g-effort { margin-inline: 16px; }
 .wk-focus > .g-dsr, .wk-focus > .g-ssw-wrap { margin-block-start: 0; }
 
-.wk-done { appearance: none; border: 0; margin-inline: 16px; min-height: 56px; padding: 0 20px; border-radius: var(--radius-pill); background: var(--on-stage); color: var(--accent-stage-end); font: 700 17px/22px var(--font-sans); text-align: center; cursor: pointer; touch-action: manipulation; }
+.wk-done { appearance: none; border: 0; margin-inline: 16px; min-height: 56px; padding: 0 20px; border-radius: var(--radius-pill); background: var(--stage-cta); color: var(--on-stage-cta); font: 700 17px/22px var(--font-sans); text-align: center; cursor: pointer; touch-action: manipulation; }
 .wk-max { margin: 0; text-align: center; color: var(--on-stage-2); font: 600 14px/19px var(--font-sans); }
 
 .wk-todo { margin: 0 16px; border-radius: 22px; }

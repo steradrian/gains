@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addCategory, addContainer, addCustomUnit, moveMeal, removeCategory,
-  removeContainer, removeCustomUnit, removeMeal, setMealName, waterToMl,
+  removeContainer, removeCustomUnit, removeMeal, setMealName, updateContainer, waterToMl,
 } from './settings-lists.js'
 
 describe('water containers', () => {
@@ -31,6 +31,16 @@ describe('water containers', () => {
 
   it('removes by id', () => {
     expect(removeContainer([{ id: '1', name: 'a', volumeMl: 1 }, { id: '2', name: 'b', volumeMl: 2 }], '1')).toEqual([{ id: '2', name: 'b', volumeMl: 2 }])
+  })
+
+  it('updates one in place, keeping its id and its place, and checks it like an add', () => {
+    const list = [{ id: '1', name: 'a', volumeMl: 100 }, { id: '2', name: 'b', volumeMl: 200 }]
+    expect(updateContainer(list, '2', { name: ' Big ', amount: 1, unit: 'L' })).toEqual({
+      list: [{ id: '1', name: 'a', volumeMl: 100 }, { id: '2', name: 'Big', volumeMl: 1000 }],
+    })
+    expect(updateContainer(list, '9', { name: 'x', amount: 1, unit: 'ml' })).toEqual({ error: 'gone' })
+    expect(updateContainer(list, '1', { name: ' ', amount: 1, unit: 'ml' })).toEqual({ error: 'name' })
+    expect(updateContainer(list, '1', { name: 'x', amount: 0, unit: 'ml' })).toEqual({ error: 'volume' })
   })
 })
 
