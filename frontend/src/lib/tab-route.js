@@ -45,6 +45,8 @@ export function parentOf(pathname = '') {
   if (under(pathname, '/train/workout')) return TAB_ROOT.home
   if (pathname === PROGRESS_ROOT) return TAB_ROOT.me
   if (under(pathname, PROGRESS_ROOT + '/body')) return PROGRESS_ROOT
+  // Me body M1: the Body page's three tabs are one page; Back from any goes to Me.
+  if (under(pathname, TAB_ROOT.me + '/body')) return TAB_ROOT.me
   const tab = tabOf(pathname)
   // A Day or Week page (lib/day-route.js) has no page above it but its tab's root.
   if (tab && /^\/[a-z]+\/(day|week)\/[^/]+$/.test(pathname)) return TAB_ROOT[tab]

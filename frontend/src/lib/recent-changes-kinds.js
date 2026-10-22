@@ -16,3 +16,5 @@ import './me/food-changes.js'
 import './me/coach-changes.js'
 // Me goal M1
 import './me/goal-changes.js'
+// Me body M1
+import './me/weigh-in-changes.js'

@@ -32,10 +32,10 @@ const under = (pathname, base) => pathname === base || pathname.startsWith(base 
 function hereItems(pathname) {
   if (pathname === '/train/routines') return [{ icon: 'clipboard', label: t('New routine'), act: close => addRoutine(to => closeThenNav(close, to)) }]
   if (under(pathname, '/train/exercises')) return [{ icon: 'dumbbell', label: t('New exercise'), act: () => drawerFlow(() => customExSheet(null, ex => exerciseDetailSheet(ex))) }]
-  if (under(pathname, '/progress/body')) return [
+  if (under(pathname, '/me/body')) return [
     { icon: 'ruler', label: t('Log measurements'), act: () => drawerFlow(() => measurementLogSheet()) },
-    // Photos is a segment of the page the sheet is over: it takes that page's place, so back goes to Progress.
-    { icon: 'camera', label: t('Add photo'), act: close => closeThenReplace(close, '/progress/body/photos') },
+    // Photos is a tab of the page the sheet is over: it takes that page's place, so back goes to Me.
+    { icon: 'camera', label: t('Add photo'), act: close => closeThenReplace(close, '/me/body/photos') },
   ]
   return []
 }

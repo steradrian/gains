@@ -55,21 +55,21 @@ afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks()
 
 describe('Add photo from the + sheet on Body', () => {
   it('from Weight, takes the Weight entry: back returns to Progress', async () => {
-    await go('/progress/body')
-    await act(async () => { openPlusSheet('/progress/body') })
+    await go('/me/body')
+    await act(async () => { openPlusSheet('/me/body') })
     await settle()
     await addPhoto()
-    expect(where()).toBe('/progress/body/photos')
+    expect(where()).toBe('/me/body/photos')
     await back()
     expect(where()).toBe('/progress')
   })
 
   it('from Photos, leaves no second Photos entry: back returns to Progress', async () => {
-    await go('/progress/body/photos')
-    await act(async () => { openPlusSheet('/progress/body/photos') })
+    await go('/me/body/photos')
+    await act(async () => { openPlusSheet('/me/body/photos') })
     await settle()
     await addPhoto()
-    expect(where()).toBe('/progress/body/photos')
+    expect(where()).toBe('/me/body/photos')
     await back()
     expect(where()).toBe('/progress')
   })

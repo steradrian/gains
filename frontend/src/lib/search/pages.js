@@ -39,9 +39,9 @@ export const PAGE_INDEX = [
   // Me: Profile (its own pages are the settings source's) and Progress under it
   { path: TAB_ROOT.me, tab: 'me', title: 'Profile', glyph: 'person', kw: 'me account you settings preferences' },
   { path: PROGRESS_ROOT, tab: 'me', title: 'Progress', glyph: 'chart', kw: 'stats statistics charts' },
-  { path: '/progress/body', tab: 'me', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
-  { path: '/progress/body/measurements', tab: 'me', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },
-  { path: '/progress/body/photos', tab: 'me', title: 'Progress photos', glyph: 'image', kw: 'photos pictures compare before after' },
+  { path: '/me/body', tab: 'me', title: 'Body', glyph: 'scale', kw: 'weight weigh-ins bodyweight scale' },
+  { path: '/me/body/measurements', tab: 'me', title: 'Body measurements', glyph: 'ruler', kw: 'measurements waist chest arms circumference body fat' },
+  { path: '/me/body/photos', tab: 'me', title: 'Progress photos', glyph: 'image', kw: 'photos pictures compare before after' },
   { path: '/progress/strength', tab: 'me', title: 'Strength', glyph: 'chartLine', kw: 'records pr personal best 1rm one rep max lifts' },
   { path: '/progress/strength/balance', tab: 'me', title: 'Structural balance', glyph: 'gauge', kw: 'ratios weak link balance' },
   { path: '/progress/load', tab: 'me', title: 'Training load', glyph: 'flame', kw: 'volume sets muscles activity weekly' },

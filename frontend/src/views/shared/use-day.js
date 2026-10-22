@@ -72,6 +72,6 @@ export function useDay(iso, tab) {
     addWater: diary.on && diary.dayReady ? () => addWater(iso, glassOf(diary.settings, diary.water.goal).ml) : null,
     // Not `weighIn`: that is the day's weigh-in, from dayOf.
     weighInSheet: () => bwSheet({ date: iso }),
-    openMeasurements: () => nav('/progress/body/measurements'),
+    openMeasurements: () => nav('/me/body/measurements'),
   }
 }
