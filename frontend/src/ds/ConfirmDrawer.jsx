@@ -1,7 +1,10 @@
 import Icon from '../components/Icon.jsx'
 import { t } from '../lib/i18n.js'
+import { cx } from '../lib/ui-kit.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import Act from './Act.jsx'
 import BottomSheet from './BottomSheet.jsx'
+import HapticSwitch from './HapticSwitch.jsx'
 
 // The confirmation for what Undo cannot take back (bundle.js `ConfirmDrawer`, surface rule R5; board
 // W1.46 "Discard 14 sets?"): `body` leads, `items` list what goes (a danger mark each), `note` is
@@ -12,8 +15,11 @@ import BottomSheet from './BottomSheet.jsx'
 // Back; opened with `confirmDrawer()` in views/settings/confirm-drawer.js). Without one it is only
 // the content, for a drawer that already has its title and ×.
 export default function ConfirmDrawer({
-  title, body, items = [], note, icon = 'warning', confirmLabel, onConfirm, confirmHref, cancelLabel, onCancel, cancelHref,
+  title, body, items = [], note, icon = 'warning', confirmLabel, onConfirm, confirmHref, cancelLabel, onCancel, cancelHref, haptic = false,
 }) {
+  // `haptic` ticks on the confirm: for a confirm that is itself the commit (Leave group), never one that only opens a step.
+  const ticks = haptic && !confirmHref
+  const confirm = ticks ? e => { buzz('light'); onConfirm?.(e) } : onConfirm
   const content = (
     <div className="g-confirm">
       {body && <p>{body}</p>}
@@ -23,8 +29,9 @@ export default function ConfirmDrawer({
         </ul>
       )}
       {note && <p className="g-confirm-note">{note}</p>}
-      <Act href={confirmHref} onClick={onConfirm} className="g-btn g-confirm-danger">
+      <Act href={confirmHref} onClick={confirm} className={cx('g-btn g-confirm-danger', ticks && 'g-haptic')}>
         <Icon name={icon} className="g-icon" />{confirmLabel || (title ? t('Delete') : '')}
+        {ticks && <HapticSwitch />}
       </Act>
       <Act href={cancelHref} onClick={onCancel} className="g-btn g-btn-secondary g-btn-block">{cancelLabel || (title ? t('Cancel') : '')}</Act>
     </div>

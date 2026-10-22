@@ -41,6 +41,11 @@ describe('nav', () => {
       expect(calls).toEqual([['/progress/body/photos', { replace: true }]])
     })
 
+    it('hands the new page route state when given (Leave group tells Groups who was left)', () => {
+      closeThenReplace(() => {}, '/me/groups', { left: 'Iron Sunday', by: 'Mara' })
+      expect(calls).toEqual([['/me/groups', { replace: true, state: { left: 'Iron Sunday', by: 'Mara' } }]])
+    })
+
     it('waits for the sheet\'s entry to be walked off, then replaces the page under it', () => {
       history.pushState({ gainsSheet: true }, '')
       noteSheetEntries(1)
