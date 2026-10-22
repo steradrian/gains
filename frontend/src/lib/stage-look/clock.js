@@ -16,3 +16,32 @@ export function subscribePhase(cb) {
   listeners.add(cb)
   return () => { listeners.delete(cb) }
 }
+
+// One shared frame clock for the look and the glass: every callback asked for this frame runs inside a
+// single requestAnimationFrame, in the order asked, so an animating look and a scrolling glass cost one
+// rAF per frame, not one each. One-shot, like requestAnimationFrame: ask again from the callback to loop.
+const queue = new Map()
+let nextId = 0
+let rafId = 0
+
+function runFrame(ts) {
+  rafId = 0
+  const run = [...queue.values()]
+  queue.clear()
+  for (const cb of run) {
+    try { cb(ts) } catch (err) { queueMicrotask(() => { throw err }) } // one failure never stops the others
+  }
+}
+
+/** requestAnimationFrame on the shared clock. @returns {number} an id for cancelFrame */
+export function requestFrame(cb) {
+  const id = ++nextId
+  queue.set(id, cb)
+  if (!rafId) rafId = requestAnimationFrame(runFrame)
+  return id
+}
+
+export function cancelFrame(id) {
+  queue.delete(id)
+  if (!queue.size && rafId) { cancelAnimationFrame(rafId); rafId = 0 }
+}

@@ -1,5 +1,4 @@
 import { deriveTheme, hexToRgb } from '../../lib/stage-look/color.js'
-import { currentPhase, REST_PHASE } from '../../lib/stage-look/clock.js'
 import { reducedMotion } from '../../lib/reduced-motion.js'
 import { lookUniformValues } from '../../lib/stage-look/renderer.js'
 import { themeOf } from '../../lib/themes.js'
@@ -147,7 +146,15 @@ export function createGlassEngine({
   let lastFrameAt = 0
   function frame(dt) {
     const t0 = performance.now()
-    const changed = draw(dt)
+    let changed
+    try {
+      changed = draw(dt)
+    } catch (err) {
+      // A frame that throws would throw on every wake; the CSS material is the safe place to stop.
+      console.error(err)
+      lose('error')
+      return false
+    }
     const t1 = performance.now()
     watchdog?.frame(changed.drew, t1 - t0, dt * 1000, t0)
     const gap = t0 - lastFrameAt
@@ -206,7 +213,7 @@ export function createGlassEngine({
     const look = {
       look: inp.look,
       theme: themeFor(inp.accent, value),
-      phase: animating ? currentPhase() : REST_PHASE,
+      phase: scheduler.look.phase(animating), // at most 15 Hz while the look moves (glass-scheduler.js)
       calm: !inp.pushed,
     }
     const chrome = []

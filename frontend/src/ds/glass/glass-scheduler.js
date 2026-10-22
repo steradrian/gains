@@ -1,14 +1,40 @@
-import { subscribePhase } from '../../lib/stage-look/clock.js'
+import { cancelFrame, currentPhase, requestFrame, REST_PHASE, subscribePhase } from '../../lib/stage-look/clock.js'
 import { SELECTOR } from './glass-registry.js'
 
-// Liquid glass scheduler: nothing runs at rest. A wake trigger starts one rAF loop; `frame(dt)` says
-// whether anything changed, and the loop stops after two frames that changed nothing (and once any
-// transition or animation that was announced has had time to finish).
+// Liquid glass scheduler: nothing runs at rest. A wake trigger starts a loop on the shared frame clock
+// (clock.js: the look's rAF and the glass's are one); `frame(dt)` says whether anything changed, and the
+// loop stops after two frames that changed nothing (and once any transition or animation that was
+// announced has had time to finish).
 
 const IDLE_FRAMES = 2
 const MAX_DT = 0.05
 export const LOOK_HZ = 15
+export const LOOK_MS = 1000 / LOOK_HZ
+// The gate's clock is the frame that took the last phase, about one frame after its publish, so it allows a
+// frame and a little more early. StageLook publishes at most every 33 ms, so this still takes every other
+// publish: 15 Hz, never more.
+const LOOK_SLACK_MS = 20
 const TRANSITION_HOLD_MS = 500
+
+/**
+ * The look as the glass sees it (plan 2.7: look-driven glass at most 15 Hz). StageLook publishes its phase
+ * about 30 times a second; the glass takes a new phase at most every LOOK_MS and holds it in between, so
+ * the chrome strip and the sprites redraw for the look at 15 Hz and the loop can go idle between ticks.
+ * `due()`: a new phase would be taken now. `phase(animating)`: the phase to draw this frame (the resting
+ * phase when the look stands still).
+ */
+export function createLookGate({ now = () => performance.now() } = {}) {
+  let at = -Infinity
+  let phase = REST_PHASE
+  const due = () => now() - at >= LOOK_MS - LOOK_SLACK_MS
+  return {
+    due,
+    phase(animating) {
+      if (!animating) { at = -Infinity; phase = REST_PHASE } else if (due()) { at = now(); phase = currentPhase() }
+      return phase
+    },
+  }
+}
 
 /** A gel-like spring per pressed shape: a little overshoot on the swell, none to speak of on release. */
 export function createSprings({ reduced = () => false } = {}) {
@@ -63,36 +89,20 @@ export function createSprings({ reduced = () => false } = {}) {
   }
 }
 
-/** `fn` at most once per `ms`, with a trailing call so the last request is never lost. */
-export function throttle(fn, ms, { now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
-  let last = -Infinity
-  let timer = null
-  const call = (...args) => {
-    const t = now()
-    if (t - last >= ms) {
-      last = t
-      if (timer !== null) { clearTimer(timer); timer = null }
-      fn(...args)
-    } else if (timer === null) {
-      timer = setTimer(() => { timer = null; last = now(); fn(...args) }, ms - (t - last))
-    }
-  }
-  call.cancel = () => { if (timer !== null) { clearTimer(timer); timer = null } }
-  return call
-}
-
 /**
  * @param {{ frame: (dt: number) => boolean, root?: Element, pressable?: (el: Element) => boolean,
- *   reduced?: () => boolean, raf?: typeof requestAnimationFrame, caf?: typeof cancelAnimationFrame,
+ *   reduced?: () => boolean, raf?: (cb: (ts: number) => void) => number, caf?: (id: number) => void,
  *   now?: () => number }} opts
  * `frame` draws and returns whether anything changed. `root` is where shapes live: the pointer
  * handlers press the glass under a finger there. `pressable` filters which shapes spring.
+ * `raf`/`caf` default to the shared frame clock. `look` (returned) is the look gate the frame draws with.
  */
 export function createScheduler({
   frame, root = null, pressable = () => true, reduced = () => false,
-  raf = cb => requestAnimationFrame(cb), caf = id => cancelAnimationFrame(id), now = () => performance.now(),
+  raf = requestFrame, caf = cancelFrame, now = () => performance.now(),
 }) {
   const springs = createSprings({ reduced })
+  const look = createLookGate({ now })
   let id = 0
   let idle = 0
   let last = 0
@@ -123,8 +133,6 @@ export function createScheduler({
     paused = flag
     if (flag) { if (id) caf(id); id = 0 } else wake('resume')
   }
-
-  const wakeLook = throttle(() => wake('look'), 1000 / LOOK_HZ, { now })
 
   const cleanups = []
   const on = (target, type, fn, opts) => {
@@ -164,16 +172,16 @@ export function createScheduler({
   on(win, 'pointerup', up, true)
   on(win, 'pointercancel', up, true)
 
-  cleanups.push(subscribePhase(() => wakeLook()))
+  // The look publishes about 30 times a second; only a tick the gate would take wakes the loop (no timer).
+  cleanups.push(subscribePhase(() => { if (look.due()) wake('look') }))
 
   function dispose() {
     disposed = true
     if (id) caf(id)
     id = 0
-    wakeLook.cancel()
     cleanups.forEach(fn => fn())
     springs.clear()
   }
 
-  return { wake, setPaused, springs, dispose }
+  return { wake, setPaused, springs, look, dispose }
 }
