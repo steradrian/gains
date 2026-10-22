@@ -6,6 +6,7 @@ import { useRootHeader } from '../../components/use-root-header.js'
 import { weekKey, weekStartOf } from '../../lib/format.js'
 import { t } from '../../lib/i18n.js'
 import { isoWeekOf, weekPath } from '../../lib/day-route.js'
+import { useFriendsMe } from '../../lib/friends/use-friends.js'
 import { measurementEntryHasValues } from '../../lib/measurements.js'
 import { canInvite, groupInvites, loadInvites } from '../../lib/me/invites.js'
 import { allPhotos } from '../../lib/me/photos.js'
@@ -55,6 +56,7 @@ export function useMe() {
   const today = useTodayDate()
   const units = useUnits()
   const goal = useGoal()
+  useFriendsMe()   // the Groups row (views/friends/me-rows.js) says what the cache holds: draw again when it changes
   const foodOn = useFoodOn()
   const start = weekKey(today, weekStartOf(S))
   const days = useMemo(() => foodDaysOf(start, today), [start, today])

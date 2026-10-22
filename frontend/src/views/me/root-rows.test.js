@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import { ME_ROW_SLOTS, meRows } from './root-rows.js'
 
@@ -21,8 +22,9 @@ describe('meRows', () => {
     expect(meRows({ ...ctx, canInvite: false }).map(r => r.id)).toEqual(['body', 'changes'])
   })
 
-  it('has an empty you slot by default', () => {
-    expect(ME_ROW_SLOTS.you).toEqual([])
+  it('has the Groups row in the you slot, going to /me/groups', () => {
+    expect(ME_ROW_SLOTS.you.map(r => r.id)).toEqual(['groups'])
+    expect(ME_ROW_SLOTS.you[0].to).toBe('/me/groups')
   })
 
   it('renders a slot row last, with its tag, only where it is visible', () => {

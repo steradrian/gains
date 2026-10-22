@@ -42,7 +42,7 @@ describe('MeScreen', () => {
     const rows = [...h.querySelectorAll('.g-glist-row')]
     expect(rows.at(-1).querySelector('b').textContent).toBe('Groups')
     expect(rows.at(-1).querySelector('.g-tag').textContent).toBe('New')
-    expect(ME_ROW_SLOTS.you).toEqual([])
+    expect(ME_ROW_SLOTS.you.map(r => r.id)).toEqual(['groups'])
   })
 
   it('offers Keep my weight when the target is reached, and runs it', async () => {

@@ -6,9 +6,8 @@ import { useUI } from '../../store/useUI.js'
 import { confirmDrawer } from '../settings/confirm-drawer.js'
 
 // The two rows Friends puts into other boards' lists, defined here so each host file carries a
-// one-line import: the Groups row of the Me root (views/settings/root-groups.js
-// ROOT_ROW_SLOTS today; the Me board moves it to ME_ROW_SLOTS.you) and the Friends switch of
-// Settings > Features (features-rows.js friendsRow).
+// one-line import: the Groups row of the Me root (views/me/root-rows.js ME_ROW_SLOTS.you) and the
+// Friends switch of Settings > Features (features-rows.js friendsRow).
 
 export const GROUPS_PATH = '/me/groups'
 export const SHARING_FIRST_PATH = '/me/groups/sharing?first=1'
@@ -29,13 +28,25 @@ export function markGroupsSeen() {
   try { localStorage.setItem(SEEN_KEY, '1') } catch { /* private mode: the mark stays */ }
 }
 
-/** A Me root row, `{ id, title, sub, icon, to, visible }` (root-groups.js): only where Friends exists. */
-export const groupsRow = { id: 'groups', title: 'Groups', sub: 'Better together', icon: 'users', to: GROUPS_PATH, visible: () => friendsAvailable() }
+/**
+ * A Me root row (root-rows.js ME_ROW_SLOTS.you): only where Friends exists. `line()` is what it
+ * says, from the Friends cache: the title, the sub and the `New` tag.
+ */
+export const groupsRow = {
+  id: 'groups',
+  icon: 'users',
+  to: GROUPS_PATH,
+  visible: () => friendsAvailable(),
+  line: () => {
+    const { value, sub } = groupsRowValue()
+    return { title: t('Groups'), sub, tag: value }
+  },
+}
 
 /**
- * What the Groups row says (row-values.js): the first group's name and "N of M this week" when in
- * one, else "Better together"; `New` as its value until Groups was opened once. The "of M" is left
- * out when the week has no plan to be of.
+ * What the Groups row says: the first group's name and "N of M this week" when in one, else
+ * "Better together"; `New` as its value until Groups was opened once. The "of M" is left out when
+ * the week has no plan to be of.
  */
 export function groupsRowValue() {
   const { me, groups } = getFriends()

@@ -32,6 +32,11 @@ describe('the Groups row', () => {
     expect(groupsRow).toMatchObject({ id: 'groups', to: '/me/groups', icon: 'users' })
   })
 
+  it('says its title, the group line and the New tag from the Friends cache', () => {
+    mock(ME_ON, [GROUP])
+    expect(groupsRow.line()).toEqual({ title: 'Groups', sub: 'Iron Sunday · 17 of 22 this week', tag: 'New' })
+  })
+
   it('shows only where Friends exists', () => {
     expect(groupsRow.visible({})).toBe(true)
     mocks.user = null

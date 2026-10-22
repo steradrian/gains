@@ -25,7 +25,7 @@ const toast = (msg, opts) => useUI.getState().toast(msg, opts)
 // make invites, they ask. The copy names no admin; any of them may answer. A member who opens
 // /me/invite from a push gets this page too. `backend` is for the screens gallery; `groupsOn`
 // shows the Groups row, which exists once Friends fills the You slot (root-rows.js ME_ROW_SLOTS).
-export default function MemberInvite({ backend = REAL_BACKEND, groupsOn = ME_ROW_SLOTS.you.length > 0 }) {
+export default function MemberInvite({ backend = REAL_BACKEND, groupsOn = ME_ROW_SLOTS.you.some(r => r.id === 'groups' && (!r.visible || r.visible({}))) }) {
   const accent = useDsAccent()
   const ask = useAsk(backend)
   const capped = atOpenCap(ask.requests)

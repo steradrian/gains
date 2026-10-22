@@ -55,7 +55,9 @@ export function parentOf(pathname = '') {
   // Me root M1: a page of Profile (the Body page's three tabs are one page) goes to Profile;
   // Settings too. A Settings page with nothing under it (/me/equipment, /me/admin) goes to Settings.
   const meSegments = under(pathname, ME_ROOT) ? pathname.slice(ME_ROOT.length + 1).split('/') : []
-  if (ME_PAGES.includes(meSegments[0])) return ME_ROOT
+  // Groups has pages below it (a group, What you share, Cheers): those go to Groups, below.
+  const belowGroups = meSegments[0] === 'groups' && meSegments.length > 1
+  if (ME_PAGES.includes(meSegments[0]) && !belowGroups) return ME_ROOT
   if (pathname === SETTINGS_PATH) return ME_ROOT
   const tab = tabOf(pathname)
   // A Day or Week page (lib/day-route.js) has no page above it but its tab's root.
