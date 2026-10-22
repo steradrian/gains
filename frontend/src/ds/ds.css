@@ -2499,3 +2499,25 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-nc-undo { appearance: none; flex: none; min-height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: transparent; color: var(--on-stage); font: 700 14px/18px var(--font-sans); text-decoration: none; cursor: pointer; }
 .g-nc-undo:active { background: var(--glass); }
 .g-prog:focus-visible, .g-nc-undo:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+
+/* Friends core m1: MemberAvatar (an initial in a circle), MemberRing (a segment per member).
+   Per-person colours are the app's calm palette, never red; `white` is the stage's own glass. */
+.g-mtone-white { --mtone: var(--on-stage); --mtone-bg: var(--glass); --mtone-ink: var(--on-stage); }
+.g-mtone-mint { --mtone: var(--mint); --mtone-bg: var(--mint); --mtone-ink: #111111; }
+.g-mtone-blue { --mtone: var(--blue); --mtone-bg: var(--blue); --mtone-ink: #FFFFFF; }
+.g-mtone-purple { --mtone: var(--purple); --mtone-bg: var(--purple); --mtone-ink: #FFFFFF; }
+.g-mtone-orange { --mtone: var(--orange); --mtone-bg: var(--orange); --mtone-ink: #111111; }
+.g-mtone-green { --mtone: var(--green); --mtone-bg: var(--green); --mtone-ink: #111111; }
+.g-mavatar { display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: var(--mtone-bg); color: var(--mtone-ink); font: 700 14px/1 var(--font-sans); }
+.g-mavatar-sm { width: 24px; height: 24px; font-size: 12px; }
+.g-mavatar-md { width: 32px; height: 32px; }
+.g-mavatar-lg { width: 48px; height: 48px; font-size: 20px; }
+.g-mavatars { display: inline-flex; align-items: center; }
+.g-mavatars .g-mavatar + .g-mavatar { margin-inline-start: -6px; }
+.g-mring { position: relative; display: block; flex: none; }
+.g-mring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.g-mring-track { stroke: var(--glass-track); }
+.g-mring-val { stroke: var(--mtone); }
+.g-fgroups { display: flex; flex-direction: column; gap: 12px; }
+.g-jsheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px; font-family: var(--font-sans); }
+.g-mring-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }

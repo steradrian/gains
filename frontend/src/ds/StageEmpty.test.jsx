@@ -69,6 +69,14 @@ describe('StageEmpty', () => {
     expect(buttons()[0].tagName).toBe('A')
   })
 
+  it('a button with haptic is a haptic host and still runs its handler once', () => {
+    const onClick = vi.fn()
+    view.render(<StageEmpty title="t" actions={[{ label: 'Create a group', onClick, haptic: true }, { label: 'Join', onClick: () => {} }]} />)
+    expect(buttons().map(b => b.classList.contains('g-haptic'))).toEqual([true, false])
+    click(buttons()[0])
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
   it('actions add glass buttons under the white one, in order, with an optional icon (T2.9)', () => {
     const importIt = vi.fn()
     view.render(
