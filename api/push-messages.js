@@ -13,6 +13,10 @@ const COPY = {
     inviteRequestBody: 'Answer it from Invite a friend.',
     inviteReadyTitle: 'Your invite is ready',
     inviteReadyBody: 'An admin made the invite you asked for.',
+    // Friends api m3: the evening cheer digest
+    cheerOne: '{0} cheered you',
+    cheerOther: '{0} and {1} other cheered you',
+    cheerOthers: '{0} and {1} others cheered you',
   },
   'pt-BR': {
     restTitle: 'Descanso terminado 💪',
@@ -25,6 +29,9 @@ const COPY = {
     inviteRequestBody: 'Responda em Convidar um amigo.',
     inviteReadyTitle: 'Seu convite está pronto',
     inviteReadyBody: 'Um admin criou o convite que você pediu.',
+    cheerOne: '{0} torceu por você',
+    cheerOther: '{0} e mais {1} pessoa torceram por você',
+    cheerOthers: '{0} e mais {1} pessoas torceram por você',
   },
 };
 
@@ -39,6 +46,8 @@ export const PUSH_URL = {
   day: '#/home',
   nudge: '#/train/schedule',
   invite: '#/me/invite',
+  // Friends api m3: Cheers for you
+  cheers: '#/me/groups/cheers',
 };
 
 export function restTimerPush(lang) {
@@ -48,6 +57,14 @@ export function restTimerPush(lang) {
 
 export function testPush(lang) {
   return { title: 'Gains', body: copyFor(lang).testBody, tag: 'test' };
+}
+
+// Friends api m3: "Mara cheered you", "Mara and 1 other cheered you", "Mara and 2 others cheered you".
+// `first` is the newest cheerer's name, `others` how many more people cheered.
+export function cheerPush(lang, first, others) {
+  const copy = copyFor(lang);
+  const line = others <= 0 ? copy.cheerOne : others === 1 ? copy.cheerOther : copy.cheerOthers;
+  return { title: 'Gains', body: line.replace('{1}', () => String(others)).replace('{0}', () => first), tag: 'cheer', url: PUSH_URL.cheers };
 }
 
 export function dayReminderPush(lang, routine) {

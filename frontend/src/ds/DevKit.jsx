@@ -4,6 +4,7 @@ import CodeCells from './CodeCells.jsx'
 import Section from './DevKitSection.jsx'
 import DevKitDay from './DevKitDay.jsx'
 import DevKitDrawers from './DevKitDrawers.jsx'
+import DevKitFriends from './DevKitFriends.jsx'
 import DevKitPlan from './DevKitPlan.jsx'
 import DevKitPushed from './DevKitPushed.jsx'
 import DevKitRoutines from './DevKitRoutines.jsx'
@@ -320,6 +321,8 @@ export default function DevKit() {
         <DevKitMePhotos />
         {/* Me invite M2 */}
         <DevKitMeInvite />
+        {/* Friends core m1 */}
+        <DevKitFriends />
       </div>
       <StageFooter>
         <Button block onClick={() => setStep(s => Math.min(8, s + 1))}>Continue</Button>

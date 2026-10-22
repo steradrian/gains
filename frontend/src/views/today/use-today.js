@@ -11,6 +11,7 @@ import { dayMark, nameOf, trainingDay } from '../../lib/training-day.js'
 import { mealItems, resolveGoalFor, totalsOf } from '../../lib/nutrition/diary.js'
 import { diaryIndexDays, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { dayHasLog } from '../../lib/nutrition/first-log.js'
+import { useTodayCard } from '../../lib/friends/use-today-card.js'
 import { loadErrorText } from '../../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../../lib/nutrition/meal-name.js'
 import { useDiarySelection, useDiaryTarget } from '../../lib/nutrition/selection.js'
@@ -275,6 +276,8 @@ function scanToday(day) {
  * Everything Today shows, for TodayScreen: { profile, status, error, header (the StageHeader's
  * props, its search field included), saved, away, firstSteps, nextPending, rings, onRing,
  * actions, upNext, meals, onMeal, onSeeDay, water, week }. `status` ('known' | 'pending' | 'failed') gates everything below the rings.
+ * `friends` is the Friends card (T1.16): null unless something is new in the person's group
+ * (lib/friends/use-today-card.js).
  * Sections a profile or the day leaves out are null: firstSteps (T1.9) stands in for Up next on a
  * first day, nextPending while that is not known yet, away (T1.10) is the welcome back, saved
  * (T1.14) the offline pill. Taps go where the
@@ -297,6 +300,7 @@ export function useToday() {
   const indexSynced = useDiaryIndex(s => s.synced)
   useDiaryIndex(s => s.version)
   const saved = useOfflinePill()
+  const friends = useTodayCard()
 
   const profile = todayProfile(day.on, trainingTracked(S))
   const food = profile !== 'training'
@@ -358,7 +362,7 @@ export function useToday() {
   } : null
 
   return {
-    profile, status, error, header, saved, away: welcome, firstSteps, nextPending,
+    profile, status, error, header, saved, away: welcome, firstSteps, nextPending, friends,
     rings: food ? (day.status === 'ready' ? foodRings(day, units) : []) : [trainingRing(S, today)],
     onRing: (_, i) => (food ? nutritionDaySheet({ date: today, tab: i }) : nav('/train')),
     actions: food

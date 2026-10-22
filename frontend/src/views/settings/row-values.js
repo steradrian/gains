@@ -10,6 +10,7 @@ import { accentLabel } from '../../lib/themes.js'
 import { BRAND } from '../../brand.js'
 import { scheduleModeOf } from '../../lib/rotation.js'
 import { featuresFor, SEARCH } from '../settings-pages.js'
+import { groupsRowValue } from '../friends/me-rows.js'
 
 // What each row of the Settings root says about its page, so most questions are answered without
 // opening it (boards St1Settings, A1.0). Pure: `S`, the device's `ctx` (use-settings-ctx.js) and a few
@@ -86,6 +87,8 @@ export function rowValues({ S, ctx, lang, coachLocal = null, host = null, synced
     customUnits: { value: countOf(ctx, 'customUnits') },
     backup: { value: synced, sub: host },
     about: { sub: t('Version {0}, licences', BRAND.version) },
+    // Friends core m1
+    groups: groupsRowValue(),
   }
 }
 

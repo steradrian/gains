@@ -14,6 +14,19 @@ import StageScreen from '../../ds/StageScreen.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import './notifications.css'
 
+// What the page says it holds. Friends is named only while it is on, because that is when cheers
+// and invites can land here.
+const linesOf = (hasReminders, friends) => {
+  if (friends) {
+    return hasReminders
+      ? { line: t('Reminders you set, streaks, new bests, Coach changes and Friends'), empty: t('Reminders you set, streaks, new bests, Coach changes and Friends show up here.') }
+      : { line: t('Streaks, new bests, Coach changes and Friends'), empty: t('Streaks, new bests, Coach changes and Friends show up here.') }
+  }
+  return hasReminders
+    ? { line: t('Reminders you set, streaks, new bests and Coach changes'), empty: t('Reminders you set, streaks, new bests and Coach changes show up here.') }
+    : { line: t('Streaks, new bests and Coach changes'), empty: t('Streaks, new bests and Coach changes show up here.') }
+}
+
 // The Notifications page on the stage (boards Sh3Notifications, Sh3Empty, Sh3Read, Sh3PermOff),
 // pushed under the tab whose bell opened it. It draws what useNotifications() gives it and holds
 // nothing: the sections New / This week / Earlier, the "2 new · Mark all read" line (only while something
@@ -24,9 +37,10 @@ import './notifications.css'
 // scene has no "Set a reminder" that could not fill it.
 //
 // The large title is the page's h1 (StagePageTitle; the nav bar above it has none). Mark all read
-// takes its own pill away, so focus moves to that heading.
+// takes its own pill away, so focus moves to that heading. `friends`: Friends is on, so cheers and
+// invites can land here and the copy names it.
 export default function NotificationsScreen({
-  sections, unreadCount, isUnread, now = Date.now(), permission, homeScreen, hasReminders,
+  sections, unreadCount, isUnread, now = Date.now(), permission, homeScreen, hasReminders, friends = false,
   onOpen, onMarkAllRead, onTurnOn, onReminders, onBack,
 }) {
   const accent = useDsAccent()
@@ -37,6 +51,7 @@ export default function NotificationsScreen({
     { key: 'earlier', title: t('Earlier'), list: sections.earlier },
   ].filter(g => g.list.length)
   const empty = !groups.length
+  const lines = linesOf(hasReminders, friends)
   const markAll = () => {
     onMarkAllRead()
     heading.current?.focus()
@@ -47,7 +62,7 @@ export default function NotificationsScreen({
       <div className="notif">
         <StageNavBar onBack={onBack} actions={[{ icon: 'gear', label: t('Reminder settings'), onClick: onReminders }]} />
         <StagePageTitle ref={heading} title={t('Notifications')}
-          line={empty ? null : hasReminders ? t('Reminders you set, streaks, new bests and Coach changes') : t('Streaks, new bests and Coach changes')} />
+          line={empty ? null : lines.line} />
         {permission === 'off' && (
           <div className="g-sbanner">
             <InlineBanner stage icon="bellSlash" title={t('Notifications are off on this phone')}
@@ -57,9 +72,9 @@ export default function NotificationsScreen({
         )}
         {empty
           ? hasReminders
-            ? <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Reminders you set, streaks, new bests and Coach changes show up here.')}
+            ? <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={lines.empty}
               action={t('Set a reminder')} onClick={onReminders} />
-            : <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={t('Streaks, new bests and Coach changes show up here.')} />
+            : <StageEmpty card={false} illustration="bell" title={t('Nothing new')} body={lines.empty} />
           : <>
             {unreadCount > 0 && <StageSection variant="line" title={tn('{0} new', '{0} new', unreadCount)} action={t('Mark all read')} onAction={markAll} />}
             {groups.map(g => (

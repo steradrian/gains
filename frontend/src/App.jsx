@@ -83,6 +83,20 @@ import StructuralBalance from './views/StructuralBalance.jsx'
 import { SettingsRoute } from './views/settings/SettingsRoute.jsx'
 import DeleteAccountPage from './views/settings/pages/DeleteAccountPage.jsx'
 import StartedOverScreen from './views/settings/pages/StartedOverScreen.jsx'
+// Friends core m1
+import FriendsGate from './views/friends/FriendsGate.jsx'
+import GroupsScreen from './views/friends/GroupsScreen.jsx'
+import JoinScreen from './views/friends/JoinScreen.jsx'
+import SharingScreen from './views/friends/SharingScreen.jsx'
+import CheersScreen from './views/friends/CheersScreen.jsx'
+import GroupScreen from './views/friends/GroupScreen.jsx'
+import MemberScreen from './views/friends/MemberScreen.jsx'
+import ChallengeScreen from './views/friends/ChallengeScreen.jsx'
+// Friends core m2
+import GroupLinkRedirect from './views/friends/GroupLinkRedirect.jsx'
+import { groupCodeOf, rememberPendingGroup, takePendingGroup } from './lib/friends/pending-group.js'
+// Friends surfaces m2
+import TargetsReachedSync from './views/friends/TargetsReachedSync.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -349,6 +363,16 @@ function Shell() {
     syncThemeColor(chrome)
     if (MOBILE) setSystemBarsLight(isLightColor(chrome))
   }, [chrome])
+  // Friends core m2: a group link (/g/<code>) opened while signed out is remembered for this tab;
+  // once signed in, and past any onboarding, the person is taken to it. The route itself
+  // (GroupLinkRedirect) sends /g/<code> on to the join page.
+  useEffect(() => {
+    const code = groupCodeOf(shown.pathname)
+    if (!authed) { if (code) rememberPendingGroup(code); return }
+    if (inFlow || needsMobileOnboarding || onAddDevice) return
+    const pending = takePendingGroup()
+    if (pending && !code) navigate('/g/' + encodeURIComponent(pending), { replace: true })
+  }, [authed, shown.pathname, inFlow, needsMobileOnboarding, onAddDevice, navigate])
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
@@ -398,6 +422,8 @@ function Shell() {
       <Toast />
       {/* Workout finish M2: asks about a session left open for hours (W1.27). */}
       <StaleWorkoutCheck />
+      {/* Friends surfaces m2: keeps S.targetsReached current while Friends and its targets switch are on. */}
+      {authed && !needsMobileOnboarding && <TargetsReachedSync />}
       <TimerFlash />
       <LandscapeCover />
     </>
@@ -504,7 +530,20 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
       <Route path="/me/account/started-over" element={<StartedOverScreen />} />
+      {/* Friends core m1: every Friends route, behind one gate that sends someone without Friends to /me.
+          Each screen is its own file, so the later milestones replace a file and not this table. */}
+      <Route element={<FriendsGate />}>
+        <Route path="/me/groups" element={<GroupsScreen />} />
+        <Route path="/me/groups/join/:code" element={<JoinScreen />} />
+        <Route path="/me/groups/sharing" element={<SharingScreen />} />
+        <Route path="/me/groups/cheers" element={<CheersScreen />} />
+        <Route path="/me/groups/:id" element={<GroupScreen />} />
+        <Route path="/me/groups/:id/member/:uid" element={<MemberScreen />} />
+        <Route path="/me/groups/:id/challenge/:cid" element={<ChallengeScreen />} />
+      </Route>
       <Route path="/me/:page" element={<SettingsRoute />} />
+      {/* Friends core m2: the group link <base>/g/<code> (web/nginx.conf.template sends /g/<code> to /#/g/<code>). */}
+      <Route path="/g/:code" element={<GroupLinkRedirect />} />
       <Route path="*" element={<Navigate to={fallback} replace />} />
     </Routes>
   )

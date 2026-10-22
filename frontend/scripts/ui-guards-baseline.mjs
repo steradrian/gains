@@ -39,7 +39,9 @@ export const PRIMITIVE_FILES = [
 // draws its own stage chrome). SettingsRoute (PR-06) only picks the page: the chrome is in views/Settings.jsx and settings/SettingsPageHost.jsx,
 // in other files than the route, which this guard cannot follow. GymPassPage (Gym check-in, route
 // /train/checkin) draws its chrome through settings/SettingsPage.jsx, a StagePage in another file.
-export const PAGE_EXEMPT = ['AddDevice', 'BodyRoute', 'BurnedPage', 'ChangesRoute', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'GoalRoute', 'GymPassPage', 'History', 'Home', 'InviteRoute', 'LoadMuscleScreen', 'Login', 'MeRoute', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
+// FriendsGate is the layout of the /me/groups routes (an Outlet or a redirect to Me) and
+// GroupLinkRedirect only forwards /g/:code: neither draws anything.
+export const PAGE_EXEMPT = ['AddDevice', 'BodyRoute', 'BurnedPage', 'ChangesRoute', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GoalRoute', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'InviteRoute', 'LoadMuscleScreen', 'Login', 'MeRoute', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 

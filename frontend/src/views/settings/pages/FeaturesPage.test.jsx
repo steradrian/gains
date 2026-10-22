@@ -33,6 +33,7 @@ vi.mock('../use-settings-ctx.js', () => ({ useSettingsCtx: () => mocks.ctx }))
 vi.mock('../../../lib/nutrition/api.js', () => ({ nutritionAvailable: user => !!user }))
 vi.mock('../../../lib/nutrition/use-fasting.js', () => ({ setFastingEnabled: vi.fn() }))
 vi.mock('./features-rows.js', () => ({ friendsRow: () => mocks.friends }))
+vi.mock('../../../lib/friends/use-friends.js', () => ({ useFriendsMe: () => ({}) }))
 
 import FeaturesPage from './FeaturesPage.jsx'
 

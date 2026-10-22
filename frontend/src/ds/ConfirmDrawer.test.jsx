@@ -36,6 +36,16 @@ describe('ConfirmDrawer, drawn alone', () => {
     expect(q('.g-confirm ul')).toBeNull()
     expect(q('.g-confirm-note')).toBeNull()
   })
+
+  it('haptic marks the danger button for a tick and still confirms; a link never gets one', () => {
+    const onConfirm = vi.fn()
+    view.render(<ConfirmDrawer title="Remove Mara?" confirmLabel="Remove Mara" haptic onConfirm={onConfirm} onCancel={() => {}} />)
+    expect(q('.g-confirm-danger').classList.contains('g-haptic')).toBe(true)
+    click(q('.g-confirm-danger'))
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+    view.render(<ConfirmDrawer title="Go" confirmLabel="Go" haptic confirmHref="#/x" onCancel={() => {}} />)
+    expect(q('.g-confirm-danger').classList.contains('g-haptic')).toBe(false)
+  })
 })
 
 describe('confirmDrawer()', () => {

@@ -115,6 +115,17 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/food/my-foods')).toBe('/food')
   })
 
+  it('Friends: Groups to Me, a group, the join page, What you share and Cheers to Groups, a member and a challenge to their group', () => {
+    expect(parentOf('/me/groups')).toBe('/me')
+    expect(parentOf('/me/groups/g1')).toBe('/me/groups')
+    expect(parentOf('/me/groups/join/abc123')).toBe('/me/groups')
+    expect(parentOf('/me/groups/sharing')).toBe('/me/groups')
+    expect(parentOf('/me/groups/cheers')).toBe('/me/groups')
+    expect(parentOf('/me/groups/g1/member/u2')).toBe('/me/groups/g1')
+    expect(parentOf('/me/groups/g1/challenge/c1')).toBe('/me/groups/g1')
+    for (const path of ['/me/groups', '/me/groups/g1/member/u2', '/me/groups/join/abc123']) expect(tabOf(path)).toBe('me')
+  })
+
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {
     expect(parentOf('/train/coach/intake')).toBe('/train')
     expect(parentOf('/me/workout')).toBe('/me/settings')

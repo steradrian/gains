@@ -48,7 +48,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => to => mocks.navs.push(to
 // The stage frame (nav bar, background) is the app's and has its own test; the rows are the point.
 vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/api.js', () => ({
-  api: vi.fn(() => Promise.resolve({})), webauthnOK: () => true, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
+  api: vi.fn(() => Promise.resolve({})), webauthnOK: () => true, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false, remoteServer: () => '',
 }))
 vi.mock('../lib/push.js', () => ({ pushSupported: () => false, enablePush: vi.fn(), disablePush: vi.fn(), sendTestPush: vi.fn() }))
 vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => false }))

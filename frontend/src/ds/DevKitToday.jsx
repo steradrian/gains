@@ -50,12 +50,13 @@ export default function DevKitToday() {
         <p>Last tapped: {picked || 'none'}</p>
       </Section>
 
-      <Section title="WaterGlasses" note="Uncontrolled (counts up to the target), then controlled by a value and onAdd, then empty and full.">
-        <WaterGlasses value={1.25} target={2.5} />
-        <StageSection title="Water" action={water + ' of 2.5 L'} />
-        <WaterGlasses value={water} target={2.5} onAdd={setWater} />
+      <Section title="WaterGlasses" note="Tumblers that fill: empty, partial, full, then interactive (tap + to watch the next glass fill; it is controlled by a value and onAdd). The first row uncontrolled, counting up to the target.">
         <WaterGlasses value={0} target={2.5} />
+        <WaterGlasses value={1.25} target={2.5} />
         <WaterGlasses value={2.5} target={2.5} />
+        <StageSection title="Interactive" action={water + ' of 2.5 L'} />
+        <WaterGlasses value={water} target={2.5} onAdd={setWater} />
+        <WaterGlasses target={2.5} />
       </Section>
 
       <Section title="FirstSteps" note="Board T1.9, under a StageSection. A step to do goes somewhere; the done one ticks and is only said.">
