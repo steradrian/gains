@@ -28,7 +28,7 @@ function TabPill({ current }) {
   const lit = slotOf(current)
   const [slot, setSlot] = useState(Math.max(0, lit))
   if (lit >= 0 && lit !== slot) setSlot(lit)
-  return <span className={cx('g-tab-ind', ready && 'g-tab-ind-ready', lit < 0 && 'g-tab-ind-off')} aria-hidden="true" style={{ '--i': lit >= 0 ? lit : slot }} />
+  return <span className={cx('g-tab-ind', ready && 'g-tab-ind-ready', lit < 0 && 'g-tab-ind-off')} data-glass="lens" data-glass-inset="2" aria-hidden="true" style={{ '--i': lit >= 0 ? lit : slot }} />
 }
 
 // Module scope, not GlassTabBar's body: a component declared inside it would be a new type on every
@@ -51,13 +51,13 @@ export default function GlassTabBar({ current = 'today', running, onChange, onPl
   const [own, setOwn] = useState(current)
   const cur = onChange ? current : own
   return (
-    <nav className="g-gtabbar" aria-label={t('Main navigation')}>
+    <nav className="g-gtabbar" data-glass="bar" aria-label={t('Main navigation')}>
       <TabPill current={cur} />
       {TABS.map(tab => {
         if (!tab) {
           return hrefs.plus
-            ? <a key="plus" href={hrefs.plus} className="g-plus" aria-label={t('Add to Today')}><Icon name="plus" className="g-icon" /></a>
-            : <button key="plus" type="button" className="g-plus" aria-label={t('Add to Today')} aria-haspopup="dialog" onClick={onPlus}><Icon name="plus" className="g-icon" /></button>
+            ? <a key="plus" href={hrefs.plus} className="g-plus" data-glass="tint" aria-label={t('Add to Today')}><Icon name="plus" className="g-icon" /></a>
+            : <button key="plus" type="button" className="g-plus" data-glass="tint" aria-label={t('Add to Today')} aria-haspopup="dialog" onClick={onPlus}><Icon name="plus" className="g-icon" /></button>
         }
         const [name, label, icon] = tab
         return <Tab key={name} name={name} label={label()} icon={icon} lit={cur === name} running={running && name === 'train'} href={hrefs[name]}

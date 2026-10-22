@@ -4,20 +4,14 @@
    selector is scoped under .gl-liquid.
 
    .gl-webgl: GlassHost.jsx (presenter-fixed.js) draws the glass in two WebGL canvases: .gl-layer-under
-   (z-index -1, after the stage, so under the page content) for what scrolls, .gl-layer-over (z-index 4,
-   under the dock's 5) for the tab bar; it is a strip, placed with `top` by the presenter. Every
-   [data-glass] element but a flat one loses its own fill, rim and shadow: only its icons and text stay
-   HTML.
+   (the layers' own rules are in ds.css "Liquid glass") for what scrolls, .gl-layer-over for the tab
+   bar; it is a strip, placed with `top` by the presenter. Every [data-glass] element but a flat one
+   loses its own fill, rim and shadow: only its icons and text stay HTML.
    .gl-fallback: no WebGL, or Reduce Transparency (.gl-frostier): a plain frosted fill, no rim ring.
    ========================================================================================== */
 
-.gl-layer { position: fixed; inset: 0; pointer-events: none; }
-.gl-layer-under { z-index: -1; }
-.gl-layer-over { z-index: 4; inset: auto 0 0 0; }
-.gl-layer canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-/* Under the bar's clear middle: content scrolling under it is softened, never bent (WebGL cannot
-   read the DOM; the bar's rim bends the cards' and tiles' silhouettes, which it does know). */
-.gl-frost { position: absolute; left: 0; top: 0; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); will-change: transform; }
+/* The over canvas goes under the dock's z-index 5 here (the app puts it at 49, under #tabbar). */
+.gl-dev { --gl-over-z: 4; }
 
 /* ---- WebGL: the HTML keeps only the glyphs ---------------------------------------------- */
 .gl-webgl [data-glass]:not([data-glass="flat"]) { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
