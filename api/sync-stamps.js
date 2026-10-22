@@ -47,11 +47,15 @@ const workoutTime = w => Number(w?._ts) || Number(w?.end) || Number(w?.start) ||
 export const DEL_LISTS = {
   workouts: workoutKey, routines: x => x?.id, customEx: x => x?.id, bodyweight: e => e?.d,
   measurements: e => e?.d, gymCards: x => x?.id, equipProfiles: x => x?.id, favEx: x => x,
+  // Me photos M1: a progress photo, by its id (sync-merge.js DEL_LISTS).
+  bodyPhotos: x => x?.id,
 };
 const DEL_TIME = {
   workouts: workoutTime, routines: x => Number(x?._ts) || 0, customEx: x => Number(x?._ts) || 0,
   bodyweight: e => Number(e?.t) || 0, measurements: e => Number(e?.t) || 0,
   gymCards: x => Number(x?._ts) || 0, equipProfiles: x => Number(x?._ts) || 0,
+  // Me photos M1: a progress photo is never edited, so it is as old as when it was added.
+  bodyPhotos: x => Number(x?.addedAt) || 0,
 };
 export const DELETED_MAX = 5000;
 const capStamps = m => {
@@ -67,6 +71,8 @@ const OWN_MERGE = new Set([
   'exWeights', 'balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes', 'missedSeen', 'coachCheckIns',
   // A recipe's steps and photo (Eat): one entry per recipe, merged by the app on its own `updatedAt`.
   'recipeExtras',
+  // Me photos M1: progress photos, a union by id the app merges itself (sync-merge.js).
+  'bodyPhotos',
 ]);
 const PER_KEY = new Set(['week', 'dayPlan', 'exNotes', 'barWeights']);
 // The maps whose every entry carries its own edit time (sync-merge.js STAMPED_MAPS): merged per

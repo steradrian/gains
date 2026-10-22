@@ -112,8 +112,9 @@ export function workoutMediaOf(w, max = WORKOUT_MEDIA_MAX) {
 
 /**
  * Every MediaRef-like object a state holds, as it stands (not normalised): each custom
- * exercise's `media`, each entry of each logged workout's `media` list and each recipe's photo
- * (`recipeExtras[id].photo`, lib/nutrition/recipe-extras.js). The one walk behind
+ * exercise's `media`, each entry of each logged workout's `media` list, each recipe's photo
+ * (`recipeExtras[id].photo`, lib/nutrition/recipe-extras.js) and each progress photo's ref
+ * (`bodyPhotos[].ref`, lib/me/photos.js; whatever Back up photos says). The one walk behind
  * referencedHashes, referencedFiles and the owed count, so they can never disagree about where
  * media live. The session in progress is not walked: it never syncs (the server drops `active`),
  * media are only ever attached to a saved workout, and the history editor's copy of one leaves
@@ -134,13 +135,49 @@ export function stateMediaRefs(state) {
   if (isObj(state.recipeExtras)) {
     for (const e of Object.values(state.recipeExtras)) if (isObj(e) && isObj(e.photo)) out.push(e.photo)
   }
+  out.push(...bodyPhotoRefs(state))
+  return out
+}
+
+/* === Me photos M1 === */
+
+/** Each progress photo's ref as it stands (bodyPhotos[].ref, lib/me/photos.js), not normalised. */
+export function bodyPhotoRefs(state) {
+  const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v)
+  const out = []
+  for (const p of state && Array.isArray(state.bodyPhotos) ? state.bodyPhotos : []) {
+    if (isObj(p) && isObj(p.ref)) out.push(p.ref)
+  }
+  return out
+}
+
+const hashesOf = refs => {
+  const out = new Set()
+  const add = r => { if (r && typeof r === 'object' && typeof r.hash === 'string' && HASH_RE.test(r.hash)) out.add(r.hash) }
+  for (const m of refs) { add(m); add(m.poster) }
   return out
 }
 
 /**
+ * The files the person chose to keep on this device only: the main and poster hashes of their
+ * progress photos (bodyPhotos) while Back up photos is off (`photoBackup !== true`), less any
+ * hash something else also refers to (a workout's photo, an exercise's, a recipe's), which goes
+ * up as it always did. The sync neither asks the server about these nor sends them, and the
+ * local clean-up never evicts them. Empty with the switch on: they go up like any other file.
+ */
+export function heldBackHashes(state) {
+  if (!state || typeof state !== 'object' || state.photoBackup === true) return new Set()
+  const own = hashesOf(bodyPhotoRefs(state))
+  if (!own.size) return own
+  const others = hashesOf(stateMediaRefs({ ...state, bodyPhotos: [] }))
+  for (const h of others) own.delete(h)
+  return own
+}
+
+/**
  * Every blob hash a state refers to, the same answer as api/media.js referencedHashes (the shared
- * fixture api/test/fixtures/media-refs.json pins both): customEx[].media and every entry of
- * workouts[].media. Deliberately looser than normalizeMediaRef and workoutMediaOf: each hash and
+ * fixture api/test/fixtures/media-refs.json pins both): customEx[].media, every entry of
+ * workouts[].media, recipeExtras[].photo and bodyPhotos[].ref. Deliberately looser than normalizeMediaRef and workoutMediaOf: each hash and
  * poster hash counts on its own as long as it is well-formed, and a workout's list counts past
  * its cap, because this set decides what is KEPT, and keeping too much is the safe side.
  */

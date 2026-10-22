@@ -30,6 +30,8 @@
  *     edited last by its own `_ts` (stampRoutines), the newer copy's on a tie
  *   - bodyweight, measurements: union by day, the later-edited (`t`) entry of a day that both have
  *   - favEx: ordered set union, the newer copy first
+ *   - bodyPhotos (progress photos): union by id, the later `addedAt` of an id both have
+ *     (mergeBodyPhotos); a removal is a tombstone in `deleted.bodyPhotos`, which wins a tie
  *   - exWeights: union by exercise, the better `w` for that exercise — larger for an ordinary
  *     lift, smaller on an assistance machine (a PR logged on the other device must not be
  *     forgotten, whichever way it runs). An exercise in a workout whose edited version was kept
@@ -177,6 +179,26 @@ export function mergeBodyweight(a = [], b = []) {
     if (!cur || (e.t || 0) > (cur.t || 0)) byDay.set(e.d, e)
   }
   return [...byDay.values()].sort((x, y) => (x.d < y.d ? -1 : 1))
+}
+
+/**
+ * Me photos M1: progress photos (lib/me/photos.js), the union by id: `a`'s in their order, then
+ * those only `b` has. An id both hold keeps the entry with the later `addedAt` (`a`'s on a tie).
+ * An entry without an id (a hand-edited copy) is kept as it is, at the end: its ref still keeps
+ * its file, and dropping it here would let the GCs take the file. Removals are not decided here:
+ * mergeStates applies `deleted.bodyPhotos` afterwards (applyDeletions).
+ */
+export function mergeBodyPhotos(a = [], b = []) {
+  const byId = new Map()
+  const keyless = new Map()   // by content, so the copy both sides hold stays one
+  for (const p of [...list(a), ...list(b)]) {
+    if (!p || typeof p !== 'object') continue
+    if (p.id == null) { const j = JSON.stringify(p); if (!keyless.has(j)) keyless.set(j, p); continue }
+    const k = String(p.id)
+    const cur = byId.get(k)
+    if (!cur || (Number(p.addedAt) || 0) > (Number(cur.addedAt) || 0)) byId.set(k, p)
+  }
+  return [...byId.values(), ...keyless.values()]
 }
 
 // The kept load per exercise. "The larger one wins" held while the app only ever raised it —
@@ -407,6 +429,8 @@ const bodyweightKey = e => `${e?.d}|${e?.t ?? ''}`
 const RESET_LISTS = {
   workouts: workoutKey, routines: x => x?.id, customEx: x => x?.id, bodyweight: bodyweightKey,
   measurements: bodyweightKey, gymCards: x => x?.id, equipProfiles: x => x?.id, favEx: x => x,
+  // Me photos M1: a progress photo by its id.
+  bodyPhotos: x => x?.id,
 }
 const RESET_MAPS = ['exNotes', 'barWeights', ...STAMPED_MAPS]
 /** An entry's name in resetIds: a workout's id (or day and start), a weigh-in's day and time, … */
@@ -462,6 +486,7 @@ export function sinceReset(S, at, ids) {
     out.customEx = list(S.customEx).filter(c => c && after(c._ts))
     out.bodyweight = list(S.bodyweight).filter(e => e && after(e.t))
     out.measurements = list(S.measurements).filter(e => e && after(e.t))
+    if (Array.isArray(S.bodyPhotos)) out.bodyPhotos = S.bodyPhotos.filter(p => p && after(p.addedAt))
     // No time of their own: taken for what they were before the reset, which cleared them.
     out.equipProfiles = []
     out.gymCards = []
@@ -504,6 +529,8 @@ export function sinceReset(S, at, ids) {
 const DEL_LISTS = {
   workouts: workoutKey, routines: x => x?.id, customEx: x => x?.id, bodyweight: e => e?.d,
   measurements: e => e?.d, gymCards: x => x?.id, equipProfiles: x => x?.id, favEx: x => x,
+  // Me photos M1: a progress photo (lib/me/photos.js), by its id; api/sync-stamps.js has the same.
+  bodyPhotos: x => x?.id,
 }
 // When an entry was last edited, to hold against a removal. Entries with no time of their own
 // (favourites, and cards and profiles saved before they were stamped) count as older than any
@@ -512,6 +539,9 @@ const DEL_TIME = {
   workouts: workoutTime, routines: x => Number(x?._ts) || 0, customEx: x => Number(x?._ts) || 0,
   bodyweight: e => Number(e?.t) || 0, measurements: e => Number(e?.t) || 0,
   gymCards: x => Number(x?._ts) || 0, equipProfiles: x => Number(x?._ts) || 0,
+  // Me photos M1: never edited, so as old as when it was added. A removal stamped at or after
+  // that wins (applyDeletions), a tie included.
+  bodyPhotos: x => Number(x?.addedAt) || 0,
 }
 // Per field, the most stamps kept; past it the oldest go first.
 export const DELETED_MAX = 5000
@@ -619,6 +649,8 @@ const OWN_MERGE = new Set([
   '_ts', '_rev', '_wid', '_wids', '_unstamped', '_prior', 'active', 'unit', 'unitSet', 'resetAt', 'resetIds', 'deleted', 'edited', 'undone', 'routineOrder',
   'workouts', 'routines', 'customEx', 'equipProfiles', 'gymCards', 'bodyweight', 'measurements', 'favEx',
   'exWeights', 'balanceOverrides', 'loadKind', 'plates', 'dbLoad', 'dumbbells', 'dayNotes', 'missedSeen', 'coachCheckIns', 'recipeExtras',
+  // Me photos M1: merged by id (mergeBodyPhotos); `photoBackup` is an ordinary stamped setting.
+  'bodyPhotos',
 ])
 // Stamped per key instead of whole: one day of the plan, one exercise's note or bar.
 const PER_KEY = new Set(['week', 'dayPlan', 'exNotes', 'barWeights'])
@@ -827,6 +859,9 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   // A day's body measurements are one check-in, kept and merged the way a weigh-in is.
   if (list(n.measurements).length || list(o.measurements).length) out.measurements = mergeBodyweight(n.measurements, o.measurements).map(clone)
   if (list(n.favEx).length || list(o.favEx).length) out.favEx = [...new Set([...list(n.favEx), ...list(o.favEx)])]
+  // Me photos M1: progress photos, the union by id (mergeBodyPhotos), with `prefer` too: a photo
+  // taken signed out is the device's own, like a weigh-in. Removals follow below.
+  if (list(n.bodyPhotos).length || list(o.bodyPhotos).length) out.bodyPhotos = mergeBodyPhotos(n.bodyPhotos, o.bodyPhotos).map(clone)
   // What either device removed stays removed (the `deleted` section above). A workout taken out
   // this way leaves its exercises' kept loads to be read again, as an edit of it would: from the
   // merged history and from the deleting copy's own, which already let go of what it held.
@@ -1026,6 +1061,7 @@ export function highestStamp(S) {
   }
   for (const f of STAMPED_MAPS) if (isMap(S[f])) for (const v of Object.values(S[f])) see(stampOf(v))
   for (const e of [...list(S.bodyweight), ...list(S.measurements)]) if (e && typeof e === 'object') see(e.t)
+  for (const p of list(S.bodyPhotos)) if (p && typeof p === 'object') see(p.addedAt)
   return m
 }
 
@@ -1142,6 +1178,9 @@ export function localExtras(local, server) {
   const measured = new Set(list(server?.measurements).map(e => e?.d))
   const setup = ['gymCards', 'equipProfiles'].reduce((n, f) => n + list(local?.[f]).filter(x => x && x.id != null && !ids(f).has(x.id)).length, 0) +
     list(local?.measurements).filter(e => e && e.d != null && !measured.has(e.d)).length +
+    // Me photos M1: a progress photo taken signed out is asked about like a measurement. Left out,
+    // a sign-in holding only photos would not ask, take the server's copy and drop them.
+    list(local?.bodyPhotos).filter(p => p && typeof p === 'object' && !ids('bodyPhotos').has(p.id)).length +
     Object.entries(isMap(local?.dayNotes) ? local.dayNotes : {}).filter(([k, v]) => readNote(v) && !readNote(server?.dayNotes?.[k])).length +
     keysNew('week') + keysNew('dayPlan') + keysNew('exNotes')
   return {

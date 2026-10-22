@@ -14,8 +14,9 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
-import { fmtDate, todayISO } from '../lib/format.js'
+import { fmtDate } from '../lib/format.js'
 import { workoutMediaOf, WORKOUT_MEDIA_MAX } from '../lib/media-refs.js'
+import { todaysWorkout, progressPhotosOf, groupByDate, daysBetween } from '../lib/me/photos.js'
 import { addWorkoutMedia } from '../lib/workout-media.js'
 import { syncMedia } from '../lib/media-sync.js'
 import { useMediaPicker } from '../components/CustomMediaField.jsx'
@@ -28,48 +29,8 @@ import { ActionButton, ActionRow, TabSection } from '../components/tab-kit.jsx'
 
 const toast = m => useUI.getState().toast(m)
 
-/** Today's own logged workout, the latest one if there is more than one — where "Add photo"
- *  attaches to, same as opening that workout and using WorkoutMedia.jsx there directly. */
-export function todaysWorkout(S) {
-  const today = (S.workouts || []).filter(w => w.d === todayISO())
-  if (!today.length) return null
-  return today.reduce((a, b) => (b.start || 0) > (a.start || 0) ? b : a)
-}
-
-/**
- * Every still photo (no video — the comparison wants two stills, not two clips) across every
- * logged workout, newest first. Each entry carries the date and the workout it came from, so the
- * grid and the comparator can both say when a photo was taken without re-deriving it.
- */
-export function progressPhotosOf(S) {
-  const out = []
-  for (const w of (S && S.workouts) || []) {
-    for (const m of workoutMediaOf(w)) {
-      if (m.kind === 'video') continue
-      // `key`: the same file can sit on two workouts (one hash), and each is its own photo here.
-      out.push({ key: (w.id || w.start || w.d) + ':' + m.hash, d: w.d, start: w.start || 0, w, m })
-    }
-  }
-  out.sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : b.start - a.start))
-  return out
-}
-
-/** Runs an already-sorted progressPhotosOf() list into { d, items }[] groups of the same date. */
-export function groupByDate(photos) {
-  const out = []
-  for (const p of photos) {
-    const last = out[out.length - 1]
-    if (last && last.d === p.d) last.items.push(p)
-    else out.push({ d: p.d, items: [p] })
-  }
-  return out
-}
-
-/** Whole days between two ISO dates, always ≥ 0 regardless of which comes first. */
-export function daysBetween(a, b) {
-  const ms = new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')
-  return Math.abs(Math.round(ms / 86400000))
-}
+// Moved to lib/me/photos.js (Me photos M1); re-exported until photos-M3 deletes this file.
+export { todaysWorkout, progressPhotosOf, groupByDate, daysBetween }
 
 function openPhotoView(p) {
   useUI.getState().openSheet(close => (
