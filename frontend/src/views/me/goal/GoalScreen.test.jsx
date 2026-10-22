@@ -211,7 +211,7 @@ describe('states', () => {
     useStore.setState({ S: baseState({ targetW: null }) })
     await mount()
     expect(row('Target weight').value).toBe('Add')
-    expect(host.querySelector('.g-sring').getAttribute('aria-label')).toBe('Target weight — Set a target weight')
+    expect(host.querySelector('.g-sring').getAttribute('aria-label')).toBe('Target weight – Set a target weight')
     expect(host.querySelector('.g-spage-sub').textContent).toBe('Lose weight · 2,100 kcal a day')
   })
 

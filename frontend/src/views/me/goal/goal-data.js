@@ -114,7 +114,7 @@ export function goalViewOf(g, fmt) {
   const add = t('Add')
   return {
     unit,
-    ring: { value, max: 1, top: t('Target weight'), big: target != null ? weightText(target) : '—', unit: target != null ? unit + (line ? ' · ' + line : '') : line },
+    ring: { value, max: 1, top: t('Target weight'), big: target != null ? weightText(target) : '–', unit: target != null ? unit + (line ? ' · ' + line : '') : line },
     summary,
     started: g.startWeight ? t('Started at {0} on {1}', weightText(g.startWeight.w) + ' ' + unit, fmtDate(g.startWeight.d, true)) : null,
     reached,

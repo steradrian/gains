@@ -61,7 +61,7 @@ describe('goalViewOf', () => {
 
   it('no target: an empty ring that asks for one, and Add on the row', () => {
     const v = goalViewOf(man({}, { target: null, targetKg: null }), fmt)
-    expect(v.ring).toMatchObject({ big: '—', unit: 'Set a target weight', value: 0 })
+    expect(v.ring).toMatchObject({ big: '–', unit: 'Set a target weight', value: 0 })
     expect(v.target).toEqual({ title: 'Target weight', value: 'Add', sub: null })
     expect(v.summary).toBe('Lose weight · 2,100 kcal a day')
   })
