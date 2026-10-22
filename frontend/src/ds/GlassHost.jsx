@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useColorMode } from '../lib/color-mode.js'
 import { useSearch } from '../lib/search/session.js'
+import { reducedTransparency, onReducedTransparencyChange } from '../lib/reduced-transparency.js'
 import { DEFAULT_INTENSITY } from '../lib/stage-look/index.js'
 import { useDsAccent } from '../lib/use-ds-accent.js'
 import { useStageLook } from '../lib/use-stage-look.js'
@@ -20,7 +21,6 @@ import { createGlassEngine } from './glass/glass-engine.js'
 // own ground and stage inputs. `onStatus` also reports 'webgl' | 'fallback' | 'reduced' to that caller.
 const APP_GROUND = '.g-route[data-shared], #tabbar, #timer'
 const STAGE = '.g-route[data-shared] .g-stage'
-const REDUCED_TRANSPARENCY = '(prefers-reduced-transparency: reduce)'
 
 /**
  * @param {{ groundRef?: { current: Element | null }, look?: string, accent?: string, pushed?: boolean,
@@ -72,10 +72,10 @@ export default function GlassHost({ groundRef, look, accent, pushed = false, int
 
   useEffect(() => {
     const state = stateRef.current
-    const mql = window.matchMedia?.(REDUCED_TRANSPARENCY)
-    const onReduced = () => { state.reduced = !!mql?.matches; sync() }
-    state.reduced = !!mql?.matches
-    mql?.addEventListener?.('change', onReduced)
+    // Liquid glass: the OS query or Appearance › Reduce transparency (html[data-transparency]).
+    const onReduced = () => { state.reduced = reducedTransparency(); sync() }
+    state.reduced = reducedTransparency()
+    const stopReduced = onReducedTransparencyChange(onReduced)
 
     const onVisible = () => { state.hidden = document.hidden; sync() }
     state.hidden = document.hidden
@@ -110,7 +110,7 @@ export default function GlassHost({ groundRef, look, accent, pushed = false, int
       engine?.dispose()
       engineRef.current = null
       if (checking) cancelAnimationFrame(checking)
-      mql?.removeEventListener?.('change', onReduced)
+      stopReduced()
       document.removeEventListener('visibilitychange', onVisible)
       state.engine = 'css'
       document.documentElement.dataset.lg = 'css'

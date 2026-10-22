@@ -42,4 +42,13 @@ describe('GlassHost', () => {
     expect(onStatus).toHaveBeenCalledWith('reduced')
     mq.mockRestore()
   })
+
+  it('reports reduced, and follows the switch live, through html[data-transparency]', async () => {
+    document.documentElement.dataset.transparency = 'reduce'
+    await view.render(<Page />)
+    expect(document.documentElement.dataset.lg).toBe('reduced')
+    delete document.documentElement.dataset.transparency
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(document.documentElement.dataset.lg).toBe('css')
+  })
 })
