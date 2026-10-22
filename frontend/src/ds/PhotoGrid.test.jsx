@@ -14,7 +14,7 @@ describe('PhotoGrid', () => {
         <PhotoTile key="b" date="Sun 4 Oct" label="Sun 4 Oct" onClick={() => {}} />
       </PhotoGrid>,
     )
-    const list = view.host.querySelector('ul.g-pgrid')
+    const list = view.host.querySelector('ul.g-phgrid')
     expect(list.getAttribute('aria-label')).toBe('Photos on this phone')
     expect([...list.querySelectorAll('li .g-ptile-date')].map(d => d.textContent)).toEqual(['Sun 18 Oct', 'Sun 4 Oct'])
   })

@@ -2537,8 +2537,8 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-wir-tags { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
 
 /* === Me photos M2 === */
-.g-pgrid { list-style: none; margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; }
-.g-pgrid > li { min-width: 0; }
+.g-phgrid { list-style: none; margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; }
+.g-phgrid > li { min-width: 0; }
 .g-ptile { appearance: none; border: 0; background: none; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 2px; color: var(--on-stage); font-family: var(--font-sans); text-align: start; cursor: pointer; border-radius: 14px; }
 .g-ptile:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
 .g-ptile-img { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 14px; overflow: hidden; }
