@@ -156,6 +156,26 @@ describe('Appearance: on screen', () => {
     expect(mocks.S.reduceMotion).toBeUndefined()
   })
 
+  const transparency = () => row('Reduce transparency').querySelector('[role="switch"]')
+
+  it('Reduce transparency writes S.reduceTransparency', () => {
+    mount()
+    expect(transparency().getAttribute('aria-checked')).toBe('false')
+    expect(row('Reduce transparency').textContent).toContain('Solid surfaces instead of glass.')
+    act(() => transparency().click())
+    expect(mocks.S.reduceTransparency).toBe(true)
+  })
+
+  it('Reduce transparency is on and locked, with the reason, when the phone already reduces it', () => {
+    mocks.ctx = { systemMotion: false, systemTransparency: true, canHaptic: false }
+    mount()
+    expect(transparency().getAttribute('aria-checked')).toBe('true')
+    expect(transparency().disabled).toBe(true)
+    expect(row('Reduce transparency').textContent).toContain('Follows your phone.')
+    act(() => transparency().click())
+    expect(mocks.S.reduceTransparency).toBeUndefined()
+  })
+
   it('Haptics is only offered where the device has them', () => {
     mount()
     expect(row('Haptics')).toBeUndefined()

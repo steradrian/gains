@@ -435,7 +435,7 @@ describe('Appearance', () => {
   it('keeps reduce motion, and drops nothing else of its own', () => {
     mount('appearance')
     expect(titles()).toEqual(['Accent color', 'Ready-made', 'Theme', 'Background', 'Pictures', 'Body diagram', 'Exercise drawings',
-      'On screen', 'Reduce motion', 'Gym check-in', 'Add card', 'Show connection status'])
+      'On screen', 'Reduce motion', 'Reduce transparency', 'Gym check-in', 'Add card', 'Show connection status'])
     act(() => rowTitled('Reduce motion').querySelector('[role="switch"]').click())
     expect(mocks.S.reduceMotion).toBe(true)
   })

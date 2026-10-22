@@ -10,6 +10,7 @@ import { MOBILE, isAndroid } from '../../lib/mobile.js'
 import { referencedFiles } from '../../lib/media-refs.js'
 import { playOnSilentSupported, vibrateSupported } from '../../lib/sound.js'
 import { systemReducesMotion } from '../../lib/reduced-motion.js'
+import { systemReducesTransparency } from '../../lib/reduced-transparency.js'
 import { hapticsSupported } from '../../lib/use-haptic.js'
 import { foodOn } from '../../lib/nutrition/food-on.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
@@ -55,13 +56,14 @@ export function useSettingsCtx() {
 
   const canVibrate = vibrateSupported()
   const systemMotion = systemReducesMotion()
+  const systemTransparency = systemReducesTransparency()
   return {
     user, mobile: MOBILE, android, demo: DEMO, wakeOK, hasMedia, pwOn, webauthn: webauthnOK(),
     sound: !!S.sound, playOnSilent: playOnSilentSupported(), canVibrate, vibrate: S.vibrate !== false, canHaptic: hapticsSupported(),
     profiles: (S.equipProfiles || []).length > 0, nameLang: EXERCISE_NAME_LANGS.includes(baseLang(lang)),
     pushOK: !MOBILE && pushSupported(), reminderOn: !!S.reminder?.on, nudge: !!S.reminder?.nudge,
     autoBackup: !!S.autoBackup, synced: !!sync, installTip: !MOBILE && !standalone(), androidWeb: IS_ANDROID,
-    baseLang: baseLang(lang), systemMotion,
+    baseLang: baseLang(lang), systemMotion, systemTransparency,
     nutrition, ntSettings, fastingOn: ntSettings?.fastingEnabled === true,
   }
 }
