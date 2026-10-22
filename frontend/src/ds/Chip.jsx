@@ -17,6 +17,7 @@ export default function Chip({ children, tone = 'stage', pressed = false, opens 
       type="button"
       className={cx('g-fchip', 'g-fchip-' + tone, pressed && 'on')}
       aria-pressed={opens ? undefined : pressed}
+      data-glass="flat"
       aria-haspopup={opens ? 'dialog' : undefined}
       onClick={onClick}
     >

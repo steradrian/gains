@@ -138,6 +138,11 @@ describe('StageDayRail', () => {
       expect(view.host.querySelector('.g-rail-btn[aria-label="This week"]').classList.contains('g-rail-quiet')).toBe(false)
     })
 
+    it('the arrows are glass controls', () => {
+      view.render(rail({ week: 2 }))
+      expect([...view.host.querySelectorAll('.g-rail-btn')].every(b => b.classList.contains('g-glass'))).toBe(true)
+    })
+
     it('keeps both arrows, › disabled at the last week or when the caller says the rail stops, ‹ at the first', () => {
       const disabled = () => [...view.host.querySelectorAll('.g-rail-btn')].map(b => b.getAttribute('aria-disabled') === 'true')
       view.render(rail({ week: 2 }))

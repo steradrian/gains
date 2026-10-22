@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { m } from 'motion/react'
 import { dateLocale, t, tnShown } from '../../lib/i18n.js'
+import { setScrolled } from '../../lib/scrolled-edge.js'
 import { LIST_CONTAINER, LIST_ITEM, SURFACE_EXIT, SURFACE_SPRING } from '../../lib/motion.js'
 import { syncDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { GROUP_LIMIT, kindLabel, stageSub } from '../../lib/search/results.js'
@@ -105,7 +106,11 @@ export default function SearchPanel({ data }) {
   const [limit, setLimit] = useState(PAGE)
 
   // Back on the overlay: the scroll where it was left.
-  useLayoutEffect(() => { if (scroller.current) scroller.current.scrollTop = scrollTop }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (!scroller.current) return
+    scroller.current.scrollTop = scrollTop
+    setScrolled(scroller.current, scrollTop > 0)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setLimit(PAGE) }, [group, settled])
 
   const open = useCallback(r => {
@@ -177,6 +182,7 @@ export default function SearchPanel({ data }) {
   const onScroll = e => {
     const el = e.currentTarget
     rememberScroll(el.scrollTop)
+    setScrolled(el, el.scrollTop > 0)
     if (group && el.scrollTop + el.clientHeight > el.scrollHeight - 600 && limit < scopedRows.length) setLimit(l => l + PAGE)
   }
   // Scrolling the results hides the keyboard, and only that.

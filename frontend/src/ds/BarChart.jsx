@@ -16,7 +16,7 @@ export default function BarChart({ values, labels, highlight, target, targets, c
   const top = Math.max(...values, target || 1, ...(targets || []).map(g => g || 0))
   const listed = Array.isArray(barLabels) && barLabels.length > 0
   return (
-    <div className={cx('g-chart', 'g-bars-card', tone === 'stage' && 'g-chart-stage')} dir="ltr"
+    <div className={cx('g-chart', 'g-bars-card', tone === 'stage' && 'g-chart-stage g-glass')} dir="ltr"
       role={listed ? 'group' : 'img'} aria-label={label} style={color ? { '--g-bar': color } : undefined}>
       <div className="g-bars" style={{ height: height + LABEL_ROW }} aria-hidden={listed ? 'true' : undefined}>
         {target > 0 && <span className="g-bars-target" style={{ bottom: LABEL_ROW + (target / top) * height }} />}

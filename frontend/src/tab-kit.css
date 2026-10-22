@@ -44,17 +44,6 @@
 /* A field as the title (the routine editor's name) takes the middle at full width. */
 .hdr.sub-hdr-field{grid-template-columns:auto minmax(0,1fr) auto}
 .hdr.sub-hdr-field .sub-hdr-t{text-align:start}
-/* `sticky`: pinned like the tab-root header, under the connection row. */
-.hdr.sub-hdr.sticky{
-  position:sticky;top:0;z-index:20;
-  margin:calc(-1 * (var(--sat) + var(--conn))) calc(-1 * var(--pad)) var(--space-4);
-  padding:calc(var(--sat) + var(--conn)) var(--pad) 0;
-  background:var(--bar-bg);
-  -webkit-backdrop-filter:saturate(180%) blur(10px);backdrop-filter:saturate(180%) blur(10px);
-}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .hdr.sub-hdr.sticky{background:var(--bg)}
-}
 
 /* ------------------------------------------------------------- date nav -- */
 

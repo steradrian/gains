@@ -36,7 +36,7 @@ export default function Dock({
     </>
   )
   return (
-    <div className={cx('g-dock', 'g-dock-' + state, hold && 'g-dock-hold')} role={label ? 'region' : undefined} aria-label={label}>
+    <div className={cx('g-dock', 'g-dock-' + state, hold && 'g-dock-hold')} data-glass="bar" role={label ? 'region' : undefined} aria-label={label}>
       {progress != null && (
         <div className="g-dock-bar" aria-hidden="true"><i style={{ transform: `scaleX(${Math.max(0, Math.min(1, progress))})` }} /></div>
       )}

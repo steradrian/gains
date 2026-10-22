@@ -19,6 +19,12 @@ describe('Chip', () => {
     expect(chip().classList.contains('g-fchip-stage')).toBe(true)
   })
 
+  it('is a flat glass chip: the fill stays CSS, no lens', () => {
+    view.render(<Chip>Favourites</Chip>)
+    expect(chip().getAttribute('data-glass')).toBe('flat')
+    expect(chip().classList.contains('g-glass')).toBe(false)
+  })
+
   it('tells onClick', () => {
     const onClick = vi.fn()
     view.render(<Chip onClick={onClick}>Favourites</Chip>)

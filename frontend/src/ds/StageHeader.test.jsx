@@ -198,6 +198,18 @@ describe('StageHeader pinned, on a tab root', () => {
     expect(q('.g-shdr .g-stage-art')).toBeNull()
   })
 
+  it('names the discs and the pill as liquid-glass controls, as buttons and as links', () => {
+    view.render(<StageHeader />)
+    expect([avatar(), pill(), bell()].map(el => el.getAttribute('data-glass'))).toEqual(['control', 'control', 'control'])
+    view.render(<StageHeader settingsHref="#/s" searchHref="#/q" bellHref="#/n" />)
+    expect([avatar(), pill(), bell()].map(el => el.getAttribute('data-glass'))).toEqual(['control', 'control', 'control'])
+  })
+
+  it('names the search field as a control too', () => {
+    view.render(<StageHeader onQuery={() => {}} />)
+    expect(pill().getAttribute('data-glass')).toBe('control')
+  })
+
   it('is not pinned unless asked (the kit page shows several)', () => {
     view.render(<StageHeader />)
     expect(q('.g-shdr').classList.contains('g-shdr-pin')).toBe(false)

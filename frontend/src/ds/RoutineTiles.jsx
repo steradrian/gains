@@ -33,7 +33,7 @@ export default function RoutineTiles({ items = [], label }) {
               <span className="g-rtile-body"><b>{it.title}</b>{it.sub && <span>{it.sub}</span>}</span>
             </Act>
             {it.play && (
-              <Act onClick={it.play.onClick} ariaLabel={it.play.label} className="g-rtile-play">
+              <Act onClick={it.play.onClick} ariaLabel={it.play.label} className="g-rtile-play g-glass">
                 <Icon name="play" className="g-icon" />
               </Act>
             )}

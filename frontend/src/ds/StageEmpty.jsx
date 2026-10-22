@@ -28,7 +28,7 @@ export default function StageEmpty({ icon = 'info', illustration, title, body, a
       {buttons.length > 0 && (
         <div className="g-sempty-acts">
           {buttons.map(a => (
-            <Act key={a.label} href={a.href} onClick={a.haptic ? e => { buzz('light'); a.onClick?.(e) } : a.onClick} className={cx('g-sempty-btn', a.solid && 'solid', a.haptic && !a.href && 'g-haptic')}>
+            <Act key={a.label} href={a.href} onClick={a.haptic ? e => { buzz('light'); a.onClick?.(e) } : a.onClick} className={cx('g-sempty-btn', a.solid && 'solid', !a.solid && tone !== 'light' && 'g-glass', a.haptic && !a.href && 'g-haptic')}>
               {a.icon && <Icon name={a.icon} className="g-icon" />}
               {a.label}
               {a.haptic && !a.href && <HapticSwitch />}

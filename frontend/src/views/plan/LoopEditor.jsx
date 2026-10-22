@@ -19,7 +19,7 @@ export default function LoopEditor({ items, onReorder, onRemove, onAdd, canAdd, 
           const rowProps = { 'data-reorder-row': '', 'data-id': it.id, style: reorder.rowStyle(i) }
           const row = (
             <div key={it.id} className="g-glist-row plan-erow" {...(swipe ? {} : rowProps)}>
-              <button type="button" className="plan-erow-minus" aria-label={t('Remove {0}', it.name)} onClick={() => onRemove(it.id)}>
+              <button type="button" className="plan-erow-minus g-glass" aria-label={t('Remove {0}', it.name)} onClick={() => onRemove(it.id)}>
                 <Icon name="minus" className="g-icon" />
               </button>
               <span className="g-glist-ic" aria-hidden="true">
@@ -28,13 +28,13 @@ export default function LoopEditor({ items, onReorder, onRemove, onAdd, canAdd, 
               <span className="g-glist-body"><b>{it.name}</b>{it.sub && <span>{it.sub}</span>}</span>
               {items.length > 1 && (
                 <span className="plan-erow-moves">
-                  <button type="button" className="plan-erow-btn" aria-label={t('Move {0} up', it.name)} disabled={i === 0} onClick={() => onReorder(i, i - 1)}>
+                  <button type="button" className="plan-erow-btn g-glass" aria-label={t('Move {0} up', it.name)} disabled={i === 0} onClick={() => onReorder(i, i - 1)}>
                     <Icon name="chevronUp" className="g-icon" />
                   </button>
-                  <button type="button" className="plan-erow-btn" aria-label={t('Move {0} down', it.name)} disabled={i === last} onClick={() => onReorder(i, i + 1)}>
+                  <button type="button" className="plan-erow-btn g-glass" aria-label={t('Move {0} down', it.name)} disabled={i === last} onClick={() => onReorder(i, i + 1)}>
                     <Icon name="chevronDown" className="g-icon" />
                   </button>
-                  <button type="button" className="plan-erow-btn plan-erow-handle" aria-label={t('Move {0}', it.name)} title={t('Drag to reorder')} {...reorder.handle(i)}>
+                  <button type="button" className="plan-erow-btn plan-erow-handle g-glass" aria-label={t('Move {0}', it.name)} title={t('Drag to reorder')} {...reorder.handle(i)}>
                     <Icon name="chevronsUpDown" className="g-icon" />
                   </button>
                 </span>

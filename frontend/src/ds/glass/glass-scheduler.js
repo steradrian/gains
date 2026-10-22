@@ -1,0 +1,227 @@
+import { cancelFrame, currentPhase, phaseFrame, requestFrame, REST_PHASE, subscribePhase } from '../../lib/stage-look/clock.js'
+import { SELECTOR } from './glass-registry.js'
+
+// Liquid glass scheduler: nothing runs at rest. A wake trigger starts a loop on the shared frame clock
+// (clock.js: the look's rAF and the glass's are one); `frame(dt)` says whether anything changed, and the
+// loop stops after two frames that changed nothing (and once any transition or animation that was
+// announced has had time to finish).
+
+const IDLE_FRAMES = 2
+const MAX_DT = 0.05
+export const LOOK_HZ = 15
+export const LOOK_MS = 1000 / LOOK_HZ
+// The gate's clock is the frame that took the last phase, about one frame after its publish, so it allows a
+// frame and a little more early. StageLook publishes at most every 33 ms, so this still takes every other
+// publish: 15 Hz, never more.
+const LOOK_SLACK_MS = 20
+const TRANSITION_HOLD_MS = 500
+
+/**
+ * The look as the glass sees it (plan 2.7: look-driven glass at most 15 Hz). StageLook publishes its phase
+ * about 30 times a second; the glass takes a new phase at most every LOOK_MS and holds it in between, so
+ * the chrome strip and the sprites redraw for the look at 15 Hz and the loop can go idle between ticks.
+ * `due()`: a new phase would be taken now. `phase(animating)`: the phase to draw this frame (the resting
+ * phase when the look stands still).
+ */
+export function createLookGate({ now = () => performance.now() } = {}) {
+  let at = -Infinity
+  let phase = REST_PHASE
+  const due = () => now() - at >= LOOK_MS - LOOK_SLACK_MS
+  return {
+    due,
+    phase(animating) {
+      if (!animating) { at = -Infinity; phase = REST_PHASE } else if (due()) { at = now(); phase = currentPhase() }
+      return phase
+    },
+  }
+}
+
+/** A gel-like spring per pressed shape: a little overshoot on the swell, none to speak of on release. */
+export function createSprings({ reduced = () => false } = {}) {
+  /** @type {Map<Element, { v: number, vel: number, target: number, touch: number[] | null, written: string }>} */
+  const map = new Map()
+  const of = el => {
+    let p = map.get(el)
+    if (!p) { p = { v: 0, vel: 0, target: 0, touch: null, written: '' }; map.set(el, p) }
+    return p
+  }
+  return {
+    press(el, touch) { Object.assign(of(el), { target: 1, touch }) },
+    /** Moves the highlight of every held shape; true when one is held. */
+    move(touch) {
+      let held = false
+      for (const p of map.values()) if (p.target === 1) { p.touch = touch; held = true }
+      return held
+    },
+    release() { for (const p of map.values()) p.target = 0 },
+    /** True while a spring is held or still moving. */
+    busy() {
+      for (const p of map.values()) if (p.v !== p.target || p.vel !== 0) return true
+      return false
+    },
+    /** { v, touch } for a shape; v is 0 for one that was never pressed. */
+    get(el) {
+      const p = map.get(el)
+      return p ? { v: p.v, touch: p.v > 0.001 ? p.touch : null } : { v: 0, touch: null }
+    },
+    /** Steps every spring by dt seconds; true while any is still moving. Reduce motion snaps. */
+    step(dt) {
+      const snap = reduced()
+      let moving = false
+      for (const [el, p] of map) {
+        if (snap) { p.v = p.target; p.vel = 0 } else {
+          const acc = 520 * (p.target - p.v) - 24 * p.vel
+          p.vel += acc * dt
+          p.v += p.vel * dt
+          if (Math.abs(p.target - p.v) < 0.001 && Math.abs(p.vel) < 0.01) { p.v = p.target; p.vel = 0 }
+        }
+        if (p.v !== p.target || p.vel !== 0) moving = true
+        else if (p.target === 0 && !el.isConnected) map.delete(el)
+      }
+      return moving
+    },
+    /** Writes --lg-press. Call after every read of the frame: a write forces a style recalc. */
+    flush() {
+      for (const [el, p] of map) {
+        const s = p.v.toFixed(3)
+        if (p.written !== s) { el.style.setProperty('--lg-press', s); p.written = s }
+      }
+    },
+    clear() {
+      for (const el of map.keys()) el.style.removeProperty('--lg-press')
+      map.clear()
+    },
+  }
+}
+
+/**
+ * Whether a glass frame runs on this rAF (pure). While only a scroll drives the glass (no press spring
+ * moving, no announced transition, no other wake since the last frame), glass frames run at most every
+ * SCROLL_FRAME_MS: every other frame at 60 Hz, and on the frames the look (30 fps) does not draw in
+ * (`lookThisFrame`), unless that would wait past SCROLL_MAX_MS. So a scroll's frames alternate between the
+ * look's GPU work and the glass's instead of stacking both in one. Sprites move with their elements
+ * natively, so only the refraction's content and the bent panes in the chrome strip update at 30 Hz.
+ */
+export function runsThisFrame({ t, lastRun, lastScroll, holdUntil, other, springsBusy, lookThisFrame = false }) {
+  const scrollOnly = !other && !springsBusy && t >= holdUntil && t - lastScroll < SCROLL_QUIET_MS
+  if (!scrollOnly) return true
+  const since = t - lastRun
+  return since >= SCROLL_MAX_MS || (since >= SCROLL_FRAME_MS && !lookThisFrame)
+}
+export const SCROLL_FRAME_MS = 1000 / 30 - 4 // a 60 Hz frame landing a little early still counts
+export const SCROLL_MAX_MS = 1000 / 20 - 4 // never wait past the third frame for the look to step aside
+const SCROLL_QUIET_MS = 100 // no scroll event for this long: the scroll is over, frames run at full rate
+
+/**
+ * @param {{ frame: (dt: number, rafMs: number) => boolean, root?: Element, pressable?: (el: Element) => boolean,
+ *   reduced?: () => boolean, raf?: (cb: (ts: number) => void) => number, caf?: (id: number) => void,
+ *   now?: () => number }} opts
+ * `frame` draws and returns whether anything changed; `dt` is seconds since the last glass frame and
+ * `rafMs` the interval of the display's own frames (what the watchdog judges). `root` is where shapes
+ * live: the pointer handlers press the glass under a finger there. `pressable` filters which shapes spring.
+ * `raf`/`caf` default to the shared frame clock. `look` (returned) is the look gate the frame draws with.
+ */
+export function createScheduler({
+  frame, root = null, pressable = () => true, reduced = () => false,
+  raf = requestFrame, caf = cancelFrame, now = () => performance.now(),
+}) {
+  const springs = createSprings({ reduced })
+  const look = createLookGate({ now })
+  let id = 0
+  let idle = 0
+  let last = 0 // ts of the last glass frame
+  let lastTs = 0 // ts of the last rAF, run or skipped
+  let lastRun = -Infinity
+  let lastScroll = -Infinity
+  let other = false // a wake other than a scroll since the last glass frame
+  let holdUntil = 0
+  let paused = false
+  let disposed = false
+
+  const tick = ts => {
+    id = 0
+    const rafMs = ts - lastTs
+    lastTs = ts
+    const t = now()
+    if (!runsThisFrame({ t, lastRun, lastScroll, holdUntil, other, springsBusy: springs.busy(), lookThisFrame: phaseFrame() === ts })) {
+      if (!paused && !disposed) id = raf(tick) // skipped, not idle: the scroll still wants a frame
+      return
+    }
+    other = false
+    lastRun = t
+    const dt = Math.min(MAX_DT, Math.max(0.001, (ts - last) / 1000))
+    last = ts
+    idle = frame(dt, rafMs) ? 0 : idle + 1
+    if (!paused && !disposed && (idle < IDLE_FRAMES || now() < holdUntil)) id = raf(tick)
+  }
+
+  /** Starts the loop if it is idle. `holdMs`: keep it going at least that long (a transition began). */
+  function wake(reason, holdMs = 0) {
+    if (disposed) return
+    if (reason === 'scroll') lastScroll = now()
+    else if (reason !== 'look') other = true // a look tick mid-scroll waits for the next glass frame
+    if (holdMs > 0) holdUntil = Math.max(holdUntil, now() + holdMs)
+    idle = 0
+    if (paused || id) return
+    last = now()
+    lastTs = last
+    id = raf(tick)
+  }
+
+  /** M2's stop conditions (a sheet is open, the search overlay, a hidden document). */
+  function setPaused(flag) {
+    paused = flag
+    if (flag) { if (id) caf(id); id = 0 } else wake('resume')
+  }
+
+  const cleanups = []
+  const on = (target, type, fn, opts) => {
+    if (!target) return
+    target.addEventListener(type, fn, opts)
+    cleanups.push(() => target.removeEventListener(type, fn, opts))
+  }
+  const doc = typeof document === 'undefined' ? null : document
+  const win = typeof window === 'undefined' ? null : window
+  const hold = e => wake(e.type, TRANSITION_HOLD_MS)
+
+  on(doc, 'scroll', () => wake('scroll'), { capture: true, passive: true })
+  on(win, 'resize', () => wake('resize'))
+  on(win?.visualViewport, 'resize', () => wake('viewport'))
+  on(win?.visualViewport, 'scroll', () => wake('viewport'))
+  for (const type of ['transitionrun', 'transitionstart', 'transitionend', 'transitioncancel', 'animationstart', 'animationend', 'animationcancel']) {
+    on(doc, type, hold, true)
+  }
+  on(doc, 'visibilitychange', () => { if (!doc.hidden) wake('visible') })
+
+  const shapeOf = e => {
+    const el = e.target?.closest?.(SELECTOR)
+    return el && root?.contains(el) && pressable(el) ? el : null
+  }
+  on(doc, 'pointerdown', e => {
+    const el = shapeOf(e)
+    if (!el) return
+    const touch = [e.clientX, e.clientY]
+    springs.press(el, touch)
+    // Pressing the bar lifts its lens.
+    const lens = el.dataset.glass === 'bar' ? el.querySelector('[data-glass="lens"]') : null
+    if (lens) springs.press(lens, touch)
+    wake('pointer')
+  }, true)
+  on(doc, 'pointermove', e => { if (springs.move([e.clientX, e.clientY])) wake('pointer') }, true)
+  const up = () => { springs.release(); wake('pointer') }
+  on(win, 'pointerup', up, true)
+  on(win, 'pointercancel', up, true)
+
+  // The look publishes about 30 times a second; only a tick the gate would take wakes the loop (no timer).
+  cleanups.push(subscribePhase(() => { if (look.due()) wake('look') }))
+
+  function dispose() {
+    disposed = true
+    if (id) caf(id)
+    id = 0
+    cleanups.forEach(fn => fn())
+    springs.clear()
+  }
+
+  return { wake, setPaused, springs, look, dispose }
+}

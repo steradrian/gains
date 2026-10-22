@@ -36,7 +36,7 @@ export default function RecipeStepList({ identity, steps, focusId, onEdit, onRem
   }
 
   return (
-    <div ref={reorder.listRef} onClickCapture={reorder.onClickCapture} className={cx('g-re-list', 'g-rec-steps', drag && 'is-reordering')}>
+    <div ref={reorder.listRef} onClickCapture={reorder.onClickCapture} className={cx('g-re-list', 'g-glass', 'g-rec-steps', drag && 'is-reordering')}>
       <p className="g-sr" aria-live="polite">{said}</p>
       {steps.map((step, i) => (
         <div key={step.id} data-routine-row data-ex-index={i} className={cx('g-re-slot', 'g-rec-step', dragging(i) && 'is-dragging')}

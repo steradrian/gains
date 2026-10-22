@@ -39,7 +39,7 @@ export default function Heatmap({ values, cols = 7, label, tone = 'light', level
   })
 
   return (
-    <div className={cx('g-heat', 'g-heat-n' + levels, byWeek && 'g-heat-weeks', tone === 'stage' && 'g-heat-stage')}
+    <div className={cx('g-heat', 'g-heat-n' + levels, byWeek && 'g-heat-weeks', tone === 'stage' && 'g-heat-stage g-glass')}
       role={interactive ? 'group' : 'img'} aria-label={label}>
       <div className="g-heat-scroll" ref={scroller}>
         {byWeek && months?.length > 0 && (

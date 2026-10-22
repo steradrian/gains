@@ -10,7 +10,7 @@ import { cx } from '../lib/ui-kit.js'
 export default function PhotoTile({ image, date, caption, missing = false, missingLabel, label, onClick }) {
   return (
     <button type="button" className={cx('g-ptile', missing && 'g-ptile-missing')} aria-label={label} data-swipe-ignore onClick={onClick}>
-      <span className="g-ptile-img g-glass">
+      <span className="g-ptile-img g-glass" data-glass="flat">
         {missing
           ? <span className="g-ptile-gone"><Icon name="image" className="g-icon" />{missingLabel}</span>
           : image}

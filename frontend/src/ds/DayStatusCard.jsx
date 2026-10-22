@@ -36,7 +36,7 @@ export default function DayStatusCard({ icon = 'info', tone = 'plain', title, bo
       {actions.length > 0 && (
         <div className="g-dstat-acts">
           {actions.map(a => (
-            <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-dstat-btn', a.solid && 'solid')}>{a.label}</Act>
+            <Act key={a.label} href={a.href} onClick={a.onClick} className={cx('g-dstat-btn', a.solid ? 'solid' : 'g-glass')}>{a.label}</Act>
           ))}
         </div>
       )}

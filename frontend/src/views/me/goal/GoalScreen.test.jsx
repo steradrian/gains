@@ -103,6 +103,7 @@ describe('My goal (Me3Goal)', () => {
   it('reads the board: the title and summary, the ring, the started line and the rows', async () => {
     await mount()
     expect(host.querySelector('.g-spage-title').textContent).toBe('My goal')
+    expect(host.querySelectorAll('.g-glist.g-glass').length).toBeGreaterThan(0)
     expect(host.querySelector('.g-spage-sub').textContent).toBe('Lose weight · 78 kg · 2,100 kcal a day')
     expect(host.querySelector('.g-sring').getAttribute('aria-label')).toBe('Target weight 78.0 kg · 3.4 kg to go')
     expect(host.querySelector('.mg-started').textContent).toBe(`Started at 85.0 kg on ${fmtDate('2026-08-02', true)}`)

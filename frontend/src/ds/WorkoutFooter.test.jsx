@@ -38,6 +38,11 @@ describe('WorkoutFooter', () => {
       expect(row()).toBeNull()
     })
 
+    it('the bar is on the glass material', () => {
+      view.render(foot())
+      expect(nav().getAttribute('data-glass')).toBe('bar')
+    })
+
     it('the centre opens the map, and the neighbours are named by the caller', () => {
       const onMap = vi.fn()
       const onPrev = vi.fn()

@@ -185,11 +185,6 @@ describe('SubHeader (the sub-page header)', () => {
     expect($('h1')).toBeNull()
   })
 
-  it('pins itself with `sticky`', () => {
-    render(<SubHeader title="Strength" sticky />)
-    expect($('.hdr').classList.contains('sticky')).toBe(true)
-  })
-
   // Measured at 320px in Chrome: «Упражнения» (131px at 22px bold) beside «По мышцам» has 118px.
   it('steps the title down to the largest size that keeps every word whole in two lines', () => {
     const measure = (s, size) => s.length * size * 0.6   // 13.2px a letter at 22px

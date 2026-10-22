@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { themeOf } from '../lib/themes.js'
 import { deriveTheme } from '../lib/stage-look/color.js'
+import { cancelFrame, publishPhase, requestFrame, REST_PHASE } from '../lib/stage-look/clock.js'
 import { createRenderer } from '../lib/stage-look/renderer.js'
 
 // The look drawn behind the app's pages (AppStage). Classic is the CSS stage StageArt paints, so it
 // renders nothing; the other looks are one WebGL canvas. A still frame at the resting phase unless
 // `motion` is on and the page is not `pushed`; then a slow loop, about 30 fps, stopped while the
-// document is hidden. No WebGL leaves no canvas and Classic shows; a lost context hides it until
+// document is hidden. The loop runs on the shared frame clock (clock.js), so the glass engine rides
+// the same rAF. No WebGL leaves no canvas and Classic shows; a lost context hides it until
 // the browser restores the context, then the renderer is rebuilt and the look comes back.
-const REST_PHASE = 0.12
 const LOOP_MS = 40000
 const FRAME_MS = 33
 const MAX_DPR = 2
@@ -76,6 +77,7 @@ function LookCanvas({ look, intensity, pushed, motion, accent }) {
       if (canvas.width !== w) canvas.width = w
       if (canvas.height !== h) canvas.height = h
       renderer.draw({ look, theme, phase, calm: !pushed, dpr })
+      publishPhase(phase)
     }
     draw(REST_PHASE)
     if (!motion || pushed) {
@@ -88,14 +90,14 @@ function LookCanvas({ look, intensity, pushed, motion, accent }) {
     let last = 0
     const start = performance.now()
     const frame = now => {
-      raf = requestAnimationFrame(frame)
+      raf = requestFrame(frame)
       if (now - last < FRAME_MS) return
       last = now
       draw((REST_PHASE + (now - start) / LOOP_MS) % 1)
     }
-    const run = () => { if (!raf) raf = requestAnimationFrame(frame) }
+    const run = () => { if (!raf) raf = requestFrame(frame) }
     const stop = () => {
-      if (raf) cancelAnimationFrame(raf)
+      if (raf) cancelFrame(raf)
       raf = 0
     }
     const onVisibility = () => { if (document.hidden) stop(); else run() }

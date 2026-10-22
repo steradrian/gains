@@ -19,11 +19,13 @@ import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
 import AppStage from './ds/AppStage.jsx'
+import GlassHost from './ds/GlassHost.jsx'
 import LandscapeCover from './ds/LandscapeCover.jsx'
 import { reducedMotion } from './lib/reduced-motion.js'
 import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
+import { installScrolledEdge } from './lib/scrolled-edge.js'
 import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
 import { editorRouteKey } from './lib/nutrition/editor-routes.js'
@@ -57,6 +59,8 @@ const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
 // The design system's catalogue (#/dev/kit), on the dev server only: a production build replaces
 // import.meta.env.DEV with false and drops it, chunk and all.
 const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
+// The liquid-glass tuning page (#/dev/glass), the same way.
+const DevGlass = import.meta.env.DEV ? lazy(() => import('./ds/DevGlass.jsx')) : null
 // The screens gallery (#/dev/screens), the same way.
 const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
 import GymPassPage from './views/settings/pages/GymPassPage.jsx'
@@ -197,6 +201,11 @@ function Shell() {
     if (S.reduceMotion === true) document.documentElement.dataset.motion = 'reduce'
     else delete document.documentElement.dataset.motion
   }, [S.reduceMotion])
+  // Liquid glass: Appearance › Reduce transparency. GlassHost watches the attribute.
+  useEffect(() => {
+    if (S.reduceTransparency === true) document.documentElement.dataset.transparency = 'reduce'
+    else delete document.documentElement.dataset.transparency
+  }, [S.reduceTransparency])
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.
@@ -221,6 +230,7 @@ function Shell() {
   const pathRef = useRef(null)
   // iOS leaves the page displaced after the keyboard goes away (see lib/viewport-guard.js).
   useEffect(() => installViewportGuard(), [])
+  useEffect(() => installScrolledEdge(), [])
   // Click-drag a horizontal chip strip to scroll it sideways (lib/hchips.js) — on a desktop
   // browser there's otherwise no way to reach the filters past the edge.
   useEffect(() => installChipDrag(), [])
@@ -374,6 +384,8 @@ function Shell() {
     if (pending && !code) navigate('/g/' + encodeURIComponent(pending), { replace: true })
   }, [authed, shown.pathname, inFlow, needsMobileOnboarding, onAddDevice, navigate])
   if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
+  // Liquid glass: the tuning page draws its own stage and GlassHost, so it returns before the app shell's.
+  if (import.meta.env.DEV && shown.pathname === '/dev/glass') return <Suspense fallback={null}><DevGlass /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
   )
@@ -393,6 +405,9 @@ function Shell() {
           The flows that bring their own ground (onboarding, sign-in, Add this device, the first
           launch) paint it themselves. */}
       {sharedStage && <AppStage pushed={!isTabRoot(shown.pathname)} />}
+      {/* Liquid glass. Keep it right after the stage: both are fixed at z-index -1, so DOM order decides
+          that the glass under-canvas paints over the stage and under every page layer after it. */}
+      {sharedStage && <GlassHost pushed={!isTabRoot(shown.pathname)} />}
       {trans.layers.map(layer => (
         <div key={layer.key} className="g-route" data-shared={sharedStage || undefined} data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
           style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}

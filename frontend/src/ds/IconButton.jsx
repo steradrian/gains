@@ -8,7 +8,7 @@ export default function IconButton({ icon, label, tone, className, ...rest }) {
   oneOf('IconButton', 'tone', tone, ['tonal', 'accent', 'glass'])
   return (
     <button type="button" {...rest} aria-label={label} className={cx('g-iconbtn', tone && 'g-iconbtn-' + tone, className)}>
-      <span className={tone === 'glass' ? 'g-glass' : undefined}><Icon name={icon} className="g-icon" /></span>
+      <span className={tone === 'glass' ? 'g-glass' : undefined} data-glass={tone === 'glass' ? 'control' : undefined}><Icon name={icon} className="g-icon" /></span>
     </button>
   )
 }

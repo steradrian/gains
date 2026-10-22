@@ -57,6 +57,15 @@ describe('mergeStates', () => {
     gymCards: [{ id: 'g2', value: '2' }], _rev: 8
   })
 
+  it('keeps reduceTransparency as a boolean and drops anything else', () => {
+    expect(mergeStates(base({ _ts: 2, reduceTransparency: true }), base({ _ts: 1 })).reduceTransparency).toBe(true)
+    expect(mergeStates(base({ _ts: 2, reduceTransparency: false }), base({ _ts: 1 })).reduceTransparency).toBe(false)
+    for (const junk of ['yes', 1, null, {}]) {
+      const m = mergeStates(base({ _ts: 2, reduceTransparency: junk }), base({ _ts: 1 }))
+      expect('reduceTransparency' in m, String(junk)).toBe(false)
+    }
+  })
+
   it('no entity of either side disappears, ids stay unique', () => {
     const m = mergeStates(A(), B())
     expect(ids(m.workouts).sort()).toEqual(['w1', 'wA', 'wB'])

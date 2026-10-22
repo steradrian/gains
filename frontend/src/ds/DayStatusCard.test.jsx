@@ -26,6 +26,7 @@ describe('DayStatusCard', () => {
     const buttons = [...card().querySelectorAll('.g-dstat-btn')]
     expect(buttons.map(b => b.textContent)).toEqual(['Add past workout', 'Mark skipped'])
     expect(buttons[0].classList.contains('solid')).toBe(true)
+    expect(buttons.map(b => b.classList.contains('g-glass'))).toEqual([false, true])
     click(buttons[1])
     expect(skip).toHaveBeenCalledTimes(1)
     expect(add).not.toHaveBeenCalled()

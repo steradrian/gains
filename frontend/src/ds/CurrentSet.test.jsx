@@ -75,7 +75,7 @@ describe('CurrentSet', () => {
     expect(tiles).toHaveLength(3)
     for (const tile of tiles) {
       const row = tile.querySelector('.g-sst-row')
-      expect([...row.children].map(c => c.className)).toEqual(['g-sst-b', 'g-sst-v', 'g-sst-b'])
+      expect([...row.children].map(c => c.className)).toEqual(['g-sst-b g-glass', 'g-sst-v', 'g-sst-b g-glass'])
       expect(row.querySelector('.g-sst-v').getAttribute('aria-label')).toBeTruthy()
     }
     const css = readFileSync(join(process.cwd(), 'src/ds/ds.css'), 'utf8')

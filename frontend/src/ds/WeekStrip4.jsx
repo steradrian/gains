@@ -26,9 +26,9 @@ export default function WeekStrip4({ weeks, active }) {
           </>
         )
         const cls = cx('g-w4-cell g-glass', on && 'on')
-        if (w.href) return <a key={w.key} href={w.href} onClick={w.onClick} className={cls} aria-label={spoken} aria-current={on ? 'page' : undefined}>{kids}</a>
-        if (w.onClick) return <button key={w.key} type="button" onClick={w.onClick} className={cls} aria-label={spoken} aria-current={on ? 'page' : undefined}>{kids}</button>
-        return <span key={w.key} className={cls} role="img" aria-label={spoken}>{kids}</span>
+        if (w.href) return <a key={w.key} href={w.href} onClick={w.onClick} className={cls} data-glass="flat" aria-label={spoken} aria-current={on ? 'page' : undefined}>{kids}</a>
+        if (w.onClick) return <button key={w.key} type="button" onClick={w.onClick} className={cls} data-glass="flat" aria-label={spoken} aria-current={on ? 'page' : undefined}>{kids}</button>
+        return <span key={w.key} className={cls} data-glass="flat" role="img" aria-label={spoken}>{kids}</span>
       })}
     </div>
   )

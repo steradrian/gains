@@ -167,6 +167,52 @@ describe('the tokens', () => {
     }
   })
 
+  // Liquid glass: the light stages' lift, rim and shade tokens equal the data in themes.js.
+  const rgbaOf = (id, name) => {
+    const m = light.match(new RegExp(`--${id}-ink-${name}: rgba\\((\\d+),(\\d+),(\\d+),([0-9.]+)\\);`))
+    if (!m) return null
+    const hex = '#' + [m[1], m[2], m[3]].map(n => Number(n).toString(16).padStart(2, '0')).join('').toUpperCase()
+    return [hex, Number(m[4])]
+  }
+
+  it.each(THEMES.filter(p => p.ink).map(p => [p.id, p]))('%s: glass lift, rim and shade tokens equal themes.js and reach the material', (id, p) => {
+    for (const [key, name] of [['glassLift', 'glass-lift'], ['glassRim', 'glass-rim'], ['glassShade', 'glass-shade']]) {
+      expect(rgbaOf(id, name), `--${id}-ink-${name}`).toEqual(p.ink[key])
+    }
+    const rule = dsCss.match(new RegExp(`\\.g-root\\.g-root\\[data-accent="${id}"\\] \\{[^}]*\\}`))?.[0] ?? ''
+    for (const name of ['lift', 'rim', 'shade']) expect(rule).toContain(`--glass-${name}: var(--${id}-ink-glass-${name});`)
+    expect(rule).toContain('--glass-label-shadow: none;')
+  })
+
+  const blend = (top, alpha, under) => {
+    const ch = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)
+    return '#' + [0, 1, 2].map(i => Math.round(ch(top, i) * alpha + ch(under, i) * (1 - alpha)).toString(16).padStart(2, '0')).join('')
+  }
+
+  it.each(THEMES.filter(p => p.ink).map(p => [p.id, p]))('%s: dark ink on white glass (fill, then lift) over the stage reads at 4.5:1', (id, p) => {
+    for (const stop of [p.stage.stage, p.stage.end]) {
+      const onGlass = blend(p.ink.glassLift[0], p.ink.glassLift[1], blend(p.ink.glass[0], p.ink.glass[1], stop))
+      expect(contrast(p.ink.on, onGlass), `${id}: ink ${p.ink.on} on ${onGlass}`).toBeGreaterThanOrEqual(4.5)
+      // on2 is an alpha of ink: the secondary label on the same glass
+      const on2 = blend(p.ink.on, p.ink.on2, onGlass)
+      expect(contrast(on2, onGlass), `${id}: on-2 ${on2} on ${onGlass}`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  // In GL mode the tab bar's labels and the dock's text sit on the clear bar, so on the bare stage (the
+  // frost under it only softens). They read --on-stage, which a light stage sets to ink. --on-stage-2 is not
+  // enough there (4.2:1 on blossom and watermelon), so nothing on the bare stage uses it.
+  it.each(THEMES.filter(p => p.ink).map(p => [p.id, p]))('%s: labels drawn straight on the stage in GL mode read at 4.5:1', (id, p) => {
+    for (const stop of [p.stage.stage, p.stage.end]) {
+      expect(contrast(p.ink.on, stop), `${id}: on-stage on ${stop}`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('the GL tab labels and the dock text (clock, count and meta) use the full stage ink, not the accent text or on-stage-2', () => {
+    expect(dsCss).toMatch(/html\[data-lg="gl"\] \.g-gtabbar \.g-tab \{ color: var\(--on-stage\);/)
+    expect(dsCss).toMatch(/html\[data-lg="gl"\] \.g-dock\[data-lg-on\] :is\(\.g-dock-clock, \.g-dock-count, \.g-dock-meta\) \{ color: var\(--on-stage\); \}/)
+  })
+
   it('the stage roles default to today\'s white, and only the light stages override them', () => {
     for (const role of ['stage-mark', 'stage-cta', 'stage-decor']) expect(light).toContain(`--${role}: #FFFFFF;`)
     expect(light).toContain('--stage-decor-k: 1;')

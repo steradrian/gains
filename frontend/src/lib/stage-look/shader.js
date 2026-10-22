@@ -13,9 +13,9 @@ export const PLAIN = { glow1: [370, 60, 210.43, 0.5], glow2: [30, 640, 203.65, 0
 export const VERT = `attribute vec2 aPos; varying vec2 vUv;
 void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0.0,1.0); }`
 
-export const FRAG = `precision highp float;
-varying vec2 vUv;
-uniform vec2 uRes;        // device px
+// Everything the look needs except the full-screen vertex plumbing: uniforms, noise, the looks and lookColor().
+// The glass shader prepends this too, so both draw the same stage from the same code.
+export const LOOK_GLSL = `uniform vec2 uRes;       // device px
 uniform float uDpr;       // device px per CSS px
 uniform float uPhase;     // 0..1, loops seamlessly
 uniform float uComp;      // look index, see LOOK_INDEX
@@ -172,8 +172,7 @@ float flowerD(vec2 q, float R, float n, out float vein){
   return min(abs(petal), core);
 }
 float leafD(vec2 q, float L){ return abs(sdVesica(q, L*0.62, L*0.42)); }
-float florals(vec2 p, float a){
-  vec2 css = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
+float florals(vec2 p, float a, vec2 css){
   css += 7.0*vec2(sin(a), cos(a)*0.6);                 // the whole print drifts a few px around its rest
   float cell = 78.0;
   float w = 0.62, aa = 0.65/uDpr;                      // line half-width in CSS px
@@ -228,12 +227,11 @@ vec3 ramp(float x){
 float hash(vec2 p){ p = fract(p*vec2(443.897, 441.423)); p += dot(p, p.yx + 19.19); return fract((p.x + p.y)*p.x); }
 vec3 toSrgb(vec3 c){ return mix(12.92*c, 1.055*pow(c, vec3(1.0/2.4)) - 0.055, step(0.0031308, c)); }
 
-void main(){
+vec3 lookColor(vec2 css, vec2 size, vec2 grainPx){
   float a = TAU * uPhase;
-  vec2 uv = vec2(vUv.x, 1.0 - vUv.y);                     // y from the top, like CSS
-  vec2 size = uRes / uDpr;                                  // CSS px
-  vec2 css = uv * size;
-  vec2 p = (vUv - 0.5) * vec2(uRes.x/uRes.y, 1.0) * 2.0;
+  vec2 uv = css / size;                                     // y from the top, like CSS
+  vec2 vu = vec2(uv.x, 1.0 - uv.y);
+  vec2 p = (vu - 0.5) * vec2(uRes.x/uRes.y, 1.0) * 2.0;
 
   // The design's stage: linear-gradient(170deg, stage 0px, stage-end 900px), mixed in sRGB.
   float gl = size.x*0.173648 + size.y*0.984808;
@@ -252,8 +250,7 @@ void main(){
     float clip = step(${PLAIN.rings[0] - 320}.0, css.x) * step(css.y, ${PLAIN.rings[1] + 320}.0);   // the rings' SVG box clips them
     col = mix(col, uDecorC, clip*0.07*uDecor*k*(1.0 - smoothstep(28.0 - aa, 28.0 + aa, abs(dr - 300.0))));
     col = mix(col, uDecorC, clip*0.12*uDecor*k*(1.0 - smoothstep(0.75 - aa, 0.75 + aa, abs(dr - 256.0))));
-    gl_FragColor = vec4(col, 1.0);
-    return;
+    return col;
   }
 
   float lum;
@@ -261,7 +258,7 @@ void main(){
   else if (uComp < 1.5) lum = bloom(p, a);
   else if (uComp < 4.5) lum = linen(p, a);
   else if (uComp < 7.5) lum = lines(p, a);
-  else lum = florals(p, a);
+  else lum = florals(p, a, css);
   lum = clamp(lum, 0.0, 1.0);
 
   // How much of the look shows here: quiet under the header and below the hero, calm behind the hero.
@@ -277,6 +274,16 @@ void main(){
   vec3 lin1 = ramp(clamp(L0 + dev*I, 0.0, 1.0));
   col = clamp(col + toSrgb(lin1) - toSrgb(ramp(L0)), 0.0, 1.0);
   if (uComp > 3.5 && uComp < 4.5) col += linenThreads(p) * 0.045 * clamp(uIntensity / 0.45, 0.0, 2.0);
-  col += (hash(gl_FragCoord.xy) - 0.5) * uGrain / 255.0;
-  gl_FragColor = vec4(col, 1.0);
+  col += (hash(grainPx) - 0.5) * uGrain / 255.0;
+  return col;
+}`
+
+export const FRAG = `precision highp float;
+varying vec2 vUv;
+${LOOK_GLSL}
+void main(){
+  vec2 uv = vec2(vUv.x, 1.0 - vUv.y);                     // y from the top, like CSS
+  vec2 size = uRes / uDpr;                                  // CSS px
+  vec2 css = uv * size;
+  gl_FragColor = vec4(lookColor(css, size, gl_FragCoord.xy), 1.0);
 }`

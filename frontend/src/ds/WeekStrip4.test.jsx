@@ -39,6 +39,15 @@ describe('WeekStrip4', () => {
     expect(view.host.querySelectorAll('a.g-w4-cell')).toHaveLength(4)
   })
 
+  it('draws every cell as flat glass whether it is a span, a button or a link', () => {
+    view.render(<WeekStrip4 weeks={WEEKS} />)
+    expect(cells().every(c => c.dataset.glass === 'flat')).toBe(true)
+    view.render(<WeekStrip4 weeks={WEEKS.map(w => ({ ...w, onClick: () => {} }))} />)
+    expect(cells().every(c => c.dataset.glass === 'flat')).toBe(true)
+    view.render(<WeekStrip4 weeks={WEEKS.map(w => ({ ...w, href: '#/w' }))} />)
+    expect(cells().every(c => c.dataset.glass === 'flat')).toBe(true)
+  })
+
   it('a week with nothing planned says how many workouts, never "0 of 0"; never more than four weeks', () => {
     view.render(<WeekStrip4 weeks={[...WEEKS, { key: 'e', label: '19 Oct', done: 0, planned: 0 }].slice(1)} />)
     expect(cells()).toHaveLength(4)

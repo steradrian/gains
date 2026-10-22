@@ -23,6 +23,13 @@ describe('GlassActions', () => {
     expect(acts.map(a => a.querySelector('.g-glass [data-icon]').getAttribute('data-icon'))).toEqual(['utensils', 'scanBarcode', 'droplet', 'scale'])
   })
 
+  it('names each disc a liquid-glass control (its span is not interactive, so inference would say card)', () => {
+    view.render(<GlassActions items={FOUR} />)
+    const discs = [...view.host.querySelectorAll('.g-gact > .g-glass')]
+    expect(discs).toHaveLength(4)
+    expect(discs.every(d => d.getAttribute('data-glass') === 'control')).toBe(true)
+  })
+
   it('makes a button of an action with a handler and a link of one with an href', () => {
     view.render(<GlassActions items={FOUR} />)
     const acts = [...view.host.querySelectorAll('.g-gact')]

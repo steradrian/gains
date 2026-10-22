@@ -61,6 +61,7 @@ describe('BarChart', () => {
     expect(view.host.querySelector('.g-chart-stage')).toBeNull()
     view.render(<BarChart tone="stage" values={[1]} label="x" />)
     expect(view.host.querySelector('.g-chart-stage')).not.toBeNull()
+    expect(view.host.querySelector('.g-chart').classList.contains('g-glass')).toBe(true)
     expect(() => view.render(<BarChart tone="dark" values={[1]} label="x" />)).toThrow(/tone="dark"/)
   })
 

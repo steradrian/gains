@@ -21,6 +21,13 @@ describe('StageEmpty', () => {
     expect(buttons()).toHaveLength(0)
   })
 
+  it('its buttons are glass, except the solid one and any on the light tone', () => {
+    view.render(<StageEmpty title="Nothing" action="Add" onClick={() => {}} actions={[{ label: 'Browse', onClick: () => {} }]} />)
+    expect(buttons().map(b => b.classList.contains('g-glass'))).toEqual([false, true])
+    view.render(<StageEmpty title="Nothing" tone="light" actions={[{ label: 'Browse', onClick: () => {} }]} />)
+    expect(buttons()[0].classList.contains('g-glass')).toBe(false)
+  })
+
   it('card={false} sits bare on the stage', () => {
     view.render(<StageEmpty title="No results" card={false} />)
     expect(view.host.querySelector('.g-sempty').className).not.toContain('g-glass')

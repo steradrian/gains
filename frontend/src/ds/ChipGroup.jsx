@@ -31,9 +31,10 @@ export default function ChipGroup({ options = [], value, onChange, scroll = fals
       {opts.map(o => {
         const on = isOn(o.value)
         const cls = cx('g-cchip', on && 'on')
+        const flat = tone === 'stage' ? 'flat' : undefined
         return o.href
-          ? <a key={o.value} href={o.href} className={cls} aria-current={on ? 'true' : undefined} onClick={() => pick(o.value)}>{o.label}</a>
-          : <button key={o.value} type="button" className={cls} aria-pressed={on} onClick={() => pick(o.value)}>{o.label}</button>
+          ? <a key={o.value} href={o.href} className={cls} data-glass={flat} aria-current={on ? 'true' : undefined} onClick={() => pick(o.value)}>{o.label}</a>
+          : <button key={o.value} type="button" className={cls} data-glass={flat} aria-pressed={on} onClick={() => pick(o.value)}>{o.label}</button>
       })}
     </div>
   )

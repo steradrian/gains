@@ -44,6 +44,7 @@ export default function AppearancePage() {
   const { look, intensity } = useStageLook()
   const theme = S.theme === 'light' || S.theme === 'system' ? S.theme : 'dark'
   const motionLocked = ctx.systemMotion
+  const transparencyLocked = ctx.systemTransparency
   const checkIn = S.checkIn !== false
   const figures = [{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]
 
@@ -68,7 +69,7 @@ export default function AppearancePage() {
         {READY_MADE.map(c => {
           const on = accent === c.accent && look === c.look && Math.abs(intensity - c.intensity) < 0.005
           return (
-            <button key={c.id} type="button" className="g-rmchip" aria-pressed={on} onClick={() => pickReadyMade(c)}
+            <button key={c.id} type="button" className="g-rmchip" data-glass="flat" aria-pressed={on} onClick={() => pickReadyMade(c)}
               style={{ '--sw': `linear-gradient(170deg, var(--${c.accent}-stage), var(--${c.accent}-stage-end))` }}>
               <span className="g-rmchip-sw" aria-hidden="true" />
               {t(c.name)}
@@ -114,6 +115,11 @@ export default function AppearancePage() {
           sub={motionLocked ? t('Follows your phone. Rings appear without drawing in; looks stand still') : t('Turns off animations and slide-ins in this app.')}
           trailing={<StageSwitch label={t('Reduce motion')} checked={motionLocked || S.reduceMotion === true} disabled={motionLocked}
             onChange={v => update(s => { s.reduceMotion = v })} />} />
+        {/* Same shape as Reduce motion: locked on while the phone reports reduced transparency. */}
+        <GlassValueRow static icon="minimize" title={t('Reduce transparency')}
+          sub={transparencyLocked ? t('Follows your phone.') : t('Solid surfaces instead of glass.')}
+          trailing={<StageSwitch label={t('Reduce transparency')} checked={transparencyLocked || S.reduceTransparency === true} disabled={transparencyLocked}
+            onChange={v => update(s => { s.reduceTransparency = v })} />} />
         {/* iPhone ticks through a hidden native switch under the finger, Android vibrates
             (lib/use-haptic.js); a desktop browser has neither, so the row is not offered there. */}
         {ctx.canHaptic && (
