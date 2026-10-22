@@ -4599,7 +4599,6 @@ export default {
   'You are invited to {0}': 'You are invited to {0}',
   '{0} friend': '{0} friend',
   '{0} friends': { one: '{0} friend', few: '{0} friends', many: '{0} friends', other: '{0} friends' },
-  '{0} sessions': { one: '{0} сесія', few: '{0} сесії', many: '{0} сесій', other: '{0} сесії' },
   '{0}, one weekly goal. Nobody is ranked.': '{0}, one weekly goal. Nobody is ranked.',
   'This is all they will see': 'This is all they will see',
   'Friends is off. Turn it on to choose what to share, then join.': 'Friends is off. Turn it on to choose what to share, then join.',
