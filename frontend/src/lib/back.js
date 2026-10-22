@@ -64,7 +64,8 @@ export async function initBackButton() {
       goBack: () => { if (!isSwitching()) window.history.back() },
       // Nothing under a sub-page opened cold (a notification, a reload): back goes up to its
       // parent, as the page's own back button does, instead of arming the exit.
-      canGoUp: () => !isTabRoot(String(window.location.hash || '').replace(/^#/, '').split('?')[0] || '/home'),
+      // Profile pushed from another tab's avatar (state.pushed) goes back to that tab the same way.
+      canGoUp: () => !isTabRoot(String(window.location.hash || '').replace(/^#/, '').split('?')[0] || '/home') || !!window.history.state?.usr?.pushed,
       goUp: back,
       exit: () => App.exitApp(),
     })
