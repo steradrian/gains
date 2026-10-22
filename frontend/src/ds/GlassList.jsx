@@ -1,29 +1,34 @@
 import { Fragment } from 'react'
 import Icon from '../components/Icon.jsx'
 import { cx, oneOf } from '../lib/ui-kit.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import Act from './Act.jsx'
+import HapticSwitch from './HapticSwitch.jsx'
 
 // Rows in one rounded card (bundle.js `GlassList`): an icon disc, a title, a line under it and a
 // chevron. `tone="light"` is the same card on a light surface (a drawer), glass is for the stage.
 // A row with `href` or `onClick` is a link or a button with a chevron; one with neither is just
 // said, and has none, so nothing looks tappable that is not. A row is keyed by its `key`, else its
-// `title` (two rows can share a title, like two Pull A sessions).
+// `title` (two rows can share a title, like two Pull A sessions). `haptic: true` on a button row
+// makes it tick when tapped (the one-tap rows that create something, like StageEmpty's buttons).
 export default function GlassList({ items, tone = 'glass', tall }) {
   oneOf('GlassList', 'tone', tone, ['glass', 'light'])
   return (
     <div className={cx('g-glist', tone === 'light' ? 'g-glist-light' : 'g-glass')}>
       {items.map(it => {
         const tappable = !!(it.href || it.onClick)
-        const cls = cx('g-glist-row', tall && 'g-glist-tall')
+        const buzzes = !!(it.haptic && it.onClick && !it.href)
+        const cls = cx('g-glist-row', tall && 'g-glist-tall', buzzes && 'g-haptic')
         const kids = (
           <Fragment>
             <span className="g-glist-ic"><Icon name={it.icon || 'info'} className="g-icon" /></span>
             <span className="g-glist-body"><b>{it.title}</b>{it.sub && <span>{it.sub}</span>}</span>
             {tappable && <Icon name="chevronRight" className="g-icon g-glist-chev" />}
+            {buzzes && <HapticSwitch />}
           </Fragment>
         )
         return tappable
-          ? <Act key={it.key ?? it.title} href={it.href} onClick={it.onClick} className={cls}>{kids}</Act>
+          ? <Act key={it.key ?? it.title} href={it.href} onClick={buzzes ? e => { buzz('light'); it.onClick(e) } : it.onClick} className={cls}>{kids}</Act>
           : <div key={it.key ?? it.title} className={cls}>{kids}</div>
       })}
     </div>

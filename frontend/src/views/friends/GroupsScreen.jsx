@@ -55,7 +55,7 @@ export default function GroupsScreen() {
   const edit = () => nav(SHARING_PATH)
 
   const joinRow = { icon: 'link', title: t('Join with an invite link'), sub: t('Paste or open the link a friend sent'), onClick: joinLinkSheet }
-  const createRow = { icon: 'plus', title: t('Create a group'), sub: t('Name it, then invite people'), onClick: createGroupSheet }
+  const createRow = { icon: 'plus', title: t('Create a group'), sub: t('Name it, then invite people'), onClick: createGroupSheet, haptic: true }
   const share = title => (
     <>
       <StageSection title={title} action={t('Edit')} onAction={edit} />

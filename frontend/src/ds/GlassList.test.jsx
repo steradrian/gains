@@ -19,6 +19,14 @@ describe('GlassList', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 
+  it('a row with haptic is a haptic host and still runs its handler once', () => {
+    const onClick = vi.fn()
+    view.render(<GlassList items={[{ title: 'Create a group', onClick, haptic: true }, { title: 'Join', onClick: () => {} }]} />)
+    expect(rows().map(r => r.classList.contains('g-haptic'))).toEqual([true, false])
+    click(rows()[0])
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
   it('two rows with the same title are told apart by their key', () => {
     view.render(<GlassList items={[{ key: 'a', title: 'Pull A', sub: 'one' }, { key: 'b', title: 'Pull A', sub: 'two' }]} />)
     expect(rows().map(r => r.textContent)).toEqual(['Pull Aone', 'Pull Atwo'])
