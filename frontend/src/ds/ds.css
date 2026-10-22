@@ -757,7 +757,11 @@ html:not([data-lg="gl"]) .g-gtabbar { background: var(--chrome-glass); -webkit-b
 .g-tab-ind-ready { transition: transform 380ms cubic-bezier(.34,1.18,.64,1), opacity 140ms; }
 .g-tab-ind-off { opacity: 0; }
 .g-tab-ind::before { content: ""; position: absolute; inset: 0 2px; border-radius: 24px; }
-html:not([data-lg="gl"]) .g-tab-ind::before { background: var(--accent-tint); }
+/* The marker shows in every mode (css, gl, reduced). --accent-tint is nearly the chrome's own colour on a dark
+   bar, so it is a veil of the stage's ink: legible on both. In gl the glass lens (data-glass="lens", drawn
+   under it) bends the stage and this veil keeps the slot readable where the lens is faint. */
+.g-tab-ind::before { background: color-mix(in srgb, var(--on-stage, var(--accent-text)) 20%, transparent); }
+html[data-lg="gl"] .g-tab-ind::before { background: color-mix(in srgb, var(--on-stage, var(--accent-text)) 13%, transparent); }
 .g-gtabbar .g-tab { position: relative; z-index: 1; appearance: none; border: 0; background: none; padding: 0; min-width: 0; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font: 600 12px/14px var(--font-sans); color: var(--text-3); text-decoration: none; white-space: nowrap; cursor: pointer; transition: transform 180ms cubic-bezier(.34,1.4,.64,1), color 200ms; }
 .g-gtabbar .g-tab .g-icon { stroke-width: 1.9; }
 .g-gtabbar .g-tab[aria-current="page"] { color: var(--accent-text); font-weight: 700; }
@@ -765,7 +769,7 @@ html:not([data-lg="gl"]) .g-tab-ind::before { background: var(--accent-tint); }
 .g-tab-dot { position: absolute; top: 9px; left: calc(50% + 7px); width: 8px; height: 8px; border-radius: 50%; background: var(--accent-fill); }
 .g-gtabbar .g-plus { position: relative; z-index: 1; appearance: none; border: 0; padding: 0; justify-self: center; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); box-shadow: var(--shadow-accent); text-decoration: none; cursor: pointer; transition: transform 180ms cubic-bezier(.34,1.4,.64,1); }
 .g-gtabbar .g-plus .g-icon { width: 26px; height: 26px; stroke-width: 2.4; }
-html:not([data-lg="gl"]) .g-gtabbar .g-tab:active, html:not([data-lg="gl"]) .g-gtabbar .g-plus:active { transform: scale(.94); }
+.g-gtabbar .g-tab:active, html:not([data-lg="gl"]) .g-gtabbar .g-plus:active { transform: scale(.94); } /* a tab is never drawn on its own, so it keeps its press in gl too */
 @media (prefers-reduced-motion: reduce) {
   .g-tab-ind, .g-tab-ind-ready, .g-gtabbar .g-tab, .g-gtabbar .g-plus { transition: none; }
 }
@@ -2723,7 +2727,7 @@ html[data-lg="gl"] [data-lg-on] > .g-icon, html[data-lg="gl"] :is(.g-sbtn, .g-sp
 html[data-lg="gl"] .g-gact > [data-lg-on] > .g-icon { scale: calc(1 + var(--lg-press, 0) * .08); }
 html[data-lg="gl"] :is(.g-grow, .g-tile)[data-lg-on] > * { scale: calc(1 + var(--lg-press, 0) * .02); }
 /* The tab bar: the canvas draws the bar, the lens and the +; the labels sit on the stage. */
-html[data-lg="gl"] .g-gtabbar .g-tab { color: var(--on-stage); text-shadow: var(--glass-label-shadow); }
+html[data-lg="gl"] .g-gtabbar .g-tab { color: color-mix(in srgb, var(--on-stage) 72%, transparent); text-shadow: var(--glass-label-shadow); }
 html[data-lg="gl"] .g-gtabbar .g-tab[aria-current="page"] { color: var(--on-stage); font-weight: 700; }
 html[data-lg="gl"] .g-gtabbar .g-plus[data-lg-on] { box-shadow: none; }
 /* The dock's text is dark on its surface fill; drawn, it sits on the stage. Its hold ring (an inset box-shadow) stays. */
