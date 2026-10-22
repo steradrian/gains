@@ -66,15 +66,25 @@ export function useDataActions() {
       toast(backupImportError(e)); return
     }
     const apply = async mergeWith => {
+      // storeBackupMedia keeps what passes its checks and counts what it refuses or cannot store
+      // (quota, a failing store); the import goes ahead and the toast names the rest. It throws
+      // only when the store cannot be reached at all, and then nothing is imported.
+      let skipped = 0
       if (read.files.length) {
-        const { storeBackupMedia } = await import('../../lib/backup-media.js')
-        await storeBackupMedia(read.files, { limits: limitsFrom(useStore.getState().config) })
+        try {
+          const { storeBackupMedia } = await import('../../lib/backup-media.js')
+          ;({ skipped } = await storeBackupMedia(read.files, { limits: limitsFrom(useStore.getState().config) }))
+        } catch {
+          toast(t('Nothing was imported: couldn’t store the backup’s photos and videos.')); return
+        }
       }
       importBackup(read.state, { mergeWith })
       // The photos it brought are pending here and maybe gone from the server (a reset): sent now,
       // not after the ten-minute dedupe of the run before the reset.
       if (read.files.length) syncMedia({ force: true })
-      toast(t('Backup imported'))
+      toast(skipped
+        ? tn('Backup imported. {0} photo or video could not be stored.', 'Backup imported. {0} photos or videos could not be stored.', skipped)
+        : t('Backup imported'))
     }
     // Signed in, the server is asked first: a workout logged since the backup was made, or on
     // another device meanwhile, would be deleted from the profile by the replace — said, with the
