@@ -115,6 +115,23 @@ describe('the pill', () => {
     expect(slot()).toBe('4')
   })
 
+  it.each(['css', 'gl', 'reduced'])('is present, a lens, and under the lit tab in %s mode, and moves on a tab change', mode => {
+    document.documentElement.dataset.lg = mode
+    try {
+      view.render(<GlassTabBar />)
+      const lit = () => tabs().findIndex(b => b.getAttribute('aria-current') === 'page')
+      const nth = () => [0, 1, 3, 4].indexOf(Number(slot())) // the slot of the lit tab among the four tabs
+      expect(ind()).not.toBeNull()
+      expect(ind().getAttribute('data-glass')).toBe('lens')
+      expect(ind().classList.contains('g-tab-ind-off')).toBe(false)
+      expect(nth()).toBe(lit())
+      click(tabs()[2])
+      expect(slot()).toBe('3')
+      expect(nth()).toBe(lit())
+      expect(lit()).toBe(2)
+    } finally { delete document.documentElement.dataset.lg }
+  })
+
   it('is decorative', () => {
     view.render(<GlassTabBar />)
     expect(ind().getAttribute('aria-hidden')).toBe('true')

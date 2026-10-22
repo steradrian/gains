@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { fallbackReason } from './glass/glass-watchdog.js'
 
 // The liquid-glass HUD on #/dev/glass: the engine's own numbers, read four times a second from
 // GlassHost's statsRef. It renders into <body>, outside the glass ground, so its updates never wake the
@@ -17,7 +18,7 @@ const px = s => (s ? `${s.p95.toFixed(0)} px (max ${s.max.toFixed(0)})` : '0 px'
 const mb = n => `${((n || 0) / 1048576).toFixed(1)} MB`
 
 /** The HUD's rows from a glass-stats.js snapshot (pure, for the test). */
-export function hudRows(snap) {
+export function hudRows(snap, reason = '') {
   const g = snap.gauges || {}
   const wouldTrip = (snap.frame?.p50 ?? 0) > CPU_BUDGET_MS || (snap.interval?.p50 ?? 0) > INTERVAL_BUDGET_MS
   const overBudget = (g.over ?? 0) > 0
@@ -35,6 +36,7 @@ export function hudRows(snap) {
     { key: 'memory', label: 'Memory (est.)', value: g.budget ? `${mb(g.bytes)} of ${mb(g.budget)}` : mb(g.bytes), bad: overBudget },
     { key: 'over', label: 'Over budget', value: `${g.over ?? 0} on CSS`, bad: overBudget },
     { key: 'watchdog', label: 'Watchdog', value: wouldTrip ? 'would trip (off here)' : 'ok', bad: wouldTrip },
+    { key: 'reason', label: 'CSS fallback', value: reason || 'none', bad: !!reason },
   ]
 }
 
@@ -51,7 +53,7 @@ export default function DevGlassHud({ statsRef, options, status }) {
     return () => clearInterval(id)
   }, [statsRef])
 
-  const rows = hudRows(snap)
+  const rows = hudRows(snap, fallbackReason())
   const shown = open ? rows : rows.filter(r => r.key === 'refresh' || r.key === 'memory' || r.key === 'frame')
   return createPortal(
     <div className="g-root gl-hud" role="region" aria-label="Glass HUD">
