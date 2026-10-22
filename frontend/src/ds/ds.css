@@ -515,6 +515,125 @@ button.g-bs-chip { cursor: pointer; }
 .g-lf-row:active .g-lf-add { transform: scale(.94); }
 .g-lf-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .g-lf-body > .g-btn { margin: 12px 0; }
+/* Eat logging m1 (boards Ea8*): the Log food steps */
+.g-lf-item { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.g-lf-item .g-lf-row { flex: 1; min-width: 0; width: auto; border-bottom: 0; }
+button.g-lf-add { appearance: none; border: 0; cursor: pointer; }
+button.g-lf-add[aria-disabled="true"] { opacity: .6; cursor: default; }
+.g-lf-row:focus-visible, button.g-lf-add:focus-visible { outline-offset: -2px; }
+.g-lf-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.g-lf-count { margin-inline-start: 8px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.g-lf-empty { padding: 8px 0; text-align: center; }
+.g-la { display: grid; gap: 16px; padding: 2px 4px 4px; }
+.g-la-food { display: grid; gap: 2px; }
+.g-la-name { font: 700 20px/26px var(--font-sans); overflow-wrap: anywhere; }
+.g-la-sub { font: 500 15px/20px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-la-field { display: grid; gap: 6px; }
+.g-la-flabel { font: 600 13px/18px var(--font-sans); letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-3); }
+.g-la-stp { display: flex; align-items: center; gap: 12px; }
+.g-la-btn { appearance: none; border: 0; width: 48px; height: 48px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text); cursor: pointer; }
+.g-la-btn[aria-disabled="true"] { opacity: .4; }
+.g-la-btn .g-icon { width: 22px; height: 22px; stroke-width: 2.4; }
+.g-la-val { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: center; gap: 6px; border-radius: 14px; }
+.g-la-val:focus-within { box-shadow: 0 0 0 2px var(--accent-fill); }
+.g-la-val .num { width: min(6ch, 100%); border: 0; background: none; padding: 4px 0; text-align: center; color: var(--text); font: 700 32px/38px var(--font-sans); font-variant-numeric: tabular-nums; outline: none; }
+.g-la-unit { font: 600 17px/22px var(--font-sans); color: var(--text-3); }
+.g-la-units { padding: 2px; }
+.g-la-sum { display: grid; gap: 10px; padding: 14px 16px; border-radius: 18px; background: var(--surface-sunken); }
+.g-la-big { font: 700 28px/34px var(--font-sans); letter-spacing: -0.02em; }
+.g-la-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.g-la-macro { display: grid; }
+.g-la-macro b { font: 700 17px/22px var(--font-sans); }
+.g-la-macro span { font: 500 13px/18px var(--font-sans); color: var(--text-3); }
+.g-la-after { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-2); }
+.g-ff { display: grid; gap: 14px; }
+.g-ff-head { display: grid; gap: 4px; justify-items: start; }
+.g-ff-table { width: 100%; border-collapse: collapse; font: 500 16px/22px var(--font-sans); }
+.g-ff-table th, .g-ff-table td { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.g-ff-table tbody th { text-align: start; font-weight: 600; }
+.g-ff-table td { text-align: end; font-variant-numeric: tabular-nums; }
+.g-ff-table thead th { text-align: end; font: 600 13px/18px var(--font-sans); color: var(--text-3); }
+.g-ff-table thead th span { display: block; font-weight: 500; }
+.g-ff-sub th { padding-inline-start: 16px; font-weight: 500; color: var(--text-2); }
+.g-ff-acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.g-lm-note { padding-top: 0; }
+.g-lm-row { appearance: none; border: 0; border-bottom: 1px solid var(--line); background: none; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; padding: 8px 0; text-align: start; color: var(--text); font-family: var(--font-sans); cursor: pointer; }
+.g-lm-row:focus-visible { outline-offset: -2px; }
+.g-lm-text { display: grid; }
+.g-lm-text b { font: 600 17px/22px var(--font-sans); }
+.g-lm-text span { font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-lm-check { width: 22px; height: 22px; flex: none; color: var(--accent-text); stroke-width: 2.4; }
+.g-lm-day { display: flex; justify-content: space-between; gap: 12px; padding: 16px 0 4px; font: 500 16px/22px var(--font-sans); }
+.g-lm-day span { color: var(--text-3); }
+.g-lq { display: grid; gap: 14px; }
+.g-lq-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.g-lq-f { display: grid; gap: 6px; }
+.g-lq-f > span { font: 600 13px/18px var(--font-sans); color: var(--text-3); }
+.g-lq-f .num, .g-lq-f .field { width: 100%; }
+
+/* Eat logging m2 (boards Ea8Entry, Ea9*): a logged entry's drawer, and the Scan overlay */
+.g-en { display: grid; gap: 14px; padding-bottom: 4px; }
+.g-en-head { display: flex; align-items: center; gap: 12px; }
+.g-en-lead { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); }
+.g-en-lead .g-icon { width: 22px; height: 22px; stroke-width: 2; }
+.g-en-id { min-width: 0; display: flex; flex-direction: column; text-align: start; }
+.g-en-name { font: 700 19px/24px var(--font-sans); overflow-wrap: anywhere; }
+.g-en-sub { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-en-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.g-en-meal select { flex: 1; min-width: 0; width: 100%; border: 0; background: none; outline: none; appearance: none; font: 600 17px/22px var(--font-sans); color: var(--text); text-align: start; }
+.g-en-meal .g-icon { width: 20px; height: 20px; flex: none; color: var(--text-3); pointer-events: none; }
+.g-en-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+.g-en-foot .g-btn-danger:not([disabled]) { background: var(--danger-tint); }
+/* The overlay stays dark in every theme: it is a camera. The card over it is the app's surface. */
+.g-scan { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: var(--g-scan-ground); color: var(--g-scan-ink); font-family: var(--font-sans); text-align: start; }
+.g-scan-cam { position: absolute; inset: 0; background: radial-gradient(120% 70% at 50% 40%, var(--g-scan-glow-1) 0%, var(--g-scan-glow-2) 55%, var(--g-scan-denied) 100%); }
+.g-scan-cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.g-scan-still span:first-child { position: absolute; inset: 0; margin: auto; width: 206px; height: 120px; border-radius: 12px; background: linear-gradient(160deg, var(--g-scan-still-1), var(--g-scan-still-2)); opacity: .9; }
+.g-scan-still span:last-child { position: absolute; inset: 0; margin: auto; width: 146px; height: 64px; background: repeating-linear-gradient(90deg, var(--g-scan-still-bar) 0 3px, transparent 3px 6px, var(--g-scan-still-bar) 6px 7px, transparent 7px 11px); }
+.g-scan-find { position: absolute; inset: 0; z-index: 1; margin: auto; width: min(290px, calc(100% - 100px)); height: 180px; border-radius: 22px; box-shadow: 0 0 0 2000px var(--g-scan-dim); pointer-events: none; }
+.g-scan-line { position: absolute; inset-inline: 18px; top: 50%; height: 2px; background: var(--g-scan-line); box-shadow: 0 0 12px var(--g-scan-line); }
+.g-scan-c { position: absolute; width: 34px; height: 34px; border: 0 solid var(--g-scan-ink); }
+.g-scan-c-tl { inset-block-start: -2px; inset-inline-start: -2px; border-block-start-width: 4px; border-inline-start-width: 4px; border-start-start-radius: 22px; }
+.g-scan-c-tr { inset-block-start: -2px; inset-inline-end: -2px; border-block-start-width: 4px; border-inline-end-width: 4px; border-start-end-radius: 22px; }
+.g-scan-c-bl { inset-block-end: -2px; inset-inline-start: -2px; border-block-end-width: 4px; border-inline-start-width: 4px; border-end-start-radius: 22px; }
+.g-scan-c-br { inset-block-end: -2px; inset-inline-end: -2px; border-block-end-width: 4px; border-inline-end-width: 4px; border-end-end-radius: 22px; }
+/* The camera view owns the safe areas: the top bar clears the status bar, the foot the home bar. */
+.g-scan-top { position: absolute; inset-inline: 0; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(var(--sat, 0px) + 14px) 16px 14px; }
+.g-scan-top h2 { margin: 0; font: 700 17px/22px var(--font-sans); text-align: center; }
+.g-scan-btn { appearance: none; border: 0; width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--g-scan-glass); color: var(--g-scan-ink); cursor: pointer; }
+.g-scan-btn .g-icon { width: 22px; height: 22px; stroke-width: 2.2; }
+.g-scan-btn[aria-pressed="true"] { background: var(--g-scan-ink); color: var(--g-scan-ink-on-solid); }
+.g-scan-gap { width: 44px; height: 44px; flex: none; }
+.g-scan-foot { position: absolute; inset-inline: 0; bottom: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 0 24px calc(var(--sab, 0px) + 48px); text-align: center; }
+.g-scan-hint { font: 600 17px/22px var(--font-sans); outline: none; }
+.g-scan-notice { font: 600 15px/20px var(--font-sans); color: var(--g-scan-notice); }
+.g-scan-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.g-scan-pill { appearance: none; border: 0; height: 52px; padding: 0 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: var(--g-scan-glass); color: var(--g-scan-ink); font: 700 16px/20px var(--font-sans); cursor: pointer; }
+.g-scan-pill .g-icon { width: 20px; height: 20px; stroke-width: 2.2; }
+.g-scan-pill-solid { background: var(--g-scan-ink); color: var(--g-scan-ink-on-solid); }
+.g-scan-btn:focus-visible, .g-scan-pill:focus-visible { outline: 2px solid var(--g-scan-ink); outline-offset: 2px; }
+.g-scan-code { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-radius: 999px; background: var(--g-scan-glass); font: 600 16px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-scan-denied { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 0 32px; background: var(--g-scan-denied); }
+.g-scan-card { position: absolute; inset-inline: 12px; bottom: calc(var(--sab, 0px) + 24px); z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 28px; background: var(--surface); color: var(--text); }
+.g-scan-prod { display: flex; align-items: center; gap: 12px; }
+.g-scan-prod-ic { width: 52px; height: 52px; flex: none; border-radius: 16px; display: grid; place-items: center; background: var(--accent-tint); color: var(--accent-text); }
+.g-scan-prod-ic .g-icon { width: 26px; height: 26px; stroke-width: 2; }
+.g-scan-prod-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-scan-prod-t b { font: 700 20px/26px var(--font-sans); overflow-wrap: anywhere; outline: none; }
+.g-scan-prod-t span { font: 500 14px/18px var(--font-sans); color: var(--text-3); overflow-wrap: anywhere; }
+.g-scan-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.g-scan-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px; border-radius: 16px; background: var(--surface-sunken); }
+.g-scan-stat b { font: 700 20px/24px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-scan-stat span { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/14px var(--font-sans); color: var(--text-3); }
+.g-scan-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-fill); }
+.g-scan-dot-p { background: var(--macro-protein); }
+.g-scan-dot-c { background: var(--macro-carbs); }
+.g-scan-dot-f { background: var(--macro-fat); }
+.g-scan-acts { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.g-scan-acts-col { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
+.g-scan-card-code { font: 600 13px/16px var(--font-mono); color: var(--text-3); }
+.g-scan-card h2 { margin: 0; font: 700 22px/28px var(--font-sans); outline: none; }
+.g-scan-card p { margin: 0; font: 500 15px/21px var(--font-sans); color: var(--text-3); }
 
 /* Weigh-in drawer (board T1.7): ±0.1 discs either side of the big number, which takes typing */
 .g-wi { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0 6px; }
@@ -745,6 +864,11 @@ a.g-wk-cell, button.g-wk-cell { cursor: pointer; }
 .g-sempty-btn.solid { background: var(--stage-cta); box-shadow: none; color: var(--on-stage-cta); }
 .g-sempty-btn .g-icon { width: 20px; height: 20px; }
 .g-sempty-btn:focus-visible { outline-color: var(--on-stage); }
+.g-sempty-light { color: var(--text); }
+.g-sempty-light > span:not(.g-sempty-ic) { color: var(--text-3); }
+.g-sempty-light .g-sempty-btn { background: var(--surface-sunken); box-shadow: none; color: var(--text); }
+.g-sempty-light .g-sempty-btn.solid { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); color: var(--on-accent); }
+.g-sempty-light .g-sempty-btn:focus-visible { outline-color: var(--accent-text); }
 
 /* Where the onboarding Summary's thread lands on a hero ring (lib/onboarding/handover.js): a
    vertical line on the 9 o'clock tangent, a horizontal one on the 12 o'clock tangent. Real boxes,
@@ -1683,6 +1807,81 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-pw-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; padding: 18px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
 .g-bs-note { margin: 10px 0 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--text-3); }
 .g-bs-foot .g-bs-note { margin: 0; }
+
+/* Eat root m1: the rail's ring cell (board Ea1Eat) and the Daily targets fields (Ea1Targets). */
+.g-rd.g-rd-ringed { height: 82px; gap: 6px; }
+.g-rd-ring { position: relative; width: 40px; height: 40px; display: grid; place-items: center; }
+.g-rd-ring svg { position: absolute; inset: 0; width: 40px; height: 40px; fill: none; transform: rotate(-90deg); stroke-width: 3.5; }
+.g-rd-track { stroke: var(--glass-track); }
+.g-rd-arc { stroke: currentColor; stroke-linecap: round; }
+.g-rd-arc.over { stroke: var(--g-ring-over); }
+.g-rd-ring b { position: relative; font: 700 15px/18px var(--font-sans); }
+.g-rd:disabled { opacity: .4; cursor: default; }
+.g-tgt { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding: 18px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
+.g-tgt label { display: flex; flex-direction: column; gap: 6px; text-align: start; font: 600 13px/16px var(--font-sans); color: var(--text-3); }
+.g-tgt input { box-sizing: border-box; width: 100%; height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--fill, var(--surface-sunken)); color: var(--text); font: 600 17px/22px var(--font-sans); font-variant-numeric: tabular-nums; text-align: start; }
+/* === Eat library m1: My foods (boards Ea4MyFoods to Ea4Empty) and its two drawers === */
+.g-mf-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.g-mf-list { margin-top: 10px; border-radius: 22px; overflow: hidden; color: var(--on-stage); font-family: var(--font-sans); }
+.g-mf-row { appearance: none; border: 0; background: none; width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 16px; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.g-mf-row + .g-mf-row { border-top: 1px solid var(--glass-line); }
+.g-mf-row:focus-visible { outline-offset: -3px; }
+.g-mf-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.g-mf-body b { font: 600 17px/22px var(--font-sans); overflow-wrap: anywhere; }
+.g-mf-body span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); overflow-wrap: anywhere; }
+.g-mf-star { width: 14px; height: 14px; margin-inline-end: 6px; vertical-align: -1px; }
+.g-mf-chev { width: 18px; height: 18px; stroke-width: 2.2; flex: none; }
+.g-mf-acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+.g-mf-acts .g-btn:last-child:not(:only-child) { grid-column: span 2; }
+.g-mf-lines { list-style: none; margin: 0; padding: 4px 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-card); }
+.g-mf-lines li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.g-mf-lines li + li { border-top: 1px solid var(--line); }
+.g-mf-line-name { display: flex; flex-direction: column; min-width: 0; text-align: start; }
+.g-mf-line-name b { font: 600 16px/20px var(--font-sans); color: var(--text); overflow-wrap: anywhere; }
+.g-mf-line-name span { font: 500 14px/18px var(--font-sans); color: var(--text-3); }
+.g-mf-line-kcal { flex: none; font: 600 15px/20px var(--font-sans); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.g-mf-total { margin-top: 16px; text-align: start; font-variant-numeric: tabular-nums; }
+.g-mf-total b { font: 700 28px/34px var(--font-sans); color: var(--text); }
+.g-mf-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.g-mf-macros div { display: flex; flex-direction: column; padding: 12px; border-radius: 16px; background: var(--surface-sunken); text-align: start; }
+.g-mf-macros b { font: 700 18px/22px var(--font-sans); color: var(--text); font-variant-numeric: tabular-nums; }
+.g-mf-macros span { font: 500 13px/16px var(--font-sans); color: var(--text-3); }
+.g-mf-sub { margin: 0 0 8px; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
+.g-mf-amount { margin: 12px 0 0; text-align: center; font: 600 17px/22px var(--font-sans); color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* === Eat library m2: the food and saved meal editors (boards Ea5Food, Ea5Deleted, Ea5Meal, Ea5MealDeleted) === */
+.g-fe { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; color: var(--on-stage); }
+.g-fe-saved { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-fe-saved .g-savedbar { padding: 0; }
+.g-fe-fields { display: flex; flex-direction: column; gap: 12px; }
+.g-fe-list { overflow: visible; }
+.g-fe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.g-fe .g-ssec { padding-inline: 4px; }
+.g-fe-more { align-self: flex-start; }
+.g-fe-change { flex: none; font: 600 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-fe-problem { margin: 0; text-align: start; font: 500 15px/20px var(--font-sans); color: var(--on-stage); }
+.g-fe-delete { margin-top: 8px; }
+
+/* === Eat library m3: the recipe editor and the ingredient drawer (boards Ea5Recipe, Ea5Ingredient, Ea5RecipeDeleted) === */
+.g-rec-add { align-self: flex-start; }
+.g-rec-photo { display: flex; flex-direction: column; gap: 10px; }
+.g-rec-photo-frame { aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); }
+.g-rec-photo-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.g-rec-photo-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-rec-steps { padding-block: 4px; }
+.g-rec-step { display: flex; align-items: flex-start; gap: 10px; padding: 10px 6px 10px 14px; color: var(--on-stage); }
+.g-rec-num { flex: none; width: 28px; height: 28px; margin-top: 8px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); font: 700 13px/16px var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-rec-text { flex: 1; min-width: 0; box-sizing: border-box; resize: none; border: 0; background: none; padding: 8px 0; text-align: start; color: inherit; font: 500 16px/22px var(--font-sans); }
+.g-rec-text:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; border-radius: 8px; }
+.g-rec-tools { flex: none; display: flex; align-items: center; }
+/* The arrows are the keyboard's way to move a step: off the screen until one has the focus. */
+.g-rec-move:not(:focus-visible) { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.g-ing-swap { appearance: none; border: 0; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 12px; padding: 0 16px; border-radius: 22px; background: var(--surface-sunken); color: var(--text); font: 600 15px/20px var(--font-sans); cursor: pointer; }
+.g-ing-swap .g-icon { width: 18px; height: 18px; }
+.g-ing-swap:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 2px; }
+.g-ing-fields { display: flex; flex-direction: column; gap: 12px; }
+.g-ing-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g-ing-stats b { overflow-wrap: anywhere; }
 
 /* Native motion and haptics */
 

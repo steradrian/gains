@@ -175,6 +175,6 @@ export const OFF_COUNTRIES = {
   World: null, Argentina: 'AR', Australia: 'AU', Austria: 'AT', Belgium: 'BE', Brazil: 'BR', Canada: 'CA', Chile: 'CL',
   China: 'CN', Denmark: 'DK', Finland: 'FI', France: 'FR', Germany: 'DE', India: 'IN', Ireland: 'IE', Italy: 'IT',
   Japan: 'JP', Mexico: 'MX', Netherlands: 'NL', 'New Zealand': 'NZ', Norway: 'NO', Poland: 'PL', Portugal: 'PT',
-  Singapore: 'SG', 'South Africa': 'ZA', 'South Korea': 'KR', Spain: 'ES', Sweden: 'SE', Switzerland: 'CH',
+  Romania: 'RO', Singapore: 'SG', 'South Africa': 'ZA', 'South Korea': 'KR', Spain: 'ES', Sweden: 'SE', Switzerland: 'CH',
   'United Kingdom': 'GB', 'United States': 'US',
 }

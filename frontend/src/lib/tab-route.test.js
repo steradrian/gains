@@ -89,6 +89,13 @@ describe('back on a cold entry goes to the parent', () => {
     expect(tabOf('/me/account/started-over')).toBe('me')
   })
 
+  it('a My foods editor, new or saved, to its tab of the list', () => {
+    expect(parentOf('/food/my-foods/foods/12')).toBe('/food/my-foods?tab=foods')
+    expect(parentOf('/food/my-foods/foods/new')).toBe('/food/my-foods?tab=foods')
+    expect(parentOf('/food/my-foods/meals/3')).toBe('/food/my-foods?tab=meals')
+    expect(parentOf('/food/my-foods')).toBe('/food')
+  })
+
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {
     expect(parentOf('/train/coach/intake')).toBe('/train')
     expect(parentOf('/me/workout')).toBe('/me')

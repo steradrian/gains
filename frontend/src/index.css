@@ -1754,11 +1754,13 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
    (painted from JS while scrolling), and the mask softens the top and bottom rows further. */
 .dw{--dw-item:40px;position:relative;display:flex;justify-content:center;height:calc(var(--dw-item) * 5);
   margin:4px auto 16px;max-width:320px;user-select:none;-webkit-user-select:none;touch-action:pan-y}
-.dw-band{position:absolute;inset-inline:6px;top:calc(var(--dw-item) * 2);height:var(--dw-item);border-radius:10px;
-  background:color-mix(in srgb,var(--label) 10%,transparent);pointer-events:none}
-.dw-col{position:relative;flex:1;min-width:0;outline:none;border-radius:10px}
+/* Inside a design-system root (the Log activity drawer) the wheel reads the DS tokens: a sunken
+   pill for the band, the DS text greys and the accent ring; elsewhere the app's own fall back. */
+.dw-band{position:absolute;inset-inline:6px;top:calc(var(--dw-item) * 2);height:var(--dw-item);border-radius:14px;
+  background:var(--surface-sunken,color-mix(in srgb,var(--label) 10%,transparent));pointer-events:none}
+.dw-col{position:relative;flex:1;min-width:0;outline:none;border-radius:14px}
 .dw-col:focus-visible::after{content:'';position:absolute;inset-inline:8px;top:calc(var(--dw-item) * 2);height:var(--dw-item);
-  border-radius:10px;box-shadow:0 0 0 2px var(--acc);pointer-events:none}
+  border-radius:14px;box-shadow:0 0 0 2px var(--accent-fill,var(--acc));pointer-events:none}
 .dw-scroll{height:100%;overflow-y:scroll;overflow-x:hidden;scroll-snap-type:y mandatory;overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;scrollbar-width:none;perspective:420px;
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 34%,#000 66%,transparent 100%);
@@ -1766,15 +1768,16 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .dw-scroll::-webkit-scrollbar{display:none}
 .dw-pad{height:calc(var(--dw-item) * 2)}
 .dw-it{height:var(--dw-item);scroll-snap-align:center;display:flex;align-items:center;justify-content:flex-end;
-  padding-inline-end:calc(50% + 2px);font-size:22px;font-variant-numeric:tabular-nums;color:var(--label-2);
-  cursor:pointer;transform-origin:50% 50%;will-change:transform,opacity}
-.dw-it.on{color:var(--label);font-weight:600}
-.dw-it.out{color:var(--label-4)}
+  padding-inline-end:calc(50% + 2px);font-family:var(--font-sans,inherit);font-size:22px;font-variant-numeric:tabular-nums;
+  color:var(--text-3,var(--label-2));cursor:pointer;transform-origin:50% 50%;will-change:transform,opacity}
+.dw-it.on{color:var(--text,var(--label));font-weight:600}
+.dw-it.out{color:var(--text-disabled,var(--label-4))}
 .dw-unit{position:absolute;top:calc(var(--dw-item) * 2);height:var(--dw-item);display:flex;align-items:center;
-  inset-inline-start:calc(50% + 8px);font-size:17px;font-weight:600;color:var(--label);pointer-events:none}
+  inset-inline-start:calc(50% + 8px);font-family:var(--font-sans,inherit);font-size:17px;font-weight:600;
+  color:var(--text,var(--label));pointer-events:none}
 .dw-read{text-align:center;font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:-4px 0 2px}
 .dw-foot{text-align:center;margin:-6px 0 14px;line-height:1.4}
-@media (hover:hover){.dw-it:hover{color:var(--label)}}
+@media (hover:hover){.dw-it:hover{color:var(--text,var(--label))}}
 
 /* ------------------------------------------------------- Settings (v1.3.11) -- */
 .icn g[data-lucide] *{vector-effect:non-scaling-stroke}

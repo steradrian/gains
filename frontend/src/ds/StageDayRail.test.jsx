@@ -57,6 +57,22 @@ describe('StageDayRail', () => {
     expect(wed.querySelector('.g-rd-tag').textContent).toBe('Pull')
   })
 
+  it('a day with a ring (Eat) draws the date inside it, no mark and no tag, amber when over, bare when empty', () => {
+    const ringed = [
+      { ...THIS_WEEK[0], ring: { value: 0.5, over: false } },
+      { ...THIS_WEEK[1], ring: { value: 1, over: true } },
+      { ...THIS_WEEK[2], ring: { value: 0, over: false }, disabled: true },
+    ]
+    view.render(rail({ weeks: [ringed], week: 0, home: 0 }))
+    const [half, over, bare] = cells()
+    expect(half.querySelector('.g-rd-ring b').textContent).toBe('15')
+    expect(half.querySelector('.g-rd-dot, .g-rd-tag')).toBeNull()
+    expect(half.querySelector('.g-rd-arc').getAttribute('stroke-dashoffset')).toBe((2 * Math.PI * 18.25 * 0.5).toFixed(1))
+    expect(over.querySelector('.g-rd-arc').classList.contains('over')).toBe(true)
+    expect(bare.querySelector('.g-rd-arc')).toBeNull()
+    expect(bare.disabled).toBe(true)
+  })
+
   it('shows the cell with `selected` lit and presses it; today keeps its own mark when another is selected', () => {
     view.render(rail({ selected: '2026-10-19' }))
     const on = cells().filter(c => c.classList.contains('on'))

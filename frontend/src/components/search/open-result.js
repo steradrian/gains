@@ -6,8 +6,10 @@
 import { t } from '../../lib/i18n.js'
 import { dayPath } from '../../lib/day-route.js'
 import { todayISO } from '../../lib/format.js'
+import { TAB_ROOT } from '../../lib/tab-route.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
+import { NEW_FOOD_PATH, foodEditorPath } from '../../lib/nutrition/editor-routes.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { setFastingEnabled } from '../../lib/nutrition/use-fasting.js'
 import { writeErrorText } from '../../lib/nutrition/log-feedback.js'
@@ -15,7 +17,6 @@ import { setGroup, setQuery, visit } from '../../lib/search/session.js'
 import { addRecent, noteOpened } from '../../lib/search/recents.js'
 import { bwSheet, customExSheet, exerciseDetailSheet, workoutDetailSheet } from '../../sheets.jsx'
 import { foodDetailSheet } from '../FoodDetailSheet.jsx'
-import { foodEditSheet } from '../FoodEditSheet.jsx'
 import { mealDetailSheet } from '../MealDetailSheet.jsx'
 import { manageMeasurementsSheet } from '../../views/Measurements.jsx'
 import { settingsPath } from '../../views/settings/paths.js'
@@ -38,7 +39,7 @@ export function targetOf(r) {
     case 'exercise': return { kind: 'sheet', open: () => exerciseDetailSheet(r.ex, { progress: true }) }
     case 'routine': return { kind: 'route', path: '/train/routines/' + encodeURIComponent(r.id) }
     case 'workout': return { kind: 'sheet', open: () => workoutDetailSheet(r.workout) }
-    case 'food': return { kind: 'sheet', open: () => foodDetailSheet({ food: r.food, settings: settings(), onEdit: f => foodEditSheet({ food: f, settings: settings() }) }) }
+    case 'food': return { kind: 'sheet', open: () => foodDetailSheet({ food: r.food, settings: settings(), onEdit: f => visit(foodEditorPath(f.id)) }) }
     case 'meal':
     case 'recipe': return { kind: 'sheet', open: () => mealDetailSheet({ id: r.id, recipe: r.type === 'recipe' }) }
     case 'online': return {
@@ -48,11 +49,11 @@ export function targetOf(r) {
         onSave: async f => { await useNutrition.getState().saveFood(f); useUI.getState().toast(t('Saved to your foods')) },
       }),
     }
-    // A past day opens its Day page under Eat (PR07 D1), the entry to find in its state; today's
-    // opens Nutrition's diary, which finds it (views/FoodHub.jsx).
+    // A past day opens its Day page under Eat (PR07 D1), the entry to find in its state; today
+    // is Today (Eat's root holds no diary any more).
     case 'day': return r.date < todayISO()
       ? { kind: 'route', path: dayPath(r.date, 'food'), ...(r.uuid ? { state: { find: r.uuid } } : {}) }
-      : { kind: 'route', path: '/food?date=' + r.date + (r.uuid ? '&find=' + encodeURIComponent(r.uuid) : ''), date: r.date }
+      : { kind: 'route', path: TAB_ROOT.home }
     // Suggestions only: today's weigh-in, and the plan where a missed day is moved.
     case 'weighin': return { kind: 'sheet', open: () => bwSheet({ date: r.date }) }
     case 'missed': return { kind: 'route', path: r.path }
@@ -109,7 +110,7 @@ export async function turnOnFeature(r) {
 export function runNoneAction(action, { askOnline } = {}) {
   switch (action.kind) {
     case 'near': setQuery(action.name); return
-    case 'create-food': foodEditSheet({ food: { name: action.name }, settings: useNutrition.getState().settings.data }); return
+    case 'create-food': visit(NEW_FOOD_PATH, { state: { prefill: { name: action.name } } }); return
     case 'create-exercise': customExSheet(null, null, action.name); return
     case 'online': askOnline?.(); return
     default:

@@ -247,7 +247,7 @@ export default function DevKit() {
         <Section title="StageHeader" note="Avatar, search pill and bell. The first is controlled (search it: the bell turns into the close); then links, and a count of twelve.">
           <StageHeader initial="A" unread={3} searching={searching} onSearch={setSearching} onSettings={NOOP} onBell={NOOP} />
           <StageHeader initial="M" placeholder="Search training" settingsHref={SELF} searchHref={SELF} bellHref={SELF} />
-          <StageHeader initial="S" placeholder="Search food" unread={12} onSettings={NOOP} onBell={NOOP} />
+          <StageHeader initial="S" placeholder="Search food" unread={12} onSettings={NOOP} onBell={NOOP} onQuery={NOOP} onScan={NOOP} />
         </Section>
 
         <Section title="StageRing" note="Progress, over target (amber, 180 kcal over 2,100), five digits (one step smaller), a custom size, and loading.">

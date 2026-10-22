@@ -45,7 +45,7 @@ export default function MonthGrid({ days, title, offset = 0, today, weekdays, le
           if (d.href) return <a key={d.day} href={d.href} className={cls} aria-label={d.label ?? String(d.day)} aria-current={current}>{kids}</a>
           const press = d.onClick || (onDay && d.iso ? () => onDay(d.iso) : null)
           if (press) return <Act key={d.day} onClick={press} className={cls} ariaLabel={d.label ?? String(d.day)}>{kids}</Act>
-          return <span key={d.day} className={cls} aria-current={current}>{kids}</span>
+          return <span key={d.day} className={cls} role={d.label ? 'img' : undefined} aria-label={d.label} aria-current={current}>{kids}</span>
         })}
       </div>
       {legend?.length > 0 && (

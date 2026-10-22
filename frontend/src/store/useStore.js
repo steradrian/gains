@@ -1452,6 +1452,9 @@ export const useStore = create((set, get) => {
     resetEverything() {
       const cur = get().S
       const S = restartedState(cur)
+      // The recipes themselves live in NutriTrace and a reset does not touch them: their steps and
+      // photos stay with them.
+      if (cur.recipeExtras) S.recipeExtras = clone(cur.recipeExtras)
       S.resetAt = Math.max(Date.now(), highestStamp(cur) + 1)
       S.resetIds = mergeResetIds(cur.resetIds, resetIdsOf(cur))
       get().replaceState(S, !!get().user)

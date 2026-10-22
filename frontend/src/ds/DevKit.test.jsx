@@ -25,7 +25,8 @@ describe('DevKit', () => {
     expect(titles).toEqual(expect.arrayContaining([
       'Shared: search · StageHeader searching', 'GoToChips', 'SearchSection and SearchRow', 'ResultChips', 'BestMatch', 'SearchFeatureCard', 'Nothing matches: the ways on',
     ]))
-    expect(view.host.querySelectorAll('.g-spill-field input')).toHaveLength(2)
+    expect(view.host.querySelectorAll('.g-spill-field input')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-spill-field .g-ssf-scan')).toHaveLength(1)
     expect(view.host.querySelectorAll('.g-goto-chip')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-rchip')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-best')).toHaveLength(2)
@@ -73,7 +74,7 @@ describe('DevKit', () => {
     // Three here, and the Week page's two (Shared: week)
     expect(view.host.querySelectorAll('.g-stats')).toHaveLength(5)
     expect(view.host.querySelectorAll('.g-lc')).toHaveLength(4)
-    expect(view.host.querySelectorAll('.g-bars-card')).toHaveLength(3)
+    expect(view.host.querySelectorAll('.g-bars-card')).toHaveLength(4)
     expect(view.host.querySelectorAll('.g-heat')).toHaveLength(3)
     expect(view.host.querySelectorAll('.g-mg')).toHaveLength(2)
     act(() => { view.host.querySelector('.g-heat button.g-heat-c').click() })
@@ -117,8 +118,8 @@ describe('DevKit', () => {
     const shared = sections.slice(headed('Shared: pages'), headed('Settings: shell'))
     const all = selector => shared.flatMap(s => [...s.querySelectorAll(selector)])
     expect(all('.g-sempty-btn').map(b => b.textContent)).toEqual(['Set a reminder'])
-    // The app has no Coach notifications (lib/notifications/feed.js), so the kit never shows the line.
-    expect(all('.g-sempty')[0].textContent).not.toMatch(/Coach/)
+    // The feed carries the Coach's plan changes (Eat coach m1), so the empty line names them.
+    expect(all('.g-sempty')[0].textContent).toMatch(/Coach changes/)
     expect(all('.g-sbanner .g-ibanner-btn')).toHaveLength(2)
     expect(all('.g-snote')[0].textContent).toContain('Kept for 30 days')
     expect(all('.g-snav')).toHaveLength(7)

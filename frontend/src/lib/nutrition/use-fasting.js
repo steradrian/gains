@@ -99,6 +99,38 @@ export const useFasting = create((set, get) => ({
     return fast
   },
 
+  /** Puts a just-ended fast back as the running one (the Undo of End): starts a fast with its goal
+   *  and its own start, then removes the ended one. Start comes first so a refusal leaves the
+   *  ended fast as it was. Throws an NtError when the hub refuses (a fast is running elsewhere, the
+   *  start is older than the hub back-dates; see `canReopen`). */
+  async reopen(ended) {
+    const g = gen
+    const next = await NtApi.startFast(ended.goal_hours, ended.start_at)
+    try {
+      await NtApi.deleteFast(ended.id)
+    } catch (e) {
+      // 404: the ended fast is already gone, which is what this step wanted.
+      if (e?.status !== 404) {
+        // Whether the delete took effect is unknown (its answer may be the lost one), so a blind
+        // rollback could delete the only copy. Read the truth first and roll back only when the
+        // ended fast is still there.
+        await get().load({ force: true })
+        if (get().active?.id === next.id && !get().history.some(f => f.id === ended.id)) {
+          return next   // the delete had landed: the Undo worked
+        }
+        if (get().history.some(f => f.id === ended.id)) {
+          const rolledBack = await NtApi.deleteFast(next.id).then(() => true, () => false)
+          // The rollback failed too: the server holds both, and the page says so rather than idle.
+          if (!rolledBack && g === gen) set({ active: next })
+          else await get().load({ force: true })
+        }
+        throw e
+      }
+    }
+    if (g === gen) set(s => ({ active: next, history: s.history.filter(f => f.id !== ended.id) }))
+    return next
+  },
+
   /** Takes a finished fast out of the history. */
   async remove(id) {
     const g = gen

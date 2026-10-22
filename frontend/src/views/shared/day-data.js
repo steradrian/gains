@@ -16,11 +16,10 @@ import { speedUnitOf } from '../../lib/speed.js'
 import { nameOf, trainingDay, workoutLabel } from '../../lib/training-day.js'
 import { hasCompletedWork, isWarmupRow } from '../../lib/workout-model.js'
 import { glassOf } from '../today/use-today.js'
-import { finishedLine, railDay } from '../train/use-train.js'
-import { dayTargetsOf, waterGoalSet } from './food-target.js'
+import { finishedLine, pictureOf, railDay } from '../train/use-train.js'
+import { ON_TARGET_KCAL, dayTargetsOf, waterGoalSet } from './food-target.js'
 
-// "On target": within this many kcal of the day's target either way (Sh2Week: "within 150 kcal").
-export const ON_TARGET_KCAL = 150
+export { ON_TARGET_KCAL }
 // The Day rail shows the day's week and the two before it (Sh1Day).
 export const RAIL_WEEKS = 3
 const MACROS = ['proteins', 'carbohydrates', 'fat']

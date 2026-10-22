@@ -26,6 +26,8 @@ import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
+import { editorRouteKey } from './lib/nutrition/editor-routes.js'
+import { migrateLocalExtras } from './lib/nutrition/recipe-extras.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
 import { chromeColor, isLightColor, syncThemeColor } from './lib/theme-color.js'
@@ -87,8 +89,11 @@ import TrainHub from './views/TrainHub.jsx'
 import PlansScreen from './views/train/plans/PlansScreen.jsx'
 import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
-import MealCatalog from './views/MealCatalog.jsx'
-import Foods from './views/Foods.jsx'
+import FoodRedirect from './views/eat/FoodRedirect.jsx'
+import MyFoods from './views/MyFoods.jsx'
+import FoodEditor from './views/my-foods/FoodEditor.jsx'
+import MealEditor from './views/my-foods/MealEditor.jsx'
+import RecipeEditor from './views/my-foods/RecipeEditor.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
@@ -97,6 +102,11 @@ import Recovery from './views/Recovery.jsx'
 import DayPage from './views/shared/DayPage.jsx'
 import WeekPage from './views/shared/WeekPage.jsx'
 import Notifications from './views/shared/Notifications.jsx'
+// Eat root m2: Month and Food trends
+import MonthPage from './views/eat/MonthPage.jsx'
+import TrendsPage from './views/eat/TrendsPage.jsx'
+// Eat root m3
+import BurnedPage from './views/eat/BurnedPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
@@ -191,6 +201,11 @@ function Shell() {
   // The day picked on the week strip goes back to today after half an hour away
   // (lib/nutrition/selection.js).
   useEffect(() => installDayReset(), [])
+  // The steps and photos recipes kept on this device only move into the synced state, once
+  // (lib/nutrition/recipe-extras.js), after boot has settled which copy of the state this is.
+  useEffect(() => {
+    if (ready) migrateLocalExtras().catch(() => {})
+  }, [ready])
   // Once per signed-in boot, hand the server this browser's push subscription again (see
   // lib/push.js): a subscription the instance lost is back before the next reminder is due,
   // with nobody having to visit Settings. Web only — the APK has no service worker.
@@ -241,7 +256,7 @@ function Shell() {
   const trans = useRouteTransition({
     location: shown,
     navType,
-    routeKey: inFlow ? 'onboarding' : shown.pathname,
+    routeKey: inFlow ? 'onboarding' : editorRouteKey(shown.pathname),
     enabled: !inFlow && !onAddDevice && !needsMobileOnboarding && !!(user || isGuest),
     reduced: reducedMotion(),
     // Read once, as the slide starts: the page left (the route layout effect below has not moved
@@ -404,11 +419,27 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/train/plans/:id" element={<PlanPreview />} />
       {/* Nutrition */}
       <Route path="/food" element={<FoodHub />} />
-      <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
-      <Route path="/food/recipes" element={<MealCatalog recipes />} />
-      <Route path="/food/foods" element={<Foods />} />
+      {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
+      <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
+      <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
+      <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
+      {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
       <Route path="/food/goals" element={<NutritionGoals />} />
       <Route path="/food/fasting" element={<Fasting />} />
+      {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
+      <Route path="/food/month" element={<MonthPage />} />
+      <Route path="/food/trends" element={<TrendsPage />} />
+      {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
+      <Route path="/food/burned" element={<BurnedPage />} />
+      {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
+          /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
+      <Route path="/food/my-foods" element={<MyFoods />} />
+      {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
+          keeps its form when the address takes the real id. */}
+      <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
+      <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
+      {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
+      <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
       <Route path="/progress/body" element={<Body segment="weight" />} />

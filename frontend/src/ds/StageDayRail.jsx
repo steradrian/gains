@@ -12,6 +12,24 @@ const SWIPE = 48
 // What the cell says under its date: the first word of the workout ("Push A" reads "Push").
 const tagOf = d => d.tag ?? (d.name ? d.name.split(/\s+/)[0] : '')
 
+// Eat's cell (board Ea1Eat): the date inside a ring of the day's share of its target. `value` is
+// 0 to 1 (0 draws the bare track), `over` turns the arc amber.
+const RING_R = 18.25
+const RING_C = 2 * Math.PI * RING_R
+function DayRing({ ring, date }) {
+  const value = Math.min(Math.max(ring.value || 0, 0), 1)
+  return (
+    <span className="g-rd-ring" aria-hidden="true">
+      <svg viewBox="0 0 40 40">
+        <circle className="g-rd-track" cx="20" cy="20" r={RING_R} />
+        {value > 0 && <circle className={cx('g-rd-arc', ring.over && 'over')} cx="20" cy="20" r={RING_R}
+          strokeDasharray={RING_C.toFixed(1)} strokeDashoffset={(RING_C * (1 - value)).toFixed(1)} />}
+      </svg>
+      <b>{date}</b>
+    </span>
+  )
+}
+
 // The week rail of a tab root on the stage (boards T2.0, T2.3, T2.14; bundle.js `StageWeekStrip`
 // is the Eat/Train mark strip, which the boards do not draw here): seven cells, each its day
 // letter, its number, one mark and the workout. `weeks` is an array of weeks of days, `week` the
@@ -25,7 +43,8 @@ const tagOf = d => d.tag ?? (d.name ? d.name.split(/\s+/)[0] : '')
 // which the caller writes ("Mon 19 Oct, Legs"). A day with `disabled` is dimmed and cannot be
 // tapped (the Day page's days before the first log). `selected` is a day's `iso`, and `onSelect(day)`
 // fires for every tap; a day with `href` is a link as well. The week's `title` ("This week") is the
-// caller's too, and so are the two arrows' names.
+// caller's too, and so are the two arrows' names. A day with `ring` ({ value, over }) is Eat's
+// cell: the date inside a ring, no mark and no tag.
 export default function StageDayRail({
   weeks = [], week = 0, onWeek, selected, onSelect, title, action, actionHref, onAction,
   canBack, canForward, home = 0, backLabel, forwardLabel,
@@ -54,12 +73,16 @@ export default function StageDayRail({
             ariaLabel={d.label}
             pressed={d.href ? undefined : d.iso === selected}
             disabled={d.href ? undefined : d.disabled}
-            className={cx('g-rd', d.iso === selected && 'on', d.state === 'today' && 'now')}
+            className={cx('g-rd', d.ring && 'g-rd-ringed', d.iso === selected && 'on', d.state === 'today' && 'now')}
           >
             <span className="g-rd-dow" aria-hidden="true">{d.dow}</span>
-            <b aria-hidden="true">{d.date}</b>
-            <i className={cx('g-rd-dot', 'g-rd-' + d.state)} aria-hidden="true" />
-            <span className="g-rd-tag" aria-hidden="true">{tag}</span>
+            {d.ring
+              ? <DayRing ring={d.ring} date={d.date} />
+              : <>
+                <b aria-hidden="true">{d.date}</b>
+                <i className={cx('g-rd-dot', 'g-rd-' + d.state)} aria-hidden="true" />
+                <span className="g-rd-tag" aria-hidden="true">{tag}</span>
+              </>}
           </Act>
         )
       })}

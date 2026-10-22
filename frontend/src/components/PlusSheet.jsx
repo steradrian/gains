@@ -75,7 +75,9 @@ function PlusSheet({ close, pathname, day }) {
   const tiles = [
     ...(food ? [
       { icon: 'utensils', label: t('Log food'), onClick: () => drawerFlow(pickFood) },
-      { icon: 'scanBarcode', label: t('Scan'), onClick: () => drawerFlow(() => scanSheet({ ...where, onSearch: pickFood })) },
+      // Scan is an overlay over this drawer, not a step of it: its × comes back here, and a log from
+      // it (Amount, Quick kcal) ends the flow by closing this drawer (onLogged).
+      { icon: 'scanBarcode', label: t('Scan'), onClick: () => scanSheet({ ...where, onLogged: close, onSearch: () => drawerFlow(pickFood) }) },
       { icon: 'droplet', label: t('Water'), ariaLabel: waterAria(glasses[0], units), disabled: watering, onClick: () => water(glasses[0].ml) },
     ] : []),
     { icon: 'scale', label: day ? t('Log weight') : t('Weigh-in'), onClick: () => drawerFlow(() => bwSheet({ date: target.date })) },

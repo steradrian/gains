@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import { useNutrition } from '../../../lib/nutrition/store.js'
+import { settingOf } from '../../../lib/nutrition/use-nt-settings.js'
 import { createFakeNutriTrace, fixtureSettings } from '../../../lib/nutrition/fake-nutritrace.js'
 import { MEAL_NAMES_MAX } from '../../../lib/nutrition/settings-lists.js'
 import { featuresFor, SEARCH } from '../../settings-pages.js'
@@ -476,7 +477,8 @@ describe('Food sources', () => {
 
   it('writes the language as two letters and the country by its English name', async () => {
     await mount('sources')
-    expect(valueOf('Search country')).toBe('Worldwide')
+    // Nothing saved: the device's region (en-US here) names the country (lib/nutrition/search-country.js).
+    expect(valueOf('Search country')).toBe('United States')
     await click(rowTitled('Search language'))
     let { box, close } = openedSheet()
     await click([...box.querySelectorAll('[role="radio"]')].find(b => b.textContent === 'German'))
@@ -488,6 +490,44 @@ describe('Food sources', () => {
     expect(puts()).toEqual([{ key: 'offSearchLanguage', value: 'de' }, { key: 'offSearchCountry', value: 'Germany' }])
     expect(valueOf('Search language')).toBe('German')
     expect(valueOf('Search country')).toBe('Germany')
+  })
+
+  const pickCountry = async label => {
+    await click(rowTitled('Search country'))
+    const { box } = openedSheet()
+    await click([...box.querySelectorAll('[role="radio"]')].find(b => b.textContent === label))
+  }
+
+  it('keeps a country an older hub refuses for this session\'s searches and says it cannot be saved yet', async () => {
+    await mount('sources')
+    nt.failNext('PUT', '/nt/api/settings', { status: 400 })
+    await pickCountry('Romania')
+    expect(toast).toHaveBeenCalledWith('This country can\'t be saved yet')
+    expect(toast).not.toHaveBeenCalledWith('Not saved. Try again.')
+    expect(valueOf('Search country')).toBe('Romania')
+    expect(settingOf(useNutrition.getState().settings.data, 'offSearchCountry')).toBe('Romania')
+    await act(async () => { await useNutrition.getState().loadSettings({ force: true }) })
+    expect(settingOf(useNutrition.getState().settings.data, 'offSearchCountry')).toBe('Romania')
+    expect(nt.state.settings.offSearchCountry).toBeUndefined()
+  })
+
+  it('a country the hub takes is saved as before, and replaces a kept choice', async () => {
+    await mount('sources')
+    nt.failNext('PUT', '/nt/api/settings', { status: 422 })
+    await pickCountry('Romania')
+    await pickCountry('Germany')
+    await act(async () => { await useNutrition.getState().loadSettings({ force: true }) })
+    expect(settingOf(useNutrition.getState().settings.data, 'offSearchCountry')).toBe('Germany')
+    expect(nt.state.settings.offSearchCountry).toBe('Germany')
+  })
+
+  it('any other refused setting is still the generic message', async () => {
+    await mount('sources')
+    nt.failNext('PUT', '/nt/api/settings', { status: 400 })
+    await click(rowTitled('Search language'))
+    const { box } = openedSheet()
+    await click([...box.querySelectorAll('[role="radio"]')].find(b => b.textContent === 'German'))
+    expect(toast).toHaveBeenCalledWith('Not saved. Try again.')
   })
 
   it('has no login, key or USDA row: the hub lets none of them through', async () => {
