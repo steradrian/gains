@@ -2564,3 +2564,12 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 [dir="rtl"] .g-sbar-fill { animation-name: g-sbar-in-rtl; }
 @keyframes g-sbar-in-rtl { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
 @media (prefers-reduced-motion: reduce) { .g-sbar-fill { animation: none; } .g-sbar-seg { transition: none; } }
+.g-cprog { display: flex; flex-direction: column; gap: 14px; padding: 8px 20px 0; color: var(--on-stage); font-family: var(--font-sans); }
+.g-ccount { display: flex; flex-direction: column; gap: 2px; text-align: start; }
+.g-ccount b { font: 700 44px/48px var(--font-sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.g-ccount span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-cnote { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.g-cstreak { display: block; margin-top: 10px; font: 600 15px/20px var(--font-sans); color: var(--on-stage); }
+.g-cend { font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--on-stage-2); }
+.g-mrow-dim { opacity: 0.55; }
+.g-jsheet-h { margin: 8px 0 0; font: 700 17px/22px var(--font-sans); color: var(--text); text-align: start; }
