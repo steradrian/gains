@@ -1,5 +1,6 @@
 import MemberAvatar, { MEMBER_TONES, memberTone } from './MemberAvatar.jsx'
 import MemberRing from './MemberRing.jsx'
+import MomentRow from './MomentRow.jsx'
 import Section from './DevKitSection.jsx'
 
 // Friends' part of the catalogue (DevKit.jsx): the parts the Groups pages are built from, on the
@@ -45,6 +46,16 @@ export default function DevKitFriends() {
         <MemberRing size={120} stroke={12} label="A week with no plan for two members" segments={[
           { value: 0, of: 0, tone: 'mint' }, { value: 3, of: 3, tone: 'blue' }, { value: 0, of: 0, tone: 'purple' },
         ]} />
+      </Section>
+
+      {/* Friends group m1 */}
+      <Section title="MomentRow" note="A moment in a group: initials, an optional tag (NEW BEST, Target reached), title, detail and when, and a Cheer pill that turns to a still white Cheered. Your own moment has no pill; Trained together stacks two initials and has a ⋯.">
+        <ul className="g-mlist g-glass">
+          <MomentRow people={[{ uid: 'm', initial: 'M', tone: 'blue' }]} title="Mara finished Legs" detail="54 min · 6 exercises" time="2 hours ago" cheerLabel="Cheer Mara finished Legs" />
+          <MomentRow people={[{ uid: 'a', initial: 'A', tone: 'mint' }, { uid: 'i', initial: 'I', tone: 'orange' }]} title="You and Ioana trained together" detail="Push A, same evening" time="yesterday" cheered onMore={() => {}} moreLabel="Options" />
+          <MomentRow people={[{ uid: 'r', initial: 'R', tone: 'purple' }]} kind="NEW BEST" title="Radu set a new best" detail="Deadlift" time="yesterday" cheerLabel="Cheer Radu set a new best" />
+          <MomentRow people={[{ uid: 'a', initial: 'A', tone: 'mint' }]} title="You finished Pull A" detail="48 min" time="Fri" mine />
+        </ul>
       </Section>
     </>
   )

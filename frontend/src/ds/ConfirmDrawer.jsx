@@ -18,7 +18,9 @@ import HapticSwitch from './HapticSwitch.jsx'
 export default function ConfirmDrawer({
   title, body, items = [], note, icon = 'warning', confirmLabel, onConfirm, confirmHref, cancelLabel, onCancel, cancelHref, haptic = false,
 }) {
-  const tick = haptic && !confirmHref
+  // `haptic` ticks on the confirm: for a confirm that is itself the commit (Leave group), never one that only opens a step.
+  const ticks = haptic && !confirmHref
+  const confirm = ticks ? e => { buzz('light'); onConfirm?.(e) } : onConfirm
   const content = (
     <div className="g-confirm">
       {body && <p>{body}</p>}
@@ -28,8 +30,9 @@ export default function ConfirmDrawer({
         </ul>
       )}
       {note && <p className="g-confirm-note">{note}</p>}
-      <Act href={confirmHref} onClick={tick ? e => { buzz('light'); onConfirm?.(e) } : onConfirm} className={cx('g-btn g-confirm-danger', tick && 'g-haptic')}>
-        <Icon name={icon} className="g-icon" />{confirmLabel || (title ? t('Delete') : '')}{tick && <HapticSwitch />}
+      <Act href={confirmHref} onClick={confirm} className={cx('g-btn g-confirm-danger', ticks && 'g-haptic')}>
+        <Icon name={icon} className="g-icon" />{confirmLabel || (title ? t('Delete') : '')}
+        {ticks && <HapticSwitch />}
       </Act>
       <Act href={cancelHref} onClick={onCancel} className="g-btn g-btn-secondary g-btn-block">{cancelLabel || (title ? t('Cancel') : '')}</Act>
     </div>
