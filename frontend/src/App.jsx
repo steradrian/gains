@@ -25,6 +25,7 @@ import { reducedMotion } from './lib/reduced-motion.js'
 import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
+import { installScrolledEdge } from './lib/scrolled-edge.js'
 import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
 import { editorRouteKey } from './lib/nutrition/editor-routes.js'
@@ -207,6 +208,7 @@ function Shell() {
   const pathRef = useRef(null)
   // iOS leaves the page displaced after the keyboard goes away (see lib/viewport-guard.js).
   useEffect(() => installViewportGuard(), [])
+  useEffect(() => installScrolledEdge(), [])
   // Click-drag a horizontal chip strip to scroll it sideways (lib/hchips.js) — on a desktop
   // browser there's otherwise no way to reach the filters past the edge.
   useEffect(() => installChipDrag(), [])
