@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readPref, readPrefs, writePref } from './glass-prefs.js'
 
 afterEach(() => {
-  localStorage.clear()
   vi.restoreAllMocks()
+  localStorage.clear()
 })
 
 describe('glass prefs', () => {
@@ -24,8 +24,8 @@ describe('glass prefs', () => {
   })
 
   it('falls back to the defaults when storage throws', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+    // Safari with blocked site data throws on the localStorage getter itself.
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new Error('blocked') })
     expect(() => writePref('presenter', 'sprite')).not.toThrow()
     expect(readPref('presenter')).toBe('fixed')
   })

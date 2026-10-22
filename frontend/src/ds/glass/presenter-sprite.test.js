@@ -61,9 +61,17 @@ describe('planRefresh', () => {
     const early = planRefresh([{ moved: true }], clock, 1000 + SCROLL_MS - 5)
     expect(early.refresh).toEqual([])
     expect(early.pending).toBe(true)
-    const due = planRefresh([{ moved: true }, { moved: true }], clock, 1000 + SCROLL_MS)
+    const due = planRefresh([{ moved: true }, { moved: true }], clock, 1000 + SCROLL_MS + 1)
     expect(due.refresh).toEqual([0, 1])
     expect(due.scroll).toBe(true)
+  })
+
+  it('does not restart the scroll throttle for a sprite refreshed at once (one coming on screen mid-fling)', () => {
+    const clock = { lastScroll: 0, lastLook: 0, lastMove: 1000 }
+    const plan = planRefresh([{ hard: true, moved: true }, { moved: true }], clock, 1000)
+    expect(plan.refresh).toEqual([0, 1])
+    expect(plan.scroll).toBe(true)
+    expect(planRefresh([{ hard: true, moved: true }, { pressed: true, look: true }], clock, 1000)).toMatchObject({ scroll: false, look: false })
   })
 
   it('refreshes exactly once the movement has been still for 120 ms', () => {
@@ -129,9 +137,11 @@ function shape(el, { x = 100, y = 100, hw = 60, hh = 30, kind = 'card', press = 
 
 function makePresenter(opts = {}) {
   const hooks = { onReady: vi.fn(), onRelease: vi.fn(), onLost: vi.fn(), onRestored: vi.fn(), onCopy: vi.fn() }
+  atlasCanvas = document.createElement('canvas')
+  gl.canvas = atlasCanvas
   const p = createSpritePresenter({
     now: () => clockMs,
-    makeRenderer: canvas => { atlasCanvas = canvas; return gl },
+    renderers: { acquire: () => gl, release: r => r.destroy(), renew: canvas => (canvas === atlasCanvas ? gl : null) },
     ...opts,
   })
   expect(p.mount(hooks)).toBe(true)
@@ -232,6 +242,20 @@ describe('createSpritePresenter', () => {
     expect(frame(p, [shape(el, { y: 180 })]).drew).toBe(true)
   })
 
+  it('leaves an off-screen sprite stale while it moves, and refreshes it at once when it comes on screen', () => {
+    const el = document.createElement('div')
+    ground.appendChild(el)
+    const { p } = makePresenter()
+    const below = window.innerHeight + 300
+    frame(p, [shape(el, { y: below })])
+    expect(gl.draw).toHaveBeenCalledTimes(1)
+    clockMs += SETTLE_MS * 2
+    const off = frame(p, [shape(el, { y: below - 100 })])
+    expect(off).toEqual({ drew: false, pending: false })
+    clockMs += 16
+    expect(frame(p, [shape(el, { y: window.innerHeight - 40 })]).drew).toBe(true)
+  })
+
   it('releases a far sprite (width = height = 0, removed) and re-attaches it when it comes near', () => {
     const el = document.createElement('div')
     ground.appendChild(el)
@@ -319,15 +343,15 @@ describe('createSpritePresenter', () => {
     expect(p.stats().copy).toBe('draw2d')
   })
 
-  it('removes every sprite and frees the atlas on dispose', () => {
+  it('removes every sprite and gives the atlas renderer back on dispose', () => {
     const el = document.createElement('div')
     ground.appendChild(el)
     const { p } = makePresenter()
     frame(p, [shape(el)])
     p.dispose()
     expect(spriteOf(el)).toBeNull()
-    expect(atlasCanvas.width).toBe(0)
     expect(gl.destroy).toHaveBeenCalled()
+    expect(p.bytes()).toBe(0)
   })
 })
 

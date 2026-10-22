@@ -11,8 +11,8 @@ describe('hudRows', () => {
   it('flags a sprite refresh over the gate and reads the rim as exact under sprites', () => {
     const snap = {
       gauges: { sprites: 6, refreshed: 6, atlas: '1280x448', pages: 1, bytes: 6 * 1048576, chrome: 3, inSprite: 20, copy: 'draw2d' },
-      refresh: { p50: 3, p95: REFRESH_BUDGET_MS + 1, max: 9, n: 30 },
-      move: { p50: 20, p95: 48, max: 61, n: 30 },
+      refresh: { mean: 3, p50: 3, p95: REFRESH_BUDGET_MS + 1, max: 9, n: 30 },
+      move: { mean: 20, p50: 20, p95: 48, max: 61, n: 30 },
     }
     const rows = hudRows(snap, 'sprite')
     expect(row(rows, 'refresh').bad).toBe(true)
@@ -28,7 +28,7 @@ describe('hudRows', () => {
   })
 
   it('says the watchdog would trip on a slow device', () => {
-    expect(row(hudRows({ gauges: {}, frame: { p50: 7, p95: 9, max: 9, n: 40 } }, 'fixed'), 'watchdog').bad).toBe(true)
+    expect(row(hudRows({ gauges: {}, frame: { mean: 7, p50: 7, p95: 9, max: 9, n: 40 } }, 'fixed'), 'watchdog').bad).toBe(true)
   })
 })
 
