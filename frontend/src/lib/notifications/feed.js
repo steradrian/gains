@@ -27,6 +27,11 @@
 //              applied. The names are the stamp's own, so a line outlives a later rename or
 //              delete. An older change has no stamp and no item; an undone one (reverted) none.
 //              Nothing re-dates a day for the Coach, so there is no "moved to Mon 19 Oct" line.
+//   cheer      Friends: the cheers for the person, one item per local evening at most ("Mara and 2
+//              others cheered you"), id `cheer:<date>`. Only while Friends is on.
+//   invite     Friends: a group invitation (`group-invite:<code>`) or a challenge started in a
+//              group (`challenge:<cid>`). Only while Friends is on; gone once joined or taken back.
+//              Both come from `friends`, the cached Friends data (lib/friends), with no request.
 import { dateLocale, getVersion, t, tn } from '../i18n-core.js'
 import { EXIDX } from '../exercises.js'
 import { cleanPlanChange } from '../coach-plan-changes.js'
@@ -40,7 +45,7 @@ export const FEED_DAYS = 30
 const DAY_MS = 86400000
 const FOUR_WEEKS_MS = 28 * DAY_MS
 // The order of items that share a moment: a week's streak before its recap.
-const KIND_ORDER = ['coach', 'best', 'streak', 'recap', 'reminder', 'milestone']
+const KIND_ORDER = ['coach', 'best', 'streak', 'recap', 'reminder', 'milestone', 'cheer', 'invite']
 
 export const plusDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoOf(d) }
 // The last moment of a local day.
@@ -260,6 +265,56 @@ function coachItems(S, from, now) {
   })
 }
 
+// Friends surfaces m1. `friends` is { cheers: Cheer[], invitations, challengeInvites } (null while
+// Friends is off or unavailable): cheers as lib/friends/use-cheers.js holds them, and the two
+// invite lists as GET /me sends them, each with `at` in ms (use-friends-feed.js fills it in).
+function cheerNames(names) {
+  if (names.length === 1) return t('{0} cheered you', names[0])
+  if (names.length === 2) return t('{0} and {1} cheered you', names[0], names[1])
+  return t('{0} and {1} others cheered you', names[0], names.length - 1)
+}
+
+function cheerItems(cheers, from, now) {
+  const evenings = new Map()
+  for (const c of cheers || []) {
+    if (!c || !Number.isFinite(c.at) || c.at < from || c.at > now) continue
+    const day = isoOf(new Date(c.at))
+    evenings.set(day, [...(evenings.get(day) || []), c])
+  }
+  return [...evenings].map(([day, list]) => {
+    const newestFirst = [...list].sort((a, b) => b.at - a.at)
+    const names = []
+    for (const c of newestFirst) if (!names.includes(c.name)) names.push(c.name)
+    return { id: `cheer:${day}`, kind: 'cheer', at: newestFirst[0].at, title: t('Cheers for you'), body: cheerNames(names), target: { route: '/me/groups/cheers' } }
+  })
+}
+
+function inviteItems(friends, from, now) {
+  const inRange = at => Number.isFinite(at) && at >= from && at <= now
+  const groups = (friends.invitations || []).flatMap(inv => (!inv?.code || !inv.from?.name || !inv.group?.name || !inRange(inv.at) ? [] : [{
+    id: `group-invite:${inv.code}`,
+    kind: 'invite',
+    at: inv.at,
+    title: t('{0} invited you to {1}', inv.from.name, inv.group.name),
+    body: t('See what the group shares, then join'),
+    target: { route: '/me/groups/join/' + encodeURIComponent(inv.code) },
+  }]))
+  const challenges = (friends.challengeInvites || []).flatMap(c => (!c?.cid || !c.group?.id || !c.group.name || !c.from?.name || !inRange(c.at) ? [] : [{
+    id: `challenge:${c.cid}`,
+    kind: 'invite',
+    at: c.at,
+    title: t('{0} started a challenge in {1}', c.from.name, c.group.name),
+    body: t('Open it to count yourself in'),
+    target: { route: `/me/groups/${encodeURIComponent(c.group.id)}/challenge/${encodeURIComponent(c.cid)}` },
+  }]))
+  return [...groups, ...challenges]
+}
+
+function friendsItems(friends, from, now) {
+  if (!friends) return []
+  return [...cheerItems(friends.cheers, from, now), ...inviteItems(friends, from, now)]
+}
+
 /** Everything feedOf reads of `S` (and the UI language its lines are in), as one string: the
  *  feed is worked out again only when this changes, not on every change to the profile (the
  *  store clones the whole profile on each, so nothing is the same object twice). Worked out once
@@ -282,8 +337,9 @@ export function feedKey(S) {
  * The feed as of `now`: every item of the last FEED_DAYS, newest first.
  * `nutrition`: null, or { dayOnTarget(iso) → true | false | null } (null: not known for that day).
  * `reminders`: the reminders that went off on this device (reminder-log.js firedReminders).
+ * `friends`: null while Friends is off, else the cached cheers and invites (see friendsItems).
  */
-export function feedOf(S, { now = Date.now(), nutrition = null, reminders = [] } = {}) {
+export function feedOf(S, { now = Date.now(), nutrition = null, reminders = [], friends = null } = {}) {
   const from = now - FEED_DAYS * DAY_MS
   const logged = loggedOf(S)
   const items = [
@@ -292,6 +348,7 @@ export function feedOf(S, { now = Date.now(), nutrition = null, reminders = [] }
     ...weekItems(S, logged, from, now, nutrition),
     ...reminderItems(S, reminders, from, now),
     ...milestoneItems(logged, from, now),
+    ...friendsItems(friends, from, now),
   ]
   return items.sort((a, b) => b.at - a.at || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || (a.id < b.id ? -1 : 1))
 }

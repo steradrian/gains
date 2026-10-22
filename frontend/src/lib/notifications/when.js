@@ -15,6 +15,8 @@ function kindLabel(kind) {
     case 'streak': return t('Streak')
     case 'recap': return t('Weekly recap')
     case 'milestone': return t('Milestone')
+    case 'cheer': return t('Cheer')
+    case 'invite': return t('Invite')
     default: return t('Reminder you set')
   }
 }

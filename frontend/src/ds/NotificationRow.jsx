@@ -12,6 +12,8 @@ const KIND_ICONS = {
   recap: 'chartLine',
   reminder: 'bell',
   milestone: 'trophy',
+  cheer: 'heart',
+  invite: 'users',
 }
 export const NOTIFICATION_KINDS = Object.keys(KIND_ICONS)
 
