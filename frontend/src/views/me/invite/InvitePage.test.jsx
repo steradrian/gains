@@ -104,11 +104,16 @@ describe('the page', () => {
     expect(text()).not.toContain(NAMELESS.code)
   })
 
-  it('shows a member only the title until the ask is built (invite-M3), and no way to create', async () => {
+  it('shows a member the ask, not the admin\'s page: no way to create, and no call to the admin\'s list', async () => {
     useStore.setState({ user: { id: 'u_m', name: 'Mara', admin: false } })
-    await show()
+    const backend = memoryBackend()
+    vi.spyOn(backend, 'load')
+    view.render(<InviteRoute backend={backend} askBackend={{ ask: vi.fn(), mine: async () => [], cancel: vi.fn() }} />)
+    await flush()
     expect(view.host.querySelector('h1').textContent).toBe('Invite a friend')
+    expect(button(view.host, 'Ask an admin')).toBeTruthy()
     expect(button(view.host, 'Create an invite link')).toBeUndefined()
+    expect(backend.load).not.toHaveBeenCalled()
   })
 })
 

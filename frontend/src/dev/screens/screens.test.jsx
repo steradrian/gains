@@ -1353,3 +1353,39 @@ describe('the screens gallery: Me > My goal', () => {
     expect(Object.keys(localStorage).filter(k => k.startsWith('gains_recent_changes') && k.includes('u1'))).toEqual([])
   }, 60000)
 })
+
+// Me invite M3
+describe('the screens gallery: Me > Invite a friend, the member\'s view', () => {
+  it('has M5.4 and M5.5 and the edge states in Me: invite', () => {
+    const ids = screenAreas().find(a => a.name === 'Me: invite').entries.map(e => e.id)
+    expect(ids).toEqual(expect.arrayContaining(['M5.4', 'M5.5', 'M5.5u', 'M5.4o', 'M5.4x', 'M5.4c', 'M5.4d', 'M5.4q', 'M5.4f', 'M5.4g', 'M5.0n']))
+  })
+
+  it('shows the ask, the held toast, the open asks, the cap, the refusals, Groups and the guest redirect', async () => {
+    const check = async (id, test) => {
+      const host = await show(screenById(id))
+      test({ text: host.textContent, host })
+      unmountAll()
+    }
+    await check('M5.4', s => {
+      expect(s.text).toContain('Only admins invite people to Gains')
+      expect([...s.host.querySelectorAll('button')].find(b => b.textContent === 'Ask an admin').disabled).toBe(true)
+    })
+    await check('M5.4w', s => expect([...s.host.querySelectorAll('button')].find(b => b.textContent === 'Ask an admin').disabled).toBe(false))
+    await check('M5.5', s => {
+      expect(useUI.getState().toastMsg).toBe('Asked an admin. You’ll hear when the invite is sent.')
+      expect(useUI.getState().toastAction.label).toBe('Undo')
+      expect(s.host.querySelector('input').value).toBe('')
+      expect(s.text).toContain('My training partner Andrei')
+    })
+    await check('M5.5u', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
+    await check('M5.4o', s => expect(s.text).toContain('My training partner Andrei'))
+    await check('M5.4x', s => expect(s.host.querySelector('.g-ssec')).toBeNull())
+    await check('M5.4c', s => expect(s.text).toContain('You have 3 open asks. Withdraw one to ask again.'))
+    await check('M5.4d', s => expect(s.host.querySelector('[role="alert"]').textContent).toBe('You’ve asked 3 times today. Try again in 4h 0m.'))
+    await check('M5.4q', s => expect(s.host.querySelector('[role="alert"]').textContent).toBe('You have 3 open asks. Withdraw one to ask again.'))
+    await check('M5.4f', s => expect(s.host.querySelector('[role="alert"]').textContent).toContain('Check your connection'))
+    await check('M5.4g', s => expect(s.text).toContain('Already on Gains? Add them to a group from Friends instead'))
+    await check('M5.0n', s => expect(s.text).toContain('Redirected to the Me root'))
+  }, 60000)
+})

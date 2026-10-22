@@ -10,3 +10,5 @@
 .inv-sk{height:68px;border-radius:20px}
 .inv-ask{margin:0 0 12px;font:500 15px/21px var(--font-sans);color:var(--text-2);text-align:start}
 .inv-ask b{font-weight:700;color:var(--text)}
+/* Me invite M3 (MemberInvite.jsx): the note field and its error sit inside the card's side margins. */
+.inv-field{margin-inline:20px}
