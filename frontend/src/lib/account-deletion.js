@@ -46,12 +46,33 @@ const serverReason = e => {
 
 // The account as the server has it now. Used where a request may have gone through although its
 // answer was lost, so the screens show a pending deletion that really is one.
-async function refreshUser() {
+// One attempt is awaited, so the caller's answer follows it. When that fails too, it goes on in the
+// background with a growing wait, so a lost answer plus a flaky network still ends with the banner
+// and the pause instead of waiting for the next edit's 423 or a focus recheck.
+export const REFRESH_RETRY_MS = [1500, 4000, 10000, 30000]
+let refreshRun = 0
+const stopRefreshing = () => { refreshRun++ }
+
+async function readUser() {
   try {
     const me = await api('/api/me')
     const st = useStore.getState()
     if (me?.user?.id && me.user.id === st.user?.id) st.setUser(me.user)
-  } catch { /* the next /api/me read brings it */ }
+    return true
+  } catch { return false }
+}
+
+async function refreshUser({ retry = true } = {}) {
+  const run = ++refreshRun
+  if (await readUser() || !retry) return
+  const again = i => {
+    if (i >= REFRESH_RETRY_MS.length) return
+    setTimeout(async () => {
+      if (run !== refreshRun) return
+      if (!(await readUser())) again(i + 1)
+    }, REFRESH_RETRY_MS[i])
+  }
+  again(0)
 }
 
 /**
@@ -126,10 +147,15 @@ export async function cancelDeletion() {
   } catch {
     return false
   }
-  try {
-    const me = await api('/api/me')
-    if (me.user?.id) useStore.getState().setUser(me.user)
-  } catch { /* the cancel went through; the next /api/me read brings the user back */ }
+  // The server confirmed it: the store says so now, without waiting for /api/me (which may fail),
+  // and a retry still running from scheduling must not bring the schedule back.
+  stopRefreshing()
+  const st = useStore.getState()
+  if (st.user?.deletion) {
+    const { deletion: _gone, ...kept } = st.user
+    st.setUser(kept)
+  }
+  await refreshUser({ retry: false })
   return true
 }
 

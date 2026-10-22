@@ -20,7 +20,7 @@ vi.mock('../store/useStore.js', () => ({
   useStore: { getState: () => ({ user: mocks.user, setUser: mocks.setUser }) },
 }))
 
-import { GRACE_DAYS, NotConfirmedError, cancelDeletion, deletionDay, graceEnd, prepareDeletion, scheduleDeletion } from './account-deletion.js'
+import { GRACE_DAYS, NotConfirmedError, REFRESH_RETRY_MS, cancelDeletion, deletionDay, graceEnd, prepareDeletion, scheduleDeletion } from './account-deletion.js'
 
 const httpError = (status, data = {}) => Object.assign(new Error(data.error || 'HTTP ' + status), { status, data })
 const netError = () => Object.assign(new TypeError('Failed to fetch'), { status: undefined })
@@ -114,6 +114,38 @@ describe('scheduleDeletion: the proof first, and nothing without it', () => {
     expect(mocks.setUser).toHaveBeenCalledWith(scheduled)
   })
 
+  it('a lost answer and a failed /api/me: the account is read again with a backoff until it lands', async () => {
+    vi.useFakeTimers()
+    try {
+      mocks.assert.mockResolvedValue(CRED)
+      const scheduled = { id: 'u1', name: 'Ana', deletion: { at: AT, requestedAt: REQ } }
+      let me = 0
+      answer({ 'POST /api/account/delete': netError(), 'GET /api/me': () => { if (++me < 3) throw netError(); return { user: scheduled } } })
+      expect(await reasonOf(scheduleDeletion({ prepared: OPTIONS }))).toBe('offline')
+      expect(mocks.setUser).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(REFRESH_RETRY_MS[0])
+      expect(mocks.setUser).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(REFRESH_RETRY_MS[1])
+      expect(mocks.setUser).toHaveBeenCalledWith(scheduled)
+      await vi.advanceTimersByTimeAsync(60000)
+      expect(me).toBe(3)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('a cancel stops a retry still running from a lost schedule answer', async () => {
+    vi.useFakeTimers()
+    try {
+      mocks.assert.mockResolvedValue(CRED)
+      mocks.user = { id: 'u1', name: 'Ana', deletion: { at: AT, requestedAt: REQ } }
+      answer({ 'POST /api/account/delete': netError(), 'GET /api/me': netError(), 'POST /api/account/delete/cancel': { ok: true } })
+      await reasonOf(scheduleDeletion({ prepared: OPTIONS }))
+      await cancelDeletion()
+      const before = calls().length
+      await vi.advanceTimersByTimeAsync(60000)
+      expect(calls().length).toBe(before)
+    } finally { vi.useRealTimers() }
+  })
+
   it('a 429 is locked, a 500 is error', async () => {
     mocks.assert.mockResolvedValue(CRED)
     answer({ 'POST /api/account/delete': httpError(429, { code: 'locked', retryAfter: 60 }) })
@@ -179,6 +211,15 @@ describe('cancelDeletion', () => {
     await expect(cancelDeletion()).resolves.toBe(true)
     expect(calls()).toEqual(['POST /api/account/delete/cancel', 'GET /api/me'])
     expect(mocks.setUser).toHaveBeenCalledWith({ id: 'u1', name: 'Ana' })
+  })
+
+  it('the cancel went through but /api/me fails: the store drops the deletion from the cancel itself', async () => {
+    const deletion = { at: AT, requestedAt: REQ }
+    mocks.user = { id: 'u1', name: 'Ana', deletion }
+    answer({ 'POST /api/account/delete/cancel': { ok: true }, 'GET /api/me': httpError(503) })
+    await expect(cancelDeletion()).resolves.toBe(true)
+    expect(mocks.setUser).toHaveBeenCalledWith({ id: 'u1', name: 'Ana' })
+    expect(mocks.setUser.mock.calls.every(([u]) => !('deletion' in u))).toBe(true)
   })
 
   it('false when the cancel did not get through; nothing thrown, nothing changed', async () => {
