@@ -23,7 +23,7 @@ export default function TabBar({ tab, lit, onPlus }) {
   const running = useStore(s => workoutRunning(s.S))
   const accent = useDsAccent()
   if (!user && !isGuest) return null
-  // The tab on screen again: back to its root. Another one: its own stack, where it was left.
+  // Any tab, the one on screen included: its root, scrolled to the top.
   const go = key => {
     if (isSwitching()) return
     const target = APP_TAB[key]

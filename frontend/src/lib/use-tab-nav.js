@@ -1,6 +1,6 @@
-// The shell's side of lib/tab-history.js: mirrors every location into the per-tab stacks and
+// The shell's side of lib/tab-history.js: mirrors every location into the tab's stack and
 // carries out a tab switch. A switch is several router steps — walk back to the first entry,
-// replace it, push the rest of the arriving tab's stack — with the screen held on the page the
+// replace it with the arriving tab's root, push the page being opened on it, if any — with the screen held on the page the
 // switch started from (`shown`) until the last step has landed, so neither the pages in between
 // nor the one arrived at mounts before the history is right. (The page arrived at mounting early
 // was how a redirect it makes — a missing routine, the Coach for a guest — got lost in the walk.)
@@ -8,6 +8,7 @@
 // What starts a switch: a bar button (switchTab, popToRoot for the tab on screen), and any
 // navigation that lands in another tab's pages, from whatever code made it (a Profile row opening
 // Routines): the push is turned into a switch, so a tab's stack never holds another tab's page.
+// A bar button always lands on the tab's root, the tab on screen included.
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { emptyNav, deadSteps, onVisitPage, planSwitch, record, settle } from './tab-history.js'
 import { TABS, parentOf, tabOf } from './tab-route.js'
@@ -20,7 +21,7 @@ const NAV_KEY = 'gym_tab_nav'   // this tab's mirror: survives a reload, as its 
 // hold the screen: after this long the switch carries on from wherever history is…
 const UNWIND_MS = 400
 // …and a pop that still arrives within this long after that is the walk landing late: the switch
-// is finished again from where it landed, with the stacks it had already put aside.
+// is finished again from where it landed, with the stack it had planned.
 const LATE_MS = 2000
 // A switch knocked off course by somebody else's walk (an iOS swipe, the browser's back) is
 // carried on from where it landed — this many times, then the screen is let go as it is.
@@ -183,8 +184,7 @@ export function useTabNav({ navigate, location, navType }) {
   }, [build, unwind, finish])
 
   // The same switch carried on from wherever the history now is: back to the first entry and the
-  // same stack built there. What the first plan put aside stays put aside — planning afresh from
-  // the mirror would put aside a half-built history as the tab that was left.
+  // same stack built there, not planned afresh from a half-built mirror.
   const resume = (target, stack, retries, intent) => {
     const idx = historyIdx()
     run({ back: Number.isInteger(idx) ? idx : navRef.current.idx, stack, nav: { ...navRef.current, tab: target } },
@@ -205,7 +205,7 @@ export function useTabNav({ navigate, location, navType }) {
       if (crossesTab(nav, location, navType)) {
         const target = tabOf(location.pathname)
         const here = Number.isInteger(idx) ? idx : nav.idx + 1
-        const plan = planSwitch({ ...nav, idx: here }, target, { path, leaving: nav.entries.slice(0, here) })
+        const plan = planSwitch({ ...nav, idx: here }, target, { path })
         const pushed = location.state?.pushed ? { pushed: true, from: location.state.from } : null
         run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target, pushed })
         return
@@ -246,7 +246,7 @@ export function useTabNav({ navigate, location, navType }) {
         const target = tabOf(location.pathname)
         if (target && target !== p.target) {
           const here = Number.isInteger(idx) ? idx : built.length
-          const plan = planSwitch({ ...navRef.current, idx: here }, target, { path, leaving: p.stack })
+          const plan = planSwitch({ ...navRef.current, idx: here }, target, { path })
           run(plan, { shownLocation: lastShown.current || location, shownTab: p.target, target })
           return
         }
