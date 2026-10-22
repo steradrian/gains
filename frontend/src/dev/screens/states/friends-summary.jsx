@@ -61,11 +61,11 @@ const screen = (me, groups, together) => () => (
 const state = (id, title, note, share, render) => ({ id, title, note, path: PATH, mock: { user: USER, S: store(share) }, render })
 
 registerScreens('Friends: surfaces', [
-  state('friends-surfaces-summary', 'W2.3 Summary, Friends will see', 'Defaults: Push A done is on, Trained together with Ioana is on, the new best (Cable fly) is off, Don’t share this one is off.',
+  state('friends-surfaces-summary', 'W2.3 Summary, Friends will see', 'Defaults: Push A done is on, Trained together with Ioana is on, the new best (Cable fly) is off.',
     undefined, screen(ME_ON, ONE_GROUP, TOGETHER)),
   state('friends-surfaces-summary-best', 'W2.3 Summary, a new best shared', 'New best: Cable fly switched on; the record holds the exercise id only.',
     { best: [FLY] }, screen(ME_ON, ONE_GROUP, TOGETHER)),
-  state('friends-surfaces-summary-off', 'W2.3 Summary, Don’t share this one', 'Don’t share this one is on: Push A done reads off and the other rows are disabled.',
+  state('friends-surfaces-summary-push-off', 'W2.3 Summary, Push A done off', 'Push A done is the one switch for keeping the workout private: off, it reads “Keeps the whole workout to yourself” and the rows under it are greyed out.',
     { off: true, best: [FLY] }, screen(ME_ON, ONE_GROUP, TOGETHER)),
   state('friends-surfaces-summary-alone', 'W2.3 Summary, no one trained with you', 'No Trained together row: nobody logged the same routine the same day.',
     undefined, screen(ME_ON, ONE_GROUP, NONE)),
