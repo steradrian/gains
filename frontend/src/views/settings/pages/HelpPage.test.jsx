@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUI } from '../../../store/useUI.js'
+import { setNav } from '../../../lib/nav.js'
 import { BRAND } from '../../../brand.js'
 import { PAGES, SEARCH, searchSettings } from '../../settings-pages.js'
 import { HELP_TOPICS } from '../help-topics.js'
@@ -86,11 +87,11 @@ describe('Help page', () => {
 })
 
 describe('Help drawer', () => {
-  const draw = async (topic, entry = '/me/help') => {
+  const draw = async (topic, entry = '/me/help', close = vi.fn()) => {
     await act(async () => {
       root.render(
         <MemoryRouter initialEntries={[entry]}>
-          <Routes><Route path="*" element={<><HelpSheet topic={topic} close={vi.fn()} /><Where /></>} /></Routes>
+          <Routes><Route path="*" element={<><HelpSheet topic={topic} close={close} /><Where /></>} /></Routes>
         </MemoryRouter>,
       )
     })
@@ -98,11 +99,27 @@ describe('Help drawer', () => {
   const topic = id => HELP_TOPICS.find(h => h.id === id)
 
   it('offers a button to the page the answer is about, and it goes there', async () => {
-    await draw(topic('plan'))
+    const calls = []
+    setNav((...a) => { calls.push(a) })
+    history.replaceState(null, '', '#/me/help')
+    const close = vi.fn()
+    await draw(topic('plan'), '/me/help', close)
     const go = [...host.querySelectorAll('button')].find(b => b.textContent === 'Open Schedule')
     expect(go).toBeTruthy()
     await act(async () => { go.click() })
-    expect(host.querySelector('[data-testid="where"]').textContent).toBe('/me/schedule')
+    expect(close).toHaveBeenCalledOnce()
+    expect(calls).toEqual([['/me/schedule']])
+  })
+
+  it('Open <page> hands the drawer\'s history entry to the page, so one Back leaves it', async () => {
+    const calls = []
+    setNav((...a) => { calls.push(a) })
+    history.pushState({ gainsSheet: true }, '')
+    await draw(topic('plan'))
+    const go = [...host.querySelectorAll('button')].find(b => b.textContent === 'Open Schedule')
+    await act(async () => { go.click() })
+    expect(calls).toEqual([['/me/schedule', { replace: true }]])
+    history.replaceState(null, '', '#/home')
   })
 
   it('leaves the button out where the page is not there for this profile (food off the web app)', async () => {

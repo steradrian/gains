@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom'
 import { t } from '../../../lib/i18n.js'
+import { closeThenNav } from '../../../lib/nav.js'
 import { useUI } from '../../../store/useUI.js'
 import BottomSheet from '../../../ds/BottomSheet.jsx'
 import Button from '../../../ds/Button.jsx'
@@ -11,7 +11,6 @@ import { useSettingsCtx } from '../use-settings-ctx.js'
 // the page that does the thing, when that page exists for this profile. The answer is already
 // short (help-topics.js); a drawer, not a page, keeps the list one tap away.
 export function HelpSheet({ topic, close }) {
-  const nav = useNavigate()
   const ctx = useSettingsCtx()
   const target = topic.goTo && pageVisible(topic.goTo, ctx) ? topic.goTo : null
   return (
@@ -19,7 +18,7 @@ export function HelpSheet({ topic, close }) {
       <div className="set-help-answer">
         <p>{t(topic.answer)}</p>
         {target && (
-          <Button variant="secondary" block onClick={() => { close(); nav(settingsPath(target)) }}>
+          <Button variant="secondary" block onClick={() => closeThenNav(close, settingsPath(target))}>
             {t('Open {0}', t(PAGES[target].title))}
           </Button>
         )}
