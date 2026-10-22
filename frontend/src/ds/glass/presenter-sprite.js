@@ -1,5 +1,5 @@
 import { lookUniformValues } from '../../lib/stage-look/renderer.js'
-import { createGlassGL } from './glass-gl.js'
+import { acquireGlassGL, createGlassGL, releaseGlassGL } from './glass-gl.js'
 import { KIND, STRENGTH } from './glass-kinds.js'
 import { SPRITE_CLASS } from './glass-registry.js'
 
@@ -16,11 +16,12 @@ import { SPRITE_CLASS } from './glass-registry.js'
 // same per-kind optics, the press swell and the contact shadow drawn in the sprite (its margin holds the
 // shadow), at the fixed presenter's device-pixel ratio unless `cardDpr` lowers the cards'.
 //
-// Only the refraction's content can lag, and only when the element moves: a scroll refreshes at most
-// 12 times a second plus once exactly 120 ms after it stops, a look tick at most 15 times a second, a
-// press every frame for the pressed element. A size, kind, material, look or pushed change refreshes at
-// once. A shape more than a viewport away (the registry's `near`) gives its sprite back (`width = height
-// = 0`, removed) and returns to the CSS material until it comes near again.
+// Only the refraction's content can lag, and only when the element moves: a scroll refreshes the sprites
+// on screen at most 12 times a second plus once exactly 120 ms after it stops, a look tick at most 15
+// times a second, a press every frame for the pressed element. A size, kind, material, look or pushed
+// change refreshes at once, and so does a stale sprite coming on screen. Sprites are made for shapes up to
+// half a viewport away (the engine's read band) and a shape more than a viewport away (the registry's
+// `near`) gives its sprite back (`width = height = 0`, removed) and returns to the CSS material.
 //
 // Copy paths, both kept until M7 (the dev HUD measures them):
 //   draw2d: a 2D context per sprite, `drawImage(atlas, sx, sy, sw, sh, 0, 0, sw, sh)`;
@@ -40,6 +41,7 @@ const ROUND = 64 // atlas sizes step, so a slightly larger set doesn't reallocat
 const MAX_DPR = 3
 const LOOK_MAX_DPR = 2 // StageLook's own cap, as in presenter-fixed.js
 const MOVE_EPS = 0.1
+const VISIBLE_BAND = 80 // px outside the viewport that still counts as on screen (the registry's own band)
 
 // Elements that can't hold a child canvas, or whose children aren't rendered: they keep the CSS material.
 const NO_HOST = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'IMG', 'PICTURE', 'VIDEO', 'AUDIO', 'CANVAS', 'IFRAME',
@@ -110,10 +112,16 @@ export function planRefresh(cands, clock, now) {
   let look = false
   let pending = false
   cands.forEach((c, i) => {
-    if (c.hard || c.pressed || (c.moved && scrollDue) || (c.look && lookDue)) {
+    // Only a throttled refresh restarts its throttle: during a fling a sprite comes on screen (a refresh at
+    // once) nearly every frame, and if that counted, the sprites already on screen would never refresh.
+    const byScroll = c.moved && scrollDue
+    const byLook = c.look && lookDue
+    if (c.hard || c.pressed || byScroll || byLook) {
       refresh.push(i)
-      if (c.moved) scroll = true
-      if (c.look) look = true
+      if (!c.hard && !c.pressed) {
+        if (byScroll) scroll = true
+        if (byLook) look = true
+      }
     } else if (c.moved || c.look) {
       pending = true
     }
@@ -124,12 +132,13 @@ export function planRefresh(cands, clock, now) {
 const roundUp = n => Math.max(ROUND, Math.ceil(n / ROUND) * ROUND)
 
 /**
- * @param {{ copy?: 'draw2d' | 'bitmap', cardDpr?: number, shadow?: 'shader' | 'css', makeRenderer?: (canvas: HTMLCanvasElement) => object | null,
- *   now?: () => number }} opts
+ * @param {{ copy?: 'draw2d' | 'bitmap', cardDpr?: number, shadow?: 'shader' | 'css', now?: () => number,
+ *   renderers?: { acquire(): object | null, release(r: object): void, renew(canvas: HTMLCanvasElement): object | null } }} opts
  *   `cardDpr`: the cards' device-pixel cap (3 = the fixed presenter's, so the same material; 2 halves their memory).
  *   `shadow`: 'shader' draws the contact shadow in the sprite (the fixed presenter's); 'css' gives it to the
  *   element's box-shadow through --glass-edge, which is approximate but keeps sprites small.
- *   `makeRenderer`: tests inject a fake for glass-gl.js.
+ *   `renderers`: glass-gl.js's pool (the atlas renderer and its canvas), and a new renderer on the same canvas
+ *   after a lost context is restored; tests inject fakes.
  * @returns {{ mount(hooks: { onReady(el: Element): void, onRelease(el: Element): void, onLost(): void, onRestored(): void,
  *     onCopy?(transferMs: number, latencyMs: number): void }): boolean,
  *   draw(shapes: object[], material: object, look: object, ctx: { lookId: string, keep(el: Element): boolean }): { drew: boolean, pending: boolean },
@@ -139,7 +148,8 @@ const roundUp = n => Math.max(ROUND, Math.ceil(n / ROUND) * ROUND)
  * sprite missing from this frame's list is kept rather than released.
  */
 export function createSpritePresenter({
-  copy = COPY.DRAW, cardDpr = MAX_DPR, shadow = SHADOW.SHADER, makeRenderer = createGlassGL, now = () => performance.now(),
+  copy = COPY.DRAW, cardDpr = MAX_DPR, shadow = SHADOW.SHADER, now = () => performance.now(),
+  renderers = { acquire: acquireGlassGL, release: releaseGlassGL, renew: createGlassGL },
 } = {}) {
   /** @type {Map<Element, object>} */
   const sprites = new Map()
@@ -155,10 +165,9 @@ export function createSpritePresenter({
 
   function mount(h) {
     hooks = h
-    atlas = document.createElement('canvas')
-    atlas.width = atlas.height = 1
-    gl = makeRenderer(atlas)
+    gl = renderers.acquire()
     if (!gl) return false
+    atlas = gl.canvas // detached: only ever read from
     const onLost = e => {
       e.preventDefault() // without it the browser never restores the context
       gl = null
@@ -166,7 +175,7 @@ export function createSpritePresenter({
       hooks.onLost()
     }
     const onRestored = () => {
-      gl = makeRenderer(atlas)
+      gl = renderers.renew(atlas)
       if (gl) hooks.onRestored()
     }
     atlas.addEventListener('webglcontextlost', onLost)
@@ -320,14 +329,21 @@ export function createSpritePresenter({
       const d = sp.drawn
       const touch = s.touch ? `${s.touch[0].toFixed(1)},${s.touch[1].toFixed(1)}` : ''
       if (sp.skip === sizeKey) continue // larger than the atlas: it keeps the CSS material
+      // Scroll and look refreshes are for sprites on screen; one that comes on screen stale refreshes at
+      // once, VISIBLE_BAND px before it shows.
+      const visible = s.box.y + s.box.hh > -VISIBLE_BAND && s.box.y - s.box.hh < vh + VISIBLE_BAND
+        && s.box.x + s.box.hw > -VISIBLE_BAND && s.box.x - s.box.hw < vw + VISIBLE_BAND
+      const entering = visible && !sp.visible
+      sp.visible = visible
       const moved = !!d && (Math.abs(d.x - s.box.x) > MOVE_EPS || Math.abs(d.y - s.box.y) > MOVE_EPS)
+      const lookStale = !!d && d.dyn !== dyn
       kept.push({ s, sp })
       cands.push({
-        hard: !d || sp.sizeKey !== sizeKey || d.stat !== ctx.lookId || d.mat !== matKey,
+        hard: !d || sp.sizeKey !== sizeKey || d.stat !== ctx.lookId || d.mat !== matKey || (entering && (moved || lookStale)),
         pressed: !!d && (d.press !== s.press || d.touch !== touch),
-        moved,
-        look: !!d && d.dyn !== dyn,
-        lag: d ? Math.hypot(d.x - s.box.x, d.y - s.box.y) : 0,
+        moved: visible && moved,
+        look: visible && lookStale,
+        lag: visible && d ? Math.hypot(d.x - s.box.x, d.y - s.box.y) : 0,
         sizeKey,
         touch,
       })
@@ -406,9 +422,8 @@ export function createSpritePresenter({
     for (const el of [...sprites.keys()]) release(el)
     cleanups.forEach(fn => fn())
     cleanups.length = 0
-    gl?.destroy()
+    if (gl) renderers.release(gl)
     gl = null
-    if (atlas) { atlas.width = 0; atlas.height = 0 }
     atlas = null
   }
 

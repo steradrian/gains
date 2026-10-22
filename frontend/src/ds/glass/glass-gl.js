@@ -339,12 +339,40 @@ export function createGlassGL(canvas) {
     gl.drawArrays(gl.TRIANGLES, 0, shapes.length * 6)
   }
 
-  // No loseContext(): the canvas hands the same context back to the next mount (StrictMode mounts
-  // twice), and a lost one would fail every compile after it.
+  // No loseContext(): WebKit doesn't free a context's slot until it is garbage collected anyway (see the
+  // pool below), and a lost context fails every compile on that canvas after it.
   function destroy() {
     gl.deleteBuffer(buf)
     gl.deleteProgram(prog)
+    canvas.width = 0
+    canvas.height = 0
   }
 
-  return { draw, destroy }
+  return { draw, destroy, canvas, isLost: () => gl.isContextLost() }
+}
+
+// Renderers are pooled, canvas and context together. WebKit allows 16 WebGL contexts per page and drops
+// the oldest past that, and a context counts until it is garbage collected, even after loseContext(). An
+// engine rebuild (StrictMode's second mount, every presenter switch on #/dev/glass) would otherwise make
+// new contexts each time, and a few switches would drop the oldest live one: the stage look's.
+const POOL_MAX = 6
+const pool = []
+
+/** A renderer on its own canvas (`.canvas`, detached), from the pool or new; null without usable WebGL. */
+export function acquireGlassGL() {
+  while (pool.length) {
+    const r = pool.pop()
+    if (!r.isLost()) return r
+  }
+  return createGlassGL(document.createElement('canvas'))
+}
+
+/** Gives a renderer back: its canvas leaves the page and drops its buffer. A lost one is discarded. */
+export function releaseGlassGL(r) {
+  if (!r) return
+  r.canvas.remove()
+  if (r.isLost() || pool.length >= POOL_MAX) { r.destroy(); return }
+  r.canvas.width = 1
+  r.canvas.height = 1
+  pool.push(r)
 }

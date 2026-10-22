@@ -3,7 +3,7 @@ import { currentPhase, REST_PHASE } from '../../lib/stage-look/clock.js'
 import { reducedMotion } from '../../lib/reduced-motion.js'
 import { lookUniformValues } from '../../lib/stage-look/renderer.js'
 import { themeOf } from '../../lib/themes.js'
-import { createGlassGL } from './glass-gl.js'
+import { acquireGlassGL, releaseGlassGL } from './glass-gl.js'
 import { isChrome, KIND, swollen } from './glass-kinds.js'
 import { createRegistry } from './glass-registry.js'
 import { createScheduler } from './glass-scheduler.js'
@@ -193,21 +193,23 @@ export function createGlassEngine({
   }
 
   let stage = null // the "stage only" check: { layer, canvas, gl, key }
+  const dropStage = () => {
+    if (!stage) return
+    releaseGlassGL(stage.gl)
+    stage.layer.remove()
+    stage = null
+  }
   function drawStage(inp, look, material) {
-    if (!inp.stageOnly) {
-      if (stage) { stage.gl.destroy(); stage.layer.remove(); stage = null }
-      return
-    }
+    if (!inp.stageOnly) { dropStage(); return }
     if (!stage) {
+      const gl = acquireGlassGL()
+      if (!gl) return
       const layer = document.createElement('div')
       layer.className = 'gl-layer gl-layer-stage'
       layer.setAttribute('aria-hidden', 'true')
-      const canvas = document.createElement('canvas')
-      layer.appendChild(canvas)
+      layer.appendChild(gl.canvas)
       host.prepend(layer) // under the under canvas: it stands in for the real stage, nothing more
-      const gl = createGlassGL(canvas)
-      if (!gl) { layer.remove(); return }
-      stage = { layer, canvas, gl, key: '' }
+      stage = { layer, canvas: gl.canvas, gl, key: '' }
     }
     const vw = window.innerWidth
     const vh = window.innerHeight
@@ -225,7 +227,8 @@ export function createGlassEngine({
   function draw(dt) {
     const inp = getInputs()
     const vh = window.innerHeight
-    const raw = registry.read(sprites ? { band: vh, faded: true } : undefined)
+    // Sprites are made half a viewport ahead, so on iOS's async scroll a shape has its glass before it shows.
+    const raw = registry.read(sprites ? { band: vh / 2, faded: true } : undefined)
     const moving = scheduler.springs.step(dt)
     const shapes = raw.map(s => compose(s, dt))
     scheduler.springs.flush()
@@ -317,7 +320,7 @@ export function createGlassEngine({
       registry.dispose()
       presenter.dispose()
       probe.dispose()
-      if (stage) { stage.gl.destroy(); stage.layer.remove(); stage = null }
+      dropStage()
       lensMotion.clear()
     },
   }

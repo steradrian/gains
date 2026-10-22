@@ -28,7 +28,11 @@ export function createStats({ windowMs = 2000 } = {}) {
     if (value > s.max) s.max = value
   }
 
-  /** { p50, p95, max, n } over the window ending at the series' newest sample; null with no samples. */
+  /**
+   * { mean, p50, p95, max, n } over the window ending at the series' newest sample; null with no samples.
+   * WebKit rounds performance.now() to 1 ms, so a sub-millisecond cost reads as 0 or 1 in every sample:
+   * the mean of many samples is the number to read for those, the percentiles for the long frames.
+   */
   function summary(name) {
     const s = series.get(name)
     if (!s || !s.t.length) return null
@@ -36,7 +40,8 @@ export function createStats({ windowMs = 2000 } = {}) {
     const vals = []
     for (let i = s.t.length - 1; i >= 0 && end - s.t[i] <= windowMs; i--) vals.push(s.v[i])
     vals.sort((a, b) => a - b)
-    return { p50: pct(vals, 0.5), p95: pct(vals, 0.95), max: s.max, n: vals.length }
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+    return { mean, p50: pct(vals, 0.5), p95: pct(vals, 0.95), max: s.max, n: vals.length }
   }
 
   const set = (name, value) => { gauges[name] = value }
