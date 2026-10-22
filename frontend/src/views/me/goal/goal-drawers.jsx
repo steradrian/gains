@@ -6,6 +6,7 @@ import RadioRow from '../../../ds/RadioRow.jsx'
 import SegmentedControl from '../../../ds/SegmentedControl.jsx'
 import TextField from '../../../ds/TextField.jsx'
 import { t } from '../../../lib/i18n.js'
+import { useNutrition } from '../../../lib/nutrition/store.js'
 import { useUI } from '../../../store/useUI.js'
 import { bwSheet, bwTooHeavy } from '../../../sheets.jsx'
 import {
@@ -75,9 +76,17 @@ function Pending({ title }) {
   return <BottomSheet title={title}><i className="g-skel mg-sk" /></BottomSheet>
 }
 
+// Only a drawer with no settings yet waits. A save re-reads them (status 'loading' with the data still
+// there), and the form must stay mounted through that, with Save disabled by `busy`, or the typed
+// values are lost (the pattern of TargetsDrawer).
+function useWaiting(g) {
+  const hasData = useNutrition(s => !!s.settings.data)
+  return g.status === 'loading' && !hasData
+}
+
 function TargetDrawer({ close }) {
   const g = useGoal()
-  return g.status === 'loading' ? <Pending title={t('Target weight')} /> : <TargetForm g={g} close={close} />
+  return useWaiting(g) ? <Pending title={t('Target weight')} /> : <TargetForm g={g} close={close} />
 }
 
 function TargetForm({ g, close }) {
@@ -115,7 +124,7 @@ export const targetWeightSheet = () => useUI.getState().openSheet(close => <Targ
 // Read-only while the hub refuses the profile keys (PROFILE_WRITES_LIVE in lib/me/goal-writes.js).
 function BodyDrawer({ close }) {
   const g = useGoal()
-  return g.status === 'loading' ? <Pending title={t('Body details')} /> : <BodyForm g={g} close={close} />
+  return useWaiting(g) ? <Pending title={t('Body details')} /> : <BodyForm g={g} close={close} />
 }
 
 function BodyForm({ g, close }) {

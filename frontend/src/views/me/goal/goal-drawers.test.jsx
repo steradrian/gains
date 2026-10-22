@@ -303,6 +303,36 @@ describe('Body details (Me3BodySheet), live', () => {
     expect(sheetsOpen()).toBe(1)
   })
 
+  it('keeps the typed values when the settings re-read (status loading, data still there) mid-save', async () => {
+    bodyDetailsSheet()
+    const { host, field, button, press } = await renderTop()
+    act(() => type(field('Birth year').querySelector('input'), '1990'))
+    act(() => useNutrition.setState({ settings: { status: 'loading', data: clone(server), error: null } }))
+    expect(host.querySelector('.mg-sk')).toBeNull()
+    expect(field('Birth year').querySelector('input').value).toBe('1990')
+    await press(button('Save body details'))
+    expect(keysOf()).toContain('dob')
+    expect(server.dob).toBe('1990-07-01')
+  })
+
+  it('Target weight keeps its typed value through a settings re-read too', async () => {
+    targetWeightSheet()
+    const { host, field } = await renderTop()
+    act(() => type(field('Target weight').querySelector('input'), '75'))
+    act(() => useNutrition.setState({ settings: { status: 'loading', data: clone(server), error: null } }))
+    expect(host.querySelector('.mg-sk')).toBeNull()
+    expect(field('Target weight').querySelector('input').value).toBe('75')
+  })
+
+  it('a drawer opened before any settings arrived waits with a skeleton', async () => {
+    useNutrition.getState().reset()
+    useNutrition.setState({ settings: { status: 'loading', data: null, error: null } })
+    vi.mocked(NtApi.getSettings).mockImplementation(() => new Promise(() => {}))
+    bodyDetailsSheet()
+    const { host } = await renderTop()
+    expect(host.querySelector('.mg-sk')).not.toBeNull()
+  })
+
   it('a hub that refuses the profile keys keeps the drawer open and turns the drawer read-only', async () => {
     vi.mocked(NtApi.putSetting).mockImplementation(async key => { calls.push([key]); throw Object.assign(new Error('no'), { status: 400 }) })
     bodyDetailsSheet()
