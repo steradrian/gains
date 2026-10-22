@@ -37,6 +37,11 @@ describe('ResultChips', () => {
     expect(onSelect).toHaveBeenCalledWith('exercises')
   })
 
+  it('draws every chip as flat glass, the lit one included', () => {
+    view.render(<ResultChips items={ITEMS} active="workouts" />)
+    expect(chips().map(c => c.dataset.glass)).toEqual(['flat', 'flat'])
+  })
+
   it('draws nothing with no counts', () => {
     view.render(<ResultChips items={[]} />)
     expect(view.host.innerHTML).toBe('')

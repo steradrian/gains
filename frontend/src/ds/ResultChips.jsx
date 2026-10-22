@@ -13,7 +13,7 @@ export default function ResultChips({ items, active, onSelect }) {
       {items.map(c => {
         const on = active === c.group
         return (
-          <button key={c.group} type="button" className={cx('g-rchip', on ? 'on' : 'g-glass')} aria-pressed={on}
+          <button key={c.group} type="button" className={cx('g-rchip', on ? 'on' : 'g-glass')} data-glass="flat" aria-pressed={on}
             onClick={() => onSelect?.(c.group)} aria-label={t('{0}, show only these', c.text)}>
             <b>{c.count.toLocaleString(dateLocale())}</b><span>{c.noun}</span>
           </button>

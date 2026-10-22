@@ -10,7 +10,7 @@ export default function StageDayCount({ values, value, onPick, labelledBy, label
     <div className="g-daycount" role="radiogroup" aria-labelledby={labelledBy} onKeyDown={onKeyDown}>
       {values.map(n => (
         <button key={n} type="button" role="radio" aria-checked={value === n} tabIndex={tabIndexOf(n)}
-          aria-label={labelOf?.(n)} className={cx('g-daycount-k', value === n ? 'on' : 'g-glass')}
+          aria-label={labelOf?.(n)} className={cx('g-daycount-k', value === n ? 'on' : 'g-glass')} data-glass="flat"
           onClick={() => onPick(n, { viaKey: false })}>{n}</button>
       ))}
     </div>
