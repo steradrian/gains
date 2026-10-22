@@ -11,6 +11,7 @@ import { EXIDX } from './exercises.js'
 import { routineFromSession } from './session-routines.js'
 import { buildSets, applyIntensifierPlan, modeOf, setsFromRows } from './history.js'
 import { isWarmupRow } from './workout-model.js'
+import { partOf, normaliseParts } from './workout-parts.js'
 import { dropGrid } from './plates.js'
 import { weightIncrement, defaultIncrement } from './progression.js'
 
@@ -43,9 +44,12 @@ export function repeatSessionEntries(st, w, { exists = id => !!EXIDX[id] } = {})
     const only = { ...st, workouts: [{ ...w, entries: [source] }] }
     const sets = applyIntensifierPlan(buildSets(only, cfg, { step, preferLast: true }), cfg, dropGrid(st, cfg))
       .map(row => ({ ...row, done: false }))
-    entries.push({ id: cfg.id, ...(sg ? { sg } : {}), target: { ...cfg }, plan: null, sets })
+    // The part of the workout (lib/workout-parts.js) repeats with the day: routineFromSession
+    // copies it into the setup.
+    const part = partOf(setup)
+    entries.push({ id: cfg.id, ...(sg ? { sg } : {}), ...(part !== 'main' ? { part } : {}), target: { ...cfg }, plan: null, sets })
   })
-  return { entries: regroup(entries), skipped }
+  return { entries: normaliseParts(regroup(entries)), skipped }
 }
 
 // A superset whose other half was skipped is one exercise on its own, not a group of one.

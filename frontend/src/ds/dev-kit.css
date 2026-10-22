@@ -20,3 +20,9 @@
 .g-kit-page .g-screen, .g-kit-page .g-screen > .g-stage, .g-kit-page .g-screen > .g-stage > .g-stage-body { min-height: 0; }
 .g-kit-pbody { padding: 16px 20px 320px; }
 .g-kit-pbody p, .g-kit-trail { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+/* Workout kit: a phone-width piece of the stage the workout's parts are drawn on. The footer and a
+   bar toast are placed against the frame's foot, so those frames have a height of their own. */
+.g-kit-wk { position: relative; width: min(100%, 420px); display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-4); border-radius: var(--radius-lg); overflow: hidden; background: linear-gradient(170deg, var(--accent-stage), var(--accent-stage-end) 900px); }
+.g-kit-wk-pad { padding: var(--space-4) 0; }
+.g-kit-wk-foot { height: 220px; }
+.g-kit-wk-foot-up { height: 260px; }

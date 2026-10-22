@@ -10,7 +10,7 @@ import { useTrain } from './use-train.js'
 const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav, useLocation: () => ({ pathname: '/train' }) }))
 const sheets = vi.hoisted(() => ({
-  startFlow: vi.fn(), dayOverrideSheet: vi.fn(), dayNoteSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), starterPlanSheet: vi.fn(),
+  readyOrStart: vi.fn(), dayOverrideSheet: vi.fn(), dayNoteSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), starterPlanSheet: vi.fn(),
   menuSheet: vi.fn(), workoutDetailSheet: vi.fn(),
 }))
 vi.mock('../../sheets.jsx', () => sheets)
@@ -102,7 +102,7 @@ describe('useTrain', () => {
     setS()
     await mount()
     act(() => train.onIntent(train.card().primary))
-    expect(sheets.startFlow).toHaveBeenCalledWith(['push'])
+    expect(sheets.readyOrStart).toHaveBeenCalledWith(['push'])
     act(() => train.onIntent(train.card(FRI).primary))
     expect(libNav).toHaveBeenCalledWith('/train/day/' + FRI, undefined)
     expect(sheets.logPastWorkoutSheet).not.toHaveBeenCalled()
@@ -119,7 +119,7 @@ describe('useTrain', () => {
     setS({ active: { name: 'Pull A', start: 5, entries: [] } })
     await mount()
     act(() => train.onRoutineStart(train.routines[0]))
-    expect(sheets.startFlow).not.toHaveBeenCalled()
+    expect(sheets.readyOrStart).not.toHaveBeenCalled()
     expect(nav).toHaveBeenCalledWith('/train/workout')
   })
 

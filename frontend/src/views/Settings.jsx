@@ -405,13 +405,11 @@ export default function Settings({ page = null, find = null, via = null }) {
   }
   const mode = scheduleModeOf(S)
   const modeLabel = externalQ ? t('Rotation') + ' · ' + t('Externally managed') : mode === 'rotation' ? t('Rotation') : t('Fixed Week')
-  const layout = ['list', 'compact', 'focus'].includes(S.workoutView) ? S.workoutView : 'cards'
-  const layoutLabel = { cards: t('Cards'), list: t('List'), compact: t('Compact') }[layout]
   const activeProfile = (S.equipProfiles || []).find(p => p.id === S.activeEquipId)
   const themeLabel = { dark: t('Dark'), light: t('Light'), system: t('System') }[S.theme || 'dark'] || t('Dark')
   // The value a root row shows, so most questions are answered without opening the page.
   const preview = {
-    workout: () => (S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')) + ' · ' + layoutLabel,
+    workout: () => (S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer')),
     alerts: () => [S.sound ? t('Sound') : null, canVibrate && S.vibrate !== false ? t('Vibrate') : null, S.timerFlash ? t('Flash') : null].filter(Boolean).join(' · ') || t('Silent'),
     reminders: () => (S.reminder?.on ? (S.reminder.time || DEF.reminder?.time || '') : t('Off')),
     schedule: () => (mode === 'rotation' ? t('Rotation') : t('Fixed Week')) + ' · ' + shortWeekday(weekStartOf(S) === SUNDAY ? 0 : 1),
@@ -472,22 +470,6 @@ export default function Settings({ page = null, find = null, via = null }) {
             { value: 'last', label: t('Last time'), subtitle: t('What you did the last time, in that routine.') },
             { value: 'best', label: t('Best set'), subtitle: t('Your heaviest set of the exercise, from any workout.') },
           ]} />
-        {/* One exercise at a time (cards with Prev/Next), the whole session stacked as a
-            scrollable list, or that list stripped to just names and set rows (compact). Legacy or
-            unknown values read as cards. The workout's ⋯ menu can override it for one session. */}
-        <Row icon="layout" iconTint="var(--blue)" title={t('Layout')}>
-          <Segmented className="seg-inline"
-            options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }, { value: 'focus', label: t('Focus') }]}
-            value={layout} onChange={v => update(s => { s.workoutView = v })} />
-        </Row>
-        {/* The saved side of the Layout menu's "Collapse completed exercises" (#241): on here, every
-            session starts with it, and the menu still flips it for one session. Setting it here
-            also drops a running session's own choice, so the switch does what it says right away. */}
-        <Row icon="minimize" iconTint="var(--teal)" title={t('Collapse completed exercises')}
-          subtitle={t('In List and Compact, a finished exercise folds into one line.')}>
-          <Switch aria-label={t('Collapse completed exercises')} checked={!!S.collapseCompleted}
-            onChange={v => update(s => { s.collapseCompleted = v; if (s.active) delete s.active.collapseCompleted })} />
-        </Row>
       </Section>
       <Section title={t('Before and during')}>
         {/* The quick weigh-in that opens on Start (sheets.jsx startFlow, issue #137); off skips
@@ -537,30 +519,11 @@ export default function Settings({ page = null, find = null, via = null }) {
               onChange={v => update(s => { s.timedSetOvertime = v })} />
           </Row>
         </Section>
-        {/* The lean workout screen keeps the sets and one "more" button per exercise; each switch
-            brings one of the old always-visible button groups back for people who liked them. */}
-        <Section title={t('Buttons on the workout screen')} footer={t('Everything hidden here stays one tap away: the ⋯ button of an exercise and the number of a set.')}>
-          <Row icon="plusCircle" iconTint="var(--green)" title={t('Weight and reps buttons')} subtitle={t('Off: tap the number and type it')}>
-            <Switch checked={wc.steppers} onChange={v => setWc('steppers', v)} />
-          </Row>
-          <Row icon="bolt" iconTint="var(--orange)" title={t('Drop and burst shortcuts on every set')}>
-            <Switch checked={wc.setShortcuts} onChange={v => setWc('setShortcuts', v)} />
-          </Row>
+        <Section>
           {/* Swipe actions (v1.3.11): not a button, but the same question of what a set row does. The
               one switch covers Plan's lists too; the stored key keeps its old name, swipeSets. */}
           <Row icon="swap" iconTint="var(--indigo)" title={t('Swipe actions')} subtitle={t('Sets, routines and the loop: left removes, right copies')}>
             <Switch aria-label={t('Swipe actions')} checked={wc.swipeSets} onChange={v => setWc('swipeSets', v)} />
-          </Row>
-          {/* The chip row at the top of a workout (#323): not a button row, but the same question of
-              what the workout screen shows. On by default, it is about one line tall. */}
-          <Row icon="more" iconTint="var(--mint)" title={t('Exercise chips at the top')} subtitle={t('A numbered dot per exercise, filled as you go. Tap one to jump there.')}>
-            <Switch aria-label={t('Exercise chips at the top')} checked={wc.exerciseChips} onChange={v => setWc('exerciseChips', v)} />
-          </Row>
-          <Row icon="link" iconTint="var(--blue)" title={t('Superset buttons in the exercise header')}>
-            <Switch checked={wc.pairButtons} onChange={v => setWc('pairButtons', v)} />
-          </Row>
-          <Row icon="swap" iconTint="var(--teal)" title={t('Move, swap and remove buttons below the exercise')}>
-            <Switch checked={wc.exerciseButtons} onChange={v => setWc('exerciseButtons', v)} />
           </Row>
         </Section>
       </>

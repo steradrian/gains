@@ -1114,3 +1114,23 @@ describe('body measurements across devices (#82)', () => {
     expect(next.measurements[0].t).toBe(1000)
   })
 })
+
+// Workout core M1: the part of the workout (lib/workout-parts.js) is a routine entry field like
+// any other, so it rides with the routine copy that was edited last.
+describe('a routine entry\'s part merges like any routine field', () => {
+  const r = (id, part, ts) => ({ id, name: id, ex: [{ id: 'bike', sets: 1, ...(part ? { part } : {}) }, { id: 'bench', sets: 3 }], _ts: ts })
+
+  it('the copy edited last decides the part, both ways round', () => {
+    const phone = base({ _ts: 100, routines: [r('push', 'warmup', 90)] })
+    const desk = base({ _ts: 200, routines: [r('push', null, 20)] })
+    const m = mergeStates(phone, desk)
+    expect(m.routines.find(x => x.id === 'push').ex[0].part).toBe('warmup')
+    expect(mergeStates(desk, phone).routines).toEqual(m.routines)
+  })
+
+  it('a part removed later is gone after the merge', () => {
+    const phone = base({ _ts: 100, routines: [r('push', 'cooldown', 10)] })
+    const desk = base({ _ts: 200, routines: [r('push', null, 150)] })
+    expect(mergeStates(phone, desk).routines.find(x => x.id === 'push').ex[0].part).toBeUndefined()
+  })
+})

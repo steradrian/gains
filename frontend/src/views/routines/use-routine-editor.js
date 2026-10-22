@@ -14,7 +14,8 @@ import { setSupersetMeta, supersetMeta } from '../../lib/superset-meta.js'
 import { usualDuration } from '../../lib/train-stats.js'
 import { leaveTo } from '../../lib/use-tab-nav.js'
 import { workoutControls } from '../../lib/workout-controls.js'
-import { exConfigSheet, exercisePicker, replaceExerciseSheet, routineMenuSheet, startFlow, supersetSheet } from '../../sheets.jsx'
+import { normaliseParts, partOf } from '../../lib/workout-parts.js'
+import { exConfigSheet, exercisePicker, replaceExerciseSheet, routineMenuSheet, readyOrStart, supersetSheet } from '../../sheets.jsx'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { musclesLine } from '../train/use-train.js'
@@ -281,14 +282,21 @@ export function useRoutineEditor() {
     const openedOn = e.id
     const holds = () => liveEx()[i]?.id === openedOn
     const linkedPrev = i > 0 && !!e.sg && r.ex[i - 1].sg === e.sg
+    // Workout drawers-M2: "Part of the workout" is kept on the slot, and a slot moved into another
+    // part leaves its superset; the list is put back in warm-up, workout, cool-down order on save.
+    let part = partOf(e)
     exConfigSheet(exOr(e.id), e,
       cfg => edit(x => {
         if (x[i]?.id !== openedOn) return
-        x[i] = { id: x[i].id, sg: x[i].sg, ...(x[i].sg ? { sgName: x[i].sgName, sgRest: x[i].sgRest } : {}), ...cfg }
+        const moved = part !== partOf(x[i])
+        const keepSg = x[i].sg && !moved
+        x[i] = { id: x[i].id, ...(keepSg ? { sg: x[i].sg, sgName: x[i].sgName, sgRest: x[i].sgRest } : {}), ...cfg, ...(part !== 'main' ? { part } : {}) }
+        if (part === 'main') delete x[i].part
         cleanupSg(x)
+        if (moved) x.splice(0, x.length, ...normaliseParts(x))
       }),
       () => { if (holds()) remove(i) }, r, null, () => { if (holds()) replace(i) }, undefined,
-      { removeUndo: true, superset: linkedPrev, onSupersetChange: i > 0 ? on => { if (holds()) toggleSuperset(i, on) } : undefined })
+      { removeUndo: true, superset: linkedPrev, onSupersetChange: i > 0 ? on => { if (holds()) toggleSuperset(i, on) } : undefined, part, onPartChange: p => { part = p } })
   }
   // The arrows move one exercise (#377): inside its superset, out of it at the edge, and past a
   // whole neighbouring unit otherwise (lib/history.js moveRoutineEntry). Drag moves supersets whole.
@@ -330,6 +338,6 @@ export function useRoutineEditor() {
     drop: (from, slot) => edit(ex => { reorderRoutineUnit(ex, from, slot) }),
     toggleSuperset, editSuperset, rename,
     menu: () => routineMenuSheet(id),
-    start: () => (S.active ? nav('/train/workout') : startFlow([id])),
+    start: () => (S.active ? nav('/train/workout') : readyOrStart([id])),
   }
 }

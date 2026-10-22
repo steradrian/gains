@@ -114,19 +114,7 @@ export const DEF = {
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Stats activity heatmap metric. Profiles without this key continue to open on time.
   heatmapMetric: 'time',
-  // How the active workout is laid out — 'cards' (one exercise at a time with Prev/Next),
-  // 'list' (every exercise stacked and scrollable) or 'compact' (that stack stripped to just
-  // names and set rows — no media, tags, notes, last-time or progression line). Purely
-  // presentational: profiles written before this setting existed overlay onto DEF and keep the
-  // 'cards' behaviour. beginWorkout copies the value onto s.active, so the header ⋮ menu can
-  // override it for the running session without touching this saved default.
-  workoutView: 'cards',
-  // List and Compact fold a finished exercise into one line (Settings → Workout; #241). The
-  // workout's Layout menu can flip it for the running session (s.active.collapseCompleted).
-  collapseCompleted: false,
-  // Which controls the workout screen shows besides the sets themselves. The default is the
-  // lean layout: one "more" button per exercise and a menu on each set number. Every switch
-  // brings one of the old always-visible button groups back (Settings → During a workout).
+  // Swipe actions on set rows and Plan's lists (Settings → Fine-tuning); see lib/workout-controls.js.
   wc: { ...WC_DEFAULT },
   // One-time hints already shown to this profile, synced so each shows once per person rather
   // than once per device: { swipeSets: true } after the first swipe-on-sets nudge (Workout.jsx).
@@ -243,6 +231,10 @@ export const DEF = {
   // cleared) replaces that role's curated exercise-id whitelist with a single user-chosen
   // exercise id; the stamp is what lets a sync keep the choice made last (lib/sync-merge.js).
   balanceTemplate: DEFAULT_TEMPLATE_ID, balanceOverrides: {},
+  // Workout core M1 (Workout settings, W1.21): `autoNext`, the next exercise takes over after an
+  // exercise's last set (off: the finished one stays until › or the map); `showPlates`, the plate
+  // line under a barbell set. Both on is how the workout always behaved.
+  autoNext: true, showPlates: true,
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 

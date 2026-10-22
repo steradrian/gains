@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
 vi.mock('../../sheets.jsx', () => ({
-  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), replaceExerciseSheet: vi.fn(), routineMenuSheet: vi.fn(), startFlow: vi.fn(), supersetSheet: vi.fn(),
+  exConfigSheet: vi.fn(), exercisePicker: vi.fn(), replaceExerciseSheet: vi.fn(), routineMenuSheet: vi.fn(), readyOrStart: vi.fn(), supersetSheet: vi.fn(),
   // What the Train helpers the editor reads (use-train.js) import.
   starterPlanSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), dayOverrideSheet: vi.fn(), importPlanFile: vi.fn(), logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))
@@ -17,7 +17,7 @@ vi.mock('../../components/BodyMap.jsx', () => ({ default: () => null, useBodyPat
 import RoutineEditor from './RoutineEditor.jsx'
 import { editorOf, linkToAbove, planLineOf, progressionLine, removeAdded, saveStateOf, statsLineOf } from './use-routine-editor.js'
 import { DEF, useStore } from '../../store/useStore.js'
-import { exConfigSheet, replaceExerciseSheet, routineMenuSheet, startFlow } from '../../sheets.jsx'
+import { exConfigSheet, replaceExerciseSheet, routineMenuSheet, readyOrStart } from '../../sheets.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const lift = (id, extra = {}) => ({ id, mode: 'reps', sets: 3, reps: 8, weight: 60, ...extra })
@@ -194,6 +194,6 @@ describe('the editor', () => {
     mount('/train/routines/r1', [lift('0025')])
     const start = [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start New routine')
     act(() => start.click())
-    expect(startFlow).toHaveBeenCalledWith(['r1'])
+    expect(readyOrStart).toHaveBeenCalledWith(['r1'])
   })
 })

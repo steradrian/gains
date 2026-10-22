@@ -16,6 +16,11 @@
 //
 //   <DurationWheel value={sec} onChange={setSec} max={900} off={t('Off')} />
 //   durationSheet({ title, value, max, off, onDone: sec => … })   // the sheet with a Done button
+//
+// `variant="ds"` is the design system's look for a wheel inside a DS drawer (a sunken panel, the
+// band a raised pill, mono figures; board W1.4 Time left). The behaviour and the keyboard are the
+// same. The default look is what Settings and the old sheet keep; the DS look is `.dw-ds` in
+// ds/ds.css.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
 import { vibrate } from '../lib/sound.js'
@@ -202,7 +207,7 @@ export function WheelColumn({ count, index, onPick, label, unit, format = String
  * duration the wheels show right now, also while one is still rolling to rest: a Done tapped
  * straight after a flick must not save the value from before it.
  */
-export default function DurationWheel({ value, onChange, min = 0, max = REST_MAX, off = null, className = '', readRef }) {
+export default function DurationWheel({ value, onChange, min = 0, max = REST_MAX, off = null, className = '', readRef, variant = 'default' }) {
   const v = clampDuration(value, min, max)
   const { m, s } = splitDuration(v)
   const maxM = Math.floor(max / 60)
@@ -218,7 +223,7 @@ export default function DurationWheel({ value, onChange, min = 0, max = REST_MAX
   }
   const text = durationText(v, { off })
   return (
-    <div className={'dw ' + className} data-nodrag="" dir="ltr">
+    <div className={'dw ' + (variant === 'ds' ? 'dw-ds ' : '') + className} data-nodrag="" dir="ltr">
       <span className="dw-band" aria-hidden="true" />
       <WheelColumn count={maxM + 1} index={m} nonce={nonce} step={5} rowRef={mRow}
         onPick={i => pick(i, live.current.s)} label={t('Minutes')} unit={t('min')} valueText={text}

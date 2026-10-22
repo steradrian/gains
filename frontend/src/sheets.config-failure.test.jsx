@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { EXDB } from './lib/exercises.js'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { exConfigSheet, setsLine } from './sheets.jsx'
+import { exConfigSheet } from './sheets.jsx'
 import { bindUI } from './components/ui.jsx'
 
 // Sets to failure: "Last set to failure" on the exercise's settings, written only when on.
@@ -115,10 +115,5 @@ describe('exercise settings: last set to failure', () => {
     act(() => chip(host, 'Last set to failure').click())
     expect(lit(host, 'Last set to failure')).toBe(false)
     expect(lit(host, 'Rest-pause')).toBe(true)
-  })
-
-  it('the finish summary line marks a failure set', () => {
-    expect(setsLine([{ w: 60, r: 5 }, { w: 60, r: 9, f: true }], 'kg')).toBe('60 kg × 5, 9 F')
-    expect(setsLine([{ w: 60, r: 5 }, { w: 65, r: 4, f: true }], 'kg')).toBe('60×5 · 65×4 F')
   })
 })

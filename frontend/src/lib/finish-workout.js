@@ -2,6 +2,7 @@
 // exercise the exact shape the UI writes without mounting React or mutating store state.
 import { bestWeightForEntry, cleanupSg } from './history.js'
 import { hasCompletedWork, isSideSet } from './workout-model.js'
+import { partOf } from './workout-parts.js'
 
 // planSec is live-session bookkeeping: a hold displaced before it finished puts its plan aside so
 // the row still knows what it is asking for (Workout.startTimed). A finished session keeps only
@@ -84,6 +85,9 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
       // The superset the exercise was done in, so the history can show the pairing. Without it
       // the workout forgot at finish what it had been all session.
       ...(entry.sg ? { sg: entry.sg } : {}),
+      // The part of the workout (lib/workout-parts.js), so history, Repeat and the bests passes
+      // still know a warm-up exercise from a working one. Written only when not the workout.
+      ...(partOf(entry) !== 'main' ? { part: partOf(entry) } : {}),
     }
     const snapshot = typeof snapshotFor === 'function' ? snapshotFor(entry) : null
     if (snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) && Object.keys(snapshot).length) {

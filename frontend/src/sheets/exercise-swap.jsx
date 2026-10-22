@@ -17,7 +17,7 @@ const SHOWN = 20
 
 // The heaviest completed work set of the exercise's latest session, or null when it was never
 // logged with a load. "You did …" is only ever said from this.
-function lastDid(st, exId) {
+export function lastDid(st, exId) {
   let latest = null
   for (const w of st.workouts || []) {
     const rows = (w.entries || []).filter(e => e.id === exId).flatMap(e => metricRowsForEntry(e, 'reps'))
@@ -33,15 +33,21 @@ function lastDid(st, exId) {
 // T5.7 Replace: the exercises that train the same muscle, the ones you can do with your equipment
 // first, each with what you did last time when it has been logged. A row replaces at once; Search all
 // exercises opens the picker, away from the same exercise.
-function ReplaceDrawer({ exId, onPick, routine, title, close }) {
-  const st = useStore(s => s.S)
-  const ex = EXIDX[exId] || allExercises(st).find(e => e.id === exId) || null
+// The exercises that train the same muscle as `ex`, the active profile's equipment first, every
+// one of them (the drawers cap the list themselves). The workout's Swap step shares it.
+export function replaceCandidates(st, ex) {
   const profile = activeProfile(st)
-  const figure = figureOf(st)
   // sameMuscleFirst puts the same kit first; the profile's own equipment leads that.
   const pool = ex ? sameMuscleFirst(allExercises(st), ex) : []
   const mine = profile ? pool.filter(e => exAvailable(st, e)) : pool
-  const list = (profile ? [...mine, ...pool.filter(e => !exAvailable(st, e))] : pool).slice(0, SHOWN)
+  return profile ? [...mine, ...pool.filter(e => !exAvailable(st, e))] : pool
+}
+
+function ReplaceDrawer({ exId, onPick, routine, title, close }) {
+  const st = useStore(s => s.S)
+  const ex = EXIDX[exId] || allExercises(st).find(e => e.id === exId) || null
+  const figure = figureOf(st)
+  const list = replaceCandidates(st, ex).slice(0, SHOWN)
 
   const pick = e => { close(); onPick(e, true) }
   const searchAll = () => {

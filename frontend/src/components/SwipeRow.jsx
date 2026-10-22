@@ -12,8 +12,7 @@ import Icon from './Icon.jsx'
 // keyboard's and the screen reader's way to the same two actions.
 //
 // The row keeps an opaque background, so a done row's tint moves with it rather than letting the
-// panes show through. `data-swipe-ignore` keeps the Cards layout's own swipe (SwipeCards) off it:
-// on a set row a sideways swipe is about the set, everywhere else on the card it still turns it.
+// panes show through.
 //
 // Plan's lists use it too (v1.3.11): a row without `onCopy` is delete-only, with no copy pane at
 // all. `deleteLabel`/`copyLabel` and the icons name the action for the list it is in ("Remove"

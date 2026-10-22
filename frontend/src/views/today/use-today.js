@@ -17,7 +17,7 @@ import { useDiaryDay } from '../../lib/nutrition/use-diary-day.js'
 import { useUnits } from '../../lib/nutrition/use-units.js'
 import { waterButtons } from '../../lib/nutrition/water.js'
 import { usePlanRefused } from '../../lib/onboarding/use-plan-refused.js'
-import { bwSheet, startFlow, workoutDetailSheet } from '../../sheets.jsx'
+import { bwSheet, readyOrStart, workoutDetailSheet } from '../../sheets.jsx'
 import { foodPickerSheet } from '../../components/FoodPickerSheet.jsx'
 import { nutritionDaySheet } from '../../components/NutritionDaySheet.jsx'
 import { scanToSelection } from '../../components/scan-to-selection.js'
@@ -123,7 +123,7 @@ export function upNextOf(S, today, { planRefused, nav }) {
     case 'planned': return {
       eyebrow: t('Training today'), title: day.name,
       sub: [exCount(day.routines.reduce((n, r) => n + (r.ex?.length || 0), 0)), day.rescheduled && t('rescheduled')].filter(Boolean).join(' · '),
-      trailing: 'play', onClick: () => startFlow(day.ids),
+      trailing: 'play', onClick: () => readyOrStart(day.ids),
     }
     default: return {
       eyebrow: t('Rest day'), title: t('Recover'),
@@ -328,7 +328,7 @@ export function useToday() {
   const weighIn = { icon: 'scale', label: t('Weigh-in'), onClick: () => bwSheet({ date: today }) }
   const start = () => {
     const d = trainingDay(S, today, today)
-    if (d.kind === 'planned') startFlow(d.ids)
+    if (d.kind === 'planned') readyOrStart(d.ids)
     else nav('/train/workout')
   }
 

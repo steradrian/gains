@@ -3,8 +3,7 @@ import { useStore } from '../store/useStore.js'
 import { EXIDX, BODYPARTS, allExercises, equipmentOf, byCategory, searchExercises, similarExercises, figureOf } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { fmtNum, exCount } from '../lib/format.js'
-import { buildSets, defaultConfig, modeOf, applyIntensifierPlan } from '../lib/history.js'
-import { dropGrid } from '../lib/plates.js'
+import { defaultConfig } from '../lib/history.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import Icon from '../components/Icon.jsx'
 import BodyMap from '../components/BodyMap.jsx'
@@ -20,14 +19,11 @@ import Tag from '../ds/Tag.jsx'
 import { sameMuscleFirst, swapMuscleOf } from '../lib/similar-exercises.js'
 import { MUSCLE_NAME } from '../lib/muscles.js'
 import { exercisesForMuscle } from '../lib/muscle-explore.js'
-import { dbLoadFor, withMeaning, historyAs, ownedWeightsFor } from '../lib/dumbbells.js'
-import { defaultIncrement, weightIncrement } from '../lib/progression.js'
+import { swapReplacement } from '../lib/swap-replacement.js'
 import { swapActiveExercise } from '../lib/active-exercise-swap.js'
 import { useRevealActiveGroupChip } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import { isFav, sortFavouritesFirst, sortYoursFirst } from '../lib/favourites.js'
-import { buildPlannedEntry, builtOutOfProgression } from '../lib/session-start.js'
-import { sessionHistory } from '../lib/backfill.js'
 import { S, update, ui } from './shared.js'
 import { confirmSheet } from './confirm-menu.jsx'
 import { exConfigSheet } from './exercise-config.jsx'
@@ -49,7 +45,7 @@ const TABS = ['all', 'fav', 'muscle']
 // chips, Type and Equipment), Favourites, By muscle (the body map). A tap picks, and the "+" on a row
 // adds with the default settings, unless the caller opts into `multi`: then a tap ticks the row, and
 // the foot reads `multi.label(n)` and hands every tick to `multi.onAdd` in the order they were ticked.
-function ExercisePicker({ onPick, title, close, like, multi, routine }) {
+function ExercisePicker({ onPick, title, close, like, multi, routine, workout }) {
   const st = useStore(s => s.S)
   const usage = usageMap(st)
   const [q, setQ] = useState('')
@@ -133,7 +129,7 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
     return <div key={e.id} className="g-pk-item">
       <ExerciseStillRow size={48} ex={e} figure={figure}
         title={<>{fav && <Icon name="starFill" className="g-icon g-pk-fav" />}<i className={exerciseNameClass(e)}>{exerciseNameFor(e)}</i></>}
-        sub={t(MUSCLE_NAME[e.tg] || e.tg || e.bp) + ' · ' + t(e.eq)}
+        sub={[t(MUSCLE_NAME[e.tg] || e.tg || e.bp) + ' · ' + t(e.eq), workout?.sub?.(e)].filter(Boolean).join(' · ')}
         trailing={mark.length ? mark : false} pressed={multi ? !!on : undefined}
         onClick={() => (multi ? tick(e) : onPick(e))} />
       {/* A "+" glyph reads as "add this now": it adds with the default settings right away, where
@@ -196,6 +192,11 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
         <span className="g-xrow-b"><b>{t('Create your own exercise')}</b><span>{t('Name it and pick a body part')}</span></span>
         <Icon name="plus" className="g-icon g-xrow-chev" />
       </button>}
+      {workout?.onAddRoutine && !q.trim() && <button type="button" className="g-xrow g-pk-new" onClick={() => { close(); workout.onAddRoutine() }}>
+        <span className="g-xrow-ph"><Icon name="clipboard" className="g-icon" /></span>
+        <span className="g-xrow-b"><b>{t('Add routine')}</b><span>{t('Bring another routine into this session')}</span></span>
+        <Icon name="plus" className="g-icon g-xrow-chev" />
+      </button>}
       {f.slice(0, shown).map(pickRow)}
       {f.length === 0 && tab === 'all' && bp === '★' && <p className="g-pk-note">{t('Nothing picked yet. Add some exercises and they’ll show up here.')}</p>}
       {f.length === 0 && tab === 'fav' && <p className="g-pk-note">{t('No favourites yet. Tap the star on an exercise to add one.')}</p>}
@@ -216,7 +217,11 @@ function ExercisePicker({ onPick, title, close, like, multi, routine }) {
 // train the same muscle, same equipment first (#473). `routine` is the name of the routine the pick
 // goes into, shown in the header. `multi: { label(n), onAdd(exs) }` makes the picker take several:
 // without it a pick is one exercise (a tap configures, the "+" quick-adds).
-export const exercisePicker = (onPick, { title, like, multi, routine } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} multi={multi} routine={routine} close={close} />, { variant: 'ds' })
+// `workout: { sub(ex) -> string | null, onAddRoutine }` is the running workout's Add exercise (W1.18):
+// `sub` adds to a row's muscle line when it returns text ("Last: …", "In this workout · added"),
+// and `onAddRoutine` adds an "Add routine" row above the list, after closing the picker.
+export const exercisePicker = (onPick, { title, like, multi, routine, workout } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} multi={multi} routine={routine} workout={workout} close={close} />, { variant: 'ds' })
+
 
 /** Start a safe swap for one exact active-workout occurrence. */
 export function swapActiveWorkoutExercise(index) {
@@ -231,36 +236,10 @@ export function swapActiveWorkoutExercise(index) {
     // The picker is a chooser here, not a stack you keep adding from: one swap, then back to
     // the workout. (The add flow deliberately leaves it open.)
     picker.close()
-    const full = { ...cfg, id: ex.id }
     const st = S()
     const current = st.active?.entries?.[index]
     if (!current) return
-    // A swap is an in-place substitution — routine identity is unchanged, so the replacement
-    // keeps the slot's own `rid` and reads its prescription from that routine (not a
-    // session-wide one). A slot with no `rid` is freestyle.
-    const slotRoutine = current.rid ? st.routines.find(r => r.id === current.rid) : null
-    const freestyle = !slotRoutine
-    // Same rows the add flow builds: last time's loads and, in a planned session, the
-    // prescription — swapping barbell for dumbbell bench must not start you at an empty bar.
-    // Built from what came before the session's day when it is logged into the past (sessionHistory).
-    const step = modeOf(full) === 'reps' ? weightIncrement(full, st.unit) : defaultIncrement(ex.id, st.unit)
-    const past = sessionHistory(st)
-    // A freestyle swap logs dumbbell weights the way the exercise means them now, and starts
-    // from last time read in that meaning (lib/dumbbells.js), as a planned one does.
-    const built = freestyle
-      ? { target: withMeaning(st, cfg, ex.id), plan: null, sets: applyIntensifierPlan(buildSets(historyAs(past, ex.id, dbLoadFor(st, full)), full, { step: (modeOf(full) === 'reps' && ownedWeightsFor(st, full)) || step, preferLast: true }), full, dropGrid(st, full)) }
-      : buildPlannedEntry(past, full, slotRoutine, { noProg: builtOutOfProgression(current, slotRoutine) })
-    const replacement = {
-      id: ex.id,
-      ...built,
-      ...(current.rid ? { rid: current.rid } : {}),
-      // A slot kept out of progression stays out once swapped. Replaced in place the entry keeps
-      // it anyway; inserted beside logged sets, the replacement would otherwise count as a
-      // regular session of the new exercise. Only a deload or rehab slot is built without a
-      // prescription (above): one kept out by hand keeps the marker and its Undo on the card,
-      // and an Undo must leave numbers that are right to count.
-      ...(current.noProg === true ? { noProg: true } : {}),
-    }
+    const replacement = swapReplacement(st, current, ex, cfg)
 
     const apply = options => {
       // A timed callback closes over entry/set indexes. Invalidate it, and the current rest,

@@ -21,7 +21,7 @@ vi.mock('../../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beac
 vi.mock('../train/coach/use-coach-banner.js', () => ({ useCoachBanner: () => null }))
 vi.mock('../../sheets.jsx', () => ({
   confirmSheet: vi.fn(), menuSheet: vi.fn(), dayOverrideSheet: vi.fn(), planToolsSheet: vi.fn(), starterPlanSheet: vi.fn(),
-  workoutDetailSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), startFlow: vi.fn(),
+  workoutDetailSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), startChooserSheet: vi.fn(), readyOrStart: vi.fn(),
   logPastWorkoutSheet: vi.fn(), importPlanFile: vi.fn(), planHasRoutines: () => true, exportPlanFile: vi.fn(), printWholePlan: vi.fn(),
   usePlanDayParam: vi.fn(),
 }))

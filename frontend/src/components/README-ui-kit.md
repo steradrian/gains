@@ -166,7 +166,7 @@ above 0. Below it also fails ("lower the baseline"): a migration PR runs
   (`PRIMITIVE_FILES`: blocks, layout, sheet-layout, ui, and the redesign's date-nav, line-art,
   tab-kit).
 - **G4** each routed component renders `<Page>`, itself or through a local component.
-  Exempt: Workout, FocusView, Login, MobileOnboarding. The baseline is empty.
+  Exempt: WorkoutRoute, Login, MobileOnboarding. The baseline is empty.
 - **G5** each primitive's markup equals the legacy markup; a deliberate design change (the tab-root
   header, 2026-10-15) changes the fixture with a comment saying so, never by regenerating it.
   **G6** only `sheets.jsx` and `src/sheets/` import `src/sheets/*`. **G7** a new stylesheet

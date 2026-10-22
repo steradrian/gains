@@ -157,6 +157,10 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
       : cfg
   })
   const [inSuperset, setInSuperset] = useState(!!options?.superset)
+  // Workout progression (W1.48): "Don't count today", kept out of progression for this session.
+  const [noCount, setNoCount] = useState(!!options?.noCount)
+  // Workout drawers-M2: the part of the workout (lib/workout-parts.js), held by the caller.
+  const [part, setPart] = useState(options?.part || 'main')
   // Cardio keeps its own duration+speed form; the reps/time choice (issue #16) is offered for
   // everything else, which is where the gap was — planks, hangs, wall sits, loaded carries.
   const mode = cardio ? 'cardio' : modeOf({ ...c, id: ex.id })
@@ -537,6 +541,19 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         {options?.onSupersetChange && <Row icon="link" iconTint="var(--acc)" title={t('Superset with the exercise above')}>
           <Switch checked={inSuperset} onChange={v => { setInSuperset(v); options.onSupersetChange(v) }} />
         </Row>}
+        {/* Workout progression: what today's number is, and the way to leave today out. */}
+        {options?.today && <p className="g-cfg-note">{options.today}</p>}
+        {options?.onNoCountChange && <Row icon="chartLineSlash" title={t('Don’t count today')}
+          subtitle={t('Logged as usual, left out of progression. For a sore day or a different machine.')}>
+          <Switch checked={noCount} onChange={v => { setNoCount(v); options.onNoCountChange(v) }} />
+        </Row>}
+        {/* Workout drawers-M2 */}
+        {options?.onPartChange && <>
+          <h4 className="g-cfg-h" aria-hidden="true">{t('Part of the workout')}</h4>
+          <SegmentedControl label={t('Part of the workout')} value={part}
+            onChange={v => { setPart(v); options.onPartChange(v) }}
+            options={[{ value: 'warmup', label: t('Warm-up') }, { value: 'main', label: t('Workout') }, { value: 'cooldown', label: t('Cool-down') }]} />
+        </>}
       </div>
 
       {/* What a dumbbell weight means, for this routine's slot (cfg.dbLoad). Picking what the
@@ -567,7 +584,9 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
 // is linked to the one above; with `onSupersetChange` the sheet shows "Superset with the exercise
 // above" and calls it as the switch moves (the caller owns the link). `removeUndo` says `onDelete`
 // offers an Undo, which the Remove row names. A ninth parameter keeps the eight positional ones
-// every caller already passes.
+// every caller already passes. `part` ('warmup' | 'main' | 'cooldown') with `onPartChange(part)`
+// shows "Part of the workout" (Warm-up · Workout · Cool-down); like the superset switch it calls the
+// handler as it moves and saves nothing itself.
 export const exConfigSheet = (ex, existing, onSave, onDelete, routine, initial, onReplace, saveLabel, options) => ui().openSheet(close => <ExConfig ex={ex} existing={existing} initial={initial} onSave={onSave} onDelete={onDelete} onReplace={onReplace} routine={routine} saveLabel={saveLabel} options={options} close={close} />, { variant: 'ds' })
 
 /* ============================ glyph picker ============================ */

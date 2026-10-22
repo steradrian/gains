@@ -9,6 +9,7 @@ import { barWeightFor } from './bar.js'
 import { phaseForSet, modeForSet, modeForEntry, isWarmupRow, isFailureSet, isDropSet, isRestPauseSet, normalizeMode, completedVolumeOf, hasCompletedWork, nextDropWeight, splitBurstReps, makeSideSet, isSideSet, syncSideAggregate, WEIGHT_ORIGIN_MANUAL, dropsOf, clustersOf } from './workout-model.js'
 import { backoffAt, backoffStepOf, backoffWeights } from './backoff.js'
 import { dbLoadOf, bellsIn, volumeFactor, historyAs, ownedFloor } from './dumbbells.js'
+import { countsForRecords, countsForVolume, partOf } from './workout-parts.js'
 const objectOf = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 // Completed-state-independent work rows whose authoritative mode matches the requested mode.
 const workRowsForMode = (entry = {}, mode = 'reps') => {
@@ -354,7 +355,9 @@ export function entryRoutineId(w, en) {
 // The entry for one exercise in one saved workout. With a routine id it is that routine's own
 // entry — a combined A+B day can hold the same exercise twice, and the second one is not the
 // first one's history. Without, the first one, as it always was.
-const entryIn = (w, exId, rid) => (w.entries || []).find(e => e && e.id === exId && (!rid || entryRoutineId(w, e) === rid))
+// Only an entry of the asked part counts (the workout itself unless told otherwise): a warm-up
+// face pull is not the working face pull's last session, and the reverse.
+const entryIn = (w, exId, rid, part) => (w.entries || []).find(e => e && e.id === exId && partOf(e) === part && (!rid || entryRoutineId(w, e) === rid))
 
 /**
  * The last counting session of an exercise: `{ d, sets, target, rid?, planned? }`, or null.
@@ -364,19 +367,19 @@ const entryIn = (w, exId, rid) => (w.entries || []).find(e => e && e.id === exId
  * routine that has never trained the exercise falls back to its last session anywhere, so a new
  * or copied routine starts from what you actually lift rather than from nothing.
  */
-export function lastEntryFor(S, exId, rid) {
+export function lastEntryFor(S, exId, rid, part = 'main') {
   if (rid) {
-    const own = lastEntryIn(S, exId, rid)
+    const own = lastEntryIn(S, exId, rid, part)
     if (own) return own
   }
-  return lastEntryIn(S, exId, null)
+  return lastEntryIn(S, exId, null, part)
 }
 
-function lastEntryIn(S, exId, rid) {
+function lastEntryIn(S, exId, rid, part) {
   const workouts = S.workouts || []
   for (let i = workouts.length - 1; i >= 0; i--) {
     const w = workouts[i]
-    const en = entryIn(w, exId, rid)
+    const en = entryIn(w, exId, rid, part)
     if (!en) continue
     // A session that does not count — a planned deload, or a rehab block merged into a real
     // session — is not "last time" for the next regular prescription: its reps and durations
@@ -458,7 +461,7 @@ export function bestWeightFor(S, exId, as) {
   // 0 means "nothing logged with a load yet" and must not win a min() for an assisted machine.
   let best = 0
   H.workouts.forEach(w => w.entries.forEach(e => {
-    if (e.id !== exId) return
+    if (e.id !== exId || !countsForRecords(e)) return
     const entryBest = bestWeightForEntry(e)
     if (entryBest > 0) best = best > 0 ? betterWeight(exId, best, entryBest) : entryBest
   }))
@@ -751,7 +754,9 @@ export function workoutVolume(w) {
   // Each side is its own weight × reps, with its own drops and bursts.
   // A dumbbell entry logged per bell counts both bells (volumeFactor, lib/dumbbells.js); every
   // other entry, and every one saved before the setting existed, counts its weight once.
+  // A warm-up or cool-down exercise (lib/workout-parts.js) adds no volume either.
   ;(Array.isArray(w?.entries) ? w.entries : []).forEach(e => {
+    if (!countsForVolume(e)) return
     const f = volumeFactor(e)
     ;(Array.isArray(e?.sets) ? e.sets : []).forEach(s => {
       if (!isWarmupRow(s)) v += completedVolumeOf(s) * f
