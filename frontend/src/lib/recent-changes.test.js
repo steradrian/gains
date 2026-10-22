@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearChanges, journalMediaHashes, listChanges, pruneChanges, recordChange, registerRestorer, registerSource, restoreChange,
-  setStateReader, undoRestore,
+  setStateReader, subscribeChanges, undoRestore,
 } from './recent-changes.js'
 import { changesKey, readEntries, removeEntries, setChangesOwner } from './recent-changes-store.js'
 
@@ -266,5 +266,30 @@ describe('journalMediaHashes', () => {
     add({ media: ['c'.repeat(64)] })
     clearChanges()
     expect(journalMediaHashes(NOW).size).toBe(0)
+  })
+})
+
+// Me changes M3
+describe('subscribeChanges', () => {
+  it('tells a listener when an entry is recorded, restored, undone or cleared, until it unsubscribes', async () => {
+    const fn = vi.fn()
+    const off = subscribeChanges(fn)
+    const id = add()
+    expect(fn).toHaveBeenCalledTimes(1)
+    await restoreChange(id)
+    expect(fn).toHaveBeenCalledTimes(2)
+    await undoRestore(id)
+    expect(fn).toHaveBeenCalledTimes(3)
+    clearChanges()
+    expect(fn).toHaveBeenCalledTimes(4)
+    off()
+    add()
+    expect(fn).toHaveBeenCalledTimes(4)
+  })
+
+  it('a listener that throws does not break the write', () => {
+    const off = subscribeChanges(() => { throw new Error('boom') })
+    expect(add()).toEqual(expect.any(String))
+    off()
   })
 })
