@@ -36,8 +36,8 @@ export function nutritionTab(day, key, units) {
   const target = energy ? day.target.target : day.macros[key]
   const hasTarget = target > 0
   const scale = Math.max(hasTarget ? target : 0, eaten)
-  const meals = mealLabels(day.settings).map((name, slot) => {
-    const items = mealItems(day.entry, slot)
+  const meals = mealLabels(day.settings).map((name, slot, all) => {
+    const items = mealItems(day.entry, slot, all.length)
     const had = Number(totalsOf(items)[key]) || 0
     return {
       slot, name, logged: items.length > 0, had,

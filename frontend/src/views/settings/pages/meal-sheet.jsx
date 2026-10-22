@@ -60,6 +60,7 @@ export function MealSheet({ slot, close }) {
             <Button variant="secondary" icon="arrowDown" disabled={busy || slot === meals.length - 1} onClick={() => run(list => moveMeal(list, slot, 1))}>{t('Move down')}</Button>
           </div>
         )}
+        {!adding && meals.length <= 1 && <InlineBanner tone="muted" icon="info" title={mealErrorOf('last')} />}
         {!adding && <Button variant="danger" block icon="trash" disabled={busy || meals.length <= 1} onClick={remove}>{t('Delete meal')}</Button>}
       </div>
     </BottomSheet>

@@ -237,8 +237,8 @@ export function weekOf(S, today) {
 
 /** The meal tiles: logged ones with their energy, the meal of the hour to add now, the rest empty. */
 export function mealsOf(day, mealNow, units) {
-  return mealLabels(day.settings).map((name, slot) => {
-    const items = day.dayReady ? mealItems(day.entry, slot) : []
+  return mealLabels(day.settings).map((name, slot, all) => {
+    const items = day.dayReady ? mealItems(day.entry, slot, all.length) : []
     const state = items.length ? 'done' : slot === mealNow ? 'now' : 'empty'
     return {
       slot, name, state, icon: MEAL_ICONS[slot] || 'utensils',

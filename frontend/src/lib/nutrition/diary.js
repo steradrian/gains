@@ -59,7 +59,10 @@ const pickMacros = n => Object.fromEntries(MACROS.map(k => [k, n[k] || 0]))
 
 /** kcal, protein, carbs and fat of a list of items. */
 export const totalsOf = items => pickMacros(sumNutrition((items || []).map(nutritionOf)))
-export const mealItems = (entry, meal) => (entry?.items || []).filter(i => (Number(i.meal) || 0) === meal)
+// Entries are filed by a meal's place in the list. `count`, how many meals there are now, folds
+// foods filed past the end (the last meal was deleted) into the last meal, as deleting a middle
+// meal slides its foods into the next: otherwise no row would show them while the totals count them.
+export const mealItems = (entry, meal, count = Infinity) => (entry?.items || []).filter(i => Math.min(Number(i.meal) || 0, count - 1) === meal)
 export const waterTotal = entry => (entry?.water || []).reduce((s, l) => s + (Number(l.amount) || 0), 0)
 
 /* ------------------------------------------------------------------ units -------------------- */

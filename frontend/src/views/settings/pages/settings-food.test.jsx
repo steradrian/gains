@@ -204,6 +204,17 @@ describe('Diary and meals', () => {
     expect(titles()).toEqual(expect.arrayContaining(['Breakfast', 'Lunch', 'Dinner']))
   })
 
+  it('with other meals left, the last meal can be deleted (and undone), with no reason shown', async () => {
+    await mount('diary', { mealNames: ['Breakfast', 'Lunch', 'Snacks'] })
+    await click(rowTitled('Snacks'))
+    const { box } = openedSheet()
+    expect(buttonOf(box, 'Delete meal').disabled).toBe(false)
+    expect(box.textContent).not.toContain('A day needs at least one meal.')
+    await click(buttonOf(box, 'Delete meal'))
+    expect(puts()).toEqual([{ key: 'mealNames', value: ['Breakfast', 'Lunch'] }])
+    expect(toast).toHaveBeenCalledWith('Deleted Snacks', expect.objectContaining({ action: 'Undo' }))
+  })
+
   it('Undo does not overwrite a list that changed after the delete', async () => {
     await mount('diary', { mealNames: ['Breakfast', 'Lunch', 'Dinner'] })
     await click(rowTitled('Lunch'))
@@ -220,6 +231,7 @@ describe('Diary and meals', () => {
     await click(rowTitled('Only'))
     const { box, close } = openedSheet()
     expect(buttonOf(box, 'Delete meal').disabled).toBe(true)
+    expect(box.textContent).toContain('A day needs at least one meal.')
     await type(fieldOf(box, 'Name'), 'Everything')
     nt.failNext('PUT', '/nt/api/settings', { status: 400 })
     await click(buttonOf(box, 'Save meal name'))

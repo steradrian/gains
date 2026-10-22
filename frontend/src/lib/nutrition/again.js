@@ -13,8 +13,8 @@ const isQuick = item => item.type === 'quick_calories'
 const isOwnFood = item => !item.is_recipe && !Array.isArray(item._splitItems) && typeof item.food_server_id === 'number'
 
 /** The entries of `meal` on a day, or null when there are none or any cannot be logged again. */
-export function againItems(entry, meal) {
-  const items = mealItems(entry, meal)
+export function againItems(entry, meal, count) {
+  const items = mealItems(entry, meal, count)
   if (!items.length) return null
   return items.every(i => isQuick(i) || isOwnFood(i)) ? items : null
 }

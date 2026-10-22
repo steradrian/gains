@@ -30,10 +30,10 @@ export default function YesterdayMealRow({ settings, meal, whileEmpty = false, i
 
   useEffect(() => { useNutrition.getState().loadDay(yesterday) }, [yesterday])
 
-  const items = againItems(entry, meal)
-  if (!items) return null
-  if (whileEmpty && (target?.status !== 'ready' || mealItems(target.entry, meal).length)) return null
   const names = mealLabels(settings)
+  const items = againItems(entry, meal, names.length)
+  if (!items) return null
+  if (whileEmpty && (target?.status !== 'ready' || mealItems(target.entry, meal, names.length).length)) return null
   const label = names[meal] ?? names[0]
   const kcal = energyOf(againKcal(items), settings)
   const copy = { from: yesterday, to: today, target: target?.entry }
