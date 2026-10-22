@@ -128,14 +128,14 @@ describe('switching tabs', () => {
     await click(tab('Train'))
     await click(target('History'))
     await click(tab('Me'))
-    await go(() => nav('/progress/body?range=90'))
+    await go(() => nav('/me/body?range=90'))
     await click(tab('Train'))
     expect(hash()).toBe('#/train/history')
     expect(idx()).toBe(1)
     await back()
     expect(hash()).toBe('#/train')
     await click(tab('Me'))
-    expect(hash()).toBe('#/progress/body?range=90')
+    expect(hash()).toBe('#/me/body?range=90')
     await back()
     expect(hash()).toBe('#/me')
     expect(await backLeavesApp()).toBe(true)
@@ -238,8 +238,8 @@ describe('a search visit', () => {
     await launch('#/home')
     await openOverlay('body')
     await go(() => visit('/progress'))
-    await go(() => nav('/progress/body'))
-    expect(hash()).toBe('#/progress/body')
+    await go(() => nav('/me/body'))
+    expect(hash()).toBe('#/me/body')
     expect(lit()).toBe('Me')
     expect(useSearch.getState()).toMatchObject({ live: true, open: false })
     await back()
@@ -436,24 +436,29 @@ describe('back on a sub-page', () => {
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('a Body segment opened cold goes back to Progress, not to the Weight segment', async () => {
-    await launch('#/progress/body/measurements')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
-    expect(hash()).toBe('#/progress')
+  it('a Body tab opened cold goes back to Me, not to the Weigh-ins tab', async () => {
+    await launch('#/me/body/measurements')
+    await click(document.querySelector('.g-snav-back'))
+    expect(hash()).toBe('#/me')
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('switching Body segments replaces the page, so back still goes to Progress', async () => {
+  it('an old /progress/body address lands on /me/body, keeping the range', async () => {
+    await launch('#/progress/body/photos?range=365')
+    expect(hash()).toBe('#/me/body/photos?range=365')
+  })
+
+  it('switching Body tabs replaces the page, so back still goes to Progress', async () => {
     await launch('#/progress')
     await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Body'))
-    expect(hash()).toMatch(/^#\/progress\/body\?range=\d+$/)
-    const segment = label => [...document.querySelectorAll('.seg button')].find(b => b.textContent === label)
-    await click(segment('Measurements'))
-    expect(hash()).toMatch(/^#\/progress\/body\/measurements\?range=\d+$/)
-    await click(segment('Photos'))
-    expect(hash()).toMatch(/^#\/progress\/body\/photos\?range=\d+$/)
-    expect(segment('Photos').getAttribute('aria-pressed')).toBe('true')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    expect(hash()).toMatch(/^#\/me\/body\?range=\d+$/)
+    const bodyTab = label => [...document.querySelectorAll('.g-tabs [role="tab"]')].find(b => b.textContent === label)
+    await click(bodyTab('Measurements'))
+    expect(hash()).toMatch(/^#\/me\/body\/measurements\?range=\d+$/)
+    await click(bodyTab('Photos'))
+    expect(hash()).toMatch(/^#\/me\/body\/photos\?range=\d+$/)
+    expect(bodyTab('Photos').getAttribute('aria-selected')).toBe('true')
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/progress')
     expect(idx()).toBe(0)
   })
@@ -514,9 +519,9 @@ describe('Me, Profile and Progress', () => {
     expect(hash()).toBe('#/progress')
     expect(lit()).toBe('Me')
     await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Body'))
-    expect(hash()).toMatch(/^#\/progress\/body\?range=\d+$/)
+    expect(hash()).toMatch(/^#\/me\/body\?range=\d+$/)
     expect(lit()).toBe('Me')
-    await click(document.querySelector('.sub-hdr button[aria-label="Back"]'))
+    await click(document.querySelector('.g-snav-back'))
     expect(hash()).toBe('#/progress')
     await back()
     expect(hash()).toBe('#/me')
@@ -544,8 +549,8 @@ describe('Me, Profile and Progress', () => {
   it('the search shortcut on a Progress page opens on Progress, Profile still under it, not on Today', async () => {
     await launch('#/me')
     await click(progressRow())
-    await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Body'))
-    expect(hash()).toMatch(/^#\/progress\/body/)
+    await click([...document.querySelectorAll('.stat-sec-h button')].find(b => b.textContent === 'Strength'))
+    expect(hash()).toMatch(/^#\/progress\/strength/)
     await go(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })))
     expect(hash()).toBe('#/progress')
     expect(lit()).toBe('Me')
@@ -668,20 +673,20 @@ describe('a navigation in the middle of a switch', () => {
     let fired = false
     window.history.replaceState = (s, ...rest) => {
       realReplace(s, ...rest)
-      if (!fired && s?.usr?.tabSwitch && String(rest[1] || '').includes('/train')) { fired = true; queueMicrotask(() => nav('/progress/body')) }
+      if (!fired && s?.usr?.tabSwitch && String(rest[1] || '').includes('/train')) { fired = true; queueMicrotask(() => nav('/me/body')) }
     }
     try {
       await click(tab('Train'))
       await settle()
     } finally { delete window.history.replaceState }
     expect(fired).toBe(true)
-    expect(hash()).toBe('#/progress/body')
+    expect(hash()).toBe('#/me/body')
     expect(lit()).toBe('Me')
     await click(tab('Train'))
     expect(hash()).toBe('#/train/history')
     // Me holds its own stack: Body over Profile, nothing of Training under it.
     await click(tab('Me'))
-    expect(hash()).toBe('#/progress/body')
+    expect(hash()).toBe('#/me/body')
     await back()
     expect(hash()).toBe('#/me')
     expect(await backLeavesApp()).toBe(true)
@@ -728,7 +733,7 @@ describe('a sheet that closes into a switch', () => {
 
 describe('the + sheet', () => {
   it('offers the tiles, then what fits the screen first in the list, then the fixed items', async () => {
-    await launch('#/progress/body')
+    await launch('#/me/body')
     await click(plus())
     const tiles = [...document.querySelectorAll('.g-bs .g-atile')].map(r => r.textContent)
     expect(tiles).toEqual(expect.arrayContaining(['Weigh-in', 'Start workout', 'Log activity']))

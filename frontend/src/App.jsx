@@ -66,7 +66,8 @@ import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
 // Workout finish M2: the summary after a save (W2.0) and the check for a session left open (W1.27).
 import SummaryScreen from './views/workout/SummaryScreen.jsx'
 import StaleWorkoutCheck from './components/StaleWorkoutCheck.jsx'
-import Body from './views/Body.jsx'
+// Me body M1: the Body page (weigh-ins; measurements and photos are its other tabs)
+import BodyRoute from './views/me/body/BodyRoute.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
 // Train slice 5
@@ -440,9 +441,10 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
       {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
       <Route path="/progress" element={<ProgressHub />} />
-      <Route path="/progress/body" element={<Body segment="weight" />} />
-      <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
-      <Route path="/progress/body/photos" element={<Body segment="photos" />} />
+      {/* Me body M1: Body moved to /me/body; the old addresses redirect, keeping ?range= */}
+      <Route path="/progress/body" element={<FoodRedirect to="/me/body" />} />
+      <Route path="/progress/body/measurements" element={<FoodRedirect to="/me/body/measurements" />} />
+      <Route path="/progress/body/photos" element={<FoodRedirect to="/me/body/photos" />} />
       <Route path="/progress/strength" element={<ExerciseProgress />} />
       <Route path="/progress/strength/balance" element={<StructuralBalance />} />
       <Route path="/progress/load" element={<TrainingLoad />} />
@@ -465,6 +467,10 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me/notifications" element={<Notifications />} />
       {/* Me: Profile */}
       <Route path="/me" element={<SettingsRoute />} />
+      {/* Me body M1: before /me/:page */}
+      <Route path="/me/body" element={<BodyRoute />} />
+      <Route path="/me/body/measurements" element={<BodyRoute />} />
+      <Route path="/me/body/photos" element={<BodyRoute />} />
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="/me/:page" element={<SettingsRoute />} />
       <Route path="*" element={<Navigate to={fallback} replace />} />

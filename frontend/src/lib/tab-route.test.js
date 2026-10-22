@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_RENAMED, isNotificationsPath, isTabRoot, launchPath, legacyPath, notificationsPath, parentOf, tabOf, workoutRunning } from './tab-route.js'
+import { PROFILE_RENAMED, isNotificationsPath, isTabRoot, launchPath, legacyPath, notificationsPath, parentOf, routeDepth, tabOf, workoutRunning } from './tab-route.js'
 
 describe('the notifications inbox', () => {
   it('opens under the tab the bell was tapped on, so that tab stays lit', () => {
@@ -72,6 +72,13 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/progress/body')).toBe('/progress')
     expect(parentOf('/progress/body/measurements')).toBe('/progress')
     expect(parentOf('/progress/body/photos')).toBe('/progress')
+  })
+
+  it('a Body tab of Me to Me: the three are one page, not a stack', () => {
+    expect(parentOf('/me/body')).toBe('/me')
+    expect(parentOf('/me/body/measurements')).toBe('/me')
+    expect(parentOf('/me/body/photos')).toBe('/me')
+    expect(routeDepth('/me/body/photos')).toBe(2)
   })
 
   it('Progress to Profile, the page it is opened from', () => {
