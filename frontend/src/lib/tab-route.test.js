@@ -84,6 +84,11 @@ describe('back on a cold entry goes to the parent', () => {
     expect(tabOf('/me/account/delete')).toBe('me')
   })
 
+  it('Started over to the Account page it was started from', () => {
+    expect(parentOf('/me/account/started-over')).toBe('/me/account')
+    expect(tabOf('/me/account/started-over')).toBe('me')
+  })
+
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {
     expect(parentOf('/train/coach/intake')).toBe('/train')
     expect(parentOf('/me/workout')).toBe('/me')
@@ -121,7 +126,8 @@ describe('the routes from before the tabs', () => {
     expect(legacyPath('/settings/data', '?x=1')).toBe('/me/backup?x=1')
     expect(legacyPath('/settings/advanced')).toBe('/me/advanced')
     expect(legacyPath('/settings/alerts')).toBe('/me/workout')
-    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup', alerts: 'workout' })
+    expect(legacyPath('/settings/danger')).toBe('/me/account')
+    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup', alerts: 'workout', danger: 'account' })
   })
 
   it('leave new and unknown routes alone', () => {

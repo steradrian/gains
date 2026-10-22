@@ -76,6 +76,7 @@ import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 import { SettingsRoute } from './views/settings/SettingsRoute.jsx'
 import DeleteAccountPage from './views/settings/pages/DeleteAccountPage.jsx'
+import StartedOverScreen from './views/settings/pages/StartedOverScreen.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -435,6 +436,7 @@ function AppRoutes({ location, fallback, S, user }) {
       <Route path="/me" element={<SettingsRoute />} />
       <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
+      <Route path="/me/account/started-over" element={<StartedOverScreen />} />
       <Route path="/me/:page" element={<SettingsRoute />} />
       <Route path="*" element={<Navigate to={fallback} replace />} />
     </Routes>

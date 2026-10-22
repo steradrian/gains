@@ -38,7 +38,6 @@ export const PAGES = {
   backup: { title: 'Sync and backup', icon: 'folder', tint: 'var(--blue)' },
   import: { title: 'Import', icon: 'download', tint: 'var(--teal)' },
   media: { title: 'Photos & videos', icon: 'image', tint: 'var(--teal)' },
-  danger: { title: 'Danger zone', icon: 'trash', tint: 'var(--red)' },
   admin: { title: 'Admin dashboard', icon: 'crown', tint: 'var(--indigo)', to: '/me/admin' },
   help: { title: 'Help', icon: 'circleHelp', tint: 'var(--blue)', kw: 'help faq questions answers support how does' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
@@ -223,8 +222,6 @@ export const SEARCH = [
   { page: 'import', title: 'Import from Hevy', icon: 'key', tint: 'var(--teal)', kw: 'hevy api import' },
   // Connected apps & health
   { page: 'health', title: 'Write to Health Connect', icon: 'heart', tint: 'var(--red)', kw: 'health connect android google fit share workouts weigh-ins', feature: () => null },
-  // Danger zone
-  { page: 'danger', title: 'Reset training data', icon: 'trash', tint: 'var(--red)', kw: 'delete wipe reset erase clear everything' },
   // About & updates
   { page: 'about', title: 'Check for updates', icon: 'download', tint: 'var(--green)', kw: 'update apk android version', when: c => c.mobile && c.android },
   { page: 'about', title: 'Version', icon: 'info', tint: 'var(--grey)', kw: 'version about licence license source code open source' },
@@ -243,7 +240,7 @@ export const SEARCH = [
   { page: 'account', title: 'Password', icon: 'key', tint: 'var(--orange)', kw: 'password login', when: c => signedInWeb(c) && c.pwOn },
   { page: 'account', title: 'Sign out everywhere', icon: 'shield', tint: 'var(--red)', kw: 'log out all devices sessions', when: signedInWeb },
   { page: 'account', title: 'Download my data', icon: 'download', tint: 'var(--blue)', kw: 'export json zip photos backup save copy', when: signedInWeb },
-  { page: 'account', title: 'Start over', icon: 'reset', tint: 'var(--red)', kw: 'wipe reset erase clear training body data', when: signedInWeb },
+  { page: 'account', title: 'Start over', icon: 'reset', tint: 'var(--red)', kw: 'delete wipe reset erase clear everything training body data danger zone' },
   { page: 'account', title: 'Delete account', icon: 'trash', tint: 'var(--red)', kw: 'remove close erase profile everything', when: signedInWeb },
   { page: 'account', title: 'Account ID', icon: 'personCircle', tint: 'var(--grey)', kw: 'id uid admin account', when: c => !!c.user && !c.demo },
   { page: 'account', title: 'Connect to my server', icon: 'cloud', tint: 'var(--indigo)', kw: 'server sync self-hosted connect', when: c => c.mobile && !c.user },

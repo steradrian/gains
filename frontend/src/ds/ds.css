@@ -1940,3 +1940,6 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-imp-head { margin: 0; padding: 4px 24px 0; font: 700 28px/32px var(--font-sans); letter-spacing: -0.02em; color: var(--on-stage); text-align: start; }
 .g-imp-line { margin: -8px 0 0; padding: 0 24px; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
 .g-imp-done .g-stats { margin: 0 16px; }
+
+/* Settings acct m2: Delete account (St3Delete) */
+.g-acct-del { margin-top: 24px; }

@@ -13,7 +13,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
    behaviour of the passkeys, the password and the account id is in views/Settings.passkeys.test,
    Settings.password.test and Settings.account-id.test; the drawers are in ../sheets/. */
 const mocks = vi.hoisted(() => {
-  const state = { S: null, user: null, sync: null, config: null, MOBILE: false, DEMO: false, webauthn: true, sheets: [], navs: [], resetEverything: vi.fn(), media: [] }
+  const state = { S: null, user: null, sync: null, config: null, MOBILE: false, DEMO: false, webauthn: true, sheets: [], navs: [], startOver: vi.fn(), media: [] }
   state.toast = vi.fn()
   state.confirmSheet = vi.fn()
   state.resetDemo = vi.fn()
@@ -62,7 +62,7 @@ vi.mock('../../../sheets.jsx', () => ({
   importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), askAddDeviceData: vi.fn(),
 }))
 vi.mock('../use-account-actions.js', () => ({
-  useAccountActions: () => ({ signOutEverywhere: mocks.signOutEverywhere, resetEverything: mocks.resetEverything, disconnect: vi.fn(), signOutHere: vi.fn() }),
+  useAccountActions: () => ({ signOutEverywhere: mocks.signOutEverywhere, startOver: mocks.startOver, disconnect: vi.fn(), signOutHere: vi.fn() }),
 }))
 
 globalThis.__APP_VERSION__ ??= 'test'
@@ -94,7 +94,7 @@ beforeEach(() => {
   mocks.sheets.length = 0
   mocks.navs.length = 0
   mocks.signOutEverywhere = vi.fn()
-  mocks.resetEverything = vi.fn()
+  mocks.startOver = vi.fn()
   for (const f of [mocks.toast, mocks.confirmSheet, mocks.resetDemo, mocks.api]) f.mockClear()
 })
 afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { root.unmount(); host.remove() }) }) })
@@ -163,13 +163,22 @@ describe('A2.0 the signed-in browser', () => {
     expect(row(page, 'Download my data').textContent).toContain('Everything, as JSON and a .zip of photos')
   })
 
-  it('Start over keeps today\'s reset until its own flow lands; Delete account goes to its page', async () => {
+  it('Start over opens its confirm; Delete account goes to its page', async () => {
     const page = mount(<AccountPage />)
     await settle()
     act(() => row(page, 'Start over').click())
-    expect(mocks.resetEverything).toHaveBeenCalledTimes(1)
+    expect(mocks.startOver).toHaveBeenCalledTimes(1)
     act(() => row(page, 'Delete account').click())
     expect(mocks.navs).toEqual(['/me/account/delete'])
+  })
+
+  it('with a deletion pending, Delete account says when and opens the root, where Cancel deletion is', async () => {
+    mocks.user = { ...mocks.user, deletion: { at: new Date(2026, 9, 25, 12).toISOString(), requestedAt: new Date(2026, 9, 18, 12).toISOString() } }
+    const page = mount(<AccountPage />)
+    await settle()
+    expect(row(page, 'Delete account').textContent).toMatch(/Scheduled for .*25/)
+    act(() => row(page, 'Delete account').click())
+    expect(mocks.navs).toEqual(['/me'])
   })
 
   it('Account ID copies, as it always did, and the pairing row opens its drawer', async () => {
@@ -187,8 +196,8 @@ describe('the other builds keep their rows', () => {
     mocks.user = null
     const page = mount(<AccountPage />)
     await settle()
-    expect(headings(page)).toEqual(['Demo'])
-    expect(titles(page)).toEqual(['You’re in the demo', 'Reset demo data', 'Self-host Gains'])
+    expect(headings(page)).toEqual(['Demo', 'Start again'])
+    expect(titles(page)).toEqual(['You’re in the demo', 'Reset demo data', 'Self-host Gains', 'Start over'])
     act(() => row(page, 'Reset demo data').click())
     expect(mocks.confirmSheet).toHaveBeenCalledTimes(1)
     expect(mocks.api).not.toHaveBeenCalledWith('/api/account/passkeys')
@@ -199,17 +208,21 @@ describe('the other builds keep their rows', () => {
     mocks.user = null
     const page = mount(<AccountPage />)
     await settle()
-    expect(headings(page)).toEqual(['Your data'])
-    expect(titles(page)).toEqual(['All data stays on this phone', 'Connect to my server'])
+    expect(headings(page)).toEqual(['Your data', 'Start again'])
+    expect(titles(page)).toEqual(['All data stays on this phone', 'Connect to my server', 'Start over'])
   })
 
-  it('a paired phone: the connection block and the account id, nothing to sign in to', async () => {
+  // Every build kept the Danger zone page's reset; Start over is where it lives now. Only a browser
+  // signed in to its server can delete the account.
+  it('a paired phone: the connection block, the account id and Start over; no Delete account', async () => {
     mocks.MOBILE = true
     const page = mount(<AccountPage />)
     await settle()
-    expect(titles(page)).toEqual(['Account ID'])
-    expect(headings(page)).toEqual([])
-    expect(row(page, 'Start over')).toBeUndefined()
+    expect(titles(page)).toEqual(['Account ID', 'Start over'])
+    expect(headings(page)).toEqual(['Start again'])
+    expect(row(page, 'Delete account')).toBeUndefined()
+    act(() => row(page, 'Start over').click())
+    expect(mocks.startOver).toHaveBeenCalledTimes(1)
     expect(mocks.api).not.toHaveBeenCalledWith('/api/account/passkeys')
   })
 
@@ -219,7 +232,9 @@ describe('the other builds keep their rows', () => {
     mocks.S = { ...mocks.S, connStatus: false }
     const page = mount(<AccountPage />)
     await settle()
-    expect(headings(page)).toEqual(['Account'])
+    expect(headings(page)).toEqual(['Account', 'Start again'])
     expect(page.querySelector('.g-snote').textContent).toBe('Guest mode: your data lives only in this browser.')
+    expect(row(page, 'Start over')).toBeTruthy()
+    expect(row(page, 'Delete account')).toBeUndefined()
   })
 })

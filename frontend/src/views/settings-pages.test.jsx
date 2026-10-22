@@ -93,7 +93,7 @@ const mount = (page = null, find = null, via = null) => act(() => root.render(<S
 const rowTitled = title => [...host.querySelectorAll('.lrow, .g-glist-row')].find(r => (r.querySelector('.lrow-t') ?? r.querySelector('b'))?.textContent === title)
 // The layout tiles (a radiogroup, not a row) are a search hit of their own, named by their aria-label;
 // a stage page's section headings count as titles too.
-const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row b, .set-tiles, .g-ssec h2')].map(e => e.getAttribute('aria-label') ?? e.textContent)
+const titles = () => [...host.querySelectorAll('.lrow .lrow-t, .g-glist-row b, .g-danger-row b, .set-tiles, .g-ssec h2')].map(e => e.getAttribute('aria-label') ?? e.textContent)
 const valueOf = row => (row.querySelector('.g-gvr-val') || row.querySelector('.lrow-v')).textContent
 
 // This test's guest in a browser, as the page itself sees it.
@@ -189,7 +189,7 @@ describe('the pages', () => {
   it('each search entry is a row on its page (guest in a browser)', () => {
     const byPage = {}
     for (const e of SEARCH) if (pageVisible(e.page, guestWeb) && (!e.when || e.when(guestWeb))) (byPage[e.page] ||= []).push(e.title)
-    expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'appearance', 'background', 'backup', 'danger', 'equipment', 'help', 'import', 'licences', 'schedule', 'units', 'workout'])
+    expect(Object.keys(byPage).sort()).toEqual(['about', 'account', 'advanced', 'appearance', 'background', 'backup', 'equipment', 'help', 'import', 'licences', 'schedule', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
       // Equipment is Gym setup, a stage page outside this Settings shell (SettingsRoute): its
       // rows and the search's anchors are checked in views/train/gym/GymSetup.test.jsx
@@ -237,15 +237,6 @@ describe('the pages', () => {
     expect(chips.getAttribute('aria-checked')).toBe('true')
     act(() => chips.click())
     expect(mocks.S.wc.exerciseChips).toBe(false)
-  })
-
-  it('a sub-page carries the shared header; every one goes back to Profile (§6)', () => {
-    for (const [page, title] of [['danger', 'Danger zone']]) {
-      mount(page)
-      expect(host.querySelector('.sub-hdr h1').textContent).toBe(title)
-      act(() => host.querySelector('.sub-hdr button[aria-label="Back"]').click())
-      expect(mocks.backs.at(-1), page).toBe('/me')
-    }
   })
 
   it('a page on the stage frame has its own title and Back, and no old header over it', () => {

@@ -6,11 +6,15 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DeleteAccountPage from './pages/DeleteAccountPage.jsx'
+import StartedOverScreen from './pages/StartedOverScreen.jsx'
 import { SettingsRoute } from './SettingsRoute.jsx'
 
 const seenProps = vi.hoisted(() => ({ last: null }))
 vi.mock('../Settings.jsx', () => ({ default: props => { seenProps.last = props; return <p>settings:{props.page || 'root'}</p> } }))
 vi.mock('../train/gym/GymSetup.jsx', () => ({ default: () => <p>gym</p> }))
+// The pages themselves are tested on their own; here only which route draws them.
+vi.mock('./pages/DeleteAccountPage.jsx', () => ({ default: () => <p>delete account</p> }))
+vi.mock('./pages/StartedOverScreen.jsx', () => ({ default: () => <p>started over</p> }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -25,6 +29,7 @@ const open = entry => act(() => root.render(
     <Routes>
       <Route path="/me" element={<SettingsRoute />} />
       <Route path="/me/account/delete" element={<DeleteAccountPage />} />
+      <Route path="/me/account/started-over" element={<StartedOverScreen />} />
       <Route path="/me/:page" element={<SettingsRoute />} />
     </Routes>
   </MemoryRouter>,
@@ -63,7 +68,16 @@ describe('SettingsRoute', () => {
   it('/me/account/delete is its own page, not an unknown Settings page', () => {
     open('/me/account/delete')
     expect(seen).toBe('/me/account/delete')
+    expect(host.textContent).toBe('delete account')
     expect(seenProps.last).toBeNull()
+  })
+
+  it('/me/account/started-over is Start over\'s result, and /me/danger (the old page) opens Account', () => {
+    open('/me/account/started-over')
+    expect(host.textContent).toBe('started over')
+    expect(seenProps.last).toBeNull()
+    open('/me/danger')
+    expect(seen).toBe('/me/account')
   })
 
   it('/me/equipment is Gym setup', () => {

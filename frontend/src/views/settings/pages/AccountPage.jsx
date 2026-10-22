@@ -7,6 +7,7 @@ import { t } from '../../../lib/i18n.js'
 import { api, webauthnOK, passkeyRegister, passkeyError } from '../../../lib/api.js'
 import { DEMO, REPO } from '../../../lib/demo.js'
 import { MOBILE } from '../../../lib/mobile.js'
+import { deletionDay } from '../../../lib/account-deletion.js'
 import { confirmSheet } from '../../../sheets.jsx'
 import { showsConnection, showsLocalLine } from '../../../components/SyncBanner.jsx'
 import { ServerSyncSection, KeptChangesRows, connectServer, connectionView, passkeySignIn, signInAgain } from '../../../components/ServerSync.jsx'
@@ -26,7 +27,7 @@ import { openAddDeviceSheet, openPairSheet } from '../sheets/add-device-sheet.js
 import { openDownloadSheet } from '../sheets/download-sheet.jsx'
 import { useSettingsCtx } from '../use-settings-ctx.js'
 import { useAccountActions } from '../use-account-actions.js'
-import { settingsPath } from '../paths.js'
+import { SETTINGS_ROOT, settingsPath } from '../paths.js'
 import SettingsPage from '../SettingsPage.jsx'
 
 // A list of rows in one glass card, the stage's (GlassValueRow rows).
@@ -88,7 +89,7 @@ export default function AccountPage() {
   const resetDemo = useStore(s => s.resetDemo)
   const toast = useUI(s => s.toast)
   const { pwOn, hasMedia } = useSettingsCtx()
-  const { signOutEverywhere, resetEverything } = useAccountActions()
+  const { signOutEverywhere, startOver } = useAccountActions()
   // This profile's passkeys and the code for another device (#95). A change to them is read back
   // here and by the password row, whose "Remove" depends on there being a passkey.
   const passkeys = usePasskeys(!!user && !MOBILE && !DEMO)
@@ -141,12 +142,6 @@ export default function AccountPage() {
         <AccountIdRow id={user.id} />
       </Card>
       <KeptChangesRows />
-
-      <StageSection title={t('Start again')} />
-      <Card>
-        <DangerRow icon="reset" title={t('Start over')} sub={t('Wipe your training and body data. Your account stays')} onClick={resetEverything} />
-        <DangerRow icon="trash" first={false} title={t('Delete account')} sub={t('Everything, after 7 days')} onClick={() => nav(settingsPath('account/delete'))} />
-      </Card>
     </>}
 
     {/* A phone paired with a server: the connection block, then the account's id. */}
@@ -187,6 +182,16 @@ export default function AccountPage() {
           off, or its × hid it (#454). */}
       {!user && !DEMO && !MOBILE && !(showsConnection(S) && showsLocalLine(S)) && <StageNote>{t('Guest mode: your data lives only in this browser.')}</StageNote>}
     </>}
+
+    {/* Every build can start over (it was the Danger zone page); only a browser signed in to its
+        server can delete the account, which the server keeps for seven days first. */}
+    <StageSection title={t('Start again')} />
+    <Card>
+      <DangerRow icon="reset" title={t('Start over')} sub={t('Wipe what you logged and your settings')} onClick={startOver} />
+      {server && <DangerRow icon="trash" first={false} title={t('Delete account')}
+        sub={user.deletion ? t('Scheduled for {0}', deletionDay(user.deletion.at)) : t('Everything, after 7 days')}
+        onClick={() => nav(user.deletion ? SETTINGS_ROOT : settingsPath('account/delete'))} />}
+    </Card>
     </div>
   </SettingsPage>
 }
