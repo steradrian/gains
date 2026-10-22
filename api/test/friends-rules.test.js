@@ -258,7 +258,11 @@ test('an open invitation is one whose code still works', () => {
   assert.ok(!hasOpenInvitation(d, 'g1', 'u4', T0));
 });
 
-test('summaryNumbers answers zeros and the goal as data (api-m2 replaces the numbers)', () => {
+// Friends api m2: with no document to read (a write that carried no date), the week is empty and
+// the streak is the one the group had at its last read.
+test('summaryNumbers without a document: an empty week, the goal as data, the stored streak', () => {
   assert.deepEqual(summaryNumbers({ goal: { kind: 'number', n: 15 } }, 'u1', '2026-10-21'), { week: { done: 0, planned: 0 }, streak: 0, goalLine: { kind: 'number', n: 15 } });
   assert.deepEqual(summaryNumbers({ goal: { kind: 'targets' } }, 'u1', null).goalLine, { kind: 'targets' });
+  const group = { goal: { kind: 'planned' }, lastWeek: '2026-10-19', results: { '2026-10-12': true, '2026-10-05': true, '2026-09-28': false } };
+  assert.equal(summaryNumbers(group, 'u1', null).streak, 2);
 });
