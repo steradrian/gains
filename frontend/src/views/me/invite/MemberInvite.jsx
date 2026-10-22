@@ -3,6 +3,7 @@ import { useDsAccent } from '../../../lib/use-ds-accent.js'
 import { REQUEST_NOTE_MAX } from '../../../lib/me/invite-requests.js'
 import { INVITE_TTL_DAYS } from '../../../lib/me/invites.js'
 import { mePath } from '../../../lib/tab-route.js'
+import { useUnsavedGuard } from '../../../lib/unsaved-guard.js'
 import { back } from '../../../lib/use-tab-nav.js'
 import { useUI } from '../../../store/useUI.js'
 import Button from '../../../ds/Button.jsx'
@@ -30,6 +31,7 @@ export default function MemberInvite({ backend = REAL_BACKEND, groupsOn = ME_ROW
   const ask = useAsk(backend)
   const capped = atOpenCap(ask.requests)
   const failure = ask.failure
+  useUnsavedGuard(!!ask.note.trim())
 
   // Undo withdraws the ask just made. If the server cannot be reached the ask stays, and the
   // toast says so rather than pretending it is gone.

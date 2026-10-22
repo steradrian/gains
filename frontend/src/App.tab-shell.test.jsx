@@ -657,6 +657,61 @@ describe('Me, Profile and Progress', () => {
   })
 })
 
+// Pages whose input lives only in their own state ask before a tab tap clears them
+// (lib/unsaved-guard.js); pages that write as they go (the routine editor) are cleared at once.
+describe('unsaved input', () => {
+  const type = async (input, value) => {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+  const nameField = () => document.querySelector('.g-cxf-name input')
+
+  it('a typed exercise is kept by Keep editing and cleared by Discard', async () => {
+    await launch('#/train/exercises/new')
+    await type(nameField(), 'Zercher squat')
+    await click(tab('Today'))
+    expect(hash()).toBe('#/train/exercises/new')
+    expect(document.body.textContent).toContain('Discard changes?')
+    await click(button('Keep editing'))
+    expect(hash()).toBe('#/train/exercises/new')
+    expect(nameField().value).toBe('Zercher squat')
+    await click(tab('Today'))
+    await click(button('Discard'))
+    await settle()
+    expect(hash()).toBe('#/home')
+    expect(lit()).toBe('Today')
+  })
+
+  it('an untouched form is cleared without asking', async () => {
+    await launch('#/train/exercises/new')
+    await click(tab('Today'))
+    expect(hash()).toBe('#/home')
+    expect(document.body.textContent).not.toContain('Discard changes?')
+  })
+
+  it('the tab on screen tapped again asks too', async () => {
+    await launch('#/train/exercises/new')
+    await type(nameField(), 'Zercher squat')
+    await click(tab('Train'))
+    expect(hash()).toBe('#/train/exercises/new')
+    expect(document.body.textContent).toContain('Discard changes?')
+    await click(button('Discard'))
+    await settle()
+    expect(hash()).toBe('#/train')
+  })
+
+  it('the routine editor writes as you type, so a tab tap clears it without asking', async () => {
+    await launch('#/train/routines/rt')
+    await type(document.querySelector('input'), 'Pull')
+    await click(tab('Today'))
+    expect(hash()).toBe('#/home')
+    expect(document.body.textContent).not.toContain('Discard changes?')
+    expect(useStore.getState().S.routines[0].name).toBe('Pull')
+  })
+})
+
 describe('the live dock', () => {
   it('shows while a workout runs and you are elsewhere, and opens it', async () => {
     running()
@@ -680,6 +735,38 @@ describe('the live dock', () => {
     await click(button('Skip'))
     expect(useUI.getState().timer).toBeNull()
     expect(document.querySelector('#timer.dock')).not.toBeNull()   // the session is still on
+  })
+
+  it('survives every tab tap untouched: the session, the dock and the rest timer', async () => {
+    running()
+    const session = { ...useStore.getState().S.active }
+    await launch('#/home')
+    await act(async () => { useUI.getState().startRest(90) })
+    const dock = () => document.querySelector('#timer.dock')
+    for (const label of ['Train', 'Eat', 'Me', 'Today', 'Today', 'Train']) {
+      await click(tab(label))
+      expect(useStore.getState().S.active).toEqual(session)
+      expect(dock().textContent).toContain('Push A')
+      expect(dock().querySelector('.g-dock-count').textContent).toMatch(/^[01]:\d\d$/)
+      expect(useUI.getState().timer).not.toBeNull()
+      expect(useUI.getState().timer.left).toBeGreaterThan(0)
+    }
+  })
+
+  it('stays running when a tab is switched to from the workout page itself', async () => {
+    running()
+    await launch('#/home')
+    await click(document.querySelector('#timer.dock .g-dock-main'))
+    expect(hash()).toBe('#/train/workout')
+    await act(async () => { useUI.getState().startRest(90) })
+    const session = { ...useStore.getState().S.active }
+    for (const key of ['food', 'me', 'train', 'home']) {
+      await go(() => switchTab(key))
+      expect(hash()).toBe({ home: '#/home', food: '#/food', me: '#/me', train: '#/train' }[key])
+      expect(useStore.getState().S.active).toEqual(session)
+      expect(document.querySelector('#timer.dock')).not.toBeNull()
+      expect(useUI.getState().timer).not.toBeNull()
+    }
   })
 
   it('is not there without a running workout', async () => {

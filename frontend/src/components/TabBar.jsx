@@ -1,8 +1,11 @@
 import { useStore } from '../store/useStore.js'
 import { workoutRunning } from '../lib/tab-route.js'
+import { t } from '../lib/i18n.js'
+import { hasUnsaved } from '../lib/unsaved-guard.js'
 import { isSwitching, popToRoot, switchTab } from '../lib/use-tab-nav.js'
 import { useDsAccent } from '../lib/use-ds-accent.js'
 import GlassTabBar from '../ds/GlassTabBar.jsx'
+import { confirmDrawer } from '../views/settings/confirm-drawer.js'
 
 // The app's four tabs under the design system's names: Home is Today and Nutrition is Eat. The
 // routes keep their own names (lib/tab-route.js).
@@ -27,8 +30,17 @@ export default function TabBar({ tab, lit, onPlus }) {
   const go = key => {
     if (isSwitching()) return
     const target = APP_TAB[key]
-    if (target === tab) popToRoot(target)
-    else switchTab(target)
+    const open = () => (target === tab ? popToRoot(target) : switchTab(target))
+    // A page holding input that is only in its own state (lib/unsaved-guard.js) is not cleared
+    // silently: the tap asks first, and Keep editing leaves everything as it was.
+    if (hasUnsaved()) {
+      confirmDrawer({
+        title: t('Discard changes?'), body: t('Your changes are not saved.'),
+        confirmLabel: t('Discard'), cancelLabel: t('Keep editing'), onConfirm: open,
+      })
+      return
+    }
+    open()
   }
   return (
     <div id="tabbar" className="g-root" data-accent={accent}>

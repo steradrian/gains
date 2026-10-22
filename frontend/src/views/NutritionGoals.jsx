@@ -11,6 +11,7 @@ import {
   previewBase, toggleMacroUnit, waterFromUnit, waterToUnit, waterUnitOf, workoutAdjustState,
 } from '../lib/nutrition/goals.js'
 import { useGoalsForm } from '../lib/nutrition/use-goals-form.js'
+import { useUnsavedGuard } from '../lib/unsaved-guard.js'
 import { EmptyState, LoadError } from '../components/blocks.jsx'
 import { Page } from '../components/layout.jsx'
 import { Button, Row, Section, Segmented, SelectRow, Stepper, Switch, TextField } from '../components/ui.jsx'
@@ -223,6 +224,7 @@ export default function NutritionGoals() {
 
 function GoalsBody() {
   const form = useGoalsForm()
+  useUnsavedGuard(form.dirty)
   if (form.draft) return <GoalsForm form={form} />
   if (form.status === 'error') {
     return <LoadError message={t('Goals did not load.')} onRetry={form.reload} />
