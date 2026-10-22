@@ -1,6 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { t } from '../../../lib/i18n.js'
 import { __setMockGroup } from '../../../lib/friends/use-group.js'
 import { __setMockMember } from '../../../lib/friends/use-member.js'
 import { useUI } from '../../../store/useUI.js'
