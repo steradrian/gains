@@ -2559,3 +2559,12 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 .g-mrow-sub { font: 500 14px/19px var(--font-sans); color: var(--on-stage-2); overflow-wrap: anywhere; }
 .g-mrow-end { display: flex; align-items: center; gap: 2px; flex: none; }
 .g-mrow-on { pointer-events: none; cursor: default; }
+/* Friends surfaces m1: CheerList and CheerRow (Cheers for you). The card is NotificationGroup's
+   glass; a row is information, so it is not tappable. */
+.g-clist { list-style: none; padding: 0; }
+.g-crow { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; }
+.g-crow + .g-crow { border-top: 1px solid var(--glass-line); }
+.g-crow-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: start; }
+.g-crow-body b { font: 600 17px/22px var(--font-sans); }
+.g-crow-body > span { font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-crow-body small { font: 600 13px/16px var(--font-sans); color: var(--on-stage-2); opacity: .85; }

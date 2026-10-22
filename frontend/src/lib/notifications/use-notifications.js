@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
+import { useFriendsFeed } from '../friends/use-friends-feed.js'
 import { MOBILE, syncReminder } from '../mobile.js'
 import { useFoodOn } from '../nutrition/food-on.js'
 import { resolveGoalFor } from '../nutrition/diary.js'
@@ -69,6 +70,9 @@ function useFeed() {
   const indexVersion = useDiaryIndex(s => s.version)
   const shown = useShown()
   const food = useFoodOn()
+  // Friends surfaces m1: the cheers and invites come from the cached Friends data, which refreshes
+  // on its own cadence; null while Friends is off.
+  const friends = useFriendsFeed()
   const log = MOBILE ? reminderLogRaw() : ''
 
   useEffect(() => {
@@ -78,11 +82,11 @@ function useFeed() {
   // indexVersion: diaryIndexDays() is the same array until the days change.
   const nutrition = useMemo(() => (food ? dayOnTargetOf(settings, diaryIndexDays(), indexReady) : null), [food, settings, indexReady, indexVersion])
   const items = useMemo(
-    () => feedOf(useStore.getState().S, { now: Date.now(), nutrition, reminders: MOBILE ? firedReminders() : [] }),
-    [key, nutrition, log, shown],
+    () => feedOf(useStore.getState().S, { now: Date.now(), nutrition, reminders: MOBILE ? firedReminders() : [], friends }),
+    [key, nutrition, log, shown, friends],
   )
   const read = useMemo(() => readOf({ notifRead: JSON.parse(readRaw) }), [readRaw])
-  return { items, read }
+  return { items, read, friendsOn: !!friends }
 }
 
 /** How many notifications are unread: the bell's dot and its name (StageHeader `unread`). */
@@ -108,9 +112,10 @@ export function useUnreadCount() {
  *   homeScreen   off because this is an iPhone browser tab: Gains has to go on the Home Screen first
  *   hasReminders whether reminders can land here at all: only the phone app logs the ones that go
  *                off (reminder-log.js); the web's are server pushes the inbox never sees
+ *   friendsOn    whether Friends is on, so cheers and invites can land here (the page's copy names them)
  */
 export function useNotifications() {
-  const { items, read } = useFeed()
+  const { items, read, friendsOn } = useFeed()
   const update = useStore(s => s.update)
   const nav = useNavigate()
   const { pathname } = useLocation()
@@ -169,5 +174,6 @@ export function useNotifications() {
     markRead, markAllRead, open, pathOf, permission, turnOn,
     homeScreen: permission === 'off' && needsHomeScreen(),
     hasReminders: MOBILE,
+    friendsOn,
   }
 }

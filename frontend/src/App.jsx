@@ -94,6 +94,8 @@ import ChallengeScreen from './views/friends/ChallengeScreen.jsx'
 // Friends core m2
 import GroupLinkRedirect from './views/friends/GroupLinkRedirect.jsx'
 import { groupCodeOf, rememberPendingGroup, takePendingGroup } from './lib/friends/pending-group.js'
+// Friends surfaces m2
+import TargetsReachedSync from './views/friends/TargetsReachedSync.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
@@ -412,6 +414,8 @@ function Shell() {
       <Toast />
       {/* Workout finish M2: asks about a session left open for hours (W1.27). */}
       <StaleWorkoutCheck />
+      {/* Friends surfaces m2: keeps S.targetsReached current while Friends and its targets switch are on. */}
+      {authed && !needsMobileOnboarding && <TargetsReachedSync />}
       <TimerFlash />
       <LandscapeCover />
     </>

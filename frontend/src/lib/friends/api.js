@@ -18,8 +18,11 @@ import { useStore } from '../../store/useStore.js'
  * @typedef {{ uid: string, name: string, initial: string }} MemberLite
  * @typedef {{ id: string, name: string, since: string, memberCount: number, members: MemberLite[],
  *   week: { done: number, planned: number }, streak: number, goalLine: string, challengeLine?: string }} GroupSummary
- * @typedef {{ code: string, group: string, from: string }} Invitation
- * @typedef {{ on: boolean, share: Share, groups: GroupSummary[], invitations: Invitation[], newCount: number, newest?: unknown }} FriendsMe
+ * @typedef {{ code: string, group: { id: string, name: string }, from: { name: string }, at?: string }} Invitation
+ * @typedef {{ cid: string, group: { id: string, name: string }, from: { name: string }, at?: string }} ChallengeInvite
+ * @typedef {{ id: string, kind: 'workout'|'together'|'best'|'target', names: string[], uid?: string, title?: string, cheered?: boolean }} NewestMoment
+ * @typedef {{ group: string, at: string, moments: NewestMoment[] }} Newest
+ * @typedef {{ on: boolean, share: Share, groups: GroupSummary[], invitations: Invitation[], challengeInvites?: ChallengeInvite[], newCount: number, newest?: Newest }} FriendsMe
  */
 
 /** What the server (or the client) refused: `code` is the contract's (`needs-share`, `invite-used`...), `offline` when nothing answered. */
@@ -122,7 +125,13 @@ export const removeMoment = (id, mid) => call('POST', '/groups/' + seg(id) + '/m
 /** @param {{ group: string, kind: 'moment'|'week'|'challenge', ref: string }} body */
 export const sendCheer = body => call('POST', '/cheers', { body })
 export const undoCheer = body => call('DELETE', '/cheers', { body })
-export const getCheers = () => read('/cheers')
+/**
+ * This week's cheers for the person, newest first. `seen: true` is the Cheers for you page being
+ * opened (it advances the digest's marker on the server); the background refresh behind the
+ * Notifications feed leaves it out so a cheer is never marked seen unseen.
+ * @param {{ seen?: boolean }} [opts]
+ */
+export const getCheers = ({ seen = false } = {}) => read('/cheers', seen ? { seen: 1 } : {})
 export const createChallenge = (id, body) => call('POST', '/groups/' + seg(id) + '/challenges', { body })
 export const getChallenge = (id, cid) => read('/groups/' + seg(id) + '/challenges/' + seg(cid))
 export const joinChallenge = (id, cid) => call('POST', '/groups/' + seg(id) + '/challenges/' + seg(cid) + '/join')
