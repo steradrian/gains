@@ -1,19 +1,24 @@
 import Icon from '../components/Icon.jsx'
 import { t } from '../lib/i18n.js'
+import { cx } from '../lib/ui-kit.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import Act from './Act.jsx'
 import BottomSheet from './BottomSheet.jsx'
+import HapticSwitch from './HapticSwitch.jsx'
 
 // The confirmation for what Undo cannot take back (bundle.js `ConfirmDrawer`, surface rule R5; board
 // W1.46 "Discard 14 sets?"): `body` leads, `items` list what goes (a danger mark each), `note` is
 // the quiet line after ("You can still undo for 8 s on Today."), then the danger `confirmLabel`
 // and the plain `cancelLabel`, each a button with its handler or a link with its href. `icon` is
-// the danger button's (a warning triangle by default).
+// the danger button's (a warning triangle by default). `haptic` ticks the danger button when
+// tapped, for a confirm whose tap itself commits (Remove from group); never on a link.
 // With a `title` it is its own drawer (`BottomSheet`; the × is a Cancel like the scrim, Escape and
 // Back; opened with `confirmDrawer()` in views/settings/confirm-drawer.js). Without one it is only
 // the content, for a drawer that already has its title and ×.
 export default function ConfirmDrawer({
-  title, body, items = [], note, icon = 'warning', confirmLabel, onConfirm, confirmHref, cancelLabel, onCancel, cancelHref,
+  title, body, items = [], note, icon = 'warning', confirmLabel, onConfirm, confirmHref, cancelLabel, onCancel, cancelHref, haptic = false,
 }) {
+  const tick = haptic && !confirmHref
   const content = (
     <div className="g-confirm">
       {body && <p>{body}</p>}
@@ -23,8 +28,8 @@ export default function ConfirmDrawer({
         </ul>
       )}
       {note && <p className="g-confirm-note">{note}</p>}
-      <Act href={confirmHref} onClick={onConfirm} className="g-btn g-confirm-danger">
-        <Icon name={icon} className="g-icon" />{confirmLabel || (title ? t('Delete') : '')}
+      <Act href={confirmHref} onClick={tick ? e => { buzz('light'); onConfirm?.(e) } : onConfirm} className={cx('g-btn g-confirm-danger', tick && 'g-haptic')}>
+        <Icon name={icon} className="g-icon" />{confirmLabel || (title ? t('Delete') : '')}{tick && <HapticSwitch />}
       </Act>
       <Act href={cancelHref} onClick={onCancel} className="g-btn g-btn-secondary g-btn-block">{cancelLabel || (title ? t('Cancel') : '')}</Act>
     </div>
