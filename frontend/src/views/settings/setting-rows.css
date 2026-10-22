@@ -70,6 +70,14 @@
 
 .set-about-logo { display: flex; justify-content: center; padding: 8px 0 20px; color: var(--on-stage); }
 
+/* About › Viewport (viewport-readout.jsx): the figures are code, set in the mono face; the probe is
+   the box #modal-root is (fixed, inset 0), measured, never seen. */
+.set-vp .g-glist-body b, .set-vp .g-gvr-val { font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; }
+.set-vp-probe { position: fixed; inset: 0; padding: var(--sat) 0 var(--sab); visibility: hidden; pointer-events: none; z-index: -1; }
+.set-vp-env { position: absolute; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
+.set-vp-dvh { position: absolute; height: 100dvh; }
+.set-vp-lvh { position: absolute; height: 100lvh; }
+
 .set-lic { padding: 16px; color: var(--on-stage); font: 500 14px/20px var(--font-sans); overflow-wrap: anywhere; }
 .set-lic b { display: block; font: 700 15px/20px var(--font-sans); margin-bottom: 4px; }
 .set-lic p { margin: 0; color: var(--on-stage-2); }
