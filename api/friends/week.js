@@ -14,8 +14,8 @@
  *             against the days known for them (a day the client did not judge counts nowhere); a
  *             week with no known day is neither hit nor missed
  *
- * Reading writes, in one store.mutate and only when the client's date is plausible (within two
- * days of the server's clock, so a made-up date cannot settle weeks that have not happened):
+ * Reading writes, in one store.mutate and only when the client's date is plausible (the server's
+ * UTC date, give or take a day, so a made-up date cannot settle weeks that have not happened):
  *   highWater[week][uid]   the most done this member was seen with in that week; done is
  *                          max(high-water, now), so deleting a workout never takes the ring back,
  *                          while planned is recomputed on every read
@@ -36,19 +36,20 @@ import { memberProjection } from './cache.js';
 export const SETTLE_WEEKS = CONSISTENCY_WEEKS;
 export const RESULTS_KEEP_WEEKS = 260;
 export const HIGH_WATER_KEEP_WEEKS = 9;
-export const PLAUSIBLE_MS = 2 * 86400000;
 
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** Whether `date` can be someone's today by the server's clock, in any time zone. */
-export function plausibleDate(date, now = Date.now()) {
-  if (!isDate(date)) return false;
-  const t = Date.parse(date + 'T12:00:00Z');
-  return Math.abs(t - now) <= PLAUSIBLE_MS;
-}
-
 /** The server's UTC date. */
 export const serverDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+/** Whether `date` can be someone's today by the server's clock: the server's UTC date or the day
+ *  either side of it, which covers every time zone (UTC-12 to UTC+14) and nothing more, so a
+ *  Saturday client cannot read the next Monday and close the running week early. */
+export function plausibleDate(date, now = Date.now()) {
+  if (!isDate(date)) return false;
+  const today = serverDay(now);
+  return date >= addDays(today, -1) && date <= addDays(today, 1);
+}
 
 /** The client's `date` when it can be someone's today, else the server's UTC date. */
 export const clientDay = (date, now = Date.now()) => (plausibleDate(date, now) ? date : serverDay(now));

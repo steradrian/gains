@@ -157,10 +157,15 @@ test('streak: weeks in a row hit back from last week; a week that is neither is 
   assert.equal(streakOf({}, W, true), 1);
 });
 
-test('a date is plausible within two days of the server clock, in any time zone', () => {
+test('a date is plausible within a day of the server’s UTC date, in any time zone', () => {
   const noon = Date.parse('2026-10-14T12:00:00Z');
   for (const d of ['2026-10-13', '2026-10-14', '2026-10-15']) assert.ok(plausibleDate(d, noon), d);
-  for (const d of ['2026-10-11', '2026-10-17', '2099-01-01', 'x']) assert.ok(!plausibleDate(d, noon), d);
+  for (const d of ['2026-10-12', '2026-10-16', '2026-10-11', '2026-10-17', '2099-01-01', 'x']) assert.ok(!plausibleDate(d, noon), d);
+  // UTC+14 just before UTC midnight is already tomorrow; UTC-12 just after is still yesterday.
+  assert.ok(plausibleDate('2026-10-15', Date.parse('2026-10-14T23:59:00Z')));
+  assert.ok(plausibleDate('2026-10-13', Date.parse('2026-10-14T00:01:00Z')));
+  // Saturday by the server: the next Monday is server date + 2 and cannot close the week early.
+  assert.ok(!plausibleDate('2026-10-19', Date.parse('2026-10-17T23:00:00Z')));
 });
 
 test('who shows and who counts: Friends off and a disabled account count for nothing; the viewer always sees themselves', () => {

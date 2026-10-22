@@ -100,6 +100,18 @@ test('a made-up date is answered but settles nothing', async t => {
   assert.equal(JSON.stringify(h.friends()), before, 'no high-water, no results, no lastWeek from the future');
 });
 
+test('a Saturday read dated the next Monday cannot close the running week early', async t => {
+  const plan = workouts => state({ ...ONE_DAY_PLAN, workouts });
+  const h = await startServer(t, { states: { u_ana: plan([]), u_bea: plan([]) } });
+  const gid = await h.crew(['u_ana', 'u_bea']);
+  await h.at(Date.parse('2026-10-17T12:00:00.000Z'));
+  await h.view('u_ana', gid, '2026-10-17');
+  const before = JSON.stringify(h.friends().groups[gid]);
+  await h.view('u_ana', gid, '2026-10-19');
+  assert.equal(JSON.stringify(h.friends().groups[gid]), before, 'server date + 2 settles nothing');
+  assert.ok(!Object.hasOwn(h.friends().groups[gid].results || {}, MONDAY), 'the week of the 12th is still open');
+});
+
 test('a muted member’s moments are left out for that viewer only, and they still count', async t => {
   const h = await startServer(t, { states: {
     u_ana: state(), u_bea: state({ workouts: [workout({ d: MONDAY, name: 'Legs' })] }), u_cy: state()
