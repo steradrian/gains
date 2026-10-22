@@ -12,7 +12,10 @@ import { useStore } from '../../store/useStore.js'
 // `resetEverything` (Start over, reachable from the Account states) does nothing here: the real one
 // would write a wiped copy over this browser's own. Start over's media wipe (retainOnly) goes to the
 // in-memory media store installed below, so no tap in the gallery can reach this browser's files.
-const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync', 'resetEverything']
+// `setUnit` (Units, "Convert the numbers") would convert the real routines and logs and save them
+// under gym_state_v1; here it only flips the unit in the laid-over copy. `resetDemo` is the demo
+// build's reset, which writes the example data over the saved copy.
+const STORE_KEYS = ['config', 'user', 'linkCode', 'setUser', 'adoptProfile', 'setGuest', 'loadConfig', 'pushState', 'pullState', 'sync', 'resetEverything', 'setUnit', 'resetDemo']
 
 /** A passkey prompt the person closed. */
 export const denied = () => Promise.reject(Object.assign(new Error('The operation either timed out or was not allowed.'), { name: 'NotAllowedError' }))
@@ -71,7 +74,8 @@ export function installMocks({ config = null, user = null, linkCode = null, weba
   useStore.setState({
     config, user, linkCode,
     setUser: () => {}, adoptProfile: async () => ({}), setGuest: () => {}, loadConfig: async () => config,
-    pushState: async () => {}, pullState: async () => {}, resetEverything: async () => {},
+    pushState: async () => {}, pullState: async () => {}, resetEverything: async () => {}, resetDemo: async () => {},
+    setUnit: to => { if (S) useStore.setState(st => ({ S: { ...st.S, unit: to } })) },
   })
   undo.push(() => useStore.setState(saved))
 

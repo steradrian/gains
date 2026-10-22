@@ -609,6 +609,35 @@ describe('the screens gallery', () => {
     expect(useStore.getState().user).toBe(before.user)
   })
 
+  it('Units in the gallery converts nothing real: setUnit and resetDemo never reach this browser’s saved copy', async () => {
+    localStorage.setItem('gym_state_v1', '{"real":true}')
+    const realSetUnit = useStore.getState().setUnit
+    const realResetDemo = useStore.getState().resetDemo
+    const seen = {}
+    const entry = {
+      ...screenById('A1.5'),
+      play: async () => {
+        useStore.getState().setUnit('lb')
+        await useStore.getState().resetDemo()
+        await new Promise(resolve => setTimeout(resolve, 20))
+        seen.unit = useStore.getState().S.unit
+        seen.saved = localStorage.getItem('gym_state_v1')
+      },
+    }
+    try {
+      await show(entry)
+      expect(seen).toEqual({ unit: 'lb', saved: '{"real":true}' })
+      unmountAll()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      expect(localStorage.getItem('gym_state_v1')).toBe('{"real":true}')
+      expect(useStore.getState().setUnit).toBe(realSetUnit)
+      expect(useStore.getState().resetDemo).toBe(realResetDemo)
+      expect(useStore.getState().S.unit).not.toBe('lb')
+    } finally {
+      localStorage.removeItem('gym_state_v1')
+    }
+  }, 10000)
+
   it('a Start over confirmed in the mocked Account page leaves this browser’s profile, media and storage alone', async () => {
     const own = createMediaStore(memoryBackend())
     await own.put('real-photo', new Blob(['x'], { type: 'image/jpeg' }), { mime: 'image/jpeg', pending: false })
