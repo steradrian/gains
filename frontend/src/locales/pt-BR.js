@@ -1893,6 +1893,9 @@ export const PT_BR_OVERRIDES = {
   'in your loop': 'in your loop',
   'new': 'new',
   'not done yet': 'not done yet',
+  'Reduce transparency': 'Reduce transparency',
+  'Solid surfaces instead of glass.': 'Solid surfaces instead of glass.',
+  'Follows your phone.': 'Follows your phone.',
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }
