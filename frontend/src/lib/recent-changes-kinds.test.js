@@ -10,14 +10,14 @@ vi.mock('./api.js', () => ({ api: vi.fn(() => Promise.resolve({})), beacon: vi.f
 afterEach(() => { localStorage.clear(); removeEntries() })
 
 describe('the kinds registry', () => {
-  it('registers a restorer for every kind of Me changes M1', async () => {
+  it('registers a restorer for every recorded kind of Me changes M1 and M2', async () => {
     useStore.setState({ S: Object.assign(JSON.parse(JSON.stringify(DEF)), { routines: [], workouts: [] }), user: null })
-    for (const kind of ['routine-delete', 'workout-delete', 'set-delete']) {
+    for (const kind of ['routine-delete', 'workout-delete', 'set-delete', 'food-delete']) {
       const id = recordChange({ kind, snapshot: {} })
       // a restorer that exists answers for its own snapshot; 'unsupported' means none is registered
       const res = await restoreChange(id)
       expect(res).toEqual({ ok: false, reason: 'gone' })
     }
-    expect(listChanges().map(r => r.state)).toEqual(['open', 'open', 'open'])
+    expect(listChanges().map(r => r.state)).toEqual(['open', 'open', 'open', 'open'])
   })
 })

@@ -6,6 +6,7 @@ import TextField from '../ds/TextField.jsx'
 import { useUI } from '../store/useUI.js'
 import { fmtDate, todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
+import { recordFoodDelete } from '../lib/me/food-changes.js'
 import { amountEditable, editedItem, newUuid, nutritionOf, timeOf, unitsFor } from '../lib/nutrition/diary.js'
 import { removedText, toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { mealLabels } from '../lib/nutrition/meal-name.js'
@@ -74,6 +75,7 @@ export function DiaryItemSheet({ date, item, close }) {
       const at = useNutrition.getState().days[date]?.entry?.items?.findIndex(i => i.uuid === item.uuid)
       await useNutrition.getState().removeItem(date, item.uuid)
       const back = { ...item, uuid: newUuid() }
+      recordFoodDelete({ date, item, at, backUuid: back.uuid, settings })
       close()
       toastLogged(removedText(date, wasIn, item.name), () => useNutrition.getState().restoreItem(date, back, at >= 0 ? at : null))
     } catch (e) {

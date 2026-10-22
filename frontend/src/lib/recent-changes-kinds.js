@@ -10,3 +10,7 @@ setStateReader(() => useStore.getState().S)
 import './me/routine-changes.js'
 import './me/workout-changes.js'
 import './me/set-changes.js'
+
+// Me changes M2
+import './me/food-changes.js'
+import './me/coach-changes.js'
