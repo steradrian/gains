@@ -4,11 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { bwSheet, goalSheet } from './sheets.jsx'
+import { bwSheet } from './sheets.jsx'
 import { fmtDate, todayISO } from './lib/format.js'
 import { applySheetKeyboard } from './lib/sheet-keyboard.js'
 
-// The big weight read-out (the weigh-in drawer, board T1.7, and the goal sheet) used to be text:
+// The big weight read-out (the weigh-in drawer, board T1.7; the target weight drawer is tested in
+// views/me/goal/goal-drawers.test.jsx) used to be text:
 // the only ways to a number were the slider, ±0.1 and the ±0.5/±1 chips, so 72.3 → 85.7 was a
 // drag you then corrected tap by tap. It is a field now. These pin the two things that make
 // typing into it usable — a half-typed value is not clamped back at you, and the controls
@@ -203,31 +204,5 @@ describe('the weigh-in drawer', () => {
     act(() => button('Save & start workout').click())
     expect(onDone).toHaveBeenCalledWith(70)
     expect(useStore.getState().S.bodyweight).toHaveLength(1)
-  })
-})
-
-describe('the goal sheet', () => {
-  it('moves the slider with what is typed, and holds it at its ceiling past it', () => {
-    goalSheet()
-    const { host } = renderTop()
-    const input = host.querySelector('.bw-read input')
-    const slider = host.querySelector('.sld')
-    act(() => type(input, '82,5'))
-    expect(input.value).toBe('82.5')
-    expect(slider.getAttribute('aria-valuenow')).toBe('82.5')
-    act(() => type(input, '320'))
-    expect(input.value).toBe('320')
-    expect(slider.getAttribute('aria-valuenow')).toBe('300')
-  })
-
-  it('refuses a weight no person has', () => {
-    const toast = vi.fn()
-    useUI.setState({ toast })
-    goalSheet()
-    const { host, button } = renderTop()
-    act(() => type(host.querySelector('.bw-read input'), '9999'))
-    act(() => button('Save goal').click())
-    expect(useStore.getState().S.targetW ?? null).toBe(null)
-    expect(toast).toHaveBeenCalledWith('That looks too heavy. Keep it at 700 kg or less.')
   })
 })

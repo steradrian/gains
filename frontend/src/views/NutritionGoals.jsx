@@ -14,7 +14,8 @@ import { useGoalsForm } from '../lib/nutrition/use-goals-form.js'
 import { EmptyState, LoadError } from '../components/blocks.jsx'
 import { Page } from '../components/layout.jsx'
 import { Button, Row, Section, Segmented, SelectRow, Stepper, Switch, TextField } from '../components/ui.jsx'
-import { confirmSheet, goalSheet } from '../sheets.jsx'
+import { confirmSheet } from '../sheets.jsx'
+import { targetWeightSheet } from './me/goal/goal-drawers.jsx'
 import { Loading } from '../components/Loader.jsx'
 
 const toast = message => useUI.getState().toast(message)
@@ -198,7 +199,7 @@ function GoalsForm({ form }) {
     </Section>
 
     <Section title={t('Body')}>
-      <Row icon="scale" iconTint="var(--teal)" title={t('Target weight')} accessory="chevron" onClick={goalSheet}
+      <Row icon="scale" iconTint="var(--teal)" title={t('Target weight')} accessory="chevron" onClick={targetWeightSheet}
         value={S.targetW ? `${fmtNum(S.targetW)} ${S.unit}` : t('Not set')} />
     </Section>
 

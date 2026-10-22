@@ -12,8 +12,8 @@ import RoutinesScreen from './routines/RoutinesScreen.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {}, useLocation: () => ({ pathname: '/train/routines', state: null }) }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
-  calendarSheet: vi.fn(), readyOrStart: vi.fn(), bwDeltaColor: () => '', weighInsSheet: vi.fn(),
+  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), dayOverrideSheet: vi.fn(),
+  calendarSheet: vi.fn(), readyOrStart: vi.fn(), weighInsSheet: vi.fn(),
   planToolsSheet: vi.fn(), dayNoteSheet: vi.fn(), dayOptionsSheet: vi.fn(), importPlanFile: vi.fn(),
   logPastWorkoutSheet: vi.fn(), startChooserSheet: vi.fn(),
 }))

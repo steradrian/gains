@@ -6,6 +6,7 @@ import { DEF, useStore } from '../../../store/useStore.js'
 import { NtApi } from '../../../lib/nutrition/api.js'
 import { draftOf } from '../../../lib/nutrition/goals.js'
 import { useNutrition } from '../../../lib/nutrition/store.js'
+import { useProfileWrites } from '../../../lib/me/goal-writes.js'
 import { listChanges } from '../../../lib/recent-changes.js'
 import { removeEntries } from '../../../lib/recent-changes-store.js'
 import { useGoal } from './use-goal.js'
@@ -50,6 +51,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-10-22T12:00:00Z'))
   localStorage.clear()
   removeEntries()
+  useProfileWrites.setState({ live: true })
   out = { current: null }
   server = baseSettings()
   calls = []
