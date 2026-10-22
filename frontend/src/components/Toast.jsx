@@ -1,8 +1,10 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useUI } from '../store/useUI.js'
+import { t } from '../lib/i18n.js'
 import { PRESETS, play } from '../lib/motion.js'
 import UndoToast from '../ds/UndoToast.jsx'
 import { Presence, leavingProps, useEnterExit, usePresence } from './presence.jsx'
+import { useSwipeDismiss } from './use-swipe-dismiss.js'
 
 // The one toast, drawn as the design system's UndoToast. Mostly text; with an action (the Undo
 // after a set is removed) it carries a glyph, a button at its end and a draining bar, stays longer
@@ -23,7 +25,7 @@ export default function Toast() {
 function ToastPill({ msg, action, paused }) {
   const ref = useRef(null)
   const { present } = usePresence()
-  const { pauseToast, resumeToast, runToastAction } = useUI.getState()
+  const { pauseToast, resumeToast, runToastAction, dismissToast } = useUI.getState()
   useEnterExit(() => [[ref.current, PRESETS.toast]])
   // The last thing focused outside the pill while it is up, for the focus to go back to when its
   // action is run from the keyboard: the pill goes out of reach at once, and the focus with it.
@@ -59,11 +61,22 @@ function ToastPill({ msg, action, paused }) {
     if (present && showing) play(ref.current, PRESETS.nudge, 'enter')
   }, [msg, present])
   const live = !!(present && action)
-  return <UndoToast ref={ref} role={null} className={action ? 'has-action' : undefined} {...leavingProps(present)}
+  // Swiped, tapped or Escaped away: the toast the person was looking at goes, and not a newer one
+  // that replaced it meanwhile. The timer's end and this one share the store's single ending, so
+  // whichever comes second finds nothing to end.
+  const seen = useRef(null)
+  const gesture = useSwipeDismiss({ ref, onDismiss: () => dismissToast(seen.current ?? undefined), enabled: present })
+  // The slide a swipe left on the element is not wanted when the same toast comes back.
+  useLayoutEffect(() => { if (present && ref.current) ref.current.style.transform = '' }, [present])
+  // The finger on an Undo toast holds its timer; letting go, other than by a mouse still over it, lets it run.
+  const down = e => { seen.current = useUI.getState().toastId; if (live) pauseToast(); gesture.onPointerDown?.(e) }
+  const up = e => { if (live && e.pointerType !== 'mouse') resumeToast(); gesture.onPointerUp?.(e) }
+  const cancel = e => { if (live) resumeToast(); gesture.onPointerCancel?.(e) }
+  return <UndoToast ref={ref} role={null} dismissLabel={t('Dismiss')} {...leavingProps(present)}
     message={msg} body={action?.body} icon={action?.icon ?? null}
     onUndo={action ? run : false} actionLabel={action?.label} duration={action ? action.ms / 1000 : false}
     paused={paused} restartKey={action?.id}
-    onPointerEnter={live ? pauseToast : undefined} onPointerDown={live ? pauseToast : undefined}
-    onPointerLeave={live ? resumeToast : undefined} onPointerCancel={live ? resumeToast : undefined}
-    onPointerUp={live ? (e => { if (e.pointerType !== 'mouse') resumeToast() }) : undefined} />
+    onPointerEnter={live ? pauseToast : undefined} onPointerLeave={live ? resumeToast : undefined}
+    onPointerDown={present ? down : undefined} onPointerUp={present ? up : undefined} onPointerCancel={present ? cancel : undefined}
+    onPointerMove={gesture.onPointerMove} onClick={gesture.onClick} onKeyDown={e => { seen.current = null; gesture.onKeyDown?.(e) }} />
 }
