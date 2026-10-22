@@ -2585,3 +2585,36 @@ html[data-lg="gl"] .g-dock[data-lg-on]:not(.g-dock-hold) { box-shadow: none; }
 
 /* Reduce Transparency: nearly solid, a heavier blur. */
 html[data-lg="reduced"] :is(.g-glass, .g-btn-glass):not([data-glass="flat"]) { background: var(--accent-stage-end); background: color-mix(in srgb, var(--accent-stage-end) 84%, transparent); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+
+/* === Liquid glass: content layer ===
+   WebGL cannot read DOM pixels, so the lens bends the stage only, and page content scrolling under
+   header glass would show crisp. Two treatments, both CSS, switched by data attributes that
+   lib/scrolled-edge.js writes only when the answer changes (never per frame).
+   1. A scroll edge under the stage header: while <html data-scrolled> (scrollTop > 0) a band behind
+      the header's controls blurs what scrolls under it and fades out downward (a masked
+      backdrop-filter, the way Apple's headers do). The blur and saturate match the bar's frost
+      (presenter-fixed `.gl-frost`, 14px). At rest the band has no opacity, so it clips no focus
+      ring and touches no first row. The stage is smooth, so the same blur leaves it unchanged.
+   2. The scroller of the search overlay fades its top 18px while it is scrolled
+      (.search-scroll[data-scrolled]).
+   The tab bar, the dock and the workout footer bar are in the over layer, whose frost layer does the
+   same under them; sheets and their headers are opaque. */
+:root { --lg-edge-blur: blur(14px) saturate(1.2); --lg-edge-reach: 20px; }
+.g-shdr-pin::before, .g-snav::before {
+  content: ""; position: absolute; z-index: -1; inset-inline: 0; top: 0; bottom: calc(-1 * var(--lg-edge-reach));
+  pointer-events: none; opacity: 0; transition: opacity 160ms ease-out;
+  background: color-mix(in srgb, var(--accent-stage-end) 55%, transparent);
+  -webkit-backdrop-filter: var(--lg-edge-blur); backdrop-filter: var(--lg-edge-blur);
+  -webkit-mask-image: linear-gradient(to bottom, currentcolor 0, currentcolor 60%, transparent 100%);
+  mask-image: linear-gradient(to bottom, currentcolor 0, currentcolor 60%, transparent 100%);
+}
+/* The sticky bar sits below the status bar (top: --sat), so its band reaches up to the window's edge. */
+.g-snav::before { top: calc(-1 * var(--sat, 0px)); }
+html[data-scrolled] :is(.g-shdr-pin, .g-snav)::before { opacity: 1; }
+.search-scroll[data-scrolled] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, currentcolor 18px);
+  mask-image: linear-gradient(to bottom, transparent 0, currentcolor 18px);
+}
+html[data-lg="reduced"] { --lg-edge-blur: blur(24px); }
+@media (prefers-reduced-motion: reduce) { .g-shdr-pin::before, .g-snav::before { transition: none; } }
+:root[data-motion="reduce"] .g-shdr-pin::before, :root[data-motion="reduce"] .g-snav::before { transition: none; }
