@@ -4055,7 +4055,7 @@ export default {
   'This wipes what you logged on this device. It cannot be undone.': 'This wipes what you logged on this device. It cannot be undone.',
   'This wipes what you logged on this device. Your server copy goes when the scheduled deletion runs, and your other devices keep theirs until then. It cannot be undone.': 'This wipes what you logged on this device. Your server copy goes when the scheduled deletion runs, and your other devices keep theirs until then. It cannot be undone.',
   'Backup imported. {0} photo or video could not be stored.': 'Backup imported. {0} photo or video could not be stored.',
-  'Backup imported. {0} photos or videos could not be stored.': 'Backup imported. {0} photos or videos could not be stored.',
+  'Backup imported. {0} photos or videos could not be stored.': { one: 'Backup imported. {0} photos or videos could not be stored.', few: 'Backup imported. {0} photos or videos could not be stored.', many: 'Backup imported. {0} photos or videos could not be stored.' },
   'Nothing was imported: couldn’t store the backup’s photos and videos.': 'Nothing was imported: couldn’t store the backup’s photos and videos.',
   'Your account and passkeys stay.': 'Your account and passkeys stay.',
   'Download my data first if you might want it.': 'Download my data first if you might want it.',
