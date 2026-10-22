@@ -16,6 +16,30 @@ import { haptic as buzz } from '../lib/use-haptic.js'
 const REST_PHASE = 0.12
 const MAX_DPR = 2
 
+// Every tile on the page draws through one shared WebGL context and copies the result into its own 2D
+// canvas. Five contexts per visit to Background would pile up past WebKit's 16 until GC, and the oldest to
+// go is the stage look's. The context is lost as soon as the last tile unmounts.
+let shared = null // { canvas, renderer, users }
+function acquireShared() {
+  if (!shared) {
+    const canvas = document.createElement('canvas')
+    let renderer = null
+    try { renderer = createRenderer(canvas) } catch { renderer = null }
+    if (!renderer) return null
+    shared = { canvas, renderer, users: 0 }
+  }
+  shared.users += 1
+  return shared
+}
+function releaseShared() {
+  if (!shared) return
+  shared.users -= 1
+  if (shared.users > 0) return
+  shared.renderer.dispose()
+  shared.canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext()
+  shared = null
+}
+
 export default function LookTile({ look, accent, label, selected = false, intensity = 0.45, onSelect, tabIndex, haptic = true }) {
   const canvasRef = useRef(null)
   const rendererRef = useRef(null)
@@ -26,24 +50,33 @@ export default function LookTile({ look, accent, label, selected = false, intens
   useEffect(() => {
     const canvas = canvasRef.current
     if (flat || !canvas) return undefined
-    let renderer = null
-    try { renderer = createRenderer(canvas) } catch { renderer = null }
-    if (!renderer) { setFailed(true); return undefined }
-    rendererRef.current = renderer
+    const gl = acquireShared()
+    const ctx = gl ? canvas.getContext('2d') : null
+    if (!gl || !ctx) {
+      if (gl) releaseShared()
+      setFailed(true)
+      return undefined
+    }
+    rendererRef.current = { gl, ctx }
     return () => {
       rendererRef.current = null
-      renderer.dispose()
+      releaseShared()
     }
   }, [flat])
 
   useEffect(() => {
     const canvas = canvasRef.current
-    const renderer = rendererRef.current
-    if (flat || !canvas || !renderer) return
+    const r = rendererRef.current
+    if (flat || !canvas || !r) return
     const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1)
-    canvas.width = Math.max(1, Math.round((canvas.clientWidth || 120) * dpr))
-    canvas.height = Math.max(1, Math.round((canvas.clientHeight || 160) * dpr))
-    renderer.draw({ look, theme, phase: REST_PHASE, calm: false, fade: false, dpr })
+    const w = Math.max(1, Math.round((canvas.clientWidth || 120) * dpr))
+    const h = Math.max(1, Math.round((canvas.clientHeight || 160) * dpr))
+    canvas.width = w
+    canvas.height = h
+    r.gl.canvas.width = w
+    r.gl.canvas.height = h
+    r.gl.renderer.draw({ look, theme, phase: REST_PHASE, calm: false, fade: false, dpr })
+    r.ctx.drawImage(r.gl.canvas, 0, 0)
   }, [flat, look, theme])
 
   const choose = () => {

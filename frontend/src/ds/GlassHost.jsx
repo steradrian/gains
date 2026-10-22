@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useColorMode } from '../lib/color-mode.js'
 import { useSearch } from '../lib/search/session.js'
 import { reducedTransparency, onReducedTransparencyChange } from '../lib/reduced-transparency.js'
@@ -42,6 +42,9 @@ export default function GlassHost({
   const mode = useColorMode()
   const sheetOpen = useUI(s => s.sheets.length > 0)
   const searchOpen = useSearch(s => s.open)
+  // Reduce transparency (the OS query or the app's switch) is an input of the effect below: turning it on
+  // disposes the engine (its canvases and sprite memory go), turning it off builds one.
+  const reduced = useSyncExternalStore(onReducedTransparencyChange, reducedTransparency, () => false)
 
   const hostRef = useRef(null)
   const engineRef = useRef(null)
@@ -90,9 +93,12 @@ export default function GlassHost({
   useEffect(() => {
     const state = stateRef.current
     // Liquid glass: the OS query or Appearance › Reduce transparency (html[data-transparency]).
-    const onReduced = () => { state.reduced = reducedTransparency(); sync() }
-    state.reduced = reducedTransparency()
-    const stopReduced = onReducedTransparencyChange(onReduced)
+    state.reduced = reduced
+    if (reduced) {
+      sync()
+      statusRef.current?.('reduced')
+      return () => { document.documentElement.dataset.lg = 'css' }
+    }
 
     const onVisible = () => { state.hidden = document.hidden; sync() }
     state.hidden = document.hidden
@@ -131,12 +137,11 @@ export default function GlassHost({
       engineRef.current = null
       if (statsRef) statsRef.current = null
       if (checking) cancelAnimationFrame(checking)
-      stopReduced()
       document.removeEventListener('visibilitychange', onVisible)
       state.engine = 'css'
       document.documentElement.dataset.lg = 'css'
     }
-  }, [groundRef, cardDprIn, shadowIn, watchdog, statsRef])
+  }, [groundRef, cardDprIn, shadowIn, watchdog, statsRef, reduced])
 
   return <div ref={hostRef} className="gl-host" aria-hidden="true" />
 }

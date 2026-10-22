@@ -65,4 +65,20 @@ describe('GlassHost with an engine', () => {
     act(() => useSearch.setState({ open: true }))
     expect(frozen()).toBe(true)
   })
+
+  it('builds the engine when Reduce transparency turns off after load, and disposes it when it turns on', async () => {
+    const { createGlassEngine } = await import('./glass/glass-engine.js')
+    document.documentElement.dataset.transparency = 'reduce'
+    await view.render(<Page stage />)
+    expect(createGlassEngine).not.toHaveBeenCalled()
+    expect(document.documentElement.dataset.lg).toBe('reduced')
+    delete document.documentElement.dataset.transparency
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) })
+    expect(createGlassEngine).toHaveBeenCalledTimes(1)
+    document.documentElement.dataset.transparency = 'reduce'
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) })
+    expect(engine.dispose).toHaveBeenCalled()
+    expect(document.documentElement.dataset.lg).toBe('reduced')
+    delete document.documentElement.dataset.transparency
+  })
 })

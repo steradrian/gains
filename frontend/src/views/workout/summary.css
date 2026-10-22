@@ -15,7 +15,7 @@
 .g-sum-note textarea { display: block; inline-size: 100%; min-block-size: 88px; box-sizing: border-box; resize: vertical; border: 0; padding: 0; background: none; color: var(--on-stage); font: 500 16px/22px var(--font-sans); text-align: start; }
 .g-sum-note textarea::placeholder { color: var(--on-stage-2); }
 .g-sum-note textarea:focus-visible { outline: none; }
-.g-sum-note:focus-within { box-shadow: inset 0 0 0 2px var(--on-stage); }
+.g-sum-note:focus-within { outline: 2px solid var(--on-stage); outline-offset: -2px; }
 /* WorkoutMediaSection is drawn for a light surface: it gets one here, and its own small heading
    gives way to the section's. When it renders nothing, the section goes with it. */
 .g-sum-media { border-radius: 28px; padding: 16px; background: var(--surface); color: var(--text); }

@@ -73,13 +73,14 @@ export function createGlassEngine({
   if (!spritesOk) { chromeGl.dispose(); onStatus('fallback'); return null }
 
   const probe = createMaterialProbe(host)
-  const watchdog = watch ? createWatchdog({
-    onTrip() {
-      lose('watchdog')
-      chromeGl.dispose()
-      sprites.dispose()
-    },
-  }) : null
+  // A loss that will not be restored (a trip, a throwing frame) frees the canvases and sprite memory now:
+  // the scheduler is paused, so no draw would release them. A second dispose is safe.
+  const loseForGood = who => {
+    lose(who)
+    chromeGl.dispose()
+    sprites.dispose()
+  }
+  const watchdog = watch ? createWatchdog({ onTrip: () => loseForGood('watchdog') }) : null
   registry = createRegistry(ground, {
     include,
     onChange: reason => { scheduler?.wake(reason); if (reason === 'dom') onDom() },
@@ -152,7 +153,7 @@ export function createGlassEngine({
     } catch (err) {
       // A frame that throws would throw on every wake; the CSS material is the safe place to stop.
       console.error(err)
-      lose('error')
+      loseForGood('error')
       return false
     }
     const t1 = performance.now()
