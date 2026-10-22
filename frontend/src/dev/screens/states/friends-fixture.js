@@ -98,6 +98,7 @@ export const CHALLENGE_ACTIVE = {
   end: plusDays(MONDAY, 6),
   total: 12,
   goal: 15,
+  perPerson: 3,
   joined: joinedOf([2, 3, 3, 3, 1]),
   invited: [],
   you: { in: true },
@@ -123,6 +124,7 @@ export const CHALLENGE_THREE = {
   detail: 'Counts days each of you reached it',
   total: 8,
   goal: 15,
+  perPerson: 5,
   joined: joinedOf([3, 2, 3], 5, PEOPLE.slice(0, 3)),
   invited: ['u-ioana', 'u-vlad'],
 }

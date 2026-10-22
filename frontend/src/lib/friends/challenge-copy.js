@@ -56,11 +56,8 @@ export function datesLine(ch, me) {
   return t('{0} · {1}', dates, ch.startedBy.uid && ch.startedBy.uid === me ? t('started by you') : t('started by {0}', by))
 }
 
-/** Each person's share of the goal when every joined person has the same one (workouts: 15 over 5 people is 3); null otherwise. */
-export function perPerson(ch) {
-  const n = (ch.joined || []).length
-  return n > 0 && ch.goal > 0 && ch.goal % n === 0 ? ch.goal / n : null
-}
+/** What each person counts toward the goal, as the payload says it (workouts: 3 a week); null when it is not there. */
+export const perPerson = ch => (ch.perPerson > 0 ? ch.perPerson : null)
 
 /** The count the person is still to reach: `{ next, of }`, or null once they have reached it (or are not in). */
 export function toReach(ch, me) {

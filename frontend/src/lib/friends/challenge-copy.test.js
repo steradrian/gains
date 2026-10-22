@@ -43,10 +43,12 @@ describe('datesLine', () => {
 })
 
 describe('the numbers', () => {
-  it('shares the goal evenly only when it divides', () => {
+  it('reads what each person counts from the payload, whoever is in', () => {
     expect(perPerson(CHALLENGE_ACTIVE)).toBe(3)
-    expect(perPerson({ ...CHALLENGE_ACTIVE, goal: 14 })).toBeNull()
-    expect(perPerson({ ...CHALLENGE_ACTIVE, joined: [] })).toBeNull()
+    expect(perPerson({ ...CHALLENGE_ACTIVE, goal: 14 })).toBe(3)
+    expect(perPerson({ ...CHALLENGE_ACTIVE, joined: [] })).toBe(3)
+    expect(perPerson({ ...CHALLENGE_ACTIVE, perPerson: undefined })).toBeNull()
+    expect(perPerson({ ...CHALLENGE_ACTIVE, perPerson: 0 })).toBeNull()
   })
 
   it('takes the total from the payload, else adds up what each counted', () => {
@@ -64,9 +66,9 @@ describe('the numbers', () => {
     expect(toReach(CHALLENGE_NOT_JOINED, ME)).toBeNull()
   })
 
-  it('puts the number in the join caption only when it is the same for everyone', () => {
+  it('puts the number in the join caption only when the payload has it', () => {
     expect(joinCaption(CHALLENGE_NOT_JOINED)).toBe('Joining adds your 3 to the goal. Leaving later takes them off, nothing else.')
-    expect(joinCaption({ ...CHALLENGE_NOT_JOINED, goal: 13 })).toBe('Joining adds your part to the goal. Leaving later takes your count off, nothing else.')
+    expect(joinCaption({ ...CHALLENGE_NOT_JOINED, perPerson: undefined })).toBe('Joining adds your part to the goal. Leaving later takes your count off, nothing else.')
   })
 
   it('counts only the running challenges against the limit', () => {
