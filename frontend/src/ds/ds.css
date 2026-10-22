@@ -2571,7 +2571,9 @@ html[data-lg="gl"] .g-gtabbar .g-tab[aria-current="page"] { color: var(--on-stag
 html[data-lg="gl"] .g-gtabbar .g-plus[data-lg-on] { box-shadow: none; }
 /* The dock's text is dark on its surface fill; drawn, it sits on the stage. Its hold ring (an inset box-shadow) stays. */
 html[data-lg="gl"] .g-dock[data-lg-on] { color: var(--on-stage); }
-html[data-lg="gl"] .g-dock[data-lg-on] .g-dock-meta { color: var(--on-stage-2); }
+/* The clock, the count and the meta line sit on the bare stage (the bar is clear), so all three take the full ink:
+   --on-stage-2 reads only 4.2:1 there on the blossom and watermelon stages. */
+html[data-lg="gl"] .g-dock[data-lg-on] :is(.g-dock-clock, .g-dock-count, .g-dock-meta) { color: var(--on-stage); }
 html[data-lg="gl"] .g-dock[data-lg-on]:not(.g-dock-hold) { box-shadow: none; }
 
 /* Reduce Transparency: nearly solid, a heavier blur. */
