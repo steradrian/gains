@@ -79,6 +79,7 @@ import { beatsWeight } from './exercises.js'
 import { bestWeightForEntry } from './history.js'
 import { convertStateUnit, convertBodyWeight } from './units.js'
 import { sanitizeAccent } from './accent.js'
+import { sanitizeStageLook } from './stage-look/index.js'
 import { readDayNote as readNote } from './day-notes.js'
 import { mergePlanChanges } from './coach-plan-changes.js'
 import { mergeRecipeExtras } from './nutrition/recipe-extras-merge.js'
@@ -655,13 +656,6 @@ export function stampEdits(prev, next, now = Date.now()) {
     } else if (p !== n && !same(p, n)) { ed[k] = now; touched = true }
   }
   if (prev && prev.routines !== next.routines && orderMoved(prev.routines, next.routines)) { ed[ORDER_KEY] = now; touched = true }
-  // An own accent colour is one choice made in two fields: picking a new colour while the own
-  // colour is already on changes only accentCustom, and a preset picked earlier on another device
-  // then kept `accent` and won (QA 2026-10-06). Either one changed to an own colour stamps both.
-  if (touched && next.accent === 'custom' && (ed.accent === now || ed.accentCustom === now)) {
-    ed.accent = now
-    ed.accentCustom = now
-  }
   if (touched) {
     for (const [k, at] of Object.entries(ed)) {
       const dot = k.indexOf('.')
@@ -895,6 +889,7 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   delete out._prior
   // The accent fields end up in CSS: whatever either copy brought, only a clean value goes on.
   sanitizeAccent(out)
+  sanitizeStageLook(out)
   return out
 }
 

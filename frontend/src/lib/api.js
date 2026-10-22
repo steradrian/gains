@@ -389,8 +389,14 @@ export async function passkeyRegister(name, code) {
 // ProveOwner) — which then rejects with an AbortError.
 export async function passkeyAssertion({ signal } = {}) {
   const { cid, options } = await api('/api/login/options', { method: 'POST', body: '{}' })
-  const cred = await navigator.credentials.get({ publicKey: toRequestOptions(options), ...(signal ? { signal } : {}) })
-  return { cid, credential: credToJSON(cred) }
+  return { cid, credential: await passkeyAssert(options, { signal }) }
+}
+// The ceremony on request options the server has already handed out (account deletion's step-up,
+// lib/account-deletion.js), so the prompt opens straight from the tap. Copied first, as
+// createPasskey's: the conversion writes buffers into them.
+export async function passkeyAssert(options, { signal } = {}) {
+  const cred = await navigator.credentials.get({ publicKey: toRequestOptions(JSON.parse(JSON.stringify(options))), ...(signal ? { signal } : {}) })
+  return credToJSON(cred)
 }
 // `signal` is the sign-in screen's Cancel while the prompt is open.
 export async function passkeyLogin({ signal } = {}) {

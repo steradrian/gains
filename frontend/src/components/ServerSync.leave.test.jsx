@@ -56,6 +56,45 @@ describe('leaving the server, when it fails', () => {
   })
 })
 
+describe('a sign-out that asks its own question (Settings\' drawer)', () => {
+  it('hands what is owed to onOwed instead of opening the sheet, and does not leave', async () => {
+    mocks.signOut = vi.fn(async () => ({ owed: true, count: 3 }))
+    const onOwed = vi.fn()
+    const done = vi.fn()
+    await leaveServer('signout', { done, onOwed })
+    expect(mocks.signOut).toHaveBeenCalledWith(undefined)
+    expect(onOwed).toHaveBeenCalledWith({ owed: true, count: 3 })
+    expect(done).not.toHaveBeenCalled()
+  })
+
+  it('with nothing owed it just leaves', async () => {
+    mocks.signOutAll = vi.fn(async () => ({ owed: false }))
+    const onOwed = vi.fn()
+    const done = vi.fn()
+    await leaveServer('everywhere', { done, onOwed })
+    expect(onOwed).not.toHaveBeenCalled()
+    expect(done).toHaveBeenCalledWith({ owed: false })
+  })
+
+  it('force goes ahead with the changes kept on this device, and leaves', async () => {
+    mocks.signOut = vi.fn(async () => ({ owed: true, count: 3, stashed: true }))
+    const onOwed = vi.fn()
+    const done = vi.fn()
+    await leaveServer('signout', { done, onOwed, force: true })
+    expect(mocks.signOut).toHaveBeenCalledWith({ force: true })
+    expect(onOwed).not.toHaveBeenCalled()
+    expect(done).toHaveBeenCalledWith({ owed: true, count: 3, stashed: true })
+  })
+
+  it('force with a copy that cannot be kept aside leaves nothing removed and says so', async () => {
+    mocks.signOut = vi.fn(async () => ({ owed: true, count: 3, stashed: false }))
+    const done = vi.fn()
+    await leaveServer('signout', { done, force: true })
+    expect(done).not.toHaveBeenCalled()
+    expect(mocks.toast).toHaveBeenCalledWith('Couldn’t keep a copy of the changes on this device. Nothing was removed.')
+  })
+})
+
 describe('the sheet that offers going ahead anyway, when that fails', () => {
   it.each([
     ['disconnect', 'disconnectServer', 'Disconnect anyway', 'Couldn’t disconnect. You’re still connected.'],

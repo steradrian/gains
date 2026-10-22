@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { fmtDate, fmtDateRange } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
@@ -6,9 +6,10 @@ import { t, tn } from '../lib/i18n.js'
 import { SectionTitle, Tiles } from '../components/blocks.jsx'
 import { Inline, Spacer } from '../components/layout.jsx'
 import { SheetHeader } from '../components/sheet-layout.jsx'
-import { Button, Switch, TextField } from '../components/ui.jsx'
+import { Button, Switch } from '../components/ui.jsx'
 import { parseImport, mergeImport } from '../lib/import-csv.js'
-import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from '../lib/import-hevy.js'
+import { mergeHevyRoutines } from '../lib/import-hevy.js'
+import { importOutcome, hevyOutcome } from '../lib/import-outcome.js'
 import { S, update, ui, toast } from './shared.js'
 
 /* ============================ import from another app ============================ */
@@ -21,7 +22,9 @@ const effortLine = (effort, n, scale) => effort === 'none'
 // the one action where "just try it" is expensive — it's someone's entire training
 // history — so the numbers, the unit conversion and the exercises we couldn't recognise
 // are all on screen before the confirm button.
-function ImportSummary({ parsed, close }) {
+// `onImported(outcome)` takes over from the toast: Settings' Import page shows its done screen
+// (lib/import-outcome.js says what was imported and what was left alone).
+function ImportSummary({ parsed, close, onImported }) {
   const st = useStore(s => s.S)
   const isBW = parsed.kind === 'bodyweight'
   const have = isBW
@@ -30,9 +33,15 @@ function ImportSummary({ parsed, close }) {
   const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have
 
   const doImport = () => {
-    let res
-    update(s => { res = mergeImport(s, parsed) })
+    let res, haveDays, newNames
+    update(s => {
+      haveDays = new Set((isBW ? s.bodyweight : s.workouts).map(x => x.d))
+      const known = new Set((s.customEx || []).map(c => c.id))
+      res = mergeImport(s, parsed)
+      newNames = (s.customEx || []).filter(c => !known.has(c.id)).map(c => c.n)
+    })
     close()
+    if (onImported) { onImported(importOutcome({ parsed, haveDays, res, newNames })); return }
     toast(isBW
       ? tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added)
       : tn('{0} workout imported', '{0} workouts imported', res.added))
@@ -93,8 +102,8 @@ function ImportSummary({ parsed, close }) {
   </>
 }
 
-/** Read a CSV/XML export, then show what it would do. */
-export function importFromApp(file, onDone) {
+/** Read a CSV/XML export, then show what it would do. `onImported(outcome)` hears what the import did. */
+export function importFromApp(file, { onImported } = {}) {
   const rd = new FileReader()
   rd.onload = () => {
     let parsed
@@ -105,82 +114,35 @@ export function importFromApp(file, onDone) {
     if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length : !parsed.workouts.length) {
       toast(t('Nothing to import from that file')); return
     }
-    ui().openSheet(close => <ImportSummary parsed={parsed} close={close} />)
-    onDone && onDone()
+    ui().openSheet(close => <ImportSummary parsed={parsed} close={close} onImported={onImported} />)
   }
   rd.onerror = () => toast(t('Could not read that file'))
   rd.readAsText(file)
 }
 
 /* ============================ import from Hevy API ============================ */
-// The key lives in React state for this sheet only — dismissed with the sheet, never
-// written to the store / localStorage / the server. After a successful fetch the user
-// picks workouts and/or weigh-ins before anything is merged.
+// The key is read once by Settings' Import page (pages/hevy-key-sheet.jsx), held in a variable
+// for the length of the fetch and never written to the store / localStorage / the server
+// (lib/import-hevy.js importHevyData). After a successful fetch this sheet lets the person pick
+// workouts, routines and/or weigh-ins before anything is merged.
 
-export function importFromHevy() {
-  ui().openSheet(close => <HevyImportSheet close={close} />)
+/** The sheet after the fetch: what Hevy sent, a switch for each part, then the merge. */
+export function showHevyPreview(payload, { onImported } = {}) {
+  ui().openSheet(close => <HevyPreview payload={payload} close={close} onImported={onImported} />)
 }
 
-function hevyProgressLabel(p) {
-  if (!p) return t('Fetching from Hevy…')
-  if (p.stage === 'templates') return t('Fetching exercises… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'workouts') return t('Fetching workouts… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'routines') return t('Fetching routines… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'body') return t('Fetching weigh-ins… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'parse') return t('Matching exercises…')
-  return t('Fetching from Hevy…')
-}
-
-function HevyImportSheet({ close }) {
+function HevyPreview({ payload, close, onImported }) {
   const st = useStore(s => s.S)
-  const [apiKey, setApiKey] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [progress, setProgress] = useState(null)
-  const [payload, setPayload] = useState(null) // { workouts, routines, bodyweight }
-  const [wantWorkouts, setWantWorkouts] = useState(true)
-  const [wantRoutines, setWantRoutines] = useState(true)
-  const [wantBody, setWantBody] = useState(true)
-  const keyRef = useRef(null)
-
-  // Drop the key from memory when the sheet goes away (unmount or successful import).
-  useEffect(() => () => { setApiKey('') }, [])
-
-  const wipeKey = () => { setApiKey(''); if (keyRef.current) keyRef.current.value = '' }
-
-  const fetchAccount = async () => {
-    const key = apiKey.trim()
-    if (!key) { toast(t('Paste your Hevy API key first')); return }
-    setBusy(true)
-    setProgress({ stage: 'templates', page: 1, pageCount: 1 })
-    setPayload(null)
-    try {
-      const data = await importHevyData(key, { unit: st.unit, customEx: st.customEx, onProgress: setProgress })
-      wipeKey()
-      const empty = !data.workouts.workouts.length && !data.routines.routines.length && !data.bodyweight.bodyweight.length
-      if (empty) {
-        toast(t('Nothing to import from Hevy'))
-        return
-      }
-      setWantWorkouts(!!data.workouts.workouts.length)
-      setWantRoutines(!!data.routines.routines.length)
-      setWantBody(!!data.bodyweight.bodyweight.length)
-      setPayload(data)
-    } catch (e) {
-      if (e instanceof HevyApiError && e.message === 'auth') toast(t('That Hevy API key was refused'))
-      else if (e instanceof HevyApiError && e.message === 'rate-limit') toast(t('Hevy is rate-limiting requests. Wait a minute and try again'))
-      else if (e instanceof HevyApiError && e.message === 'empty') toast(t('Paste your Hevy API key first'))
-      else toast(t('Couldn’t reach Hevy. Check the key and try again'))
-    } finally {
-      setBusy(false)
-      setProgress(null)
-    }
-  }
+  const [wantWorkouts, setWantWorkouts] = useState(!!payload.workouts.workouts.length)
+  const [wantRoutines, setWantRoutines] = useState(!!payload.routines.routines.length)
+  const [wantBody, setWantBody] = useState(!!payload.bodyweight.bodyweight.length)
 
   const doImport = () => {
-    if (!payload) return
     const parts = []
-    let addedW = 0, addedR = 0, addedB = 0
+    let addedW = 0, addedR = 0, addedB = 0, haveDays, newNames
     update(s => {
+      haveDays = new Set(s.workouts.map(x => x.d))
+      const known = new Set((s.customEx || []).map(c => c.id))
       if (wantWorkouts && payload.workouts.workouts.length) {
         const res = mergeImport(s, payload.workouts)
         addedW = res.added
@@ -196,41 +158,12 @@ function HevyImportSheet({ close }) {
         addedB = res.added
         parts.push(tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added))
       }
+      newNames = (s.customEx || []).filter(c => !known.has(c.id)).map(c => c.n)
     })
     close()
-    if (!addedW && !addedR && !addedB) toast(t('Nothing new to import'))
-    else toast(parts.join(' · '))
-  }
-
-  if (!payload) {
-    return <>
-      <SheetHeader title={t('Import from Hevy')} />
-      <div className="muted small mb-7 lh-150">
-        {t('Pull your history with a Hevy Pro API key. The key is only used for this import and is not saved.')}
-      </div>
-      <label className="small dim mb-3" style={{ display: 'block' }}>{t('Hevy API key')}</label>
-      <TextField
-        ref={keyRef}
-        type="password"
-        autoComplete="off"
-        spellCheck={false}
-        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-        value={apiKey}
-        disabled={busy}
-        onChange={e => setApiKey(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !busy) fetchAccount() }}
-      />
-      <div className="small mt-5 mb-8 lh-145">
-        <a href={HEVY_DEV_SETTINGS} target="_blank" rel="noopener noreferrer">{t('Get your API key')}</a>
-        <span className="dim"> · {t('Hevy → Settings → Developer')}</span>
-      </div>
-      {busy && <div className="small dim mb-6">{hevyProgressLabel(progress)}</div>}
-      <Button variant="primary" onClick={fetchAccount} disabled={busy || !apiKey.trim()}>
-        {busy ? t('Fetching from Hevy…') : t('Fetch from Hevy')}
-      </Button>
-      <Spacer size={4} />
-      <Button variant="ghost" className="dim" onClick={close} disabled={busy}>{t('Cancel')}</Button>
-    </>
+    if (!addedW && !addedR && !addedB) { toast(t('Nothing new to import')); return }
+    if (onImported) { onImported(hevyOutcome({ payload, haveDays, added: { workouts: addedW, routines: addedR, weighIns: addedB }, newNames })); return }
+    toast(parts.join(' · '))
   }
 
   const w = payload.workouts
@@ -303,6 +236,6 @@ function HevyImportSheet({ close }) {
       {canImport ? t('Import') : t('Nothing new to import')}
     </Button>
     <Spacer size={4} />
-    <Button variant="ghost" className="dim" onClick={() => { setPayload(null); wipeKey() }}>{t('Back')}</Button>
+    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
   </>
 }

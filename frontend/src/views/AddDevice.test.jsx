@@ -91,7 +91,10 @@ describe('Add this device: the code (S0.4)', () => {
   it('is a full screen with Back, the code cells, where to find the code, Create passkey and Paste code', () => {
     const host = mount()
     expect(host.querySelector('h1').textContent).toBe('Add this device')
-    expect(host.textContent).toContain('Enter the code your other device shows under Settings › Account › Add another device.')
+    // The code lives on the other device, so nothing here can open its Settings: no breadcrumb either.
+    expect(host.textContent).toContain('Enter the code your other device shows. This device then gets a passkey of its own.')
+    expect(host.textContent).toContain('On your other device, when you add a device')
+    expect(host.textContent).not.toContain('›')
     expect(host.querySelector('[aria-label="Back"]')).toBeTruthy()
     expect(host.querySelectorAll('.g-code-cell')).toHaveLength(12)
     expect(host.textContent).toContain('Codes work once and last 10 minutes.')

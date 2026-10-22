@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore.js'
 import { MOBILE, syncReminder } from '../mobile.js'
-import { nutritionAvailable } from '../nutrition/api.js'
+import { useFoodOn } from '../nutrition/food-on.js'
 import { resolveGoalFor } from '../nutrition/diary.js'
 import { diaryIndexDays, useDiaryIndex } from '../nutrition/diary-index.js'
 import { useNutrition } from '../nutrition/store.js'
@@ -64,12 +64,11 @@ function useFeed() {
   const readRaw = useStore(s => JSON.stringify(s.S?.notifRead ?? null))
   const ready = useStore(s => s.ready)
   const update = useStore(s => s.update)
-  const user = useStore(s => s.user)
   const settings = useNutrition(s => s.settings.data)
   const indexReady = useDiaryIndex(s => s.complete && s.synced)
   const indexVersion = useDiaryIndex(s => s.version)
   const shown = useShown()
-  const food = nutritionAvailable(user)
+  const food = useFoodOn()
   const log = MOBILE ? reminderLogRaw() : ''
 
   useEffect(() => {

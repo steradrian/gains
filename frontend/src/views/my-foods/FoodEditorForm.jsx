@@ -10,8 +10,8 @@ import StagePage from '../../ds/StagePage.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import StageSwitch from '../../ds/StageSwitch.jsx'
 import TextField from '../../ds/TextField.jsx'
-import { foodCategorySheet } from '../../components/FoodCategorySheet.jsx'
 import { FOODS_LIST } from '../../lib/nutrition/editor-routes.js'
+import { openCategorySheet } from '../settings/pages/category-sheet.jsx'
 import { choiceSheet } from './ChoiceSheet.jsx'
 import { useFoodEditor } from './use-food-editor.js'
 
@@ -41,7 +41,7 @@ export default function FoodEditorForm({ food, prefill, settings }) {
   const pickCategory = () => choiceSheet({
     title: t('Category'), value: form.category, onPick: category => change({ category }),
     options: [{ value: '', label: t('None') }, ...categories.map(c => ({ value: c, label: c }))],
-    footer: { label: t('Add a category'), onClick: close => { close(); foodCategorySheet() } },
+    footer: { label: t('Add a category'), onClick: close => { close(); openCategorySheet() } },
   })
 
   const portion = Number(String(form.portion).replace(',', '.'))

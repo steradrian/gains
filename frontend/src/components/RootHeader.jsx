@@ -2,8 +2,7 @@ import { useLocation } from 'react-router-dom'
 import StageHeader from '../ds/StageHeader.jsx'
 import { tabOf } from '../lib/tab-route.js'
 import { useDsAccent } from '../lib/use-ds-accent.js'
-import { nutritionAvailable } from '../lib/nutrition/api.js'
-import { useStore } from '../store/useStore.js'
+import { useFoodOn } from '../lib/nutrition/food-on.js'
 import { scanToSelection } from './scan-to-selection.js'
 import { useRootHeader } from './use-root-header.js'
 
@@ -17,7 +16,7 @@ import { useRootHeader } from './use-root-header.js'
 export default function RootHeader({ title, action }) {
   const { pathname } = useLocation()
   const accent = useDsAccent()
-  const nutrition = nutritionAvailable(useStore(s => s.user))
+  const nutrition = useFoodOn()
   const header = useRootHeader(tabOf(pathname))
   return <>
     <div className="g-root root-hdr" data-accent={accent}>

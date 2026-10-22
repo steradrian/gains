@@ -19,8 +19,9 @@ import { bwSheet, customExSheet, exerciseDetailSheet, workoutDetailSheet } from 
 import { foodDetailSheet } from '../FoodDetailSheet.jsx'
 import { mealDetailSheet } from '../MealDetailSheet.jsx'
 import { manageMeasurementsSheet } from '../../views/Measurements.jsx'
+import { settingsPath } from '../../views/settings/paths.js'
 
-const settingsRoute = at => ({ kind: 'route', path: '/me/' + at.page, state: { find: at.find } })
+const settingsRoute = at => ({ kind: 'route', path: settingsPath(at.page), state: { find: at.find } })
 
 /** What a result opens: { kind: 'route', path, state?, date? } | { kind: 'sheet', open() }. */
 export function targetOf(r) {
@@ -32,8 +33,8 @@ export function targetOf(r) {
     case 'setting': {
       const e = r.entry
       if (e.isPage && e.sheet) return { kind: 'sheet', open: manageMeasurementsSheet }
-      if (e.isPage) return { kind: 'route', path: e.to || '/me/' + e.page }
-      return { kind: 'route', path: e.page ? '/me/' + e.page : '/me', state: e.via ? { find: e.title, via: e.via } : { find: e.title } }
+      if (e.isPage) return { kind: 'route', path: e.to || settingsPath(e.page) }
+      return { kind: 'route', path: settingsPath(e.page), state: e.via ? { find: e.title, via: e.via } : { find: e.title } }
     }
     case 'exercise': return { kind: 'sheet', open: () => exerciseDetailSheet(r.ex, { progress: true }) }
     case 'routine': return { kind: 'route', path: '/train/routines/' + encodeURIComponent(r.id) }

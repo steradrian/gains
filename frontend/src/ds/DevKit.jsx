@@ -8,6 +8,7 @@ import DevKitPlan from './DevKitPlan.jsx'
 import DevKitPushed from './DevKitPushed.jsx'
 import DevKitRoutines from './DevKitRoutines.jsx'
 import DevKitSearch from './DevKitSearch.jsx'
+import DevKitSettings from './DevKitSettings.jsx'
 import DevKitShared from './DevKitShared.jsx'
 import DevKitToday from './DevKitToday.jsx'
 import DevKitTrain from './DevKitTrain.jsx'
@@ -32,12 +33,13 @@ import StageDayCount from './StageDayCount.jsx'
 import StageFooter from './StageFooter.jsx'
 import StageHeader from './StageHeader.jsx'
 import StageRing from './StageRing.jsx'
-import StageScreen, { ACCENTS } from './StageScreen.jsx'
+import StageScreen from './StageScreen.jsx'
 import StageWeekMarks from './StageWeekMarks.jsx'
 import StageWeekStrip from './StageWeekStrip.jsx'
 import SuccessCheck from './SuccessCheck.jsx'
 import TextField from './TextField.jsx'
 import { SCENE_NAMES } from './illustration-scenes.js'
+import { THEME_IDS } from '../lib/themes.js'
 // Workout screen kit (core M2)
 import DevKitWorkout from './DevKitWorkout.jsx'
 import './dev-kit.css'
@@ -92,9 +94,9 @@ export default function DevKit() {
     <StageScreen accent={accent}>
       <OnboardingNav step={step} onBack={() => setStep(s => Math.max(1, s - 1))} onSkip={() => setStep(s => Math.min(8, s + 1))} />
       <div className="g-kit">
-        <Section title="Accent" note="The design system's presets, on the StageScreen's data-accent.">
+        <Section title="Accent" note="The 28 themes (lib/themes.js), on the StageScreen's data-accent. Blossom, Watermelon, Snow, Cream, Mist and Peach cream have a light stage.">
           <div className="g-kit-row">
-            {ACCENTS.map(a => <Button key={a} variant="secondary" size="sm" aria-pressed={a === accent} onClick={() => setAccent(a)}>{a}</Button>)}
+            {THEME_IDS.map(a => <Button key={a} variant="secondary" size="sm" aria-pressed={a === accent} onClick={() => setAccent(a)}>{a}</Button>)}
           </div>
         </Section>
 
@@ -297,6 +299,7 @@ export default function DevKit() {
         <DevKitPlan />
         <DevKitRoutines />
         <DevKitShared />
+        <DevKitSettings />
         {/* Shared: week */}
         <DevKitWeek />
         {/* Shared: day */}

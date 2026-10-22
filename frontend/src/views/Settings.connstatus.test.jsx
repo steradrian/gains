@@ -5,9 +5,11 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 import { bindUI } from '../components/ui.jsx'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
@@ -37,6 +39,8 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+// The stage frame (nav bar, background) is the app's and has its own test; the lines are the point.
+vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/api.js', () => ({
   api: vi.fn(), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
 }))
@@ -76,7 +80,7 @@ afterEach(() => {
 })
 
 const mount = () => act(() => root.render(<Settings page="appearance" />))
-const row = () => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes('Show connection status'))
+const row = () => [...host.querySelectorAll('.g-glist-row')].find(r => r.textContent.includes('Show connection status'))
 
 describe('Show connection status', () => {
   it('is there with no account, on a phone kept local, and on by default', () => {
@@ -108,10 +112,10 @@ describe('Show connection status', () => {
 })
 
 describe('guest footers', () => {
-  const footers = () => [...host.querySelectorAll('.sect-f')].map(f => f.textContent)
+  // Appearance's footers are old (.sect-f); the Account page's line is the stage's note (.g-snote).
+  const footers = () => [...host.querySelectorAll('.sect-f, .g-snote')].map(f => f.textContent)
 
-  it('Appearance does not promise a guest that anything syncs with a profile', () => {
-    mount()
+  it('Appearance does not promise a guest that anything syncs with a profile', () => {    mount()
     expect(host.textContent).not.toContain('synced with your profile')
     mocks.user = { id: 'u1' }
     act(() => root.render(<Settings key="in" page="appearance" />))

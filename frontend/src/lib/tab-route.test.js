@@ -78,6 +78,17 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/progress')).toBe('/me')
   })
 
+  it('Delete account to the Account page, both on the Me tab', () => {
+    expect(parentOf('/me/account/delete')).toBe('/me/account')
+    expect(parentOf('/me/account')).toBe('/me')
+    expect(tabOf('/me/account/delete')).toBe('me')
+  })
+
+  it('Started over to the Account page it was started from', () => {
+    expect(parentOf('/me/account/started-over')).toBe('/me/account')
+    expect(tabOf('/me/account/started-over')).toBe('me')
+  })
+
   it('a My foods editor, new or saved, to its tab of the list', () => {
     expect(parentOf('/food/my-foods/foods/12')).toBe('/food/my-foods?tab=foods')
     expect(parentOf('/food/my-foods/foods/new')).toBe('/food/my-foods?tab=foods')
@@ -121,7 +132,9 @@ describe('the routes from before the tabs', () => {
     expect(legacyPath('/settings/plan')).toBe('/me/schedule')
     expect(legacyPath('/settings/data', '?x=1')).toBe('/me/backup?x=1')
     expect(legacyPath('/settings/advanced')).toBe('/me/advanced')
-    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup' })
+    expect(legacyPath('/settings/alerts')).toBe('/me/workout')
+    expect(legacyPath('/settings/danger')).toBe('/me/account')
+    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup', alerts: 'workout', danger: 'account' })
   })
 
   it('leave new and unknown routes alone', () => {

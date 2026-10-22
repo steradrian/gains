@@ -102,7 +102,8 @@ const pkgVersion = JSON.parse(readFileSync(new URL('./package.json', import.meta
 const appVersion = process.env.APP_BUILD ? `${pkgVersion}+${process.env.APP_BUILD}` : pkgVersion
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(appVersion) },
+  // __BUILD_DATE__ is the day this bundle was built (YYYY-MM-DD), for About (lib/build-info.js).
+  define: { __APP_VERSION__: JSON.stringify(appVersion), __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)) },
   plugins: [react(), umami, flavor, swStamp, catalogueMedia],
   base: './',
   server: {

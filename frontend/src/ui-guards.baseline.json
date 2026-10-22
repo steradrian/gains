@@ -1,39 +1,35 @@
 {
   "G1": {
     "components/DurationWheel.jsx": 1,
-    "components/Passkeys.jsx": 2,
     "components/ServerSync.jsx": 2,
     "sheets/body-weight.jsx": 8,
     "sheets/confirm-menu.jsx": 1,
     "sheets/exercise-config.jsx": 7,
     "sheets/exercise.jsx": 1,
-    "sheets/import.jsx": 19,
+    "sheets/import.jsx": 18,
     "sheets/workout-detail.jsx": 21,
     "sheets/workout-flow.jsx": 26,
     "views/Admin.jsx": 29,
     "views/AdminCoach.jsx": 6,
-    "views/CheckIn.jsx": 2,
     "views/CoachIntake.jsx": 2,
     "views/CoachSetup.jsx": 9,
     "views/MobileOnboarding.jsx": 2,
     "views/ProgressPhotos.jsx": 2,
-    "views/Settings.jsx": 26,
     "views/StructuralBalance.jsx": 8
   },
   "G2css": {
     "admin.css": 1,
-    "index.css": 65
+    "index.css": 56
   },
   "G2js": {
     "brand.js": 2,
-    "lib/accent.js": 30,
-    "lib/format.js": 16,
     "lib/media-ingest.js": 1,
+    "lib/nutrition/category-colors.js": 8,
     "lib/plan-share.js": 22,
     "lib/qr.js": 2,
+    "lib/themes.js": 426,
     "lib/workout-card.js": 2,
-    "store/useStore.js": 1,
-    "views/Settings.jsx": 2
+    "views/settings/pages/AppearancePage.jsx": 2
   },
   "G3": {
     "components/DurationWheel.jsx": 1,
@@ -46,7 +42,6 @@
     "sheets/workout-flow.jsx": 11,
     "views/Admin.jsx": 7,
     "views/AdminCoach.jsx": 2,
-    "views/Settings.jsx": 2,
     "views/train/load/LoadBalance.jsx": 1,
     "views/train/load/LoadEffort.jsx": 2
   },

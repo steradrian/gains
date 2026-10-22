@@ -5,8 +5,10 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SettingsRoute } from './Settings.jsx'
+import { SettingsRoute } from './settings/SettingsRoute.jsx'
+import { preloadPages } from './settings/pages/index.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const mocks = vi.hoisted(() => {
@@ -94,7 +96,7 @@ describe('SettingsRoute: the Equipment page', () => {
   })
 
   it('leaves the other pages in the Settings shell', () => {
-    mocks.params = { page: 'appearance' }
+    mocks.params = { page: 'media' }
     mount()
     expect(host.querySelector('.g-spage')).toBeNull()
     expect(host.querySelector('.lrow')).not.toBeNull()

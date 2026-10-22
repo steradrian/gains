@@ -3,7 +3,9 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 // #375: "Vibrate when the phone is on silent" is an Android-app setting — only there can the
@@ -83,12 +85,12 @@ afterEach(() => {
 
 // The effect resolves two promises (isAndroid, then checkForUpdate) before the row can render.
 const mount = async () => {
-  await act(async () => { root.render(<Settings page="alerts" />) })
+  await act(async () => { root.render(<Settings page="workout" />) })
   await act(async () => { await Promise.resolve(); await Promise.resolve() })
 }
 const TITLE = 'Vibrate on silent too'
-const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
-const switchIn = row => row.querySelector('[role="switch"]') || row.querySelector('input[type="checkbox"]') || row.querySelector('button')
+const rowTitled = title => [...host.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === title)
+const switchIn = row => row.querySelector('[role="switch"]')
 
 describe('Settings — vibrate when the phone is on silent', () => {
   it('Android app: offered right under Vibrate, off by default, and writes the setting', async () => {
@@ -97,8 +99,8 @@ describe('Settings — vibrate when the phone is on silent', () => {
     await mount()
     const row = rowTitled(TITLE)
     expect(row).toBeTruthy()
-    expect(row.querySelector('.lrow-s').textContent).toBe('The end of a rest or a hold buzzes like an alarm, even in silent mode.')
-    const rows = [...host.querySelectorAll('.lrow')]
+    expect(row.querySelector('.g-glist-body span').textContent).toBe('The end of a rest or a hold buzzes like an alarm, even in silent mode.')
+    const rows = [...host.querySelectorAll('.g-glist-row')]
     expect(rows.indexOf(row)).toBe(rows.indexOf(rowTitled('Vibrate')) + 1)
     expect(switchIn(row).getAttribute('aria-checked')).toBe('false')
     act(() => { switchIn(row).click() })
