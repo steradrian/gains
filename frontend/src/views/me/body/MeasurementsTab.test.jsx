@@ -66,6 +66,7 @@ describe('MeasurementsTab', () => {
     mount()
     const rows = [...host.querySelectorAll('.g-gvr')]
     expect(rows.map(r => r.querySelector('b').textContent)).toEqual(['Chest', 'Waist'])
+    expect(rows[0].closest('.g-glist').classList.contains('g-glass')).toBe(true)
     expect(rows[1].textContent).toContain('−1.5 cm since previous')
     expect(rows[1].querySelector('.g-gvr-val').textContent).toBe('84 cm')
   })
