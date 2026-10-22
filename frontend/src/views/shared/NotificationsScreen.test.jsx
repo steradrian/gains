@@ -34,7 +34,7 @@ describe('NotificationsScreen', () => {
     show()
     expect([...view.host.querySelectorAll('h1')].map(h => h.textContent)).toEqual(['Notifications'])
     expect(view.host.querySelector('.g-sptitle h1').textContent).toBe('Notifications')
-    expect(text()).toContain('Reminders you set, streaks and new bests')
+    expect(text()).toContain('Reminders you set, streaks, new bests and Coach changes')
     expect(groupTitles()).toEqual(['New', 'This week', 'Earlier'])
     expect(rows().map(r => (r.querySelector('b .g-sr') || r.querySelector('b')).textContent)).toEqual(['New: New best: Bench press', '6 weeks on plan', '50 workouts'])
     expect(rows()[0].classList.contains('g-nrow-new')).toBe(true)
@@ -92,7 +92,7 @@ describe('NotificationsScreen', () => {
   it('N1.1: nothing yet is the bell scene with Set a reminder, and no status line or footer', () => {
     const { onReminders } = show({ sections: NONE, unreadCount: 0 })
     expect(text()).toContain('Nothing new')
-    expect(text()).toContain('Reminders you set, streaks and new bests show up here.')
+    expect(text()).toContain('Reminders you set, streaks, new bests and Coach changes show up here.')
     expect(view.host.querySelector('.g-ssec-line')).toBeNull()
     expect(view.host.querySelector('.g-snote')).toBeNull()
     expect(view.host.querySelector('.g-sempty')).toBeTruthy()
@@ -103,10 +103,10 @@ describe('NotificationsScreen', () => {
 
   it('off the phone app, where no reminder lands here, it never promises one', () => {
     show({ hasReminders: false })
-    expect(text()).toContain('Streaks and new bests')
+    expect(text()).toContain('Streaks, new bests and Coach changes')
     expect(text()).not.toContain('Reminders you set')
     show({ sections: NONE, unreadCount: 0, hasReminders: false })
-    expect(text()).toContain('Streaks and new bests show up here.')
+    expect(text()).toContain('Streaks, new bests and Coach changes show up here.')
     expect(text()).not.toContain('Reminders you set')
     expect(button('Set a reminder')).toBeUndefined()
     expect(view.host.querySelector('.g-sempty-btn')).toBeNull()

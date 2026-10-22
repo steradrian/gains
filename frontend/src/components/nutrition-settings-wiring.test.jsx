@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 // Profile's Nutrition settings change the Gains screens they name. Each test sets one setting on the
 // fake NutriTrace and checks the screen: Home's water card and meals, the food picker, the
-// portion sheet, the food search, Foods, Saved meals and Recipes, Trends, the scanner.
+// portion sheet, the food search, Trends, the scanner. (My foods' settings are in
+// views/MyFoods.test.jsx.)
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,25 +11,21 @@ import { useUI } from '../store/useUI.js'
 import { todayISO } from '../lib/format.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { resetOnlineSearch } from '../lib/nutrition/use-online-search.js'
-import { createFakeNutriTrace, fixtureFoods, fixtureMeals, fixtureOffSearch, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
+import { createFakeNutriTrace, fixtureFoods, fixtureOffSearch, fixtureSettings } from '../lib/nutrition/fake-nutritrace.js'
 import { mealRows } from '../lib/nutrition/meal-rows.js'
 import { offResults } from '../lib/nutrition/off.js'
 import { metricFrom, nutrientOptions } from '../lib/nutrition/trends.js'
 import { unitsFor } from '../lib/nutrition/diary.js'
-import Foods from '../views/Foods.jsx'
-import MealCatalog from '../views/MealCatalog.jsx'
 import { bindUI } from './ui.jsx'
 import FoodPicker from './FoodPicker.jsx'
 import FoodSearch from './FoodSearch.jsx'
 import MealRow from './MealRow.jsx'
 import PortionSheet from './PortionSheet.jsx'
 import ScanSheet from './ScanSheet.jsx'
+import { seeCode } from '../lib/use-camera-scan.fake.js'
 import WaterCard from './WaterCard.jsx'
 
-const camera = { hit: null }
-vi.mock('./CameraScan.jsx', () => ({
-  default: ({ onFound }) => <button type="button" onClick={() => onFound(camera.hit)}>camera sees a code</button>,
-}))
+vi.mock('../lib/use-camera-scan.js', async () => ({ useCameraScan: (await import('../lib/use-camera-scan.fake.js')).fakeCamera }))
 const beep = vi.hoisted(() => vi.fn())
 vi.mock('../lib/sound.js', async orig => ({ ...(await orig()), beep }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/home', search: '' }) }))
@@ -156,13 +153,6 @@ describe('Home meals', () => {
     expect(mealRows(items, { summed: true }).map(r => [r.name, r.kcal])).toEqual([['Quick kcal', 150]])
     expect(mealRows(items, { summed: false }).map(r => r.kcal)).toEqual([100, 50])
   })
-
-  it('mealNames: Home lists the meals under the names saved in Profile', async () => {
-    const { default: MealsCard } = await import('./MealsCard.jsx')
-    const day = { entry: { items: [] }, settings: { mealNames: ['Brunch', 'Supper'] }, activityRows: [], target: null, activitySum: null }
-    await mount(<MealsCard date={TODAY} day={day} />, { mealNames: ['Brunch', 'Supper'] })
-    expect([...host.querySelectorAll('.meal-name')].map(e => e.textContent)).toEqual(['Brunch', 'Supper'])
-  })
 })
 
 describe('adding food', () => {
@@ -178,11 +168,11 @@ describe('adding food', () => {
   it('diaryPromptQuantity: on asks how much; off logs one serving at once', async () => {
     await mount(pickerPage, { diaryPromptQuantity: true }, { foods: fixtureFoods() })
     await click(rowOf('Rolled oats'))
-    expect(host.querySelector('.portion-sheet')).toBeTruthy()
+    expect(host.querySelector('.g-la')).toBeTruthy()
     expect(puts(`/nt/api/diary/${TODAY}`)).toHaveLength(0)
     await mount(pickerPage, { diaryPromptQuantity: false }, { foods: fixtureFoods() })
     await click(rowOf('Rolled oats'))
-    expect(host.querySelector('.portion-sheet')).toBeNull()
+    expect(host.querySelector('.g-la')).toBeNull()
     expect(puts(`/nt/api/diary/${TODAY}`)).toHaveLength(1)
     expect(puts(`/nt/api/diary/${TODAY}`)[0].body.items[0]).toMatchObject({ name: 'Rolled oats', portion: 100, unit: 'g', quantity: 1, meal: 0 })
   })
@@ -196,26 +186,25 @@ describe('adding food', () => {
   })
 
   it('diaryPromptQuantity: off, a scanned product is logged at once too', async () => {
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
     await mount(<><ScanSheet date={TODAY} meal={0} mealName="Breakfast" close={() => {}} /><Sheets /></>, { diaryPromptQuantity: false })
-    await click(buttonSaying(host, 'camera sees a code'))
-    await click(buttonSaying(host, 'Log'))
-    expect(host.querySelector('.portion-sheet')).toBeNull()
+    await act(async () => { seeCode('3017620422003') }); await settle()
+    await click(buttonSaying(host, 'Log to Breakfast'))
+    expect(host.querySelector('.g-la')).toBeNull()
     expect(puts(`/nt/api/diary/${TODAY}`)[0].body.items[0]).toMatchObject({ name: 'Nutella', quantity: 1, meal: 0 })
     await mount(<><ScanSheet date={TODAY} meal={0} mealName="Breakfast" close={() => {}} /><Sheets /></>, { diaryPromptQuantity: true })
-    await click(buttonSaying(host, 'camera sees a code'))
-    await click(buttonSaying(host, 'Log'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
+    await click(buttonSaying(host, 'Log to Breakfast'))
     expect(puts(`/nt/api/diary/${TODAY}`)).toHaveLength(0)
-    expect(host.querySelector('.portion-sheet')).toBeTruthy()
+    expect(host.querySelector('.g-la')).toBeTruthy()
   })
 
   it('customUnits: an entry in a custom unit is stored in it, scaled by the numbers alone (NutriTrace\'s ratio)', async () => {
     const settings = { customUnits: [{ abbr: 'shot', full: 'shot glass' }] }
     const log = async food => {
       await mount(<PortionSheet food={food} date={TODAY} meal={0} mealName="Breakfast" close={() => {}} />, settings)
-      await click([...host.querySelectorAll('.portion-units [role="radio"]')].find(b => b.textContent === 'shot'))
+      await click([...host.querySelectorAll('.g-la-units button')].find(b => b.textContent === 'shot'))
       await type(host.querySelector('input[aria-label="Serving size"]'), '2')
-      await click(buttonSaying(host, 'Log'))
+      await click(buttonSaying(host, 'Add to Breakfast'))
       return puts(`/nt/api/diary/${TODAY}`)[0].body.items[0]
     }
     // Saved per 100 g: 2 shot compares 2 with 100, because a shot has no weight.
@@ -232,7 +221,7 @@ describe('adding food', () => {
     const settings = { customUnits: [{ abbr: 'shot', full: 'shot glass' }] }
     expect(unitsFor(fixtureFoods()[0], settings).slice(0, 2)).toEqual(['shot', 'g'])
     await mount(<PortionSheet food={fixtureFoods()[0]} date={TODAY} meal={0} mealName="Breakfast" close={() => {}} />, settings)
-    expect([...host.querySelectorAll('.portion-units [role="radio"]')].map(b => b.textContent)).toContain('shot')
+    expect([...host.querySelectorAll('.g-la-units button')].map(b => b.textContent)).toContain('shot')
   })
 })
 
@@ -290,74 +279,11 @@ describe('food sources', () => {
   })
 
   it('barcodeBeep: the camera reading a code beeps only when it is on', async () => {
-    camera.hit = { value: '3017620422003', fmt: 'ean13' }
     await mount(<ScanSheet close={() => {}} />, { barcodeBeep: true })
-    await click(buttonSaying(host, 'camera sees a code'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
     expect(beep).toHaveBeenLastCalledWith(true, 1040, 0.12)
     await mount(<ScanSheet close={() => {}} />, { barcodeBeep: false })
-    await click(buttonSaying(host, 'camera sees a code'))
+    await act(async () => { seeCode('3017620422003') }); await settle()
     expect(beep).toHaveBeenLastCalledWith(false, 1040, 0.12)
-  })
-})
-
-describe('Foods', () => {
-  const foods = () => [
-    { ...fixtureFoods()[0], category: 'Pantry', notes: 'Weekday', usage_count: 1 },
-    { ...fixtureFoods()[1], category: 'Bakery', usage_count: 9 },
-    fixtureFoods()[2],
-  ]
-  const settings = { foodCategories: ['Pantry', { name: 'Bakery', label: '🥖' }, 'Dairy'] }
-
-  it('foodsSort: the page opens in that order', async () => {
-    await mount(<Foods />, { ...settings, foodsSort: 'most' }, { foods: foods() })
-    await settle()
-    expect(rowNames()).toEqual(['Wholemeal bread', 'Rolled oats', 'Crème fraîche'])
-  })
-
-  it('foodsShowCategories, foodsShowLabels and foodsShowNotes: what each row says, and the chips', async () => {
-    await mount(<Foods />, settings, { foods: foods() })
-    await settle()
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).toContain('🥖 Bakery')
-    expect(rowOf('Rolled oats').querySelector('.ss').textContent).toContain('Weekday')
-    await mount(<Foods />, { ...settings, foodsShowLabels: false, foodsShowNotes: false, foodsShowCategories: true }, { foods: foods() })
-    await settle()
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).toContain('Bakery')
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).not.toContain('🥖')
-    expect(rowOf('Rolled oats').querySelector('.ss').textContent).not.toContain('Weekday')
-    await mount(<Foods />, { ...settings, foodsShowCategories: false }, { foods: foods() })
-    await settle()
-    expect(rowOf('Wholemeal bread').querySelector('.ss').textContent).not.toContain('Bakery')
-  })
-
-  it('foodCategories: Profile\'s categories are filters even before a food uses them', async () => {
-    await mount(<Foods />, settings, { foods: foods() })
-    await settle()
-    const chips = [...host.querySelectorAll('.chip')].map(c => c.textContent)
-    expect(chips).toEqual(expect.arrayContaining(['All', 'Pantry', '🥖 Bakery', 'Dairy']))
-  })
-
-  it('offEnabled: off, the Online tab is gone; foodsDefaultSource off opens on it', async () => {
-    await mount(<Foods />, { offEnabled: false, foodsDefaultSource: 'off' }, { foods: foods() })
-    await settle()
-    expect(buttonSaying(host, 'Online')).toBeUndefined()
-    expect(rowNames()).toContain('Rolled oats')
-    await mount(<Foods />, { offEnabled: true, foodsDefaultSource: 'off' }, { foods: foods() })
-    await settle()
-    expect(host.textContent).toContain('Type a food to search Open Food Facts.')
-  })
-
-  it('mealsSort and recipesSort: Saved meals and Recipes open in that order', async () => {
-    const meals = [
-      { ...fixtureMeals()[0], name: 'Alpha', usage_count: 1 }, { ...fixtureMeals()[0], id: 23, name: 'Zulu', usage_count: 7 },
-    ]
-    await mount(<MealCatalog recipes={false} />, { mealsSort: 'most' }, { meals })
-    await settle()
-    expect(rowNames()).toEqual(['Zulu', 'Alpha'])
-    const recipes = [
-      { ...fixtureMeals()[1], name: 'Soup', usage_count: 1 }, { ...fixtureMeals()[1], id: 24, name: 'Stew', usage_count: 7 },
-    ]
-    await mount(<MealCatalog recipes />, { recipesSort: 'most' }, { meals: recipes })
-    await settle()
-    expect(rowNames()).toEqual(['Stew', 'Soup'])
   })
 })

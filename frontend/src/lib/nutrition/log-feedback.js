@@ -12,6 +12,9 @@ export const addedText = (date, mealName, what) => (what
   ? t('Added {0} to {1}, {2}', what, dayName(date), mealName)
   : t('Added to {0}, {1}', dayName(date), mealName))
 
+/** The toast after an entry is removed from a day (board Ea8Removed): "Removed Banana from Today, Snacks". */
+export const removedText = (date, mealName, what) => t('Removed {0} from {1}, {2}', what, dayName(date), mealName)
+
 /** The toast after water (board T1.6), in the person's water unit: "Added 250 ml of water to Today". */
 export function waterAddedText(date, ml, settings) {
   const w = waterOf(ml, settings)
@@ -20,6 +23,8 @@ export function waterAddedText(date, ml, settings) {
 
 // What a failed write tells the person. The input it came from stays where it was.
 export function writeErrorText(e) {
+  if (e?.code === 'activity-unsupported') return t('Logging activity arrives soon')
+  if (e?.code === 'setting-unsaved' && e.key === 'offSearchCountry') return t("This country can't be saved yet")
   if (e?.code === 'offline' || e?.code === 'timeout') return t('Not saved: no connection. Try again when you are back online.')
   if (e?.status === 401) return t('Not saved: you are signed out. Sign in and try again.')
   if (e?.code === 'changed') return t('Not saved: this entry changed elsewhere. The diary now shows its latest state.')

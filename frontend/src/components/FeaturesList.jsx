@@ -33,7 +33,7 @@ export default function FeaturesList({ S, ctx }) {
   return <>
     {ctx.nutrition && <Section title={t('Nutrition')} footer={error || undefined}>
       <Row icon="timer" iconTint="var(--indigo)" title={t('Fasting')}
-        subtitle={unread ? t('Your settings did not load.') : t('Adds Fast to the + sheet, and a timer and history under Nutrition › Fasting.')}>
+        subtitle={unread ? t('Your settings did not load.') : t('Adds Fast to the + sheet, with a timer and history.')}>
         {unread
           ? <Button size="sm" onClick={() => useNutrition.getState().loadSettings({ force: true })}>{t('Try again')}</Button>
           : <Switch aria-label={t('Fasting')} checked={!!ctx.fastingOn} disabled={switching || !ctx.ntSettings} onChange={fasting} />}

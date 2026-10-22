@@ -28,7 +28,7 @@
 
 /* --- meals --- */
 .meals-card{padding-block:4px}
-.meal-row+.meal-row,.activity-rows{border-top:var(--hair) solid var(--sep)}
+.meal-row+.meal-row{border-top:var(--hair) solid var(--sep)}
 .meal-head{display:flex;align-items:center;gap:4px}
 .meal-toggle{flex:1;min-width:0;display:grid;grid-template-columns:1fr auto auto;grid-template-areas:"name kcal chev" "sub kcal chev";column-gap:8px;align-items:center;text-align:start;padding:10px 0;min-height:52px}
 .meal-toggle:disabled{opacity:1;cursor:default}
@@ -39,20 +39,12 @@
 .meal-add{flex:none;color:var(--acc-ink)}
 .meal-add.on{color:var(--label-2)}
 .meal-items{list-style:none;margin:0 0 8px;padding:0}
-.meal-item,.activity-row{display:flex;align-items:center;gap:10px;padding:6px 0}
+.meal-item{display:flex;align-items:center;gap:10px;padding:6px 0}
 .meal-item{width:100%;min-height:var(--tap-min,44px);background:none;border:0;color:inherit;font:inherit;text-align:start;cursor:pointer}
-.meal-item .tt,.activity-row .tt{display:block;font-size:15px}
-.meal-item .ss,.activity-row .ss{display:block}
+.meal-item .tt{display:block;font-size:15px}
+.meal-item .ss{display:block}
 .meal-picker{padding-bottom:12px}
-/* yesterday's meal, inside today's empty one */
-.meal-again{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-4)}
-.meal-again .grow{min-width:0}
-.meal-again .tt{display:block;font-size:var(--fs-subhead);font-weight:var(--fw-medium)}
-.meal-again .ss{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meal-picker .item{background:var(--surface-2)}
-.activity-rows{padding-top:4px}
-.activity-rows ul{list-style:none;margin:0;padding:0}
-.activity-row.muted-row .tt,.activity-row.muted-row>.small{color:var(--label-2)}
 
 /* --- food picker and amount sheets --- */
 .food-picker .searchf{margin-bottom:8px}
@@ -71,26 +63,11 @@
 .portion-sum{display:flex;flex-direction:column;gap:4px;margin:8px 0 12px}
 .nt-error{color:var(--red-ink);margin:4px 0 10px}
 
-/* --- barcode scan sheet --- */
-.scan-sheet .cam-frame.wide{width:84%;aspect-ratio:2.4}
-.cam-note{margin:12px 0}
-.cam-note.center{text-align:center}
-.scan-type{display:flex;gap:8px;align-items:center;margin-top:12px}
-.scan-type .field{flex:1;min-width:0}
-.scan-hit{display:flex;flex-direction:column;gap:2px;margin:8px 0 14px}
-.scan-hit .tt{font-size:17px;font-weight:600}
-.scan-actions{display:flex;flex-direction:column;gap:8px}
 
 /* --- fasting: Home's live row, the Fasting page --- */
 .card.today-fast{display:flex;align-items:center;gap:9px;cursor:pointer}
 .today-fast .grow{min-width:0}
 .today-fast .chev{color:var(--label-3)}
-.fast-card{display:flex;flex-direction:column;gap:8px}
-.fast-clock{font-variant-numeric:tabular-nums}
-.fast-track{height:8px;border-radius:4px;margin-top:4px}
-.fast-track>i{border-radius:4px}
-.fast-card.reached .fast-track>i{background:var(--green)}
-.fast-remove{width:44px;height:44px}
 .fast-insights{display:flex;flex-direction:column;gap:12px}
 .fast-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fast-stats .big{font-size:22px}
@@ -99,7 +76,6 @@
 .fast-bar-wrap{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
 .fast-bar-wrap>i{display:block;width:70%;min-height:2px;border-radius:3px;background:var(--acc)}
 .fast-bar-day{line-height:1}
-.fast-off{display:flex;flex-direction:column;align-items:center;margin-top:12px}
 
 
 /* --- the calendar's food mark (Home's date picker) --- */

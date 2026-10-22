@@ -58,7 +58,10 @@ is not on the list needs a hub PR first.
   (`GET /api/diary`, read once); `trends.js` turns them into a metric's series over the hub's range
   (`windowOf` ends yesterday: today is still being logged), its summary, and the goal line
   (`goalOf`: none for a Dynamic or Adaptive calorie target, which is worked out per day). Fasting
-  insights are `components/FastInsights.jsx` with `since`.
+  insights are `components/FastInsights.jsx` with `since`. The same days feed Eat's Food trends
+  and Month (`foodTrendsOf`, `monthOf`, `fastingBlockOf` at the end of `trends.js`; pages in
+  `views/eat/`): each day is held to its own goal (`views/shared/food-target.js`), and today is
+  drawn but never averaged or counted.
 - `wellness.js` and `useWellness` (Progress › Recovery): the last year of `GET /api/wellness/fitbit/data`
   (Fitbit, Google Health, Health Connect) and `.../garmin/data`, read only for a wearable the
   settings say is connected, merged with Garmin winning. A source that fails does not hide the

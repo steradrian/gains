@@ -869,6 +869,40 @@
         "workouts": []
       },
       "expect": []
+    },
+    {
+      "name": "a recipe's photo and its poster count; a deleted recipe's tombstone and a recipe with no photo do not",
+      "state": {
+        "recipeExtras": {
+          "31": {
+            "steps": [],
+            "makesTyped": false,
+            "updatedAt": 5,
+            "photo": {
+              "kind": "image",
+              "hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "mime": "image/jpeg",
+              "size": 1200,
+              "width": 800,
+              "height": 600,
+              "poster": {
+                "hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "mime": "image/jpeg",
+                "size": 300,
+                "width": 200,
+                "height": 150
+              },
+              "at": 1
+            }
+          },
+          "32": { "deleted": true, "updatedAt": 9 },
+          "33": { "steps": [{ "id": "a", "text": "Stir" }], "photo": null, "updatedAt": 3 }
+        }
+      },
+      "expect": [
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ]
     }
   ]
 }

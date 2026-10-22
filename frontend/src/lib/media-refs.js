@@ -112,7 +112,8 @@ export function workoutMediaOf(w, max = WORKOUT_MEDIA_MAX) {
 
 /**
  * Every MediaRef-like object a state holds, as it stands (not normalised): each custom
- * exercise's `media` and each entry of each logged workout's `media` list. The one walk behind
+ * exercise's `media`, each entry of each logged workout's `media` list and each recipe's photo
+ * (`recipeExtras[id].photo`, lib/nutrition/recipe-extras.js). The one walk behind
  * referencedHashes, referencedFiles and the owed count, so they can never disagree about where
  * media live. The session in progress is not walked: it never syncs (the server drops `active`),
  * media are only ever attached to a saved workout, and the history editor's copy of one leaves
@@ -128,6 +129,10 @@ export function stateMediaRefs(state) {
   for (const w of Array.isArray(state.workouts) ? state.workouts : []) {
     if (!isObj(w) || !Array.isArray(w.media)) continue
     for (const m of w.media) if (isObj(m)) out.push(m)
+  }
+  // A recipe's photo (Eat): recipeExtras[mealId].photo, a tombstone has none.
+  if (isObj(state.recipeExtras)) {
+    for (const e of Object.values(state.recipeExtras)) if (isObj(e) && isObj(e.photo)) out.push(e.photo)
   }
   return out
 }

@@ -5,8 +5,7 @@ import NtChoiceRow from './NtChoiceRow.jsx'
 import NtSwitchRow from './NtSwitchRow.jsx'
 
 // Profile › Foods & scanning (ia-proposal §5; NutriTrace Settings › Foods): what each row of the
-// Foods page shows, the source it opens on and the order of Foods, Meals and Recipes (views/Foods,
-// views/MealCatalog), and the barcode scanner's beep (ScanSheet). Not here: the flashlight is a
+// Foods page shows, the source it opens on and the order of Foods, Meals and Recipes (views/MyFoods), and the barcode scanner's beep (ScanSheet). Not here: the flashlight is a
 // device setting NutriTrace never syncs, Yesterday's meals is not one the hub lets through, and
 // Gains has no thumbnails in these lists or photo crop.
 export default function FoodsSettings() {
