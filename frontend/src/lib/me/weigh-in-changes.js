@@ -1,8 +1,9 @@
 // Journal kinds `weighin-edit` and `weighin-delete` (Me > Recent changes): a weigh-in whose value was
 // changed in the Body page's Edit weigh-in drawer, and one deleted there. No UI imports.
 //
-//   weighin-edit    snapshot { before: { d, w, t? }, after: w }   facts { from, to, unit }
-//   weighin-delete  snapshot { before: { d, w, t? } }             facts { weight, unit }
+//   weighin-edit    snapshot { before: { d, w, t? }, after: w, unit }   facts { from, to, unit }
+//   weighin-delete  snapshot { before: { d, w, t? }, unit }             facts { weight, unit }
+// `unit` is the unit the weights were in; a restore converts them if Settings > Units changed since.
 //
 // One weigh-in a day. A restore puts the old reading back only while the day is still as the change
 // left it: a delete is restored when the day has no weigh-in (a newer one for that day answers
@@ -11,6 +12,7 @@
 // is stamped now, so the sync takes it over the older copy and the tombstone.
 import { recordChange, registerRestorer } from '../recent-changes.js'
 import { useStore } from '../../store/useStore.js'
+import { convertBodyWeight } from '../units.js'
 import { setBack, weighInOn } from './weigh-in.js'
 import { syncNow } from '../nutrition/sync.js'
 
@@ -24,7 +26,7 @@ export function recordWeighInEdit(before, w, unit) {
   if (!before?.d) return null
   return recordChange({
     kind: WEIGHIN_EDIT, day: before.d, subject: '',
-    facts: { from: before.w, to: w, unit }, snapshot: { before: clone(before), after: w },
+    facts: { from: before.w, to: w, unit }, snapshot: { before: clone(before), after: w, unit },
   })
 }
 
@@ -33,8 +35,20 @@ export function recordWeighInDelete(before, unit) {
   if (!before?.d) return null
   return recordChange({
     kind: WEIGHIN_DELETE, day: before.d, subject: '',
-    facts: { weight: before.w, unit }, snapshot: { before: clone(before) },
+    facts: { weight: before.w, unit }, snapshot: { before: clone(before), unit },
   })
+}
+
+/**
+ * The snapshot in the profile's unit now. Settings > Units converts the whole `bodyweight` list, so
+ * a snapshot taken in kg must be read in lb after a switch. A snapshot without a unit (an older
+ * journal entry) is taken as already in the current unit.
+ */
+function inCurrentUnit(snap) {
+  const to = useStore.getState().S.unit === 'lb' ? 'lb' : 'kg'
+  const conv = w => (snap.unit && snap.unit !== to && w != null ? convertBodyWeight(w, snap.unit, to) : w)
+  const before = snap.before ? { ...snap.before, w: conv(snap.before.w) } : snap.before
+  return { before, after: conv(snap.after) }
 }
 
 function apply(day, entry) {
@@ -43,7 +57,7 @@ function apply(day, entry) {
 }
 
 export function restoreWeighInDelete(snap) {
-  const before = snap?.before
+  const before = snap?.before && inCurrentUnit(snap).before
   if (!before?.d || !(Number(before.w) > 0)) return { ok: false, reason: 'gone' }
   if (weighInOn(useStore.getState().S, before.d)) return { ok: false, reason: 'replaced' }
   apply(before.d, before)
@@ -52,7 +66,7 @@ export function restoreWeighInDelete(snap) {
 
 /** Takes the restored weigh-in out again. */
 export function undoWeighInDeleteRestore(snap) {
-  const before = snap?.before
+  const before = snap?.before && inCurrentUnit(snap).before
   if (!before?.d) return { ok: false }
   const now = weighInOn(useStore.getState().S, before.d)
   if (!now || now.w !== before.w) return { ok: false }
@@ -61,23 +75,23 @@ export function undoWeighInDeleteRestore(snap) {
 }
 
 export function restoreWeighInEdit(snap) {
-  const before = snap?.before
+  const { before, after } = snap?.before ? inCurrentUnit(snap) : {}
   if (!before?.d || !(Number(before.w) > 0)) return { ok: false, reason: 'gone' }
   const now = weighInOn(useStore.getState().S, before.d)
   if (!now) return { ok: false, reason: 'gone' }
   // Already back, or changed again since: not this change's to undo.
-  if (now.w === before.w || now.w !== snap.after) return { ok: false, reason: 'replaced' }
+  if (now.w === before.w || now.w !== after) return { ok: false, reason: 'replaced' }
   apply(before.d, before)
   return { ok: true, where: { day: before.d } }
 }
 
 /** Puts the value the edit saved back. */
 export function undoWeighInEditRestore(snap) {
-  const before = snap?.before
+  const { before, after } = snap?.before ? inCurrentUnit(snap) : {}
   if (!before?.d) return { ok: false }
   const now = weighInOn(useStore.getState().S, before.d)
   if (!now || now.w !== before.w) return { ok: false }
-  apply(before.d, { ...now, w: snap.after })
+  apply(before.d, { ...now, w: after })
   return { ok: true }
 }
 

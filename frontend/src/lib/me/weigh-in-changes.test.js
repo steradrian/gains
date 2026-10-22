@@ -4,6 +4,7 @@ import { DEF, useStore } from '../../store/useStore.js'
 import '../recent-changes-kinds.js'
 import { listChanges, restoreChange, undoRestore } from '../recent-changes.js'
 import { removeEntries } from '../recent-changes-store.js'
+import { convertStateUnit } from '../units.js'
 import { deleteWeighIn, saveWeighIn, weighInOn } from './weigh-in.js'
 import {
   WEIGHIN_DELETE, WEIGHIN_EDIT, recordWeighInDelete, recordWeighInEdit, restoreWeighInDelete, restoreWeighInEdit,
@@ -123,5 +124,31 @@ describe('restoring an edited weigh-in', () => {
     await restoreChange(id)
     expect(await undoRestore(id)).toMatchObject({ ok: true })
     expect(weighInOn(S(), DAY).w).toBe(81.7)
+  })
+})
+
+describe('restoring after a kg to lb switch', () => {
+  const toLb = () => useStore.setState({ S: convertStateUnit(S(), 'lb') })
+
+  it('a deleted weigh-in comes back in lb, not as a kg number', async () => {
+    remove()
+    toLb()
+    expect(await restoreChange(listChanges()[0].id)).toMatchObject({ ok: true })
+    expect(S().unit).toBe('lb')
+    expect(weighInOn(S(), DAY).w).toBe(180.3)
+    // Undo of the restore finds the converted entry again.
+    expect(await undoRestore(listChanges()[0].id)).toMatchObject({ ok: true })
+    expect(weighInOn(S(), DAY)).toBeNull()
+  })
+
+  it('an edit restores in lb and is not mistaken for a newer reading', async () => {
+    edit(81.7)
+    toLb()
+    expect(await restoreChange(listChanges()[0].id)).toMatchObject({ ok: true })
+    expect(weighInOn(S(), DAY).w).toBe(180.3)
+  })
+
+  it('an entry without a unit is read in the current unit', () => {
+    expect(restoreWeighInDelete({ before: { d: DAY, w: 81.8 } })).toEqual({ ok: false, reason: 'replaced' })
   })
 })

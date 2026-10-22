@@ -6,6 +6,7 @@ import { useNutrition } from '../nutrition/store.js'
 import '../recent-changes-kinds.js'
 import { listChanges, recordChange, restoreChange, undoRestore } from '../recent-changes.js'
 import { removeEntries } from '../recent-changes-store.js'
+import { convertStateUnit } from '../units.js'
 import { GOAL_CHANGE, applySnapshot, recordGoalChange, snapshotOf } from './goal-changes.js'
 import { applyWrites } from './goal-writes.js'
 
@@ -84,6 +85,14 @@ describe('goal-change journal entries', () => {
     useStore.getState().update(s => { s.targetW = 74 })
     expect(await restoreChange(id)).toEqual({ ok: false, reason: 'changed' })
     expect(useStore.getState().S.targetW).toBe(74)
+  })
+
+  it('restores a target weight in the unit now, after a kg to lb switch', async () => {
+    const { id } = await change([], { before: 78, after: 76 })
+    useStore.setState({ S: convertStateUnit(useStore.getState().S, 'lb') })
+    expect(useStore.getState().S.targetW).toBe(167.6)
+    expect(await restoreChange(id)).toEqual({ ok: true })
+    expect(useStore.getState().S.targetW).toBe(172)
   })
 
   it('restoring a target-only change needs no NutriTrace', async () => {
