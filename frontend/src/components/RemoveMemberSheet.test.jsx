@@ -14,7 +14,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../lib/api.js', () => ({ api: vi.fn(), remoteServer: () => '' }))
 vi.mock('../lib/mobile.js', () => ({ MOBILE: false }))
 vi.mock('../lib/demo.js', () => ({ DEMO: false }))
-vi.mock('../store/useStore.js', () => ({ useStore: { getState: () => ({ user: { id: 'u-adrian' } }) } }))
+vi.mock('../store/useStore.js', () => {
+  const state = { user: { id: 'u-adrian' }, S: {} }
+  return { useStore: Object.assign(selector => selector(state), { getState: () => state }) }
+})
 vi.mock('../store/useUI.js', () => ({ useUI: { getState: () => ({ toast: mocks.toast, openSheet: mocks.openSheet }) } }))
 vi.mock('../lib/friends/use-member.js', () => ({
   removeFromGroup: (...a) => mocks.remove(...a),

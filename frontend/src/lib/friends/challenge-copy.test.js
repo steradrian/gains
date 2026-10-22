@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
 import { GROUP_FULL } from '../../dev/screens/states/friends-group-fixture.js'
 import {
