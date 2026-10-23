@@ -109,7 +109,9 @@ export function createGlassEngine({
       sprites.dispose()
     }, FADE_OUT_MS)
   }
-  const watchdog = watch ? createWatchdog({ onTrip: tripToCss }) : null
+  // Watchdog off for now: keep the liquid glass on slow frames instead of tripping to the frosted CSS material.
+  // const watchdog = watch ? createWatchdog({ onTrip: tripToCss }) : null
+  const watchdog = null
   registry = createRegistry(ground, {
     include,
     onChange: reason => { scheduler?.wake(reason); if (reason === 'dom') onDom() },
