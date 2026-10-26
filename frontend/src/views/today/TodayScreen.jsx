@@ -7,12 +7,12 @@ import AwayCard from '../../ds/AwayCard.jsx'
 import FirstSteps from '../../ds/FirstSteps.jsx'
 import GlassActions from '../../ds/GlassActions.jsx'
 import GlassRow from '../../ds/GlassRow.jsx'
-import InlineBanner from '../../ds/InlineBanner.jsx'
 import MealTiles from '../../ds/MealTiles.jsx'
 import RingCarousel from '../../ds/RingCarousel.jsx'
 import SavedIndicator from '../../ds/SavedIndicator.jsx'
 import StageHeader from '../../ds/StageHeader.jsx'
 import StageScreen from '../../ds/StageScreen.jsx'
+import StageEmpty from '../../ds/StageEmpty.jsx'
 import StageSection from '../../ds/StageSection.jsx'
 import StageWeekMarks from '../../ds/StageWeekMarks.jsx'
 import WaterGlasses from '../../ds/WaterGlasses.jsx'
@@ -25,8 +25,9 @@ import './today.css'
 // Food and Water, or the week for the training profile. It draws what useToday() gives it and
 // holds nothing; the floating tab bar is the app's (#tabbar). `ring` is the page the rings open on
 // (T12Protein opens on Protein). The header is pinned to the top and is the search's field while
-// it is open (components/use-root-header.js). `status` other than 'known' (the day loading, or
-// failed with the retry banner) draws the skeleton, never what looks like an empty day.
+// it is open (components/use-root-header.js). `status` 'pending' (the day loading) draws the
+// skeleton; 'failed' draws only the error scene with Try again on the stage, never a skeleton
+// under it (that read as still loading) and never what looks like an empty day.
 export default function TodayScreen({
   status = 'known', error, header, saved, away, firstSteps, nextPending, rings, onRing, actions, friends, upNext, meals, onMeal, onSeeDay, water, week, ring = 0,
 }) {
@@ -38,10 +39,15 @@ export default function TodayScreen({
         <StageHeader pinned title={t('Today')} {...header} />
         <SavedIndicator tone="stage" state={saved?.state} waiting={saved?.waiting} />
         <Presence>{away && <Collapse key="away"><AwayCard {...away} /></Collapse>}</Presence>
-        {error && <div className="today-alert"><InlineBanner stage role="alert" icon="warning" title={error.text} actions={[{ label: t('Try again'), onClick: error.retry, solid: true }]} /></div>}
-        <RingCarousel slides={rings} start={ring} loading={!known} onOpen={onRing} />
-        <GlassActions items={actions} loading={!known} />
-        {!known ? <Skeleton food={!!meals} /> : <>
+        {status === 'failed' ? (
+          <div className="today-failed" role="alert">
+            <StageEmpty card={false} illustration="plate" title={error?.text} action={t('Try again')} onClick={error?.retry} />
+          </div>
+        ) : <>
+          <RingCarousel slides={rings} start={ring} loading={!known} onOpen={onRing} />
+          <GlassActions items={actions} loading={!known} />
+        </>}
+        {status === 'failed' ? null : !known ? <Skeleton food={!!meals} /> : <>
           {friends && <FriendsCard {...friends} />}
           {nextPending && <i className="g-skel today-sk-row" aria-hidden="true" />}
           {firstSteps && <><StageSection title={t('First steps')} action={firstSteps.label} /><FirstSteps steps={firstSteps.steps} /></>}

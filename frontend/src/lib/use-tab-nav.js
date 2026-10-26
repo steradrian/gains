@@ -295,9 +295,12 @@ export function useTabNav({ navigate, location, navType }) {
 
   const doBack = useCallback(parent => {
     if (pending.current) return
-    if (navRef.current.idx > 0) navigate(-1)
-    // A page pushed from another tab (the avatar opening Profile) goes back to that tab's page.
-    else navigate(parent || (location.state?.pushed && location.state.from) || parentOf(location.pathname), { replace: true })
+    // A page pushed from another tab (the avatar opening Settings) goes back to that tab's page,
+    // even when it sits on its own tab's stack (Settings over Profile): not to that stack's page.
+    const pushedFrom = location.state?.pushed && location.state.from
+    if (pushedFrom) navigate(pushedFrom, { replace: true })
+    else if (navRef.current.idx > 0) navigate(-1)
+    else navigate(parent || parentOf(location.pathname), { replace: true })
   }, [navigate, location])
 
   const doLeaveTo = useCallback(path => {

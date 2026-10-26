@@ -70,6 +70,8 @@ export function useBurned() {
       onOpen: row => navToDay(row.date, 'food'),
     }),
     onLog: () => logActivitySheet({ date: today }),
+    // The settings did not load (status 'error'): read them again.
+    onReload: () => useNutrition.getState().loadSettings({ force: true }),
     // Reads again only the days that failed.
     onRetry: () => {
       const n = useNutrition.getState()

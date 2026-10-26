@@ -27,12 +27,14 @@ export function transitionKind({ from, to, navType, sheetEntry = false }) {
   if (from.pathname === to.pathname || sheetEntry) return 'none'
   const a = tabOf(from.pathname)
   const b = tabOf(to.pathname)
-  // A page of another tab opened as a push (the avatar opening Profile, `state.pushed`) slides in
+  // A page of another tab opened as a push (the avatar opening Settings, `state.pushed`) slides in
   // like any pushed page, and leaving that entry (Back, an edge swipe) slides it away again,
-  // though both cross tabs. A tab-bar switch flags its entries `tabSwitch` and stays still.
+  // though both cross tabs. A tab-bar switch flags its entries `tabSwitch` and stays still, except
+  // a return to the tab the page was pushed from: Settings sits on Me's stack over Profile, so its
+  // Back lands through a switch and would otherwise not slide away.
   if (a && b && a !== b) {
     if (to.state?.pushed && navType !== 'POP') return 'push'
-    if (from.state?.pushed && !to.state?.tabSwitch) return 'pop'
+    if (from.state?.pushed && (!to.state?.tabSwitch || to.pathname === from.state.from)) return 'pop'
   }
   if (navType === 'REPLACE') return 'none'
   // Landing on another tab's page is a tab switch (lib/use-tab-nav.js flags the entries it builds),

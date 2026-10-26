@@ -15,7 +15,7 @@ const SCENE = 'chart'
 // what Burned does to the target, then the rows by day. A row with no number reads "0 kcal" and
 // opens the drawer that adds one; the line under the list says so. It draws what useBurned()
 // gives it (use-burned.js) and keeps nothing.
-export default function BurnedScreen({ status, error, title, sub, note, groups, missing, empty, failed, canLog = true, onLog, onRetry }) {
+export default function BurnedScreen({ status, error, title, sub, note, groups, missing, empty, failed, canLog = true, onLog, onRetry, onReload }) {
   return (
     <StagePage
       title={t('Burned')}
@@ -24,7 +24,7 @@ export default function BurnedScreen({ status, error, title, sub, note, groups, 
       largeTitle={title}
       sub={sub}
     >
-      {status === 'error' && <StageEmpty card={false} illustration={SCENE} title={loadErrorText(error)} />}
+      {status === 'error' && <StageEmpty card={false} illustration={SCENE} title={loadErrorText(error)} action={t('Retry')} onClick={onReload} />}
       {status === 'ready' && failed && (
         <StageEmpty card={false} illustration={SCENE} title={t('Could not load this week')} action={t('Retry')} onClick={onRetry} />
       )}

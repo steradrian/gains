@@ -143,7 +143,9 @@ describe('Today', () => {
     nt.failNext('GET', `/nt/api/diary/${TODAY}`, 'offline')
     await mount(<Home />)
     expect(host.querySelector('[role="alert"]').textContent).toContain('The diary did not load: no connection.')
-    expect(host.querySelector('.g-rcb[aria-busy="true"]')).toBeTruthy()
+    // The error scene alone, on the stage: no loading skeleton under it that reads as still loading.
+    expect(host.querySelector('[role="alert"] .g-sempty:not(.g-sempty-card) .g-ill')).toBeTruthy()
+    expect(host.querySelector('.g-rcb, .g-skel')).toBeNull()
     expect(host.querySelector('.g-sring-in b')).toBeNull()
     // Nothing below the rings reads as an empty day: no water amount, no meal tiles, no dead +.
     expect(sections()).toEqual([])
@@ -336,10 +338,10 @@ describe('Today', () => {
     expect(bell.querySelector('.g-sdot')).toBeNull()
   })
 
-  it('the header: the avatar opens Profile pushed, the bell Notifications, the pill the app\'s search', async () => {
+  it('the header: the avatar opens Settings pushed, the bell Notifications, the pill the app\'s search', async () => {
     await mount(<Home />)
     await click(button('Settings'))
-    expect(navigate).toHaveBeenCalledWith('/me', { state: { pushed: true, from: expect.any(String) } })
+    expect(navigate).toHaveBeenCalledWith('/me/settings', { state: { pushed: true, from: expect.any(String) } })
     await click(button('Notifications'))
     expect(navigate).toHaveBeenCalledWith('/home/notifications')
     const field = host.querySelector('.g-spill-field input')
