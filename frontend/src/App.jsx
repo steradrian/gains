@@ -14,7 +14,8 @@ import { setNav } from './lib/nav.js'
 import { setSystemBarsLight } from './lib/system-bars.js'
 import { initBackButton } from './lib/back.js'
 import { useWakeLock } from './lib/wakelock.js'
-import { isTabRoot, launchPath, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
+import { isTabRoot, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
+import { launchTarget } from './lib/stale-workout.js'
 import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
 import { useRouteTransition } from './lib/use-route-transition.js'
@@ -363,8 +364,9 @@ function Shell() {
   // One live dock while a workout runs and you are elsewhere (it takes the rest bar's place).
   const docked = !noTabs && !onWorkout && workoutRunning(S)
   // No route of its own (a launch, a home-screen icon): straight into a running workout, else
-  // Home. A route from before the tabs: where it lives now, query and fragment and all.
-  const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchPath(workoutRunning(S))
+  // Home (lib/stale-workout.js launchTarget). A route from before the tabs: where it lives now,
+  // query and fragment and all.
+  const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchTarget(S)
 
   const authed = user || isGuest
   const sharedStage = !!authed && !inFlow && !onAddDevice && !needsMobileOnboarding
