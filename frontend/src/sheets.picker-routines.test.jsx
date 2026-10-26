@@ -4,7 +4,8 @@
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
-import { CATALOGUE, EXDB } from './lib/exercises.js'
+import { BODYPARTS, CATALOGUE, EXDB } from './lib/exercises.js'
+import { chipByText, openFilters, unmountPanels } from './picker-test-utils.jsx'
 import { exCount } from './lib/format.js'
 import { musclesOf } from './lib/muscles.js'
 import { DEF, useStore } from './store/useStore.js'
@@ -39,7 +40,8 @@ beforeEach(() => {
   useStore.setState({ S: structuredClone(DEF), user: null })
   document.body.innerHTML = ''
 })
-afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+afterEach(() => { unmountPanels(); act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+const isOn = el => el.classList.contains('on')
 
 describe('exercise picker: multi-select', () => {
   const open = (onAdd = vi.fn()) => {
@@ -128,11 +130,25 @@ describe('exercise picker: single pick, as every other caller has it', () => {
     useStore.setState(s => ({ S: { ...s.S, routines: [{ id: 'r1', name: 'A', ex: [{ id: ex.id }] }] } }))
     exercisePicker(vi.fn())
     const host = renderTop()
-    const chip = [...host.querySelectorAll('.g-cgroup .g-cchip')].find(c => c.textContent.startsWith('Chosen'))
+    const chip = host.querySelector('.g-pk-chips .g-cchip')
     expect(chip.textContent).toBe('Chosen (1)')
     act(() => chip.click())
+    expect(chip.getAttribute('aria-pressed')).toBe('true')
     expect(items(host).map(nameOf)).toEqual([ex.n])
     expect(items(host)[0].querySelector('.g-tag').textContent).toBe('Chosen')
+    act(() => chip.click())
+    expect(items(host).length).toBeGreaterThan(1)
+  })
+
+  it('the Chosen toggle applies to All only: Create your own stays on Favourites with it on', () => {
+    useStore.setState(s => ({ S: { ...s.S, favEx: [EXDB[5].id], routines: [{ id: 'r1', name: 'A', ex: [{ id: EXDB[3].id }] }] } }))
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    act(() => host.querySelector('.g-pk-chips .g-cchip').click())
+    expect(host.querySelector('.g-pk-new')).toBeNull()
+    act(() => tab(host, 'Favourites').click())
+    expect(items(host).length).toBeGreaterThan(0)
+    expect(host.querySelector('.g-pk-new')).toBeTruthy()
   })
 })
 
@@ -151,9 +167,34 @@ describe('exercise picker: By muscle', () => {
     expect(n).toBeGreaterThan(1)
     expect(host.querySelector('.g-pk-head').textContent).toBe(`Chest · ${exCount(n)}`)
     expect(items(host).length).toBeGreaterThan(0)
-    // the same tap again clears it
-    act(() => tapMuscle(host, 'Chest'))
+    // the map gives way to the list, and the way back is a row at its top
+    expect(host.querySelector('.g-pk-map')).toBeNull()
+    act(() => host.querySelector('.g-pk-back').click())
     expect(items(host)).toHaveLength(0)
+    expect(host.querySelector('.g-pk-map')).toBeTruthy()
+  })
+
+  it('draws the map with no stray result count in the search field before a muscle is picked', async () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    await act(async () => { tab(host, 'By muscle').click() })
+    await vi.waitFor(() => expect(host.querySelectorAll('.g-pk-map .bm-v')).toHaveLength(2))
+    expect(host.querySelector('.g-pk-count')).toBeNull()
+    expect(host.querySelector('.g-pk-badge')).toBeNull()
+  })
+
+  it('search narrows within the tapped muscle', async () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    await act(async () => { tab(host, 'By muscle').click() })
+    await vi.waitFor(() => expect(host.querySelectorAll('.bm-v')).toHaveLength(2))
+    act(() => tapMuscle(host, 'Chest'))
+    const count = () => Number(host.querySelector('.g-pk-count').textContent)
+    const all = Number(host.querySelector('.g-pk-head').textContent.match(/· (\d+)/)[1])
+    act(() => type(host.querySelector('input[type="search"]'), 'dumbbell'))
+    expect(items(host).length).toBeGreaterThan(0)
+    expect(count()).toBeLessThan(all)
+    expect(host.querySelector('.g-pk-head').textContent).toBe(`Chest · ${exCount(count())}`)
   })
 
   it('a row there is picked like any other', async () => {
@@ -193,15 +234,96 @@ describe('exercise picker: no exact match', () => {
 })
 
 describe('exercise picker: tabs', () => {
-  it('keeps the filters on All only, and Favourites lists the starred ones', () => {
+  it('Favourites lists the starred ones under Starred, then what was used lately under Recently used', () => {
+    const [a, b, c] = [EXDB[2], EXDB[8], EXDB[12]]
+    const workout = { id: 'w1', d: '2026-10-01', start: 1, end: 2, unit: 'kg', name: 'x', routineIds: [], prs: [], entries: [{ id: b.id, sets: [] }, { id: a.id, sets: [] }] }
+    useStore.setState(s => ({ S: { ...s.S, favEx: [a.id, c.id], workouts: [workout] } }))
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    act(() => tab(host, 'Favourites').click())
+    // a is starred and also used: it is listed once, under Starred
+    const listed = items(host).map(nameOf)
+    expect(listed).toHaveLength(3)
+    expect(listed.slice(0, 2).sort()).toEqual([a.n, c.n].sort())
+    expect(listed[2]).toBe(b.n)
+    expect([...host.querySelectorAll('.g-pk-list > .g-pk-head')].map(h => h.textContent)).toEqual(['Starred', 'Recently used'])
+    act(() => type(host.querySelector('input[type="search"]'), b.n))
+    expect(items(host).map(nameOf)[0]).toBe(b.n)
+    expect(host.querySelector('.g-pk-list > .g-pk-head')).toBeNull()
+    act(() => tab(host, 'All').click())
+    expect(host.querySelector('.g-pk-chips')).toBeTruthy()
+  })
+
+  it('an empty Favourites says so, with a way to the full list', () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    act(() => tab(host, 'Favourites').click())
+    expect(host.querySelector('.g-sempty b').textContent).toBe('No favourites yet')
+    expect(items(host)).toHaveLength(0)
+    act(() => host.querySelector('.g-sempty-btn').click())
+    expect(items(host).length).toBeGreaterThan(0)
+    expect(host.querySelector('.g-sempty')).toBeNull()
+  })
+})
+
+describe('exercise picker: Filters panel', () => {
+  const badge = host => host.querySelector('.g-pk-badge')
+
+  it('is a button by the search with no badge until a filter is set; it opens a sub-panel of the same drawer', () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    expect(host.querySelector('.g-cgroup')).toBeNull()
+    expect(badge(host)).toBeNull()
+    const panel = openFilters(host)
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(1)
+    expect(panel.querySelector('h2').textContent).toBe('Filters')
+    expect([...panel.querySelectorAll('.g-cgroup')].map(g => g.getAttribute('aria-label'))).toEqual(['Body part', 'Type', 'Equipment'])
+  })
+
+  it('applies a choice to the list, counts it on the button and in the Show N action, and Reset clears all', () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    const total = items(host).length
+    const panel = openFilters(host)
+    const reset = [...panel.querySelectorAll('.g-bs-foot .g-btn')][0]
+    const show = [...panel.querySelectorAll('.g-bs-foot .g-btn')][1]
+    expect(reset.disabled).toBe(true)
+    act(() => chipByText(panel, 'neck').click())
+    act(() => chipByText(panel, 'stretching').click())
+    expect(badge(host).textContent).toBe('2')
+    expect(host.querySelector('.g-pk-filter').getAttribute('aria-label')).toBe('Filters, 2 active')
+    const n = CATALOGUE.filter(e => e.bp === 'neck' && e.cat === 'stretching').length
+    expect(show.textContent).toBe(`Show ${exCount(n)}`)
+    expect(items(host).length).toBe(Math.min(n, 50))
+    expect(items(host).length).toBeLessThan(total)
+    expect(reset.disabled).toBe(false)
+    act(() => reset.click())
+    expect(badge(host)).toBeNull()
+    expect(items(host).length).toBe(total)
+    expect(isOn(chipByText(panel, 'All'))).toBe(true)
+  })
+
+  it('Show N closes the panel and leaves the picker open with the filters applied', () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    const panel = openFilters(host)
+    act(() => chipByText(panel, 'neck').click())
+    act(() => [...panel.querySelectorAll('.g-bs-foot .g-btn')][1].click())
+    expect(useUI.getState().sheets).toHaveLength(1)
+    expect(useUI.getState().sheets[0].panels).toHaveLength(0)
+    expect(badge(host).textContent).toBe('1')
+  })
+
+  it('the filters also narrow Favourites, and a filter that leaves nothing says No match', () => {
     useStore.setState(s => ({ S: { ...s.S, favEx: [EXDB[2].id] } }))
     exercisePicker(vi.fn())
     const host = renderTop()
-    expect(host.querySelector('.g-cgroup')).toBeTruthy()
     act(() => tab(host, 'Favourites').click())
-    expect(host.querySelector('.g-cgroup')).toBeNull()
-    expect(items(host).map(nameOf)).toEqual([EXDB[2].n])
-    act(() => tab(host, 'All').click())
-    expect(host.querySelector('.g-cgroup')).toBeTruthy()
+    const panel = openFilters(host)
+    const other = BODYPARTS.find(b => b !== EXDB[2].bp)
+    act(() => chipByText(panel, other).click())
+    expect(items(host)).toHaveLength(0)
+    expect(host.querySelector('.g-pk-note').textContent).toBe('No match')
   })
 })

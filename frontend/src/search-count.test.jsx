@@ -11,6 +11,9 @@ import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
 import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import { EXDB, searchExercises } from './lib/exercises.js'
+import { chipByText, openFilters, unmountPanels } from './picker-test-utils.jsx'
+
+const panels = new WeakMap()
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const mounted = []
@@ -47,7 +50,11 @@ const SURFACES = [
     open: () => { exercisePicker(vi.fn()); return renderTopSheet() },
     input: host => host.querySelector('.g-lf-search input'),
     count: host => host.querySelector('.g-lf-search .g-pk-count'),
-    chip: (host, text) => [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text),
+    // Body part lives in the Filters sub-panel: open it once per picker, then tap its chips.
+    chip: (host, text) => {
+      if (!panels.has(host)) panels.set(host, openFilters(host))
+      return chipByText(panels.get(host), text)
+    },
     neck: 'neck',
   },
 ]
@@ -57,7 +64,7 @@ beforeEach(() => {
   useStore.setState({ S: structuredClone(DEF), user: null })
   document.body.innerHTML = ''
 })
-afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+afterEach(() => { unmountPanels(); act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
 
 // The screens run the same search over the same catalogue, so the expected numbers come from it.
 const matches = q => searchExercises(EXDB, q).length
@@ -84,11 +91,13 @@ describe('exercise search result count', () => {
 
     it(`${s.where}: counts a body-part filter too, and reads "1 exercise" for one`, () => {
       const host = s.open()
-      act(() => s.chip(host, s.neck).click())
+      const neckChip = s.chip(host, s.neck)
+      act(() => neckChip.click())
       const neck = EXDB.filter(e => e.bp === 'neck').length
       expect(Number(s.count(host).textContent)).toBe(neck)
       const one = EXDB.find(e => searchExercises(EXDB, e.n).length === 1)
-      act(() => s.chip(host, 'All').click())
+      const allChip = s.chip(host, 'All')
+      act(() => allChip.click())
       act(() => type(s.input(host), one.n))
       expect(s.count(host).textContent).toBe('1')
       expect(s.count(host).getAttribute('aria-label')).toBe('1 exercise')

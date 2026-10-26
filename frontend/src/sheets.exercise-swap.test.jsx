@@ -97,8 +97,8 @@ describe('replaceExerciseSheet', () => {
     const picker = renderTop()
     expect(picker.querySelector('h2').textContent).toBe('Replace exercise')
     expect(picker.querySelector('.g-bs-chip').textContent).toBe('Push A')
-    const same = [...picker.querySelectorAll('.g-cchip')].find(c => c.textContent.startsWith('Same muscle'))
-    expect(same.classList.contains('on')).toBe(true)
+    // Opening on the same muscle counts as one active filter, shown on the Filters button.
+    expect(picker.querySelector('.g-pk-badge').textContent).toBe('1')
     act(() => picker.querySelector('.g-pk-item button.g-xrow').click())
     expect(onPick).toHaveBeenCalledOnce()
     expect(useUI.getState().sheets).toHaveLength(0)

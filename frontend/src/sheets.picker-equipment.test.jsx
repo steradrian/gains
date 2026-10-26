@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
+import { chipByText, openFilters, unmountPanels } from './picker-test-utils.jsx'
 
 const mounted = []
 
@@ -24,8 +25,6 @@ function renderTop() {
 
 // The chip rows render in order: body parts first, then type, then equipment. Grab a chip by its
 // visible label out of the whole picker.
-const chipByText = (host, text) =>
-  [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text)
 const isOn = el => el.classList.contains('on')
 
 beforeEach(() => {
@@ -36,6 +35,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  unmountPanels()
   act(() => { mounted.splice(0).forEach(root => root.unmount()) })
 })
 
@@ -44,7 +44,7 @@ describe('exercise picker equipment filter', () => {
   // Both body parts have dumbbell exercises, so the filter must stay selected across the switch.
   it('keeps the dumbbell filter when switching from lower arms to upper arms', () => {
     exercisePicker(vi.fn())
-    const host = renderTop()
+    const host = openFilters(renderTop())
 
     // lower arms → dumbbell
     act(() => chipByText(host, 'lower arms').click())
