@@ -27,9 +27,23 @@ These exports work without any editing:
 | Strong | Settings → Export Data |
 | Hevy | Profile → Settings → Export & Import Data |
 | Gravl | Profile → Export Data |
+| MacroFactor | Its data export, an `.xlsx` workbook (see below) |
 
 Other files work too, as long as they have a date, an exercise name and something measured
-(weight and reps, a time or a distance). See [your own CSV](#your-own-csv) below.
+(weight and reps, a time or a distance). See [your own CSV](#your-own-csv) below; an `.xlsx`
+spreadsheet with the same columns works as well.
+
+### MacroFactor
+
+MacroFactor exports one `.xlsx` workbook. Pick it under **Import → MacroFactor**. Gains reads:
+
+- the sets from the **Workout Log** sheet (and from any other sheet with the same columns), with
+  each workout's name and length, warm-ups, RIR, sets to failure and supersets. A bar or sled
+  weight ("Exercise Base Weight") is added to the weight, the way MacroFactor's own volume counts it;
+- the weigh-ins from the **Quick Export** sheet (the scale reading, not the trend weight).
+
+Food, the muscle-group totals and the program are not imported. The workbook only holds the date
+range chosen when exporting, so export the whole range to bring your full history.
 
 > [!NOTE]
 > History is a log of what you did, so it's imported separately from your routines. Importing
@@ -113,7 +127,8 @@ One row per set. Column names are matched ignoring case and punctuation; the fir
 | reps | `reps`, `repetitions` |
 | RPE | `rpe`, `rpe rating` |
 | RIR | `rir`, `reps in reserve` |
-| distance in km | `distance km` |
+| distance in km | `distance km`, `distance long km` |
+| distance in metres | `distance m`, `distance meters`, `distance metres`, `distance short m` |
 | distance, unit in another column | `distance` |
 | distance unit | `distance unit` |
 | duration in seconds | `seconds`, `duration seconds`, `set duration sec` |
@@ -123,7 +138,10 @@ One row per set. Column names are matched ignoring case and punctuation; the fir
 
 ## For developers
 
-The CSV parser is `frontend/src/lib/import-csv.js`. The Hevy API import and a detected Hevy CSV
+The CSV parser is `frontend/src/lib/import-csv.js`. An `.xlsx` is read into the same rows by
+`frontend/src/lib/xlsx.js` (no dependency: the zip is inflated with `DecompressionStream`) and parsed
+by `parseImportSheets`. MacroFactor's exercise names resolve through a hand-checked table,
+`frontend/src/lib/macrofactor-map.js`, before name matching. The Hevy API import and a detected Hevy CSV
 resolve exercises through the same generated lookup, `frontend/src/lib/hevy-id-map.js` (template id
 for the API, English title for the CSV). To regenerate it, set `HEVY_API_KEY` in the environment or
 `.env` and run `node scripts/build-hevy-id-map.mjs`. Localised (non-English) Hevy titles fall back

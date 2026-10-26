@@ -10,6 +10,8 @@
 //   FitNotes 2 (iOS)   Date,Exercise,Category,Weight (kg),Weight (lbs),Reps,Distance,Distance Unit,Time,Notes,Kind
 //   Strong             Date,Workout Name,Duration,Exercise Name,Set Order,Weight,Reps,Distance,Seconds,Notes,Workout Notes,RPE
 //   Hevy               title,start_time,end_time,description,exercise_title,superset_id,exercise_notes,set_index,set_type,weight_kg,reps,distance_km,duration_seconds,rpe
+//   MacroFactor (.xlsx, "Workout Log" sheet, read by lib/xlsx.js)
+//                      Date,Workout Duration,Workout,Exercise,Exercise Base Weight (kg),Set Type,Weight (kg),Reps,RIR,Duration,Distance short (m),Distance long (km)
 // Anything else falls through to loose header matching, which covers Lyfta and the
 // spreadsheet round-trips people actually have on disk, as long as the file has a
 // date, an exercise name and something measured.
@@ -22,6 +24,7 @@ import { EXDB, EXIDX, canonicalExId, isCardio as isCardioEx } from './exercises.
 import { uid } from './format.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_TITLE_MAP } from './hevy-id-map.js'
+import { MACROFACTOR_ID_MAP, stripMacrofactorQualifiers } from './macrofactor-map.js'
 import { clampIncline, inclineFrom } from './incline.js'
 
 /* ----------------------------------------------------------------- CSV ---- */
@@ -77,6 +80,9 @@ const COLUMNS = [
   ['workoutNo', ['workout no']],
   ['workoutName', ['workout name', 'title', 'workout']],
   ['category', ['category', 'body part', 'muscle group']],
+  // MacroFactor writes the weight added to a bar or machine; the bar or sled itself is this.
+  ['baseWeightKg', ['exercise base weight kg']],
+  ['baseWeightLb', ['exercise base weight lbs', 'exercise base weight lb']],
   ['weightKg', ['weight kg']],
   ['weightLb', ['weight lbs', 'weight lb']],
   ['weight', ['weight']],
@@ -86,8 +92,8 @@ const COLUMNS = [
   // when it is there rather than dropping the column on the floor.
   ['rpe', ['rpe', 'rpe rating']],
   ['rir', ['rir', 'reps in reserve']],
-  ['distanceKm', ['distance km']],
-  ['distanceM', ['distance meters', 'distance m', 'distance metres']],
+  ['distanceKm', ['distance km', 'distance long km']],
+  ['distanceM', ['distance meters', 'distance m', 'distance metres', 'distance short m']],
   ['distance', ['distance']],
   ['distanceUnit', ['distance unit']],
   // gravl writes a treadmill's grade per set; "Incline (%)" normalises to the same name.
@@ -96,6 +102,8 @@ const COLUMNS = [
   ['time', ['time', 'duration']],
   // Strong's current export: the whole workout's length, in seconds, on every row.
   ['durationSec', ['duration sec', 'duration secs']],
+  // MacroFactor's whole-workout length, in seconds, on every row. Only read for MacroFactor.
+  ['workoutLength', ['workout duration']],
   ['setType', ['set type']],
   // Hevy numbers the supersets of a workout; rows sharing a number were done as one.
   ['superset', ['superset id']],
@@ -125,6 +133,7 @@ export function detectSource(header) {
   if (h.includes('exercise') && h.includes('kind')) return 'FitNotes (iOS)'
   if (h.includes('exercise') && h.includes('weight unit')) return 'FitNotes'
   if (h.includes('exercise') && h.includes('category')) return 'FitNotes'
+  if (h.some(x => x.startsWith('exercise base weight') || x.startsWith('trend weight'))) return 'MacroFactor'
   return null
 }
 
@@ -287,6 +296,17 @@ export function matchHevyTitle(name) {
   return id && EXIDX[id] ? id : null
 }
 
+/**
+ * MacroFactor name → catalogue id: the hand-checked table first, then the ordinary matcher
+ * on the name with grip/loading/technique qualifiers stripped (never guessing past it).
+ */
+export function matchMacrofactorName(name) {
+  const id = MACROFACTOR_ID_MAP[String(name || '').trim().toLowerCase()]
+  if (id && EXIDX[id]) return id
+  const stripped = stripMacrofactorQualifiers(name)
+  return stripped ? matchExercise(stripped) : null
+}
+
 // Hevy exports no category column, so every invented exercise fell through to the
 // 'upper legs' default and a third of an imported history was attributed to the legs in
 // the muscle map. When there is no category, read the body part off the name instead.
@@ -300,8 +320,9 @@ const NAME_BP = [
   [/\b(leg curl|leg curls|hamstring curl|nordic)\b/, 'upper legs'],
   [/\b(romanian|rdl|stiff leg|stiff legged|straight leg)\b.*\bdeadlifts?\b|\brdl\b/, 'upper legs'],
   [/\b(curl|curls|bicep|biceps|tricep|triceps|skullcrusher|pushdown)\b/, 'upper arms'],
+  [/\b(rear delt|rear delts|reverse fly|reverse flye|rear fly)\b/, 'shoulders'], // a fly, but not a chest one
   [/\bchest supported\b/, 'back'],   // where the chest rests, not what it trains
-  [/\b(bench|chest|pec|fly|flye|crossover|crossovers|dip)\b/, 'chest'],
+  [/\b(bench|chest|pec|fly|flye|crossover|crossovers|dip)\b|\b(incline|decline)\b.*\bpress\b/, 'chest'],
   [/\b(row|rows|pulldown|pullup|pull up|chin up|lat|lats|back|deadlift|deadlifts|shrug)\b/, 'back'],
   [/\b(shoulder|delt|delts|overhead|lateral raise|front raise|face pull|press up)\b/, 'shoulders'],
   [/\b(calf|calves)\b/, 'lower legs'],
@@ -474,8 +495,13 @@ export function priorCustom(customEx, id, name) {
 }
 
 // `customEx`: the custom exercises already in state (priorCustom above).
-export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
-  const rows = parseCSV(text)
+export const parseWorkoutCSV = (text, opts) => parseWorkoutRows(parseCSV(text), opts)
+
+// MacroFactor writes a superset into the exercise's name: "Chin-Up ∈ SS1".
+const SUPERSET_SUFFIX = /\s*∈\s*(SS\d+)\s*$/i
+
+/** The rows of a CSV or of a spreadsheet's sheet (lib/xlsx.js), header first. */
+export function parseWorkoutRows(rows, { unit = 'kg', customEx = [] } = {}) {
   if (rows.length < 2) return { error: 'empty' }
   const map = mapHeader(rows[0])
   const source = detectSource(rows[0])
@@ -492,6 +518,12 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
     else if (map.seconds === undefined) map.seconds = map.durationSec
     delete map.durationSec
   }
+  // MacroFactor writes every length in seconds: the workout's, and a set's under "Duration".
+  if (source === 'MacroFactor') {
+    map.workoutDurationSec = map.workoutLength
+    if (map.seconds === undefined) { map.seconds = map.time; delete map.time }
+  }
+  delete map.workoutLength
 
   const resolved = new Map()          // exercise name -> dataset id | null, resolved once
   const prior = new Map()             // exercise name -> the user's own custom exercise for it
@@ -505,7 +537,9 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
-    const name = cell(r, 'exercise')
+    const named = cell(r, 'exercise')
+    const ssInName = SUPERSET_SUFFIX.exec(named)?.[1] || ''
+    const name = ssInName ? named.replace(SUPERSET_SUFFIX, '') : named
     const when = parseWhen(cell(r, dateCol))
     if (!name || !when) { skipped++; continue }
 
@@ -522,6 +556,9 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
     if (rowUnit === 'kg') sawKg = true
 
     const reps = Math.round(num(cell(r, 'reps')))
+    // The load is what was added plus the bar or sled it went on (MacroFactor's own volume counts it).
+    const base = num(cell(r, rowUnit === 'lb' ? 'baseWeightLb' : 'baseWeightKg'))
+    if (base > 0 && (w > 0 || reps > 0)) w = Math.round((w + base) * 100) / 100
     const secs = num(cell(r, 'seconds'))
     const setNote = cell(r, 'note')
     const mins = secs > 0 ? Math.round(secs / 60 * 10) / 10 : toMinutes(cell(r, 'time'))
@@ -545,7 +582,8 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
       if (own) prior.set(key, own)
       // Hevy CSV: prefer the generated English-title map (same table as the API import).
       // Localized titles still fall through to the word-bag matcher.
-      id = own ? own.id : canonicalExId((source === 'Hevy' ? matchHevyTitle(name) : null) || matchExercise(name))
+      const mapped = source === 'Hevy' ? matchHevyTitle(name) : source === 'MacroFactor' ? matchMacrofactorName(name) : null
+      id = own ? own.id : canonicalExId(mapped || matchExercise(name))
       resolved.set(key, id)
     }
     if (id) matched++
@@ -582,9 +620,9 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
       : isCardio
         ? { min: mins || 0, speed: mins > 0 ? Math.round(km / (mins / 60) * 10) / 10 : 0, ...inclineFrom({ incline: clampIncline(num(cell(r, 'incline'))) }), done: true, ...(warmup ? { phase: 'warmup' } : {}) }
         : { w, r: reps || 0, done: true, u: rowUnit, ...(warmup ? { phase: 'warmup' } : {}) }
-    // A "failure" set type (Hevy's CSV writes one) is the app's set taken to failure; not on
-    // cardio, which has no effort to read it as.
-    if (!warmup && !isCardio && /^(f|fail|failure)$/i.test(String(cell(r, 'setType') || '').trim())) set.failure = true
+    // A "failure" set type (Hevy's CSV writes one, MacroFactor "Failure Set") is the app's set
+    // taken to failure; not on cardio, which has no effort to read it as.
+    if (!warmup && !isCardio && /^(f|fail|failure)( set)?$/i.test(String(cell(r, 'setType') || '').trim())) set.failure = true
     // Effort rides along only where the app can show it again: a weighted rep set. A treadmill
     // row with an RPE would have nowhere to put it. A set is kept on one scale, so a file
     // carrying both columns is read as RIR — the same precedence setLabel reads them back with.
@@ -598,9 +636,10 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
     // Strong and Hevy write the workout's start on every row, so two sessions on one day are
     // told apart by it (and by the name) and stay two workouts (#505). FitNotes has no times, and
     // a generic file may stamp each set with its own, so everything else stays one per day.
+    // MacroFactor has no times but names every workout, so the name tells its sessions apart.
     const sessionKey = (source === 'Strong' || source === 'Hevy') && when.t != null
       ? when.d + '|' + when.t + '|' + (cell(r, 'workoutName') || '')
-      : when.d
+      : source === 'MacroFactor' ? when.d + '|' + cell(r, 'workoutName') : when.d
     let day = byDate.get(sessionKey)
     if (!day) {
       day = { d: when.d, ex: new Map(), name: cell(r, 'workoutName') || '', start: when.t, end: null, note: '', notes: new Map(), sg: new Map(), groups: new Map() }
@@ -625,7 +664,7 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
       if (!list.includes(setNote)) list.push(setNote)
       day.notes.set(id, list)
     }
-    const ss = cell(r, 'superset')
+    const ss = cell(r, 'superset') || ssInName
     if (ss && !day.sg.has(id)) {
       if (!day.groups.has(ss)) day.groups.set(ss, importId('is', sessionKey + '|' + ss))
       day.sg.set(id, day.groups.get(ss))
@@ -701,52 +740,54 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
  * records are pulled out with a scan instead. Health writes weights in the unit the
  * phone is set to and labels each record, so the unit is read per record.
  */
-export function parseBodyweight(text, { unit = 'kg' } = {}) {
+export function parseBodyweight(text, opts) {
   const s = String(text)
-  const out = new Map()          // iso date -> { w, t }  (one weigh-in per day, the last)
-  let fileUnit = ''
-
-  if (s.includes('HKQuantityTypeIdentifierBodyMass')) {
-    const re = /<Record[^>]*type="HKQuantityTypeIdentifierBodyMass"[^>]*>/g
-    let m
-    while ((m = re.exec(s))) {
-      const tag = m[0]
-      const val = /value="([\d.]+)"/.exec(tag)
-      const dt = /startDate="([^"]+)"/.exec(tag) || /creationDate="([^"]+)"/.exec(tag)
-      const u = /unit="([^"]+)"/.exec(tag)
-      if (!val || !dt) continue
-      const when = parseWhen(dt[1])
-      if (!when) continue
-      // Each record keeps its own unit: Health labels every one, and a file can mix kg and lb (#432).
-      const recUnit = u ? (/lb/i.test(u[1]) ? 'lb' : 'kg') : ''
-      // `[\d.]+` lets a bare "." through, which parseFloat reads as NaN, and a zeroed record is
-      // no weigh-in either — the same gate the CSV branch below applies with `!w`.
-      const w = parseFloat(val[1])
-      if (!isFinite(w) || !w || !bodyOk(w, recUnit || unit)) continue
-      out.set(when.d, { w, unit: recUnit, t: new Date(dt[1]).getTime() || null })
-    }
-  } else {
-    const rows = parseCSV(s)
-    if (rows.length < 2) return { error: 'empty' }
-    const map = mapHeader(rows[0])
-    // a weight-only CSV: whichever weight column it has
-    const wCol = map.weightKg ?? map.weightLb ?? map.weight
-    const dCol = map.date ?? map.startTime
-    if (wCol === undefined || dCol === undefined) return { error: 'unrecognised' }
-    if (map.weightKg !== undefined) fileUnit = 'kg'
-    else if (map.weightLb !== undefined) fileUnit = 'lb'
-    for (let i = 1; i < rows.length; i++) {
-      const when = parseWhen(String(rows[i][dCol] ?? ''))
-      const w = num(rows[i][wCol])
-      if (!when || !w || !bodyOk(w, fileUnit || unit)) continue
-      out.set(when.d, { w, t: new Date(when.d).getTime() + (when.t ?? 0) })
-    }
+  if (!s.includes('HKQuantityTypeIdentifierBodyMass')) return parseBodyweightRows(parseCSV(s), opts)
+  const unit = opts?.unit || 'kg'
+  const out = new Map()          // iso date -> { w, unit, t }  (one weigh-in per day, the last)
+  const re = /<Record[^>]*type="HKQuantityTypeIdentifierBodyMass"[^>]*>/g
+  let m
+  while ((m = re.exec(s))) {
+    const tag = m[0]
+    const val = /value="([\d.]+)"/.exec(tag)
+    const dt = /startDate="([^"]+)"/.exec(tag) || /creationDate="([^"]+)"/.exec(tag)
+    const u = /unit="([^"]+)"/.exec(tag)
+    if (!val || !dt) continue
+    const when = parseWhen(dt[1])
+    if (!when) continue
+    // Each record keeps its own unit: Health labels every one, and a file can mix kg and lb (#432).
+    const recUnit = u ? (/lb/i.test(u[1]) ? 'lb' : 'kg') : ''
+    // `[\d.]+` lets a bare "." through, which parseFloat reads as NaN, and a zeroed record is
+    // no weigh-in either — the same gate the rows branch below applies with `!w`.
+    const w = parseFloat(val[1])
+    if (!isFinite(w) || !w || !bodyOk(w, recUnit || unit)) continue
+    out.set(when.d, { w, unit: recUnit, t: new Date(dt[1]).getTime() || null })
   }
+  return weighIns(out, '', unit, 'Apple Health')
+}
 
+/** Weigh-ins from the rows of a CSV or a spreadsheet's sheet: whichever weight column it has. */
+export function parseBodyweightRows(rows, { unit = 'kg' } = {}) {
+  if (rows.length < 2) return { error: 'empty' }
+  const map = mapHeader(rows[0])
+  const wCol = map.weightKg ?? map.weightLb ?? map.weight
+  const dCol = map.date ?? map.startTime
+  if (wCol === undefined || dCol === undefined) return { error: 'unrecognised' }
+  const fileUnit = map.weightKg !== undefined ? 'kg' : map.weightLb !== undefined ? 'lb' : ''
+  const out = new Map()
+  for (let i = 1; i < rows.length; i++) {
+    const when = parseWhen(String(rows[i][dCol] ?? ''))
+    const w = num(rows[i][wCol])
+    if (!when || !w || !bodyOk(w, fileUnit || unit)) continue
+    out.set(when.d, { w, t: new Date(when.d).getTime() + (when.t ?? 0) })
+  }
+  return weighIns(out, fileUnit, unit, detectSource(rows[0]))
+}
+
+// iso date -> { w, unit?, t } in whatever units the file used -> the parsed file, in `unit`.
+function weighIns(out, fileUnit, unit, source) {
   if (!out.size) return { error: 'unrecognised' }
   const units = new Set([...out.values()].map(b => b.unit || fileUnit).filter(Boolean))
-  fileUnit = [...units].sort().join(' / ')
-  const converted = [...units].some(sourceUnit => sourceUnit !== unit)
   const conv = b => {
     const sourceUnit = b.unit || fileUnit
     const w = sourceUnit && sourceUnit !== unit
@@ -756,9 +797,10 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
   }
   const dates = [...out.keys()].sort()
   return {
-    kind: 'bodyweight', source: 'Apple Health',
+    kind: 'bodyweight', source,
     bodyweight: dates.map(d => ({ d, w: conv(out.get(d)), t: out.get(d).t || new Date(d).getTime() })),
-    fileUnit, converted, from: dates[0], to: dates[dates.length - 1],
+    fileUnit: [...units].sort().join(' / '), converted: [...units].some(sourceUnit => sourceUnit !== unit),
+    from: dates[0], to: dates[dates.length - 1],
   }
 }
 
@@ -773,6 +815,29 @@ export function parseImport(text, opts) {
   if (!asWorkouts.error) return asWorkouts
   const asWeights = parseBodyweight(s, opts)
   return asWeights.error ? asWorkouts : asWeights
+}
+
+/**
+ * A spreadsheet's sheets (lib/xlsx.js readXlsx), parsed as whatever they hold. A workbook can
+ * carry both: MacroFactor puts the sets in "Workout Log" and the weigh-ins in "Quick Export". The
+ * workouts come back with the weigh-ins riding along as `bodyweight`; a workbook with weigh-ins
+ * only comes back as a body-weight file. Sets spread over several sheets with the same columns (a
+ * sheet a week, a sheet a year) are read as one history, not just the first sheet's.
+ */
+export function parseImportSheets(sheets, opts) {
+  // A sheet of sets has a date and an exercise column and rows under them (a header alone, like an
+  // empty food log, is no sheet of sets and would read as one with no rows).
+  const setSheets = sheets.filter(s => !parseWorkoutRows(s.rows, opts).error)
+  const headerOf = s => JSON.stringify((s.rows[0] || []).map(norm))
+  const same = setSheets.filter(s => headerOf(s) === headerOf(setSheets[0]))
+  const asWorkouts = same.length
+    ? parseWorkoutRows([same[0].rows[0], ...same.flatMap(s => s.rows.slice(1))], opts)
+    : { error: sheets.some(s => s.rows.length > 1) ? 'unrecognised' : 'empty' }
+  if (!asWorkouts.error && !asWorkouts.workouts.length) asWorkouts.error = 'unrecognised'
+  // Never a sheet of sets, even one with none readable: its set weights would read as a weigh-in a day.
+  const asWeights = sheets.filter(s => !setSheets.includes(s)).map(s => parseBodyweightRows(s.rows, opts)).find(p => !p.error)
+  if (asWorkouts.error) return asWeights || asWorkouts
+  return { ...asWorkouts, bodyweight: asWeights || null }
 }
 
 /* --------------------------------------------------------------- merge ---- */

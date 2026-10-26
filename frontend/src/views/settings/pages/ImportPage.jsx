@@ -4,6 +4,7 @@ import { useStore } from '../../../store/useStore.js'
 import { useUI } from '../../../store/useUI.js'
 import { t } from '../../../lib/i18n.js'
 import { importHevyData } from '../../../lib/import-hevy.js'
+import { XLSX_TYPE } from '../../../lib/xlsx.js'
 import { importFromApp, showHevyPreview } from '../../../sheets.jsx'
 import StageNote from '../../../ds/StageNote.jsx'
 import StageSection from '../../../ds/StageSection.jsx'
@@ -17,6 +18,7 @@ import { hevyFetchError, hevyFraction, hevyProgressLabel } from './import-progre
 
 const CSV = '.csv,text/csv'
 const XML = '.xml,text/xml'
+const XLSX = `.xlsx,${XLSX_TYPE}`
 // What each source's file is called in its own app; the importer sniffs the real format
 // (lib/import-csv.js parseImport), so the row only picks which files the picker offers.
 const sources = () => [
@@ -24,8 +26,9 @@ const sources = () => [
   { title: t('Hevy'), icon: 'download', sub: t('Export & Import Data, as a .csv'), accept: CSV },
   { title: t('FitNotes'), icon: 'download', sub: t('Spreadsheet Export, as a .csv'), accept: CSV },
   { title: t('Gravl'), icon: 'download', sub: t('Export Data, as a .csv'), accept: CSV },
+  { title: t('MacroFactor'), icon: 'download', sub: t('Data Export, as an .xlsx · workouts, weigh-ins'), accept: XLSX },
   { title: t('Apple Health'), icon: 'heart', sub: t('Body weight only, from export.xml'), accept: XML },
-  { title: t('Your own CSV'), icon: 'download', sub: t('A date, an exercise and something measured'), accept: CSV },
+  { title: t('Your own CSV'), icon: 'download', sub: t('A date, an exercise and something measured'), accept: `${CSV},${XLSX}` },
 ]
 
 // Import (boards St1Import to St1Imported). A file is read and shown for confirming before

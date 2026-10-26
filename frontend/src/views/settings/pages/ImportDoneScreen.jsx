@@ -13,7 +13,8 @@ const NAMES_SHOWN = 6
 
 const headlineOf = o => {
   if (o.kind === 'bodyweight') return tn('{0} weigh-in imported', '{0} weigh-ins imported', o.imported)
-  if (o.kind === 'workouts') return tn('{0} workout imported', '{0} workouts imported', o.imported)
+  // A workouts file with weigh-ins along (MacroFactor) reads like Hevy's: each part that came in.
+  if (o.kind === 'workouts' && !o.weighIns) return tn('{0} workout imported', '{0} workouts imported', o.imported)
   return [
     o.imported > 0 && tn('{0} workout imported', '{0} workouts imported', o.imported),
     o.routines > 0 && tn('{0} routine imported', '{0} routines imported', o.routines),
@@ -37,7 +38,7 @@ const tilesOf = o => {
 // Where the imported data shows: workouts in History, routines in Routines, weigh-ins in Body.
 const targetOf = o => {
   if (o.kind === 'bodyweight') return { path: mePath('body'), label: t('See it in Body') }
-  if (o.kind === 'workouts' || o.imported > 0) return { path: '/train/history', label: t('See it in History') }
+  if ((o.kind === 'workouts' && !o.weighIns) || o.imported > 0) return { path: '/train/history', label: t('See it in History') }
   if (o.kind === 'hevy' && o.routines > 0) return { path: '/train/routines', label: t('See it in Routines') }
   return { path: mePath('body'), label: t('See it in Body') }
 }
