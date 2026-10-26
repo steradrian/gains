@@ -1,0 +1,16 @@
+{
+  "id": "12103",
+  "name": "swimming session",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["shoulders", "lats", "core", "quadriceps"],
+  "category": "sports & activities",
+  "description": "Swim laps in a pool or open water. Log the time and the distance.",
+  "instructions": [
+    "Warm up with a few easy lengths.",
+    "Swim at a steady pace, breathing out fully under water.",
+    "Rest at the wall when you need to, the clock keeps counting.",
+    "Log the total time and distance when you finish."
+  ]
+}

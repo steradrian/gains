@@ -92,7 +92,10 @@ export function workoutItem(w, unit) {
       const min = Number(s.min) > 0 ? Number(s.min) : 0;
       if (mode === 'cardio' || (mode !== 'reps' && mode !== 'time' && min > 0)) {
         const speed = Number(s.speed) > 0 ? Number(s.speed) : null;
-        cardio.push({ min, speed_kmh: speed, km: speed && min ? round2(speed * min / 60) : null });
+        // A sports set (lib/sports.js) carries the MET it was logged at; written only when it has
+        // one, so every other row, and every workout hash, stays as it was.
+        const met = Number(s.met) > 0 ? round2(Number(s.met)) : null;
+        cardio.push({ min, speed_kmh: speed, km: speed && min ? round2(speed * min / 60) : null, ...(met ? { met } : {}) });
       } else strength++;
     }
   }

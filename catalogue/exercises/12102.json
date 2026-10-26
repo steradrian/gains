@@ -1,0 +1,16 @@
+{
+  "id": "12102",
+  "name": "cycling",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["quadriceps", "hamstrings", "calves", "glutes"],
+  "category": "sports & activities",
+  "description": "Ride a bike outdoors, on the road or on a trail. Log the time and the distance.",
+  "instructions": [
+    "Set the saddle so your leg is almost straight at the bottom of the pedal stroke.",
+    "Start easy for the first minutes, then settle into a steady rhythm.",
+    "Keep your back relaxed and your hands light on the bars.",
+    "Log the total time and distance when you finish."
+  ]
+}

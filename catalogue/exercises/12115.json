@@ -1,0 +1,15 @@
+{
+  "id": "12115",
+  "name": "dancing",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["calves", "quadriceps", "glutes", "core"],
+  "category": "sports & activities",
+  "description": "A dance class or a night of dancing. Log the time and how hard it was.",
+  "instructions": [
+    "Dance as you normally would, in class or out.",
+    "Log the time you were dancing.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

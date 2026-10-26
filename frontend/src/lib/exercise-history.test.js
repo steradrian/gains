@@ -106,6 +106,15 @@ describe('exerciseHistory', () => {
     expect(h.prId).toBe('w1')
   })
 
+  it('plots minutes for an effort sport, and ranks its best set by minutes then effort', () => {
+    const game = (i, sets) => ({ id: 'g' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: '12107', target: { mode: 'cardio' }, sets: sets.map(s => ({ ...s, done: true })) }] })
+    const S = { workouts: [game(0, [{ min: 45, eff: 2 }]), game(1, [{ min: 60, eff: 1 }, { min: 60, eff: 3 }])] }
+    const h = exerciseHistory(S, '12107')
+    expect(h).toMatchObject({ mode: 'cardio', metric: 'min', best: 60 })
+    expect(h.points.map(p => p.y)).toEqual([45, 60])
+    expect(bestSetFor(S, '12107', 'cardio').set).toMatchObject({ min: 60, eff: 3 })
+  })
+
   it('plots the longest hold for timed work and the top speed for cardio', () => {
     const hold = i => ({ id: 'h' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'plank', target: { mode: 'time' }, sets: [{ sec: 40 + i * 10, done: true }, { sec: 30, done: true }] }] })
     const run = i => ({ id: 'r' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'run', target: { mode: 'cardio' }, sets: [{ min: 20, speed: 10, done: true }, { min: 5, speed: 12, done: true }] }] })

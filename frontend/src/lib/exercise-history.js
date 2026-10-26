@@ -3,6 +3,7 @@ import { completedVolumeOf } from './workout-model.js'
 import { bestSetOf, formulaOf } from './onerm.js'
 import { beatsWeight } from './exercises.js'
 import { currentDbLoad, historyAs, volumeFactor, workoutAs } from './dumbbells.js'
+import { isEffortSport } from './sports.js'
 
 // One exercise's past, read back for the history sheet (issue #43): a chart series and the
 // last few sessions, derived in a single pass over the log so the sheet can memoise the
@@ -12,7 +13,8 @@ import { currentDbLoad, historyAs, volumeFactor, workoutAs } from './dumbbells.j
 //   reps   — the heaviest completed work set (metric 'weight'); an exercise never loaded
 //            (pull-ups, push-ups) plots its best rep count instead (metric 'reps'), because
 //            that is the thing improving
-//   time   — the longest completed hold, in seconds (metric 'sec')
+//   effort sport (football, yoga...) — no speed: the longest set, in minutes (metric 'min')
+//   time  — the longest completed hold, in seconds (metric 'sec')
 //   cardio — the fastest set of the session, in km/h as stored (metric 'speed'), the number the
 //            Progress hero ranks by, so a long slow run is not a record under a Top speed hero
 // The mode is the one the exercise was logged in most recently; a session logged in another
@@ -56,8 +58,9 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS, formula = f
 
   const mode = logged[logged.length - 1].mode
   const repsOnly = mode === 'reps' && !logged.some(l => l.mode === 'reps' && bestWeightForEntry(l.en) > 0)
-  const metric = mode === 'cardio' ? 'speed' : mode === 'time' ? 'sec' : repsOnly ? 'reps' : 'weight'
+  const metric = mode === 'cardio' ? (isEffortSport(exId) ? 'min' : 'speed') : mode === 'time' ? 'sec' : repsOnly ? 'reps' : 'weight'
   const valueOf = ({ en, rows }) => {
+    if (metric === 'min') return Math.max(0, ...rows.map(s => Number(s.min) || 0))
     if (metric === 'speed') return Math.max(0, ...rows.map(s => Number(s.speed) || 0))
     if (metric === 'sec') return Math.max(0, ...rows.map(s => Number(s.sec) || 0))
     if (metric === 'reps') return Math.max(0, ...rows.map(completedRepsOf))
@@ -102,14 +105,14 @@ export function exerciseHistory(S, exId, { limit = HISTORY_SESSIONS, formula = f
 
 /**
  * Which of a session's sets set its number, so the "New best" mark sits on a set and not on the
- * day. `metric` is the history's (`weight`, `reps`, `sec`, `speed`); the first set that matches the
+ * day. `metric` is the history's (`weight`, `reps`, `sec`, `speed`, `min`); the first set that matches the
  * session's value wins. A legacy record that kept its load in a top weight with no sets has no set
  * to mark: -1, and the caller marks its top-set line instead. An unknown metric, a session with no
  * value, or a value no set matches falls back to the first set.
  */
 export function bestSetIndex(session, metric) {
   if (!session.sets?.length) return -1
-  const key = { weight: s => Number(s.w) || 0, reps: completedRepsOf, sec: s => Number(s.sec) || 0, speed: s => Number(s.speed) || 0 }[metric]
+  const key = { weight: s => Number(s.w) || 0, reps: completedRepsOf, sec: s => Number(s.sec) || 0, speed: s => Number(s.speed) || 0, min: s => Number(s.min) || 0 }[metric]
   if (!key || !(session.value > 0)) return 0
   const at = session.sets.findIndex(s => key(s) === session.value)
   return at < 0 ? 0 : at
@@ -143,7 +146,10 @@ export function trendDelta(points, from = 0) {
  * Returns { d, set, target } or null.
  */
 export function bestSetFor(S, exId, mode = modeOf({ id: exId }), as) {
-  const keys = s => mode === 'cardio' ? [Number(s.min) || 0, Number(s.speed) || 0]
+  // Cardio compares minutes, then speed; an effort sport has no speed, so its second key is the
+  // effort (the same minutes at a harder effort is the better set).
+  const second = isEffortSport(exId) ? s => Number(s.eff) || 0 : s => Number(s.speed) || 0
+  const keys = s => mode === 'cardio' ? [Number(s.min) || 0, second(s)]
     : mode === 'time' ? [Number(s.sec) || 0, Number(s.w) || 0]
       : [Number(s.w) || 0, Number(s.r) || 0]
   const better = (a, b) => {

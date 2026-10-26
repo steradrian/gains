@@ -27252,5 +27252,21 @@
       "Zatrzymaj się na chwilę w górnej pozycji, a następnie powoli opuść lewą piętę z powrotem do pozycji wyjściowej.",
       "Powtórz zalecaną liczbę razy, a następnie zmień nogę na prawą."
     ]
-  }
+  },
+  "12101": { "name": "bieganie" },
+  "12102": { "name": "jazda na rowerze" },
+  "12103": { "name": "sesja pływacka" },
+  "12104": { "name": "wędrówka" },
+  "12105": { "name": "spacer" },
+  "12106": { "name": "wioślarstwo" },
+  "12107": { "name": "piłka nożna" },
+  "12108": { "name": "tenis" },
+  "12109": { "name": "koszykówka" },
+  "12110": { "name": "padel" },
+  "12111": { "name": "wspinaczka" },
+  "12112": { "name": "sesja jogi" },
+  "12113": { "name": "siatkówka" },
+  "12114": { "name": "badminton" },
+  "12115": { "name": "taniec" },
+  "12116": { "name": "inna aktywność" }
 }

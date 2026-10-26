@@ -1,0 +1,15 @@
+{
+  "id": "12109",
+  "name": "basketball",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["quadriceps", "calves", "glutes", "shoulders"],
+  "category": "sports & activities",
+  "description": "A basketball game or shooting session. Log the time and how hard it was.",
+  "instructions": [
+    "Play your game or session as you normally would.",
+    "Log the time you were playing.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

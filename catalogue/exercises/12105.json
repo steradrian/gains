@@ -1,0 +1,15 @@
+{
+  "id": "12105",
+  "name": "outdoor walking",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["calves", "quadriceps", "glutes", "hamstrings"],
+  "category": "sports & activities",
+  "description": "A walk outdoors, at an easy or brisk pace. Log the time and the distance.",
+  "instructions": [
+    "Stand tall with your eyes ahead and your arms swinging loosely.",
+    "Walk at an easy pace, or brisk enough that talking takes a little effort.",
+    "Log the total time and distance when you finish."
+  ]
+}

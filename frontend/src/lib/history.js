@@ -5,6 +5,7 @@ import { fmtSpeed } from './speed.js'
 import { hasIncline, inclineFrom } from './incline.js'
 import { isCardio, isBodyweightEq, isAssisted, betterWeight, EXIDX } from './exercises.js'
 import { customExDefaults } from './custom-exercise.js'
+import { isEffortSport, isDistanceSport, defaultSportSpeed, DEFAULT_EFFORT, effortLabel, fmtSetDistance } from './sports.js'
 import { barWeightFor } from './bar.js'
 import { phaseForSet, modeForSet, modeForEntry, isWarmupRow, isFailureSet, isDropSet, isRestPauseSet, normalizeMode, completedVolumeOf, hasCompletedWork, nextDropWeight, splitBurstReps, makeSideSet, isSideSet, syncSideAggregate, WEIGHT_ORIGIN_MANUAL, dropsOf, clustersOf } from './workout-model.js'
 import { backoffAt, backoffStepOf, backoffWeights } from './backoff.js'
@@ -153,7 +154,12 @@ export function setLabel(id, s, cfg, speedUnit) {
   // to the volume those same sets still count. A set with reps and nothing cardio was a rep set.
   if (!EXPLICIT_MODES.has(cfg?.mode) && mode !== 'reps' && s.r > 0 && !(s.min > 0 || s.speed > 0 || s.sec > 0)) mode = 'reps'
   // A treadmill grade rides along when the set has one (lib/incline.js); a flat set reads as it did.
-  if (mode === 'cardio') return `${s.min || 0} min @ ${fmtSpeed(s.speed || 0, speedUnit)}` + (hasIncline(s) ? ' · ' + t('{0}% incline', fmtNum(Number(s.incline))) : '')
+  if (mode === 'cardio') {
+    // An effort sport reads "60 min · Moderate"; a distance sport adds how far that was.
+    if (isEffortSport(c.id)) return `${s.min || 0} min · ${effortLabel(s.eff)}`
+    const dist = isDistanceSport(c.id) ? fmtSetDistance(s, speedUnit) : null
+    return `${s.min || 0} min @ ${fmtSpeed(s.speed || 0, speedUnit)}` + (dist ? ' · ' + dist : '') + (hasIncline(s) ? ' · ' + t('{0}% incline', fmtNum(Number(s.incline))) : '')
+  }
   // A set taken to failure carries its "F" behind the numbers, the mark lifting logs use for it;
   // the history, the text export and the set menu all read it from here.
   const fail = isFailureSet(s) ? ' ' + t('F') : ''
@@ -214,7 +220,11 @@ export function defaultConfig(id, mode) {
   const m = mode || own.mode || modeOf({ id })
   // A custom exercise logged as cardio outside the Cardio body part says so, since modeOf reads
   // cardio from the body part alone.
-  if (m === 'cardio') return own.mode === 'cardio' && !isCardio(id) ? { sets: 1, min: 20, speed: 8, mode: 'cardio' } : { sets: 1, min: 20, speed: 8 }
+  if (m === 'cardio') {
+    if (isEffortSport(id)) return { sets: 1, min: 60, eff: DEFAULT_EFFORT }
+    if (isDistanceSport(id)) return { sets: 1, min: 30, speed: defaultSportSpeed(id) }
+    return own.mode === 'cardio' && !isCardio(id) ? { sets: 1, min: 20, speed: 8, mode: 'cardio' } : { sets: 1, min: 20, speed: 8 }
+  }
   // Written only when it is true, so a barbell config is byte-for-byte what it was before
   // the flag existed and a plan file gains nothing it does not need. A custom "Weight × reps" on
   // body-weight equipment writes false, as the config sheet does, so the flag does not follow
@@ -253,7 +263,7 @@ export function exLine(cfg, unit, speedUnit) {
   const load = !cfg.weight ? ''
     : backoff ? ' · ' + (isBw(cfg) ? '+' : '') + backoffWeights(cfg.weight, n, backoff).map(fmtNum).join(' → ') + ' ' + unit
       : ' · ' + (isBw(cfg) ? '+' : '') + fmtNum(cfg.weight) + ' ' + unit
-  if (mode === 'cardio') return `${n} × ${cfg.min || 20} min @ ${fmtSpeed(cfg.speed || 8, speedUnit)}`
+  if (mode === 'cardio') return isEffortSport(cfg.id) ? `${n} × ${cfg.min || 60} min` : `${n} × ${cfg.min || 20} min @ ${fmtSpeed(cfg.speed || 8, speedUnit)}`
   // A timed hold has no rep count to spell a split out of ("8/side" below) — "per side" says it
   // happens twice, once each side (buildWorkSets), rather than trying to divide a duration.
   if (mode === 'time') return `${setsRepsOf(cfg)}${load}${isPerSide(cfg) ? ' · ' + t('per side') : ''}`
@@ -584,9 +594,12 @@ function buildWorkSets(S, cfg, options = {}) {
   const planReps = !!options.planReps && !preferLast && cfg.reps > 0
 
   if (mode === 'cardio') {
+    const effort = isEffortSport(cfg.id)
     for (let i = 0; i < n; i++) {
       const prev = prevAt(i)
-      sets.push({ min: prev ? prev.min : (cfg.min || 20), speed: prev ? prev.speed : (cfg.speed || 8), ...inclineFrom(prev), done: false })
+      // A team or racket sport has no speed: its second number is the effort level.
+      if (effort) sets.push({ min: prev ? prev.min : (cfg.min || 60), eff: prev?.eff || cfg.eff || DEFAULT_EFFORT, done: false })
+      else sets.push({ min: prev ? prev.min : (cfg.min || 20), speed: prev ? prev.speed : (cfg.speed || 8), ...inclineFrom(prev), done: false })
     }
     return sets
   }

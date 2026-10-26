@@ -5473,6 +5473,7 @@ components:
               min: { type: number }
               speed_kmh: { type: [number, 'null'] }
               km: { type: [number, 'null'], description: '`speed_kmh` × `min` / 60, to 0.01.' }
+              met: { type: number, description: 'Only on a sports set (swimming, football, yoga): the MET it was logged at, from the Compendium of Physical Activities. A reader estimates the row from this rather than from `speed_kmh`.' }
         distance_km: { type: [number, 'null'], description: The cardio rows' km together; null with none. }
         bodyweight_kg: { type: [number, 'null'], description: 'The body weight the session was logged at (`bw`), in kg to 0.1, so a unit switch does not move the hash.' }
         edited_at: { type: [integer, 'null'], description: 'The workout''s own edit stamp (`_ts`), ms.' }

@@ -1,0 +1,16 @@
+{
+  "id": "12101",
+  "name": "running",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["quadriceps", "hamstrings", "calves", "glutes"],
+  "category": "sports & activities",
+  "description": "Run outdoors or on a track at your own pace. Log the time and the distance.",
+  "instructions": [
+    "Warm up with a few minutes of easy walking or jogging.",
+    "Run at a pace you could hold a short conversation at, or faster for harder days.",
+    "Land softly under your hips and keep your shoulders relaxed.",
+    "Log the total time and distance when you finish."
+  ]
+}

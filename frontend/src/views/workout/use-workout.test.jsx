@@ -671,3 +671,23 @@ describe('the hook after a reorder (ported from views/Workout.test.jsx:2834 and 
     expect(active().entries[0].sets[0].done).toBe(false)
   })
 })
+
+describe('adding a set to a sport', () => {
+  const football = sets => ({ id: '12107', target: { mode: 'cardio', sets: 1, min: 60, eff: 2 }, sets })
+
+  it('an effort sport copies the last set\'s effort and never gets a speed', () => {
+    start([football([{ min: 45, eff: 3, done: true }])])
+    act(() => actions().addSet(0))
+    const added = active().entries[0].sets[1]
+    expect(added).toMatchObject({ min: 45, eff: 3, done: false })
+    expect(added).not.toHaveProperty('speed')
+  })
+
+  it('with no set left it opens at the planned minutes and effort', () => {
+    start([football([])])
+    act(() => actions().addSet(0))
+    const added = active().entries[0].sets[0]
+    expect(added).toMatchObject({ min: 60, eff: 2 })
+    expect(added).not.toHaveProperty('speed')
+  })
+})

@@ -1,0 +1,16 @@
+{
+  "id": "12106",
+  "name": "rowing",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["lats", "quadriceps", "biceps", "core"],
+  "category": "sports & activities",
+  "description": "Row on the water or on a rowing ergometer. Log the time and the distance.",
+  "instructions": [
+    "Push with your legs first, then lean back and pull with your arms.",
+    "Return in the reverse order, arms, body, then knees.",
+    "Keep a smooth, steady rhythm.",
+    "Log the total time and distance when you finish."
+  ]
+}

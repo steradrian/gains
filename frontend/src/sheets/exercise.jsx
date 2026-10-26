@@ -261,7 +261,7 @@ function ExerciseHistorySheet({ exId }) {
   // A cardio history is the session's top speed, stored in km/h and shown in the profile's unit.
   const speedUnit = speedUnitOf(st)
   const shown = h.metric === 'speed' ? y => toSpeed(y, speedUnit) : y => y
-  const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : speedLabel(speedUnit)
+  const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : h.metric === 'min' ? t('min') : speedLabel(speedUnit)
   const name = exerciseNameFor(ex)
   return (
     <BottomSheet type="full" title={<span className={exerciseNameClass(ex)}>{name}</span>}>
