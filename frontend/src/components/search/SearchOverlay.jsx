@@ -34,7 +34,6 @@ export default function SearchOverlay() {
       <AnimatePresence>
         {open && <m.div key="search" className="g-root search-ov" data-accent={accent} id={SEARCH_OVERLAY_ID}
           variants={reduced ? SURFACE_REDUCED : SURFACE} initial="hidden" animate="visible" exit="exit">
-          <div className="search-ov-bg"><StageArt /></div>
           <LivePanel />
         </m.div>}
       </AnimatePresence>
@@ -51,7 +50,7 @@ function LivePanel() {
 export function SearchSurface({ data }) {
   const accent = useDsAccent()
   return <LazyMotion features={domAnimation}>
-    <div className="g-root search-ov" data-accent={accent} id={SEARCH_OVERLAY_ID}>
+    <div className="g-root search-ov search-ov-own" data-accent={accent} id={SEARCH_OVERLAY_ID}>
       <div className="search-ov-bg"><StageArt /></div>
       <SearchPanel data={data} />
     </div>

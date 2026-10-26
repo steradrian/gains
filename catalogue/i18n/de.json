@@ -15202,5 +15202,21 @@
   },
   "0999": {
     "name": "Einbeiniges Wadenheben mit Band"
-  }
+  },
+  "12101": { "name": "Laufen" },
+  "12102": { "name": "Radfahren" },
+  "12103": { "name": "Schwimmeinheit" },
+  "12104": { "name": "Wandern" },
+  "12105": { "name": "Spazierengehen" },
+  "12106": { "name": "Rudern" },
+  "12107": { "name": "Fußball" },
+  "12108": { "name": "Tennis" },
+  "12109": { "name": "Basketball" },
+  "12110": { "name": "Padel" },
+  "12111": { "name": "Klettern" },
+  "12112": { "name": "Yoga-Einheit" },
+  "12113": { "name": "Volleyball" },
+  "12114": { "name": "Badminton" },
+  "12115": { "name": "Tanzen" },
+  "12116": { "name": "Andere Aktivität" }
 }

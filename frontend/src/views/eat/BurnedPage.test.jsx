@@ -190,6 +190,22 @@ describe('when a day of the week failed to read', () => {
   })
 })
 
+describe('when the settings failed to read', () => {
+  it('says so with a Retry that reads them again, then shows the week', async () => {
+    const rows = { [MON]: [row(1, MON, 'Run', 300)] }
+    nt = createFakeNutriTrace({ settings: fixtureSettings(), activity: rows, activitySum: sumsOf(rows) })
+    nt.failNext('GET', '/nt/api/settings', 'offline')
+    vi.stubGlobal('fetch', nt.fetch)
+    view.render(<BurnedPage />)
+    await settle()
+    expect(text()).toContain('The diary did not load: no connection.')
+    click([...view.host.querySelectorAll('button')].find(b => b.textContent === 'Retry'))
+    await settle()
+    expect(text()).not.toContain('The diary did not load')
+    expect(rowButton('Run')).toBeTruthy()
+  })
+})
+
 describe('with Burned off', () => {
   it('redirects to Eat', async () => {
     await open({ settings: { ...fixtureSettings(), diaryShowActivity: false }, activity: { [WED]: [row(3, WED, 'Push A', 320)] } })

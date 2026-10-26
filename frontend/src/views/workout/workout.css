@@ -6,6 +6,13 @@
 .wk { min-height: 100vh; min-height: 100dvh; color: var(--on-stage); font-family: var(--font-sans); }
 .wk-body { padding-bottom: calc(220px + var(--sab, 0px)); }
 .wk .g-wf { position: fixed; z-index: 3; }
+/* The liquid glass draws the footer's bar on the app's over-layer (z 49 by default), which sat on
+   top of the footer and hid its pictures and "1 of 6" under a blur. Here the layer goes under the
+   footer, as the dev kit does for its own bar, so the bar's contents sit on their glass. In gl the
+   fade stops where the bar begins: over the bar it would paint over that glass, and without it the
+   rest row (−15 s, +15 s, Skip) floated over the steppers and Done set. */
+body:has(.wk .g-wf) { --gl-over-z: 2; }
+html[data-lg="gl"] .wk .g-wf { background-size: 100% calc(100% - 98px - var(--sab, 0px)); background-repeat: no-repeat; }
 .wk .g-btoast-footer, .wk .g-btoast-rest { position: fixed; z-index: 4; bottom: calc(112px + var(--sab, 0px)); }
 .wk .g-btoast-rest { bottom: calc(170px + var(--sab, 0px)); }
 .wk-gut { padding: 12px 16px 0; }
@@ -17,7 +24,9 @@
 .wk-back-all { margin: 12px 16px 0; }
 
 .wk-focus { display: flex; flex-direction: column; gap: 12px; padding-block-start: 16px; }
-.wk-focus > .g-effort { margin-inline: 16px; }
+/* What sits under the done card: slid by use-slide.js when a set is ticked (transform only). */
+.wk-lower { display: flex; flex-direction: column; gap: 12px; }
+.wk-lower > .g-effort { margin-inline: 16px; }
 .wk-focus > .g-dsr, .wk-focus > .g-ssw-wrap { margin-block-start: 0; }
 
 .wk-done { appearance: none; border: 0; margin-inline: 16px; min-height: 56px; padding: 0 20px; border-radius: var(--radius-pill); background: var(--stage-cta); color: var(--on-stage-cta); font: 700 17px/22px var(--font-sans); text-align: center; cursor: pointer; touch-action: manipulation; }

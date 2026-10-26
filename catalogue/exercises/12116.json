@@ -1,0 +1,15 @@
+{
+  "id": "12116",
+  "name": "other activity",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["core", "quadriceps"],
+  "category": "sports & activities",
+  "description": "Any other sport or activity. Log the time and how hard it was.",
+  "instructions": [
+    "Do your activity as you normally would.",
+    "Log how long it lasted.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

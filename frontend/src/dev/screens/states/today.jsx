@@ -50,7 +50,7 @@ registerScreens('Today', [
     render: () => <TodayScreen {...both} /> },
   { id: 'T1.1', title: 'Loading', note: 'The diary is still on its way: the ring, the actions and the sections as glass.',
     render: () => <TodayScreen {...both} status="pending" rings={[]} /> },
-  { id: 'T1.1-failed', title: 'Day did not load', note: 'The retry banner over the skeleton: no empty water or meals the day may not have.',
+  { id: 'T1.1-failed', title: 'Day did not load', note: 'The error scene with Try again, alone on the stage: no skeleton under it, no empty water or meals the day may not have.',
     render: () => <TodayScreen {...both} status="failed" rings={[]} error={{ text: 'The diary did not load: no connection.', retry: NOOP }} /> },
   { id: 'T1.1-row', title: 'Last log on its way', note: 'No plan, and the diary index still syncing: the row under the actions waits, neither Up next nor First steps.',
     render: () => <TodayScreen {...both} upNext={null} nextPending /> },

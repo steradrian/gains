@@ -21,6 +21,7 @@ import { sessionNoProg } from '../../lib/session-noprog.js'
 import { routineKeepsOut } from './workout-actions.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, INCLINE_STEP } from '../../lib/incline.js'
+import { isEffortSport, isDistanceSport, effortLabel, effortLevel, fmtSetDistance } from '../../lib/sports.js'
 import { exerciseHistory, bestSetFor } from '../../lib/exercise-history.js'
 import { best1RM } from '../../lib/onerm.js'
 import { loadOfActive, levelsOf } from '../../lib/muscles.js'
@@ -413,9 +414,18 @@ export function setFields(S, entry, i, side = null) {
   })
   if (mode === 'cardio') {
     const unit = speedUnitOf(S)
+    // A team or racket sport takes an effort level where cardio takes a speed: 1 easy, 2 moderate,
+    // 3 hard, named under the number.
+    if (isEffortSport(entry.id)) {
+      return { fields: [
+        field('min', t('min'), 1),
+        field('eff', t('Effort'), 1, { hint: effortLabel(row.eff), store: v => effortLevel(Math.min(3, Math.max(1, Math.round(v)))) }),
+      ], bodyweight: false }
+    }
     const list = [
       field('min', t('min'), 1),
-      field('speed', unit === 'mph' ? 'mph' : 'km/h', 0.5, { view: v => toSpeed(v, unit), store: v => fromSpeed(v, unit) }),
+      // A distance sport says how far the minutes at that speed come to, under the speed.
+      field('speed', unit === 'mph' ? 'mph' : 'km/h', 0.5, { view: v => toSpeed(v, unit), store: v => fromSpeed(v, unit), ...(isDistanceSport(entry.id) ? { hint: fmtSetDistance(row, unit) } : {}) }),
     ]
     if (inclineFits(exOr(entry.id)) || entry.sets.some(hasIncline)) list.push(field('incline', '%', INCLINE_STEP, { hint: t('incline'), store: clampIncline, empty: row.incline == null }))
     return { fields: list, bodyweight: false }

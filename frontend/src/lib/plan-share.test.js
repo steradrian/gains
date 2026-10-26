@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPlanBundle, mergePlan, parsePlan } from './plan-share.js'
+import { buildPlanBundle, mergePlan, parsePlan, planPrintHTML } from './plan-share.js'
 
 // How a custom exercise is logged (T6.4) travels with it and with its entries: a cardio exercise on
 // Legs arrived as a rep exercise (docs/audits/gains-train-review.md #3).
@@ -87,6 +87,15 @@ describe('plan-share units', () => {
 })
 
 describe('what survives a shared plan', () => {
+  it('carries an effort sport\'s effort, and the printout names it instead of a speed', () => {
+    const S = { unit: 'kg', week: {}, customEx: [], routines: [{ id: 'r1', name: 'Sat', ex: [{ id: '12107', sets: 1, mode: 'cardio', min: 60, eff: 3 }] }] }
+    const ex = parsePlan(JSON.stringify(buildPlanBundle(S, 'Plan'))).routines[0].ex[0]
+    expect(ex).toMatchObject({ min: 60, eff: 3 })
+    const html = planPrintHTML(S, '')
+    expect(html).toContain('60 min · Intense')
+    expect(html).not.toContain('km/h')
+  })
+
   it('carries Per side on a timed hold, and on reps work; never on cardio', () => {
     const hold = roundTrip({ mode: 'time', sec: 30, sets: 2, reps: undefined, weight: undefined, side: true })
     expect(hold).toMatchObject({ mode: 'time', sec: 30, sets: 2, side: true })

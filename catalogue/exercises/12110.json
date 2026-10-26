@@ -1,0 +1,15 @@
+{
+  "id": "12110",
+  "name": "padel",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["shoulders", "core", "forearms", "quadriceps"],
+  "category": "sports & activities",
+  "description": "A padel match or practice. Log the time and how hard it was.",
+  "instructions": [
+    "Play your match or practice as you normally would.",
+    "Log the time you were on court.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

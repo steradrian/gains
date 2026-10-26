@@ -10,6 +10,7 @@ import { exOr } from '../../lib/exercises.js'
 import { setsDoneActive, setUnitsTotal, supersetUnits, modeOf, isPerSide, removeLastSet, pairAdjacent, bestWeightForEntry, workoutVolume } from '../../lib/history.js'
 import { exerciseNameText, fmtNum } from '../../lib/format.js'
 import { inclineFrom } from '../../lib/incline.js'
+import { DEFAULT_EFFORT, effortLevel, isEffortSport } from '../../lib/sports.js'
 import { beep, vibrate, unlock } from '../../lib/sound.js'
 import { t, tn } from '../../lib/i18n.js'
 import { api, beacon } from '../../lib/api.js'
@@ -110,7 +111,9 @@ export function useWorkout() {
   const addSet = idx => mutEntry(idx, e => {
     const l = e.sets[e.sets.length - 1]
     const m = modeOf({ ...(e.target || {}), id: e.id })
-    if (m === 'cardio') e.sets.push({ min: l ? l.min : (e.target.min || 20), speed: l ? l.speed : (e.target.speed || 8), ...inclineFrom(l), done: false })
+    // A team or racket sport has no speed: its second number is the effort, carried from the last set.
+    if (m === 'cardio' && isEffortSport(e.id)) e.sets.push({ min: l ? l.min : (e.target.min || 60), eff: effortLevel(l?.eff ?? e.target.eff ?? DEFAULT_EFFORT), done: false })
+    else if (m === 'cardio') e.sets.push({ min: l ? l.min : (e.target.min || 20), speed: l ? l.speed : (e.target.speed || 8), ...inclineFrom(l), done: false })
     else if (m === 'time') {
       const sec = l ? l.sec : (e.target.sec || 45)
       const w = l ? (l.w || 0) : (e.target.weight || 0)

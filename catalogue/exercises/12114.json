@@ -1,0 +1,15 @@
+{
+  "id": "12114",
+  "name": "badminton",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["shoulders", "forearms", "quadriceps", "calves"],
+  "category": "sports & activities",
+  "description": "A badminton match or practice. Log the time and how hard it was.",
+  "instructions": [
+    "Play your match or practice as you normally would.",
+    "Log the time you were on court.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

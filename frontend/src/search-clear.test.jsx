@@ -11,6 +11,9 @@ import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
 import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import { EXDB } from './lib/exercises.js'
+import { chipByText, openFilters, unmountPanels } from './picker-test-utils.jsx'
+
+const panels = new WeakMap()
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const mounted = []
@@ -50,7 +53,11 @@ const SURFACES = [
     input: host => host.querySelector('.g-lf-search input'),
     clear: host => host.querySelector('.g-lf-search .g-lf-clear'),
     count: host => host.querySelector('.g-lf-search .g-pk-count'),
-    chip: (host, text) => [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim() === text),
+    // Body part lives in the Filters sub-panel: open it once per picker, then tap its chips.
+    chip: (host, text) => {
+      if (!panels.has(host)) panels.set(host, openFilters(host))
+      return chipByText(panels.get(host), text)
+    },
     neck: 'neck',
     hasClear: () => true,
   },
@@ -61,7 +68,7 @@ beforeEach(() => {
   useStore.setState({ S: structuredClone(DEF), user: null })
   document.body.innerHTML = ''
 })
-afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+afterEach(() => { unmountPanels(); act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
 
 describe('exercise search clear button', () => {
   for (const s of SURFACES) {
@@ -80,7 +87,8 @@ describe('exercise search clear button', () => {
 
     it(`${s.where}: clears only the text; a body-part filter keeps its count`, () => {
       const host = s.open()
-      act(() => s.chip(host, s.neck).click())
+      const neck = s.chip(host, s.neck)
+      act(() => neck.click())
       act(() => type(s.input(host), 'stretch'))
       act(() => s.clear(host).click())
       expect(s.input(host).value).toBe('')

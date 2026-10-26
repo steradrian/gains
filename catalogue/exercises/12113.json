@@ -1,0 +1,15 @@
+{
+  "id": "12113",
+  "name": "volleyball",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["shoulders", "quadriceps", "calves", "core"],
+  "category": "sports & activities",
+  "description": "Indoor or beach volleyball. Log the time and how hard it was.",
+  "instructions": [
+    "Play your game or session as you normally would.",
+    "Log the time you were playing.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

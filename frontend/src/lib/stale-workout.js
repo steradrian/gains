@@ -7,6 +7,7 @@ import { hasCompletedWork } from './workout-model.js'
 import { sessionEnd } from './finish-workout.js'
 import { loggedSetsDone } from './workout-parts.js'
 import { finishAndSave } from '../sheets.jsx'
+import { launchPath, workoutRunning } from './tab-route.js'
 
 export const STALE_MS = 3 * 60 * 60 * 1000
 
@@ -38,6 +39,13 @@ export function staleFacts(A, now = Date.now()) {
     endAt: lastSet == null ? null : sessionEnd(A, now),
   }
 }
+
+/**
+ * Where a launch with no route of its own lands: into a running workout, unless it was left open
+ * for hours, which lands on Today for StaleWorkoutCheck to ask about. Sent to the workout first,
+ * the check's own move to Today raced the launch's, and the workout could win.
+ */
+export const launchTarget = (S, now = Date.now()) => launchPath(workoutRunning(S) && !staleFacts(S?.active, now))
 
 /** Save with N sets (W1.27): the save, ending at the last set. Null when nothing is left open. */
 export function saveStale(now = Date.now()) {

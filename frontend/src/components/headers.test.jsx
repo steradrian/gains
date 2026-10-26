@@ -128,14 +128,14 @@ describe('RootHeader (the tab-root header)', () => {
     expect($('.g-ssf-scope')).toBeNull()
   })
 
-  it('the avatar opens Profile from Today, Train and Eat and Settings on the Me tab; the bell the notifications under its own tab', () => {
+  it('the avatar opens Settings from every tab; the bell the notifications under its own tab', () => {
     at('/food', <RootHeader title="Nutrition" />)
     act(() => bell().click())
     expect(where).toBe('/food/notifications')
     at('/train', <RootHeader title="Training" />)
     expect(avatar().getAttribute('aria-label')).toBe('Settings')
     act(() => avatar().click())
-    expect(where).toBe('/me')
+    expect(where).toBe('/me/settings')
     at('/me', <RootHeader title="Profile" />)
     act(() => avatar().click())
     expect(where).toBe('/me/settings')

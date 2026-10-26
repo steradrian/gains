@@ -100,9 +100,9 @@ describe('the search overlay', () => {
     expect(panel.querySelector('input')).toBeNull()
     expect(panel.querySelector('header')).toBeNull()
     // It only fades: its top edge never moves off the header's (the rise is its scroller's), and
-    // its ground is the stage's art, as the header's is.
+    // it paints no ground of its own: the app's stage, with the chosen look, shows through.
     expect(panel.style.transform).toBe('')
-    expect(panel.querySelector('.search-ov-bg > .g-stage-art')).not.toBeNull()
+    expect(panel.querySelector('.g-stage-art')).toBeNull()
     expect(list().getAttribute('role')).toBe('listbox')
     expect(list().closest('#gains-search')).not.toBeNull()
     expect(closeX().getAttribute('aria-label')).toBe('Close search')

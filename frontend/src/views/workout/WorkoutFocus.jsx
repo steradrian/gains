@@ -4,7 +4,8 @@
 // Done, the sets still planned, Add set and the rest chip. A finished exercise looked back at
 // shows its sets to fix and the way back. In the editor of a saved workout a tapped row is the
 // one being edited, and Save changes saves.
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { useSlide } from '../../lib/use-slide.js'
 import { useStore } from '../../store/useStore.js'
 import { useUI } from '../../store/useUI.js'
 import { t } from '../../lib/i18n.js'
@@ -57,9 +58,18 @@ export default function WorkoutFocus({ view, actions }) {
   const edited = editI != null ? setFields(S, entry, editI) : null
   const holdHere = hold && hold.idx === idx
 
+  // Done set: the set's row comes out of the pill (`enter`), and what sits under the done card
+  // slides down instead of jumping (`lower`).
+  const [enter, setEnter] = useState(null)
+  const pill = useRef(null)
+  const lower = useRef(null)
+  useSlide(lower)
+
   const done = () => {
-    if (current.timed) actions.startTimed(idx, current.i)
-    else actions.toggle(idx, current.i, current.side || undefined)
+    if (current.timed) { actions.startTimed(idx, current.i); return }
+    const r = pill.current?.getBoundingClientRect()
+    if (r) setEnter({ n: current.i, y: r.top + r.height / 2 })
+    actions.toggle(idx, current.i, current.side || undefined)
   }
 
   return (
@@ -86,8 +96,9 @@ export default function WorkoutFocus({ view, actions }) {
           onUndo={progression.undoable ? (progression.scope === 'session' ? actions.toggleSessionNoProg : () => actions.setNoProg(idx, false)) : undefined}
         />
       )}
-      <DoneSetRows rows={rows} bestLabel={view.bestLabel} />
+      <DoneSetRows rows={rows} bestLabel={view.bestLabel} enter={enter} />
 
+      <div className="wk-lower" ref={lower}>
       {edited && (
         <>
           <CurrentSet setLine={t('Set {0} · editing', editI + 1)} last={null} bodyweight={edited.bodyweight}
@@ -126,7 +137,7 @@ export default function WorkoutFocus({ view, actions }) {
             <PlateLine text={current.plateLine} label={t('Plate loading')} onClick={() => platesSheet(idx)} />
           </CurrentSet>
           {/* Done is the write; Start on a timed set only begins the hold, so it stays silent. */}
-          <button type="button" className={'wk-done' + (current.timed ? '' : ' g-haptic')}
+          <button type="button" ref={pill} className={'wk-done' + (current.timed ? '' : ' g-haptic')}
             onClick={() => { if (!current.timed) buzz('light'); done() }}>
             {current.timed ? current.startLabel : current.doneLabel}
             {!current.timed && <HapticSwitch />}
@@ -163,6 +174,7 @@ export default function WorkoutFocus({ view, actions }) {
             {current.restChip}
           </button>
         )}
+      </div>
       </div>
     </div>
   )

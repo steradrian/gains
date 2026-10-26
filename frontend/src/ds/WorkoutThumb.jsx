@@ -10,17 +10,20 @@ const PX = { lg: 96, md: 44, sm: 36 }
 //
 // `clip` is the exercise's animation (a muted loop, or an animated image where the build ships
 // those), given only while the Animations setting is Full. When the caller gives none, or the clip
-// fails to load, the still stands in.
+// fails to load, the still stands in; a still that fails too (an exercise with no media, like the
+// sports) is the empty tile, never the browser's broken-image icon.
 export default function WorkoutThumb({ image, clip, size = 'md', className }) {
   const px = PX[size]
   const cls = cx('g-wkimg', 'g-wkimg-' + size, className)
   const [failed, setFailed] = useState(false)
+  const [stillFailed, setStillFailed] = useState(false)
   useEffect(() => { setFailed(false) }, [clip])
+  useEffect(() => { setStillFailed(false) }, [image])
   if (clip && !failed) {
     return isVideoSrc(clip)
       ? <video className={cls} src={clip} width={px} height={px} autoPlay muted loop playsInline disablePictureInPicture aria-hidden="true" onError={() => setFailed(true)} />
       : <img className={cls} src={clip} alt="" width={px} height={px} draggable={false} onError={() => setFailed(true)} />
   }
-  if (!image) return <span className={cls} aria-hidden="true" />
-  return <img className={cls} src={image} alt="" width={px} height={px} draggable={false} />
+  if (!image || stillFailed) return <span className={cls} aria-hidden="true" />
+  return <img className={cls} src={image} alt="" width={px} height={px} draggable={false} onError={() => setStillFailed(true)} />
 }

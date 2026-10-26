@@ -21,6 +21,7 @@ import { t, exerciseNameFor, exerciseNameClass, getLang, RTL_LANGS } from './i18
 import { BRAND } from '../brand.js'
 import { convertWeight } from './units.js'
 import { fmtSpeed, speedUnitOf } from './speed.js'
+import { effortLabel, effortLevel, isEffortSport } from './sports.js'
 import { MUSCLES, inMuscleOrder } from './muscles.js'
 
 const PLAN_FMT = 1
@@ -76,6 +77,8 @@ function cleanEx(e) {
     if (!isCardio(e.id)) o.mode = 'cardio'
     if (e.min != null) o.min = e.min
     if (e.speed != null) o.speed = e.speed
+    // An effort sport (football, yoga) is minutes at an effort, not a speed.
+    if (isEffortSport(e.id) && e.eff != null) o.eff = effortLevel(e.eff)
   } else if (mode === 'time') {
     // Written out even though 'reps' is the fallback for a non-cardio id: a plan file that
     // dropped the mode would turn a 45-second plank into a 45-rep one at the other end.
@@ -355,6 +358,10 @@ function scheme(e, unit, speedUnit) {
   const sets = e.sets || 1
   const mode = modeOf(e)
   if (mode === 'cardio') {
+    if (isEffortSport(e.id)) {
+      const effort = `${e.min || 60} min · ${effortLabel(e.eff)}`
+      return sets > 1 ? `${sets} × ${effort}` : effort
+    }
     const body = `${e.min || 20} min @ ${fmtSpeed(e.speed || 8, speedUnit)}`
     return sets > 1 ? `${sets} × ${body}` : body
   }

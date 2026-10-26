@@ -14,6 +14,14 @@ const workout = (id, over = {}) => ({
   entries: [{ id: '0001', sets: [set(), set(), set({ done: false })] }],
   ...over
 });
+describe('a sports set', () => {
+  it('goes out as a cardio row with its MET, and a plain cardio row does not gain one', () => {
+    const w = workout('s1', { entries: [{ id: '12107', sets: [{ min: 60, eff: 3, met: 10, done: true }] }, { id: '2259', sets: [{ min: 20, speed: 5, done: true }] }] });
+    const { cardio } = workoutItem(w, 'kg');
+    assert.deepEqual(cardio, [{ min: 60, speed_kmh: null, km: null, met: 10 }, { min: 20, speed_kmh: 5, km: 1.67 }]);
+  });
+});
+
 const doc = (rev, wid, over = {}) => ({ unit: 'kg', _rev: rev, _wid: wid, workouts: [], ...over });
 // Every page of one pass, as the hub reads it.
 function pass(log, S, opts = {}) {

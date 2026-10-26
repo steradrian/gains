@@ -1,4 +1,6 @@
+import { useLayoutEffect, useRef } from 'react'
 import Icon from '../components/Icon.jsx'
+import { emerge } from '../lib/use-slide.js'
 import { cx } from '../lib/ui-kit.js'
 import Act from './Act.jsx'
 
@@ -10,10 +12,21 @@ import Act from './Act.jsx'
 // rows: [{ n, name, text, label, warmup?, best?, onEdit?, href? }]; `n` is the row's key, `name` and
 // `text` what it says, `label` its spoken name. `bestLabel` is the tag's text ("NEW BEST"). Every
 // string is the caller's.
-export default function DoneSetRows({ rows = [], bestLabel }) {
+//
+// `enter` ({ n, y }) is a row that has just been added: it comes out of the viewport height `y`
+// (the Done pill's centre) once; ignored when `n` is not among the rows.
+export default function DoneSetRows({ rows = [], bestLabel, enter }) {
+  const card = useRef(null)
+  useLayoutEffect(() => {
+    if (!enter) return
+    const at = rows.findIndex(r => r.n === enter.n)
+    if (at >= 0) emerge(card.current?.children[at], enter.y)
+    // Once per `enter`: the rows re-render without being new.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enter])
   if (!rows.length) return null
   return (
-    <div className="g-dsr g-glass">
+    <div className="g-dsr g-glass" ref={card}>
       {rows.map(r => (
         <Act key={r.n} href={r.href} onClick={r.onEdit} ariaLabel={r.label} className={cx('g-dsr-row', r.warmup && 'g-dsr-warm')}>
           <span className="g-dsr-tick"><Icon name="check" className="g-icon" /></span>

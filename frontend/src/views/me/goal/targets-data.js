@@ -4,7 +4,7 @@
 import { t } from '../../../lib/i18n.js'
 import { energyOf } from '../../../lib/nutrition/diary.js'
 import {
-  DENSITY, MACROS, draftOf, energyFromUnit, goalNotes, hasWearable, macroGrams, waterFromUnit, waterToUnit, waterUnitOf,
+  DENSITY, MACROS, allDaysEdit, draftOf, energyFromUnit, goalNotes, hasWearable, macroGrams, waterFromUnit, waterToUnit, waterUnitOf,
 } from '../../../lib/nutrition/goals.js'
 
 export const FIELDS = ['kcal', ...MACROS, 'water']
@@ -72,12 +72,14 @@ export function draftFor(initial, fields, mode) {
   const edited = k => fields[k] !== initial.fields[k]
   if (edited('kcal') && !initial.weekday.kcal) {
     const n = parseField(fields.kcal)
-    draft.kcal = n == null ? null : energyFromUnit(n, settings)
+    const all = allDaysEdit(n == null ? null : energyFromUnit(n, settings))
+    draft.kcal = all.value
+    draft.kcalDays = all.days
   }
   draft.macros = { ...draft.macros }
   for (const id of MACROS) {
     if (!edited(id) || initial.weekday[id]) continue
-    draft.macros[id] = { ...draft.macros[id], value: parseField(fields[id]), percent: false }
+    draft.macros[id] = { ...draft.macros[id], ...allDaysEdit(parseField(fields[id])), percent: false }
   }
   if (edited('water')) {
     const n = parseField(fields.water)

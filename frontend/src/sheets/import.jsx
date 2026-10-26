@@ -4,10 +4,12 @@ import { fmtDate, fmtDateRange } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { t, tn } from '../lib/i18n.js'
 import { SectionTitle, Tiles } from '../components/blocks.jsx'
-import { Inline, Spacer } from '../components/layout.jsx'
-import { SheetHeader } from '../components/sheet-layout.jsx'
-import { Button, Switch } from '../components/ui.jsx'
-import { parseImport, mergeImport } from '../lib/import-csv.js'
+import { Inline } from '../components/layout.jsx'
+import { Switch } from '../components/ui.jsx'
+import BottomSheet from '../ds/BottomSheet.jsx'
+import Button from '../ds/Button.jsx'
+import { parseImport, parseImportSheets, mergeImport } from '../lib/import-csv.js'
+import { readXlsx, XLSX_TYPE } from '../lib/xlsx.js'
 import { mergeHevyRoutines } from '../lib/import-hevy.js'
 import { importOutcome, hevyOutcome } from '../lib/import-outcome.js'
 import { S, update, ui, toast } from './shared.js'
@@ -31,24 +33,38 @@ function ImportSummary({ parsed, close, onImported }) {
     ? parsed.bodyweight.filter(b => st.bodyweight.some(x => x.d === b.d)).length
     : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length
   const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have
+  // Weigh-ins the same workbook carried (MacroFactor's), merged alongside the workouts.
+  const weighIns = isBW ? null : parsed.bodyweight
+  const freshBW = weighIns ? weighIns.bodyweight.filter(b => !st.bodyweight.some(x => x.d === b.d)).length : 0
 
   const doImport = () => {
-    let res, haveDays, newNames
+    let res, haveDays, newNames, addedBW = 0
     update(s => {
       haveDays = new Set((isBW ? s.bodyweight : s.workouts).map(x => x.d))
       const known = new Set((s.customEx || []).map(c => c.id))
       res = mergeImport(s, parsed)
+      if (weighIns) addedBW = mergeImport(s, weighIns).added
       newNames = (s.customEx || []).filter(c => !known.has(c.id)).map(c => c.n)
     })
     close()
-    if (onImported) { onImported(importOutcome({ parsed, haveDays, res, newNames })); return }
+    if (onImported) { onImported(importOutcome({ parsed, haveDays, res, newNames, weighIns: addedBW })); return }
     toast(isBW
       ? tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added)
-      : tn('{0} workout imported', '{0} workouts imported', res.added))
+      : [
+        (res.added > 0 || !addedBW) && tn('{0} workout imported', '{0} workouts imported', res.added),
+        addedBW > 0 && tn('{0} weigh-in imported', '{0} weigh-ins imported', addedBW),
+      ].filter(Boolean).join(' · '))
   }
 
-  return <>
-    <SheetHeader title={parsed.source ? t('Import from {0}', parsed.source) : t('Import history')} />
+  // Cancel and Import sit in the sheet's fixed foot, side by side, so a long list of new
+  // exercises scrolls under them instead of pushing them off the screen.
+  return <BottomSheet title={parsed.source ? t('Import from {0}', parsed.source) : t('Import history')}
+    footer={<div className="g-en-foot">
+      <Button variant="secondary" onClick={close}>{t('Cancel')}</Button>
+      <Button variant="primary" onClick={doImport} disabled={!fresh && !freshBW}>
+        {fresh || freshBW ? t('Import') : t('Nothing new to import')}
+      </Button>
+    </div>}>
     <div className="muted small mb-6">
       {fmtDateRange(parsed.from, parsed.to, true)}
     </div>
@@ -94,30 +110,30 @@ function ImportSummary({ parsed, close, onImported }) {
       </div>
     </>}
 
-    <Button variant="primary" onClick={doImport} disabled={!fresh}>
-      {fresh ? t('Import') : t('Nothing new to import')}
-    </Button>
-    <Spacer size={4} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
-  </>
+    {freshBW > 0 && <div className="small dim mb-5">
+      {tn('Also brings {0} new weigh-in.', 'Also brings {0} new weigh-ins.', freshBW)}
+    </div>}
+  </BottomSheet>
 }
 
-/** Read a CSV/XML export, then show what it would do. `onImported(outcome)` hears what the import did. */
-export function importFromApp(file, { onImported } = {}) {
-  const rd = new FileReader()
-  rd.onload = () => {
-    let parsed
-    try { parsed = parseImport(String(rd.result), { unit: S().unit, customEx: S().customEx }) }
-    catch (e) { toast(t('Could not read that file')); return }
-    if (parsed.error === 'empty') { toast(t('That file is empty')); return }
-    if (parsed.error) { toast(t("We don't recognise that file's columns. Check the docs for supported apps.")); return }
-    if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length : !parsed.workouts.length) {
-      toast(t('Nothing to import from that file')); return
-    }
-    ui().openSheet(close => <ImportSummary parsed={parsed} close={close} onImported={onImported} />)
+const isSpreadsheet = file => /\.xlsx$/i.test(file.name || '') || file.type === XLSX_TYPE
+
+/** Read a CSV/XML/XLSX export, then show what it would do. `onImported(outcome)` hears what the import did. */
+export async function importFromApp(file, { onImported } = {}) {
+  const opts = { unit: S().unit, customEx: S().customEx }
+  let parsed
+  try {
+    parsed = isSpreadsheet(file)
+      ? parseImportSheets(await readXlsx(await file.arrayBuffer()), opts)
+      : parseImport(await file.text(), opts)
+  } catch (e) { toast(t('Could not read that file')); return }
+  if (parsed.error === 'empty') { toast(t('That file is empty')); return }
+  if (parsed.error) { toast(t("We don't recognise that file's columns. Check the docs for supported apps.")); return }
+  if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length : !parsed.workouts.length) {
+    toast(t('Nothing to import from that file')); return
   }
-  rd.onerror = () => toast(t('Could not read that file'))
-  rd.readAsText(file)
+  // A design-system sheet (ds/BottomSheet) opens in the ds frame; in the old one it sat collapsed.
+  ui().openSheet(close => <ImportSummary parsed={parsed} close={close} onImported={onImported} />, { variant: 'ds' })
 }
 
 /* ============================ import from Hevy API ============================ */
@@ -128,7 +144,7 @@ export function importFromApp(file, { onImported } = {}) {
 
 /** The sheet after the fetch: what Hevy sent, a switch for each part, then the merge. */
 export function showHevyPreview(payload, { onImported } = {}) {
-  ui().openSheet(close => <HevyPreview payload={payload} close={close} onImported={onImported} />)
+  ui().openSheet(close => <HevyPreview payload={payload} close={close} onImported={onImported} />, { variant: 'ds' })
 }
 
 function HevyPreview({ payload, close, onImported }) {
@@ -181,8 +197,14 @@ function HevyPreview({ payload, close, onImported }) {
     ...(wantRoutines ? r.unmatchedNames : []),
   ])].sort()
 
-  return <>
-    <SheetHeader title={t('Import from Hevy')} />
+  // The same fixed foot as a file's import summary: Cancel and Import side by side.
+  return <BottomSheet title={t('Import from Hevy')}
+    footer={<div className="g-en-foot">
+      <Button variant="secondary" onClick={close}>{t('Cancel')}</Button>
+      <Button variant="primary" onClick={doImport} disabled={!canImport}>
+        {canImport ? t('Import') : t('Nothing new to import')}
+      </Button>
+    </div>}>
     <div className="muted small mb-6">
       {w.from && (w.from === w.to ? fmtDate(w.from, true) : fmtDate(w.from, true) + ' – ' + fmtDate(w.to, true))}
       {!w.from && b.from && (b.from === b.to ? fmtDate(b.from, true) : fmtDate(b.from, true) + ' – ' + fmtDate(b.to, true))}
@@ -231,11 +253,5 @@ function HevyPreview({ payload, close, onImported }) {
         {unmatched.length > 12 && <span className="mchip">+{unmatched.length - 12}</span>}
       </div>
     </>}
-
-    <Button variant="primary" onClick={doImport} disabled={!canImport}>
-      {canImport ? t('Import') : t('Nothing new to import')}
-    </Button>
-    <Spacer size={4} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
-  </>
+  </BottomSheet>
 }

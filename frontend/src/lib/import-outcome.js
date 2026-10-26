@@ -22,15 +22,16 @@ export function workoutStats(parsed, haveDays) {
 /**
  * A workouts or body-weight file, imported. `haveDays` are the days (workouts, or weigh-ins for a
  * body-weight file) the history had before the merge, `res` is mergeImport's answer, `newNames`
- * the exercises it added as the person's own.
+ * the exercises it added as the person's own, `weighIns` how many of the weigh-ins riding along
+ * with a workouts file (a MacroFactor workbook's) were added.
  */
-export function importOutcome({ parsed, haveDays, res, newNames = [] }) {
+export function importOutcome({ parsed, haveDays, res, newNames = [], weighIns = 0 }) {
   const base = { source: parsed.source || null, from: parsed.from || null, to: parsed.to || null, imported: res.added }
   if (parsed.kind === 'bodyweight') {
     return { ...base, kind: 'bodyweight', leftAlone: new Set(parsed.bodyweight.filter(b => haveDays.has(b.d)).map(b => b.d)).size }
   }
   const { sets, matched, leftAlone } = workoutStats(parsed, haveDays)
-  return { ...base, kind: 'workouts', sets, matched, newNames, leftAlone }
+  return { ...base, kind: 'workouts', sets, matched, newNames, leftAlone, weighIns }
 }
 
 /**

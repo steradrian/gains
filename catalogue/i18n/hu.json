@@ -27252,5 +27252,21 @@
       "Tarts egy rövid szünetet a mozdulat tetején, majd lassan engedd vissza a bal sarkadat a kiindulási helyzetbe.",
       "Ismételd a kívánt ismétlésszámban, majd válts a jobb lábra."
     ]
-  }
+  },
+  "12101": { "name": "futás" },
+  "12102": { "name": "kerékpározás" },
+  "12103": { "name": "úszóedzés" },
+  "12104": { "name": "túrázás" },
+  "12105": { "name": "gyaloglás a szabadban" },
+  "12106": { "name": "evezés" },
+  "12107": { "name": "labdarúgás" },
+  "12108": { "name": "tenisz" },
+  "12109": { "name": "kosárlabda" },
+  "12110": { "name": "padel" },
+  "12111": { "name": "mászás" },
+  "12112": { "name": "jógaóra" },
+  "12113": { "name": "röplabda" },
+  "12114": { "name": "tollaslabda" },
+  "12115": { "name": "tánc" },
+  "12116": { "name": "egyéb tevékenység" }
 }

@@ -4,6 +4,7 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  'sports & activities': 'esportes e atividades',
   'Licences': 'Licenças',
   'It comes with no warranty, to the extent the law allows.': 'Não há garantia alguma, na medida permitida por lei.',
   'Free software, licensed under the GNU Affero General Public License v3.0 or later. You may redistribute and modify it under those terms.': 'Software livre licenciado sob a GNU Affero General Public License v3.0 ou posterior. Você pode redistribuí-lo e modificá-lo nos termos dessa licença.',
@@ -69,7 +70,9 @@ export const PT_BR_OVERRIDES = {
   'Create one and start with this exercise': 'Crie uma e comece com este exercício',
   'Search {0} exercises…': 'Buscar entre {0} exercícios…',
   'Nothing picked yet. Add some exercises and they’ll show up here.': 'Nada escolhido ainda. Adicione alguns exercícios e eles aparecem aqui.',
-  'No favourites yet. Tap the star on an exercise to add one.': 'Nenhum favorito ainda. Toque na estrela de um exercício para adicionar.',
+  'Star an exercise and it lands here, with what you used lately.': 'Marque um exercício com estrela e ele aparece aqui, com os que você usou recentemente.',
+  'Fallback target': 'Meta padrão',
+  'Varies by weekday': 'Varia conforme o dia da semana',
   'The sets you logged for this exercise in this session will be lost.': 'As séries registradas para este exercício nesta sessão serão perdidas.',
   'Swap exercise': 'Trocar exercício',
   'Swap exercise?': 'Trocar exercício?',

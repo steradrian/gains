@@ -593,7 +593,7 @@ describe('the screens gallery', () => {
 
   it('has Train › Routines picker: the picker (a row ticked, no exact match, Favourites, By muscle), the settings (flat and pyramid) and Replace', async () => {
     expect(screenAreas().find(a => a.name === 'Train: routines picker').entries.map(e => e.id))
-      .toEqual(['T5.1', 'T5.1-nomatch', 'T5.2', 'T5.3', 'T5.5', 'T5.5-pyramid', 'T5.7'])
+      .toEqual(['T5.1', 'T5.1-filters', 'T5.1-filters-on', 'T5.1-nomatch', 'T5.2', 'T5.2-empty', 'T5.3-map', 'T5.3', 'T5.5', 'T5.5-warmup-rest', 'T5.5-pyramid', 'T5.7'])
     const own = useStore.getState().S
     const check = async (id, test) => { test(await show(screenById(id))); unmountAll() }
     await check('T5.1', h => {
@@ -607,6 +607,16 @@ describe('the screens gallery', () => {
       expect(h.querySelector('.g-bs .g-pk-list').lastElementChild.classList.contains('g-pk-new')).toBe(true)
     })
     await check('T5.2', h => expect(h.querySelectorAll('.g-bs .g-pk-item')).toHaveLength(4))
+    await check('T5.1-filters', h => {
+      expect(h.querySelectorAll('.g-bs .g-bs-pane')).toHaveLength(2)
+      expect([...h.querySelectorAll('.g-bs .g-bs-pane')[1].querySelectorAll('.g-cgroup')].map(g => g.getAttribute('aria-label'))).toEqual(['Body part', 'Type', 'Equipment'])
+    })
+    await check('T5.1-filters-on', h => {
+      expect(h.querySelector('.g-bs .g-pk-badge').textContent).toBe('2')
+      expect(h.querySelectorAll('.g-bs .g-bs-pane')[1].querySelector('.g-bs-foot .g-btn:last-child').textContent).toMatch(/^Show \d+ exercise/)
+    })
+    await check('T5.2-empty', h => expect(h.querySelector('.g-bs .g-sempty b').textContent).toBe('No favourites yet'))
+    await check('T5.3-map', h => expect(h.querySelector('.g-bs .g-pk-map')).toBeTruthy())
     await check('T5.3', h => expect(h.querySelector('.g-bs .g-pk-head').textContent).toMatch(/^Chest · \d/))
     await check('T5.5', h => {
       expect(h.querySelector('.g-bs h2').textContent).toBe('barbell bench press')

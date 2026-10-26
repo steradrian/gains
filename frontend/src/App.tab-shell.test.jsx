@@ -232,12 +232,12 @@ describe('the review repros', () => {
     expect(await backLeavesApp()).toBe(true)
   })
 
-  it('a page of another tab opened from Profile goes through the switch, not into this tab', async () => {
+  it('a page of another tab opened from Me goes through the switch, not into this tab', async () => {
     await launch('#/home')
     await click(tab('Eat'))
-    await click(avatar())
+    await click(tab('Me'))
     expect(hash()).toBe('#/me')
-    expect(lit()).toBe('Me')   // the avatar opens Profile, which is the Me tab
+    expect(lit()).toBe('Me')
     await go(() => nav('/train/schedule'))
     expect(hash()).toBe('#/train/schedule')
     expect(lit()).toBe('Train')
@@ -518,19 +518,17 @@ describe('back on a sub-page', () => {
     expect(idx()).toBe(0)
   })
 
-  it('Settings, behind the avatar, is a pushed page with a Back to Profile', async () => {
+  it('the avatar on another tab opens Settings at once, pushed, with a Back to that tab', async () => {
     await launch('#/home')
     await click(tab('Train'))
     await click(avatar())
-    expect(hash()).toBe('#/me')   // the avatar on another tab opens Profile; on Profile it opens Settings
-    // Profile slid in over Training: wait for the slide, when Training's header is still mounted.
-    await act(async () => { await new Promise(r => setTimeout(r, 600)) })
-    await click(avatar())
-    expect(hash()).toBe('#/me/settings')
+    expect(hash()).toBe('#/me/settings')   // straight to Settings, never Profile first
     expect(document.querySelector('.g-sptitle h1').textContent).toBe('Settings')
     expect(document.querySelector('button[aria-label="Back"]')).not.toBeNull()
+    // Settings slid in over Training: wait for the slide before going back.
+    await act(async () => { await new Promise(r => setTimeout(r, 600)) })
     await click(document.querySelector('.g-snav-back'))
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/train')
   })
 
   it('the avatar on Me opens Settings too', async () => {
@@ -635,22 +633,22 @@ describe('Me, Profile and Progress', () => {
     expect(useSearch.getState().open).toBe(true)
   })
 
-  it('the avatar on another tab opens Profile as the Me tab, pushed', async () => {
+  it('the avatar on another tab opens Settings in the Me tab, pushed', async () => {
     await launch('#/train')
     await click(avatar())
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     expect(lit()).toBe('Me')
     expect(window.history.state?.usr).toMatchObject({ pushed: true, from: '/train' })
     await click(tab('Train'))
     expect(hash()).toBe('#/train')
   })
 
-  it('the avatar on Today lands on Profile pushed, and Back returns to Today', async () => {
+  it('the avatar on Today lands on Settings pushed, and Back returns to Today', async () => {
     await launch('#/home')
     await click(avatar())
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     expect(window.history.state?.usr).toMatchObject({ pushed: true, from: '/home' })
-    // Profile has no Back button; the shell's back (hardware back) goes to the tab it came from.
+    // The shell's back (hardware back) goes to the tab it came from, not to Profile under it.
     await act(async () => { tabBack() })
     await settle()
     expect(hash()).toBe('#/home')
@@ -870,7 +868,7 @@ describe('a navigation in the middle of a switch', () => {
   it('a push while walking back is carried out once the switch is done', async () => {
     await launch('#/home')
     await click(avatar())
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     // The walk back takes a while, as it can on a device; the push lands in the middle of it.
     const realGo = window.history.go.bind(window.history)
     window.history.go = d => { setTimeout(() => realGo(d), 100) }

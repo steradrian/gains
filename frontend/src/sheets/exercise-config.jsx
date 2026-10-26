@@ -27,6 +27,7 @@ import { normalizeRepRange } from '../lib/rep-range.js'
 import { isBackoff, backoffWeights } from '../lib/backoff.js'
 import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeight, pyramidFromFlat, flatFromPyramid, pyramidLabel, PYRAMID_MAX, MAX_PYRAMID_SETS, PYRAMID_PRESETS } from '../lib/pyramid.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
+import { isEffortSport, effortLabel, effortLevel } from '../lib/sports.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { drawerFlow } from '../store/useUI.js'
 import { ui } from './shared.js'
@@ -147,6 +148,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
   // Cardio as the slot is logged, not by the body part alone: a custom exercise on Legs logged as
   // cardio carries `mode: 'cardio'` (defaultConfig), and read as reps it was saved as 1 × 10.
   const cardio = modeOf({ ...seed, id: ex.id }) === 'cardio'
+  const effortSport = cardio && isEffortSport(ex.id)
   const [c, setC] = useState(() => {
     const cfg = { ...seed }
     // A session's target carries the meaning of its dumbbell weight as a stamp (lib/dumbbells.js);
@@ -216,7 +218,10 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     // Only written when there are any, so a plan that never asked for warm-ups keeps the exact
     // shape it had — and reads back as 0 either way (buildSets).
     const warmupSets = Math.max(0, Math.min(MAX_PLANNED_WARMUPS, Math.round(c.warmupSets) || 0))
-    const withWarmups = warmupSets ? { warmupSets } : {}
+    // The ramp's own rest rides with the warm-ups and is written only when set and when there
+    // are warm-ups, so 0 keeps resting the exercise's normal rest.
+    const warmupRestSec = Math.max(0, Math.round(c.warmupRestSec) || 0)
+    const withWarmups = warmupSets ? { warmupSets, ...(warmupRestSec ? { warmupRestSec } : {}) } : {}
     // Per-exercise rest (issue #10): written only when a positive value was set, so 0 keeps
     // inheriting the global rest timer and a config that never touched it stays the shape it
     // was. Mode-independent — a heavy triple, a plank and a cardio interval all rest.
@@ -229,7 +234,8 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     // "Last set to failure": written only when on, so a plan that never asked keeps its shape.
     const withFailure = c.lastToFailure === true ? { lastToFailure: true } : {}
     // Off the Cardio body part only the mode says cardio, so it is written there (defaultConfig).
-    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: Math.max(0, c.speed || 8), ...(isCardio(ex.id) ? {} : { mode: 'cardio' }), ...withNote, ...withRest })
+    // An effort sport plans an effort level where cardio plans a speed (buildSets reads cfg.eff).
+    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), ...(effortSport ? { eff: effortLevel(c.eff) } : { speed: Math.max(0, c.speed || 8) }), ...(isCardio(ex.id) ? {} : { mode: 'cardio' }), ...withNote, ...withRest })
     else if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...(perSide ? { side: true } : {}), ...prog, ...withNote, ...withWarmups, ...withRest, ...withMeant, ...withFailure })
     else {
       // A unilateral target is stored even: the split has to divide, and a typed 15 would
@@ -288,8 +294,21 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
   const speedHead = speedUnit === 'mph' ? t('Speed (mph)') : t('Speed (km/h)')
   const rangeNow = ranged ? normalizeRepRange(c.reps, c.repsMin, perSide ? 2 : 1) : null
   const addSet = key => () => setC(x => ({ ...x, [key]: Math.max(1, Math.round(x[key]) || 0) + 1 }))
+  // One tap steps easy, moderate, intense and round again: three choices need no wheel.
+  const effortHead = t('Effort')
+  const effortCell = {
+    text: effortLabel(c.eff), label: effortHead + ': ' + effortLabel(c.eff),
+    onClick: () => setC(x => ({ ...x, eff: effortLevel(x.eff) % 3 + 1 })),
+  }
   let table
-  if (cardio) {
+  if (effortSport) {
+    table = {
+      columns: [t('Intervals'), t('Minutes'), effortHead, t('Rest')],
+      rows: [{ key: 'all', cells: [
+        num(c.sets, field('sets'), t('Intervals')), num(c.min, field('min'), t('Minutes')), effortCell, restCell] }],
+      add: { label: t('Add set'), onClick: addSet('sets') },
+    }
+  } else if (cardio) {
     table = {
       columns: [t('Intervals'), t('Minutes'), speedHead, t('Rest')],
       rows: [{ key: 'all', cells: [
@@ -515,6 +534,14 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
               ? t('Added before your work sets and left out of volume, records and progression. Each one closes half the gap to the work weight, never below the bar on a barbell lift, and you can still change any of them mid-session.')
               : t('Ramp-up sets added before the work sets, so you do not have to add them by hand each session.')}
           </p>
+          {(c.warmupSets || 0) > 0 && <Row icon="timer" title={t('Warm-up rest')} accessory="chevron"
+            value={c.warmupRestSec > 0 ? fmtRest(c.warmupRestSec) : t('Same as work sets')}
+            onClick={() => durationSheet({
+              title: t('Warm-up rest'), value: c.warmupRestSec > 0 ? c.warmupRestSec : 0, max: REST_MAX,
+              off: t('Same as work sets'),
+              footer: t('Rest between warm-up sets. The break after the last one is your normal rest. 0:00 uses the rest for this exercise.'),
+              onDone: v => setC(x => ({ ...x, warmupRestSec: v })),
+            })} />}
         </div>}
         {/* ---------- bodyweight + per side (issues #31/#32/#33) ---------- */}
         {!cardio && <Row icon="figureStrength" iconTint="var(--acc)" title={t('Bodyweight')}

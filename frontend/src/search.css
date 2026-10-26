@@ -24,17 +24,26 @@ body.search-open #tabbar,body.search-open #timer.dock{
    .g-shdr-pin) to the window's, on the stage, so it covers everything below the header. Its own
    scroller keeps the page behind still (SearchHost locks <html> and <body>); the bottom padding
    clears the home indicator and the keyboard. The column keeps the page's width on a wide screen.
-   Its ground is the stage's art anchored to meet the app's shared stage (ds.css .g-app-stage)
-   under the header, so there is no edge. It is on the stage, so its focus rings are white.
+   It has no ground of its own: the app's one stage (ds.css .g-app-stage, with the chosen look)
+   shows through, and the page's content fades out under it (below), so the background never
+   changes or seams when search opens. It is on the stage, so its focus rings are white.
    With the iOS keyboard up the visual viewport scrolls; the header and the panel follow it down
    (--vv-top, SearchHost) so they stay where the eye is. Only the panel's opacity is animated here,
    the transform is this rule's. */
 .search-ov{
   position:fixed;inset-inline:0;top:calc(var(--sat) + var(--conn) + var(--shdr-h));bottom:0;z-index:var(--z-search);
   display:flex;flex-direction:column;color:var(--on-stage);font-family:var(--font-sans);
-  background:var(--accent-stage-end);--focus:var(--on-stage);
+  --focus:var(--on-stage);
   transform:translate3d(0,var(--vv-top,0px),0);
 }
+/* The page under the search fades out, all but the pinned header (it is the search's field): at
+   each level on the way down to the header, the siblings that don't hold it. Each element's
+   liquid glass is its own child canvas (presenter-sprite.js), so it fades with it. */
+.g-route :has(.g-shdr-pin)>:not(:has(.g-shdr-pin), .g-shdr-pin){transition:opacity 180ms ease-out}
+body.search-open .g-route :has(.g-shdr-pin)>:not(:has(.g-shdr-pin), .g-shdr-pin){opacity:0;pointer-events:none}
+/* The screens gallery shows the panel on its own (SearchSurface), with no app stage behind it:
+   there, and only there, it paints the stage's art. */
+.search-ov-own{background:var(--accent-stage-end)}
 .search-ov-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .search-ov-bg>.g-stage-art{top:calc(-1 * (var(--sat) + var(--shdr-h)));bottom:auto;height:100vh}
 .search-ov>.search-scroll{position:relative}

@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../store/useStore.js'
 import { finishAndSave } from '../sheets.jsx'
-import { saveStale, staleFacts, STALE_MS } from './stale-workout.js'
+import { launchTarget, saveStale, staleFacts, STALE_MS } from './stale-workout.js'
 
 vi.mock('../sheets.jsx', () => ({ finishAndSave: vi.fn(() => ({ w: { id: 'w' } })) }))
 
@@ -44,6 +44,15 @@ describe('staleFacts', () => {
     expect(staleFacts({ ...A, editingWorkoutId: 'w0' }, now)).toBeNull()
     expect(staleFacts({ ...A, backfill: { iso: '2026-10-17' } }, now)).toBeNull()
     expect(staleFacts(null, now)).toBeNull()
+  })
+})
+
+describe('launchTarget', () => {
+  it('a running session opens on launch; one left open for days lands on Today, where it is asked about', () => {
+    const S = { active: active([set(null)]) }
+    expect(launchTarget(S, START + H)).toBe('/train/workout')
+    expect(launchTarget(S, START + 10 * 24 * H)).toBe('/home')
+    expect(launchTarget({ active: null }, START)).toBe('/home')
   })
 })
 

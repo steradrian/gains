@@ -1418,8 +1418,23 @@ button.g-dfood-meal, a.g-dfood-meal { cursor: pointer; }
 .g-pk-prof span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .g-pk-prof button { appearance: none; border: 0; flex: none; height: 30px; padding: 0 12px; border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--text); font: 600 13px/16px var(--font-sans); cursor: pointer; }
 .g-pk-chips { margin: 0 0 10px; }
+.g-pk-searchrow { display: flex; align-items: center; gap: 8px; }
+.g-pk-searchrow .g-lf-search { flex: 1; min-width: 0; }
+.g-pk-filter { appearance: none; border: 0; position: relative; flex: none; width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--surface-sunken); color: var(--text-3); cursor: pointer; }
+.g-pk-filter .g-icon { width: 22px; height: 22px; stroke-width: 2.2; }
+.g-pk-filter.on { color: var(--accent-text); background: var(--accent-tint); }
+.g-pk-filter:focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 2px; }
+.g-pk-badge { position: absolute; top: -4px; inset-inline-end: -4px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; display: grid; place-items: center; background: var(--accent-fill); color: var(--on-accent); font: 700 12px/1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.g-pk-back { min-height: 48px; gap: 6px; }
+.g-pk-back .g-icon { width: 20px; height: 20px; flex: none; color: var(--text-3); }
+.g-pk-fgroup { margin: 0 0 14px; }
+.g-pk-fgroup .g-pk-head { margin: 4px 0 10px; }
+.g-pk-foot { display: flex; gap: 10px; }
+.g-pk-foot .g-btn:last-child { flex: 1; }
 .g-pk-cicon { width: 15px; height: 15px; margin-inline-end: 6px; stroke-width: 2.2; }
 .g-pk-map { display: flex; justify-content: center; padding: 8px 0 4px; }
+/* Shrink-wrapped in this flex row, the map's flexing SVGs have no width to share and collapse to nothing. */
+.g-pk-map .bodymap { width: 100%; }
 .g-pk-head { margin: 12px 0 4px; font: 700 15px/20px var(--font-sans); color: var(--text); }
 .g-pk-hint { font-weight: 500; color: var(--text-3); }
 .g-pk-note { margin: 0; padding: 14px 0; font: 500 15px/20px var(--font-sans); color: var(--text-3); }
@@ -1857,6 +1872,9 @@ button.g-ssg-h:focus-visible { outline: 2px solid var(--on-stage); outline-offse
 .g-cs-head b { font: 700 19px/24px var(--font-sans); }
 .g-cs-head span { font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); text-align: end; }
 .g-cs-row { display: flex; gap: 10px; padding: 0 16px; }
+/* The words that change with the set ("Set 3 of 4", "Last time …") fade up when it does; the steppers stay put. */
+.g-cs-fade { animation: g-cs-fade 260ms cubic-bezier(0, 0, 0.2, 1) both; }
+@keyframes g-cs-fade { from { opacity: 0; } to { opacity: 1; } }
 .g-cs-bw { appearance: none; flex: 1; min-width: 0; padding: 12px; border: 0; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--on-stage); text-decoration: none; cursor: pointer; }
 .g-cs-bw b { font: 700 22px/26px var(--font-sans); }
 .g-plline { appearance: none; width: calc(100% - 32px); margin: 10px 16px 0; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-radius: 16px; color: var(--on-stage); text-align: start; text-decoration: none; font: 600 14px/18px var(--font-sans); cursor: pointer; }
@@ -2691,14 +2709,14 @@ body:has(.g-route[data-shared] .g-stage) { background: transparent; }
 /* The tile lays itself out by its own width, not the viewport or the field count. A container query
    measures the content box: 200px tile − 20px side padding = 180px, the least that holds two 48px
    buttons and a 38px value ("12.5") with no overlap. Below that the label, the value on its own
-   line and one split capsule (− | +, 48px tall) stack, like UIStepper. */
+   line and two round buttons (− and +, 48px tall, 8px apart) stack. */
 .g-sst { container-type: inline-size; }
 @container (width < 180px) {
-  .g-sst-row { display: grid; grid-template-columns: 1fr 1fr; row-gap: 4px; }
+  .g-sst-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; }
   .g-sst-v { grid-column: 1 / -1; grid-row: 1; width: 100%; font-size: clamp(24px, 26cqi, 34px); line-height: 44px; }
-  .g-sst-b { width: auto; height: 48px; border-radius: 0; }
-  .g-sst-b:first-of-type { grid-column: 1; grid-row: 2; border-start-start-radius: 24px; border-end-start-radius: 24px; }
-  .g-sst-v ~ .g-sst-b { grid-column: 2; grid-row: 2; border-start-end-radius: 24px; border-end-end-radius: 24px; border-inline-start: 1px solid var(--glass-line); }
+  .g-sst-b { width: auto; height: 48px; border-radius: 24px; }
+  .g-sst-b:first-of-type { grid-column: 1; grid-row: 2; }
+  .g-sst-v ~ .g-sst-b { grid-column: 2; grid-row: 2; }
 }
 
 /* === Liquid glass: the contract (GlassHost.jsx sets html[data-lg]) ===

@@ -10,6 +10,7 @@ import { useUI } from './store/useUI.js'
 import { EXDB } from './lib/exercises.js'
 import { exercisePicker, swapActiveWorkoutExercise } from './sheets.jsx'
 import { sameMuscleFirst } from './lib/similar-exercises.js'
+import { chipByText, openFilters, unmountPanels } from './picker-test-utils.jsx'
 
 const mounted = []
 function renderTop() {
@@ -21,9 +22,7 @@ function renderTop() {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-const chips = host => [...host.querySelectorAll('.g-cgroup .g-cchip')]
-const chipByText = (host, text) => chips(host).find(b => b.textContent.trim() === text)
-const sameChip = host => chips(host).find(b => b.textContent.trim().startsWith('Same muscle'))
+const sameChip = host => [...host.querySelectorAll('.g-cgroup .g-cchip')].find(b => b.textContent.trim().startsWith('Same muscle'))
 const isOn = el => el.classList.contains('on')
 const rows = host => [...host.querySelectorAll('.g-pk-item')].map(r => r.querySelector('.g-xrow-b > span').textContent)
 
@@ -37,6 +36,7 @@ beforeEach(() => {
   document.body.innerHTML = ''
 })
 afterEach(() => {
+  unmountPanels()
   act(() => { mounted.splice(0).forEach(root => root.unmount()) })
 })
 
@@ -67,11 +67,13 @@ describe('swap picker opens on the same muscle', () => {
     useStore.setState({ S, user: null })
     swapActiveWorkoutExercise(0)
     const host = renderTop()
+    const panel = openFilters(host)
 
-    const chip = sameChip(host)
+    const chip = sameChip(panel)
     expect(chip.textContent).toContain('Triceps')
     expect(isOn(chip)).toBe(true)
-    expect(isOn(chipByText(host, 'All'))).toBe(false)
+    expect(isOn(chipByText(panel, 'All'))).toBe(false)
+    expect(host.querySelector('.g-pk-badge').textContent).toBe('1')
 
     const listed = rows(host)
     expect(listed.length).toBeGreaterThan(1)
@@ -83,11 +85,12 @@ describe('swap picker opens on the same muscle', () => {
     // The exercise being swapped away is not offered as its own replacement.
     expect([...host.querySelectorAll('.g-pk-item .g-xrow-b b')].map(x => x.textContent)).not.toContain(CABLE_TRI.n)
 
-    act(() => chipByText(host, 'All').click())
-    expect(isOn(chipByText(host, 'All'))).toBe(true)
+    act(() => chipByText(panel, 'All').click())
+    expect(isOn(chipByText(panel, 'All'))).toBe(true)
     expect(rows(host).some(s => !s.startsWith('Triceps'))).toBe(true)
+    expect(host.querySelector('.g-pk-badge')).toBeNull()
     // …and back again.
-    act(() => sameChip(host).click())
+    act(() => sameChip(panel).click())
     expect(rows(host).every(s => s.startsWith('Triceps'))).toBe(true)
   })
 
@@ -96,15 +99,17 @@ describe('swap picker opens on the same muscle', () => {
     const pick = vi.fn()
     exercisePicker(pick, { title: 'Replace exercise', like: CABLE_TRI.id })
     const host = renderTop()
-    expect(isOn(sameChip(host))).toBe(true)
+    expect(isOn(sameChip(openFilters(host)))).toBe(true)
     expect(rows(host).every(s => s.startsWith('Triceps'))).toBe(true)
   })
 
   it('an add opens on the whole list, with no same-muscle chip', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
-    expect(sameChip(host)).toBeUndefined()
-    expect(isOn(chipByText(host, 'All'))).toBe(true)
+    expect(host.querySelector('.g-pk-badge')).toBeNull()
+    const panel = openFilters(host)
+    expect(sameChip(panel)).toBeUndefined()
+    expect(isOn(chipByText(panel, 'All'))).toBe(true)
   })
 
   it('opens on All when nothing else trains that muscle, so a swap never starts on an empty list', () => {
@@ -114,8 +119,8 @@ describe('swap picker opens on the same muscle', () => {
     S.customEx = [{ id: 'cOnly', n: 'My odd lift', bp: 'neck', tg: 'nothing-else', eq: 'body weight', custom: true }]
     useStore.setState({ S, user: null })
     exercisePicker(vi.fn(), { like: 'cOnly' })
-    const host = renderTop()
-    expect(isOn(chipByText(host, 'All'))).toBe(true)
-    expect(sameChip(host)).toBeUndefined()
+    const panel = openFilters(renderTop())
+    expect(isOn(chipByText(panel, 'All'))).toBe(true)
+    expect(sameChip(panel)).toBeUndefined()
   })
 })

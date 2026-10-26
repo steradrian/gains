@@ -33,8 +33,8 @@ export default function StaleWorkoutCheck() {
   const [waiting, setWaiting] = useState(false)
 
   useEffect(() => {
-    // A running session launches onto the workout route (lib/tab-route.js launchPath), so the
-    // launch check runs there too and takes it to Today. On a return to the front, the workout
+    // A stale session launches onto Today (App's fallback), but a link straight to the workout
+    // still lands there, so the launch check runs there too and takes it to Today. On a return to the front, the workout
     // on screen says it all and is left alone; the summary never asks.
     const check = (launch = false) => {
       const onRun = path.current === '/train/workout'

@@ -1,0 +1,16 @@
+{
+  "id": "12104",
+  "name": "hiking",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["quadriceps", "hamstrings", "calves", "glutes"],
+  "category": "sports & activities",
+  "description": "Walk on trails and hills at a steady pace. Log the time and the distance.",
+  "instructions": [
+    "Wear shoes with good grip and bring water.",
+    "Take short steps uphill and keep your weight over your feet downhill.",
+    "Keep a pace you can hold for hours.",
+    "Log the total time and distance when you finish."
+  ]
+}

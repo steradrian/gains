@@ -19,8 +19,8 @@ export default function CurrentSet({
   return (
     <section className={cx('g-cs', warmup && 'g-cs-warm')} aria-label={setLine}>
       <div className="g-cs-head">
-        <b>{setLine}</b>
-        {side && <span>{side}</span>}
+        <b key={setLine} className="g-cs-fade">{setLine}</b>
+        {side && <span key={side} className="g-cs-fade">{side}</span>}
       </div>
       <div className="g-cs-row">
         {bodyweight && (

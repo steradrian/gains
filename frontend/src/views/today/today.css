@@ -5,7 +5,8 @@
    StageScreen's --sat) and keeps the boards' 150px of air above the floating tab bar. The kit's
    parts carry their own gutters. */
 .today{padding-top:var(--shdr-h);padding-bottom:calc(150px + var(--sab))}
-.today-alert{padding:12px 16px 0}
+/* The day did not load: the error scene alone on the stage, where the rings would be. */
+.today-failed{padding-top:48px}
 /* Friends surfaces m1: the Friends card (FriendsCard.jsx). Layout only, the glass is GlassRow's.
    The row's title is a button stretched over the whole card; the controls sit above it. */
 .today-friends .g-grow{position:relative}

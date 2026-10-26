@@ -3,6 +3,7 @@
 import { bestWeightForEntry, cleanupSg } from './history.js'
 import { hasCompletedWork, isSideSet } from './workout-model.js'
 import { partOf } from './workout-parts.js'
+import { stampSportMet } from './sports.js'
 
 // planSec is live-session bookkeeping: a hold displaced before it finished puts its plan aside so
 // the row still knows what it is asking for (Workout.startTimed). A finished session keeps only
@@ -71,7 +72,8 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
     const completed = {
       id: entry.id,
       // Only what was logged — the live-session bookkeeping on a row stays behind (finishedRow).
-      sets: (entry.sets || []).map(finishedRow),
+      // A sports set also takes its MET here (lib/sports.js), which is what Burned is worked out from.
+      sets: (entry.sets || []).map(finishedRow).map(set => stampSportMet(entry.id, set)),
       topW: bestWeightForEntry(entry) || null,
       target: entry.target || null,
       // Which routine this entry came from, and whether it counts for progression. Written

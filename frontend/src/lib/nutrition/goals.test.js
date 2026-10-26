@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { calorieTarget, macroTarget } from './diary.js'
 import { fixtureSettings } from './fake-nutritrace.js'
 import {
-  MACROS, applyPreset, applyTemplate, draftOf, goalNotes, goalsAfter, gramsToPercent, hasWearable, makeTemplate,
+  allDaysEdit, applyPreset, applyTemplate, draftOf, oneDayEdit, goalNotes, goalsAfter, gramsToPercent, hasWearable, makeTemplate,
   migrateKilojoules, previewBase, toggleMacroUnit, waterFromUnit, waterToUnit, workoutAdjustState, writesFor,
 } from './goals.js'
 
@@ -90,15 +91,11 @@ describe('macros', () => {
     expect(applyPreset('balanced', 0)).toBeNull()
   })
 
-  it('leaves a weekday-specific macro alone when a preset is applied', () => {
-    const settings = { ...base(), goals: { ...base().goals, fat: { sharedGoal: false, days: [60, 60, 60, 60, 60, 80, 80], max: 70 } } }
-    const draft = draftOf(settings)
-    const macros = applyPreset('balanced', 2000, draft.macros)
-    expect(macros.fat).toBe(draft.macros.fat)
-    expect(macros.fat.perWeekday).toBe(true)
-    expect(macros.proteins).toMatchObject({ value: 150, perWeekday: false })
-    const allWeekday = Object.fromEntries(MACROS.map(id => [id, { value: null, percent: false, perWeekday: true }]))
-    expect(applyPreset('balanced', 2000, allWeekday)).toBeNull()
+  it('sets a preset on every day, against each day’s calories when they differ', () => {
+    expect(applyPreset('balanced', 2000)).toMatchObject({ fat: { value: 67, perWeekday: false, days: Array(7).fill(67) } })
+    const split = applyPreset('balanced', 2000, [1800, 2000, 2000, 2000, 2000, 2000, 2400])
+    expect(split.proteins).toMatchObject({ value: null, perWeekday: true })
+    expect(split.proteins.days).toEqual([135, 150, 150, 150, 150, 150, 180])
   })
 
   it('converts grams to the fewest-decimal percent that returns the same grams', () => {
@@ -186,5 +183,101 @@ describe('water and templates', () => {
     expect(next.macros.proteins.value).toBeNull()
     expect(next.baseGoals.kilojoules).toBeUndefined()
     expect(writesFor(base(), next).map(([k]) => k)).toEqual(['goals', 'waterGoalMl'])
+  })
+})
+
+describe('targets by day of the week', () => {
+  // 2026-10-12 is a Monday (getDay 1), 2026-10-17 a Saturday (6), 2026-10-18 a Sunday (0).
+  const MON = '2026-10-12'
+  const SAT = '2026-10-17'
+  const SUN = '2026-10-18'
+  const goalsOf = (settings, draft) => writesFor(settings, draft).find(([k]) => k === 'goals')[1]
+  const edit = (draft, patch) => ({ ...draft, ...patch })
+  const kcalDay = (draft, index, v) => {
+    const e = oneDayEdit(draft.kcalDays, index, v)
+    return edit(draft, { kcal: e.value, kcalDays: e.days, kcalPerWeekday: e.perWeekday })
+  }
+
+  it('resolves a day’s calories and macros to that weekday', () => {
+    const settings = {
+      ...base(),
+      goals: {
+        calories: { sharedGoal: false, days: [1900, 2400, 2000, 2000, 2000, 2000, 2500], max: 2114 },
+        proteins: { sharedGoal: false, days: [140, 170, 150, 150, 150, 150, 175], max: 155 },
+      },
+    }
+    expect(calorieTarget({ settings, date: MON }).base).toBe(2400)
+    expect(calorieTarget({ settings, date: SAT }).base).toBe(2500)
+    expect(calorieTarget({ settings, date: SUN }).base).toBe(1900)
+    expect(macroTarget(settings, 'proteins', MON, 2400)).toBe(170)
+    expect(macroTarget(settings, 'proteins', SUN, 1900)).toBe(140)
+  })
+
+  it('adds the day’s workouts on top of that weekday’s target', () => {
+    const settings = {
+      ...base(), diaryShowActivity: true, calorieAdjustFromActivity: true,
+      goals: { calories: { sharedGoal: false, days: [1900, 2400, 2000, 2000, 2000, 2000, 2500], max: 2114 } },
+    }
+    expect(calorieTarget({ settings, date: MON, effectiveActive: 300 })).toMatchObject({ base: 2400, target: 2700, added: 300 })
+  })
+
+  it('a goal set once is written to all seven days, replacing a split by day', () => {
+    const settings = { ...base(), goals: { ...base().goals, calories: { sharedGoal: false, days: [1900, 2400, 2000, 2000, 2000, 2000, 2500], max: 2114 } } }
+    const all = allDaysEdit(2300)
+    const goals = goalsOf(settings, edit(draftOf(settings), { kcal: all.value, kcalDays: all.days, kcalPerWeekday: false }))
+    expect(goals.calories).toMatchObject({ sharedGoal: true, max: 2300, days: Array(7).fill(2300) })
+    expect(calorieTarget({ settings: { ...settings, goals }, date: SAT }).base).toBe(2300)
+  })
+
+  it('a new shared goal reads the same on every weekday', () => {
+    const settings = { ...base(), goals: {} }
+    const all = allDaysEdit(2000)
+    const goals = goalsOf(settings, edit(draftOf(settings), { kcal: all.value, kcalDays: all.days }))
+    for (const date of [MON, SAT, SUN]) expect(calorieTarget({ settings: { ...settings, goals }, date }).base).toBe(2000)
+  })
+
+  it('editing one day leaves the others as they were', () => {
+    const settings = base()
+    const goals = goalsOf(settings, kcalDay(draftOf(settings), 6, 2600))
+    expect(goals.calories).toMatchObject({ sharedGoal: false, days: [2200, 2200, 2200, 2200, 2200, 2200, 2600] })
+    const after = { ...settings, goals }
+    expect(calorieTarget({ settings: after, date: SAT }).base).toBe(2600)
+    expect(calorieTarget({ settings: after, date: MON }).base).toBe(2200)
+    // The other goals are not touched.
+    expect(goals.proteins).toEqual(settings.goals.proteins)
+  })
+
+  it('editing a day back to the others makes it one shared goal again', () => {
+    const settings = base()
+    const split = { ...settings, goals: goalsOf(settings, kcalDay(draftOf(settings), 6, 2600)) }
+    const goals = goalsOf(split, kcalDay(draftOf(split), 6, 2200))
+    expect(goals.calories).toMatchObject({ sharedGoal: true, max: 2200, days: Array(7).fill(2200) })
+  })
+
+  it('edits one macro on one day', () => {
+    const settings = base()
+    const e = oneDayEdit(draftOf(settings).macros.proteins.days, 1, 190)
+    const draft = draftOf(settings)
+    draft.macros = { ...draft.macros, proteins: { ...draft.macros.proteins, ...e } }
+    const goals = goalsOf(settings, draft)
+    expect(macroTarget({ ...settings, goals }, 'proteins', MON, 2200)).toBe(190)
+    expect(macroTarget({ ...settings, goals }, 'proteins', SAT, 2200)).toBe(160)
+  })
+
+  it('a legacy single target is that target on every day, and an untouched page writes nothing', () => {
+    const settings = { ...base(), goals: { calories: { max: 2200 }, proteins: { max: 160 } } }
+    const draft = draftOf(settings)
+    expect(draft.kcalDays).toEqual(Array(7).fill(2200))
+    expect(draft.macros.proteins.days).toEqual(Array(7).fill(160))
+    expect(writesFor(settings, draft)).toEqual([])
+    for (const date of [MON, SAT, SUN]) expect(calorieTarget({ settings, date }).base).toBe(2200)
+  })
+
+  it('a weekday split that was not touched is written back unchanged', () => {
+    const entry = { sharedGoal: false, days: [1900, 2400, 2000, 2000, 2000, 2000, 2500], max: 2114 }
+    const settings = { ...base(), goals: { ...base().goals, calories: entry } }
+    expect(writesFor(settings, draftOf(settings))).toEqual([])
+    const draft = { ...draftOf(settings), waterMl: 3000 }
+    expect(writesFor(settings, draft)).toEqual([['waterGoalMl', 3000]])
   })
 })

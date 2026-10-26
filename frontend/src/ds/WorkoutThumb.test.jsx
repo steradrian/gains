@@ -36,6 +36,13 @@ describe('WorkoutThumb', () => {
     expect(view.host.querySelector('img').getAttribute('src')).toBe('/still/bench.webp')
   })
 
+  it('is the empty tile, not a broken image, when the still fails to load (an exercise with no media)', () => {
+    view.render(<WorkoutThumb image="/still/12107.webp" size="lg" />)
+    act(() => { view.host.querySelector('img').dispatchEvent(new Event('error')) })
+    expect(view.host.querySelector('img')).toBeNull()
+    expect(view.host.querySelector('span.g-wkimg-lg')).not.toBeNull()
+  })
+
   it('keeps its size as an empty tile with neither', () => {
     view.render(<WorkoutThumb size="md" />)
     expect(view.host.querySelector('.g-wkimg-md')).not.toBeNull()

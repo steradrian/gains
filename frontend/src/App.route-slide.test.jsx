@@ -186,14 +186,14 @@ describe('page slides', () => {
     expect(layers()).toHaveLength(1)
   })
 
-  // Profile sits at the first history entry, with the origin tab put aside: Back is the shell's back
+  // Settings, pushed from another tab, keeps the origin tab put aside: Back is the shell's back
   // (lib/back.js sends a pushed page there), not history.back(), which would leave the app's own entries.
-  it('the avatar pushes Profile with a push slide; the shell back returns to the origin tab with a pop', async () => {
+  it('the avatar pushes Settings with a push slide; the shell back returns to the origin tab with a pop', async () => {
     await launch('#/train')
     await click(document.querySelector('.g-shdr .g-sbtn:not(.g-bell)'))
     expect(sliding()).toEqual(['push', 'push'])
     await finish()
-    expect(hash()).toBe('#/me')
+    expect(hash()).toBe('#/me/settings')
     await go(() => tabBack())
     expect(hash()).toBe('#/train')
     expect(sliding()).toEqual(['pop', 'pop'])
