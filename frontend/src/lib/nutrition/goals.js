@@ -3,8 +3,8 @@
 //
 // A goal is one entry of the `goals` setting: { sharedGoal, isMin, isPercent, autoAdjust,
 // showInDiary, showInStats, days[7], max | min }. This page edits calories, protein, carbs and fat
-// as one shared number a day; an entry that differs by weekday is shown and left alone, since
-// saving it here would flatten the week.
+// as one number for all seven days, or per weekday (the draft keeps both: value + days). A number
+// set for every day replaces a split by weekday; an entry nobody touched is written back as it was.
 import { WATER_UNITS, calorieTarget, waterGoalOf } from './diary.js'
 
 export const MACROS = ['proteins', 'carbohydrates', 'fat']
@@ -29,6 +29,34 @@ const sharedValue = g => (g ? g.max ?? g.min ?? null : null)
 
 const positive = n => (Number.isFinite(n) && n > 0 ? n : null)
 
+// A goal is stored once per day of the week: `days` is indexed like Date#getDay (0 = Sunday), the
+// way diary.js resolveGoalFor reads it. A shared goal is the same number on all seven days.
+export const DAYS = 7
+
+/** A goal entry's value for each weekday. A weekday entry's blank day takes its fallback value. */
+export function daysOf(g) {
+  const shared = positive(sharedValue(g))
+  if (isPerWeekday(g) && Array.isArray(g.days) && g.days.length === DAYS) return g.days.map(v => positive(Number(v)) ?? shared)
+  return Array(DAYS).fill(shared)
+}
+
+const allSame = days => days.every(v => v != null && v === days[0])
+
+/** The number a goal has when its days are all alike (null when they differ or are blank), and
+ *  whether it varies by weekday: the shape a draft keeps a goal in (value, days, perWeekday). */
+function dayState(days) {
+  const value = allSame(days) ? days[0] : null
+  return { value, days, perWeekday: value == null && days.some(v => v != null) }
+}
+
+/** The same number on every day (null clears the goal). */
+export const allDaysEdit = value => dayState(Array(DAYS).fill(positive(value)))
+
+/** One day changed, the others kept. `days` is the goal's current seven values. */
+export function oneDayEdit(days, index, value) {
+  return dayState(days.map((v, i) => (i === index ? positive(value) : v)))
+}
+
 /** What the page edits, read from NutriTrace's settings. */
 export function draftOf(settings) {
   const goals = settings?.goals || {}
@@ -36,6 +64,7 @@ export function draftOf(settings) {
     value: isPerWeekday(goals[id]) ? null : sharedValue(goals[id]),
     percent: !!goals[id]?.isPercent,
     perWeekday: isPerWeekday(goals[id]),
+    days: daysOf(goals[id]),
   })
   const factor = Number(settings?.calorieGoalFactor)
   return {
@@ -43,6 +72,7 @@ export function draftOf(settings) {
     factor: FACTORS.includes(factor) ? factor : 1,
     kcal: isPerWeekday(goals.calories) ? null : sharedValue(goals.calories),
     kcalPerWeekday: isPerWeekday(goals.calories),
+    kcalDays: daysOf(goals.calories),
     macros: { proteins: macro('proteins'), carbohydrates: macro('carbohydrates'), fat: macro('fat') },
     waterMl: waterGoalOf(settings),
     adjust: settings?.calorieAdjustFromActivity === true,
@@ -63,23 +93,43 @@ export function withGoalValue(old, value, { percent = false } = {}) {
   }
 }
 
-/** The `goals` setting after the draft is applied over `base`. Entries the page does not touch,
- *  and weekday-specific ones, pass through unchanged. `only` limits it to those goal ids (the
- *  ones the person changed on this page). A blank calorie target never removes the calorie goal. */
+/** One goal entry that differs by weekday: every day explicit, `max` (or `min`) their average, the
+ *  fallback NutriTrace and the range charts read. */
+function withGoalDays(old, days, { percent = false } = {}) {
+  const set = days.map(positive).filter(v => v != null)
+  const mean = Math.round((set.reduce((a, b) => a + b, 0) / set.length) * 100) / 100
+  const key = old?.isMin ? 'min' : 'max'
+  const { max: _max, min: _min, ...rest } = old || {}
+  return {
+    isMin: false, autoAdjust: false, showInDiary: true, showInStats: true,
+    ...rest, sharedGoal: false, isPercent: percent, days: days.map(v => positive(v) ?? mean), [key]: mean,
+  }
+}
+
+/** The `goals` setting after the draft is applied over `base`. Entries the page does not touch
+ *  pass through unchanged. `only` limits it to those goal ids (the ones the person changed on
+ *  this page). A goal with a number is that number on all seven days; with no number but some
+ *  days filled it differs by weekday. A blank calorie target never removes the calorie goal. */
 export function goalsAfter(base, draft, only = null) {
   const next = { ...(base || {}) }
-  const put = (id, value, percent) => {
+  const put = (id, value, percent, days) => {
     if (only && !only.has(id)) return
-    if (isPerWeekday(next[id])) return
+    const was = next[id]
+    // Alike days with no number is a cleared goal, not a split by day (unless it already was one).
+    if (value == null && Array.isArray(days) && days.some(v => positive(v) != null) && (isPerWeekday(was) || !allSame(days))) {
+      if (isPerWeekday(was) && !!was.isPercent === percent && same(daysOf(was), days)) return
+      next[id] = withGoalDays(was, days, { percent })
+      return
+    }
     if (id === 'calories' && positive(value) == null) return
     // An entry the person did not change stays as NutriTrace wrote it.
-    if (sharedValue(next[id]) === (positive(value) ?? null) && !!next[id]?.isPercent === percent) return
+    if (!isPerWeekday(next[id]) && sharedValue(next[id]) === (positive(value) ?? null) && !!next[id]?.isPercent === percent) return
     const entry = withGoalValue(next[id], value, { percent })
     if (entry) next[id] = entry
     else delete next[id]
   }
-  put('calories', draft.kcal, false)
-  for (const id of MACROS) put(id, draft.macros[id].value, draft.macros[id].percent)
+  put('calories', draft.kcal, false, draft.kcalDays)
+  for (const id of MACROS) put(id, draft.macros[id].value, draft.macros[id].percent, draft.macros[id].days)
   return next
 }
 
@@ -91,9 +141,10 @@ function changedGoalIds(draft, snapshot) {
   if (draft.baseGoals) return null
   const was = draftOf(snapshot)
   const out = new Set()
-  if (draft.kcal !== was.kcal) out.add('calories')
+  if (draft.kcal !== was.kcal || !same(draft.kcalDays ?? was.kcalDays, was.kcalDays)) out.add('calories')
   for (const id of MACROS) {
-    if (draft.macros[id].value !== was.macros[id].value || draft.macros[id].percent !== was.macros[id].percent) out.add(id)
+    const m = draft.macros[id]
+    if (m.value !== was.macros[id].value || m.percent !== was.macros[id].percent || !same(m.days ?? was.macros[id].days, was.macros[id].days)) out.add(id)
   }
   return out
 }
@@ -166,25 +217,29 @@ export function macroGrams(macro, id, kcal) {
 }
 
 /** Flip one macro between grams and percent, converting its number so the target stays put. */
-export function toggleMacroUnit(macro, id, kcal) {
+export function toggleMacroUnit(macro, id, kcal, dayKcal = null) {
   const percent = !macro.percent
-  if (macro.value == null) return { ...macro, percent }
-  const converted = percent ? gramsToPercent(macro.value, kcal, DENSITY[id]) : percentToGrams(macro.value, kcal, DENSITY[id])
-  return { ...macro, percent, value: converted ?? macro.value }
+  const convert = (v, k) => {
+    if (v == null) return null
+    return (percent ? gramsToPercent(v, k, DENSITY[id]) : percentToGrams(v, k, DENSITY[id])) ?? v
+  }
+  if (!macro.days) return { ...macro, percent, value: convert(macro.value, kcal) }
+  // Each day converts against its own calories, so a split by day keeps its shape.
+  return { ...macro, percent, ...dayState(macro.days.map((v, i) => convert(v, dayKcal?.[i] ?? kcal))) }
 }
 
-/** A preset as grams against `kcal` (applyMacroPreset), laid over the draft's `macros`. A macro
- *  that differs by weekday is left as it is; null when there is nothing for the preset to set. */
-export function applyPreset(name, kcal, macros) {
+/** A preset as grams against the calories (applyMacroPreset), set on every day: `kcal` is the
+ *  base, `dayKcal` (seven numbers, when calories differ by day) the base of each day. Null when
+ *  there is nothing for the preset to set. */
+export function applyPreset(name, kcal, dayKcal = null) {
   const split = MACRO_PRESETS[name]
   if (!split || !(kcal > 0)) return null
   const out = {}
   for (const id of MACROS) {
-    out[id] = macros?.[id]?.perWeekday
-      ? macros[id]
-      : { value: percentToGrams(split[id], kcal, DENSITY[id]), percent: false, perWeekday: false }
+    const days = Array.from({ length: DAYS }, (_, i) => percentToGrams(split[id], dayKcal?.[i] > 0 ? dayKcal[i] : kcal, DENSITY[id]))
+    out[id] = { ...dayState(days), percent: false }
   }
-  return MACROS.every(id => out[id].perWeekday) ? null : out
+  return out
 }
 
 /** The calories the draft's mode lands on today, from the figures the server gave. `date` is the
@@ -271,7 +326,7 @@ export function applyTemplate(draft, tpl) {
   const fresh = draftOf({ goals, calorieGoalMode: draft.mode, calorieGoalFactor: draft.factor })
   return {
     ...draft,
-    kcal: fresh.kcal, kcalPerWeekday: fresh.kcalPerWeekday, macros: fresh.macros,
+    kcal: fresh.kcal, kcalPerWeekday: fresh.kcalPerWeekday, kcalDays: fresh.kcalDays, macros: fresh.macros,
     waterMl: tpl.waterGoalMl > 0 ? tpl.waterGoalMl : draft.waterMl,
     baseGoals: goals,
   }

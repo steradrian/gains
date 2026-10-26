@@ -5,7 +5,7 @@
 // then `goals`. A failure part-way leaves a profile with a new body and old targets, so a failed
 // write rolls back the keys already written (best effort) and says whether that worked.
 import { create } from 'zustand'
-import { goalsFor, draftOf } from '../nutrition/goals.js'
+import { allDaysEdit, goalsFor, draftOf } from '../nutrition/goals.js'
 import { useNutrition } from '../nutrition/store.js'
 import { burnOf, targetsFor } from './goal-calc.js'
 import { FACTOR_OF_GOAL, calcInputs, dobOf, profileOf } from './goal-profile.js'
@@ -26,7 +26,9 @@ const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
  * Targets are recomputed when the maths has everything it needs and the resulting goal is one of
  * lose, keep, build; otherwise only the profile keys (and a picked goal's factor) are written, and
  * `recomputed` is false so the caller can say the targets were left alone.
- * `skipped` lists the goal ids that differ by weekday and so were not touched.
+ * A change that sets the goal writes the new targets to all seven days, replacing any split by
+ * weekday. A body or movement change recomputes without touching goals that differ by weekday;
+ * `skipped` lists their ids.
  * `live`: whether the hub takes profile keys (useProfileWrites). When it does not, the plan never
  * carries them. When it does and the sex is "prefer not to say", `tdee` is always written, from the
  * averaged burn: NutriTrace only knows male and female and would not derive it.
@@ -64,17 +66,31 @@ export function planChange(settings, S, change, now = Date.now(), live = useProf
   let skipped = []
   if (targets) {
     const draft = draftOf(settings)
-    const macro = (id, value) => ({ ...draft.macros[id], value, percent: false })
-    draft.kcal = targets.calories
-    draft.macros = {
+    // Picking a goal is the person setting the targets: they land on every day of the week, over
+    // any split by day. A recompute from a body or movement change is automatic, so a goal that
+    // differs by weekday is left alone and named in `skipped`.
+    const explicit = change.goal !== undefined
+    const macro = (id, value) => ({ ...draft.macros[id], ...(explicit ? allDaysEdit(value) : { value }), percent: false })
+    if (explicit) {
+      const kcal = allDaysEdit(targets.calories)
+      draft.kcal = kcal.value
+      draft.kcalDays = kcal.days
+      draft.kcalPerWeekday = false
+    } else if (draft.kcalPerWeekday) {
+      skipped.push('calories')
+    } else {
+      draft.kcal = targets.calories
+    }
+    const next = {
       proteins: macro('proteins', targets.proteinG),
       carbohydrates: macro('carbohydrates', targets.carbsG),
       fat: macro('fat', targets.fatG),
     }
-    skipped = [
-      ...(draft.kcalPerWeekday ? ['calories'] : []),
-      ...Object.keys(draft.macros).filter(id => draft.macros[id].perWeekday),
-    ]
+    // A split goal keeps its draft entry as read (null value, its days), which goalsFor leaves be.
+    for (const id of Object.keys(next)) {
+      if (!explicit && draft.macros[id].perWeekday) skipped.push(id)
+      else draft.macros[id] = next[id]
+    }
     const goals = goalsFor(settings, draft, settings)
     if (!same(goals, settings?.goals || {})) writes.push(['goals', goals])
   }

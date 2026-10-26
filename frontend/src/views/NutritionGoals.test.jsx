@@ -76,6 +76,27 @@ describe('Nutrition › Goals', () => {
     expect(saveButton().disabled).toBe(true)
   })
 
+  it('edits one day of the week and leaves the others, then sets every day from the top field', async () => {
+    await open()
+    await clickText('Mon')
+    click(byLabel('Increase Daily target Monday'))
+    // The top field has no one number now.
+    expect(field('Daily target').value).toBe('')
+    expect(text()).toContain('Varies by weekday')
+    await click(saveButton())
+    await settle()
+    // Monday is getDay 1.
+    expect(nt.state.settings.goals.calories).toMatchObject({ sharedGoal: false, days: [2200, 2250, 2200, 2200, 2200, 2200, 2200] })
+    expect(nt.state.settings.goals.proteins).toEqual({ max: 160 })
+
+    click(byLabel('Increase Daily target'))
+    await click(saveButton())
+    await settle()
+    expect(nt.state.settings.goals.calories.sharedGoal).toBe(true)
+    expect(nt.state.settings.goals.calories.days).toHaveLength(7)
+    expect(new Set(nt.state.settings.goals.calories.days).size).toBe(1)
+  })
+
   it.each([[500, 'server'], [400, 'the hub refusing the body']])('keeps the input and says so when the save fails (%i, %s), then saves on retry', async status => {
     await open()
     click(byLabel('Increase Daily target'))

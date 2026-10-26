@@ -93,12 +93,26 @@ describe('planChange', () => {
     expect(valueOf(planChange(settings({ calorieGoalFactor: 0.85 }), S, { goal: 'keep' }, NOW).writes, 'calorieGoalFactor')).toBe(1)
   })
 
-  it('a macro that differs by weekday is left alone and named', () => {
+  it('a new target replaces a split by weekday, on all seven days', () => {
     const base = settings()
     base.goals.proteins = { sharedGoal: false, days: [100, 100, 100, 100, 100, 150, 150], max: 100 }
+    base.goals.calories = { sharedGoal: false, days: [2000, 2400, 2000, 2400, 2000, 2000, 2500], max: 2186 }
     const plan = planChange(base, S, { goal: 'lose' }, NOW)
-    expect(plan.skipped).toEqual(['proteins'])
-    expect(valueOf(plan.writes, 'goals').proteins).toEqual(base.goals.proteins)
+    const goals = valueOf(plan.writes, 'goals')
+    expect(goals.proteins).toMatchObject({ sharedGoal: true, days: Array(7).fill(plan.targets.proteinG) })
+    expect(goals.calories).toMatchObject({ sharedGoal: true, days: Array(7).fill(plan.targets.calories) })
+  })
+
+  it('an automatic recompute (body change) leaves a split by weekday alone and reports it', () => {
+    const base = settings()
+    base.goals.proteins = { sharedGoal: false, days: [100, 100, 100, 100, 100, 150, 150], max: 100 }
+    base.goals.calories = { sharedGoal: false, days: [2000, 2400, 2000, 2400, 2000, 2000, 2500], max: 2186 }
+    const plan = planChange(base, S, { heightCm: 190 }, NOW)
+    const goals = valueOf(plan.writes, 'goals') ?? base.goals
+    expect(goals.fat.days).toEqual(Array(7).fill(plan.targets.fatG))
+    expect(goals.proteins.days).toEqual([100, 100, 100, 100, 100, 150, 150])
+    expect(goals.calories.days).toEqual([2000, 2400, 2000, 2400, 2000, 2000, 2500])
+    expect(plan.skipped).toEqual(expect.arrayContaining(['calories', 'proteins']))
   })
 
   it('writes nothing when nothing changes', () => {

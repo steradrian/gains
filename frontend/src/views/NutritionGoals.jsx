@@ -7,7 +7,7 @@ import { nutritionAvailable } from '../lib/nutrition/api.js'
 import { energyOf } from '../lib/nutrition/diary.js'
 import { writeErrorText } from '../lib/nutrition/log-feedback.js'
 import {
-  MACROS, MAX_TEMPLATES, applyPreset, energyFromUnit, goalNotes, hasWearable, macroGrams,
+  MACROS, MAX_TEMPLATES, allDaysEdit, applyPreset, energyFromUnit, goalNotes, hasWearable, macroGrams,
   previewBase, toggleMacroUnit, waterFromUnit, waterToUnit, waterUnitOf, workoutAdjustState,
 } from '../lib/nutrition/goals.js'
 import { useGoalsForm } from '../lib/nutrition/use-goals-form.js'
@@ -19,6 +19,7 @@ import { confirmSheet } from '../sheets.jsx'
 import { targetWeightSheet } from './me/goal/goal-drawers.jsx'
 import { macroLabel, modeNote } from './me/goal/targets-data.js'
 import { Loading } from '../components/Loader.jsx'
+import GoalsByDay from './goals-by-day.jsx'
 
 const toast = message => useUI.getState().toast(message)
 
@@ -115,12 +116,17 @@ function GoalsForm({ form }) {
   const waterUnit = waterUnitOf(settings)
   const wearable = hasWearable(settings)
   const preview = previewBase(settings, draft, { caloriesOut: figures.caloriesOut, adaptive: figures.adaptive, date: todayISO() })
-  const grams = Object.fromEntries(MACROS.map(id => [id, macroGrams(draft.macros[id], id, preview.kcal)]))
+  const today = new Date(`${todayISO()}T00:00:00`).getDay()
+  const grams = Object.fromEntries(MACROS.map(id => [id, macroGrams({ ...draft.macros[id], value: draft.macros[id].days[today] }, id, preview.kcal)]))
   const notes = goalNotes(preview.kcal, grams)
   const workout = workoutAdjustState(draft.mode, figures.adaptive, figures.adaptiveStatus)
-  const anyWeekday = MACROS.some(id => draft.macros[id].perWeekday)
   const kcalCleared = draft.kcal == null && !draft.kcalPerWeekday && !!settings?.goals?.calories
   const kcalShown = draft.kcal == null ? null : energyOf(draft.kcal, settings).value
+  // Calories by day when the mode is Fixed; in the other modes one base serves every day.
+  const dayKcal = draft.mode === 'fixed' ? draft.kcalDays.map(v => v ?? preview.kcal) : null
+  // The fields on this page set every day. A target that differs by day shows blank, and the
+  // first step starts from today's.
+  const setKcalAll = v => { const e = allDaysEdit(energyFromUnit(v, settings)); patch({ kcal: e.value, kcalDays: e.days, kcalPerWeekday: false }) }
   const setMacro = (id, next) => patch(d => ({ macros: { ...d.macros, [id]: { ...d.macros[id], ...next } } }))
   const pickMode = mode => { if (mode !== 'dynamic' || wearable) patch({ mode }) }
 
@@ -135,14 +141,13 @@ function GoalsForm({ form }) {
             ? { ...o, disabled: true, ariaLabel: `${o.label}. ${t('Dynamic needs a connected wearable.')}` }
             : o))} />
       </Row>
-      {draft.kcalPerWeekday
-        ? <Row icon="target" iconTint="var(--red)" title={draft.mode === 'fixed' ? t('Daily target') : t('Fallback target')}
-            subtitle={t('Change it in NutriTrace.')} value={t('Varies by weekday')} />
-        : <Row icon="target" iconTint="var(--red)" title={draft.mode === 'fixed' ? t('Daily target') : t('Fallback target')}>
-            <Stepper value={kcalShown} step={unit === 'kJ' ? 100 : 50} min={unit === 'kJ' ? 5 : 1} decimal={false} unit={unit}
-              ariaLabel={t('Daily target')} invalid={kcalCleared}
-              onChange={v => patch({ kcal: energyFromUnit(v, settings) || null })} />
-          </Row>}
+      <Row icon="target" iconTint="var(--red)" title={draft.mode === 'fixed' ? t('Daily target') : t('Fallback target')}
+        subtitle={draft.kcalPerWeekday ? t('Varies by weekday') : undefined}>
+        <Stepper value={kcalShown} step={unit === 'kJ' ? 100 : 50} min={kcalShown == null && draft.kcalPerWeekday ? 0 : unit === 'kJ' ? 5 : 1} decimal={false} unit={unit}
+          ariaLabel={t('Daily target')} invalid={kcalCleared}
+          onStep={(v, step, dir) => (v ?? energyOf(draft.kcalDays[today] ?? preview.kcal, settings).value) + dir * step}
+          onChange={setKcalAll} />
+      </Row>
       {draft.mode !== 'fixed' && (
         <Row icon="slider" iconTint="var(--purple)" title={t('Goal factor')}>
           <Segmented className="seg-inline" options={factorOptions()} value={draft.factor} onChange={factor => patch({ factor })} />
@@ -168,23 +173,22 @@ function GoalsForm({ form }) {
       </Section>
     )}
 
-    <Section title={t('Macros')} footer={notes.length || anyWeekday ? <>
-      {notes.map(n => <span key={n.code}>{noteText(n, settings)} </span>)}
-      {anyWeekday && t('A macro that differs by weekday is left as it is when you pick a split.')}
-    </> : undefined}>
+    <Section title={t('Macros')} footer={notes.length ? notes.map(n => <span key={n.code}>{noteText(n, settings)} </span>) : undefined}>
       <SelectRow icon="chart" iconTint="var(--indigo)" title={t('Macro split')} value={null} options={presetOptions()}
-        onChange={name => { const macros = applyPreset(name, preview.kcal, draft.macros); if (macros) patch({ macros }) }} />
+        onChange={name => { const macros = applyPreset(name, preview.kcal, dayKcal); if (macros) patch(d => ({ macros: { ...d.macros, ...macros } })) }} />
       {MACROS.map(id => {
         const m = draft.macros[id]
-        if (m.perWeekday) return <Row key={id} title={macroLabel(id)} subtitle={t('Change it in NutriTrace.')} value={t('Varies by weekday')} />
-        return <Row key={id} title={macroLabel(id)}>
+        return <Row key={id} title={macroLabel(id)} subtitle={m.perWeekday ? t('Varies by weekday') : undefined}>
           <Stepper value={m.value} step={m.percent ? 1 : 5} max={m.percent ? 100 : Infinity} decimal={m.percent} unit={m.percent ? '%' : 'g'}
-            ariaLabel={macroLabel(id)} onChange={v => setMacro(id, { value: v || null })} />
+            ariaLabel={macroLabel(id)} onStep={(v, step, dir) => (v ?? m.days[today] ?? 0) + dir * step}
+            onChange={v => setMacro(id, allDaysEdit(v))} />
           <Segmented className="seg-inline" ariaLabel={t('{0} unit', macroLabel(id))} options={[{ value: 'g', label: 'g' }, { value: '%', label: '%' }]} value={m.percent ? '%' : 'g'}
-            onChange={() => setMacro(id, toggleMacroUnit(m, id, preview.kcal))} />
+            onChange={() => setMacro(id, toggleMacroUnit(m, id, preview.kcal, dayKcal))} />
         </Row>
       })}
     </Section>
+
+    <GoalsByDay draft={draft} patch={patch} settings={settings} today={today} />
 
     <Section title={t('Water')}>
       <Row icon="droplet" iconTint="var(--blue)" title={t('Daily water goal')}>

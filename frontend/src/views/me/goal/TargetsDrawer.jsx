@@ -91,7 +91,7 @@ function TargetsForm({ g, settings, close, lock }) {
 
   const row = (key, label, unit) => (
     initial.weekday[key]
-      ? <DetailRow key={key} title={label} sub={t('Change it in NutriTrace.')} value={t('Varies by weekday')} />
+      ? <DetailRow key={key} title={label} sub={t('Set it by day in the full editor.')} value={t('Varies by weekday')} />
       : <TextField key={key === 'carbohydrates' ? key + carbsKey : key} label={label} unit={unit} value={fields[key]} inputMode="decimal" onChange={v => set(key, v)} />
   )
   const fix = carbsG => { set('carbohydrates', String(carbsG)); setCarbsKey(k => k + 1) }

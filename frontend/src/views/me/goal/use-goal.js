@@ -14,8 +14,7 @@ import { applyWrites, planChange, useProfileWrites } from '../../../lib/me/goal-
 //              `rolledBack` is false, and `stuck` names the keys that could not be.
 //   undo()     puts the previous values back (the toast's Undo). It runs the journal's restore, so
 //              the Recent changes entry is marked restored and cannot be restored a second time.
-//   recomputed / skipped   whether the daily targets were rewritten, and which goals differ by
-//              weekday and were left alone.
+//   recomputed whether the daily targets were rewritten (on all seven days).
 // Without NutriTrace (`status` 'no-nutrition') only `setTargetWeight` exists.
 
 const noUndo = async () => ({ ok: true })
@@ -61,7 +60,7 @@ const change = (what, from, to, spec) => exclusive(async () => {
   const fresh = await freshSettings()
   if (!fresh.data) return { ok: false, changed: false, undo: null, error: fresh.error }
   const plan = planChange(fresh.data, useStore.getState().S, spec.change)
-  return commit({ what, from, to, writes: plan.writes, targetW: spec.targetW?.(), extra: spec.extra, result: { recomputed: plan.recomputed, skipped: plan.skipped, targets: plan.targets } })
+  return commit({ what, from, to, writes: plan.writes, targetW: spec.targetW?.(), extra: spec.extra, result: { recomputed: plan.recomputed, targets: plan.targets } })
 })
 
 const actionsFor = () => ({

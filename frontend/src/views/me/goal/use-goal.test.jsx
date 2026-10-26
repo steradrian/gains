@@ -100,7 +100,7 @@ describe('useGoal', () => {
   it('setGoal writes the tdee, the factor, then the goals, and journals it', async () => {
     await mount()
     const res = await run(() => out.current.actions.setGoal('lose'))
-    expect(res).toMatchObject({ ok: true, changed: true, recomputed: true, skipped: [] })
+    expect(res).toMatchObject({ ok: true, changed: true, recomputed: true })
     expect(calls.map(([k]) => k)).toEqual(['tdee', 'calorieGoalFactor', 'goals'])
     expect(calls[1]).toEqual(['calorieGoalFactor', 0.8])
     const d = draftOf(server)
