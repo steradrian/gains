@@ -69,7 +69,8 @@ const backStep = id => backSheet(useUI.getState(), id)
 const NO_SWAP = { out: new Set(), in: new Set() }
 const SwapContext = createContext(NO_SWAP)
 
-// One bottom sheet (or centered dialog) with swipe-to-dismiss.
+// One bottom sheet with swipe-to-dismiss. There is no centred dialog: a question is a sheet too
+// (confirmSheet), so the thumb that opened it reaches Cancel, and ui-guards G10 keeps it that way.
 function Sheet({ sheet, covered }) {
   const { closeSheet } = useUI()
   const ref = useRef(null)
@@ -81,9 +82,8 @@ function Sheet({ sheet, covered }) {
   // the top sheet that allows it is the one handler in Modals below. Focus goes back the moment the
   // sheet is closed, not when its way out has finished playing.
   const dialog = useRef(null)
-  useSheetDialog(dialog, present)
-  // A bottom sheet rises with its scrim and goes back down with it. The centred dialog keeps its
-  // CSS entrance for now and, like the viewer, goes at once.
+  useSheetDialog(dialog, present, sheet.role)
+  // A bottom sheet rises with its scrim and goes back down with it. The viewer goes at once.
   useEnterExit(phase => {
     if (sheet.kind !== 'sheet') return []
     if (phase === 'enter') return swap.in.has(sheet.id) ? [[ref.current, PRESETS.sheet]] : [[backdrop.current, PRESETS.backdrop], [ref.current, PRESETS.sheet]]
@@ -98,7 +98,7 @@ function Sheet({ sheet, covered }) {
   // horizontally under it (chip strips, heatmap) and the sheet stays put.
   const idle = () => ({ startX: null, startY: null, axis: null, delta: 0, vy: 0, lastY: 0, lastT: 0 })
   const drag = useRef(idle())
-  // While this drawer is up (a dialog over it included), the page's own background is its colour. An
+  // While this drawer is up (a question over it included: it is a `stack` sheet and leaves the colour to the drawer), the page's own background is its colour. An
   // installed iOS app can lose the bottom of its layout viewport (the status bar's height, 59px on
   // a 15 Pro Max) once a keyboard has been up: every fixed box, #modal-root included, then ends
   // that far above the screen's edge, and WebKit fills the strip below with the page's background.
@@ -106,7 +106,7 @@ function Sheet({ sheet, covered }) {
   // the drawer reads as reaching the edge (lib/sheet-keyboard.js --vp-short, index.css).
   useLayoutEffect(() => {
     const el = ref.current
-    if (sheet.kind !== 'sheet' || !present || !el) return
+    if (sheet.kind !== 'sheet' || sheet.stack || !present || !el) return
     const colour = el.ownerDocument?.defaultView?.getComputedStyle?.(el).backgroundColor
     const root = el.ownerDocument?.documentElement
     if (!colour || !root) return
@@ -181,7 +181,7 @@ function Sheet({ sheet, covered }) {
   const onMouseMove = e => move(e, e.clientX, e.clientY)
   const onMouseUp = () => onTouchEnd()
 
-  // non-passive touchmove so preventDefault works (bottom sheets only; centered dialogs have no ref)
+  // non-passive touchmove so preventDefault works (the viewer has no ref)
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -215,14 +215,6 @@ function Sheet({ sheet, covered }) {
   // backdrop to tap, no drag to dismiss — the viewer has its own close button, and back closes
   // it like any sheet.
   if (sheet.kind === 'viewer') return <div ref={dialog} {...layer}>{sheet.render(close)}</div>
-  if (sheet.kind === 'center') {
-    return (
-      <div {...layer}>
-        <div className="mback" aria-hidden="true" onClick={dismiss} />
-        <div className="center" ref={dialog}><EmptySurface value="sheet">{sheet.render(close)}</EmptySurface></div>
-      </div>
-    )
-  }
   const panelProps = { onTouchStart, onTouchEnd, onMouseDown, onMouseMove, onMouseUp, onMouseLeave: onMouseUp }
   // The design system's drawer draws its own scrim and panel (ds/BottomSheet.jsx), on these refs
   // and handlers: everything above applies to it as to any sheet.

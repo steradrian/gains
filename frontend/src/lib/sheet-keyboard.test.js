@@ -231,7 +231,7 @@ describe('the stylesheets', () => {
 
   it('leave out of the foot\'s safe-area padding what falls below a viewport iOS cut short', () => {
     expect(ds).toContain('padding: 8px 20px max(30px, calc(20px + var(--sab, 0px) - var(--vp-short, 0px)));')
-    expect(css).toContain('padding:8px 18px calc(20px + max(0px,var(--sab) - var(--vp-short,0px)));')
+    expect(css).toContain('padding:8px var(--sheet-gutter) calc(20px + max(0px,var(--sab) - var(--vp-short,0px)));')
   })
 
   it('give the page the drawer\'s colour while one is up, for the strip WebKit fills with it', () => {

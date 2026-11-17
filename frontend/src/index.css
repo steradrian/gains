@@ -188,7 +188,8 @@ p a,.small a,.dim a,.sect-f a{text-decoration:underline;text-underline-offset:2p
 :focus-visible{outline:2.5px solid var(--acc-ink);outline-offset:2px;border-radius:6px}
 /* A sheet takes the focus itself when it opens (lib/use-sheet-dialog.js): the dialog is where you
    are, not a control, so no ring around the whole sheet. Its controls keep theirs. */
-[role="dialog"][tabindex="-1"]:focus-visible{outline:none}
+[role="dialog"][tabindex="-1"]:focus-visible,
+[role="alertdialog"][tabindex="-1"]:focus-visible{outline:none}
 button,.chip,.tile,.item,.cal-d,.lrow,.seg button,.stp button,.sld
 {-webkit-user-select:none;user-select:none}
 
@@ -434,7 +435,7 @@ h4.sec{
 .btn.sm{padding:8px 14px;width:auto;font-size:15px;border-radius:var(--r-sm);gap:5px}
 .btn.sm .icn{font-size:16px}
 .btn.xs{padding:5px 10px;width:auto;font-size:13px;border-radius:7px;gap:4px}
-.btn:disabled{opacity:.32;pointer-events:none}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.32;pointer-events:none}
 
 
 /* NOTE on every backdrop-filter pair in this file: the -webkit- line comes first and the
@@ -1313,8 +1314,9 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
      lib/sheet-keyboard.js. The sheet keeps its height; the cap is what the keyboard leaves. */
   bottom:var(--kb,0px);
   border-radius:var(--r-xl) var(--r-xl) 0 0;
+  --sheet-gutter:18px;
   /* less any of the safe-area inset that falls below a viewport iOS cut short (--vp-short) */
-  padding:8px 18px calc(20px + max(0px,var(--sab) - var(--vp-short,0px)));
+  padding:8px var(--sheet-gutter) calc(20px + max(0px,var(--sab) - var(--vp-short,0px)));
   /* A tall sheet stops short of the status bar / Dynamic Island: every cap carries the top
      safe-area inset, which the layout viewport does not (viewport-fit=cover). */
   max-height:90vh;max-height:min(90vh,calc(var(--vvh,100%) - var(--sat) - 8px));
@@ -1334,20 +1336,6 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
   background:var(--bg-el);
 }
 :root[data-theme="light"] .picker-search{background:var(--bg)}
-.center{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  width:min(84vw,300px);background:var(--bg-el);border-radius:var(--r-lg);padding:20px;
-  max-height:calc(100dvh - 2*var(--sat) - 24px);overflow-y:auto;
-  box-shadow:0 20px 60px -12px rgba(0,0,0,.5);
-  animation:pop .28s var(--ease);
-}
-:root[data-theme="light"] .center{background:#fff}
-/* a dialog with a field centres in what the Android 15 keyboard leaves */
-:root[data-native-kb] .center{
-  top:calc((100% - var(--native-kb)) / 2);
-  max-height:calc(100dvh - var(--native-kb) - 2*var(--sat) - 24px);
-}
-@keyframes pop{from{transform:translate(-50%,-50%) scale(.94);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 
 /* --- glyph picker (replaces the emoji grid) --- */
 .glyph-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
@@ -1497,9 +1485,7 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
   body.no-tabbar :is(#app,.app-out){padding-bottom:calc(40px + var(--sab))}
   body.no-tabbar.resting :is(#app,.app-out){padding-bottom:calc(130px + var(--sab))}
   .tiles{grid-template-columns:repeat(4,1fr)}
-  .center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
   .sheet{left:50%;right:auto;margin-left:-320px;width:640px;border-radius:var(--r-xl) var(--r-xl) 0 0}
-  .center{width:340px}
   #timer{left:50%;right:auto;margin-left:-260px;width:520px;bottom:112px}
   body.no-tabbar #timer{left:50%;right:auto;bottom:16px;border-radius:var(--r-xl);padding-bottom:10px;box-shadow:var(--shadow-float)}
   .exmedia img,.exmedia video{height:380px}

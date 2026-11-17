@@ -14,6 +14,7 @@ import { SG_NAME_MAX } from '../lib/superset-meta.js'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import Icon from '../components/Icon.jsx'
 import { Button, Switch, SelectRow, Row } from '../components/ui.jsx'
+import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { exerciseMuscleSnapshot } from '../lib/muscles.js'
 import { buildCompletedWorkout, sessionEnd } from '../lib/finish-workout.js'
@@ -200,25 +201,26 @@ function LogPastWorkout({ initial, close }) {
     <Button variant="primary" onClick={submit}>{t('Continue')}</Button>
   </>
 }
-// Three ways out when the day already has a workout. Replacing with several on that day means
+// Three ways out when the day already has a workout. The reversible one comes first, so the tap
+// that opened this sheet can never land on Replace. Replacing with several on that day means
 // picking which one; the rest of the day is left alone. A workout with photos or videos says
 // they come along.
 function SameDayChoice({ iso, existing, onReplace, onAdd, close }) {
-  return <div style={{ textAlign: 'center', padding: '4px 0' }}>
-    <h3 style={{ marginBottom: 8 }}>{fmtDate(iso, true)}</h3>
-    <div className="muted" style={{ marginBottom: 18, lineHeight: 1.5 }}>{t('There is already a workout on that day.')}</div>
-    {existing.map(w => {
-      // Replacing re-logs the sets; the photos and videos move to the new record (completeBackfill).
-      const n = workoutMediaOf(w, Infinity).length
-      return <div key={w.id} style={{ marginBottom: 8 }}>
-        <button className="btn danger" onClick={() => onReplace(w.id)}>{existing.length > 1 ? t('Replace') + ' · ' + w.name : t('Replace')}</button>
-        {n > 0 && <div className="small dim samed-media" style={{ marginTop: 4 }}>{tn('Its photo or video moves to the new workout.', 'Its {0} photos or videos move to the new workout.', n)}</div>}
-      </div>
-    })}
-    <button className="btn primary" onClick={onAdd}>{t('Add as second workout')}</button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
-  </div>
+  return <>
+    <SheetHeader title={fmtDate(iso, true)} sub={t('There is already a workout on that day.')} />
+    <SheetActions>
+      <Button variant="primary" onClick={onAdd}>{t('Add as second workout')}</Button>
+      {existing.map(w => {
+        // Replacing re-logs the sets; the photos and videos move to the new record (completeBackfill).
+        const n = workoutMediaOf(w, Infinity).length
+        return <div key={w.id}>
+          <Button variant="danger" onClick={() => onReplace(w.id)}>{existing.length > 1 ? t('Replace') + ' · ' + w.name : t('Replace')}</Button>
+          {n > 0 && <div className="small dim samed-media mt-2">{tn('Its photo or video moves to the new workout.', 'Its {0} photos or videos move to the new workout.', n)}</div>}
+        </div>
+      })}
+      <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
+    </SheetActions>
+  </>
 }
 /**
  * Logs a past workout: checks the day, start and length, asks what to do when the day already has
@@ -240,7 +242,7 @@ export function submitPastWorkout({ iso, time = '18:00', durationMin, routineIds
   const existing = workoutsOn(S(), iso)
   if (!existing.length) { go(null); return true }
   ui().openSheet(c => <SameDayChoice iso={iso} existing={existing} close={c}
-    onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { kind: 'center' })
+    onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { role: 'alertdialog', stack: true })
   return true
 }
 
@@ -541,15 +543,15 @@ export function exitWorkoutEdit(onExit = () => nav('/train/history')) {
   }
   // Nothing to save: closing just closes, as it does for a workout only looked at.
   if (editChangesNothing(S())) { leave(); return }
+  // Any other way out is Keep editing: the sheet closes and the edits stay where they are.
   prompt.id = ui().openSheet(close => <>
-    <h3>{t('Save workout changes?')}</h3>
-    <p className="muted">{t('Save your edits to this workout, or keep the original record.')}</p>
-    <Button variant="primary" onClick={() => { close(); saveWorkoutEdits(done) }}>{t('Save changes')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); leave() }}>{t("Don't save")}</Button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Keep editing')}</Button>
-  </>, { kind: 'center' })?.id
+    <SheetHeader title={t('Save workout changes?')} sub={t('Save your edits to this workout, or keep the original record.')} />
+    <SheetActions>
+      <Button variant="primary" onClick={() => { close(); saveWorkoutEdits(done) }}>{t('Save changes')}</Button>
+      <Button variant="danger" onClick={() => { close(); leave() }}>{t("Don't save")}</Button>
+      <Button variant="ghost" className="dim" onClick={close}>{t('Keep editing')}</Button>
+    </SheetActions>
+  </>, { role: 'alertdialog', stack: true })?.id
   savePrompt = prompt
 }
 

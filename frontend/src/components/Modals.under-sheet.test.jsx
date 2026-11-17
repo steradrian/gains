@@ -53,16 +53,15 @@ describe('the page under a drawer takes the drawer\'s colour', () => {
     expect(under()).toBe('rgb(22, 22, 21)')
   })
 
-  it('a centred dialog is not a drawer: the page keeps its background', async () => {
-    await act(async () => { ui().openSheet(() => <p>Sure?</p>, { kind: 'center' }) })
-    expect(document.querySelector('.center')).not.toBe(null)
+  it('a question is not a drawer: the page keeps its background', async () => {
+    await act(async () => { ui().openSheet(() => <p>Sure?</p>, { stack: true }) })
     expect(under()).toBe(null)
   })
 
   it('a dialog over a drawer: the drawer is still on screen, so the page keeps its colour', async () => {
     await act(async () => { ui().openSheet(() => <BottomSheet title="Exercise"><p>body</p></BottomSheet>, { variant: 'ds' }) })
     let dialog
-    await act(async () => { dialog = ui().openSheet(() => <p>Sure?</p>, { kind: 'center' }) })
+    await act(async () => { dialog = ui().openSheet(() => <p>Sure?</p>, { stack: true }) })
     expect(ui().sheets).toHaveLength(2)
     expect(under()).toBe('rgb(255, 255, 255)')
     await act(async () => { dialog.close() })

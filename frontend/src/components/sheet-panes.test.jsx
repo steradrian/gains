@@ -80,11 +80,11 @@ describe('opening a sheet from inside an open one', () => {
     expect(sheetEntryCount(ui().sheets)).toBe(2)
   })
 
-  it('leaves a centred dialog to stack, over a drawer and its panels alike', async () => {
+  it('leaves a question (stack: true) to stack, over a drawer and its panels alike', async () => {
     open(close => <Menu close={close} next={() => {}} />)
     open(() => <h3>Panel</h3>)
-    open(c => <Menu title="Sure?" close={c} />, { kind: 'center' })
-    expect(ui().sheets.map(s => s.kind)).toEqual(['sheet', 'center'])
+    open(c => <Menu title="Sure?" close={c} />, { stack: true })
+    expect(ui().sheets.map(s => s.stack)).toEqual([false, true])
     expect(panelsOf()).toEqual([1, 0])
   })
 

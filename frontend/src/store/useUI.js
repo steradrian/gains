@@ -239,7 +239,7 @@ export function drawerFlow(open) {
 let panelClosedIn = null
 
 export const useUI = create((set, get) => ({
-  sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center'|'viewer', locked, onDismiss }
+  sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'viewer', locked, onDismiss }
   toastMsg: '',
   toastId: 0,          // which toast is showing, for a swipe or tap that may land after it was replaced
   toastAction: null,  // { label, run, id, icon, ms, body, onClose } while the toast offers an action (Undo)
@@ -260,35 +260,40 @@ export const useUI = create((set, get) => ({
 
   // `onDismiss` runs when the sheet is sent off other than by its own buttons: the backdrop, a drag,
   // Escape, Android back (components/Modals.jsx). A sheet whose Cancel does something passes the
-  // same handler, so every way out behaves like Cancel.
+  // same handler, so every way out behaves like Cancel. `role: 'alertdialog'` for a sheet that
+  // interrupts with a question to weigh (lib/use-sheet-dialog.js); the default is a dialog.
   // `variant: 'ds'` draws it as the design system's drawer: `render` returns a ds/BottomSheet.
   //
   // A drawer is never opened on top of a drawer. A `kind: 'sheet'` opened while the top of the stack
   // is a drawer joins it as a sub-panel (`panels`, components/sheet-panes.jsx): it slides in inside
   // the same drawer, one history entry each, and its close (and `lock`) act on that panel alone.
-  // Centred dialogs and viewers still stack, over a drawer and its panels alike.
-  openSheet(render, { kind = 'sheet', locked = false, onDismiss, variant } = {}) {
+  // Viewers still stack, over a drawer and its panels alike, and so does a question (`stack: true`:
+  // confirmSheet and the like): a bottom sheet of its own over the drawer, so what it asks is not
+  // read as one more step of the drawer.
+  openSheet(render, { kind = 'sheet', locked = false, onDismiss, variant, role, stack = false } = {}) {
     const id = uid()
     const flow = flowNext
     flowNext = false
-    let host = kind === 'sheet' ? get().sheets.at(-1) : null
+    let host = kind === 'sheet' && !stack ? get().sheets.at(-1) : null
     // `close(); open()` from a sub-panel is a replacement, not a step: the sheet it opens starts a
     // fresh root (no back chevron, nothing to go back to) and the drawer it left is gone.
     if (host && host.id === panelClosedIn) {
       set(s => ({ sheets: s.sheets.filter(x => x.id !== host.id) }))
       host = null
     }
-    if (host?.kind === 'sheet') {
-      set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: [...(x.panels || []), { id, render, locked, onDismiss, variant, flow }] } : x) }))
+    if (host?.kind === 'sheet' && !host.stack) {
+      set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: [...(x.panels || []), { id, render, locked, onDismiss, variant, role, flow }] } : x) }))
       return {
         id,
         close: () => get().closeSheet(id),
         lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: (x.panels || []).map(p => p.id === id ? { ...p, locked: v } : p) } : x) })),
       }
     }
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, variant, panels: [] }] }))
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, variant, role, stack, panels: [] }] }))
     const close = () => get().closeSheet(id)
-    return { id, close, lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) })) }
+    // A lock that is already the value asked for writes nothing: no new sheets array, no re-render.
+    const lock = v => set(s => s.sheets.some(x => x.id === id && x.locked !== v) ? { sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) } : s)
+    return { id, close, lock }
   },
   // A drawer, or a sub-panel of one: a panel takes the panels pushed after it along.
   closeSheet(id) {

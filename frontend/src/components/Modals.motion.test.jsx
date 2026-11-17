@@ -129,7 +129,7 @@ describe('a bottom sheet\'s way in and out', () => {
   it('closes every sheet at once on closeAll, each history entry walked back, each leaving where it stands', async () => {
     const go = vi.spyOn(history, 'go').mockImplementation(() => {})
     open(c => <Plain title="First" close={c} />)
-    open(c => <Plain title="Second" close={c} />, { kind: 'center' })
+    open(c => <Plain title="Second" close={c} />, { stack: true })
     const sheets = all('.sheet, .center')
     expect(sheets).toHaveLength(2)
 
@@ -248,7 +248,7 @@ describe('every way out is a Cancel', () => {
     expect(onCancel).toHaveBeenCalledTimes(2)
 
     act(() => { confirmSheet({ title: 'Delete it?', onConfirm, onCancel }) })
-    await click(all('.center button').find(b => b.textContent === 'Cancel'))
+    await click(all('.sheet button').find(b => b.textContent === 'Cancel'))
     expect(onCancel).toHaveBeenCalledTimes(3)
     expect(onConfirm).not.toHaveBeenCalled()
   })

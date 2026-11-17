@@ -308,7 +308,7 @@ describe('How to (W1.14, W1.33, W1.34, W1.43)', () => {
     tap(rowOf())
     const sheets = useUI.getState().sheets
     expect(sheets[0].id).toBe(how.id)
-    expect(sheets.at(-1).kind).toBe('center')
+    expect(sheets.at(-1).stack).toBe(true)
   })
 })
 
