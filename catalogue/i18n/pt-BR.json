@@ -27252,5 +27252,21 @@
       "Faça uma breve pausa no alto e depois abaixe lentamente o calcanhar esquerdo até a posição inicial.",
       "Repita pelo número desejado de repetições e depois troque para a perna direita."
     ]
-  }
+  },
+  "12101": { "name": "corrida" },
+  "12102": { "name": "ciclismo" },
+  "12103": { "name": "sessão de natação" },
+  "12104": { "name": "trilha" },
+  "12105": { "name": "caminhada ao ar livre" },
+  "12106": { "name": "remo" },
+  "12107": { "name": "futebol" },
+  "12108": { "name": "tênis" },
+  "12109": { "name": "basquete" },
+  "12110": { "name": "padel" },
+  "12111": { "name": "escalada" },
+  "12112": { "name": "sessão de ioga" },
+  "12113": { "name": "vôlei" },
+  "12114": { "name": "badminton" },
+  "12115": { "name": "dança" },
+  "12116": { "name": "outra atividade" }
 }

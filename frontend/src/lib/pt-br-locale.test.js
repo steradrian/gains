@@ -41,7 +41,7 @@ describe('Brazilian Portuguese locale', () => {
     // has to be taught is a number nobody reads. What the numbers stood for is asserted above.
     // If the hash fails, review the changed keys and wording before accepting a new one. From
     // frontend/: node scripts/pt-br-inheritance-fingerprint.mjs --list
-    expect(fingerprint, 'pt-PT inheritance changed; review the inherited pt-BR wording').toBe('ef06ff402c84e89090ffb16f3106509732cecd23ce6b320c6eb5904654772cba')
+    expect(fingerprint, 'pt-PT inheritance changed; review the inherited pt-BR wording').toBe('a098ac53610d193a3c539e4d2a866c606f367f225efe90d4f95f24500cb1df79')
   })
 
   // pt-PT labelled Unpair 'Desfazer': Undo, in Portuguese (it is pt-BR's Undo), on the button that
@@ -65,7 +65,7 @@ describe('Brazilian Portuguese locale', () => {
     expect(ptBR['resistance band']).toBe('faixa elástica')
     expect(ptBR.soleus).toBe('sóleo')
     expect(ptBR.Unpair).toBe('Desvincular')
-    expect(ptBR['Choose starter plan']).toBe('Escolha um plano inicial')
+    expect(ptBR['Got a plan from a friend?']).toBe('Recebeu um plano de um amigo?')
     // The sign-in e-mail's strings are overridden, not inherited: pt-PT says palavra-passe and «».
     expect(ptBR['Wrong name, e-mail or password.']).toBe('Nome, e-mail ou senha incorretos.')
     expect(ptBR['Sign-in e-mail']).toBe('E-mail de login')

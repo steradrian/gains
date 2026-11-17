@@ -27252,5 +27252,21 @@
       "Haz una pausa por un momento en la parte superior, luego baja lentamente el talón izquierdo de vuelta a la posición inicial.",
       "Repite el número de repeticiones deseado, luego cambia a la pierna derecha."
     ]
-  }
+  },
+  "12101": { "name": "correr" },
+  "12102": { "name": "ciclismo" },
+  "12103": { "name": "sesión de natación" },
+  "12104": { "name": "senderismo" },
+  "12105": { "name": "caminata al aire libre" },
+  "12106": { "name": "remo" },
+  "12107": { "name": "fútbol" },
+  "12108": { "name": "tenis" },
+  "12109": { "name": "baloncesto" },
+  "12110": { "name": "pádel" },
+  "12111": { "name": "escalada" },
+  "12112": { "name": "sesión de yoga" },
+  "12113": { "name": "voleibol" },
+  "12114": { "name": "bádminton" },
+  "12115": { "name": "baile" },
+  "12116": { "name": "otra actividad" }
 }

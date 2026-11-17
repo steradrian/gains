@@ -72,7 +72,8 @@ import { offProductUrl, offSearchUrl } from './off.js'
  * GET /api/activity/:date rows. `source: 'opengym'` rows are the hub's workout entries;
  * `covered_by` names the wearable whose active kcal count instead that day (else null).
  * @typedef {{ id: number, date: string, name: string, kcal: number, duration_min: number|null,
- *   source: string, external_id?: string|null, covered_by: string|null }} ActivityRow
+ *   distance?: number|null, is_template?: number, source: string, external_id?: string|null,
+ *   covered_by: string|null }} ActivityRow
  */
 /** @typedef {{ date: string, manual: number, wearable: number, effective: number, covered_by: string|null, policy: string }} ActivitySum */
 /**
@@ -239,6 +240,14 @@ export const NtApi = {
   getActivity: date => nt('GET', `/api/activity/${date}`),
   /** @returns {Promise<ActivitySum>} */
   getActivitySum: (date, policy) => nt('GET', `/api/activity/sum/${date}?policy=${encodeURIComponent(policy || 'wearable_wins')}`),
+  /** Eat root m3: logs a manual activity on `date` (POST /api/activity). The hub forwards only the
+   *  routes it lists; this one and updateActivity need an entry there (see the Eat root-m3 hand-back).
+   *  @returns {Promise<ActivityRow>} */
+  createActivity: (date, { name, kcal, duration_min, distance }) =>
+    nt('POST', '/api/activity', { date, name, kcal, duration_min, ...(distance != null ? { distance } : {}) }),
+  /** Changes one activity row; NutriTrace keeps the fields left out and marks a hub workout edited
+   *  so a later sync does not write its estimate back. @returns {Promise<ActivityRow>} */
+  updateActivity: (id, fields) => nt('PUT', `/api/activity/${encodeURIComponent(id)}`, fields),
   /** Dynamic goal: yesterday's wearable burn for the date. @returns {Promise<{ calories_out: number|null }>} */
   getCaloriesOut: date => nt('GET', `/api/wellness/calories-out?date=${date}`),
   /** Learned from 35 days of weight and diary (server/lib/adaptive-tdee.js).

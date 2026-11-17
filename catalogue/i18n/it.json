@@ -27252,5 +27252,21 @@
       "Fai una pausa per un momento in alto, quindi abbassa lentamente il tallone sinistro fino alla posizione iniziale.",
       "Ripeti per il numero di ripetizioni desiderato, quindi passa alla gamba destra."
     ]
-  }
+  },
+  "12101": { "name": "corsa" },
+  "12102": { "name": "ciclismo" },
+  "12103": { "name": "sessione di nuoto" },
+  "12104": { "name": "escursionismo" },
+  "12105": { "name": "camminata all'aperto" },
+  "12106": { "name": "canottaggio" },
+  "12107": { "name": "calcio" },
+  "12108": { "name": "tennis" },
+  "12109": { "name": "pallacanestro" },
+  "12110": { "name": "padel" },
+  "12111": { "name": "arrampicata" },
+  "12112": { "name": "sessione di yoga" },
+  "12113": { "name": "pallavolo" },
+  "12114": { "name": "badminton" },
+  "12115": { "name": "danza" },
+  "12116": { "name": "altra attività" }
 }

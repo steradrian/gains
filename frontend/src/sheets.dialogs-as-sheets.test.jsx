@@ -11,7 +11,7 @@ import Modals, { scrollRestorePending } from './components/Modals.jsx'
 import { leaveServer } from './components/ServerSync.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { askAddDeviceData, confirmSheet, exitWorkoutEdit, finishWorkout, logPastWorkoutSheet, workoutCompleteSheet } from './sheets.jsx'
+import { askAddDeviceData, confirmSheet, exitWorkoutEdit, logPastWorkoutSheet } from './sheets.jsx'
 import { back } from './lib/use-tab-nav.js'
 import { editCompletedSession } from './lib/session-edit.js'
 import { EXDB } from './lib/exercises-data.js'
@@ -223,45 +223,6 @@ describe('the same-day choice', () => {
   })
 })
 
-describe('workout complete', () => {
-  const KEEP_GOING = 'Keep going: tap “+ Add exercise” below'
-
-  it('is a bottom sheet with its centred hero, Finish workout as primary and Continue workout as plain', () => {
-    act(() => workoutCompleteSheet())
-    expect(document.querySelector('.center')).toBeNull()
-    expect(top().querySelector('.sheet-hero')).toBeTruthy()
-    expect(top().querySelector('h3').classList.contains('ta-center')).toBe(true)
-    expect(labels()).toEqual(['Finish workout', 'Continue workout'])
-    expect(variant(btn('Finish workout'))).toEqual(['primary'])
-    expect(variant(btn('Continue workout'))).toEqual(['plain'])
-  })
-
-  it('Continue workout closes it and says Keep going', async () => {
-    act(() => workoutCompleteSheet())
-    await click(btn('Continue workout'))
-    expect(sheets()).toHaveLength(0)
-    expect(useUI.getState().toastMsg).toBe(KEEP_GOING)
-  })
-
-  it('the backdrop and Escape say Keep going too: they are Continue', async () => {
-    act(() => workoutCompleteSheet())
-    await backdrop()
-    expect(sheets()).toHaveLength(0)
-    expect(useUI.getState().toastMsg).toBe(KEEP_GOING)
-    useUI.setState({ toastMsg: '' })
-    act(() => workoutCompleteSheet())
-    await escape()
-    expect(useUI.getState().toastMsg).toBe(KEEP_GOING)
-  })
-
-  it('Finish workout closes it without the Keep going toast', async () => {
-    act(() => workoutCompleteSheet())
-    await click(btn('Finish workout'))
-    expect(sheets()).toHaveLength(0)
-    expect(useUI.getState().toastMsg).not.toBe(KEEP_GOING)
-  })
-})
-
 describe('Save workout changes?', () => {
   const A = EXDB.find(e => e.bp !== 'cardio').id
   const record = () => ({
@@ -315,69 +276,6 @@ describe('Save workout changes?', () => {
     expect(sheets()).toHaveLength(0)
     expect(onExit).not.toHaveBeenCalled()
     expect(S().active.entries[0].sets[0].w).toBe(50)
-  })
-})
-
-describe('the finish summary', () => {
-  beforeEach(() => {
-    const st = clone(DEF)
-    st.active = {
-      id: 'fin', d: '2026-09-28', start: Date.now() - 20 * 60000, routineId: null, name: 'Core', bw: null, cur: 0,
-      entries: [{ id: EXDB[0].id, target: { mode: 'reps', sets: 1, reps: 5, weight: 40 }, sets: [{ w: 40, r: 5, done: true }] }],
-    }
-    useStore.setState({ S: st, user: null })
-    act(() => finishWorkout())
-  })
-
-  it('is an unlocked bottom sheet, not a centred box, with the four tiles in the sheet\'s own width', () => {
-    expect(sheets()).toHaveLength(1)
-    expect(sheets()[0].locked).toBe(false)
-    expect(top().querySelector('.grab')).toBeTruthy()
-    expect(document.querySelector('.center')).toBeNull()
-    expect(top().querySelector('h3').textContent).toBe('Workout complete!')
-    expect(top().querySelectorAll('.tiles > .tile')).toHaveLength(4)
-  })
-
-  it('keeps Nice! in a sticky footer that is the last thing in the sheet', () => {
-    const foot = top().querySelector(':scope > .sheet-foot')
-    expect(foot).toBeTruthy()
-    expect(top().lastElementChild).toBe(foot)
-    expect(labels(foot)).toEqual(['Nice!'])
-    expect(variant(btn('Nice!'))).toEqual(['primary'])
-  })
-
-  it('Nice! goes back once', async () => {
-    await click(btn('Nice!'))
-    expect(sheets()).toHaveLength(0)
-    expect(back).toHaveBeenCalledTimes(1)
-  })
-
-  it('the backdrop goes back exactly as Nice! does: the workout is saved, there is nothing to protect', async () => {
-    await backdrop()
-    expect(sheets()).toHaveLength(0)
-    expect(back).toHaveBeenCalledTimes(1)
-  })
-
-  it('Escape goes back too', async () => {
-    await escape()
-    expect(sheets()).toHaveLength(0)
-    expect(back).toHaveBeenCalledTimes(1)
-  })
-
-  it('has saved the workout by the time it is up, so letting go of the sheet loses nothing', () => {
-    expect(S().workouts).toHaveLength(1)
-    expect(S().workouts[0].name).toBe('Core')
-    expect(S().active).toBeNull()
-  })
-
-  it('a long pull down dismisses it and goes back once; a short one springs back', async () => {
-    await drag(top(), 20)
-    expect(sheets()).toHaveLength(1)
-    expect(back).not.toHaveBeenCalled()
-    await drag(top(), 150)
-    expect(sheets()).toHaveLength(0)
-    expect(back).toHaveBeenCalledTimes(1)
-    expect(S().workouts).toHaveLength(1)
   })
 })
 

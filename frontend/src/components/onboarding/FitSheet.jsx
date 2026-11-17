@@ -5,17 +5,19 @@ import { SheetActions, SheetHeader } from '../sheet-layout.jsx'
 import { Button } from '../ui.jsx'
 import ChoiceChips from './ChoiceChips.jsx'
 
-// 5a's "Fitted to … · Change": the experience and the equipment the starter plan is cut for. Each
-// pick applies at once (onChange), so the plan behind the sheet follows.
+// 5a's "Fitted to … · Change" (board O2.10f, in the app's own sheet until the light drawer comes
+// app-wide): the experience and the equipment the starter plan is cut for. Each pick applies at
+// once (onChange), so the plan behind the sheet follows.
 export default function FitSheet({ experience, equipment, onChange, close }) {
   const [exp, setExp] = useState(experience)
   const [eq, setEq] = useState(equipment)
   return <>
-    <SheetHeader title={t('Fit the plan to you')} />
-    <ChoiceChips label={t('Experience')} options={EXPERIENCE_OPTIONS()} value={exp}
+    <SheetHeader title={t('Fitted to')} onClose={close} />
+    <ChoiceChips label={t('Your experience')} options={EXPERIENCE_OPTIONS()} value={exp}
       onPick={v => { setExp(v); onChange({ experience: v }) }} />
     <ChoiceChips label={t('What you can use')} options={EQUIPMENT_OPTIONS()} value={eq}
       onPick={v => { setEq(v); onChange({ equipment: v }) }} />
+    <p className="ob-sheet-text">{t('Exercises swap for what you have: Dumbbells only turns Bench press into Dumbbell bench press.')}</p>
     <SheetActions>
       <Button variant="primary" onClick={close}>{t('Done')}</Button>
     </SheetActions>

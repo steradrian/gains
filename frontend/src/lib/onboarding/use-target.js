@@ -64,6 +64,14 @@ export function useTarget(answers, uid) {
 
 export const kcalText = n => Math.round(n).toLocaleString(dateLocale())
 
+/**
+ * The target's pace and mode, as the hub sets them: its goal answer has no pace (each goal has one
+ * factor, gains-hub src/onboarding/targets.ts GOAL_FACTOR, read as Steady), and completing always
+ * starts NutriTrace's calorie goal Adaptive (writes.ts, CALORIE_GOAL_MODE). Nothing here can
+ * change either (board O2.12a shows them read-only).
+ */
+export const TARGET_SETTINGS = { pace: 'steady', mode: 'adaptive' }
+
 /** The caption a settled answer leaves: the target as it stands now. */
 export function targetSentence(target) {
   if (target.exact != null) return t('Your starting target: {0} kcal a day.', kcalText(target.exact))

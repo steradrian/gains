@@ -29,12 +29,11 @@ describe('exerciseNameText', () => {
 })
 
 // QA 1.3.9: the accent swatches' screen-reader names were the internal keys ("lime", "sky").
-describe('ACCENT_NAMES', () => {
+describe('theme names', () => {
   it('names every accent, in every language pack', async () => {
-    const { ACCENTS, ACCENT_NAMES } = await import('./format.js')
-    expect(Object.keys(ACCENT_NAMES).sort()).toEqual(Object.keys(ACCENTS).sort())
+    const { THEMES } = await import('./themes.js')
     const packs = import.meta.glob('../locales/*.js', { eager: true, import: 'default' })
     for (const [file, pack] of Object.entries(packs))
-      for (const name of Object.values(ACCENT_NAMES)) expect(pack[name], `${file}: ${name}`).toBeTruthy()
+      for (const { name } of THEMES) expect(pack[name], `${file}: ${name}`).toBeTruthy()
   })
 })

@@ -1,13 +1,13 @@
 // While the search is open the page behind it is out of reach (fitness-eval ux-search.md §6): the
 // overlay is not a modal dialog, so it is the page that is made inert, not the overlay that traps.
-// What stays live is the header (the pill and the avatar's ×), the overlay with its results, the
+// What stays live is the header (the pill and the bell's ×), the overlay with its results, the
 // sheets (#modal-root: one opened over the overlay is a dialog of its own) and the toast's text;
 // everything else in the document is held, whatever it is and whenever it mounts: the rest of
 // #app, the tab bar, the live dock or rest timer, the sync banner.
 //
 // The hold is a state worked out from the document, not an action taken at one moment: the
-// header is a child of #app (layout.jsx), so #app itself cannot be inert, it is everything beside
-// the header's way up that is, level by level; and the document changes under it (#app is keyed
+// header (the pinned ds/StageHeader: RootHeader, TodayScreen) is inside #app, so #app itself
+// cannot be inert, it is everything beside the header's way up that is, level by level; and the document changes under it (#app is keyed
 // on the route and remounts on every navigation, a view renders its header or a block under it
 // once its data lands, the timer mounts when a rest starts, the banner when the connection
 // drops). So it is worked out again on every change to the tree, and the release lifts exactly
@@ -19,7 +19,7 @@
 // commit before the tab root it goes back to replaces it).
 
 // Left live, whole: a held element's subtree is held with it (inert is inherited downward).
-const LIVE = '#app .tab-hdr, #gains-search, #modal-root, #toast'
+const LIVE = '#app .g-shdr-pin, #gains-search, #modal-root, #toast'
 // A toast's text is a live region, which must keep announcing; its action is a control.
 const CONTROLS = '#toast button'
 const SKIP = new Set(['SCRIPT', 'STYLE', 'LINK', 'NOSCRIPT', 'TEMPLATE'])

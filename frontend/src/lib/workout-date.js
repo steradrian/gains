@@ -10,6 +10,7 @@
 import { insertChronological, backfillStart } from './backfill.js'
 import { bestWeightForEntry } from './history.js'
 import { beatsWeight } from './exercises.js'
+import { countsForRecords } from './workout-parts.js'
 import { stampWorkout } from './sync-merge.js'
 
 // Before ids existed a workout was keyed for sync by its day and start time
@@ -68,6 +69,8 @@ export function rebuildPrHistory(workouts, exerciseIds, moved = null) {
     for (const e of w.entries || []) {
       if (!ids.has(e.id)) continue
       trains = true
+      // A warm-up or cool-down exercise never holds a record; a badge it carried is revoked.
+      if (!countsForRecords(e)) continue
       const top = bestWeightForEntry(e)
       // Leads everything dated before it. The running best grows whether or not a badge is
       // written, so a session that cannot gain one still raises the bar for the next. "Leads"

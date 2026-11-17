@@ -33,3 +33,20 @@ test('every root-level module server.js needs is on the Dockerfile COPY line', (
   assert.deepEqual(missing, [], `add ${missing.join(', ')} to the COPY line in api/Dockerfile`);
   for (const f of copied) assert.ok(fs.existsSync(path.join(API, f)), `${f} is copied but does not exist`);
 });
+
+// Friends api m1: a folder server.js imports from is copied whole, and what its modules import
+// from the api root is on the COPY line too.
+test('every folder server.js imports from is copied, with the root modules it needs', () => {
+  const lines = read('Dockerfile').split('\n');
+  const copied = new Set(lines.find(l => /^COPY\s+server\.js\b/.test(l)).trim().split(/\s+/).slice(1, -1));
+  const dirs = new Set([...read('server.js').matchAll(/from\s+['"]\.\/([a-z-]+)\/[^'"]+\.js['"]/g)].map(m => m[1]));
+  assert.ok(dirs.has('coach') && dirs.has('friends'), [...dirs].join(', '));
+  for (const dir of dirs) {
+    assert.ok(lines.some(l => l.trim() === `COPY ${dir} ./${dir}`), `add "COPY ${dir} ./${dir}" to api/Dockerfile`);
+  }
+  for (const f of fs.readdirSync(path.join(API, 'friends')).filter(n => n.endsWith('.js'))) {
+    for (const m of read(path.join('friends', f)).matchAll(/from\s+['"]\.\.\/([^'"/]+\.js)['"]/g)) {
+      assert.ok(copied.has(m[1]), `friends/${f} imports ../${m[1]}, which the COPY line leaves out`);
+    }
+  }
+});

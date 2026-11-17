@@ -32,7 +32,7 @@ function type(el, value) {
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
 const leave = el => el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
-const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Save').click()
+const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done').click()
 
 describe('exercise settings: typing into a field with a minimum', () => {
   beforeEach(() => {
@@ -101,11 +101,13 @@ describe('exercise settings: a timed bodyweight hold', () => {
     document.body.innerHTML = ''
   })
   afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+  // The weight of a set is a field of the sets table; the added load is a stepper below it.
   const labels = host => [...host.querySelectorAll('.stp-l')].map(l => l.textContent)
+  const weightFields = host => host.querySelectorAll('.g-sett input[aria-label="Weight (kg)"]')
 
   it('has one weight field, the added load, and talks about the hold', () => {
     const { host } = renderConfig({ mode: 'time', sec: 45, weight: 0, bodyweight: true })
-    expect(labels(host)).not.toContain('Weight (kg)')
+    expect(weightFields(host)).toHaveLength(0)
     expect(labels(host).filter(l => l === 'Added (kg)')).toHaveLength(1)
     expect(host.textContent).toContain('No weight to enter. Just time the hold.')
     expect(host.textContent).not.toContain('just log the reps')
@@ -113,7 +115,7 @@ describe('exercise settings: a timed bodyweight hold', () => {
 
   it('keeps the one weight field on a loaded hold', () => {
     const { host } = renderConfig({ mode: 'time', sec: 45, weight: 10, bodyweight: false })
-    expect(labels(host)).toContain('Weight (kg)')
+    expect(weightFields(host)).toHaveLength(1)
     expect(labels(host)).not.toContain('Added (kg)')
   })
 })

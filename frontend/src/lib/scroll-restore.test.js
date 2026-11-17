@@ -16,8 +16,9 @@ describe('the scroll on a route change', () => {
     expect(scrollAction({ first: false, samePath: true, navType: 'POP', tabSwitch: false })).toBe('keep')
   })
 
-  it('arriving in another tab restores its page, though the router calls it a push', () => {
-    expect(scrollAction({ first: false, samePath: false, navType: 'PUSH', tabSwitch: true })).toBe('restore')
-    expect(scrollAction({ first: false, samePath: false, navType: 'REPLACE', tabSwitch: true })).toBe('restore')
+  it('a tab switch always lands at the top, whatever the router calls it', () => {
+    expect(scrollAction({ first: false, samePath: false, navType: 'PUSH', tabSwitch: true })).toBe('top')
+    expect(scrollAction({ first: false, samePath: false, navType: 'REPLACE', tabSwitch: true })).toBe('top')
+    expect(scrollAction({ first: false, samePath: true, navType: 'REPLACE', tabSwitch: true })).toBe('top')
   })
 })

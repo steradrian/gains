@@ -5,6 +5,9 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// These tests are about the Coach being on; the "coming soon" switch has its own tests.
+vi.mock('../../lib/coach-availability.js', () => ({ COACH_COMING_SOON: false }))
 import { button, flush, mount, radio, rerender, saved, stubReload, unmountAll, where } from './onboarding.test-util.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -146,7 +149,7 @@ describe('a shared device', () => {
     unmountAll()
     const end = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(end, 'Go to Home').click() })
+    await act(async () => { button(end, 'Go to Today').click() })
     await flush()
     expect(hub.completeOnboarding).toHaveBeenCalledWith(expect.any(String), 'u1')
   })
@@ -193,13 +196,13 @@ describe('a shared device', () => {
     hub.completeOnboarding.mockRejectedValue(wrongUser())
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
     expect(reload).toHaveBeenCalledTimes(1)
     expect(sessionStorage.getItem(STORE)).toBeNull()
     expect(page.querySelector('h1').textContent).toBe('You’re all set, Maria')
-    expect(button(page, 'Go to Home').disabled).toBe(true)
+    expect(button(page, 'Go to Today').disabled).toBe(true)
   })
 
   it('a completion refused for someone else who has since signed in here ends on that person\'s own screen, with nothing of Maria\'s', async () => {
@@ -210,7 +213,7 @@ describe('a shared device', () => {
     hub.completeOnboarding.mockImplementationOnce(() => new Promise((_, reject) => { refuse = () => reject(wrongUser()) }))
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     mocks.user = BEA
     rerender()
     await flush()
@@ -219,7 +222,7 @@ describe('a shared device', () => {
     expect(reload).not.toHaveBeenCalled()
     expect(where(page)).toBe('/onboarding/finish')
     expect(JSON.stringify(kept())).not.toMatch(MARIAS)
-    expect(button(page, 'Go to Home').disabled).toBe(false)
+    expect(button(page, 'Go to Today').disabled).toBe(false)
   })
 
   it('a save at the finish refused as another account\'s starts the page over, instead of offering to try again for ever', async () => {
@@ -229,7 +232,7 @@ describe('a shared device', () => {
     hub.saveStep.mockRejectedValue(wrongUser())
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(reload).toHaveBeenCalledTimes(1)
     expect(hub.completeOnboarding).not.toHaveBeenCalled()
@@ -238,7 +241,7 @@ describe('a shared device', () => {
     expect(page.querySelector('h1').textContent).toBe('You’re all set, Maria')
     expect(page.textContent).not.toContain('Check your connection')
     expect(button(page, 'Try again')).toBeUndefined()
-    expect(button(page, 'Go to Home').disabled).toBe(true)
+    expect(button(page, 'Go to Today').disabled).toBe(true)
   })
 
   it('the app\'s store is held for the restart before the page reloads, without signing anyone out or leaving the flow', async () => {
@@ -248,7 +251,7 @@ describe('a shared device', () => {
     hub.completeOnboarding.mockRejectedValue(wrongUser())
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(mocks.holdForRestart).toHaveBeenCalledTimes(1)
     expect(mocks.holdForRestart.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0])
@@ -270,13 +273,13 @@ describe('a shared device', () => {
     const reload = stubReload()
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.saveStep).toHaveBeenCalledTimes(1)
     expect(reload).toHaveBeenCalledTimes(1)
     expect(hub.completeOnboarding).toHaveBeenCalledTimes(1)
     expect(page.textContent).not.toContain('Check your connection')
-    expect(button(page, 'Go to Home').disabled).toBe(true)
+    expect(button(page, 'Go to Today').disabled).toBe(true)
   })
 
   it('a save still waiting for A\'s turn is dropped when B signs in', async () => {
@@ -304,7 +307,7 @@ describe('the AI coach\'s consent', () => {
     saved({ uid: 'u1', answers: { goal: 'keep', body, trainingDays: 3, plan: coach }, unsaved: ['plan'], pick: 'coach' })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.saveStep).not.toHaveBeenCalled()
     expect(sentToHub()).not.toMatch(/consent/)
@@ -316,7 +319,7 @@ describe('the AI coach\'s consent', () => {
     saved({ answers: { goal: 'keep', body, trainingDays: 3, plan: coach }, unsaved: ['plan'], pick: 'coach' })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(where(page)).toBe('/onboarding/plan')
     expect(hub.saveStep).not.toHaveBeenCalled()
@@ -347,7 +350,7 @@ describe('the AI coach\'s consent', () => {
     mocks.sheets.length = 0
     const reloaded = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(reloaded, 'Go to Home').click() })
+    await act(async () => { button(reloaded, 'Go to Today').click() })
     await flush()
     expect(where(reloaded)).toBe('/onboarding/plan')
     expect(hub.completeOnboarding).not.toHaveBeenCalled()
@@ -366,7 +369,7 @@ describe('the AI coach\'s consent', () => {
     saved({ answers: { goal: 'keep', body, trainingDays: 3 } })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.completeOnboarding).toHaveBeenCalled()
     expect(where(page)).toBe('/home')
@@ -377,7 +380,7 @@ describe('the AI coach\'s consent', () => {
     saved({ answers: { goal: 'keep', body, trainingDays: 3, plan: { kind: 'none' } } })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(hub.completeOnboarding).toHaveBeenCalled()
     expect(where(page)).toBe('/home')
@@ -410,7 +413,7 @@ describe('leaving the flow', () => {
     saved({ answers: { goal: 'keep', body, trainingDays: 0 } })
     const page = mount('/onboarding/finish')
     await flush()
-    await act(async () => { button(page, 'Go to Home').click() })
+    await act(async () => { button(page, 'Go to Today').click() })
     await flush()
     expect(where(page)).toBe('/home')
     expect(sessionStorage.getItem(STORE)).toBeNull()

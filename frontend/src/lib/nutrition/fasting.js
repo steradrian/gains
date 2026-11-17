@@ -54,6 +54,45 @@ const dayOfInstant = ms => dayKey(new Date(ms))
 /** The one-letter weekday under a bar, in the UI language (a calendar day, 'YYYY-MM-DD'). */
 export const dayInitial = (day, locale) => new Date(day + 'T12:00:00').toLocaleDateString(locale, { weekday: 'narrow' })
 
+/** When a fast of `hours` that started at `startMs` reaches its goal. */
+export const endsAt = (startMs, hours) => startMs + hours * HOUR
+
+/** The notation of a built-in plan ("16:8"), or null for a custom number of hours. */
+export const planLabelOf = hours => PLANS.find(p => p.hours === hours)?.label ?? null
+
+/** Why `startMs` cannot be a fast's start at `now`: 'invalid', 'future', 'old' (further back than
+ *  `maxBackMs`), else null. The old line sits a minute inside the hub's, so a request in flight
+ *  does not cross it. */
+export function startProblem(startMs, now, maxBackMs = EDIT_BACKDATE_MS) {
+  if (!Number.isFinite(startMs)) return 'invalid'
+  if (startMs > now) return 'future'
+  if (startMs < now - maxBackMs + 60_000) return 'old'
+  return null
+}
+
+/** Whether a finished fast can be started again with its own start (the Undo of End): the hub
+ *  back-dates a start by 24 hours at most. */
+export const canReopen = (fast, now) => startProblem(startOf(fast), now, START_BACKDATE_MS) === null
+
+/** The longest finished fast, or null. */
+export function longestFast(history) {
+  let best = null
+  for (const f of history) if (f.end_at && (!best || lengthOf(f) > lengthOf(best))) best = f
+  return best
+}
+
+/** The next moment, at or after `now`, that has the clock time the last finished fast started
+ *  at. Null with no finished fast. */
+export function usualStart(history, now) {
+  const last = lastFinished(history)
+  if (!last) return null
+  const at = new Date(startOf(last))
+  const next = new Date(now)
+  next.setHours(at.getHours(), at.getMinutes(), 0, 0)
+  if (next.getTime() < now) next.setDate(next.getDate() + 1)
+  return next.getTime()
+}
+
 /** The last finished fast, by when it ended. */
 export function lastFinished(history) {
   let best = null

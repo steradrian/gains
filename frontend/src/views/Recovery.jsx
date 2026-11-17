@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useStore } from '../store/useStore.js'
 import { fmtNum } from '../lib/format.js'
 import { t, tn } from '../lib/i18n.js'
-import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { useFoodOn } from '../lib/nutrition/food-on.js'
 import { pointsOf, summaryOf } from '../lib/nutrition/trends.js'
 import { useFresh, useToday } from '../lib/nutrition/use-freshness.js'
 import { useWellness } from '../lib/nutrition/use-trends.js'
@@ -23,8 +22,7 @@ import { Loading } from '../components/Loader.jsx'
 export default function Recovery() {
   const nav = useNavigate()
   const { search } = useLocation()
-  const user = useStore(s => s.user)
-  const available = nutritionAvailable(user)
+  const available = useFoodOn()
   const { status, byDate, unavailable } = useWellness()
   const range = rangeFrom(search, storedRange())
   const today = useToday()

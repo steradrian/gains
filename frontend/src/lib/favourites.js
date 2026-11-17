@@ -1,5 +1,5 @@
 // Favourite exercises (issue #6): a personal shortlist that floats to the top of the picker,
-// the Library and the muscle explorer so building a routine takes fewer scrolls.
+// the Exercises page and the muscle explorer so building a routine takes fewer scrolls.
 //
 // Stored as a flat id list in synced state (S.favEx) — catalogue or custom ids alike. It is
 // personal, so it stays out of shared plan bundles (lib/plan-share.js) on purpose. Profiles

@@ -27252,5 +27252,21 @@
       "Tepe noktasında bir an duraklayın, ardından sol topuğunuzu yavaşça başlangıç ​​pozisyonuna indirin.",
       "İstenilen tekrar sayısı kadar tekrarlayın, ardından sağ bacağa geçin."
     ]
-  }
+  },
+  "12101": { "name": "koşu" },
+  "12102": { "name": "bisiklet" },
+  "12103": { "name": "yüzme seansı" },
+  "12104": { "name": "doğa yürüyüşü" },
+  "12105": { "name": "açık havada yürüyüş" },
+  "12106": { "name": "kürek" },
+  "12107": { "name": "futbol" },
+  "12108": { "name": "tenis" },
+  "12109": { "name": "basketbol" },
+  "12110": { "name": "padel" },
+  "12111": { "name": "tırmanış" },
+  "12112": { "name": "yoga seansı" },
+  "12113": { "name": "voleybol" },
+  "12114": { "name": "badminton" },
+  "12115": { "name": "dans" },
+  "12116": { "name": "diğer etkinlik" }
 }

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { estimateRange } from './estimate.js'
 import { moveSession, starterSessions, suggestedDays, templateFor } from './plans.js'
-import { checkP, dOf, evalAt, lineP, mixColour, planBetween, seg, EASE } from './thread-geometry.js'
+import { birthPlan, checkP, dOf, evalAt, lineP, mixColour, planBetween, seg, withFlight, EASE } from './thread-geometry.js'
 import { heightFrom, heightTo, localeUnits, parseHeight, parseWeight, weightFrom, weightTo, yearRange } from './units.js'
 
 const now = new Date('2026-10-15T12:00:00Z')
@@ -29,6 +29,13 @@ describe('the live target estimate', () => {
     expect(estimateRange({ goal: 'build', body: who }, now).lo).toBeGreaterThan(keep)
     expect(estimateRange({ goal: 'lose', body: who }, now).lo).toBeLessThan(keep)
     expect(estimateRange({ goal: 'keep', body: who, trainingDays: 4 }, now).lo).toBeGreaterThan(keep)
+  })
+
+  it('takes "Prefer not to say" as the average of the two formulas', () => {
+    // 6.25·170 + 9.99·70 − 4.92·36 = 1584.68; female −161, male +5, their average −78; × 1.2
+    // seated → 1708, 1908, 1808; rounded to 50.
+    const as = sex => estimateRange({ goal: 'keep', body: body({ sex, birthYear: 1990, heightCm: 170, weightKg: 70 }) }, now).lo
+    expect([as('female'), as('unspecified'), as('male')]).toEqual([1700, 1800, 1900])
   })
 })
 
@@ -112,5 +119,31 @@ describe('the thread\'s geometry', () => {
     expect(planBetween(at('line', 128), at('line', 128)).arrive).toBe(0)
     expect(planBetween(at('line', 128), at('line', 90)).arrive).toBe(320)
     expect(EASE(0.5)).toBeGreaterThan(0.5)
+  })
+
+  it('flies white at 2.5 and lands in the anchor\'s own look, the last frame exactly it', () => {
+    const FLOOR = 'rgba(255, 255, 255, 0.32)'
+    const flight = { w: 2.5, c: '#FFFFFF' }
+    const from = { form: 'line', p: lineP(16, 90, 304, 90), w: 1.5, c: FLOOR, o: 1 }
+    const to = { form: 'line', p: lineP(16, 128, 304, 128), w: 1.5, c: FLOOR, o: 1 }
+    const plan = withFlight(planBetween(from, to), to, flight)
+    const mid = evalAt(from, plan.segs, 160)
+    expect(mid.w).toBeCloseTo(2.5, 5)
+    expect(mid.c).toBe('#FFFFFF')
+    const end = evalAt(from, plan.segs, plan.total)
+    expect(end).toMatchObject({ w: 1.5, c: FLOOR, o: 1 })
+    expect(end.p).toEqual(to.p)
+    // Floors that coincide hold the line as it rests.
+    const still = planBetween(to, to)
+    expect(withFlight(still, to, flight)).toBe(still)
+  })
+
+  it('draws the invite\'s floor out of a white dot and lands it as the floor rests', () => {
+    const FLOOR = 'rgba(255, 255, 255, 0.32)'
+    const dest = { form: 'line', p: lineP(16, 160, 304, 160), w: 1.5, c: FLOOR, o: 1 }
+    const plan = birthPlan(dest, { w: 2.5, c: '#FFFFFF' })
+    expect(plan.base).toMatchObject({ w: 6, c: '#FFFFFF' })
+    expect(evalAt(plan.base, plan.segs, 300).w).toBeCloseTo(2.5, 5)
+    expect(evalAt(plan.base, plan.segs, plan.total)).toMatchObject({ w: 1.5, c: FLOOR, p: dest.p })
   })
 })

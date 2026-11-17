@@ -1,0 +1,148 @@
+// @vitest-environment happy-dom
+// Help (board St1Help): six short answers in drawers, searchable, and the way to report a problem.
+import { act } from 'react'
+import { createRoot } from 'react-dom/client'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useUI } from '../../../store/useUI.js'
+import { setNav } from '../../../lib/nav.js'
+import { BRAND } from '../../../brand.js'
+import { PAGES, SEARCH, searchSettings } from '../../settings-pages.js'
+import { HELP_TOPICS } from '../help-topics.js'
+import HelpPage, { reportUrl } from './HelpPage.jsx'
+import { HelpSheet } from './help-sheet.jsx'
+
+vi.mock('../../../lib/use-tab-nav.js', () => ({ back: vi.fn() }))
+
+globalThis.IS_REACT_ACT_ENVIRONMENT = true
+
+let host, root, sheets
+const titleOf = row => row.querySelector('b')?.textContent
+const rows = () => [...host.querySelectorAll('.g-glist-row')]
+const rowTitled = title => rows().find(r => titleOf(r) === title)
+const Where = () => <output data-testid="where">{useLocation().pathname}</output>
+
+beforeEach(() => {
+  sheets = []
+  useUI.setState({ openSheet: render => { sheets.push(render); return { close: vi.fn() } } })
+  host = document.createElement('div')
+  document.body.appendChild(host)
+  root = createRoot(host)
+})
+afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks() })
+
+describe('Help page', () => {
+  it('lists the six questions in order with their lines, then Report a problem; no Ask Adrian', () => {
+    act(() => root.render(<HelpPage />))
+    expect(host.querySelector('h1').textContent).toBe('Help')
+    expect(rows().map(r => titleOf(r))).toEqual([...HELP_TOPICS.map(h => h.title), 'Report a problem'])
+    expect(HELP_TOPICS).toHaveLength(6)
+    expect(rowTitled('How the ring works').textContent).toContain('Left today, eaten, burned')
+    expect(host.textContent).not.toContain('Ask Adrian')
+  })
+
+  it('every answer is three sentences or fewer', () => {
+    for (const h of HELP_TOPICS) {
+      const sentences = h.answer.split(/(?<=[.!?])\s+/).filter(Boolean)
+      expect(sentences.length, h.id).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('a row opens its answer in a drawer', () => {
+    act(() => root.render(<HelpPage />))
+    act(() => rowTitled('Offline and sync').click())
+    expect(sheets).toHaveLength(1)
+    const box = document.createElement('div')
+    document.body.appendChild(box)
+    const sheetRoot = createRoot(box)
+    act(() => sheetRoot.render(<MemoryRouter>{sheets[0](vi.fn())}</MemoryRouter>))
+    expect(box.querySelector('h2').textContent).toBe('Offline and sync')
+    expect(box.textContent).toContain('Waiting to sync')
+    act(() => sheetRoot.unmount())
+    box.remove()
+  })
+
+  it('Report a problem writes to Adrian, with the subject, app version and platform filled in', () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    act(() => root.render(<HelpPage />))
+    act(() => rowTitled('Report a problem').click())
+    expect(open).toHaveBeenCalledTimes(1)
+    expect(open.mock.calls[0][1]).toBe('_self')
+    const url = new URL(open.mock.calls[0][0])
+    expect(url.protocol).toBe('mailto:')
+    expect(decodeURIComponent(url.pathname)).toBe('steradrian5@gmail.com')
+    expect(url.searchParams.get('subject')).toBe('Gains ' + BRAND.version + ' problem')
+    const body = url.searchParams.get('body')
+    expect(body).toContain('App version: ' + BRAND.version)
+    expect(body).toContain('Platform: Browser;')
+    open.mockRestore()
+  })
+
+  it('the report names the version and platform it is given, and links nowhere else', () => {
+    const url = new URL(reportUrl({ version: '9.9.9', platform: 'Phone app; Pixel' }))
+    expect(url.searchParams.get('subject')).toBe('Gains 9.9.9 problem')
+    expect(url.searchParams.get('body')).toBe('App version: 9.9.9\nPlatform: Phone app; Pixel\n\n')
+    expect(JSON.stringify(SEARCH.filter(e => e.page === 'help'))).not.toMatch(/github/i)
+  })
+})
+
+describe('Help drawer', () => {
+  const draw = async (topic, entry = '/me/help', close = vi.fn()) => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[entry]}>
+          <Routes><Route path="*" element={<><HelpSheet topic={topic} close={close} /><Where /></>} /></Routes>
+        </MemoryRouter>,
+      )
+    })
+  }
+  const topic = id => HELP_TOPICS.find(h => h.id === id)
+
+  it('offers a button to the page the answer is about, and it goes there', async () => {
+    const calls = []
+    setNav((...a) => { calls.push(a) })
+    history.replaceState(null, '', '#/me/help')
+    const close = vi.fn()
+    await draw(topic('plan'), '/me/help', close)
+    const go = [...host.querySelectorAll('button')].find(b => b.textContent === 'Open Schedule')
+    expect(go).toBeTruthy()
+    await act(async () => { go.click() })
+    expect(close).toHaveBeenCalledOnce()
+    expect(calls).toEqual([['/me/schedule']])
+  })
+
+  it('Open <page> hands the drawer\'s history entry to the page, so one Back leaves it', async () => {
+    const calls = []
+    setNav((...a) => { calls.push(a) })
+    history.pushState({ gainsSheet: true }, '')
+    await draw(topic('plan'))
+    const go = [...host.querySelectorAll('button')].find(b => b.textContent === 'Open Schedule')
+    await act(async () => { go.click() })
+    expect(calls).toEqual([['/me/schedule', { replace: true }]])
+    history.replaceState(null, '', '#/home')
+  })
+
+  it('leaves the button out where the page is not there for this profile (food off the web app)', async () => {
+    await draw(topic('ring'))
+    expect([...host.querySelectorAll('button')].some(b => b.textContent.startsWith('Open'))).toBe(false)
+  })
+})
+
+describe('Help in the search', () => {
+  const tr = s => s
+  const ctx = { user: { id: 'u' }, mobile: false, nutrition: true }
+
+  it('finds a question by its title and an answer by its words', () => {
+    expect(searchSettings('how the ring', ctx, tr).map(h => h.title)).toContain('How the ring works')
+    expect(searchSettings('waiting to sync', ctx, tr).map(h => h.title)).toContain('Offline and sync')
+    expect(searchSettings('one-time code', ctx, tr).map(h => h.title)).toContain('Passkeys and devices')
+    expect(searchSettings('help', ctx, tr)[0]).toMatchObject({ page: 'help', isPage: true })
+  })
+
+  it('every Help entry is a row on the page', () => {
+    act(() => root.render(<HelpPage />))
+    const have = rows().map(r => titleOf(r))
+    for (const e of SEARCH.filter(e => e.page === 'help')) expect(have).toContain(e.title)
+    expect(PAGES.help.title).toBe('Help')
+  })
+})

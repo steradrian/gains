@@ -27252,5 +27252,21 @@
       "Marque une pause en haut, puis abaisse lentement ton talon gauche pour revenir à la position de départ.",
       "Répète le nombre de répétitions souhaité, puis passe à la jambe droite."
     ]
-  }
+  },
+  "12101": { "name": "course à pied" },
+  "12102": { "name": "cyclisme" },
+  "12103": { "name": "séance de natation" },
+  "12104": { "name": "randonnée" },
+  "12105": { "name": "marche en plein air" },
+  "12106": { "name": "aviron" },
+  "12107": { "name": "football" },
+  "12108": { "name": "tennis" },
+  "12109": { "name": "basket-ball" },
+  "12110": { "name": "padel" },
+  "12111": { "name": "escalade" },
+  "12112": { "name": "séance de yoga" },
+  "12113": { "name": "volley-ball" },
+  "12114": { "name": "badminton" },
+  "12115": { "name": "danse" },
+  "12116": { "name": "autre activité" }
 }

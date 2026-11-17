@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useUI } from '../../store/useUI.js'
 import { writeErrorText } from './log-feedback.js'
+import { defaultSearchCountry } from './search-country.js'
 import { useNutrition } from './store.js'
 
 // What NutriTrace reads when a key was never saved (src/stores/settings.js). The pages show these
@@ -33,14 +34,18 @@ export const NT_DEFAULTS = {
   barcodeBeep: false,
   offEnabled: true,
   offSearchLanguage: 'en',
-  offSearchCountry: 'World',
+  offSearchCountry: 'World',   // only when the device names no region (DEVICE_DEFAULTS)
   usdaEnabled: false,
   foodCategories: [],
   customUnits: [],
 }
 
+// Defaults that depend on the device: the search country starts as the device language's region
+// (search-country.js), and World only when that names none. Anything saved, World included, wins.
+const DEVICE_DEFAULTS = { offSearchCountry: defaultSearchCountry }
+
 /** A setting as NutriTrace would read it: the saved value, or its default. */
-export const settingOf = (data, key) => (data?.[key] != null ? data[key] : NT_DEFAULTS[key])
+export const settingOf = (data, key) => (data?.[key] != null ? data[key] : DEVICE_DEFAULTS[key] ? DEVICE_DEFAULTS[key]() : NT_DEFAULTS[key])
 
 /**
  * NutriTrace's settings and one way to write them: `save(key, value)` resolves true once the hub
@@ -100,22 +105,25 @@ export async function applyListSetting(key, change) {
 /**
  * The save behind a sheet that edits a list setting. `submit(key, change, errorOf)` is
  * applyListSetting, then closes the sheet. A refused or failed save leaves the sheet open with
- * its fields and says why.
+ * its fields and says why. It resolves true when the list was written, for a caller that offers
+ * Undo only then.
  */
 export function useSheetSave(close) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const submit = async (key, change, errorOf) => {
-    if (busy) return
+    if (busy) return false
     setBusy(true)
     setError(null)
     try {
       const built = await applyListSetting(key, change)
-      if (built.error) { setError(errorOf(built.error)); setBusy(false); return }
+      if (built.error) { setError(errorOf(built.error)); setBusy(false); return false }
       close()
+      return true
     } catch (e) {
       setError(writeErrorText(e))
       setBusy(false)
+      return false
     }
   }
   return { busy, error, submit }

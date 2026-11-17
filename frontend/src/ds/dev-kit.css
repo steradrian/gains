@@ -1,0 +1,88 @@
+/* The catalogue's own layout (DevKit.jsx, dev server only): it comes and goes with that chunk. */
+.g-kit { display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-4) var(--space-4) 220px; }
+.g-kit-sec { display: flex; flex-direction: column; gap: var(--space-3); }
+.g-kit-sec > h2 { margin: 0; font: 700 20px/26px var(--font-display); letter-spacing: -0.02em; }
+.g-kit-sec > p { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-kit-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.g-kit-col { display: flex; flex-direction: column; gap: var(--space-2); }
+.g-kit-light { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--canvas); color: var(--text); }
+.g-kit-white { color: var(--on-stage); }
+/* A phone-sized screen for a drawer drawn still: its scrim and panel fill this, not the page. */
+.g-kit-frame { position: relative; height: 520px; overflow: hidden; border-radius: var(--radius-lg); background: var(--canvas); }
+.g-kit-list { margin: 0; padding: 0; list-style: none; color: var(--text); }
+.g-kit-list li { min-height: 56px; display: flex; align-items: center; border-bottom: 1px solid var(--line); font: 600 17px/22px var(--font-sans); }
+.g-kit-p { margin: 0; font: 500 17px/24px var(--font-sans); color: var(--text-2); }
+/* Train kit: a glass box for rows that are not a card of their own */
+.g-kit-glass { border-radius: 28px; overflow: hidden; }
+/* Train pushed-page kit: a pushed page drawn inside a phone-sized scroll area, so its nav bar sticks
+   there and its full-screen stage does not fill the catalogue's page */
+.g-kit-page { height: 420px; overflow-y: auto; border-radius: var(--radius-lg); }
+.g-kit-page .g-screen, .g-kit-page .g-screen > .g-stage, .g-kit-page .g-screen > .g-stage > .g-stage-body { min-height: 0; }
+.g-kit-pbody { padding: 16px 20px 320px; }
+.g-kit-pbody p, .g-kit-trail { margin: 0; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+/* Workout kit: a phone-width piece of the stage the workout's parts are drawn on. The footer and a
+   bar toast are placed against the frame's foot, so those frames have a height of their own. */
+.g-kit-wk { position: relative; width: min(100%, 420px); display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-4); border-radius: var(--radius-lg); overflow: hidden; background: linear-gradient(170deg, var(--accent-stage), var(--accent-stage-end) 900px); }
+.g-kit-wk-pad { padding: var(--space-4) 0; }
+.g-kit-wk-foot { height: 220px; }
+.g-kit-wk-foot-up { height: 260px; }
+
+/* ==========================================================================================
+   Liquid glass tuning page (DevGlass.jsx, #/dev/glass; dev server only)
+   Page layout, the HUD and the scroll test. Nothing here touches .g-glass or a shipped rule. The GL
+   material is the contract in ds.css "Liquid glass"; .gl-fallback only draws the CSS and Reduce
+   Transparency materials on this page when the host is off (the app takes them from html[data-lg]).
+   ========================================================================================== */
+
+/* The over canvas goes under the dock's z-index 5 here (the app puts it at 49, under #tabbar). */
+.gl-dev { --gl-over-z: 4; }
+
+/* ---- Fallback: frosted, no rim -------------------------------------------------------- */
+.gl-fallback [data-glass], .gl-fallback .g-gtabbar[data-glass] {
+  background: color-mix(in srgb, var(--on-stage) 16%, transparent);
+  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--glass-shade) 45%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+}
+.gl-fallback .g-gtabbar .g-plus[data-glass] { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-end)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.gl-fallback .g-tab-ind::before { background: color-mix(in srgb, var(--on-stage) 22%, transparent); }
+.gl-fallback .g-gtabbar .g-tab { color: color-mix(in srgb, var(--on-stage) 88%, transparent); }
+.gl-fallback .g-gtabbar .g-tab[aria-current="page"] { color: var(--on-stage); }
+.gl-frostier [data-glass], .gl-frostier .g-gtabbar[data-glass] { background: color-mix(in srgb, var(--accent-stage-end) 82%, transparent); }
+
+/* ---- the page itself ------------------------------------------------------------------- */
+.gl-page { display: flex; flex-direction: column; gap: 18px; padding: 0 0 24px; min-height: 100vh; }
+.gl-bar { position: relative; z-index: 5; display: flex; gap: 6px; padding: 12px 16px; }
+.gl-bar button { flex: 1; padding-inline: 6px; }
+.gl-select { flex: 1; min-width: 0; height: 36px; padding-inline: 10px; border: 0; border-radius: 18px; background: color-mix(in srgb, var(--on-stage) 16%, transparent); color: var(--on-stage); font: 600 14px/18px var(--font-sans); }
+.gl-bar [aria-pressed="true"] { background: var(--on-stage); color: var(--accent-stage-end); text-shadow: none; }
+.gl-note { margin: 0 16px; min-height: 38px; font: 500 14px/19px var(--font-sans); color: var(--on-stage); opacity: .92; }
+/* At rest the food tiles run under the docked bar, so its rim has something to bend. */
+.gl-content { display: flex; flex-direction: column; gap: 12px; padding-top: 22px; }
+.gl-dock { position: sticky; bottom: 16px; z-index: 5; margin: 0 16px; }
+.gl-dock-raised { position: fixed; inset-inline: 16px; top: 334px; bottom: auto; margin: 0; }
+.gl-spacer { height: 340px; }
+
+/* ---- HUD, scroll test, stage only ---------------------------------------------------------- */
+/* The stage-only check sits with the canvases, under the chrome strip. */
+.gl-layer-stage { z-index: -1; }
+
+.gl-hud { position: fixed; top: calc(var(--sat, 0px) + 6px); right: 6px; z-index: 100; width: 228px; box-sizing: border-box; padding: 6px 8px 8px; border-radius: 12px; background: color-mix(in srgb, var(--canvas) 90%, transparent); color: var(--text); font: 500 11px/14px var(--font-mono); text-align: start; pointer-events: none; }
+.gl-hud button { pointer-events: auto; min-height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: var(--surface-sunken); color: var(--text); font: 600 12px/14px var(--font-sans); }
+.gl-hud-bar { display: flex; gap: 4px; }
+.gl-hud-bar button { flex: 1; }
+.gl-hud-opts { margin: 6px 0 4px; color: var(--text-2); }
+.gl-hud-rows { margin: 0; }
+.gl-hud-row { display: flex; justify-content: space-between; gap: 6px; }
+.gl-hud-row dt { color: var(--text-2); }
+.gl-hud-row dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+.gl-hud-bad dd { color: var(--stage-danger); font-weight: 700; }
+
+.gl-scroll { display: flex; flex-direction: column; gap: 14px; padding-top: 12px; }
+.gl-rail { display: flex; gap: 12px; overflow-x: auto; padding: 8px 16px; scrollbar-width: none; }
+.gl-list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.gl-list-group { display: flex; flex-direction: column; gap: 12px; }
+.gl-card { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 72px; box-sizing: border-box; padding: 12px 16px; border-radius: 24px; color: var(--on-stage); font: 500 14px/18px var(--font-sans); }
+.gl-card b { font-weight: 600; font-size: 16px; line-height: 20px; }
+.gl-disc-row { display: flex; gap: 12px; }
+.gl-disc { flex: none; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%; color: var(--on-stage); font: 600 15px/18px var(--font-sans); }

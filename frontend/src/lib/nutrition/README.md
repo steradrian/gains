@@ -2,7 +2,9 @@
 
 Calls go through the hub on the same origin: `/nt/api/*` (only the routes allow-listed in
 fitness-hub `src/nt-routes.ts`; anything else is a 404) and `/hub/api/sync/*`. No tokens. Gate
-UI on `nutritionAvailable(user)`: phones and guests have no nutrition. A route you need that
+UI on `useFoodOn()` (`food-on.js`: `nutritionAvailable(user)` and the Features > Food switch):
+phones and guests have no nutrition, and Food off hides it. Sync and sign-in flows that only need
+the hub's reach use `nutritionAvailable(user)`. A route you need that
 is not on the list needs a hub PR first.
 
 - `api.js`: `NtApi.*` and `HubSync.*`. The typedefs at the top are NutriTrace's real shapes.
@@ -58,7 +60,10 @@ is not on the list needs a hub PR first.
   (`GET /api/diary`, read once); `trends.js` turns them into a metric's series over the hub's range
   (`windowOf` ends yesterday: today is still being logged), its summary, and the goal line
   (`goalOf`: none for a Dynamic or Adaptive calorie target, which is worked out per day). Fasting
-  insights are `components/FastInsights.jsx` with `since`.
+  insights are `components/FastInsights.jsx` with `since`. The same days feed Eat's Food trends
+  and Month (`foodTrendsOf`, `monthOf`, `fastingBlockOf` at the end of `trends.js`; pages in
+  `views/eat/`): each day is held to its own goal (`views/shared/food-target.js`), and today is
+  drawn but never averaged or counted.
 - `wellness.js` and `useWellness` (Progress › Recovery): the last year of `GET /api/wellness/fitbit/data`
   (Fitbit, Google Health, Health Connect) and `.../garmin/data`, read only for a wearable the
   settings say is connected, merged with Garmin winning. A source that fails does not hide the

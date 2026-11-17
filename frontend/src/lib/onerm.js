@@ -1,6 +1,6 @@
 import { isAssisted } from './exercises.js'
 import { isSideSet } from './workout-model.js'
-import { entriesForExercise, metricRowsForEntry, workoutAt } from './history.js'
+import { entriesForExercise, isBw, metricRowsForEntry, workoutAt } from './history.js'
 import { currentDbLoad, entryDbLoad, workoutAs } from './dumbbells.js'
 // Estimated one-rep max (issue #18, extended issue #155).
 //
@@ -133,7 +133,9 @@ export function estimate1RM(w, r, formula = DEFAULT_FORMULA, rir = null) {
   return Math.round(est * 10) / 10
 }
 
-// Best estimate out of one workout entry's completed sets.
+// Best estimate out of one workout entry's completed sets. Assisted machines and bodyweight lifts
+// have none (null), so every caller (the curve, best1RM, the finish summary's record, the strength
+// lists) leaves them out without a check of its own.
 // `topW` is ignored on purpose: it records the working weight a user confirmed after the
 // exercise, with no rep count attached, so it cannot produce an estimate.
 export function bestSetOf(entry, formula = DEFAULT_FORMULA) {
@@ -141,6 +143,9 @@ export function bestSetOf(entry, formula = DEFAULT_FORMULA) {
   // so Epley on it would rise as you got weaker and call that a record (issue #232). These
   // exercises stay out of the estimate, the curve and the strength list entirely.
   if (isAssisted(entry?.id ? { id: entry.id } : entry)) return null
+  // A bodyweight lift logs only what is added to the body: the belt on a weighted pull-up. Epley
+  // on the belt alone called +10 kg × 8 a 12.7 kg max, so these stay out the same way.
+  if (isBw({ id: entry?.id, ...entry?.target })) return null
   let best = null
   metricRowsForEntry(entry, 'reps').forEach(s => {
     const sets = isSideSet(s)

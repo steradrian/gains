@@ -69,7 +69,11 @@ describe('LineChart call sites', () => {
       const lines = readFileSync(file, 'utf8').split('\n')
       lines.forEach((line, i) => {
         if (!line.includes('<LineChart')) return
-        const named = /\blabel=|\bdecorative\b/.test(line) || /<ChartData\b/.test(lines.slice(Math.max(0, i - 2), i).join('\n'))
+        // The tag's props run to its self-closing end, over as many lines as the call site wraps to.
+        const rest = lines.slice(i).join('\n')
+        const end = rest.indexOf('/>')
+        const props = end < 0 ? line : rest.slice(0, end)
+        const named = /\blabel=|\bdecorative\b/.test(props) ||/<ChartData\b/.test(lines.slice(Math.max(0, i - 2), i).join('\n'))
         if (!named) bare.push(`${file}:${i + 1}`)
       })
     }

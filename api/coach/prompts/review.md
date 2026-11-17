@@ -1,6 +1,6 @@
 # Task: review their training and propose plan changes
 
-Read `window` (what they actually did), `aggregates` (stalls, adherence, coverage), `bodyweight`, and `userNote` if present. Then decide whether the **plan** should change.
+Read `window` (what they actually did), `aggregates` (stalls, adherence, coverage), `bodyweight`, and `userNote` and `checkIn` if present. Then decide whether the **plan** should change. A check-in of `much` or `hard` with `poor` sleep argues for holding or easing the load rather than adding to it; `easy` with good sleep and sessions on target leaves room to progress. Say in `summary` or `reading` when the check-in shaped the answer.
 
 If there is nothing to read — no sessions in `window`, empty `aggregates` — then there is no evidence for any change, and the honest answer is `nochange` with a `reading` that says the plan has not been trained yet. Do not invent a reason to change something.
 

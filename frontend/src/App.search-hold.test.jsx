@@ -29,11 +29,12 @@ const settle = async () => { for (let i = 0; i < 6; i++) await act(async () => {
 const $ = s => document.querySelector(s)
 const go = async fn => { await act(async () => { fn() }); await settle() }
 const back = () => go(() => window.history.back())
-const pill = () => $('.spill-i')
+const pill = () => $('.g-shdr-pin .g-spill-field input')
+const closeX = () => $('.g-shdr-pin .g-bell')
 const inert = el => !!el.closest('[inert]')
 
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]'
-const LIVE = '.tab-hdr, #gains-search, #modal-root'
+const LIVE = '.g-shdr-pin, #gains-search, #modal-root'
 const reachable = () => [...document.querySelectorAll(FOCUSABLE)].filter(el => !el.disabled && el.tabIndex >= 0 && !inert(el))
 const leaks = () => reachable().filter(el => !el.closest(LIVE)).map(el => el.outerHTML.slice(0, 90))
 
@@ -46,6 +47,7 @@ async function launch(at) {
   await act(async () => { root.render(<App />) })
   await settle()
 }
+// The pinned header's pill is the search's one input, on Today as on every tab root.
 const openOverlay = async () => {
   await act(async () => { pill().focus() })
   await settle()
@@ -74,7 +76,7 @@ describe('the page behind an open search', () => {
     await launch('#/home')
     await openOverlay()
     expect(leaks()).toEqual([])
-    expect(reachable().some(el => el.closest('.tab-hdr'))).toBe(true)
+    expect(reachable().some(el => el.closest('.g-shdr-pin'))).toBe(true)
     expect(inert($('#tabbar'))).toBe(true)
     expect($('#app').hasAttribute('inert')).toBe(false)
   })
@@ -85,17 +87,18 @@ describe('the page behind an open search', () => {
     // A result's page: a sub-page with no tab header of its own.
     await go(() => visit('/train/history'))
     expect(useSearch.getState().open).toBe(false)
-    expect($('#app .tab-hdr')).toBeNull()
+    expect($('#app .g-shdr-pin')).toBeNull()
     const was = $('#app')
     await back()
     expect(useSearch.getState().open).toBe(true)
     expect($('#app')).not.toBe(was)
-    expect($('#app .tab-hdr')).not.toBeNull()
+    expect($('#app .g-shdr-pin')).not.toBeNull()
     expect(leaks()).toEqual([])
     expect(inert($('#tabbar'))).toBe(true)
-    expect(inert(document.querySelector('#app main, #app > :not(.tab-hdr)'))).toBe(true)
+    // Today's header sits inside its stage: the rings beside it are what is held.
+    expect(inert(document.querySelector('#app .g-rcb'))).toBe(true)
     // And lets go of all of it with the close.
-    await go(() => $('.avatar-btn').click())
+    await go(() => closeX().click())
     expect(useSearch.getState().live).toBe(false)
     expect(document.querySelectorAll('[inert]')).toHaveLength(0)
   })
@@ -109,7 +112,7 @@ describe('the page behind an open search', () => {
     expect($('#timer')).not.toBeNull()
     expect(inert($('#timer'))).toBe(true)
     expect(leaks()).toEqual([])
-    await go(() => $('.avatar-btn').click())
+    await go(() => closeX().click())
     expect($('#timer').hasAttribute('inert')).toBe(false)
   })
 
@@ -152,9 +155,9 @@ describe('the page behind an open search', () => {
     await launch('#/home')
     await openOverlay()
     await go(() => openPlusSheet('/home'))
-    const sheet = $('.plus-sheet')
+    const sheet = $('.g-bs')
     expect(sheet).not.toBeNull()
-    const rows = [...sheet.querySelectorAll('.lrow')]
+    const rows = [...sheet.querySelectorAll('.g-atile')]
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) expect(inert(row)).toBe(false)
     // The sheet holds #app itself; the tab bar is held by the search.
@@ -163,11 +166,11 @@ describe('the page behind an open search', () => {
     expect(leaks()).toEqual([])
     useUI.getState().closeAll()
     await settle()
-    expect($('.plus-sheet')).toBeNull()
+    expect($('.g-bs')).toBeNull()
     expect($('#app').hasAttribute('inert')).toBe(false)
     expect(inert($('#tabbar'))).toBe(true)
     expect(leaks()).toEqual([])
-    await go(() => $('.avatar-btn').click())
+    await go(() => closeX().click())
     expect(document.querySelectorAll('[inert]')).toHaveLength(0)
   })
 })

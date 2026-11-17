@@ -17,17 +17,31 @@ export const BASELINE = join(SRC, 'ui-guards.baseline.json')
 export const LOWER = 'lower the baseline: run scripts/ui-guards-baseline.mjs'
 
 // The CSS that predates the kit. Every other stylesheet is new and held to G7.
-export const LEGACY_CSS = ['admin.css', 'coach.css', 'index.css', 'tab-shell.css', 'views/FocusView.css']
-// The only stylesheets whose :root rules may define colour tokens: the theme and the kit's tokens.
-export const THEME_FILES = ['index.css', 'ui-kit.css']
+export const LEGACY_CSS = ['admin.css', 'coach.css', 'index.css', 'tab-shell.css']
+// The only stylesheets whose :root rules may define colour tokens: the theme, the kit's tokens and
+// the design system's (src/ds), whose root is .g-root rather than :root.
+export const THEME_FILES = ['index.css', 'ui-kit.css', 'ds/tokens.css']
 // Where the hand-built markup G3 looks for is allowed: the primitives themselves.
 export const PRIMITIVE_FILES = [
   'components/blocks.jsx', 'components/layout.jsx', 'components/sheet-layout.jsx', 'components/ui.jsx',
   // the native redesign's kit
   'components/date-nav.jsx', 'components/line-art.jsx', 'components/tab-kit.jsx',
 ]
-// Routed views that draw their own chrome and never render <Page> (G4).
-export const PAGE_EXEMPT = ['FocusView', 'Login', 'MobileOnboarding', 'Workout']
+// Routed views that draw their own chrome and never render <Page> (G4). Home is Today on the
+// stage (PR-01), with the design system's StageHeader; TrainHub is Train on the stage (PR-02);
+// PlanScreen (its Plan page), PlanImportPage (Import a plan), CreateExercise (Create exercise),
+// PlansScreen, PlanPreview, CoachChat, History, TrainingLoad, LoadMuscleScreen (a muscle's
+// training-load page), RoutinesScreen and RoutineEditor are pushed pages on the stage (StagePage).
+// Notifications, DayPage and WeekPage are the shared pushed pages on the stage (PR-07), with the
+// design system's StageNavBar. WorkoutRoute and SummaryScreen are the workout's full screens
+// (StageScreen, no tab bar). A stage page's `<Name>Screen.jsx` draws its chrome, so G8 exempts it too.
+// FoodGate is the layout of the Eat routes: it renders the page or the Food-off state (FoodOffScreen
+// draws its own stage chrome). SettingsRoute (PR-06) only picks the page: the chrome is in views/Settings.jsx and settings/SettingsPageHost.jsx,
+// in other files than the route, which this guard cannot follow. GymPassPage (Gym check-in, route
+// /train/checkin) draws its chrome through settings/SettingsPage.jsx, a StagePage in another file.
+// FriendsGate is the layout of the /me/groups routes (an Outlet or a redirect to Me) and
+// GroupLinkRedirect only forwards /g/:code: neither draws anything.
+export const PAGE_EXEMPT = ['AddDevice', 'BodyRoute', 'BurnedPage', 'ChangesRoute', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GoalRoute', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'InviteRoute', 'LoadMuscleScreen', 'Login', 'MeRoute', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute']
 
 const SKIP_DIRS = new Set(['locales', 'instr', 'exercise-desc', 'exercise-names', 'node_modules'])
 
@@ -276,8 +290,9 @@ const CSS_NAMED = new RegExp(`(?<![\\w-])(?:${NAMED.join('|')})(?![\\w-])`, 'gi'
 const JS_NAMED = new RegExp(`(?:(?<![=!<>])=(?!=)|:|\\?|\\|\\|)\\s*(['"\`])(?:${NAMED.join('|')})\\1`, 'g')
 
 // Colours written into a stylesheet: hex, rgb()/hsl()…, names. A theme file's :root rules
-// (`:root`, `:root[data-theme=…]`) are where colour tokens live and are not counted there.
-const THEME_RULE = /^:root(?:\[[^\]]*\])*$/
+// (`:root`, `:root[data-theme=…]`, and the design system's `.g-root`, `:root[data-theme=…] .g-root`)
+// are where colour tokens live and are not counted there.
+const THEME_RULE = /^(?::root(?:\[[^\]]*\])*|(?::root(?:\[[^\]]*\])* )?\.g-root)$/
 export function cssColours(text, themeFile = false) {
   let n = 0
   for (const [, selector, decls] of stripCss(text).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
@@ -364,12 +379,13 @@ function rendersPage(code, name, seen = new Set()) {
   seen.add(name)
   const body = componentBody(code, name)
   if (body == null) return false
-  if (/<Page\b/.test(body)) return true
+  if (/<(?:Stage)?Page\b/.test(body)) return true
   return [...new Set([...body.matchAll(/<([A-Z][\w$]*)/g)].map(m => m[1]))]
     .some(child => componentBody(code, child) != null && rendersPage(code, child, seen))
 }
 
-// G4: the components App.jsx routes to that do not render <Page>, by name.
+// G4: the components App.jsx routes to that do not render <Page> (or the stage's <StagePage>, which
+// is the pushed pages' frame), by name.
 export function routeViewsWithoutPage(src = SRC) {
   const app = stripJs(readFileSync(join(src, 'App.jsx'), 'utf8'))
   const imports = viewImports(app)
@@ -388,10 +404,12 @@ export function routeViewsWithoutPage(src = SRC) {
 
 // A page names itself and its actions through <Page>; its header, and the spacing and width
 // around it, are the kit's and the shell's (owner rule, 2026-10-14). The header components and
-// layout.jsx are where a header is built; the full-screen views draw their own chrome.
-export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx']
+// layout.jsx are where a header is built; the full-screen views draw their own chrome. The search
+// gallery (#/dev/screens) mounts the real tab root header over the real panel, as a root does.
+export const HEADER_FILES = ['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx']
 const HEADER_CLASSES = new Set(['hdr', 'tab-hdr', 'sub-hdr', 'root-hdr'])
-const exemptView = file => PAGE_EXEMPT.some(name => file === `views/${name}.jsx`)
+const exemptView = file => PAGE_EXEMPT.some(name =>
+  file === `views/${name}.jsx` || file === `views/workout/${name}.jsx` || file === `views/shared/${name.replace(/Page$/, '')}Screen.jsx`)
 
 // Every place a page chooses its own header: importing a header component past <Page>, building
 // a header's classes by hand, or handing <Page> a class or a style of its own. `file: what`.

@@ -23,7 +23,7 @@ const CONTROL = 'button,a[href],summary,[role="button"],[role="checkbox"],[role=
  * Modifier combinations are left alone: they are the browser's and the system's shortcuts.
  *
  * `rtl` mirrors the arrows: in a right-to-left language the exercises run from right to left like
- * the text, and the next card comes in from the left (components/SwipeCards.jsx), so ← is next.
+ * the text, and the next exercise comes in from the left, so ← is next.
  */
 export function workoutKeyAction(event, { tabbed = false, rtl = false } = {}) {
   if (!event || event.defaultPrevented || event.repeat || event.isComposing) return null

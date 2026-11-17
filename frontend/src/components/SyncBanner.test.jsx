@@ -72,7 +72,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-const render = () => act(() => root.render(<SyncBanner />))
+const render = (props = {}) => act(() => root.render(<SyncBanner {...props} />))
 const bar = () => host.querySelector('.conn-bar')
 const text = () => host.querySelector('.conn-t')?.textContent || null
 const button = () => host.querySelector('button.conn')
@@ -109,6 +109,38 @@ describe('connected and in step', () => {
     expect(bar()).toBeNull()
     act(() => { vi.advanceTimersByTime(PENDING_GRACE_MS) })
     expect(text()).toBe('Offline. Your changes are saved on this device and sync when you’re back online.')
+  })
+})
+
+// Today draws its own Offline pill, so the banner steps aside there for the offline line alone.
+describe('on Today', () => {
+  const offline = () => { network(false); mocks.sync = sync('offline', { offline: true, pending: true, lastError: { status: 0, code: 'network' } }) }
+
+  it('says nothing when the device is offline, and leaves no room for a bar', () => {
+    offline()
+    render({ onToday: true })
+    expect(bar()).toBeNull()
+    expect(conn()).toBe('')
+  })
+
+  it('shows the same line on any other page', () => {
+    offline()
+    render({ onToday: false })
+    expect(text()).toBe('Offline. Your changes are saved on this device and sync when you’re back online.')
+  })
+
+  it('still shows what the pill does not say: a server error, a refusal', () => {
+    mocks.sync = sync('error', { lastError: { status: 500, code: 'http' } })
+    render({ onToday: true })
+    expect(bar().className).toContain('bad')
+  })
+
+  it('still shows for a guest, whom the pill never serves', () => {
+    mocks.user = null
+    mocks.guest = true
+    offline()
+    render({ onToday: true })
+    expect(bar()).not.toBeNull()
   })
 })
 

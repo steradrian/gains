@@ -1,0 +1,42 @@
+/* The sign-in screens on the stage (views/Login.jsx, views/AddDevice.jsx): the layout around the
+   design system's pieces, from the S0 boards. The pieces themselves are ds/ds.css; everything here
+   is spacing and type for the blocks they sit in. The screen is a column the height of the
+   window with its footer at the bottom of it (the boards pin it there); the footer is in the flow,
+   so the configurations the boards do not draw, which have more links under the buttons, grow it
+   instead of running under it. */
+.si-col { display: flex; flex-direction: column; min-height: calc(100vh - var(--sat, 0px)); min-height: calc(100dvh - var(--sat, 0px)); }
+.si-foot { margin-top: auto; padding-top: 24px; }
+.si-upper { text-transform: uppercase; }
+
+.si-top { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 110px 24px 0; text-align: center; color: var(--on-stage); }
+.si-top h1 { margin: 18px 0 0; font: 700 30px/34px var(--font-sans); letter-spacing: -0.028em; }
+.si-top p { margin: 0; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.si-art { height: 119px; display: flex; justify-content: center; align-items: flex-end; padding-top: 18px; }
+.si-note { margin: 22px 32px 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+
+.si-head { padding: 18px 20px 0; }
+.si-head-far { padding-top: 54px; }
+.si-head h1 { margin: 0; font: 700 30px/34px var(--font-sans); letter-spacing: -0.028em; color: var(--on-stage); }
+.si-head p { margin: 8px 0 0; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+
+.si-code { padding: 26px 16px 0; }
+.si-code-note { margin: 0; padding: 10px 24px 0; text-align: center; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); }
+.si-block { padding: 22px 32px 0; }
+.si-block-tight { padding-top: 24px; }
+
+.si-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 164px 32px 0; color: var(--on-stage); }
+.si-done h1 { margin: 24px 0 8px; font: 700 28px/34px var(--font-sans); letter-spacing: -0.02em; }
+.si-done p { margin: 0; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+
+/* The demo and guest rows the boards do not draw: the same note, a plain link under it. */
+.si-note a { color: var(--on-stage); text-decoration: underline; }
+
+/* A drawer's body (Having trouble?, Sign in with password, Reset your password): the board's
+   spacing inside the app's own sheet. */
+.si-sheet-text { margin: 0 0 14px; font: 500 16px/22px var(--font-sans); color: var(--text-2); }
+.si-sheet-fields { display: flex; flex-direction: column; gap: 14px; }
+.si-sheet-gap { margin-bottom: 12px; }
+.si-sheet-submit { padding-top: 16px; }
+.si-sheet-links { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; }
+.si-sheet-links .g-btn { height: 44px; font: 600 16px/20px var(--font-sans); }
+.si-sheet-close { padding-top: 14px; }

@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { EXDB } from './lib/exercises.js'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
+import { topSurface } from './lib/sheet-nav.js'
 import { exConfigSheet } from './sheets.jsx'
 
 // #445: with Pyramid sets on, the exercise settings had no weight field at all. Each set now has
@@ -15,7 +16,7 @@ const mounted = []
 function renderConfig(cfg, exercise = ex) {
   const onSave = vi.fn()
   exConfigSheet(exercise, { sets: 3, reps: 10, weight: 0, mode: 'reps', pyramid: [12, 10, 8], ...cfg }, onSave)
-  const sheet = useUI.getState().sheets.at(-1)
+  const sheet = topSurface(useUI.getState().sheets)
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
@@ -23,15 +24,14 @@ function renderConfig(cfg, exercise = ex) {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return { host, onSave }
 }
-const weightFields = host => [...host.querySelectorAll('.stp-w')]
-  .filter(w => w.querySelector('.stp-l')?.textContent === 'Weight (kg)')
-  .map(w => w.querySelector('input.num'))
+// One field a set in the sets table, each named for its set ("Set 2 weight").
+const weightFields = host => [...host.querySelectorAll('.g-sett input[aria-label$=" weight"]')]
 function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
 const leave = el => el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
-const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Save').click()
+const save = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done').click()
 
 describe('exercise settings: weight per pyramid set (#445)', () => {
   beforeEach(() => {
@@ -46,6 +46,7 @@ describe('exercise settings: weight per pyramid set (#445)', () => {
     const { host, onSave } = renderConfig()
     const fields = weightFields(host)
     expect(fields).toHaveLength(3)
+    expect(fields.map(f => f.getAttribute('aria-label'))).toEqual(['Set 1 weight', 'Set 2 weight', 'Set 3 weight'])
     act(() => { type(fields[0], '40'); leave(fields[0]) })
     act(() => { type(fields[2], '60'); leave(fields[2]) })
     act(() => save(host))

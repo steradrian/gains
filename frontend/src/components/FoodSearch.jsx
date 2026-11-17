@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { t } from '../lib/i18n.js'
+import { useUI } from '../store/useUI.js'
 import { foodKcal } from '../lib/nutrition/diary.js'
+import { openNewFood } from '../lib/nutrition/editor-routes.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { OWN_SHOWN, useFoodSearch } from '../lib/nutrition/use-food-search.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { ItemRow, SectionTitle } from './blocks.jsx'
-import { foodEditSheet } from './FoodEditSheet.jsx'
 import Icon from './Icon.jsx'
 import OnlineStatus from './OnlineStatus.jsx'
 import SavedMealsGroup from './SavedMealsGroup.jsx'
@@ -52,7 +53,7 @@ export default function FoodSearch({ onPick, scan = {}, savedMeals, autoFocus = 
     </div>
     <div className="muted small fp-note fp-live" role="status" aria-live="polite">{announcement}</div>
 
-    <ItemRow className="food-row fp-create" onClick={() => foodEditSheet({ food: { name: q }, settings, onSaved: onPick })}
+    <ItemRow className="food-row fp-create" onClick={() => openNewFood({ name: q }, () => useUI.getState().closeAll())}
       lead={<span className="lrow-i tint-blue"><Icon name="plus" /></span>}
       title={t('Create food')} subtitle={q || undefined} chevron />
 

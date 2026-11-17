@@ -1,4 +1,4 @@
-import { FATIGUE_STATES, STRENGTH_FLOOR } from './recovery.js'
+import { FATIGUE_READY_BELOW, FATIGUE_STATES, STRENGTH_FLOOR } from './recovery.js'
 
 // The fatigue and strength maps' fixed bands (BodyMap `thresholds`): absolute, so a muscle's
 // shade means the same state from one week to the next.
@@ -38,7 +38,7 @@ export function weeksSinceTraining(now, lastTrained) {
  * @returns {'ready'|'recovering'|'fatigued'} The stable state label for the UI.
  */
 export function fatigueStateOf(value) {
-  return value < 0.25
+  return value < FATIGUE_READY_BELOW
     ? FATIGUE_STATES.READY
     : value <= 0.5
       ? FATIGUE_STATES.RECOVERING

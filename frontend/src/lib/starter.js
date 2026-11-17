@@ -5,9 +5,10 @@
 // A routine is [key, name, emoji, [[exerciseId, sets, reps], …]]. The key is what a plan's
 // schedule points at, so a weekday never depends on the position of a routine in the array.
 // Names stay canonical English — they become ordinary user routines, which are not translated.
-import { uid } from './format.js'
+import { uid, weekOrder, weekStartOf } from './format.js'
 import { EXIDX } from './exercises.js'
-import { eqAvailable, ALL_EQUIPMENT } from './equipment.js'
+import { eqAvailable, ALL_EQUIPMENT, profileEquipment } from './equipment.js'
+import { deleteRoutine } from './routines.js'
 
 const PPL = [
   ['push', 'Push Day', 'barbell', [['0025', 4, 8], ['0047', 3, 10], ['0426', 3, 10], ['0334', 3, 12], ['0241', 3, 12], ['0251', 3, 10]]],
@@ -151,9 +152,10 @@ export const substituteFor = (ex, equipment, taken) => {
 
 // Re-cuts a routine list for an equipment list: what you can already do stays, what you can't
 // is swapped for its closest match, and what has no match is dropped (with its routine, when
-// that leaves it empty). Sets and reps carry over unchanged.
+// that leaves it empty). Sets and reps carry over unchanged. `swaps` and `drops` name each
+// exercise that moved, in plan order, so the preview can say which lift became which.
 const fitRoutines = (routines, equipment) => {
-  let swapped = 0, dropped = 0
+  const swaps = [], drops = []
   const fitted = routines.map(([key, name, emoji, list]) => {
     const taken = new Set(list.map(([id]) => id))
     const out = []
@@ -161,19 +163,20 @@ const fitRoutines = (routines, equipment) => {
       const ex = EXIDX[id]
       if (!ex || eqAvailable(equipment, ex)) { out.push([id, sets, reps]); continue }
       const sub = substituteFor(ex, equipment, taken)
-      if (!sub) { dropped++; continue }
+      if (!sub) { drops.push(id); continue }
       taken.add(sub.id)
-      swapped++
+      swaps.push({ from: id, to: sub.id })
       out.push([sub.id, sets, reps])
     }
     return [key, name, emoji, out]
   }).filter(([, , , list]) => list.length)
-  return { routines: fitted, swapped, dropped }
+  return { routines: fitted, swaps, drops }
 }
 
 // Fresh routines plus the weekdays to put them on, or null for an unknown id — a caller that
 // treats null as "change nothing" can never half-apply a plan. With an equipment list the
-// plan is fitted to it first, and `fit` reports how many exercises that swapped or dropped.
+// plan is fitted to it first, and `fit` reports what that swapped (`swaps`: [{ from, to }]
+// exercise ids) and dropped (`drops`: exercise ids), with the two counts beside them.
 export const buildStarterPlan = (id, equipment) => {
   const plan = PLANS[id]
   if (!plan) return null
@@ -185,7 +188,95 @@ export const buildStarterPlan = (id, equipment) => {
   return {
     routines,
     schedule: plan.schedule.filter(([, key]) => byKey[key]).map(([day, key]) => ({ day, routineId: byKey[key] })),
-    ...(fit && { fit: { swapped: fit.swapped, dropped: fit.dropped } })
+    ...(fit && { fit: { swapped: fit.swaps.length, dropped: fit.drops.length, swaps: fit.swaps, drops: fit.drops } })
+  }
+}
+
+const sameLift = (a, b) => (a.ex || []).length === b.ex.length && b.ex.every((e, i) => a.ex[i].id === e.id)
+// The routine already in `routines` that a plan's routine `r` would reuse: same name, same
+// exercises in the same order. A plan fitted to other equipment has other exercises, so it is
+// added alongside instead.
+const reusable = (routines, r) => (routines || []).find(x => x.name === r.name && sameLift(x, r)) || null
+
+const sameDay = (a, b) => JSON.stringify(a == null ? null : [].concat(a)) === JSON.stringify(b == null ? null : [].concat(b))
+
+/**
+ * Loads a built plan (buildStarterPlan) on a store draft, as the board draws it (PR02 T10.1,
+ * owner question 6): the plan's weekdays get its routines and every other weekday becomes rest.
+ * A routine you already have under the same name with the same exercises is reused; the rest
+ * are added. Routines themselves are never removed, and day overrides (`dayPlan`) stay.
+ *
+ * Returns `{ ids, added, undo }`: the routine ids now on the plan's days, the ids this load
+ * added, and `undo(t)` for a later draft. Undo puts back every weekday that still holds what
+ * the load wrote (a day changed since, here or on another device, keeps that change) and
+ * removes the routines this load added, wherever they are still referenced.
+ */
+export function applyStarterPlan(s, plan) {
+  s.routines = Array.isArray(s.routines) ? s.routines : []
+  const idOf = {}, added = []
+  plan.routines.forEach(r => {
+    const have = reusable(s.routines, r)
+    if (have) idOf[r.id] = have.id
+    else { s.routines.push(r); idOf[r.id] = r.id; added.push(r.id) }
+  })
+  const before = structuredClone(s.week || {})
+  const written = {}
+  plan.schedule.forEach(({ day, routineId }) => { written[day] = [idOf[routineId]] })
+  s.week = s.week || {}
+  for (let d = 0; d < 7; d++) {
+    if (written[d]) s.week[d] = written[d]
+    else delete s.week[d]
+  }
+  const ids = [...new Set(Object.values(written).flat())]
+  const undo = t => {
+    t.week = t.week || {}
+    for (let d = 0; d < 7; d++) {
+      if (!sameDay(t.week[d], written[d])) continue
+      if (before[d] != null) t.week[d] = structuredClone(before[d])
+      else delete t.week[d]
+    }
+    for (const id of added) if ((t.routines || []).some(r => r.id === id)) deleteRoutine(t, id)
+  }
+  return { ids, added, undo }
+}
+
+/**
+ * What loading `planId` would do to `S`, for the preview page (PR02 T10.1). `fit` is an
+ * equipment profile to fit the plan to, or null for the plan as written. Null for an unknown id.
+ *
+ *   id, days  the plan id and how many days a week it trains
+ *   week      [{ day, routine }] for the seven weekdays in the profile's week order; `routine`
+ *             is the routine's name, null for a rest day
+ *   routines  [{ name, exercises, days }]: exercise count and the weekdays it lands on
+ *   replaces  [{ id, name }]: routines on the weekly plan now that lose every weekday (they stay
+ *             in Routines); a routine the load reuses is not one of them
+ *   fit       null as written; else { profile: { id, name }, swaps: [{ from, to }], drops },
+ *             each exercise as { id, name } (the catalogue's English name, for the name packs)
+ *
+ * There is no `minutes`: nothing in lib/ estimates a session from its prescription (only
+ * usualDuration, from a routine's own logged history, which a new routine has none of).
+ */
+export function previewStarterPlan(S, planId, { fit = null } = {}) {
+  const plan = buildStarterPlan(planId, fit ? profileEquipment(fit) : undefined)
+  if (!plan) return null
+  const nameOf = id => plan.routines.find(r => r.id === id)?.name ?? null
+  const dayOf = Object.fromEntries(plan.schedule.map(({ day, routineId }) => [day, routineId]))
+  const kept = new Set(plan.routines.map(r => reusable(S.routines, r)?.id).filter(Boolean))
+  const onPlan = new Set(Object.values(S.week || {}).flatMap(v => [].concat(v ?? [])))
+  const ex = id => ({ id, name: EXIDX[id]?.n ?? id })
+  return {
+    id: planId,
+    days: plan.schedule.length,
+    week: weekOrder(weekStartOf(S)).map(day => ({ day, routine: dayOf[day] ? nameOf(dayOf[day]) : null })),
+    routines: plan.routines.map(r => ({
+      name: r.name,
+      exercises: r.ex.length,
+      days: plan.schedule.filter(x => x.routineId === r.id).map(x => x.day)
+    })),
+    replaces: (S.routines || []).filter(r => onPlan.has(r.id) && !kept.has(r.id)).map(r => ({ id: r.id, name: r.name })),
+    fit: fit && plan.fit
+      ? { profile: { id: fit.id, name: fit.name }, swaps: plan.fit.swaps.map(({ from, to }) => ({ from: ex(from), to: ex(to) })), drops: plan.fit.drops.map(ex) }
+      : null
   }
 }
 

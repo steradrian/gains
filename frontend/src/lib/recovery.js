@@ -81,6 +81,27 @@ export const FATIGUE_STATES = Object.freeze({
   FATIGUED: 'fatigued',
 })
 
+/** A fatigue value below this is ready (recovery-view.js fatigueStateOf). */
+export const FATIGUE_READY_BELOW = 0.25
+
+/**
+ * When a muscle at fatigue `value` (fatigueOf at `now`) drops into ready, if it trains no more:
+ * fatigue is 1 - exp(-v), and v halves every fatigueHalfLifeOf(slug), so the crossing has a closed
+ * form. Null when it is ready already (or the value is not a number).
+ *
+ * @param {number} value Fatigue of the muscle at `now`, 0 to 1.
+ * @param {string} slug The muscle, for its half-life.
+ * @param {number} now The time `value` was computed for, in milliseconds.
+ * @returns {number|null} The timestamp it becomes ready.
+ */
+export function fatigueReadyAt(value, slug, now) {
+  const f = Number(value)
+  if (!Number.isFinite(f) || f < FATIGUE_READY_BELOW || !Number.isFinite(Number(now))) return null
+  const raw = -Math.log(1 - Math.min(f, 1 - 1e-9))
+  const ready = -Math.log(1 - FATIGUE_READY_BELOW)
+  return Number(now) + fatigueHalfLifeOf(slug) * Math.log2(raw / ready)
+}
+
 /**
  * Return exponential decay expressed as a fraction of one half-life.
  *

@@ -126,6 +126,41 @@ describe('what the server stamps holds in the merge', () => {
   })
 })
 
+// Friends surfaces m2: workout.share and S.targetsReached are plain additive fields. Neither has a
+// whitelist anywhere (the server keeps what it does not know), so an app from before Friends that
+// pushes without them must not take them away, and a stamping writer's own change goes through.
+describe('workout.share and targetsReached on the server', () => {
+  const T = 1_800_000_000_000
+  const doc = () => ({
+    _ts: T, restSec: 90, edited: { restSec: T },
+    routines: [], workouts: [{ id: 'w1', d: '2026-10-01', start: T - 2e6, end: T - 1e6, share: { off: true, best: ['0227'], together: false } }],
+    targetsReached: { '2026-10-16': { all: true, protein: false } },
+  })
+
+  it('an older app\'s push that never heard of them keeps both', () => {
+    const cur = doc()
+    const old = clone(cur); delete old.edited
+    delete old.workouts[0].share; delete old.targetsReached
+    old.restSec = 60; old._ts = T + 9000
+    S.stampPut(cur, old, { overRead: true, now: T + 9000 })
+    expect(old.workouts[0].share).toEqual({ off: true, best: ['0227'], together: false })
+    expect(old.targetsReached).toEqual({ '2026-10-16': { all: true, protein: false } })
+    expect(old.restSec).toBe(60)
+  })
+
+  it('a stamping writer\'s change and its clearing of them go through', () => {
+    const cur = doc()
+    const next = clone(cur)
+    delete next.workouts[0].share
+    next.targetsReached = {}
+    next.workouts[0]._ts = T + 5000
+    next._ts = T + 5000
+    S.stampPut(cur, next, { overRead: true, stamped: true, now: T + 5000 })
+    expect('share' in next.workouts[0]).toBe(false)
+    expect(next.targetsReached).toEqual({})
+  })
+})
+
 describe('the write ids are no setting', () => {
   it('neither a change nor a restored backup stamps them', () => {
     const prev = { _ts: 1, _wid: 'a', _wids: ['x'], restSec: 90 }

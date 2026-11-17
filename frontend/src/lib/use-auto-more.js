@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react'
 
-/* Long lists that page with a "Show more" button (the Library, the exercise picker, the muscle
-   explorer) load their next page by themselves: the button fires once it comes within about a
+/* Long lists that page with a "Show more" button (the Exercises and By muscle pages, the exercise
+   picker, the muscle explorer) load their next page by themselves: the button fires once it comes within about a
    screen of the viewport, so scrolling through the catalogue never stops at it. Inside a sheet
    the sheet's own scroll clips the button, so there it fires as the button scrolls into view.
 

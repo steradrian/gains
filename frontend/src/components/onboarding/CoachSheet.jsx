@@ -7,7 +7,8 @@ import { SheetActions, SheetHeader } from '../sheet-layout.jsx'
 import { Button } from '../ui.jsx'
 import ChoiceChips from './ChoiceChips.jsx'
 
-// 5b: the AI coach (§3b; never "Coach" without "AI" and a description). What it reads, where the
+// 5b: the AI coach (§3b, board O2.11 in the app's own sheet; never "Coach" without "AI" and a
+// description). What it reads, where the
 // answers go, and the one tap that sends them: the consent, the hub's text (`consent`, see
 // lib/onboarding/consent.js), whose id goes with the choice. Experience is optional, equipment
 // defaults to a full gym. Build → onBuild({ experience, equipment }); Not now (or closing) → back
@@ -23,9 +24,9 @@ export default function CoachSheet({ consent: text, days, experience, equipment,
   const build = () => { built.current = true; onBuild({ experience: exp ?? null, equipment: eq }) }
   const consent = coachConsentCopy(text, days)
   return <>
-    <SheetHeader title={t('Have the AI coach build your plan')} />
-    <p className="ob-sheet-p">{consent.reads}</p>
-    <p className="ob-fine">{consent.where}</p>
+    <SheetHeader title={t('Have the AI coach build your plan')} onClose={close} />
+    <p className="ob-sheet-text">{consent.reads}</p>
+    <p className="ob-sheet-fine">{consent.where}</p>
     <ChoiceChips label={t('Your experience (optional)')} options={EXPERIENCE_OPTIONS()} value={exp} onPick={setExp} />
     <ChoiceChips label={t('What you can use')} options={EQUIPMENT_OPTIONS()} value={eq} onPick={setEq} />
     <SheetActions>

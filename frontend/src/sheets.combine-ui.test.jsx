@@ -96,16 +96,18 @@ describe('WorkoutDetail — per-routine grouping', () => {
 
   it('groups a combined workout into per-routine sections with a sets/volume subheader', () => {
     const host = (workoutDetailSheet(combined), renderTop())
-    expect(host.textContent).toContain('Strength')
-    expect(host.textContent).toContain('Core')
-    expect(host.textContent).toMatch(/2 sets/)
-    expect(host.textContent).toMatch(/1 sets|1 set/)
+    const heads = [...host.querySelectorAll('.g-wd-group-head')]
+    expect(heads.map(h => h.querySelector('b').textContent)).toEqual(['Strength', 'Core'])
+    expect(heads[0].querySelector('span').textContent).toBe('2 sets · 600 kg')
+    expect(heads[1].querySelector('span').textContent).toMatch(/^1 sets? · 0 kg$/)
+    expect([...host.querySelectorAll('.g-wd-group')].map(g => g.querySelectorAll('.g-wd-ex').length)).toEqual([1, 1])
   })
 
   it('renders a legacy single-routine workout flat — no routine subheader', () => {
     const host = (workoutDetailSheet(legacy), renderTop())
-    // the only routine name that could appear is the header <h3> (w.name = "Push"); there is
+    // the only routine name that could appear is the drawer's title (w.name = "Push"); there is
     // no "Strength" subheader row
-    expect(host.querySelectorAll('.row.between').length).toBe(0)
+    expect(host.querySelectorAll('.g-wd-group-head').length).toBe(0)
+    expect(host.querySelectorAll('.g-wd-ex').length).toBe(1)
   })
 })

@@ -49,7 +49,8 @@ export function initialState(units = localeUnits()) {
     daysSaid: false,
     // Hub steps whose last save failed: sent again before completing.
     unsaved: [],
-    progress: [0, 0, 0],
+    // The furthest of the progress bar's eight steps reached (flow.js progressMax), 0 before any.
+    progress: 0,
     // What this server's openGym can take (the hub reads it): null until known.
     coachAvailable: null,
     starterAvailable: null,
@@ -193,7 +194,9 @@ export function loadSaved(uid = null, storage = globalThis.sessionStorage) {
     if (!uid) return { ...initialState(), code: v.code ?? null, invite: v.invite ?? null, name: v.name ?? null }
     if (!v.answers || !v.answers.body) return null
     // JSON has no undefined: a training step not asked yet comes back absent.
-    return recordOf({ ...initialState(), ...v, answers: { ...initialState().answers, ...v.answers } })
+    // A copy from when the bar had three segments kept their fills: the bar starts again from here.
+    const progress = Number.isInteger(v.progress) ? v.progress : 0
+    return recordOf({ ...initialState(), ...v, progress, answers: { ...initialState().answers, ...v.answers } })
   } catch { return null }
 }
 

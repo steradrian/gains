@@ -1,18 +1,50 @@
 import { describe, expect, it } from 'vitest'
-import { PROFILE_RENAMED, isTabRoot, launchPath, legacyPath, parentOf, slotOf, tabOf, workoutRunning } from './tab-route.js'
+import { ME_PAGES, PROFILE_RENAMED, isNotificationsPath, isTabRoot, launchPath, legacyPath, notificationsPath, parentOf, routeDepth, tabOf, workoutRunning } from './tab-route.js'
+
+describe('the notifications inbox', () => {
+  it('opens under the tab the bell was tapped on, so that tab stays lit', () => {
+    expect(notificationsPath('/home')).toBe('/home/notifications')
+    expect(notificationsPath('/train/history')).toBe('/train/notifications')
+    expect(notificationsPath('/food')).toBe('/food/notifications')
+    expect(notificationsPath('/me')).toBe('/me/notifications')
+    expect(notificationsPath('/progress/body')).toBe('/me/notifications')
+    for (const tab of ['home', 'train', 'food', 'me']) expect(tabOf(notificationsPath('/' + tab)), tab).toBe(tab)
+  })
+
+  it('a page no tab owns opens Home\'s', () => {
+    expect(notificationsPath('/train/workout')).toBe('/home/notifications')
+    expect(notificationsPath('')).toBe('/home/notifications')
+  })
+
+  it('knows its four paths, and Back goes to the tab root', () => {
+    for (const tab of ['home', 'train', 'food', 'me']) {
+      expect(isNotificationsPath('/' + tab + '/notifications')).toBe(true)
+      expect(parentOf('/' + tab + '/notifications')).toBe('/' + tab)
+    }
+    expect(isNotificationsPath('/me/reminders')).toBe(false)
+    expect(isNotificationsPath('/progress/notifications')).toBe(false)
+  })
+
+  it('old /me/notifications links are not rewritten: they are Me\'s inbox now', () => {
+    expect(legacyPath('/me/notifications')).toBeNull()
+  })
+})
 
 describe('the tab comes from the route', () => {
-  it('Home, Training, Nutrition and Progress own their own paths', () => {
+  it('Home, Training and Nutrition own their own paths', () => {
     expect(tabOf('/home')).toBe('home')
     expect(tabOf('/train')).toBe('train')
     expect(tabOf('/train/routines/abc')).toBe('train')
     expect(tabOf('/food')).toBe('food')
-    expect(tabOf('/progress/body/photos')).toBe('progress')
   })
 
-  it('the workout and Profile belong to no tab: they sit on the one that opened them', () => {
-    for (const p of ['/train/workout', '/me', '/me/workout', '/me/admin', '/', ''])
-      expect(tabOf(p), p).toBeNull()
+  it('Me owns Profile and every page under it, and Progress with its pages', () => {
+    for (const p of ['/me', '/me/workout', '/me/admin', '/progress', '/progress/body/photos', '/progress/load?view=plan'])
+      expect(tabOf(p.split('?')[0]), p).toBe('me')
+  })
+
+  it('the workout belongs to no tab: it sits on the one that opened it', () => {
+    for (const p of ['/train/workout', '/', '']) expect(tabOf(p), p).toBeNull()
   })
 
   it('does not take a lookalike for a tab', () => {
@@ -22,12 +54,8 @@ describe('the tab comes from the route', () => {
   })
 
   it('knows the four roots', () => {
-    for (const p of ['/home', '/train', '/food', '/progress']) expect(isTabRoot(p), p).toBe(true)
-    for (const p of ['/train/history', '/progress/body', '/me', '/train/workout']) expect(isTabRoot(p), p).toBe(false)
-  })
-
-  it('never puts a tab on the centre +', () => {
-    expect([0, 1, 2, 3].map(slotOf)).toEqual([0, 1, 3, 4])
+    for (const p of ['/home', '/train', '/food', '/me']) expect(isTabRoot(p), p).toBe(true)
+    for (const p of ['/train/history', '/progress', '/progress/body', '/me/workout', '/train/workout']) expect(isTabRoot(p), p).toBe(false)
   })
 })
 
@@ -46,9 +74,61 @@ describe('back on a cold entry goes to the parent', () => {
     expect(parentOf('/progress/body/photos')).toBe('/progress')
   })
 
+  it('a Body tab of Me to Me: the three are one page, not a stack', () => {
+    expect(parentOf('/me/body')).toBe('/me')
+    expect(parentOf('/me/body/measurements')).toBe('/me')
+    expect(parentOf('/me/body/photos')).toBe('/me')
+    expect(routeDepth('/me/body/photos')).toBe(2)
+  })
+
+  it('Progress to Profile, the page it is opened from', () => {
+    expect(parentOf('/progress')).toBe('/me')
+  })
+
+  it('Me root M1: Profile pages and Settings go to Profile, Settings pages to Settings', () => {
+    for (const page of ME_PAGES) expect(parentOf('/me/' + page), page).toBe('/me')
+    expect(parentOf('/me/settings')).toBe('/me')
+    for (const page of ['equipment', 'reminders', 'workout', 'account', 'admin']) expect(parentOf('/me/' + page), page).toBe('/me/settings')
+    expect(parentOf('/me/week/2026-W42')).toBe('/me')
+    expect(routeDepth('/me')).toBe(1)
+    expect(routeDepth('/me/settings')).toBe(2)
+    expect(routeDepth('/me/equipment')).toBe(3)
+    expect(routeDepth('/me/account/delete')).toBe(4)
+    expect(tabOf('/me/settings')).toBe('me')
+  })
+
+  it('Delete account to the Account page, both on the Me tab', () => {
+    expect(parentOf('/me/account/delete')).toBe('/me/account')
+    expect(parentOf('/me/account')).toBe('/me/settings')
+    expect(tabOf('/me/account/delete')).toBe('me')
+  })
+
+  it('Started over to the Account page it was started from', () => {
+    expect(parentOf('/me/account/started-over')).toBe('/me/account')
+    expect(tabOf('/me/account/started-over')).toBe('me')
+  })
+
+  it('a My foods editor, new or saved, to its tab of the list', () => {
+    expect(parentOf('/food/my-foods/foods/12')).toBe('/food/my-foods?tab=foods')
+    expect(parentOf('/food/my-foods/foods/new')).toBe('/food/my-foods?tab=foods')
+    expect(parentOf('/food/my-foods/meals/3')).toBe('/food/my-foods?tab=meals')
+    expect(parentOf('/food/my-foods')).toBe('/food')
+  })
+
+  it('Friends: Groups to Me, a group, the join page, What you share and Cheers to Groups, a member and a challenge to their group', () => {
+    expect(parentOf('/me/groups')).toBe('/me')
+    expect(parentOf('/me/groups/g1')).toBe('/me/groups')
+    expect(parentOf('/me/groups/join/abc123')).toBe('/me/groups')
+    expect(parentOf('/me/groups/sharing')).toBe('/me/groups')
+    expect(parentOf('/me/groups/cheers')).toBe('/me/groups')
+    expect(parentOf('/me/groups/g1/member/u2')).toBe('/me/groups/g1')
+    expect(parentOf('/me/groups/g1/challenge/c1')).toBe('/me/groups/g1')
+    for (const path of ['/me/groups', '/me/groups/g1/member/u2', '/me/groups/join/abc123']) expect(tabOf(path)).toBe('me')
+  })
+
   it('the Coach to Training, Profile pages to Profile, Profile and the workout to Home', () => {
     expect(parentOf('/train/coach/intake')).toBe('/train')
-    expect(parentOf('/me/workout')).toBe('/me')
+    expect(parentOf('/me/workout')).toBe('/me/settings')
     expect(parentOf('/me')).toBe('/home')
     expect(parentOf('/train/workout')).toBe('/home')
   })
@@ -58,6 +138,7 @@ describe('the routes from before the tabs', () => {
   it('go where they live now, the rest of the path kept', () => {
     expect(legacyPath('/home')).toBeNull()   // still Home
     expect(legacyPath('/plan')).toBe('/train/schedule')
+    expect(legacyPath('/stats', '?focus=weekly-volume')).toBe('/train/schedule')   // the weekly volume moved to Plan
     expect(legacyPath('/plan/r/abc')).toBe('/train/routines/abc')
     expect(legacyPath('/workout')).toBe('/train/workout')
     expect(legacyPath('/history')).toBe('/train/history')
@@ -70,18 +151,22 @@ describe('the routes from before the tabs', () => {
     expect(legacyPath('/progress-photos')).toBe('/progress/body/photos')
     expect(legacyPath('/measurements')).toBe('/progress/body/measurements')
     expect(legacyPath('/body')).toBe('/progress/body')
-    expect(legacyPath('/settings')).toBe('/me')
+    expect(legacyPath('/settings')).toBe('/me/settings')
+    expect(legacyPath('/settings', '?x=1')).toBe('/me/settings?x=1')
     expect(legacyPath('/settings/workout')).toBe('/me/workout')
+    expect(legacyPath('/me/settings')).toBeNull()
     expect(legacyPath('/admin')).toBe('/me/admin')
   })
 
   it('send the Profile pages the §5 merge renamed to their new names', () => {
     expect(legacyPath('/settings/look')).toBe('/me/appearance')
-    expect(legacyPath('/settings/reminders')).toBe('/me/notifications')
+    expect(legacyPath('/settings/reminders')).toBe('/me/reminders')
     expect(legacyPath('/settings/plan')).toBe('/me/schedule')
     expect(legacyPath('/settings/data', '?x=1')).toBe('/me/backup?x=1')
     expect(legacyPath('/settings/advanced')).toBe('/me/advanced')
-    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', reminders: 'notifications', plan: 'schedule', data: 'backup' })
+    expect(legacyPath('/settings/alerts')).toBe('/me/workout')
+    expect(legacyPath('/settings/danger')).toBe('/me/account')
+    expect(PROFILE_RENAMED).toEqual({ look: 'appearance', plan: 'schedule', data: 'backup', alerts: 'workout', danger: 'account' })
   })
 
   it('leave new and unknown routes alone', () => {

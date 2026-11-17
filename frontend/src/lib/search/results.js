@@ -1,14 +1,15 @@
 // The local sources of the global search and how their results are put together
-// (fitness-eval ux-search.md §3, §5): pages, settings, exercises, routines, workouts, your foods
-// (foods, saved meals and recipes) and diary days, each a group. Online (Open Food Facts) is
-// asked for separately, being slow and budgeted (use-search-results.js).
+// (fitness-eval ux-search.md §3, §5): switched-off features, pages, settings, exercises, routines,
+// workouts, your foods (foods, saved meals and recipes) and diary days, each a group. Online (Open
+// Food Facts) is asked for separately, being slow and budgeted (use-online-results.js).
 //
 // One result shape for every row:
 //   { type, id, key, title, ranges, subtitle, subRanges, value, unit, media, score, exact,
 //     wordPrefix, frecency, ...what its route needs }
-// `media` is { kind: 'glyph', glyph } | { kind: 'thumb', ex } | { kind: 'date', iso }. `value` and
-// `unit` are the trailing pair ("420" over "kcal"); `value` alone is a setting's current value.
-import { dateLocale, t, tn } from '../i18n-core.js'
+// `media` is { kind: 'glyph', glyph } | { kind: 'thumb', ex } | { kind: 'photo', src } |
+// { kind: 'date', iso }. `value` and `unit` are the trailing pair ("420" over "kcal"); `value`
+// alone is a setting's current value. On the stage a row says its kind first (`stageSub`).
+import { dateLocale, t, tn, tnShown } from '../i18n-core.js'
 import { capWords, exCount, exerciseNameText, fmtDate, fmtDaysAgo, fmtDur, fmtNum, isoOf, todayISO } from '../format.js'
 import { effectiveRoutineIds, setsDone, workoutDay, workoutDuration } from '../history.js'
 import { isFav } from '../favourites.js'
@@ -19,30 +20,47 @@ import { matchRecord, queryWords, rangesIn } from './match.js'
 import { inRange, parseDateQuery } from './date-words.js'
 import { searchablePages, TAB_TITLE, TAB_GLYPH } from './pages.js'
 import { settingsResults } from './settings-source.js'
+import { featureResults } from './features.js'
 import { openedScore } from './recents.js'
 
-export const GROUPS = ['pages', 'settings', 'exercises', 'routines', 'workouts', 'foods', 'days', 'online']
+export const GROUPS = ['features', 'pages', 'settings', 'exercises', 'routines', 'workouts', 'foods', 'days', 'online']
 
-// The order groups come in, by the tab the search was opened on. Online is always last.
+// The order groups come in, by the tab the search was opened on (lib/search/scopes.js). A
+// switched-off feature's card comes first, Online always last. Me leads with its own pages and
+// settings (Profile's).
 export const GROUP_ORDER = {
-  home: ['pages', 'exercises', 'foods', 'workouts', 'days', 'settings', 'routines', 'online'],
-  train: ['exercises', 'routines', 'workouts', 'pages', 'settings', 'foods', 'days', 'online'],
-  food: ['foods', 'days', 'pages', 'settings', 'exercises', 'routines', 'workouts', 'online'],
-  progress: ['pages', 'exercises', 'workouts', 'days', 'settings', 'foods', 'routines', 'online'],
+  home: ['features', 'pages', 'exercises', 'foods', 'workouts', 'days', 'settings', 'routines', 'online'],
+  train: ['features', 'exercises', 'routines', 'workouts', 'pages', 'settings', 'foods', 'days', 'online'],
+  food: ['features', 'foods', 'days', 'pages', 'settings', 'exercises', 'routines', 'workouts', 'online'],
+  me: ['features', 'pages', 'settings', 'exercises', 'workouts', 'days', 'foods', 'routines', 'online'],
 }
 
 export const GROUP_LIMIT = 3
 
-/** A group's title, and its noun for the summary line ("4 exercises"). */
-export const groupTitle = g => ({
-  pages: t('Pages'), settings: t('Settings'), exercises: t('Exercises'), routines: t('Routines'),
-  workouts: t('Workouts'), foods: t('Your foods'), days: t('Days'), online: t('Open Food Facts'),
-})[g]
-export const groupCount = (g, n) => ({
-  pages: tn('{0} page', '{0} pages', n), settings: tn('{0} setting', '{0} settings', n), exercises: tn('{0} exercise', '{0} exercises', n),
-  routines: tn('{0} routine', '{0} routines', n), workouts: tn('{0} workout', '{0} workouts', n), foods: tn('{0} food', '{0} foods', n),
-  days: tn('{0} day', '{0} days', n), online: t('{0} online', n),
-})[g]
+/** A group's count with its noun ("1,200 workouts"), the number written for the locale; `shown`
+ *  '' gives the noun alone, in the form the count takes ("workouts"). Its title is
+ *  lib/search/scopes.js groupTitle. */
+export const groupCount = (g, n, shown = n.toLocaleString(dateLocale())) => ({
+  features: tnShown('{0} turned-off feature', '{0} turned-off features', n, shown),
+  pages: tnShown('{0} page', '{0} pages', n, shown), settings: tnShown('{0} setting', '{0} settings', n, shown),
+  exercises: tnShown('{0} exercise', '{0} exercises', n, shown), routines: tnShown('{0} routine', '{0} routines', n, shown),
+  workouts: tnShown('{0} workout', '{0} workouts', n, shown), foods: tnShown('{0} food', '{0} foods', n, shown),
+  days: tnShown('{0} day', '{0} days', n, shown), online: tnShown('{0} online', '{0} online', n, shown),
+})[g]?.trim()
+
+/** What a row is, said first on its line on the stage ("Exercise · best set 80 kg × 6"). */
+export const kindLabel = type => ({
+  page: t('Page'), setting: t('Setting'), exercise: t('Exercise'), routine: t('Routine'), workout: t('Workout'),
+  food: t('Your food'), meal: t('Saved meal'), recipe: t('Recipe'), day: t('Day'), online: t('Open Food Facts'),
+})[type] || null
+
+/** A row's line on the stage: its own (`sub`, a suggestion's) or its kind, then its subtitle. A
+ *  saved meal's and a recipe's subtitle already start with their kind. */
+export function stageSub(r) {
+  if (r.sub != null) return r.sub
+  if (r.type === 'meal' || r.type === 'recipe' || r.type === 'feature') return r.subtitle || ''
+  return [kindLabel(r.type), r.subtitle].filter(Boolean).join(' · ')
+}
 
 const keyOf = (type, id) => type + ':' + id
 const byScore = (a, b) => b.score - a.score || b.frecency - a.frecency
@@ -52,14 +70,16 @@ const byScore = (a, b) => b.score - a.score || b.frecency - a.frecency
 /** Every record, unmatched: what a Recent entry or a suggestion is looked up in. */
 export const UNMATCHED = { score: 0, ranges: [], exact: false, wordPrefix: false }
 
-// `all`: no query, every page (to look one up).
-export function pageResults(words, ctx, { all = false } = {}) {
+// `all`: no query, every page (to look one up). A page whose feature is off is its feature's card
+// (features.js), not a page; `withOff` keeps it, for a Recent entry that still names it.
+export function pageResults(words, ctx, { all = false, withOff = false } = {}) {
   const out = []
   for (const p of searchablePages(ctx)) {
+    const off = typeof p.state === 'object' ? p.state.off : null
+    if (off && !withOff) continue
     const title = t(p.title)
     const m = all && !words.length ? UNMATCHED : matchRecord(words, { title, aliases: [p.kw, p.title], secondary: [t(TAB_TITLE[p.tab])] })
     if (!m) continue
-    const off = typeof p.state === 'object' ? p.state.off : null
     const key = keyOf('page', p.path)
     out.push({
       type: 'page', id: p.path, key, title, ranges: m.ranges,
@@ -295,6 +315,7 @@ export function searchLocal(query, data, tab = 'home') {
   const date = parseDateQuery(query, { today: data.today, weekStart: data.weekStart })
   const groups = {
     ...empty,
+    features: featureResults(words, data.pagesCtx),
     pages: pageResults(words, data.pagesCtx),
     settings: settingsResults(words, data.S, data.settingsCtx),
     exercises: exerciseResults(words, query, data.S, data.exercises),
@@ -335,9 +356,50 @@ export function listAll(group, data) {
   }
 }
 
-/** The summary line's entries, in group order, largest count marked. */
+/** The counts per kind (the count chips, the summary line), in group order, largest marked; `text`
+ *  is the count with its noun ("1,200 workouts"), `noun` the noun alone in the count's form
+ *  ("workouts"). `extra` adds to a group (Online's rows, the best match taken out of its group). */
 export function summaryOf(groups, order, extra = {}) {
   const entries = order.map(g => ({ group: g, count: (groups[g] || []).length + (extra[g] || 0) })).filter(e => e.count > 0)
   const max = Math.max(0, ...entries.map(e => e.count))
-  return entries.map(e => ({ ...e, emphasized: e.count === max }))
+  return entries.map(e => ({ ...e, text: groupCount(e.group, e.count), noun: groupCount(e.group, e.count, ''), emphasized: e.count === max }))
+}
+
+/**
+ * A scoped group's rows as they read (board Sh0Scoped): workouts newest first in a section a
+ * month, titled with the month (and the year when it is not this one), and the ones with no date
+ * last in a section of their own with no title (never under a month they are not in); every other
+ * group one section with no title, in the order it came. Returns [{ key, title, rows }].
+ */
+export function scopedSections(group, rows, today = todayISO()) {
+  if (group !== 'workouts') return rows.length ? [{ key: group, title: null, rows }] : []
+  const dayOf = r => {
+    const d = String((r.workout ? workoutDay(r.workout) || r.workout.d : r.media?.iso) || '')
+    return /^\d{4}-\d{2}-\d{2}/.test(d) ? d : ''
+  }
+  const sorted = [...rows].sort((a, b) => dayOf(b).localeCompare(dayOf(a)))
+  const out = []
+  for (const r of sorted) {
+    const month = dayOf(r).slice(0, 7)
+    let sec = out.at(-1)
+    if (!sec || sec.key !== (month || 'undated')) {
+      const title = month
+        ? new Date(month + '-15T12:00:00').toLocaleDateString(dateLocale(), month.slice(0, 4) === today.slice(0, 4) ? { month: 'long' } : { month: 'long', year: 'numeric' })
+        : null
+      sec = { key: month || 'undated', title, rows: [] }
+      out.push(sec)
+    }
+    sec.rows.push(r)
+  }
+  return out
+}
+
+/** The line over a scoped group: "6 workouts with “press”, newest first"; with nothing typed, the
+ *  count alone. */
+export function scopedSummary(group, count, query = '') {
+  const q = query.trim()
+  if (!q) return groupCount(group, count)
+  return group === 'workouts'
+    ? t('{0} with “{1}”, newest first', groupCount(group, count), q)
+    : t('{0} with “{1}”', groupCount(group, count), q)
 }

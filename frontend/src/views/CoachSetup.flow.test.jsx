@@ -102,7 +102,7 @@ describe('CoachSetup — where it runs at all', () => {
   it('is a phone screen: the web build is sent straight back to Settings', async () => {
     mocks.mobile = false
     await mount()
-    expect(mocks.nav).toHaveBeenCalledWith('/me', { replace: true })
+    expect(mocks.nav).toHaveBeenCalledWith('/me/settings', { replace: true })
   })
 
   it('re-asks the paired server what it can do, because the admin may have switched it on', async () => {

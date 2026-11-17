@@ -33,7 +33,7 @@ afterEach(() => {
 
 const wait = ms => act(() => new Promise(r => setTimeout(r, ms)))
 const $ = s => document.querySelector(s)
-const pill = () => $('.spill-i')
+const pill = () => $('.g-shdr-pin .g-spill-field input')
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]'
 // What Tab can land on: focusable, not out of the order, and not under an inert element.
 const tabbable = () => [...document.querySelectorAll(FOCUSABLE)].filter(el => !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]'))
@@ -62,20 +62,20 @@ describe('the page behind an open search', () => {
     expect(names).toEqual(expect.arrayContaining(['Log food', 'Train', 'Weight', 'Pause rest', 'Home', 'Food']))
   })
 
-  it('goes inert while it is open: Tab from the avatar and from the pill stays in the header and the results', async () => {
+  it('goes inert while it is open: Tab from the pill and from the close stays in the header and the results', async () => {
     await mount()
     await open()
     expect(useSearch.getState().open).toBe(true)
     const order = tabbable()
     const names = order.map(el => el.textContent || el.getAttribute('aria-label'))
     for (const outside of ['Log food', 'Train', 'Weight', 'Pause rest', 'Home', 'Food']) expect(names).not.toContain(outside)
-    for (const el of order) expect(el.closest('.tab-hdr, #gains-search'), el.outerHTML).not.toBeNull()
-    // The ring Tab walks: the pill and the avatar are in it, and each one's neighbours belong too.
-    const at = [pill(), $('.avatar-btn')].map(el => order.indexOf(el))
+    for (const el of order) expect(el.closest('.g-shdr-pin, #gains-search'), el.outerHTML).not.toBeNull()
+    // The ring Tab walks: the pill and the bell's × are in it, and each one's neighbours belong too.
+    const at = [pill(), $('.g-bell')].map(el => order.indexOf(el))
     expect(at.every(i => i >= 0)).toBe(true)
     for (const i of at) {
-      expect(order[(i + 1) % order.length].closest('.tab-hdr, #gains-search')).not.toBeNull()
-      expect(order[(i - 1 + order.length) % order.length].closest('.tab-hdr, #gains-search')).not.toBeNull()
+      expect(order[(i + 1) % order.length].closest('.g-shdr-pin, #gains-search')).not.toBeNull()
+      expect(order[(i - 1 + order.length) % order.length].closest('.g-shdr-pin, #gains-search')).not.toBeNull()
     }
     // The page's own controls, the tab bar and the dock are the inert ones; #app itself is not.
     expect(inert($('#page'))).toBe(true)
@@ -83,16 +83,35 @@ describe('the page behind an open search', () => {
     expect(inert($('#timer'))).toBe(true)
     expect($('#app').hasAttribute('inert')).toBe(false)
     expect(inert(pill())).toBe(false)
-    expect(inert($('.avatar-btn'))).toBe(false)
+    expect(inert($('.g-bell'))).toBe(false)
   })
 
   it('comes back with the close, leaving nothing inert', async () => {
     await mount()
     await open()
-    await act(async () => $('.avatar-btn').click())
+    await act(async () => $('.g-bell').click())
     await wait(50)
     expect(useSearch.getState().open).toBe(false)
     expect(document.querySelectorAll('[inert]')).toHaveLength(0)
+  })
+
+  it('follows the iOS keyboard: the visual viewport\'s offset is the header\'s and the panel\'s --vv-top while open', async () => {
+    const vv = Object.assign(new EventTarget(), { height: 400, offsetTop: 0 })
+    vi.stubGlobal('visualViewport', vv)
+    const html = document.documentElement
+    try {
+      await mount()
+      await open()
+      expect(html.style.getPropertyValue('--vv-top')).toBe('0px')
+      vv.offsetTop = 120
+      await act(async () => vv.dispatchEvent(new Event('scroll')))
+      expect(html.style.getPropertyValue('--vv-top')).toBe('120px')
+      await act(async () => $('.g-bell').click())
+      await wait(50)
+      expect(html.style.getPropertyValue('--vv-top')).toBe('')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('holds a block the page renders under the header while the search is open', async () => {
@@ -103,7 +122,7 @@ describe('the page behind an open search', () => {
     await act(async () => { $('#app').appendChild(late) })
     await wait(10)
     expect(inert(late.firstChild)).toBe(true)
-    await act(async () => $('.avatar-btn').click())
+    await act(async () => $('.g-bell').click())
     await wait(50)
     expect(late.hasAttribute('inert')).toBe(false)
   })
@@ -130,7 +149,7 @@ describe('the page behind an open search', () => {
     $('#tabbar').removeAttribute('inert')
     await wait(10)
     expect($('#tabbar').hasAttribute('inert')).toBe(true)
-    await act(async () => $('.avatar-btn').click())
+    await act(async () => $('.g-bell').click())
     await wait(50)
     expect($('#tabbar').hasAttribute('inert')).toBe(false)
   })
@@ -150,7 +169,7 @@ describe('the page behind an open search', () => {
     expect(inert($('#tabbar'))).toBe(true)
     expect(inert($('#timer'))).toBe(true)
     sheet.remove()
-    await act(async () => $('.avatar-btn').click())
+    await act(async () => $('.g-bell').click())
     await wait(50)
     expect(document.querySelectorAll('[inert]')).toHaveLength(0)
   })

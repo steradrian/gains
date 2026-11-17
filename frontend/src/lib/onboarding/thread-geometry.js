@@ -113,9 +113,40 @@ export function planBetween(from, to) {
   return { segs: [seg(0, 320, EASE, to)], total: 320, arrive: near(from, to) ? 0 : 320 }
 }
 
-/** The invite's birth: a 6px dot at the floor's centre draws outward both ways over 480ms. */
-export function birthPlan(dest) {
+const LIFT_MS = 120
+const LAND_MS = 140
+
+/**
+ * A run's look, on top of its path: the thread flies as milestone A drew it (`flight`: white, at
+ * the scene's structure weight) and lands as its anchor rests. It lifts off the look it starts
+ * with over the first 120ms and takes `to`'s width, colour and opacity over the last 140ms, so the
+ * last frame it paints is the anchor's own (a floor at rest is 32% white at 1.5, a shaft 82% at
+ * 2.5). The plan's own segments keep their path only. A plan that never moves (arrive 0, the
+ * floors coincide) keeps the look the line already has.
+ */
+export function withFlight(plan, to, flight) {
+  if (!plan.arrive || !flight) return plan
+  const glide = plan.segs.map(s => ({ ...s, to: s.to.p ? { p: s.to.p } : {} }))
+  const lift = seg(0, LIFT_MS, EASE_OUT, { w: flight.w, c: flight.c, o: 1 })
+  const land = seg(Math.max(0, plan.arrive - LAND_MS), Math.min(LAND_MS, plan.arrive), EASE, { w: to.w, c: to.c, o: to.o })
+  return { ...plan, segs: [lift, ...glide, land] }
+}
+
+/**
+ * The invite's birth: a 6px dot at the floor's centre draws outward both ways over 480ms, in the
+ * flight's look (`flight`, else the floor's own), and lands as the floor rests.
+ */
+export function birthPlan(dest, flight = dest) {
   const cx = (dest.p[0] + dest.p[24]) / 2, y = dest.p[1]
-  const base = { ...dest, p: lineP(cx - 0.05, y, cx + 0.05, y), w: 6 }
-  return { base, segs: [seg(0, 480, EASE_IO, { p: dest.p }), seg(0, 200, EASE_OUT, { w: dest.w })], total: 480, arrive: 480 }
+  const base = { ...dest, p: lineP(cx - 0.05, y, cx + 0.05, y), w: 6, c: flight.c, o: 1 }
+  return {
+    base,
+    segs: [
+      seg(0, 480, EASE_IO, { p: dest.p }),
+      seg(0, 200, EASE_OUT, { w: flight.w }),
+      seg(480 - LAND_MS, LAND_MS, EASE, { w: dest.w, c: dest.c, o: dest.o }),
+    ],
+    total: 480,
+    arrive: 480,
+  }
 }

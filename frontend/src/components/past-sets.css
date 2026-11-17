@@ -1,0 +1,32 @@
+/* Past sets (T7.1): PastSetsList on the stage (glass cards) and in the mid-workout drawer (light).
+   Both sit inside a .g-root, so the design system's tokens apply. */
+.g-ps { display: flex; flex-direction: column; gap: 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.g-ps-light { color: var(--text); }
+.g-ps-count { margin: 0; padding-inline: 4px; font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-ps-light .g-ps-count { color: var(--text-3); }
+.g-ps-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.g-ps-card { appearance: none; border: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 24px; color: inherit; font: inherit; text-align: start; }
+button.g-ps-card { cursor: pointer; }
+.g-ps-light .g-ps-card { background: var(--surface-sunken); }
+/* The ring is drawn inside the card, so the list around it never clips it. */
+.g-ps-card:focus-visible { outline-offset: -3px; }
+.g-ps:not(.g-ps-light) .g-ps-card:focus-visible, .g-ps:not(.g-ps-light) .g-ps-more:focus-visible { outline-color: var(--on-stage); }
+.g-ps-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.g-ps-head b { font: 700 17px/22px var(--font-sans); }
+.g-ps-head > span { flex: 1; min-width: 0; font: 500 14px/18px var(--font-sans); color: var(--on-stage-2); overflow-wrap: anywhere; }
+.g-ps-light .g-ps-head > span { color: var(--text-3); }
+.g-ps-head .g-ps-chev { flex: none; align-self: center; width: 18px; height: 18px; margin-inline-start: auto; color: var(--on-stage-2); }
+[dir="rtl"] .g-ps-chev { transform: scaleX(-1); }
+.g-ps-sets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.g-ps-sets li { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.g-ps-sets li > span:first-child { flex: none; min-width: 3.5em; font: 500 15px/20px var(--font-sans); color: var(--on-stage-2); }
+.g-ps-light .g-ps-sets li > span:first-child { color: var(--text-3); }
+.g-ps-sets b { min-width: 0; font: 600 16px/22px var(--font-sans); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.g-ps-pr { flex: none; padding: 2px 9px; border-radius: 999px; background: var(--on-stage); color: var(--accent-text); font: 700 12px/16px var(--font-sans); }
+.g-ps-light .g-ps-pr { background: var(--accent-tint); }
+.g-ps-tail { font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); }
+.g-ps-light .g-ps-tail { color: var(--text-3); }
+.g-ps-more { appearance: none; border: 0; min-height: var(--tap-min); padding: 8px 16px; border-radius: 999px; color: inherit; font: 700 16px/20px var(--font-sans); cursor: pointer; }
+.g-ps-light .g-ps-more { background: var(--surface-sunken); }
+.g-ps-empty { margin: 0; padding: 32px 0; text-align: center; font: 500 16px/22px var(--font-sans); color: var(--on-stage-2); }
+.g-ps-empty.g-ps-light { color: var(--text-3); }

@@ -1,5 +1,3 @@
-import { useLayoutEffect } from 'react'
-import { usePresence } from '../components/presence.jsx'
 import { isSwitching } from './use-tab-nav.js'
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -65,7 +63,8 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
   // it replaced, so closing the chain ends on what started it.
   const opener = live(asked) || !live(replaced?.opener) ? asked : replaced.opener
   const held = BACKGROUND.filter(hold)
-  const controls = () => [...el.querySelectorAll(FOCUSABLE)]
+  // A drawer's panels under the active one are inert (components/sheet-panes.jsx): not a stop.
+  const controls = () => [...el.querySelectorAll(FOCUSABLE)].filter(n => !n.closest('[inert]'))
   const inside = document.activeElement && el.contains(document.activeElement)
   if (!inside) {
     if (enter === 'dialog') {
@@ -104,18 +103,4 @@ export function trapDialogFocus(el, { enter = 'first', opener: asked = document.
       if (live(opener) && (!open.length || open.some(d => d.contains(opener)))) opener.focus?.({ preventScroll: true })
     })
   }
-}
-
-// For content that runs its own trap (`data-own-dialog-focus`, the + sheet). It follows the
-// presence of the sheet it sits in (components/presence.jsx), the way useSheetDialog does: a closed
-// sheet still playing its way out has let go of the focus and the page already, and one that
-// replaces it in the same tap inherits its opener. A layout effect, so that the release lands
-// before the replacing sheet's trap reads it.
-export function useDialogFocus(ref) {
-  const { present } = usePresence()
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!present || !el) return
-    return trapDialogFocus(el)
-  }, [present])
 }

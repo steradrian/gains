@@ -1,8 +1,10 @@
 import { uid } from './format.js'
 import { defaultConfig, isBw, modeOf, MAX_PLANNED_WARMUPS, NOTE_MAX } from './history.js'
 import { isAssisted, isBodyweightEq, isCardio } from './exercises.js'
+import { loggedModeOf } from './custom-exercise.js'
 import { sessionsFor } from './progression.js'
 import { isWarmupRow } from './workout-model.js'
+import { partOf } from './workout-parts.js'
 
 /**
  * Create a deep copy of a routine with a new id and a "(Copy)" suffix.
@@ -25,7 +27,7 @@ export function copyRoutine(routine, suffix = 'Copy') {
  * (dayPlan) naming it goes too: left behind, the day still counts as overridden and wears a
  * "rescheduled" badge for good with no way to clear it.
  *
- * Plan's swipe, RoutineEdit's button and the Coach's remove-routine all delete through here, so
+ * Plan's swipe, the routine menu's Delete and the Coach's remove-routine all delete through here, so
  * the next thing that learns to point at a routine is cleaned up in one place, not three.
  * Returns the dropped dayPlan entries ({ iso: id }), which the Coach records so a revert can put
  * them back.
@@ -132,13 +134,16 @@ export function restoreRoutine(s, snap) {
 export function replaceSlotExercise(slot, id, S, rid) {
   const old = slot || {}
   if (old.id === id) return { ...old }
-  if ((modeOf(old) === 'cardio') !== isCardio(id)) {
+  // Cardio by how the new exercise is logged, not its body part: a custom exercise can be either.
+  const cardio = loggedModeOf(id) === 'cardio'
+  if ((modeOf(old) === 'cardio') !== cardio) {
     const kept = ['sg', 'note', 'restSec'].filter(key => old[key] != null)
     return { id, ...defaultConfig(id), ...Object.fromEntries(kept.map(key => [key, old[key]])) }
   }
   const { id: _replaced, bodyweight: _flag, assisted: _assisted, side: _side, ...carried } = old
   const out = { id, ...carried }
-  if (isCardio(id)) return out
+  // Off the Cardio body part, only the slot's own mode says it is cardio (history.js modeOf).
+  if (cardio) return isCardio(id) ? out : { ...out, mode: 'cardio' }
   if (isBw(old) !== isBodyweightEq(id)) {
     out.weight = 0
     // A rep ceiling belongs to bodyweight work: it adds sets where there is no load to add.
@@ -186,7 +191,7 @@ function setupOf(entry) {
     restSec: Math.max(0, Math.round(Number(target.restSec)) || 0),
     note: String(target.note || '').trim().slice(0, NOTE_MAX),
   }
-  if (!isCardio(entry.id) && target.intensifier?.type !== 'restpause') {
+  if (modeOf({ ...target, id: entry.id }) !== 'cardio' && target.intensifier?.type !== 'restpause') {
     out.warmupSets = Math.min(MAX_PLANNED_WARMUPS, (entry.sets || []).filter(isWarmupRow).length)
   }
   return out
@@ -195,7 +200,8 @@ function setupOf(entry) {
 /**
  * What a running session's exercise would change in its routine, or null when there is nothing
  * to change: the exercise has no routine slot, or the slot already says what the session did.
- * `changes` are `{ key, from, to }` for `warmupSets`, `restSec` and `note`.
+ * `changes` are `{ key, from, to }` for `warmupSets`, `restSec`, `note` and `part` (the part of
+ * the workout, 'warmup' | 'main' | 'cooldown').
  *
  * Warm-ups added in a session used to last that session only, and so did anything edited on the
  * exercise's settings sheet from inside it (Progression settings opens the same sheet the routine
@@ -213,6 +219,9 @@ export function routineChangesFromEntry(routine, entries, idx) {
     const from = key === 'note' ? String(slot.note || '').trim() : Math.max(0, Math.round(Number(slot[key])) || 0)
     if (from !== now[key]) changes.push({ key, from, to: now[key] })
   }
+  // The part of the workout (lib/workout-parts.js), moved in the session's exercise settings.
+  const fromPart = partOf(slot), toPart = partOf(entries[idx])
+  if (fromPart !== toPart) changes.push({ key: 'part', from: fromPart, to: toPart })
   return changes.length ? { at, changes } : null
 }
 
@@ -226,7 +235,8 @@ export function updateRoutineFromEntry(routine, entries, idx) {
   if (!found) return null
   const slot = routine.ex[found.at]
   for (const { key, to } of found.changes) {
-    if (to) slot[key] = to
+    if (key === 'part' && to === 'main') delete slot.part
+    else if (to) slot[key] = to
     else delete slot[key]
   }
   return found.changes

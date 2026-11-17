@@ -1,0 +1,15 @@
+{
+  "id": "12112",
+  "name": "yoga session",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["core", "hamstrings", "shoulders", "hip flexors"],
+  "category": "sports & activities",
+  "description": "A yoga class or home practice. Log the time and how hard it was.",
+  "instructions": [
+    "Follow your class or your own flow.",
+    "Log the length of the session.",
+    "Choose easy for a gentle class, hard for a power or hot class."
+  ]
+}

@@ -117,6 +117,14 @@ server {
     # passes that prefix through — "/gym", no trailing slash. A proxy that strips the prefix
     # before the container sees it needs nothing set here: the app asks its own address for the
     # API (lib/api.js appBase), so the call carries whatever prefix the browser is using.
+    # Friends core m2: a group link, <base>/g/<code>, is not a file, so the block below would send it
+    # to the root and lose the code. The app routes behind the hash: send it to /#/g/<code>.
+    # (The invite page /join/<code> is the hub's, in front of this container; this one has no
+    # such forward.)
+    location ~ "^\Q${BASE_PATH}\E/g/(?<group_code>[A-Za-z0-9_-]{6,64})/?$" {
+        return 302 ${BASE_PATH}/#/g/$group_code;
+    }
+
     location ${BASE_PATH}/ {
         # `rewrite ... break` rather than `alias`: try_files inside an aliased prefix location is
         # a long-standing nginx trap (it still resolves the untranslated URI). With BASE_PATH

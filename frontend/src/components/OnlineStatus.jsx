@@ -18,7 +18,7 @@ export default function OnlineStatus({ online, query }) {
     <SkeletonRows />
     <span className="vh" role="status">{t('Searching Open Food Facts…')}</span>
   </>
-  else if (status === 'tap') body = <ResultRow standalone onOpen={online.ask}
+  else if (status === 'tap') body = <ResultRow onOpen={online.ask}
     r={{ type: 'action', key: 'online-ask', title: t('Search Open Food Facts for “{0}”', query), media: { kind: 'glyph', glyph: 'globe' } }} />
   else if (status === 'paused') body = <InlineNote icon="hourglass" className="sr-note" role="status">
     {t('{0} paused · back in', t('Open Food Facts'))} <b className="sr-count">{t('{0} s', online.seconds)}</b>

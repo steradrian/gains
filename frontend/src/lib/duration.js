@@ -40,6 +40,12 @@ export function fmtDuration(sec, { off = null } = {}) {
   return m + ':' + String(s).padStart(2, '0')
 }
 
+/** A running clock, always minutes and seconds: 10 → "0:10", 90 → "1:30". The hold and the rest footer read it. */
+export function fmtClock(sec) {
+  const { m, s } = splitDuration(sec)
+  return m + ':' + String(s).padStart(2, '0')
+}
+
 /**
  * What a screen reader says: "1 minute 30 seconds", "45 seconds", "2 minutes". 0 is `off` when
  * given (the rest timer's "Off"), "0 seconds" otherwise.

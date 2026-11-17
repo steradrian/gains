@@ -18,7 +18,7 @@ import * as coachJobs from './coach/jobs.js';
 import { coachRoutes } from './coach/routes.js';
 import { startCadence } from './coach/cadence.js';
 import { startWarmup } from './coach/warmup.js';
-import { dayReminderPush, nudgePush, restTimerPush, testPush } from './push-messages.js';
+import { dayReminderPush, inviteReadyPush, inviteRequestPush, nudgePush, restTimerPush, testPush } from './push-messages.js';
 import { verifyError } from './verify-error.js';
 import {
   hashPassword, verifyPassword, needsRehash, passwordProblem, passwordLength, nameKey, BusyError,
@@ -30,7 +30,10 @@ import {
   listPasskeys, addPasskeyRecord, renamePasskeyRecord, removePasskeyRecord, passkeyRemovalRefused, MAX_PASSKEYS,
   backupFlagsOf, notePasskeyFlags, passkeysSynced
 } from './passkeys-store.js';
-import { usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteStatus, codeHint } from './invites.js';
+import {
+  usableInvite, newInvite, migrateInvites, revokeInvite, inviteCheck, inviteStatus, codeHint,
+  askForInvite, myRequests, cancelRequest, openRequests, fulfilRequest, pruneRequests
+} from './invites.js';
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { effectiveRoutineId } from './queue.js';
@@ -39,7 +42,15 @@ import { atomicWrite as durableWrite } from './durable.js';
 import { excusedOn, nudgeFor, nudgeWindowOpen, toneOf } from './nudge.js';
 import { hubKeysFromEnv } from './hub-token.js';
 import { syncRoutes } from './sync-routes.js';
+import { coachCadenceOn } from './reminder-context.js';
 import { createAggregator } from './audit-aggregate.js';
+// Friends api m1
+import { friendsRoutes, friendsRouteKey } from './friends/routes.js';
+import { purgeUser as purgeFriends } from './friends/purge.js';
+// Friends api m2
+import { invalidateMember as invalidateFriendsMember } from './friends/cache.js';
+// Friends api m3
+import { runDigest as runFriendsDigest } from './friends/digest.js';
 
 const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
@@ -140,7 +151,7 @@ const dbFile = path.join(DATA, 'db.json');
 function loadDb() {
   let raw;
   try { raw = fs.readFileSync(dbFile, 'utf8'); }
-  catch (e) { if (e.code === 'ENOENT') return { users: [], creds: [], subs: [], invites: [] }; throw e; }
+  catch (e) { if (e.code === 'ENOENT') return { users: [], creds: [], subs: [], invites: [], inviteRequests: [] }; throw e; }
   const parse = text => { const v = JSON.parse(text); if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('not an object'); return v; };
   try { return parse(raw); } catch (err) {
     const aside = `${dbFile}.unreadable-${Date.now()}`;
@@ -161,9 +172,10 @@ db.users = db.users || [];
 db.creds = db.creds || [];
 db.subs = db.subs || [];
 db.invites = db.invites || [];
+db.inviteRequests = db.inviteRequests || [];   // members' asks for an invite (invites.js)
 db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
 db.gone = db.gone || [];                 // { id, at } of deleted profiles, for the sync hub's listing
-// Invites from before they expired get the full fourteen days from now (invites.js).
+// Invites from before they expired get the full lifetime from now (invites.js).
 if (migrateInvites(db.invites)) {
   try { saveDb(); } catch (e) { console.error('db save failed (invite expiry)', e.message); }
 }
@@ -376,6 +388,51 @@ function pushEndpointError(raw) {
   return null;
 }
 
+// The cutover freeze (PUSH_SUBS_READONLY=1): while another service takes over push subscriptions,
+// the ones held here must not change, so the three routes that write them (subscribe, unsubscribe,
+// rest-timer) answer 503 and the client tries again later. Read once at boot, like every other
+// switch here: changing it is a restart. True when it has answered.
+//
+// What the freeze keeps still is db.subs: sendPush does not prune a dead or refused endpoint while
+// it is on (pruneSub). What it deliberately leaves alone, and the cutover plan has to account for:
+//   - POST /api/admin/user/delete removes the deleted person's subscriptions as before;
+//   - POST /api/push/rest-timer/cancel still works (it holds no subscription, only timers);
+//   - rest timers live in memory and die with the restart that turns the freeze on, and none can
+//     be scheduled while it is on, so none fires; a timer already scheduled would still fire to the
+//     subscriptions held (and would not prune), which only matters if the flag ever becomes
+//     switchable without a restart.
+// The same list is in the PushReadonly response of openapi.yaml.
+const PUSH_SUBS_READONLY = /^(1|true|yes|on)$/i.test(process.env.PUSH_SUBS_READONLY || '');
+function pushFrozen(res) {
+  if (!PUSH_SUBS_READONLY) return false;
+  json(res, 503, { error: 'push subscriptions are read-only while the notification service is being switched over', code: 'push-readonly' }, { 'Retry-After': '30' });
+  return true;
+}
+
+// The cutover's other switch (PUSH_SCHEDULER=local|external, default local): `external` means the
+// notification service owns the scheduled pushes, so the three this server raises on its own go
+// quiet: the day reminder and the missed-workout nudge (one tick, never started) and the Coach
+// proposal push (its hook, never set). Nothing they would have written is written either
+// (user.lastReminder, user.lastNudge). Everything else stays, the subscription routes, the test
+// push and the rest-timer included: those are PUSH_SUBS_READONLY's business, not this one's. Read
+// once at boot like it; a value that is neither word stops the boot, because a typo here would
+// leave both services sending.
+const PUSH_SCHEDULER = (process.env.PUSH_SCHEDULER || 'local').trim().toLowerCase() || 'local';
+if (PUSH_SCHEDULER !== 'local' && PUSH_SCHEDULER !== 'external') {
+  console.error(`PUSH_SCHEDULER=${JSON.stringify(process.env.PUSH_SCHEDULER)} is not local or external. Refusing to start.`);
+  process.exit(1);
+}
+const PUSH_SCHEDULER_EXTERNAL = PUSH_SCHEDULER === 'external';
+if (PUSH_SCHEDULER_EXTERNAL) console.log('PUSH_SCHEDULER=external: the day reminder, the missed-workout nudge and the Coach proposal push are silenced');
+
+// Forgets a subscription the push service says is dead, or that the send path refuses. Not while
+// the freeze is on: the frozen set must stay exactly as it was (PUSH_SUBS_READONLY above).
+function pruneSub(endpoint) {
+  if (PUSH_SUBS_READONLY) return false;
+  db.subs = db.subs.filter(s => s.endpoint !== endpoint);
+  return true;
+}
+
 // `deviceId` narrows the send to the subscriptions one browser registered (the rest-timer alert
 // belongs to the device that started the rest, #348); a subscription stored without one (an
 // older client) still gets everything, as before. A resting device with no subscription of its
@@ -396,7 +453,7 @@ async function sendPush(userId, payload, deviceId) {
       const bad = pushEndpointError(sub.endpoint);
       if (bad) {
         console.error('push endpoint refused', userId, bad);
-        db.subs = db.subs.filter(s => s.endpoint !== sub.endpoint); dirty = true;
+        if (pruneSub(sub.endpoint)) dirty = true;
         continue;
       }
       // urgency 'high' is the one lever we have over delivery speed — iOS/Android throttle
@@ -414,7 +471,7 @@ async function sendPush(userId, payload, deviceId) {
         // regenerated). Neither will ever deliver again; keeping them only hides the fact from the
         // Settings toggle, which reads the browser's side. The client re-subscribes on its next boot.
         if (e.statusCode === 404 || e.statusCode === 410 || e.statusCode === 403) {
-          db.subs = db.subs.filter(s => s.endpoint !== sub.endpoint); dirty = true;
+          if (pruneSub(sub.endpoint)) dirty = true;
         }
       }
     }
@@ -427,6 +484,14 @@ async function sendPush(userId, payload, deviceId) {
   // memory, so only the copy on disk lags: the next saveDb() that succeeds, from any route,
   // writes it out, and a restart re-reads the old file and prunes it again on the next send.
   if (dirty) { try { saveDb(); } catch (e) { console.error('push: could not save db.json', e.message); } }
+}
+
+// The invite-request pushes (push-messages.js), in the recipient's language. Never awaited and
+// never thrown: a person without a subscription hears nothing, and a send or a state read that
+// fails is logged, never the failure of the ask or the invite that caused it.
+function invitePush(userId, make) {
+  const fail = e => console.error('invite push failed', userId, e?.message);
+  try { sendPush(userId, make(readStateCached(userId)?.lang)).catch(fail); } catch (e) { fail(e); }
 }
 
 // Rest-timer alerts: client schedules on start/extend, cancels on skip or on-screen completion —
@@ -535,7 +600,8 @@ function stateVersion(uid) {
   if (hit && hit.mtimeMs === st.mtimeMs && hit.size === st.size) return hit.v;
   const S = readState(uid);
   if (!S) return { rev: 0 };
-  const v = { rev: S._rev || 0, ...(S._wid ? { wid: S._wid } : {}) };
+  // `coachCadence` rides along (reminder-context.js): the listing says whom to poll for Coach proposals.
+  const v = { rev: S._rev || 0, ...(S._wid ? { wid: S._wid } : {}), coachCadence: coachCadenceOn(S) };
   versionIndex.delete(uid);
   versionIndex.set(uid, { mtimeMs: st.mtimeMs, size: st.size, v });
   while (versionIndex.size > VERSION_MAX) versionIndex.delete(versionIndex.keys().next().value);
@@ -558,9 +624,11 @@ function nudgeTick(user, S, now) {
   saveDb();
   sendPush(user.id, nudgePush(S.lang, toneOf(S.reminder), routine, now.date));
 }
-setInterval(() => {
+// The day reminder and the nudge: not scheduled at all under PUSH_SCHEDULER=external.
+if (!PUSH_SCHEDULER_EXTERNAL) setInterval(() => {
   for (const user of db.users) {
     if (!db.subs.some(s => s.userId === user.id)) continue;
+    if (deletionScheduled(user)) continue;   // an account on its way out gets no reminders
     // One user's state file is one user's problem: a shape this tick cannot read is logged and
     // skipped, not allowed to take the process — and everyone else's reminders — down with it.
     // PUT /api/data refuses the obvious shapes, but a file already on disk answers to nobody.
@@ -585,6 +653,17 @@ setInterval(() => {
     } catch (e) {
       console.error('reminder tick', user.id, e);
     }
+  }
+  // Friends api m3: the evening cheer digest, on each person's own S.reminder.tz. Unlike the
+  // reminder above, no tz means no push, never UTC (friends/digest.js).
+  try {
+    runFriendsDigest({
+      users: db.users, stateOf: readStateCached, nowIn: userNow, deletionScheduled,
+      hasSub: uid => db.subs.some(s => s.userId === uid),
+      send: (uid, payload) => { sendPush(uid, payload); }
+    });
+  } catch (e) {
+    console.error('friends digest', e);
   }
 // Checked every 10s (not 60s) — ticks aren't aligned to the top of the minute, so a 60s
 // interval could sit on your target minute for up to 59s before noticing. 10s caps that at ~9s.
@@ -893,7 +972,8 @@ let auditCount = 0;
 // pass a client-supplied one through. In 'net' mode only the network survives — enough to tell
 // one source from another, not enough to point at a person.
 function clientIp(req) {
-  if (AUDIT_IP === 'off') return null;
+  // No request at all: an event the server raises itself (the account purge sweep).
+  if (AUDIT_IP === 'off' || !req) return null;
   const raw = String(req.headers['cf-connecting-ip'] || '').trim()
     || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
     || String(req.headers['x-real-ip'] || '').trim()
@@ -1027,7 +1107,11 @@ const THROTTLED = {
   // budget: the password that may prove them counts its own failures (passwordAttempt).
   'POST /api/device-link/options': 'link', 'POST /api/device-link/verify': 'link',
   'POST /api/account/passkeys/options': null, 'POST /api/account/device-link': null,
-  'DELETE /api/account/passkeys': null
+  'DELETE /api/account/passkeys': null,
+  // Self-service deletion: like the passkey routes, only the budget (a password proof counts its
+  // own failures through passwordAttempt).
+  'POST /api/account/delete/options': null, 'POST /api/account/delete': null,
+  'POST /api/account/delete/cancel': null
 };
 
 // Which address the throttle counts against. Unlike clientIp() above, which only labels a log
@@ -1210,10 +1294,13 @@ function setPassword(user, h) {
 // password yet proves it is them before setting one. A session alone is not enough for that:
 // it may be a cookie someone walked off with, and a password would turn it into a way in that
 // outlives "sign out everywhere". Same ceremony as /api/login/verify, and the credential has
-// to belong to this account.
+// to belong to this account. The challenge is either an anonymous one from /api/login/options or a
+// `step-up` one (POST /api/account/delete/options), which is bound to this profile and this session
+// version, so "sign out everywhere" in between ends it like any other ceremony.
 async function passkeyStepUp(user, body) {
   const c = takeChallenge(body.cid);
-  const cred = c?.kind === 'login' && db.creds.find(x => x.id === body.credential?.id && x.userId === user.id);
+  const fresh = c?.kind === 'login' || (c?.kind === 'step-up' && c.uid === user.id && c.sv === sessionVersion(user));
+  const cred = fresh && db.creds.find(x => x.id === body.credential?.id && x.userId === user.id);
   if (!cred) return false;
   try {
     const v = await verifyAuthenticationResponse({
@@ -1926,6 +2013,7 @@ const mediaRoutes = {
   'PUT /api/media/{hash}': async (req, res) => {
     const user = readSession(req);
     if (!user) { MEDIA.discard(req); return json(res, 401, { error: 'not signed in' }); }
+    if (deletionScheduled(user)) { MEDIA.discard(req); return deletionPaused(res, user); }
     try { mediaThrottle(req, user, MEDIA_BURST); } catch (e) { MEDIA.discard(req); throw e; }
     req.allowSlowBody?.();   // a signed-in upload within its budget may take the half hour
     const r = await MEDIA.receive(user.id, req.mediaHash, req);
@@ -1964,6 +2052,153 @@ const mediaRoutes = {
     json(res, 200, { removed: r.removed, freedBytes: r.freedBytes, usage: MEDIA.usage(user.id) });
   }
 };
+
+/* ---------- deleting your own account, after a grace (PR-06) ---------- */
+// Settings → Delete account schedules the deletion seven days out (`u.deletion = { requestedAt,
+// at }`, epoch ms) once the owner has proved it is them, the same proof adding a passkey asks
+// (proveOwner). Until `at` nothing is removed: signing in works, every session stays valid, the
+// document and the uploads can be read and downloaded, and the owner can cancel. What stops is
+// everything that would change them — PUT /api/data and uploads answer 423 — and the scheduled
+// pushes (the reminder tick, the Coach). After `at` the sweep below removes the profile through
+// deleteUserData, the same function the admin's delete uses.
+const ACCOUNT_DELETE_GRACE_MS = 7 * 86400000;
+// How often the sweep looks. A deletion lands at most this long after its deadline; the tests
+// shorten it, as they do REMINDER_TICK_MS.
+const ACCOUNT_SWEEP_MS = Math.max(50, +(process.env.ACCOUNT_SWEEP_MS || 600000) || 600000);
+
+// Only a finite, representable `at` is a schedule. Anything else in the field (a hand-edited
+// db.json) is ignored everywhere alike — never purged, never pausing sync — and cancel clears it.
+const deletionScheduled = u => !!u?.deletion && Number.isFinite(u.deletion.at)
+  && !Number.isNaN(new Date(u.deletion.at).getTime());
+const deletionOf = u => {
+  const { at, requestedAt } = u.deletion;
+  const asked = Number.isFinite(requestedAt) && !Number.isNaN(new Date(requestedAt).getTime()) ? requestedAt : at - ACCOUNT_DELETE_GRACE_MS;
+  return { at: new Date(at).toISOString(), requestedAt: new Date(asked).toISOString() };
+};
+// The 423 every write of a profile awaiting deletion gets. True when it has answered.
+function deletionPaused(res, user) {
+  if (!deletionScheduled(user)) return false;
+  json(res, 423, { error: 'deletion scheduled', code: 'deletion-scheduled', at: deletionOf(user).at });
+  return true;
+}
+// The admin's delete refuses the last admin; so does this, or the instance would be left with
+// nobody who can reach the dashboard.
+const lastAdmin = u => isAdmin(u) && db.users.filter(isAdmin).length <= 1;
+const LAST_ADMIN = { error: 'cannot delete the last admin', code: 'last-admin' };
+// No passkey, and no password that counts (PASSWORD_LOGIN off): nothing can prove it is the owner.
+const NO_PROOF = { error: 'no passkey', code: 'no-passkey' };
+
+// Removes a profile and everything of it this server holds: the user record, its passkeys, push
+// subscriptions, device links, presence, the state file, the Coach credential and the uploads.
+// The one place that does, for the admin's delete and the purge of a scheduled self-deletion
+// alike, so a purge hook added here later (Friends: groups, invites, challenges) covers both.
+// db.json is written last: until then the record — and its `deletion`, which the sweep acts on —
+// is still on disk, so a crash halfway leaves a profile the next sweep finishes, every step below
+// being a no-op the second time. Nutrition data lives in the hub, outside this repo; untouched.
+// `actor` is who did it (the admin), absent for the purge, which is logged under the profile's id.
+function deleteUserData(u, { req = null, actor = null, auditKind }) {
+  const name = u.name;
+  // The files go first, and anything but "already gone" throws before db.users is touched, in
+  // memory or on disk. The record is the only thing the sweep finds this profile by, so dropping
+  // it over a state file or uploads that could not be removed would orphan them for good; thrown,
+  // the profile stays scheduled and the next sweep retries.
+  // The training history and any Coach credential of theirs, both outside db.json.
+  try { fs.unlinkSync(stateFile(u.id)); } catch (e) { if (e?.code !== 'ENOENT') throw e; }
+  try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
+  // Their photos and videos — the one place a profile's folder under uploads/ is removed.
+  MEDIA.removeUser(u.id);
+  db.users = db.users.filter(x => x.id !== u.id);
+  noteGone(u.id);
+  db.creds = (db.creds || []).filter(c => c.userId !== u.id);
+  db.subs = (db.subs || []).filter(x => x.userId !== u.id);
+  dropDeviceLinks(db, u.id);
+  // Their asks for an invite, open or not: the note is theirs, and nobody is left to invite.
+  db.inviteRequests = (db.inviteRequests || []).filter(r => r.by !== u.id);
+  presence.delete(u.id);
+  // Friends api m1: out of every group, invite and invitation (friends/purge.js, its own file).
+  // A failure is logged and the delete goes on: a member whose account is gone is skipped on
+  // every Friends read anyway.
+  try { purgeFriends(u.id); } catch (e) { console.error('friends purge failed for', u.id, e.message); }
+  saveDb();
+  // Logged with the name, because the id is about to mean nothing to anyone reading this back.
+  audit(req, auditKind, actor ? { user: actor, msg: name } : { uid: u.id, msg: name });
+}
+
+const accountDeleteRoutes = {
+  // Step one: what the owner can prove it with. With a passkey, assertion options listing this
+  // profile's passkeys, under a challenge bound to this profile and session version for five
+  // minutes (`cid`). `password` says whether the current password is accepted instead.
+  'POST /api/account/delete/options': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return notSignedIn(res);
+    if (deletionScheduled(user)) return json(res, 409, { error: 'deletion scheduled', code: 'deletion-scheduled', at: deletionOf(user).at });
+    if (lastAdmin(user)) return json(res, 409, LAST_ADMIN);
+    const mine = db.creds.filter(c => c.userId === user.id);
+    if (!mine.length && !passwordWayIn(user)) return json(res, 409, NO_PROOF);
+    if (!mine.length) return json(res, 200, { password: true });
+    const options = await generateAuthenticationOptions({
+      rpID: RP_ID, userVerification: 'preferred',
+      allowCredentials: mine.map(c => ({ id: c.id, transports: c.transports || [] }))
+    });
+    if (readSession(req) !== user) return notSignedIn(res);
+    const cid = putChallenge({ kind: 'step-up', challenge: options.challenge, uid: user.id, sv: sessionVersion(user) });
+    json(res, 200, { cid, options, password: passwordWayIn(user) });
+  },
+
+  // Step two: the proof (`cid` + `credential`, or `current`), then the schedule. A refused proof
+  // changes nothing. Asked again while one is pending, it answers the schedule that stands — the
+  // clock is never restarted.
+  'POST /api/account/delete': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return notSignedIn(res);
+    const body = await readBody(req);
+    if (deletionScheduled(user)) return json(res, 200, { ok: true, ...deletionOf(user) });
+    if (lastAdmin(user)) return json(res, 409, LAST_ADMIN);
+    if (!passkeyCount(user) && !passwordWayIn(user)) return json(res, 409, NO_PROOF);
+    const proof = await proveOwner(req, res, user, body, 'account-delete');
+    if (!proof) return;
+    // Awaited: the session may have ended meanwhile, and a request alongside may have scheduled
+    // it already or deleted another admin.
+    if (readSession(req) !== user) return notSignedIn(res);
+    if (proof === 'passkey') saveDb();   // the confirming passkey's counter and last use
+    if (deletionScheduled(user)) return json(res, 200, { ok: true, ...deletionOf(user) });
+    if (lastAdmin(user)) return json(res, 409, LAST_ADMIN);
+    const now = Date.now();
+    user.deletion = { requestedAt: now, at: now + ACCOUNT_DELETE_GRACE_MS };
+    saveDb();
+    audit(req, 'account.delete.schedule', { user, msg: proof });
+    json(res, 200, { ok: true, ...deletionOf(user) });
+  },
+
+  // A session is enough: keeping the account is never the destructive direction. Answers 200
+  // with nothing pending too.
+  'POST /api/account/delete/cancel': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return notSignedIn(res);
+    if (user.deletion !== undefined) {
+      delete user.deletion;
+      saveDb();
+      audit(req, 'account.delete.cancel', { user });
+    }
+    json(res, 200, { ok: true });
+  }
+};
+
+// Every profile whose deadline has passed, removed. Never one without a schedule, never one
+// before its `at`. The last admin is skipped (and stays scheduled, so the owner can still cancel)
+// — the admin who made it so could not have deleted them directly either. One failure is logged
+// and the rest go on; a profile left half-done (a crash, or a file that could not be removed) is
+// still in db.json with its `deletion` (written last, see deleteUserData) and the next sweep
+// finishes it. Run at boot for a server that was down at the deadline.
+function purgeDueAccounts(now = Date.now()) {
+  for (const u of db.users.filter(x => deletionScheduled(x) && x.deletion.at <= now)) {
+    if (lastAdmin(u)) { console.error('account purge: skipped', u.id, 'as the last admin'); continue; }
+    try { deleteUserData(u, { auditKind: 'account.delete.purge' }); }
+    catch (e) { console.error('account purge failed for', u.id, e); }
+  }
+}
+purgeDueAccounts();
+setInterval(() => purgeDueAccounts(), ACCOUNT_SWEEP_MS).unref();
 
 /* ---------- routes ---------- */
 // A health check that only proves the port answers is the one that lies on the day it matters:
@@ -2051,9 +2286,13 @@ const routes = {
     const { user } = s;
     const renew = s.bearer && s.exp - Date.now() < SESSION_DAYS * 86400000 / 2;
     // `synced`: whether any passkey of the profile is backed up (passkeys-store.js passkeysSynced),
-    // null while unknown. What the app's second-passkey reminder is decided on.
+    // null while unknown. What the app's second-passkey reminder is decided on. `deletion`: only
+    // while a deletion is scheduled (POST /api/account/delete), when and since when, ISO.
     json(res, 200, {
-      user: { id: user.id, name: user.name, admin: isAdmin(user), synced: passkeysSynced(db, user.id) },
+      user: {
+        id: user.id, name: user.name, admin: isAdmin(user), synced: passkeysSynced(db, user.id),
+        ...(deletionScheduled(user) ? { deletion: deletionOf(user) } : {})
+      },
       ...(renew ? { token: makeSession(user) } : {})
     });
   },
@@ -2069,6 +2308,54 @@ const routes = {
     const found = inviteCheck(db.invites, db.users, req.inviteCode);
     if (!found) return json(res, 404, { error: 'no such invite', code: 'not-found' });
     json(res, 200, found);
+  },
+
+  // A member asks the admins for an invite (invites.js). Any signed-in profile except an admin,
+  // who makes invites instead (a clear 400, not a request on their own list). Capped per person;
+  // an identical open ask answers the one already there and tells nobody again. Every admin gets a
+  // push that names nobody. Nothing here reads or answers anyone else's data.
+  'POST /api/invites/request': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    if (isAdmin(user)) return json(res, 400, { error: 'admins make invites themselves', code: 'admin' });
+    const body = await readBody(req);
+    pruneRequests(db.inviteRequests);
+    let id;
+    do { id = crypto.randomBytes(8).toString('hex'); } while (db.inviteRequests.some(r => r.id === id));
+    const asked = askForInvite(db.inviteRequests, { id, by: user.id, note: body.note });
+    if (!asked.ok) {
+      return json(res, 429, { error: 'too many invite requests, try again later', code: 'rate-limited', reason: asked.reason, retryAfter: asked.retryAfter },
+        { 'Retry-After': String(asked.retryAfter) });
+    }
+    if (asked.created) {
+      saveDb();
+      // The id only: the note is the member's own words.
+      audit(req, 'invite.request', { user, msg: asked.request.id });
+      for (const a of db.users) if (isAdmin(a) && !a.disabled) invitePush(a.id, inviteRequestPush);
+    }
+    json(res, 200, { ok: true, id: asked.request.id });
+  },
+
+  // The asker's own open requests, and only theirs (the "Asked" state of the Invite page).
+  'GET /api/invites/requests/mine': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    json(res, 200, { requests: myRequests(db.inviteRequests, user.id) });
+  },
+
+  // The asker withdraws one of their own open requests (Undo on "Asked"). An id that is someone
+  // else's, unknown, answered or already withdrawn changes nothing and is answered exactly the
+  // same, so the answer says nothing about any other member's asks.
+  'POST /api/invites/request/cancel': async (req, res) => {
+    const user = readSession(req);
+    if (!user) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    const id = text(body.id);
+    if (cancelRequest(db.inviteRequests, { id, by: user.id })) {
+      saveDb();
+      audit(req, 'invite.request.cancel', { user, msg: id });
+    }
+    json(res, 200, { ok: true });
   },
 
   'POST /api/register/options': async (req, res) => {
@@ -2278,6 +2565,9 @@ const routes = {
   // Always there: more passkeys and device links need nothing an instance has to switch on.
   ...passkeyRoutes,
 
+  // Deleting your own account, after a grace. Always there, like the passkey routes.
+  ...accountDeleteRoutes,
+
   // `rev` is the server's own count of writes to this profile (also stored inside the document as
   // `_rev`, so every other reader of the file — reminder tick, admin, Coach, MCP — is unaffected).
   // A client pushes it back as `baseRev`, and a write over a document it never saw is refused.
@@ -2308,6 +2598,8 @@ const routes = {
   'PUT /api/data': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    // Read-only while a deletion is scheduled: GET still serves everything, nothing changes it.
+    if (deletionPaused(res, user)) return;
     const body = await readBody(req);
     if (!body.state || typeof body.state !== 'object') return json(res, 400, { error: 'state required' });
     // An object with nothing of the profile in it empties the document with the counter left
@@ -2394,6 +2686,7 @@ const routes = {
     // the old revision until some later write happened to land on a different tick. The writers of
     // a state file are this route and commitState below (the sync hub's weigh-ins), and each evicts.
     stateCache.delete(user.id);
+    invalidateFriendsMember(user.id);  // Friends api m2: their group projections are of the old state
     // Starts (or stops) the grace clock of every stored file this write stopped (or started)
     // referencing. Bookkeeping only: the state is already saved, so nothing here may turn a
     // successful write into an error.
@@ -2408,6 +2701,7 @@ const routes = {
   'POST /api/push/subscribe': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    if (pushFrozen(res)) return;
     const body = await readBody(req);
     const sub = body.subscription;
     if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) return json(res, 400, { error: 'invalid subscription' });
@@ -2456,6 +2750,7 @@ const routes = {
   'POST /api/push/unsubscribe': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    if (pushFrozen(res)) return;
     const body = await readBody(req);
     db.subs = db.subs.filter(s => !(s.userId === user.id && s.endpoint === body.endpoint));
     saveDb();
@@ -2472,6 +2767,7 @@ const routes = {
   'POST /api/push/rest-timer': async (req, res) => {
     const user = readSession(req);
     if (!user) return json(res, 401, { error: 'not signed in' });
+    if (pushFrozen(res)) return;
     const body = await readBody(req);
     // Validated before it is clamped: the clamp used to run first, which turned a missing or
     // unusable value into a 1-second push and made the 400 below unreachable. `Number()` only
@@ -2592,21 +2888,7 @@ const routes = {
     if (!u) return json(res, 404, { error: 'no such user' });
     if (u.id === admin.id) return json(res, 400, { error: 'you cannot delete your own account' });
     if (isAdmin(u) && db.users.filter(isAdmin).length <= 1) return json(res, 400, { error: 'cannot delete the last admin' });
-    const name = u.name;
-    db.users = db.users.filter(x => x.id !== u.id);
-    noteGone(u.id);
-    db.creds = (db.creds || []).filter(c => c.userId !== u.id);
-    db.subs = (db.subs || []).filter(x => x.userId !== u.id);
-    dropDeviceLinks(db, u.id);
-    presence.delete(u.id);
-    // The training history and any Coach credential of theirs, both outside db.json.
-    try { fs.unlinkSync(stateFile(u.id)); } catch { /* already gone */ }
-    try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
-    // Their photos and videos — the one place a profile's folder under uploads/ is removed.
-    try { MEDIA.removeUser(u.id); } catch (e) { console.error('media: could not remove uploads of', u.id, e.message); }
-    saveDb();
-    // Logged with the name, because the id is about to mean nothing to anyone reading this back.
-    audit(req, 'admin.user.delete', { user: admin, msg: name });
+    deleteUserData(u, { req, actor: admin, auditKind: 'admin.user.delete' });
     json(res, 200, { ok: true, id: u.id });
   },
 
@@ -2618,7 +2900,9 @@ const routes = {
       ...i, status: inviteStatus(i),
       usedByName: i.usedBy ? (db.users.find(u => u.id === i.usedBy) || {}).name || null : null
     }));
-    json(res, 200, { invites, invite_only: INVITE_ONLY });
+    // Members' open asks for an invite, with the asker's display name (invites.js openRequests).
+    const requests = openRequests(db.inviteRequests, db.users);
+    json(res, 200, { invites, requests, invite_only: INVITE_ONLY });
   },
 
   'POST /api/admin/invites/new': async (req, res) => {
@@ -2634,9 +2918,14 @@ const routes = {
     // inviter's own label and is never shown to the person invited.
     const invite = newInvite({ code, note: text(body.note).slice(0, 60), name: body.name, createdBy: admin.id });
     db.invites.push(invite);
+    // `requestId`: the member's ask this invite answers. It is marked done and its asker told by
+    // push. One that is unknown, already answered or withdrawn is ignored: the invite is made anyway.
+    const answered = fulfilRequest(db.inviteRequests, body.requestId, { code, adminId: admin.id });
     saveDb();
     // A hint, never the code: the audit log outlives the invite and is read by more than its maker.
     audit(req, 'admin.invite.create', { user: admin, msg: codeHint(code) });
+    const asker = answered && db.users.find(u => u.id === answered.by);
+    if (asker && !asker.disabled) invitePush(asker.id, inviteReadyPush);
     json(res, 200, { invite });
   },
 
@@ -2694,6 +2983,11 @@ const routes = {
   // a cycle. Every one of them is inert while the feature is unconfigured.
   ...coachRoutes({ json, readBody, readSession, requireAdmin }),
 
+  /* ---------- Friends api m1 ---------- */
+  // Groups, invites and sharing live in friends/routes.js, handed the helpers like the Coach's.
+  // Its paths with parameters reach it through friendsRouteKey in the dispatcher below.
+  ...friendsRoutes({ json, readBody, readSession, limitAddress, users: () => db.users, deletionScheduled }),
+
   /* ---------- photos & videos ---------- */
   // Absent, not refusing, when MEDIA_UPLOADS=0: a 404 is what a server from before the feature
   // answers, and the client already treats that as "this server does not store them".
@@ -2705,6 +2999,7 @@ const routes = {
     hub: HUB, json, findUser: id => db.users.find(u => u.id === id) || null,
     readStateCached, stateVersion, readStateStrict, UNREADABLE, readBody, commitState, auditSyncFail,
     coachAvailable: () => coachConfig.publicConfig() !== null,
+    coachRecord: uid => coachJobs.readUser(uid),
     // Last: server-state-read-cost.test.js reads this call's text up to the first `}`.
     listProfiles: () => { pruneGone(); return { users: db.users, gone: db.gone }; }
   }) : {})
@@ -2737,17 +3032,19 @@ function commitState(uid, cur, next) {
 // a spinner that never resolves.
 coachJobs.recoverOnBoot();
 // A ready proposal is the one Coach event worth a notification. Failures and "nothing to
-// change" stay silent on purpose (FR-38/E4).
-coachJobs.setProposalHook((uid, pending) => {
+// change" stay silent on purpose (FR-38/E4). No hook at all under PUSH_SCHEDULER=external.
+if (!PUSH_SCHEDULER_EXTERNAL) coachJobs.setProposalHook((uid, pending) => {
   const n = (pending?.changes || []).length;
   if (!n) return;
+  if (deletionScheduled(db.users.find(u => u.id === uid))) return;
   sendPush(uid, {
     title: 'Your Coach has been reading',
     body: n === 1 ? '1 suggestion after this week' : `${n} suggestions after this week`,
     tag: 'coach-proposal', url: '#/coach'
   });
 });
-startCadence({ users: () => db.users, userNow });
+// No scheduled Coach reviews for an account awaiting deletion: nothing new is made for it.
+startCadence({ users: () => db.users.filter(u => !deletionScheduled(u)), userNow });
 startWarmup();
 
 // node's requestTimeout is one number for every route, and it is half an hour (below) for the
@@ -2811,8 +3108,12 @@ const server = http.createServer(async (req, res) => {
   if (mm) { key = req.method + ' /api/media/{hash}'; req.mediaHash = mm[1]; }
   const sd = /^\/api\/sync\/bodyweight\/([^/]+)$/.exec(url.pathname);
   if (sd) { key = req.method + ' /api/sync/bodyweight/{date}'; req.syncDate = sd[1]; }
-  const ic = /^\/api\/invites\/([^/]+)$/.exec(url.pathname);
+  // A route of its own under /api/invites/ (POST /api/invites/request) is not a code.
+  const ic = !routes[key] && /^\/api\/invites\/([^/]+)$/.exec(url.pathname);
   if (ic) { key = req.method + ' /api/invites/{code}'; req.inviteCode = ic[1]; }
+  // Friends api m1: /api/friends/groups/{id}/..., /api/friends/join/{code}.
+  const fk = friendsRouteKey(url.pathname);
+  if (fk) { key = req.method + ' ' + fk.template; req.friendsParams = fk.params; }
   const handler = routes[key];
   if (!handler) return json(res, 404, { error: 'not found' });
   if (!csrfOk(req, key)) {

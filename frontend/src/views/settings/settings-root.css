@@ -1,0 +1,29 @@
+/* The Settings root on the stage (SettingsRootScreen.jsx, boards St1Settings, St1Search, St3Scheduled).
+   The stage is app-level and full bleed; StageScreen's body already clears the status bar. Room
+   is kept above the floating tab bar, as on the other roots. */
+.sroot { padding-bottom: calc(150px + var(--sab)); }
+.sroot-gutter { padding-inline: 16px; }
+.sroot-search { padding: 14px 16px 0; }
+/* The search overlay's rows sit under its head, which brings its own top padding. */
+.sroot-hits { padding: 14px 16px 0; }
+
+/* The account card: a big initial, the name, one line, a chevron. */
+.sroot-acct { gap: 14px; min-height: 84px; }
+.sroot-avatar { width: 56px; height: 56px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-line); font: 700 24px/1 var(--font-sans); }
+.sroot-avatar .g-icon { width: 28px; height: 28px; }
+.sroot-acct .g-glist-body b { font-size: 19px; line-height: 24px; }
+
+/* The sync pill under it. */
+.sroot-pill { appearance: none; border: 0; margin-top: 12px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: var(--radius-pill); color: var(--on-stage); font: 600 15px/20px var(--font-sans); cursor: pointer; text-align: start; }
+.sroot-pill-t span { color: var(--on-stage-2); font-weight: 500; }
+.sroot-pill:focus-visible { outline: 2px solid var(--on-stage); outline-offset: 2px; }
+.sroot-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--on-stage); }
+.sroot-dot-waiting { background: none; box-shadow: inset 0 0 0 2px var(--on-stage); }
+.sroot-dot-paused, .sroot-dot-problem { background: var(--stage-danger); }
+
+/* The deletion banner (A3.3) stands in the gutter above the account card. */
+.sroot-banner { padding: 4px 16px 14px; }
+
+/* Sign out and the footer. */
+.sroot-out { padding: 28px 16px 0; }
+.sroot-foot { margin: 0; padding: 18px 24px 0; font: 500 13px/18px var(--font-sans); color: var(--on-stage-2); text-align: center; }

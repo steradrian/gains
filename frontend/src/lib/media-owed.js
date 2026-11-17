@@ -12,13 +12,15 @@
  * publishes what it last learned (usage on the server, what is waiting) for Settings and the
  * sign-out sheet.
  */
-import { HASH_RE, stateMediaRefs } from './media-refs.js'
+import { HASH_RE, stateMediaRefs, heldBackHashes } from './media-refs.js'
 import { getMediaStore } from './media-store.js'
 
 let pending = new Set()
 let watching = false
 let runner = null
-let status = { usage: null, pending: 0, deferred: 0, rejected: 0, unavailable: 0, at: 0 }
+// `localOnly` (Me photos M1): progress photos kept on this device by choice, never counted as
+// waiting, deferred or failed.
+let status = { usage: null, pending: 0, deferred: 0, rejected: 0, unavailable: 0, localOnly: 0, at: 0 }
 const listeners = new Set()
 
 // The pending set follows the local store: every put, upload and removal moves it.
@@ -44,17 +46,30 @@ export function loadPending() { watch() }
  */
 const hasMedia = S => stateMediaRefs(S).length > 0
 
-export function pendingRefCount(S) {
+export function pendingRefCount(S) { return countPending(S, null) }
+
+/* === Me photos M1 === */
+/**
+ * pendingRefCount without the progress photos kept on this device by choice (Back up photos off,
+ * media-refs.js heldBackHashes): what is actually waiting to upload, for a line such as "2
+ * waiting to upload". pendingRefCount itself still counts them, on purpose: a sign-out, a
+ * disconnect or an account switch must keep them aside (they are on no server), and it is what
+ * those paths ask.
+ */
+export function waitingRefCount(S) { return countPending(S, heldBackHashes(S)) }
+
+function countPending(S, skip) {
   const refs = stateMediaRefs(S)
   // A copy without media has nothing to count, and does not need the store opened to say so.
   if (!refs.length) return 0
   watch()
   if (!pending.size) return 0
+  const owed = h => !!h && pending.has(h) && !(skip && skip.has(h))
   const seen = new Set()
   for (const m of refs) {
     const main = typeof m.hash === 'string' && HASH_RE.test(m.hash) ? m.hash : null
     const poster = m.poster && typeof m.poster.hash === 'string' && HASH_RE.test(m.poster.hash) ? m.poster.hash : null
-    if ((main && pending.has(main)) || (poster && pending.has(poster))) seen.add(main || poster)
+    if (owed(main) || owed(poster)) seen.add(main || poster)
   }
   return seen.size
 }
@@ -86,6 +101,6 @@ export function subscribeMediaStatus(fn) { listeners.add(fn); return () => liste
 /** Tests only. */
 export function _resetMediaOwed() {
   pending = new Set(); watching = false; runner = null
-  status = { usage: null, pending: 0, deferred: 0, rejected: 0, unavailable: 0, at: 0 }
+  status = { usage: null, pending: 0, deferred: 0, rejected: 0, unavailable: 0, localOnly: 0, at: 0 }
   listeners.clear()
 }

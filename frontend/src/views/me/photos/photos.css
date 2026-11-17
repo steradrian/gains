@@ -1,0 +1,10 @@
+/* Me photos M2: the Photos tab (boards Me2Photos to Me2PhotosSync) and the Add photo drawer. */
+.ph { display: flex; flex-direction: column; gap: 12px; color: var(--on-stage); font-family: var(--font-sans); }
+.ph-acts { display: flex; gap: 8px; padding-inline: 16px; }
+.ph-acts > * { flex: 1; }
+.ph-hint { margin: 12px 0 0; font: 500 14px/20px var(--font-sans); color: var(--text-3); text-align: start; }
+.ph-line { margin: 0; padding-inline: 24px; font: 500 14px/20px var(--font-sans); color: var(--on-stage-2); text-align: start; }
+.ph-date { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* Me photos M3: the Compare picker's scroll area (the frame is ds/PhotoStage). */
+.ph-pick { flex: 1; min-height: 0; overflow-y: auto; }

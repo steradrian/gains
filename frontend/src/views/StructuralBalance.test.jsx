@@ -5,7 +5,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import StructuralBalance from './StructuralBalance.jsx'
-import Strength from './Strength.jsx'
+import ExerciseProgress from './train/exercises/ExerciseProgress.jsx'
 import { buildDemoState } from '../lib/demoSeed.js'
 import { TEMPLATE_LIST } from '../lib/structuralBalanceTemplates.js'
 
@@ -204,10 +204,10 @@ describe('StructuralBalance view', () => {
   })
 })
 
-describe('the way in from Strength', () => {
+describe('the way in from the exercise progress page', () => {
   it('is a row that opens the screen, once there is a workout to read', () => {
-    const host = render(Strength)
-    const row = [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Structural balance')
+    const host = render(ExerciseProgress)
+    const row = [...host.querySelectorAll('.g-grow')].find(r => r.querySelector('b')?.textContent === 'Structural balance')
     expect(row).toBeTruthy()
     expect(row.textContent).toContain('See which lift is holding back the rest.')
     act(() => row.click())
@@ -216,7 +216,7 @@ describe('the way in from Strength', () => {
 
   it('is not offered before the first workout', () => {
     useStore.setState({ S: clone(DEF), user: null })
-    const host = render(Strength)
+    const host = render(ExerciseProgress)
     expect(host.textContent).not.toContain('Structural balance')
   })
 })

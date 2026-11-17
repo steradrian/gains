@@ -1,0 +1,15 @@
+{
+  "id": "12107",
+  "name": "football",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["quadriceps", "hamstrings", "calves", "glutes"],
+  "category": "sports & activities",
+  "description": "A football match or kickabout. Log the time and how hard it was.",
+  "instructions": [
+    "Play your match or session as you normally would.",
+    "Log the time you were on the pitch.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

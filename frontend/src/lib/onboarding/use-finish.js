@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { todayISO } from '../format.js'
 import { t } from '../i18n.js'
+import { COACH_COMING_SOON } from '../coach-availability.js'
 import { completeOnboarding } from './api.js'
 import { useOnboarding } from './contexts.js'
 import { planOwed } from './flow.js'
@@ -105,7 +106,7 @@ export function useFinish({ home } = {}) {
           return
         }
         const now = current()
-        const offered = !!now.answers.trainingDays && (now.starterAvailable === true || (now.coachAvailable === true && !!now.coachConsent))
+        const offered = !!now.answers.trainingDays && (now.starterAvailable === true || (!COACH_COMING_SOON && now.coachAvailable === true && !!now.coachConsent))
         if (!offered && !again) {
           act({ type: 'plan', plan: { kind: 'none' } })
           saveHubStep('plan')

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { workoutCardModel, layoutWorkoutCard, wrapText, parseColor, mixColor, mapColors, viewAspect, MAX_RECORDS, CARD_WIDTH } from './workout-card.js'
+import { workoutCardModel, layoutWorkoutCard, wrapText, parseColor, mixColor, mapColors, viewAspect, gradientLine, MAX_RECORDS, CARD_WIDTH } from './workout-card.js'
 import { fmtDate } from './format.js'
 
-// #453: a finished workout shared as a picture. A fake measure stands in for the canvas — every
-// character is half its font size wide — so the layout can be checked without one.
+// #453, board T8.3: a finished workout shared as a picture. A fake measure stands in for the
+// canvas — every character is half its font size wide — so the layout can be checked without one.
 const measure = (text, weight, size) => String(text).length * size * 0.5
 
 describe('workoutCardModel', () => {
@@ -17,7 +17,7 @@ describe('workoutCardModel', () => {
         { w: 40, r: 8, done: true, phase: 'warmup' },
         { w: 60, r: 8, done: true },
         { w: 60, r: 6, done: true },
-        { w: 60, r: 8, done: false },
+        { w: 70, r: 8, done: false },
       ] },
       { id: 'curl', target: { mode: 'reps' }, sets: [{ w: 12, r: 10, done: true }] },
       { id: 'lunge', target: { mode: 'reps', side: true }, sets: [
@@ -26,27 +26,29 @@ describe('workoutCardModel', () => {
     ],
   }
 
-  const stat = m => m.stats.map(s => s.label + ' ' + s.value)
-
-  it('says the name, the dated day, duration, work sets and volume', () => {
+  it('says the name, the day as the board writes it, and one line: duration, work sets and volume', () => {
     const m = workoutCardModel(w, { unit: 'kg', nameOf })
     expect(m.title).toBe('Push')
-    expect(m.date).toBe(fmtDate('2026-09-03', true, true))
+    expect(m.date).toBe(fmtDate('2026-09-03', true))
     // 2 bench work sets (the warm-up and the unticked set are not counted), 1 curl, and the
     // per-side lunge set once per side.
-    expect(stat(m)).toEqual(['Duration 58 min', 'Sets 5', 'Volume 1,790 kg'])
+    expect(m.line).toBe('58 min · 5 sets · 1,790 kg')
   })
 
-  it('lists each new best once, in the order the workout lists the exercises, title-cased', () => {
-    expect(workoutCardModel(w, { unit: 'kg', nameOf }).records).toEqual(['Barbell Bench Press', 'Dumbbell Curl'])
+  it('lists each new best once, in the order the workout lists the exercises, title-cased, with its best set', () => {
+    expect(workoutCardModel(w, { unit: 'kg', nameOf }).records).toEqual(['Barbell Bench Press 60 × 8', 'Dumbbell Curl 12 × 10'])
   })
 
   it('leaves out a duration it does not know and works the volume out when none was saved', () => {
     const imported = { ...w, start: undefined, end: undefined, vol: undefined, prs: undefined }
     const m = workoutCardModel(imported, { unit: 'lb', nameOf })
     // 60×8 + 60×6 bench, 12×10 curl, 10×8 a side on the lunge; the warm-up adds nothing.
-    expect(stat(m)).toEqual(['Sets 5', 'Volume 1,120 lb'])
+    expect(m.line).toBe('5 sets · 1,120 lb')
     expect(m.records).toEqual([])
+  })
+
+  it('writes a big volume in tonnes, as Train does', () => {
+    expect(workoutCardModel({ ...w, vol: 12400 }, { unit: 'kg', nameOf }).line).toBe('58 min · 5 sets · 12.4 t')
   })
 
   it('carries the session\'s muscle map, shaded against its own hardest-worked muscle', () => {
@@ -89,96 +91,90 @@ describe('wrapText', () => {
 
 describe('layoutWorkoutCard', () => {
   const model = {
-    title: 'Push', date: 'Thu, 3 Sep 2026',
-    stats: [{ label: 'Duration', value: '58 min' }, { label: 'Sets', value: '5' }, { label: 'Volume', value: '1,790 kg' }],
-    records: ['Barbell Bench Press'],
+    title: 'Push', date: 'Thu 3 Sep', line: '58 min · 5 sets · 1,790 kg',
+    records: ['Barbell Bench Press 60 × 8'],
     levels: { chest: 4 },
   }
   const texts = layout => layout.items.filter(i => i.kind === 'text').map(i => i.text)
   const kinds = (layout, kind) => layout.items.filter(i => i.kind === kind)
+  const text = (layout, s) => layout.items.find(i => i.text === s)
+  const firstLine = layout => layout.items.find(i => i.kind === 'text' && i.text.startsWith('58 min'))
   const map = { aspect: 1280 / 727 }
 
-  it('stacks the title, date, stat tiles, records and the brand footer, top to bottom', () => {
+  it('puts the name and the date on one line, then the line, the new bests, and the wordmark at the foot', () => {
     const layout = layoutWorkoutCard(model, { measure })
     expect(layout.width).toBe(CARD_WIDTH)
-    expect(texts(layout)).toEqual(['Push', 'Thu, 3 Sep 2026', 'Duration', '58 min', 'Sets', '5', 'Volume', '1,790 kg', 'New personal records', 'Barbell Bench Press', 'Gains'])
-    expect(kinds(layout, 'tile')).toHaveLength(3)
-    expect(kinds(layout, 'trophy')).toHaveLength(1)
-    const ys = layout.items.filter(i => i.kind === 'text' && !['Sets', '5', 'Volume', '1,790 kg'].includes(i.text)).map(i => i.y)
+    expect(texts(layout)).toEqual(['Push', 'Thu 3 Sep', '58 min · 5 sets · 1,790 kg', 'New bests', 'Barbell Bench Press 60 × 8'])
+    expect(text(layout, 'Thu 3 Sep').y).toBe(text(layout, 'Push').y)
+    expect(text(layout, 'Thu 3 Sep')).toMatchObject({ align: 'end', x: CARD_WIDTH - 72 })
+    const ys = ['Push', '58 min · 5 sets · 1,790 kg', 'New bests', 'Barbell Bench Press 60 × 8'].map(s => text(layout, s).y)
     expect([...ys].sort((a, b) => a - b)).toEqual(ys)
-    expect(Math.max(...ys)).toBeLessThan(layout.height)
+    const [mark] = kinds(layout, 'wordmark')
+    expect(mark.y).toBeGreaterThan(ys.at(-1))
+    expect(mark.y + mark.h).toBe(layout.height - 72)
+    expect(mark.w / mark.h).toBeCloseTo(2303.6 / 958.8)
   })
 
-  it('lays the tiles out side by side, equal and inside the card', () => {
-    const tiles = kinds(layoutWorkoutCard(model, { measure }), 'tile')
-    expect(new Set(tiles.map(t => t.w)).size).toBe(1)
-    expect(new Set(tiles.map(t => t.y)).size).toBe(1)
-    for (let i = 1; i < tiles.length; i++) expect(tiles[i].x).toBeGreaterThan(tiles[i - 1].x + tiles[i - 1].w)
-    expect(tiles[2].x + tiles[2].w).toBeLessThanOrEqual(CARD_WIDTH)
-  })
-
-  it('shrinks a number too wide for its tile instead of running into the next one', () => {
-    const big = { ...model, stats: [...model.stats.slice(0, 2), { label: 'Volume', value: '123,456,789.5 kg' }] }
-    const layout = layoutWorkoutCard(big, { measure })
-    const tile = kinds(layout, 'tile')[2]
-    const value = layout.items.find(i => i.text === '123,456,789.5 kg')
-    expect(value.size).toBeLessThan(56)
-    expect(value.x + measure(value.text, value.weight, value.size)).toBeLessThanOrEqual(tile.x + tile.w)
-  })
-
-  it('keeps every line inside the card', () => {
+  it('keeps every line inside the card, the date too', () => {
     const long = { ...model, title: 'A very long routine name that will never fit on one line of the card at all', records: ['an exercise with a name far too long to fit on one line of the card'] }
     const layout = layoutWorkoutCard(long, { measure, map })
     for (const item of layout.items.filter(i => i.kind === 'text')) {
-      expect(item.x + measure(item.text, item.weight, item.size), item.text).toBeLessThanOrEqual(layout.width)
+      const w = measure(item.text, item.weight, item.size)
+      const left = item.align === 'end' ? item.x - w : item.x
+      expect(left, item.text).toBeGreaterThanOrEqual(0)
+      expect(left + w, item.text).toBeLessThanOrEqual(layout.width)
     }
+    // the name leaves room for the date beside it
+    const title = layout.items.find(i => i.kind === 'text' && i.weight === 700)
+    expect(title.x + measure(title.text, 700, 72)).toBeLessThan(text(layout, 'Thu 3 Sep').x - measure('Thu 3 Sep', 600, 40))
   })
 
-  it('adds the front and back of the body, centred, with a less-to-more legend, when asked', () => {
+  it('sets the front and back of the body beside the line, on the reading side, when asked', () => {
     const without = layoutWorkoutCard(model, { measure })
     const layout = layoutWorkoutCard(model, { measure, map })
     expect(kinds(without, 'map')).toHaveLength(0)
     const [front, back] = kinds(layout, 'map')
     expect([front.view, back.view]).toEqual(['front', 'back'])
     expect(front.h / front.w).toBeCloseTo(map.aspect)
-    expect(front.x - 0).toBeCloseTo(CARD_WIDTH - (back.x + back.w))
-    expect(kinds(layout, 'swatch').map(s => s.level)).toEqual([0, 1, 2, 3, 4])
-    expect(texts(layout)).toEqual(expect.arrayContaining(['Less', 'More']))
+    expect(back.x).toBeGreaterThan(front.x + front.w)
+    // Beside the map the column is narrow and the line wraps: its first line is what is placed.
+    const line = firstLine(layout)
+    expect(line.x).toBeGreaterThan(back.x + back.w)
+    expect(line.y).toBeGreaterThan(front.y)
+    expect(line.y).toBeLessThan(front.y + front.h)
     expect(layout.height).toBeGreaterThan(without.height)
-    // The map sits between the tiles and the records.
-    const tilesEnd = Math.max(...kinds(layout, 'tile').map(t => t.y + t.h))
-    const records = layout.items.find(i => i.text === 'New personal records')
-    expect(front.y).toBeGreaterThan(tilesEnd)
-    expect(records.y).toBeGreaterThan(front.y + front.h)
   })
 
-  it('leaves the map out of a card whose workout has none, even when asked', () => {
-    expect(kinds(layoutWorkoutCard({ ...model, levels: null }, { measure, map }), 'map')).toHaveLength(0)
+  it('leaves the map out of a card whose workout has none, even when asked, and the line takes the width', () => {
+    const layout = layoutWorkoutCard({ ...model, levels: null }, { measure, map })
+    expect(kinds(layout, 'map')).toHaveLength(0)
+    expect(text(layout, '58 min · 5 sets · 1,790 kg').x).toBe(text(layout, 'Push').x)
   })
 
   it('counts the new bests past the limit instead of growing without end', () => {
     const many = { ...model, records: Array.from({ length: 9 }, (_, i) => 'lift ' + i) }
     const layout = layoutWorkoutCard(many, { measure })
-    expect(kinds(layout, 'trophy')).toHaveLength(MAX_RECORDS - 1)
+    expect(texts(layout).filter(s => s.startsWith('lift '))).toHaveLength(MAX_RECORDS - 1)
     expect(texts(layout)).toContain('and 4 more')
   })
 
-  it('leaves the records section out when there are none', () => {
+  it('leaves the new bests out when there are none, and is never shorter than its minimum', () => {
     const layout = layoutWorkoutCard({ ...model, records: [] }, { measure })
-    expect(texts(layout)).not.toContain('New personal records')
-    expect(layout.items.some(i => i.kind === 'trophy')).toBe(false)
+    expect(texts(layout)).not.toContain('New bests')
+    expect(layout.height).toBeGreaterThanOrEqual(640)
   })
 
-  it('mirrors for a right-to-left language: lines start at the right edge, tiles run right to left', () => {
+  it('mirrors for a right-to-left language: the name at the right edge, the date and the wordmark mirrored', () => {
     const ltr = layoutWorkoutCard(model, { measure, map })
     const rtl = layoutWorkoutCard(model, { measure, map, rtl: true })
     expect(rtl.rtl).toBe(true)
-    const title = l => l.items.find(i => i.text === 'Push')
-    expect(title(rtl).x).toBe(rtl.width - title(ltr).x)
-    expect(kinds(rtl, 'trophy')[0].x).toBeGreaterThan(rtl.width / 2)
-    const first = l => kinds(l, 'tile')[0]
-    expect(first(rtl).x + first(rtl).w).toBeCloseTo(rtl.width - first(ltr).x)
-    expect(kinds(rtl, 'swatch').map(s => s.level)).toEqual([4, 3, 2, 1, 0])
+    expect(text(rtl, 'Push').x).toBe(rtl.width - text(ltr, 'Push').x)
+    expect(text(rtl, 'Thu 3 Sep').x).toBe(72)
+    const front = l => kinds(l, 'map')[0]
+    expect(front(rtl).x + front(rtl).w).toBeCloseTo(rtl.width - front(ltr).x)
+    const mark = l => kinds(l, 'wordmark')[0]
+    expect(mark(rtl).x + mark(rtl).w).toBeCloseTo(rtl.width - mark(ltr).x)
+    expect(firstLine(rtl).x).toBeLessThan(front(rtl).x)
   })
 })
 
@@ -198,7 +194,7 @@ describe('card colours', () => {
     expect(mixColor('nonsense', '#1c1c1e', 0.5)).toBe('#1c1c1e')
   })
 
-  it('shades the map from the surface towards the accent, five steps, as the app does', () => {
+  it('shades the map from the surface towards the accent, five steps', () => {
     const { sil, levels } = mapColors({ label: '#ffffff', surface: '#000000', acc: '#ff0000' })
     expect(sil).toBe('rgb(46, 46, 46)')
     expect(levels[0]).toBe('rgb(28, 28, 28)')
@@ -207,10 +203,18 @@ describe('card colours', () => {
     expect([...reds].sort((a, b) => a - b)).toEqual(reds)
   })
 
-  it('flattens a see-through label onto the surface first, as the light theme needs', () => {
+  it('flattens a see-through label onto the surface first', () => {
     const { levels } = mapColors({ label: 'rgba(0,0,0,.5)', surface: '#ffffff', acc: '#0000ff' })
     // Half-black over white is mid-grey; 11 % of that over white.
     expect(levels[0]).toBe('rgb(241, 241, 241)')
+  })
+
+  it('runs the stage gradient the way CSS draws linear-gradient(170deg)', () => {
+    const [x0, y0, x1, y1] = gradientLine(100, 200, 180)
+    expect([x0, y0, x1, y1].map(v => Math.round(v))).toEqual([50, 0, 50, 200])
+    const [a, b, c, d] = gradientLine(1080, 1200, 170)
+    expect(d).toBeGreaterThan(b)   // top to bottom
+    expect(c).toBeGreaterThan(a)   // and a little to the right
   })
 
   it('reads a body view\'s height over its width from its viewBox', () => {

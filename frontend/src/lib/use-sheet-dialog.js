@@ -5,7 +5,6 @@ import { trapDialogFocus } from './use-dialog-focus.js'
 // <h3>/<h2>/<h1>), the first one in the sheet.
 const HEADING = 'h1, h2, h3, [role="heading"]'
 const SUB = '[data-sheet-sub]'
-const OWN_FOCUS = '[data-own-dialog-focus]'
 let titles = 0
 
 // A sheet a person opens (Modals.jsx) as a dialog: `role="dialog"` and `aria-modal`, named by its
@@ -13,9 +12,7 @@ let titles = 0
 // page behind inert, back on the opener when it closes). `el` is the sheet's own element.
 //
 // A sheet whose content is already a dialog (a photo viewer) keeps its own role and name, and gets
-// the focus handling on that element. Only content that carries `data-own-dialog-focus` (the +
-// sheet, components/PlusSheet.jsx, which runs the same trap itself) is left entirely alone: two
-// traps would fight.
+// the focus handling on that element.
 //
 // Focus goes to the sheet itself, not to its first control: many sheets open on a text field (the
 // food search, a weight) and a phone raises its keyboard for a focused field. A sheet that
@@ -35,7 +32,7 @@ export function useSheetDialog(ref, present = true, role = 'dialog') {
   const [opener] = useState(() => (typeof document === 'undefined' ? null : document.activeElement))
   useLayoutEffect(() => {
     const sheet = ref.current
-    if (!present || !sheet || sheet.querySelector(OWN_FOCUS)) return
+    if (!present || !sheet) return
     // Content that is already a dialog (a photo viewer) keeps its role and name and is the
     // element focus is moved into and trapped in; it only gets the rest of the handling.
     const own = sheet.querySelector('[role="dialog"]')

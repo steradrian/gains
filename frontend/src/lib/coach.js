@@ -19,11 +19,15 @@ import { mergePlan } from './plan-share.js'
 import { deleteRoutine } from './routines.js'
 import { POLICIES } from './progression.js'
 import { t, tn } from './i18n.js'
+import { markCheckInRead } from './coach-checkin.js'
+import { addPlanChanges, planChangeOf, revertPlanChanges } from './coach-plan-changes.js'
 
 // Bumping this re-prompts everyone: it means what we share, or who we share it with, changed.
 // 2: the training line names the session notes, which the payload carries and version 1 never
 // mentioned.
-export const CONSENT_VERSION = 2
+// 3: the training line names the weekly check-in (how training felt, how you slept, the note),
+// which a review carries and version 2 never mentioned.
+export const CONSENT_VERSION = 3
 
 // Bounds. The whole state has to stay inside the server's 5 MB body limit, and a Coach log
 // that grows forever is exactly the kind of thing that eats it invisibly. Worst case here is
@@ -41,7 +45,10 @@ export const emptyCoach = () => ({
   // server-side (or in the phone's device file) until it is applied or dismissed.
   chat: [],
   // How long the last few jobs took, so the typing bubble can say "usually about 2 minutes".
-  timings: []
+  timings: [],
+  // Eat coach m1: the weekday and routine edits the Coach applied, for the notifications feed
+  // (lib/coach-plan-changes.js). Merged on its own when two devices sync.
+  planChanges: []
 })
 const coachOf = s => (s.coach = s.coach || emptyCoach())
 
@@ -69,7 +76,7 @@ export const coachAvailable = (config, user, { demo, mobile, coachMode } = {}) =
 // checker could not see them, and eight of the ten had no translation in any pack.
 export const CATEGORY_TEXT = {
   plan: () => [t('Your plan'), t('Routines, exercises, sets and reps, your weekly schedule and progression settings.')],
-  training: () => [t('Your logged training'), t('Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes.')],
+  training: () => [t('Your logged training'), t('Sets you logged in the review window: weights, reps, times, effort ratings, how long sessions took, and your session notes. Also your weekly check-in: how training felt, how you slept, and your note.')],
   bodyweight: () => [t('Body weight'), t('Weigh-ins from the same window, and your goal weight if you set one.')],
   profile: () => [t('What you tell the Coach'), t('Your intake answers, including any limitations or injuries you describe.')],
   prefs: () => [t('A few preferences'), t('Your unit, your language and which effort scale you log.')]
@@ -279,6 +286,9 @@ export function revertLast(s) {
   s.week = clone(snap.week)
   // Snapshots taken before this field existed have nothing to put back.
   if (snap.dayPlanRestore) Object.assign(s.dayPlan, snap.dayPlanRestore)
+  // The snapshot holds the plan, not the stamps: the undone change's notification is marked
+  // reverted (a tombstone, so the other device's copy cannot bring it back).
+  revertPlanChanges(c, snap.proposalId)
   appendLog(s, { kind: 'revert', at: Date.now(), proposalId: snap.proposalId, summary: t('Reverted the last Coach changes.') })
   return true
 }
@@ -409,6 +419,8 @@ export function applyCreatedPlan(s, proposal, { schedule } = {}) {
   // Only when the week actually moved — with the switch off the old schedule still stands, and
   // so do the reschedules made against it.
   if (schedule) sweepDayPlan(s, todayISO())
+  const at = Date.now()
+  addPlanChanges(coachOf(s), [{ id: `${proposal.id}:plan`, at, type: 'create' }], at)
   res.logId = appendLog(s, {
     kind: 'create', at: Date.now(), proposalId: proposal.id,
     summary: proposal.summary || '', routines: res.routines, iteration: proposal.iteration || 1,
@@ -522,8 +534,9 @@ const CHANGE_APPLY = {
     })
   },
   'remove-routine': (s, c) => {
-    // The same delete as Plan and RoutineEdit. It used to compare each weekday with ===, which
-    // missed a combined day (a list) and left the deleted id on it. The week comes back from the
+    // The same delete as the routine actions (views/routines/routine-actions.js). It used to
+    // compare each weekday with ===, which missed a combined day (a list) and left the deleted id
+    // on it. The week comes back from the
     // snapshot on a revert; the dropped reschedules are not in the snapshot, so they are recorded.
     recordDayPlanDrops(s, deleteRoutine(s, c.target.routineId))
   },
@@ -558,10 +571,18 @@ export function applyChangeSet(s, proposal, acceptedIds) {
 
   pushSnapshot(s, proposal.id, t('Before the Coach’s changes'))
   const applied = []
+  // Eat coach m1: stamps are kept aside and written once every change has applied, so a throw
+  // part-way leaves none behind even on a draft the caller keeps.
+  const at = Date.now()
+  const stamps = []
   for (const c of changes) {
+    const prior = findRoutine(s, c.target?.routineId)?.name
     CHANGE_APPLY[c.type](s, c)
     applied.push(decisionOf(c, 'accepted'))
+    const stamp = planChangeOf(s, c, { proposalId: proposal.id, at, prior })
+    if (stamp) stamps.push(stamp)
   }
+  if (stamps.length) addPlanChanges(coachOf(s), stamps, at)
   // Turned-down changes keep their before/after too: the chat shows the whole proposal back
   // later, and "you declined something about sets" is not a memory anyone can use.
   const rejected = (proposal.changes || [])
@@ -573,6 +594,7 @@ export function applyChangeSet(s, proposal, acceptedIds) {
     summary: proposal.summary || '', evidence: proposal.evidence || null,
     notes: proposal.notes || [], decisions: [...applied, ...rejected]
   })
+  markCheckInRead(s, proposal.id)
   coachOf(s).lastReview = { at: Date.now() }
   return { applied: applied.length, rejected: rejected.length, logId }
 }
@@ -586,7 +608,10 @@ export function recordDismissal(s, proposal) {
     ...(proposal.bundle ? { bundle: lightBundle(proposal.bundle), iteration: proposal.iteration || 1 } : {}),
     decisions: (proposal.changes || []).map(c => decisionOf(c, 'rejected'))
   })
-  if (proposal.kind !== 'create') coachOf(s).lastReview = { at: Date.now() }
+  if (proposal.kind !== 'create') {
+    markCheckInRead(s, proposal.id)
+    coachOf(s).lastReview = { at: Date.now() }
+  }
   return logId
 }
 

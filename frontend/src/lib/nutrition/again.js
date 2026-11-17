@@ -13,8 +13,8 @@ const isQuick = item => item.type === 'quick_calories'
 const isOwnFood = item => !item.is_recipe && !Array.isArray(item._splitItems) && typeof item.food_server_id === 'number'
 
 /** The entries of `meal` on a day, or null when there are none or any cannot be logged again. */
-export function againItems(entry, meal) {
-  const items = mealItems(entry, meal)
+export function againItems(entry, meal, count) {
+  const items = mealItems(entry, meal, count)
   if (!items.length) return null
   return items.every(i => isQuick(i) || isOwnFood(i)) ? items : null
 }
@@ -51,10 +51,27 @@ export function againAttempt(items, { from, to, target }) {
   return attempt
 }
 
-/** Whether `target` already holds every entry of this attempt. */
+// The same entry by what it holds: a food of yours at the same amount, or a quick entry of the
+// same name and calories, in the same meal.
+const sameEntry = (src, got) => {
+  if (!got || (Number(got.meal) || 0) !== (Number(src.meal) || 0)) return false
+  if (isQuick(src)) return isQuick(got) && got.name === src.name && nutritionOf(got).calories === nutritionOf(src).calories
+  return !isQuick(got) && got.food_server_id === src.food_server_id && got.portion === src.portion && got.unit === src.unit && got.quantity === src.quantity
+}
+
+/** Whether `target` already holds every entry of this attempt. An entry Undo brought back under a
+ *  new uuid (NutriTrace keeps the removed uuid out for good) still counts: each source entry is
+ *  also matched, once, by what it holds. */
 export function againLogged(items, { from, to, target }, attempt) {
   const have = new Set((target?.items || []).map(i => i?.uuid))
-  return uuidsOf(items, { from, to }, attempt).every(u => have.has(u))
+  if (uuidsOf(items, { from, to }, attempt).every(u => have.has(u))) return true
+  const pool = [...(target?.items || [])]
+  return items.every(src => {
+    const at = pool.findIndex(got => sameEntry(src, got))
+    if (at < 0) return false
+    pool.splice(at, 1)
+    return true
+  })
 }
 
 /** The entries for `meal` on `to`, with their stable uuids. `n` is the nutrition store's state

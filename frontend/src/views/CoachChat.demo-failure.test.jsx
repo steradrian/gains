@@ -61,7 +61,7 @@ function installDom() {
   root = createRoot(container)
 }
 
-const chip = re => [...container.querySelectorAll('.qchip')].find(b => re.test(b.textContent || ''))
+const chip = re => [...container.querySelectorAll('.tco-chip')].find(b => re.test(b.textContent || ''))
 async function click(el) {
   expect(el).toBeTruthy()
   await act(async () => { el.dispatchEvent(new dom.Event('click', { bubbles: true })); await flush() })

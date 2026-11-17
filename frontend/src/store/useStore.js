@@ -8,6 +8,9 @@ import { rememberDefaultLang } from '../lib/default-lang.js'
 import { guestAllowed } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, readJsonFile, syncReminder, writeAutoBackup, writeJsonFile } from '../lib/mobile.js'
 import { initHealthSync, syncHealth } from '../lib/health-sync.js'
+import { setReminderLogOwner } from '../lib/notifications/reminder-log.js'
+import { clearChanges } from '../lib/recent-changes.js'
+import { setChangesOwner } from '../lib/recent-changes-store.js'
 import { refillIfComplete } from '../lib/rotation.js'
 import { liftLegacy } from '../lib/sync-legacy.js'
 import { mergeStates, localExtras, stampChange, highestStamp, stampRestore, stampReplace, inUnitOf, keepReset, resetIdsOf, mergeResetIds, entryKey } from '../lib/sync-merge.js'
@@ -47,7 +50,7 @@ const DIRTY_KEY = 'gym_dirty'          // the saved copy owes the server a chang
 // (lib/sync-legacy.js), holding the fingerprint that app last agreed on with the server.
 const LEGACY_KEY = 'gym_legacy_owed'
 const SYNCED_AT_KEY = 'gym_synced_at'  // when this device and the server last held the same copy
-const SYNCED_FP_KEY = 'gym_synced_fp'  // a fingerprint of that copy (lib/sync-changes.js)
+export const SYNCED_FP_KEY = 'gym_synced_fp'  // a fingerprint of that copy (lib/sync-changes.js)
 // Changes a forced sign-out or disconnect kept on this device, by server and account, until it
 // reaches that server as that account again. On a phone also a file beside the state mirror.
 const STASH_KEY = 'gym_stash'
@@ -86,15 +89,27 @@ const gainedWorkoutMedia = (prev, next) => {
   return workoutMediaHashes(next).some(h => !had.has(h))
 }
 export const DEF = {
-  unit: 'kg', restSec: 90, restPauseSec: 15, sound: true, soundOnSilent: false, vibrateOnSilent: false, timerFlash: false, timedSetOvertime: false, keepAwake: true, lang: 'en',
-  theme: 'dark', accent: 'lime', body: 'male', targetW: null,
+  unit: 'kg', restSec: 90, restPauseSec: 15, sound: true, soundOnSilent: false, vibrateOnSilent: false, haptics: true, timerFlash: false, timedSetOvertime: false, keepAwake: true, lang: 'en',
+  theme: 'dark', accent: null, body: 'male', targetW: null,
+  // The stage look (lib/stage-look): null follows the resolved mode (bloom dark, Classic light).
+  bgLook: null, bgIntensity: 0.45,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   // A note per day off (#261): { [iso]: { tag, text, _ts } } (lib/day-notes.js). A noted day is
   // excused from the missed-day nudge; each day merges on its own stamp (lib/sync-merge.js).
   dayNotes: {},
+  // A missed planned day answered on Train, Move to today or Skip it: { [iso]: { seen, _ts } }
+  // (lib/missed-day.js), so its banner shows once; merged per day like dayNotes.
+  missedSeen: {},
+  // Train coach: the weekly Coach check-in, { [weekIso]: { feel, sleep, note, _ts } }
+  // (lib/coach-checkin.js), read by the next review; merged per week like dayNotes.
+  coachCheckIns: {},
   // Body measurements (#82): one check-in per day, values in cm whatever the weight unit
   // (lib/measurements.js); merged across devices like weigh-ins (lib/sync-merge.js).
   measurements: [], measurementEnabled: null, customMeasurements: [],
+  // Me photos M1: progress photos that are not a workout's, [{ id, d, ref, addedAt }]
+  // (lib/me/photos.js), merged by id (lib/sync-merge.js). `photoBackup` false keeps their files on
+  // this device only (lib/media-sync.js); on, they go to the account like a workout's photos.
+  bodyPhotos: [], photoBackup: false,
   queue: null,   // a planner's floating week (lib/queue.js) — via the API, or by this rotation feature (below)
   // The in-app rotation's reusable definition — { id, sequence, label } (lib/rotation.js). Never
   // a live queue: it only ever feeds `queue`, and `queue.rotationId` says the pass is managed here.
@@ -107,27 +122,17 @@ export const DEF = {
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Stats activity heatmap metric. Profiles without this key continue to open on time.
   heatmapMetric: 'time',
-  // How the active workout is laid out — 'cards' (one exercise at a time with Prev/Next),
-  // 'list' (every exercise stacked and scrollable) or 'compact' (that stack stripped to just
-  // names and set rows — no media, tags, notes, last-time or progression line). Purely
-  // presentational: profiles written before this setting existed overlay onto DEF and keep the
-  // 'cards' behaviour. beginWorkout copies the value onto s.active, so the header ⋮ menu can
-  // override it for the running session without touching this saved default.
-  workoutView: 'cards',
-  // List and Compact fold a finished exercise into one line (Settings → Workout; #241). The
-  // workout's Layout menu can flip it for the running session (s.active.collapseCompleted).
-  collapseCompleted: false,
-  // How the Library, the exercise picker and the muscle explorer show exercises — 'list' (rows
-  // with a small thumbnail) or 'cards' (a grid of pictures with the name underneath). Switched
-  // by the button in those headers (ExerciseViewToggle); older profiles overlay onto the list.
-  exerciseView: 'list',
-  // Which controls the workout screen shows besides the sets themselves. The default is the
-  // lean layout: one "more" button per exercise and a menu on each set number. Every switch
-  // brings one of the old always-visible button groups back (Settings → During a workout).
+  // Swipe actions on set rows and Plan's lists (Settings → Fine-tuning); see lib/workout-controls.js.
   wc: { ...WC_DEFAULT },
   // One-time hints already shown to this profile, synced so each shows once per person rather
   // than once per device: { swipeSets: true } after the first swipe-on-sets nudge (Workout.jsx).
   hints: {},
+  // Which notifications are read (lib/notifications/read-state.js): { at, ids: { id: at } }. Mark
+  // all read sets `at`, reading one adds its id. A plain setting, so the newer copy wins whole on
+  // sync: two phones reading different items at once keep one phone's reads, which only shows a
+  // dot again. null until the inbox first looks, which then reads everything before it (an upgrade
+  // does not open on a month of "new"; use-notifications.js).
+  notifRead: null,
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,
   // server pull, backup import) still falls back to the `showRir` boolean this replaced and
@@ -193,10 +198,11 @@ export const DEF = {
   // card and the /checkin route; the saved gymCards stay so turning it back on restores them.
   // Defaults on; an older profile without the key reads as on (`!== false`).
   checkIn: true,
-  // Whether the body-weight summary card is shown on Home. Off only hides that card: existing
-  // entries, Stats, imports and the separate pre-workout weigh-in flow keep working.
-  // Defaults on; an older profile without the key reads as on (`!== false`).
-  showWeightCard: true,
+  // What the person tracks (Settings > Features, lib/nutrition/food-tracked.js). Off hides that
+  // area and deletes nothing; a profile without the key reads as on (`!== false`).
+  trackTraining: true,
+  trackFood: true,
+  trackActivity: true,
   // Whether Start opens the quick weigh-in first (sheets.jsx startFlow, issue #137). Off starts
   // the session straight away; weight can still be logged from Home/Stats. On here, so an
   // older profile without the key reads as on (`!== false`) and keeps the step it had; a profile
@@ -238,6 +244,10 @@ export const DEF = {
   // cleared) replaces that role's curated exercise-id whitelist with a single user-chosen
   // exercise id; the stamp is what lets a sync keep the choice made last (lib/sync-merge.js).
   balanceTemplate: DEFAULT_TEMPLATE_ID, balanceOverrides: {},
+  // Workout core M1 (Workout settings, W1.21): `autoNext`, the next exercise takes over after an
+  // exercise's last set (off: the finished one stays until › or the map); `showPlates`, the plate
+  // line under a barbell set. Both on is how the workout always behaved.
+  autoNext: true, showPlates: true,
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 
@@ -277,6 +287,9 @@ export function restartedState(cur) {
   return s
 }
 
+// When the account's scheduled deletion happens (GET /api/me `user.deletion.at`), or null.
+const deletionAt = u => (u?.deletion && typeof u.deletion.at === 'string' && u.deletion.at) || null
+
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY)
@@ -294,7 +307,9 @@ function loadState() {
 // weigh-ins and custom exercises. A custom exercise is all a new guest may have made — with its
 // photo or video, which the server counts as unreferenced until the state that names it lands —
 // so a profile created from such a copy takes it at once, like one holding a workout.
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.customEx || []).length || (st.measurements || []).length)
+// Progress photos too (Me photos M1): with Back up photos off a copy holding only those is the one
+// place they are listed, so it must never be taken for an empty one and replaced.
+const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length || (st.customEx || []).length || (st.measurements || []).length || (st.bodyPhotos || []).length)
 
 // Decide whether a pulled account state may replace the local saved state. A local active workout
 // is deliberately carried forward: the server stores completed/saved state, while the in-progress
@@ -425,15 +440,18 @@ export const useStore = create((set, get) => {
        'offline' the server could not be reached at all (no network, DNS, a timeout)
        'error'   it answered with a failure: 5xx, 403, 413, a page that is not Gains'
        'held'    signed in, but the question about this device's own entries is still open
+       'paused'  the account is scheduled for deletion: the server takes no writes until it is
+                 cancelled (a 423), so changes wait on this device, owed, and nothing pushes
        'pending' reachable, and a change is still waiting to reach it
        'ok'      this device holds what the server holds
      `pending`: a change is owed and the last attempt did not land. `lastSynced`: when this device
      and the server last held the same copy. `lastError`: { status, code } of the failure behind
      'auth', 'offline' or 'error' (status 0 without an HTTP answer). `server`: the base URL this
-     device syncs with, or null on a phone that has none. */
+     device syncs with, or null on a phone that has none. `paused`: false, or when the scheduled
+     deletion happens (ISO, or true when the server did not say). */
   // 'held': a sign-in's question about this device's own entries is still open (adoptProfile), and
   // nothing syncs until it is answered — said after a failed connection, which is why it is held.
-  const statusOf = (x, user) => x.auth ? 'auth' : !user ? 'local' : x.offline ? 'offline' : x.lastError ? 'error' : x.held ? 'held' : x.pending ? 'pending' : 'ok'
+  const statusOf = (x, user) => x.auth ? 'auth' : !user ? 'local' : x.offline ? 'offline' : x.paused ? 'paused' : x.lastError ? 'error' : x.held ? 'held' : x.pending ? 'pending' : 'ok'
   const sameError = (a, b) => (a && b ? a.status === b.status && a.code === b.code : a === b)
   const setSync = patch => {
     const cur = get().sync
@@ -453,6 +471,24 @@ export const useStore = create((set, get) => {
     if (refused(e)) setSync({ auth: true, offline: false, lastError, ...extra })
     else if (isNetworkError(e)) setSync({ offline: true, lastError, ...extra })
     else setSync({ offline: false, lastError, ...extra })
+  }
+  // A scheduled deletion (api/server.js, the 7-day grace): the server refuses every write with
+  // 423 { code: 'deletion-scheduled', at } and still answers reads. That is not a failure to show
+  // or to retry: sync pauses, the copy stays owed exactly as it is, and the next write waits for
+  // setUser to hear from /api/me that the deletion is gone. The user learns the date too, so the
+  // screens can say it when the 423 came before /api/me did (scheduled from another device).
+  const pauseForDeletion = (at, extra = {}) => {
+    const when = typeof at === 'string' && at ? at : true
+    const u = get().user
+    if (u && typeof when === 'string' && !deletionAt(u)) set({ user: { ...u, deletion: { at: when } } })
+    reached({ paused: when, ...extra })
+  }
+  // Paused, a push is not sent. What it would have carried stays owed, and a forced push is
+  // disarmed as a failed one is (doPush): kept, it would go out after the cancel without a
+  // baseRev and replace whatever another device wrote by then.
+  const holdWhilePaused = () => {
+    forceNext = false
+    if (owesOwn()) { markOwed(true); setSync({ pending: true }) }
   }
   // This device and the server hold the same copy: a push landed, a pull adopted, or a check found
   // that nothing moved on either side. The fingerprint is what signing out counts changes against.
@@ -644,11 +680,16 @@ export const useStore = create((set, get) => {
     if (adoptHold) { if (!adopting && adoptOwed()) get().resumeAdoption(); return }
     if (pulling) return pulling
     const { base } = metaOf()
-    if (!base || owes()) return get().pullState()
+    // Paused for a scheduled deletion, changes waiting here are not pulled and pushed every half
+    // minute (the server refuses the push): only whether the server moved is asked, and nothing
+    // is marked synced while they wait.
+    const paused = !!get().sync.paused
+    if (!base || (owes() && !paused)) return get().pullState()
     try {
       const { rev, wid } = await api('/api/data/rev')
       if (rev !== base.rev || (base.wid && wid && wid !== base.wid)) return get().pullState()
-      confirmed(get().S)   // nothing moved on either side
+      if (!owes()) confirmed(get().S)   // nothing moved on either side
+      else reached()
     } catch (e) {
       if (isNetworkError(e) || refused(e)) failed(e)
       else return get().pullState()   // a server that lacks the route (older API) — the full pull knows the old protocol
@@ -658,11 +699,26 @@ export const useStore = create((set, get) => {
     clearTimeout(pollTm)
     pollTm = setTimeout(() => { checkRev(); schedulePoll() }, POLL_MS)
   }
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkRev() })
-  window.addEventListener('focus', () => checkRev())
-  window.addEventListener('pageshow', e => { if (e.persisted) checkRev() })
-  window.addEventListener('online', () => checkRev(true))   // also retries a push that failed offline
-  onAppActive(() => checkRev())
+  // Paused for a scheduled deletion: coming back to the app asks /api/me again, so a deletion
+  // cancelled on another device resumes sync here (setUser). Not on the half-minute poll.
+  let meCheck = null
+  let lastMeCheck = 0
+  const recheckDeletion = () => {
+    if (!get().sync.paused || !get().user || !get().ready || meCheck || adoptHold) return
+    if (Date.now() - lastMeCheck < CHECK_MIN_MS) return
+    lastMeCheck = Date.now()
+    const uid = get().user.id
+    meCheck = api('/api/me')
+      .then(me => { if (me?.user?.id && me.user.id === uid && get().user?.id === uid) get().setUser(me.user) })
+      .catch(() => { /* the next resume asks again */ })
+      .finally(() => { meCheck = null })
+  }
+  const resumed = (force = false) => { recheckDeletion(); checkRev(force) }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') resumed() })
+  window.addEventListener('focus', () => resumed())
+  window.addEventListener('pageshow', e => { if (e.persisted) resumed() })
+  window.addEventListener('online', () => resumed(true))   // also retries a push that failed offline
+  onAppActive(() => resumed())
   schedulePoll()
 
   // Both copies changed: keep both sides' entries, let the newer copy decide the rest
@@ -742,6 +798,15 @@ export const useStore = create((set, get) => {
       // The page is reloading as someone else (holdForRestart): the document the server sent is
       // the new session's, and merging it here to push again would write it into their account.
       if (restarting) return
+      // A scheduled deletion: the server took nothing. The copy stays owed as it is, an import's
+      // replace stays armed against the revision it read (a 409 then merges what moved), and
+      // nothing retries until the deletion is cancelled (pauseForDeletion, setUser).
+      if (e.status === 423) {
+        if (asReplace != null) replaceRev = asReplace
+        markOwed(true)
+        pauseForDeletion(e.data?.at, { pending: true })
+        return
+      }
       if (e.status === 409 && e.data && attempt < 2) {
         // Another device wrote since this one last read. The server sent its document along;
         // merge and push once more against that revision. A second refusal in a row leaves the
@@ -938,6 +1003,9 @@ export const useStore = create((set, get) => {
   // it sees the new copy, or it joins its own copy of the account into it (QA 2026-10-06).
   const clearLocalSession = () => {
     const hadMedia = referencedHashes(get().S).size > 0
+    // Me changes M1: the change journal goes with the session (the account's, the last owner's, a guest's).
+    clearChanges(); clearChanges(null)
+    if (localStorage.getItem('gym_owner')) clearChanges({ id: localStorage.getItem('gym_owner') })
     get().setUser(null)
     forgetOnboarding()   // signOut and signOutAll both end here, whoever was signed in
     localStorage.removeItem('gym_guest')
@@ -1299,7 +1367,7 @@ export const useStore = create((set, get) => {
   meta.set(S0, { base: readStoredSync(), owed: storedOwed() })
   const user0 = (() => { try { return JSON.parse(localStorage.getItem('gym_user')) || null } catch { return null } })()
   adoptHold = !!user0 && readAdopt()?.uid === user0.id
-  const sync0 = { offline: false, pending: storedOwed(), auth: false, lastError: null, lastSynced: (() => { try { return +localStorage.getItem(SYNCED_AT_KEY) || 0 } catch { return 0 } })(), server: serverBase(), held: adoptHold }
+  const sync0 = { offline: false, pending: storedOwed(), auth: false, lastError: null, lastSynced: (() => { try { return +localStorage.getItem(SYNCED_AT_KEY) || 0 } catch { return 0 } })(), server: serverBase(), held: adoptHold, paused: deletionAt(user0) || false }
   sync0.status = statusOf(sync0, user0)
 
   return {
@@ -1385,8 +1453,12 @@ export const useStore = create((set, get) => {
     // reset loses exactly those, and keeps whatever else it holds, whatever its dates say.
     // Resolves once the server's names are in (or could not be had).
     resetEverything() {
+      clearChanges()   // Me changes M1: snapshots of the wiped profile must not be restorable
       const cur = get().S
       const S = restartedState(cur)
+      // The recipes themselves live in NutriTrace and a reset does not touch them: their steps and
+      // photos stay with them.
+      if (cur.recipeExtras) S.recipeExtras = clone(cur.recipeExtras)
       S.resetAt = Math.max(Date.now(), highestStamp(cur) + 1)
       S.resetIds = mergeResetIds(cur.resetIds, resetIdsOf(cur))
       get().replaceState(S, !!get().user)
@@ -1545,6 +1617,7 @@ export const useStore = create((set, get) => {
         if (other) {
           keepForPrevious(owner)
           forgetSync()
+          clearChanges({ id: owner })   // Me changes M1: the previous account's journal does not stay behind
           localStorage.removeItem(KEY)
           // The new owner before the new copy, as on a sign-out: another tab still holding the
           // previous account's copy must not join it into this one (QA 2026-10-06).
@@ -1581,8 +1654,17 @@ export const useStore = create((set, get) => {
         if (get().config && !('coach' in get().config)) get().refreshConfig()
       } else { rejoined = false; adoptHold = false; localStorage.removeItem('gym_user') }
       set({ user: u })
-      setSync({ held: adoptHold })
+      // A scheduled deletion pauses sync (pauseForDeletion); an account without one — cancelled
+      // here or on another device — resumes it, and what waited on this device goes now.
+      const at = deletionAt(u)
+      const wasPaused = !!get().sync.paused
+      setSync({ held: adoptHold, paused: at || false })
+      if (wasPaused && !at && u && get().ready && owes()) get().pushState()
     },
+
+    // A write refused with 423 somewhere other than the state's own push (media uploads,
+    // lib/media-sync.js): the same pause.
+    pauseSync(at) { if (get().user) pauseForDeletion(at) },
 
     // The session turned out to be someone else's (the hub refused a request made for this tab's
     // person), and the page reloads to find out who. Until it does, this tab's copy must reach no
@@ -1610,6 +1692,7 @@ export const useStore = create((set, get) => {
       pushTm = null
       if (restarting) return   // the page is reloading as someone else (holdForRestart)
       if (adoptHold) return   // the sign-in has not decided what this copy is yet (adoptProfile)
+      if (get().sync.paused) { holdWhilePaused(); return }   // a scheduled deletion (pauseForDeletion)
       if (pushing) { pushAgain = true; return pushing.then(() => pushing) }
       pushing = doPush().finally(() => {
         pushing = null
@@ -1672,8 +1755,11 @@ export const useStore = create((set, get) => {
           mergeInto(S, state, rev)
           pushPending = false
           await get().pushState()
-        } catch (e) { failed(e) /* keep local; the poll retries */ }
-        finally { pulling = null }
+        } catch (e) {
+          // An older server that also refuses reads during a deletion's grace: paused, not failed.
+          if (e?.status === 423) pauseForDeletion(e.data?.at)
+          else failed(e) /* keep local; the poll retries */
+        } finally { pulling = null }
       })()
       return pulling
     },
@@ -2006,5 +2092,11 @@ export const useStore = create((set, get) => {
     }
   }
 })
+
+// The phone's reminder log is kept per profile (lib/notifications/reminder-log.js). It cannot
+// import the store itself: the store imports lib/mobile.js, which imports the log.
+setReminderLogOwner(() => useStore.getState().user)
+// Me changes M1: the change journal is kept per profile too (lib/recent-changes-store.js).
+setChangesOwner(() => useStore.getState().user)
 
 export { hasData }

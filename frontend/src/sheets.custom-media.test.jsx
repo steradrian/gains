@@ -3,7 +3,7 @@
 // file becomes a MediaRef in the draft (the ingest itself is lib/media-ingest.js, mocked here —
 // its parts have their own tests), Save writes the ref and the cleaned link, Remove takes the
 // ref off, a link that is not a web address stops the save, and an edit that leaves the media
-// alone keeps it.
+// alone keeps it. The form is the Create exercise form (T6.4) in its drawer host.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -95,9 +95,9 @@ describe('custom exercise photo, GIF or video, and link', () => {
   it('a picked file shows in the form, and Create saves its ref and the cleaned link — never the file name', async () => {
     customExSheet(null)
     const form = renderTop()
-    act(() => type(form.querySelector('input.input'), 'Sandbag carry'))
-    click(form, '.chip', 'back')
-    click(form, '.chip', 'barbell')
+    act(() => type(form.querySelector('.g-tfield input'), 'Sandbag carry'))
+    click(form, 'button[aria-pressed]', 'Back')
+    click(form, 'button[aria-pressed]', 'barbell')
     await pick(form)
     expect(h.ingest).toHaveBeenCalledTimes(1)
     expect(form.querySelector('.cmf-thumb')).toBeTruthy()
@@ -150,7 +150,7 @@ describe('custom exercise photo, GIF or video, and link', () => {
     seed(custom({ media: REF, url: 'https://exrx.net/a' }))
     customExSheet(S().customEx[0])
     const form = renderTop()
-    act(() => type(form.querySelector('input.input'), 'Sandbag carry, heavy'))
+    act(() => type(form.querySelector('.g-tfield input'), 'Sandbag carry, heavy'))
     act(() => type(form.querySelector('input[type="url"]'), ''))
     click(form, 'button', 'Save')
     expect(S().customEx[0]).toMatchObject({ n: 'Sandbag carry, heavy', media: REF })
@@ -162,7 +162,7 @@ describe('custom exercise photo, GIF or video, and link', () => {
     seed(custom({ media: future }))
     customExSheet(S().customEx[0])
     const form = renderTop()
-    act(() => type(form.querySelector('input.input'), 'Sandbag carry, renamed'))
+    act(() => type(form.querySelector('.g-tfield input'), 'Sandbag carry, renamed'))
     click(form, 'button', 'Save')
     expect(S().customEx[0]).toMatchObject({ n: 'Sandbag carry, renamed', media: future })
   })

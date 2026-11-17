@@ -47,7 +47,7 @@ const nameParts = w => String(w.name || '').split(' + ')
 
 // Tolerant reader: whole-state sync is last-writer-wins, so a half-written or older-shaped
 // queue can arrive from another client. A bad shape reads as "no queue" rather than taking
-// Home down with it. A session whose routine no longer exists (deleted in the editor — a
+// Train and Today down with it. A session whose routine no longer exists (deleted in the editor — a
 // planner's queue is never rewritten by the app; a rotation-managed one is, by lib/rotation.js)
 // is dropped from the week: it could never be started or logged,
 // and keeping it would pin the whole week on it; a queue left with no session at all reads as
@@ -57,7 +57,7 @@ export const queueOf = S => {
   if (!q || typeof q !== 'object' || !Array.isArray(q.ids)) return null
   const routines = Array.isArray(S.routines) ? S.routines : []
   // First valid occurrence of each id: a queue is a set of sessions, and a repeated id would
-  // otherwise show twice in the progress row and count twice in the week's tally. The persisted
+  // otherwise show twice in Start a workout and count twice in the week's tally. The persisted
   // payload is never rewritten — normalizing is a read, not a migration.
   const ids = q.ids.filter((id, i) => q.ids.indexOf(id) === i && routines.some(r => r.id === id))
   if (!ids.length) return null
@@ -84,7 +84,7 @@ export function queueRemaining(S) {
 
 /**
  * The queue's answer for a date: the next undone session, on exactly one day — today, or
- * `startsOn` while that is still ahead (Home's "next week is waiting"). Every other date gets
+ * `startsOn` while that is still ahead ("Next week starts …"). Every other date gets
  * null, so the calendar and the reminders do not paint the same session onto every day.
  * Dates are compared as ISO strings; `today` is passed in so callers and tests agree on it.
  */
@@ -133,7 +133,7 @@ export function pinState(S, id) {
 }
 
 /**
- * Everything Home's progress row shows, derived once. `items` keep slot order; `state` is
+ * Everything Train's Start a workout drawer and Plan show of the queue, derived once. `items` keep slot order; `state` is
  * 'done', 'next' (the session for the day the queue answers on — pinned there, or the first
  * undone one not pinned to another day — whether or not the queue is active yet), 'pinned'
  * (given another day, carried as `on`; the earliest such day when there are several) or
@@ -176,7 +176,7 @@ export function queueView(S, today) {
  * from before the apply. A merged 'US W1 D2 + Core' session counts for both sides: the queue's
  * session through the queue, your Core day as training on top, the two units `planned` added.
  * A queue still ahead of its `startsOn` (queueView's `waiting`) is next week's plan, so until
- * then the card is the calendar-week count alone and the progress row speaks for the coming week.
+ * then the card is the calendar-week count alone and Start a workout speaks for the coming week.
  */
 export function weekTally(S, today) {
   const ws = weekStartOf(S)

@@ -78,16 +78,27 @@ const maybeRestNotification = async () => {
 
 let toastTm = null
 const TOAST_MS = 2200
-const TOAST_ACTION_MS = 5000
+export const TOAST_ACTION_MS = 8000
 let toastLeft = 0
 let toastT0 = 0
 let toastPaused = false
 let toastSeq = 0
-const runToast = set => {
+const runToast = (set, get) => {
   toastPaused = false
   toastT0 = Date.now()
   clearTimeout(toastTm)
-  toastTm = setTimeout(() => set({ toastMsg: '', toastAction: null }), toastLeft)
+  toastTm = setTimeout(() => endToast(set, get), toastLeft)
+}
+// The one way a toast ends without its action: the timer, a swipe, a tap, Escape. An action's Undo
+// is not taken, what it would have undone stays done, and `onClose` runs. A second call finds no
+// toast and does nothing, so a timer and a gesture that land together commit once.
+const endToast = (set, get) => {
+  clearTimeout(toastTm)
+  toastPaused = false
+  if (!get().toastMsg) return
+  const act = get().toastAction
+  set({ toastMsg: '', toastAction: null, toastPaused: false })
+  act?.onClose?.()
 }
 let timerInt = null
 let timerTick = null
@@ -213,11 +224,26 @@ function endTone(enabled, kind) {
   toneNative(kind === true ? 'classic' : kind).then(ok => { if (!ok) chime(enabled, kind) })
 }
 
+// The next sheet opened inside `open` (synchronously) is a step of a flow its drawer launches, not
+// a detail of it: a menu's action (Log food, Weigh-in) that used to close the menu and open the
+// sheet. As a sub-panel it slides in over the menu and back returns to it, but the sheet's own
+// `close` (Save, Done, Cancel) ends the flow, closing the whole drawer as it did when the menu
+// had closed first. Without a drawer under it, it is just a sheet. Returns what `open` returns.
+let flowNext = false
+export function drawerFlow(open) {
+  flowNext = true
+  try { return open() } finally { flowNext = false }
+}
+
+// The drawer a sub-panel was just closed in, until the end of that tick (see openSheet).
+let panelClosedIn = null
+
 export const useUI = create((set, get) => ({
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'viewer', locked, onDismiss }
   toastMsg: '',
-  toastAction: null,   // { label, run, id } while the toast offers an action (Undo)
-  swipeHint: null,     // { idx, i, id }: the set row showing the one-time swipe hint (Workout.jsx)
+  toastId: 0,          // which toast is showing, for a swipe or tap that may land after it was replaced
+  toastAction: null,  // { label, run, id, icon, ms, body, onClose } while the toast offers an action (Undo)
+  toastPaused: false,  // held still under a finger: its drain bar stops with it
   setFlash: null,      // { idx, i, id }: the set row a copy or an undo just brought, flashed once
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx, ready?, paused?, kind? }
                        // kind: 'switch' for the short pause between the two sides of a timed set
@@ -236,47 +262,104 @@ export const useUI = create((set, get) => ({
   // Escape, Android back (components/Modals.jsx). A sheet whose Cancel does something passes the
   // same handler, so every way out behaves like Cancel. `role: 'alertdialog'` for a sheet that
   // interrupts with a question to weigh (lib/use-sheet-dialog.js); the default is a dialog.
-  openSheet(render, { kind = 'sheet', locked = false, onDismiss, role } = {}) {
+  // `variant: 'ds'` draws it as the design system's drawer: `render` returns a ds/BottomSheet.
+  //
+  // A drawer is never opened on top of a drawer. A `kind: 'sheet'` opened while the top of the stack
+  // is a drawer joins it as a sub-panel (`panels`, components/sheet-panes.jsx): it slides in inside
+  // the same drawer, one history entry each, and its close (and `lock`) act on that panel alone.
+  // Viewers still stack, over a drawer and its panels alike, and so does a question (`stack: true`:
+  // confirmSheet and the like): a bottom sheet of its own over the drawer, so what it asks is not
+  // read as one more step of the drawer.
+  openSheet(render, { kind = 'sheet', locked = false, onDismiss, variant, role, stack = false } = {}) {
     const id = uid()
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, role }] }))
+    const flow = flowNext
+    flowNext = false
+    let host = kind === 'sheet' && !stack ? get().sheets.at(-1) : null
+    // `close(); open()` from a sub-panel is a replacement, not a step: the sheet it opens starts a
+    // fresh root (no back chevron, nothing to go back to) and the drawer it left is gone.
+    if (host && host.id === panelClosedIn) {
+      set(s => ({ sheets: s.sheets.filter(x => x.id !== host.id) }))
+      host = null
+    }
+    if (host?.kind === 'sheet' && !host.stack) {
+      set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: [...(x.panels || []), { id, render, locked, onDismiss, variant, role, flow }] } : x) }))
+      return {
+        id,
+        close: () => get().closeSheet(id),
+        lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === host.id ? { ...x, panels: (x.panels || []).map(p => p.id === id ? { ...p, locked: v } : p) } : x) })),
+      }
+    }
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onDismiss, variant, role, stack, panels: [] }] }))
     const close = () => get().closeSheet(id)
     // A lock that is already the value asked for writes nothing: no new sheets array, no re-render.
     const lock = v => set(s => s.sheets.some(x => x.id === id && x.locked !== v) ? { sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) } : s)
     return { id, close, lock }
   },
-  closeSheet(id) { set(s => ({ sheets: s.sheets.filter(x => x.id !== id) })) },
+  // A drawer, or a sub-panel of one: a panel takes the panels pushed after it along.
+  closeSheet(id) {
+    set(s => {
+      if (s.sheets.some(x => x.id === id)) return { sheets: s.sheets.filter(x => x.id !== id) }
+      return {
+        sheets: s.sheets.map(x => {
+          const at = (x.panels || []).findIndex(p => p.id === id)
+          if (at < 0) return x
+          panelClosedIn = x.id
+          queueMicrotask(() => { if (panelClosedIn === x.id) panelClosedIn = null })
+          return { ...x, panels: x.panels.slice(0, at) }
+        }),
+      }
+    })
+  },
   closeAll() { set({ sheets: [] }) },
 
-  // A toast is 2.2 s of text. With an action (`{ action: 'Undo', onAction }`) it stays 5 s, shows
-  // the action as a button at its end and holds still while a finger rests on it (pauseToast). A
-  // new toast replaces the one showing, action and all: the old Undo is gone, what it would have
-  // undone stays done. The action runs once at most, and the toast goes with it.
-  // `icon` names the action button's glyph (Icon.jsx): Undo's unless given.
-  toast(msg, { action, onAction, ms, icon } = {}) {
+  // A toast is 2.2 s of text. With an action (`{ action: 'Undo', onAction }`) it stays 8 s (the
+  // design system's UndoToast), shows the action as a button at its end with a bar draining over
+  // those `ms`, and holds still while a finger rests on it (pauseToast). A new toast replaces the
+  // one showing, action and all: the old Undo is gone, what it would have undone stays done. The
+  // action runs once at most, and the toast goes with it.
+  // `icon` names the glyph at the toast's start (Icon.jsx), with an action only: a check unless given.
+  // `body` is a second line under the message, and `onClose` runs once the action can no longer be
+  // taken, however the toast went: timed out, replaced, or its action run. What an Undo would need
+  // (a deleted workout's files) is held until then.
+  toast(msg, { action, onAction, ms, icon, body, onClose } = {}) {
     const withAction = !!(action && typeof onAction === 'function')
+    const before = get().toastAction
     clearTimeout(toastTm)
     toastLeft = ms || (withAction ? TOAST_ACTION_MS : TOAST_MS)
     toastSeq += 1
-    set({ toastMsg: msg, toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'undo' } : null })
-    runToast(set)
+    set({
+      toastMsg: msg, toastPaused: false, toastId: toastSeq,
+      toastAction: withAction ? { label: action, run: onAction, id: toastSeq, icon: icon || 'check', ms: toastLeft, body: body || null, onClose } : null,
+    })
+    before?.onClose?.()
+    runToast(set, get)
   },
   runToastAction() {
     const act = get().toastAction
     if (!act) return
     clearTimeout(toastTm)
-    set({ toastMsg: '', toastAction: null })
+    set({ toastMsg: '', toastAction: null, toastPaused: false })
     act.run()
+    act.onClose?.()
+  },
+  // Puts the toast away by hand. `id` is the toast the person saw; one that has since been replaced
+  // by a newer toast is left alone.
+  dismissToast(id) {
+    if (id != null && id !== get().toastId) return
+    endToast(set, get)
   },
   pauseToast() {
     if (!get().toastAction || toastPaused) return
     toastPaused = true
     clearTimeout(toastTm)
     toastLeft = Math.max(400, toastLeft - (Date.now() - toastT0))
+    set({ toastPaused: true })
   },
   resumeToast() {
     if (!toastPaused) return
     toastPaused = false
-    if (get().toastMsg) runToast(set)
+    set({ toastPaused: false })
+    if (get().toastMsg) runToast(set, get)
   },
 
   startRest(sec, forIdx, { kind, forSet } = {}) {
@@ -421,11 +504,28 @@ export const useUI = create((set, get) => ({
     const wk = get().work
     if (!wk) return
     const startedAt = wk.endsAt - wk.total * 1000
-    const elapsed = Math.max(1, Math.min(wk.total + (wk.overtime ? MAX_WORK_OVERTIME_SEC : 0), Math.round((Date.now() - startedAt) / 1000)))
+    // A paused hold has held what its countdown says; its endsAt is the one from before the pause.
+    const elapsed = wk.paused ? Math.max(1, wk.total - wk.left)
+      : Math.max(1, Math.min(wk.total + (wk.overtime ? MAX_WORK_OVERTIME_SEC : 0), Math.round((Date.now() - startedAt) / 1000)))
     const done = workDone || ownerDone(wk)
     vibrate(30)
     get().stopWork()
     if (done) done(elapsed)
+  },
+  // Workout core-M3: the timed hold's Pause (W1.41). The countdown stops where it is; Resume
+  // runs it on from there with a fresh end time, the way a paused rest resumes.
+  pauseWork() {
+    const wk = get().work
+    if (!wk || wk.paused) return
+    stopWorkTicking()
+    set({ work: { ...wk, left: Math.max(0, Math.round((wk.endsAt - Date.now()) / 1000)), paused: true } })
+  },
+  resumeWork() {
+    const wk = get().work
+    if (!wk?.paused) return
+    const { paused, ...rest } = wk
+    set({ work: { ...rest, endsAt: Date.now() + Math.max(0, wk.left) * 1000 } })
+    runWork(set, get)
   },
   // A rest is starting while a hold runs that is not the one being ticked — a set finished on
   // another row, or on another exercise, which the List layout puts one tap away. The hold cannot

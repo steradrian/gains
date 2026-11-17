@@ -66,14 +66,14 @@ async function startServer(t, { users = [ADMIN], creds = [], invites = [], env =
 }
 
 const iso = ms => new Date(ms).toISOString();
-const invite = (code, extra = {}) => ({ code, note: '', createdBy: 'adm', created: iso(Date.now()), expiresAt: iso(Date.now() + 14 * DAY), ...extra });
+const invite = (code, extra = {}) => ({ code, note: '', createdBy: 'adm', created: iso(Date.now()), expiresAt: iso(Date.now() + 7 * DAY), ...extra });
 
 test('the check answers who invited and the suggested name, needs no session, and never uses the invite up', async t => {
   const h = await startServer(t);
   const inv = await h.newInvite({ note: 'for my sister', name: ' Ana ' });
   assert.equal(inv.name, 'Ana');
   const expires = Date.parse(inv.expiresAt) - Date.parse(inv.created);
-  assert.equal(expires, 14 * DAY, 'an invite works for fourteen days');
+  assert.equal(expires, 7 * DAY, 'an invite works for seven days');
 
   for (let i = 0; i < 3; i++) {
     const r = await h.req('GET', `/api/invites/${inv.code.toLowerCase()}`, { ip: '198.51.100.10', headers: { 'Sec-Fetch-Site': 'cross-site' } });
@@ -139,7 +139,7 @@ test('an invite that expires between the passkey prompt and its answer is refuse
   assert.equal(h.db().users.length, 1);
 });
 
-test('invites from before expiry get fourteen days from the update, and keep working', async t => {
+test('invites from before expiry get the full lifetime from the update, and keep working', async t => {
   const longAgo = iso(Date.now() - 200 * DAY);
   const before = Date.now();
   const h = await startServer(t, {
@@ -152,7 +152,7 @@ test('invites from before expiry get fourteen days from the update, and keep wor
   const [a, b] = h.db().invites;
   for (const inv of [a, b]) {
     const exp = Date.parse(inv.expiresAt);
-    assert.ok(exp >= before + 14 * DAY - 1000 && exp <= after + 14 * DAY, `${inv.code} expires fourteen days after the boot`);
+    assert.ok(exp >= before + 7 * DAY - 1000 && exp <= after + 7 * DAY, `${inv.code} expires seven days after the boot`);
   }
   assert.equal((await h.req('GET', '/api/invites/AAAA0000AAAA0000', { ip: '198.51.100.40' })).body.status, 'valid');
   assert.equal((await h.req('GET', '/api/invites/BBBB0000BBBB0000', { ip: '198.51.100.40' })).body.status, 'used');

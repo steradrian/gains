@@ -3,13 +3,15 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.jsx'
+import { preloadPages } from './settings/pages/index.js'
 import { stubHubOffline } from '../lib/nutrition/hub-offline.test-util.js'
 
+await preloadPages()
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 /* Settings → Account ID (#219): the signed-in account's id, small, one tap to copy. It is what
    an admin puts in ADMIN_UIDS and what names an account beyond doubt in a support request. A
-   browser shows it under Account, a paired phone in its Server & sync block, a guest nowhere. */
+   browser shows it under Your data, a paired phone under its connection block, a guest nowhere. */
 const mocks = vi.hoisted(() => {
   const state = { S: null, user: null, MOBILE: false }
   state.toast = vi.fn()
@@ -34,6 +36,8 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+// The stage frame (nav bar, background) is the app's and has its own test; the rows are the point.
+vi.mock('./settings/SettingsPage.jsx', () => ({ default: ({ title, children }) => <main><h1>{title}</h1>{children}</main> }))
 vi.mock('../lib/api.js', () => ({
   api: vi.fn(() => Promise.resolve({})), webauthnOK: () => true, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
 }))
@@ -64,8 +68,7 @@ function mount(el) {
 // The copy only calls the clipboard and a toast, no React state, so a plain tick lets the
 // clipboard promise settle; nothing here needs act() to flush.
 const tick = () => new Promise(r => setTimeout(r, 0))
-const section = (page, title) => [...page.querySelectorAll('.sect')].find(s => s.querySelector('.sect-t')?.textContent === title)
-const idRow = el => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === 'Account ID')
+const idRow = el => [...el.querySelectorAll('.g-glist-row')].find(r => r.querySelector('b')?.textContent === 'Account ID')
 
 let writeText
 beforeEach(() => {
@@ -80,9 +83,9 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { root.unmount(); host.remove() }) }) })
 
 describe('Settings → Account ID', () => {
-  it('a signed-in browser shows the id under Account, and a tap copies it', async () => {
+  it('a signed-in browser shows the id under Your data, and a tap copies it', async () => {
     const page = mount(<Settings page="account" />)
-    const row = idRow(section(page, 'Account'))
+    const row = idRow(page)
     expect(row).toBeTruthy()
     expect(row.querySelector('.acct-id').textContent).toBe(ID)
     act(() => row.click())
@@ -91,10 +94,13 @@ describe('Settings → Account ID', () => {
     expect(mocks.toast).toHaveBeenCalledWith('Account ID copied')
   })
 
-  it('a paired phone shows it in the Server & sync block', () => {
+  it('a paired phone shows it under its Server & sync block', () => {
     mocks.MOBILE = true
     const page = mount(<Settings page="account" />)
-    expect(idRow(section(page, 'Server & sync')).querySelector('.acct-id').textContent).toBe(ID)
+    expect([...page.querySelectorAll('.sect-t')].map(s => s.textContent)).toContain('Server & sync')
+    expect(idRow(page).querySelector('.acct-id').textContent).toBe(ID)
+    // The phone has no passkeys of its own to list.
+    expect(page.textContent).not.toContain('Add a passkey')
   })
 
   it('a clipboard that refuses says nothing, and the id stays on screen', async () => {

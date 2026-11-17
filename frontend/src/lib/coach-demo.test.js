@@ -21,7 +21,8 @@ const NOW = new Date('2026-09-22T12:00:00Z').getTime()
 const day = n => new Date(NOW - n * 864e5).toISOString().slice(0, 10)
 
 // Real catalogue ids, so EXIDX lookups and the body-part search behave as they do in the app.
-const PRESS = EXDB.find(e => e.bp === 'chest').id
+// The press is a loaded lift: a bodyweight exercise has no 1RM estimate (lib/onerm.js bestSetOf).
+const PRESS = EXDB.find(e => e.bp === 'chest' && e.eq === 'barbell').id
 const ROW = EXDB.find(e => e.bp === 'back').id
 const SQUAT = EXDB.find(e => e.bp === 'upper legs').id
 const PLANK = EXDB.find(e => e.bp === 'waist').id
@@ -96,6 +97,14 @@ describe('coach-demo — the job machine', () => {
     expect(demoStatus().pending).toBeTruthy()
     expect(demoResolve()).toEqual({ ok: true })
     expect(demoStatus()).toEqual({ job: null, pending: null, cap: { used: 0, limit: 0 }, lastError: null })
+  })
+
+  it('a resolve naming another proposal leaves the pending one alone (review #5)', () => {
+    const p = think(() => demoReview(state()))
+    expect(demoResolve({ proposalId: 'an-older-one', dismissed: true })).toEqual({ ok: true })
+    expect(demoStatus().pending).toBe(p)
+    demoResolve({ proposalId: p.id, dismissed: true })
+    expect(demoStatus().pending).toBeNull()
   })
 
   it('a builder that throws ends the job, records the failure, and does not refuse the next request', () => {
@@ -238,6 +247,14 @@ describe('coach-demo — the review', () => {
   it('leaves out the weekday change when there is only one routine', () => {
     const S = state({ routines: [state().routines[0]], week: { 1: 'r1' } })
     expect(think(() => demoReview(S)).changes.map(c => c.type)).toEqual(['swap-exercise', 'sets'])
+  })
+
+  it('says it read a weekly check-in when one rides along, and only then', () => {
+    const without = think(() => demoReview(state())).notes
+    demoResolve()
+    const withIt = think(() => demoReview(state(), { week: '2026-09-14', feel: 'hard' })).notes
+    expect(withIt).toHaveLength(without.length + 1)
+    expect(withIt.slice(1)).toEqual(without)
   })
 
   it('reports the last nine sessions as its evidence window', () => {

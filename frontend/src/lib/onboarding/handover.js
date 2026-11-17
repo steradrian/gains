@@ -2,36 +2,36 @@ import { useLayoutEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { onReducedMotion, reducedMotion } from '../reduced-motion.js'
 
-// The Summary's hand-over into Home (fitness-eval motion-onboarding-summary-v2 §3, §4). Stage A,
+// The Summary's hand-over into Today (fitness-eval motion-onboarding-summary-v2 §3, §4). Stage A,
 // the unwind, runs on the Summary (the ring turns back into a line); stage B is a View Transition
-// in which Home mounts and the line, named `thread`, moves onto Home's hero hairline (a vertical
-// line) or the MonthBar's (a horizontal one: the ghost arc, or where Home's hero has none). The
-// names live in CSS under html.vt-handover, so they exist only from just before the transition
-// starts until it has finished; html.vt-flat says the line is horizontal, and the orphan guard
-// (no hero hairline on the DOM Home mounts) is decided in tab-kit.css.
+// in which Today mounts and the line, named `thread`, moves onto the edge of Today's first hero
+// ring: its 9 o'clock tangent for a vertical line, its 12 o'clock one for a horizontal line (the
+// ghost arc). The names live in CSS under html.vt-handover (views/today/today.css), so they exist
+// only from just before the transition starts until it has finished; html.vt-flat says the line
+// is horizontal.
 //
-// kcal-value and water-value are not named: Home reads the diary after it mounts, so on the frame
-// the transition captures its hero may still show dashes, not the target (the spec's fallback:
+// kcal-value and water-value are not named: Today reads the diary after it mounts, so on the frame
+// the transition captures its ring may still be the skeleton, not the target (the spec's fallback:
 // those parts crossfade with the page).
 //
-// Home's first visit plays its cascade once (firstHome): the flag is taken by the first Home that
-// mounts after the hand-over, and never set by a normal tab visit.
+// Today's first visit plays its cascade once (firstHome): the flag is taken by the first Today
+// (views/Home.jsx, at /home) that mounts after the hand-over, and never set by a normal tab visit.
 
 let firstHome = null
 
-/** Home's first visit after the Summary: 'cascade', 'fade' (reduced motion) or null. Taken once. */
+/** Today's first visit after the Summary: 'cascade', 'fade' (reduced motion) or null. Taken once. */
 export function takeFirstHome() {
   const mode = firstHome
   firstHome = null
   return mode
 }
 
-// How long Home's first-visit class stays on: past the cascade's last beat (tab-kit.css).
+// How long Today's first-visit class stays on: past the cascade's last beat (views/today/today.css).
 const CASCADE_MS = 900
 const FADE_MS = 160
 
 /**
- * Home's side: on the first Home after the hand-over, its sections come in once (html.home-first,
+ * Today's side: on the first Today after the hand-over, its sections come in once (html.home-first,
  * transform and opacity only; html.home-fade under reduced motion, a 120ms fade). Input is never
  * held: the classes only start CSS animations, and they go once those are over.
  */
@@ -48,13 +48,14 @@ export function useFirstHome() {
 }
 
 /**
- * Goes Home from the Summary. `unwind()` is stage A and resolves when it is done; `go()` leaves for
- * Home (synchronously, inside the transition). Without View Transitions the line unwinds and Home
- * comes in with its cascade; under reduced motion there is no unwind and no transition, Home
+ * Goes to Today from the Summary. `unwind()` is stage A and resolves when it is done; `go()` leaves
+ * for Today (synchronously, inside the transition). Without View Transitions the line unwinds and
+ * Today comes in with its cascade; under reduced motion there is no unwind and no transition, Today
  * simply fades in, and so it does when that is switched on while the unwind or the transition runs
  * (the transition is skipped, its names cleared). `flat` is the shape stage A left: a horizontal
- * line (the ghost arc, never closed into a number) goes onto the MonthBar's hairline, a vertical
- * one onto the hero's, so the transition never stretches one into the other.
+ * line (the ghost arc, never closed into a number) lands on the first hero ring's 12 o'clock
+ * tangent, a vertical one on its 9 o'clock tangent, so the transition never stretches one into the
+ * other.
  */
 export async function handOver({ unwind, go, flat = false }) {
   if (reducedMotion()) {

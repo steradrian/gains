@@ -300,3 +300,47 @@ test('an admin can store extra headers for the compatible endpoint; framing name
   assert.equal((await call('GET /api/admin/coach')).body.headers, null);
   assert.equal('headers' in cfg.load().providerOptions.compatible, false);
 });
+
+/* ---------- Train coach: the weekly check-in on a review ---------- */
+
+test('a review refuses a malformed check-in before queueing anything, and queues a valid one', async () => {
+  fresh();
+  const jobs = await import('../coach/jobs.js');
+  const { writeState, sampleState } = await import('./helpers.mjs');
+  const { forcePrivilegeVerdict } = await import('../coach/adapters/spawn.js');
+  forcePrivilegeVerdict({ ok: true, dropped: false, why: 'pinned by the test suite' });
+  writeState(process.env.DATA_DIR, 'admin-1', sampleState());
+  const { call } = harness();
+  const settle = async () => {
+    const until = Date.now() + 15000;
+    while (jobs.status('admin-1').job && Date.now() < until) await new Promise(res => setTimeout(res, 25));
+  };
+  await settle();
+
+  for (const checkIn of [
+    'hard',
+    [{ week: '2026-10-12', feel: 'hard' }],
+    { week: '2026-10-12', feel: 'exhausted' },
+    { week: '2026-10-12', sleep: 'great' },
+    { week: '2026-10-12', note: 'n'.repeat(501) },
+    { week: 'this week', feel: 'hard' },
+    { week: '2026-10-12' }
+  ]) {
+    const r = await call('POST /api/coach/review', { note: '', checkIn });
+    assert.equal(r.status, 400, JSON.stringify(checkIn).slice(0, 80));
+    assert.deepEqual(r.body, { error: 'invalid checkIn' });
+    assert.equal(jobs.status('admin-1').job, null, 'nothing was queued');
+  }
+
+  const ok = await call('POST /api/coach/review', { note: '', checkIn: { week: '2026-10-12', feel: 'hard', sleep: 'poor', note: 'Shoulder a bit tight' } });
+  assert.equal(ok.status, 202, JSON.stringify(ok.body));
+  assert.equal(jobs.status('admin-1').job.kind, 'review');
+  await settle();
+  jobs.resolvePending('admin-1', { dismissed: true });
+
+  // No check-in at all is the ordinary review, as before.
+  const plain = await call('POST /api/coach/review', { note: '' });
+  assert.equal(plain.status, 202);
+  await settle();
+  jobs.resolvePending('admin-1', { dismissed: true });
+});

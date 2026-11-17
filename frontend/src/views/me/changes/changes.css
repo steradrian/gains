@@ -1,0 +1,6 @@
+/* Recent changes (ChangesScreen.jsx, boards M4.0 to M4.2). The stage is full bleed, so the page adds
+   no top inset of its own; it keeps air above the floating tab bar, as the other pushed pages do.
+   Rows are the kit's ChangeRow (a GlassRow), which sets its own side margins. */
+.chg{padding-bottom:calc(150px + var(--sab))}
+.chg-day + .chg-day{padding-top:8px}
+.chg-list{display:flex;flex-direction:column;gap:8px}

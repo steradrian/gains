@@ -1,8 +1,31 @@
 // Replace an exercise in a routine (#110): the slot keeps what was set up for it, only the
 // exercise changes — and the new exercise does not inherit the old one's progress.
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
 import { replaceSlotExercise } from './routines.js'
+import { registerCustom } from './exercises.js'
+import { modeOf } from './history.js'
 import { buildCombinedEntries } from './session-merge.js'
+
+// A custom exercise on Legs logged as cardio (docs/audits/gains-train-review.md #3): Replace read
+// cardio from the body part, so it carried a lifting slot's numbers onto it, or a cardio slot's
+// minutes onto it without the mode that says they are minutes.
+describe('replaceSlotExercise with a cardio-logged custom exercise', () => {
+  const SLED = { id: 'csled', n: 'Sled push', bp: 'upper legs', eq: 'body weight', custom: true, mode: 'cardio' }
+  afterEach(() => registerCustom([]))
+
+  it('a lifting slot takes the exercise\'s own cardio defaults, keeping its note and rest', () => {
+    registerCustom([SLED])
+    const next = replaceSlotExercise({ id: '0025', sets: 4, mode: 'reps', reps: 8, weight: 60, note: 'n', restSec: 90 }, 'csled')
+    expect(next).toEqual({ id: 'csled', sets: 1, min: 20, speed: 8, mode: 'cardio', note: 'n', restSec: 90 })
+  })
+
+  it('a cardio slot keeps its minutes and speed, and stays cardio', () => {
+    registerCustom([SLED])
+    const next = replaceSlotExercise({ id: '2138', sets: 1, min: 30, speed: 7 }, 'csled')
+    expect(next).toEqual({ id: 'csled', sets: 1, min: 30, speed: 7, mode: 'cardio' })
+    expect(modeOf(next)).toBe('cardio')
+  })
+})
 import { buildCompletedWorkout } from './finish-workout.js'
 import { lastEntryFor } from './history.js'
 import { isWarmupRow } from './workout-model.js'

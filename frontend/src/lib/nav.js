@@ -19,34 +19,58 @@ let liveSheetEntries = 0
 export const noteSheetEntries = n => { liveSheetEntries = n }
 export const sheetEntriesLive = () => liveSheetEntries
 
-export function closeThenNav(close, to) {
-  const replace = onSheetEntry()
-  close()
-  nav(to, replace ? { replace: true } : undefined)
-}
+// The `close` a sheet's render is handed closes that sheet alone; in a drawer's sub-panel that is
+// the panel, and a page change must take the whole drawer with it. `close.drawer` is the drawer's
+// (the same function for a sheet that is not a panel).
+const wholeDrawer = close => close?.drawer || close
 
-// A sheet that swaps the page under it for a sibling (Progress › Body's Add photo from Weight):
-// the page must not stay in history, or back from the sibling lands on the page it replaced.
-// The sheet's entry is walked off first (Modals.jsx does it once the sheet closes), then the page
-// itself is replaced. Without a live sheet entry to walk off, the page is replaced at once.
-const WALK_OFF_MS = 400
-export function closeThenReplace(close, to) {
-  if (!onSheetEntry() || liveSheetEntries < 1) {
-    close()
-    nav(to, { replace: true })
+// Closes the drawer `close` belongs to and then runs `go(replace)`, which moves to another page:
+// `replace` says the new page takes the sheet's history entry (a drawer on one entry). A drawer
+// that holds sub-panels holds several, and one replace can only take one of them: they are all
+// walked off (Modals.jsx) first and `go(false)` pushes the page.
+export function closeThen(close, go) {
+  const drawer = wholeDrawer(close)
+  if (onSheetEntry() && liveSheetEntries > 1) {
+    drawer?.()
+    whenSheetGone(() => go(false))
     return
   }
+  const replace = onSheetEntry()
+  drawer?.()
+  go(replace)
+}
+
+export const closeThenNav = (close, to) => closeThen(close, replace => nav(to, replace ? { replace: true } : undefined))
+
+// Runs `fn` once the sheet closing in this same handler has had its history entry walked off
+// (Modals.jsx does it after the sheet closes, while the address is still the one it opened on).
+// Anything that writes the address or removes the page's subject goes through it: written in the
+// same commit as the close, it made Modals skip the walk-off and left the entry behind, and a
+// replace even overwrote the sheet's entry with the new address. With no live sheet entry to walk
+// off, `fn` runs at once; a walk-off that never comes is waited for WALK_OFF_MS at most.
+const WALK_OFF_MS = 400
+export function whenSheetGone(fn) {
+  if (!onSheetEntry() || liveSheetEntries < 1) { fn(); return }
   let done = false
   const go = () => {
     if (done) return
     done = true
     clearTimeout(timer)
     globalThis.removeEventListener('popstate', go)
-    nav(to, { replace: true })
+    fn()
   }
   const timer = setTimeout(go, WALK_OFF_MS)
   globalThis.addEventListener('popstate', go)
-  close()
+}
+
+// A sheet that swaps the page under it (Progress › Body's Add photo from Weight): the page must
+// not stay in history, or back lands on the page it replaced. The sheet's entry is walked off
+// first, then the page itself is replaced.
+// `state` is route state for the new page (Leave group tells Groups who was left; Remove from group
+// tells the group page who was removed).
+export function closeThenReplace(close, to, state) {
+  wholeDrawer(close)()
+  whenSheetGone(() => nav(to, state ? { replace: true, state } : { replace: true }))
 }
 
 // Into the workout screen: from the routine chooser (already #/train/workout) or from a sheet's

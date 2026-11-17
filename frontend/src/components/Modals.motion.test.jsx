@@ -6,7 +6,7 @@
  * not one of the sheet's own buttons behaves like its Cancel.
  *
  * The real Modals on the real store; the Web Animations API is the fake driver. */
-import React, { act, useRef } from 'react'
+import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Modals, { scrollRestorePending } from './Modals.jsx'
@@ -14,7 +14,6 @@ import { useUI } from '../store/useUI.js'
 import { confirmSheet } from '../sheets.jsx'
 import { MS, PRESETS, setMotionDriver } from '../lib/motion.js'
 import { fakeMotionDriver } from '../lib/motion.test-util.js'
-import { useDialogFocus } from '../lib/use-dialog-focus.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -31,16 +30,13 @@ const Plain = ({ title = 'Weigh in', close }) => <>
   <h3>{title}</h3>
   <button onClick={close}>Done</button>
 </>
-// Content that runs its own focus trap, the way the + sheet does (PlusSheet.jsx): one row closes
-// it, the other closes it and opens the next sheet in the same tap.
-function OwnFocus({ close, next }) {
-  const ref = useRef(null)
-  useDialogFocus(ref)
-  return <div ref={ref} role="dialog" aria-modal="true" aria-label="Add" data-own-dialog-focus>
-    <button onClick={close}>Weigh in</button>
-    <button onClick={() => { close(); next() }}>New routine</button>
-  </div>
-}
+// A menu of a sheet, the way the + sheet is: one row closes it, the other closes it and opens the
+// next sheet in the same tap.
+const Rows = ({ close, next }) => <>
+  <h3>Add</h3>
+  <button onClick={close}>Weigh in</button>
+  <button onClick={() => { close(); next() }}>New routine</button>
+</>
 const button = text => all('button').find(b => b.textContent === text)
 const goBack = () => act(async () => { window.dispatchEvent(new PopStateEvent('popstate')) })
 const drag = (el, dy) => act(async () => {
@@ -133,16 +129,18 @@ describe('a bottom sheet\'s way in and out', () => {
   it('closes every sheet at once on closeAll, each history entry walked back, each leaving where it stands', async () => {
     const go = vi.spyOn(history, 'go').mockImplementation(() => {})
     open(c => <Plain title="First" close={c} />)
-    open(c => <Plain title="Second" close={c} />)
-    const sheets = all('.sheet')
+    open(c => <Plain title="Second" close={c} />, { stack: true })
+    const sheets = all('.sheet, .center')
     expect(sheets).toHaveLength(2)
 
     await act(async () => { useUI.getState().closeAll() })
     await flushMicrotasks()
     expect(useUI.getState().sheets).toHaveLength(0)
     expect(go).toHaveBeenCalledWith(-2)
-    expect(all('.sheet')).toEqual(sheets)
-    for (const sheet of sheets) expect(sheet.parentElement.hasAttribute('inert')).toBe(true)
+    // the drawer plays its way out where it stands; the centred dialog goes at once
+    const drawers = sheets.filter(el => el.matches('.sheet'))
+    expect(all('.sheet, .center')).toEqual(drawers)
+    for (const sheet of drawers) expect(sheet.parentElement.hasAttribute('inert')).toBe(true)
     expect(document.activeElement).toBe(document.getElementById('opener'))
     expect(document.getElementById('app').hasAttribute('inert')).toBe(false)
 
@@ -150,10 +148,10 @@ describe('a bottom sheet\'s way in and out', () => {
     expect(q('#modal-root')).toBeNull()
   })
 
-  it('a sheet with its own focus trap (the + sheet) lets go the moment it is closed, not when its way out ends', async () => {
-    open(close => <OwnFocus close={close} next={() => {}} />)
+  it('a sheet closed from one of its rows lets go the moment it is closed, not when its way out ends', async () => {
+    open(close => <Rows close={close} next={() => {}} />)
     const sheet = q('.sheet')
-    expect(document.activeElement).toBe(button('Weigh in'))
+    expect(sheet.contains(document.activeElement)).toBe(true)
     expect(document.getElementById('app').hasAttribute('inert')).toBe(true)
 
     await click(button('Weigh in'))
@@ -164,8 +162,8 @@ describe('a bottom sheet\'s way in and out', () => {
     expect(document.activeElement).toBe(document.getElementById('opener'))
   })
 
-  it('a sheet with its own focus trap swapped for the next one hands that one its opener', async () => {
-    open(close => <OwnFocus close={close} next={() => useUI.getState().openSheet(c => <Plain title="New routine" close={c} />)} />)
+  it('a sheet swapped for the next one from one of its rows hands that one its opener', async () => {
+    open(close => <Rows close={close} next={() => useUI.getState().openSheet(c => <Plain title="New routine" close={c} />)} />)
     const own = q('.sheet')
     await click(button('New routine'))
     await flushMicrotasks()

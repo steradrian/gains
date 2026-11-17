@@ -24,7 +24,7 @@ const gramsOf = item => {
   const g = gramsOfPortion(portion, item.unit, item) ?? portion * (UNSIZED[item.unit] ?? 0)
   return g * (parseFloat(item.quantity) || 1)
 }
-const gramsOfAll = items => Math.round(items.reduce((s, i) => s + gramsOf(i), 0))
+export const gramsOfAll = items => Math.round(items.reduce((s, i) => s + gramsOf(i), 0))
 
 /** The nutrients of a list of ingredients, added up. */
 export const totalOf = items => sumNutrition((items || []).map(nutritionOf))

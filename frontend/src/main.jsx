@@ -5,11 +5,22 @@ import { MOBILE } from './lib/mobile.js'
 import { useStore } from './store/useStore.js'
 import { startMediaSync } from './lib/media-sync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
+import { startSheetKeyboard } from './lib/sheet-keyboard.js'
 import { startSwMessages } from './lib/sw-update.js'
 import './index.css'
 import './ui-kit.css'
 import './tab-kit.css'
 import './search.css'
+// The design system (src/ds): its faces, hosted with the app (it makes no third-party request), and
+// its tokens and rules, all scoped to .g-root. A face is only fetched once something uses it.
+import '@fontsource/figtree/400.css'
+import '@fontsource/figtree/500.css'
+import '@fontsource/figtree/600.css'
+import '@fontsource/figtree/700.css'
+import '@fontsource/figtree/800.css'
+import '@fontsource/geist-mono/500.css'
+import './ds/tokens.css'
+import './ds/ds.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
@@ -25,6 +36,10 @@ startMediaSync(useStore)
 // Android 15 does not resize the page for the soft keyboard; the app says how much it covers and
 // this keeps the focused field above it. Idle everywhere else.
 startNativeKeyboard()
+
+// Every sheet and drawer stands on the soft keyboard (--kb) and stops short of the top (--vvh):
+// positioned by these two numbers, never resized by them (lib/sheet-keyboard.js).
+startSheetKeyboard()
 
 // Not in the mobile build: the native shell already serves everything from disk.
 if (!MOBILE && 'serviceWorker' in navigator && location.protocol === 'https:') {

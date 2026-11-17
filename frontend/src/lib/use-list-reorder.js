@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 // there is no scroll to tell apart), the rows it passes slide out of its way, and letting go
 // commits one move. The arrow keys on a focused handle move the row one place, for a keyboard.
 //
-// The routine editor has its own, superset-aware drag (RoutineEdit.jsx). This one is for lists
+// The routine editor has its own, superset-aware drag (views/routines/routine-reorder.js). This one is for lists
 // with nothing grouped: Plan's routines and the rotation's loop.
 //
 //   const r = useListReorder(items.length, (from, to) => …)

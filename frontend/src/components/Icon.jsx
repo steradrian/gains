@@ -13,7 +13,7 @@
 //   · geometry snapped to .5 so it lands on pixel edges at 24px
 //
 // The nutrition glyphs (droplet, utensils, apple, cookingPot, scanBarcode, bookOpen, calendarCheck) and the
-// onboarding's (scanFace … hammer) are copied from Lucide (https://lucide.dev), ISC License, Copyright (c) 2022 Lucide Contributors, with
+// onboarding's (scanFace … hammer), the welcome-back card's (hand) and the tab bar's (lucideHouse, lucideDumbbell, user) are copied from Lucide (https://lucide.dev), ISC License, Copyright (c) 2022 Lucide Contributors, with
 // portions (c) 2013-2022 Cole Bemis (Feather, MIT). Full text: NOTICE.md.
 
 // Lucide draws to the edge of a 24 box (2…22); this set lives in 3…21. Scaling by .9 around the
@@ -63,17 +63,30 @@ const P = {
   /* ---- the onboarding (Lucide) ---- */
   scanFace: lucide(<><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01" /><path d="M15 9h.01" /></>),
   keyRound: lucide(<><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" /></>),
+  smartphone: lucide(<><rect width="14" height="20" x="5" y="2" rx="2" /><path d="M12 18h.01" /></>),
+  users: lucide(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>),
+  wifiOff: lucide(<><path d="M12 20h.01" /><path d="M8.5 16.43a5 5 0 0 1 7 0" /><path d="M5 12.86a10 10 0 0 1 5.17-2.69" /><path d="M19 12.86a10 10 0 0 0-2.007-1.523" /><path d="M2 8.82a15 15 0 0 1 4.177-2.643" /><path d="M22 8.82a15 15 0 0 0-11.288-3.764" /><path d="m2 2 20 20" /></>),
   circleHelp: lucide(<><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></>),
   trendingDown: lucide(<><path d="M16 17h6v-6" /><path d="m22 17-8.5-8.5-5 5L2 7" /></>),
   trendingUp: lucide(<><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></>),
   scaleBalance: lucide(<><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></>),
   listChecks: lucide(<><path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" /><path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></>),
   messagesSquare: lucide(<><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" /><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" /></>),
+  // The Summary's week when it is only food (board O2.15).
+  salad: lucide(<><path d="M3 11h18a9 9 0 0 1-18 0Z" /><path d="M8 20.5h8" /><path d="M12 11c0-4 2.4-6.7 6.5-7-.1 4-2.6 6.8-6.5 7Z" /><path d="M12 11c-.4-2.6-2.2-4.3-5-4.5.1 2.7 1.9 4.4 5 4.5Z" /></>),
   calendarClock: lucide(<><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h5" /><path d="M17.5 17.5 16 16.3V14" /><circle cx="16" cy="16" r="6" /></>),
   // The Summary's activity chip: a day mostly sitting, on your feet, in physical work.
   armchair: lucide(<><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3" /><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z" /><path d="M5 18v2" /><path d="M19 18v2" /></>),
   footprints: lucide(<><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z" /><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z" /><path d="M16 17h4" /><path d="M4 13h4" /></>),
   hammer: lucide(<><path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9" /><path d="m18 15 4-4" /><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" /></>),
+  hand: lucide(<path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 1 1 3 0m-3 6a1.5 1.5 0 0 0-3 0v2a7.5 7.5 0 0 0 15 0v-5a1.5 1.5 0 0 0-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 0 1 3 0v1m0 0V11m0-5.5a1.5 1.5 0 0 1 3 0v3m0 0V11" />),
+  // The tab bar's four (ds/GlassTabBar.jsx), as the board draws them: Lucide's house (with its
+  // door) and dumbbell, beside the app's own `house` and `dumbbell` that other screens keep; Eat
+  // is the design system's own bowl with a leaf, drawn on Lucide's grid; Me is Lucide's user.
+  lucideHouse: lucide(<><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></>),
+  lucideDumbbell: lucide(<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7" />),
+  eat: lucide(<path d="M3 11h18a9 9 0 0 1-18 0ZM8 20.5h8M12 11c0-4 2.4-6.7 6.5-7-.1 4-2.6 6.8-6.5 7ZM12 11c-.4-2.6-2.2-4.3-5-4.5.1 2.7 1.9 4.4 5 4.5Z" />),
+  user: lucide(<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
   lightbulb: <><path d="M9.2 16.4a5.6 5.6 0 1 1 5.6 0v1.8H9.2Z" /><path d="M10 20.6h4" /></>,
 
   /* ---- routine glyphs: what a training day actually is ---- */
@@ -211,6 +224,9 @@ const P = {
   fingerprint: <><path d="M5.2 9.2a7.8 7.8 0 0 1 13.6 0" /><path d="M4.8 14.4v-1.2a7.2 7.2 0 0 1 .4-2.4M18.8 9.2a7.6 7.6 0 0 1 .4 2.6v3" /><path d="M8.6 20a9.6 9.6 0 0 1-1.2-4.6v-2.2a4.6 4.6 0 0 1 9.2 0v1.6" /><path d="M12 13v2.6a9.4 9.4 0 0 0 1.6 5" /><path d="M16.6 18.2v.6c0 .6.1 1.2.2 1.6" /></>,
   // how a message sounds (the nudge tone)
   chat: <path d="M5.6 4.8h12.8a2.2 2.2 0 0 1 2.2 2.2v8a2.2 2.2 0 0 1-2.2 2.2H11l-4.4 3.4v-3.4h-1a2.2 2.2 0 0 1-2.2-2.2V7a2.2 2.2 0 0 1 2.2-2.2Z" />,
+  // Eat logging m2: the Scan overlay's torch, and Type the barcode
+  keyboard: lucide(<><path d="M10 8h.01M12 12h.01M14 8h.01M16 12h.01M18 8h.01M6 8h.01M7 16h10M8 12h.01" /><rect x="2" y="4" width="20" height="16" rx="2" /></>),
+  flashlight: <><path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12Z" /><path d="M6 6h12" /><path d="M12 12v.01" /></>,
 }
 
 export const ICON_NAMES = Object.keys(P)

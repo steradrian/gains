@@ -1,5 +1,5 @@
 import { Children } from 'react'
-import { dateLocale, t } from '../lib/i18n.js'
+import { t } from '../lib/i18n.js'
 import { fmtNum } from '../lib/format.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { cx, oneOf } from '../lib/ui-kit.js'
@@ -23,14 +23,11 @@ const EMPTY = '–'
 // the end. status: loading (skeletons at the same sizes), error (the caption and a retry),
 // empty (the values as dashes). tone="over": over a target, said in orange ink, not as an alarm.
 // `ref` reaches the hero's box in every state (Nutrition puts "N left" in the header once it scrolls away).
-// variant="target": the onboarding Summary's hero. The value sits inside `ring` (the Summary's own
-// thread ring), the unit under it; everything else is the same hero, so Home and the Summary
-// never drift apart. Two metrics are split by a real 1×64 hairline element (`.hero-hair`), which
-// the Summary's hand-over names as its thread.
-export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', loadingLabel, tone, onRetry, variant, ring, children, ref }) {
+// Two metrics are split by a real 1×64 hairline element (`.hero-hair`), which the onboarding
+// Summary's hand-over names as its thread.
+export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metrics, link, action, status = 'ready', loadingLabel, tone, onRetry, children, ref }) {
   oneOf('HeroStatus', 'status', status, STATUSES)
   oneOf('HeroStatus', 'tone', tone, ['over'])
-  oneOf('HeroStatus', 'variant', variant, ['target'])
   if (status === 'loading') {
     return <div className="hero" role="status" ref={ref}>
       <span className="sr-only">{loadingLabel ?? t('Loading today')}</span>
@@ -41,17 +38,11 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     </div>
   }
   const shown = status === 'empty' ? EMPTY : value
-  const target = variant === 'target'
-  return <div className={cx('hero', action && 'hero-has-a', target && 'hero-target')} ref={ref}>
+  return <div className={cx('hero', action && 'hero-has-a')} ref={ref}>
     {glyph && <Icon name={glyph} className="hero-g" />}
     {eyebrow != null && <div className="hero-e">{eyebrow}</div>}
     {title != null && <h2 className="hero-t">{title}</h2>}
-    {target && <div className="hero-ring">
-      {ring}
-      {shown != null && <p className="hero-v"><span className="hero-num">{shown}</span></p>}
-    </div>}
-    {target && unit && status !== 'empty' && <div className="hero-u">{unit}</div>}
-    {!target && title == null && shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
+    {title == null && shown != null && <p className="hero-v"><span className="hero-num">{shown}</span>{unit && status !== 'empty' && <span className="hero-u">{unit}</span>}</p>}
     {/* After the heading in reading order; placed at the top end by CSS. */}
     {action && <div className="hero-a">{action}</div>}
     {caption != null && <div className={cx('hero-c', tone === 'over' && 'ink-orange')}>{caption}</div>}
@@ -67,24 +58,6 @@ export function HeroStatus({ glyph, eyebrow, title, value, unit, caption, metric
     {children}
     {status === 'error' && onRetry && <Button variant="tinted" size="sm" className="mt-4" onClick={onRetry}>{t('Try again')}</Button>}
   </div>
-}
-
-// The hero's compact protein, carbs and fat line, in grams: `eaten` against `targets`
-// ("82/150 g", Home), or the targets alone ("150 g", the onboarding Summary). Keys are the
-// diary's: proteins, carbohydrates, fat.
-const HERO_MACROS = [
-  { id: 'proteins', cls: 'p', label: () => t('Protein') },
-  { id: 'carbohydrates', cls: 'c', label: () => t('Carbs') },
-  { id: 'fat', cls: 'f', label: () => t('Fat') },
-]
-const grams = n => Math.round(n || 0).toLocaleString(dateLocale())
-export function HeroMacros({ eaten, targets = {} }) {
-  return <p className="hero-macros">
-    {HERO_MACROS.map(m => <span key={m.id}>
-      <i className={'mdot ' + m.cls} aria-hidden="true" /><span className="sr-only">{m.label()} </span>
-      {eaten ? <>{grams(eaten[m.id])}{targets[m.id] != null && '/' + grams(targets[m.id])}</> : grams(targets[m.id])} g
-    </span>)}
-  </p>
 }
 
 // One section of a redesigned tab root: the root's sections sit --gap-tab-section apart, which is
@@ -202,51 +175,6 @@ export function StatSection({ title, onOpen, art, values = [], footer, status = 
   </section>
 }
 
-// A period to step through: chevrons either side of a centred title and its sub ("Week of 12
-// Oct", "This week"). The next step is off at the present (`nextDisabled`).
-export function PeriodNav({ title, sub, onPrev, onNext, prevLabel, nextLabel, prevDisabled = false, nextDisabled = false }) {
-  return <div className="pnav">
-    <button type="button" className="iconbtn pnav-b" aria-label={prevLabel} disabled={prevDisabled} onClick={onPrev}><Icon name="chevronLeft" /></button>
-    <div className="pnav-t">
-      <span className="pnav-h">{title}</span>
-      {sub != null && <span className="pnav-s">{sub}</span>}
-    </div>
-    <button type="button" className="iconbtn pnav-b" aria-label={nextLabel} disabled={nextDisabled} onClick={onNext}><Icon name="chevronRight" /></button>
-  </div>
-}
-
-// One reading picked out of a map or a list: its label with a meta line at the end, the value
-// at display size with its unit ("/ 12.4 sets"), and a caption.
-export function StatCard({ label, meta, value, unit, caption, children }) {
-  return <div className="card stat-card">
-    <div className="stat-card-h">
-      <span className="stat-card-l">{label}</span>
-      {meta != null && <span className="stat-card-m">{meta}</span>}
-    </div>
-    <p className="stat-card-v"><span className="stat-card-num">{value}</span>{unit != null && <span className="stat-card-u">{unit}</span>}</p>
-    {caption != null && <p className="stat-card-c">{caption}</p>}
-    {children}
-  </div>
-}
-
-// A muscle in an inset list, keyed to the map above it: a dot in the muscle's level shade (the
-// map's own .lN ramp, so a fatigue or strength map's container recolours both), its name and
-// sub, the value, and a chevron when the row picks the muscle. `pressed` says which one is
-// picked. Rows sit in a Section.
-export function MuscleRow({ level = 0, title, subtitle, value, valueLabel, onClick, pressed, ...rest }) {
-  const Tag = onClick ? 'button' : 'div'
-  return <Tag type={onClick ? 'button' : undefined} className={cx('lrow', 'mus-row', onClick && 'tap')} onClick={onClick}
-    aria-pressed={onClick ? !!pressed : undefined} {...rest}>
-    <span className={'mus-dot l' + level} aria-hidden="true" />
-    <span className="lrow-m">
-      <span className="lrow-t">{title}</span>
-      {subtitle != null && <span className="lrow-s">{subtitle}</span>}
-    </span>
-    {value != null && <span className="lrow-v mus-v" aria-label={valueLabel}>{value}</span>}
-    {onClick && <Icon name="chevronRight" className="lrow-c" />}
-  </Tag>
-}
-
 // A list row led by art at 96×72 (a LineArt scene or a licensed picture), or a 56px thumb in the
 // exercise variant. With no control of its own `onOpen` makes the whole row the button; with a
 // `link` line ({ icon, label, onClick }) or a play disc (`onPlay`, `playLabel`) the title block
@@ -267,10 +195,4 @@ export function MediaRow({ art, title, subtitle, link, onOpen, onPlay, playLabel
     {onPlay && <button type="button" className="media-play" onClick={onPlay} aria-label={playLabel}><Icon name="play" /></button>}
     {chevron && <Icon name="chevronRight" className="chev" />}
   </div>
-}
-
-// A page's one main action, pinned above the tab bar while the page scrolls under it and resting
-// at the end of the page when it is reached, so it never covers the last row.
-export function StickyActionBar({ children }) {
-  return <div className="sticky-act">{children}</div>
 }

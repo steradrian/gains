@@ -92,6 +92,15 @@ describe('the diary store', () => {
     expect(waterTotal(entry)).toBe(250)
   })
 
+  it('foods filed past the last meal (it was deleted) show in the new last meal, not in no row', () => {
+    const entry = { items: [{ name: 'Toast', meal: 0 }, { name: 'Soup', meal: 1 }, { name: 'Crisps', meal: 2 }] }
+    expect(mealItems(entry, 1, 2).map(i => i.name)).toEqual(['Soup', 'Crisps'])
+    expect(mealItems(entry, 0, 2).map(i => i.name)).toEqual(['Toast'])
+    const rows = [0, 1].flatMap(slot => mealItems(entry, slot, 2))
+    expect(rows).toHaveLength(entry.items.length)
+    expect(mealItems(entry, 2).map(i => i.name)).toEqual(['Crisps'])
+  })
+
   it('a failed load is an error state, not an empty day', async () => {
     nt.failNext('GET', '/nt/api/diary/', 'offline')
     await n().loadDay(DAY)

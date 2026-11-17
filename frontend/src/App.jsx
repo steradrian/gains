@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
 import { accentValue, applyAccent } from './lib/accent.js'
+import { useColorMode } from './lib/color-mode.js'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
 import { setPlayOnSilent, setVibrate, setAlarmBuzzer } from './lib/sound.js'
@@ -13,16 +14,26 @@ import { setNav } from './lib/nav.js'
 import { setSystemBarsLight } from './lib/system-bars.js'
 import { initBackButton } from './lib/back.js'
 import { useWakeLock } from './lib/wakelock.js'
-import { launchPath, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
+import { isTabRoot, legacyPath, tabOf, workoutRunning } from './lib/tab-route.js'
+import { launchTarget } from './lib/stale-workout.js'
 import { useTabNav } from './lib/use-tab-nav.js'
 import { scrollAction } from './lib/scroll-restore.js'
+import { useRouteTransition } from './lib/use-route-transition.js'
+import AppStage from './ds/AppStage.jsx'
+import GlassHost from './ds/GlassHost.jsx'
+import LandscapeCover from './ds/LandscapeCover.jsx'
+import { reducedMotion } from './lib/reduced-motion.js'
+import { setHapticsEnabled } from './lib/use-haptic.js'
 import { installKeyboardClass } from './lib/keyboard-open.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
+import { installScrolledEdge } from './lib/scrolled-edge.js'
 import { installChipDrag } from './lib/hchips.js'
 import { installDayReset } from './lib/nutrition/selection.js'
+import { editorRouteKey } from './lib/nutrition/editor-routes.js'
+import { migrateLocalExtras } from './lib/nutrition/recipe-extras.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
-import { BRAND } from './brand.js'
+import { chromeColor, isLightColor, syncThemeColor } from './lib/theme-color.js'
 import { exitWorkoutEdit } from './sheets.jsx'
 import TabBar from './components/TabBar.jsx'
 import LiveDock from './components/LiveDock.jsx'
@@ -34,8 +45,8 @@ import Toast from './components/Toast.jsx'
 import SyncBanner from './components/SyncBanner.jsx'
 import RestTimer from './components/RestTimer.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
-import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
+import AddDevice, { ADD_DEVICE_PATH, openAddDevice } from './views/AddDevice.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
 import { isFlowPath } from './lib/onboarding/flow.js'
 import { useOnboardingResume } from './lib/onboarding/use-onboarding-resume.js'
@@ -46,35 +57,91 @@ import BootSplash from './components/BootSplash.jsx'
 // The first-run onboarding is reached once per person, from an invite: its screens, art and
 // styles come in their own chunk, not in the load every launch pays for.
 const Onboarding = lazy(() => import('./views/onboarding/Onboarding.jsx'))
-import CheckIn from './views/CheckIn.jsx'
-import Plan from './views/Plan.jsx'
-import RoutineEdit from './views/RoutineEdit.jsx'
-import Workout from './views/Workout.jsx'
-import Body from './views/Body.jsx'
-import Strength from './views/Strength.jsx'
+// The design system's catalogue (#/dev/kit), on the dev server only: a production build replaces
+// import.meta.env.DEV with false and drops it, chunk and all.
+const DevKit = import.meta.env.DEV ? lazy(() => import('./ds/DevKit.jsx')) : null
+// The liquid-glass tuning page (#/dev/glass), the same way.
+const DevGlass = import.meta.env.DEV ? lazy(() => import('./ds/DevGlass.jsx')) : null
+// The screens gallery (#/dev/screens), the same way.
+const DevScreens = import.meta.env.DEV ? lazy(() => import('./dev/screens/DevScreens.jsx')) : null
+import GymPassPage from './views/settings/pages/GymPassPage.jsx'
+import PlanScreen from './views/plan/PlanScreen.jsx'
+import PlanImportPage from './views/plan-import/PlanImportPage.jsx'
+import WorkoutRoute from './views/workout/WorkoutRoute.jsx'
+import RoutineEditor from './views/routines/RoutineEditor.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
+// Workout finish M2: the summary after a save (W2.0) and the check for a session left open (W1.27).
+import SummaryScreen from './views/workout/SummaryScreen.jsx'
+import StaleWorkoutCheck from './components/StaleWorkoutCheck.jsx'
+// Me body M1: the Body page (weigh-ins; measurements and photos are its other tabs)
+import BodyRoute from './views/me/body/BodyRoute.jsx'
 import TrainingLoad from './views/TrainingLoad.jsx'
 import History from './views/History.jsx'
-import Library from './views/Library.jsx'
-import Muscles from './views/Muscles.jsx'
+// Train slice 5
+import LoadMuscleScreen from './views/train/load/MuscleScreen.jsx'
+// Train slice 4
+import CreateExercise from './views/train/exercises/CreateExercise.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
+import MuscleScreen from './views/train/exercises/MuscleScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
-import { SettingsRoute } from './views/Settings.jsx'
+import { SettingsRoute } from './views/settings/SettingsRoute.jsx'
+import DeleteAccountPage from './views/settings/pages/DeleteAccountPage.jsx'
+import StartedOverScreen from './views/settings/pages/StartedOverScreen.jsx'
+// Friends core m1
+import FriendsGate from './views/friends/FriendsGate.jsx'
+import GroupsScreen from './views/friends/GroupsScreen.jsx'
+import JoinScreen from './views/friends/JoinScreen.jsx'
+import SharingScreen from './views/friends/SharingScreen.jsx'
+import CheersScreen from './views/friends/CheersScreen.jsx'
+import GroupScreen from './views/friends/GroupScreen.jsx'
+import MemberScreen from './views/friends/MemberScreen.jsx'
+import ChallengeScreen from './views/friends/ChallengeScreen.jsx'
+// Friends core m2
+import GroupLinkRedirect from './views/friends/GroupLinkRedirect.jsx'
+import { groupCodeOf, rememberPendingGroup, takePendingGroup } from './lib/friends/pending-group.js'
+// Friends surfaces m2
+import TargetsReachedSync from './views/friends/TargetsReachedSync.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
+import CoachSoon from './views/CoachSoon.jsx'
+import { COACH_COMING_SOON } from './lib/coach-availability.js'
 import TrainHub from './views/TrainHub.jsx'
+import PlansScreen from './views/train/plans/PlansScreen.jsx'
+import PlanPreview from './views/train/plans/PlanPreview.jsx'
 import FoodHub from './views/FoodHub.jsx'
-import MealCatalog from './views/MealCatalog.jsx'
-import Foods from './views/Foods.jsx'
+import FoodGate from './views/eat/FoodGate.jsx'
+import FoodRedirect from './views/eat/FoodRedirect.jsx'
+import MyFoods from './views/MyFoods.jsx'
+import FoodEditor from './views/my-foods/FoodEditor.jsx'
+import MealEditor from './views/my-foods/MealEditor.jsx'
+import RecipeEditor from './views/my-foods/RecipeEditor.jsx'
 import NutritionGoals from './views/NutritionGoals.jsx'
 import Fasting from './views/Fasting.jsx'
 import ProgressHub from './views/ProgressHub.jsx'
 import Trends from './views/Trends.jsx'
 import Recovery from './views/Recovery.jsx'
+import DayPage from './views/shared/DayPage.jsx'
+import WeekPage from './views/shared/WeekPage.jsx'
+import Notifications from './views/shared/Notifications.jsx'
+import ChangesRoute from './views/me/changes/ChangesRoute.jsx'
+// Me invite M2
+import InviteRoute from './views/me/invite/InviteRoute.jsx'
+// Me goal M2: My goal
+import GoalRoute from './views/me/goal/GoalRoute.jsx'
+// Me root M2
+import MeRoute from './views/me/MeRoute.jsx'
+// Eat root m2: Month and Food trends
+import MonthPage from './views/eat/MonthPage.jsx'
+import TrendsPage from './views/eat/TrendsPage.jsx'
+// Eat root m3
+import BurnedPage from './views/eat/BurnedPage.jsx'
 import './tab-shell.css'
 import './nutrition.css'
 
-// last known scrollY per tab and route, so back-navigation can put the page where it was
+// last known scrollY per tab and route, so Back within a tab can put the page where it was
 const scrollPositions = new Map()
 
 bindUI(useUI)   // lets the shared controls open sheets without importing the store at module scope
@@ -88,9 +155,6 @@ function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = resolveTheme(theme)
   applyAccent(de, accent, de.dataset.theme)
-  const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = BRAND.themeColor[de.dataset.theme] || BRAND.themeColor.dark
-  if (MOBILE) setSystemBarsLight(de.dataset.theme === 'light')
 }
 
 function Shell() {
@@ -103,6 +167,8 @@ function Shell() {
   useEffect(() => { setPlayOnSilent(!!S.soundOnSilent) }, [S.soundOnSilent])
   // Settings → Vibrate, the same way: one page-level switch rather than a check at each buzz.
   useEffect(() => { setVibrate(S.vibrate !== false) }, [S.vibrate])
+  // Settings → Haptics: the tick of a tap that saved something (lib/use-haptic.js), on unless turned off.
+  useEffect(() => { setHapticsEnabled(S.haptics !== false) }, [S.haptics])
   // Android app: "Vibrate when the phone is on silent" sends the end-of-rest buzz through the
   // native side as an alarm (#375). buzzAsAlarm answers false off Android, so iOS buzzes as before.
   useEffect(() => { setAlarmBuzzer(MOBILE && S.vibrate !== false && S.vibrateOnSilent ? buzzAsAlarm : null) }, [S.vibrate, S.vibrateOnSilent])
@@ -127,13 +193,20 @@ function Shell() {
     exitWorkoutEdit(() => navigate(destination, { replace: true }))
   }, [loc.pathname, loc.search, S.active?.editingWorkoutId, navigate])
   // A preset key, or the user's own colour as '#rrggbb' (lib/accent.js), already checked.
-  const accent = accentValue(S)
+  // An accent never picked follows the resolved mode, so a system light/dark flip recolours it.
+  const mode = useColorMode()
+  const accent = accentValue(S, mode)
   useEffect(() => { applyPrefs(S.theme, accent) }, [S.theme, accent])
   // Profile › Appearance › Reduce motion: the same rule the system setting gets (index.css).
   useEffect(() => {
     if (S.reduceMotion === true) document.documentElement.dataset.motion = 'reduce'
     else delete document.documentElement.dataset.motion
   }, [S.reduceMotion])
+  // Liquid glass: Appearance › Reduce transparency. GlassHost watches the attribute.
+  useEffect(() => {
+    if (S.reduceTransparency === true) document.documentElement.dataset.transparency = 'reduce'
+    else delete document.documentElement.dataset.transparency
+  }, [S.reduceTransparency])
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.
@@ -158,12 +231,18 @@ function Shell() {
   const pathRef = useRef(null)
   // iOS leaves the page displaced after the keyboard goes away (see lib/viewport-guard.js).
   useEffect(() => installViewportGuard(), [])
+  useEffect(() => installScrolledEdge(), [])
   // Click-drag a horizontal chip strip to scroll it sideways (lib/hchips.js) — on a desktop
   // browser there's otherwise no way to reach the filters past the edge.
   useEffect(() => installChipDrag(), [])
   // The day picked on the week strip goes back to today after half an hour away
   // (lib/nutrition/selection.js).
   useEffect(() => installDayReset(), [])
+  // The steps and photos recipes kept on this device only move into the synced state, once
+  // (lib/nutrition/recipe-extras.js), after boot has settled which copy of the state this is.
+  useEffect(() => {
+    if (ready) migrateLocalExtras().catch(() => {})
+  }, [ready])
   // Once per signed-in boot, hand the server this browser's push subscription again (see
   // lib/push.js): a subscription the instance lost is back before the next reminder is due,
   // with nobody having to visit Settings. Web only — the APK has no service worker.
@@ -171,15 +250,15 @@ function Shell() {
     if (MOBILE || !user || !ready) return
     syncPushSubscription().catch(() => {})
   }, [user?.id, ready])
-  // Opened from a device-link QR code (#95): once boot knows who is here, the sheet that redeems
-  // it opens by itself — over the sign-in screen, or over the app for a guest or a signed-in
-  // browser. Once per visit; closed, the code stays for the sign-in screen's own button.
+  // Opened from a device-link QR code (#95): once boot knows who is here, the screen that redeems
+  // it opens by itself — in place of the sign-in screen, or of the app for a guest or a signed-in
+  // browser. Once per visit; left, the code stays for the sign-in screen's own button.
   const linkCode = useStore(s => s.linkCode)
   const linkOffered = useRef(false)
   useEffect(() => {
     if (!ready || !linkCode || linkOffered.current) return
     linkOffered.current = true
-    openDeviceLinkRedeem()
+    openAddDevice()
   }, [ready, linkCode])
   // The bar and the dock step aside while the on-screen keyboard is up (lib/keyboard-open.js).
   useEffect(() => installKeyboardClass(), [])
@@ -187,10 +266,13 @@ function Shell() {
   // event then (the browser clamping) is not a position anyone chose.
   const switchingRef = useRef(false)
   useLayoutEffect(() => { switchingRef.current = switching }, [switching])
+  // The same while a page slide runs: both pages are lifted out of the document, which then is too
+  // short to hold a position, and the browser clamps the scroll to the top.
+  const slidingRef = useRef(false)
   useEffect(() => {
     const onScroll = () => {
       // Modals pins the body while a sheet is open; scrollY is 0 then, not a position.
-      if (document.body.style.position === 'fixed' || switchingRef.current) return
+      if (document.body.style.position === 'fixed' || switchingRef.current || slidingRef.current) return
       scrollPositions.set(pathRef.current, window.scrollY)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -198,9 +280,32 @@ function Shell() {
   }, [])
   // Arriving by a switch, not walking back later onto an entry a switch wrote.
   const tabSwitch = !!shown.state?.tabSwitch && navType !== 'POP'
-  // A page any tab can open (Profile) keeps a scroll position per tab it is opened from.
+  // A page any tab can open (the workout) keeps a scroll position per tab it is opened from.
   const scrollKey = tab + ' ' + shown.pathname
+  // The first-run onboarding (views/onboarding): the invite landing and every step after it, a
+  // full-screen flow of its own on the web. The phone build has its own first launch.
+  const inFlow = !MOBILE && isFlowPath(shown.pathname)
+  // Add this device (views/AddDevice.jsx) is a stage screen of its own, shown before the sign-in
+  // check: the passkey it makes signs this browser in, and the screen is still up to say so.
+  const onAddDevice = shown.pathname === ADD_DEVICE_PATH
+  // Pages slide into each other (lib/route-transition.js). The screens that bring an entrance of
+  // their own do not: the onboarding flow, sign-in, the first-launch card and Add this device.
+  const trans = useRouteTransition({
+    location: shown,
+    navType,
+    routeKey: inFlow ? 'onboarding' : editorRouteKey(shown.pathname),
+    enabled: !inFlow && !onAddDevice && !needsMobileOnboarding && !!(user || isGuest),
+    reduced: reducedMotion(),
+    // Read once, as the slide starts: the page left (the route layout effect below has not moved
+    // pathRef on yet) and the page returned to.
+    leavingY: () => scrollPositions.get(pathRef.current) || 0,
+    arrivingY: () => scrollPositions.get(scrollKey) || 0,
+  })
+  useLayoutEffect(() => { slidingRef.current = trans.active }, [trans.active])
+  // Where the page slid back to lands once the slide has put it in the document again.
+  const restoreY = useRef(null)
   useLayoutEffect(() => {
+    restoreY.current = null
     if (switching) return
     const first = pathRef.current === null
     const samePath = pathRef.current === scrollKey
@@ -210,7 +315,12 @@ function Shell() {
     // route — now, not a frame later: that frame landed on top of a scroll a view made on mount
     // (the superset card centring its row, views/Workout.jsx), and a smooth scroll cut off by a
     // scrollTo is simply gone.
-    if (action === 'top') { window.scrollTo(0, 0); return }
+    if (action === 'top') {
+      // A tab switch rebuilt the history from the root up: nothing it remembered is a page any more.
+      if (tabSwitch) scrollPositions.clear()
+      window.scrollTo(0, 0)
+      return
+    }
     // A POP that stays on the route we are on is not a back-navigation: it is the history
     // entry a sheet pushed (Modals.jsx, #63) being unwound as the sheet closes. Nothing new
     // mounted, Modals puts the page back where it was itself, and a view that scrolled on
@@ -219,37 +329,68 @@ function Shell() {
     // scroll's event had even been dispatched.
     if (action === 'keep') return
     const y = scrollPositions.get(scrollKey) || 0
-    // Into another tab: its page goes back where it was left before it is first painted.
-    if (tabSwitch) window.scrollTo(0, y)
+    // Back onto a page by a slide: it is drawn at y already (lib/use-route-transition.js) and is
+    // put there for real when the slide ends, the document being too short to scroll until then.
+    if (trans.active) { restoreY.current = y; return }
     // the restored view needs a layout pass before it is tall enough to scroll to y
     const frame = window.requestAnimationFrame(() => window.scrollTo(0, y))
     return () => window.cancelAnimationFrame(frame)
   }, [scrollKey, navType, switching])
+  useLayoutEffect(() => {
+    if (trans.active || restoreY.current === null) return
+    window.scrollTo(0, restoreY.current)
+    restoreY.current = null
+  }, [trans.active])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && !S.active.editingWorkoutId && S.keepAwake !== false)
   // A running workout has the whole screen (v1.3.11): no tab bar, and the rest bar docks to the
   // bottom edge in its place. Its header's ⌄ goes back to where it was opened from, where the
   // live dock brings it back.
   const onWorkout = shown.pathname === '/train/workout'
-  const inWorkout = onWorkout && !!S.active
-  // The first-run onboarding (views/onboarding): the invite landing and every step after it, a
-  // full-screen flow of its own on the web. The phone build has its own first launch.
-  const inFlow = !MOBILE && isFlowPath(shown.pathname)
-  useOnboardingResume({ user, ready, pathname: shown.pathname, navigate })
+  // Workout finish M2: the whole screen on /train/workout whether or not a session runs (Ready,
+  // W1.1, draws no tab bar; nor does the moment a finish or discard leaves it), and on the summary
+  // after a save (W2.0, /train/workout/summary/:id), which has nothing running and no dock.
+  const onSummary = shown.pathname.startsWith('/train/workout/summary/')
+  const inWorkout = onWorkout || onSummary
+  // Not while "Passkey added" is on screen: it asks again once the person has left that screen.
+  useOnboardingResume({ user, ready: ready && !onAddDevice, pathname: shown.pathname, navigate })
   useEffect(() => {
-    document.body.classList.toggle('no-tabbar', inWorkout || inFlow)
+    document.body.classList.toggle('no-tabbar', inWorkout || inFlow || onAddDevice)
     return () => document.body.classList.remove('no-tabbar')
-  }, [inWorkout, inFlow])
+  }, [inWorkout, inFlow, onAddDevice])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || inFlow || shown.pathname === '/train/coach' || needsMobileOnboarding
+  const noTabs = inWorkout || inFlow || onAddDevice || (shown.pathname === '/train/coach' && !COACH_COMING_SOON) || needsMobileOnboarding
   // One live dock while a workout runs and you are elsewhere (it takes the rest bar's place).
   const docked = !noTabs && !onWorkout && workoutRunning(S)
   // No route of its own (a launch, a home-screen icon): straight into a running workout, else
-  // Home. A route from before the tabs: where it lives now, query and fragment and all.
-  const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchPath(workoutRunning(S))
+  // Home (lib/stale-workout.js launchTarget). A route from before the tabs: where it lives now,
+  // query and fragment and all.
+  const fallback = legacyPath(shown.pathname, shown.search, shown.hash) || launchTarget(S)
 
   const authed = user || isGuest
+  const sharedStage = !!authed && !inFlow && !onAddDevice && !needsMobileOnboarding
+  // The browser chrome and the status bar take the colour under them: the stage's top on a tab
+  // root, the page surface on a pushed page, in a drawer and in the flows with their own ground.
+  const sheetOpen = useUI(s => s.sheets.length > 0)
+  const chrome = chromeColor({ accent, mode, onStage: sharedStage && isTabRoot(shown.pathname) && !sheetOpen })
+  useEffect(() => {
+    syncThemeColor(chrome)
+    if (MOBILE) setSystemBarsLight(isLightColor(chrome))
+  }, [chrome])
+  // Friends core m2: a group link (/g/<code>) opened while signed out is remembered for this tab;
+  // once signed in, and past any onboarding, the person is taken to it. The route itself
+  // (GroupLinkRedirect) sends /g/<code> on to the join page.
+  useEffect(() => {
+    const code = groupCodeOf(shown.pathname)
+    if (!authed) { if (code) rememberPendingGroup(code); return }
+    if (inFlow || needsMobileOnboarding || onAddDevice) return
+    const pending = takePendingGroup()
+    if (pending && !code) navigate('/g/' + encodeURIComponent(pending), { replace: true })
+  }, [authed, shown.pathname, inFlow, needsMobileOnboarding, onAddDevice, navigate])
+  if (import.meta.env.DEV && shown.pathname === '/dev/kit') return <Suspense fallback={null}><DevKit /></Suspense>
+  // Liquid glass: the tuning page draws its own stage and GlassHost, so it returns before the app shell's.
+  if (import.meta.env.DEV && shown.pathname === '/dev/glass') return <Suspense fallback={null}><DevGlass /></Suspense>
   if (!ready && !authed) return (
     <div id="app"><BootMark /></div>
   )
@@ -261,83 +402,198 @@ function Shell() {
           switch rebuilds the history under it (inert: no tap can start a navigation mid-walk). */}
       {/* The onboarding keeps one key for all its steps: its layout, and the thread in it, outlive
           every screen, and it brings each screen in itself. */}
-      <div id="app" className={inFlow ? undefined : 'vfade'} key={inFlow ? 'onboarding' : shown.pathname} inert={switching || undefined}>
-        <ErrorBoundary>
-          {inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> :!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
-            <Routes location={shown}>
-              <Route path="/" element={<Navigate to={fallback} replace />} />
-              {/* Home */}
-              <Route path="/home" element={<Home />} />
-              {/* Training */}
-              <Route path="/train" element={<TrainHub />} />
-              <Route path="/train/schedule" element={<Plan view="schedule" />} />
-              <Route path="/train/routines" element={<Plan view="routines" />} />
-              <Route path="/train/routines/:id" element={<RoutineEdit />} />
-              <Route path="/train/history" element={<History />} />
-              <Route path="/train/exercises" element={<Library />} />
-              <Route path="/train/exercises/muscles" element={<Muscles />} />
-              {/* Gym check-in — switched off in Settings, the route falls through to the
-                  catch-all redirect below. */}
-              {S.checkIn !== false && <Route path="/train/checkin" element={<CheckIn />} />}
-              {/* The Coach screens gate themselves on the instance config; the routes exist
-                  unconditionally so a deep link from a notification lands somewhere sane
-                  rather than on the catch-all. */}
-              <Route path="/train/coach" element={<CoachChat />} />
-              <Route path="/train/coach/intake" element={<CoachIntake />} />
-              <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
-              <Route path="/train/coach/setup" element={<CoachSetup />} />
-              {/* Nutrition */}
-              <Route path="/food" element={<FoodHub />} />
-              <Route path="/food/meals" element={<MealCatalog recipes={false} />} />
-              <Route path="/food/recipes" element={<MealCatalog recipes />} />
-              <Route path="/food/foods" element={<Foods />} />
-              <Route path="/food/goals" element={<NutritionGoals />} />
-              <Route path="/food/fasting" element={<Fasting />} />
-              {/* Progress */}
-              <Route path="/progress" element={<ProgressHub />} />
-              <Route path="/progress/body" element={<Body segment="weight" />} />
-              <Route path="/progress/body/measurements" element={<Body segment="measurements" />} />
-              <Route path="/progress/body/photos" element={<Body segment="photos" />} />
-              <Route path="/progress/strength" element={<Strength />} />
-              <Route path="/progress/strength/balance" element={<StructuralBalance />} />
-              <Route path="/progress/load" element={<TrainingLoad />} />
-              <Route path="/progress/trends" element={<Trends />} />
-              <Route path="/progress/recovery" element={<Recovery />} />
-              {/* Opened from any tab, on top of it: the workout and Profile. */}
-              <Route path="/train/workout" element={<Workout />} />
-              <Route path="/me" element={<SettingsRoute />} />
-              <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
-              <Route path="/me/:page" element={<SettingsRoute />} />
-              <Route path="*" element={<Navigate to={fallback} replace />} />
-            </Routes>
-          )}
-        </ErrorBoundary>
-      </div>
+      {/* One layer per page on screen: the page itself, and for the length of a slide the page it
+          replaces (lib/use-route-transition.js). A layer is `display: contents` at rest and lifted
+          out of the document while a slide runs (ds.css "Native motion and haptics"). The page left
+          is the same element it was, no longer #app, held still and out of reach. */}
+      {/* The stage is the app's, drawn once behind every layer; the layers are transparent over it.
+          The flows that bring their own ground (onboarding, sign-in, Add this device, the first
+          launch) paint it themselves. */}
+      {sharedStage && <AppStage pushed={!isTabRoot(shown.pathname)} />}
+      {/* Liquid glass. Keep it right after the stage: both are fixed at z-index -1, so DOM order decides
+          that the glass under-canvas paints over the stage and under every page layer after it. */}
+      {sharedStage && <GlassHost pushed={!isTabRoot(shown.pathname)} />}
+      {trans.layers.map(layer => (
+        <div key={layer.key} className="g-route" data-shared={sharedStage || undefined} data-route={layer.role} data-root={isTabRoot(layer.location.pathname) || undefined} data-slide={trans.active ? layer.style : undefined}
+          style={trans.active ? { '--route-y': layer.y + 'px' } : undefined}
+          onAnimationEnd={layer.role === 'in' && trans.active ? e => { if (e.target === e.currentTarget) trans.settle() } : undefined}>
+          <div id={layer.role === 'in' ? 'app' : undefined} className={layer.role === 'out' ? 'app-out' : layer.fade && !inFlow ? 'vfade' : undefined}
+            inert={layer.role === 'out' || switching || undefined} aria-hidden={layer.role === 'out' || undefined}>
+            <ErrorBoundary>
+              {layer.role === 'out' ? <AppRoutes location={layer.location} fallback={fallback} S={S} user={user} />
+                : inFlow && !needsMobileOnboarding ? <Suspense fallback={null}><Onboarding /></Suspense> : onAddDevice ? <AddDevice /> : !authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding />
+                  : <AppRoutes location={shown} fallback={fallback} S={S} user={user} />}
+            </ErrorBoundary>
+          </div>
+        </div>
+      ))}
       {/* Outside #app: the view's fade-in animates a transform, and a fixed element inside it
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
-      <SyncBanner />
+      <SyncBanner onToday={shown.pathname === '/home'} />
       {/* The dock before the bar: it sits above the bar on screen, so it comes first in the
           reading and tab order too. */}
-      {docked ? <LiveDock /> : <RestTimer />}
+      {/* Workout core-M3: on the running workout its footer owns the rest (WorkoutScreen). */}
+      {docked ? <LiveDock /> : inWorkout ? null : <RestTimer />}
       {!noTabs && <TabBar tab={tab} lit={tabOf(shown.pathname) === tab} onPlus={() => openPlusSheet(shown.pathname)} />}
       {/* The global search's overlay and the history it lives in (lib/search/session.js). */}
       {authed && !needsMobileOnboarding && <SearchHost />}
       <Modals />
       <Toast />
+      {/* Workout finish M2: asks about a session left open for hours (W1.27). */}
+      <StaleWorkoutCheck />
+      {/* Friends surfaces m2: keeps S.targetsReached current while Friends and its targets switch are on. */}
+      {authed && !needsMobileOnboarding && <TargetsReachedSync />}
       <TimerFlash />
+      <LandscapeCover />
     </>
   )
 }
 
+// The route table. `location` is the page to draw, which is not always the one the router is on:
+// a slide keeps the page it leaves mounted (useRouteTransition), drawn at its own location.
+function AppRoutes({ location, fallback, S, user }) {
+  return (
+    <Routes location={location}>
+      <Route path="/" element={<Navigate to={fallback} replace />} />
+      {/* Home */}
+      <Route path="/home" element={<Home />} />
+      {/* Training */}
+      <Route path="/train" element={<TrainHub />} />
+      <Route path="/train/schedule" element={<PlanScreen />} />
+      <Route path="/train/schedule/import" element={<PlanImportPage />} />
+      <Route path="/train/routines" element={<RoutinesScreen />} />
+      <Route path="/train/routines/:id" element={<RoutineEditor />} />
+      <Route path="/train/history" element={<History />} />
+      {/* Train slice 4 routes */}
+      <Route path="/train/exercises" element={<ExercisesScreen />} />
+      <Route path="/train/exercises/muscles" element={<MuscleScreen />} />
+      <Route path="/train/exercises/new" element={<CreateExercise />} />
+      {/* Gym check-in — switched off in Settings, the route falls through to the
+          catch-all redirect below. */}
+      {S.checkIn !== false && <Route path="/train/checkin" element={<GymPassPage />} />}
+      {/* The Coach screens gate themselves on the instance config; the routes exist
+          unconditionally so a deep link from a notification lands somewhere sane
+          rather than on the catch-all. */}
+      <Route path="/train/coach" element={COACH_COMING_SOON ? <CoachSoon /> : <CoachChat />} />
+      <Route path="/train/coach/intake" element={COACH_COMING_SOON ? <CoachSoon /> : <CoachIntake />} />
+      <Route path="/train/coach/proposal" element={<Navigate to="/train/coach" replace />} />
+      <Route path="/train/coach/setup" element={COACH_COMING_SOON ? <CoachSoon /> : <CoachSetup />} />
+      {/* Train slice 6 routes: Ready-made plans and a plan's preview. Gym setup is /me/equipment (SettingsRoute). */}
+      <Route path="/train/plans" element={<PlansScreen />} />
+      <Route path="/train/plans/:id" element={<PlanPreview />} />
+      {/* Nutrition */}
+      {/* With Food off the tab root and every page under it show "Food is off" (FoodGate) */}
+      <Route element={<FoodGate />}>
+        <Route path="/food" element={<FoodHub />} />
+        {/* The library's old pages are tabs of My foods (the library milestones add its routes) */}
+        <Route path="/food/foods" element={<FoodRedirect to="/food/my-foods?tab=foods" />} />
+        <Route path="/food/meals" element={<FoodRedirect to="/food/my-foods?tab=meals" />} />
+        <Route path="/food/recipes" element={<FoodRedirect to="/food/my-foods?tab=recipes" />} />
+        {/* Daily targets row and Settings › Goals still open the goals page: /me/goal is not in the app yet */}
+        <Route path="/food/goals" element={<NutritionGoals />} />
+        <Route path="/food/fasting" element={<Fasting />} />
+        {/* Eat root m2: the month grid and food trends (?range=7|30|90) */}
+        <Route path="/food/month" element={<MonthPage />} />
+        <Route path="/food/trends" element={<TrendsPage />} />
+        {/* Eat root m3: Burned (redirects to /food with Burned turned off) */}
+        <Route path="/food/burned" element={<BurnedPage />} />
+        {/* Eat library m1: My foods, ?tab=foods|meals|recipes (&source=off). The editors at
+            /food/my-foods/foods|meals|recipes/:id and /new are library-m2/m3's. */}
+        <Route path="/food/my-foods" element={<MyFoods />} />
+        {/* Eat library m2: the food and saved meal editors. `new` is an :id, so the page
+            keeps its form when the address takes the real id. */}
+        <Route path="/food/my-foods/foods/:id" element={<FoodEditor />} />
+        <Route path="/food/my-foods/meals/:id" element={<MealEditor />} />
+        {/* Eat library m3: the recipe editor, `new` being the :id of a new one. */}
+        <Route path="/food/my-foods/recipes/:id" element={<RecipeEditor />} />
+      </Route>
+      {/* Progress: a page of the Me tab, opened from Profile's Progress row */}
+      <Route path="/progress" element={<ProgressHub />} />
+      {/* Me body M1: Body moved to /me/body; the old addresses redirect, keeping ?range= */}
+      <Route path="/progress/body" element={<FoodRedirect to="/me/body" />} />
+      <Route path="/progress/body/measurements" element={<FoodRedirect to="/me/body/measurements" />} />
+      <Route path="/progress/body/photos" element={<FoodRedirect to="/me/body/photos" />} />
+      <Route path="/progress/strength" element={<ExerciseProgress />} />
+      <Route path="/progress/strength/balance" element={<StructuralBalance />} />
+      <Route path="/progress/load" element={<TrainingLoad />} />
+      {/* Train slice 5 routes */}
+      <Route path="/progress/load/muscle/:slug" element={<LoadMuscleScreen />} />
+      <Route path="/progress/trends" element={<Trends />} />
+      <Route path="/progress/recovery" element={<Recovery />} />
+      {/* Opened from any tab, on top of it: the workout. */}
+      <Route path="/train/workout" element={<WorkoutRoute />} />
+      {/* Workout finish M2: the summary, in the finished workout's place (replace). */}
+      <Route path="/train/workout/summary/:id" element={<SummaryScreen />} />
+      {/* A past day and a week, pushed under the tab they were opened from (lib/day-route.js). */}
+      <Route path="/:tab/day/:date" element={<DayPage />} />
+      <Route path="/:tab/week/:week" element={<WeekPage />} />
+      {/* Shared: the notifications inbox, under the tab whose bell opened it
+          (lib/tab-route.js notificationsPath). /me/notifications is Me's. */}
+      <Route path="/home/notifications" element={<Notifications />} />
+      <Route path="/train/notifications" element={<Notifications />} />
+      <Route path="/food/notifications" element={<Notifications />} />
+      <Route path="/me/notifications" element={<Notifications />} />
+      <Route path="/me/changes" element={<ChangesRoute />} />
+      {/* Me invite M2: the admin's Invite a friend; a member gets the ask (invite-M3). The push tap lands here (api/push-messages.js). */}
+      <Route path="/me/invite" element={<InviteRoute />} />
+      {/* Me root M1/M2: Profile is /me (MeRoute); Settings is /me/settings, its pages stay
+          /me/<page>. Before /me/:page. The Progress hub stays at /progress. */}
+      <Route path="/me" element={<MeRoute />} />
+      <Route path="/me/settings" element={<SettingsRoute root />} />
+      {/* Me body M1: before /me/:page */}
+      <Route path="/me/body" element={<BodyRoute />} />
+      <Route path="/me/body/measurements" element={<BodyRoute />} />
+      <Route path="/me/body/photos" element={<BodyRoute />} />
+      {/* Me goal M2: My goal, before /me/:page */}
+      <Route path="/me/goal" element={<GoalRoute />} />
+      <Route path="/me/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
+      <Route path="/me/account/delete" element={<DeleteAccountPage />} />
+      <Route path="/me/account/started-over" element={<StartedOverScreen />} />
+      {/* Friends core m1: every Friends route, behind one gate that sends someone without Friends to /me.
+          Each screen is its own file, so the later milestones replace a file and not this table. */}
+      <Route element={<FriendsGate />}>
+        <Route path="/me/groups" element={<GroupsScreen />} />
+        <Route path="/me/groups/join/:code" element={<JoinScreen />} />
+        <Route path="/me/groups/sharing" element={<SharingScreen />} />
+        <Route path="/me/groups/cheers" element={<CheersScreen />} />
+        <Route path="/me/groups/:id" element={<GroupScreen />} />
+        <Route path="/me/groups/:id/member/:uid" element={<MemberScreen />} />
+        <Route path="/me/groups/:id/challenge/:cid" element={<ChallengeScreen />} />
+      </Route>
+      <Route path="/me/:page" element={<SettingsRoute />} />
+      {/* Friends core m2: the group link <base>/g/<code> (web/nginx.conf.template sends /g/<code> to /#/g/<code>). */}
+      <Route path="/g/:code" element={<GroupLinkRedirect />} />
+      <Route path="*" element={<Navigate to={fallback} replace />} />
+    </Routes>
+  )
+}
+
+// Dev server only: the screens gallery (#/dev/screens…) sits outside the router, each of its frames
+// having one of its own, so App watches the address itself. A production build folds this to false.
+const useGalleryRoute = import.meta.env.DEV
+  ? () => {
+    const [hash, setHash] = useState(() => window.location.hash)
+    useEffect(() => {
+      const on = () => setHash(window.location.hash)
+      window.addEventListener('hashchange', on)
+      return () => window.removeEventListener('hashchange', on)
+    }, [])
+    return hash.startsWith('#/dev/screens')
+  }
+  : () => false
+
 export default function App() {
   const boot = useStore(s => s.boot)
-  useEffect(() => { boot() }, [boot])
+  const gallery = useGalleryRoute()
+  // The gallery stands on mocked data: the real boot would answer over it.
+  useEffect(() => { if (!gallery) boot() }, [boot, gallery])
   // Android system back — sheet, then page, then press-again-to-exit (see lib/back.js)
   useEffect(() => {
     let stop = null, gone = false
     initBackButton().then(fn => { if (gone) fn(); else stop = fn })
     return () => { gone = true; stop?.() }
   }, [])
+  if (gallery) return <Suspense fallback={null}><DevScreens /></Suspense>
   return <HashRouter><BootSplash /><Shell /></HashRouter>
 }

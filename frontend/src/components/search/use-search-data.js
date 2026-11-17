@@ -5,6 +5,7 @@ import { exerciseNameText, todayISO, weekStartOf } from '../../lib/format.js'
 import { baseLang, EXERCISE_NAME_LANGS, useLang } from '../../lib/i18n.js'
 import { effectiveLang } from '../../lib/default-lang.js'
 import { coachAvailable } from '../../lib/coach.js'
+import { COACH_COMING_SOON } from '../../lib/coach-availability.js'
 import { DEMO } from '../../lib/demo.js'
 import { MOBILE } from '../../lib/mobile.js'
 import { IS_ANDROID, webauthnOK } from '../../lib/api.js'
@@ -13,7 +14,8 @@ import { wakeLockSupported } from '../../lib/wakelock.js'
 import { playOnSilentSupported, vibrateSupported } from '../../lib/sound.js'
 import { systemReducesMotion } from '../../lib/reduced-motion.js'
 import { referencedFiles } from '../../lib/media-refs.js'
-import { nutritionAvailable } from '../../lib/nutrition/api.js'
+import { canInvite } from '../../lib/me/invites.js'
+import { useFoodOn } from '../../lib/nutrition/food-on.js'
 import { useNutrition } from '../../lib/nutrition/store.js'
 import { diaryIndexDays, syncDiaryIndex, useDiaryIndex } from '../../lib/nutrition/diary-index.js'
 import { mealLabels } from '../../lib/nutrition/meal-name.js'
@@ -29,7 +31,7 @@ export function useSearchData(open) {
   const coachMode = useStore(s => s.coachLocal?.mode)
   const sync = useStore(s => s.sync)
   const langV = useLang()
-  const nutrition = nutritionAvailable(user)
+  const nutrition = useFoodOn()
   const ntSettings = useNutrition(s => s.settings.data)
   const foods = useNutrition(s => s.foods)
   const meals = useNutrition(s => s.meals)
@@ -72,7 +74,7 @@ export function useSearchData(open) {
       foodsReady: foods.status === 'ready', mealsReady: meals.status === 'ready' && recipes.status === 'ready',
       days: nutrition ? diaryIndexDays() : [], daysReady: index.complete, index,
       mealNames: mealLabels(ntSettings),
-      pagesCtx: { nutrition, checkIn: S.checkIn !== false, coach: coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }), fastingOn },
+      pagesCtx: { nutrition, checkIn: S.checkIn !== false, coach: !COACH_COMING_SOON && coachAvailable(config, user, { demo: DEMO, mobile: MOBILE, coachMode }), fastingOn, canInvite: canInvite(user) },
       settingsCtx,
     }
   }, [S, user, config, coachMode, sync, nutrition, ntSettings, foods, meals, recipes, index, exercises, nameOf, langV])

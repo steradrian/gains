@@ -15,6 +15,7 @@ import { create } from 'zustand'
 import { uid } from '../format.js'
 import { useDiarySelection } from '../nutrition/selection.js'
 import { nav } from '../nav.js'
+import { searchTab } from './scopes.js'
 
 /** The overlay's element id. */
 export const SEARCH_OVERLAY_ID = 'gains-search'
@@ -43,7 +44,8 @@ const restoreDate = () => {
 /** Opens the overlay over the tab root on screen (`tab` the tab whose header holds the pill),
  *  synchronously: it is called from the pill's focus, inside the tap, which is what lets iOS raise
  *  the keyboard. Coming back to a live visit's overlay entry just shows it again. */
-export function openSearch(tab) {
+export function openSearch(opener) {
+  const tab = searchTab(opener)
   const s = useSearch.getState()
   const here = historyState()
   if (s.live && here?.gainsSearch === s.id) {
@@ -60,7 +62,7 @@ export function openSearch(tab) {
 
 const currentPath = () => String(globalThis.location?.hash || '').replace(/^#/, '') || '/home'
 
-/** The avatar's ×, Escape on an empty field: the overlay goes and its history entry with it. */
+/** The bell's ×, Escape on an empty field: the overlay goes and its history entry with it. */
 export function closeSearch() {
   const s = useSearch.getState()
   if (!s.live) return
@@ -146,15 +148,21 @@ let pill = null
 let keys = null
 let focusOnMount = false
 export const registerPill = el => { pill = el }
+// A header lets go of its own pill only: during a page slide (App.jsx) the page being left stays
+// mounted beside the one arriving, and unmounts after it has registered its own.
+export const releasePill = el => { if (pill === el) pill = null }
 export const setOverlayKeys = fn => { keys = fn }
 export const overlayKey = e => keys?.(e)
 /** Back to the pill, for a control of the overlay that leaves the page. */
-export const focusPill = () => { if (pill?.isConnected) pill.focus({ preventScroll: true }) }
+export const focusPill = () => { if (onScreen(pill)) pill.focus({ preventScroll: true }) }
+// The page being left during a slide (App.jsx, .g-route[data-route="out"]) is still mounted, with
+// its pill, for a third of a second: that pill is not on screen to anyone.
+const onScreen = el => !!el?.isConnected && !el.closest('[data-route="out"]')
 
 /** ⌘K, Ctrl K and `/`: the pill on screen gets the focus (which opens the overlay); with none on
  *  screen (a sub-page, Profile) the tab's root is opened and its pill focused once it is there. */
 export function focusSearch(goToRoot) {
-  if (pill && pill.isConnected) { pill.focus(); pill.select?.(); return }
+  if (onScreen(pill)) { pill.focus(); pill.select?.(); return }
   focusOnMount = true
   goToRoot()
 }

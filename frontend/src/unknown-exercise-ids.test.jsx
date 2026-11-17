@@ -16,12 +16,13 @@ import { mergeStates } from './lib/sync-merge.js'
 import { todayISO } from './lib/format.js'
 import { beginWorkout, exerciseDetailSheet, exerciseHistorySheet, workoutDetailSheet, finishWorkout } from './sheets.jsx'
 import Home from './views/Home.jsx'
-import Plan from './views/Plan.jsx'
-import RoutineEdit from './views/RoutineEdit.jsx'
-import Workout from './views/Workout.jsx'
+import PlanScreen from './views/plan/PlanScreen.jsx'
+import RoutineEditor from './views/routines/RoutineEditor.jsx'
+import RoutinesScreen from './views/routines/RoutinesScreen.jsx'
+import WorkoutScreen from './views/workout/WorkoutScreen.jsx'
 import History from './views/History.jsx'
-import Strength from './views/Strength.jsx'
-import Library from './views/Library.jsx'
+import ExerciseProgress from './views/train/exercises/ExerciseProgress.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import StructuralBalance from './views/StructuralBalance.jsx'
 
 vi.mock('./lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn(), restOver: vi.fn() }))
@@ -49,7 +50,7 @@ const activeEntries = () => [
   { id: SQUAT, target: { id: SQUAT, mode: 'reps', sets: 1, reps: 5, weight: 100 }, sets: [{ w: 100, r: 5, done: false }] },
 ]
 
-function seed(view = 'cards', extra = {}) {
+function seed(extra = {}) {
   const S = clone(DEF)
   Object.assign(S, {
     unit: 'kg', weighIn: false,
@@ -59,7 +60,7 @@ function seed(view = 'cards', extra = {}) {
     workouts: [past(1, pastEntries(55)), past(2, pastEntries(50))],
     favEx: [UNK, SQUAT],
     exWeights: { [UNK]: { w: 55, d: '2026-09-01' } }, exNotes: { [UNK]: 'seat 4' }, barWeights: { [UNK]: 15 },
-    active: { id: 'a1', d: todayISO(), start: Date.now(), routineIds: ['r1'], name: 'Push', bw: null, cur: 0, entries: activeEntries(), workoutView: view },
+    active: { id: 'a1', d: todayISO(), start: Date.now(), routineIds: ['r1'], name: 'Push', bw: null, cur: 0, entries: activeEntries() },
     ...extra,
   })
   useStore.setState({ S, user: null })
@@ -105,36 +106,35 @@ describe('exercise ids this build does not know', () => {
     expect(exOr(UNK)).toMatchObject({ id: UNK, missing: true })
   })
 
-  it('Home, the plan, the routine editor and the Library draw it', () => {
+  it('Home, the plan, the routine editor and the Exercises page draw it', () => {
     seed()
     expect(render(<Home />).textContent).toContain('Push')
-    render(<Plan view="routines" />)
-    const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEdit />} /></Routes>, '/train/routines/r1')
-    expect(edit.textContent).toContain('Unknown exercise')
-    render(<Library />)
+    render(<RoutinesScreen />)
+    const edit = render(<Routes><Route path="/train/routines/:id" element={<RoutineEditor />} /></Routes>, '/train/routines/r1')
+    // The row writes the name as plain text, cased as the screen shows it (exerciseNameText).
+    expect(edit.textContent).toContain('Unknown Exercise')
+    render(<ExercisesScreen />)
     render(<StructuralBalance />)
     expectKept(useStore.getState().S)
   })
 
   it('Home draws it on a rotation too', () => {
-    seed('cards', {
+    seed({
       rotation: { id: 'rot1', sequence: ['r1'], label: 'Loop' },
       queue: { ids: ['r1'], since: Date.now() - DAY, startsOn: todayISO(), label: 'Loop', rotationId: 'rot1' },
       scheduleMode: 'rotation',
     })
     render(<Home />)
-    render(<Plan view="schedule" />)
+    render(<PlanScreen />)
     expectKept(useStore.getState().S)
   })
 
-  for (const view of ['cards', 'list', 'compact', 'focus']) {
-    it(`the running workout draws it in the ${view} view`, () => {
-      seed(view)
-      const host = render(<Workout />)
-      expect(host.textContent).toContain('Unknown exercise')
-      expectKept(useStore.getState().S)
-    })
-  }
+  it('the running workout draws it', () => {
+    seed()
+    const host = render(<WorkoutScreen />)
+    expect(host.textContent).toContain('Unknown Exercise')
+    expectKept(useStore.getState().S)
+  })
 
   it('History, a past workout, its exercise history and detail draw it', () => {
     seed()
@@ -148,23 +148,23 @@ describe('exercise ids this build does not know', () => {
     expectKept(useStore.getState().S)
   })
 
-  it('Strength draws it, and its exercise picker leaves out the id it has no name for', () => {
+  it('the exercise progress page draws it, and leaves out the id it has no name for', () => {
     seed()
-    const host = render(<Strength />)
-    // Strength opens on the known lift: an id with no name to show is left out of
-    // the picker (use-exercise-progress.js exHist), not charted as a bare number.
-    expect(host.querySelector('.item-exercise .tt').textContent).toBe('Barbell Full Squat')
-    expect(host.textContent).toContain('Now 100 kg')
+    const host = render(<ExerciseProgress />)
+    // It opens on the known lift: an id with no name to show is left out of the picker
+    // (use-exercise-progress.js exHist), not charted as a bare number.
+    expect(host.querySelector('.g-snav-title').textContent).toBe('Barbell Full Squat')
+    expect(host.querySelector('.g-xp-big').textContent).toContain('kg')
     expect(host.textContent).not.toContain(UNK)
     expectKept(useStore.getState().S)
   })
 
   it('starting the routine and finishing the session keep it, in the new workout too', () => {
-    seed('cards', { active: null })
+    seed({ active: null })
     act(() => beginWorkout(['r1'], null))
     const A = useStore.getState().S.active
     expect(A.entries.map(e => e.id)).toEqual([UNK, SQUAT])
-    render(<Workout />)
+    render(<WorkoutScreen />)
     act(() => useStore.getState().update(s => { s.active.entries.forEach(e => e.sets.forEach(set => { set.done = true })) }))
     act(() => finishWorkout())
     const S = useStore.getState().S

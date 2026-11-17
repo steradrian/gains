@@ -365,3 +365,26 @@ describe('the formula a profile picked (Settings, Discord request)', () => {
     expect(best1RM({ ...S, oneRmFormula: 'brzycki' }, 'x').est).toBeLessThan(best1RM(S, 'x').est)
   })
 })
+
+// Owner decision (Train review #15): a bodyweight lift logs only the belt, so it has no 1RM, as an
+// assistance machine has none.
+describe('bodyweight lifts', () => {
+  const PULLUP = '0652' // pull-up, body weight
+  const BENCH = '0025'
+  const belt = { id: PULLUP, target: { id: PULLUP }, sets: [{ w: 10, r: 8, done: true }] }
+  const S = { workouts: [{ id: 'a', d: '2026-10-01', start: 1, entries: [belt] }] }
+
+  it('get no estimate, curve, best or finish-summary record from the belt alone', () => {
+    expect(bestSetOf(belt)).toBeNull()
+    expect(e1rmSeries(S, PULLUP)).toEqual([])
+    expect(best1RM(S, PULLUP)).toBeNull()
+    expect(is1RMRecord({ workouts: [] }, PULLUP, belt)).toBeNull()
+  })
+
+  it('follow the per-exercise bodyweight flag either way', () => {
+    // a dip done with a belt can turn the flag off, and then its load is the whole load
+    expect(bestSetOf({ ...belt, target: { id: PULLUP, bodyweight: false } })).not.toBeNull()
+    expect(bestSetOf({ id: BENCH, target: { id: BENCH, bodyweight: true }, sets: [{ w: 60, r: 5, done: true }] })).toBeNull()
+    expect(bestSetOf({ id: BENCH, sets: [{ w: 60, r: 5, done: true }] })).not.toBeNull()
+  })
+})

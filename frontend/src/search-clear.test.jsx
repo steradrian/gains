@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// The × in the exercise search (Library and the exercise picker), beside the live result
+// The × in the exercise search (the Exercises page and the exercise picker), beside the live result
 // count (search-count.test.jsx). It shows while there is text, one tap empties the search, and it
 // clears only the text: a body-part filter that also narrows the list keeps its count.
 import React, { act } from 'react'
@@ -9,8 +9,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { exercisePicker } from './sheets.jsx'
-import Library from './views/Library.jsx'
+import ExercisesScreen from './views/train/exercises/ExercisesScreen.jsx'
 import { EXDB } from './lib/exercises.js'
+import { chipByText, openFilters, unmountPanels } from './picker-test-utils.jsx'
+
+const panels = new WeakMap()
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const mounted = []
@@ -30,43 +33,66 @@ function type(el, value) {
   Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
   el.dispatchEvent(new Event('input', { bubbles: true }))
 }
-const chip = (host, text) => [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
-const clear = host => host.querySelector('.search .clear')
-const count = host => host.querySelector('.search .search-count')
+
+// The page is on the stage (StageSearchField, ChipGroup); the picker is the drawer's field (the Log
+// food one), which has no has-clear class to check.
+const SURFACES = [
+  {
+    where: 'Exercises page',
+    open: () => mount(<MemoryRouter><ExercisesScreen /></MemoryRouter>),
+    input: host => host.querySelector('.g-ssf input'),
+    clear: host => host.querySelector('.g-ssf-clear'),
+    count: host => host.querySelector('.g-ssf-count'),
+    chip: (host, text) => [...host.querySelectorAll('.g-cchip')].find(b => b.textContent.trim() === text),
+    neck: 'Neck',
+    hasClear: () => true,
+  },
+  {
+    where: 'exercise picker',
+    open: () => { exercisePicker(vi.fn()); return renderTopSheet() },
+    input: host => host.querySelector('.g-lf-search input'),
+    clear: host => host.querySelector('.g-lf-search .g-lf-clear'),
+    count: host => host.querySelector('.g-lf-search .g-pk-count'),
+    // Body part lives in the Filters sub-panel: open it once per picker, then tap its chips.
+    chip: (host, text) => {
+      if (!panels.has(host)) panels.set(host, openFilters(host))
+      return chipByText(panels.get(host), text)
+    },
+    neck: 'neck',
+    hasClear: () => true,
+  },
+]
 
 beforeEach(() => {
   useUI.setState({ sheets: [], toastMsg: '' })
   useStore.setState({ S: structuredClone(DEF), user: null })
   document.body.innerHTML = ''
 })
-afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+afterEach(() => { unmountPanels(); act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
 
 describe('exercise search clear button', () => {
-  for (const [where, open] of [
-    ['Library', () => mount(<MemoryRouter><Library /></MemoryRouter>)],
-    ['exercise picker', () => { exercisePicker(vi.fn()); return renderTopSheet() }],
-  ]) {
-    it(`${where}: shows with text, and one tap empties the search`, () => {
-      const host = open()
-      const input = host.querySelector('.search input')
-      expect(clear(host)).toBeNull()
+  for (const s of SURFACES) {
+    it(`${s.where}: shows with text, and one tap empties the search`, () => {
+      const host = s.open()
+      const input = s.input(host)
+      expect(s.clear(host)).toBeNull()
       act(() => type(input, 'bench press'))
-      expect(clear(host).getAttribute('aria-label')).toBe('Clear')
-      expect(host.querySelector('.search').classList.contains('has-clear')).toBe(true)
-      act(() => clear(host).click())
+      expect(s.clear(host).getAttribute('aria-label')).toBe('Clear')
+      expect(s.hasClear(host)).toBe(true)
+      act(() => s.clear(host).click())
       expect(input.value).toBe('')
-      expect(clear(host)).toBeNull()
-      expect(count(host)).toBeNull()
-      expect(host.querySelector('.search').classList.contains('has-clear')).toBe(false)
+      expect(s.clear(host)).toBeNull()
+      expect(s.count(host)).toBeNull()
     })
 
-    it(`${where}: clears only the text; a body-part filter keeps its count`, () => {
-      const host = open()
-      act(() => chip(host, 'neck').click())
-      act(() => type(host.querySelector('.search input'), 'stretch'))
-      act(() => clear(host).click())
-      expect(host.querySelector('.search input').value).toBe('')
-      expect(Number(count(host).textContent)).toBe(EXDB.filter(e => e.bp === 'neck').length)
+    it(`${s.where}: clears only the text; a body-part filter keeps its count`, () => {
+      const host = s.open()
+      const neck = s.chip(host, s.neck)
+      act(() => neck.click())
+      act(() => type(s.input(host), 'stretch'))
+      act(() => s.clear(host).click())
+      expect(s.input(host).value).toBe('')
+      expect(Number(s.count(host).textContent)).toBe(EXDB.filter(e => e.bp === 'neck').length)
     })
   }
 })

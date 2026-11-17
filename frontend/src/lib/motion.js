@@ -113,6 +113,8 @@ export const EASE = {
 }
 /** --shift-xs, --shift-sm, --shift-md, --shift-x in px. */
 export const SHIFT = { xs: 4, sm: 8, md: 16, x: 24 }
+/** --pop-from, --pop-to: the scale a popped element starts from and settles at (foldAway's exit). */
+export const POP = { from: 0.94, to: 0.97 }
 
 // A preset is what one element does on the way in and on the way out: keyframes, a duration and an
 // easing per phase, and `rm`, what it does instead when the app keeps still (opacity only, --rm,
@@ -122,6 +124,14 @@ export const SHIFT = { xs: 4, sm: 8, md: 16, x: 24 }
 const FADE_RM = {
   enter: { keyframes: [{ opacity: 0 }, { opacity: 1 }], ms: MS.rm, easing: 'linear' },
   exit: { keyframes: [{ opacity: 0 }], ms: MS.rm, easing: 'linear' },
+}
+/** A drawer's sub-panel slides over 260 ms (the same curve the drawer itself uses); reduced motion
+ *  crossfades over 150 ms. */
+export const PANEL_MS = 260
+export const PANEL_RM_MS = 150
+const PANEL_FADE = {
+  enter: { keyframes: [{ opacity: 0 }, { opacity: 1 }], ms: PANEL_RM_MS, easing: 'linear' },
+  exit: { keyframes: [{ opacity: 0 }], ms: PANEL_RM_MS, easing: 'linear' },
 }
 export const PRESETS = {
   // The sheet rises over --slow and leaves on the curve it came in on; the extra 32px clears its shadow.
@@ -142,6 +152,22 @@ export const PRESETS = {
     exit: { keyframes: [{ opacity: 0 }], ms: MS.exitFast, easing: EASE.exit },
     rm: FADE_RM,
   },
+  // A drawer's sub-panel (components/sheet-panes.jsx): in from the right over PANEL_MS and back out
+  // to it; the panel under it moves 30% the other way (panelDeepen) and returns (panelSurface).
+  // Reduced motion: a 150 ms opacity crossfade, nothing moves.
+  panelSlide: {
+    enter: { keyframes: [{ transform: 'translateX(100%)' }, { transform: 'none' }], ms: PANEL_MS, easing: EASE.ease },
+    exit: { keyframes: [{ transform: 'translateX(100%)' }], ms: PANEL_MS, easing: EASE.ease },
+    rm: PANEL_FADE,
+  },
+  panelDeepen: {
+    enter: { keyframes: [{ transform: 'none' }, { transform: 'translateX(-30%)' }], ms: PANEL_MS, easing: EASE.ease },
+    rm: { enter: { keyframes: [{ opacity: 1 }, { opacity: 0 }], ms: PANEL_RM_MS, easing: 'linear' } },
+  },
+  panelSurface: {
+    enter: { keyframes: [{ transform: 'translateX(-30%)' }, { transform: 'none' }], ms: PANEL_MS, easing: EASE.ease },
+    rm: { enter: { keyframes: [{ opacity: 0 }, { opacity: 1 }], ms: PANEL_RM_MS, easing: 'linear' } },
+  },
   toast: {
     enter: { keyframes: [{ opacity: 0, transform: `translateY(${SHIFT.sm}px)` }, { opacity: 1, transform: 'none' }], ms: MS.med, easing: EASE.ease },
     exit: { keyframes: [{ opacity: 0, transform: `translateY(${SHIFT.xs}px)` }], ms: MS.exit, easing: EASE.exit },
@@ -152,7 +178,20 @@ export const PRESETS = {
     enter: { keyframes: [{ transform: 'scale(.96)' }, { transform: 'none' }], ms: MS.fast, easing: EASE.ease },
     rm: null,
   },
+  // A card put away in place (components/Collapse.jsx) fades and settles back while its row closes.
+  // Under reduced motion it goes at once: nothing slides up for a fade to cover.
+  foldAway: {
+    exit: { keyframes: [{ opacity: 0, transform: `scale(${POP.from})` }], ms: MS.exit, easing: EASE.exit },
+    rm: null,
+  },
 }
+
+/** The row a card is put away from, `h` px tall when it starts closing: what is under it moves up
+ *  over --slow as the space goes, rather than jumping. Instant under reduced motion. */
+export const collapse = h => ({
+  exit: { keyframes: [{ height: `${h}px` }, { height: '0px' }], ms: MS.slow, easing: EASE.io },
+  rm: null,
+})
 
 // The driver is the seam tests use: the default is the element's own animate(), and a test hands
 // in one that records the calls and resolves when it says so. Without either (happy-dom, an old

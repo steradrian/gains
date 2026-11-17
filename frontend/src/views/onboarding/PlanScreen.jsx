@@ -60,7 +60,7 @@ export default function PlanScreen() {
   ]
   return (
     <StepScreen titleId="ob-plan-t" title={t('Want a plan to follow?')} sub={t('Pick what suits you. Nothing is set until you choose.')}
-      stage={<PlanScene state={preview ?? state.pick} days={days} />}
+      stage={<PlanScene state={preview ?? state.pick} days={days} />} stageSize="md"
       caption={state.pick ? SAY()[state.pick] : ''}>
       <ChoiceCards labelledBy="ob-plan-t" options={options} value={state.pick} onPick={pick}
         onPreview={v => setPreview(v === state.pick ? null : v)} />

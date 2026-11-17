@@ -22,14 +22,12 @@ const VALUES = {
   'Language': (S, c) => LANGS[c.lang] || null,
   'Rest timer': S => fmtRest(S.restSec),
   'Effort per set': S => ({ rir: 'RIR', rpe: 'RPE', none: t('Off') })[effortOf(S)] || null,
-  'Layout': S => ({ list: t('List'), compact: t('Compact') })[S.workoutView] || t('Cards'),
   'Week starts on': S => (weekStartOf(S) === MONDAY ? t('Monday') : t('Sunday')),
   'Exercise animations': S => ({ mini: t('Small'), off: t('Hidden') })[S.gifSize] || t('Full'),
   'Play a sound': S => onOff(!!S.sound),
   'Vibrate': S => onOff(S.vibrate !== false),
   'Keep screen awake': S => onOff(S.keepAwake !== false),
   'Gym check-in': S => onOff(S.checkIn !== false),
-  'Body weight': S => onOff(S.showWeightCard !== false),
   'Show brand names': (S, c) => (c.ntSettings ? onOff(settingOf(c.ntSettings, 'diaryShowBrands')) : null),
   'Show macro summary': (S, c) => (c.ntSettings ? onOff(settingOf(c.ntSettings, 'diaryShowMacroSummary')) : null),
   'Search Open Food Facts': (S, c) => (c.ntSettings ? onOff(settingOf(c.ntSettings, 'offEnabled')) : null),
@@ -86,6 +84,3 @@ export function settingsResults(words, S, ctx, tr = t, { all = false } = {}) {
   }
   return out.sort((a, b) => b.score - a.score)
 }
-
-/** Every settings title, for "Did you mean". */
-export const settingTitles = (tr = t) => [...PAGE_IDS.map(id => tr(PAGES[id].title)), ...SEARCH.map(e => tr(e.title))]

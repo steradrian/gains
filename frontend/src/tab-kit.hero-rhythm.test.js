@@ -22,9 +22,8 @@ describe('tab-kit.css hero rhythm', () => {
     expect(flat).toMatch(/\.hero-a\{position:absolute;top:var\(--hero-pad-top\)/)
   })
 
-  it('gives the ⋯ column back to the metrics and the P/C/F line at every width', () => {
-    expect(flat).toContain('.hero-has-a>.hero-m,.hero-has-a>.hero-macros{margin-inline:calc(-1 * (var(--hdr-btn) + var(--space-2)))}')
-    expect(flat).toContain('.hero-has-a>.hero-m{width:auto;align-self:stretch}')
+  it('gives the ⋯ column back to the metrics at every width', () => {
+    expect(flat).toContain('.hero-has-a>.hero-m{margin-inline:calc(-1 * (var(--hdr-btn) + var(--space-2)));width:auto;align-self:stretch}')
     expect(flat).not.toContain('@media (width<340px)')
   })
 })

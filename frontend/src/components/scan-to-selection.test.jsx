@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// Scan logs to where the + sheet's Scan does: the date and the meal every tab shares, from Home's
-// action row, Nutrition's action row and the search pill's barcode button alike. A meal slot past
+// Scan logs to where the + sheet's Scan does: the date and the meal every tab shares, from
+// the search pill's barcode button and Eat's action row alike (views/eat/EatScreen.test.jsx). A meal slot past
 // the end of the list (a meal removed in Profile after it was picked) falls back to the first.
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -12,8 +12,6 @@ import { useDiarySelection } from '../lib/nutrition/selection.js'
 import { createFakeNutriTrace, fixtureDay } from '../lib/nutrition/fake-nutritrace.js'
 import { useNutrition } from '../lib/nutrition/store.js'
 import { endSearch } from '../lib/search/session.js'
-import HomeActions from './HomeActions.jsx'
-import NutritionActions from './NutritionActions.jsx'
 import RootHeader from './RootHeader.jsx'
 import { scanToSelection } from './scan-to-selection.js'
 
@@ -22,19 +20,16 @@ vi.mock('./ScanSheet.jsx', () => ({ scanSheet: (...a) => scanSheet(...a) }))
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 const YESTERDAY = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return isoOf(d) })()
-const day = { on: true, dayReady: true, settings: null }
 let host, root
 
 const entries = {
-  'the Home action row': { path: '/', ui: <HomeActions date={todayISO()} day={day} />, press: () => labelled('Scan') },
-  'the Nutrition action row': { path: '/food', ui: <NutritionActions date={todayISO()} day={day} />, press: () => labelled('Scan') },
   'the header\'s barcode button': { path: '/food', ui: <RootHeader title="Nutrition" />, open: true, press: () => labelled('Scan barcode') },
 }
 const labelled = name => [...host.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || b.textContent).trim() === name)
 
 async function press({ path, ui, open, press: find }) {
   await act(async () => { root.render(<MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>) })
-  if (open) await act(async () => { host.querySelector('.spill-i').focus() })
+  if (open) await act(async () => { host.querySelector('.g-spill-field input').focus() })
   await act(async () => { find().click() })
 }
 

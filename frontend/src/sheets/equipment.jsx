@@ -1,19 +1,18 @@
-import { useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { isBodyweightEq, exOr } from '../lib/exercises.js'
-import { ALL_EQUIPMENT, newProfile, profileEquipment, ACC_V } from '../lib/equipment.js'
-import { fmtNum, fmtPlate } from '../lib/format.js'
+import { fmtNum } from '../lib/format.js'
 import { usesBar, defaultBarWeight, hasBarOverride, isNoBar } from '../lib/bar.js'
-import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor } from '../lib/plates.js'
+import { withLoadKind, loadKindFor, baseWeightFor } from '../lib/plates.js'
 import { t, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import Stepper from '../components/Stepper.jsx'
-import Icon from '../components/Icon.jsx'
-import { Chip, ChipRow } from '../components/blocks.jsx'
-import { Inline, Spacer } from '../components/layout.jsx'
-import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
-import { Button, Switch, Segmented, Row, TextField, NumberField } from '../components/ui.jsx'
-import { isOneArm, dumbbellsOf, withDumbbells, presetWeights, cleanWeights } from '../lib/dumbbells.js'
-import { update, ui, toast } from './shared.js'
+import { Inline } from '../components/layout.jsx'
+import { SheetHeader } from '../components/sheet-layout.jsx'
+import { Button, Switch, Segmented, Row } from '../components/ui.jsx'
+import { isOneArm } from '../lib/dumbbells.js'
+import DumbbellsDrawer from '../views/train/gym/DumbbellsDrawer.jsx'
+import PlatesDrawer from '../views/train/gym/PlatesDrawer.jsx'
+import ProfileDrawer from '../views/train/gym/ProfileDrawer.jsx'
+import { update, ui } from './shared.js'
 
 /* ============================ plate loading ============================ */
 // One editor for every place an exercise's loading shows up (exercise detail, exercise config,
@@ -123,118 +122,12 @@ function BarWeightSheet({ exId, cfg, close }) {
 }
 export const barWeightSheet = (exId, cfg) => ui().openSheet(close => <BarWeightSheet exId={exId} cfg={cfg} close={close} />)
 
-// The plates you own, as pairs per size, for the profile's unit (Settings → Equipment → Plates).
-// The first edit copies the standard set into S.plates[unit] and changes one count in it, so the
-// list you see is always the list the set rows load from. "Back to the standard set" empties the
-// unit's list again. Both are stamped (lib/plates.js), so the last change wins a sync.
-function PlateInventorySheet({ close }) {
-  const st = useStore(s => s.S)
-  const unit = st.unit === 'lb' ? 'lb' : 'kg'
-  const own = ownsPlates(st)
-  const setPairs = (w, n) => update(s => { s.plates = withPlatePairs(s, w, n) })
-  const reset = () => update(s => { s.plates = withStandardPlates(s) })
-  return <>
-    <SheetHeader title={t('Plates')} />
-    <div className="muted small mb-7">
-      {t('Pairs of each size you own. Every set row loads from this list, so a home gym with one pair of 45s is never told to use two.')}
-    </div>
-    {PLATE_SIZES[unit].map(w => (
-      <Inline className="cfgrow mb-3" key={w}>
-        <Stepper label={fmtPlate(w) + ' ' + unit} value={pairsOf(st, w)} step={1} decimal={false} unit={t('pairs')} onChange={n => setPairs(w, n)} />
-      </Inline>
-    ))}
-    <div className="small dim mt-2 mb-7">
-      {own ? t('Your own list for {0}.', unit) : t('The standard set, plenty of each. Change any count to make it yours.')}
-    </div>
-    {own && <Button className="mb-4" onClick={reset}>{t('Back to the standard set')}</Button>}
-    <Button variant="primary" onClick={close}>{t('Done')}</Button>
-  </>
-}
-export const plateInventorySheet = () => ui().openSheet(close => <PlateInventorySheet close={close} />)
+// The three drawers over Gym setup (views/train/gym/): the plates you own, the dumbbells you own,
+// and one equipment profile. These are their openers, and the names Gym setup and the rest of the
+// app call.
+export const plateInventorySheet = () => ui().openSheet(close => <PlatesDrawer close={close} />, { variant: 'ds' })
 
-// The dumbbells you own, for the profile's unit (Settings → Equipment → Dumbbells, issue #376):
-// a list of single bells, kept per unit like the plates (lib/dumbbells.js). With one, progression,
-// deloads, warm-ups, drops and the stepper of every dumbbell lift land on these; an empty list
-// puts them back on the increment. Tapping a weight takes it off, the field adds one, and the
-// quick fill writes the usual rack for the unit to edit from. Every change is stamped.
-function DumbbellInventorySheet({ close }) {
-  const st = useStore(s => s.S)
-  const unit = st.unit === 'lb' ? 'lb' : 'kg'
-  const list = dumbbellsOf(st)
-  const [draft, setDraft] = useState(null)
-  const save = ws => update(s => { s.dumbbells = withDumbbells(s, ws) })
-  const preset = presetWeights(unit)
-  const add = () => {
-    const w = cleanWeights([draft])[0]
-    if (!w) { toast(t('Enter a valid weight')); return }
-    save([...list, w])
-    setDraft(null)
-  }
-  return <>
-    <SheetHeader title={t('Dumbbells')} />
-    <div className="muted small mb-7">
-      {t('The weights you own, one bell each. Progression, deloads, warm-ups and the + and − buttons of dumbbell lifts land only on these.')}
-    </div>
-    {list.length > 0
-      ? <ChipRow className="wrap mb-6" style={{ overflow: 'visible', touchAction: 'auto' }}>
-        {list.map(w => <Chip key={w} on nocap aria-label={t('Remove {0}', fmtPlate(w) + ' ' + unit)}
-          onClick={() => save(list.filter(x => x !== w))}>{fmtPlate(w)} <Icon name="xmark" /></Chip>)}
-      </ChipRow>
-      : <div className="small dim mb-6">{t('No list yet, so dumbbell lifts step by their increment as usual.')}</div>}
-    <Inline gap={4} className="mb-6">
-      <NumberField className="input" decimal value={draft ?? ''} onChange={v => setDraft(v)}
-        aria-label={t('Weight ({0})', unit)} placeholder={t('Weight ({0})', unit)} onKeyDown={e => { if (e.key === 'Enter') add() }} />
-      <Button icon="plus" onClick={add} style={{ flex: '0 0 auto', width: 'auto' }}>{t('Add')}</Button>
-    </Inline>
-    <Button className="mb-4" onClick={() => save(preset)}>
-      {t('Fill in {0} to {1} {2}, every {3}', fmtPlate(preset[0]), fmtPlate(preset.at(-1)), unit, fmtPlate(preset[1] - preset[0]))}
-    </Button>
-    {list.length > 0 && <Button variant="danger" className="mb-4" onClick={() => save([])}>{t('Clear the list')}</Button>}
-    <Button variant="primary" onClick={close}>{t('Done')}</Button>
-  </>
-}
-export const dumbbellInventorySheet = () => ui().openSheet(close => <DumbbellInventorySheet close={close} />)
+export const dumbbellInventorySheet = () => ui().openSheet(close => <DumbbellsDrawer close={close} />, { variant: 'ds' })
 
-/* ============================ equipment profiles ============================ */
 // Create or edit one profile ("Home", "Gym", ...): a name plus a checklist of what you have.
-function EquipmentProfileSheet({ profile, close }) {
-  const update = useStore(s => s.update)
-  const nameRef = useRef(null)
-  const [checked, setChecked] = useState(new Set(profile ? profileEquipment(profile) : []))
-  const toggle = k => setChecked(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n })
-  const save = () => {
-    const name = (nameRef.current.value || '').trim()
-    if (!name) { return }
-    update(s => {
-      s.equipProfiles = s.equipProfiles || []
-      const equipment = [...checked]
-      if (profile) {
-        const p = s.equipProfiles.find(x => x.id === profile.id)
-        if (p) { p.name = name; p.equipment = equipment; p.accV = ACC_V }
-      } else {
-        const p = newProfile(name); p.equipment = equipment
-        s.equipProfiles.push(p)
-        if (!s.activeEquipId) s.activeEquipId = p.id
-      }
-    })
-    close()
-  }
-  return <>
-    <SheetHeader title={profile ? t('Edit profile') : t('New equipment profile')} />
-    <div className="muted small mb-7">
-      {t('Name it after where you train (like "Home" or "Gym"), then tick what you’ve got there.')}
-    </div>
-    <TextField ref={nameRef} defaultValue={profile?.name || ''} placeholder={t('Profile name')} maxLength={40} />
-    <Spacer size={6} />
-    <ChipRow>
-      {ALL_EQUIPMENT.map(k => (
-        <Chip key={k} on={checked.has(k)} onClick={() => toggle(k)}>{t(k)}</Chip>
-      ))}
-    </ChipRow>
-    <div className="dim small mt-5">
-      {t('Body-weight exercises are always available, unless they need a pull-up bar or a bench.')}
-    </div>
-    <SheetActions><Button variant="primary" onClick={save}>{t('Save')}</Button></SheetActions>
-  </>
-}
-export const equipmentProfileSheet = profile => ui().openSheet(close => <EquipmentProfileSheet profile={profile} close={close} />)
+export const equipmentProfileSheet = profile => ui().openSheet(close => <ProfileDrawer profile={profile} close={close} />, { variant: 'ds' })

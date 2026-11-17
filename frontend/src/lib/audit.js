@@ -59,6 +59,9 @@ const LABELS = {
   'admin.password.reset': 'Issued a password reset code',
   'admin.invite.create': 'Created an invite code',
   'admin.invite.revoke': 'Revoked an invite code',
+  // A member asking for an invite, and taking the ask back (the Invite page). `msg` is the request's id.
+  'invite.request': 'Asked for an invite',
+  'invite.request.cancel': 'Withdrew a request for an invite',
   'admin.audit.clear': 'Cleared the activity log',
   // FIRST_USER_ADMIN=1: the first profile on a fresh instance is made admin as it signs up.
   'admin.first-user': 'Became admin as the first profile',
@@ -114,7 +117,8 @@ const ACTS = {
   'password-remove': 'removing the password',
   'passkey-add': 'adding a passkey',
   'passkey-remove': 'removing a passkey',
-  'device-link': 'making a one-time code for another device'
+  'device-link': 'making a one-time code for another device',
+  'account-delete': 'deleting the account'
 }
 export const auditAct = act => ACTS[act] || (act ? String(act) : '')
 

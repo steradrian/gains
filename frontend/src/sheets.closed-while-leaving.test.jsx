@@ -12,7 +12,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Modals, { scrollRestorePending } from './components/Modals.jsx'
 import CoachSheet from './components/onboarding/CoachSheet.jsx'
-import SummarySheet from './components/onboarding/SummarySheet.jsx'
+import DaySheet from './components/onboarding/DaySheet.jsx'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { effortPickerSheet, workoutDetailSheet } from './sheets.jsx'
@@ -71,9 +71,10 @@ describe('what a sheet does on its way out happens when it is closed', () => {
     const w = { id: 'w1', d: '2026-09-15', start: Date.UTC(2026, 8, 15, 17), end: Date.UTC(2026, 8, 15, 18), name: 'Push', vol: 0, prs: [], routineIds: [], entries: [] }
     useStore.setState(s => ({ S: { ...s.S, workouts: [w] } }))
     open(() => workoutDetailSheet(w))
-    type(q('.sheet textarea'), 'Good day')
+    // T8.1 is the design system's drawer, in the same frame as every sheet
+    type(q('.g-bs textarea'), 'Good day')
     await escape()
-    leaving()
+    expect(q('.g-bs').closest('[data-leaving]')).not.toBeNull()
     expect(useStore.getState().S.workouts[0].note).toBe('Good day')
   })
 
@@ -88,10 +89,10 @@ describe('what a sheet does on its way out happens when it is closed', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
-  it('the Summary\'s sheet tells the flow it is done as a pick closes it', async () => {
+  it('the Summary\'s day sheet tells the flow it is done as a pick closes it', async () => {
     const onDone = vi.fn()
     open(() => useUI.getState().openSheet(close => (
-      <SummarySheet which="goal" answers={{ goal: 'keep' }} onPick={() => {}} onDone={onDone} close={close} />
+      <DaySheet value="sitting" onPick={() => {}} onDone={onDone} close={close} />
     )))
     await act(async () => { q('.sheet [role="radio"]').click() })
     leaving()

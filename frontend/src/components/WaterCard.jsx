@@ -5,7 +5,7 @@ import { useNutrition } from '../lib/nutrition/store.js'
 import { useUnits } from '../lib/nutrition/use-units.js'
 import { settingOf } from '../lib/nutrition/use-nt-settings.js'
 import { waterButtons } from '../lib/nutrition/water.js'
-import { toastLogged, writeErrorText } from '../lib/nutrition/log-feedback.js'
+import { toastLogged, waterAddedText, writeErrorText } from '../lib/nutrition/log-feedback.js'
 import { Button, Row, Section } from './ui.jsx'
 
 // A water entry whose write failed, by date and amount: the next tap sends that same entry again,
@@ -22,7 +22,7 @@ export async function addWater(date, ml) {
   try {
     await n.logWater(date, log)
     delete pending[key]
-    toastLogged(t('Water added'), () => useNutrition.getState().removeWater(date, log.uuid))
+    toastLogged(waterAddedText(date, ml, n.settings.data), () => useNutrition.getState().removeWater(date, log.uuid))
     return true
   } catch (e) {
     useUI.getState().toast(writeErrorText(e))

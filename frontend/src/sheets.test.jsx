@@ -54,7 +54,7 @@ describe('exercise configuration progression step', () => {
   it('blocks saving without a positive progression step but accepts a positive decimal', () => {
     const config = renderConfig()
     const save = [...config.host.querySelectorAll('button')]
-      .find(b => /^(save|add to routine)$/i.test(b.textContent.trim()))
+      .find(b => /^(done|add to routine)$/i.test(b.textContent.trim()))
 
     act(() => { type(config.step, '') })
     expect(config.step.value).toBe('')

@@ -473,3 +473,136 @@ describe('a workout\'s photos and videos', () => {
     } finally { stop() }
   })
 })
+
+/* === Me photos M1 === */
+// A progress photo (bodyPhotos, lib/me/photos.js) uploads only while Back up photos is on. Off,
+// its file stays here: never asked about, never sent, never evicted, never counted as waiting.
+describe('progress photos and Back up photos', () => {
+  const photo = (id, r) => ({ id, d: '2026-10-20', addedAt: 1, ref: r })
+  const workoutWith = (...refs) => ({ id: 'w1', d: '2026-09-20', start: 1, end: 2, entries: [], media: refs })
+  const asked = () => api.mock.calls.flatMap(c => JSON.parse(c[1].body).hashes)
+  const sent = () => apiUpload.mock.calls.map(c => c[0].replace('/api/media/', ''))
+
+  it('off: a file only a progress photo holds is neither asked about nor sent, even forced, and is reported as kept here', async () => {
+    await put(hex('a'))
+    const S = { customEx: [], photoBackup: false, bodyPhotos: [photo('p1', refOf(hex('a')))] }
+    const sync = make(appStore({ S }))
+    await sync.syncMedia()
+    await sync.syncMedia({ force: true, retryRejected: true })
+    await sync.settle()
+    expect(asked()).toEqual([])
+    expect(apiUpload).not.toHaveBeenCalled()
+    expect([...media.pendingNow()]).toEqual([hex('a')])
+    expect(getMediaStatus()).toMatchObject({ localOnly: 1, deferred: 0, rejected: 0, unavailable: 0 })
+  })
+
+  it('off: the other files still go up, and a file a workout also holds goes up as before', async () => {
+    await put(hex('a')); await put(hex('b')); await put(hex('c'))
+    const S = {
+      customEx: [], photoBackup: false,
+      bodyPhotos: [photo('p1', refOf(hex('a'))), photo('p2', refOf(hex('b')))],
+      workouts: [workoutWith(refOf(hex('b')), refOf(hex('c')))]
+    }
+    await make(appStore({ S })).syncMedia({ force: true })
+    expect(asked().sort()).toEqual([hex('b'), hex('c')])
+    expect(sent().sort()).toEqual([hex('b'), hex('c')])
+    expect([...media.pendingNow()]).toEqual([hex('a')])
+  })
+
+  it('turned on, the next run asks for them and sends what the server lacks; no special case', async () => {
+    await put(hex('a')); await put(hex('b'), 10)
+    const S = { customEx: [], photoBackup: false, bodyPhotos: [photo('p1', refOf(hex('a'), hex('b')))] }
+    const store = appStore({ S })
+    const sync = make(store)
+    await sync.syncMedia()
+    expect(apiUpload).not.toHaveBeenCalled()
+    store.setState({ S: { ...S, photoBackup: true } })
+    await sync.syncMedia()
+    expect(asked()).toEqual([hex('b'), hex('a')])
+    expect(sent()).toEqual([hex('b'), hex('a')])
+    expect([...media.pendingNow()]).toEqual([])
+    expect(getMediaStatus().localOnly).toBe(0)
+  })
+
+  it('start(): turning the switch on schedules a run by itself, without waiting for a sync to land', async () => {
+    vi.useFakeTimers()
+    const idle = globalThis.requestIdleCallback
+    globalThis.requestIdleCallback = () => 0
+    try {
+      await put(hex('a'))
+      const S = { customEx: [], photoBackup: false, bodyPhotos: [photo('p1', refOf(hex('a')))] }
+      const store = appStore({ S })
+      const stop = make(store).start(store)
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(apiUpload).not.toHaveBeenCalled()
+      store.setState({ S: { ...S, photoBackup: true } })
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(sent()).toEqual([hex('a')])
+      stop()
+    } finally {
+      globalThis.requestIdleCallback = idle
+      vi.useRealTimers()
+    }
+  })
+
+  it('the local clean-up keeps a file only a progress photo holds, and lets it go once the photo is deleted', async () => {
+    await put(hex('a')); await put(hex('c'))
+    clock += 2 * 3600000
+    const S = { customEx: [], photoBackup: false, bodyPhotos: [photo('p1', refOf(hex('a')))] }
+    await make(appStore({ S, user: null })).localMediaGc()
+    expect((await media.list()).map(r => r.hash)).toEqual([hex('a')])
+    // Deleted (its tombstone recorded) and saved: past the hour the file goes.
+    const after = { customEx: [], photoBackup: false, bodyPhotos: [], deleted: { bodyPhotos: { p1: clock } } }
+    storage.setItem('gym_state_v1', JSON.stringify(after))
+    await make(appStore({ S: after, user: null })).localMediaGc()
+    expect(await media.list()).toEqual([])
+  })
+
+  it('the saved copy still listing the photo keeps its file, whatever memory says', async () => {
+    await put(hex('a'))
+    clock += 2 * 3600000
+    storage.setItem('gym_state_v1', JSON.stringify({ bodyPhotos: [photo('p1', refOf(hex('a')))] }))
+    await make(appStore({ S: { customEx: [], bodyPhotos: [] }, user: null })).localMediaGc()
+    expect(await media.has(hex('a'))).toBe(true)
+  })
+
+  it('over the cache cap, a kept-here photo is never evicted, even marked synced; backed up, it may be', async () => {
+    const big = c => media.put(hex(c), new Blob([new Uint8Array(200 * MB)]), { mime: 'image/webp', pending: false })
+    await big('a'); await big('c')
+    clock += 2 * 3600000
+    const refs = { a: refOf(hex('a'), null, { size: 200 * MB }), c: refOf(hex('c'), null, { size: 200 * MB }) }
+    const S = { customEx: [], photoBackup: false, bodyPhotos: [photo('p1', refs.a)], workouts: [workoutWith(refs.c)] }
+    await make(appStore({ S })).localMediaGc()
+    expect((await media.list()).map(r => r.hash)).toEqual([hex('a')])   // the workout's synced copy made the room
+  })
+
+  it('over the cache cap, a synced progress photo alone: kept with the switch off, evictable with it on', async () => {
+    await media.put(hex('a'), new Blob([new Uint8Array(400 * MB)]), { mime: 'image/webp', pending: false })
+    clock += 2 * 3600000
+    const S = on => ({ customEx: [], photoBackup: on, bodyPhotos: [photo('p1', refOf(hex('a'), null, { size: 400 * MB }))] })
+    await make(appStore({ S: S(false) })).localMediaGc()
+    expect(await media.has(hex('a'))).toBe(true)
+    // On, the server holds it and keeps it (still referenced): a synced copy over the cap may go.
+    await make(appStore({ S: S(true) })).localMediaGc()
+    expect(await media.has(hex('a'))).toBe(false)
+  })
+
+  it('over the cache cap, a pending progress photo is never evicted, whatever the switch says', async () => {
+    await media.put(hex('a'), new Blob([new Uint8Array(400 * MB)]), { mime: 'image/webp', pending: true })
+    clock += 2 * 3600000
+    for (const on of [false, true]) {
+      const S = { customEx: [], photoBackup: on, bodyPhotos: [photo('p1', refOf(hex('a'), null, { size: 400 * MB }))] }
+      await make(appStore({ S })).localMediaGc()
+      expect(await media.has(hex('a'))).toBe(true)
+    }
+  })
+
+  it('evicts nothing when the saved copy cannot be read', async () => {
+    await media.put(hex('a'), new Blob([new Uint8Array(400 * MB)]), { mime: 'image/webp', pending: false })
+    clock += 2 * 3600000
+    storage.setItem('gym_state_v1', '{not json')
+    const S = { customEx: [{ id: 'x', media: refOf(hex('a'), null, { size: 400 * MB }) }] }
+    await make(appStore({ S })).localMediaGc()
+    expect(await media.has(hex('a'))).toBe(true)
+  })
+})

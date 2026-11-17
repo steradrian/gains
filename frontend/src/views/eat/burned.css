@@ -1,0 +1,10 @@
+/* Burned (BurnedScreen.jsx) and Log activity (ActivitySheet.jsx, BurnedAmountSheet.jsx). The page
+   is a StagePage, which already pads the status bar; it adds only the boards' gutter. */
+.burned-gut{padding:0 16px}
+
+/* The drawers' body: type chips, the wheel, then the fields. The chips and the wheel sit in the
+   body's padding, so a focus ring is never cut by the body's overflow. */
+.g-act{display:flex;flex-direction:column;gap:18px;padding:4px 4px 8px}
+.g-act-label{margin:0 0 4px;font:600 14px/18px var(--font-sans);color:var(--text-2);text-align:start}
+.g-act-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.g-act-hint{margin:0;font:500 13px/18px var(--font-sans);color:var(--text-3);text-align:start}

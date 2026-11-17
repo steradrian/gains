@@ -17,6 +17,11 @@ import { askAddDeviceData } from '../sheets.jsx'
 import { Row, Button } from './ui.jsx'
 import { Spacer } from './layout.jsx'
 import { SheetHeader } from './sheet-layout.jsx'
+import DsButton from '../ds/Button.jsx'
+import IconButton from '../ds/IconButton.jsx'
+import InlineBanner from '../ds/InlineBanner.jsx'
+import TextField from '../ds/TextField.jsx'
+import '../signin.css'
 
 // The server's floor (api/password.js MIN_LENGTH), checked here first so the common mistake is
 // answered without a round trip. The server still decides.
@@ -93,10 +98,12 @@ export function PasswordSignInSheet({ close, onPasskey }) {
   const [next, setNext] = useState('')
   const [again, setAgain] = useState('')
   const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState(null)
+  // n counts the failures, so each is a new banner: read out, and focused, again.
+  const [err, setErr] = useState(null)   // { n, title, body }
   const nameRef = useRef(null)
   useEffect(() => { setTimeout(() => nameRef.current?.focus(), 250) }, [])
   const reset = mode === 'reset'
+  const fail = (title, body) => setErr(f => ({ n: (f?.n || 0) + 1, title, body }))
   const submit = async ev => {
     ev.preventDefault()
     if (busy) return
@@ -108,47 +115,47 @@ export function PasswordSignInSheet({ close, onPasskey }) {
       // A typo here is only found at the next sign-in, and fixing it takes another code.
       : reset && next !== again ? t('The two passwords are not the same.')
       : null
-    if (bad) { setErr(bad); return }
+    if (bad) { fail(bad); return }
     setBusy(true); setErr(null)
-    try { await signedIn(reset ? await passwordResetRedeem(n, code.trim(), next) : await passwordLogin(n, pw), close) }
-    catch (e) { setErr(passwordError(e)) }
+    try { await signedIn(reset ? await passwordResetRedeem(n, code.trim().toUpperCase(), next) : await passwordLogin(n, pw), close) }
+    // Only a wrong name or password has something to add; "disabled", a pause and the rest are one
+    // line from the server, and nothing to retry.
+    catch (e) { fail(passwordError(e), e?.data?.code === 'bad-credentials' ? t('Check both, or use a reset code from your admin.') : undefined) }
     finally { setBusy(false) }
   }
-  return <>
-    <SheetHeader title={reset ? t('Reset your password') : t('Sign in with password')} />
-    <div className="muted small mb-7">{reset
+  return <div className="g-root">
+    <SheetHeader title={reset ? t('Reset your password') : t('Sign in with password')}
+      action={<IconButton icon="xmark" label={t('Close')} tone="tonal" onClick={close} />} />
+    <p className="si-sheet-text">{reset
       ? t('Enter the code your admin gave you and choose a new password. It signs you out everywhere else.')
-      : t('Use your profile name (or the e-mail you added to it) and your password.')}</div>
+      : t('Use your profile name (or the e-mail you added to it) and your password.')}</p>
+    {err && <div className="si-sheet-gap" key={err.n}><InlineBanner role="alert" tone="warning" title={err.title} body={err.body} /></div>}
     <form onSubmit={submit} noValidate>
-      {/* One field for both: the server looks an entry with an "@" up as an e-mail first. Not
-          type="email", which would refuse a plain name. */}
-      <input ref={nameRef} className="input" name="username" autoComplete="username" placeholder={t('Name or e-mail')} maxLength={254}
-        value={name} onChange={e => setName(e.target.value)} {...field} />
-      <Spacer size={5} />
-      {reset ? <>
-        <input className="input ls-14 fw-semibold ta-center" name="reset-code" autoComplete="one-time-code" placeholder={t('Reset code')} maxLength={20}
-          value={code} onChange={e => setCode(e.target.value.toUpperCase())} {...field} />
-        <Spacer size={5} />
-        <input className="input" type="password" name="new-password" autoComplete="new-password" placeholder={t('New password')}
-          value={next} onChange={e => setNext(e.target.value)} />
-        <Spacer size={5} />
-        <input className="input" type="password" name="new-password-again" autoComplete="new-password" placeholder={t('Repeat the password')}
-          value={again} onChange={e => setAgain(e.target.value)} />
-        <div className="dim small mt-3">{t('At least {0} characters. A few unrelated words make a good one.', MIN_PASSWORD)}</div>
-      </> : <input className="input" type="password" name="password" autoComplete="current-password" placeholder={t('Password')}
-        value={pw} onChange={e => setPw(e.target.value)} />}
-      {err && <div className="small ink-danger mt-5" role="alert">{err}</div>}
-      <Spacer size={6} />
-      <Button type="submit" variant="primary" disabled={busy}>{reset ? t('Set password & sign in') : t('Sign in')}</Button>
+      <div className="si-sheet-fields">
+        {/* One field for both: the server looks an entry with an "@" up as an e-mail first. Not
+            type="email", which would refuse a plain name. */}
+        <TextField label={t('Name or e-mail')} onChange={setName} inputRef={nameRef}
+          inputProps={{ name: 'username', autoComplete: 'username', maxLength: 254, ...field }} />
+        {reset ? <>
+          <TextField key="code" label={t('Reset code')} onChange={setCode}
+            inputProps={{ name: 'reset-code', autoComplete: 'one-time-code', maxLength: 20, className: 'si-upper', ...field }} />
+          <TextField key="new" label={t('New password')} onChange={setNext}
+            inputProps={{ type: 'password', name: 'new-password', autoComplete: 'new-password' }} />
+          <TextField key="again" label={t('Repeat the password')} onChange={setAgain}
+            inputProps={{ type: 'password', name: 'new-password-again', autoComplete: 'new-password' }} />
+        </> : <TextField key="pw" label={t('Password')} onChange={setPw}
+          inputProps={{ type: 'password', name: 'password', autoComplete: 'current-password' }} />}
+      </div>
+      <div className="si-sheet-submit">
+        <DsButton type="submit" block busy={busy}>{reset ? t('Set password and sign in') : t('Sign in')}</DsButton>
+      </div>
     </form>
-    <Spacer size={4} />
-    <Button type="button" variant="ghost" className="dim" onClick={() => { setErr(null); setMode(reset ? 'signin' : 'reset') }}>
-      {reset ? t('Sign in with password') : t('Have a reset code from your admin?')}</Button>
-    {onPasskey && !reset && webauthnOK() && <>
-      <Spacer size={4} />
-      <Button type="button" icon="fingerprint" onClick={() => { close(); onPasskey() }}>{t('Sign in with passkey')}</Button>
-    </>}
-  </>
+    <div className="si-sheet-links">
+      <DsButton variant="ghost" block onClick={() => { setErr(null); setMode(reset ? 'signin' : 'reset') }}>
+        {reset ? t('Sign in with password') : t('Have a reset code from your admin?')}</DsButton>
+      {onPasskey && !reset && webauthnOK() && <DsButton variant="ghost" block onClick={() => { close(); onPasskey() }}>{t('Sign in with passkey')}</DsButton>}
+    </div>
+  </div>
 }
 export const openPasswordSignIn = onPasskey => ui().openSheet(close => <PasswordSignInSheet close={close} onPasskey={onPasskey} />)
 

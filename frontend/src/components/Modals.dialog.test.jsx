@@ -143,17 +143,6 @@ describe('a sheet is a dialog', () => {
     expect(dialog.contains(document.activeElement)).toBe(true)
     expect(inert('app')).toBe(true)
   })
-
-  it('leaves content that opts out (the + sheet) entirely alone: one dialog, one trap', async () => {
-    const Own = ({ close }) => (
-      <div role="dialog" aria-modal="true" aria-labelledby="own-title" data-own-dialog-focus><h3 id="own-title">Own</h3><button onClick={close}>x</button></div>
-    )
-    open(close => <Own close={close} />)
-    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
-    expect(q('.sheet').hasAttribute('role')).toBe(false)
-    expect(q('.sheet').hasAttribute('aria-modal')).toBe(false)
-    expect(inert('app')).toBe(false)
-  })
 })
 
 describe('a viewer sheet whose content is already a dialog', () => {
@@ -232,15 +221,17 @@ describe('a sheet that replaces another in the same tap', () => {
   })
 })
 
+// A drawer is never opened on top of a drawer (it becomes a sub-panel: sheet-panes.test.jsx); a
+// centred dialog still stacks over one.
 describe('stacked sheets', () => {
   const stack = () => {
     let second
-    const a = open(close => <Plain title="First" close={close}><button id="to-second" onClick={() => { second = useUI.getState().openSheet(c => <Plain title="Second" close={c} />) }}>More</button></Plain>)
+    const a = open(close => <Plain title="First" close={close}><button id="to-second" onClick={() => { second = useUI.getState().openSheet(c => <Plain title="Second" close={c} />, { stack: true }) }}>More</button></Plain>)
     q('#to-second').focus()
     act(() => { q('#to-second').click() })
     return { a, get b() { return second } }
   }
-  const dialogs = () => [...document.querySelectorAll('.sheet')]
+  const dialogs = () => [...document.querySelectorAll('.sheet, .center')]
 
   it('each is a dialog with its own name, and the one under the newer is out of reach', async () => {
     stack()

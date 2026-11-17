@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
+import { isCustomEx, stillOf } from '../lib/exercises.js'
 import { mediaOf, cleanUrl, linkKind } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
 import { fetchToStore, mayFetch } from '../lib/media-sync.js'
@@ -108,6 +109,17 @@ export function CustomThumb({ ex }) {
   return icon ? <div className="thumb thumb-x"><Icon name={icon} /></div> : <EquipmentThumb ex={ex} />
 }
 
+/**
+ * The still a list row shows (ds/ExerciseThumbRow `image`): the catalogue's, or a custom
+ * exercise's own poster from the local store (fetched as CustomThumb does). null while there is
+ * none, and the row draws its own tile.
+ */
+export function useExerciseStill(ex, figure) {
+  const custom = isCustomEx(ex)
+  const poster = useMediaUrl(custom ? mediaOf(ex)?.poster || null : null)
+  return custom ? poster.url : stillOf(ex, figure)
+}
+
 /* ------------------------------------------------------------------ links ---------------- */
 
 // #246's card, as a <button> rather than a link: nothing on the page points at the address, so
@@ -136,8 +148,6 @@ export function LinkCard({ url, compact, mini }) {
 export default function CustomMedia({ ex, id, compact, minimizable }) {
   const gifSize = useStore(s => s.S.gifSize)
   const update = useStore(s => s.update)
-  // The workout's list layout, from the store: only the workout card is minimizable.
-  const listLayout = useStore(s => !!minimizable && ((s.S.active?.workoutView || s.S.workoutView) === 'list'))
   const m = mediaOf(ex)
   const link = cleanUrl(ex?.url)
   if (!m && !link) return null
@@ -151,7 +161,7 @@ export default function CustomMedia({ ex, id, compact, minimizable }) {
   const name = exerciseNameFor(ex)
   if (!m) return <LinkCard url={link} compact={compact} mini={mini} />
   const body = m.kind === 'video'
-    ? <CustomVideo key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} mini={mini} still={listLayout || reducedMotion()} />
+    ? <CustomVideo key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} mini={mini} still={reducedMotion()} />
     : m.kind === 'gif'
       ? <CustomGif key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} mini={mini} />
       : <CustomImage key={m.hash} m={m} id={id} cls={cls} name={name} toggle={toggle} />

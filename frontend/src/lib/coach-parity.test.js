@@ -89,3 +89,57 @@ describe('routine glyphs', () => {
     })
   })
 })
+
+// Train coach: the weekly check-in. The app files it (coach-checkin.js) and sends it with the
+// next review; the server route validates it (validCheckIn) and the payload carries it
+// (cleanCheckIn). The words and the note's length are written out on both sides, so they are
+// pinned here, and what the app sends must reach the model the same on both paths: the server
+// path (JSON over the wire, validated, cleaned at enqueue) and the phone's own key (straight in).
+import { CHECKIN_FEEL, CHECKIN_SLEEP, CHECKIN_NOTE_MAX, pendingCheckIn, saveCheckIn } from './coach-checkin.js'
+import {
+  CHECKIN_FEEL as SRV_FEEL, CHECKIN_SLEEP as SRV_SLEEP, CHECKIN_NOTE_MAX as SRV_NOTE_MAX,
+  validCheckIn, cleanCheckIn, build
+} from '../../../api/coach/core/payload.js'
+
+describe('the weekly check-in', () => {
+  const state = () => ({ unit: 'kg', lang: 'en', weekStart: 1, routines: [], week: {}, dayPlan: {}, workouts: [], bodyweight: [], customEx: [], coach: { lastReview: null }, coachCheckIns: {} })
+  const review = (S, checkIn) => build(S, { handle: 'h'.repeat(16), kind: 'review', checkIn })
+
+  it('the app and the server know the same words and the same note length', () => {
+    expect(CHECKIN_FEEL).toEqual(SRV_FEEL)
+    expect(CHECKIN_SLEEP).toEqual(SRV_SLEEP)
+    expect(CHECKIN_NOTE_MAX).toBe(SRV_NOTE_MAX)
+  })
+
+  for (const value of [
+    { feel: 'much', sleep: 'poor', note: 'Shoulder a bit tight' },
+    { sleep: 'good' },
+    { note: '  only a note  ' },
+    { feel: 'hard', note: 'x'.repeat(CHECKIN_NOTE_MAX + 40) },
+  ]) {
+    it(`reaches the model the same on the server and the phone — ${JSON.stringify(value).slice(0, 60)}`, () => {
+      const S = state()
+      saveCheckIn(S, '2026-10-12', value, 100)
+      const sent = pendingCheckIn(S)
+      const wire = JSON.parse(JSON.stringify(sent))
+      expect(validCheckIn(wire)).toBe(true)                       // the route accepts it
+      const server = review(S, cleanCheckIn(wire)).checkIn       // jobs.enqueue cleans, build carries
+      const phone = review(S, sent).checkIn                        // coach-local hands it straight in
+      expect(server).toEqual(phone)
+      expect(server.week).toBe('2026-10-12')
+    })
+  }
+
+  it('a review without a check-in carries none, on either path', () => {
+    const S = state()
+    expect(pendingCheckIn(S)).toBeNull()
+    expect('checkIn' in review(S, null)).toBe(false)
+    expect('checkIn' in review(S, cleanCheckIn(undefined))).toBe(false)
+  })
+
+  it('only a review carries it', () => {
+    const S = state()
+    const checkIn = { week: '2026-10-12', feel: 'hard' }
+    expect('checkIn' in build(S, { handle: 'h'.repeat(16), kind: 'create', checkIn })).toBe(false)
+  })
+})

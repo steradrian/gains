@@ -105,13 +105,16 @@ describe('passwordError', () => {
   })
 })
 
+// The sign-in drawer's fields carry a visible label (the design system's TextField), not a placeholder.
+const labelled = (host, text) => [...host.querySelectorAll('.g-tfield')].find(f => f.querySelector('.g-tfield-label').textContent === text)?.querySelector('input')
+
 describe('PasswordSignInSheet', () => {
   it('signs in with the name and password, then carries on like a passkey sign-in', async () => {
     mocks.passwordLogin.mockResolvedValue({ id: 'u1', name: 'Ana' })
     const close = vi.fn()
     const host = mount(<PasswordSignInSheet close={close} />)
-    const name = byPlaceholder(host, 'Name or e-mail')
-    const pw = byPlaceholder(host, 'Password')
+    const name = labelled(host, 'Name or e-mail')
+    const pw = labelled(host, 'Password')
     // What password managers look for.
     expect(name.getAttribute('autocomplete')).toBe('username')
     expect(pw.getAttribute('autocomplete')).toBe('current-password')
@@ -129,11 +132,52 @@ describe('PasswordSignInSheet', () => {
     mocks.passwordLogin.mockRejectedValue(fail(401, { error: 'wrong name or password', code: 'bad-credentials' }))
     const close = vi.fn()
     const host = mount(<PasswordSignInSheet close={close} />)
-    type(byPlaceholder(host, 'Name or e-mail'), 'Ana'); type(byPlaceholder(host, 'Password'), 'nope nope nope')
+    type(labelled(host, 'Name or e-mail'), 'Ana'); type(labelled(host, 'Password'), 'nope nope nope')
     await submit(host)
-    expect(alertText(host)).toBe('Wrong name, e-mail or password.')
+    // The title, and the way on under it; the banner is the alert and holds focus.
+    expect(alertText(host)).toBe('Wrong name, e-mail or password.Check both, or use a reset code from your admin.')
+    expect(document.activeElement).toBe(host.querySelector('[role="alert"]'))
+    expect(host.querySelector('[role="alert"]').classList.contains('g-ibanner-warning')).toBe(true)
     expect(mocks.setUser).not.toHaveBeenCalled()
     expect(close).not.toHaveBeenCalled()
+  })
+
+  it('a disabled account is one line from the server, with nothing to retry', async () => {
+    mocks.passwordLogin.mockRejectedValue(fail(403, { error: 'disabled', code: 'disabled' }))
+    const host = mount(<PasswordSignInSheet close={() => {}} />)
+    type(labelled(host, 'Name or e-mail'), 'Ana'); type(labelled(host, 'Password'), 'correct horse battery')
+    await submit(host)
+    expect(alertText(host)).toBe('This account has been disabled.')
+    expect(host.querySelector('.g-ibanner-body span')).toBeNull()
+    expect(host.querySelector('.g-ibanner-btn')).toBeNull()
+    expect(mocks.setUser).not.toHaveBeenCalled()
+  })
+
+  it('a second failure is a new banner, read out again', async () => {
+    mocks.passwordLogin.mockRejectedValue(fail(401, { error: 'x', code: 'bad-credentials' }))
+    const host = mount(<PasswordSignInSheet close={() => {}} />)
+    type(labelled(host, 'Name or e-mail'), 'Ana'); type(labelled(host, 'Password'), 'nope nope nope')
+    await submit(host)
+    const first = host.querySelector('[role="alert"]')
+    document.activeElement.blur()
+    await submit(host)
+    expect(host.querySelector('[role="alert"]')).not.toBe(first)
+    expect(document.activeElement).toBe(host.querySelector('[role="alert"]'))
+  })
+
+  it('a pause after too many tries says how long, in one line', async () => {
+    mocks.passwordLogin.mockRejectedValue(fail(429, { error: 'slow down', retryAfter: 300 }))
+    const host = mount(<PasswordSignInSheet close={() => {}} />)
+    type(labelled(host, 'Name or e-mail'), 'Ana'); type(labelled(host, 'Password'), 'nope nope nope')
+    await submit(host)
+    expect(alertText(host)).toMatch(/^Too many attempts\. Try again .*5.*\.$/)
+  })
+
+  it('the close button sends the drawer away', () => {
+    const close = vi.fn()
+    const host = mount(<PasswordSignInSheet close={close} />)
+    act(() => host.querySelector('button[aria-label="Close"]').click())
+    expect(close).toHaveBeenCalled()
   })
 
   it('redeems a reset code with a new password; a too-short or mistyped one is caught before any request', async () => {
@@ -141,16 +185,16 @@ describe('PasswordSignInSheet', () => {
     const host = mount(<PasswordSignInSheet close={() => {}} />)
     act(() => button(host, 'Have a reset code from your admin?').click())
     expect(host.querySelector('h3').textContent).toBe('Reset your password')
-    type(byPlaceholder(host, 'Name or e-mail'), 'Ana')
-    type(byPlaceholder(host, 'Reset code'), 'k7wq-2mzp-4hxa')
-    type(byPlaceholder(host, 'New password'), 'short')
+    type(labelled(host, 'Name or e-mail'), 'Ana')
+    type(labelled(host, 'Reset code'), 'k7wq-2mzp-4hxa')
+    type(labelled(host, 'New password'), 'short')
     await submit(host)
     expect(alertText(host)).toBe('Use at least 10 characters.')
     expect(mocks.passwordResetRedeem).not.toHaveBeenCalled()
     // A typo would only show at the next sign-in, and cost another code from the admin.
-    const again = byPlaceholder(host, 'Repeat the password')
+    const again = labelled(host, 'Repeat the password')
     expect(again.getAttribute('autocomplete')).toBe('new-password')
-    type(byPlaceholder(host, 'New password'), 'a brand new passphrase')
+    type(labelled(host, 'New password'), 'a brand new passphrase')
     type(again, 'a brand new passphrse')
     await submit(host)
     expect(alertText(host)).toBe('The two passwords are not the same.')
@@ -165,7 +209,7 @@ describe('PasswordSignInSheet', () => {
     mocks.passwordLogin.mockResolvedValue({ id: 'u1', name: 'Ana' })
     const host = mount(<PasswordSignInSheet close={() => {}} />)
     expect(host.textContent).toContain('Use your profile name (or the e-mail you added to it) and your password.')
-    const field = byPlaceholder(host, 'Name or e-mail')
+    const field = labelled(host, 'Name or e-mail')
     // Not type="email": that would refuse a plain name.
     expect(field.type).toBe('text')
     expect(field.getAttribute('autocomplete')).toBe('username')
@@ -173,7 +217,7 @@ describe('PasswordSignInSheet', () => {
     await submit(host)
     expect(alertText(host)).toBe('Enter your name or e-mail.')
     expect(mocks.passwordLogin).not.toHaveBeenCalled()
-    type(field, ' Ana@Example.com '); type(byPlaceholder(host, 'Password'), 'correct horse battery')
+    type(field, ' Ana@Example.com '); type(labelled(host, 'Password'), 'correct horse battery')
     await submit(host)
     expect(mocks.passwordLogin).toHaveBeenCalledWith('Ana@Example.com', 'correct horse battery')
     expect(mocks.setUser).toHaveBeenCalledWith({ id: 'u1', name: 'Ana' }, { adopt: true })
@@ -183,10 +227,10 @@ describe('PasswordSignInSheet', () => {
     mocks.passwordResetRedeem.mockResolvedValue({ id: 'u1', name: 'Ana' })
     const host = mount(<PasswordSignInSheet close={() => {}} />)
     act(() => button(host, 'Have a reset code from your admin?').click())
-    type(byPlaceholder(host, 'Name or e-mail'), 'ana@example.com')
-    type(byPlaceholder(host, 'Reset code'), 'K7WQ-2MZP-4HXA')
-    type(byPlaceholder(host, 'New password'), 'a brand new passphrase')
-    type(byPlaceholder(host, 'Repeat the password'), 'a brand new passphrase')
+    type(labelled(host, 'Name or e-mail'), 'ana@example.com')
+    type(labelled(host, 'Reset code'), 'K7WQ-2MZP-4HXA')
+    type(labelled(host, 'New password'), 'a brand new passphrase')
+    type(labelled(host, 'Repeat the password'), 'a brand new passphrase')
     await submit(host)
     expect(mocks.passwordResetRedeem).toHaveBeenCalledWith('ana@example.com', 'K7WQ-2MZP-4HXA', 'a brand new passphrase')
   })

@@ -128,6 +128,40 @@ describe('DurationWheel', () => {
   })
 })
 
+// The design system's look for a wheel inside a DS drawer (board W1.4): an opt-in class, with the
+// same wheels, keys and sheet behaviour underneath. The callers that never ask keep their look.
+describe('DurationWheel variant="ds"', () => {
+  it('adds the DS class, and only when asked for', () => {
+    mount({ start: 90, variant: 'ds' })
+    expect(host.querySelector('.dw').classList.contains('dw-ds')).toBe(true)
+    act(() => root.unmount()); root = createRoot(host)
+    mount({ start: 90 })
+    expect(host.querySelector('.dw').classList.contains('dw-ds')).toBe(false)
+    expect(host.querySelector('.dw').className.trim()).toBe('dw')
+    act(() => root.unmount()); root = createRoot(host)
+    mount({ start: 90, variant: 'default', className: 'tight' })
+    expect(host.querySelector('.dw').className.trim()).toBe('dw tight')
+  })
+
+  it('is the same wheel: two spinbuttons telling the whole duration, stepped by the arrows', () => {
+    const { onChange, min, sec } = mount({ start: 105, variant: 'ds' })
+    expect(min.getAttribute('aria-valuetext')).toBe('1 minute 45 seconds')
+    expect(sec.getAttribute('aria-valuenow')).toBe('45')
+    expect(host.querySelector('.dw').getAttribute('dir')).toBe('ltr')
+    expect(host.querySelector('.dw').hasAttribute('data-nodrag')).toBe(true)
+    key(sec, 'ArrowUp')
+    expect(onChange).toHaveBeenLastCalledWith(106)
+    key(min, 'Home')
+    expect(onChange).toHaveBeenLastCalledWith(46)
+  })
+
+  it('keeps the same row height as the default look, which the scroll maths is built on', () => {
+    mount({ start: 90, variant: 'ds' })
+    expect(WHEEL_ITEM).toBe(40)
+    expect(host.querySelectorAll('.dw-it').length).toBeGreaterThan(0)
+  })
+})
+
 describe('durationSheet', () => {
   it('opens the wheel with a read-out, and Done hands back the value', () => {
     const onDone = vi.fn()

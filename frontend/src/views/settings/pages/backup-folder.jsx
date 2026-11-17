@@ -1,0 +1,61 @@
+import { useEffect, useState } from 'react'
+import { t } from '../../../lib/i18n.js'
+import { backupFolder, chooseBackupFolder, resetBackupFolder, onBackupFolderChange } from '../../../lib/mobile.js'
+import { useUI } from '../../../store/useUI.js'
+import SettingRow from '../SettingRow.jsx'
+
+const DEFAULT_FOLDER = 'Documents/Gains'
+
+/* Where auto-backup puts its copies on this Android phone (#161): Documents/Gains, or a folder
+   chosen with the system picker — a sync app's, an SD card's. The choice is this phone's alone
+   (lib/mobile.js), so it is read here and not from the synced state. When the chosen folder
+   stops taking copies they go to Documents/Gains again, and this says so until the folder is
+   chosen again or the default is confirmed. */
+export function useBackupFolder(enabled = true) {
+  const [folder, setFolder] = useState(null)
+  useEffect(() => {
+    if (!enabled) return undefined
+    let live = true
+    let off = () => {}
+    try {
+      backupFolder().then(f => { if (live) setFolder(f) }).catch(() => { if (live) setFolder({}) })
+      off = onBackupFolderChange(f => { if (live) setFolder(f) })
+    } catch (e) { setFolder({}) }
+    return () => { live = false; off() }
+  }, [enabled])
+  return [folder, setFolder]
+}
+
+/* The Auto-backup row's subtitle names where the copies go: the chosen folder once there is one,
+   not Documents/Gains regardless (Android QA). `keep` is AUTO_BACKUP_KEEP. */
+export function autoBackupSubtitle(folder, keep) {
+  if (folder?.uri && folder.label) return t('Saves a dated copy to “{0}” after finishing a workout or editing a routine, and keeps the newest {1}.', folder.label, keep)
+  if (folder?.uri) return t('Saves a dated copy to the folder you chose after finishing a workout or editing a routine, and keeps the newest {0}.', keep)
+  return t('Saves a dated copy to Documents/Gains after finishing a workout or editing a routine, and keeps the newest {0}. Point a sync app at that folder, or copy it out by hand.', keep)
+}
+
+// The rows under Auto-backup on Android: the folder in use, a warning when the chosen one stopped
+// taking copies, and the way back to the default. Rows of the Backup card, so no wrapper.
+export default function BackupFolderRows() {
+  const [folder, setFolder] = useBackupFolder()
+  if (!folder) return null
+
+  const choose = async () => {
+    try {
+      const next = await chooseBackupFolder()
+      if (next) setFolder(next)
+    } catch (e) { useUI.getState().toast(t('This folder can’t be used for backups.')) }
+  }
+  const useDefault = async () => { setFolder(await resetBackupFolder()) }
+
+  return <>
+    <SettingRow icon="folder" title={t('Backup folder')}
+      sub={folder.uri ? (folder.label || t('Chosen folder')) : DEFAULT_FOLDER} onClick={choose} />
+    {folder.lost && <SettingRow icon="warning" title={t('Backup folder unavailable')}
+      sub={folder.lostLabel
+        ? t('Gains can no longer write to “{0}”, so copies go to Documents/Gains again. Choose the folder again to switch back.', folder.lostLabel)
+        : t('Gains can no longer write to the chosen folder, so copies go to Documents/Gains again. Choose the folder again to switch back.')} />}
+    {(folder.uri || folder.lost) && <SettingRow icon="reset" title={t('Use default folder')}
+      sub={DEFAULT_FOLDER} onClick={useDefault} />}
+  </>
+}

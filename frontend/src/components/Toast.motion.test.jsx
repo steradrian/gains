@@ -14,7 +14,7 @@ import { fakeMotionDriver } from '../lib/motion.test-util.js'
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 let root, driver
-const pill = () => document.querySelector('#toast .toast-pill')
+const pill = () => document.querySelector('#toast .g-utoast')
 const set = state => act(async () => { useUI.setState(state) })
 
 beforeEach(async () => {
@@ -57,7 +57,7 @@ describe('the toast\'s way in and out', () => {
     const el = pill()
     await set({ toastMsg: 'Saved again' })
     expect(pill()).toBe(el)
-    expect(el.textContent).toBe('Saved again')
+    expect(el.querySelector('.g-utoast-msg').textContent).toBe('Saved again')
     const [enter, nudge] = driver.on(el)
     expect(enter.keyframes).toEqual(PRESETS.toast.enter.keyframes)
     expect(nudge.keyframes).toEqual(PRESETS.nudge.enter.keyframes)
@@ -70,7 +70,7 @@ describe('the toast\'s way in and out', () => {
     const exit = driver.on(el).at(-1)
     await set({ toastMsg: 'Set restored' })
     expect(pill()).toBe(el)
-    expect(el.textContent).toBe('Set restored')
+    expect(el.querySelector('.g-utoast-msg').textContent).toBe('Set restored')
     expect(exit.playState).toBe('idle')
     // not resting on the half-faded, lowered frame the cut-short way in was stopped on
     expect(el.style.opacity).toBe('')
@@ -94,7 +94,7 @@ describe('the toast\'s way in and out', () => {
 
 describe('the toast\'s action from the keyboard', () => {
   const undoToast = run => set({ toastMsg: 'Set removed', toastAction: { label: 'Undo', run, id: 1, icon: 'undo' } })
-  const undo = () => document.querySelector('#toast .toast-act')
+  const undo = () => document.querySelector('#toast .g-utoast-undo')
 
   it('gives the focus back to where it was before the Undo, not to the page body', async () => {
     const field = document.createElement('button')

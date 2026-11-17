@@ -3,18 +3,24 @@ import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { SheetActions, SheetHeader } from '../components/sheet-layout.jsx'
 import { cx } from '../lib/ui-kit.js'
+import { haptic as buzz } from '../lib/use-haptic.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
+import HapticSwitch from '../ds/HapticSwitch.jsx'
 import { ui } from './shared.js'
 
 /* ============================ custom confirm dialog ============================ */
 // The action the sheet exists for first (never a filled primary when it destroys something), the
 // safe exit last. `choice`: the second button is an answer of its own, not a way out, so it reads as
-// a peer instead of dimmed.
-function ConfirmDialog({ title, message, confirmText, cancelText, danger, choice, onConfirm, onCancel, close }) {
+// a peer instead of dimmed. `haptic`: the confirm button ticks, for a confirm whose tap is the write
+// itself (Finish anyway).
+function ConfirmDialog({ title, message, confirmText, cancelText, danger, choice, haptic, onConfirm, onCancel, close }) {
   return <>
     <SheetHeader title={title} sub={message} />
     <SheetActions>
-      <Button variant={danger ? 'danger' : 'primary'} onClick={() => { close(); onConfirm && onConfirm() }}>{confirmText || t('Confirm')}</Button>
+      <Button variant={danger ? 'danger' : 'primary'} className={haptic ? 'g-haptic' : undefined} onClick={() => { if (haptic) buzz('success'); close(); onConfirm && onConfirm() }}>
+        {confirmText || t('Confirm')}
+        {haptic && <HapticSwitch />}
+      </Button>
       <Button variant={choice ? 'plain' : 'ghost'} className={choice ? undefined : 'dim'} onClick={() => { close(); onCancel && onCancel() }}>{cancelText || t('Cancel')}</Button>
     </SheetActions>
   </>
@@ -57,7 +63,8 @@ export function askAddDeviceData(extras) {
 // A list of actions, one per row, closing on tap. This is where the workout screen parks
 // everything that is not a set you are about to log: the point of a single "more" button is
 // that the ten things you do once a session stop competing with the two you do every set.
-// items: [{ icon, label, sub, onClick, danger, disabled, on }] — `on` draws a check for toggles.
+// items: [{ icon, label, sub, onClick, danger, disabled, on, haptic }] — `on` draws a check for toggles;
+// `haptic` ticks, for a row whose tap is itself the write (Finish and save), never one that opens more.
 // sections: [{ title, items }] instead of `items` splits a longer menu into groups, each with an
 // optional small header; a group whose items are all falsy is left out, header and all.
 // `accent` tints a row's icon, for the one entry a menu leads with.
@@ -75,13 +82,14 @@ function MenuSheet({ title, titleClass = '', subtitle, items, sections, close })
       {g.title && <div className="menu-sec">{g.title}</div>}
       <div className="list menu-list">
         {g.items.map((it, i) => <div key={i}
-          className={'item menu-item' + (it.danger ? ' danger' : '') + (it.disabled ? ' disabled' : '') + (it.accent ? ' accent' : '')}
+          className={'item menu-item' + (it.danger ? ' danger' : '') + (it.disabled ? ' disabled' : '') + (it.accent ? ' accent' : '') + (it.haptic ? ' g-haptic' : '')}
           aria-disabled={it.disabled || undefined}
-          {...tappable(it.disabled ? null : () => { close(); it.onClick && it.onClick() })}>
+          {...tappable(it.disabled ? null : () => { if (it.haptic) buzz('success'); close(); it.onClick && it.onClick() })}>
           {it.icon && <span className="lrow-i"><Icon name={it.icon} /></span>}
           <div className="grow"><div className="tt">{it.label}</div>{it.sub && <div className="ss">{it.sub}</div>}</div>
           {it.on != null && <span className={'menu-on' + (it.on ? ' is-on' : '')}><Icon name="check" /></span>}
           {it.chevron && <Icon name="chevronRight" className="menu-chev" />}
+          {it.haptic && !it.disabled && <HapticSwitch />}
         </div>)}
       </div>
     </div>)}
@@ -97,6 +105,7 @@ export function menuSheet(opts) {
 // is an alertdialog: it interrupts with a question to weigh, which a screen reader reads out.
 export function confirmSheet(opts) {
   ui().openSheet(close => <ConfirmDialog {...opts} close={close} />, {
+    stack: true,
     ...(opts.locked ? { locked: true } : {}),
     ...(opts.danger || opts.locked ? { role: 'alertdialog' } : {}),
     onDismiss: opts.onCancel,

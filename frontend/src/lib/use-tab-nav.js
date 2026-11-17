@@ -1,6 +1,6 @@
-// The shell's side of lib/tab-history.js: mirrors every location into the per-tab stacks and
+// The shell's side of lib/tab-history.js: mirrors every location into the tab's stack and
 // carries out a tab switch. A switch is several router steps — walk back to the first entry,
-// replace it, push the rest of the arriving tab's stack — with the screen held on the page the
+// replace it with the arriving tab's root, push the page being opened on it, if any — with the screen held on the page the
 // switch started from (`shown`) until the last step has landed, so neither the pages in between
 // nor the one arrived at mounts before the history is right. (The page arrived at mounting early
 // was how a redirect it makes — a missing routine, the Coach for a guest — got lost in the walk.)
@@ -8,10 +8,12 @@
 // What starts a switch: a bar button (switchTab, popToRoot for the tab on screen), and any
 // navigation that lands in another tab's pages, from whatever code made it (a Profile row opening
 // Routines): the push is turned into a switch, so a tab's stack never holds another tab's page.
+// A bar button always lands on the tab's root, the tab on screen included.
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { emptyNav, deadSteps, onVisitPage, planSwitch, record, settle } from './tab-history.js'
-import { parentOf, tabOf } from './tab-route.js'
+import { TABS, parentOf, tabOf } from './tab-route.js'
 import { onSheetEntry, sheetEntriesLive } from './nav.js'
+import { sheetEntryCount } from './sheet-nav.js'
 import { useUI } from '../store/useUI.js'
 
 const NAV_KEY = 'gym_tab_nav'   // this tab's mirror: survives a reload, as its history does
@@ -19,7 +21,7 @@ const NAV_KEY = 'gym_tab_nav'   // this tab's mirror: survives a reload, as its 
 // hold the screen: after this long the switch carries on from wherever history is…
 const UNWIND_MS = 400
 // …and a pop that still arrives within this long after that is the walk landing late: the switch
-// is finished again from where it landed, with the stacks it had already put aside.
+// is finished again from where it landed, with the stack it had planned.
 const LATE_MS = 2000
 // A switch knocked off course by somebody else's walk (an iOS swipe, the browser's back) is
 // carried on from where it landed — this many times, then the screen is let go as it is.
@@ -28,7 +30,8 @@ const RETRIES = 2
 function loadNav() {
   try {
     const v = JSON.parse(sessionStorage.getItem(NAV_KEY))
-    return v && Array.isArray(v.entries) && typeof v.idx === 'number' && typeof v.top === 'number' ? v : emptyNav()
+    // A mirror from before Progress became Me's (its tab was 'progress') is dropped, not read.
+    return v && Array.isArray(v.entries) && typeof v.idx === 'number' && typeof v.top === 'number' && TABS.includes(v.tab) ? v : emptyNav()
   } catch { return emptyNav() }
 }
 
@@ -56,7 +59,7 @@ function crossesTab(nav, location, navType) {
 export const TAB_SWITCH = { tabSwitch: true }
 
 // For code outside the shell (the bar, the + sheet, a page's back button), like lib/nav.js's nav().
-let api = { switchTab: () => {}, popToRoot: () => {}, back: () => {} }
+let api = { switchTab: () => {}, popToRoot: () => {}, back: () => {}, leaveTo: () => {} }
 let switching = false
 // While a switch rebuilds the history, nothing else may walk it: the bar, the +, Android back.
 export const isSwitching = () => switching
@@ -72,7 +75,7 @@ const SHEET_MS = 400
 let waiting = null
 const afterSheet = fn => {
   if (waiting) { window.removeEventListener('popstate', waiting.listener); clearTimeout(waiting.timer); waiting = null }
-  const closing = onSheetEntry() && sheetEntriesLive() > useUI.getState().sheets.length
+  const closing = onSheetEntry() && sheetEntriesLive() > sheetEntryCount(useUI.getState().sheets)
   if (!closing) { fn(); return }
   const go = () => {
     if (!waiting) return
@@ -92,7 +95,8 @@ function onNextPop(fn) {
   return once
 }
 export const switchTab = (tab, path) => afterSheet(() => api.switchTab(tab, path))
-export const popToRoot = tab => afterSheet(() => api.popToRoot(tab))
+// `path`: down to that page on the tab's root instead (planSwitch), when the tab is on screen.
+export const popToRoot = (tab, path) => afterSheet(() => api.popToRoot(tab, path))
 // A sub-page's back: one step down this tab's stack, or with nothing under it in the tab (a deep
 // link, a reload) to the page's parent in its place — `parent` when the page knows better than
 // lib/tab-route.js (a settings sub-page's own parent page). Also how a finished workout leaves.
@@ -100,6 +104,14 @@ export const back = parent => {
   if (switching) return
   const up = typeof parent === 'string' ? parent : undefined
   afterSheet(() => api.back(up))
+}
+
+// A page that has to go (its subject is gone) leaving for `path`: one step down when `path` is the
+// page under it in this tab's stack, so it does not sit in history twice, else it is replaced by
+// `path` (a deep link, a page reached from somewhere else).
+export const leaveTo = path => {
+  if (switching) return
+  afterSheet(() => api.leaveTo(path))
 }
 
 export function useTabNav({ navigate, location, navType }) {
@@ -129,7 +141,7 @@ export function useTabNav({ navigate, location, navType }) {
     clearTimeout(p.timer)
     p.phase = 'build'
     p.queue = p.stack.slice(1)
-    step(p, p.stack[0], { replace: true, state: TAB_SWITCH })
+    step(p, p.stack[0], { replace: true, state: p.queue.length ? TAB_SWITCH : { ...TAB_SWITCH, ...p.pushed } })
   }, [step])
 
   // Walk back to the first entry one popstate at a time: the position the router reports where it
@@ -153,7 +165,10 @@ export function useTabNav({ navigate, location, navType }) {
     next()
   }, [navigate, build])
 
-  const run = useCallback((plan, { shownLocation, shownTab, target, retries = 0, intent = null }) => {
+  // `pushed`: { pushed: true, from } when the switch is a page pushed from another tab (the avatar
+  // opening Profile): the last page of the stack carries it, so the shell slides it in and Back
+  // returns to the tab it came from.
+  const run = useCallback((plan, { shownLocation, shownTab, target, retries = 0, intent = null, pushed = null }) => {
     if (!plan) { finish(pending.current); return }
     if (!switching) {
       setFrozen({ location: shownLocation, tab: shownTab })
@@ -162,15 +177,14 @@ export function useTabNav({ navigate, location, navType }) {
     switching = true
     navRef.current = plan.nav
     saveNav(plan.nav)
-    const p = { phase: 'unwind', stack: plan.stack, target, retries, intent }
+    const p = { phase: 'unwind', stack: plan.stack, target, retries, intent, pushed }
     pending.current = p
     if (plan.back > 0) unwind(p)
     else build(p)
   }, [build, unwind, finish])
 
   // The same switch carried on from wherever the history now is: back to the first entry and the
-  // same stack built there. What the first plan put aside stays put aside — planning afresh from
-  // the mirror would put aside a half-built history as the tab that was left.
+  // same stack built there, not planned afresh from a half-built mirror.
   const resume = (target, stack, retries, intent) => {
     const idx = historyIdx()
     run({ back: Number.isInteger(idx) ? idx : navRef.current.idx, stack, nav: { ...navRef.current, tab: target } },
@@ -191,8 +205,9 @@ export function useTabNav({ navigate, location, navType }) {
       if (crossesTab(nav, location, navType)) {
         const target = tabOf(location.pathname)
         const here = Number.isInteger(idx) ? idx : nav.idx + 1
-        const plan = planSwitch({ ...nav, idx: here }, target, { path, leaving: nav.entries.slice(0, here) })
-        run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target })
+        const plan = planSwitch({ ...nav, idx: here }, target, { path })
+        const pushed = location.state?.pushed ? { pushed: true, from: location.state.from } : null
+        run(plan, { shownLocation: lastShown.current || location, shownTab: nav.tab, target, pushed })
         return
       }
       const next = record(nav, { idx, path, navType, keepTab: !!location.state?.searchVisit })
@@ -218,7 +233,7 @@ export function useTabNav({ navigate, location, navType }) {
         if (p.retries < RETRIES) { resume(p.target, p.stack, p.retries + 1, p.intent); return }
       } else if (path === p.expect) {
         navRef.current = record(navRef.current, { idx, path, navType })
-        if (p.queue.length) { step(p, p.queue.shift(), { state: TAB_SWITCH }); return }
+        if (p.queue.length) { step(p, p.queue.shift(), { state: p.queue.length ? TAB_SWITCH : { ...TAB_SWITCH, ...p.pushed } }); return }
       } else {
         // Not the switch's own step: the switch ends where it got to (the mirror is what it had
         // built), and this navigation is new intent, taken as if it came after it — on top of the
@@ -231,7 +246,7 @@ export function useTabNav({ navigate, location, navType }) {
         const target = tabOf(location.pathname)
         if (target && target !== p.target) {
           const here = Number.isInteger(idx) ? idx : built.length
-          const plan = planSwitch({ ...navRef.current, idx: here }, target, { path, leaving: p.stack })
+          const plan = planSwitch({ ...navRef.current, idx: here }, target, { path })
           run(plan, { shownLocation: lastShown.current || location, shownTab: p.target, target })
           return
         }
@@ -271,22 +286,34 @@ export function useTabNav({ navigate, location, navType }) {
     run(planSwitch(nav, target, { path }), { shownLocation: location, shownTab: nav.tab, target })
   }, [navigate, location, run])
 
-  const doPopToRoot = useCallback(target => {
+  const doPopToRoot = useCallback((target, path) => {
     if (pending.current) return
-    const plan = planSwitch(navRef.current, target, { toRoot: true })
+    const plan = planSwitch(navRef.current, target, { toRoot: true, path })
     if (!plan) { window.scrollTo(0, 0); return }
     run(plan, { shownLocation: location, shownTab: target, target })
   }, [location, run])
 
   const doBack = useCallback(parent => {
     if (pending.current) return
-    if (navRef.current.idx > 0) navigate(-1)
+    // A page pushed from another tab (the avatar opening Settings) goes back to that tab's page,
+    // even when it sits on its own tab's stack (Settings over Profile): not to that stack's page.
+    const pushedFrom = location.state?.pushed && location.state.from
+    if (pushedFrom) navigate(pushedFrom, { replace: true })
+    else if (navRef.current.idx > 0) navigate(-1)
     else navigate(parent || parentOf(location.pathname), { replace: true })
   }, [navigate, location])
 
+  const doLeaveTo = useCallback(path => {
+    if (pending.current) return
+    const { entries, idx } = navRef.current
+    const under = idx > 0 ? entries[idx - 1] : null
+    if (under && under.split(/[?#]/)[0] === path) navigate(-1)
+    else navigate(path, { replace: true })
+  }, [navigate])
+
   useLayoutEffect(() => {
-    api = { switchTab: doSwitch, popToRoot: doPopToRoot, back: doBack }
-  }, [doSwitch, doPopToRoot, doBack])
+    api = { switchTab: doSwitch, popToRoot: doPopToRoot, back: doBack, leaveTo: doLeaveTo }
+  }, [doSwitch, doPopToRoot, doBack, doLeaveTo])
   useLayoutEffect(() => () => { switching = false; clearTimeout(pending.current?.timer) }, [])
 
   if (frozen) return { tab: frozen.tab, shown: frozen.location, switching: true }

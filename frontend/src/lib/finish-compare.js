@@ -5,6 +5,7 @@
 import { isWarmupRow, isFailureSet } from './workout-model.js'
 import { buildPlannedEntry } from './session-start.js'
 import { workoutAt, modeOf } from './history.js'
+import { countsForRecords } from './workout-parts.js'
 
 const workSets = entry => (Array.isArray(entry?.sets) ? entry.sets : [])
   .filter(s => s && s.done && !isWarmupRow(s) && Number(s.r) > 0)
@@ -29,7 +30,8 @@ export function finishCompare(st, w) {
   const rows = []
   const seen = new Set()
   for (const entry of w?.entries || []) {
-    if (!entry?.id || seen.has(entry.id)) continue
+    // A warm-up or cool-down exercise is not compared: it never makes a best (workout-parts.js).
+    if (!entry?.id || seen.has(entry.id) || !countsForRecords(entry)) continue
     const mode = modeOf(entry.target || entry)
     if (mode !== 'reps') continue
     const today = workSets(entry)
@@ -70,7 +72,7 @@ export function finishCompare(st, w) {
 export function finishCardio(w) {
   const rows = []
   for (const entry of w?.entries || []) {
-    if (!entry?.id || modeOf({ ...(entry.target || {}), id: entry.id }) !== 'cardio') continue
+    if (!entry?.id || !countsForRecords(entry) || modeOf({ ...(entry.target || {}), id: entry.id }) !== 'cardio') continue
     const sets = (Array.isArray(entry.sets) ? entry.sets : []).filter(s => s && s.done && (Number(s.min) > 0 || Number(s.speed) > 0))
     if (sets.length) rows.push({ id: entry.id, target: entry.target, sets })
   }

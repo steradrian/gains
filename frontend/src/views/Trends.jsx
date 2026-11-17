@@ -1,9 +1,8 @@
 import { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useStore } from '../store/useStore.js'
 import { fmtNum } from '../lib/format.js'
 import { t, tn } from '../lib/i18n.js'
-import { nutritionAvailable } from '../lib/nutrition/api.js'
+import { useFoodOn } from '../lib/nutrition/food-on.js'
 import { foldText } from '../lib/nutrition/diary.js'
 import { loadErrorText } from '../lib/nutrition/log-feedback.js'
 import { useNutrition } from '../lib/nutrition/store.js'
@@ -31,8 +30,7 @@ const DAY = 86400000
 export default function Trends() {
   const nav = useNavigate()
   const { search } = useLocation()
-  const user = useStore(s => s.user)
-  const available = nutritionAvailable(user)
+  const available = useFoodOn()
   const settings = useNutrition(s => s.settings)
   const { status, days, error } = useTrends()
   const fasting = useFasting()

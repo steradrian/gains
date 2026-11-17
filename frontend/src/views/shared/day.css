@@ -1,0 +1,10 @@
+/* The Day page on the stage (DayScreen.jsx, boards Sh1Day to Sh1Skipped). Full bleed like the
+   notifications page: StageScreen's body already clears the status bar, where the nav bar sticks,
+   so the page adds no top inset of its own. It keeps the boards' 150px of air above the floating
+   tab bar. The date is StagePageTitle (.g-sptitle). */
+.day{padding-bottom:calc(150px + var(--sab))}
+.day .g-rail-top{padding-top:18px}
+.day .g-sptitle{padding-top:18px}
+.day-changed{margin:8px 0 0;padding:0 20px;font:500 15px/20px var(--font-sans);color:var(--on-stage)}
+.day-gut{padding:0 16px}
+.day-stack{display:flex;flex-direction:column;gap:12px}

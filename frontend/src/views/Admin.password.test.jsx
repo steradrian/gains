@@ -30,7 +30,7 @@ vi.mock('../store/useUI.js', () => {
   const snap = () => ({ toast: (...a) => mocks.toast(...a), openSheet: (render, opts) => mocks.sheets.push({ render, opts }) })
   const useUI = selector => selector ? selector(snap()) : snap()
   useUI.getState = snap
-  return { useUI }
+  return { useUI, drawerFlow: open => open() }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({ confirmSheet: (...a) => mocks.confirm(...a) }))

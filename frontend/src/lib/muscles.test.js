@@ -4,7 +4,7 @@ import { LANGS, DERIVED_LOCALES } from './i18n-core.js'
 import {
   MUSCLE_NAME, exerciseMuscleSnapshot, hasExplicitMuscleMetadata, levelsOf, loadOf,
   loadOfWorkouts, loadOfWeeklyPlan, matchesMuscleGroups, muscleBalanceWindow, muscleGroupsOf,
-  musclesOf, muscleWeightsOf, rankOf
+  musclesOf, muscleWeightsOf, rankOf, MUSCLES, REGIONS, untrainedRegions
 } from './muscles.js'
 
 describe('multi-muscle exercise metadata', () => {
@@ -292,5 +292,23 @@ describe('MUSCLE_NAME as i18n keys', () => {
       const missing = Object.values(MUSCLE_NAME).filter(name => !(name in mod.default))
       expect(missing, file).toEqual([])
     }
+  })
+})
+
+describe('untrainedRegions', () => {
+  it('names the parts with no load on any of their muscles, in body order', () => {
+    expect(untrainedRegions({})).toEqual(REGIONS.map(r => r.name))
+    expect(untrainedRegions({ chest: 3, triceps: 1, deltoids: 0.5, abs: 1 })).toEqual(['Back', 'Legs'])
+    expect(untrainedRegions({ calves: 1, 'upper-back': 2, chest: 1, deltoids: 1, forearm: 1, obliques: 1 })).toEqual([])
+  })
+
+  it('work on serratus, hip flexors or shins alone does not make a part trained', () => {
+    expect(untrainedRegions({ serratus: 2, 'hip-flexors': 2, tibialis: 2 })).toEqual(REGIONS.map(r => r.name))
+  })
+
+  it('every drawable muscle but those three belongs to exactly one part', () => {
+    const inParts = REGIONS.flatMap(r => r.muscles)
+    expect(new Set(inParts).size).toBe(inParts.length)
+    expect(MUSCLES.filter(m => !inParts.includes(m))).toEqual(['serratus', 'hip-flexors', 'tibialis'])
   })
 })

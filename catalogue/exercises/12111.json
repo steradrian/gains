@@ -1,0 +1,15 @@
+{
+  "id": "12111",
+  "name": "climbing",
+  "bodyPart": "cardio",
+  "equipment": "body weight",
+  "target": "cardiovascular system",
+  "secondaryMuscles": ["forearms", "lats", "biceps", "core"],
+  "category": "sports & activities",
+  "description": "Indoor or outdoor climbing and bouldering. Log the time and how hard it was.",
+  "instructions": [
+    "Warm up on easy routes before you try hard ones.",
+    "Log the time from your first climb to your last, rests included.",
+    "Choose easy, moderate or hard for the effort overall."
+  ]
+}

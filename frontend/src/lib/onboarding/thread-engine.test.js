@@ -52,7 +52,7 @@ beforeEach(() => {
   // A screen reads as the transform it slides with; an anchor as its stroke.
   vi.stubGlobal('getComputedStyle', el => (el?.slide
     ? { transform: `matrix(1, 0, 0, 1, ${el.slide[0]}, ${el.slide[1]})` }
-    : { strokeWidth: '2', stroke: 'rgb(0, 0, 0)' }))
+    : { strokeWidth: '2', stroke: 'rgb(0, 0, 0)', getPropertyValue: p => ({ '--il-w': '2.5', '--on-stage': '#FFFFFF' })[p] ?? '' }))
   vi.stubGlobal('DOMMatrixReadOnly', class {
     constructor(s) { const n = s.match(/-?[\d.]+/g).map(Number); this.m41 = n[4]; this.m42 = n[5] }
   })
@@ -98,6 +98,35 @@ describe('a transition interrupted mid-flight', () => {
     engine.register(c)
     expect(c.hasAttribute('data-thread-claim')).toBe(true)
     expect(path.d).toBe(mid)
+  })
+})
+
+describe('the new screen\'s content the line sweeps across', () => {
+  it('is held until the thread lands, but never what holds the anchor itself', () => {
+    const { engine } = setup()
+    engine.register(anchor(16, 304, 100))()
+    const b = anchor(16, 304, 300)
+    const box = { left: 0, right: 390, top: 150, bottom: 320, height: 170 }
+    const crossed = { getBoundingClientRect: () => box, contains: () => false, animate: vi.fn() }
+    const holder = { getBoundingClientRect: () => box, contains: el => el === b, animate: vi.fn() }
+    b.closest = () => ({ querySelectorAll: () => [crossed, holder] })
+    engine.register(b)
+    expect(crossed.animate).toHaveBeenCalledTimes(1)
+    expect(holder.animate).not.toHaveBeenCalled()
+  })
+})
+
+describe('a screen reached scrolled (the starter\'s Use this plan, then the Summary)', () => {
+  it('flies to where the anchor is on the first frame, once the app has scrolled the new screen to the top, in one glide', () => {
+    const { engine, svg, path } = setup()
+    engine.register(anchor(16, 304, 100))()
+    const b = anchor(16, 304, 230)
+    engine.register(b)
+    // App.jsx scrolls the new route to the top in its own layout effect, after b registered.
+    b.y = 304
+    runTo(340)
+    expect(svg.style.visibility).toBe('hidden')
+    expect(path.d).toBe(dOf(lineP(16, 304, 304, 304)))
   })
 })
 

@@ -23,6 +23,14 @@ export function fmtDate(iso, long, withYear = false) {
   if (withYear) options.year = 'numeric'
   return d.toLocaleDateString(dateLocale(), options)
 }
+// The month of a day in the UI language: "Jul", or "July" with `long`. With `yearIfOld` a month
+// outside the last twelve carries its year, "July 2023", so "since July" can't mean two years ago.
+export function fmtMonth(iso, long = false, { yearIfOld = false, now = new Date() } = {}) {
+  const d = new Date(iso + 'T12:00:00')
+  const options = { month: long ? 'long' : 'short' }
+  if (yearIfOld && d < new Date(now.getFullYear(), now.getMonth() - 11, 1)) options.year = 'numeric'
+  return d.toLocaleDateString(dateLocale(), options)
+}
 // A span of days, e.g. an import's first and last workout. The year is shown when the span
 // crosses one or lies outside the current year: "3 Feb – 21 Dec" over two years read as one.
 export function fmtDateRange(from, to, long, now = new Date()) {
@@ -58,10 +66,11 @@ export const exerciseNameText = ex => (exerciseNameClass(ex) ? capWords(exercise
  * 62.5 is 62.5 either way. Nothing rounds differently in storage — this is display only.
  */
 let decimals = 1
-export const setWeightDecimals = n => { decimals = n === 2 ? 2 : 1 }
+// 0 is "None" (Settings > Units and language): whole numbers only.
+export const setWeightDecimals = n => { decimals = n === 2 ? 2 : n === 0 ? 0 : 1 }
 export const weightDecimals = () => decimals
 export const fmtNum = n => {
-  const p = decimals === 2 ? 100 : 10
+  const p = decimals === 2 ? 100 : decimals === 0 ? 1 : 10
   return (Math.round(n * p) / p).toLocaleString(dateLocale(), { maximumFractionDigits: decimals })
 }
 // Plate sizes keep their quarter: 1.25 and 21.25 are real numbers on a plate and a bar.
@@ -143,10 +152,5 @@ export const weekKey = (iso, ws = MONDAY) => isoOf(startOfWeek(iso, ws))
 export const localTZ = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' } }
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
-// What each accent is called, for a screen reader (Settings' swatches carry no text).
-export const ACCENT_NAMES = { lime: 'Green', sky: 'Blue', orange: 'Orange', violet: 'Purple', pink: 'Pink', red: 'Red', teal: 'Teal', gold: 'Yellow' }
-export const ACCENTS = { lime: '#30d158', sky: '#0a84ff', orange: '#ff9f0a', violet: '#bf5af2', pink: '#ff375f', red: '#ff453a', teal: '#40c8e0', gold: '#ffd60a' }
-// Text drawn on top of that swatch. Matches the --on-acc values in index.css.
-export const ACCENT_INK = { lime: '#000000', sky: '#ffffff', orange: '#000000', violet: '#ffffff', pink: '#ffffff', red: '#ffffff', teal: '#000000', gold: '#000000' }
 // Android color int, opaque. JS bitwise ops are signed, so the high bit is cleared back to unsigned.
 export const argb = hex => (0xff000000 | parseInt(hex.slice(1), 16)) >>> 0

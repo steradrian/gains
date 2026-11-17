@@ -1,0 +1,42 @@
+/* The Week page on the stage (WeekScreen.jsx, boards Sh2Week, Sh2WeekPast). The stage is full bleed
+   (index.css #app:has(> .g-screen)); StageScreen's body already clears the status bar, where the
+   nav bar sticks, so the page adds no top inset of its own. It keeps the boards' 150px of air
+   above the floating tab bar. */
+.week{padding-bottom:calc(150px + var(--sab));color:var(--on-stage);font-family:var(--font-sans)}
+.week-pad{padding:0 16px}
+
+/* The range (StagePageTitle, the page's h1), its status, and ‹ › at the end; ‹ before the week of
+   the first log and › past this week are drawn faint and do nothing */
+.week-head{display:flex;align-items:flex-end;gap:8px;padding-inline-end:16px}
+.week-head .g-sptitle{flex:1;min-width:0;padding-bottom:0}
+.week-nav{appearance:none;border:0;width:44px;height:44px;flex:none;padding:0;border-radius:50%;display:grid;place-items:center;color:var(--on-stage);cursor:pointer;transition:transform 180ms cubic-bezier(.34,1.4,.64,1)}
+.week-nav:active{transform:scale(.94)}
+.week-nav .g-icon{width:20px;height:20px;stroke-width:2.2}
+.week-nav-off{opacity:.35;cursor:default}
+.week-nav-off:active{transform:none}
+[dir="rtl"] .week-nav .g-icon{transform:scaleX(-1)}
+
+/* The ring: StageRing at 112 keeps 8px of air round a 96px ring (r 42.5, as drawn), so the row's
+   start and gap give those 8px back */
+.week-ring{display:flex;align-items:center;gap:10px;padding:0 20px;padding-inline-start:12px}
+.week-ring > span:first-child{display:block;line-height:0}
+.week-ring-t{display:flex;flex-direction:column}
+.week-ring-t b{font:700 44px/48px var(--font-sans);letter-spacing:-.03em}
+.week-ring-t b span{font:600 22px/28px var(--font-sans);letter-spacing:normal;color:var(--on-stage-2)}
+.week-ring-t > span{font:600 15px/20px var(--font-sans);color:var(--on-stage-2)}
+.week-cells{padding-top:12px}
+
+/* Muscles this week: the map, the Less–More key and the note, in one glass card */
+.week-muscles{margin:0 16px;border-radius:24px}
+.week-map{padding:16px 12px 10px}
+.week-scale{display:flex;justify-content:flex-end;align-items:center;gap:5px;padding:0 20px 16px;font:500 13px/16px var(--font-sans);color:var(--on-stage-2)}
+.week-scale i{width:14px;height:14px;border-radius:4px}
+.week-scale .l0{background:var(--bm-stage-l0)}
+.week-scale .l1{background:var(--bm-stage-l1)}
+.week-scale .l2{background:var(--bm-stage-l2)}
+.week-scale .l3{background:var(--bm-stage-l3)}
+.week-scale .l4{background:var(--bm-stage-l4)}
+.week-muscles p{margin:-6px 0 0;padding:0 16px 16px;font:500 15px/20px var(--font-sans);color:var(--on-stage-2)}
+
+/* Trends is a link in white, as drawn */
+.week .g-ssec-label .g-ssec-act{color:var(--on-stage)}

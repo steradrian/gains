@@ -57,6 +57,39 @@ export const NAME_MAX = 80;
 const text = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
 const word = (v, n) => (typeof v === 'string' && v ? v.slice(0, n) : null);
 
+/* ---------- the weekly check-in ----------
+   How the week felt, how they slept, a note (frontend lib/coach-checkin.js, which keeps its own
+   copy of these three; coach-parity.test.js pins them). A review carries the latest one the
+   Coach has not read. */
+export const CHECKIN_FEEL = ['easy', 'right', 'hard', 'much'];
+export const CHECKIN_SLEEP = ['poor', 'ok', 'good'];
+export const CHECKIN_NOTE_MAX = 500;
+const WEEK_ISO = /^\d{4}-\d{2}-\d{2}$/;
+/**
+ * Whether `c` is a check-in a client may send: an object with an ISO `week`, `feel` and `sleep`
+ * each absent or one of their words, `note` absent or a string of at most CHECKIN_NOTE_MAX, and
+ * at least one of the three. The review route refuses anything else.
+ */
+export function validCheckIn(c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return false;
+  if (typeof c.week !== 'string' || !WEEK_ISO.test(c.week)) return false;
+  if (c.feel != null && !CHECKIN_FEEL.includes(c.feel)) return false;
+  if (c.sleep != null && !CHECKIN_SLEEP.includes(c.sleep)) return false;
+  if (c.note != null && (typeof c.note !== 'string' || c.note.length > CHECKIN_NOTE_MAX)) return false;
+  return !!(c.feel || c.sleep || (c.note && c.note.trim()));
+}
+/** The check-in as the payload carries it, by name and bounded; null when there is none. */
+export function cleanCheckIn(c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+  const out = {
+    week: typeof c.week === 'string' && WEEK_ISO.test(c.week) ? c.week : null,
+    feel: CHECKIN_FEEL.includes(c.feel) ? c.feel : null,
+    sleep: CHECKIN_SLEEP.includes(c.sleep) ? c.sleep : null,
+    note: text(c.note, CHECKIN_NOTE_MAX).trim() || null
+  };
+  return out.week && (out.feel || out.sleep || out.note) ? out : null;
+}
+
 /** A language tag's shape ('de', 'pt-BR', 'zh_Hant'), or null — for a language that arrives with
  *  a request or from the environment rather than from the state (#303). */
 export const langTag = v => (typeof v === 'string' && /^[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})?$/.test(v.trim()) ? v.trim() : null);
@@ -472,7 +505,10 @@ export function workoutMeta(S, workoutId) {
  * Build a job payload.
  *
  * @param {object} S      the profile's synced state
- * @param {object} opts   { handle, kind, intake?, note?, refine?, previous?, workoutId?, cohort?, lang? }
+ * @param {object} opts   { handle, kind, intake?, note?, checkIn?, refine?, previous?, workoutId?, cohort?, lang? }
+ *
+ * `checkIn` (a review only) is the weekly check-in the client sends with the request, never
+ * read from the synced state: it rides with the review the person asked for.
  *
  * `handle` is the opaque per-profile pseudonym the payload carries instead of a uid. It is
  * supplied rather than derived because the two runtimes mint it differently: the server keys
@@ -552,6 +588,8 @@ export function build(S, opts = {}) {
     p.aggregates = aggregates(S, workouts);
     p.bodyweight = { goal: num(S.targetW) ?? null, series: weighIns(S, p.window.from, null) };
     if (opts.note) p.userNote = String(opts.note).slice(0, MAX_NOTE_CHARS);
+    const checkIn = cleanCheckIn(opts.checkIn);
+    if (checkIn) p.checkIn = checkIn;
     if (opts.cohort) p.cohort = cleanCohort(opts.cohort);
     // A review names mostly what is already trained; 60 candidates is plenty for a swap.
     p.library = librarySlice(S, p.coachProfile?.equipment, { keep: trainedIds(S, workouts), max: 60 });

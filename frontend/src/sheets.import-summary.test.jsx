@@ -1,11 +1,13 @@
 // @vitest-environment happy-dom
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { importFromApp } from './sheets.jsx'
 import { fmtDateRange } from './lib/format.js'
+import { XLSX_TYPE } from './lib/xlsx.js'
+import { makeXlsx } from './lib/xlsx.test-util.js'
 
 // The import summary's date range said "Sun, 3 Feb – Sun, 21 Dec" for a history that ran over
 // two years: without the year, a span across a new year read as a few months.
@@ -76,5 +78,75 @@ describe('the import summary’s counts', () => {
     const importBtn = [...host.querySelectorAll('button')].find(b => b.textContent === 'Import')
     act(() => importBtn.click())
     expect(useUI.getState().toastMsg).toBe('1 workout imported')
+  })
+})
+
+// Settings' Import page hands importFromApp an `onImported`: the done screen replaces the toast,
+// and the same file twice leaves its days alone.
+describe('the import’s outcome', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], bodyweight: [] } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+
+  async function importWith(text) {
+    const onImported = vi.fn()
+    importFromApp(new File([text], 'export.csv', { type: 'text/csv' }), { onImported })
+    for (let i = 0; i < 50 && !useUI.getState().sheets.length; i++) await new Promise(r => setTimeout(r, 5))
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    act(() => root.render(useUI.getState().sheets.at(-1).render(() => {})))
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
+    return onImported
+  }
+
+  it('reports what was added instead of toasting, and a second pass leaves the first days alone', async () => {
+    const first = await importWith(csv('2026-01-02', '2026-01-03'))
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(first.mock.calls[0][0]).toMatchObject({ kind: 'workouts', imported: 2, sets: 2, leftAlone: 0 })
+    expect(useUI.getState().toastMsg).toBe('')
+    act(() => root.unmount()); root = null; document.body.innerHTML = ''; useUI.setState({ sheets: [] })
+    const second = await importWith(csv('2026-01-03', '2026-01-04'))
+    expect(second.mock.calls[0][0]).toMatchObject({ imported: 1, sets: 1, leftAlone: 1 })
+    expect(useStore.getState().S.workouts).toHaveLength(3)
+  })
+})
+
+// A MacroFactor export is an .xlsx with the workouts and the weigh-ins in one file: the summary
+// says the weigh-ins come along, and Import brings both.
+describe('importing a MacroFactor .xlsx', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], bodyweight: [] } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+
+  it('shows and imports the workouts and the weigh-ins', async () => {
+    const book = makeXlsx([
+      { name: 'Quick Export', rows: [['Date', 'Trend Weight (kg)', 'Weight (kg)'], [{ date: 46316 }, 80.3, 81.4]] },
+      { name: 'Workout Log', rows: [
+        ['Date', 'Workout Duration', 'Workout', 'Exercise', 'Exercise Base Weight (kg)', 'Set Type', 'Weight (kg)', 'Reps', 'RIR'],
+        ['2026-10-20', 3600, 'Workout A', 'Barbell Curl', '', 'Standard Set', 30, 10, 2],
+      ] },
+    ])
+    const onImported = vi.fn()
+    importFromApp(new File([book], 'MacroFactor-20261025205642.xlsx', { type: XLSX_TYPE }), { onImported })
+    for (let i = 0; i < 50 && !useUI.getState().sheets.length; i++) await new Promise(r => setTimeout(r, 5))
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    act(() => root.render(useUI.getState().sheets.at(-1).render(() => {})))
+    // A ds/BottomSheet, so it must open in the ds frame: in the old one it sat collapsed.
+    expect(useUI.getState().sheets.at(-1).variant).toBe('ds')
+    expect(host.textContent).toContain('Import from MacroFactor')
+    expect(host.textContent).toContain('Also brings 1 new weigh-in.')
+    act(() => [...host.querySelectorAll('button')].find(b => b.textContent === 'Import').click())
+    expect(onImported.mock.calls[0][0]).toMatchObject({ kind: 'workouts', source: 'MacroFactor', imported: 1, weighIns: 1 })
+    expect(useStore.getState().S.workouts).toHaveLength(1)
+    expect(useStore.getState().S.bodyweight).toMatchObject([{ d: '2026-10-21', w: 81.4 }])
   })
 })

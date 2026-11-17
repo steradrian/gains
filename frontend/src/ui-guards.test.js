@@ -65,10 +65,10 @@ describe('G8 finds a page choosing its own chrome', () => {
       writeFileSync(join(dir, 'views', 'B.jsx'), `export default () => <div className={cx('hdr', on && 'x')}><h1>B</h1></div>`)
       writeFileSync(join(dir, 'views', 'C.jsx'), `export default () => <Page title="C" className="wide">x</Page>`)
       writeFileSync(join(dir, 'views', 'D.jsx'), `export default () => <Page title={t('D')} action={<i style={{ x: 1 }} className="y" />}>x</Page>`)
-      writeFileSync(join(dir, 'views', 'Workout.jsx'), `export default () => <div className="hdr whdr-bar" />`)
+      writeFileSync(join(dir, 'views', 'WorkoutRoute.jsx'), `export default () => <div className="hdr whdr-bar" />`)
       writeFileSync(join(dir, 'components', 'layout.jsx'), `import RootHeader from './RootHeader.jsx'`)
       expect(pageChrome(dir)).toEqual(['views/A.jsx: imports SubHeader.jsx', 'views/B.jsx: builds .hdr', 'views/B.jsx: renders its own <h1>', 'views/C.jsx: styles <Page>'])
-      expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx'])
+      expect(HEADER_FILES).toEqual(['components/layout.jsx', 'components/RootHeader.jsx', 'components/SubHeader.jsx', 'dev/screens/states/shared-search.jsx'])
     } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 
@@ -385,10 +385,11 @@ describe('G3 counts hand-built primitive markup', () => {
 describe('G4 and G7', () => {
   it('finds the routed components and exempts the full-screen ones', () => {
     const views = routeViewsWithoutPage()
-    expect(views).toContain('Workout')
-    expect(views).not.toContain('SettingsRoute')
-    expect(PAGE_EXEMPT).toEqual(['FocusView', 'Login', 'MobileOnboarding', 'Workout'])
-    expect(now.G4).not.toContain('Workout')
+    expect(views).toContain('WorkoutRoute')
+    // The route hands its page to Settings.jsx, which draws the chrome: exempt, not a miss.
+    expect(views).toContain('SettingsRoute')
+    expect(PAGE_EXEMPT).toEqual(['AddDevice', 'BodyRoute', 'BurnedPage', 'ChangesRoute', 'CoachChat', 'CreateExercise', 'DayPage', 'Fasting', 'FoodGate', 'FoodHub', 'FoodRedirect', 'FriendsGate', 'GoalRoute', 'GroupLinkRedirect', 'GymPassPage', 'History', 'Home', 'InviteRoute', 'LoadMuscleScreen', 'Login', 'MeRoute', 'MobileOnboarding', 'MonthPage', 'Notifications', 'PlanImportPage', 'PlanPreview', 'PlanScreen', 'PlansScreen', 'ReadyScreen', 'RoutineEditor', 'RoutinesScreen', 'SettingsRoute', 'SummaryScreen', 'TrainHub', 'TrainingLoad', 'TrendsPage', 'WeekPage', 'WorkoutRoute'])
+    expect(now.G4).not.toContain('WorkoutRoute')
   })
 
   it('checks the routed component itself, through double-quoted, named and lazy imports', () => {
@@ -401,8 +402,11 @@ describe('G4 and G7', () => {
         `const D = lazy(() => import('./views/D.jsx'))`,
         `const E = React.lazy(() => import("./views/E.jsx").then(m => ({ default: m.ERoute })))`,
         `<Route path="/a" element={<A />} /><Route path="/b" element={<BRoute />} /><Route path="/c" element={ok ? <C /> : <Navigate to="/" />} />`,
-        `<Route path="/d" element={<D />} /><Route path="/e" element={<E />} />`,
+        `<Route path="/d" element={<D />} /><Route path="/e" element={<E />} /><Route path="/f" element={<F />} />`,
+        `import F from "./views/F.jsx"`,
       ].join('\n'))
+      // A pushed page on the stage is built on <StagePage>, which counts as a page.
+      writeFileSync(join(dir, 'views', 'F.jsx'), `export default function F() { return <StagePage title="F">x</StagePage> }`)
       writeFileSync(join(dir, 'views', 'A.jsx'), `export default function A() { return <Page title="A">x</Page> }`)
       // The file renders <Page>, but not in the routed component.
       writeFileSync(join(dir, 'views', 'B.jsx'), `export function BRoute() { return <div /> }\nexport function Other() { return <Inner /> }\nfunction Inner() { return <Page title="C" /> }`)
@@ -418,5 +422,12 @@ describe('G4 and G7', () => {
     expect(newCssViolations(':root{--x:#123}', 'x.css')).toBe(1)
     expect(newCssViolations('.a{color:tomato;background:hsl(0 0% 0%)}', 'x.css')).toBe(2)
     expect(newCssViolations(':root{--x:#fff} .a{color:var(--x)}', 'ui-kit.css')).toBe(0)
+  })
+
+  it('reads the design system\'s .g-root as its tokens\' root, in its own token file only', () => {
+    const tokens = '.g-root{--x:#fff} :root[data-theme="dark"] .g-root{--x:#000}'
+    expect(newCssViolations(tokens, 'ds/tokens.css')).toBe(0)
+    expect(newCssViolations(tokens, 'ds/ds.css')).toBe(2)
+    expect(newCssViolations('.g-root .a{color:#fff} .g-root[data-accent="moss"]{--x:#123}', 'ds/tokens.css')).toBe(2)
   })
 })

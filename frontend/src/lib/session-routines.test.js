@@ -209,6 +209,13 @@ describe('a routine saved from a planned session', () => {
     expect(cfg).toMatchObject({ id: BENCH, sets: 2, reps: 8 })
   })
 
+  it('keeps an effort sport\'s effort, not a speed', () => {
+    const w = { id: 'w-fb', entries: [entry('12107', { mode: 'cardio', sets: 1, min: 60, eff: 2 }, [{ min: 50, eff: 3, done: true }])] }
+    const cfg = routineFromSession(w, 'Football').ex[0]
+    expect(cfg).toMatchObject({ min: 50, eff: 3 })
+    expect(cfg.speed).toBeUndefined()
+  })
+
   it('leaves the rule to the default when the source routine is gone', () => {
     const source = { id: 'E', name: 'Gone', prog: 'double', ex: [{ id: BENCH, sets: 3, reps: 12, repsMin: 8, weight: 60 }] }
     const st = stateOf([source])

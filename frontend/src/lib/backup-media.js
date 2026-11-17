@@ -61,6 +61,14 @@ export function sanitizeCustomMedia(state) {
     const list = workoutMediaOf(w, Infinity)
     if (list.length) w.media = list; else delete w.media
   }
+  // Me photos M1: a progress photo's ref is rebuilt from its known fields when it passes. One that
+  // does not is left as it is, never dropped: every reader gates it again (lib/me/photos.js), and
+  // dropping it would take the reference that keeps its file with it.
+  for (const p of Array.isArray(state?.bodyPhotos) ? state.bodyPhotos : []) {
+    if (!p || typeof p !== 'object' || !('ref' in p)) continue
+    const m = normalizeMediaRef(p.ref)
+    if (m) p.ref = m
+  }
   return state
 }
 

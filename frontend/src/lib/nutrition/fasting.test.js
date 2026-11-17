@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fastingStats, hitGoal, lastFinished, lengthOf, progressOf, recentDays, validGoal } from './fasting.js'
+import { canReopen, endsAt, fastingStats, hitGoal, lastFinished, lengthOf, longestFast, planLabelOf, progressOf, recentDays, startProblem, usualStart, validGoal } from './fasting.js'
 
 const H = 3600 * 1000
 // A local noon, so day boundaries are nowhere near and the tests hold in any time zone.
@@ -99,5 +99,59 @@ describe('recentDays', () => {
   it('shows a running fast on today with what it has so far', () => {
     const days = recentDays([], { id: 9, start_at: iso(NOW - 6 * H), end_at: null, goal_hours: 16 }, NOW, 2)
     expect(days.at(-1).hours).toBe(6)
+  })
+})
+
+describe('startProblem', () => {
+  it('refuses a start in the future, one too far back, and one that is not a time', () => {
+    expect(startProblem(NOW + 60_000, NOW)).toBe('future')
+    expect(startProblem(NOW - 8 * 24 * H, NOW)).toBe('old')
+    expect(startProblem(NaN, NOW)).toBe('invalid')
+  })
+
+  it('takes now, and 7 days back for a change of start', () => {
+    expect(startProblem(NOW, NOW)).toBeNull()
+    expect(startProblem(NOW - 7 * 24 * H + 5 * 60_000, NOW)).toBeNull()
+  })
+
+  it('takes a start for a new fast only within the last 24 hours', () => {
+    expect(startProblem(NOW - 23 * H, NOW, 24 * H)).toBeNull()
+    expect(startProblem(NOW - 25 * H, NOW, 24 * H)).toBe('old')
+  })
+})
+
+describe('Undo of End', () => {
+  it('can start a fast again only while its start is within the hub back-date', () => {
+    expect(canReopen(done(1, NOW - 17 * H, NOW), NOW)).toBe(true)
+    expect(canReopen(done(2, NOW - 30 * H, NOW), NOW)).toBe(false)
+  })
+})
+
+describe('the numbers behind the page', () => {
+  it('works out when a fast ends and which plan it is', () => {
+    expect(endsAt(NOW, 16)).toBe(NOW + 16 * H)
+    expect(planLabelOf(16)).toBe('16:8')
+    expect(planLabelOf(15)).toBeNull()
+  })
+
+  it('finds the longest finished fast, and none in an empty history', () => {
+    expect(longestFast([ending(1, 1, 12), ending(2, 2, 18), ending(3, 3, 15)]).id).toBe(2)
+    expect(longestFast([])).toBeNull()
+  })
+
+  it('suggests the next moment that has the clock time the last fast began at', () => {
+    const last = done(1, at(2, 20), at(1, 12))
+    // Noon: 20:00 is still ahead today.
+    expect(usualStart([last], NOW)).toBe(at(0, 20))
+    // 22:00: it is tomorrow's.
+    expect(usualStart([last], at(0, 22))).toBe(new Date(2026, 9, 15, 20, 0, 0).getTime())
+    expect(usualStart([], NOW)).toBeNull()
+  })
+
+  it('leaves a running fast out of the average and the longest', () => {
+    const stats = fastingStats([ending(1, 1, 17), ending(2, 2, 13)], { id: 9, start_at: iso(NOW - 30 * H), end_at: null, goal_hours: 16 }, NOW)
+    expect(stats.count).toBe(2)
+    expect(stats.avgHours).toBe(15)
+    expect(stats.longestHours).toBe(17)
   })
 })

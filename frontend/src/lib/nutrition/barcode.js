@@ -22,6 +22,23 @@ function checkOk(code) {
   return (10 - (sum % 10)) % 10 === d.at(-1)
 }
 
+/** Why a typed code cannot be looked up: null when it can, 'length' (not 8 to 14 digits) or
+ *  'check' (the digits are there but the last one does not match the others: a typo). Typed codes
+ *  only; a camera read has been through the decoder. */
+export function barcodeProblem(raw) {
+  const code = normalizeBarcode(raw)
+  if (!code) return 'length'
+  return checkOk(code) ? null : 'check'
+}
+
+/** A code as it is printed under the bars: an EAN-13 as 1-6-6, an EAN-8 as 4-4, else as is. */
+export function formatBarcode(code) {
+  const c = String(code ?? '')
+  if (/^\d{13}$/.test(c)) return `${c[0]} ${c.slice(1, 7)} ${c.slice(7)}`
+  if (/^\d{8}$/.test(c)) return `${c.slice(0, 4)} ${c.slice(4)}`
+  return c
+}
+
 /** UPC-E (8 digits, number system 0 or 1) written out as the 12-digit UPC-A it compresses. */
 export function upcEToUpcA(code) {
   const [ns, a, b, c, d, e, f] = code

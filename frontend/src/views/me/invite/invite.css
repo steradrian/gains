@@ -1,0 +1,14 @@
+/* Me invite M2 (InvitePage.jsx, boards M5.0 to M5.3). The stage is full bleed, so the page adds no
+   top inset; it keeps air above the floating tab bar, as the other pushed pages do. Rows are the
+   kit's InviteRow (a GlassRow), which sets its own side margins. */
+.inv{padding-bottom:calc(150px + var(--sab))}
+.inv-card{display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
+.inv-card > .g-btn{margin-inline:20px;width:calc(100% - 40px)}
+.inv-group + .inv-group{padding-top:8px}
+.inv-list{display:flex;flex-direction:column;gap:8px}
+.inv-skeleton{display:flex;flex-direction:column;gap:8px;padding:24px 20px 0}
+.inv-sk{height:68px;border-radius:20px}
+.inv-ask{margin:0 0 12px;font:500 15px/21px var(--font-sans);color:var(--text-2);text-align:start}
+.inv-ask b{font-weight:700;color:var(--text)}
+/* Me invite M3 (MemberInvite.jsx): the note field and its error sit inside the card's side margins. */
+.inv-field{margin-inline:20px}

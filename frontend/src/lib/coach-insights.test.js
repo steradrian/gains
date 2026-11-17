@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { insightsFor, sessionInsights, windowWorkouts } from './coach-insights.js'
 import { EXIDX } from './exercises.js'
 
-// Pick two real catalogue ids from different body parts so the body-part grouping is real.
+// Pick two real catalogue ids from different body parts so the body-part grouping is real. Loaded
+// lifts: a bodyweight exercise has no 1RM estimate (lib/onerm.js bestSetOf).
 const ids = Object.keys(EXIDX)
-const chest = ids.find(id => EXIDX[id].bp === 'chest')
-const legs = ids.find(id => EXIDX[id].bp === 'upper legs')
+const chest = ids.find(id => EXIDX[id].bp === 'chest' && EXIDX[id].eq === 'barbell')
+const legs = ids.find(id => EXIDX[id].bp === 'upper legs' && EXIDX[id].eq === 'barbell')
 
 const day = (d, h = 10) => new Date(d + 'T' + String(h).padStart(2, '0') + ':00:00').getTime()
 const w = (id, d, entries, over = {}) => ({ id, d, name: 'Push', start: day(d), end: day(d) + 55 * 60000, entries, ...over })
